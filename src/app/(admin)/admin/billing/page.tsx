@@ -1,0 +1,1001 @@
+"use client";
+
+import { useCallback, useMemo, useRef, useState } from "react";
+import { useEffect } from "react";
+import { AlertCircle, CheckCircle2, Clock3, Download, FileSpreadsheet, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { toast } from "sonner";
+
+import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
+import { BillingBulkMessageDrawer, type BillingUnitOption } from "@/components/features/billing/BillingBulkMessageDrawer";
+import { EmptyState } from "@/components/shared/empty-state";
+import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { IconBadge } from "@/components/ui/icon-badge";
+import { Input } from "@/components/ui/input";
+import { UI_TEXT } from "@/constants/uiText";
+import { useAuth } from "@/features/auth/auth-context";
+import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
+import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
+import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
+import type { BillingStatement } from "@/types/domain";
+
+type UnitCollectionItem = {
+  id: string;
+  unitId?: string;
+  displayName?: string;
+  unitLabel?: string;
+};
+
+type BillingStatusFilter = "all" | "paid" | "pending" | "overdue";
+type BillingStatus = BillingStatement["status"];
+
+function parseCurrency(value: string) {
+  const cleaned = value.replace(/[^0-9-]/g, "");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatCurrency(value: number) {
+  return `$${value.toLocaleString("es-CO")}`;
+}
+
+function formatCurrencyInput(value: string) {
+  const parsed = parseCurrency(value);
+  return parsed.toLocaleString("es-CO");
+}
+
+function computeStatus(balance: number, dueDate?: string): BillingStatus {
+  if (balance <= 0) return "paid";
+  const today = new Date().toISOString().slice(0, 10);
+  if (dueDate && dueDate < today) return "overdue";
+  return "pending";
+}
+
+function buildCsvRows(rows: Array<Record<string, string | number>>) {
+  if (rows.length === 0) return "";
+  const headers = Object.keys(rows[0]);
+  const lines = [headers.join(",")];
+  rows.forEach((row) => {
+    const values = headers.map((header) => {
+      const raw = String(row[header] ?? "");
+      return /[",\n]/.test(raw) ? `"${raw.replace(/"/g, '""')}"` : raw;
+    });
+    lines.push(values.join(","));
+  });
+  return lines.join("\n");
+}
+
+function parseCsv(text: string) {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map((item) => item.trim().toLowerCase());
+  return lines.slice(1).map((line) => {
+    const values = line.split(",");
+    const row: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      row[header] = (values[index] ?? "").trim().replace(/^"|"$/g, "");
+    });
+    return row;
+  });
+}
+
+function formatPeriodLabel(period: string) {
+  const date = new Date(`${period}-01T00:00:00`);
+  if (Number.isNaN(date.getTime())) return period;
+  return new Intl.DateTimeFormat("es-CO", { month: "short", year: "2-digit" }).format(date);
+}
+
+function BillingTrendTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; name: string }>;
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+
+  const charged = payload.find((item) => item.name === "Cobrado")?.value ?? 0;
+  const collected = payload.find((item) => item.name === "Recaudado")?.value ?? 0;
+  const rate = payload.find((item) => item.name === "% recaudo")?.value ?? (charged > 0 ? (collected / charged) * 100 : 0);
+  const gap = Math.max(charged - collected, 0);
+
+  return (
+    <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
+      <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Periodo"}</p>
+      <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
+        <p className="flex items-center justify-between gap-3">
+          <span>Cobrado</span>
+          <span className="font-semibold text-[#2c648d]">{formatCurrency(charged)}</span>
+        </p>
+        <p className="flex items-center justify-between gap-3">
+          <span>Recaudado</span>
+          <span className="font-semibold text-[#2f775f]">{formatCurrency(collected)}</span>
+        </p>
+        <p className="flex items-center justify-between gap-3">
+          <span>Brecha</span>
+          <span className="font-semibold text-[#936b24]">{formatCurrency(gap)}</span>
+        </p>
+        <p className="flex items-center justify-between gap-3">
+          <span>% recaudo</span>
+          <span className="font-semibold text-[#355f87]">{rate.toFixed(1)}%</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminBillingPage() {
+  const { user } = useAuth();
+  const { items, loading, error } = useBillingStatements(user?.tenantId);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
+  const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
+  const [catalogUnitsError, setCatalogUnitsError] = useState<string | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState("");
+  const [unitLabel, setUnitLabel] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [amount, setAmount] = useState("1.120.000");
+  const [paymentAmount, setPaymentAmount] = useState("0");
+  const [dueDate, setDueDate] = useState("");
+  const [chartUnitFilter, setChartUnitFilter] = useState("all");
+  const [fromPeriod, setFromPeriod] = useState("");
+  const [toPeriod, setToPeriod] = useState("");
+  const [statusFilter, setStatusFilter] = useState<BillingStatusFilter>("all");
+  const [unitFilter, setUnitFilter] = useState("all");
+  const [isBulkDrawerOpen, setIsBulkDrawerOpen] = useState(false);
+  const [selectedBulkUnitIds, setSelectedBulkUnitIds] = useState<string[]>([]);
+  const [bulkMessage, setBulkMessage] = useState("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");
+  const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [editingRecord, setEditingRecord] = useState<BillingEditRecord | null>(null);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isEditDrawerDirty, setIsEditDrawerDirty] = useState(false);
+  const [pendingSwitchRecord, setPendingSwitchRecord] = useState<BillingEditRecord | null>(null);
+  const [isSwitchConfirmOpen, setIsSwitchConfirmOpen] = useState(false);
+  const requestDrawerSubmitRef = useRef<(() => Promise<boolean>) | null>(null);
+  const [switchingAfterSave, setSwitchingAfterSave] = useState(false);
+  const inFlightUpdateIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.tenantId) {
+      setCatalogUnits([]);
+      setCatalogUnitsLoading(false);
+      setCatalogUnitsError(null);
+      return;
+    }
+
+    setCatalogUnitsLoading(true);
+    setCatalogUnitsError(null);
+
+    const unsubscribe = subscribeTenantCollection<UnitCollectionItem>(
+      "units",
+      user.tenantId,
+      (rows) => {
+        const options = rows
+          .map((row) => {
+            const stableId = typeof row.unitId === "string" && row.unitId.trim().length > 0 ? row.unitId.trim() : row.id;
+            const label =
+              (typeof row.displayName === "string" && row.displayName.trim().length > 0 ? row.displayName.trim() : "") ||
+              (typeof row.unitLabel === "string" && row.unitLabel.trim().length > 0 ? row.unitLabel.trim() : "") ||
+              stableId;
+            return { id: stableId, label };
+          })
+          .sort((a, b) => a.label.localeCompare(b.label, "es"));
+
+        setCatalogUnits(options);
+        setCatalogUnitsLoading(false);
+        setCatalogUnitsError(null);
+      },
+      (message) => {
+        setCatalogUnitsLoading(false);
+        setCatalogUnitsError(message);
+      },
+    );
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user?.tenantId]);
+
+  useEffect(() => {
+    if (catalogUnits.length === 0) {
+      setSelectedUnitId("");
+      setUnitLabel("");
+      return;
+    }
+
+    if (!catalogUnits.some((unit) => unit.id === selectedUnitId)) {
+      setSelectedUnitId(catalogUnits[0].id);
+      setUnitLabel(catalogUnits[0].label);
+    }
+  }, [catalogUnits, selectedUnitId]);
+
+  useEffect(() => {
+    if (catalogUnits.length === 0) {
+      setSelectedBulkUnitIds([]);
+      return;
+    }
+
+    setSelectedBulkUnitIds((current) => current.filter((id) => catalogUnits.some((unit) => unit.id === id)));
+  }, [catalogUnits]);
+
+  const billingFormTitle = useMemo(() => {
+    const parsedAmount = parseCurrency(amount);
+    const parsedPayment = parseCurrency(paymentAmount);
+
+    if (parsedAmount > 0 && parsedPayment === 0) return UI_TEXT.billing.createCharge;
+    if (parsedAmount === 0 && parsedPayment > 0) return UI_TEXT.billing.registerPayment;
+    if (parsedAmount > 0 && parsedPayment > 0) return UI_TEXT.billing.adjustPortfolio;
+    return UI_TEXT.billing.defaultTitle;
+  }, [amount, paymentAmount]);
+
+  const logDebug = useCallback((event: string, payload?: Record<string, unknown>) => {
+    if (process.env.NODE_ENV === "production") return;
+    if (payload) {
+      console.info(event, payload);
+      return;
+    }
+    console.info(event);
+  }, []);
+
+  const normalizedRows = useMemo(() => {
+    return items.map((item) => {
+      const rowAmount = typeof item.amount === "number" ? item.amount : (item.balance || 0) + (item.paymentAmount || 0);
+      const rowPayment = item.paymentAmount || 0;
+      const rowDueDate = item.dueDate || "";
+      const status = computeStatus(item.balance || 0, rowDueDate);
+      return {
+        ...item,
+        amount: rowAmount,
+        paymentAmount: rowPayment,
+        dueDate: rowDueDate,
+        status,
+      };
+    });
+  }, [items]);
+
+  const availableChartPeriods = useMemo(() => getBillingPeriods(normalizedRows, chartUnitFilter), [normalizedRows, chartUnitFilter]);
+
+  useEffect(() => {
+    if (availableChartPeriods.length === 0) {
+      if (fromPeriod !== "") setFromPeriod("");
+      if (toPeriod !== "") setToPeriod("");
+      return;
+    }
+
+    const latest = availableChartPeriods[availableChartPeriods.length - 1];
+    const defaultFrom = availableChartPeriods[Math.max(availableChartPeriods.length - 11, 0)];
+    let nextFrom = fromPeriod;
+    let nextTo = toPeriod;
+
+    if (!nextFrom || !availableChartPeriods.includes(nextFrom)) {
+      nextFrom = defaultFrom;
+    }
+
+    if (!nextTo || !availableChartPeriods.includes(nextTo)) {
+      nextTo = latest;
+    }
+
+    if (nextFrom > nextTo) {
+      nextFrom = defaultFrom;
+      nextTo = latest;
+    }
+
+    if (nextFrom !== fromPeriod) setFromPeriod(nextFrom);
+    if (nextTo !== toPeriod) setToPeriod(nextTo);
+  }, [availableChartPeriods, fromPeriod, toPeriod]);
+
+  const chartTrend = useMemo(
+    () => buildBillingTrend(normalizedRows, chartUnitFilter, fromPeriod, toPeriod),
+    [normalizedRows, chartUnitFilter, fromPeriod, toPeriod],
+  );
+
+  const trendSummary = useMemo(() => {
+    const totalCharged = chartTrend.reduce((sum, item) => sum + item.totalCharged, 0);
+    const totalCollected = chartTrend.reduce((sum, item) => sum + item.totalCollected, 0);
+    const gap = Math.max(totalCharged - totalCollected, 0);
+    const collectionRate = totalCharged > 0 ? (totalCollected / totalCharged) * 100 : 0;
+
+    return { totalCharged, totalCollected, gap, collectionRate };
+  }, [chartTrend]);
+
+  const chartData = useMemo(
+    () =>
+      chartTrend.map((item) => ({
+        ...item,
+        collectionRate: item.totalCharged > 0 ? (item.totalCollected / item.totalCharged) * 100 : 0,
+      })),
+    [chartTrend],
+  );
+
+  const filteredRows = useMemo(() => {
+    return normalizedRows.filter((item) => {
+      const byStatus = statusFilter === "all" ? true : item.status === statusFilter;
+      const byUnit = unitFilter === "all" ? true : item.unitLabel === unitFilter;
+      return byStatus && byUnit;
+    });
+  }, [normalizedRows, statusFilter, unitFilter]);
+
+  const overdueRows = useMemo(() => normalizedRows.filter((item) => item.status === "overdue"), [normalizedRows]);
+
+  const units = useMemo(() => Array.from(new Set(normalizedRows.map((item) => item.unitLabel))).sort((a, b) => a.localeCompare(b)), [normalizedRows]);
+
+  const allUnitLabels = useMemo(() => {
+    const fromCatalog = catalogUnits.map((unit) => unit.label);
+    return Array.from(new Set([...units, ...fromCatalog])).sort((a, b) => a.localeCompare(b, "es"));
+  }, [catalogUnits, units]);
+
+  const chartUnitOptions = useMemo(() => {
+    const labels = Array.from(new Set(catalogUnits.map((unit) => unit.label))).sort((a, b) => a.localeCompare(b, "es"));
+    return ["all", ...labels];
+  }, [catalogUnits]);
+
+  async function handleCreate() {
+    if (!user?.tenantId || !selectedUnitId.trim() || !unitLabel.trim() || !date.trim() || !amount.trim()) return;
+    const rawAmount = parseCurrency(amount);
+    const rawPayment = parseCurrency(paymentAmount);
+    const balance = Math.max(rawAmount - rawPayment, 0);
+    try {
+      await createBillingStatement({
+        tenantId: user.tenantId,
+        userId: user.uid,
+        unitId: selectedUnitId,
+        unitLabel: unitLabel.trim(),
+        period: date.slice(0, 7),
+        amount: rawAmount,
+        paymentAmount: rawPayment,
+        balance,
+        dueDate: dueDate || undefined,
+      });
+      toast.success("Estado de cuenta registrado.");
+      setPaymentAmount("0");
+      setAmount("0");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible registrar el estado de cuenta.");
+    }
+  }
+
+  async function handleRowUpdate(input: {
+    id: string;
+    unitLabel: string;
+    period: string;
+    amount: number;
+    paymentAmount: number;
+    balance: number;
+    dueDate?: string;
+  }) {
+    if (!user?.uid) return;
+    if (inFlightUpdateIdRef.current === input.id) {
+      logDebug("billing:edit:submit", { id: input.id, ignored: "already-in-flight" });
+      return;
+    }
+
+    logDebug("billing:edit:submit", { id: input.id, unitLabel: input.unitLabel, period: input.period });
+    inFlightUpdateIdRef.current = input.id;
+    setSavingRowId(input.id);
+    try {
+      await updateBillingStatement(input.id, {
+        unitLabel: input.unitLabel,
+        period: input.period,
+        amount: input.amount,
+        paymentAmount: input.paymentAmount,
+        balance: input.balance,
+        dueDate: input.dueDate,
+        userId: user.uid,
+      });
+
+      logDebug("billing:edit:success", { id: input.id });
+      logDebug("billing:query:invalidate", { mode: "realtime-subscription" });
+      logDebug("billing:toast:show", { type: "success", message: "Registro actualizado." });
+      toast.success("Registro actualizado.");
+    } catch (updateError) {
+      const message = updateError instanceof Error ? updateError.message : "No fue posible actualizar el registro.";
+      logDebug("billing:toast:show", { type: "error", message });
+      toast.error(message);
+      throw new Error(message);
+    } finally {
+      inFlightUpdateIdRef.current = null;
+      setSavingRowId(null);
+    }
+  }
+
+  const handleDrawerRequestSubmit = useCallback((submit: (() => Promise<boolean>) | null) => {
+    requestDrawerSubmitRef.current = submit;
+  }, []);
+
+  function handleOpenEditDrawer(item: BillingEditRecord) {
+    logDebug("billing:drawer:open", { id: item.id, unitLabel: item.unitLabel });
+    const switchingRecord = editingRecord && editingRecord.id !== item.id;
+    if (isEditDrawerOpen && switchingRecord && isEditDrawerDirty) {
+      setPendingSwitchRecord(item);
+      setIsSwitchConfirmOpen(true);
+      return;
+    }
+
+    setEditingRecord(item);
+    setIsEditDrawerOpen(true);
+  }
+
+  function handleCloseEditDrawer() {
+    logDebug("billing:drawer:close", {
+      id: editingRecord?.id,
+      dirty: isEditDrawerDirty,
+    });
+    setIsEditDrawerOpen(false);
+    setIsEditDrawerDirty(false);
+    setPendingSwitchRecord(null);
+    setIsSwitchConfirmOpen(false);
+  }
+
+  function closeSwitchConfirm() {
+    setIsSwitchConfirmOpen(false);
+    setPendingSwitchRecord(null);
+  }
+
+  function handleDiscardAndSwitch() {
+    if (!pendingSwitchRecord) return;
+    setEditingRecord(pendingSwitchRecord);
+    setIsEditDrawerOpen(true);
+    setIsEditDrawerDirty(false);
+    closeSwitchConfirm();
+  }
+
+  async function handleSaveAndSwitch() {
+    if (!pendingSwitchRecord || !requestDrawerSubmitRef.current) return;
+    setSwitchingAfterSave(true);
+    try {
+      const saved = await requestDrawerSubmitRef.current();
+      if (!saved) return;
+
+      setEditingRecord(pendingSwitchRecord);
+      setIsEditDrawerOpen(true);
+      setIsEditDrawerDirty(false);
+      closeSwitchConfirm();
+    } finally {
+      setSwitchingAfterSave(false);
+    }
+  }
+
+  function handleExportCsv() {
+    const csv = buildCsvRows(
+      filteredRows.map((item) => ({
+        apartamento: item.unitLabel,
+        fecha: item.period,
+        monto: item.amount,
+        abono: item.paymentAmount,
+        saldo: item.balance,
+        fecha_limite: item.dueDate,
+        estado: item.status,
+      })),
+    );
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cartera-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleDownloadTemplate() {
+    const csv = buildCsvRows([
+      {
+        apartamento: "T1-101",
+        fecha: "2026-03",
+        monto: 1200000,
+        abono: 500000,
+        saldo: 700000,
+        fecha_limite: "2026-03-28",
+        estado: "pending",
+      },
+    ]);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "plantilla-cartera.xlsx.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportCsv(file: File) {
+    if (!user?.tenantId) return;
+    const text = await file.text();
+    const rows = parseCsv(text);
+    if (rows.length === 0) {
+      toast.error("El archivo esta vacio o no tiene filas validas.");
+      return;
+    }
+
+    const requiredHeaders = ["apartamento", "fecha", "monto", "abono", "saldo", "fecha_limite"];
+    const first = rows[0];
+    const missing = requiredHeaders.filter((header) => !(header in first));
+    if (missing.length > 0) {
+      toast.error(`Faltan columnas obligatorias: ${missing.join(", ")}`);
+      return;
+    }
+
+    let successCount = 0;
+    for (const row of rows) {
+      const rowAmount = parseCurrency(row.monto || "0");
+      const rowPayment = parseCurrency(row.abono || "0");
+      const rowBalance = parseCurrency(row.saldo || String(Math.max(rowAmount - rowPayment, 0)));
+      await createBillingStatement({
+        tenantId: user.tenantId,
+        userId: user.uid,
+        unitLabel: row.apartamento,
+        period: row.fecha,
+        amount: rowAmount,
+        paymentAmount: rowPayment,
+        balance: rowBalance,
+        dueDate: row.fecha_limite || undefined,
+      });
+      successCount += 1;
+    }
+    toast.success(`Importacion completa: ${successCount} filas procesadas.`);
+  }
+
+  function handlePrintOverdueNotice() {
+    const printable = overdueRows
+      .map((item) => `${item.unitLabel} | saldo ${formatCurrency(item.balance)} | vence ${item.dueDate || "-"}`)
+      .join("\n");
+    const popup = window.open("", "_blank", "width=900,height=700");
+    if (!popup) return;
+    popup.document.write(`<pre style=\"font-family:Arial;padding:24px;white-space:pre-wrap\">Notificacion de cartera en mora\n\n${bulkMessage}\n\n${printable}</pre>`);
+    popup.document.close();
+    popup.focus();
+    popup.print();
+  }
+
+  function handleToggleBulkUnit(unitId: string) {
+    setSelectedBulkUnitIds((current) =>
+      current.includes(unitId) ? current.filter((id) => id !== unitId) : [...current, unitId],
+    );
+  }
+
+  function handleToggleAllBulkUnits() {
+    setSelectedBulkUnitIds((current) => {
+      if (current.length === catalogUnits.length) return [];
+      return catalogUnits.map((unit) => unit.id);
+    });
+  }
+
+  function handleSendOverdueBulkMessage() {
+    if (selectedBulkUnitIds.length === 0) {
+      toast.error("Selecciona al menos una unidad para enviar el mensaje.");
+      return;
+    }
+
+    if (bulkMessage.trim().length === 0) {
+      toast.error("Escribe el mensaje antes de enviarlo.");
+      return;
+    }
+
+    toast.success(`Mensaje programado para ${selectedBulkUnitIds.length} unidad(es).`);
+    setIsBulkDrawerOpen(false);
+  }
+
+  return (
+    <section className="space-y-4">
+      <ChartContainer
+        title="Comportamiento historico de cartera"
+        description="Comparativo de cobrado y recaudado por periodo con lectura inmediata de brecha y porcentaje de recaudo."
+        controls={
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label className="text-sm text-[var(--slate-700)]">
+              Unidad
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={chartUnitFilter}
+                onChange={(event) => setChartUnitFilter(event.target.value)}
+              >
+                <option value="all">Todas</option>
+                {chartUnitOptions
+                  .filter((value) => value !== "all")
+                  .map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Desde
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={fromPeriod}
+                onChange={(event) => setFromPeriod(event.target.value)}
+                disabled={availableChartPeriods.length === 0}
+              >
+                {availableChartPeriods.length === 0 ? <option value="">Sin datos</option> : null}
+                {availableChartPeriods.map((period) => (
+                  <option key={period} value={period}>
+                    {formatPeriodLabel(period)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Hasta
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={toPeriod}
+                onChange={(event) => setToPeriod(event.target.value)}
+                disabled={availableChartPeriods.length === 0}
+              >
+                {availableChartPeriods.length === 0 ? <option value="">Sin datos</option> : null}
+                {availableChartPeriods.map((period) => (
+                  <option key={period} value={period}>
+                    {formatPeriodLabel(period)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-[#d6e6f3] bg-[#f5faff] p-3">
+            <p className="text-xs text-[var(--slate-500)]">Cobrado</p>
+            <p className="mt-1 text-lg font-semibold text-[#2c648d]">{formatCurrency(trendSummary.totalCharged)}</p>
+          </div>
+          <div className="rounded-2xl border border-[#d6ede4] bg-[#f1fbf7] p-3">
+            <p className="text-xs text-[var(--slate-500)]">Recaudado</p>
+            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatCurrency(trendSummary.totalCollected)}</p>
+          </div>
+          <div className="rounded-2xl border border-[#eee0c1] bg-[#fff8e8] p-3">
+            <p className="text-xs text-[var(--slate-500)]">Brecha</p>
+            <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatCurrency(trendSummary.gap)}</p>
+          </div>
+          <div className="rounded-2xl border border-[#d9e5f2] bg-[#f3f8ff] p-3">
+            <p className="text-xs text-[var(--slate-500)]">% recaudo</p>
+            <p className="mt-1 text-lg font-semibold text-[#355f87]">{trendSummary.collectionRate.toFixed(1)}%</p>
+          </div>
+        </div>
+
+        {chartData.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-[var(--slate-300)] bg-[var(--slate-50)] px-4 py-8 text-center text-sm text-[var(--slate-600)]">
+            No hay datos suficientes para construir la tendencia de cartera con los filtros actuales.
+          </div>
+        ) : (
+          <div className="mt-4 h-[320px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 16, right: 18, left: 6, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="4 4" stroke="#d6dfeb" vertical={false} />
+                <XAxis
+                  dataKey="period"
+                  tickFormatter={formatPeriodLabel}
+                  tick={{ fill: "#4f6273", fontSize: 12 }}
+                  axisLine={{ stroke: "#b9c6d6" }}
+                  tickLine={{ stroke: "#b9c6d6" }}
+                />
+                <YAxis
+                  yAxisId="money"
+                  tickFormatter={(value) => formatCurrency(Number(value)).replace(" COP", "")}
+                  tick={{ fill: "#4f6273", fontSize: 12 }}
+                  axisLine={{ stroke: "#b9c6d6" }}
+                  tickLine={{ stroke: "#b9c6d6" }}
+                />
+                <YAxis
+                  yAxisId="rate"
+                  orientation="right"
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+                  tick={{ fill: "#4f6273", fontSize: 12 }}
+                  axisLine={{ stroke: "#b9c6d6" }}
+                  tickLine={{ stroke: "#b9c6d6" }}
+                />
+                <Tooltip content={<BillingTrendTooltip />} />
+                <Bar yAxisId="money" dataKey="totalCharged" name="Cobrado" fill="#8cb2d6" radius={[8, 8, 0, 0]} maxBarSize={36} />
+                <Bar yAxisId="money" dataKey="totalCollected" name="Recaudado" fill="#7ec4a9" radius={[8, 8, 0, 0]} maxBarSize={36} />
+                <Line yAxisId="rate" type="monotone" dataKey="collectionRate" name="% recaudo" stroke="#4d7190" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </ChartContainer>
+
+      <Card className="soft-panel">
+        <CardTitle>Crear nuevo cobro</CardTitle>
+        <CardDescription className="mt-1">
+          Registra cartera mensual por unidad con estructura financiera clara y trazable.
+        </CardDescription>
+        <p className="mt-3 text-sm font-semibold text-[var(--slate-800)]">{billingFormTitle}</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-5">
+          <label className="text-sm text-[var(--slate-700)]">
+            Unidad
+            <select
+              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              value={selectedUnitId}
+              disabled={catalogUnitsLoading || catalogUnits.length === 0}
+              onChange={(event) => {
+                const nextId = event.target.value;
+                const selected = catalogUnits.find((unit) => unit.id === nextId);
+                setSelectedUnitId(nextId);
+                setUnitLabel(selected?.label ?? "");
+              }}
+            >
+              {catalogUnitsLoading ? <option value="">Cargando unidades...</option> : null}
+              {!catalogUnitsLoading && catalogUnits.length === 0 ? <option value="">Sin unidades disponibles</option> : null}
+              {catalogUnits.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Input label="Fecha" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          <Input
+            label="Valor administracion"
+            inputMode="numeric"
+            value={amount}
+            onChange={(event) => setAmount(formatCurrencyInput(event.target.value))}
+          />
+          <Input
+            label="Abono"
+            inputMode="numeric"
+            value={paymentAmount}
+            onChange={(event) => setPaymentAmount(formatCurrencyInput(event.target.value))}
+          />
+          <Input label="Fecha de recaudo" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-[var(--slate-700)]">Unidad seleccionada: <strong>{unitLabel || "-"}</strong></div>
+          <Button className="w-full sm:w-auto" onClick={() => void handleCreate()} disabled={!selectedUnitId || !date || !amount}>
+            Registrar
+          </Button>
+        </div>
+
+        {catalogUnitsLoading ? <p className="mt-3 text-xs text-[var(--slate-600)]">Estamos cargando el listado de unidades del conjunto.</p> : null}
+        {catalogUnitsError ? <p className="mt-3 text-xs text-[var(--danger-700)]">{catalogUnitsError}</p> : null}
+      </Card>
+
+      <Card className="soft-panel">
+        <CardTitle>Herramientas de gestion</CardTitle>
+        <CardDescription className="mt-1">
+          Acciones operativas para carga, salida de informacion y comunicacion masiva.
+        </CardDescription>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Button type="button" variant="outline" onClick={handleDownloadTemplate}>
+            <IconBadge tone="sky" className="mr-2">
+              <Download className="h-4 w-4" />
+            </IconBadge>
+            Descargar plantilla
+          </Button>
+          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <IconBadge tone="mint" className="mr-2">
+              <Upload className="h-4 w-4" />
+            </IconBadge>
+            Importar Excel
+          </Button>
+          <Button type="button" variant="outline" onClick={handleExportCsv}>
+            <IconBadge tone="sky" className="mr-2">
+              <FileSpreadsheet className="h-4 w-4" />
+            </IconBadge>
+            Exportar Excel
+          </Button>
+          <Button type="button" variant="outline" onClick={handlePrintOverdueNotice}>
+            <IconBadge tone="sand" className="mr-2">
+              <Printer className="h-4 w-4" />
+            </IconBadge>
+            Imprimir PDF
+          </Button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-3">
+          <p className="text-sm text-[var(--slate-700)]">En mora: <strong>{overdueRows.length}</strong></p>
+          <Button type="button" variant="outline" onClick={() => setIsBulkDrawerOpen(true)}>
+            <IconBadge tone="mint" className="mr-2">
+              <SendHorizontal className="h-4 w-4" />
+            </IconBadge>
+            Enviar mensaje masivo
+          </Button>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".csv,.xlsx"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) {
+              void handleImportCsv(file);
+            }
+          }}
+        />
+      </Card>
+
+      <Card>
+        <MobileFiltersPanel
+          title="Filtros de cartera"
+          footer={
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => {
+              setStatusFilter("all");
+              setUnitFilter("all");
+            }}>
+              Limpiar filtros
+            </Button>
+          }
+        >
+          <label className="text-sm text-[var(--slate-700)]">
+            Estado
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as BillingStatusFilter)}>
+              <option value="all">Todos</option>
+              <option value="paid">Al dia</option>
+              <option value="pending">Pendiente</option>
+              <option value="overdue">En mora</option>
+            </select>
+          </label>
+          <label className="text-sm text-[var(--slate-700)]">
+            Unidad
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+              <option value="all">Todas</option>
+                {allUnitLabels.map((unit) => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+          </label>
+        </MobileFiltersPanel>
+
+        <div className="responsive-table-wrap mt-4">
+          <table className="responsive-table min-w-[980px] text-sm">
+          <thead>
+            <tr className="border-b border-[var(--slate-200)] text-[var(--slate-600)]">
+              <th className="py-2">Apartamento</th>
+              <th className="py-2">Fecha</th>
+              <th className="py-2">Monto</th>
+              <th className="py-2">Abono</th>
+              <th className="py-2">Saldo</th>
+              <th className="py-2">Fecha limite</th>
+              <th className="py-2">Estado</th>
+              <th className="py-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td className="py-2 text-[var(--slate-600)]" colSpan={8}>Cargando cartera...</td>
+              </tr>
+            ) : null}
+            {!loading && filteredRows.length === 0 ? (
+              <tr>
+                <td className="py-2" colSpan={8}>
+                  <EmptyState
+                    title="Sin estados de cuenta"
+                    description="No hay facturacion registrada para este tenant en el periodo actual."
+                  />
+                </td>
+              </tr>
+            ) : null}
+            {filteredRows.map((item) => {
+              const status = computeStatus(item.balance, item.dueDate);
+              const isPaid = status === "paid";
+              return (
+              <tr key={item.id} className="border-b border-[var(--slate-100)]">
+                <td className="py-2">{item.unitLabel}</td>
+                <td className="py-2">{item.period}</td>
+                <td className="py-2">{formatCurrency(item.amount)}</td>
+                <td className="py-2">{formatCurrency(item.paymentAmount)}</td>
+                <td className="py-2">{formatCurrency(item.balance)}</td>
+                <td className="py-2">{item.dueDate || "-"}</td>
+                <td className="py-2">
+                  {isPaid ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-700">
+                      <IconBadge tone="mint">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </IconBadge>
+                      Al dia
+                    </span>
+                  ) : status === "overdue" ? (
+                    <span className="inline-flex items-center gap-1 text-red-700">
+                      <IconBadge tone="peach">
+                        <AlertCircle className="h-4 w-4" />
+                      </IconBadge>
+                      En mora
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-amber-700">
+                      <IconBadge tone="sand">
+                        <Clock3 className="h-4 w-4" />
+                      </IconBadge>
+                      Pendiente
+                    </span>
+                  )}
+                </td>
+                <td className="py-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={savingRowId === item.id}
+                    onClick={() => {
+                      handleOpenEditDrawer({
+                        id: item.id,
+                        unitLabel: item.unitLabel,
+                        period: item.period,
+                        amount: item.amount,
+                        paymentAmount: item.paymentAmount,
+                        balance: item.balance,
+                        dueDate: item.dueDate,
+                      });
+                    }}
+                  >
+                    <IconBadge tone="sky" className="mr-2">
+                      <PenSquare className="h-4 w-4" />
+                    </IconBadge>
+                    {savingRowId === item.id ? "Guardando..." : "Editar"}
+                  </Button>
+                </td>
+              </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      </Card>
+
+      <BillingEditDrawer
+        open={isEditDrawerOpen}
+        record={editingRecord}
+        saving={savingRowId === editingRecord?.id}
+        onDirtyChange={setIsEditDrawerDirty}
+        onRequestSubmit={handleDrawerRequestSubmit}
+        onClose={handleCloseEditDrawer}
+        onSave={handleRowUpdate}
+      />
+
+      {isSwitchConfirmOpen ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-label="Confirmar cambio de registro">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-xl">
+            <h3 className="text-base font-semibold text-[var(--slate-900)]">Cambiar de registro</h3>
+            <p className="mt-2 text-sm text-[var(--slate-700)]">
+              Tienes cambios sin guardar en el registro actual. Elige como continuar.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+              <Button type="button" variant="outline" onClick={closeSwitchConfirm} disabled={switchingAfterSave}>
+                Cancelar
+              </Button>
+              <Button type="button" variant="outline" onClick={handleDiscardAndSwitch} disabled={switchingAfterSave}>
+                Descartar y cambiar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleSaveAndSwitch()}
+                disabled={switchingAfterSave || !isEditDrawerOpen || !editingRecord || savingRowId === editingRecord?.id}
+              >
+                {switchingAfterSave ? "Guardando..." : "Guardar y cambiar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <BillingBulkMessageDrawer
+        open={isBulkDrawerOpen}
+        units={catalogUnits}
+        selectedUnitIds={selectedBulkUnitIds}
+        message={bulkMessage}
+        onClose={() => setIsBulkDrawerOpen(false)}
+        onToggleUnit={handleToggleBulkUnit}
+        onToggleAll={handleToggleAllBulkUnits}
+        onChangeMessage={setBulkMessage}
+        onSend={handleSendOverdueBulkMessage}
+      />
+    </section>
+  );
+}
