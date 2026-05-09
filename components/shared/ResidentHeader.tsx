@@ -13,7 +13,6 @@ export function ResidentHeader({ tenantId, tenantName }: Props) {
 
   useEffect(() => {
     if (!tenantId) return;
-    setLoading(true);
     getTenantBranding(tenantId).then((b) => {
       setBranding(b);
       setLoading(false);

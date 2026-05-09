@@ -33,8 +33,8 @@ export function useResidentProfile() {
       } else {
         setState({ profile: user, loading: false, error: null });
       }
-    } catch (e: any) {
-      setState({ profile: null, loading: false, error: e.message || "Error al cargar perfil" });
+    } catch (e: unknown) {
+      setState({ profile: null, loading: false, error: e instanceof Error ? e.message : "Error al cargar perfil" });
     }
   };
 

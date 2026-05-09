@@ -38,7 +38,7 @@ export function useAvailableUnits(tenantId: string, excludeUnitId?: string) {
           where("status", "==", "active")
         );
         const snap = await getDocs(q);
-        let result: AvailableUnit[] = [];
+        const result: AvailableUnit[] = [];
         snap.forEach((doc) => {
           const d = doc.data();
           if (doc.id !== excludeUnitId) {
@@ -52,8 +52,8 @@ export function useAvailableUnits(tenantId: string, excludeUnitId?: string) {
           }
         });
         setUnits(result);
-      } catch (e: any) {
-        setError(e.message || "Error al cargar unidades");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Error al cargar unidades");
       } finally {
         setLoading(false);
       }

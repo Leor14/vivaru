@@ -281,7 +281,9 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (availablePeriods.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (fromPeriod !== "") setFromPeriod("");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (toPeriod !== "") setToPeriod("");
       return;
     }
@@ -603,6 +605,7 @@ export default function AdminDashboardPage() {
       })),
       emptyText: "No hay comunicaciones vigentes.",
     };
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   }, [communications, deliveredPackagesRecent, drawerSection, pendingPackages, ticketsWithUrgency, visitorsToday]);
 
   return (

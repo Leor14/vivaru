@@ -33,8 +33,8 @@ export function useResidentUnitChangeRequest(userId: string) {
         } else {
           setRequest(null);
         }
-      } catch (e: any) {
-        setError(e.message || "Error al consultar solicitud");
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Error al consultar solicitud");
       } finally {
         setLoading(false);
       }
