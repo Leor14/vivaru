@@ -38,7 +38,7 @@ export type AdminSidebarGroup = {
 
 const GROUPS: AdminSidebarGroup[] = [
   {
-    items: [{ href: "/admin", label: "Dashboard", icon: Grid3X3 }],
+    items: [{ href: "/admin", label: "Panel de Control", icon: Grid3X3 }],
   },
   {
     label: "COMUNIDAD",

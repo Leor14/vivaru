@@ -23,7 +23,7 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/superadmin/audit", label: "Auditoria" },
   ],
   admin_tenant: [
-    { href: "/admin", label: "Dashboard" },
+    { href: "/admin", label: "Panel de Control" },
     { href: "/admin/users", label: "Usuarios" },
     { href: "/admin/residents", label: "Residentes y unidades" },
     { href: "/admin/communications", label: "Comunicaciones" },
@@ -36,7 +36,7 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/admin/settings", label: "Perfil" },
   ],
   tenant_admin: [
-    { href: "/admin", label: "Dashboard" },
+    { href: "/admin", label: "Panel de Control" },
     { href: "/admin/users", label: "Usuarios" },
     { href: "/admin/residents", label: "Residentes y unidades" },
     { href: "/admin/communications", label: "Comunicaciones" },
