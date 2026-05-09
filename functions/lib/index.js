@@ -6,10 +6,12 @@ const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const firestore_2 = require("firebase-functions/v2/firestore");
+const datetimeValidation_1 = require("./utils/datetimeValidation");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 const callableCorsOrigins = [
-    "https://hogaru-web--hogaru-1.us-central1.hosted.app",
+    "https://vivaru--hogaru-1.us-central1.hosted.app",
+    "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
     "http://localhost:3000",
 ];
 function assertSuperadmin(auth) {
@@ -1065,6 +1067,10 @@ exports.createVisitorPass = (0, https_1.onCall)(async (request) => {
     }
     if (role === "resident" && membership.unitId !== data.unitId) {
         throw new https_1.HttpsError("permission-denied", "Residente solo puede crear visitantes para su unidad.");
+    }
+    const scheduledDateTime = (0, datetimeValidation_1.combineDateAndTime)(data.date, data.scheduledTime);
+    if (!scheduledDateTime || !(0, datetimeValidation_1.isDateTimeValid)(scheduledDateTime, "visitor")) {
+        throw new https_1.HttpsError("failed-precondition", "INVALID_DATETIME");
     }
     const [towerValue, unitValue] = data.unitLabel.split("-");
     const hostResidentName = typeof data.hostResidentName === "string" && data.hostResidentName.trim().length > 0

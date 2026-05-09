@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const baseUrl = process.env.VALIDATION_BASE_URL || "https://hogaru-web--hogaru-1.us-central1.hosted.app";
+const baseUrl = process.env.VALIDATION_BASE_URL || "https://vivaru--hogaru-1.us-central1.hosted.app";
 const email = process.env.VALIDATION_RESIDENT_EMAIL || "residente@santamaria.co";
 const password = process.env.VALIDATION_RESIDENT_PASSWORD || "Demo1234*";
 

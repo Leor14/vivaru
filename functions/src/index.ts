@@ -10,7 +10,8 @@ initializeApp();
 const db = getFirestore();
 
 const callableCorsOrigins = [
-  "https://hogaru-web--hogaru-1.us-central1.hosted.app",
+  "https://vivaru--hogaru-1.us-central1.hosted.app",
+  "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
   "http://localhost:3000",
 ];
 
