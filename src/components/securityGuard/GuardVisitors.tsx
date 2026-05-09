@@ -292,8 +292,8 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
     setCameraErrorMessage(null);
 
     try {
-      const module = await import("@zxing/browser");
-      const BrowserMultiFormatReader = module.BrowserMultiFormatReader;
+      const zxingModule = await import("@zxing/browser");
+      const BrowserMultiFormatReader = zxingModule.BrowserMultiFormatReader;
 
       const reader = new BrowserMultiFormatReader();
       scannerReaderRef.current = reader as unknown as ReaderLike;

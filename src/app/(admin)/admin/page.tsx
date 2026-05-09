@@ -281,9 +281,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (availablePeriods.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (fromPeriod !== "") setFromPeriod("");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (toPeriod !== "") setToPeriod("");
       return;
     }

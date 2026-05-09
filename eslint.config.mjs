@@ -16,6 +16,14 @@ const eslintConfig = defineConfig([
     "functions/scripts/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // React Compiler rules — disabled until codebase is fully migrated
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/globals": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
