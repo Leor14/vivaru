@@ -1,0 +1,176 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useAuth } from "@/features/auth/auth-context";
+import { db } from "@/lib/firebase/client";
+import { createTenantOperationalUserCallable } from "@/lib/firebase/callables";
+
+type TenantUserItem = {
+  id: string;
+  fullName?: string;
+  email?: string;
+  role?: "tenant_admin" | "security_guard" | string;
+  status?: "active" | "inactive" | string;
+};
+
+export default function AdminUsersPage() {
+  const { user } = useAuth();
+  const [items, setItems] = useState<TenantUserItem[]>([]);
+  const [loading, setLoading] = useState(Boolean(user?.tenantId));
+  const [saving, setSaving] = useState(false);
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [role, setRole] = useState<"tenant_admin" | "security_guard">("security_guard");
+
+  useEffect(() => {
+    if (!user?.tenantId || !db) {
+      setLoading(false);
+      return;
+    }
+
+    const usersQuery = query(collection(db, "users"), where("tenantId", "==", user.tenantId));
+    const unsub = onSnapshot(
+      usersQuery,
+      (snapshot) => {
+        const rows = snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<TenantUserItem, "id">) }));
+        setItems(rows);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("[admin-users] query failed", error);
+        toast.error("No fue posible cargar los usuarios del tenant.");
+        setLoading(false);
+      },
+    );
+
+    return () => unsub();
+  }, [user?.tenantId]);
+
+  const managedUsers = useMemo(
+    () => items.filter((item) => item.role === "tenant_admin" || item.role === "security_guard"),
+    [items],
+  );
+
+  async function handleCreateUser() {
+    if (!user?.tenantId) {
+      toast.error("No se pudo identificar tu tenant.");
+      return;
+    }
+
+    if (!fullName.trim() || !email.trim() || temporaryPassword.trim().length < 8) {
+      toast.error("Completa nombre, correo y contrasena temporal (minimo 8 caracteres).");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await createTenantOperationalUserCallable({
+        tenantId: user.tenantId,
+        fullName,
+        email,
+        temporaryPassword,
+        role,
+        status: "active",
+      });
+
+      setFullName("");
+      setEmail("");
+      setTemporaryPassword("");
+      setRole("security_guard");
+      toast.success("Usuario creado correctamente.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible crear el usuario.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="space-y-4">
+      <Card>
+        <CardTitle>Administración / Usuarios</CardTitle>
+        <CardDescription className="mt-1">
+          Crea usuarios operativos del tenant con rol Admin o Guarda de seguridad.
+        </CardDescription>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <Input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Nombre" />
+          <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Correo electronico" />
+          <Input
+            value={temporaryPassword}
+            onChange={(event) => setTemporaryPassword(event.target.value)}
+            placeholder="Contrasena temporal"
+            type="password"
+            autoComplete="new-password"
+            name="new-temporary-password"
+          />
+          <select
+            className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            value={role}
+            onChange={(event) => setRole(event.target.value as "tenant_admin" | "security_guard")}
+          >
+            <option value="tenant_admin">Admin</option>
+            <option value="security_guard">Guarda de seguridad</option>
+          </select>
+        </div>
+
+        <Button className="mt-4" onClick={() => void handleCreateUser()} disabled={saving}>
+          {saving ? "Creando..." : "Crear usuario"}
+        </Button>
+      </Card>
+
+      <Card>
+        <CardTitle>Usuarios del tenant</CardTitle>
+        <CardDescription className="mt-1">Listado de usuarios operativos activos e inactivos.</CardDescription>
+
+        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--slate-200)]">
+          <table className="min-w-[820px] w-full text-sm">
+            <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
+              <tr>
+                <th className="px-3 py-2">Nombre</th>
+                <th className="px-3 py-2">Correo</th>
+                <th className="px-3 py-2">Rol</th>
+                <th className="px-3 py-2">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-3 py-4 text-[var(--slate-600)]" colSpan={4}>Cargando usuarios...</td>
+                </tr>
+              ) : null}
+
+              {!loading && managedUsers.length === 0 ? (
+                <tr>
+                  <td className="px-3 py-4 text-[var(--slate-600)]" colSpan={4}>No hay usuarios operativos registrados.</td>
+                </tr>
+              ) : null}
+
+              {managedUsers.map((item) => (
+                <tr key={item.id} className="border-t border-[var(--slate-200)]">
+                  <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</td>
+                  <td className="px-3 py-2">{item.email ?? "-"}</td>
+                  <td className="px-3 py-2">
+                    {item.role === "security_guard" ? "Guarda de seguridad" : "Admin"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </section>
+  );
+}

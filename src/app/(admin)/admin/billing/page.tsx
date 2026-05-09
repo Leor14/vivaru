@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
+import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker";
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
@@ -302,6 +303,25 @@ export default function AdminBillingPage() {
     () => buildBillingTrend(normalizedRows, chartUnitFilter, fromPeriod, toPeriod),
     [normalizedRows, chartUnitFilter, fromPeriod, toPeriod],
   );
+
+  const rangeValue = useMemo<RangePickerValue | null>(() => {
+    if (!fromPeriod || !toPeriod) return null;
+    const [fy, fm] = fromPeriod.split("-").map((n) => Number.parseInt(n, 10));
+    const [ty, tm] = toPeriod.split("-").map((n) => Number.parseInt(n, 10));
+    if (!Number.isFinite(fy) || !Number.isFinite(fm) || !Number.isFinite(ty) || !Number.isFinite(tm)) {
+      return null;
+    }
+    const from = new Date(fy, fm - 1, 1);
+    const to = new Date(ty, tm, 0); // last day of target month
+    return { from, to };
+  }, [fromPeriod, toPeriod]);
+
+  const handleRangeChange = useCallback((next: RangePickerValue) => {
+    const fromKey = `${next.from.getFullYear()}-${String(next.from.getMonth() + 1).padStart(2, "0")}`;
+    const toKey = `${next.to.getFullYear()}-${String(next.to.getMonth() + 1).padStart(2, "0")}`;
+    setFromPeriod(fromKey <= toKey ? fromKey : toKey);
+    setToPeriod(fromKey <= toKey ? toKey : fromKey);
+  }, []);
 
   const trendSummary = useMemo(() => {
     const totalCharged = chartTrend.reduce((sum, item) => sum + item.totalCharged, 0);
@@ -592,7 +612,7 @@ export default function AdminBillingPage() {
   return (
     <section className="space-y-4">
       <ChartContainer
-        title="Comportamiento historico de cartera"
+        title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por periodo con lectura inmediata de brecha y porcentaje de recaudo."
         controls={
           <div className="grid gap-2 sm:grid-cols-3">
@@ -613,37 +633,17 @@ export default function AdminBillingPage() {
                   ))}
               </select>
             </label>
-            <label className="text-sm text-[var(--slate-700)]">
-              Desde
-              <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-                value={fromPeriod}
-                onChange={(event) => setFromPeriod(event.target.value)}
-                disabled={availableChartPeriods.length === 0}
-              >
-                {availableChartPeriods.length === 0 ? <option value="">Sin datos</option> : null}
-                {availableChartPeriods.map((period) => (
-                  <option key={period} value={period}>
-                    {formatPeriodLabel(period)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm text-[var(--slate-700)]">
-              Hasta
-              <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-                value={toPeriod}
-                onChange={(event) => setToPeriod(event.target.value)}
-                disabled={availableChartPeriods.length === 0}
-              >
-                {availableChartPeriods.length === 0 ? <option value="">Sin datos</option> : null}
-                {availableChartPeriods.map((period) => (
-                  <option key={period} value={period}>
-                    {formatPeriodLabel(period)}
-                  </option>
-                ))}
-              </select>
+            <label className="text-sm text-[var(--slate-700)] sm:col-span-2 lg:col-span-2">
+              Rango
+              <div className="mt-1">
+                <RangePicker
+                  className="block w-full"
+                  triggerClassName="w-full"
+                  value={rangeValue}
+                  onChange={handleRangeChange}
+                  placeholder="Seleccionar rango"
+                />
+              </div>
             </label>
           </div>
         }
@@ -740,7 +740,7 @@ export default function AdminBillingPage() {
           </label>
           <Input label="Fecha" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           <Input
-            label="Valor administracion"
+            label="Valor administración"
             inputMode="numeric"
             value={amount}
             onChange={(event) => setAmount(formatCurrencyInput(event.target.value))}
@@ -765,9 +765,9 @@ export default function AdminBillingPage() {
       </Card>
 
       <Card className="soft-panel">
-        <CardTitle>Herramientas de gestion</CardTitle>
+        <CardTitle>Herramientas de gestión</CardTitle>
         <CardDescription className="mt-1">
-          Acciones operativas para carga, salida de informacion y comunicacion masiva.
+          Acciones operativas para carga, salida de informacion y comunicación masiva.
         </CardDescription>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">

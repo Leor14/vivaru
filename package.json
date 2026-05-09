@@ -2,25 +2,68 @@
   "name": "hogaru",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x",
+    "npm": ">=10 <11"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:guard-visitors": "vitest run tests/guard-qr-validation.test.ts",
+    "test:rules": "vitest run tests/firestore.rules.test.ts",
+    "test:rules:auto": "firebase emulators:exec --only firestore \"npm run test:rules\"",
+    "test:visual": "playwright test tests/visual/mobile-responsive.spec.ts",
+    "test:e2e:guard-visitors": "playwright test tests/guard-visitors-qr-flow.spec.ts",
+    "test:visual:update": "playwright test tests/visual/mobile-responsive.spec.ts --update-snapshots",
+    "test:e2e:resident-forced-password": "node functions/scripts/run-resident-forced-password-e2e.mjs",
+    "seed:demo": "node functions/scripts/seed-demo-users.mjs",
+    "seed:superadmin": "node functions/scripts/create-superadmin.mjs",
+    "clean:demo": "node functions/scripts/clean-demo-data.js",
+    "clean:demo:apply": "set DRY_RUN=false&& set CONFIRM_DELETE=YES_I_UNDERSTAND&& node functions/scripts/clean-demo-data.js",
+    "firebase:emulators": "firebase emulators:start",
+    "firebase:deploy": "firebase deploy --only apphosting",
+    "firebase:deploy:full": "firebase deploy",
+    "validate:guard-visitors": "npm run typecheck && npm run test:guard-visitors && npm run test:rules:auto",
+    "release:guard-visitors": "npm run validate:guard-visitors && firebase deploy"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@zxing/browser": "^0.1.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.10.0",
+    "lucide-react": "^0.577.0",
     "next": "16.1.6",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-day-picker": "^9.14.0",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.71.2",
+    "recharts": "^3.8.1",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "firebase-tools": "^15.9.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }

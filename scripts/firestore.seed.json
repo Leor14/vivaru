@@ -1,0 +1,30 @@
+{
+  "tenants": [
+    {
+      "id": "tenant-santa-maria",
+      "name": "Conjunto Residencial Santa Maria",
+      "city": "Bogota",
+      "status": "active",
+      "planId": "plus"
+    }
+  ],
+  "demoUsers": [
+    {
+      "email": "superadmin@hogaru.co",
+      "role": "superadmin"
+    },
+    {
+      "email": "admin@santamaria.co",
+      "role": "tenant_admin",
+      "tenantId": "tenant-santa-maria"
+    },
+    {
+      "email": "residente@santamaria.co",
+      "role": "resident",
+      "tenantId": "tenant-santa-maria"
+    }
+  ],
+  "communications": 2,
+  "reservations": 2,
+  "tickets": 2
+}

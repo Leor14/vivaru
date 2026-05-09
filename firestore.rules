@@ -1,0 +1,492 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function superadmin() {
+      return signedIn() && request.auth.token.role == 'superadmin';
+    }
+
+    function membershipDoc(tenantId) {
+      return get(/databases/$(database)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid));
+    }
+
+    function tenantMember(tenantId) {
+      return signedIn() && exists(/databases/$(database)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid));
+    }
+
+    function tenantRole(tenantId, role) {
+      return tenantMember(tenantId) && (
+        membershipDoc(tenantId).data.role == role ||
+        (role == 'tenant_admin' && membershipDoc(tenantId).data.role == 'admin_tenant')
+      );
+    }
+
+    function residentOwnUnit(tenantId, unitId) {
+      return tenantRole(tenantId, 'resident') && membershipDoc(tenantId).data.unitId == unitId;
+    }
+
+    function securityGuardRole(tenantId) {
+      return tenantRole(tenantId, 'security_guard') || tenantRole(tenantId, 'security');
+    }
+
+    function tenantAdminOrSuper(tenantId) {
+      return superadmin() || tenantRole(tenantId, 'tenant_admin');
+    }
+
+    function sameTenant(tenantId) {
+      return superadmin() || tenantMember(tenantId);
+    }
+
+    function amenityDoc(amenityId) {
+      return get(/databases/$(database)/documents/amenities/$(amenityId));
+    }
+
+    function amenityReservableForTenant(tenantId, amenityId) {
+      return amenityId is string &&
+        exists(/databases/$(database)/documents/amenities/$(amenityId)) &&
+        amenityDoc(amenityId).data.tenantId == tenantId &&
+        amenityDoc(amenityId).data.status == 'active' &&
+        (!('isReservable' in amenityDoc(amenityId).data) || amenityDoc(amenityId).data.isReservable == true) &&
+        (!('deletedAt' in amenityDoc(amenityId).data) || amenityDoc(amenityId).data.deletedAt == null);
+    }
+
+    function relaxedTenantCollection(collection) {
+      return collection in ['communications'];
+    }
+
+    function pad2(value) {
+      return value < 10 ? ('0' + value) : ('' + value);
+    }
+
+    function timestampDateKey(value) {
+      return '' + value.year() + '-' + pad2(value.month()) + '-' + pad2(value.day());
+    }
+
+    function timestampTimeKey(value) {
+      return pad2(value.hours()) + ':' + pad2(value.minutes());
+    }
+
+    function isValidDateText(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isValidTimeText(value) {
+      return value is string && value.matches('^[0-9]{2}:[0-9]{2}$');
+    }
+
+    function isDateTimeAtOrAfterBuffer(dateText, timeText, bufferMinutes) {
+      let minimum = request.time + duration.value(bufferMinutes, 'm');
+      let minimumDate = timestampDateKey(minimum);
+      let minimumTime = timestampTimeKey(minimum);
+      return isValidDateText(dateText) &&
+        isValidTimeText(timeText) &&
+        (dateText > minimumDate || (dateText == minimumDate && timeText >= minimumTime));
+    }
+
+    function isValidInvitationWindow(startAt, endAt) {
+      return startAt is timestamp &&
+        endAt is timestamp &&
+        startAt >= (request.time + duration.value(15, 'm')) &&
+        endAt > startAt;
+    }
+
+    match /tenants/{tenantId} {
+      allow read: if sameTenant(tenantId);
+      allow create, update, delete: if superadmin();
+    }
+
+    match /tenantUsers/{tenantUserId} {
+      allow read: if signedIn() && (
+        resource.data.uid == request.auth.uid ||
+        superadmin() ||
+        tenantRole(resource.data.tenantId, 'tenant_admin')
+      );
+
+      allow create, delete: if superadmin();
+
+      // Tenant admin can update only their own membership display fields.
+      allow update: if superadmin() || (
+        signedIn() &&
+        resource.data.uid == request.auth.uid &&
+        tenantRole(resource.data.tenantId, 'tenant_admin') &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.tenantId == resource.data.tenantId &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.unitId == resource.data.unitId &&
+        request.resource.data.unitLabel == resource.data.unitLabel
+      );
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (
+        uid == request.auth.uid ||
+        superadmin() ||
+        (resource.data.tenantId is string && tenantRole(resource.data.tenantId, 'tenant_admin'))
+      );
+
+      // Allow users to update only their own profile while keeping identity and role immutable.
+      allow update: if signedIn() && uid == request.auth.uid &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.tenantId == resource.data.tenantId &&
+        (!('mustChangePassword' in resource.data) || request.resource.data.mustChangePassword == resource.data.mustChangePassword) &&
+        (!('temporaryPassword' in resource.data) || request.resource.data.temporaryPassword == resource.data.temporaryPassword) &&
+        (!('passwordStatus' in resource.data) || request.resource.data.passwordStatus == resource.data.passwordStatus) &&
+        (!('temporaryPasswordUpdatedAt' in resource.data) || request.resource.data.temporaryPasswordUpdatedAt == resource.data.temporaryPasswordUpdatedAt) &&
+        (!('passwordChangedAt' in resource.data) || request.resource.data.passwordChangedAt == resource.data.passwordChangedAt);
+
+      allow create, delete: if false;
+    }
+
+    match /notifications/{docId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid && (
+        superadmin() ||
+        (
+          resource.data.tenantId is string &&
+          sameTenant(resource.data.tenantId)
+        ) ||
+        (!('tenantId' in resource.data) || resource.data.tenantId == null)
+      );
+
+      allow create: if signedIn() && request.resource.data.userId is string && request.resource.data.userId == request.auth.uid && (
+        superadmin() ||
+        (
+          request.resource.data.tenantId is string &&
+          sameTenant(request.resource.data.tenantId)
+        )
+      );
+
+      allow update: if signedIn() && resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.tenantId == resource.data.tenantId &&
+        request.resource.data.type == resource.data.type &&
+        request.resource.data.title == resource.data.title &&
+        request.resource.data.description == resource.data.description &&
+        request.resource.data.link == resource.data.link;
+
+      allow delete: if signedIn() && (
+        superadmin() ||
+        (
+          resource.data.tenantId is string &&
+          tenantRole(resource.data.tenantId, 'tenant_admin')
+        )
+      );
+    }
+
+    match /units/{docId} {
+      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /people/{docId} {
+      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /tenantSettings/{tenantId} {
+      allow read: if signedIn() && sameTenant(tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(tenantId) && request.resource.data.tenantId == tenantId;
+      allow delete: if signedIn() && superadmin();
+    }
+
+    // Shared tenant-scoped collections.
+    match /{collection}/{docId} {
+      allow read: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && sameTenant(resource.data.tenantId);
+
+      // Strict write policy: tenant admins manage operational collections, residents limited per collection below.
+      allow create, update: if signedIn() && relaxedTenantCollection(collection) && request.resource.data.tenantId is string && (
+        superadmin() || tenantRole(request.resource.data.tenantId, 'tenant_admin')
+      );
+
+      // Delete must validate against existing resource because request.resource is null on deletes.
+      allow delete: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && (
+        superadmin() || tenantRole(resource.data.tenantId, 'tenant_admin')
+      );
+    }
+
+    // Resident writes for own records.
+    match /visitorInvitations/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create: if signedIn() && (
+        tenantAdminOrSuper(request.resource.data.tenantId) ||
+        (
+          residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+          request.resource.data.residentUserId == request.auth.uid
+        )
+      ) && isValidInvitationWindow(request.resource.data.startAt, request.resource.data.endAt);
+      allow update, delete: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          resource.data.residentUserId == request.auth.uid &&
+          request.resource.data.unitId == resource.data.unitId
+        )
+      ) && (
+        request.resource == null ||
+        !request.resource.data.diff(resource.data).changedKeys().hasAny(['startAt', 'endAt']) ||
+        isValidInvitationWindow(request.resource.data.startAt, request.resource.data.endAt)
+      );
+    }
+
+    match /visitorPasses/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        securityGuardRole(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create: if signedIn() && (
+        tenantAdminOrSuper(request.resource.data.tenantId) ||
+        (
+          residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+          request.resource.data.createdBy == request.auth.uid
+        )
+      );
+      allow update: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.unitId == resource.data.unitId
+        ) ||
+        (
+          securityGuardRole(resource.data.tenantId) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(["status", "checkInAt", "checkOutAt"]) &&
+          (
+            (
+              resource.data.status == "scheduled" &&
+              request.resource.data.status == "inside" &&
+              request.resource.data.checkInAt != null &&
+              request.resource.data.checkOutAt == resource.data.checkOutAt
+            ) ||
+            (
+              resource.data.status == "inside" &&
+              request.resource.data.status == "completed" &&
+              request.resource.data.checkInAt == resource.data.checkInAt &&
+              request.resource.data.checkOutAt != null
+            )
+          )
+        )
+      );
+      allow delete: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource == null
+        )
+      );
+    }
+
+    match /visitorAuthorizations/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+
+      allow create: if signedIn() && (
+        tenantAdminOrSuper(request.resource.data.tenantId) ||
+        (
+          residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+          request.resource.data.createdBy == request.auth.uid
+        )
+      ) && isDateTimeAtOrAfterBuffer(request.resource.data.startDate, request.resource.data.startTime, 15);
+
+      allow update, delete: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.unitId == resource.data.unitId
+        )
+      ) && (
+        request.resource == null ||
+        !request.resource.data.diff(resource.data).changedKeys().hasAny(['startDate', 'startTime']) ||
+        isDateTimeAtOrAfterBuffer(request.resource.data.startDate, request.resource.data.startTime, 15)
+      );
+    }
+
+    match /billingStatements/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /documents/{docId} {
+      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /amenities/{docId} {
+      allow read: if signedIn() && resource.data.tenantId is string && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          securityGuardRole(resource.data.tenantId) &&
+          resource.data.status == 'active' &&
+          (!('isReservable' in resource.data) || resource.data.isReservable == true) &&
+          (!('deletedAt' in resource.data) || resource.data.deletedAt == null)
+        ) ||
+        (
+          tenantRole(resource.data.tenantId, 'resident') &&
+          resource.data.status == 'active' &&
+          (!('isReservable' in resource.data) || resource.data.isReservable == true) &&
+          (!('deletedAt' in resource.data) || resource.data.deletedAt == null)
+        )
+      );
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /tickets/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create: if signedIn() && (
+        tenantAdminOrSuper(request.resource.data.tenantId) ||
+        (
+          residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+          request.resource.data.createdBy == request.auth.uid
+        )
+      );
+
+      // Resident can update only own ticket, admin/superadmin can manage all tenant tickets.
+      allow update: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.unitId == resource.data.unitId
+        )
+      );
+    }
+
+    match /reservations/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        securityGuardRole(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create: if signedIn() && (
+        tenantAdminOrSuper(request.resource.data.tenantId) ||
+        (
+          residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+          request.resource.data.createdBy == request.auth.uid &&
+          amenityReservableForTenant(request.resource.data.tenantId, request.resource.data.amenityId) &&
+          request.resource.data.amenity == amenityDoc(request.resource.data.amenityId).data.name
+        )
+      ) && isDateTimeAtOrAfterBuffer(request.resource.data.date, request.resource.data.startTime, 30);
+
+      // Tenant admins and superadmin can fully manage reservations.
+      allow update: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          resource.data.createdBy == request.auth.uid &&
+          request.resource.data.tenantId == resource.data.tenantId &&
+          request.resource.data.unitId == resource.data.unitId &&
+          request.resource.data.createdBy == resource.data.createdBy &&
+          request.resource.data.amenityId == resource.data.amenityId &&
+          request.resource.data.amenity == resource.data.amenity &&
+          request.resource.data.date == resource.data.date &&
+          request.resource.data.startTime == resource.data.startTime &&
+          request.resource.data.endTime == resource.data.endTime &&
+          request.resource.data.slot == resource.data.slot &&
+          request.resource.data.status == 'cancelled' &&
+          request.resource.data.updatedBy == request.auth.uid
+        )
+      ) && (
+        request.resource == null ||
+        !request.resource.data.diff(resource.data).changedKeys().hasAny(['date', 'startTime']) ||
+        isDateTimeAtOrAfterBuffer(request.resource.data.date, request.resource.data.startTime, 30)
+      );
+
+      allow delete: if signedIn() && sameTenant(resource.data.tenantId) && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /packages/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        securityGuardRole(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create: if signedIn() && (
+        tenantAdminOrSuper(request.resource.data.tenantId) ||
+        (
+          securityGuardRole(request.resource.data.tenantId) &&
+          request.resource.data.status == 'pending' &&
+          request.resource.data.registeredBy == request.auth.uid
+        )
+      );
+
+      // Resident can only acknowledge receipt by setting delivered status.
+      allow update: if signedIn() && sameTenant(resource.data.tenantId) && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (
+          securityGuardRole(resource.data.tenantId) &&
+          request.resource.data.tenantId == resource.data.tenantId &&
+          request.resource.data.status == 'delivered' &&
+          resource.data.status == 'pending' &&
+          request.resource.data.updatedBy == request.auth.uid
+        ) ||
+        (
+          residentOwnUnit(resource.data.tenantId, resource.data.unitId) &&
+          request.resource.data.tenantId == resource.data.tenantId &&
+          request.resource.data.unitId == resource.data.unitId &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'delivered' &&
+          request.resource.data.receivedBy == request.auth.uid
+        )
+      );
+    }
+
+    match /auditLogs/{docId} {
+      allow read: if superadmin();
+      allow write: if false; // Audit logs must be written via Cloud Functions.
+    }
+
+    match /plans/{planId} {
+      allow read: if signedIn();
+      allow write: if superadmin();
+    }
+
+    match /featureFlags/{flagId} {
+      allow read: if signedIn();
+      allow write: if superadmin();
+    }
+
+    // Solicitudes de cambio de unidad
+    match /unitChangeRequests/{docId} {
+      allow read: if signedIn() && (
+        // El propio residente puede leer su solicitud
+        resource.data.userId == request.auth.uid || 
+        // Admin del tenant o superadmin pueden leer
+        tenantAdminOrSuper(resource.data.tenantId)
+      );
+      allow create: if signedIn() && (
+        // Solo el propio residente puede crear su solicitud, y solo para su tenant
+        request.resource.data.userId == request.auth.uid &&
+        tenantRole(request.resource.data.tenantId, 'resident') &&
+        request.resource.data.tenantId == membershipDoc(request.resource.data.tenantId).data.tenantId
+      );
+      allow update: if signedIn() && (
+        // Solo admin del tenant o superadmin pueden aprobar/rechazar
+        tenantAdminOrSuper(resource.data.tenantId)
+      );
+      allow delete: if false;
+    }
+  }
+}

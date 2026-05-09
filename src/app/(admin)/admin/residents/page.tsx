@@ -1,0 +1,1167 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Building2, FilterX, KeyRound, Search, UserCheck, Users2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
+import { Modal } from "@/components/shared/modal";
+import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { IconBadge } from "@/components/ui/icon-badge";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/lib/utils/use-debounce";
+import { useAuth } from "@/features/auth/auth-context";
+import { provisionResidentTemporaryAccessCallable } from "@/lib/firebase/callables";
+import { resolveUnitName } from "@/lib/utils/unit";
+import {
+  personSchema,
+  primaryHolderSchema,
+  unitSchema,
+  type PersonInput,
+  type PrimaryHolderInput,
+  type UnitInput,
+} from "@/features/admin/schemas";
+import {
+  createPerson,
+  createUnit,
+  deletePerson,
+  deleteUnit,
+  seedTenantOperationalData,
+  updatePerson,
+  updateUnit,
+  watchPeople,
+  watchUnits,
+  type PersonItem,
+  type UnitItem,
+} from "@/features/admin/services";
+
+export default function AdminResidentsPage() {
+  const { user } = useAuth();
+  const [units, setUnits] = useState<UnitItem[]>([]);
+  const [people, setPeople] = useState<PersonItem[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(true);
+  const [loadingPeople, setLoadingPeople] = useState(true);
+  const [unitsLoadError, setUnitsLoadError] = useState<string | null>(null);
+  const [peopleLoadError, setPeopleLoadError] = useState<string | null>(null);
+  const [unitRoleFilter, setUnitRoleFilter] = useState<"all" | PersonItem["occupancyType"]>("all");
+  const [unitIdFilter, setUnitIdFilter] = useState<string>("all");
+  const [unitStatusFilter, setUnitStatusFilter] = useState<"all" | UnitItem["status"]>("all");
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const debouncedPeopleSearch = useDebounce(peopleSearch.trim(), 200);
+
+  const [unitModalOpen, setUnitModalOpen] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
+  const [personModalOpen, setPersonModalOpen] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<PersonItem | null>(null);
+  const [savingUnit, setSavingUnit] = useState(false);
+  const [savingPerson, setSavingPerson] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [sendingResetTo, setSendingResetTo] = useState<string | null>(null);
+  const [pendingUnitDeletion, setPendingUnitDeletion] = useState<UnitItem | null>(null);
+  const [pendingPersonDeletion, setPendingPersonDeletion] = useState<PersonItem | null>(null);
+  const [deletingUnit, setDeletingUnit] = useState(false);
+  const [deletingPerson, setDeletingPerson] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<
+    Array<{
+      id: string;
+      fullName: string;
+      email: string;
+      phone: string;
+      documentNumber: string;
+      occupancyType: PersonItem["occupancyType"];
+      status: PersonItem["status"];
+    }>
+  >([]);
+
+  const unitForm = useForm<UnitInput>({
+    resolver: zodResolver(unitSchema),
+    defaultValues: {
+      displayName: "",
+      tower: "",
+      type: "apartment",
+      status: "active",
+    },
+  });
+
+  const personForm = useForm<PersonInput>({
+    resolver: zodResolver(personSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phone: "",
+      documentNumber: "",
+      roleType: "owner_occupant",
+      occupancyType: "owner_occupant",
+      unitId: "",
+      tower: "",
+      status: "active",
+    },
+  });
+
+  useEffect(() => {
+    if (!user?.tenantId) {
+      setLoadingUnits(false);
+      setLoadingPeople(false);
+      return;
+    }
+
+    const unsubUnits = watchUnits(
+      user.tenantId,
+      (items) => {
+        setUnits(items);
+        setUnitsLoadError(null);
+        setLoadingUnits(false);
+      },
+      (message) => {
+        setUnitsLoadError(message);
+        toast.error(message);
+        setLoadingUnits(false);
+      },
+    );
+
+    const unsubPeople = watchPeople(
+      user.tenantId,
+      (items) => {
+        setPeople(items);
+        setPeopleLoadError(null);
+        setLoadingPeople(false);
+      },
+      (message) => {
+        setPeopleLoadError(message);
+        toast.error(message);
+        setLoadingPeople(false);
+      },
+    );
+
+    return () => {
+      unsubUnits();
+      unsubPeople();
+    };
+  }, [user?.tenantId]);
+
+  const filteredPeople = useMemo(() => {
+    const query = debouncedPeopleSearch.toLowerCase();
+    return people.filter((person) => {
+      const roleOk = unitRoleFilter === "all" ? true : person.occupancyType === unitRoleFilter;
+      const unitOk = unitIdFilter === "all" ? true : person.unitId === unitIdFilter;
+      const personUnit = units.find((unit) => unit.id === person.unitId);
+      const unitStatusOk = unitStatusFilter === "all" ? true : personUnit?.status === unitStatusFilter;
+      const searchOk = !query
+        ? true
+        : person.fullName.toLowerCase().includes(query) ||
+          person.email.toLowerCase().includes(query) ||
+          (person.documentNumber ?? "").toLowerCase().includes(query) ||
+          (person.phone ?? "").toLowerCase().includes(query);
+      return roleOk && unitOk && unitStatusOk && searchOk;
+    });
+  }, [people, unitIdFilter, unitRoleFilter, unitStatusFilter, units, debouncedPeopleSearch]);
+
+  const unitsById = useMemo(() => {
+    return new Map(units.map((unit) => [unit.id, unit]));
+  }, [units]);
+
+  const activePeopleCount = useMemo(() => people.filter((person) => person.status === "active").length, [people]);
+
+  const activeFiltersCount = useMemo(() => {
+    return [
+      unitRoleFilter !== "all",
+      unitIdFilter !== "all",
+      unitStatusFilter !== "all",
+      debouncedPeopleSearch.length > 0,
+    ].filter(Boolean).length;
+  }, [unitIdFilter, unitRoleFilter, unitStatusFilter, debouncedPeopleSearch]);
+
+  const hasActiveFilters = activeFiltersCount > 0;
+
+  const occupancyLabels: Record<PersonItem["occupancyType"], string> = {
+    owner_occupant: "Propietario ocupante",
+    tenant: "Arrendatario",
+    investor: "Inversionista",
+    other: "Otro",
+  };
+
+  const primaryHolderFieldOrder: Array<keyof PrimaryHolderInput> = [
+    "fullName",
+    "email",
+    "phone",
+    "documentNumber",
+    "occupancyType",
+  ];
+
+  function debugResidentUnit(label: string, payload: unknown) {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug(`[admin-residents] ${label}`, payload);
+    }
+  }
+
+  function focusPrimaryField(field: keyof PrimaryHolderInput) {
+    const element = document.querySelector<HTMLElement>(`[name="${field}"]`);
+    if (!element) return;
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+    element.focus();
+  }
+
+  function validatePrimaryHolderBlock() {
+    const rawValues = personForm.getValues();
+    const candidate: PrimaryHolderInput = {
+      fullName: rawValues.fullName.trim(),
+      email: rawValues.email.trim().toLowerCase(),
+      phone: rawValues.phone.trim(),
+      documentNumber: (rawValues.documentNumber ?? "").trim(),
+      occupancyType: rawValues.occupancyType,
+    };
+
+    debugResidentUnit("primary-holder-before-validation", candidate);
+
+    primaryHolderFieldOrder.forEach((field) => personForm.clearErrors(field));
+
+    const parsed = primaryHolderSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const fieldErrors: Partial<Record<keyof PrimaryHolderInput, string>> = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === "string" && primaryHolderFieldOrder.includes(field as keyof PrimaryHolderInput)) {
+          const typedField = field as keyof PrimaryHolderInput;
+          if (!fieldErrors[typedField]) {
+            fieldErrors[typedField] = issue.message;
+          }
+        }
+      }
+
+      primaryHolderFieldOrder.forEach((field) => {
+        const message = fieldErrors[field];
+        if (message) {
+          personForm.setError(field, { type: "manual", message });
+        }
+      });
+
+      const firstInvalidField = primaryHolderFieldOrder.find((field) => Boolean(fieldErrors[field]));
+      debugResidentUnit("primary-holder-validation-failed", {
+        functionName: "validatePrimaryHolderBlock",
+        invalidField: firstInvalidField,
+        errors: fieldErrors,
+      });
+
+      if (firstInvalidField) {
+        focusPrimaryField(firstInvalidField);
+      }
+
+      return null;
+    }
+
+    debugResidentUnit("primary-holder-validation-ok", parsed.data);
+    return parsed.data;
+  }
+
+  const unitTypeLabels: Record<string, string> = {
+    apartment: "Apartamento",
+    apartamento: "Apartamento",
+    house: "Casa",
+    casa: "Casa",
+    office: "Oficina",
+    oficina: "Oficina",
+    parking: "Parqueadero",
+    parqueadero: "Parqueadero",
+    storage: "Bodega",
+    bodega: "Bodega",
+    commercial: "Local comercial",
+    local: "Local comercial",
+  };
+
+  function formatUnitType(value: string | undefined | null): string {
+    if (!value) return "-";
+    const key = value.trim().toLowerCase();
+    if (unitTypeLabels[key]) return unitTypeLabels[key];
+    return key.charAt(0).toUpperCase() + key.slice(1);
+  }
+
+  function formatTowerLabel(value: string | undefined | null): string {
+    if (!value) return "-";
+    const trimmed = value.trim();
+    if (!trimmed) return "-";
+    const { torre } = resolveUnitName(trimmed);
+    if (torre && torre !== "Sin torre") return torre;
+    return trimmed;
+  }
+
+  const unitColumns: DataTableColumn<UnitItem>[] = [
+    {
+      key: "displayName",
+      header: "Unidad",
+      className: "min-w-[160px]",
+      render: (unit) => <p className="font-medium text-[var(--slate-900)]">{unit.displayName}</p>,
+    },
+    {
+      key: "tower",
+      header: "Torre",
+      className: "whitespace-nowrap",
+      render: (unit) => formatTowerLabel(unit.tower),
+    },
+    {
+      key: "type",
+      header: "Tipo",
+      className: "whitespace-nowrap",
+      render: (unit) => formatUnitType(unit.type),
+    },
+    {
+      key: "status",
+      header: "Estado",
+      className: "whitespace-nowrap",
+      render: (unit) => <StatusBadge status={unit.status} context="unit" />,
+    },
+  ];
+
+  const peopleColumns: DataTableColumn<PersonItem>[] = [
+    {
+      key: "person",
+      header: "Persona",
+      className: "min-w-[220px]",
+      render: (person) => (
+        <div>
+          <p className="font-medium text-[var(--slate-900)]">{person.fullName}</p>
+          <p className="text-xs text-[var(--slate-600)]">{person.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: "contact",
+      header: "Contacto",
+      className: "min-w-[140px] text-[var(--slate-700)]",
+      mobileHidden: true,
+      render: (person) => person.phone || "-",
+    },
+    {
+      key: "documentNumber",
+      header: "Documento",
+      className: "whitespace-nowrap text-[var(--slate-700)]",
+      render: (person) => person.documentNumber ?? "-",
+      mobileHidden: true,
+    },
+    {
+      key: "occupancyType",
+      header: "Ocupacion",
+      className: "min-w-[170px] whitespace-nowrap",
+      render: (person) => <Badge>{occupancyLabels[person.occupancyType]}</Badge>,
+    },
+    {
+      key: "unit",
+      header: "Unidad / Torre",
+      className: "min-w-[160px]",
+      render: (person) => {
+        const linkedUnit = unitsById.get(person.unitId);
+        return (
+          <div>
+            <p className="font-medium text-[var(--slate-900)]">{linkedUnit?.displayName ?? person.unitId}</p>
+            <p className="text-xs text-[var(--slate-600)]">Torre {person.tower}</p>
+          </div>
+        );
+      },
+    },
+    {
+      key: "status",
+      header: "Estado",
+      className: "whitespace-nowrap",
+      render: (person) => <StatusBadge status={person.status} context="unit" />,
+    },
+  ];
+
+  function openCreateUnit() {
+    setEditingUnit(null);
+    unitForm.reset({
+      displayName: "",
+      tower: "",
+      type: "apartment",
+      status: "active",
+    });
+    personForm.reset({
+      fullName: "",
+      email: "",
+      phone: "",
+      documentNumber: "",
+      roleType: "owner_occupant",
+      occupancyType: "owner_occupant",
+      unitId: "",
+      tower: "",
+      status: "active",
+    });
+    setFamilyMembers([]);
+    setUnitModalOpen(true);
+  }
+
+  function openEditUnit(unit: UnitItem) {
+    setEditingUnit(unit);
+    unitForm.reset({
+      displayName: unit.displayName,
+      tower: unit.tower,
+      type: unit.type,
+      status: unit.status,
+    });
+    personForm.reset({
+      fullName: "",
+      email: "",
+      phone: "",
+      documentNumber: "",
+      roleType: "owner_occupant",
+      occupancyType: "owner_occupant",
+      unitId: "",
+      tower: unit.tower,
+      status: "active",
+    });
+    setFamilyMembers([]);
+    setUnitModalOpen(true);
+  }
+
+  function openEditPerson(person: PersonItem) {
+    setEditingPerson(person);
+    personForm.reset({
+      fullName: person.fullName,
+      email: person.email,
+      phone: person.phone,
+      documentNumber: person.documentNumber ?? "",
+      roleType: person.roleType,
+      occupancyType: person.occupancyType,
+      unitId: person.unitId,
+      tower: person.tower,
+      status: person.status,
+    });
+    setPersonModalOpen(true);
+  }
+
+  function addFamilyMember() {
+    const id = `fm-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setFamilyMembers((prev) => [
+      ...prev,
+      {
+        id,
+        fullName: "",
+        email: "",
+        phone: "",
+        documentNumber: "",
+        occupancyType: "other",
+        status: "active",
+      },
+    ]);
+  }
+
+  function updateFamilyMember(
+    id: string,
+    key: "fullName" | "email" | "phone" | "documentNumber" | "occupancyType" | "status",
+    value: string,
+  ) {
+    setFamilyMembers((prev) => prev.map((member) => (member.id === id ? { ...member, [key]: value } : member)));
+  }
+
+  function removeFamilyMember(id: string) {
+    setFamilyMembers((prev) => prev.filter((member) => member.id !== id));
+  }
+
+  function validateFamilyMembers() {
+    if (familyMembers.length === 0) return true;
+    for (const member of familyMembers) {
+      if (!member.fullName.trim()) {
+        toast.error("Cada familiar debe tener nombre completo.");
+        return false;
+      }
+      if (!member.email.trim() || !member.email.includes("@")) {
+        toast.error("Cada familiar debe tener un correo valido.");
+        return false;
+      }
+      if (!member.phone.trim() || member.phone.trim().length < 7) {
+        toast.error("Cada familiar debe tener telefono valido.");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function handleSaveUnitFlow() {
+    if (!user?.tenantId) return;
+
+    const unitValid = await unitForm.trigger();
+    if (!unitValid) {
+      debugResidentUnit("unit-validation-failed", {
+        functionName: "handleSaveUnitFlow",
+        errors: unitForm.formState.errors,
+      });
+      return;
+    }
+
+    const unitValues = unitForm.getValues();
+
+    if (editingUnit) {
+      await handleSaveUnit(unitValues);
+      return;
+    }
+
+    const primaryHolder = validatePrimaryHolderBlock();
+    if (!primaryHolder) {
+      return;
+    }
+    if (!validateFamilyMembers()) return;
+
+    setSavingUnit(true);
+    try {
+      const createdUnitId = await createUnit(user.tenantId, user.uid, unitValues);
+
+      const primaryPayload = {
+        ...primaryHolder,
+        roleType: primaryHolder.occupancyType,
+        occupancyType: primaryHolder.occupancyType,
+        unitId: createdUnitId,
+        tower: unitValues.tower.trim(),
+        status: "active" as const,
+      };
+
+      debugResidentUnit("unit-create-submit-payload", {
+        functionName: "handleSaveUnitFlow",
+        unit: unitValues,
+        primaryHolder: primaryPayload,
+        familyMembers,
+      });
+
+      const primaryPersonId = await createPerson(user.tenantId, user.uid, {
+        ...primaryPayload,
+      });
+
+      await provisionResidentTemporaryAccessCallable({
+        tenantId: user.tenantId,
+        personId: primaryPersonId,
+      });
+
+      for (const member of familyMembers) {
+        await createPerson(user.tenantId, user.uid, {
+          fullName: member.fullName,
+          email: member.email,
+          phone: member.phone,
+          documentNumber: member.documentNumber,
+          roleType: member.occupancyType,
+          occupancyType: member.occupancyType,
+          unitId: createdUnitId,
+          tower: unitValues.tower,
+          status: member.status,
+        });
+      }
+
+      toast.success("Unidad creada. El titular ya puede ingresar con su documento como clave temporal y debera cambiarla en su primer acceso.");
+      setUnitModalOpen(false);
+    } catch (error) {
+      debugResidentUnit("unit-create-flow-error", {
+        functionName: "handleSaveUnitFlow",
+        error,
+      });
+      toast.error(error instanceof Error ? error.message : "No fue posible crear la unidad completa.");
+    } finally {
+      setSavingUnit(false);
+    }
+  }
+
+  async function handleSaveUnit(values: UnitInput) {
+    if (!user?.tenantId) return;
+    setSavingUnit(true);
+    try {
+      if (editingUnit) {
+        await updateUnit(editingUnit.id, user.uid, values);
+        toast.success("Unidad actualizada.");
+      } else {
+        await createUnit(user.tenantId, user.uid, values);
+        toast.success("Unidad creada.");
+      }
+      setUnitModalOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible guardar unidad.");
+    } finally {
+      setSavingUnit(false);
+    }
+  }
+
+  async function handleDeleteUnit(unit: UnitItem) {
+    setPendingUnitDeletion(unit);
+  }
+
+  async function handleConfirmDeleteUnit() {
+    if (!pendingUnitDeletion) return;
+    const target = pendingUnitDeletion;
+    setDeletingUnit(true);
+    try {
+      await deleteUnit(target.id);
+      toast.success("Unidad eliminada.");
+      setPendingUnitDeletion(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible eliminar unidad.");
+    } finally {
+      setDeletingUnit(false);
+    }
+  }
+
+  async function handleSavePerson(values: PersonInput) {
+    if (!user?.tenantId) return;
+    setSavingPerson(true);
+    try {
+      const payload = {
+        ...values,
+        roleType: values.occupancyType,
+        occupancyType: values.occupancyType,
+      };
+      if (editingPerson) {
+        await updatePerson(editingPerson.id, user.uid, payload);
+        toast.success("Persona actualizada.");
+      } else {
+        const personId = await createPerson(user.tenantId, user.uid, payload);
+        await provisionResidentTemporaryAccessCallable({
+          tenantId: user.tenantId,
+          personId,
+        });
+        toast.success("Persona creada. Se activo clave temporal con documento y cambio obligatorio en primer ingreso.");
+      }
+      setPersonModalOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible guardar persona.");
+    } finally {
+      setSavingPerson(false);
+    }
+  }
+
+  async function handleDeletePerson(person: PersonItem) {
+    setPendingPersonDeletion(person);
+  }
+
+  async function handleConfirmDeletePerson() {
+    if (!pendingPersonDeletion) return;
+    const target = pendingPersonDeletion;
+    setDeletingPerson(true);
+    try {
+      await deletePerson(target.id);
+      toast.success("Persona eliminada.");
+      setPendingPersonDeletion(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible eliminar persona.");
+    } finally {
+      setDeletingPerson(false);
+    }
+  }
+
+  async function handleSeed() {
+    if (!user?.tenantId) return;
+    setSeeding(true);
+    try {
+      await seedTenantOperationalData(user.tenantId, user.uid);
+      toast.success("Seed operativo aplicado para el tenant.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible ejecutar seed.");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
+  async function handleResetTemporaryPassword(person: PersonItem) {
+    if (!user?.tenantId) return;
+    setSendingResetTo(person.id);
+    try {
+      await provisionResidentTemporaryAccessCallable({
+        tenantId: user.tenantId,
+        personId: person.id,
+      });
+      toast.success("Clave temporal restablecida correctamente. El residente debera ingresar con su numero de documento y cambiar su contrasena antes de continuar.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible restablecer la clave temporal.");
+    } finally {
+      setSendingResetTo(null);
+    }
+  }
+
+  function clearPeopleFilters() {
+    setUnitRoleFilter("all");
+    setUnitIdFilter("all");
+    setUnitStatusFilter("all");
+    setPeopleSearch("");
+  }
+
+  return (
+    <section className="space-y-4">
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Residentes, propietarios, inquilinos y unidades</CardTitle>
+            <CardDescription className="mt-1">
+              Gestión operativa de personas por rol y asociación a unidades del edificio.
+            </CardDescription>
+            {unitsLoadError || peopleLoadError ? (
+              <p className="mt-2 rounded-xl border border-[var(--amber-300)] bg-[var(--amber-50)] px-3 py-2 text-xs text-[var(--amber-900)]">
+                {unitsLoadError ?? peopleLoadError}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => void handleSeed()} disabled={seeding}>
+              {seeding ? "Sembrando..." : "Cargar seed"}
+            </Button>
+            <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <CardTitle>Unidades</CardTitle>
+        <div className="mt-3">
+          <DataTable
+            columns={unitColumns}
+            rows={units}
+            getRowKey={(unit) => unit.id}
+            loading={loadingUnits}
+            loadingText="Cargando unidades..."
+            emptyText="Sin unidades. Crea una o aplica seed."
+            tableMinWidthClassName="min-w-[640px] sm:min-w-[680px]"
+            renderActions={(unit) => (
+              <div className="flex justify-end">
+                <RowActionsMenu
+                  ariaLabel={`Acciones para unidad ${unit.displayName}`}
+                  onView={() => openEditUnit(unit)}
+                  onEdit={() => openEditUnit(unit)}
+                  onDelete={() => void handleDeleteUnit(unit)}
+                />
+              </div>
+            )}
+          />
+        </div>
+      </Card>
+
+      <Card>
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <CardTitle>Personas asociadas</CardTitle>
+              <CardDescription className="mt-1">
+                Titulares y residentes vinculados a cada unidad, con acceso rapido a acciones operativas.
+              </CardDescription>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-100)] px-3 py-2">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--slate-600)]"><Users2 className="h-3.5 w-3.5" /> Total</p>
+                <p className="text-sm font-semibold text-[var(--slate-900)]">{people.length}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-100)] px-3 py-2">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--slate-600)]"><UserCheck className="h-3.5 w-3.5" /> Activos</p>
+                <p className="text-sm font-semibold text-[var(--slate-900)]">{activePeopleCount}</p>
+              </div>
+              <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-100)] px-3 py-2">
+                <p className="inline-flex items-center gap-1 text-xs text-[var(--slate-600)]"><Building2 className="h-3.5 w-3.5" /> Unidades</p>
+                <p className="text-sm font-semibold text-[var(--slate-900)]">{units.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <MobileFiltersPanel
+            title="Filtros de personas"
+            collapsibleOnDesktop
+            defaultOpen={false}
+            activeFiltersCount={activeFiltersCount}
+            openLabel="Mostrar filtros"
+            closeLabel="Ocultar filtros"
+            footer={
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-[var(--slate-600)]">{activeFiltersCount > 0 ? `${activeFiltersCount} filtro(s) activo(s)` : "Sin filtros activos"}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="xs"
+                  className="inline-flex items-center gap-1"
+                  disabled={!hasActiveFilters}
+                  onClick={clearPeopleFilters}
+                >
+                  <IconBadge tone="sand">
+                    <FilterX className="h-3.5 w-3.5" />
+                  </IconBadge>
+                  Limpiar filtros
+                </Button>
+              </div>
+            }
+          >
+            <div className="space-y-3">
+              <label className="block text-xs text-[var(--slate-600)]">
+                Buscar persona
+                <div className="relative mt-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--slate-500)]" aria-hidden="true" />
+                  <input
+                    type="text"
+                    placeholder="Nombre, email o documento..."
+                    value={peopleSearch}
+                    onChange={(event) => setPeopleSearch(event.target.value)}
+                    autoComplete="off"
+                    className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white pl-9 pr-9 text-sm focus:border-[var(--brand-700)] focus:outline-none"
+                    aria-label="Buscar persona por nombre, email o documento"
+                  />
+                  {peopleSearch ? (
+                    <button
+                      type="button"
+                      onClick={() => setPeopleSearch("")}
+                      aria-label="Limpiar busqueda"
+                      className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-[var(--slate-500)] hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+              </label>
+              <div className="grid gap-3 md:grid-cols-3">
+              <label className="text-xs text-[var(--slate-600)]">
+                Ocupacion
+                <select
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  value={unitRoleFilter}
+                  onChange={(event) => setUnitRoleFilter(event.target.value as "all" | PersonItem["occupancyType"])}
+                >
+                  <option value="all">Todas</option>
+                  <option value="owner_occupant">Propietario ocupante</option>
+                  <option value="tenant">Arrendatario</option>
+                  <option value="investor">Inversionista</option>
+                  <option value="other">Otro</option>
+                </select>
+              </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Estado de unidad
+                <select
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  value={unitStatusFilter}
+                  onChange={(event) => setUnitStatusFilter(event.target.value as "all" | UnitItem["status"])}
+                >
+                  <option value="all">Todos</option>
+                  <option value="active">Activa</option>
+                  <option value="inactive">Inactiva</option>
+                </select>
+              </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Unidad
+                <select
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  value={unitIdFilter}
+                  onChange={(event) => setUnitIdFilter(event.target.value)}
+                >
+                  <option value="all">Todas</option>
+                  {units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>{unit.displayName}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            </div>
+          </MobileFiltersPanel>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-[var(--slate-200)] bg-white p-3 sm:p-4">
+          <DataTable
+            columns={peopleColumns}
+            rows={filteredPeople}
+            getRowKey={(person) => person.id}
+            loading={loadingPeople}
+            loadingText="Cargando personas..."
+            emptyText="No hay personas con esos filtros."
+            tableMinWidthClassName="min-w-[760px] xl:min-w-[980px]"
+            renderActions={(person) => (
+              <div className="flex justify-end">
+                <RowActionsMenu
+                  ariaLabel={`Acciones para ${person.fullName}`}
+                  onView={() => openEditPerson(person)}
+                  onEdit={() => openEditPerson(person)}
+                  onDelete={() => void handleDeletePerson(person)}
+                  extraItems={[
+                    {
+                      key: "reset-password",
+                      label: sendingResetTo === person.id ? "Restableciendo..." : "Restablecer clave",
+                      icon: <KeyRound className="h-3.5 w-3.5" />,
+                      disabled: sendingResetTo === person.id,
+                      onSelect: () => void handleResetTemporaryPassword(person),
+                    },
+                  ]}
+                />
+              </div>
+            )}
+          />
+        </div>
+      </Card>
+
+      <Modal open={unitModalOpen} title={editingUnit ? "Editar unidad" : "Crear unidad y titulares"} onClose={() => setUnitModalOpen(false)}>
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSaveUnitFlow();
+          }}
+        >
+          <Card className="p-4">
+            <CardTitle className="text-base">1. Datos de la unidad</CardTitle>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">Display name</label>
+                <Input {...unitForm.register("displayName")} placeholder="T1-101" />
+                {unitForm.formState.errors.displayName ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.displayName.message}</p> : null}
+              </div>
+              <div>
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">Torre</label>
+                <Input {...unitForm.register("tower")} placeholder="T1" />
+                {unitForm.formState.errors.tower ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.tower.message}</p> : null}
+              </div>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="text-sm text-[var(--slate-700)]">
+                Tipo
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...unitForm.register("type")}>
+                  <option value="apartment">Apartment</option>
+                  <option value="house">House</option>
+                  <option value="office">Office</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+              <label className="text-sm text-[var(--slate-700)]">
+                Estado
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...unitForm.register("status")}>
+                  <option value="active">Activo</option>
+                  <option value="inactive">Inactivo</option>
+                </select>
+              </label>
+            </div>
+          </Card>
+
+          {!editingUnit ? (
+            <>
+              <Card className="p-4">
+                <CardTitle className="text-base">2. Titular principal</CardTitle>
+                <div className="mt-3">
+                  <label className="mb-1 block text-sm text-[var(--slate-700)]">Nombre completo</label>
+                  <Input {...personForm.register("fullName")} error={personForm.formState.errors.fullName?.message} />
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-[var(--slate-700)]">Correo</label>
+                    <Input {...personForm.register("email")} error={personForm.formState.errors.email?.message} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm text-[var(--slate-700)]">Telefono</label>
+                    <Input {...personForm.register("phone")} error={personForm.formState.errors.phone?.message} />
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-[var(--slate-700)]">Documento</label>
+                    <Input {...personForm.register("documentNumber")} error={personForm.formState.errors.documentNumber?.message} />
+                  </div>
+                  <label className="text-sm text-[var(--slate-700)]">
+                    Tipo de ocupacion
+                    <select
+                      className={`mt-1 h-10 w-full rounded-xl border bg-white px-3 text-sm ${
+                        personForm.formState.errors.occupancyType
+                          ? "border-[var(--danger-500)] focus:ring-2 focus:ring-[var(--danger-200)]"
+                          : "border-[var(--slate-300)]"
+                      }`}
+                      {...personForm.register("occupancyType")}
+                      onChange={(event) => {
+                        const value = event.target.value as PersonItem["occupancyType"];
+                        personForm.setValue("occupancyType", value);
+                        personForm.setValue("roleType", value);
+                      }}
+                    >
+                      <option value="owner_occupant">Propietario ocupante</option>
+                      <option value="tenant">Arrendatario</option>
+                      <option value="investor">Inversionista</option>
+                      <option value="other">Otro</option>
+                    </select>
+                    {personForm.formState.errors.occupancyType ? (
+                      <p className="mt-1 text-xs text-[var(--danger-700)]">{personForm.formState.errors.occupancyType.message}</p>
+                    ) : null}
+                  </label>
+                </div>
+              </Card>
+
+              <Card className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <CardTitle className="text-base">3. Nucleo familiar (opcional)</CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={addFamilyMember}>Agregar familiar</Button>
+                </div>
+                {familyMembers.length === 0 ? (
+                  <p className="mt-2 text-sm text-[var(--slate-600)]">No hay familiares agregados.</p>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {familyMembers.map((member, index) => (
+                      <div key={member.id} className="rounded-xl border border-[var(--slate-200)] p-3">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-sm font-semibold text-[var(--slate-900)]">Familiar {index + 1}</p>
+                          <Button type="button" size="sm" variant="outline" onClick={() => removeFamilyMember(member.id)}>Quitar</Button>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <Input
+                            placeholder="Nombre completo"
+                            value={member.fullName}
+                            onChange={(event) => updateFamilyMember(member.id, "fullName", event.target.value)}
+                          />
+                          <Input
+                            placeholder="Correo"
+                            value={member.email}
+                            onChange={(event) => updateFamilyMember(member.id, "email", event.target.value)}
+                          />
+                          <Input
+                            placeholder="Telefono"
+                            value={member.phone}
+                            onChange={(event) => updateFamilyMember(member.id, "phone", event.target.value)}
+                          />
+                          <Input
+                            placeholder="Documento"
+                            value={member.documentNumber}
+                            onChange={(event) => updateFamilyMember(member.id, "documentNumber", event.target.value)}
+                          />
+                        </div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                          <select
+                            className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                            value={member.occupancyType}
+                            onChange={(event) => updateFamilyMember(member.id, "occupancyType", event.target.value)}
+                          >
+                            <option value="owner_occupant">Propietario ocupante</option>
+                            <option value="tenant">Arrendatario</option>
+                            <option value="investor">Inversionista</option>
+                            <option value="other">Otro</option>
+                          </select>
+                          <select
+                            className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                            value={member.status}
+                            onChange={(event) => updateFamilyMember(member.id, "status", event.target.value)}
+                          >
+                            <option value="active">Activo</option>
+                            <option value="inactive">Inactivo</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-4">
+                <CardTitle className="text-base">4. Credenciales y acceso</CardTitle>
+                <CardDescription className="mt-2">
+                  Al guardar, el titular queda creado y desde la tabla de personas podras usar la accion de restablecimiento de clave por correo.
+                </CardDescription>
+              </Card>
+            </>
+          ) : null}
+
+          <div className="mobile-action-group">
+            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setUnitModalOpen(false)}>Cancelar</Button>
+            <Button className="w-full sm:w-auto" type="submit" disabled={savingUnit}>{savingUnit ? "Guardando..." : "Guardar"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={personModalOpen} title={editingPerson ? "Editar persona" : "Crear persona"} onClose={() => setPersonModalOpen(false)}>
+        <form className="space-y-3" onSubmit={personForm.handleSubmit((values) => void handleSavePerson(values))}>
+          <div>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">Nombre completo</label>
+            <Input {...personForm.register("fullName")} />
+            {personForm.formState.errors.fullName ? <p className="mt-1 text-xs text-[var(--danger-700)]">{personForm.formState.errors.fullName.message}</p> : null}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Correo</label>
+              <Input {...personForm.register("email")} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Telefono</label>
+              <Input {...personForm.register("phone")} />
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[var(--slate-700)]">
+              Tipo de ocupacion
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                {...personForm.register("occupancyType")}
+                onChange={(event) => {
+                  const value = event.target.value as PersonItem["occupancyType"];
+                  personForm.setValue("occupancyType", value);
+                  personForm.setValue("roleType", value);
+                }}
+              >
+                <option value="owner_occupant">Propietario ocupante</option>
+                <option value="tenant">Tenant / Inquilino</option>
+                <option value="investor">Inversionista</option>
+                <option value="other">Otro</option>
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Unidad
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                {...personForm.register("unitId")}
+                onChange={(event) => {
+                  const selected = units.find((item) => item.id === event.target.value);
+                  if (selected) {
+                    personForm.setValue("tower", selected.tower);
+                  }
+                  personForm.setValue("unitId", event.target.value);
+                }}
+              >
+                <option value="">Selecciona</option>
+                {units.map((unit) => (
+                  <option key={unit.id} value={unit.id}>{unit.displayName}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Documento</label>
+              <Input {...personForm.register("documentNumber")} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Torre</label>
+              <Input {...personForm.register("tower")} />
+            </div>
+          </div>
+          <label className="text-sm text-[var(--slate-700)]">
+            Estado
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...personForm.register("status")}>
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+            </select>
+          </label>
+          <div className="mobile-action-group">
+            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setPersonModalOpen(false)}>Cancelar</Button>
+            <Button className="w-full sm:w-auto" type="submit" disabled={savingPerson}>{savingPerson ? "Guardando..." : "Guardar"}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDeleteDialog
+        open={Boolean(pendingUnitDeletion)}
+        name={pendingUnitDeletion?.displayName ?? ""}
+        description={
+          pendingUnitDeletion
+            ? `Se eliminará la unidad ${pendingUnitDeletion.displayName} (Torre ${pendingUnitDeletion.tower}). Las personas asociadas perderán el vínculo con esta unidad. No se puede deshacer.`
+            : null
+        }
+        loading={deletingUnit}
+        onCancel={() => (deletingUnit ? undefined : setPendingUnitDeletion(null))}
+        onConfirm={() => void handleConfirmDeleteUnit()}
+      />
+
+      <ConfirmDeleteDialog
+        open={Boolean(pendingPersonDeletion)}
+        name={pendingPersonDeletion?.fullName ?? ""}
+        description={
+          pendingPersonDeletion
+            ? `Se eliminará el registro de ${pendingPersonDeletion.fullName} y se perderá su acceso a la plataforma. No se puede deshacer.`
+            : null
+        }
+        loading={deletingPerson}
+        onCancel={() => (deletingPerson ? undefined : setPendingPersonDeletion(null))}
+        onConfirm={() => void handleConfirmDeletePerson()}
+      />
+    </section>
+  );
+}
