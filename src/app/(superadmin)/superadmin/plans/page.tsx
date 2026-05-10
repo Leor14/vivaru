@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -110,7 +111,7 @@ export default function SuperadminPlansPage() {
       setCreateOpen(false);
       createForm.reset();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible crear plan.");
+      toastFirebaseError(error);
     } finally {
       setSavingCreate(false);
     }
@@ -134,7 +135,7 @@ export default function SuperadminPlansPage() {
       toast.success("Plan actualizado.");
       setEditingPlan(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible actualizar plan.");
+      toastFirebaseError(error);
     } finally {
       setSavingEdit(false);
     }
@@ -158,7 +159,7 @@ export default function SuperadminPlansPage() {
       });
       toast.success("Estado de plan actualizado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible actualizar plan.");
+      toastFirebaseError(error);
     }
   }
 
@@ -182,7 +183,15 @@ export default function SuperadminPlansPage() {
       render: (plan) => (
         <div>
           <p className="font-medium text-[var(--slate-900)] capitalize">{plan.name}</p>
-          <p className="text-xs text-[var(--slate-500)]">ID: {plan.id}</p>
+          <p className="text-xs text-[var(--slate-500)]">
+            <span
+              className="cursor-pointer hover:text-[var(--slate-700)]"
+              title={plan.id}
+              onClick={() => navigator.clipboard.writeText(plan.id)}
+            >
+              ID ···{plan.id.slice(-6)}
+            </span>
+          </p>
         </div>
       ),
     },

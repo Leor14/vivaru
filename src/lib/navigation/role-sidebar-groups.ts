@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import {
+  BarChart2,
   Building2,
   CalendarCheck,
   FileText,
@@ -23,6 +24,7 @@ const ICON_BY_HREF: Record<string, IconComponent> = {
   "/superadmin/tenants": Building2,
   "/superadmin/admin-users": Users,
   "/superadmin/plans": Wallet,
+  "/superadmin/metrics": BarChart2,
   "/superadmin/support": MessageSquare,
   "/superadmin/audit": FileText,
   "/admin": Grid3X3,
