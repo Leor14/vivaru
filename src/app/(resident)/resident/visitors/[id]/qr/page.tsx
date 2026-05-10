@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -53,6 +54,22 @@ export default function ResidentVisitorsQrPage() {
     void loadInvitation();
   }, [id, user?.tenantId, user?.unitId]);
 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const handleDownload = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const url = canvas.toDataURL("image/png");
+    const visitorSlug = (invitation?.visitorName ?? "visitante")
+      .trim()
+      .replace(/\s+/g, "-");
+    const filename = `QR-${invitation?.invitationCode ?? "QR"}-${visitorSlug}.png`;
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+  };
+
   const isActive = invitation?.status === "active";
   const qrValue = useMemo(() => {
     if (!invitation) return "";
@@ -91,12 +108,21 @@ export default function ResidentVisitorsQrPage() {
             <p className="mt-1 text-sm text-[var(--slate-600)]">ID: {invitation.visitorIdentification}</p>
 
             <div className="mx-auto mt-4 w-fit rounded-2xl border border-[var(--slate-200)] bg-white p-3">
-              <QRCodeCanvas value={qrValue} size={220} level="H" includeMargin />
+              <QRCodeCanvas ref={canvasRef} value={qrValue} size={220} level="H" includeMargin />
             </div>
 
             <p className="mt-3 text-2xl font-semibold tracking-[0.2em] text-[var(--brand-900)]">{invitation.invitationCode}</p>
             <p className="mt-2 text-sm text-[var(--slate-600)]">Vigencia: {formatDateTime(invitation.startAt)} - {formatDateTime(invitation.endAt)}</p>
             <p className="mt-1 text-sm text-[var(--slate-600)]">Usos permitidos: {invitation.allowedUses}</p>
+
+            <Button
+              onClick={handleDownload}
+              variant="outline"
+              className="mt-4 w-full"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Descargar QR
+            </Button>
 
             {!isActive ? (
               <p className="mt-3 rounded-lg bg-[var(--danger-100)] px-3 py-2 text-sm font-medium text-[var(--danger-700)]">
