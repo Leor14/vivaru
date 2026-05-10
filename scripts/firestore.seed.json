@@ -4,8 +4,47 @@
       "id": "tenant-santa-maria",
       "name": "Conjunto Residencial Santa Maria",
       "city": "Bogota",
+      "country": "CO",
       "status": "active",
       "planId": "plus"
+    },
+    {
+      "id": "tenant-nogal-bogota",
+      "name": "Conjunto Residencial El Nogal",
+      "city": "Bogotá",
+      "country": "CO",
+      "status": "active",
+      "planId": "plus",
+      "seedScript": "functions/scripts/seed-tenant.mjs --tenant=co",
+      "users": 4,
+      "units": 20,
+      "people": 8,
+      "amenities": 5,
+      "billingStatements": 9,
+      "pqrs": 5,
+      "visitors": 4,
+      "packages": 3,
+      "communications": 3,
+      "reservations": 3
+    },
+    {
+      "id": "tenant-palmas-cdmx",
+      "name": "Privada Las Palmas",
+      "city": "Ciudad de México",
+      "country": "MX",
+      "status": "active",
+      "planId": "plus",
+      "seedScript": "functions/scripts/seed-tenant.mjs --tenant=mx",
+      "users": 4,
+      "units": 24,
+      "people": 6,
+      "amenities": 5,
+      "billingStatements": 8,
+      "pqrs": 4,
+      "visitors": 4,
+      "packages": 3,
+      "communications": 3,
+      "reservations": 3
     }
   ],
   "demoUsers": [
@@ -22,6 +61,50 @@
       "email": "residente@santamaria.co",
       "role": "resident",
       "tenantId": "tenant-santa-maria"
+    },
+    {
+      "email": "admin@elnogal.co",
+      "role": "tenant_admin",
+      "tenantId": "tenant-nogal-bogota"
+    },
+    {
+      "email": "maria.ospina@elnogal.co",
+      "role": "resident",
+      "tenantId": "tenant-nogal-bogota",
+      "unitId": "t1-301"
+    },
+    {
+      "email": "juan.herrera@elnogal.co",
+      "role": "resident",
+      "tenantId": "tenant-nogal-bogota",
+      "unitId": "t2-204"
+    },
+    {
+      "email": "guardia@elnogal.co",
+      "role": "security_guard",
+      "tenantId": "tenant-nogal-bogota"
+    },
+    {
+      "email": "admin@privadapalmas.mx",
+      "role": "tenant_admin",
+      "tenantId": "tenant-palmas-cdmx"
+    },
+    {
+      "email": "roberto.luna@privadapalmas.mx",
+      "role": "resident",
+      "tenantId": "tenant-palmas-cdmx",
+      "unitId": "ea-302"
+    },
+    {
+      "email": "valeria.torres@privadapalmas.mx",
+      "role": "resident",
+      "tenantId": "tenant-palmas-cdmx",
+      "unitId": "ea-501"
+    },
+    {
+      "email": "guardia@privadapalmas.mx",
+      "role": "security_guard",
+      "tenantId": "tenant-palmas-cdmx"
     }
   ],
   "communications": 2,

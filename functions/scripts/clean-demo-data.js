@@ -61,12 +61,14 @@ const COLLECTIONS = [
   "pqrs",
   "documents",
   "dashboardBlocks",
+  "visitorPasses",
+  "billingStatements",
 ];
 
 /**
  * Criterios de demo / seed
  */
-const DEMO_TENANT_IDS = ["demo-tenant", "tenant-demo", "santamaria-demo", "hogaru-demo"];
+const DEMO_TENANT_IDS = ["demo-tenant", "tenant-demo", "santamaria-demo", "hogaru-demo", "tenant-nogal-bogota", "tenant-palmas-cdmx"];
 
 const DEMO_TENANT_SLUGS = ["demo", "santamaria", "hogaru-demo", "home4u-demo"];
 
@@ -78,6 +80,14 @@ const DEMO_EMAILS = [
   "marta.owner@demo.co",
   "jorge.resident@demo.co",
   "laura.tenant@demo.co",
+  "admin@elnogal.co",
+  "maria.ospina@elnogal.co",
+  "juan.herrera@elnogal.co",
+  "guardia@elnogal.co",
+  "admin@privadapalmas.mx",
+  "roberto.luna@privadapalmas.mx",
+  "valeria.torres@privadapalmas.mx",
+  "guardia@privadapalmas.mx",
 ];
 
 /**
