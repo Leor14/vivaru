@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
 import { BillingBulkMessageDrawer, type BillingUnitOption } from "@/components/features/billing/BillingBulkMessageDrawer";
@@ -384,12 +385,13 @@ export default function AdminBillingPage() {
       setPaymentAmount("0");
       setAmount("0");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible registrar el estado de cuenta.");
+      toastFirebaseError(error);
     }
   }
 
   async function handleRowUpdate(input: {
     id: string;
+    unitId: string;
     unitLabel: string;
     period: string;
     amount: number;
@@ -408,6 +410,7 @@ export default function AdminBillingPage() {
     setSavingRowId(input.id);
     try {
       await updateBillingStatement(input.id, {
+        unitId: input.unitId,
         unitLabel: input.unitLabel,
         period: input.period,
         amount: input.amount,
@@ -550,14 +553,23 @@ export default function AdminBillingPage() {
     }
 
     let successCount = 0;
+    const failedRows: string[] = [];
     for (const row of rows) {
+      const matchedUnit = catalogUnits.find(
+        (unit) => unit.label.trim().toLowerCase() === (row.apartamento || "").trim().toLowerCase(),
+      );
+      if (!matchedUnit) {
+        failedRows.push(row.apartamento || "(sin nombre)");
+        continue;
+      }
       const rowAmount = parseCurrency(row.monto || "0");
       const rowPayment = parseCurrency(row.abono || "0");
       const rowBalance = parseCurrency(row.saldo || String(Math.max(rowAmount - rowPayment, 0)));
       await createBillingStatement({
         tenantId: user.tenantId,
         userId: user.uid,
-        unitLabel: row.apartamento,
+        unitId: matchedUnit.id,
+        unitLabel: matchedUnit.label,
         period: row.fecha,
         amount: rowAmount,
         paymentAmount: rowPayment,
@@ -566,7 +578,12 @@ export default function AdminBillingPage() {
       });
       successCount += 1;
     }
-    toast.success(`Importacion completa: ${successCount} filas procesadas.`);
+    if (failedRows.length > 0) {
+      toast.error(`${failedRows.length} fila(s) omitidas por unidad no encontrada: ${failedRows.join(", ")}`);
+    }
+    if (successCount > 0) {
+      toast.success(`Importacion completa: ${successCount} fila(s) procesadas.`);
+    }
   }
 
   function handlePrintOverdueNotice() {
@@ -926,6 +943,7 @@ export default function AdminBillingPage() {
                     onClick={() => {
                       handleOpenEditDrawer({
                         id: item.id,
+                        unitId: item.unitId,
                         unitLabel: item.unitLabel,
                         period: item.period,
                         amount: item.amount,

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 
 export type BillingEditRecord = {
   id: string;
+  unitId: string;
   unitLabel: string;
   period: string;
   amount: number;
@@ -24,6 +25,7 @@ type BillingEditDrawerProps = {
   onRequestSubmit?: (submit: (() => Promise<boolean>) | null) => void;
   onSave: (input: {
     id: string;
+    unitId: string;
     unitLabel: string;
     period: string;
     amount: number;
@@ -173,6 +175,7 @@ export function BillingEditDrawer({ open, record, saving, onClose, onDirtyChange
     try {
       await onSave({
         id: record.id,
+        unitId: record.unitId,
         unitLabel: unitLabel.trim(),
         period,
         amount: parsedAmount,

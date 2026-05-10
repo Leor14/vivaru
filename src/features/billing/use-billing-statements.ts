@@ -61,7 +61,7 @@ export function useBillingStatements(tenantId?: string, unitId?: string) {
 export async function createBillingStatement(input: {
   tenantId: string;
   userId: string;
-  unitId?: string;
+  unitId: string;
   unitLabel: string;
   period: string;
   amount: number;
@@ -69,15 +69,12 @@ export async function createBillingStatement(input: {
   balance: number;
   dueDate?: string;
 }) {
-  const derivedUnitId =
-    input.unitId ??
-    `unit-${input.unitLabel
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")}`;
+  if (!input.unitId || !input.unitId.trim()) {
+    throw new Error("unitId es obligatorio en createBillingStatement. No se permite derivar unitId desde unitLabel.");
+  }
 
   await createTenantDocument("billingStatements", input.tenantId, input.userId, {
-    unitId: derivedUnitId,
+    unitId: input.unitId,
     unitLabel: input.unitLabel,
     period: input.period,
     amount: input.amount,
@@ -92,6 +89,7 @@ export async function createBillingStatement(input: {
 export async function updateBillingStatement(
   id: string,
   input: {
+    unitId?: string;
     unitLabel: string;
     period: string;
     amount: number;
@@ -107,13 +105,9 @@ export async function updateBillingStatement(
 
   const today = new Date().toISOString().slice(0, 10);
   const status = input.balance <= 0 ? "paid" : input.dueDate && input.dueDate < today ? "overdue" : "pending";
-  const derivedUnitId = `unit-${input.unitLabel
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")}`;
 
   await updateDoc(doc(db, "billingStatements", id), {
-    unitId: derivedUnitId,
+    ...(input.unitId ? { unitId: input.unitId } : {}),
     unitLabel: input.unitLabel,
     period: input.period,
     amount: input.amount,
