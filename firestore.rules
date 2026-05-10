@@ -374,6 +374,14 @@ service cloud.firestore {
       );
     }
 
+    match /supportTickets/{docId} {
+      allow read: if superadmin();
+      allow create: if superadmin() &&
+        request.resource.data.createdBy == request.auth.uid;
+      allow update: if superadmin();
+      allow delete: if false;
+    }
+
     match /reservations/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
