@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 import {
   combineDateAndTime,
   getMinAllowedDateTime,
@@ -241,7 +242,7 @@ export default function AdminReservationsPage() {
       }
       setOpenModal(false);
     } catch (createError) {
-      toast.error(createError instanceof Error ? createError.message : "No fue posible guardar reserva.");
+      toastFirebaseError(createError);
     } finally {
       setSaving(false);
     }
@@ -276,8 +277,7 @@ export default function AdminReservationsPage() {
       setAmenityName("");
       toast.success("Amenidad creada.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No fue posible crear la amenidad.";
-      toast.error(message);
+      toastFirebaseError(error);
     } finally {
       setSavingAmenity(false);
     }
@@ -296,7 +296,7 @@ export default function AdminReservationsPage() {
       toast.success("Amenidad eliminada.");
       setPendingAmenityDeletion(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar amenidad.");
+      toastFirebaseError(error);
     } finally {
       setDeletingAmenity(false);
     }
@@ -324,7 +324,7 @@ export default function AdminReservationsPage() {
       toast.success("Amenidad actualizada.");
       setEditingAmenity(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible actualizar la amenidad.");
+      toastFirebaseError(error);
     } finally {
       setSavingAmenityEdit(false);
     }
@@ -347,7 +347,7 @@ export default function AdminReservationsPage() {
         toast.success("Amenidad habilitada.");
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible cambiar el estado de la amenidad.");
+      toastFirebaseError(error);
     } finally {
       setTogglingAmenityId(null);
     }
@@ -366,7 +366,7 @@ export default function AdminReservationsPage() {
       toast.success("Reserva eliminada.");
       setPendingDeletion(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar reserva.");
+      toastFirebaseError(error);
     } finally {
       setDeleting(false);
     }
@@ -776,7 +776,7 @@ export default function AdminReservationsPage() {
                         toast.success("Reserva rechazada.");
                         setDetailItem(null);
                       } catch (error) {
-                        toast.error(error instanceof Error ? error.message : "No fue posible actualizar.");
+                        toastFirebaseError(error);
                       } finally {
                         setUpdatingDetailStatus(false);
                       }
@@ -795,7 +795,7 @@ export default function AdminReservationsPage() {
                         toast.success("Reserva aprobada.");
                         setDetailItem(null);
                       } catch (error) {
-                        toast.error(error instanceof Error ? error.message : "No fue posible actualizar.");
+                        toastFirebaseError(error);
                       } finally {
                         setUpdatingDetailStatus(false);
                       }
@@ -818,7 +818,7 @@ export default function AdminReservationsPage() {
                       toast.success("Reserva cancelada.");
                       setDetailItem(null);
                     } catch (error) {
-                      toast.error(error instanceof Error ? error.message : "No fue posible actualizar.");
+                      toastFirebaseError(error);
                     } finally {
                       setUpdatingDetailStatus(false);
                     }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FirebaseError } from "firebase/app";
+import { normalizeFirebaseError } from "@/lib/utils/error-handler";
 import {
   addDoc,
   collection,
@@ -245,7 +246,7 @@ export async function createReservation(input: {
       date: input.date,
       unitId: input.unitId,
       errorCode: error instanceof FirebaseError ? error.code : null,
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorMessage: normalizeFirebaseError(error),
     });
     throw new Error(normalizeReservationCreateError(error));
   }

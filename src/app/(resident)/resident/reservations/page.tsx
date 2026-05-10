@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -662,7 +663,7 @@ export default function ResidentReservationsPage() {
       });
       toast.success("Reserva cancelada correctamente.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible cancelar la reserva.");
+      toastFirebaseError(error);
     } finally {
       setCancellingId(null);
     }

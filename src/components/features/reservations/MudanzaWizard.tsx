@@ -3,6 +3,7 @@
 import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -175,7 +176,7 @@ export function MudanzaWizard({
       setConfirmed(false);
       onSuccess?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible enviar la solicitud.");
+      toastFirebaseError(error);
     } finally {
       setSubmitting(false);
     }
