@@ -304,7 +304,7 @@ export async function createUnit(
     type: UnitItem["type"];
     status: UnitItem["status"];
   },
-) {
+): Promise<{ id: string; unitId: string; displayName: string }> {
   const firestore = assertDb();
   const unitId = payload.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const created = await addDoc(collection(firestore, "units"), {
@@ -322,7 +322,7 @@ export async function createUnit(
     updatedAt: serverTimestamp(),
   });
 
-  return created.id;
+  return { id: created.id, unitId, displayName: payload.displayName };
 }
 
 export async function updateUnit(

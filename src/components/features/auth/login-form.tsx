@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,7 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("[login-form] submit:error", error);
-      toast.error(error instanceof Error ? error.message : "No fue posible iniciar sesion.");
+      toastFirebaseError(error);
     } finally {
       console.info("[login-form] submit:end");
     }

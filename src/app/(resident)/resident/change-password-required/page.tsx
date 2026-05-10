@@ -5,6 +5,7 @@ import { ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { z } from "zod";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -64,7 +65,7 @@ export default function ResidentForcedPasswordChangePage() {
       }
       router.replace("/resident");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible completar el cambio de contrasena.");
+      toastFirebaseError(error);
     }
   };
 

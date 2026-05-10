@@ -5,6 +5,7 @@ import { FilterX, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -154,7 +155,7 @@ export default function AdminCommunicationsPage() {
       setCreateOpen(false);
     } catch (createError) {
       setErrorMessage(createError instanceof Error ? createError.message : "No fue posible guardar comunicado.");
-      toast.error(createError instanceof Error ? createError.message : "No fue posible guardar comunicado.");
+      toastFirebaseError(createError);
     } finally {
       setSubmitting(false);
     }
@@ -175,7 +176,7 @@ export default function AdminCommunicationsPage() {
       setPendingDeletion(null);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "No fue posible eliminar.");
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar.");
+      toastFirebaseError(error);
     } finally {
       setDeleting(false);
     }

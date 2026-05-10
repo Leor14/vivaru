@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { z } from "zod";
 
@@ -87,7 +88,7 @@ export default function AdminSettingsPage() {
 
       toast.success("Perfil del administrador actualizado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible guardar perfil.");
+      toastFirebaseError(error);
     } finally {
       setSavingProfile(false);
     }
@@ -105,7 +106,7 @@ export default function AdminSettingsPage() {
       passwordForm.reset();
       toast.success("Contrasena actualizada correctamente.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible actualizar contrasena.");
+      toastFirebaseError(error);
     } finally {
       setSavingPassword(false);
     }

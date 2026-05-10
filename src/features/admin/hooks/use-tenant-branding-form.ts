@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { tenantBrandingSchema, type TenantBrandingInput } from "@/features/admin/schemas";
 import {
@@ -292,7 +293,7 @@ export function useTenantBrandingForm(input: {
       toast.success("Branding del edificio actualizado.");
     } catch (error) {
       console.error("[tenant-branding] save failed", error);
-      toast.error(error instanceof Error ? error.message : "No fue posible guardar branding.");
+      toastFirebaseError(error);
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { ExternalLink, FilterX, FolderOpen, Trash2, Upload } from "lucide-react"
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -74,7 +75,7 @@ export default function AdminDocumentsPage() {
       form.reset();
       toast.success("Documento subido y registrado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible subir documento.");
+      toastFirebaseError(error);
     } finally {
       setUploading(false);
     }
@@ -89,7 +90,7 @@ export default function AdminDocumentsPage() {
       });
       toast.success("Documento eliminado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar documento.");
+      toastFirebaseError(error);
     }
   }
 

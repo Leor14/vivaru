@@ -16,9 +16,8 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
         <Card className="max-w-md">
           <CardTitle>Problema de configuración</CardTitle>
           <CardDescription className="mt-2 text-[var(--red-700)]">
-            {status === "misconfigured"
-              ? "Firebase no está configurado correctamente. Verifica variables de entorno y configuración."
-              : error || "No fue posible resolver el perfil de usuario. Contacta al administrador."}
+            No pudimos cargar tu perfil. Si el problema persiste,
+            contacta a la administración de tu conjunto.
           </CardDescription>
         </Card>
       </section>

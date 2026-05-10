@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ export default function ResidentPqrsPage() {
       setSubject("");
       toast.success("Ticket PQRS creado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible crear el ticket.");
+      toastFirebaseError(error);
     }
   }
 

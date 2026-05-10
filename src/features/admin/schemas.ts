@@ -9,7 +9,14 @@ const requiredText = (label: string, min = 2) => z.string().trim().min(min, `${l
 
 export const unitSchema = z.object({
   displayName: requiredText("Nombre de unidad"),
-  tower: requiredText("Torre", 1),
+  tower: z
+    .string()
+    .trim()
+    .min(1, "Torre es obligatorio")
+    .transform((val) => {
+      const normalized = val.trim().replace(/^(torre\s*|t\s*)(\d+)$/i, (_, __, n) => `Torre ${n}`);
+      return normalized || val.trim();
+    }),
   type: z.enum(["apartment", "house", "office", "other"]),
   status: z.enum(["active", "inactive"]),
 });

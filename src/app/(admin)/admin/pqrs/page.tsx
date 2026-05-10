@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, MessageSquareReply } from "lucide-react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -226,7 +227,7 @@ export default function AdminPqrsPage() {
       setResponseText("");
       toast.success("Respuesta registrada correctamente.");
     } catch (responseError) {
-      toast.error(responseError instanceof Error ? responseError.message : "No fue posible guardar la respuesta.");
+      toastFirebaseError(responseError);
     } finally {
       setSavingResponse(false);
     }

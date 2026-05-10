@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ export default function ResidentPackagesPage() {
       await confirmPackageReceived({ tenantId: user.tenantId, packageId, userId: user.uid });
       toast.success("Paquete confirmado como recibido.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible confirmar el paquete.");
+      toastFirebaseError(error);
     }
   }
 
