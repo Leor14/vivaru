@@ -126,7 +126,7 @@ export function DataTable<T>({
                   <tr
                     key={getRowKey(row)}
                     className={cn(
-                      "border-b border-[var(--slate-100)] align-middle hover:bg-[var(--slate-100)]/60",
+                      "border-b border-[var(--slate-100)] align-middle transition-colors duration-150 ease-out hover:bg-[var(--slate-100)]/60",
                       onRowClick ? "cursor-pointer" : null,
                     )}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}

@@ -114,7 +114,7 @@ export function Drawer({
       <button
         type="button"
         aria-label="Cerrar panel"
-        className="absolute inset-0 bg-black/40 transition-opacity"
+        className="absolute inset-0 bg-black/40 transition-opacity duration-200"
         onClick={onClose}
       />
       <div
@@ -125,7 +125,7 @@ export function Drawer({
         tabIndex={-1}
         onKeyDown={handlePanelKeyDown}
         className={cn(
-          "absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-white shadow-2xl outline-none transition-transform duration-200 ease-out md:w-auto",
+          "absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-white shadow-2xl outline-none transition-transform duration-300 ease-[cubic-bezier(0,0,0.2,1)] md:w-auto",
           className,
         )}
         style={{ maxWidth: "100vw", width: typeof window !== "undefined" && window.innerWidth >= 768 ? width : "100%" }}
