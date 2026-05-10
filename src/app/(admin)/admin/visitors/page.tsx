@@ -5,6 +5,7 @@ import { FilterX, PenSquare, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Modal } from "@/components/shared/modal";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -280,7 +281,7 @@ export default function AdminVisitorsPage() {
       }
       setOpenModal(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible guardar visitante.");
+      toastFirebaseError(error);
     } finally {
       setSaving(false);
     }
@@ -292,7 +293,7 @@ export default function AdminVisitorsPage() {
       await deleteVisitor(item.id);
       toast.success("Visitante eliminado.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar visitante.");
+      toastFirebaseError(error);
     }
   }
 

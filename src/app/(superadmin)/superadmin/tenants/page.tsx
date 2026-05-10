@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -101,7 +102,7 @@ export default function SuperadminTenantsPage() {
       setCreateOpen(false);
       createForm.reset();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible crear tenant.");
+      toastFirebaseError(error);
     } finally {
       setSavingCreate(false);
     }
@@ -115,7 +116,7 @@ export default function SuperadminTenantsPage() {
       toast.success("Tenant actualizado.");
       setEditingTenant(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible actualizar tenant.");
+      toastFirebaseError(error);
     } finally {
       setSavingEdit(false);
     }
@@ -132,7 +133,7 @@ export default function SuperadminTenantsPage() {
       await setTenantStatus(tenant.id, targetStatus);
       toast.success(`Tenant ${actionLabel}do correctamente.`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible cambiar estado.");
+      toastFirebaseError(error);
     }
   }
 
@@ -154,7 +155,15 @@ export default function SuperadminTenantsPage() {
       render: (tenant) => (
         <div>
           <p className="font-medium text-[var(--slate-900)]">{tenant.name}</p>
-          <p className="text-xs text-[var(--slate-500)]">ID: {tenant.id}</p>
+          <p className="text-xs text-[var(--slate-500)]">
+            <span
+              className="cursor-pointer hover:text-[var(--slate-700)]"
+              title={tenant.id}
+              onClick={() => navigator.clipboard.writeText(tenant.id)}
+            >
+              ID ···{tenant.id.slice(-6)}
+            </span>
+          </p>
         </div>
       ),
     },

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { confirmPackageReceived, usePackages } from "@/features/packages/use-pac
 import { usePackageDirectory } from "@/features/security-guard/use-package-directory";
 import type { PackageItem } from "@/types/domain";
 import { getStatusLabel } from "@/utils/statusMapper";
+import { splitTowerUnit } from "@/lib/utils/unit-display";
 
 function formatDate(value: unknown) {
   if (!value) return "-";
@@ -117,7 +119,7 @@ export function GuardPackagesList({ tenantId, userId }: { tenantId?: string; use
         return next;
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible marcar el paquete como entregado.");
+      toastFirebaseError(error);
     } finally {
       setProcessingId(null);
     }
@@ -147,7 +149,7 @@ export function GuardPackagesList({ tenantId, userId }: { tenantId?: string; use
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="space-y-2">
                   <p className="text-base font-semibold text-[var(--slate-900)]">{item.residentDisplayName}</p>
-                  <p className="text-sm text-[var(--slate-700)]">Unidad: <span className="font-medium">{item.unitLabel || "Sin unidad"}</span></p>
+                  <p className="text-sm text-[var(--slate-700)]">Unidad: <span className="font-medium">{item.unitLabel ? splitTowerUnit(item.unitLabel).formatted : "Sin unidad"}</span></p>
                   <p className="text-sm text-[var(--slate-700)]">Torre: <span className="font-medium">{item.tower || item.towerId || "-"}</span></p>
                   <p className="text-sm text-[var(--slate-700)]">Descripcion: <span className="font-medium">{item.description || "Sin descripcion"}</span></p>
                   <p className="text-xs text-[var(--slate-600)]">Llegada: {item.arrivedLabel}</p>

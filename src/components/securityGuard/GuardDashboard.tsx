@@ -6,6 +6,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { usePackages } from "@/features/packages/use-packages";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import { splitTowerUnit } from "@/lib/utils/unit-display";
 
 function isTodayDate(dateValue: string | undefined) {
   if (!dateValue) return false;
@@ -75,7 +76,7 @@ export function GuardDashboard({ tenantId }: { tenantId?: string }) {
             {visitorsToday.slice(0, 8).map((visitor) => (
               <li key={visitor.id} className="rounded-xl border border-[var(--slate-200)] p-3">
                 <p className="font-medium text-[var(--slate-900)]">{visitor.visitorName}</p>
-                <p className="text-[var(--slate-600)]">Unidad: {visitor.unitLabel}</p>
+                <p className="text-[var(--slate-600)]">Unidad: {splitTowerUnit(visitor.unitLabel ?? "").formatted}</p>
                 <p className="text-[var(--slate-600)]">Estado: {visitor.status}</p>
               </li>
             ))}
@@ -93,7 +94,7 @@ export function GuardDashboard({ tenantId }: { tenantId?: string }) {
             {reservationsToday.slice(0, 8).map((reservation) => (
               <li key={reservation.id} className="rounded-xl border border-[var(--slate-200)] p-3">
                 <p className="font-medium text-[var(--slate-900)]">{reservation.amenity}</p>
-                <p className="text-[var(--slate-600)]">Unidad: {reservation.unitLabel}</p>
+                <p className="text-[var(--slate-600)]">Unidad: {splitTowerUnit(reservation.unitLabel ?? "").formatted}</p>
                 <p className="text-[var(--slate-600)]">
                   Horario: {formatHourRange(reservation.startTime, reservation.endTime, reservation.slot)}
                 </p>

@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -143,7 +144,7 @@ export default function ResidentVisitorsNewPage() {
       toast.success("Invitacion creada correctamente.");
       router.push(`/resident/visitors/${id}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible crear la invitacion.");
+      toastFirebaseError(error);
     } finally {
       setSaving(false);
     }

@@ -34,7 +34,6 @@ interface Props {
 export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
   const tenantId = user.tenantId ?? "";
   const currentUnitId = user.unitId ?? "";
-  const currentUnitDisplay = user.unitLabel ?? user.unitId ?? "-";
 
   const [editMode, setEditMode] = useState(false);
   const [editEmailMode, setEditEmailMode] = useState(false);
@@ -84,6 +83,16 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
   });
 
   const { units: availableUnits, loading: unitsLoading, error: unitsError } = useAvailableUnits(tenantId, currentUnitId);
+
+  const unitDisplay = (() => {
+    const label = user?.unitLabel ?? user?.unitId;
+    if (!label) return "-";
+    const dashIdx = label.indexOf("-");
+    if (dashIdx > 0 && label.slice(0, dashIdx).includes(" ")) {
+      return `${label.slice(0, dashIdx)} / ${label.slice(dashIdx + 1)}`;
+    }
+    return label;
+  })();
 
   const {
     register: registerUnit,
@@ -161,7 +170,7 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
         userId: user.uid,
         currentUnitId,
         requestedUnitId: requestedUnit.id,
-        currentUnitDisplay,
+        currentUnitDisplay: unitDisplay,
         requestedUnitDisplay: requestedUnit.display,
         reason: data.reason,
       });
@@ -324,7 +333,7 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
           <div>
             <label className="font-semibold block mb-1">Unidad</label>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-[var(--slate-700)]">{user?.unitLabel ?? "-"}</span>
+              <span className="text-sm text-[var(--slate-700)]">{unitDisplay}</span>
               <Button
                 type="button"
                 size="sm"
@@ -349,7 +358,7 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
         <form className="space-y-4" onSubmit={handleSubmitUnit(handleUnitRequest)}>
           <div>
             <label className="block font-semibold mb-1">Unidad actual</label>
-            <div className="text-sm text-[var(--slate-700)]">{user?.unitLabel ?? user?.unitId ?? "-"}</div>
+            <div className="text-sm text-[var(--slate-700)]">{unitDisplay}</div>
           </div>
 
           <div>

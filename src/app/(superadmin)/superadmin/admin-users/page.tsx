@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -84,7 +85,7 @@ export default function SuperadminAdminUsersPage() {
       const items = await listTenantAdmins(tenantId);
       setAdmins(items);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible cargar admins.");
+      toastFirebaseError(error);
     } finally {
       setLoading(false);
     }
@@ -128,7 +129,7 @@ export default function SuperadminAdminUsersPage() {
       if (process.env.NODE_ENV !== "production") {
         console.error("[superadmin.admin-users] create admin failed", { values, error });
       }
-      toast.error(error instanceof Error ? error.message : "No fue posible crear admin.");
+      toastFirebaseError(error);
     } finally {
       setSavingCreate(false);
     }
@@ -154,7 +155,7 @@ export default function SuperadminAdminUsersPage() {
       if (process.env.NODE_ENV !== "production") {
         console.error("[superadmin.admin-users] update admin failed", { values, error });
       }
-      toast.error(error instanceof Error ? error.message : "No fue posible actualizar admin.");
+      toastFirebaseError(error);
     } finally {
       setSavingEdit(false);
     }
@@ -177,7 +178,7 @@ export default function SuperadminAdminUsersPage() {
       toast.success("Estado actualizado.");
       await reloadAdmins(selectedTenant || undefined);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible cambiar estado.");
+      toastFirebaseError(error);
     }
   }
 

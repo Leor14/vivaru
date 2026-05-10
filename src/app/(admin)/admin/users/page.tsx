@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -88,7 +89,7 @@ export default function AdminUsersPage() {
       setRole("security_guard");
       toast.success("Usuario creado correctamente.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible crear el usuario.");
+      toastFirebaseError(error);
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,7 @@ import { Building2, FilterX, KeyRound, Search, UserCheck, Users2, X } from "luci
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { Modal } from "@/components/shared/modal";
@@ -509,13 +510,13 @@ export default function AdminResidentsPage() {
 
     setSavingUnit(true);
     try {
-      const createdUnitId = await createUnit(user.tenantId, user.uid, unitValues);
+      const createdUnit = await createUnit(user.tenantId, user.uid, unitValues);
 
       const primaryPayload = {
         ...primaryHolder,
         roleType: primaryHolder.occupancyType,
         occupancyType: primaryHolder.occupancyType,
-        unitId: createdUnitId,
+        unitId: createdUnit.unitId,
         tower: unitValues.tower.trim(),
         status: "active" as const,
       };
@@ -544,7 +545,7 @@ export default function AdminResidentsPage() {
           documentNumber: member.documentNumber,
           roleType: member.occupancyType,
           occupancyType: member.occupancyType,
-          unitId: createdUnitId,
+          unitId: createdUnit.unitId,
           tower: unitValues.tower,
           status: member.status,
         });
@@ -557,7 +558,7 @@ export default function AdminResidentsPage() {
         functionName: "handleSaveUnitFlow",
         error,
       });
-      toast.error(error instanceof Error ? error.message : "No fue posible crear la unidad completa.");
+      toastFirebaseError(error);
     } finally {
       setSavingUnit(false);
     }
@@ -576,7 +577,7 @@ export default function AdminResidentsPage() {
       }
       setUnitModalOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible guardar unidad.");
+      toastFirebaseError(error);
     } finally {
       setSavingUnit(false);
     }
@@ -595,7 +596,7 @@ export default function AdminResidentsPage() {
       toast.success("Unidad eliminada.");
       setPendingUnitDeletion(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar unidad.");
+      toastFirebaseError(error);
     } finally {
       setDeletingUnit(false);
     }
@@ -623,7 +624,7 @@ export default function AdminResidentsPage() {
       }
       setPersonModalOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible guardar persona.");
+      toastFirebaseError(error);
     } finally {
       setSavingPerson(false);
     }
@@ -642,7 +643,7 @@ export default function AdminResidentsPage() {
       toast.success("Persona eliminada.");
       setPendingPersonDeletion(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible eliminar persona.");
+      toastFirebaseError(error);
     } finally {
       setDeletingPerson(false);
     }
@@ -655,7 +656,7 @@ export default function AdminResidentsPage() {
       await seedTenantOperationalData(user.tenantId, user.uid);
       toast.success("Seed operativo aplicado para el tenant.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible ejecutar seed.");
+      toastFirebaseError(error);
     } finally {
       setSeeding(false);
     }
@@ -671,7 +672,7 @@ export default function AdminResidentsPage() {
       });
       toast.success("Clave temporal restablecida correctamente. El residente debera ingresar con su numero de documento y cambiar su contrasena antes de continuar.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible restablecer la clave temporal.");
+      toastFirebaseError(error);
     } finally {
       setSendingResetTo(null);
     }

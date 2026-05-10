@@ -1,5 +1,6 @@
 import { updateProfile } from "firebase/auth";
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, db } from "@/lib/firebase/client";
 
@@ -86,7 +87,7 @@ export async function updateUserProfile(uid: string, patch: PrimitiveProfilePatc
       uid,
       docPath,
       code: (error as { code?: string } | null | undefined)?.code,
-      message: error instanceof Error ? error.message : String(error),
+      message: normalizeFirebaseError(error),
     });
     throw error;
   }

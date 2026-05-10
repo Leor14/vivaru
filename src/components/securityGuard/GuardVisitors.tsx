@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IScannerControls } from "@zxing/browser";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -138,7 +139,7 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
       });
       toast.success("Ingreso registrado correctamente");
     } catch (actionError) {
-      toast.error(actionError instanceof Error ? actionError.message : "No fue posible registrar el ingreso.");
+      toastFirebaseError(actionError);
     } finally {
       setUpdatingId(null);
     }
@@ -156,7 +157,7 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
       });
       toast.success("Salida registrada correctamente");
     } catch (actionError) {
-      toast.error(actionError instanceof Error ? actionError.message : "No fue posible registrar la salida.");
+      toastFirebaseError(actionError);
     } finally {
       setUpdatingId(null);
     }
@@ -553,12 +554,16 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
                   </Button>
                 </div>
                 <div className="mt-3 flex items-center justify-center rounded-xl bg-[var(--slate-100)] p-4">
-                  <QRCodeSVG
-                    value={selectedVisitor.qrCodeValue || `visitor-${selectedVisitor.id}`}
-                    size={qrExpanded ? 220 : 132}
-                    bgColor="transparent"
-                    fgColor="#0b3c5d"
-                  />
+                  {selectedVisitor.qrCodeValue ? (
+                    <QRCodeSVG
+                      value={selectedVisitor.qrCodeValue}
+                      size={qrExpanded ? 220 : 132}
+                      bgColor="transparent"
+                      fgColor="#0b3c5d"
+                    />
+                  ) : (
+                    <p className="text-sm text-[var(--slate-500)]">Código QR no disponible</p>
+                  )}
                 </div>
                 <p className="mt-2 break-all text-center font-mono text-xs text-[var(--slate-600)]">{selectedVisitor.qrCodeValue || "Sin codigo QR"}</p>
               </section>

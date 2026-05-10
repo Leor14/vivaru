@@ -1,6 +1,7 @@
 import { httpsCallable } from "firebase/functions";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, functions } from "@/lib/firebase/client";
 
@@ -159,26 +160,14 @@ function normalizeCallableError(error: unknown, fallbackMessage: string) {
   if (error instanceof FirebaseError && error.code.startsWith("functions/")) {
     const code = error.code.replace("functions/", "");
     const cleanMessage = error.message.replace(/^Firebase:\s*/i, "").replace(/\s*\(functions\/.+\)\.?$/i, "").trim();
-
     if (cleanMessage && cleanMessage.toLowerCase() !== code.toLowerCase()) {
       return cleanMessage;
     }
-
-    if (code === "already-exists") return "Ya existe un usuario con ese correo.";
-    if (code === "invalid-argument") return "Datos invalidos. Revisa tenant, correo, contrasena y estado.";
-    if (code === "permission-denied") return "No tienes permisos para ejecutar esta accion.";
-    if (code === "not-found") return "El tenant o usuario no existe.";
-    if (code === "failed-precondition") return cleanMessage || "No se cumplen las condiciones de seguridad para esta accion.";
-    if (code === "unauthenticated") return "Debes iniciar sesion nuevamente para continuar.";
-    if (code === "unavailable") return "CORS_ERROR: El servicio no esta disponible o la conexion fue bloqueada.";
-    if (code === "internal") return "Ocurrio un error interno al procesar la solicitud. Intenta nuevamente.";
   }
 
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-
-  return fallbackMessage;
+  const mapped = normalizeFirebaseError(error);
+  // If normalizeFirebaseError returns the generic fallback, prefer the caller-specific fallbackMessage
+  return mapped !== "Ocurrió un error inesperado. Intenta de nuevo." ? mapped : fallbackMessage;
 }
 
 async function executeCallable<TInput, TResult>(

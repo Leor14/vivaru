@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ export default function ResidentVisitorsPage() {
       await cancelResidentInvitation(id);
       toast.success("Invitacion cancelada correctamente.");
     } catch (cancelError) {
-      toast.error(cancelError instanceof Error ? cancelError.message : "No fue posible cancelar la invitacion.");
+      toastFirebaseError(cancelError);
     } finally {
       setCancellingId(null);
     }

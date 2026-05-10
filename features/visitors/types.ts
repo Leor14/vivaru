@@ -11,6 +11,7 @@ export interface VisitorInvitation {
   id: string;
   tenantId: string;
   unitId: string;
+  unitLabel?: string;
   residentUserId: string;
   authorizedByName: string;
   visitorName: string;

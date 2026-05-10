@@ -55,7 +55,7 @@ export function VisitorInvitationSummaryCard({ invitation, showQR, onShowQR, onC
         </div>
         <div>
           <dt className="text-[var(--slate-500)]">Unidad</dt>
-          <dd className="font-medium text-[var(--slate-900)]">{invitation.unitId}</dd>
+          <dd className="font-medium text-[var(--slate-900)]">{invitation.unitLabel ?? invitation.unitId}</dd>
         </div>
         <div>
           <dt className="text-[var(--slate-500)]">Cantidad de personas</dt>
