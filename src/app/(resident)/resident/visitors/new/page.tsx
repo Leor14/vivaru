@@ -12,16 +12,14 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TimeSelect } from "@/components/ui/TimeSelect";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { createResidentInvitation } from "@/features/visitors/invitations";
 import {
   combineDateAndTime,
-  getMinAllowedDateTime,
   isDateTimeValid,
-  isSameDay,
   toDateInputValue,
-  toTimeInputValue,
 } from "@/utils/datetimeValidation";
 
 const invitationFormSchema = z
@@ -91,15 +89,7 @@ export default function ResidentVisitorsNewPage() {
   const startDate = watch("startDate");
   const startTime = watch("startTime");
   const nowDateTime = new Date();
-  const minVisitorDateTime = getMinAllowedDateTime("visitor", nowDateTime);
   const minDateValue = toDateInputValue(nowDateTime);
-
-  const minStartTimeValue = useMemo(() => {
-    if (!startDate) return undefined;
-    const selectedDateOnly = new Date(`${startDate}T00:00:00`);
-    if (Number.isNaN(selectedDateOnly.getTime())) return undefined;
-    return isSameDay(selectedDateOnly, nowDateTime) ? toTimeInputValue(minVisitorDateTime) : undefined;
-  }, [startDate, nowDateTime, minVisitorDateTime]);
 
   const liveDateTimeError = useMemo(() => {
     if (!startDate || !startTime) return null;
@@ -208,12 +198,12 @@ export default function ResidentVisitorsNewPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <Input type="date" min={minDateValue} label="Fecha inicio" {...register("startDate")} error={errors.startDate?.message} />
-            <Input type="time" min={minStartTimeValue} label="Hora inicio" {...register("startTime")} error={errors.startTime?.message} />
+            <TimeSelect label="Hora inicio" {...register("startTime")} error={errors.startTime?.message} />
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <Input type="date" min={startDate || minDateValue} label="Fecha fin" {...register("endDate")} error={errors.endDate?.message} />
-            <Input type="time" label="Hora fin" {...register("endTime")} error={errors.endTime?.message} />
+            <TimeSelect label="Hora fin" {...register("endTime")} error={errors.endTime?.message} />
           </div>
           {liveDateTimeError ? <p className="text-xs text-[var(--danger-700)]">{liveDateTimeError}</p> : null}
 
