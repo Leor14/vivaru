@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+import { doc, updateDoc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,8 @@ export default function AdminSettingsPage() {
   const { user, refreshSessionProfile } = useAuth();
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [blockOnDebt, setBlockOnDebt] = useState(false);
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   const branding = useTenantBrandingForm({
     tenantId: user?.tenantId,
@@ -74,6 +78,32 @@ export default function AdminSettingsPage() {
       avatarId: user?.avatarId ?? "emoji1",
     });
   }, [profileForm, user?.avatarId, user?.fullName]);
+
+  useEffect(() => {
+    if (!user?.tenantId || !db) return;
+    const unsub = onSnapshot(doc(db, "tenantSettings", user.tenantId), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data() as Record<string, unknown>;
+      const policy = data.reservationPolicy as { blockOnDebt?: boolean } | undefined;
+      setBlockOnDebt(policy?.blockOnDebt ?? false);
+    });
+    return unsub;
+  }, [user?.tenantId]);
+
+  async function handleToggleBlockOnDebt(value: boolean) {
+    if (!user?.tenantId || !db) return;
+    setSavingPolicy(true);
+    try {
+      await updateDoc(doc(db, "tenantSettings", user.tenantId), {
+        "reservationPolicy.blockOnDebt": value,
+      });
+      toast.success("Política de reservas actualizada.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSavingPolicy(false);
+    }
+  }
 
   async function handleSaveProfile(values: AdminProfileInput) {
     if (!user) return;
@@ -198,6 +228,25 @@ export default function AdminSettingsPage() {
             </Button>
           </div>
         </form>
+      </Card>
+      <Card>
+        <CardTitle>Políticas de reservas</CardTitle>
+        <CardDescription className="mt-1">Controla el acceso a reservas según el estado de pago de cada unidad.</CardDescription>
+        <div className="mt-4">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+              checked={blockOnDebt}
+              disabled={savingPolicy}
+              onChange={(e) => void handleToggleBlockOnDebt(e.target.checked)}
+            />
+            <div>
+              <p className="text-sm font-medium text-[var(--slate-900)]">Bloquear reservas a unidades con saldo vencido</p>
+              <p className="mt-0.5 text-xs text-[var(--slate-600)]">Las unidades con cuotas vencidas no podrán hacer nuevas reservas hasta regularizar su pago.</p>
+            </div>
+          </label>
+        </div>
       </Card>
     </section>
   );

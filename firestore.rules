@@ -496,5 +496,32 @@ service cloud.firestore {
       );
       allow delete: if false;
     }
+
+    // ─── Encuestas de comunidad (ENQ-01) ────────────────────────────────────
+
+    match /surveys/{docId} {
+      // Admins and residents of the same tenant can read surveys
+      allow read: if signedIn() && (
+        resource.data.tenantId is string && (
+          tenantAdminOrSuper(resource.data.tenantId) ||
+          tenantRole(resource.data.tenantId, 'resident')
+        )
+      );
+      // Only tenant admins and superadmins can create, update, or delete surveys
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /survey_responses/{docId} {
+      // Only tenant admins and superadmins can read responses (residents cannot see others' answers)
+      allow read: if signedIn() && resource.data.tenantId is string && tenantAdminOrSuper(resource.data.tenantId);
+      // Residents can create their own response only (write-once — update and delete are denied)
+      allow create: if signedIn() &&
+        residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+        request.resource.data.tenantId is string &&
+        request.resource.data.unitId is string &&
+        request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
+      allow update, delete: if false;
+    }
   }
 }

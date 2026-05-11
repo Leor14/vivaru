@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { Modal } from "@/components/shared/modal";
@@ -70,6 +72,7 @@ export default function AdminResidentsPage() {
   const [pendingPersonDeletion, setPendingPersonDeletion] = useState<PersonItem | null>(null);
   const [deletingUnit, setDeletingUnit] = useState(false);
   const [deletingPerson, setDeletingPerson] = useState(false);
+  const [unitExempt, setUnitExempt] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<
     Array<{
       id: string;
@@ -376,6 +379,7 @@ export default function AdminResidentsPage() {
 
   function openCreateUnit() {
     setEditingUnit(null);
+    setUnitExempt(false);
     unitForm.reset({
       displayName: "",
       tower: "",
@@ -399,6 +403,7 @@ export default function AdminResidentsPage() {
 
   function openEditUnit(unit: UnitItem) {
     setEditingUnit(unit);
+    setUnitExempt(unit.reservationExempt ?? false);
     unitForm.reset({
       displayName: unit.displayName,
       tower: unit.tower,
@@ -512,6 +517,10 @@ export default function AdminResidentsPage() {
     try {
       const createdUnit = await createUnit(user.tenantId, user.uid, unitValues);
 
+      if (db && unitExempt) {
+        await updateDoc(doc(db, "units", createdUnit.id), { reservationExempt: true });
+      }
+
       const primaryPayload = {
         ...primaryHolder,
         roleType: primaryHolder.occupancyType,
@@ -570,6 +579,9 @@ export default function AdminResidentsPage() {
     try {
       if (editingUnit) {
         await updateUnit(editingUnit.id, user.uid, values);
+        if (db) {
+          await updateDoc(doc(db, "units", editingUnit.id), { reservationExempt: unitExempt });
+        }
         toast.success("Unidad actualizada.");
       } else {
         await createUnit(user.tenantId, user.uid, values);
@@ -926,6 +938,20 @@ export default function AdminResidentsPage() {
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
                 </select>
+              </label>
+            </div>
+            <div className="mt-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+                  checked={unitExempt}
+                  onChange={(e) => setUnitExempt(e.target.checked)}
+                />
+                <div>
+                  <p className="text-sm font-medium text-[var(--slate-900)]">Exenta de bloqueo por adeudo</p>
+                  <p className="mt-0.5 text-xs text-[var(--slate-600)]">Esta unidad puede hacer reservas aunque tenga saldo vencido (convenio de pago u otras excepciones).</p>
+                </div>
               </label>
             </div>
           </Card>

@@ -36,6 +36,7 @@ export type UnitItem = {
   residentIds: string[];
   createdAt: string;
   updatedAt: string;
+  reservationExempt?: boolean;
 };
 
 export type PersonItem = {
@@ -148,6 +149,9 @@ export type TenantSettingsItem = {
   logoPath?: string;
   brandColor: string;
   updatedAt: string;
+  reservationPolicy?: {
+    blockOnDebt: boolean;
+  };
   adminProfile?: {
     uid: string;
     fullName: string;

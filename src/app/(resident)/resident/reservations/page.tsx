@@ -25,6 +25,7 @@ import {
   createReservation,
   useReservations,
 } from "@/features/reservations/use-reservations";
+import { checkReservationEligibility } from "@/features/reservations/eligibility";
 import {
   buildTimeMarks,
   formatClockTime,
@@ -174,6 +175,14 @@ export default function ResidentReservationsPage() {
   const [exclusiveUse, setExclusiveUse] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<{ eligible: boolean; amountDue: number } | null>(null);
+
+  useEffect(() => {
+    if (!tenantId || !user?.unitId) return;
+    checkReservationEligibility(tenantId, user.unitId)
+      .then((result) => setEligibility(result))
+      .catch(() => setEligibility({ eligible: true, amountDue: 0 }));
+  }, [tenantId, user?.unitId]);
 
   useEffect(() => {
     if (amenities.length === 0) {
@@ -686,6 +695,25 @@ export default function ResidentReservationsPage() {
         unitLabel={user?.unitLabel ?? "Unidad no definida"}
       />
       <Card className="relative overflow-hidden border-[var(--slate-200)] bg-gradient-to-br from-white via-[#f8fbff] to-[#f2f8ff] p-0">
+        {eligibility !== null && !eligibility.eligible ? (
+          <div className="flex flex-wrap items-start gap-3 border-b border-[var(--danger-600)]/20 bg-red-50 px-5 py-3.5 sm:items-center">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[var(--danger-700)]">
+                Tu unidad tiene un saldo vencido de{" "}
+                <span className="font-semibold">
+                  {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(eligibility.amountDue)}
+                </span>
+                . Regulariza tu pago para poder hacer nuevas reservas.
+              </p>
+            </div>
+            <a
+              href="/resident/billing"
+              className="shrink-0 text-sm font-medium text-[var(--danger-700)] underline underline-offset-2 hover:text-[var(--danger-600)]"
+            >
+              Ver estado de cuenta
+            </a>
+          </div>
+        ) : null}
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(11,60,93,0.14)_0%,rgba(11,60,93,0)_68%)]" />
         <div className="pointer-events-none absolute -bottom-20 -left-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.14)_0%,rgba(16,185,129,0)_68%)]" />
 

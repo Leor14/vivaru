@@ -25,6 +25,7 @@ import {
 } from "@/features/reservations/time-range";
 import type { Reservation } from "@/types/domain";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
+import { checkReservationEligibility } from "@/features/reservations/eligibility";
 
 function debugReservations(message: string, payload: Record<string, unknown>) {
   const enabled = process.env.NEXT_PUBLIC_DEBUG_GUARD_RESERVATIONS === "true";
@@ -33,6 +34,10 @@ function debugReservations(message: string, payload: Record<string, unknown>) {
 }
 
 function normalizeReservationCreateError(error: unknown) {
+  if (error instanceof Error && error.message === "RESERVATION_INELIGIBLE") {
+    return "Tu unidad tiene un saldo pendiente. Regulariza tu pago para hacer reservas.";
+  }
+
   if (error instanceof FirebaseError) {
     if (error.code === "permission-denied") {
       return "No tienes permisos para reservar esta amenidad o la fecha/hora no cumple la anticipacion minima de 30 minutos.";
@@ -139,6 +144,11 @@ export async function createReservation(input: {
 
   if (!isDateTimeValid(selectedStartDateTime, "reservation")) {
     throw new Error("La reserva requiere al menos 30 minutos de anticipacion.");
+  }
+
+  const eligibility = await checkReservationEligibility(input.tenantId, input.unitId);
+  if (!eligibility.eligible) {
+    throw new Error("RESERVATION_INELIGIBLE");
   }
 
   const reservationPayload = {
