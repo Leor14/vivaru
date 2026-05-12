@@ -6,6 +6,7 @@ import type { ComponentType } from "react";
 import {
   Building2,
   CalendarCheck,
+  ClipboardList,
   FileText,
   Grid3X3,
   Home,
@@ -46,6 +47,7 @@ const GROUPS: AdminSidebarGroup[] = [
       { href: "/admin/residents", label: "Residentes y unidades", icon: Users },
       { href: "/admin/visitors", label: "Visitantes", icon: Users },
       { href: "/admin/communications", label: "Comunicaciones", icon: MessageSquare },
+      { href: "/admin/surveys", label: "Encuestas", icon: ClipboardList },
     ],
   },
   {
@@ -178,7 +180,7 @@ export function AdminSidebar({
         />
       </div>
 
-      <nav className="flex-1 px-2 pb-3" aria-label="Navegacion principal">
+      <nav className="flex-1 overflow-y-auto px-2 pb-3" aria-label="Navegacion principal">
         {effectiveGroups.map((group, groupIndex) => {
           const isFirst = groupIndex === 0;
           return (
