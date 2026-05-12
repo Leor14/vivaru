@@ -4,6 +4,7 @@ import { ChevronLeft, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { RowActionsMenu, type RowActionsMenuItem } from "@/components/shared/row-actions-menu";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,10 @@ import type { CreateSurveyInput } from "@/features/surveys/schemas";
 import {
   closeSurvey,
   createSurvey,
+  deleteSurvey,
   getSurveyResults,
   publishSurvey,
+  updateSurvey,
 } from "@/features/surveys/services";
 import type { Survey, SurveyAnswer, SurveyQuestion, QuestionType } from "@/features/surveys/types";
 import { useAdminSurveys } from "@/features/surveys/use-surveys";
@@ -112,8 +115,9 @@ export default function AdminSurveysPage() {
   const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([newDraftQuestion()]);
 
   // ── Action states ─────────────────────────────────────────────────────────
-  const [actingId, setActingId] = useState<string | null>(null);
-
+  const [actingId, setActingId] = useState<string | null>(null);  const [editingSurvey, setEditingSurvey] = useState<Survey | null>(null);
+  const [pendingDeletion, setPendingDeletion] = useState<Survey | null>(null);
+  const [deleting, setDeleting] = useState(false);
   // ─────────────────────────────────────────────────────────────────────────
   // Drawer helpers
   // ─────────────────────────────────────────────────────────────────────────
@@ -127,12 +131,36 @@ export default function AdminSurveysPage() {
     setClosingDate("");
     setDraftQuestions([newDraftQuestion()]);
     setFormErrors({});
+    setEditingSurvey(null);
     setDrawerOpen(true);
   }
 
   function closeDrawer() {
     if (submitting) return;
     setDrawerOpen(false);
+  }
+
+  function openEditDrawer(survey: Survey) {
+    setTitle(survey.title);
+    setDescription(survey.description ?? "");
+    setAudienceType(survey.targetAudience.type);
+    setAudienceTower(survey.targetAudience.tower ?? "");
+    setMinResponses(survey.minResponsesForResults);
+    setClosingDate(
+      survey.closingDate ? survey.closingDate.toISOString().split("T")[0] : "",
+    );
+    setDraftQuestions(
+      survey.questions.map((q) => ({
+        localId: q.id,
+        type: q.type,
+        text: q.text,
+        options: q.options?.map((o) => ({ id: genId(), text: o })) ?? [],
+        required: q.required,
+      })),
+    );
+    setEditingSurvey(survey);
+    setFormErrors({});
+    setDrawerOpen(true);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -226,7 +254,7 @@ export default function AdminSurveysPage() {
   // Submit
   // ─────────────────────────────────────────────────────────────────────────
 
-  async function handleCreate() {
+  async function handleSubmit() {
     if (!user?.tenantId) return;
     if (!validate()) return;
 
@@ -255,11 +283,16 @@ export default function AdminSurveysPage() {
         closingDate: closingDate ? new Date(closingDate) : undefined,
       };
 
-      await createSurvey(user.tenantId, input, user.uid);
-      toast.success("Encuesta creada como borrador.");
+      if (editingSurvey) {
+        await updateSurvey(editingSurvey.id, input);
+        toast.success("Encuesta actualizada.");
+      } else {
+        await createSurvey(user.tenantId, input, user.uid);
+        toast.success("Encuesta creada como borrador.");
+      }
       setDrawerOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No fue posible crear la encuesta.");
+      toast.error(error instanceof Error ? error.message : "No fue posible guardar la encuesta.");
     } finally {
       setSubmitting(false);
     }
@@ -305,6 +338,21 @@ export default function AdminSurveysPage() {
       setResultsData([]);
     } finally {
       setResultsLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!pendingDeletion) return;
+    const target = pendingDeletion;
+    setDeleting(true);
+    try {
+      await deleteSurvey(target.id);
+      toast.success("Encuesta eliminada.");
+      setPendingDeletion(null);
+    } catch {
+      toast.error("No fue posible eliminar la encuesta.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -530,6 +578,18 @@ export default function AdminSurveysPage() {
                 disabled: actingId === s.id,
                 onSelect: () => void handlePublish(s),
               });
+              rowItems.push({
+                key: "edit",
+                label: "Editar",
+                onSelect: () => openEditDrawer(s),
+              });
+              rowItems.push({
+                key: "delete",
+                label: "Eliminar",
+                danger: true,
+                separatorBefore: true,
+                onSelect: () => setPendingDeletion(s),
+              });
             }
 
             if (canSeeResults(s)) {
@@ -568,15 +628,15 @@ export default function AdminSurveysPage() {
       <Drawer
         open={drawerOpen}
         onClose={closeDrawer}
-        title="Nueva encuesta"
+        title={editingSurvey ? "Editar encuesta" : "Nueva encuesta"}
         width={560}
         footer={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <Button type="button" variant="outline" onClick={closeDrawer} disabled={submitting}>
               Cancelar
             </Button>
-            <Button type="button" onClick={() => void handleCreate()} disabled={submitting}>
-              {submitting ? "Guardando…" : "Crear borrador"}
+            <Button type="button" onClick={() => void handleSubmit()} disabled={submitting}>
+              {submitting ? "Guardando…" : editingSurvey ? "Guardar cambios" : "Crear borrador"}
             </Button>
           </div>
         }
@@ -827,6 +887,19 @@ export default function AdminSurveysPage() {
           </div>
         </div>
       </Drawer>
+
+      <ConfirmDeleteDialog
+        open={Boolean(pendingDeletion)}
+        name={pendingDeletion?.title ?? ""}
+        description={
+          pendingDeletion
+            ? "Esta acción eliminará el borrador de la encuesta. No se puede deshacer."
+            : null
+        }
+        loading={deleting}
+        onCancel={() => (deleting ? undefined : setPendingDeletion(null))}
+        onConfirm={() => void handleDelete()}
+      />
     </Card>
   );
 }

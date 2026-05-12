@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -100,6 +101,30 @@ export async function archiveSurvey(surveyId: string): Promise<void> {
 
   await updateDoc(doc(db, "surveys", surveyId), {
     status: "archived",
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteSurvey(surveyId: string): Promise<void> {
+  if (!db) throw new Error("Firebase no esta configurado en este entorno.");
+  await deleteDoc(doc(db, "surveys", surveyId));
+}
+
+export async function updateSurvey(
+  surveyId: string,
+  input: Partial<CreateSurveyInput>,
+): Promise<void> {
+  if (!db) throw new Error("Firebase no esta configurado en este entorno.");
+
+  await updateDoc(doc(db, "surveys", surveyId), {
+    ...(input.title !== undefined && { title: input.title }),
+    ...(input.description !== undefined && { description: input.description ?? null }),
+    ...(input.questions !== undefined && { questions: input.questions }),
+    ...(input.targetAudience !== undefined && { targetAudience: input.targetAudience }),
+    ...(input.minResponsesForResults !== undefined && {
+      minResponsesForResults: input.minResponsesForResults,
+    }),
+    ...("closingDate" in input && { closingDate: input.closingDate ?? null }),
     updatedAt: serverTimestamp(),
   });
 }
