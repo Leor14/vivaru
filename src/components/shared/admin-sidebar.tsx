@@ -13,6 +13,7 @@ import {
   LogOut,
   MessageSquare,
   Package,
+  ScrollText,
   Users,
   Wallet,
 } from "lucide-react";
@@ -48,6 +49,7 @@ const GROUPS: AdminSidebarGroup[] = [
       { href: "/admin/visitors", label: "Visitantes", icon: Users },
       { href: "/admin/communications", label: "Comunicaciones", icon: MessageSquare },
       { href: "/admin/surveys", label: "Encuestas", icon: ClipboardList },
+      { href: "/admin/regulations", label: "Reglamento", icon: ScrollText },
     ],
   },
   {

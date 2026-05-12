@@ -399,6 +399,15 @@
         { "fieldPath": "surveyId", "order": "ASCENDING" },
         { "fieldPath": "respondedAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "regulation_signatures",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "regulationId", "order": "ASCENDING" },
+        { "fieldPath": "signedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -523,5 +523,24 @@ service cloud.firestore {
         request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
       allow update, delete: if false;
     }
+
+    // ─── Firmas de reglamento (REG-01) ───────────────────────────────────────
+
+    match /regulation_signatures/{docId} {
+      // Admins and superadmins can read all signatures for their tenant.
+      // Residents can only read their own unit's signature.
+      allow read: if signedIn() && (
+        (resource.data.tenantId is string && tenantAdminOrSuper(resource.data.tenantId)) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      // Residents can create their own signature only (write-once — update and delete are denied)
+      allow create: if signedIn() &&
+        residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+        request.resource.data.tenantId is string &&
+        request.resource.data.unitId is string &&
+        request.resource.data.signedBy == request.auth.uid &&
+        request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
+      allow update, delete: if false;
+    }
   }
 }
