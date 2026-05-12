@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils/cn";
@@ -52,6 +52,13 @@ export function Drawer({
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
+  // Stable ref for onClose — prevents the open/focus effect from re-running
+  // every time the parent re-renders with a new function reference.
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     if (typeof window === "undefined") return;
@@ -64,7 +71,7 @@ export function Drawer({
     function onKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -79,7 +86,7 @@ export function Drawer({
       document.body.style.overflow = previousOverflow;
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]); // onClose intentionally excluded — use onCloseRef instead
 
   if (!open) return null;
   if (typeof window === "undefined") return null;
