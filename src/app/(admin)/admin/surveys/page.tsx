@@ -81,6 +81,16 @@ export default function AdminSurveysPage() {
   const { user } = useAuth();
   const { surveys, loading } = useAdminSurveys(user?.tenantId);
 
+  // ── Filter state ──────────────────────────────────────────────────────────
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterText, setFilterText] = useState<string>("");
+
+  const filteredSurveys = surveys.filter((s) => {
+    const matchStatus = filterStatus === "all" || s.status === filterStatus;
+    const matchText = s.title.toLowerCase().includes(filterText.toLowerCase());
+    return matchStatus && matchText;
+  });
+
   // ── View state ────────────────────────────────────────────────────────────
   const [view, setView] = useState<PageView>("list");
   const [resultsSurvey, setResultsSurvey] = useState<Survey | null>(null);
@@ -98,6 +108,7 @@ export default function AdminSurveysPage() {
   const [audienceType, setAudienceType] = useState<"all" | "tower">("all");
   const [audienceTower, setAudienceTower] = useState("");
   const [minResponses, setMinResponses] = useState(5);
+  const [closingDate, setClosingDate] = useState<string>("");
   const [draftQuestions, setDraftQuestions] = useState<DraftQuestion[]>([newDraftQuestion()]);
 
   // ── Action states ─────────────────────────────────────────────────────────
@@ -113,6 +124,7 @@ export default function AdminSurveysPage() {
     setAudienceType("all");
     setAudienceTower("");
     setMinResponses(5);
+    setClosingDate("");
     setDraftQuestions([newDraftQuestion()]);
     setFormErrors({});
     setDrawerOpen(true);
@@ -240,6 +252,7 @@ export default function AdminSurveysPage() {
             ? { type: "tower", tower: audienceTower.trim() }
             : { type: "all" },
         minResponsesForResults: minResponses,
+        closingDate: closingDate ? new Date(closingDate) : undefined,
       };
 
       await createSurvey(user.tenantId, input, user.uid);
@@ -329,6 +342,16 @@ export default function AdminSurveysPage() {
       key: "createdAt",
       header: "Creada",
       render: (s) => <span className="text-[var(--slate-600)]">{formatDate(s.createdAt)}</span>,
+    },
+    {
+      key: "closingDate",
+      header: "Cierre",
+      render: (s) =>
+        s.closingDate ? (
+          <span className="text-[var(--slate-600)]">{formatDate(s.closingDate)}</span>
+        ) : (
+          <span className="text-[var(--slate-400)] text-sm">Sin fecha</span>
+        ),
     },
   ];
 
@@ -456,9 +479,41 @@ export default function AdminSurveysPage() {
       </div>
 
       <div className="mt-4">
+        {/* ── Filters ─────────────────────────────────────────────────── */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            placeholder="Buscar encuesta…"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="h-9 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] sm:w-56"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              { value: "all", label: "Todas" },
+              { value: "draft", label: "Borrador" },
+              { value: "published", label: "Publicadas" },
+              { value: "closed", label: "Cerradas" },
+            ] as const).map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilterStatus(value)}
+                className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
+                  filterStatus === value
+                    ? "bg-[var(--brand-700)] text-white"
+                    : "border border-[var(--slate-300)] bg-white text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <DataTable
           columns={columns}
-          rows={surveys}
+          rows={filteredSurveys}
           getRowKey={(s) => s.id}
           loading={loading}
           loadingText="Cargando encuestas..."
@@ -597,6 +652,22 @@ export default function AdminSurveysPage() {
                 onChange={(e) => setMinResponses(Math.max(1, Math.min(50, Number(e.target.value))))}
                 className="h-10 w-28 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[var(--slate-700)]">
+                Fecha de cierre (opcional)
+              </label>
+              <input
+                type="date"
+                value={closingDate}
+                min={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setClosingDate(e.target.value)}
+                className="h-10 w-48 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+              />
+              <p className="mt-1 text-xs text-[var(--slate-500)]">
+                Si se define, los residentes verán hasta cuándo pueden responder.
+              </p>
             </div>
           </div>
 

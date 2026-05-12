@@ -20,6 +20,7 @@ export interface Survey {
   responseCount: number;
   publishedAt?: Date;
   closedAt?: Date;
+  closingDate?: Date;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;

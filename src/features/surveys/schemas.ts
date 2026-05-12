@@ -46,6 +46,7 @@ export const createSurveySchema = z
       .min(1, "El umbral minimo es 1 respuesta")
       .max(50, "El umbral maximo es 50 respuestas")
       .default(5),
+    closingDate: z.coerce.date().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.targetAudience.type === "tower" && !data.targetAudience.tower) {
