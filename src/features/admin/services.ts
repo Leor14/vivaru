@@ -101,12 +101,20 @@ export type ReservationItem = {
   createdAt: string;
 };
 
+export type AmenityPhoto = {
+  id: string;
+  url: string;
+  storagePath: string;
+  order: number;
+};
+
 export type AmenityItem = {
   id: string;
   tenantId: string;
   name: string;
   category: "social" | "sports" | "wellness" | "business" | "other";
   status: "active" | "inactive";
+  photos?: AmenityPhoto[];
   createdAt: string;
   updatedAt: string;
 };
@@ -649,6 +657,84 @@ export async function deleteAmenity(id: string) {
   } catch (error) {
     throw new Error(toMutationUserError(error, "No fue posible eliminar la amenidad."));
   }
+}
+
+// ─── Helpers (private) ───────────────────────────────────────────────────────
+
+function genId(): string {
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+
+async function compressImageFile(file: File, maxWidth = 800, quality = 0.8): Promise<Blob> {
+  if (typeof window === "undefined") return file;
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => { resolve(blob ?? file); }, "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+// ─── Amenity photos ───────────────────────────────────────────────────────────
+
+export async function uploadAmenityPhoto(
+  tenantId: string,
+  amenityId: string,
+  file: File,
+): Promise<AmenityPhoto> {
+  const appStorage = assertStorage();
+  const compressed = await compressImageFile(file);
+  const cleanName = file.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
+  const storagePath = `tenants/${tenantId}/amenity-photos/${amenityId}/${Date.now()}-${cleanName}`;
+  const storageRef = ref(appStorage, storagePath);
+  await uploadBytes(storageRef, compressed, { contentType: "image/jpeg" });
+  const url = await getDownloadURL(storageRef);
+  return { id: genId(), url, storagePath, order: 0 };
+}
+
+export async function deleteAmenityPhoto(
+  amenityId: string,
+  photo: AmenityPhoto,
+  remainingPhotos: AmenityPhoto[],
+): Promise<void> {
+  const firestore = assertDb();
+  const appStorage = assertStorage();
+  try {
+    await deleteObject(ref(appStorage, photo.storagePath));
+  } catch {
+    // If file was already deleted in Storage, continue to clean Firestore
+  }
+  const renumbered = remainingPhotos.map((p, i) => ({ ...p, order: i }));
+  await updateDoc(doc(firestore, "amenities", amenityId), {
+    photos: renumbered,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function reorderAmenityPhotos(
+  amenityId: string,
+  photos: AmenityPhoto[],
+): Promise<void> {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "amenities", amenityId), {
+    photos,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function disableAmenityAndCancelFutureReservations(input: {

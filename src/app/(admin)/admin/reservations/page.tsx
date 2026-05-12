@@ -40,9 +40,11 @@ import {
   watchReservations,
   watchUnits,
   type AmenityItem,
+  type AmenityPhoto,
   type ReservationItem,
   type UnitItem,
 } from "@/features/admin/services";
+import { AmenityPhotoManager } from "@/components/features/reservations/AmenityPhotoManager";
 
 function asDateLabel(value: unknown) {
   if (!value) return "-";
@@ -730,6 +732,19 @@ export default function AdminReservationsPage() {
               <option value="other">Otro</option>
             </select>
           </label>
+          {editingAmenity && user?.tenantId ? (
+            <div className="space-y-2">
+              <div className="border-t border-[var(--slate-200)] pt-3" />
+              <AmenityPhotoManager
+                amenityId={editingAmenity.id}
+                tenantId={user.tenantId}
+                photos={editingAmenity.photos ?? []}
+                onChange={(newPhotos: AmenityPhoto[]) =>
+                  setEditingAmenity((prev) => (prev ? { ...prev, photos: newPhotos } : prev))
+                }
+              />
+            </div>
+          ) : null}
           <div className="mobile-action-group">
             <Button
               className="w-full sm:w-auto"

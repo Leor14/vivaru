@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { db } from "@/lib/firebase/client";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
+import type { AmenityPhoto } from "@/features/admin/services";
 
 export interface ReservableAmenity {
   id: string;
@@ -24,6 +25,7 @@ export interface ReservableAmenity {
   deletedAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  photos?: AmenityPhoto[];
 }
 
 function debugAmenities(message: string, payload: Record<string, unknown>) {

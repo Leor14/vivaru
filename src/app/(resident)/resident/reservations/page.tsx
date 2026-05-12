@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { MudanzaWizard } from "@/components/features/reservations/MudanzaWizard";
+import { AmenityPhotoGallery } from "@/components/features/reservations/AmenityPhotoGallery";
 import { useAuth } from "@/features/auth/auth-context";
 import { useReservableAmenities } from "@/features/reservations/use-reservable-amenities";
 import {
@@ -176,6 +177,7 @@ export default function ResidentReservationsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<{ eligible: boolean; amountDue: number } | null>(null);
+  const [galleryAmenity, setGalleryAmenity] = useState<(typeof amenities)[number] | null>(null);
 
   useEffect(() => {
     if (!tenantId || !user?.unitId) return;
@@ -740,27 +742,77 @@ export default function ResidentReservationsPage() {
                   <label htmlFor="amenity-select" className="mb-1.5 block text-sm font-medium text-[var(--slate-700)]">
                     Amenidad
                   </label>
-                  <select
-                    id="amenity-select"
-                    className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
-                    value={selectedAmenityId}
-                    onChange={(event) => {
-                      setSelectedAmenityId(event.target.value);
-                      setSelectedStartTime("");
-                      setSelectedEndTime("");
-                      setExclusiveUse(false);
-                    }}
-                    disabled={amenitiesLoading || !hasAmenities}
-                  >
-                    <option value="" disabled>
-                      {amenitiesLoading ? "Cargando amenidades..." : "Selecciona una amenidad"}
-                    </option>
-                    {amenities.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
+
+                  {amenitiesLoading ? (
+                    <p className="text-sm text-[var(--slate-500)]">Cargando amenidades...</p>
+                  ) : !hasAmenities ? (
+                    <p className="text-sm text-[var(--slate-500)]">No hay amenidades disponibles.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {amenities.map((item) => {
+                        const cover = item.photos?.find((p) => p.order === 0) ?? item.photos?.[0];
+                        const isSelected = selectedAmenityId === item.id;
+                        return (
+                          <div
+                            key={item.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isSelected}
+                            onClick={() => {
+                              setSelectedAmenityId(item.id);
+                              setSelectedStartTime("");
+                              setSelectedEndTime("");
+                              setExclusiveUse(false);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                setSelectedAmenityId(item.id);
+                                setSelectedStartTime("");
+                                setSelectedEndTime("");
+                                setExclusiveUse(false);
+                              }
+                            }}
+                            className={`cursor-pointer overflow-hidden rounded-xl border-2 transition ${
+                              isSelected
+                                ? "border-[var(--brand-700)] shadow-sm"
+                                : "border-[var(--slate-200)] hover:border-[var(--slate-300)]"
+                            }`}
+                          >
+                            {cover ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={cover.url}
+                                alt={item.name}
+                                className="aspect-video w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex aspect-video w-full items-center justify-center bg-[var(--slate-100)]">
+                                <span className="text-xs text-[var(--slate-400)]">{item.name}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between px-2.5 py-2">
+                              <span className="text-sm font-medium text-[var(--slate-900)]">
+                                {item.name}
+                              </span>
+                              {item.photos && item.photos.length > 0 ? (
+                                <button
+                                  type="button"
+                                  aria-label={`Ver fotos de ${item.name}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setGalleryAmenity(item);
+                                  }}
+                                  className="text-xs text-[var(--brand-700)] hover:underline"
+                                >
+                                  Ver fotos
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1040,6 +1092,15 @@ export default function ResidentReservationsPage() {
           </div>
         </div>
       </Card>
+
+      {galleryAmenity ? (
+        <AmenityPhotoGallery
+          photos={galleryAmenity.photos ?? []}
+          amenityName={galleryAmenity.name}
+          open={Boolean(galleryAmenity)}
+          onClose={() => setGalleryAmenity(null)}
+        />
+      ) : null}
     </div>
   );
 }
