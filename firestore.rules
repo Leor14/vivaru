@@ -523,7 +523,23 @@ service cloud.firestore {
         request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
       allow update, delete: if false;
     }
+    // ─── Comprobantes de pago (residente sube, admin revisa) ─────────────────
 
+    match /paymentReceipts/{docId} {
+      // Admins see all receipts for their tenant; residents see only their own.
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      // Residents can upload their own receipt only.
+      allow create: if signedIn() &&
+        residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+        request.resource.data.uploadedBy == request.auth.uid &&
+        request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
+      // Only admins can update status (approve/reject); residents cannot edit.
+      allow update: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
     // ─── Firmas de reglamento (REG-01) ───────────────────────────────────────
 
     match /regulation_signatures/{docId} {
