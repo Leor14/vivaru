@@ -34,7 +34,7 @@ interface DraftQuestion {
   localId: string;
   type: QuestionType;
   text: string;
-  options: string[];
+  options: Array<{ id: string; text: string }>;
   required: boolean;
 }
 
@@ -46,12 +46,19 @@ interface FormErrors {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
+function genId(): string {
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+
 function newDraftQuestion(): DraftQuestion {
   return {
-    localId: String(Date.now()) + Math.random().toString(36).slice(2, 6),
+    localId: genId(),
     type: "single_choice",
     text: "",
-    options: ["", ""],
+    options: [
+      { id: genId(), text: "" },
+      { id: genId(), text: "" },
+    ],
     required: true,
   };
 }
@@ -138,7 +145,9 @@ export default function AdminSurveysPage() {
   function addOption(localId: string) {
     setDraftQuestions((prev) =>
       prev.map((q) =>
-        q.localId === localId ? { ...q, options: [...q.options, ""] } : q,
+        q.localId === localId
+          ? { ...q, options: [...q.options, { id: genId(), text: "" }] }
+          : q,
       ),
     );
   }
@@ -147,8 +156,9 @@ export default function AdminSurveysPage() {
     setDraftQuestions((prev) =>
       prev.map((q) => {
         if (q.localId !== localId) return q;
-        const options = [...q.options];
-        options[idx] = value;
+        const options = q.options.map((opt, i) =>
+          i === idx ? { ...opt, text: value } : opt,
+        );
         return { ...q, options };
       }),
     );
@@ -189,7 +199,7 @@ export default function AdminSurveysPage() {
         errors[`q_text_${q.localId}`] = "El enunciado de la pregunta es obligatorio.";
       }
       if (q.type === "single_choice" || q.type === "multiple_choice") {
-        const validOptions = q.options.filter((o) => o.trim());
+        const validOptions = q.options.filter((o) => o.text.trim());
         if (validOptions.length < 2) {
           errors[`q_opts_${q.localId}`] = "Agrega al menos 2 opciones válidas.";
         }
@@ -216,7 +226,7 @@ export default function AdminSurveysPage() {
         text: q.text.trim(),
         options:
           q.type === "single_choice" || q.type === "multiple_choice"
-            ? q.options.map((o) => o.trim()).filter(Boolean)
+            ? q.options.map((o) => o.text.trim()).filter(Boolean)
             : undefined,
         required: q.required,
       }));
@@ -636,7 +646,12 @@ export default function AdminSurveysPage() {
                     onChange={(e) =>
                       updateQuestion(q.localId, {
                         type: e.target.value as QuestionType,
-                        options: e.target.value === "single_choice" || e.target.value === "multiple_choice" ? (q.options.length < 2 ? ["", ""] : q.options) : [],
+                        options:
+                          e.target.value === "single_choice" || e.target.value === "multiple_choice"
+                            ? q.options.length < 2
+                              ? [{ id: genId(), text: "" }, { id: genId(), text: "" }]
+                              : q.options
+                            : [],
                       })
                     }
                   >
@@ -674,12 +689,12 @@ export default function AdminSurveysPage() {
                   <div className="space-y-2">
                     <label className="block text-xs text-[var(--slate-600)]">Opciones</label>
                     {q.options.map((opt, optIdx) => (
-                      <div key={optIdx} className="flex items-center gap-2">
+                      <div key={opt.id} className="flex items-center gap-2">
                         <input
                           type="text"
                           className="h-8 flex-1 rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)]"
                           placeholder={`Opción ${optIdx + 1}`}
-                          value={opt}
+                          value={opt.text}
                           onChange={(e) => updateOption(q.localId, optIdx, e.target.value)}
                         />
                         {q.options.length > 2 && (
