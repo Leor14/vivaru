@@ -524,8 +524,10 @@ service cloud.firestore {
     }
 
     match /survey_responses/{docId} {
-      // Admins see all responses; residents can only read their own
-      allow read: if signedIn() && resource.data.tenantId is string && (
+      // Admins see all responses; residents can only read their own.
+      // resource == null when doc doesn't exist (transaction.get on missing doc).
+      allow read: if signedIn() && (
+        resource == null ||
         tenantAdminOrSuper(resource.data.tenantId) ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
