@@ -165,6 +165,7 @@ export async function createReservation(input: {
     amenity: input.amenity,
     amenityName: input.amenity,
     unitLabel: input.unitLabel,
+    reservedBy: input.createdByName?.trim() || "",
     date: input.date,
     startTime: input.startTime,
     endTime: input.endTime,
