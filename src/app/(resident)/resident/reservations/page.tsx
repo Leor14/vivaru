@@ -1101,6 +1101,8 @@ export default function ResidentReservationsPage() {
                   const key = toDateKey(cell.date);
                   const isSelected = selectedDate === key;
                   const availability = getDateAvailability(cell.date);
+                  const isWeekdayBlocked =
+                    cell.inCurrentMonth && !availableWeekdays.has(cell.date.getDay());
                   const isDisabled = !cell.inCurrentMonth || !availability.selectable;
 
                   const baseClass =
@@ -1109,9 +1111,11 @@ export default function ResidentReservationsPage() {
                     ? "border-transparent bg-transparent text-[var(--slate-300)]"
                     : isSelected
                       ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
-                      : availability.selectable
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-400)] cursor-not-allowed";
+                      : isWeekdayBlocked
+                        ? "border-transparent bg-transparent text-[var(--slate-400)] opacity-30 cursor-not-allowed pointer-events-none"
+                        : availability.selectable
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          : "border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-400)] cursor-not-allowed";
 
                   return (
                     <button
