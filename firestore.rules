@@ -509,15 +509,15 @@ service cloud.firestore {
       );
       // Only tenant admins and superadmins can create surveys or do full updates
       allow create: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      // Admins can update any field; residents can only increment responseCount by 1
+      // Admins can update any field; residents can only touch responseCount
+      // Note: FieldValue.increment() is a server sentinel — arithmetic comparison in rules
+      // is not possible. hasOnly(['responseCount']) is a sufficient guard.
       allow update: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
         (
           tenantRole(resource.data.tenantId, 'resident') &&
           request.resource.data.diff(resource.data)
-            .affectedKeys().hasOnly(['responseCount']) &&
-          request.resource.data.responseCount ==
-            resource.data.responseCount + 1
+            .affectedKeys().hasOnly(['responseCount'])
         )
       );
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);

@@ -180,7 +180,8 @@ export default function ResidentSurveysPage() {
       setTimeout(() => {
         backToList();
       }, 2000);
-    } catch {
+    } catch (error) {
+      console.error("[surveys] submitResponse failed:", error);
       toast.error("No fue posible enviar tu respuesta. Intenta nuevamente.");
     } finally {
       setSubmitting(false);
