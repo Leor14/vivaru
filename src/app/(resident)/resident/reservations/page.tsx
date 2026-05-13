@@ -257,6 +257,9 @@ export default function ResidentReservationsPage() {
       ? selectedAmenity.maxReservationDurationMinutes
       : null;
 
+  // Slot mode: amenity has pre-defined booking slots (e.g. "08:00 - 09:00")
+  const useSlotMode = Boolean(selectedAmenity?.reservationSlots && selectedAmenity.reservationSlots.length > 0);
+
   const amenityWindows = useMemo(
     () => normalizeAmenityWindows(selectedAmenity?.reservationSlots),
     [selectedAmenity],
@@ -309,6 +312,20 @@ export default function ResidentReservationsPage() {
   const hasAnyRangeForDate = (dateKey: string) => {
     const existingRanges = reservationRangesByDate.get(dateKey) ?? [];
     const minStartMinute = getMinimumStartMinuteForDate(dateKey);
+
+    if (useSlotMode) {
+      return (selectedAmenity?.reservationSlots ?? []).some((slotLabel) => {
+        const range = parseSlotRange(slotLabel);
+        if (!range) return false;
+        if (minStartMinute !== null && range.start < minStartMinute) return false;
+        return isRangeAvailable({
+          candidate: range,
+          existing: existingRanges,
+          maxConcurrent: maxReservationsPerSlot,
+          stepMinutes: SLOT_GRANULARITY_MINUTES,
+        });
+      });
+    }
 
     for (const start of amenityTimeMarks) {
       if (minStartMinute !== null && start < minStartMinute) continue;
@@ -400,6 +417,42 @@ export default function ResidentReservationsPage() {
     () => reservationRangesByDate.get(selectedDate) ?? [],
     [reservationRangesByDate, selectedDate],
   );
+
+  const slotOptions = useMemo(() => {
+    if (!useSlotMode || !selectedDate) return [];
+    const slots = selectedAmenity?.reservationSlots ?? [];
+    const minStartMinute = getMinimumStartMinuteForDate(selectedDate);
+
+    return slots
+      .map((slotLabel) => {
+        const range = parseSlotRange(slotLabel);
+        if (!range) return null;
+        const pastToday = minStartMinute !== null && range.start < minStartMinute;
+        const available =
+          !pastToday &&
+          isRangeAvailable({
+            candidate: range,
+            existing: rangesForSelectedDate,
+            maxConcurrent: maxReservationsPerSlot,
+            stepMinutes: SLOT_GRANULARITY_MINUTES,
+          });
+        return {
+          label: slotLabel,
+          start: formatClockTime(range.start),
+          end: formatClockTime(range.end),
+          durationMinutes: range.end - range.start,
+          available,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [
+    useSlotMode,
+    selectedDate,
+    selectedAmenity,
+    rangesForSelectedDate,
+    maxReservationsPerSlot,
+    nowDateTime,
+  ]);
 
   const startTimeOptions = useMemo(() => {
     if (!selectedDate || !selectableDateKeys.has(selectedDate)) return [];
@@ -858,70 +911,121 @@ export default function ResidentReservationsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label htmlFor="start-time-select" className="mb-1.5 block text-sm font-medium text-[var(--slate-700)]">
-                    Hora de inicio
-                  </label>
-                  <select
-                    id="start-time-select"
-                    className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
-                    value={selectedStartTime}
-                    onChange={(event) => {
-                      setSelectedStartTime(event.target.value);
-                      setSelectedEndTime("");
-                    }}
-                    disabled={startTimeOptions.length === 0}
-                  >
-                    {startTimeOptions.length === 0 ? (
-                      <option value="">Sin horas disponibles</option>
+                {useSlotMode ? (
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium text-[var(--slate-700)]">Horario disponible</p>
+                    {!selectedDate ? (
+                      <p className="text-sm text-[var(--slate-500)]">Selecciona una fecha primero.</p>
+                    ) : slotOptions.length === 0 ? (
+                      <p className="text-sm text-[var(--slate-500)]">No hay horarios disponibles para este día.</p>
                     ) : (
-                      <option value="">Selecciona hora de inicio</option>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {slotOptions.map((slot) => {
+                          const isSelected = selectedStartTime === slot.start && selectedEndTime === slot.end;
+                          return (
+                            <button
+                              key={slot.label}
+                              type="button"
+                              disabled={!slot.available}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedStartTime("");
+                                  setSelectedEndTime("");
+                                } else {
+                                  setSelectedStartTime(slot.start);
+                                  setSelectedEndTime(slot.end);
+                                }
+                              }}
+                              className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
+                                isSelected
+                                  ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
+                                  : slot.available
+                                    ? "border-[var(--slate-200)] bg-white text-[var(--slate-800)] hover:border-[var(--brand-300)] hover:bg-[var(--brand-50)]"
+                                    : "cursor-not-allowed border-[var(--slate-100)] bg-[var(--slate-50)] text-[var(--slate-400)]"
+                              }`}
+                            >
+                              {slot.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     )}
-                    {startTimeOptions.map((timeValue) => (
-                      <option key={timeValue} value={timeValue}>
-                        {timeValue}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="end-time-select" className="mb-1.5 block text-sm font-medium text-[var(--slate-700)]">
-                    Hora de fin
-                  </label>
-                  <select
-                    id="end-time-select"
-                    className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] disabled:bg-[var(--surface-soft)]"
-                    value={selectedEndTime}
-                    onChange={(event) => setSelectedEndTime(event.target.value)}
-                    disabled={endTimeOptions.length === 0 || !selectedStartTime}
-                  >
-                    {!selectedStartTime ? <option value="">Selecciona primero una hora de inicio</option> : null}
-                    {selectedStartTime && endTimeOptions.length === 0 ? <option value="">Sin horas de fin disponibles</option> : null}
-                    {selectedStartTime && endTimeOptions.length > 0 ? <option value="">Selecciona hora de fin</option> : null}
-                    {endTimeOptions.map((timeValue) => (
-                      <option key={timeValue} value={timeValue}>
-                        {timeValue}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {selectedStartTime && selectedEndTime ? (
-                  <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--slate-700)]">
-                    <p className="font-medium text-[var(--slate-800)]">Rango seleccionado</p>
-                    <p className="mt-1">{formatRangeLabel(parseClockTime(selectedStartTime) ?? 0, parseClockTime(selectedEndTime) ?? 0)}</p>
+                    {selectedStartTime && selectedEndTime ? (
+                      <p className="mt-2 text-xs text-[var(--slate-600)]">
+                        Duración: {(parseClockTime(selectedEndTime) ?? 0) - (parseClockTime(selectedStartTime) ?? 0)} minutos
+                      </p>
+                    ) : slotOptions.length > 0 ? (
+                      <p className="mt-2 text-xs text-[var(--slate-500)]">Selecciona un horario disponible.</p>
+                    ) : null}
                   </div>
-                ) : null}
-
-                {rangeValidationMessage ? (
-                  <p className="text-xs text-[var(--danger-700)]" role="status" aria-live="polite">
-                    {rangeValidationMessage}
-                  </p>
                 ) : (
-                  <p className="text-xs text-[var(--slate-600)]" role="status" aria-live="polite">
-                    Selecciona inicio y fin. Validamos cruces en tiempo real antes de reservar.
-                  </p>
+                  <>
+                    <div>
+                      <label htmlFor="start-time-select" className="mb-1.5 block text-sm font-medium text-[var(--slate-700)]">
+                        Hora de inicio
+                      </label>
+                      <select
+                        id="start-time-select"
+                        className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+                        value={selectedStartTime}
+                        onChange={(event) => {
+                          setSelectedStartTime(event.target.value);
+                          setSelectedEndTime("");
+                        }}
+                        disabled={startTimeOptions.length === 0}
+                      >
+                        {startTimeOptions.length === 0 ? (
+                          <option value="">Sin horas disponibles</option>
+                        ) : (
+                          <option value="">Selecciona hora de inicio</option>
+                        )}
+                        {startTimeOptions.map((timeValue) => (
+                          <option key={timeValue} value={timeValue}>
+                            {timeValue}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="end-time-select" className="mb-1.5 block text-sm font-medium text-[var(--slate-700)]">
+                        Hora de fin
+                      </label>
+                      <select
+                        id="end-time-select"
+                        className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] disabled:bg-[var(--surface-soft)]"
+                        value={selectedEndTime}
+                        onChange={(event) => setSelectedEndTime(event.target.value)}
+                        disabled={endTimeOptions.length === 0 || !selectedStartTime}
+                      >
+                        {!selectedStartTime ? <option value="">Selecciona primero una hora de inicio</option> : null}
+                        {selectedStartTime && endTimeOptions.length === 0 ? <option value="">Sin horas de fin disponibles</option> : null}
+                        {selectedStartTime && endTimeOptions.length > 0 ? <option value="">Selecciona hora de fin</option> : null}
+                        {endTimeOptions.map((timeValue) => (
+                          <option key={timeValue} value={timeValue}>
+                            {timeValue}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedStartTime && selectedEndTime ? (
+                      <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--slate-700)]">
+                        <p className="font-medium text-[var(--slate-800)]">Rango seleccionado</p>
+                        <p className="mt-1">{formatRangeLabel(parseClockTime(selectedStartTime) ?? 0, parseClockTime(selectedEndTime) ?? 0)}</p>
+                      </div>
+                    ) : null}
+
+                    {rangeValidationMessage ? (
+                      <p className="text-xs text-[var(--danger-700)]" role="status" aria-live="polite">
+                        {rangeValidationMessage}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-[var(--slate-600)]" role="status" aria-live="polite">
+                        Selecciona inicio y fin. Validamos cruces en tiempo real antes de reservar.
+                      </p>
+                    )}
+                  </>
                 )}
 
                 <div className="rounded-xl border border-[var(--slate-200)] bg-white p-3">
