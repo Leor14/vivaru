@@ -49,15 +49,19 @@ export default function ResidentSurveysPage() {
     let cancelled = false;
     setCheckingResponded(true);
 
-    void Promise.all(surveys.map((s) => hasResponded(s.id, unitId))).then((results) => {
-      if (cancelled) return;
-      const ids = new Set<string>();
-      surveys.forEach((s, idx) => {
-        if (results[idx]) ids.add(s.id);
+    void Promise.all(surveys.map((s) => hasResponded(s.id, unitId)))
+      .then((results) => {
+        if (cancelled) return;
+        const ids = new Set<string>();
+        surveys.forEach((s, idx) => {
+          if (results[idx]) ids.add(s.id);
+        });
+        setRespondedIds(ids);
+        setCheckingResponded(false);
+      })
+      .catch(() => {
+        if (!cancelled) setCheckingResponded(false);
       });
-      setRespondedIds(ids);
-      setCheckingResponded(false);
-    });
 
     return () => {
       cancelled = true;

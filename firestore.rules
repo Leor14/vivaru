@@ -513,8 +513,11 @@ service cloud.firestore {
     }
 
     match /survey_responses/{docId} {
-      // Only tenant admins and superadmins can read responses (residents cannot see others' answers)
-      allow read: if signedIn() && resource.data.tenantId is string && tenantAdminOrSuper(resource.data.tenantId);
+      // Admins see all responses; residents can only read their own
+      allow read: if signedIn() && resource.data.tenantId is string && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
       // Residents can create their own response only (write-once — update and delete are denied)
       allow create: if signedIn() &&
         residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
