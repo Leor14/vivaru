@@ -421,13 +421,21 @@ export default function ResidentReservationsPage() {
   const slotOptions = useMemo(() => {
     if (!useSlotMode || !selectedDate) return [];
     const slots = selectedAmenity?.reservationSlots ?? [];
-    const minStartMinute = getMinimumStartMinuteForDate(selectedDate);
+    // Use fresh Date() inside the memo so stale renders don't show expired slots as available.
+    const freshMinStartMinute = (() => {
+      const parsed = parseDateKey(selectedDate);
+      if (!parsed) return null;
+      const freshNow = new Date();
+      if (!isSameDay(parsed, freshNow)) return null;
+      const minDt = getMinAllowedDateTime("reservation", freshNow);
+      return minDt.getHours() * 60 + minDt.getMinutes();
+    })();
 
     return slots
       .map((slotLabel) => {
         const range = parseSlotRange(slotLabel);
         if (!range) return null;
-        const pastToday = minStartMinute !== null && range.start < minStartMinute;
+        const pastToday = freshMinStartMinute !== null && range.start < freshMinStartMinute;
         const available =
           !pastToday &&
           isRangeAvailable({
@@ -451,7 +459,6 @@ export default function ResidentReservationsPage() {
     selectedAmenity,
     rangesForSelectedDate,
     maxReservationsPerSlot,
-    nowDateTime,
   ]);
 
   const startTimeOptions = useMemo(() => {

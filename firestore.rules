@@ -394,9 +394,11 @@ service cloud.firestore {
           residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
           request.resource.data.createdBy == request.auth.uid &&
           amenityReservableForTenant(request.resource.data.tenantId, request.resource.data.amenityId) &&
-          request.resource.data.amenity == amenityDoc(request.resource.data.amenityId).data.name
+          request.resource.data.amenity == amenityDoc(request.resource.data.amenityId).data.name &&
+          request.resource.data.startAt is timestamp &&
+          request.resource.data.startAt >= (request.time + duration.value(30, 'm'))
         )
-      ) && isDateTimeAtOrAfterBuffer(request.resource.data.date, request.resource.data.startTime, 30);
+      );
 
       // Tenant admins and superadmin can fully manage reservations.
       allow update: if signedIn() && sameTenant(resource.data.tenantId) && (

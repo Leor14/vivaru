@@ -10,6 +10,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
 } from "firebase/firestore";
@@ -167,6 +168,7 @@ export async function createReservation(input: {
     date: input.date,
     startTime: input.startTime,
     endTime: input.endTime,
+    startAt: Timestamp.fromDate(selectedStartDateTime),
     slot: formatRangeLabel(startMinutes, endMinutes),
     exclusiveUse: input.exclusiveUse === true,
     status: "pending" as const,
