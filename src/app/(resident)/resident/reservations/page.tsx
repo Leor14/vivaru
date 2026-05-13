@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { collection, getCountFromServer, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +22,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { MudanzaWizard } from "@/components/features/reservations/MudanzaWizard";
 import { AmenityPhotoGallery } from "@/components/features/reservations/AmenityPhotoGallery";
 import { useAuth } from "@/features/auth/auth-context";
-import { useReservableAmenities } from "@/features/reservations/use-reservable-amenities";
+import { useReservableAmenities, type ReservableAmenity } from "@/features/reservations/use-reservable-amenities";
 import {
   cancelReservation,
   createReservation,
@@ -169,6 +171,7 @@ export default function ResidentReservationsPage() {
   } = useReservableAmenities(tenantId);
 
   const [selectedAmenityId, setSelectedAmenityId] = useState("");
+  const [selectedAmenityDetail, setSelectedAmenityDetail] = useState<ReservableAmenity | null>(null);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedStartTime, setSelectedStartTime] = useState("");
@@ -177,7 +180,8 @@ export default function ResidentReservationsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<{ eligible: boolean; amountDue: number } | null>(null);
-  const [galleryAmenity, setGalleryAmenity] = useState<(typeof amenities)[number] | null>(null);
+  const [galleryAmenity, setGalleryAmenity] = useState<ReservableAmenity | null>(null);
+  const [monthlyUsageCount, setMonthlyUsageCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!tenantId || !user?.unitId) return;
@@ -185,6 +189,27 @@ export default function ResidentReservationsPage() {
       .then((result) => setEligibility(result))
       .catch(() => setEligibility({ eligible: true, amountDue: 0 }));
   }, [tenantId, user?.unitId]);
+
+  useEffect(() => {
+    if (!tenantId || !user?.unitId || !selectedAmenityDetail) {
+      setMonthlyUsageCount(null);
+      return;
+    }
+    const now = new Date();
+    const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    if (!db) return;
+    const reservationsRef = collection(db, "tenants", tenantId, "reservations");
+    const q = query(
+      reservationsRef,
+      where("amenityId", "==", selectedAmenityDetail.id),
+      where("unitId", "==", user.unitId),
+      where("date", ">=", firstOfMonth),
+      where("status", "!=", "cancelled"),
+    );
+    getCountFromServer(q)
+      .then((snap) => setMonthlyUsageCount(snap.data().count))
+      .catch(() => setMonthlyUsageCount(null));
+  }, [tenantId, user?.unitId, selectedAmenityDetail]);
 
   useEffect(() => {
     if (amenities.length === 0) {
@@ -747,6 +772,19 @@ export default function ResidentReservationsPage() {
                     <p className="text-sm text-[var(--slate-500)]">Cargando amenidades...</p>
                   ) : !hasAmenities ? (
                     <p className="text-sm text-[var(--slate-500)]">No hay amenidades disponibles.</p>
+                  ) : selectedAmenityDetail ? (
+                    <AmenityDetailView
+                      amenity={selectedAmenityDetail}
+                      monthlyUsageCount={monthlyUsageCount}
+                      onReserve={() => {
+                        setSelectedAmenityId(selectedAmenityDetail.id);
+                        setSelectedStartTime("");
+                        setSelectedEndTime("");
+                        setExclusiveUse(false);
+                        setSelectedAmenityDetail(null);
+                      }}
+                      onBack={() => setSelectedAmenityDetail(null)}
+                    />
                   ) : (
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {amenities.map((item) => {
@@ -759,17 +797,11 @@ export default function ResidentReservationsPage() {
                             tabIndex={0}
                             aria-pressed={isSelected}
                             onClick={() => {
-                              setSelectedAmenityId(item.id);
-                              setSelectedStartTime("");
-                              setSelectedEndTime("");
-                              setExclusiveUse(false);
+                              setSelectedAmenityDetail(item);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
-                                setSelectedAmenityId(item.id);
-                                setSelectedStartTime("");
-                                setSelectedEndTime("");
-                                setExclusiveUse(false);
+                                setSelectedAmenityDetail(item);
                               }
                             }}
                             className={`cursor-pointer overflow-hidden rounded-xl border-2 transition ${
@@ -794,19 +826,17 @@ export default function ResidentReservationsPage() {
                               <span className="text-sm font-medium text-[var(--slate-900)]">
                                 {item.name}
                               </span>
-                              {item.photos && item.photos.length > 0 ? (
-                                <button
-                                  type="button"
-                                  aria-label={`Ver fotos de ${item.name}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setGalleryAmenity(item);
-                                  }}
-                                  className="text-xs text-[var(--brand-700)] hover:underline"
-                                >
-                                  Ver fotos
-                                </button>
-                              ) : null}
+                              <button
+                                type="button"
+                                aria-label={`Ver detalles de ${item.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAmenityDetail(item);
+                                }}
+                                className="text-xs text-[var(--brand-700)] hover:underline"
+                              >
+                                Ver detalles
+                              </button>
                             </div>
                           </div>
                         );
@@ -1101,6 +1131,123 @@ export default function ResidentReservationsPage() {
           onClose={() => setGalleryAmenity(null)}
         />
       ) : null}
+    </div>
+  );
+}
+
+const CATEGORY_LABEL: Record<string, string> = {
+  social: "Social",
+  sports: "Deportes",
+  wellness: "Bienestar",
+  business: "Negocios",
+  other: "Otro",
+};
+
+const WEEKDAY_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+function AmenityDetailView({
+  amenity,
+  monthlyUsageCount,
+  onReserve,
+  onBack,
+}: {
+  amenity: ReservableAmenity;
+  monthlyUsageCount: number | null;
+  onReserve: () => void;
+  onBack: () => void;
+}) {
+  const photos = amenity.photos ?? [];
+  const monthlyLimit = amenity.maxReservationsPerUnitPerMonth;
+
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1 text-xs text-[var(--slate-600)] hover:text-[var(--slate-900)]"
+      >
+        <ChevronLeft className="h-3.5 w-3.5" />
+        Volver a amenidades
+      </button>
+
+      {photos.length > 0 ? (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[...photos].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((photo) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={photo.url}
+              src={photo.url}
+              alt={amenity.name}
+              className="h-24 w-36 shrink-0 rounded-lg object-cover"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex h-24 items-center justify-center rounded-xl bg-[var(--slate-100)]">
+          <span className="text-xs text-[var(--slate-400)]">Sin fotos</span>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-semibold text-[var(--slate-900)]">{amenity.name}</p>
+        <Badge className="bg-[var(--slate-100)] text-[var(--slate-600)] text-xs">
+          {CATEGORY_LABEL[amenity.category] ?? amenity.category}
+        </Badge>
+      </div>
+
+      <dl className="space-y-2 text-xs text-[var(--slate-700)]">
+        {amenity.operatingHoursStart && amenity.operatingHoursEnd ? (
+          <div className="flex items-center gap-2">
+            <Clock3 className="h-3.5 w-3.5 shrink-0 text-[var(--brand-700)]" />
+            <dd>Horario: {amenity.operatingHoursStart} – {amenity.operatingHoursEnd}</dd>
+          </div>
+        ) : null}
+
+        {amenity.availableWeekdays && amenity.availableWeekdays.length > 0 ? (
+          <div className="flex items-start gap-2">
+            <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--brand-700)]" />
+            <dd>Días: {amenity.availableWeekdays.map((d) => WEEKDAY_LABEL[d]).join(", ")}</dd>
+          </div>
+        ) : null}
+
+        {amenity.maxReservationsPerSlot ? (
+          <div className="flex items-center gap-2">
+            <ConciergeBell className="h-3.5 w-3.5 shrink-0 text-[var(--brand-700)]" />
+            <dd>Aforo por franja: {amenity.maxReservationsPerSlot}</dd>
+          </div>
+        ) : null}
+
+        {monthlyLimit ? (
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-[var(--brand-700)]" />
+            <dd>
+              Cuota mensual:{" "}
+              {monthlyUsageCount !== null ? (
+                <span className={monthlyUsageCount >= monthlyLimit ? "font-semibold text-[var(--danger-700)]" : "font-semibold text-emerald-700"}>
+                  {monthlyUsageCount} / {monthlyLimit} usados
+                </span>
+              ) : (
+                <span>{monthlyLimit} por unidad/mes</span>
+              )}
+            </dd>
+          </div>
+        ) : null}
+      </dl>
+
+      {amenity.usageRules ? (
+        <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+          <p className="mb-1 text-xs font-medium text-[var(--slate-800)]">Reglas de uso</p>
+          <p className="whitespace-pre-line text-xs text-[var(--slate-700)]">{amenity.usageRules}</p>
+        </div>
+      ) : null}
+
+      <Button
+        className="h-10 w-full"
+        onClick={onReserve}
+        disabled={Boolean(monthlyLimit && monthlyUsageCount !== null && monthlyUsageCount >= monthlyLimit)}
+      >
+        Reservar esta amenidad
+      </Button>
     </div>
   );
 }
