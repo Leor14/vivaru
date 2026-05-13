@@ -7,6 +7,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  deleteField,
   getDocs,
   getDoc,
   onSnapshot,
@@ -688,7 +689,7 @@ export async function updateAmenity(id: string, userId: string, payload: Partial
       ...(operatingHoursStart !== undefined && { operatingHoursStart }),
       ...(operatingHoursEnd !== undefined && { operatingHoursEnd }),
       ...(slotDurationMinutes !== undefined && { slotDurationMinutes }),
-      ...(reservationSlots !== undefined && { reservationSlots }),
+      reservationSlots: reservationSlots ?? deleteField(),
       updatedBy: userId,
       updatedAt: serverTimestamp(),
     });
