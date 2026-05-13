@@ -115,6 +115,16 @@ export type AmenityItem = {
   category: "social" | "sports" | "wellness" | "business" | "other";
   status: "active" | "inactive";
   photos?: AmenityPhoto[];
+  // Reservation config
+  operatingHoursStart?: string;
+  operatingHoursEnd?: string;
+  slotDurationMinutes?: number;
+  reservationSlots?: string[];
+  availableWeekdays?: number[];
+  maxReservationsPerSlot?: number;
+  maxReservationDurationMinutes?: number;
+  maxReservationsPerUnitPerMonth?: number;
+  usageRules?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -613,19 +623,47 @@ export function watchAmenities(tenantId: string, onData: (items: AmenityItem[]) 
   return subscribeTenant<AmenityItem>("amenities", tenantId, onData, onError);
 }
 
+export function generateReservationSlots(start: string, end: string, durationMinutes: number): string[] {
+  const [startH, startM] = start.split(":").map(Number);
+  const [endH, endM] = end.split(":").map(Number);
+  const startTotal = (startH ?? 0) * 60 + (startM ?? 0);
+  const endTotal = (endH ?? 0) * 60 + (endM ?? 0);
+  const slots: string[] = [];
+  for (let t = startTotal; t + durationMinutes <= endTotal; t += durationMinutes) {
+    const fromH = String(Math.floor(t / 60)).padStart(2, "0");
+    const fromM = String(t % 60).padStart(2, "0");
+    const toH = String(Math.floor((t + durationMinutes) / 60)).padStart(2, "0");
+    const toM = String((t + durationMinutes) % 60).padStart(2, "0");
+    slots.push(`${fromH}:${fromM} - ${toH}:${toM}`);
+  }
+  return slots;
+}
+
 export async function createAmenity(
   tenantId: string,
   userId: string,
-  payload: Pick<AmenityItem, "name" | "category" | "status">,
+  payload: Pick<AmenityItem, "name" | "category" | "status"> & Partial<Pick<AmenityItem,
+    "operatingHoursStart" | "operatingHoursEnd" | "slotDurationMinutes" |
+    "availableWeekdays" | "maxReservationsPerSlot" | "maxReservationDurationMinutes" |
+    "maxReservationsPerUnitPerMonth" | "usageRules">>,
 ) {
   if (!tenantId?.trim()) {
     throw new Error("No se pudo identificar el tenant para crear la amenidad.");
   }
 
   const firestore = assertDb();
+  const { operatingHoursStart, operatingHoursEnd, slotDurationMinutes, ...rest } = payload;
+  const reservationSlots =
+    operatingHoursStart && operatingHoursEnd && slotDurationMinutes
+      ? generateReservationSlots(operatingHoursStart, operatingHoursEnd, slotDurationMinutes)
+      : undefined;
   try {
     await addDoc(collection(firestore, "amenities"), {
-      ...payload,
+      ...rest,
+      ...(operatingHoursStart !== undefined && { operatingHoursStart }),
+      ...(operatingHoursEnd !== undefined && { operatingHoursEnd }),
+      ...(slotDurationMinutes !== undefined && { slotDurationMinutes }),
+      ...(reservationSlots !== undefined && { reservationSlots }),
       tenantId,
       createdBy: userId,
       updatedBy: userId,
@@ -640,8 +678,17 @@ export async function createAmenity(
 export async function updateAmenity(id: string, userId: string, payload: Partial<AmenityItem>) {
   const firestore = assertDb();
   try {
+    const { operatingHoursStart, operatingHoursEnd, slotDurationMinutes, ...rest } = payload;
+    const reservationSlots =
+      operatingHoursStart && operatingHoursEnd && slotDurationMinutes
+        ? generateReservationSlots(operatingHoursStart, operatingHoursEnd, slotDurationMinutes)
+        : undefined;
     await updateDoc(doc(firestore, "amenities", id), {
-      ...payload,
+      ...rest,
+      ...(operatingHoursStart !== undefined && { operatingHoursStart }),
+      ...(operatingHoursEnd !== undefined && { operatingHoursEnd }),
+      ...(slotDurationMinutes !== undefined && { slotDurationMinutes }),
+      ...(reservationSlots !== undefined && { reservationSlots }),
       updatedBy: userId,
       updatedAt: serverTimestamp(),
     });

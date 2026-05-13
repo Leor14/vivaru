@@ -92,6 +92,25 @@ export default function AdminReservationsPage() {
   const [savingAmenityEdit, setSavingAmenityEdit] = useState(false);
   const [togglingAmenityId, setTogglingAmenityId] = useState<string | null>(null);
 
+  // Create amenity config state
+  const [amenityOperatingStart, setAmenityOperatingStart] = useState("");
+  const [amenityOperatingEnd, setAmenityOperatingEnd] = useState("");
+  const [amenitySlotDuration, setAmenitySlotDuration] = useState("");
+  const [amenityWeekdays, setAmenityWeekdays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const [amenityMaxPerSlot, setAmenityMaxPerSlot] = useState("");
+  const [amenityMaxDuration, setAmenityMaxDuration] = useState("");
+  const [amenityMaxPerMonth, setAmenityMaxPerMonth] = useState("");
+  const [amenityUsageRules, setAmenityUsageRules] = useState("");
+  // Edit amenity config state
+  const [editAmenityOperatingStart, setEditAmenityOperatingStart] = useState("");
+  const [editAmenityOperatingEnd, setEditAmenityOperatingEnd] = useState("");
+  const [editAmenitySlotDuration, setEditAmenitySlotDuration] = useState("");
+  const [editAmenityWeekdays, setEditAmenityWeekdays] = useState<number[]>([]);
+  const [editAmenityMaxPerSlot, setEditAmenityMaxPerSlot] = useState("");
+  const [editAmenityMaxDuration, setEditAmenityMaxDuration] = useState("");
+  const [editAmenityMaxPerMonth, setEditAmenityMaxPerMonth] = useState("");
+  const [editAmenityUsageRules, setEditAmenityUsageRules] = useState("");
+
   const canEdit = user?.role === "tenant_admin" && user?.status === "active";
   const activeAmenities = useMemo(() => amenities.filter((item) => item.status === "active"), [amenities]);
 
@@ -275,8 +294,24 @@ export default function AdminReservationsPage() {
         name: cleanName,
         category: amenityCategory,
         status: "active",
+        ...(amenityWeekdays.length > 0 && { availableWeekdays: amenityWeekdays }),
+        ...(amenityOperatingStart && { operatingHoursStart: amenityOperatingStart }),
+        ...(amenityOperatingEnd && { operatingHoursEnd: amenityOperatingEnd }),
+        ...(amenitySlotDuration && { slotDurationMinutes: Number(amenitySlotDuration) }),
+        ...(amenityMaxPerSlot && { maxReservationsPerSlot: Number(amenityMaxPerSlot) }),
+        ...(amenityMaxDuration && { maxReservationDurationMinutes: Number(amenityMaxDuration) }),
+        ...(amenityMaxPerMonth !== "" && { maxReservationsPerUnitPerMonth: Number(amenityMaxPerMonth) }),
+        ...(amenityUsageRules.trim() && { usageRules: amenityUsageRules.trim() }),
       });
       setAmenityName("");
+      setAmenityOperatingStart("");
+      setAmenityOperatingEnd("");
+      setAmenitySlotDuration("");
+      setAmenityWeekdays([0, 1, 2, 3, 4, 5, 6]);
+      setAmenityMaxPerSlot("");
+      setAmenityMaxDuration("");
+      setAmenityMaxPerMonth("");
+      setAmenityUsageRules("");
       toast.success("Amenidad creada.");
     } catch (error) {
       toastFirebaseError(error);
@@ -308,6 +343,14 @@ export default function AdminReservationsPage() {
     setEditingAmenity(item);
     setEditAmenityName(item.name);
     setEditAmenityCategory(item.category);
+    setEditAmenityWeekdays(item.availableWeekdays ?? []);
+    setEditAmenityOperatingStart(item.operatingHoursStart ?? "");
+    setEditAmenityOperatingEnd(item.operatingHoursEnd ?? "");
+    setEditAmenitySlotDuration(item.slotDurationMinutes !== undefined ? String(item.slotDurationMinutes) : "");
+    setEditAmenityMaxPerSlot(item.maxReservationsPerSlot !== undefined ? String(item.maxReservationsPerSlot) : "");
+    setEditAmenityMaxDuration(item.maxReservationDurationMinutes !== undefined ? String(item.maxReservationDurationMinutes) : "");
+    setEditAmenityMaxPerMonth(item.maxReservationsPerUnitPerMonth !== undefined ? String(item.maxReservationsPerUnitPerMonth) : "");
+    setEditAmenityUsageRules(item.usageRules ?? "");
   }
 
   async function handleSaveAmenityEdit() {
@@ -322,6 +365,14 @@ export default function AdminReservationsPage() {
       await updateAmenity(editingAmenity.id, user.uid, {
         name: cleanName,
         category: editAmenityCategory,
+        availableWeekdays: editAmenityWeekdays,
+        ...(editAmenityOperatingStart && { operatingHoursStart: editAmenityOperatingStart }),
+        ...(editAmenityOperatingEnd && { operatingHoursEnd: editAmenityOperatingEnd }),
+        ...(editAmenitySlotDuration && { slotDurationMinutes: Number(editAmenitySlotDuration) }),
+        ...(editAmenityMaxPerSlot && { maxReservationsPerSlot: Number(editAmenityMaxPerSlot) }),
+        ...(editAmenityMaxDuration && { maxReservationDurationMinutes: Number(editAmenityMaxDuration) }),
+        ...(editAmenityMaxPerMonth !== "" && { maxReservationsPerUnitPerMonth: Number(editAmenityMaxPerMonth) }),
+        usageRules: editAmenityUsageRules.trim() || undefined,
       });
       toast.success("Amenidad actualizada.");
       setEditingAmenity(null);
@@ -442,7 +493,7 @@ export default function AdminReservationsPage() {
       {canEdit ? (
         <div className="mb-4 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-sm font-semibold text-[var(--slate-900)]">Gestión de amenidades</p>
-          <div className="mt-2 grid gap-2 md:grid-cols-[1fr_180px_auto]">
+          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px]">
             <Input value={amenityName} onChange={(event) => setAmenityName(event.target.value)} placeholder="Nombre de amenidad" />
             <select className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={amenityCategory} onChange={(event) => setAmenityCategory(event.target.value as AmenityItem["category"])}>
               <option value="social">Social</option>
@@ -451,6 +502,82 @@ export default function AdminReservationsPage() {
               <option value="business">Negocios</option>
               <option value="other">Otro</option>
             </select>
+          </div>
+          <div className="mt-3 space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Horario y disponibilidad</p>
+            <div>
+              <p className="mb-1.5 text-sm text-[var(--slate-700)]">Días disponibles</p>
+              <div className="flex flex-wrap gap-3">
+                {(["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const).map((label, idx) => (
+                  <label key={idx} className="flex cursor-pointer items-center gap-1.5 text-sm text-[var(--slate-700)]">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-[var(--slate-300)]"
+                      checked={amenityWeekdays.includes(idx)}
+                      onChange={() => setAmenityWeekdays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx].sort((a, b) => a - b))}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Hora de apertura
+                <Input type="time" value={amenityOperatingStart} onChange={(e) => setAmenityOperatingStart(e.target.value)} />
+              </label>
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Hora de cierre
+                <Input type="time" value={amenityOperatingEnd} onChange={(e) => setAmenityOperatingEnd(e.target.value)} />
+              </label>
+            </div>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Duración de bloque
+              <select
+                className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={amenitySlotDuration}
+                onChange={(e) => setAmenitySlotDuration(e.target.value)}
+              >
+                <option value="">Sin duración fija</option>
+                <option value="30">30 min</option>
+                <option value="60">60 min</option>
+                <option value="90">90 min</option>
+                <option value="120">120 min</option>
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Aforo simultáneo
+                <Input type="number" min={1} placeholder="Ej: 2" value={amenityMaxPerSlot} onChange={(e) => setAmenityMaxPerSlot(e.target.value)} />
+              </label>
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Duración máxima (min)
+                <Input type="number" min={1} placeholder="Ej: 120" value={amenityMaxDuration} onChange={(e) => setAmenityMaxDuration(e.target.value)} />
+              </label>
+            </div>
+          </div>
+          <div className="mt-3 space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Cuotas</p>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Reservas por unidad al mes
+              <Input type="number" min={0} placeholder="0 = sin límite" value={amenityMaxPerMonth} onChange={(e) => setAmenityMaxPerMonth(e.target.value)} />
+              <span className="text-xs text-[var(--slate-500)]">Escribe 0 para no aplicar límite mensual</span>
+            </label>
+          </div>
+          <div className="mt-3 space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Reglas de uso</p>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Reglas
+              <textarea
+                className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm"
+                maxLength={1000}
+                placeholder="Ej: Uso obligatorio de ropa deportiva. Prohibido introducir alimentos..."
+                value={amenityUsageRules}
+                onChange={(e) => setAmenityUsageRules(e.target.value)}
+              />
+            </label>
+          </div>
+          <div className="mt-3">
             <Button onClick={() => void handleCreateAmenity()} disabled={savingAmenity || !amenityName.trim()}>
               {savingAmenity ? "Agregando..." : "Agregar +"}
             </Button>
@@ -732,6 +859,80 @@ export default function AdminReservationsPage() {
               <option value="other">Otro</option>
             </select>
           </label>
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Horario y disponibilidad</p>
+            <div>
+              <p className="mb-1.5 text-sm text-[var(--slate-700)]">Días disponibles</p>
+              <div className="flex flex-wrap gap-3">
+                {(["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const).map((label, idx) => (
+                  <label key={idx} className="flex cursor-pointer items-center gap-1.5 text-sm text-[var(--slate-700)]">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-[var(--slate-300)]"
+                      checked={editAmenityWeekdays.includes(idx)}
+                      onChange={() => setEditAmenityWeekdays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx].sort((a, b) => a - b))}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Hora de apertura
+                <Input type="time" value={editAmenityOperatingStart} onChange={(e) => setEditAmenityOperatingStart(e.target.value)} />
+              </label>
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Hora de cierre
+                <Input type="time" value={editAmenityOperatingEnd} onChange={(e) => setEditAmenityOperatingEnd(e.target.value)} />
+              </label>
+            </div>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Duración de bloque
+              <select
+                className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={editAmenitySlotDuration}
+                onChange={(e) => setEditAmenitySlotDuration(e.target.value)}
+              >
+                <option value="">Sin duración fija</option>
+                <option value="30">30 min</option>
+                <option value="60">60 min</option>
+                <option value="90">90 min</option>
+                <option value="120">120 min</option>
+              </select>
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Aforo simultáneo
+                <Input type="number" min={1} placeholder="Ej: 2" value={editAmenityMaxPerSlot} onChange={(e) => setEditAmenityMaxPerSlot(e.target.value)} />
+              </label>
+              <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+                Duración máxima (min)
+                <Input type="number" min={1} placeholder="Ej: 120" value={editAmenityMaxDuration} onChange={(e) => setEditAmenityMaxDuration(e.target.value)} />
+              </label>
+            </div>
+          </div>
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Cuotas</p>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Reservas por unidad al mes
+              <Input type="number" min={0} placeholder="0 = sin límite" value={editAmenityMaxPerMonth} onChange={(e) => setEditAmenityMaxPerMonth(e.target.value)} />
+              <span className="text-xs text-[var(--slate-500)]">Escribe 0 para no aplicar límite mensual</span>
+            </label>
+          </div>
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Reglas de uso</p>
+            <label className="grid gap-1 text-sm text-[var(--slate-700)]">
+              Reglas
+              <textarea
+                className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm"
+                maxLength={1000}
+                placeholder="Ej: Uso obligatorio de ropa deportiva. Prohibido introducir alimentos..."
+                value={editAmenityUsageRules}
+                onChange={(e) => setEditAmenityUsageRules(e.target.value)}
+              />
+            </label>
+          </div>
           {editingAmenity && user?.tenantId ? (
             <div className="space-y-2">
               <div className="border-t border-[var(--slate-200)] pt-3" />

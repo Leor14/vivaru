@@ -67,6 +67,18 @@ export const reservationSchema = z
     path: ["endTime"],
   });
 
+export const amenityConfigSchema = z.object({
+  operatingHoursStart: z.string().optional(),
+  operatingHoursEnd: z.string().optional(),
+  slotDurationMinutes: z.number().optional(),
+  availableWeekdays: z.array(z.number()).optional(),
+  maxReservationsPerSlot: z.number().optional(),
+  maxReservationDurationMinutes: z.number().optional(),
+  maxReservationsPerUnitPerMonth: z.number().optional(),
+  usageRules: z.string().optional(),
+});
+export type AmenityConfigInput = z.infer<typeof amenityConfigSchema>;
+
 export const visitorSchema = z
   .object({
     visitorName: requiredText("Nombre visitante", 3),

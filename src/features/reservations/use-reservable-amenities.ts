@@ -21,6 +21,11 @@ export interface ReservableAmenity {
   availabilityEndDate?: string;
   maxReservationsPerSlot?: number;
   maxReservationDurationMinutes?: number;
+  maxReservationsPerUnitPerMonth?: number;
+  usageRules?: string;
+  operatingHoursStart?: string;
+  operatingHoursEnd?: string;
+  slotDurationMinutes?: number;
   temporaryDisabled?: boolean;
   deletedAt?: string;
   createdAt?: string;
