@@ -3,6 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 
 initializeApp();
@@ -1668,4 +1669,37 @@ export const onTicketCreated = onDocumentCreated("tickets/{ticketId}", async (ev
       link: "/superadmin/analytics",
     })),
   ]);
+});
+
+// Runs every day at 07:00 UTC (02:00 Colombia)
+export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
+  const now = new Date();
+  const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+
+  const snapshot = await db
+    .collection("billingStatements")
+    .where("status", "==", "pending")
+    .where("dueDate", "<=", todayStr)
+    .get();
+
+  if (snapshot.empty) {
+    console.log("[updateOverdueStatements] No pending overdue statements found.");
+    return;
+  }
+
+  const BATCH_SIZE = 500;
+  const docs = snapshot.docs;
+  let updated = 0;
+
+  for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+    const batch = db.batch();
+    const chunk = docs.slice(i, i + BATCH_SIZE);
+    for (const doc of chunk) {
+      batch.update(doc.ref, { status: "overdue" });
+    }
+    await batch.commit();
+    updated += chunk.length;
+  }
+
+  console.log(`[updateOverdueStatements] Marked ${updated} statement(s) as overdue.`);
 });
