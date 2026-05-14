@@ -64,6 +64,13 @@ export default function ResidentVisitorsPage() {
 
   const hasInvitations = useMemo(() => items.length > 0, [items.length]);
 
+  function getDisplayStatus(item: VisitorInvitation): VisitorInvitationStatus {
+    if (item.status === "active" && item.endAt && item.endAt < new Date()) {
+      return "expired";
+    }
+    return item.status;
+  }
+
   async function handleCancelInvitation(id: string) {
     setCancellingId(id);
     try {
@@ -129,7 +136,7 @@ export default function ResidentVisitorsPage() {
                     <p className="text-sm text-[var(--slate-700)]">ID: {item.visitorIdentification}</p>
                     <p className="text-sm text-[var(--slate-600)]">Vigencia: {formatDateTime(item.startAt)} - {formatDateTime(item.endAt)}</p>
                   </div>
-                  <Badge className={statusClassName[item.status]}>{statusLabel[item.status]}</Badge>
+                  <Badge className={statusClassName[getDisplayStatus(item)]}>{statusLabel[getDisplayStatus(item)]}</Badge>
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -140,7 +147,7 @@ export default function ResidentVisitorsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => router.push(`/resident/visitors/${item.id}/qr`)}
-                    disabled={item.status !== "active"}
+                    disabled={getDisplayStatus(item) !== "active"}
                   >
                     Ver QR
                   </Button>
@@ -148,7 +155,7 @@ export default function ResidentVisitorsPage() {
                     size="sm"
                     variant="danger"
                     onClick={() => void handleCancelInvitation(item.id)}
-                    disabled={item.status !== "active" || cancellingId === item.id}
+                    disabled={getDisplayStatus(item) !== "active" || cancellingId === item.id}
                   >
                     {cancellingId === item.id ? "Cancelando..." : "Cancelar invitacion"}
                   </Button>
