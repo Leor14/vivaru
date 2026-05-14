@@ -136,7 +136,9 @@ export function NotificationsBell() {
         onClick={() => {
           const rect = containerRef.current?.getBoundingClientRect();
           if (rect) {
-            setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+            const panelWidth = Math.min(0.92 * window.innerWidth, 360);
+            const rawRight = window.innerWidth - rect.right;
+            setDropdownPos({ top: rect.bottom + 8, right: Math.max(8, Math.min(rawRight, window.innerWidth - panelWidth - 8)) });
           }
           setOpen((prev) => !prev);
         }}
