@@ -36,6 +36,7 @@ import {
   disableAmenityAndCancelFutureReservations,
   updateAmenity,
   updateReservation,
+  uploadAmenityPhoto,
   watchAmenities,
   watchReservations,
   watchUnits,
@@ -92,6 +93,7 @@ export default function AdminReservationsPage() {
   const [savingAmenityEdit, setSavingAmenityEdit] = useState(false);
   const [togglingAmenityId, setTogglingAmenityId] = useState<string | null>(null);
   const [amenityPanelOpen, setAmenityPanelOpen] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
 
   // Create amenity config state
   const [amenityOperatingStart, setAmenityOperatingStart] = useState("");
@@ -291,7 +293,7 @@ export default function AdminReservationsPage() {
 
     setSavingAmenity(true);
     try {
-      await createAmenity(user.tenantId, user.uid, {
+      const newAmenityId = await createAmenity(user.tenantId, user.uid, {
         name: cleanName,
         category: amenityCategory,
         status: "active",
@@ -304,6 +306,11 @@ export default function AdminReservationsPage() {
         ...(amenityMaxPerMonth !== "" && { maxReservationsPerUnitPerMonth: Number(amenityMaxPerMonth) }),
         ...(amenityUsageRules.trim() && { usageRules: amenityUsageRules.trim() }),
       });
+      if (pendingPhotos.length > 0) {
+        for (const file of pendingPhotos) {
+          await uploadAmenityPhoto(user.tenantId, newAmenityId, file);
+        }
+      }
       setAmenityName("");
       setAmenityOperatingStart("");
       setAmenityOperatingEnd("");
@@ -313,6 +320,7 @@ export default function AdminReservationsPage() {
       setAmenityMaxDuration("");
       setAmenityMaxPerMonth("");
       setAmenityUsageRules("");
+      setPendingPhotos([]);
       setAmenityPanelOpen(false);
       toast.success("Amenidad creada.");
     } catch (error) {
@@ -558,11 +566,12 @@ export default function AdminReservationsPage() {
           setAmenityMaxDuration("");
           setAmenityMaxPerMonth("");
           setAmenityUsageRules("");
+          setPendingPhotos([]);
         }}
         title="Nueva amenidad"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setAmenityPanelOpen(false)} disabled={savingAmenity}>
+            <Button variant="outline" onClick={() => { setAmenityPanelOpen(false); setPendingPhotos([]); }} disabled={savingAmenity}>
               Cancelar
             </Button>
             <Button onClick={() => void handleCreateAmenity()} disabled={savingAmenity || !amenityName.trim()}>
@@ -655,6 +664,47 @@ export default function AdminReservationsPage() {
                 onChange={(e) => setAmenityUsageRules(e.target.value)}
               />
             </label>
+          </div>
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Fotos (opcional)</p>
+            {pendingPhotos.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {pendingPhotos.map((file, i) => (
+                  <div key={i} className="relative h-20 w-20">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt=""
+                      className="h-20 w-20 rounded-md object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPendingPhotos((prev) => prev.filter((_, j) => j !== i))}
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs leading-none text-white"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pendingPhotos.length < 8 && (
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--slate-600)] hover:text-[var(--slate-900)]">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    setPendingPhotos((prev) => [...prev, ...files].slice(0, 8));
+                    e.target.value = "";
+                  }}
+                />
+                <span>+ Agregar fotos</span>
+                <span className="text-xs text-[var(--slate-400)]">{pendingPhotos.length}/8</span>
+              </label>
+            )}
           </div>
         </div>
       </Drawer>

@@ -659,7 +659,7 @@ export async function createAmenity(
       ? generateReservationSlots(operatingHoursStart, operatingHoursEnd, slotDurationMinutes)
       : undefined;
   try {
-    await addDoc(collection(firestore, "amenities"), {
+    const docRef = await addDoc(collection(firestore, "amenities"), {
       ...rest,
       ...(operatingHoursStart !== undefined && { operatingHoursStart }),
       ...(operatingHoursEnd !== undefined && { operatingHoursEnd }),
@@ -671,6 +671,7 @@ export async function createAmenity(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    return docRef.id;
   } catch (error) {
     throw new Error(toMutationUserError(error, "No fue posible crear la amenidad."));
   }
