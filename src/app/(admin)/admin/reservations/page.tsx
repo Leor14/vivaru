@@ -91,6 +91,7 @@ export default function AdminReservationsPage() {
   const [editAmenityCategory, setEditAmenityCategory] = useState<AmenityItem["category"]>("social");
   const [savingAmenityEdit, setSavingAmenityEdit] = useState(false);
   const [togglingAmenityId, setTogglingAmenityId] = useState<string | null>(null);
+  const [amenityPanelOpen, setAmenityPanelOpen] = useState(false);
 
   // Create amenity config state
   const [amenityOperatingStart, setAmenityOperatingStart] = useState("");
@@ -312,6 +313,7 @@ export default function AdminReservationsPage() {
       setAmenityMaxDuration("");
       setAmenityMaxPerMonth("");
       setAmenityUsageRules("");
+      setAmenityPanelOpen(false);
       toast.success("Amenidad creada.");
     } catch (error) {
       toastFirebaseError(error);
@@ -491,9 +493,86 @@ export default function AdminReservationsPage() {
   return (
     <Card>
       {canEdit ? (
-        <div className="mb-4 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
-          <p className="text-sm font-semibold text-[var(--slate-900)]">Gestión de amenidades</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_180px]">
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-[var(--slate-700)]">Amenidades</h3>
+            <Button size="sm" onClick={() => setAmenityPanelOpen(true)}>+ Nueva amenidad</Button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {amenities.map((item) => {
+              const isActive = item.status === "active";
+              const isToggling = togglingAmenityId === item.id;
+              return (
+                <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-white p-2 text-sm">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-medium text-[var(--slate-900)]">{item.name}</span>
+                    <StatusBadge status={item.status} context="amenity" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isActive}
+                      aria-label={`${isActive ? "Deshabilitar" : "Habilitar"} amenidad ${item.name}`}
+                      disabled={isToggling}
+                      onClick={() => void handleToggleAmenityStatus(item)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 items-center rounded-full transition disabled:opacity-50",
+                        isActive ? "bg-[var(--slate-900)]" : "bg-[var(--slate-300)]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition",
+                          isActive ? "translate-x-4" : "translate-x-0.5",
+                        )}
+                      />
+                    </button>
+                    <RowActionsMenu
+                      ariaLabel={`Acciones de ${item.name}`}
+                      items={[
+                        { key: "edit", label: "Editar amenidad", onSelect: () => handleEditAmenity(item) },
+                        { key: "delete", label: "Eliminar amenidad", danger: true, separatorBefore: true, onSelect: () => void handleDeleteAmenity(item) },
+                      ]}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <Drawer
+        open={amenityPanelOpen}
+        onClose={() => {
+          if (savingAmenity) return;
+          setAmenityPanelOpen(false);
+          setAmenityName("");
+          setAmenityCategory("social");
+          setAmenityOperatingStart("");
+          setAmenityOperatingEnd("");
+          setAmenitySlotDuration("");
+          setAmenityWeekdays([0, 1, 2, 3, 4, 5, 6]);
+          setAmenityMaxPerSlot("");
+          setAmenityMaxDuration("");
+          setAmenityMaxPerMonth("");
+          setAmenityUsageRules("");
+        }}
+        title="Nueva amenidad"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAmenityPanelOpen(false)} disabled={savingAmenity}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void handleCreateAmenity()} disabled={savingAmenity || !amenityName.trim()}>
+              {savingAmenity ? "Agregando..." : "Agregar +"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-[1fr_180px]">
             <Input value={amenityName} onChange={(event) => setAmenityName(event.target.value)} placeholder="Nombre de amenidad" />
             <select className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={amenityCategory} onChange={(event) => setAmenityCategory(event.target.value as AmenityItem["category"])}>
               <option value="social">Social</option>
@@ -503,7 +582,7 @@ export default function AdminReservationsPage() {
               <option value="other">Otro</option>
             </select>
           </div>
-          <div className="mt-3 space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Horario y disponibilidad</p>
             <div>
               <p className="mb-1.5 text-sm text-[var(--slate-700)]">Días disponibles</p>
@@ -556,7 +635,7 @@ export default function AdminReservationsPage() {
               </label>
             </div>
           </div>
-          <div className="mt-3 space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Cuotas</p>
             <label className="grid gap-1 text-sm text-[var(--slate-700)]">
               Reservas por unidad al mes
@@ -564,7 +643,7 @@ export default function AdminReservationsPage() {
               <span className="text-xs text-[var(--slate-500)]">Escribe 0 para no aplicar límite mensual</span>
             </label>
           </div>
-          <div className="mt-3 space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
+          <div className="space-y-3 rounded-xl border border-[var(--slate-200)] p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Reglas de uso</p>
             <label className="grid gap-1 text-sm text-[var(--slate-700)]">
               Reglas
@@ -577,55 +656,8 @@ export default function AdminReservationsPage() {
               />
             </label>
           </div>
-          <div className="mt-3">
-            <Button onClick={() => void handleCreateAmenity()} disabled={savingAmenity || !amenityName.trim()}>
-              {savingAmenity ? "Agregando..." : "Agregar +"}
-            </Button>
-          </div>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {amenities.map((item) => {
-              const isActive = item.status === "active";
-              const isToggling = togglingAmenityId === item.id;
-              return (
-                <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-white p-2 text-sm">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium text-[var(--slate-900)]">{item.name}</span>
-                    <StatusBadge status={item.status} context="amenity" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={isActive}
-                      aria-label={`${isActive ? "Deshabilitar" : "Habilitar"} amenidad ${item.name}`}
-                      disabled={isToggling}
-                      onClick={() => void handleToggleAmenityStatus(item)}
-                      className={cn(
-                        "relative inline-flex h-5 w-9 items-center rounded-full transition disabled:opacity-50",
-                        isActive ? "bg-[var(--slate-900)]" : "bg-[var(--slate-300)]",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition",
-                          isActive ? "translate-x-4" : "translate-x-0.5",
-                        )}
-                      />
-                    </button>
-                    <RowActionsMenu
-                      ariaLabel={`Acciones de ${item.name}`}
-                      items={[
-                        { key: "edit", label: "Editar amenidad", onSelect: () => handleEditAmenity(item) },
-                        { key: "delete", label: "Eliminar amenidad", danger: true, separatorBefore: true, onSelect: () => void handleDeleteAmenity(item) },
-                      ]}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
-      ) : null}
+      </Drawer>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
