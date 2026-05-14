@@ -76,6 +76,7 @@ export function NotificationsBell() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
 
   const { items, loading, error, unreadCount, markAsRead, markAllAsRead } = useNotifications({
     userId: user?.uid,
@@ -132,9 +133,15 @@ export function NotificationsBell() {
         title={latestSummary}
         className="relative px-2"
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (rect) {
+            setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+          }
+          setOpen((prev) => !prev);
+        }}
       >
-          <Bell className="h-5 w-5 text-[var(--slate-700)]" />
+          <Bell className="h-5 w-5 text-current" />
           {unreadLabel ? (
             <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--danger-600)] px-1 text-[10px] font-semibold text-white">
               {unreadLabel}
@@ -143,7 +150,10 @@ export function NotificationsBell() {
       </Button>
 
       {open ? (
-      <div className="absolute right-0 z-40 mt-2 w-[min(92vw,360px)] rounded-2xl border border-[var(--slate-200)] bg-white p-3 shadow-xl">
+      <div
+        className="z-50 w-[min(92vw,360px)] rounded-2xl border border-[var(--slate-200)] bg-white p-3 shadow-xl"
+        style={{ position: "fixed", top: dropdownPos.top, right: dropdownPos.right }}
+      >
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-[var(--slate-900)]">Notificaciones</p>
           <Button
