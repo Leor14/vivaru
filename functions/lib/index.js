@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onTicketCreated = exports.onVisitorPassCreated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.updateOverdueStatements = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const firestore_2 = require("firebase-functions/v2/firestore");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 const datetimeValidation_1 = require("./utils/datetimeValidation");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
@@ -1280,4 +1281,31 @@ exports.onTicketCreated = (0, firestore_2.onDocumentCreated)("tickets/{ticketId}
             link: "/superadmin/analytics",
         })),
     ]);
+});
+// Runs every day at 07:00 UTC (02:00 Colombia)
+exports.updateOverdueStatements = (0, scheduler_1.onSchedule)("0 7 * * *", async () => {
+    const now = new Date();
+    const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+    const snapshot = await db
+        .collection("billingStatements")
+        .where("status", "==", "pending")
+        .where("dueDate", "<=", todayStr)
+        .get();
+    if (snapshot.empty) {
+        console.log("[updateOverdueStatements] No pending overdue statements found.");
+        return;
+    }
+    const BATCH_SIZE = 500;
+    const docs = snapshot.docs;
+    let updated = 0;
+    for (let i = 0; i < docs.length; i += BATCH_SIZE) {
+        const batch = db.batch();
+        const chunk = docs.slice(i, i + BATCH_SIZE);
+        for (const doc of chunk) {
+            batch.update(doc.ref, { status: "overdue" });
+        }
+        await batch.commit();
+        updated += chunk.length;
+    }
+    console.log(`[updateOverdueStatements] Marked ${updated} statement(s) as overdue.`);
 });
