@@ -857,10 +857,12 @@ export default function ResidentReservationsPage() {
                             tabIndex={0}
                             aria-pressed={isSelected}
                             onClick={() => {
+                              setSelectedAmenityId(item.id);
                               setSelectedAmenityDetail(item);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
+                                setSelectedAmenityId(item.id);
                                 setSelectedAmenityDetail(item);
                               }
                             }}
@@ -891,6 +893,7 @@ export default function ResidentReservationsPage() {
                                 aria-label={`Ver detalles de ${item.name}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setSelectedAmenityId(item.id);
                                   setSelectedAmenityDetail(item);
                                 }}
                                 className="text-xs text-[var(--brand-700)] hover:underline"
