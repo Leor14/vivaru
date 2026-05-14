@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
+import * as XLSX from "xlsx";
 
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
 import { BillingBulkMessageDrawer, type BillingUnitOption } from "@/components/features/billing/BillingBulkMessageDrawer";
@@ -163,6 +164,7 @@ export default function AdminBillingPage() {
   const [selectedBulkUnitIds, setSelectedBulkUnitIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");
   const [isBulkSending, setIsBulkSending] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<BillingEditRecord | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
@@ -519,72 +521,105 @@ export default function AdminBillingPage() {
   function handleDownloadTemplate() {
     const csv = buildCsvRows([
       {
-        apartamento: "T1-101",
-        fecha: "2026-03",
-        monto: 1200000,
-        abono: 500000,
-        saldo: 700000,
-        fecha_limite: "2026-03-28",
-        estado: "pending",
+        unitLabel: "T1-101",
+        period: "2026-03",
+        amount: 1200000,
+        paymentAmount: 0,
+        dueDate: "2026-03-28",
       },
     ]);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "plantilla-cartera.xlsx.csv";
+    link.download = "plantilla-cartera.csv";
     link.click();
     URL.revokeObjectURL(url);
   }
 
   async function handleImportCsv(file: File) {
     if (!user?.tenantId) return;
-    const text = await file.text();
-    const rows = parseCsv(text);
-    if (rows.length === 0) {
-      toast.error("El archivo esta vacio o no tiene filas validas.");
-      return;
-    }
 
-    const requiredHeaders = ["apartamento", "fecha", "monto", "abono", "saldo", "fecha_limite"];
-    const first = rows[0];
-    const missing = requiredHeaders.filter((header) => !(header in first));
-    if (missing.length > 0) {
-      toast.error(`Faltan columnas obligatorias: ${missing.join(", ")}`);
-      return;
-    }
+    setIsImporting(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
 
-    let successCount = 0;
-    const failedRows: string[] = [];
-    for (const row of rows) {
-      const matchedUnit = catalogUnits.find(
-        (unit) => unit.label.trim().toLowerCase() === (row.apartamento || "").trim().toLowerCase(),
-      );
-      if (!matchedUnit) {
-        failedRows.push(row.apartamento || "(sin nombre)");
-        continue;
+      if (rows.length === 0) {
+        toast.error("El archivo está vacío o no tiene datos.");
+        return;
       }
-      const rowAmount = parseCurrency(row.monto || "0");
-      const rowPayment = parseCurrency(row.abono || "0");
-      const rowBalance = parseCurrency(row.saldo || String(Math.max(rowAmount - rowPayment, 0)));
-      await createBillingStatement({
-        tenantId: user.tenantId,
-        userId: user.uid,
-        unitId: matchedUnit.id,
-        unitLabel: matchedUnit.label,
-        period: row.fecha,
-        amount: rowAmount,
-        paymentAmount: rowPayment,
-        balance: rowBalance,
-        dueDate: row.fecha_limite || undefined,
-      });
-      successCount += 1;
-    }
-    if (failedRows.length > 0) {
-      toast.error(`${failedRows.length} fila(s) omitidas por unidad no encontrada: ${failedRows.join(", ")}`);
-    }
-    if (successCount > 0) {
-      toast.success(`Importacion completa: ${successCount} fila(s) procesadas.`);
+
+      const requiredHeaders = ["unitLabel", "period", "amount"];
+      const missingHeaders = requiredHeaders.filter((h) => !(h in rows[0]));
+      if (missingHeaders.length > 0) {
+        toast.error(`Columnas faltantes: ${missingHeaders.join(", ")}`);
+        return;
+      }
+
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+
+      for (const row of rows) {
+        const unitLabelRaw = String(row["unitLabel"] ?? "").trim();
+        const period = String(row["period"] ?? "").trim();
+        const amount = parseFloat(String(row["amount"] ?? "0").replace(/[^0-9.-]/g, ""));
+        const paymentAmount = parseFloat(String(row["paymentAmount"] ?? "0").replace(/[^0-9.-]/g, ""));
+        const dueDate = String(row["dueDate"] ?? "").trim() || undefined;
+
+        if (!unitLabelRaw || !period || Number.isNaN(amount)) {
+          errorCount += 1;
+          errors.push(`Fila inválida: unitLabel="${unitLabelRaw}", period="${period}", amount="${String(row["amount"] ?? "")}"`);
+          continue;
+        }
+
+        const matchedUnit = catalogUnits.find(
+          (unit) => unit.label.trim().toLowerCase() === unitLabelRaw.toLowerCase(),
+        );
+        if (!matchedUnit) {
+          errorCount += 1;
+          errors.push(`Unidad no encontrada: "${unitLabelRaw}"`);
+          continue;
+        }
+
+        const safePayment = Number.isNaN(paymentAmount) ? 0 : paymentAmount;
+        const balance = Math.max(amount - safePayment, 0);
+        try {
+          await createBillingStatement({
+            tenantId: user.tenantId,
+            userId: user.uid,
+            unitId: matchedUnit.id,
+            unitLabel: matchedUnit.label,
+            period,
+            amount,
+            paymentAmount: safePayment,
+            balance,
+            dueDate,
+          });
+          successCount += 1;
+        } catch (rowErr) {
+          errorCount += 1;
+          errors.push(`Error al guardar "${unitLabelRaw}" ${period}`);
+          console.error("[billing import] row error", rowErr);
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`${successCount} registro(s) importado(s) correctamente.`);
+      }
+      if (errorCount > 0) {
+        console.warn("[billing import] errores:", errors);
+        toast.error(`${errorCount} fila(s) con error. Revisa la consola para detalles.`);
+      }
+    } catch (err) {
+      console.error("[billing import] parse error", err);
+      toast.error("No se pudo leer el archivo. Verifica que sea un Excel o CSV válido.");
+    } finally {
+      setIsImporting(false);
     }
   }
 
@@ -813,11 +848,11 @@ export default function AdminBillingPage() {
             </IconBadge>
             Descargar plantilla
           </Button>
-          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
             <IconBadge tone="mint" className="mr-2">
               <Upload className="h-4 w-4" />
             </IconBadge>
-            Importar Excel
+            {isImporting ? "Importando..." : "Importar Excel"}
           </Button>
           <Button type="button" variant="outline" onClick={handleExportCsv}>
             <IconBadge tone="sky" className="mr-2">
@@ -852,6 +887,7 @@ export default function AdminBillingPage() {
             const file = event.target.files?.[0];
             if (file) {
               void handleImportCsv(file);
+              event.target.value = "";
             }
           }}
         />
