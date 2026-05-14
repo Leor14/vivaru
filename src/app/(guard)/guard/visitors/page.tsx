@@ -25,5 +25,5 @@ export default function GuardVisitorsPage() {
     );
   }
 
-  return <GuardVisitors tenantId={user.tenantId} />;
+  return <GuardVisitors tenantId={user.tenantId} guardId={user.uid} guardName={user.fullName} />;
 }

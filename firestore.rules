@@ -275,6 +275,10 @@ service cloud.firestore {
               request.resource.data.checkOutAt != null
             )
           )
+        ) ||
+        (
+          securityGuardRole(resource.data.tenantId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guardNotes'])
         )
       );
       allow delete: if signedIn() && sameTenant(resource.data.tenantId) && (

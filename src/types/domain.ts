@@ -1,3 +1,4 @@
+import type { Timestamp } from "firebase/firestore";
 import type { AppRole } from "@/lib/constants/roles";
 
 export type TenantStatus = "trial" | "active" | "suspended";
@@ -182,6 +183,12 @@ export interface VisitorPass {
   residentName?: string;
   createdBy?: string;
   createdByName?: string;
+  guardNotes?: Array<{
+    text: string;
+    createdAt: Timestamp;
+    guardId: string;
+    guardName?: string;
+  }>;
 }
 
 export interface BillingStatement {

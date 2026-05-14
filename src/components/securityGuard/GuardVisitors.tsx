@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
+  addGuardNote,
   markVisitorAsCompleted,
   markVisitorAsInside,
   useVisitorPasses,
@@ -105,9 +107,13 @@ function getStatusClass(status: OperationalStatus) {
   return "bg-amber-100 text-amber-700";
 }
 
-export function GuardVisitors({ tenantId }: { tenantId?: string }) {
+export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: string; guardId?: string; guardName?: string }) {
   const { items, loading, error } = useVisitorPasses(tenantId);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const [noteDialogOpen, setNoteDialogOpen] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
@@ -168,6 +174,11 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
     [items],
   );
 
+  const noteVisitor = useMemo(
+    () => rows.find((item) => item.id === noteDialogOpen) ?? null,
+    [rows, noteDialogOpen],
+  );
+
   const selectedVisitor = useMemo(
     () => rows.find((item) => item.id === selectedVisitorId) ?? null,
     [rows, selectedVisitorId],
@@ -178,6 +189,35 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
     const liveVisitor = rows.find((item) => item.id === scanResult.visitor.id);
     return liveVisitor ?? scanResult.visitor;
   }, [rows, scanResult]);
+
+  function openNoteDialog(item: VisitorPass) {
+    setNoteDialogOpen(item.id);
+    setNoteText("");
+  }
+
+  function closeNoteDialog() {
+    setNoteDialogOpen(null);
+    setNoteText("");
+  }
+
+  async function handleSaveNote() {
+    if (!noteDialogOpen || !guardId || !noteText.trim()) return;
+    setSavingNote(true);
+    try {
+      await addGuardNote(noteDialogOpen, {
+        text: noteText.trim(),
+        guardId,
+        guardName,
+      });
+      toast.success("Nota guardada");
+      setNoteText("");
+      setNoteDialogOpen(null);
+    } catch (err) {
+      toastFirebaseError(err);
+    } finally {
+      setSavingNote(false);
+    }
+  }
 
   function openVisitorDetail(item: VisitorPass) {
     setSelectedVisitorId(item.id);
@@ -408,7 +448,7 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
   }, [selectedVisitor]);
 
   const renderActions = (item: VisitorCardItem) => (
-    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <Button
         size="sm"
         className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
@@ -427,6 +467,9 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
       </Button>
       <Button size="sm" variant="outline" className="w-full" onClick={() => openVisitorDetail(item)}>
         Ver detalle
+      </Button>
+      <Button size="sm" variant="ghost" className="w-full" onClick={() => openNoteDialog(item)}>
+        📝 Nota
       </Button>
     </div>
   );
@@ -577,6 +620,29 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
               </section>
 
               <section className="rounded-xl border border-[var(--slate-200)] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-[var(--slate-800)]">Notas de portería</p>
+                  <Button type="button" size="sm" variant="outline" onClick={() => openNoteDialog(selectedVisitor)}>
+                    📝 Agregar nota
+                  </Button>
+                </div>
+                {(selectedVisitor.guardNotes?.length ?? 0) > 0 ? (
+                  <ul className="mt-3 space-y-2 text-sm">
+                    {selectedVisitor.guardNotes!.map((n, i) => (
+                      <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                        <p className="text-[var(--slate-800)]">{n.text}</p>
+                        <p className="mt-1 text-xs text-[var(--slate-500)]">
+                          {n.guardName ?? "Guardia"} · {n.createdAt.toDate().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-[var(--slate-500)]">Sin notas registradas.</p>
+                )}
+              </section>
+
+              <section className="rounded-xl border border-[var(--slate-200)] p-4">
                 <p className="text-sm font-medium text-[var(--slate-800)]">Logs del visitante</p>
                 <ul className="mt-3 space-y-2 text-sm">
                   {detailLogs.map((log) => (
@@ -586,6 +652,59 @@ export function GuardVisitors({ tenantId }: { tenantId?: string }) {
               </section>
 
               <section>{renderActions(selectedVisitor)}</section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {noteDialogOpen && noteVisitor ? (
+        <div className="fixed inset-0 z-[80]">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+            aria-label="Cerrar notas"
+            onClick={closeNoteDialog}
+          />
+          <aside className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto border-l border-[var(--slate-200)] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Notas de portería</p>
+                <h2 className="mt-1 text-lg font-semibold text-[var(--slate-900)]">{noteVisitor.visitorName}</h2>
+              </div>
+              <Button type="button" variant="outline" onClick={closeNoteDialog}>Cerrar</Button>
+            </div>
+
+            {(noteVisitor.guardNotes?.length ?? 0) > 0 ? (
+              <ul className="mt-4 space-y-2 text-sm">
+                {noteVisitor.guardNotes!.map((n, i) => (
+                  <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
+                    <p className="text-[var(--slate-800)]">{n.text}</p>
+                    <p className="mt-1 text-xs text-[var(--slate-500)]">
+                      {n.guardName ?? "Guardia"} · {n.createdAt.toDate().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-[var(--slate-500)]">Sin notas registradas.</p>
+            )}
+
+            <div className="mt-5 space-y-3">
+              <Textarea
+                label="Nueva nota"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value.slice(0, 300))}
+                placeholder="Ej: Llegó con 2 personas extra"
+                rows={3}
+              />
+              <p className="text-right text-xs text-[var(--slate-500)]">{noteText.length}/300</p>
+              <Button
+                className="w-full"
+                disabled={!noteText.trim() || savingNote}
+                onClick={() => void handleSaveNote()}
+              >
+                {savingNote ? "Guardando..." : "Guardar nota"}
+              </Button>
             </div>
           </aside>
         </div>

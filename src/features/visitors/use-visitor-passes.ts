@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  arrayUnion,
   collection,
   doc,
   onSnapshot,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
   type DocumentData,
@@ -354,5 +356,20 @@ export async function markVisitorAsCompleted(input: {
   await updateDoc(doc(db, "visitorPasses", input.visitorId), {
     status: "completed",
     checkOutAt: serverTimestamp(),
+  });
+}
+
+export async function addGuardNote(
+  passId: string,
+  note: { text: string; guardId: string; guardName?: string },
+): Promise<void> {
+  if (!db) throw new Error("Firebase no esta configurado.");
+  await updateDoc(doc(db, "visitorPasses", passId), {
+    guardNotes: arrayUnion({
+      text: note.text,
+      createdAt: Timestamp.now(),
+      guardId: note.guardId,
+      guardName: note.guardName ?? null,
+    }),
   });
 }
