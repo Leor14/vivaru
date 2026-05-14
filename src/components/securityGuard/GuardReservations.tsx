@@ -139,10 +139,11 @@ function mergeAdjacentRanges(ranges: TimeRange[]) {
 }
 
 function splitTowerUnit(unitLabel: string) {
-  const [tower, unit] = unitLabel.split("-");
+  const label = unitLabel ?? "";
+  const [tower, unit] = label.split("-");
   return {
     tower: tower?.trim() || "-",
-    unit: unit?.trim() || unitLabel,
+    unit: unit?.trim() || label,
   };
 }
 
@@ -248,6 +249,7 @@ export function GuardReservations({ tenantId }: { tenantId?: string }) {
       if (reservation.amenityId) {
         return reservation.amenityId === selectedAmenity.id;
       }
+      if (!reservation.amenity) return false;
       return reservation.amenity.trim().toLowerCase() === selectedAmenity.name.trim().toLowerCase();
     });
   }, [items, selectedAmenity]);
