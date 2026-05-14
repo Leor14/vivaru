@@ -19,6 +19,7 @@ type BillingBulkMessageDrawerProps = {
   onToggleAll: () => void;
   onChangeMessage: (nextValue: string) => void;
   onSend: () => void;
+  isSending: boolean;
 };
 
 export function BillingBulkMessageDrawer({
@@ -31,6 +32,7 @@ export function BillingBulkMessageDrawer({
   onToggleAll,
   onChangeMessage,
   onSend,
+  isSending,
 }: BillingBulkMessageDrawerProps) {
   if (!open) return null;
 
@@ -108,13 +110,13 @@ export function BillingBulkMessageDrawer({
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSending}>Cancelar</Button>
           <Button
             type="button"
             onClick={onSend}
-            disabled={selectedUnitIds.length === 0 || message.trim().length === 0}
+            disabled={isSending || selectedUnitIds.length === 0 || message.trim().length === 0}
           >
-            Enviar
+            {isSending ? "Enviando..." : `Enviar a ${selectedUnitIds.length} unidad(es)`}
           </Button>
         </div>
       </aside>

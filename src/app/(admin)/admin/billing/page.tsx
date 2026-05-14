@@ -30,6 +30,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
+import { createCommunication } from "@/features/admin/services";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BillingStatement } from "@/types/domain";
 
@@ -161,6 +162,7 @@ export default function AdminBillingPage() {
   const [isBulkDrawerOpen, setIsBulkDrawerOpen] = useState(false);
   const [selectedBulkUnitIds, setSelectedBulkUnitIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");
+  const [isBulkSending, setIsBulkSending] = useState(false);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<BillingEditRecord | null>(null);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
@@ -611,7 +613,7 @@ export default function AdminBillingPage() {
     });
   }
 
-  function handleSendOverdueBulkMessage() {
+  async function handleSendOverdueBulkMessage() {
     if (selectedBulkUnitIds.length === 0) {
       toast.error("Selecciona al menos una unidad para enviar el mensaje.");
       return;
@@ -622,8 +624,25 @@ export default function AdminBillingPage() {
       return;
     }
 
-    toast.success(`Mensaje programado para ${selectedBulkUnitIds.length} unidad(es).`);
-    setIsBulkDrawerOpen(false);
+    if (!user?.tenantId) return;
+
+    setIsBulkSending(true);
+    try {
+      await createCommunication(user.tenantId, user.uid, {
+        title: "Aviso de cartera — Saldo pendiente",
+        message: bulkMessage.trim(),
+        status: "published",
+      });
+      toast.success(`Comunicado enviado a los residentes (${selectedBulkUnitIds.length} unidad(es) en mora).`);
+      setIsBulkDrawerOpen(false);
+      setSelectedBulkUnitIds([]);
+      setBulkMessage("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");
+    } catch (err) {
+      console.error("[billing] bulk message error", err);
+      toast.error("No se pudo enviar el comunicado. Intenta de nuevo.");
+    } finally {
+      setIsBulkSending(false);
+    }
   }
 
   return (
@@ -1012,7 +1031,8 @@ export default function AdminBillingPage() {
         onToggleUnit={handleToggleBulkUnit}
         onToggleAll={handleToggleAllBulkUnits}
         onChangeMessage={setBulkMessage}
-        onSend={handleSendOverdueBulkMessage}
+        onSend={() => void handleSendOverdueBulkMessage()}
+        isSending={isBulkSending}
       />
     </section>
   );
