@@ -56,6 +56,7 @@ export interface TenantWorkspaceItem {
   planId: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
+  currency: "COP" | "MXN" | "USD";
   createdAt: string;
   updatedAt: string;
 }
@@ -101,6 +102,7 @@ export function watchTenants(
           planId: typeof data.planId === "string" ? data.planId : "starter",
           status: normalizeTenantStatus(data.status),
           onboardingStatus: normalizeOnboarding(data.onboardingStatus),
+          currency: (data.currency === "COP" || data.currency === "MXN" || data.currency === "USD") ? data.currency : "COP",
           createdAt: toIsoString(data.createdAt),
           updatedAt: toIsoString(data.updatedAt),
         } as TenantWorkspaceItem;
@@ -118,6 +120,7 @@ export async function createTenantWorkspace(input: {
   planId: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
+  currency: "COP" | "MXN" | "USD";
 }) {
   return createTenantWorkspaceCallable(input);
 }
@@ -130,6 +133,7 @@ export async function updateTenantWorkspace(
     planId: string;
     status: "active" | "suspended" | "trial";
     onboardingStatus: "not_started" | "in_progress" | "completed";
+    currency: "COP" | "MXN" | "USD";
   },
 ) {
   const firestore = assertDb();

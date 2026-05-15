@@ -10,6 +10,7 @@ import { useCommunications } from "@/features/communications/use-communications"
 import { usePackages } from "@/features/packages/use-packages";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
 function formatDateLabel(value: string | null | undefined) {
   if (!value) return null;
@@ -20,6 +21,7 @@ function formatDateLabel(value: string | null | undefined) {
 
 export default function ResidentHomePage() {
   const { user } = useAuth();
+  const { formatAmount } = useTenantCurrency();
 
   const tenantId = user?.tenantId;
   const unitId = user?.unitId;
@@ -112,7 +114,7 @@ export default function ResidentHomePage() {
         {/* Saldo pendiente */}
         <MetricCard
           label="Saldo pendiente"
-          value={billingLoading ? "Cargando..." : `$${pendingBalance.toLocaleString("es-CO")}`}
+          value={billingLoading ? "Cargando..." : formatAmount(pendingBalance)}
         />
         {/* Próxima reserva */}
         <MetricCard

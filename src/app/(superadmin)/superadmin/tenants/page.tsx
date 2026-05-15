@@ -26,6 +26,7 @@ import {
   createTenantWorkspace,
   type TenantWorkspaceItem,
 } from "@/features/superadmin/services";
+import { CURRENCY_OPTIONS } from "@/lib/currency";
 
 const ONBOARDING_OPTIONS = ["not_started", "in_progress", "completed"] as const;
 const TENANT_STATUS_OPTIONS = ["active", "trial", "suspended"] as const;
@@ -49,6 +50,7 @@ export default function SuperadminTenantsPage() {
       planId: "starter",
       status: "trial",
       onboardingStatus: "not_started",
+      currency: "COP",
     },
   });
 
@@ -60,6 +62,7 @@ export default function SuperadminTenantsPage() {
       planId: "starter",
       status: "active",
       onboardingStatus: "not_started",
+      currency: "COP",
     },
   });
 
@@ -91,6 +94,7 @@ export default function SuperadminTenantsPage() {
       planId: tenant.planId,
       status: tenant.status,
       onboardingStatus: tenant.onboardingStatus,
+      currency: tenant.currency,
     });
   }
 
@@ -342,6 +346,16 @@ export default function SuperadminTenantsPage() {
               ))}
             </select>
           </div>
+          <div>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">Moneda</label>
+            <select className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...createForm.register("currency")}>
+              {CURRENCY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="mobile-action-group">
             <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar
@@ -387,6 +401,16 @@ export default function SuperadminTenantsPage() {
               {ONBOARDING_OPTIONS.map((status) => (
                 <option key={status} value={status}>
                   {status}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">Moneda</label>
+            <select className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...editForm.register("currency")}>
+              {CURRENCY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
                 </option>
               ))}
             </select>

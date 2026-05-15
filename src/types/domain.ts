@@ -1,4 +1,5 @@
 import type { AppRole } from "@/lib/constants/roles";
+import type { AppCurrency } from "@/lib/currency";
 
 export type TenantStatus = "trial" | "active" | "suspended";
 
@@ -10,6 +11,7 @@ export interface Tenant {
   status: TenantStatus;
   planId: string;
   onboardingStatus: "not_started" | "in_progress" | "completed";
+  currency?: AppCurrency;
   branding: {
     logoUrl?: string;
     primaryColor: string;

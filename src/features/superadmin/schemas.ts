@@ -6,6 +6,7 @@ export const tenantCreateSchema = z.object({
   planId: z.string().min(1, "Selecciona un plan"),
   status: z.enum(["active", "suspended", "trial"]),
   onboardingStatus: z.enum(["not_started", "in_progress", "completed"]),
+  currency: z.enum(["COP", "MXN", "USD"]),
 });
 
 export const tenantUpdateSchema = tenantCreateSchema;

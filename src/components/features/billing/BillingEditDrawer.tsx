@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
 export type BillingEditRecord = {
   id: string;
@@ -41,10 +42,6 @@ function parseCurrency(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function formatCurrency(value: number) {
-  return `$${value.toLocaleString("es-CO")}`;
-}
-
 function computeStatus(balance: number, dueDate?: string) {
   if (balance <= 0) return "Al dia";
   const today = new Date().toISOString().slice(0, 10);
@@ -62,6 +59,7 @@ function logDebug(event: string, payload?: Record<string, unknown>) {
 }
 
 export function BillingEditDrawer({ open, record, saving, onClose, onDirtyChange, onRequestSubmit, onSave }: BillingEditDrawerProps) {
+  const { formatAmount } = useTenantCurrency();
   const [mounted, setMounted] = useState(open);
   const [isVisible, setIsVisible] = useState(open);
   const [unitLabel, setUnitLabel] = useState("");
@@ -282,7 +280,7 @@ export function BillingEditDrawer({ open, record, saving, onClose, onDirtyChange
 
             <label className="block text-sm text-[var(--slate-700)]">
               Saldo
-              <Input className="mt-1" value={formatCurrency(computedBalance)} readOnly />
+              <Input className="mt-1" value={formatAmount(computedBalance)} readOnly />
             </label>
 
             <label className="block text-sm text-[var(--slate-700)]">

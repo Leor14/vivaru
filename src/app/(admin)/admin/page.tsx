@@ -39,6 +39,7 @@ import { usePackages } from "@/features/packages/use-packages";
 import { useTickets } from "@/features/pqrs/use-tickets";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { formatUnitInline } from "@/lib/utils/unit";
 
 function asText(value: unknown, fallback = "Sin dato") {
@@ -136,35 +137,16 @@ function getTrendInsight(current: number, previous: number, suffix = "vs mes ant
   return `${signal}${delta.toFixed(1)}% ${suffix}`;
 }
 
-const copFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  maximumFractionDigits: 0,
-});
-
-const copCompactFormatter = new Intl.NumberFormat("es-CO", {
-  style: "currency",
-  currency: "COP",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-
-function formatCop(value: number) {
-  return copFormatter.format(value);
-}
-
-function formatCopCompact(value: number) {
-  return copCompactFormatter.format(value);
-}
-
 function BillingTrendTooltip({
   active,
   payload,
   label,
+  formatAmount,
 }: {
   active?: boolean;
   payload?: Array<{ value: number; name: string; color: string }>;
   label?: string;
+  formatAmount: (v: number) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -179,15 +161,15 @@ function BillingTrendTooltip({
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
           <span>Cobrado</span>
-          <span className="font-semibold text-[#2c648d]">{formatCop(charged)}</span>
+          <span className="font-semibold text-[#2c648d]">{formatAmount(charged)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>Recaudado</span>
-          <span className="font-semibold text-[#2f775f]">{formatCop(collected)}</span>
+          <span className="font-semibold text-[#2f775f]">{formatAmount(collected)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>Brecha</span>
-          <span className="font-semibold text-[#936b24]">{formatCop(gap)}</span>
+          <span className="font-semibold text-[#936b24]">{formatAmount(gap)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>% recaudo</span>
@@ -240,6 +222,7 @@ type DrawerRow = {
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
+  const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const tenantId = user?.tenantId;
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [fromPeriod, setFromPeriod] = useState("");
@@ -412,7 +395,7 @@ export default function AdminDashboardPage() {
   const kpis = [
     {
       label: "Cartera total",
-      value: formatCop(totalPortfolio),
+      value: formatAmount(totalPortfolio),
       insight: getTrendInsight(totalPortfolio, previousWindowSummary.gap, "vs ventana anterior"),
       tone: "neutral" as const,
       href: "/admin/billing",
@@ -722,15 +705,15 @@ export default function AdminDashboardPage() {
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <Card className="border-[#d2e1f0] bg-[#f5faff] p-3 md:p-4">
               <p className="text-xs text-[var(--slate-500)]">Total cobrado</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#2d5f86]">{formatCop(financialSummary.totalCharged)}</p>
+              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#2d5f86]">{formatAmount(financialSummary.totalCharged)}</p>
             </Card>
             <Card className="border-[#cde6da] bg-[#f1fbf6] p-3 md:p-4">
               <p className="text-xs text-[var(--slate-500)]">Total recaudado</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#2d725a]">{formatCop(financialSummary.totalCollected)}</p>
+              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#2d725a]">{formatAmount(financialSummary.totalCollected)}</p>
             </Card>
             <Card className="border-[#e9d7a8] bg-[#fff9e9] p-3 md:p-4">
               <p className="text-xs text-[var(--slate-500)]">Brecha</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#8b6622]">{formatCop(financialSummary.gap)}</p>
+              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#8b6622]">{formatAmount(financialSummary.gap)}</p>
             </Card>
             <Card className="border-[#ccddf0] bg-[#f1f7fd] p-3 md:p-4">
               <p className="text-xs text-[var(--slate-500)]">% recaudo</p>
@@ -769,7 +752,7 @@ export default function AdminDashboardPage() {
                     <YAxis
                       yAxisId="money"
                       tick={{ fontSize: 12, fill: "#475569" }}
-                      tickFormatter={formatCopCompact}
+                      tickFormatter={formatAmountCompact}
                       axisLine={{ stroke: "rgba(71,85,105,0.28)" }}
                       tickLine={false}
                       width={92}
@@ -784,7 +767,7 @@ export default function AdminDashboardPage() {
                       tickLine={false}
                       width={48}
                     />
-                    <Tooltip content={<BillingTrendTooltip />} />
+                    <Tooltip content={<BillingTrendTooltip formatAmount={formatAmount} />} />
                     <Legend wrapperStyle={{ fontSize: 12, color: "#334155" }} />
                     <Bar
                       yAxisId="money"

@@ -33,6 +33,7 @@ import { createBillingStatement, updateBillingStatement, useBillingStatements } 
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { createCommunication } from "@/features/admin/services";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import type { BillingStatement } from "@/types/domain";
 
 type UnitCollectionItem = {
@@ -49,10 +50,6 @@ function parseCurrency(value: string) {
   const cleaned = value.replace(/[^0-9-]/g, "");
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatCurrency(value: number) {
-  return `$${value.toLocaleString("es-CO")}`;
 }
 
 function formatCurrencyInput(value: string) {
@@ -105,10 +102,12 @@ function BillingTrendTooltip({
   active,
   payload,
   label,
+  formatAmount,
 }: {
   active?: boolean;
   payload?: Array<{ value: number; name: string }>;
   label?: string;
+  formatAmount: (v: number) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -123,15 +122,15 @@ function BillingTrendTooltip({
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
           <span>Cobrado</span>
-          <span className="font-semibold text-[#2c648d]">{formatCurrency(charged)}</span>
+          <span className="font-semibold text-[#2c648d]">{formatAmount(charged)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>Recaudado</span>
-          <span className="font-semibold text-[#2f775f]">{formatCurrency(collected)}</span>
+          <span className="font-semibold text-[#2f775f]">{formatAmount(collected)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>Brecha</span>
-          <span className="font-semibold text-[#936b24]">{formatCurrency(gap)}</span>
+          <span className="font-semibold text-[#936b24]">{formatAmount(gap)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>% recaudo</span>
@@ -144,6 +143,7 @@ function BillingTrendTooltip({
 
 export default function AdminBillingPage() {
   const { user } = useAuth();
+  const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const { items, loading, error } = useBillingStatements(user?.tenantId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
@@ -625,7 +625,7 @@ export default function AdminBillingPage() {
 
   function handlePrintOverdueNotice() {
     const printable = overdueRows
-      .map((item) => `${item.unitLabel} | saldo ${formatCurrency(item.balance)} | vence ${item.dueDate || "-"}`)
+      .map((item) => `${item.unitLabel} | saldo ${formatAmount(item.balance)} | vence ${item.dueDate || "-"}`)
       .join("\n");
     const popup = window.open("", "_blank", "width=900,height=700");
     if (!popup) return;
@@ -722,15 +722,15 @@ export default function AdminBillingPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-[#d6e6f3] bg-[#f5faff] p-3">
             <p className="text-xs text-[var(--slate-500)]">Cobrado</p>
-            <p className="mt-1 text-lg font-semibold text-[#2c648d]">{formatCurrency(trendSummary.totalCharged)}</p>
+            <p className="mt-1 text-lg font-semibold text-[#2c648d]">{formatAmount(trendSummary.totalCharged)}</p>
           </div>
           <div className="rounded-2xl border border-[#d6ede4] bg-[#f1fbf7] p-3">
             <p className="text-xs text-[var(--slate-500)]">Recaudado</p>
-            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatCurrency(trendSummary.totalCollected)}</p>
+            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatAmount(trendSummary.totalCollected)}</p>
           </div>
           <div className="rounded-2xl border border-[#eee0c1] bg-[#fff8e8] p-3">
             <p className="text-xs text-[var(--slate-500)]">Brecha</p>
-            <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatCurrency(trendSummary.gap)}</p>
+            <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatAmount(trendSummary.gap)}</p>
           </div>
           <div className="rounded-2xl border border-[#d9e5f2] bg-[#f3f8ff] p-3">
             <p className="text-xs text-[var(--slate-500)]">% recaudo</p>
@@ -756,7 +756,7 @@ export default function AdminBillingPage() {
                 />
                 <YAxis
                   yAxisId="money"
-                  tickFormatter={(value) => formatCurrency(Number(value)).replace(" COP", "")}
+                  tickFormatter={(value) => formatAmountCompact(Number(value))}
                   tick={{ fill: "#4f6273", fontSize: 12 }}
                   axisLine={{ stroke: "#b9c6d6" }}
                   tickLine={{ stroke: "#b9c6d6" }}
@@ -770,7 +770,7 @@ export default function AdminBillingPage() {
                   axisLine={{ stroke: "#b9c6d6" }}
                   tickLine={{ stroke: "#b9c6d6" }}
                 />
-                <Tooltip content={<BillingTrendTooltip />} />
+                <Tooltip content={<BillingTrendTooltip formatAmount={formatAmount} />} />
                 <Bar yAxisId="money" dataKey="totalCharged" name="Cobrado" fill="#8cb2d6" radius={[8, 8, 0, 0]} maxBarSize={36} />
                 <Bar yAxisId="money" dataKey="totalCollected" name="Recaudado" fill="#7ec4a9" radius={[8, 8, 0, 0]} maxBarSize={36} />
                 <Line yAxisId="rate" type="monotone" dataKey="collectionRate" name="% recaudo" stroke="#4d7190" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
@@ -962,9 +962,9 @@ export default function AdminBillingPage() {
               <tr key={item.id} className="border-b border-[var(--slate-100)]">
                 <td className="py-2">{item.unitLabel}</td>
                 <td className="py-2">{item.period}</td>
-                <td className="py-2">{formatCurrency(item.amount)}</td>
-                <td className="py-2">{formatCurrency(item.paymentAmount)}</td>
-                <td className="py-2">{formatCurrency(item.balance)}</td>
+                <td className="py-2">{formatAmount(item.amount)}</td>
+                <td className="py-2">{formatAmount(item.paymentAmount)}</td>
+                <td className="py-2">{formatAmount(item.balance)}</td>
                 <td className="py-2">{item.dueDate || "-"}</td>
                 <td className="py-2">
                   {isPaid ? (
