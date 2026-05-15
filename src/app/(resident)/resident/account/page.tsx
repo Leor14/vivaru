@@ -12,6 +12,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { db, storage } from "@/lib/firebase/client";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
 // ─── Status label helper ──────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ function statusColor(status: string): string {
 
 export default function ResidentAccountPage() {
   const { user } = useAuth();
+  const { formatAmount } = useTenantCurrency();
   const { items, loading } = useBillingStatements(user?.tenantId, user?.unitId);
 
   const [uploading, setUploading] = useState(false);
@@ -144,7 +146,7 @@ export default function ResidentAccountPage() {
             </div>
             <div className="text-right">
               <p className="font-semibold text-[var(--slate-900)]">
-                ${item.balance.toLocaleString("es-CO")}
+                {formatAmount(item.balance)}
               </p>
               <p className={`text-xs font-medium ${statusColor(item.status)}`}>
                 {statusLabel(item.status)}

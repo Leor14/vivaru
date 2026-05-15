@@ -28,6 +28,7 @@ import {
   createReservation,
   useReservations,
 } from "@/features/reservations/use-reservations";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { checkReservationEligibility } from "@/features/reservations/eligibility";
 import {
   buildTimeMarks,
@@ -161,6 +162,7 @@ function formatReservationTime(reservation: Reservation) {
 
 export default function ResidentReservationsPage() {
   const { user } = useAuth();
+  const { formatAmount } = useTenantCurrency();
   const tenantId = user?.tenantId;
   const { items, loading } = useReservations(tenantId, user?.unitId);
   const {
@@ -788,7 +790,7 @@ export default function ResidentReservationsPage() {
               <p className="text-sm font-medium text-[var(--danger-700)]">
                 Tu unidad tiene un saldo vencido de{" "}
                 <span className="font-semibold">
-                  {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(eligibility.amountDue)}
+                  {formatAmount(eligibility.amountDue)}
                 </span>
                 . Regulariza tu pago para poder hacer nuevas reservas.
               </p>
