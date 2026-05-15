@@ -45,6 +45,8 @@ function asDateLabel(value: unknown) {
   return "-";
 }
 import { useAuth } from "@/features/auth/auth-context";
+import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import type { VisitorPass } from "@/types/domain";
 
 export default function AdminVisitorsPage() {
   const { user } = useAuth();
@@ -58,6 +60,8 @@ export default function AdminVisitorsPage() {
   const [editingItem, setEditingItem] = useState<VisitorItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expired" | "cancelled">("all");
   const [unitFilter, setUnitFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"authorizations" | "passes">("authorizations");
+  const { items: passes, loading: passesLoading } = useVisitorPasses(user?.tenantId);
 
   const form = useForm<VisitorInput>({
     resolver: zodResolver(visitorSchema),
@@ -297,6 +301,26 @@ export default function AdminVisitorsPage() {
     }
   }
 
+  function resolvePassStatus(pass: VisitorPass): string {
+    if (pass.status === "inside") return "Dentro";
+    if (pass.status === "completed") return "Finalizado";
+    if (pass.status === "scheduled") {
+      const dt = pass.date && pass.scheduledTime
+        ? new Date(`${pass.date}T${pass.scheduledTime}`)
+        : null;
+      if (dt && dt.getTime() < Date.now()) return "Expirado";
+      return "Programado";
+    }
+    return pass.status;
+  }
+
+  function resolvePassStatusClass(label: string): string {
+    if (label === "Dentro") return "bg-sky-100 text-sky-700";
+    if (label === "Finalizado") return "bg-slate-100 text-slate-700";
+    if (label === "Expirado") return "bg-rose-100 text-rose-700";
+    return "bg-amber-100 text-amber-700";
+  }
+
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -316,6 +340,32 @@ export default function AdminVisitorsPage() {
         ) : null}
       </div>
 
+      <div className="mt-5 flex gap-1 rounded-xl bg-[var(--slate-100)] p-1 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveTab("authorizations")}
+          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === "authorizations"
+              ? "bg-white text-[var(--slate-900)] shadow-sm"
+              : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+          }`}
+        >
+          Autorizaciones
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("passes")}
+          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            activeTab === "passes"
+              ? "bg-white text-[var(--slate-900)] shadow-sm"
+              : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+          }`}
+        >
+          Registros operativos
+        </button>
+      </div>
+
+      {activeTab === "authorizations" && (<>
       <div className="mt-4">
         <MobileFiltersPanel
           title="Filtros de visitantes"
@@ -397,6 +447,81 @@ export default function AdminVisitorsPage() {
           ) : undefined}
         />
       </div>
+      </>)}
+
+      {activeTab === "passes" && (
+        <div className="mt-4">
+          {passesLoading ? (
+            <p className="py-6 text-center text-sm text-[var(--slate-500)]">
+              Cargando registros...
+            </p>
+          ) : passes.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-dashed border-[var(--slate-300)] px-4 py-6 text-center text-sm text-[var(--slate-600)]">
+              No hay registros de visitas operativas.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-[var(--slate-200)]">
+              <table className="min-w-[760px] w-full text-sm">
+                <thead className="bg-[var(--slate-50)]">
+                  <tr className="border-b border-[var(--slate-200)] text-left">
+                    {["Visitante","Documento","Unidad","Fecha","Hora","Estado","Entrada","Salida","Notas portería"].map((h) => (
+                      <th key={h} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--slate-100)]">
+                  {[...passes]
+                    .sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))
+                    .map((pass) => {
+                      const statusLabel = resolvePassStatus(pass);
+                      return (
+                        <tr key={pass.id} className="hover:bg-[var(--slate-50)]">
+                          <td className="px-4 py-3 font-medium text-[var(--slate-900)]">
+                            {pass.visitorName}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {pass.documentNumber || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {pass.unitLabel || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {pass.date || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {pass.scheduledTime?.slice(0, 5) || "-"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${resolvePassStatusClass(statusLabel)}`}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {pass.checkInAt
+                              ? new Date(pass.checkInAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {pass.checkOutAt
+                              ? new Date(pass.checkOutAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-[var(--slate-600)]">
+                            {(pass.guardNotes?.length ?? 0) > 0
+                              ? `${pass.guardNotes!.length} nota${pass.guardNotes!.length !== 1 ? "s" : ""}`
+                              : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       <Modal open={openModal && canEdit} title={editingItem ? "Editar visitante" : "Crear visitante"} onClose={() => setOpenModal(false)}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
