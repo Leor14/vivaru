@@ -62,6 +62,7 @@ export default function AdminVisitorsPage() {
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"authorizations" | "passes">("authorizations");
   const { items: passes, loading: passesLoading } = useVisitorPasses(user?.tenantId);
+  const [selectedPass, setSelectedPass] = useState<VisitorPass | null>(null);
 
   const form = useForm<VisitorInput>({
     resolver: zodResolver(visitorSchema),
@@ -464,7 +465,7 @@ export default function AdminVisitorsPage() {
               <table className="min-w-[760px] w-full text-sm">
                 <thead className="bg-[var(--slate-50)]">
                   <tr className="border-b border-[var(--slate-200)] text-left">
-                    {["Visitante","Documento","Unidad","Fecha","Hora","Estado","Entrada","Salida","Notas portería"].map((h) => (
+                    {["Visitante","Documento","Unidad","Fecha","Hora","Estado","Entrada","Salida","Notas portería","Acciones"].map((h) => (
                       <th key={h} className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
                         {h}
                       </th>
@@ -513,6 +514,15 @@ export default function AdminVisitorsPage() {
                               ? `${pass.guardNotes!.length} nota${pass.guardNotes!.length !== 1 ? "s" : ""}`
                               : "-"}
                           </td>
+                          <td className="px-4 py-3">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedPass(pass)}
+                            >
+                              Ver detalle
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -522,6 +532,101 @@ export default function AdminVisitorsPage() {
           )}
         </div>
       )}
+
+      {selectedPass ? (
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+            aria-label="Cerrar detalle"
+            onClick={() => setSelectedPass(null)}
+          />
+          <aside className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-[var(--slate-200)] bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">
+                  Detalle de visita
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-[var(--slate-900)]">
+                  {selectedPass.visitorName}
+                </h2>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setSelectedPass(null)}>
+                Cerrar
+              </Button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <section className="rounded-xl border border-[var(--slate-200)] p-4 space-y-2 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+                  Información del visitante
+                </p>
+                <p className="text-[var(--slate-700)]">
+                  Documento: <span className="font-medium text-[var(--slate-900)]">{selectedPass.documentNumber || "-"}</span>
+                </p>
+                <p className="text-[var(--slate-700)]">
+                  Unidad: <span className="font-medium text-[var(--slate-900)]">{selectedPass.unitLabel || "-"}</span>
+                </p>
+                <p className="text-[var(--slate-700)]">
+                  Residente anfitrión: <span className="font-medium text-[var(--slate-900)]">{selectedPass.hostResidentName || "-"}</span>
+                </p>
+                <p className="text-[var(--slate-700)]">
+                  Fecha programada: <span className="font-medium text-[var(--slate-900)]">{selectedPass.date || "-"}</span>
+                </p>
+                <p className="text-[var(--slate-700)]">
+                  Hora: <span className="font-medium text-[var(--slate-900)]">{selectedPass.scheduledTime?.slice(0, 5) || "-"}</span>
+                </p>
+              </section>
+
+              <section className="rounded-xl border border-[var(--slate-200)] p-4 space-y-2 text-sm">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+                  Estado operativo
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${resolvePassStatusClass(resolvePassStatus(selectedPass))}`}>
+                    {resolvePassStatus(selectedPass)}
+                  </span>
+                </div>
+                <p className="text-[var(--slate-700)]">
+                  Entrada: <span className="font-medium text-[var(--slate-900)]">
+                    {selectedPass.checkInAt
+                      ? new Date(selectedPass.checkInAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
+                      : "-"}
+                  </span>
+                </p>
+                <p className="text-[var(--slate-700)]">
+                  Salida: <span className="font-medium text-[var(--slate-900)]">
+                    {selectedPass.checkOutAt
+                      ? new Date(selectedPass.checkOutAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
+                      : "-"}
+                  </span>
+                </p>
+              </section>
+
+              <section className="rounded-xl border border-[var(--slate-200)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+                  Notas de portería
+                </p>
+                {(selectedPass.guardNotes?.length ?? 0) > 0 ? (
+                  <ul className="mt-3 space-y-2">
+                    {selectedPass.guardNotes!.map((n, i) => (
+                      <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm">
+                        <p className="text-[var(--slate-800)]">{n.text}</p>
+                        <p className="mt-1 text-xs text-[var(--slate-500)]">
+                          {n.guardName ?? "Guardia"} ·{" "}
+                          {new Date(n.createdAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-[var(--slate-500)]">Sin notas registradas.</p>
+                )}
+              </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       <Modal open={openModal && canEdit} title={editingItem ? "Editar visitante" : "Crear visitante"} onClose={() => setOpenModal(false)}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
