@@ -95,6 +95,14 @@ function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
     residentName: asString(raw.residentName) || undefined,
     createdBy: asString(raw.createdBy) || undefined,
     createdByName: asString(raw.createdByName) || undefined,
+    guardNotes: Array.isArray(raw.guardNotes)
+      ? (raw.guardNotes as Array<Record<string, unknown>>).map((n) => ({
+          text: String(n.text ?? ""),
+          createdAt: asTimestampIso(n.createdAt) || new Date().toISOString(),
+          guardId: String(n.guardId ?? ""),
+          guardName: n.guardName ? String(n.guardName) : undefined,
+        }))
+      : undefined,
   };
 }
 

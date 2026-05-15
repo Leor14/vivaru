@@ -447,8 +447,8 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
     return logs;
   }, [selectedVisitor]);
 
-  const renderActions = (item: VisitorCardItem) => (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+  const renderActions = (item: VisitorCardItem, opts?: { hideDetail?: boolean }) => (
+    <div className={`grid gap-2 grid-cols-2 ${opts?.hideDetail ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>
       <Button
         size="sm"
         className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
@@ -465,9 +465,11 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
       >
         {updatingId === item.id && item.status === "inside" ? "Guardando..." : "Salió"}
       </Button>
-      <Button size="sm" variant="outline" className="w-full" onClick={() => openVisitorDetail(item)}>
-        Ver detalle
-      </Button>
+      {!opts?.hideDetail && (
+        <Button size="sm" variant="outline" className="w-full" onClick={() => openVisitorDetail(item)}>
+          Ver detalle
+        </Button>
+      )}
       <Button size="sm" variant="ghost" className="w-full" onClick={() => openNoteDialog(item)}>
         📝 Nota
       </Button>
@@ -632,7 +634,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                       <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
                         <p className="text-[var(--slate-800)]">{n.text}</p>
                         <p className="mt-1 text-xs text-[var(--slate-500)]">
-                          {n.guardName ?? "Guardia"} · {n.createdAt.toDate().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                          {n.guardName ?? "Guardia"} · {new Date(n.createdAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
                         </p>
                       </li>
                     ))}
@@ -651,7 +653,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                 </ul>
               </section>
 
-              <section>{renderActions(selectedVisitor)}</section>
+              <section>{renderActions(selectedVisitor, { hideDetail: true })}</section>
             </div>
           </aside>
         </div>
@@ -680,7 +682,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                   <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
                     <p className="text-[var(--slate-800)]">{n.text}</p>
                     <p className="mt-1 text-xs text-[var(--slate-500)]">
-                      {n.guardName ?? "Guardia"} · {n.createdAt.toDate().toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                      {n.guardName ?? "Guardia"} · {new Date(n.createdAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
                     </p>
                   </li>
                 ))}
