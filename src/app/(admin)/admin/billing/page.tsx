@@ -32,6 +32,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
+import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication } from "@/features/admin/services";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -781,6 +782,12 @@ export default function AdminBillingPage() {
           </div>
         )}
       </ChartContainer>
+
+      <PaymentReceiptsReviewPanel
+        tenantId={user?.tenantId}
+        reviewerId={user?.uid}
+        reviewerName={user?.fullName}
+      />
 
       <Card className="soft-panel">
         <div className="flex items-center gap-2">
