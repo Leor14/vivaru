@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Clock, FileText, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/shared/help-tip";
 import type { BillingStatement } from "@/types/domain";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -48,10 +49,23 @@ const STATUS_CONFIG = {
 
 // ─── Detail row ───────────────────────────────────────────────────────────────
 
-function DetailRow({ label, value, valueClass = "" }: { label: string; value: string; valueClass?: string }) {
+function DetailRow({
+  label,
+  value,
+  valueClass = "",
+  helpText,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+  helpText?: string;
+}) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs text-[var(--slate-500)]">{label}</span>
+      <span className="inline-flex items-center gap-1 text-xs text-[var(--slate-500)]">
+        {label}
+        {helpText ? <HelpTip text={helpText} side="right" /> : null}
+      </span>
       <span className={`text-xs font-medium text-[var(--slate-800)] ${valueClass}`}>{value}</span>
     </div>
   );
@@ -131,21 +145,39 @@ export function BillingPeriodCard({
         <div className="border-t border-[var(--slate-100)] px-4 pb-4 pt-3">
           <div className="divide-y divide-[var(--slate-100)]">
             {item.amount !== undefined && (
-              <DetailRow label="Total cobrado" value={formatAmount(item.amount)} />
+              <DetailRow
+                label="Total cobrado"
+                value={formatAmount(item.amount)}
+                helpText="Es el monto que la administración generó como cuota para este período. Incluye cuota ordinaria y cualquier cargo adicional que aplique a tu unidad."
+              />
             )}
             {item.paymentAmount !== undefined && item.paymentAmount > 0 && (
-              <DetailRow label="Total pagado" value={formatAmount(item.paymentAmount)} valueClass="text-emerald-700" />
+              <DetailRow
+                label="Total pagado"
+                value={formatAmount(item.paymentAmount)}
+                valueClass="text-emerald-700"
+                helpText="Es el valor que ya quedó registrado como recibido por la administración en este período. Si acabas de pagar, puede tardar unos días en reflejarse."
+              />
             )}
             <DetailRow
               label="Saldo pendiente"
               value={formatAmount(item.balance)}
               valueClass={item.balance > 0 ? (item.status === "overdue" ? "text-red-600" : "text-amber-600") : "text-emerald-600"}
+              helpText="Es la diferencia entre lo cobrado y lo pagado. Si es cero, estás al día en este período. Si es mayor a cero, aún hay un valor por cancelar."
             />
             {item.dueDate && (
-              <DetailRow label="Fecha de vencimiento" value={formatDate(item.dueDate)} />
+              <DetailRow
+                label="Fecha de vencimiento"
+                value={formatDate(item.dueDate)}
+                helpText="Fecha límite para pagar este período sin recargos por mora. Pasada esta fecha el saldo queda marcado como vencido."
+              />
             )}
             {item.lastPaymentAt && (
-              <DetailRow label="Último pago registrado" value={formatDate(item.lastPaymentAt)} />
+              <DetailRow
+                label="Último pago registrado"
+                value={formatDate(item.lastPaymentAt)}
+                helpText="Fecha en que la administración registró el pago más reciente en este período. Útil para confirmar que tu pago fue procesado correctamente."
+              />
             )}
           </div>
 
