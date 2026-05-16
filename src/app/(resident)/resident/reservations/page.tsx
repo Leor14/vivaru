@@ -896,18 +896,33 @@ export default function ResidentReservationsPage() {
                               <span className="text-sm font-medium text-[var(--slate-900)]">
                                 {item.name}
                               </span>
-                              <button
-                                type="button"
-                                aria-label={`Ver detalles de ${item.name}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedAmenityId(item.id);
-                                  setSelectedAmenityDetail(item);
-                                }}
-                                className="text-xs text-[var(--brand-700)] hover:underline"
-                              >
-                                Ver detalles
-                              </button>
+                              <div className="flex items-center gap-2">
+                                {(item.photos ?? []).length > 0 ? (
+                                  <button
+                                    type="button"
+                                    aria-label={`Ver fotos de ${item.name}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setGalleryAmenity(item);
+                                    }}
+                                    className="text-xs text-[var(--slate-500)] hover:underline"
+                                  >
+                                    Ver fotos
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  aria-label={`Ver detalles de ${item.name}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedAmenityId(item.id);
+                                    setSelectedAmenityDetail(item);
+                                  }}
+                                  className="text-xs text-[var(--brand-700)] hover:underline"
+                                >
+                                  Ver detalles
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );

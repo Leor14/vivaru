@@ -154,40 +154,61 @@ describe("BLOQUE 3 — button.tsx: scale en variant default", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BLOQUE 4 — drawer.tsx: timing y easing mejorados
+// BLOQUE 4 — drawer.tsx: animación CSS-first con data-state
 // ─────────────────────────────────────────────────────────────────────────────
+// Implementación: transiciones en globals.css vía clases .drawer-overlay /
+// .drawer-panel controladas por data-state="open"|"closed". Las clases Tailwind
+// inline de timing fueron eliminadas intencionalmente — la curva iOS
+// (--ease-drawer) y el timing asimétrico (enter 300ms / exit 220ms) viven en
+// el CSS para poder usar cubic-bezier arbitrarios sin depender del compilador.
 
 describe("BLOQUE 4 — drawer.tsx: overlay + panel timing", () => {
   const src = read("src/components/ui/drawer.tsx");
+  const css = read("src/app/globals.css");
 
-  // Aislar overlay (button con absolute inset-0 bg-black/40)
-  const overlayMatch = src.match(/absolute inset-0 bg-black\/40[^"']*/)?.[0] ?? "";
-
-  // Aislar panel (absolute right-0 top-0 flex h-full)
-  const panelMatch = src.match(/absolute right-0 top-0 flex h-full[^"']*/)?.[0] ?? "";
-
-  it("overlay contiene 'transition-opacity'", () => {
-    expect(overlayMatch).toContain("transition-opacity");
+  it("overlay tiene clase CSS 'drawer-overlay'", () => {
+    expect(src).toContain("drawer-overlay");
   });
 
-  it("overlay contiene 'duration-200'", () => {
-    expect(overlayMatch).toContain("duration-200");
+  it("overlay tiene atributo data-state para controlar la animación", () => {
+    expect(src).toContain('data-state={dataState}');
   });
 
-  it("panel contiene 'transition-transform'", () => {
-    expect(panelMatch).toContain("transition-transform");
+  it("panel tiene clase CSS 'drawer-panel'", () => {
+    expect(src).toContain("drawer-panel");
   });
 
-  it("panel contiene 'duration-300'", () => {
-    expect(panelMatch).toContain("duration-300");
+  it("panel tiene atributo data-state para controlar la animación", () => {
+    // data-state aparece al menos dos veces (overlay + panel)
+    const matches = src.match(/data-state=\{dataState\}/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("panel contiene curva decelerate 0,0,0.2,1", () => {
-    expect(panelMatch).toMatch(/0,\s*0,\s*0\.2,\s*1/);
+  it("globals.css define .drawer-overlay con transition opacity", () => {
+    expect(css).toContain(".drawer-overlay");
+    expect(css).toMatch(/\.drawer-overlay\s*\{[^}]*transition[^}]*opacity/s);
   });
 
-  it("panel NO contiene 'ease-out' suelto (reemplazado por curva)", () => {
-    expect(panelMatch).not.toContain("ease-out");
+  it("globals.css define .drawer-panel con enter 300ms y curva --ease-drawer", () => {
+    expect(css).toContain(".drawer-panel");
+    expect(css).toContain("300ms");
+    expect(css).toContain("--ease-drawer");
+  });
+
+  it("globals.css define exit asimétrico 220ms con ease-in acelerado", () => {
+    expect(css).toContain("220ms");
+    // curva ease-in acelerado para salida rápida
+    expect(css).toMatch(/0\.4,\s*0,\s*1,\s*1/);
+  });
+
+  it("globals.css incluye prefers-reduced-motion para drawer", () => {
+    // La sección reduced-motion cubre .drawer-overlay y .drawer-panel
+    expect(css).toMatch(/prefers-reduced-motion[\s\S]*drawer/);
+  });
+
+  it("drawer.tsx usa mounted + dataState para mantener el DOM durante exit", () => {
+    expect(src).toContain("mounted");
+    expect(src).toContain("dataState");
   });
 
   it("archivo NO importa tailwindcss-animate ni @keyframes propios", () => {

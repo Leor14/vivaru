@@ -8,7 +8,6 @@ import {
   query,
   runTransaction,
   serverTimestamp,
-  setDoc,
   updateDoc,
   where,
 } from "firebase/firestore";
@@ -86,7 +85,7 @@ export async function setActiveRegulation(
   documentId: string,
 ): Promise<void> {
   if (!db) throw new Error("DB_UNAVAILABLE");
-  await setDoc(doc(db, "tenantSettings", tenantId), { activeRegulationId: documentId }, { merge: true });
+  await updateDoc(doc(db, "tenantSettings", tenantId), { activeRegulationId: documentId });
 }
 
 // ─── Signatures ───────────────────────────────────────────────────────────────
