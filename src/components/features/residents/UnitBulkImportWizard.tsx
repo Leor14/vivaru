@@ -471,7 +471,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
                   </th>
                   <th className="px-3 py-2">Fila</th>
                   <th className="px-3 py-2">Nombre</th>
-                  <th className="px-3 py-2">Torre</th>
+                  <th className="px-3 py-2">Agrupación</th>
                   <th className="px-3 py-2">Tipo</th>
                   <th className="px-3 py-2">Estado</th>
                   <th className="px-3 py-2">Resultado</th>

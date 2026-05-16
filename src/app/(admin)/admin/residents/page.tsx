@@ -62,6 +62,14 @@ export default function AdminResidentsPage() {
   const [peopleSearch, setPeopleSearch] = useState("");
   const debouncedPeopleSearch = useDebounce(peopleSearch.trim(), 200);
 
+  // ── Unit table filters ──────────────────────────────────────────────────────
+  const [unitSearch, setUnitSearch] = useState("");
+  const debouncedUnitSearch = useDebounce(unitSearch.trim(), 200);
+  const [unitGroupFilter, setUnitGroupFilter] = useState("all");
+  const [unitTypeTableFilter, setUnitTypeTableFilter] = useState<"all" | UnitItem["type"]>("all");
+  const [unitStatusTableFilter, setUnitStatusTableFilter] = useState<"all" | UnitItem["status"]>("all");
+  const [unitNoPersonFilter, setUnitNoPersonFilter] = useState(false);
+
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
@@ -174,6 +182,34 @@ export default function AdminResidentsPage() {
   const unitsById = useMemo(() => {
     return new Map(units.map((unit) => [unit.id, unit]));
   }, [units]);
+
+  const uniqueGroups = useMemo(() => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const unit of units) {
+      const g = unit.tower?.trim();
+      if (g && !seen.has(g)) {
+        seen.add(g);
+        result.push(g);
+      }
+    }
+    return result.sort((a, b) => a.localeCompare(b));
+  }, [units]);
+
+  const filteredUnits = useMemo(() => {
+    const q = debouncedUnitSearch.toLowerCase();
+    return units.filter((unit) => {
+      if (q && !unit.displayName.toLowerCase().includes(q) && !(unit.tower ?? "").toLowerCase().includes(q)) return false;
+      if (unitGroupFilter !== "all" && unit.tower?.trim() !== unitGroupFilter) return false;
+      if (unitTypeTableFilter !== "all" && unit.type !== unitTypeTableFilter) return false;
+      if (unitStatusTableFilter !== "all" && unit.status !== unitStatusTableFilter) return false;
+      if (unitNoPersonFilter) {
+        const count = people.filter((p) => p.unitId === unit.id || p.unitId === unit.unitId).length;
+        if (count > 0) return false;
+      }
+      return true;
+    });
+  }, [units, people, debouncedUnitSearch, unitGroupFilter, unitTypeTableFilter, unitStatusTableFilter, unitNoPersonFilter]);
 
   const activePeopleCount = useMemo(() => people.filter((person) => person.status === "active").length, [people]);
 
@@ -308,7 +344,7 @@ export default function AdminResidentsPage() {
     },
     {
       key: "tower",
-      header: "Torre",
+      header: "Agrupación",
       className: "whitespace-nowrap",
       render: (unit) => formatTowerLabel(unit.tower),
     },
@@ -379,14 +415,14 @@ export default function AdminResidentsPage() {
     },
     {
       key: "unit",
-      header: "Unidad / Torre",
+      header: "Unidad / Agrupación",
       className: "min-w-[160px]",
       render: (person) => {
         const linkedUnit = unitsById.get(person.unitId);
         return (
           <div>
             <p className="font-medium text-[var(--slate-900)]">{linkedUnit?.displayName ?? person.unitId}</p>
-            <p className="text-xs text-[var(--slate-600)]">Torre {person.tower}</p>
+            <p className="text-xs text-[var(--slate-600)]">Agrupación {person.tower}</p>
           </div>
         );
       },
@@ -743,6 +779,21 @@ export default function AdminResidentsPage() {
     setPeopleSearch("");
   }
 
+  function clearUnitsFilters() {
+    setUnitSearch("");
+    setUnitGroupFilter("all");
+    setUnitTypeTableFilter("all");
+    setUnitStatusTableFilter("all");
+    setUnitNoPersonFilter(false);
+  }
+
+  const hasActiveUnitFilters =
+    unitSearch.trim().length > 0 ||
+    unitGroupFilter !== "all" ||
+    unitTypeTableFilter !== "all" ||
+    unitStatusTableFilter !== "all" ||
+    unitNoPersonFilter;
+
   return (
     <section className="space-y-4">
       <Card>
@@ -775,10 +826,101 @@ export default function AdminResidentsPage() {
 
       <Card>
         <CardTitle help="El inventario de apartamentos, locales o casas del conjunto. Cada unidad es el punto de anclaje para cobros, residentes, reservas y PQRS. Mantén este listado preciso y todo lo demás fluye con consistencia.">Unidades</CardTitle>
-        <div className="mt-3">
+
+        {/* ── Unit filters ─────────────────────────────────────────────────── */}
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          {/* Search */}
+          <div className="relative min-w-[180px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--slate-500)]" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Buscar unidad…"
+              value={unitSearch}
+              onChange={(e) => setUnitSearch(e.target.value)}
+              autoComplete="off"
+              className="h-9 w-full rounded-xl border border-[var(--slate-300)] bg-white pl-9 pr-8 text-sm focus:border-[var(--brand-700)] focus:outline-none"
+              aria-label="Buscar unidad"
+            />
+            {unitSearch ? (
+              <button
+                type="button"
+                onClick={() => setUnitSearch("")}
+                aria-label="Limpiar búsqueda"
+                className="absolute right-2 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--slate-400)] hover:text-[var(--slate-700)]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+
+          {/* Agrupación */}
+          <select
+            className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            value={unitGroupFilter}
+            onChange={(e) => setUnitGroupFilter(e.target.value)}
+            aria-label="Filtrar por agrupación"
+          >
+            <option value="all">Agrupación: todas</option>
+            {uniqueGroups.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+
+          {/* Tipo */}
+          <select
+            className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            value={unitTypeTableFilter}
+            onChange={(e) => setUnitTypeTableFilter(e.target.value as "all" | UnitItem["type"])}
+            aria-label="Filtrar por tipo"
+          >
+            <option value="all">Tipo: todos</option>
+            <option value="apartment">Apartamento</option>
+            <option value="house">Casa</option>
+            <option value="office">Oficina</option>
+            <option value="other">Otro</option>
+          </select>
+
+          {/* Estado */}
+          <select
+            className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            value={unitStatusTableFilter}
+            onChange={(e) => setUnitStatusTableFilter(e.target.value as "all" | UnitItem["status"])}
+            aria-label="Filtrar por estado"
+          >
+            <option value="all">Estado: todos</option>
+            <option value="active">Activa</option>
+            <option value="inactive">Inactiva</option>
+          </select>
+
+          {/* Sin titular toggle */}
+          <label className="flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-700)] hover:bg-[var(--slate-50)]">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+              checked={unitNoPersonFilter}
+              onChange={(e) => setUnitNoPersonFilter(e.target.checked)}
+            />
+            Sin titular
+          </label>
+
+          {/* Clear */}
+          {hasActiveUnitFilters ? (
+            <button
+              type="button"
+              onClick={clearUnitsFilters}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-600)] hover:bg-[var(--slate-50)]"
+              aria-label="Limpiar filtros de unidades"
+            >
+              <FilterX className="h-4 w-4" />
+              Limpiar
+            </button>
+          ) : null}
+        </div>
+
+        <div className="mt-2">
           <DataTable
             columns={unitColumns}
-            rows={units}
+            rows={filteredUnits}
             getRowKey={(unit) => unit.id}
             loading={loadingUnits}
             loadingText="Cargando unidades..."
@@ -978,8 +1120,8 @@ export default function AdminResidentsPage() {
                 {unitForm.formState.errors.displayName ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.displayName.message}</p> : null}
               </div>
               <div>
-                <label className="mb-1 block text-sm text-[var(--slate-700)]">Torre</label>
-                <Input {...unitForm.register("tower")} placeholder="T1" />
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">Agrupación</label>
+                <Input {...unitForm.register("tower")} placeholder="T1, Bloque A, Manzana 3…" />
                 {unitForm.formState.errors.tower ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.tower.message}</p> : null}
               </div>
             </div>
@@ -1207,7 +1349,7 @@ export default function AdminResidentsPage() {
               <Input {...personForm.register("documentNumber")} />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Torre</label>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Agrupación</label>
               <Input {...personForm.register("tower")} />
             </div>
           </div>
@@ -1242,7 +1384,7 @@ export default function AdminResidentsPage() {
         name={pendingUnitDeletion?.displayName ?? ""}
         description={
           pendingUnitDeletion
-            ? `Se eliminará la unidad ${pendingUnitDeletion.displayName} (Torre ${pendingUnitDeletion.tower}). Las personas asociadas perderán el vínculo con esta unidad. No se puede deshacer.`
+            ? `Se eliminará la unidad ${pendingUnitDeletion.displayName} (Agrupación ${pendingUnitDeletion.tower}). Las personas asociadas perderán el vínculo con esta unidad. No se puede deshacer.`
             : null
         }
         loading={deletingUnit}
