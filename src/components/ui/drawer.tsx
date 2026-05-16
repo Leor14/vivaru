@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/utils/cn";
@@ -28,6 +28,10 @@ let titleIdCounter = 0;
  * - the close button
  * - clicking the dark overlay
  * - pressing Escape
+ *
+ * Animation: enter 300ms (--ease-drawer, iOS curve) / exit 220ms ease-in.
+ * Uses the same mounted+dataState pattern as Dialog so exit animation plays
+ * before the component is removed from the DOM.
  *
  * Renders into a React portal to avoid stacking-context issues.
  */
@@ -59,6 +63,29 @@ export function Drawer({
     onCloseRef.current = onClose;
   });
 
+  // `mounted` keeps the portal in the DOM during the exit animation.
+  // `dataState` drives the CSS classes ("open" → visible, "closed" → animating out).
+  const [mounted, setMounted] = useState(open);
+  const [dataState, setDataState] = useState<"open" | "closed">(open ? "open" : "closed");
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      setMounted(true);
+      // Tick delay so browser paints the "closed" state first, then transitions to "open".
+      requestAnimationFrame(() => setDataState("open"));
+    } else {
+      setDataState("closed");
+      // Keep mounted for 220ms — matches the exit transition duration in globals.css.
+      closeTimerRef.current = setTimeout(() => setMounted(false), 220);
+    }
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, [open]);
+
+  // Scroll-lock + focus management. Tied to `open` (logical state), not `mounted`.
   useEffect(() => {
     if (!open) return;
     if (typeof window === "undefined") return;
@@ -88,8 +115,7 @@ export function Drawer({
     };
   }, [open]); // onClose intentionally excluded — use onCloseRef instead
 
-  if (!open) return null;
-  if (typeof window === "undefined") return null;
+  if (!mounted || typeof window === "undefined") return null;
 
   function handlePanelKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Tab") {
@@ -120,19 +146,21 @@ export function Drawer({
     <div className="fixed inset-0 z-50" role="presentation">
       <button
         type="button"
+        data-state={dataState}
         aria-label="Cerrar panel"
-        className="absolute inset-0 bg-black/40 transition-opacity duration-200"
+        className="drawer-overlay absolute inset-0 bg-black/40"
         onClick={onClose}
       />
       <div
         ref={panelRef}
+        data-state={dataState}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={handlePanelKeyDown}
         className={cn(
-          "absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-white shadow-2xl outline-none transition-transform duration-300 ease-[cubic-bezier(0,0,0.2,1)] md:w-auto",
+          "drawer-panel absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-white shadow-2xl outline-none md:w-auto",
           className,
         )}
         style={{ maxWidth: "100vw", width: typeof window !== "undefined" && window.innerWidth >= 768 ? width : "100%" }}
@@ -148,7 +176,7 @@ export function Drawer({
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-[var(--slate-600)] hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-transparent text-[var(--slate-600)] transition-colors hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M18 6 6 18" />

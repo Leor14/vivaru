@@ -9,9 +9,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-[var(--brand-700)] text-white hover:bg-[var(--brand-800)] hover:scale-[1.02] active:scale-[0.98] motion-reduce:transform-none",
-        outline: "border border-[var(--slate-300)] bg-white text-[var(--slate-900)] hover:bg-[var(--slate-100)]",
-        ghost: "text-[var(--slate-700)] hover:bg-[var(--slate-100)]",
-        danger: "bg-[var(--danger-600)] text-white hover:bg-[var(--danger-700)]",
+        outline: "border border-[var(--slate-300)] bg-white text-[var(--slate-900)] hover:bg-[var(--slate-100)] active:scale-[0.97] motion-reduce:transform-none",
+        ghost: "text-[var(--slate-700)] hover:bg-[var(--slate-100)] active:scale-[0.97] motion-reduce:transform-none",
+        danger: "bg-[var(--danger-600)] text-white hover:bg-[var(--danger-700)] active:scale-[0.97] motion-reduce:transform-none",
       },
       size: {
         xs: "h-8 px-2.5 text-xs",
