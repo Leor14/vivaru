@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
+import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { db, storage } from "@/lib/firebase/client";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
@@ -20,6 +21,7 @@ export default function ResidentAccountPage() {
   const { user } = useAuth();
   const { formatAmount } = useTenantCurrency();
   const { items, loading } = useBillingStatements(user?.tenantId, user?.unitId);
+  const { receiptByStatementId } = usePaymentReceipts(user?.tenantId, user?.unitId);
 
   const [uploading, setUploading] = useState(false);
   // Tracks which statementId is being uploaded (null = global upload)
@@ -149,7 +151,7 @@ export default function ResidentAccountPage() {
             item={item}
             formatAmount={formatAmount}
             onUploadReceipt={uploading ? undefined : handleUploadForStatement}
-            receiptStatus={null} // F2 will supply real receipt status per period
+            receiptStatus={receiptByStatementId.get(item.id)?.status ?? null}
             defaultOpen={index === 0 && item.status !== "paid"}
           />
         ))}

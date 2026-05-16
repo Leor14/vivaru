@@ -209,6 +209,26 @@ export interface BillingStatement {
   updatedBy?: string;
 }
 
+export interface PaymentReceipt {
+  id: string;
+  tenantId: string;
+  unitId: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  fileUrl: string;
+  fileName: string;
+  storagePath: string;
+  /** Lifecycle: pending → approved | rejected */
+  status: "pending" | "approved" | "rejected";
+  /** Links this receipt to a specific billing period */
+  statementId?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  /** Reason given by admin when status is "rejected" */
+  rejectedReason?: string;
+}
+
 export interface TenantDocument {
   id: string;
   tenantId: string;
