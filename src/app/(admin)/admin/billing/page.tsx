@@ -20,6 +20,7 @@ import * as XLSX from "xlsx";
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
 import { BillingBulkMessageDrawer, type BillingUnitOption } from "@/components/features/billing/BillingBulkMessageDrawer";
 import { EmptyState } from "@/components/shared/empty-state";
+import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -685,6 +686,7 @@ export default function AdminBillingPage() {
       <ChartContainer
         title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por periodo con lectura inmediata de brecha y porcentaje de recaudo."
+        helpText="Barras azules = total cobrado (campo 'amount' por periodo). Barras verdes = total recaudado (campo 'paymentAmount'). Línea = % recaudo = recaudado ÷ cobrado × 100. Brecha = cobrado − recaudado. Los filtros de unidad y rango de este gráfico son independientes de los 'Filtros de cartera' de abajo, que solo afectan la tabla."
         controls={
           <div className="grid gap-2 sm:grid-cols-3">
             <label className="text-sm text-[var(--slate-700)]">
@@ -781,7 +783,10 @@ export default function AdminBillingPage() {
       </ChartContainer>
 
       <Card className="soft-panel">
-        <CardTitle>Crear nuevo cobro</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Crear nuevo cobro</CardTitle>
+          <HelpTip text="Crea un registro en 'billingStatements'. 'Abono' es un pago parcial registrado al momento de crear el cargo (no obligatorio). 'Fecha de recaudo' es la fecha límite de pago, no la fecha en que se recibió el pago. Estado automático: saldo ≤ 0 → Al día · saldo > 0 sin fecha vencida → Pendiente · saldo > 0 y fecha vencida → En mora. No hay control de duplicados: es posible crear varios cargos para la misma unidad y mes." />
+        </div>
         <CardDescription className="mt-1">
           Registra cartera mensual por unidad con estructura financiera clara y trazable.
         </CardDescription>
@@ -836,7 +841,10 @@ export default function AdminBillingPage() {
       </Card>
 
       <Card className="soft-panel">
-        <CardTitle>Herramientas de gestión</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Herramientas de gestión</CardTitle>
+          <HelpTip text="Plantilla: columnas unitLabel, period, amount, paymentAmount, dueDate. Importar: valida cada fila contra el catálogo de unidades; omite filas con errores (los errores se registran en consola, no en pantalla) y no muestra previsualización antes de escribir. Exportar: genera un CSV solo con los registros visibles según los filtros activos de la tabla. Imprimir: abre el diálogo del navegador mostrando únicamente los registros en mora. Mensaje masivo: crea una comunicación interna visible en el feed de todos los residentes del conjunto (no es WhatsApp ni notificación push)." />
+        </div>
         <CardDescription className="mt-1">
           Acciones operativas para carga, salida de informacion y comunicación masiva.
         </CardDescription>
@@ -896,6 +904,7 @@ export default function AdminBillingPage() {
       <Card>
         <MobileFiltersPanel
           title="Filtros de cartera"
+          helpText="Filtra la tabla en memoria (sin nueva consulta a Firestore) por estado — Al día, Pendiente o En mora — y por nombre de unidad. Solo afecta la tabla de registros, no el gráfico histórico de arriba, que tiene sus propios controles. 'Limpiar filtros' restablece estado y unidad, pero no el rango de fechas del gráfico. El CSV exportado también respeta estos filtros."
           footer={
             <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => {
               setStatusFilter("all");
