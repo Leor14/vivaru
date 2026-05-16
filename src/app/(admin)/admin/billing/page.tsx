@@ -24,6 +24,7 @@ import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker";
@@ -32,6 +33,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
+import { Dialog } from "@/components/ui/dialog";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication } from "@/features/admin/services";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
@@ -100,6 +102,15 @@ function formatPeriodLabel(period: string) {
   return new Intl.DateTimeFormat("es-CO", { month: "short", year: "2-digit" }).format(date);
 }
 
+function formatTableDate(dateStr: string | undefined): string {
+  if (!dateStr) return "—";
+  const [year, month, day] = dateStr.split("-").map(Number);
+  if (!year || !month) return dateStr;
+  const date = new Date(year, month - 1, day ?? 1);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  return date.toLocaleDateString("es-CO", { day: day ? "numeric" : undefined, month: "short", year: "numeric" });
+}
+
 function BillingTrendTooltip({
   active,
   payload,
@@ -120,7 +131,7 @@ function BillingTrendTooltip({
 
   return (
     <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
-      <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Periodo"}</p>
+      <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Período"}</p>
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
           <span>Cobrado</span>
@@ -635,7 +646,7 @@ export default function AdminBillingPage() {
       .join("\n");
     const popup = window.open("", "_blank", "width=900,height=700");
     if (!popup) return;
-    popup.document.write(`<pre style=\"font-family:Arial;padding:24px;white-space:pre-wrap\">Notificacion de cartera en mora\n\n${bulkMessage}\n\n${printable}</pre>`);
+    popup.document.write(`<pre style=\"font-family:Arial;padding:24px;white-space:pre-wrap\">Notificación de cartera en mora\n\n${bulkMessage}\n\n${printable}</pre>`);
     popup.document.close();
     popup.focus();
     popup.print();
@@ -690,7 +701,7 @@ export default function AdminBillingPage() {
     <section className="space-y-4">
       <ChartContainer
         title="Comportamiento histórico de cartera"
-        description="Comparativo de cobrado y recaudado por periodo con lectura inmediata de brecha y porcentaje de recaudo."
+        description="Comparativo de cobrado y recaudado por período con lectura inmediata de brecha y porcentaje de recaudo."
         helpText="Aquí puedes ver de un vistazo cómo evoluciona tu recaudo mes a mes. Las barras azules son lo que cobras; las verdes, lo que efectivamente ingresa. Cuanto más se acerquen ambas barras, mejor está tu cartera. La línea muestra el porcentaje de recaudo. Los filtros de unidad y fecha de este gráfico son independientes de los filtros de la tabla que están más abajo."
         controls={
           <div className="grid gap-2 sm:grid-cols-3">
@@ -857,7 +868,7 @@ export default function AdminBillingPage() {
           <HelpTip text="Todo lo que necesitas para gestionar la cartera en volumen. Descarga la plantilla, complétala con los cobros del mes e impórtala de una vez. Al exportar, el archivo incluye solo lo que ves en la tabla según los filtros activos. El botón Imprimir genera un reporte con los registros en mora únicamente. Y cuando necesites avisar sobre saldos pendientes, usa Enviar mensaje masivo: el aviso llega al feed de comunicaciones de los residentes dentro de la app." />
         </div>
         <CardDescription className="mt-1">
-          Acciones operativas para carga, salida de informacion y comunicación masiva.
+          Acciones operativas para carga, salida de información y comunicación masiva.
         </CardDescription>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -929,7 +940,7 @@ export default function AdminBillingPage() {
             Estado
             <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as BillingStatusFilter)}>
               <option value="all">Todos</option>
-              <option value="paid">Al dia</option>
+              <option value="paid">Al día</option>
               <option value="pending">Pendiente</option>
               <option value="overdue">En mora</option>
             </select>
@@ -945,7 +956,17 @@ export default function AdminBillingPage() {
           </label>
         </MobileFiltersPanel>
 
-        <div className="responsive-table-wrap mt-4">
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <p className="text-xs text-[var(--slate-500)]">
+            {loading ? "Cargando registros..." : (
+              statusFilter === "all" && unitFilter === "all"
+                ? `${filteredRows.length} registro${filteredRows.length !== 1 ? "s" : ""}`
+                : `${filteredRows.length} de ${normalizedRows.length} registro${normalizedRows.length !== 1 ? "s" : ""}`
+            )}
+          </p>
+        </div>
+
+        <div className="responsive-table-wrap mt-2">
           <table className="responsive-table min-w-[980px] text-sm">
           <thead>
             <tr className="border-b border-[var(--slate-200)] text-[var(--slate-600)]">
@@ -954,23 +975,32 @@ export default function AdminBillingPage() {
               <th className="py-2">Monto</th>
               <th className="py-2">Abono</th>
               <th className="py-2">Saldo</th>
-              <th className="py-2">Fecha limite</th>
+              <th className="py-2">Fecha límite</th>
               <th className="py-2">Estado</th>
               <th className="py-2">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td className="py-2 text-[var(--slate-600)]" colSpan={8}>Cargando cartera...</td>
-              </tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skel-${i}`} className="border-b border-[var(--slate-100)]">
+                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="py-2.5"><Skeleton className="h-3.5 w-16 rounded" /></td>
+                  <td className="py-2.5"><Skeleton className="h-3.5 w-24 rounded" /></td>
+                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="py-2.5"><Skeleton className="h-7 w-16 rounded-xl" /></td>
+                </tr>
+              ))
             ) : null}
             {!loading && filteredRows.length === 0 ? (
               <tr>
                 <td className="py-2" colSpan={8}>
                   <EmptyState
                     title="Sin estados de cuenta"
-                    description="No hay facturacion registrada para este tenant en el periodo actual."
+                    description="No hay facturación registrada para este conjunto con los filtros actuales."
                   />
                 </td>
               </tr>
@@ -981,18 +1011,18 @@ export default function AdminBillingPage() {
               return (
               <tr key={item.id} className="border-b border-[var(--slate-100)]">
                 <td className="py-2">{item.unitLabel}</td>
-                <td className="py-2">{item.period}</td>
+                <td className="py-2">{formatTableDate(item.period)}</td>
                 <td className="py-2">{formatAmount(item.amount)}</td>
                 <td className="py-2">{formatAmount(item.paymentAmount)}</td>
                 <td className="py-2">{formatAmount(item.balance)}</td>
-                <td className="py-2">{item.dueDate || "-"}</td>
+                <td className="py-2">{formatTableDate(item.dueDate)}</td>
                 <td className="py-2">
                   {isPaid ? (
                     <span className="inline-flex items-center gap-1 text-emerald-700">
                       <IconBadge tone="mint">
                         <CheckCircle2 className="h-4 w-4" />
                       </IconBadge>
-                      Al dia
+                      Al día
                     </span>
                   ) : status === "overdue" ? (
                     <span className="inline-flex items-center gap-1 text-red-700">
@@ -1052,31 +1082,27 @@ export default function AdminBillingPage() {
         onSave={handleRowUpdate}
       />
 
-      {isSwitchConfirmOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-label="Confirmar cambio de registro">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-xl">
-            <h3 className="text-base font-semibold text-[var(--slate-900)]">Cambiar de registro</h3>
-            <p className="mt-2 text-sm text-[var(--slate-700)]">
-              Tienes cambios sin guardar en el registro actual. Elige como continuar.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-              <Button type="button" variant="outline" onClick={closeSwitchConfirm} disabled={switchingAfterSave}>
-                Cancelar
-              </Button>
-              <Button type="button" variant="outline" onClick={handleDiscardAndSwitch} disabled={switchingAfterSave}>
-                Descartar y cambiar
-              </Button>
-              <Button
-                type="button"
-                onClick={() => void handleSaveAndSwitch()}
-                disabled={switchingAfterSave || !isEditDrawerOpen || !editingRecord || savingRowId === editingRecord?.id}
-              >
-                {switchingAfterSave ? "Guardando..." : "Guardar y cambiar"}
-              </Button>
-            </div>
-          </div>
+      <Dialog open={isSwitchConfirmOpen} onClose={closeSwitchConfirm} className="max-w-md p-6">
+        <h3 className="text-base font-semibold text-[var(--slate-900)]">Cambiar de registro</h3>
+        <p className="mt-2 text-sm text-[var(--slate-700)]">
+          Tienes cambios sin guardar en el registro actual. Elige cómo continuar.
+        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+          <Button type="button" variant="outline" onClick={closeSwitchConfirm} disabled={switchingAfterSave}>
+            Cancelar
+          </Button>
+          <Button type="button" variant="outline" onClick={handleDiscardAndSwitch} disabled={switchingAfterSave}>
+            Descartar y cambiar
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void handleSaveAndSwitch()}
+            disabled={switchingAfterSave || !isEditDrawerOpen || !editingRecord || savingRowId === editingRecord?.id}
+          >
+            {switchingAfterSave ? "Guardando..." : "Guardar y cambiar"}
+          </Button>
         </div>
-      ) : null}
+      </Dialog>
 
       <BillingBulkMessageDrawer
         open={isBulkDrawerOpen}
