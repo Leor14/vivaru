@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, FilterX, KeyRound, Search, UserCheck, Users2, X } from "lucide-react";
+import { Building2, FilterX, KeyRound, Search, Upload, UserCheck, Users2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
+import { UnitBulkImportWizard } from "@/components/features/residents/UnitBulkImportWizard";
 import { Modal } from "@/components/shared/modal";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -33,6 +34,7 @@ import {
   type UnitInput,
 } from "@/features/admin/schemas";
 import {
+  bulkCreateUnits,
   createPerson,
   createUnit,
   deletePerson,
@@ -60,6 +62,7 @@ export default function AdminResidentsPage() {
   const [peopleSearch, setPeopleSearch] = useState("");
   const debouncedPeopleSearch = useDebounce(peopleSearch.trim(), 200);
 
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
@@ -690,6 +693,14 @@ export default function AdminResidentsPage() {
     }
   }
 
+  async function handleBulkImport(
+    rows: Array<{ displayName: string; tower: string; type: UnitItem["type"]; status: UnitItem["status"] }>,
+  ) {
+    if (!user?.tenantId) return;
+    const count = await bulkCreateUnits(user.tenantId, user.uid, rows);
+    toast.success(`${count} unidad${count !== 1 ? "es" : ""} importada${count !== 1 ? "s" : ""} correctamente.`);
+  }
+
   function clearPeopleFilters() {
     setUnitRoleFilter("all");
     setUnitIdFilter("all");
@@ -718,6 +729,10 @@ export default function AdminResidentsPage() {
                 {seeding ? "Sembrando..." : "Cargar seed"}
               </Button>
             )}
+            <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Cargar CSV
+            </Button>
             <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
           </div>
         </div>
@@ -1164,6 +1179,18 @@ export default function AdminResidentsPage() {
             <Button className="w-full sm:w-auto" type="submit" disabled={savingPerson}>{savingPerson ? "Guardando..." : "Guardar"}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={bulkImportOpen}
+        title="Importar unidades desde CSV"
+        onClose={() => setBulkImportOpen(false)}
+      >
+        <UnitBulkImportWizard
+          existingUnits={units}
+          onImport={handleBulkImport}
+          onClose={() => setBulkImportOpen(false)}
+        />
       </Modal>
 
       <ConfirmDeleteDialog

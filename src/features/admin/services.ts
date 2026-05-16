@@ -348,6 +348,56 @@ export async function createUnit(
   return { id: created.id, unitId, displayName: payload.displayName };
 }
 
+/**
+ * Importación masiva de unidades desde CSV.
+ * Escribe en lotes de 450 (límite Firestore: 500 ops/batch) para garantizar
+ * atomicidad por lote. Si un lote falla, los anteriores ya fueron confirmados
+ * — esto es aceptable para importaciones de datos iniciales.
+ */
+export async function bulkCreateUnits(
+  tenantId: string,
+  userId: string,
+  rows: Array<{
+    displayName: string;
+    tower: string;
+    type: UnitItem["type"];
+    status: UnitItem["status"];
+  }>,
+): Promise<number> {
+  const firestore = assertDb();
+  const CHUNK = 450;
+  let created = 0;
+
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    const batch = writeBatch(firestore);
+
+    for (const row of chunk) {
+      const unitId = row.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const ref = doc(collection(firestore, "units"));
+      batch.set(ref, {
+        tenantId,
+        unitId,
+        displayName: row.displayName,
+        tower: row.tower,
+        type: row.type,
+        status: row.status,
+        ownerIds: [],
+        residentIds: [],
+        createdBy: userId,
+        updatedBy: userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      created++;
+    }
+
+    await batch.commit();
+  }
+
+  return created;
+}
+
 export async function updateUnit(
   id: string,
   userId: string,
