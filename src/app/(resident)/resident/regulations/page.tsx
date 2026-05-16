@@ -51,10 +51,14 @@ export default function ResidentRegulationsPage() {
       if (cancelled) return;
       setMySignature(sig);
       setCheckingSignature(false);
+    }).catch(() => {
+      if (cancelled) return;
+      setCheckingSignature(false);
     });
 
     return () => {
       cancelled = true;
+      setCheckingSignature(false);
     };
   }, [activeRegulation?.id, unitId]);
 

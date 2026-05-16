@@ -568,6 +568,7 @@ service cloud.firestore {
       // Admins and superadmins can read all signatures for their tenant.
       // Residents can only read their own unit's signature.
       allow read: if signedIn() && (
+        resource == null ||
         (resource.data.tenantId is string && tenantAdminOrSuper(resource.data.tenantId)) ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
