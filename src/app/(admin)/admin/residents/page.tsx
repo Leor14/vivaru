@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Building2, FilterX, KeyRound, Search, Upload, UserCheck, Users2, X } from "lucide-react";
+import { Building2, FilterX, KeyRound, Search, Upload, UserCheck, UserPlus, Users2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -324,6 +324,25 @@ export default function AdminResidentsPage() {
       className: "whitespace-nowrap",
       render: (unit) => <StatusBadge status={unit.status} context="unit" />,
     },
+    {
+      key: "people",
+      header: "Personas",
+      className: "whitespace-nowrap",
+      render: (unit) => {
+        const count = people.filter(
+          (p) => p.unitId === unit.id || p.unitId === unit.unitId,
+        ).length;
+        return count === 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+            Sin titular
+          </span>
+        ) : (
+          <span className="text-sm text-[var(--slate-600)]">
+            {count} persona{count !== 1 ? "s" : ""}
+          </span>
+        );
+      },
+    },
   ];
 
   const peopleColumns: DataTableColumn<PersonItem>[] = [
@@ -440,6 +459,22 @@ export default function AdminResidentsPage() {
       unitId: person.unitId,
       tower: person.tower,
       status: person.status,
+    });
+    setPersonModalOpen(true);
+  }
+
+  function openAddPersonToUnit(unit: UnitItem) {
+    setEditingPerson(null);
+    personForm.reset({
+      fullName: "",
+      email: "",
+      phone: "",
+      documentNumber: "",
+      roleType: "owner_occupant",
+      occupancyType: "owner_occupant",
+      unitId: unit.id,
+      tower: unit.tower,
+      status: "active",
     });
     setPersonModalOpen(true);
   }
@@ -756,6 +791,15 @@ export default function AdminResidentsPage() {
                   onView={() => openEditUnit(unit)}
                   onEdit={() => openEditUnit(unit)}
                   onDelete={() => void handleDeleteUnit(unit)}
+                  extraItems={[
+                    {
+                      key: "add-person",
+                      label: "Agregar persona",
+                      icon: <UserPlus className="h-3.5 w-3.5" />,
+                      separatorBefore: true,
+                      onSelect: () => openAddPersonToUnit(unit),
+                    },
+                  ]}
                 />
               </div>
             )}
