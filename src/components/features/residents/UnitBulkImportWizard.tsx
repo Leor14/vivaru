@@ -25,6 +25,7 @@ import Papa from "papaparse";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/shared/help-tip";
 import type { UnitItem } from "@/features/admin/services";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -358,7 +359,10 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
             <FileText className="h-7 w-7 text-[var(--slate-500)]" />
           </div>
           <div className="text-center">
-            <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo CSV</p>
+            <div className="flex items-center justify-center gap-2">
+              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo CSV</p>
+              <HelpTip text="Descarga la plantilla para ver el formato exacto. El nombre de cada unidad es clave: si ya existe una con ese mismo nombre en el conjunto, el sistema la marcará como duplicada y tú decides si importarla de todos modos o descartarla. Mayúsculas, minúsculas y tildes no afectan el reconocimiento de tipo y estado." />
+            </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
               Columnas requeridas: <code className="rounded bg-[var(--slate-100)] px-1 py-0.5 text-xs">nombre, torre, tipo, estado</code>
             </p>
@@ -406,6 +410,23 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
               </div>
             </div>
           </div>
+
+          {/* Regla de negocio: unidad vs. persona */}
+          <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs font-semibold text-blue-800">
+              ¿Qué importa este CSV y qué no?
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              <strong>Este wizard crea únicamente las unidades físicas</strong> del conjunto
+              (el apartamento, la casa, el local). <strong>No crea residentes, propietarios ni accesos.</strong>
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              Una vez importadas las unidades, el siguiente paso es ir a la tabla de residentes
+              y usar <strong>"Crear persona"</strong> para vincular al titular de cada unidad,
+              uno a uno. Esta separación es intencional: una unidad puede existir sin residente
+              activo (vacía, en remodelación, propietario no ocupante).
+            </p>
+          </div>
         </div>
       )}
 
@@ -413,7 +434,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
       {step === "review" && (
         <div className="flex flex-col gap-3">
           {/* Resumen */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
               {validRows.length - duplicateCount} válidas
             </span>
@@ -427,6 +448,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
                 {invalidCount} con errores
               </span>
             )}
+            <HelpTip text="Válida: fila lista para importar. — Inválida: falta un campo o el valor de tipo/estado no es reconocido; corrígela en el CSV y vuelve a cargar el archivo. — Duplicada: ya existe una unidad con ese nombre en el conjunto; puedes marcarla igual para crear una segunda unidad, o desmárcarla para omitirla. Solo las filas con checkbox marcado se importarán." />
             <span className="ml-auto text-xs text-[var(--slate-500)]">
               Archivo: <span className="font-medium">{fileName}</span>
             </span>
@@ -558,9 +580,15 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
             </div>
           </div>
 
-          <p className="text-sm text-[var(--slate-600)]">
-            Esta acción creará {selectedCount} unidad{selectedCount !== 1 ? "es" : ""} en Firestore. Puedes editarlas individualmente después.
-          </p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-semibold text-amber-800">Recuerda: solo se crean las unidades físicas</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-700">
+              Esta importación <strong>no vincula residentes ni propietarios</strong>. Después de confirmar,
+              ve a la tabla de residentes y usa <strong>"Crear persona"</strong> para agregar al titular
+              de cada unidad, uno a uno. Las unidades recién creadas ya estarán disponibles
+              en el selector de unidades del formulario de persona.
+            </p>
+          </div>
 
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
             <Button variant="outline" onClick={() => setStep("review")} disabled={importing}>
@@ -587,6 +615,28 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
               Ya aparecen en la tabla de unidades del conjunto.
             </p>
           </div>
+
+          {/* Próximos pasos */}
+          <div className="w-full rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-4 text-left">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+              ¿Qué sigue?
+            </p>
+            <ol className="mt-2 space-y-2">
+              <li className="flex gap-2 text-xs text-[var(--slate-700)]">
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">1</span>
+                <span>Cierra este panel. Las unidades ya están disponibles en la tabla.</span>
+              </li>
+              <li className="flex gap-2 text-xs text-[var(--slate-700)]">
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">2</span>
+                <span>En la sección <strong>Personas asociadas</strong>, usa <strong>"Crear persona"</strong> para agregar al propietario o inquilino de cada unidad.</span>
+              </li>
+              <li className="flex gap-2 text-xs text-[var(--slate-700)]">
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">3</span>
+                <span>Selecciona la unidad correspondiente en el formulario. Repite por cada unidad que tenga residente activo.</span>
+              </li>
+            </ol>
+          </div>
+
           <Button onClick={onClose}>Cerrar</Button>
         </div>
       )}
