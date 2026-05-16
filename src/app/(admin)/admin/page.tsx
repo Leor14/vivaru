@@ -36,6 +36,7 @@ import { StatusPill } from "@/components/features/admin/dashboard/status-pill";
 import { VisitorFlowWidget } from "@/components/features/admin/dashboard/visitor-flow-widget";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
@@ -113,7 +114,7 @@ function getQueryErrorLabel(message: string) {
     return "No tienes permisos para leer este bloque del dashboard.";
   }
   if (normalized.includes("index") && normalized.includes("create")) {
-    return "Falta un indice de Firestore para esta consulta.";
+    return "Falta un índice de Firestore para esta consulta.";
   }
   return "No pudimos cargar este bloque del dashboard.";
 }
@@ -137,7 +138,7 @@ function percentageDelta(current: number, previous: number) {
 
 function getTrendInsight(current: number, previous: number, suffix = "vs mes anterior") {
   const delta = percentageDelta(current, previous);
-  if (delta === 0) return `Sin variacion ${suffix}`;
+  if (delta === 0) return `Sin variación ${suffix}`;
   const signal = delta > 0 ? "+" : "";
   return `${signal}${delta.toFixed(1)}% ${suffix}`;
 }
@@ -162,7 +163,7 @@ function BillingTrendTooltip({
 
   return (
     <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
-      <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Periodo"}</p>
+      <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Período"}</p>
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
           <span>Cobrado</span>
@@ -434,7 +435,7 @@ export default function AdminDashboardPage() {
       href: "/admin/pqrs",
     },
     {
-      label: "Reservas del dia",
+      label: "Reservas del día",
       value: String(reservationsToday.length),
       insight: getTrendInsight(reservationMonthCurrent, reservationMonthPrevious),
       tone: "success" as const,
@@ -470,7 +471,7 @@ export default function AdminDashboardPage() {
   const pqrsRows = ticketsWithUrgency.slice(0, 5).map((item, index) => ({
     id: asText(item.id, `ticket-${index}`),
     primary: asText(item.subject, "PQRS"),
-    secondary: `${formatUnitInline(typeof item.unitLabel === "string" ? item.unitLabel : "", "Unidad")} - ${item.ageDays} dias`,
+    secondary: `${formatUnitInline(typeof item.unitLabel === "string" ? item.unitLabel : "", "Unidad")} - ${item.ageDays} días`,
     status: item.urgent ? "urgente" : asText(item.status, "open"),
     dateLabel: asDateLabel(item.radicationDate ?? item.createdAt ?? item.updatedAt),
   }));
@@ -478,7 +479,7 @@ export default function AdminDashboardPage() {
   const communicationRows = communications.slice(0, 5).map((item, index) => ({
     id: asText(item.id, `comm-${index}`),
     primary: asText(item.title, "Comunicado"),
-    secondary: asText(item.body, "Sin descripcion").slice(0, 92),
+    secondary: asText(item.body, "Sin descripción").slice(0, 92),
     status: "vigente",
     dateLabel: asDateLabel(item.publishedAt),
   }));
@@ -572,7 +573,7 @@ export default function AdminDashboardPage() {
         rows: ticketsWithUrgency.map((item, index) => ({
           id: asText(item.id, `pqrs-full-${index}`),
           primary: asText(item.subject, "PQRS"),
-          secondary: `${formatUnitInline(typeof item.unitLabel === "string" ? item.unitLabel : "", "Unidad")} - ${item.ageDays} dias`,
+          secondary: `${formatUnitInline(typeof item.unitLabel === "string" ? item.unitLabel : "", "Unidad")} - ${item.ageDays} días`,
           status: item.urgent ? "urgente" : asText(item.status, "open"),
           dateLabel: asDateLabel(item.radicationDate ?? item.createdAt ?? item.updatedAt),
         })),
@@ -585,7 +586,7 @@ export default function AdminDashboardPage() {
       rows: communications.map((item, index) => ({
         id: asText(item.id, `comm-full-${index}`),
         primary: asText(item.title, "Comunicado"),
-        secondary: asText(item.body, "Sin descripcion").slice(0, 140),
+        secondary: asText(item.body, "Sin descripción").slice(0, 140),
         status: "vigente",
         dateLabel: asDateLabel(item.publishedAt),
       })),
@@ -613,7 +614,7 @@ export default function AdminDashboardPage() {
               <p className="mt-1 text-sm text-[var(--slate-600)]">{headerDate}</p>
               <button
                 type="button"
-                className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--slate-300)] bg-white/80 px-3 py-1"
+                className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--slate-300)] bg-white/80 px-3 py-1 transition-colors hover:bg-white hover:border-[var(--slate-400)] cursor-pointer"
                 onClick={() => setDrawerSection("alerts")}
               >
                 <span
@@ -638,18 +639,26 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {kpis.map((kpi) => (
-            <ExecutiveKpiCard
-              key={kpi.label}
-              label={kpi.label}
-              value={kpi.value}
-              insight={kpi.insight}
-              tone={kpi.tone}
-              href={kpi.href}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[88px] rounded-2xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {kpis.map((kpi) => (
+              <ExecutiveKpiCard
+                key={kpi.label}
+                label={kpi.label}
+                value={kpi.value}
+                insight={kpi.insight}
+                tone={kpi.tone}
+                href={kpi.href}
+              />
+            ))}
+          </div>
+        )}
         {metricsError ? <p className="text-xs text-[var(--danger-700)]">{getQueryErrorLabel(metricsError)}</p> : null}
       </DashboardSectionBoundary>
 
@@ -707,29 +716,10 @@ export default function AdminDashboardPage() {
             </div>
           }
         >
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <Card className="border-[#d2e1f0] bg-[#f5faff] p-3 md:p-4">
-              <p className="text-xs text-[var(--slate-500)]">Total cobrado</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#2d5f86]">{formatAmount(financialSummary.totalCharged)}</p>
-            </Card>
-            <Card className="border-[#cde6da] bg-[#f1fbf6] p-3 md:p-4">
-              <p className="text-xs text-[var(--slate-500)]">Total recaudado</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#2d725a]">{formatAmount(financialSummary.totalCollected)}</p>
-            </Card>
-            <Card className="border-[#e9d7a8] bg-[#fff9e9] p-3 md:p-4">
-              <p className="text-xs text-[var(--slate-500)]">Brecha</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#8b6622]">{formatAmount(financialSummary.gap)}</p>
-            </Card>
-            <Card className="border-[#ccddf0] bg-[#f1f7fd] p-3 md:p-4">
-              <p className="text-xs text-[var(--slate-500)]">% recaudo</p>
-              <p className="kpi-value-fluid kpi-value-fluid-compact mt-1 font-semibold text-[#345f88]">{financialSummary.collectionRate.toFixed(1)}%</p>
-            </Card>
-          </div>
-
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--slate-200)] bg-white p-3">
+          <div className="overflow-x-auto rounded-2xl border border-[var(--slate-200)] bg-white p-3">
             {chartData.length === 0 ? (
               <p className="rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-soft)] p-5 text-sm text-[var(--slate-600)]">
-                No hay datos suficientes para construir la grafica con el filtro actual.
+                No hay datos suficientes para construir la gráfica con el filtro actual.
               </p>
             ) : (
               <div className="h-[360px] min-w-[700px] w-full">
@@ -818,8 +808,12 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <div className="space-y-2">
-          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Cumplimiento</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Cumplimiento</p>
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+          </div>
           <RegulationComplianceWidget tenantId={tenantId} />
         </div>
       </DashboardSectionBoundary>
@@ -833,8 +827,12 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <div className="space-y-2">
-          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Operativo</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Operativo</p>
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <VisitorFlowWidget tenantId={tenantId} />
             <PqrsAgingWidget tenantId={tenantId} />
@@ -851,8 +849,12 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <div className="space-y-2">
-          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Financiero</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Financiero</p>
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+          </div>
           <OverdueUnitsWidget items={billing} loading={loadingBilling} />
         </div>
       </DashboardSectionBoundary>
@@ -866,8 +868,12 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <div className="space-y-2">
-          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Logística</p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Logística</p>
+            <div className="h-px flex-1 bg-[var(--slate-200)]" />
+          </div>
           <PackagesBodegaWidget tenantId={tenantId} />
         </div>
       </DashboardSectionBoundary>
@@ -877,7 +883,7 @@ export default function AdminDashboardPage() {
         fallback={
           <Card>
             <CardTitle>Operación en tiempo real</CardTitle>
-            <CardDescription className="mt-1">No pudimos cargar los modulos operativos.</CardDescription>
+            <CardDescription className="mt-1">No pudimos cargar los módulos operativos.</CardDescription>
           </Card>
         }
       >
@@ -918,7 +924,7 @@ export default function AdminDashboardPage() {
               ) : null}
             </ul>
             <div className="mt-3">
-              <Link href="/admin/visitors" className="text-sm font-medium text-[var(--brand-700)] hover:underline">Gestiónar visitantes</Link>
+              <Link href="/admin/visitors" className="text-sm font-medium text-[var(--brand-700)] hover:underline">Gestionar visitantes</Link>
             </div>
           </Card>
 
@@ -954,19 +960,19 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="premium-card-hover border-[#edd2cb] bg-white p-4">
+          <Card className={`premium-card-hover p-4 transition-colors ${urgentTickets > 0 ? "border-red-200 bg-[#fff9f8]" : "border-[#edd2cb] bg-white"}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-label text-[var(--slate-500)]">Atención</p>
+                <p className={`text-label ${urgentTickets > 0 ? "text-red-500" : "text-[var(--slate-500)]"}`}>Atención{urgentTickets > 0 ? ` · ${urgentTickets} urgente${urgentTickets > 1 ? "s" : ""}` : ""}</p>
                 <CardTitle className="mt-1 flex items-center gap-2 text-lg">
-                  <ClipboardList className="h-4 w-4 text-[#a34d3f]" /> PQRS
+                  <ClipboardList className={`h-4 w-4 ${urgentTickets > 0 ? "text-red-500" : "text-[#a34d3f]"}`} /> PQRS
                 </CardTitle>
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("pqrs")}>Ver todo</Button>
             </div>
             <ul className="mt-3 space-y-2 text-sm">
               {pqrsRows.map((item) => (
-                <li key={item.id} className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+                <li key={item.id} className={`rounded-xl border p-3 ${item.status === "urgente" ? "border-red-200 bg-red-50" : "border-[var(--slate-200)] bg-[var(--surface-soft)]"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-[var(--slate-900)]">{item.primary}</p>
                     <StatusPill label={item.status} tone={item.status === "urgente" ? "alert" : "neutral"} />
@@ -981,8 +987,8 @@ export default function AdminDashboardPage() {
               ) : null}
             </ul>
             <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-[var(--slate-500)]">{urgentTickets} con alerta mayor a 15 dias</p>
-              <Link href="/admin/pqrs" className="text-sm font-medium text-[var(--brand-700)] hover:underline">Gestiónar PQRS</Link>
+              <p className="text-xs text-[var(--slate-500)]">{urgentTickets} con alerta mayor a 15 días</p>
+              <Link href="/admin/pqrs" className="text-sm font-medium text-[var(--brand-700)] hover:underline">Gestionar PQRS</Link>
             </div>
           </Card>
 
@@ -996,18 +1002,15 @@ export default function AdminDashboardPage() {
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("communications")}>Ver todo</Button>
             </div>
-            <ul className="mt-3 space-y-2 text-sm">
+            <ul className="mt-3 divide-y divide-[var(--slate-100)] text-sm">
               {communicationRows.map((item) => (
-                <li key={item.id} className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-[var(--slate-900)]">{item.primary}</p>
-                    <StatusPill label="vigente" tone="finance" />
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-[var(--slate-600)]">{item.secondary}</p>
+                <li key={item.id} className="py-2.5 first:pt-0 last:pb-0">
+                  <p className="font-medium text-[var(--slate-900)] leading-snug">{item.primary}</p>
+                  <p className="mt-0.5 line-clamp-1 text-xs text-[var(--slate-500)]">{item.secondary}</p>
                 </li>
               ))}
               {!loadingCommunications && communicationRows.length === 0 ? (
-                <li className="rounded-xl border border-dashed border-[var(--slate-300)] p-3 text-xs text-[var(--slate-600)]">
+                <li className="py-3 text-xs text-[var(--slate-500)]">
                   No hay comunicaciones vigentes.
                 </li>
               ) : null}
@@ -1019,7 +1022,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {loading ? (
-          <p className="text-xs text-[var(--slate-500)]">Actualizando modulos en tiempo real...</p>
+          <p className="text-xs text-[var(--slate-500)]">Actualizando módulos en tiempo real...</p>
         ) : null}
         {communicationsError ? <p className="text-xs text-[var(--danger-700)]">{getQueryErrorLabel(communicationsError)}</p> : null}
         {visitorsError ? <p className="text-xs text-[var(--danger-700)]">{getQueryErrorLabel(visitorsError)}</p> : null}
