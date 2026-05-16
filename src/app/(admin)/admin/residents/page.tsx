@@ -713,9 +713,11 @@ export default function AdminResidentsPage() {
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => void handleSeed()} disabled={seeding}>
-              {seeding ? "Sembrando..." : "Cargar seed"}
-            </Button>
+            {process.env.NODE_ENV === "development" && (
+              <Button variant="outline" onClick={() => void handleSeed()} disabled={seeding}>
+                {seeding ? "Sembrando..." : "Cargar seed"}
+              </Button>
+            )}
             <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
           </div>
         </div>
