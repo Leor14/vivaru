@@ -1349,8 +1349,17 @@ export default function AdminResidentsPage() {
               <Input {...personForm.register("documentNumber")} />
             </div>
             <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Agrupación</label>
-              <Input {...personForm.register("tower")} />
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">
+                Agrupación
+              </label>
+              <Input
+                {...personForm.register("tower")}
+                readOnly
+                className="cursor-default select-none bg-[var(--slate-50)] text-[var(--slate-500)] focus:border-[var(--slate-300)] focus:ring-0"
+              />
+              <p className="mt-1 text-xs text-[var(--slate-400)]">
+                Se completa automáticamente al seleccionar la unidad.
+              </p>
             </div>
           </div>
           <label className="text-sm text-[var(--slate-700)]">
