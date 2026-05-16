@@ -17,13 +17,13 @@ function formatPeriod(period: string): string {
   // "YYYY-MM" → "Ene 2025"
   const [year, month] = period.split("-");
   const date = new Date(Number(year), Number(month) - 1, 1);
-  return date.toLocaleDateString("es-MX", { month: "short", year: "numeric" });
+  return date.toLocaleDateString("es-CO", { month: "short", year: "numeric" });
 }
 
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split("-");
   const date = new Date(Number(year), Number(month) - 1, Number(day));
-  return date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
 }
 
 // ─── Status config ────────────────────────────────────────────────────────────

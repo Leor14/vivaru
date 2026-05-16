@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Clock, FileText, Upload } from "lucide-react";
+import { ChevronDown, Clock, FileText, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/shared/help-tip";
@@ -12,13 +12,13 @@ import type { BillingStatement } from "@/types/domain";
 function formatPeriod(period: string): string {
   const [year, month] = period.split("-");
   const date = new Date(Number(year), Number(month) - 1, 1);
-  return date.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+  return date.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 }
 
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split("-");
   const date = new Date(Number(year), Number(month) - 1, Number(day));
-  return date.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
 }
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -78,7 +78,9 @@ interface BillingPeriodCardProps {
   formatAmount: (n: number) => string;
   /** Called when the resident clicks "Subir comprobante" for this period */
   onUploadReceipt?: (statementId: string) => void;
-  /** Placeholder for F2: receipt status for this period */
+  /** True while this specific period's file is being uploaded */
+  isUploading?: boolean;
+  /** Receipt status for this period */
   receiptStatus?: "pending" | "approved" | "rejected" | null;
   defaultOpen?: boolean;
 }
@@ -89,12 +91,12 @@ export function BillingPeriodCard({
   item,
   formatAmount,
   onUploadReceipt,
+  isUploading = false,
   receiptStatus = null,
   defaultOpen = false,
 }: BillingPeriodCardProps) {
   const [open, setOpen] = useState(defaultOpen);
   const config = STATUS_CONFIG[item.status];
-  const ChevronIcon = open ? ChevronDown : ChevronRight;
 
   const hasDebt = item.status !== "paid";
   const periodLabel = formatPeriod(item.period);
@@ -136,7 +138,10 @@ export function BillingPeriodCard({
           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${config.badgeCls}`}>
             {config.label}
           </span>
-          <ChevronIcon className="h-4 w-4 shrink-0 text-[var(--slate-400)]" aria-hidden="true" />
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 text-[var(--slate-400)] transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`}
+            aria-hidden="true"
+          />
         </div>
       </button>
 
@@ -182,66 +187,70 @@ export function BillingPeriodCard({
             )}
           </div>
 
-          {/* ── Comprobante section ── */}
-          <div className="mt-3 rounded-lg border border-dashed border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2.5">
-            {receiptStatus === "approved" && (
-              <div className="flex items-center gap-2">
-                <FileText className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-                <span className="text-xs font-medium text-emerald-700">Comprobante aprobado</span>
-              </div>
-            )}
-            {receiptStatus === "pending" && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
-                <span className="text-xs font-medium text-amber-700">Comprobante en revisión</span>
-              </div>
-            )}
-            {receiptStatus === "rejected" && (
-              <div className="flex items-center justify-between gap-2">
+          {/* ── Comprobante section — solo visible si hay deuda o hay comprobante con estado ── */}
+          {(hasDebt || receiptStatus !== null) && (
+            <div className="mt-3 rounded-lg border border-dashed border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2.5">
+              {receiptStatus === "approved" && (
                 <div className="flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
-                  <span className="text-xs font-medium text-red-700">Comprobante rechazado — sube uno nuevo</span>
+                  <FileText className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+                  <span className="text-xs font-medium text-emerald-700">Comprobante aprobado</span>
                 </div>
-                {onUploadReceipt && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => onUploadReceipt(item.id)}
-                  >
-                    <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
-                    Subir
-                  </Button>
-                )}
-              </div>
-            )}
-            {receiptStatus === null && hasDebt && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-[var(--slate-500)]">Sin comprobante adjunto</span>
-                {onUploadReceipt ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => onUploadReceipt(item.id)}
-                  >
-                    <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
-                    Subir comprobante
-                  </Button>
-                ) : (
-                  <span className="text-xs text-[var(--slate-400)]">Subiendo…</span>
-                )}
-              </div>
-            )}
-            {receiptStatus === null && !hasDebt && (
-              <div className="flex items-center gap-2">
-                <FileText className="h-3.5 w-3.5 text-[var(--slate-400)]" aria-hidden="true" />
-                <span className="text-xs text-[var(--slate-400)]">Período pagado sin comprobante pendiente</span>
-              </div>
-            )}
-          </div>
+              )}
+              {receiptStatus === "pending" && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
+                  <span className="text-xs font-medium text-amber-700">Comprobante en revisión</span>
+                </div>
+              )}
+              {receiptStatus === "rejected" && (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
+                    <span className="text-xs font-medium text-red-700">Comprobante rechazado — sube uno nuevo</span>
+                  </div>
+                  {isUploading ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-[var(--slate-500)]">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--slate-300)] border-t-[var(--brand-700)]" />
+                      Subiendo…
+                    </span>
+                  ) : onUploadReceipt ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => onUploadReceipt(item.id)}
+                    >
+                      <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
+                      Subir
+                    </Button>
+                  ) : null}
+                </div>
+              )}
+              {receiptStatus === null && hasDebt && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-[var(--slate-500)]">Sin comprobante adjunto</span>
+                  {isUploading ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-[var(--slate-500)]">
+                      <span className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--slate-300)] border-t-[var(--brand-700)]" />
+                      Subiendo…
+                    </span>
+                  ) : onUploadReceipt ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => onUploadReceipt(item.id)}
+                    >
+                      <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
+                      Subir comprobante
+                    </Button>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         </div>
       </div>

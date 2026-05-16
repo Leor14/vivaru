@@ -9,6 +9,7 @@ import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
 import { BillingPeriodCard } from "@/components/features/billing/BillingPeriodCard";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
@@ -119,11 +120,13 @@ export default function ResidentAccountPage() {
       />
 
       {/* Hero card — situación financiera */}
-      {!loading && sortedItems.length > 0 && (
+      {loading ? (
+        <Skeleton className="mt-4 h-[148px] rounded-xl" />
+      ) : sortedItems.length > 0 ? (
         <div className="mt-4">
           <BillingHeroCard items={sortedItems} formatAmount={formatAmount} />
         </div>
-      )}
+      ) : null}
 
       {/* Period cards */}
       <div className="mt-4 grid gap-2">
@@ -141,7 +144,7 @@ export default function ResidentAccountPage() {
         {!loading && sortedItems.length === 0 && (
           <EmptyState
             title="Sin movimientos"
-            description="Aun no hay estados de cuenta publicados para tu unidad."
+            description="Aún no hay estados de cuenta publicados para tu unidad."
           />
         )}
 
@@ -157,6 +160,7 @@ export default function ResidentAccountPage() {
               item={item}
               formatAmount={formatAmount}
               onUploadReceipt={uploading ? undefined : handleUploadForStatement}
+              isUploading={uploadingFor === item.id}
               receiptStatus={receiptByStatementId.get(item.id)?.status ?? null}
               defaultOpen={index === 0 && item.status !== "paid"}
             />
