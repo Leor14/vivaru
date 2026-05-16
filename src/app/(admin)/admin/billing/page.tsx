@@ -686,7 +686,7 @@ export default function AdminBillingPage() {
       <ChartContainer
         title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por periodo con lectura inmediata de brecha y porcentaje de recaudo."
-        helpText="Barras azules = total cobrado (campo 'amount' por periodo). Barras verdes = total recaudado (campo 'paymentAmount'). Línea = % recaudo = recaudado ÷ cobrado × 100. Brecha = cobrado − recaudado. Los filtros de unidad y rango de este gráfico son independientes de los 'Filtros de cartera' de abajo, que solo afectan la tabla."
+        helpText="Aquí puedes ver de un vistazo cómo evoluciona tu recaudo mes a mes. Las barras azules son lo que cobras; las verdes, lo que efectivamente ingresa. Cuanto más se acerquen ambas barras, mejor está tu cartera. La línea muestra el porcentaje de recaudo. Los filtros de unidad y fecha de este gráfico son independientes de los filtros de la tabla que están más abajo."
         controls={
           <div className="grid gap-2 sm:grid-cols-3">
             <label className="text-sm text-[var(--slate-700)]">
@@ -785,7 +785,7 @@ export default function AdminBillingPage() {
       <Card className="soft-panel">
         <div className="flex items-center gap-2">
           <CardTitle>Crear nuevo cobro</CardTitle>
-          <HelpTip text="Crea un registro en 'billingStatements'. 'Abono' es un pago parcial registrado al momento de crear el cargo (no obligatorio). 'Fecha de recaudo' es la fecha límite de pago, no la fecha en que se recibió el pago. Estado automático: saldo ≤ 0 → Al día · saldo > 0 sin fecha vencida → Pendiente · saldo > 0 y fecha vencida → En mora. No hay control de duplicados: es posible crear varios cargos para la misma unidad y mes." />
+          <HelpTip text="Registra aquí la cuota mensual de una unidad. Si el residente ya realizó un pago parcial, anótalo en el campo Abono desde el inicio. La Fecha de recaudo es la fecha límite de pago, no la fecha en que llegó el dinero. El estado se asigna automáticamente: saldo en cero queda Al día, saldo pendiente antes de la fecha límite queda Pendiente, y saldo pendiente con fecha vencida pasa a En mora. Ten presente que el sistema permite registrar más de un cobro para la misma unidad y mes." />
         </div>
         <CardDescription className="mt-1">
           Registra cartera mensual por unidad con estructura financiera clara y trazable.
@@ -843,7 +843,7 @@ export default function AdminBillingPage() {
       <Card className="soft-panel">
         <div className="flex items-center gap-2">
           <CardTitle>Herramientas de gestión</CardTitle>
-          <HelpTip text="Plantilla: columnas unitLabel, period, amount, paymentAmount, dueDate. Importar: valida cada fila contra el catálogo de unidades; omite filas con errores (los errores se registran en consola, no en pantalla) y no muestra previsualización antes de escribir. Exportar: genera un CSV solo con los registros visibles según los filtros activos de la tabla. Imprimir: abre el diálogo del navegador mostrando únicamente los registros en mora. Mensaje masivo: crea una comunicación interna visible en el feed de todos los residentes del conjunto (no es WhatsApp ni notificación push)." />
+          <HelpTip text="Todo lo que necesitas para gestionar la cartera en volumen. Descarga la plantilla, complétala con los cobros del mes e impórtala de una vez. Al exportar, el archivo incluye solo lo que ves en la tabla según los filtros activos. El botón Imprimir genera un reporte con los registros en mora únicamente. Y cuando necesites avisar sobre saldos pendientes, usa Enviar mensaje masivo: el aviso llega al feed de comunicaciones de los residentes dentro de la app." />
         </div>
         <CardDescription className="mt-1">
           Acciones operativas para carga, salida de informacion y comunicación masiva.
@@ -904,7 +904,7 @@ export default function AdminBillingPage() {
       <Card>
         <MobileFiltersPanel
           title="Filtros de cartera"
-          helpText="Filtra la tabla en memoria (sin nueva consulta a Firestore) por estado — Al día, Pendiente o En mora — y por nombre de unidad. Solo afecta la tabla de registros, no el gráfico histórico de arriba, que tiene sus propios controles. 'Limpiar filtros' restablece estado y unidad, pero no el rango de fechas del gráfico. El CSV exportado también respeta estos filtros."
+          helpText="Encuentra rápido lo que buscas en la tabla. Filtra por estado — Al día, Pendiente o En mora — y por unidad, o combina ambos para afinar aún más. El resultado es instantáneo. Ten en cuenta que estos filtros no tocan el gráfico de arriba, que maneja sus propios controles. Cuando exportes a Excel, el archivo reflejará exactamente lo que estás viendo en ese momento."
           footer={
             <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => {
               setStatusFilter("all");

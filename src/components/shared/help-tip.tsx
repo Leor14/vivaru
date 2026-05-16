@@ -66,7 +66,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
           className={`absolute z-50 w-64 rounded-xl border border-[var(--slate-200)] bg-white p-3 shadow-lg ${popoverPositionClass}`}
         >
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-[var(--slate-700)]">¿Qué es esto?</span>
+            <span className="text-xs font-semibold text-[var(--slate-700)]">Descripción</span>
             <button
               type="button"
               onClick={() => setOpen(false)}
