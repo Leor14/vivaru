@@ -410,100 +410,261 @@ export default function AdminSurveysPage() {
   if (view === "results" && resultsSurvey) {
     const aggregated = aggregateResults(resultsSurvey, resultsData);
 
+    // ── Chart color palettes ───────────────────────────────────────────────────
+    const PALETTE = ["var(--brand-700)", "#10b981", "#f59e0b", "#8b5cf6", "#f43f5e", "#06b6d4"];
+    const LIKERT_COLORS: Record<string, string> = {
+      "1": "#ef4444",
+      "2": "#f97316",
+      "3": "#f59e0b",
+      "4": "#84cc16",
+      "5": "#22c55e",
+    };
+    const LIKERT_LABELS: Record<string, string> = {
+      "1": "Muy malo",
+      "2": "Malo",
+      "3": "Regular",
+      "4": "Bueno",
+      "5": "Excelente",
+    };
+
     return (
-      <Card>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={backToList}
-            className="flex items-center gap-1 text-sm text-[var(--brand-700)] hover:underline"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Volver
-          </button>
-        </div>
+      <div className="space-y-5">
+        {/* ── Back ──────────────────────────────────────────────────────────── */}
+        <button
+          type="button"
+          onClick={backToList}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--brand-700)] hover:underline"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Volver a encuestas
+        </button>
 
-        <div className="mt-4 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle>{resultsSurvey.title}</CardTitle>
-            <StatusBadge status={resultsSurvey.status} />
+        {/* ── Header + KPIs ─────────────────────────────────────────────────── */}
+        <Card>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle>{resultsSurvey.title}</CardTitle>
+              <StatusBadge status={resultsSurvey.status} />
+            </div>
+            {resultsSurvey.description && (
+              <p className="text-sm text-[var(--slate-600)]">{resultsSurvey.description}</p>
+            )}
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-[var(--slate-500)]">
+              {resultsSurvey.publishedAt && resultsSurvey.publishedAt.getTime() > 0 && (
+                <span>Publicada el {formatDate(resultsSurvey.publishedAt)}</span>
+              )}
+              {resultsSurvey.closedAt && resultsSurvey.closedAt.getTime() > 0 && (
+                <span>Cerrada el {formatDate(resultsSurvey.closedAt)}</span>
+              )}
+              {resultsSurvey.closingDate &&
+                resultsSurvey.closingDate.getTime() > 0 &&
+                resultsSurvey.status !== "closed" && (
+                  <span>Cierre programado: {formatDate(resultsSurvey.closingDate)}</span>
+                )}
+            </div>
           </div>
-          {resultsSurvey.closedAt && resultsSurvey.closedAt.getTime() > 0 && (
-            <p className="text-sm text-[var(--slate-500)]">
-              Cerrada el {formatDate(resultsSurvey.closedAt)}
-            </p>
-          )}
-        </div>
 
-        <div className="mt-4 flex flex-wrap gap-6">
-          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-5 py-3 text-center">
-            <p className="text-2xl font-semibold text-[var(--slate-900)]">{aggregated.totalResponded}</p>
-            <p className="text-xs text-[var(--slate-500)]">Respuestas totales</p>
+          {/* KPI tiles */}
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-4 py-4 text-center">
+              <p className="text-3xl font-bold text-[var(--slate-900)]">{aggregated.totalResponded}</p>
+              <p className="mt-1 text-xs text-[var(--slate-500)]">Respuestas</p>
+            </div>
+            <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-4 py-4 text-center">
+              <p className="text-3xl font-bold text-[var(--slate-900)]">{resultsSurvey.questions.length}</p>
+              <p className="mt-1 text-xs text-[var(--slate-500)]">Preguntas</p>
+            </div>
+            <div className="col-span-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-4 py-4 text-center sm:col-span-1">
+              <p className="text-sm font-semibold text-[var(--slate-900)]">
+                {resultsSurvey.targetAudience.type === "all"
+                  ? "Todos los residentes"
+                  : `Torre: ${resultsSurvey.targetAudience.tower ?? "—"}`}
+              </p>
+              <p className="mt-1 text-xs text-[var(--slate-500)]">Audiencia objetivo</p>
+            </div>
           </div>
-          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-5 py-3 text-center">
-            <p className="text-2xl font-semibold text-[var(--slate-900)]">—</p>
-            <p className="text-xs text-[var(--slate-500)]">Participación</p>
-          </div>
-        </div>
+        </Card>
 
+        {/* ── Question results ───────────────────────────────────────────────── */}
         {resultsLoading ? (
-          <p className="mt-6 text-sm text-[var(--slate-500)]">Cargando resultados…</p>
+          <Card>
+            <p className="py-10 text-center text-sm text-[var(--slate-500)]">Cargando resultados…</p>
+          </Card>
         ) : resultsData.length === 0 ? (
-          <p className="mt-6 text-sm text-[var(--slate-500)]">Sin respuestas aún.</p>
+          <Card>
+            <p className="py-10 text-center text-sm text-[var(--slate-500)]">
+              Esta encuesta aún no tiene respuestas.
+            </p>
+          </Card>
         ) : (
-          <div className="mt-6 space-y-6">
-            {resultsSurvey.questions.map((question) => {
+          <div className="space-y-4">
+            {resultsSurvey.questions.map((question, qIdx) => {
               const entry = aggregated.byQuestion[question.id];
               if (!entry) return null;
 
-              return (
-                <div key={question.id} className="rounded-xl border border-[var(--slate-200)] p-4">
-                  <p className="font-medium text-[var(--slate-900)]">{question.text}</p>
-                  <p className="mt-0.5 text-xs text-[var(--slate-500)]">{QUESTION_TYPE_LABELS[question.type]}</p>
-
-                  {entry.type === "text" ? (
-                    <ul className="mt-3 space-y-1">
-                      {(entry.textAnswers ?? []).slice(0, 50).map((answer, idx) => (
-                        <li
-                          key={idx}
-                          className="rounded-lg bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--slate-800)]"
-                        >
-                          {answer}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {Object.entries(entry.counts ?? {})
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([option, count]) => {
-                          const total = Object.values(entry.counts ?? {}).reduce((s, n) => s + n, 0);
-                          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                          return (
-                            <div key={option}>
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-[var(--slate-800)]">{option}</span>
-                                <span className="text-[var(--slate-500)]">
-                                  {count} ({pct}%)
-                                </span>
-                              </div>
-                              <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-[var(--slate-100)]">
-                                <div
-                                  className="h-full rounded-full bg-[var(--brand-700)]"
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
+              // ── Question header (shared) ─────────────────────────────────
+              const questionHeader = (
+                <div className="mb-5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--slate-400)]">
+                    Pregunta {qIdx + 1} · {QUESTION_TYPE_LABELS[question.type]}
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-[var(--slate-900)]">
+                    {question.text}
+                  </p>
                 </div>
+              );
+
+              // ── Text answers ─────────────────────────────────────────────
+              if (entry.type === "text") {
+                const answers = entry.textAnswers ?? [];
+                return (
+                  <Card key={question.id}>
+                    {questionHeader}
+                    {answers.length === 0 ? (
+                      <p className="text-sm text-[var(--slate-400)]">Sin respuestas de texto.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-[var(--slate-500)]">
+                          {answers.length} respuesta{answers.length !== 1 ? "s" : ""}
+                        </p>
+                        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                          {answers.map((answer, idx) => (
+                            <div
+                              key={idx}
+                              className="rounded-lg border border-[var(--slate-200)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm italic text-[var(--slate-700)]"
+                            >
+                              &ldquo;{answer}&rdquo;
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              }
+
+              // ── Likert chart ─────────────────────────────────────────────
+              if (entry.type === "likert") {
+                const counts = entry.counts ?? {};
+                const scaleEntries = (["1", "2", "3", "4", "5"] as const).map(
+                  (k) => [k, counts[k] ?? 0] as [string, number],
+                );
+                const total = scaleEntries.reduce((s, [, n]) => s + n, 0);
+                const avg =
+                  total > 0
+                    ? scaleEntries.reduce((s, [k, n]) => s + Number(k) * n, 0) / total
+                    : null;
+
+                return (
+                  <Card key={question.id}>
+                    {questionHeader}
+
+                    {/* Average indicator */}
+                    {avg !== null && (
+                      <div className="mb-5 flex items-center gap-4 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-5 py-4">
+                        <span className="text-4xl font-bold text-[var(--slate-900)]">
+                          {avg.toFixed(1)}
+                        </span>
+                        <div>
+                          <p className="text-xs font-medium text-[var(--slate-600)]">
+                            Promedio general
+                          </p>
+                          <div className="mt-2 flex gap-1">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <div
+                                key={n}
+                                className="h-2 w-8 rounded-full transition-colors"
+                                style={{
+                                  backgroundColor:
+                                    n <= Math.round(avg!)
+                                      ? LIKERT_COLORS[String(n)]
+                                      : "var(--slate-200)",
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scale bars */}
+                    <div className="space-y-3">
+                      {scaleEntries.map(([k, count]) => {
+                        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                        return (
+                          <div key={k}>
+                            <div className="mb-1.5 flex items-center justify-between text-sm">
+                              <span className="font-medium text-[var(--slate-800)]">
+                                {k} — {LIKERT_LABELS[k]}
+                              </span>
+                              <span className="tabular-nums text-[var(--slate-500)]">
+                                {count} · {pct}%
+                              </span>
+                            </div>
+                            <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--slate-100)]">
+                              <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width: `${pct}%`,
+                                  backgroundColor: LIKERT_COLORS[k],
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <p className="pt-1 text-xs text-[var(--slate-400)]">
+                        {total} voto{total !== 1 ? "s" : ""} totales
+                      </p>
+                    </div>
+                  </Card>
+                );
+              }
+
+              // ── Single / Multiple choice bars ────────────────────────────
+              const counts = entry.counts ?? {};
+              const options = (question.options ?? Object.keys(counts)).filter(Boolean);
+              const barEntries = options
+                .map((k) => [k, counts[k] ?? 0] as [string, number])
+                .sort((a, b) => b[1] - a[1]);
+              const total = barEntries.reduce((s, [, n]) => s + n, 0);
+
+              return (
+                <Card key={question.id}>
+                  {questionHeader}
+                  <div className="space-y-3">
+                    {barEntries.map(([label, count], idx) => {
+                      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                      return (
+                        <div key={label}>
+                          <div className="mb-1.5 flex items-center justify-between text-sm">
+                            <span className="text-[var(--slate-800)]">{label}</span>
+                            <span className="tabular-nums text-[var(--slate-500)]">
+                              {count} · {pct}%
+                            </span>
+                          </div>
+                          <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--slate-100)]">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: PALETTE[idx % PALETTE.length],
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="pt-1 text-xs text-[var(--slate-400)]">
+                      {total} selección{total !== 1 ? "es" : ""} totales
+                    </p>
+                  </div>
+                </Card>
               );
             })}
           </div>
         )}
-      </Card>
+      </div>
     );
   }
 
@@ -592,7 +753,7 @@ export default function AdminSurveysPage() {
               });
             }
 
-            if (canSeeResults(s)) {
+            if (s.responseCount > 0) {
               rowItems.push({
                 key: "results",
                 label: "Ver resultados",
