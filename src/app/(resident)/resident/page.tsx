@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { MetricCard } from "@/components/shared/metric-card";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { useCommunications } from "@/features/communications/use-communications";
@@ -11,13 +13,54 @@ import { usePackages } from "@/features/packages/use-packages";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import type { Reservation } from "@/types/domain";
+import type { ResidentCommunication } from "@/features/communications/visibility";
 
-function formatDateLabel(value: string | null | undefined) {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatShortDate(value: string | null | undefined): string | null {
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
-  return new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short" }).format(parsed);
+  return parsed.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
 }
+
+function formatPublishedDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+}
+
+// ─── CommunicationItem — colapsable ─────────────────────────────────────────
+
+function CommunicationItem({ item }: { item: ResidentCommunication }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = item.body.length > 180;
+
+  return (
+    <li className="rounded-xl border border-[var(--slate-200)] bg-white p-3">
+      <p className="font-medium text-[var(--slate-900)]">{item.title}</p>
+      {formatPublishedDate(item.publishedAt) ? (
+        <p className="mt-0.5 text-xs text-[var(--slate-500)]">{formatPublishedDate(item.publishedAt)}</p>
+      ) : null}
+      <p className={`mt-2 text-sm text-[var(--slate-700)] ${!expanded && isLong ? "line-clamp-3" : "whitespace-pre-wrap"}`}>
+        {item.body}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-xs font-medium text-[var(--brand-700)] hover:underline"
+        >
+          {expanded ? "Ver menos" : "Ver más"}
+        </button>
+      )}
+    </li>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ResidentHomePage() {
   const { user } = useAuth();
@@ -26,33 +69,13 @@ export default function ResidentHomePage() {
   const tenantId = user?.tenantId;
   const unitId = user?.unitId;
 
-  const {
-    items: billing = [],
-    loading: billingLoading,
-    error: billingError,
-  } = useBillingStatements(tenantId, unitId);
-  const {
-    items: reservations = [],
-    loading: reservationsLoading,
-    error: reservationsError,
-  } = useReservations(tenantId, unitId);
-  const {
-    items: visitors = [],
-    loading: visitorsLoading,
-    error: visitorsError,
-  } = useVisitorPasses(tenantId, unitId);
-  const {
-    items: packages = [],
-    loading: packagesLoading,
-    error: packagesError,
-  } = usePackages(tenantId, unitId);
-  const {
-    items: communications = [],
-    loading: communicationsLoading,
-    error: communicationsError,
-  } = useCommunications(tenantId);
+  const { items: billing = [], loading: billingLoading, error: billingError } = useBillingStatements(tenantId, unitId);
+  const { items: reservations = [], loading: reservationsLoading, error: reservationsError } = useReservations(tenantId, unitId);
+  const { items: visitors = [], loading: visitorsLoading, error: visitorsError } = useVisitorPasses(tenantId, unitId);
+  const { items: packages = [], loading: packagesLoading, error: packagesError } = usePackages(tenantId, unitId);
+  const { items: communications = [], loading: communicationsLoading, error: communicationsError } = useCommunications(tenantId);
 
-  // Defensive guards for missing associations
+  // ── Defensive guards ──
   if (!tenantId) {
     return (
       <section className="space-y-4">
@@ -78,66 +101,95 @@ export default function ResidentHomePage() {
     );
   }
 
-  // Defensive metrics with try/catch and fallback
+  // ── Metrics ──
   let pendingBalance = 0;
+  let billingStatus: "overdue" | "pending" | "clear" = "clear";
   try {
-    pendingBalance = billing.filter((item) => item.status === "pending" || item.status === "overdue").reduce((sum, item) => sum + (item.balance || 0), 0);
+    const hasOverdue = billing.some((item) => item.status === "overdue");
+    const hasPending = billing.some((item) => item.status === "pending");
+    pendingBalance = billing
+      .filter((item) => item.status === "pending" || item.status === "overdue")
+      .reduce((sum, item) => sum + (item.balance || 0), 0);
+    billingStatus = hasOverdue ? "overdue" : hasPending ? "pending" : "clear";
   } catch (e) {
     console.error("[resident-home] Error calculando saldo pendiente", e, billing);
-    pendingBalance = 0;
   }
-  let nextReservation = null;
-  try {
-    nextReservation = reservations[0] || null;
-  } catch (e) {
+
+  let nextReservation: Reservation | null = null;
+  try { nextReservation = reservations[0] || null; } catch (e) {
     console.error("[resident-home] Error obteniendo próxima reserva", e, reservations);
-    nextReservation = null;
   }
+
   let activeVisitors = 0;
-  try {
-    activeVisitors = visitors.filter((item) => item.status !== "completed").length;
-  } catch (e) {
+  try { activeVisitors = visitors.filter((item) => item.status !== "completed").length; } catch (e) {
     console.error("[resident-home] Error contando visitantes activos", e, visitors);
-    activeVisitors = 0;
   }
+
   let pendingPackages = 0;
-  try {
-    pendingPackages = packages.filter((item) => item.status === "pending").length;
-  } catch (e) {
+  try { pendingPackages = packages.filter((item) => item.status === "pending").length; } catch (e) {
     console.error("[resident-home] Error contando paquetes pendientes", e, packages);
-    pendingPackages = 0;
+  }
+
+  // ── Next reservation label ──
+  function reservationLabel() {
+    if (!nextReservation) return "Sin reservas";
+    const amenity = nextReservation.amenity || "Amenidad";
+    const date = formatShortDate(nextReservation.date);
+    return date ? `${amenity} · ${date}` : amenity;
   }
 
   return (
     <section className="space-y-4">
+
+      {/* ── Metric grid ── */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Saldo pendiente */}
-        <MetricCard
-          label="Saldo pendiente"
-          value={billingLoading ? "Cargando..." : formatAmount(pendingBalance)}
-        />
-        {/* Próxima reserva */}
-        <MetricCard
-          label="Proxima reserva"
-          value={reservationsLoading ? "Cargando..." : (nextReservation ? `${nextReservation.amenity || "Amenidad"} ${nextReservation.date || ""}` : "Sin reservas")}
-        />
-        {/* Visitantes activos */}
-        <MetricCard
-          label="Visitantes activos"
-          value={visitorsLoading ? "Cargando..." : String(activeVisitors)}
-        />
-        {/* Paquetes pendientes */}
-        <MetricCard
-          label="Paquetes pendientes"
-          value={packagesLoading ? "Cargando..." : String(pendingPackages)}
-        />
+        {billingLoading ? (
+          <Skeleton className="h-[88px] rounded-2xl" />
+        ) : (
+          <MetricCard
+            label="Saldo pendiente"
+            value={formatAmount(pendingBalance)}
+            semantic={billingStatus}
+            href="/resident/account"
+          />
+        )}
+        {reservationsLoading ? (
+          <Skeleton className="h-[88px] rounded-2xl" />
+        ) : (
+          <MetricCard
+            label="Próxima reserva"
+            value={reservationLabel()}
+            tone="mint"
+            href="/resident/reservations"
+          />
+        )}
+        {visitorsLoading ? (
+          <Skeleton className="h-[88px] rounded-2xl" />
+        ) : (
+          <MetricCard
+            label="Visitantes activos"
+            value={String(activeVisitors)}
+            tone="peach"
+            href="/resident/visitors"
+          />
+        )}
+        {packagesLoading ? (
+          <Skeleton className="h-[88px] rounded-2xl" />
+        ) : (
+          <MetricCard
+            label="Paquetes pendientes"
+            value={String(pendingPackages)}
+            tone="sand"
+            href="/resident/packages"
+          />
+        )}
       </div>
 
-      {/* Errores localizados por bloque */}
+      {/* ── Errores localizados ── */}
       {(billingError || reservationsError || visitorsError || packagesError) && (
-        <Card className="bg-[var(--red-50)] border-[var(--red-200)]">
-          <CardTitle>Algunos datos no se pudieron cargar</CardTitle>
-          <CardDescription className="mt-1 text-[var(--red-700)]">
+        <Card className="border-red-200 bg-red-50">
+          <CardTitle className="text-red-800">Algunos datos no se pudieron cargar</CardTitle>
+          <CardDescription className="mt-1 text-red-700">
             {billingError && <div>Saldo: {billingError}</div>}
             {reservationsError && <div>Reservas: {reservationsError}</div>}
             {visitorsError && <div>Visitantes: {visitorsError}</div>}
@@ -146,66 +198,66 @@ export default function ResidentHomePage() {
         </Card>
       )}
 
+      {/* ── Accesos rápidos ── */}
       <Card>
-        <CardTitle>Accesos rapidos</CardTitle>
+        <CardTitle>Accesos rápidos</CardTitle>
         <CardDescription className="mt-1">
-          Gestióna tu vida residencial en menos de 2 taps desde movil.
+          Las acciones más frecuentes de tu unidad, a un toque.
         </CardDescription>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Link className="rounded-xl border border-[var(--slate-200)] p-3 text-sm hover:bg-[var(--slate-100)]" href="/resident/account">
+          <Link
+            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm font-medium text-[var(--slate-900)] hover:bg-[var(--slate-100)] transition-colors"
+            href="/resident/account"
+          >
             Ver estado de cuenta
           </Link>
-          <Link className="rounded-xl border border-[var(--slate-200)] p-3 text-sm hover:bg-[var(--slate-100)]" href="/resident/reservations">
+          <Link
+            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm font-medium text-[var(--slate-900)] hover:bg-[var(--slate-100)] transition-colors"
+            href="/resident/reservations"
+          >
             Reservar amenidades
           </Link>
-          <Link className="rounded-xl border border-[var(--slate-200)] p-3 text-sm hover:bg-[var(--slate-100)]" href="/resident/visitors">
+          <Link
+            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm font-medium text-[var(--slate-900)] hover:bg-[var(--slate-100)] transition-colors"
+            href="/resident/visitors"
+          >
             Autorizar visitantes
           </Link>
-          <Link className="rounded-xl border border-[var(--slate-200)] p-3 text-sm hover:bg-[var(--slate-100)]" href="/resident/pqrs">
+          <Link
+            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm text-[var(--slate-600)] hover:bg-[var(--slate-100)] transition-colors"
+            href="/resident/pqrs"
+          >
             Crear PQRS
           </Link>
         </div>
       </Card>
 
+      {/* ── Comunicados recientes ── */}
       <Card>
         <CardTitle>Comunicados recientes</CardTitle>
-        <CardDescription className="mt-1">Ultimos anuncios del edificio para tu unidad.</CardDescription>
+        <CardDescription className="mt-1">Últimos anuncios del edificio para tu unidad.</CardDescription>
         {communicationsError && (
-          <div className="text-[var(--red-700)] text-sm p-2">No se pudieron cargar los comunicados: {communicationsError}</div>
+          <p className="mt-2 text-sm text-red-700">No se pudieron cargar los comunicados. Intenta de nuevo más tarde.</p>
         )}
         <ul className="mt-4 space-y-2 text-sm text-[var(--slate-700)]">
           {communicationsLoading ? (
-            <li className="rounded-xl border border-[var(--slate-200)] p-3">Cargando comunicados...</li>
+            <>
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-16 rounded-xl" />
+            </>
           ) : (
             communications.slice(0, 4).map((item) => (
-              <li key={item.id} className="rounded-xl border border-[var(--slate-200)] bg-white p-3">
-                <p className="font-medium text-[var(--slate-900)]">{item.title}</p>
-                {formatDateLabel(item.publishedAt) ? <p className="mt-1 text-xs text-[var(--slate-600)]">Publicado: {formatDateLabel(item.publishedAt)}</p> : null}
-                {formatDateLabel(item.endsAt) ? <p className="mt-1 text-xs text-[var(--slate-600)]">Vigente hasta: {formatDateLabel(item.endsAt)}</p> : null}
-                <p className="mt-2 whitespace-pre-wrap text-[var(--slate-700)]">{item.body}</p>
-                {item.attachments.length > 0 ? (
-                  <div className="mt-3 border-t border-[var(--slate-200)] pt-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Adjuntos</p>
-                    <ul className="mt-1 space-y-1">
-                      {item.attachments.map((attachment) => (
-                        <li key={`${item.id}-${attachment.url}`}>
-                          <a className="text-[var(--brand-700)] hover:underline" href={attachment.url} target="_blank" rel="noreferrer">
-                            {attachment.name}
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </li>
+              <CommunicationItem key={item.id} item={item} />
             ))
           )}
           {!communicationsLoading && communications.length === 0 && !communicationsError ? (
-            <li className="rounded-xl border border-[var(--slate-200)] p-3">No hay comunicados vigentes en este momento.</li>
+            <li className="rounded-xl border border-[var(--slate-200)] p-3 text-[var(--slate-500)]">
+              No hay comunicados vigentes en este momento.
+            </li>
           ) : null}
         </ul>
         <div className="mt-3">
-          <Link className="text-sm text-[var(--brand-700)] hover:underline" href="/resident/communications">
+          <Link className="text-sm font-medium text-[var(--brand-700)] hover:underline" href="/resident/communications">
             Ver todas las comunicaciones
           </Link>
         </div>
