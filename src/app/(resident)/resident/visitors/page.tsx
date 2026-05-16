@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { cancelResidentInvitation, subscribeResidentInvitations } from "@/features/visitors/invitations";
 import type { VisitorInvitation, VisitorInvitationStatus } from "features/visitors/types";
@@ -75,7 +76,7 @@ export default function ResidentVisitorsPage() {
     setCancellingId(id);
     try {
       await cancelResidentInvitation(id);
-      toast.success("Invitacion cancelada correctamente.");
+      toast.success("Invitación cancelada correctamente.");
     } catch (cancelError) {
       toastFirebaseError(cancelError);
     } finally {
@@ -89,14 +90,14 @@ export default function ResidentVisitorsPage() {
       <Card>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">Modulo residentes</p>
+            <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">Módulo residentes</p>
             <CardTitle className="mt-1 text-xl">Visitantes y autorizaciones</CardTitle>
             <CardDescription className="mt-1">
-              Gestióna invitaciones activas, revisa vigencias y comparte el QR final sin salir de tu portal.
+              Gestiona invitaciones activas, revisa vigencias y comparte el QR final sin salir de tu portal.
             </CardDescription>
           </div>
           <Link href="/resident/visitors/new">
-            <Button>Crear invitacion</Button>
+            <Button>Crear invitación</Button>
           </Link>
         </div>
       </Card>
@@ -109,18 +110,38 @@ export default function ResidentVisitorsPage() {
           </div>
         </div>
 
-        {loading ? <p className="mt-4 text-sm text-[var(--slate-600)]">Cargando invitaciones...</p> : null}
+        {loading ? (
+          <div className="mt-4 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border border-[var(--slate-200)] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40 rounded" />
+                    <Skeleton className="h-4 w-32 rounded" />
+                    <Skeleton className="h-4 w-56 rounded" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <Skeleton className="h-8 w-24 rounded-lg" />
+                  <Skeleton className="h-8 w-20 rounded-lg" />
+                  <Skeleton className="h-8 w-36 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {error ? <p className="mt-4 text-sm text-[var(--danger-700)]">{error}</p> : null}
 
         {!loading && !error && !hasInvitations ? (
           <div className="space-y-3">
             <EmptyState
-              title="Aun no tienes invitaciones"
-              description="Crea tu primera invitacion para compartir acceso con tus visitantes desde este mismo modulo."
+              title="Aún no tienes invitaciones"
+              description="Crea tu primera invitación para compartir acceso con tus visitantes desde este mismo módulo."
             />
             <div className="text-center">
               <Link href="/resident/visitors/new">
-                <Button size="sm">Crear invitacion</Button>
+                <Button size="sm">Crear invitación</Button>
               </Link>
             </div>
           </div>
@@ -133,8 +154,9 @@ export default function ResidentVisitorsPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold text-[var(--slate-900)]">{item.visitorName}</h3>
-                    <p className="text-sm text-[var(--slate-700)]">ID: {item.visitorIdentification}</p>
-                    <p className="text-sm text-[var(--slate-600)]">Vigencia: {formatDateTime(item.startAt)} - {formatDateTime(item.endAt)}</p>
+                    <p className="text-sm text-[var(--slate-700)]">Documento: {item.visitorIdentification}</p>
+                    <p className="text-sm text-[var(--slate-600)]">Desde: {formatDateTime(item.startAt)}</p>
+                    <p className="text-sm text-[var(--slate-600)]">Hasta: {formatDateTime(item.endAt)}</p>
                   </div>
                   <Badge className={statusClassName[getDisplayStatus(item)]}>{statusLabel[getDisplayStatus(item)]}</Badge>
                 </div>
@@ -157,7 +179,7 @@ export default function ResidentVisitorsPage() {
                     onClick={() => void handleCancelInvitation(item.id)}
                     disabled={getDisplayStatus(item) !== "active" || cancellingId === item.id}
                   >
-                    {cancellingId === item.id ? "Cancelando..." : "Cancelar invitacion"}
+                    {cancellingId === item.id ? "Cancelando..." : "Cancelar invitación"}
                   </Button>
                 </div>
               </article>

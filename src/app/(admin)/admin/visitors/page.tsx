@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { Modal } from "@/components/shared/modal";
+import { Dialog } from "@/components/ui/dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export default function AdminVisitorsPage() {
   const [activeTab, setActiveTab] = useState<"authorizations" | "passes">("authorizations");
   const { items: passes, loading: passesLoading } = useVisitorPasses(user?.tenantId);
   const [selectedPass, setSelectedPass] = useState<VisitorPass | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<VisitorItem | null>(null);
 
   const form = useForm<VisitorInput>({
     resolver: zodResolver(visitorSchema),
@@ -99,7 +101,7 @@ export default function AdminVisitorsPage() {
     }
 
     if (!isDateTimeValid(selectedDateTime, "visitor", nowDateTime)) {
-      return "La visita debe registrarse con al menos 15 minutos de anticipacion";
+      return "La visita debe registrarse con al menos 15 minutos de anticipación";
     }
 
     return null;
@@ -129,7 +131,7 @@ export default function AdminVisitorsPage() {
         setError(message);
         setLoading(false);
         // Solo mostrar toast si el error no es de empty state
-        if (message && !/no hay autorizaciones/i.test(message)) {
+        if (message && !/no hay autorizaciónes/i.test(message)) {
           toast.error(message);
         }
       },
@@ -194,12 +196,17 @@ export default function AdminVisitorsPage() {
     {
       key: "authorizationType",
       header: "Tipo",
-      render: (item) => item.authorizationType,
+      render: (item) => item.authorizationType === "larga_duracion"
+        ? "Larga duración"
+        : "Puntual",
     },
     {
       key: "category",
-      header: "Categoria",
-      render: (item) => item.visitorCategory,
+      header: "Categoría",
+      render: (item) => {
+        const map: Record<string, string> = { familiar: "Familiar", servicio: "Servicio", otro: "Otro" };
+        return map[item.visitorCategory] ?? item.visitorCategory;
+      },
       mobileHidden: true,
     },
     {
@@ -266,7 +273,7 @@ export default function AdminVisitorsPage() {
 
     const selectedDateTime = combineDateAndTime(values.startDate, values.startTime);
     if (!selectedDateTime || !isDateTimeValid(selectedDateTime, "visitor")) {
-      toast.error("La visita debe registrarse con al menos 15 minutos de anticipacion.");
+      toast.error("La visita debe registrarse con al menos 15 minutos de anticipación.");
       return;
     }
 
@@ -292,13 +299,19 @@ export default function AdminVisitorsPage() {
     }
   }
 
-  async function handleDelete(item: VisitorItem) {
-    if (!window.confirm(`Eliminar autorizacion de ${item.visitorName}?`)) return;
+  function handleDelete(item: VisitorItem) {
+    setDeleteTarget(item);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
     try {
-      await deleteVisitor(item.id);
-      toast.success("Visitante eliminado.");
+      await deleteVisitor(deleteTarget.id);
+      toast.success("Autorización eliminada.");
     } catch (error) {
       toastFirebaseError(error);
+    } finally {
+      setDeleteTarget(null);
     }
   }
 
@@ -328,7 +341,7 @@ export default function AdminVisitorsPage() {
         <div>
           <CardTitle>Visitantes y acceso</CardTitle>
           <CardDescription className="mt-1">
-            Autorizaciones puntuales o de larga duracion, con categoria y responsable de autorizacion.
+            Autorizaciones puntuales o de larga duración, con categoria y responsable de autorización.
           </CardDescription>
         </div>
         {canEdit ? (
@@ -336,7 +349,7 @@ export default function AdminVisitorsPage() {
             <IconBadge tone="mint" className="mr-2">
               <Plus className="h-4 w-4" />
             </IconBadge>
-            Crear autorizacion
+            Crear autorización
           </Button>
         ) : null}
       </div>
@@ -424,11 +437,11 @@ export default function AdminVisitorsPage() {
           loading={loading}
           errorText={
             error === "Estamos terminando de configurar este modulo. Intenta nuevamente en unos minutos."
-              ? "No pudimos cargar las autorizaciones de visitantes. Intenta nuevamente."
+              ? "No pudimos cargar las autorizaciónes de visitantes. Intenta nuevamente."
               : error
           }
           loadingText="Cargando visitantes..."
-          emptyText="No hay autorizaciones registradas con los filtros actuales."
+          emptyText="No hay autorizaciónes registradas con los filtros actuales."
           tableMinWidthClassName="min-w-[760px] sm:min-w-[980px]"
           renderActions={canEdit ? (item) => (
             <div className="flex flex-wrap gap-2">
@@ -571,7 +584,16 @@ export default function AdminVisitorsPage() {
                   Residente anfitrión: <span className="font-medium text-[var(--slate-900)]">{selectedPass.hostResidentName || "-"}</span>
                 </p>
                 <p className="text-[var(--slate-700)]">
-                  Fecha programada: <span className="font-medium text-[var(--slate-900)]">{selectedPass.date || "-"}</span>
+                  Fecha programada:{" "}
+                  <span className="font-medium text-[var(--slate-900)]">
+                    {selectedPass.date
+                      ? new Date(`${selectedPass.date}T12:00:00`).toLocaleDateString("es-CO", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "-"}
+                  </span>
                 </p>
                 <p className="text-[var(--slate-700)]">
                   Hora: <span className="font-medium text-[var(--slate-900)]">{selectedPass.scheduledTime?.slice(0, 5) || "-"}</span>
@@ -628,6 +650,22 @@ export default function AdminVisitorsPage() {
         </div>
       ) : null}
 
+      <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} className="max-w-sm p-6">
+        <h2 className="text-base font-semibold text-[var(--slate-900)]">Eliminar autorización</h2>
+        <p className="mt-2 text-sm text-[var(--slate-600)]">
+          ¿Confirmas que deseas eliminar la autorización de{" "}
+          <span className="font-medium text-[var(--slate-900)]">{deleteTarget?.visitorName}</span>? Esta acción no se puede deshacer.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            Cancelar
+          </Button>
+          <Button variant="danger" onClick={() => void confirmDelete()}>
+            Eliminar
+          </Button>
+        </div>
+      </Dialog>
+
       <Modal open={openModal && canEdit} title={editingItem ? "Editar visitante" : "Crear visitante"} onClose={() => setOpenModal(false)}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
           <div>
@@ -636,24 +674,24 @@ export default function AdminVisitorsPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
-              Cedula visitante
+              Cédula visitante
               <Input {...form.register("visitorDocument")} />
             </label>
             <label className="text-sm text-[var(--slate-700)]">
-              Codigo QR
+              Código QR
               <Input {...form.register("qrCode")} />
             </label>
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="text-sm text-[var(--slate-700)]">
-              Tipo autorizacion
+              Tipo autorización
               <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("authorizationType")}>
                 <option value="puntual">Puntual</option>
-                <option value="larga_duracion">Larga duracion</option>
+                <option value="larga_duracion">Larga duración</option>
               </select>
             </label>
             <label className="text-sm text-[var(--slate-700)]">
-              Categoria
+              Categoría
               <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("visitorCategory")}>
                 <option value="familiar">Familiar</option>
                 <option value="servicio">Servicio</option>
@@ -707,7 +745,7 @@ export default function AdminVisitorsPage() {
                 </label>
               </>
             ) : (
-              <div className="text-xs text-[var(--slate-500)]">Para autorizacion puntual se usa la misma fecha y hora de inicio.</div>
+              <div className="text-xs text-[var(--slate-500)]">Para autorización puntual se usa la misma fecha y hora de inicio.</div>
             )}
           </div>
           <label className="text-sm text-[var(--slate-700)]">
