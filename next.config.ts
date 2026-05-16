@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
+import path from "node:path";
 
 const nextConfig: NextConfig = {
+  // Pin the workspace root so Next does not auto-detect the wrong one
+  // when multiple lockfiles exist (root package-lock.json + functions/package-lock.json).
+  // Applies to both `next build` (via outputFileTracingRoot) and Turbopack (via turbopack.root).
+  outputFileTracingRoot: path.join(__dirname),
   turbopack: {
     root: __dirname,
   },

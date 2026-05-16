@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Filter, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { HelpTip } from "@/components/shared/help-tip";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { cn } from "@/lib/utils/cn";
 
@@ -16,6 +17,7 @@ export function MobileFiltersPanel({
   activeFiltersCount = 0,
   openLabel = "Mostrar filtros",
   closeLabel = "Ocultar filtros",
+  helpText,
 }: {
   title?: string;
   children: ReactNode;
@@ -25,6 +27,7 @@ export function MobileFiltersPanel({
   activeFiltersCount?: number;
   openLabel?: string;
   closeLabel?: string;
+  helpText?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const buttonLabel = open ? closeLabel : openLabel;
@@ -60,7 +63,10 @@ export function MobileFiltersPanel({
           collapsibleOnDesktop ? (shouldShowPanel ? "block" : "hidden") : open ? "block" : "hidden md:block",
         )}
       >
-        <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">{title}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">{title}</p>
+          {helpText ? <HelpTip text={helpText} side="right" /> : null}
+        </div>
         <div className="mt-2 grid gap-3">{children}</div>
         {footer ? <div className="mt-3 border-t border-[var(--slate-200)] pt-3">{footer}</div> : null}
       </div>
