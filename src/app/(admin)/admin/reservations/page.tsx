@@ -46,6 +46,7 @@ import {
   type UnitItem,
 } from "@/features/admin/services";
 import { AmenityPhotoManager } from "@/components/features/reservations/AmenityPhotoManager";
+import { ReservationsCalendar } from "@/components/features/reservations/ReservationsCalendar";
 
 function asDateLabel(value: unknown) {
   if (!value) return "-";
@@ -113,6 +114,8 @@ export default function AdminReservationsPage() {
   const [editAmenityMaxDuration, setEditAmenityMaxDuration] = useState("");
   const [editAmenityMaxPerMonth, setEditAmenityMaxPerMonth] = useState("");
   const [editAmenityUsageRules, setEditAmenityUsageRules] = useState("");
+
+  const [calendarDate, setCalendarDate] = useState<string | null>(null);
 
   const canEdit = user?.role === "tenant_admin" && user?.status === "active";
   const activeAmenities = useMemo(() => amenities.filter((item) => item.status === "active"), [amenities]);
@@ -721,6 +724,17 @@ export default function AdminReservationsPage() {
         </div>
       </Drawer>
 
+      <ReservationsCalendar
+        items={items}
+        amenities={amenities}
+        selectedDate={calendarDate}
+        onSelectDate={(date) => {
+          setCalendarDate(date);
+          setDateFrom(date ?? "");
+          setDateTo(date ?? "");
+        }}
+      />
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle help="Controla el uso de las amenidades del conjunto: salón comunal, piscina, gimnasio y más. Define horarios, límites mensuales y requisitos de pago para que el acceso sea ordenado y equitativo para todos los residentes.">Reservas de zonas comunes</CardTitle>
@@ -746,6 +760,7 @@ export default function AdminReservationsPage() {
               type="button"
               variant="outline"
               onClick={() => {
+                setCalendarDate(null);
                 setStatusFilter("all");
                 setUnitFilter("all");
                 setAmenityFilter("all");
