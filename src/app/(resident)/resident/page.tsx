@@ -81,7 +81,7 @@ export default function ResidentHomePage() {
   // Defensive metrics with try/catch and fallback
   let pendingBalance = 0;
   try {
-    pendingBalance = billing.filter((item) => item.status === "pending").reduce((sum, item) => sum + (item.balance || 0), 0);
+    pendingBalance = billing.filter((item) => item.status === "pending" || item.status === "overdue").reduce((sum, item) => sum + (item.balance || 0), 0);
   } catch (e) {
     console.error("[resident-home] Error calculando saldo pendiente", e, billing);
     pendingBalance = 0;
