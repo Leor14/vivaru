@@ -215,19 +215,23 @@ export function BillingPeriodCard({
                 )}
               </div>
             )}
-            {receiptStatus === null && hasDebt && onUploadReceipt && (
+            {receiptStatus === null && hasDebt && (
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-[var(--slate-500)]">Sin comprobante adjunto</span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-7 px-2 text-xs"
-                  onClick={() => onUploadReceipt(item.id)}
-                >
-                  <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
-                  Subir comprobante
-                </Button>
+                {onUploadReceipt ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => onUploadReceipt(item.id)}
+                  >
+                    <Upload className="mr-1 h-3 w-3" aria-hidden="true" />
+                    Subir comprobante
+                  </Button>
+                ) : (
+                  <span className="text-xs text-[var(--slate-400)]">Subiendo…</span>
+                )}
               </div>
             )}
             {receiptStatus === null && !hasDebt && (
