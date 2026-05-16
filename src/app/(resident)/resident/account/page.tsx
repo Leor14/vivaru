@@ -146,14 +146,21 @@ export default function ResidentAccountPage() {
         )}
 
         {sortedItems.map((item, index) => (
-          <BillingPeriodCard
+          <div
             key={item.id}
-            item={item}
-            formatAmount={formatAmount}
-            onUploadReceipt={uploading ? undefined : handleUploadForStatement}
-            receiptStatus={receiptByStatementId.get(item.id)?.status ?? null}
-            defaultOpen={index === 0 && item.status !== "paid"}
-          />
+            className="opacity-0 translate-y-1"
+            style={{
+              animation: `billingCardIn 280ms var(--ease-out) ${index * 60}ms forwards`,
+            }}
+          >
+            <BillingPeriodCard
+              item={item}
+              formatAmount={formatAmount}
+              onUploadReceipt={uploading ? undefined : handleUploadForStatement}
+              receiptStatus={receiptByStatementId.get(item.id)?.status ?? null}
+              defaultOpen={index === 0 && item.status !== "paid"}
+            />
+          </div>
         ))}
       </div>
     </Card>

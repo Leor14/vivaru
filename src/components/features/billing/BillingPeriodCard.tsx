@@ -140,8 +140,9 @@ export function BillingPeriodCard({
         </div>
       </button>
 
-      {/* ── Expanded detail ── */}
-      {open && (
+      {/* ── Expanded detail — CSS grid trick for smooth height animation ── */}
+      <div className="collapsible-grid" data-open={open ? "true" : "false"}>
+        <div className="collapsible-content">
         <div className="border-t border-[var(--slate-100)] px-4 pb-4 pt-3">
           <div className="divide-y divide-[var(--slate-100)]">
             {item.amount !== undefined && (
@@ -242,7 +243,8 @@ export function BillingPeriodCard({
             )}
           </div>
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

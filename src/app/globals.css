@@ -43,6 +43,14 @@
   --slate-900: #152536;
   --danger-600: #b42318;
   --danger-700: #8e1c13;
+
+  /* ── Custom easing curves ── */
+  /* Strong ease-out: immediate movement, decelerates to stop. Use for entering elements. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Strong ease-in-out: natural acceleration and deceleration. Use for on-screen movement. */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* iOS-like drawer curve (from Ionic). Use for drawers and sheets. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @theme inline {
@@ -241,4 +249,97 @@ h3 {
 
 .kpi-value-fluid-compact {
   font-size: clamp(1rem, 0.85vw + 0.7rem, 1.3rem);
+}
+
+/* ── Dialog animations ───────────────────────────────────────────────────────
+ * Overlay fades in/out. Panel scales from 0.95 + opacity.
+ * Uses data-state attribute toggled by the Dialog component.
+ * --------------------------------------------------------------------------- */
+.dialog-overlay {
+  transition: opacity 180ms var(--ease-out);
+}
+.dialog-overlay[data-state="closed"] {
+  opacity: 0;
+}
+.dialog-overlay[data-state="open"] {
+  opacity: 1;
+}
+
+.dialog-panel {
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  transform-origin: center;
+}
+.dialog-panel[data-state="closed"] {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.dialog-panel[data-state="open"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dialog-overlay,
+  .dialog-panel {
+    transition: opacity 120ms ease;
+  }
+  .dialog-panel[data-state="closed"] {
+    transform: scale(1);
+  }
+}
+
+/* ── BillingPeriodCard expand/collapse ───────────────────────────────────────
+ * CSS grid trick: grid-template-rows animates from 0fr to 1fr smoothly,
+ * avoiding the max-height hack that causes uneven timing.
+ * --------------------------------------------------------------------------- */
+.collapsible-grid {
+  display: grid;
+  transition: grid-template-rows 220ms var(--ease-out);
+}
+.collapsible-grid[data-open="false"] {
+  grid-template-rows: 0fr;
+}
+.collapsible-grid[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.collapsible-grid > * {
+  overflow: hidden;
+}
+
+/* Fade content slightly as it collapses */
+.collapsible-content {
+  transition: opacity 180ms var(--ease-out);
+}
+.collapsible-grid[data-open="false"] .collapsible-content {
+  opacity: 0;
+}
+.collapsible-grid[data-open="true"] .collapsible-content {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapsible-grid {
+    transition: none;
+  }
+  .collapsible-content {
+    transition: opacity 100ms ease;
+  }
+}
+
+/* ── Billing card stagger entry ─────────────────────────────────────────────── */
+@keyframes billingCardIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes billingCardIn {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
