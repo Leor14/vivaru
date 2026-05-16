@@ -28,7 +28,12 @@ import { ChartContainer } from "@/components/features/admin/dashboard/chart-cont
 import { CompactDataTable } from "@/components/features/admin/dashboard/compact-data-table";
 import { ExecutiveKpiCard } from "@/components/features/admin/dashboard/executive-kpi-card";
 import { OperationalAlertsDrawer } from "@/components/features/admin/dashboard/operational-alerts-drawer";
+import { OverdueUnitsWidget } from "@/components/features/admin/dashboard/overdue-units-widget";
+import { PackagesBodegaWidget } from "@/components/features/admin/dashboard/packages-bodega-widget";
+import { PqrsAgingWidget } from "@/components/features/admin/dashboard/pqrs-aging-widget";
+import { RegulationComplianceWidget } from "@/components/features/admin/dashboard/regulation-compliance-widget";
 import { StatusPill } from "@/components/features/admin/dashboard/status-pill";
+import { VisitorFlowWidget } from "@/components/features/admin/dashboard/visitor-flow-widget";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
@@ -802,6 +807,69 @@ export default function AdminDashboardPage() {
           </div>
           {billingError ? <p className="mt-3 text-xs text-[var(--danger-700)]">{getQueryErrorLabel(billingError)}</p> : null}
         </ChartContainer>
+      </DashboardSectionBoundary>
+
+      <DashboardSectionBoundary
+        section="compliance"
+        fallback={
+          <Card>
+            <CardTitle>Cumplimiento</CardTitle>
+            <CardDescription className="mt-1">No pudimos cargar el módulo de cumplimiento.</CardDescription>
+          </Card>
+        }
+      >
+        <div className="space-y-2">
+          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Cumplimiento</p>
+          <RegulationComplianceWidget tenantId={tenantId} />
+        </div>
+      </DashboardSectionBoundary>
+
+      <DashboardSectionBoundary
+        section="operational-widgets"
+        fallback={
+          <Card>
+            <CardTitle>Operativo</CardTitle>
+            <CardDescription className="mt-1">No pudimos cargar los widgets operativos.</CardDescription>
+          </Card>
+        }
+      >
+        <div className="space-y-2">
+          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Operativo</p>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <VisitorFlowWidget tenantId={tenantId} />
+            <PqrsAgingWidget tenantId={tenantId} />
+          </div>
+        </div>
+      </DashboardSectionBoundary>
+
+      <DashboardSectionBoundary
+        section="financial-widgets"
+        fallback={
+          <Card>
+            <CardTitle>Financiero</CardTitle>
+            <CardDescription className="mt-1">No pudimos cargar el módulo financiero.</CardDescription>
+          </Card>
+        }
+      >
+        <div className="space-y-2">
+          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Financiero</p>
+          <OverdueUnitsWidget items={billing} loading={loadingBilling} />
+        </div>
+      </DashboardSectionBoundary>
+
+      <DashboardSectionBoundary
+        section="logistics-widgets"
+        fallback={
+          <Card>
+            <CardTitle>Logística</CardTitle>
+            <CardDescription className="mt-1">No pudimos cargar el módulo de logística.</CardDescription>
+          </Card>
+        }
+      >
+        <div className="space-y-2">
+          <p className="text-label text-[var(--slate-500)] uppercase tracking-wider">Logística</p>
+          <PackagesBodegaWidget tenantId={tenantId} />
+        </div>
       </DashboardSectionBoundary>
 
       <DashboardSectionBoundary
