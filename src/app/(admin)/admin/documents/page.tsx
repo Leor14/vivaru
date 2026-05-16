@@ -122,8 +122,8 @@ export default function AdminDocumentsPage() {
 
   return (
     <Card>
-      <CardTitle>Repositorio documental</CardTitle>
-      <CardDescription className="mt-1">Sube archivo a Storage y registra metadata en Firestore.</CardDescription>
+      <CardTitle help="Centraliza los archivos clave del conjunto: actas de asamblea, contratos, planos y memorias. Tener los documentos organizados y accesibles evita pérdidas de información crítica y facilita cualquier auditoría o revisión legal.">Repositorio documental</CardTitle>
+      <CardDescription className="mt-1">Sube y organiza los documentos oficiales del conjunto.</CardDescription>
 
       <form className="mt-4 grid gap-3 md:grid-cols-[1fr_2fr_auto]" onSubmit={form.handleSubmit((values) => void handleUpload(values))}>
         <div className="text-sm text-[var(--slate-700)]">

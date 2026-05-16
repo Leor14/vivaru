@@ -702,7 +702,7 @@ export default function AdminResidentsPage() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Residentes, propietarios, inquilinos y unidades</CardTitle>
+            <CardTitle help="El directorio vivo del conjunto. Mantenerlo actualizado es la base de todos los demás módulos: desde el cobro hasta la comunicación. Aquí defines quién vive en cada unidad, en qué calidad y con qué nivel de acceso.">Residentes, propietarios, inquilinos y unidades</CardTitle>
             <CardDescription className="mt-1">
               Gestión operativa de personas por rol y asociación a unidades del edificio.
             </CardDescription>
@@ -722,7 +722,7 @@ export default function AdminResidentsPage() {
       </Card>
 
       <Card>
-        <CardTitle>Unidades</CardTitle>
+        <CardTitle help="El inventario de apartamentos, locales o casas del conjunto. Cada unidad es el punto de anclaje para cobros, residentes, reservas y PQRS. Mantén este listado preciso y todo lo demás fluye con consistencia.">Unidades</CardTitle>
         <div className="mt-3">
           <DataTable
             columns={unitColumns}

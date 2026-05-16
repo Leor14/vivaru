@@ -254,7 +254,7 @@ export default function AdminCommunicationsPage() {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle>Comunicaciones</CardTitle>
+          <CardTitle help="Envía mensajes, circulares y notificaciones a toda la comunidad o a grupos específicos. La comunicación oportuna reduce malentendidos y construye confianza entre la administración y los residentes.">Comunicaciones</CardTitle>
           <CardDescription className="mt-1">Centro de mensajes y notificaciones.</CardDescription>
         </div>
         <Button className="w-full sm:w-auto" onClick={openCreate}>

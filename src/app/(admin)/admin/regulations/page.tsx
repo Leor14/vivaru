@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HelpTip } from "@/components/shared/help-tip";
 import { useAuth } from "@/features/auth/auth-context";
 import {
   setActiveRegulation,
@@ -158,9 +159,12 @@ export default function AdminRegulationsPage() {
             <ScrollText className="h-5 w-5 text-[var(--slate-600)]" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-[var(--slate-900)]">
-              Reglamento del edificio
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold text-[var(--slate-900)]">
+                Reglamento del edificio
+              </h1>
+              <HelpTip text="Carga y activa el reglamento interno del conjunto. Cuando los residentes tienen acceso fácil a las normas vigentes, se reducen los conflictos y la administración cuenta con respaldo documental ante cualquier incidencia." />
+            </div>
             <p className="text-sm text-[var(--slate-500)]">
               Gestiona el reglamento vigente y supervisa las firmas de residentes.
             </p>
@@ -229,7 +233,7 @@ export default function AdminRegulationsPage() {
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <CardTitle>Estado de firmas</CardTitle>
+              <CardTitle help="Seguimiento de qué residentes han leído y firmado el reglamento vigente. Una alta tasa de firmas fortalece la posición de la administración ante cualquier disputa sobre las normas del conjunto.">Estado de firmas</CardTitle>
               <CardDescription className="mt-0.5">
                 {signaturesLoading
                   ? "Cargando firmas…"

@@ -515,7 +515,7 @@ export default function AdminSurveysPage() {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle>Encuestas</CardTitle>
+          <CardTitle help="Mide la opinión de la comunidad sobre temas del conjunto. Las encuestas activas generan participación y te dan argumentos sólidos para tomar decisiones con el respaldo documentado de los residentes.">Encuestas</CardTitle>
           <CardDescription className="mt-1">Crea y gestiona encuestas para la comunidad.</CardDescription>
         </div>
         <Button className="w-full sm:w-auto" onClick={openCreateDrawer}>

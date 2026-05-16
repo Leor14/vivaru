@@ -176,8 +176,8 @@ export default function AdminSettingsPage() {
       />
 
       <Card>
-        <CardTitle>Perfil del usuario</CardTitle>
-        <CardDescription className="mt-1">Gestióna tu nombre visible y avatar operativo en una sola vista.</CardDescription>
+        <CardTitle help="Tu identidad operativa en Vivaru: el nombre que los residentes verán en comunicaciones y respuestas. Mantenlo actualizado para que la administración tenga una cara reconocible y confiable.">Perfil del usuario</CardTitle>
+        <CardDescription className="mt-1">Actualiza tu nombre visible y avatar operativo en una sola vista.</CardDescription>
 
         <form className="mt-4 space-y-3" onSubmit={profileForm.handleSubmit((values) => void handleSaveProfile(values))}>
           <label className="text-sm text-[var(--slate-700)]">
@@ -206,8 +206,8 @@ export default function AdminSettingsPage() {
       </Card>
 
       <Card>
-        <CardTitle>Seguridad</CardTitle>
-        <CardDescription className="mt-1">Actualiza tu contrasena sin salir de tu perfil.</CardDescription>
+        <CardTitle help="Renueva tu contraseña de acceso al panel. Te recomendamos actualizarla periódicamente y usar una combinación que no repitas en otros servicios, especialmente si gestionas datos sensibles de la comunidad.">Seguridad</CardTitle>
+        <CardDescription className="mt-1">Actualiza tu contraseña sin salir de tu perfil.</CardDescription>
         <form className="mt-4 grid gap-3 md:max-w-xl" onSubmit={passwordForm.handleSubmit((values) => void handlePasswordChange(values))}>
           <div>
             <Input type="password" label="Contrasena actual" autoComplete="current-password" {...passwordForm.register("currentPassword")} />
@@ -230,7 +230,7 @@ export default function AdminSettingsPage() {
         </form>
       </Card>
       <Card>
-        <CardTitle>Políticas de reservas</CardTitle>
+        <CardTitle help="Define los parámetros globales que aplican a todas las reservas del conjunto. Cuando requieres pago al día, los residentes con saldo pendiente verán el bloqueo de forma automática en su app, sin intervención manual tuya.">Políticas de reservas</CardTitle>
         <CardDescription className="mt-1">Controla el acceso a reservas según el estado de pago de cada unidad.</CardDescription>
         <div className="mt-4">
           <label className="flex cursor-pointer items-start gap-3">

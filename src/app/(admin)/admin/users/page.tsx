@@ -98,7 +98,7 @@ export default function AdminUsersPage() {
   return (
     <section className="space-y-4">
       <Card>
-        <CardTitle>Administración / Usuarios</CardTitle>
+        <CardTitle help="Administra quién tiene acceso al panel de administración. Mantener el listado de usuarios actualizado es una práctica de seguridad esencial: solo quienes realmente lo necesitan deben tener acceso operativo al conjunto.">Administración / Usuarios</CardTitle>
         <CardDescription className="mt-1">
           Crea usuarios operativos del tenant con rol Admin o Guarda de seguridad.
         </CardDescription>

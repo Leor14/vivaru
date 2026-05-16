@@ -350,7 +350,7 @@ export default function AdminVisitorsPage() {
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle>Visitantes y acceso</CardTitle>
+          <CardTitle help="Controla el ingreso de visitantes al conjunto mediante pases autorizados por los propios residentes. Un registro de visitas activo disuade accesos no autorizados y ofrece trazabilidad ante cualquier incidente de seguridad.">Visitantes y acceso</CardTitle>
           <CardDescription className="mt-1">
             Autorizaciones puntuales o de larga duración, con categoria y responsable de autorización.
           </CardDescription>

@@ -103,7 +103,7 @@ export default function AdminPackagesPage() {
 
   return (
     <Card>
-      <CardTitle>Correspondencia y paquetería</CardTitle>
+      <CardTitle help="Registra la entrada de correspondencia y paquetes, y notifica al residente destinatario. Un control preciso reduce el riesgo de extravíos y da tranquilidad a quienes esperan sus entregas. El registro lo inicia el guardia desde su panel.">Correspondencia y paquetería</CardTitle>
       <CardDescription className="mt-1">
         Trazabilidad de paquetes recibidos por la portería. El registro de nuevos paquetes lo realiza el guardia desde su panel.
       </CardDescription>
