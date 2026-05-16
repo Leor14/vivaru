@@ -1,7 +1,7 @@
 "use client";
 
 import { ScrollText, Upload } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,12 @@ import {
   useActiveRegulation,
   useRegulationSignatures,
 } from "@/features/regulations/use-regulation";
+import {
+  watchUnits,
+  watchPeople,
+  type UnitItem,
+  type PersonItem,
+} from "@/features/admin/services";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,9 +44,13 @@ function titleFromFilename(filename: string): string {
 function SignaturesTable({
   signatures,
   loading,
+  unitsById,
+  peopleByUnitId,
 }: {
   signatures: RegulationSignature[];
   loading: boolean;
+  unitsById: Map<string, UnitItem>;
+  peopleByUnitId: Map<string, PersonItem>;
 }) {
   if (loading) {
     return (
@@ -66,13 +76,18 @@ function SignaturesTable({
         <thead>
           <tr className="border-b border-[var(--slate-200)] text-left text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
             <th className="pb-2 pr-4">Unidad</th>
-            <th className="pb-2 pr-4">Residente (uid)</th>
+            <th className="pb-2 pr-4">Agrupación</th>
+            <th className="pb-2 pr-4">Residente</th>
+            <th className="pb-2 pr-4">Email</th>
             <th className="pb-2 pr-4">Fecha de firma</th>
             <th className="pb-2">Estado</th>
           </tr>
         </thead>
         <tbody>
           {signatures.map((sig) => {
+            const unit = unitsById.get(sig.unitId);
+            const person = peopleByUnitId.get(sig.unitId);
+
             const signedDate =
               sig.signedAt &&
               typeof sig.signedAt === "object" &&
@@ -86,16 +101,87 @@ function SignaturesTable({
                 className="border-b border-[var(--slate-100)] last:border-0"
               >
                 <td className="py-3 pr-4 font-medium text-[var(--slate-900)]">
-                  {sig.unitId}
+                  {unit?.displayName ?? sig.unitId}
                 </td>
-                <td className="py-3 pr-4 font-mono text-xs text-[var(--slate-600)]">
-                  {sig.signedBy.slice(0, 12)}…
+                <td className="py-3 pr-4 text-[var(--slate-600)]">
+                  {unit?.tower ?? "—"}
+                </td>
+                <td className="py-3 pr-4 text-[var(--slate-900)]">
+                  {person?.fullName ?? "—"}
+                </td>
+                <td className="py-3 pr-4 text-[var(--slate-600)]">
+                  {person?.email ?? "—"}
                 </td>
                 <td className="py-3 pr-4 text-[var(--slate-600)]">
                   {signedDate ? formatDate(signedDate) : "—"}
                 </td>
                 <td className="py-3">
                   <Badge className="bg-emerald-100 text-emerald-700">Firmado</Badge>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Pending units table ───────────────────────────────────────────────────────
+
+function PendingUnitsTable({
+  units,
+  signedUnitIds,
+  peopleByUnitId,
+}: {
+  units: UnitItem[];
+  signedUnitIds: Set<string>;
+  peopleByUnitId: Map<string, PersonItem>;
+}) {
+  const pending = units.filter((u) => u.status === "active" && !signedUnitIds.has(u.id));
+
+  if (pending.length === 0) {
+    return (
+      <p className="py-4 text-center text-sm text-[var(--slate-500)]">
+        Todas las unidades activas han firmado el reglamento. 🎉
+      </p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-[var(--slate-200)] text-left text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
+            <th className="pb-2 pr-4">Unidad</th>
+            <th className="pb-2 pr-4">Agrupación</th>
+            <th className="pb-2 pr-4">Titular</th>
+            <th className="pb-2 pr-4">Email</th>
+            <th className="pb-2">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pending.map((unit) => {
+            const person = peopleByUnitId.get(unit.id);
+            return (
+              <tr
+                key={unit.id}
+                className="border-b border-[var(--slate-100)] last:border-0"
+              >
+                <td className="py-3 pr-4 font-medium text-[var(--slate-900)]">
+                  {unit.displayName}
+                </td>
+                <td className="py-3 pr-4 text-[var(--slate-600)]">
+                  {unit.tower || "—"}
+                </td>
+                <td className="py-3 pr-4 text-[var(--slate-900)]">
+                  {person?.fullName ?? <span className="text-[var(--slate-400)]">Sin titular</span>}
+                </td>
+                <td className="py-3 pr-4 text-[var(--slate-600)]">
+                  {person?.email ?? "—"}
+                </td>
+                <td className="py-3">
+                  <Badge className="bg-amber-100 text-amber-700">Pendiente</Badge>
                 </td>
               </tr>
             );
@@ -118,6 +204,55 @@ export default function AdminRegulationsPage() {
     activeRegulation?.id,
   );
 
+  // ── Load units & people for enrichment ────────────────────────────────────
+  const [units, setUnits] = useState<UnitItem[]>([]);
+  const [people, setPeople] = useState<PersonItem[]>([]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsub = watchUnits(tenantId, setUnits, () => {});
+    return unsub;
+  }, [tenantId]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsub = watchPeople(tenantId, setPeople, () => {});
+    return unsub;
+  }, [tenantId]);
+
+  /** unit.id → UnitItem */
+  const unitsById = useMemo(
+    () => new Map(units.map((u) => [u.id, u])),
+    [units],
+  );
+
+  /**
+   * person.unitId → PersonItem (first active person per unit).
+   * Covers both unitId formats (Firestore doc ID and slug).
+   */
+  const peopleByUnitId = useMemo(() => {
+    const map = new Map<string, PersonItem>();
+    for (const p of people) {
+      if (!map.has(p.unitId) || p.status === "active") {
+        map.set(p.unitId, p);
+      }
+    }
+    return map;
+  }, [people]);
+
+  /** Set of unitIds that have already signed */
+  const signedUnitIds = useMemo(
+    () => new Set(signatures.map((s) => s.unitId)),
+    [signatures],
+  );
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const totalActive = units.filter((u) => u.status === "active").length;
+  const signedCount = signatures.length;
+  const pendingCount = totalActive - signedCount;
+  const complianceRate = totalActive > 0 ? Math.round((signedCount / totalActive) * 100) : 0;
+
+  // ── Upload ────────────────────────────────────────────────────────────────
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,13 +280,12 @@ export default function AdminRegulationsPage() {
       toast.error("Error al subir el reglamento. Intenta de nuevo.");
     } finally {
       setUploading(false);
-      // Reset file input so the same file can be re-selected if needed
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-6">
+    <div className="mx-auto max-w-5xl space-y-8 p-6">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -171,7 +305,6 @@ export default function AdminRegulationsPage() {
           </div>
         </div>
 
-        {/* Upload button */}
         <div>
           <input
             ref={fileInputRef}
@@ -228,20 +361,68 @@ export default function AdminRegulationsPage() {
         </div>
       </Card>
 
+      {/* ── Compliance KPIs ────────────────────────────────────────────────── */}
+      {activeRegulation && !signaturesLoading && totalActive > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-xl border border-[var(--slate-200)] bg-white px-4 py-3">
+            <p className="text-xs text-[var(--slate-500)]">Unidades activas</p>
+            <p className="mt-0.5 text-xl font-semibold text-[var(--slate-900)]">{totalActive}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-xs text-emerald-700">Firmadas</p>
+            <p className="mt-0.5 text-xl font-semibold text-emerald-700">{signedCount}</p>
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs text-amber-700">Pendientes</p>
+            <p className="mt-0.5 text-xl font-semibold text-amber-700">{pendingCount}</p>
+          </div>
+          <div className="rounded-xl border border-[var(--slate-200)] bg-white px-4 py-3">
+            <p className="text-xs text-[var(--slate-500)]">Cumplimiento</p>
+            <p className="mt-0.5 text-xl font-semibold text-[var(--slate-900)]">{complianceRate}%</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Signatures section ─────────────────────────────────────────────── */}
       {activeRegulation && (
         <Card>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <CardTitle help="Seguimiento de qué residentes han leído y firmado el reglamento vigente. Una alta tasa de firmas fortalece la posición de la administración ante cualquier disputa sobre las normas del conjunto.">Estado de firmas</CardTitle>
-              <CardDescription className="mt-0.5">
-                {signaturesLoading
-                  ? "Cargando firmas…"
-                  : `${signatures.length} firma${signatures.length !== 1 ? "s" : ""} registrada${signatures.length !== 1 ? "s" : ""}`}
-              </CardDescription>
-            </div>
+          <div className="mb-4">
+            <CardTitle help="Seguimiento de qué residentes han leído y firmado el reglamento vigente. Una alta tasa de firmas fortalece la posición de la administración ante cualquier disputa sobre las normas del conjunto.">
+              Estado de firmas
+            </CardTitle>
+            <CardDescription className="mt-0.5">
+              {signaturesLoading
+                ? "Cargando firmas…"
+                : `${signedCount} firma${signedCount !== 1 ? "s" : ""} registrada${signedCount !== 1 ? "s" : ""}`}
+            </CardDescription>
           </div>
-          <SignaturesTable signatures={signatures} loading={signaturesLoading} />
+          <SignaturesTable
+            signatures={signatures}
+            loading={signaturesLoading}
+            unitsById={unitsById}
+            peopleByUnitId={peopleByUnitId}
+          />
+        </Card>
+      )}
+
+      {/* ── Pending units section ──────────────────────────────────────────── */}
+      {activeRegulation && !signaturesLoading && (
+        <Card>
+          <div className="mb-4">
+            <CardTitle>
+              Unidades pendientes de firma
+            </CardTitle>
+            <CardDescription className="mt-0.5">
+              {pendingCount > 0
+                ? `${pendingCount} unidad${pendingCount !== 1 ? "es activas" : " activa"} sin firma todavía.`
+                : "Sin pendientes."}
+            </CardDescription>
+          </div>
+          <PendingUnitsTable
+            units={units}
+            signedUnitIds={signedUnitIds}
+            peopleByUnitId={peopleByUnitId}
+          />
         </Card>
       )}
 
