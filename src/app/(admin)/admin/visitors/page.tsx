@@ -47,6 +47,7 @@ function asDateLabel(value: unknown) {
 }
 import { useAuth } from "@/features/auth/auth-context";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import { resolveIdentityCell } from "@/lib/utils/identity";
 import type { VisitorPass } from "@/types/domain";
 
 export default function AdminVisitorsPage() {
@@ -174,8 +175,18 @@ export default function AdminVisitorsPage() {
     },
     {
       key: "unit",
-      header: "Unidad",
-      render: (item) => item.unitLabel,
+      header: "Unidad / Residente",
+      render: (item) => {
+        const identity = resolveIdentityCell({ unitLabel: item.unitLabel, personName: item.authorizedBy });
+        return (
+          <span>
+            <span className="block text-[var(--slate-900)]">{identity.primary}</span>
+            {identity.secondary ? (
+              <span className="block text-[11px] text-[var(--slate-500)]">{identity.secondary}</span>
+            ) : null}
+          </span>
+        );
+      },
     },
     {
       key: "visitorDocument",

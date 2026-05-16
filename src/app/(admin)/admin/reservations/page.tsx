@@ -461,13 +461,16 @@ export default function AdminReservationsPage() {
     },
     {
       key: "unit",
-      header: "Unidad",
-      render: (item) => units.find((unit) => unit.id === item.unitId)?.displayName ?? item.unitId,
-    },
-    {
-      key: "reservedBy",
-      header: "Reservado por",
-      render: (item) => item.reservedBy,
+      header: "Unidad / Reservado por",
+      render: (item) => {
+        const displayName = units.find((unit) => unit.id === item.unitId)?.displayName ?? item.unitId;
+        return (
+          <span>
+            <span className="block text-[var(--slate-900)]">{item.reservedBy || "—"}</span>
+            <span className="block text-[11px] text-[var(--slate-500)]">{displayName}</span>
+          </span>
+        );
+      },
     },
     {
       key: "date",

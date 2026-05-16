@@ -13,7 +13,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { resolveUnitName } from "@/lib/utils/unit";
+import { resolveIdentityCell } from "@/lib/utils/identity";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { formatTicketDate, getTicketSla } from "@/features/pqrs/sla";
@@ -24,13 +24,6 @@ import { getStatusLabel } from "@/utils/statusMapper";
 type AlertFilter = "all" | "green" | "yellow" | "red";
 type SortOption = "due" | "oldest" | "newest";
 
-function parseTower(unitLabel: string, tower?: string) {
-  if (tower?.trim()) return tower.trim();
-  const [fromLabel] = unitLabel.split("-");
-  return fromLabel?.trim() || "-";
-}
-
-/** Local helper removed: see @/lib/utils/unit#resolveUnitName */
 
 const TICKET_TYPE_LABELS: Record<string, string> = {
   petition: "Petición",
@@ -114,7 +107,6 @@ export default function AdminPqrsPage() {
   const enrichedItems = useMemo(() => {
     return items.map((ticket) => {
       const unitLabel = ticket.unitLabel || "Sin unidad";
-      const tower = parseTower(unitLabel, ticket.tower);
       const residentName = ticket.residentName || "Residente";
       const radicado = ticket.radicado || `PQRS-${ticket.id.slice(0, 8).toUpperCase()}`;
       const radicationDate = ticket.radicationDate || ticket.createdAt || ticket.updatedAt;
@@ -127,7 +119,6 @@ export default function AdminPqrsPage() {
       return {
         ...ticket,
         unitLabel,
-        tower,
         residentName,
         radicado,
         radicationDate,
@@ -320,7 +311,7 @@ export default function AdminPqrsPage() {
             <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
               <tr>
                 <th className="px-3 py-2">Asunto</th>
-                <th className="px-3 py-2">Torre / Apt</th>
+                <th className="px-3 py-2">Unidad / Residente</th>
                 <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2">Vencimiento</th>
                 <th className="px-3 py-2 text-center">Acción</th>
@@ -366,7 +357,7 @@ export default function AdminPqrsPage() {
               ) : null}
 
               {filteredItems.map((ticket) => {
-                const unitParts = resolveUnitName(ticket.unitLabel);
+                const identity = resolveIdentityCell({ unitLabel: ticket.unitLabel, personName: ticket.residentName });
                 const dueBadge = getDueBadge({
                   isClosed: ticket.sla.isClosed,
                   businessDaysRemaining: ticket.sla.businessDaysRemaining,
@@ -384,9 +375,9 @@ export default function AdminPqrsPage() {
                       </p>
                     </td>
                     <td className="px-3 py-2">
-                      <p className="truncate text-[var(--slate-900)]">{unitParts.torre}</p>
-                      {unitParts.apto ? (
-                        <p className="mt-0.5 truncate text-[11px] text-[var(--slate-500)]">{unitParts.apto}</p>
+                      <p className="truncate text-[var(--slate-900)]">{identity.primary}</p>
+                      {identity.secondary ? (
+                        <p className="mt-0.5 truncate text-[11px] text-[var(--slate-500)]">{identity.secondary}</p>
                       ) : null}
                     </td>
                     <td className="px-3 py-2">
@@ -485,17 +476,12 @@ export default function AdminPqrsPage() {
                 <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Fecha</dt>
                 <dd className="mt-0.5 text-[var(--slate-900)]">{formatTicketDate(selectedTicket.radicationDate)}</dd>
               </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Torre</dt>
-                <dd className="mt-0.5 text-[var(--slate-900)]">{resolveUnitName(selectedTicket.unitLabel).torre}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Unidad</dt>
-                <dd className="mt-0.5 text-[var(--slate-900)]">{resolveUnitName(selectedTicket.unitLabel).apto || "\u2014"}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Residente</dt>
-                <dd className="mt-0.5 text-[var(--slate-900)]">{selectedTicket.residentName}</dd>
+              <div className="col-span-2">
+                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Unidad / Residente</dt>
+                <dd className="mt-0.5 text-[var(--slate-900)]">
+                  {selectedTicket.residentName && <span className="block">{selectedTicket.residentName}</span>}
+                  <span className="block text-[var(--slate-500)]">{selectedTicket.unitLabel || "\u2014"}</span>
+                </dd>
               </div>
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Tipo</dt>

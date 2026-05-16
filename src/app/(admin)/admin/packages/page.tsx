@@ -11,6 +11,7 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
+import { resolveIdentityCell } from "@/lib/utils/identity";
 import { resolveUnitName } from "@/lib/utils/unit";
 import { useDebounce } from "@/lib/utils/use-debounce";
 
@@ -214,8 +215,7 @@ export default function AdminPackagesPage() {
         <table className="w-full text-sm">
           <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
             <tr>
-              <th className="px-3 py-2 font-medium">Destinatario</th>
-              <th className="px-3 py-2 font-medium">Torre / Apto</th>
+              <th className="px-3 py-2 font-medium">Destinatario / Unidad</th>
               <th className="px-3 py-2 font-medium">Descripción</th>
               <th className="px-3 py-2 font-medium">Recibido por</th>
               <th className="px-3 py-2 font-medium">Fecha recepción</th>
@@ -243,16 +243,18 @@ export default function AdminPackagesPage() {
               </tr>
             ) : null}
             {filteredItems.map((item) => {
-              const unit = resolveUnitName(item.unitLabel || "");
+              const identity = resolveIdentityCell({
+                unitLabel: item.unitLabel,
+                personName: item.residentName || item.recipientName,
+              });
               return (
                 <tr key={item.id} className="border-t border-[var(--slate-200)] align-top">
                   <td className="px-3 py-2">
-                    <p className="font-medium text-[var(--slate-900)]">{item.residentName || item.recipientName || "Sin asignar"}</p>
+                    <p className="font-medium text-[var(--slate-900)]">{identity.primary}</p>
+                    {identity.secondary ? (
+                      <p className="mt-0.5 text-[11px] text-[var(--slate-500)]">{identity.secondary}</p>
+                    ) : null}
                     <p className="mt-0.5 text-[11px] text-[var(--slate-500)]">{item.reference || `PK-${item.id.slice(0, 6).toUpperCase()}`}</p>
-                  </td>
-                  <td className="px-3 py-2">
-                    <p className="text-[var(--slate-900)]">{unit.torre}</p>
-                    {unit.apto ? <p className="mt-0.5 text-[11px] text-[var(--slate-500)]">{unit.apto}</p> : null}
                   </td>
                   <td className="px-3 py-2 text-[var(--slate-700)]">{item.description?.trim() || "Sin descripción"}</td>
                   <td className="px-3 py-2 text-[var(--slate-700)]">{resolveGuardName(item)}</td>
