@@ -6,6 +6,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -80,7 +81,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
       {ticket.response && (
         <div className="rounded-lg border border-[var(--slate-100)] bg-[var(--slate-50)] px-3 py-2">
           <p className="mb-1 text-xs font-medium text-[var(--slate-500)]">Respuesta de la administración</p>
-          <p className="text-xs text-[var(--slate-700)] line-clamp-2">{ticket.response}</p>
+          <p className="text-xs text-[var(--slate-700)]">{ticket.response}</p>
           {ticket.respondedAt && (
             <p className="mt-1 text-[10px] text-[var(--slate-400)]">{formatDate(ticket.respondedAt)}</p>
           )}
@@ -198,7 +199,20 @@ export default function ResidentPqrsPage() {
       {/* ── Lista ── */}
       <div className="mt-6">
         {loading ? (
-          <p className="text-sm text-[var(--slate-500)]">Cargando solicitudes...</p>
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-xl border border-[var(--slate-200)] bg-white p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <Skeleton className="h-5 w-48 rounded" />
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+                <div className="flex gap-2">
+                  <Skeleton className="h-4 w-16 rounded-md" />
+                  <Skeleton className="h-4 w-24 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : items.length === 0 ? (
           <EmptyState
             title="Sin solicitudes"

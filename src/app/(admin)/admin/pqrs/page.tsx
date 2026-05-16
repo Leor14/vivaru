@@ -7,6 +7,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
@@ -35,7 +36,7 @@ const TICKET_TYPE_LABELS: Record<string, string> = {
   petition: "Petición",
   complaint: "Queja",
   claim: "Reclamo",
-  suggestion: "Solicitud",
+  suggestion: "Sugerencia",
   other: "General",
 };
 
@@ -327,15 +328,39 @@ export default function AdminPqrsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-3 py-4 text-[var(--slate-600)]">Cargando PQRS...</td>
-                </tr>
+                <>
+                  {[1, 2, 3, 4].map((i) => (
+                    <tr key={i} className="border-t border-[var(--slate-200)]">
+                      <td className="px-3 py-2">
+                        <Skeleton className="h-4 w-3/4 rounded" />
+                        <Skeleton className="mt-1.5 h-3 w-1/2 rounded" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Skeleton className="h-4 w-full rounded" />
+                        <Skeleton className="mt-1.5 h-3 w-2/3 rounded" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <Skeleton className="mx-auto h-8 w-8 rounded-lg" />
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ) : null}
 
               {!loading && filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-3 py-4">
-                    <EmptyState title="Sin tickets" description="Cuando residentes creen solicitudes, aparecerán aquí para gestión operativa." />
+                    {enrichedItems.length === 0 ? (
+                      <EmptyState title="Sin tickets" description="Cuando residentes creen solicitudes, aparecerán aquí para gestión operativa." />
+                    ) : (
+                      <EmptyState title="Sin resultados" description="Ningún ticket coincide con los filtros aplicados. Ajusta los criterios de búsqueda." />
+                    )}
                   </td>
                 </tr>
               ) : null}
@@ -375,7 +400,7 @@ export default function AdminPqrsPage() {
                         type="button"
                         aria-label="Ver detalle"
                         onClick={() => openTicketDrawer(ticket.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--slate-200)] text-[var(--slate-600)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--slate-900)]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--slate-200)] text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] hover:border-[var(--slate-400)] hover:text-[var(--slate-900)]"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
@@ -386,6 +411,12 @@ export default function AdminPqrsPage() {
             </tbody>
           </table>
         </div>
+
+        {!loading && (
+          <p className="mt-2 text-right text-xs text-[var(--slate-500)]">
+            {filteredItems.length} de {enrichedItems.length} registro{enrichedItems.length !== 1 ? "s" : ""}
+          </p>
+        )}
       </Card>
 
       <Drawer
@@ -485,7 +516,7 @@ export default function AdminPqrsPage() {
             </dl>
 
             <div className="border-t border-[var(--slate-200)] pt-3">
-              <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Descripcion</p>
+              <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Descripción</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-700)]">{selectedTicket.message || selectedTicket.subject}</p>
             </div>
 
