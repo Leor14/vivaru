@@ -194,7 +194,11 @@ export default function AdminBillingPage() {
       (rows) => {
         const options = rows
           .map((row) => {
-            const stableId = typeof row.unitId === "string" && row.unitId.trim().length > 0 ? row.unitId.trim() : row.id;
+            // Always use the Firestore doc ID as the stable unit identifier.
+            // row.id is the doc ID that tenantUsers.unitId stores (new-schema units).
+            // Using row.unitId (a slug field) was causing billing statements to never
+            // match what residents see, because tenantUsers.unitId holds the doc ID.
+            const stableId = row.id;
             const label =
               (typeof row.displayName === "string" && row.displayName.trim().length > 0 ? row.displayName.trim() : "") ||
               (typeof row.unitLabel === "string" && row.unitLabel.trim().length > 0 ? row.unitLabel.trim() : "") ||
