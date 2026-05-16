@@ -146,7 +146,7 @@ export default function AdminReservationsPage() {
     }
 
     if (!isDateTimeValid(selectedDateTime, "reservation", nowDateTime)) {
-      return "La reserva requiere al menos 30 minutos de anticipacion";
+      return "La reserva requiere al menos 30 minutos de anticipación";
     }
 
     return null;
@@ -251,7 +251,7 @@ export default function AdminReservationsPage() {
 
     const selectedDateTime = combineDateAndTime(values.date, values.startTime);
     if (!selectedDateTime || !isDateTimeValid(selectedDateTime, "reservation")) {
-      toast.error("La reserva requiere al menos 30 minutos de anticipacion.");
+      toast.error("La reserva requiere al menos 30 minutos de anticipación.");
       return;
     }
 
@@ -274,13 +274,13 @@ export default function AdminReservationsPage() {
 
   async function handleCreateAmenity() {
     if (!user?.tenantId) {
-      toast.error("No se pudo identificar el tenant de tu sesion.");
+      toast.error("No se pudo identificar el tenant de tu sesión.");
       return;
     }
 
     const cleanName = amenityName.trim();
     if (!cleanName) {
-      toast.error("Ingresa un nombre valido para la amenidad.");
+      toast.error("Ingresa un nombre válido para la amenidad.");
       return;
     }
 
@@ -472,7 +472,16 @@ export default function AdminReservationsPage() {
     {
       key: "date",
       header: "Fecha",
-      render: (item) => asDateLabel(item.date),
+      render: (item) => {
+        if (!item.date || typeof item.date !== "string") return asDateLabel(item.date);
+        const [year, month, day] = item.date.split("-").map(Number);
+        if (!year || !month || !day) return item.date;
+        return new Date(year, month - 1, day).toLocaleDateString("es-CO", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+      },
     },
     {
       key: "startTime",
@@ -525,13 +534,13 @@ export default function AdminReservationsPage() {
                       disabled={isToggling}
                       onClick={() => void handleToggleAmenityStatus(item)}
                       className={cn(
-                        "relative inline-flex h-5 w-9 items-center rounded-full transition disabled:opacity-50",
+                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50",
                         isActive ? "bg-[var(--slate-900)]" : "bg-[var(--slate-300)]",
                       )}
                     >
                       <span
                         className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition",
+                          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
                           isActive ? "translate-x-4" : "translate-x-0.5",
                         )}
                       />
@@ -712,7 +721,7 @@ export default function AdminReservationsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle>Reservas de zonas comunes</CardTitle>
-          <CardDescription className="mt-1">Creación, edicion y cancelacion con refresco inmediato en tabla.</CardDescription>
+          <CardDescription className="mt-1">Creación, edición y cancelación con refresco inmediato en tabla.</CardDescription>
         </div>
         {canEdit ? (
           <Button className="w-full sm:w-auto" onClick={openCreate} disabled={activeAmenities.length === 0}>
@@ -1164,7 +1173,7 @@ export default function AdminReservationsPage() {
             </div>
             {detailItem.cancellationReason ? (
               <div className="rounded-xl border border-[var(--danger-200)] bg-[var(--danger-50)] p-3">
-                <p className="text-xs uppercase tracking-wide text-[var(--danger-700)]">Motivo de cancelacion</p>
+                <p className="text-xs uppercase tracking-wide text-[var(--danger-700)]">Motivo de cancelación</p>
                 <p className="mt-1 text-[var(--danger-700)]">{detailItem.cancellationReason}</p>
               </div>
             ) : null}

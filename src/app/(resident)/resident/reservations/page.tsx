@@ -19,6 +19,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MudanzaWizard } from "@/components/features/reservations/MudanzaWizard";
 import { AmenityPhotoGallery } from "@/components/features/reservations/AmenityPhotoGallery";
 import { useAuth } from "@/features/auth/auth-context";
@@ -83,7 +85,7 @@ function monthLabel(date: Date) {
 
 function longDateLabel(dateKey: string) {
   const parsed = parseDateKey(dateKey);
-  if (!parsed) return "Fecha no valida";
+  if (!parsed) return "Fecha no válida";
   return new Intl.DateTimeFormat("es-CO", {
     weekday: "long",
     day: "2-digit",
@@ -181,6 +183,7 @@ export default function ResidentReservationsPage() {
   const [exclusiveUse, setExclusiveUse] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
   const [eligibility, setEligibility] = useState<{ eligible: boolean; amountDue: number } | null>(null);
   const [galleryAmenity, setGalleryAmenity] = useState<ReservableAmenity | null>(null);
   const [monthlyUsageCount, setMonthlyUsageCount] = useState<number | null>(null);
@@ -377,7 +380,7 @@ export default function ResidentReservationsPage() {
     }
 
     if (!availableWeekdays.has(atStartOfDay.getDay())) {
-      return { selectable: false, reason: "Dia bloqueado" };
+      return { selectable: false, reason: "Día bloqueado" };
     }
 
     const key = toDateKey(atStartOfDay);
@@ -560,7 +563,7 @@ export default function ResidentReservationsPage() {
     const end = parseClockTime(selectedEndTime);
 
     if (start === null || end === null) {
-      return "El formato de hora no es valido.";
+      return "El formato de hora no es válido.";
     }
 
     if (end <= start) {
@@ -574,7 +577,7 @@ export default function ResidentReservationsPage() {
 
     const duration = end - start;
     if (maxReservationDurationMinutes !== null && duration > maxReservationDurationMinutes) {
-      return `La duracion maxima permitida es de ${maxReservationDurationMinutes} minutos.`;
+      return `La duración máxima permitida es de ${maxReservationDurationMinutes} minutos.`;
     }
 
     const available = isRangeAvailable({
@@ -662,7 +665,7 @@ export default function ResidentReservationsPage() {
     }
 
     if (!user.unitId) {
-      toast.error("No fue posible identificar tu unidad para reservar. Cierra sesion e inicia nuevamente.");
+      toast.error("No fue posible identificar tu unidad para reservar. Cierra sesión e inicia nuevamente.");
       return;
     }
 
@@ -685,7 +688,7 @@ export default function ResidentReservationsPage() {
 
     const selectedDateTime = combineDateAndTime(selectedDate, selectedStartTime);
     if (!selectedDateTime || !isDateTimeValid(selectedDateTime, "reservation")) {
-      toast.error("La reserva requiere al menos 30 minutos de anticipacion.");
+      toast.error("La reserva requiere al menos 30 minutos de anticipación.");
       return;
     }
 
@@ -733,9 +736,9 @@ export default function ResidentReservationsPage() {
     }
   }
 
-  async function handleCancelReservation(reservation: Reservation) {
+  function handleCancelReservation(reservation: Reservation) {
     if (!tenantId || !user?.uid) {
-      toast.error("No se pudo identificar tu sesion para cancelar la reserva.");
+      toast.error("No se pudo identificar tu sesión para cancelar la reserva.");
       return;
     }
 
@@ -749,13 +752,15 @@ export default function ResidentReservationsPage() {
       return;
     }
 
-    const confirmed = window.confirm("¿Seguro que deseas cancelar esta reserva?");
-    if (!confirmed) return;
+    setCancelTarget(reservation);
+  }
 
+  async function confirmCancelReservation() {
+    if (!cancelTarget || !tenantId || !user?.uid) return;
     try {
-      setCancellingId(reservation.id);
+      setCancellingId(cancelTarget.id);
       await cancelReservation({
-        reservationId: reservation.id,
+        reservationId: cancelTarget.id,
         tenantId,
         userId: user.uid,
       });
@@ -764,6 +769,7 @@ export default function ResidentReservationsPage() {
       toastFirebaseError(error);
     } finally {
       setCancellingId(null);
+      setCancelTarget(null);
     }
   }
 
@@ -868,7 +874,7 @@ export default function ResidentReservationsPage() {
                                 setSelectedAmenityDetail(item);
                               }
                             }}
-                            className={`cursor-pointer overflow-hidden rounded-xl border-2 transition ${
+                            className={`cursor-pointer overflow-hidden rounded-xl border-2 transition-colors ${
                               isSelected
                                 ? "border-[var(--brand-700)] shadow-sm"
                                 : "border-[var(--slate-200)] hover:border-[var(--slate-300)]"
@@ -948,7 +954,7 @@ export default function ResidentReservationsPage() {
                                   setSelectedEndTime(slot.end);
                                 }
                               }}
-                              className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
+                              className={`rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
                                 isSelected
                                   ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
                                   : slot.available
@@ -1154,7 +1160,7 @@ export default function ResidentReservationsPage() {
                 <p className="mt-1">
                   {selectedDate
                     ? `${longDateLabel(selectedDate)} · ${selectedDateAvailability?.reason ?? "Sin estado"}`
-                    : "Aun no seleccionas una fecha"}
+                    : "Aún no seleccionas una fecha"}
                 </p>
               </div>
             </section>
@@ -1177,15 +1183,31 @@ export default function ResidentReservationsPage() {
           {!amenitiesLoading && !amenitiesError && !hasAmenities ? (
             <EmptyState
               title="Sin amenidades disponibles"
-              description="Tu administración aun no ha publicado amenidades activas para reservas en este tenant."
+              description="Tu administración aún no ha publicado amenidades activas para reservas en este tenant."
             />
           ) : null}
 
-          {loading ? <p className="text-[var(--slate-600)]">Cargando reservas...</p> : null}
+          {loading ? (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <Skeleton className="h-5 w-40 rounded" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <Skeleton className="h-4 w-36 rounded" />
+                    <Skeleton className="h-4 w-28 rounded" />
+                    <Skeleton className="h-4 w-32 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           {!loading && displayedReservations.length === 0 ? (
             <EmptyState
               title="Sin reservas"
-              description="Aun no tienes reservas activas. Puedes crear una reserva desde este panel."
+              description="Aún no tienes reservas activas. Puedes crear una reserva desde este panel."
             />
           ) : null}
 
@@ -1251,6 +1273,28 @@ export default function ResidentReservationsPage() {
           onClose={() => setGalleryAmenity(null)}
         />
       ) : null}
+
+      <Dialog open={cancelTarget !== null} onClose={() => setCancelTarget(null)} className="max-w-sm p-6">
+        <h2 className="text-base font-semibold text-[var(--slate-900)]">Cancelar reserva</h2>
+        <p className="mt-2 text-sm text-[var(--slate-600)]">
+          ¿Confirmas la cancelación de tu reserva en{" "}
+          <span className="font-medium">{cancelTarget?.amenity}</span> el{" "}
+          <span className="font-medium">{cancelTarget ? longDateLabel(cancelTarget.date) : ""}</span>?
+          Esta acción no se puede deshacer.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={cancellingId !== null}>
+            Volver
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => void confirmCancelReservation()}
+            disabled={cancellingId !== null}
+          >
+            {cancellingId !== null ? "Cancelando..." : "Cancelar reserva"}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }
@@ -1392,20 +1436,20 @@ function ReservationModeToggleAndWizard(props: {
           role="tab"
           aria-selected={mode === "amenity"}
           onClick={() => setMode("amenity")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === "amenity"
               ? "bg-[var(--brand-700)] text-white"
               : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
           }`}
         >
-          Reserva de zona comun
+          Reserva de zona común
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={mode === "mudanza"}
           onClick={() => setMode("mudanza")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === "mudanza"
               ? "bg-[var(--brand-700)] text-white"
               : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
