@@ -2,6 +2,7 @@
 
 import { AlertCircle, CheckCircle2, Clock, TrendingUp } from "lucide-react";
 
+import { HelpTip } from "@/components/shared/help-tip";
 import type { BillingStatement } from "@/types/domain";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -85,12 +86,17 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
   const totalPaid = items.reduce((sum, s) => sum + (s.paymentAmount ?? 0), 0);
   const paidMonths = items.filter((s) => s.status === "paid").length;
 
-  // Next due date: earliest dueDate among pending/overdue statements
-  const upcomingDue = items
-    .filter((s) => s.status !== "paid" && s.dueDate)
-    .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1))[0];
+  // Next due date logic:
+  // Priority 1 — earliest FUTURE due date (today or later)
+  // Priority 2 — if no future dates exist, show the oldest past due date as "Vencido desde"
+  const today = new Date().toISOString().slice(0, 10);
+  const unpaidWithDue = items.filter((s) => s.status !== "paid" && s.dueDate);
+  const sortedByDueAsc = [...unpaidWithDue].sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
+  const nextFutureDue = sortedByDueAsc.find((s) => s.dueDate! >= today);
+  const upcomingDue = nextFutureDue ?? sortedByDueAsc[0];
+  const dueLabel = nextFutureDue ? "Próximo vencimiento" : "Vencido desde";
 
-  // Most recent overdue period label for context
+  // Most recent overdue period label for context pill
   const mostRecentPendingPeriod = items
     .filter((s) => s.status !== "paid")
     .sort((a, b) => (a.period > b.period ? -1 : 1))[0];
@@ -127,18 +133,30 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {/* Saldo pendiente */}
         <div className="rounded-lg bg-white/70 px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
+          <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
             Saldo pendiente
+            <HelpTip
+              text="Suma de todos los períodos que aún no han sido pagados en su totalidad, incluyendo meses pendientes y vencidos. Es el monto total que la administración tiene registrado como por cobrar en tu unidad."
+              side="right"
+            />
           </p>
           <p className={`mt-0.5 text-lg font-bold ${overallStatus === "paid" ? "text-emerald-600" : "text-[var(--slate-900)]"}`}>
             {overallStatus === "paid" ? "—" : formatAmount(totalPendingBalance)}
           </p>
         </div>
 
-        {/* Próximo vencimiento */}
+        {/* Próximo vencimiento / Vencido desde */}
         <div className="rounded-lg bg-white/70 px-3 py-2.5 shadow-sm">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
-            Próximo vencimiento
+          <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
+            {dueLabel}
+            <HelpTip
+              text={
+                nextFutureDue
+                  ? "Fecha límite del siguiente período activo para pagar sin recargos por mora. Pasada esta fecha, el período quedará marcado como vencido."
+                  : "Todos tus períodos pendientes ya superaron su fecha límite de pago. Esta es la fecha desde la que acumulas mora. Comunícate con la administración para regularizar tu situación."
+              }
+              side="right"
+            />
           </p>
           <p className="mt-0.5 text-sm font-semibold text-[var(--slate-900)]">
             {upcomingDue?.dueDate ? formatDate(upcomingDue.dueDate) : "—"}
@@ -147,8 +165,12 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
 
         {/* Total pagado */}
         <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2.5 shadow-sm sm:col-span-1">
-          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
+          <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
             Total pagado
+            <HelpTip
+              text="Monto acumulado de todos los pagos que la administración ha registrado como recibidos en tu unidad, sumando todos los períodos. No incluye pagos pendientes de confirmación."
+              side="left"
+            />
           </p>
           <div className="mt-0.5 flex items-center gap-1.5">
             <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
