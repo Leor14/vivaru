@@ -205,6 +205,8 @@ export interface BillingStatement {
   status: "pending" | "paid" | "overdue";
   lastPaymentAt?: string;
   createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export interface TenantDocument {

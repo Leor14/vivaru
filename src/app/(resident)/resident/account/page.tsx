@@ -6,6 +6,7 @@ import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -122,6 +123,13 @@ export default function ResidentAccountPage() {
           {uploading ? "Subiendo…" : "Subir comprobante"}
         </Button>
       </div>
+
+      {/* Hero card — situación financiera */}
+      {!loading && items.length > 0 && (
+        <div className="mt-4">
+          <BillingHeroCard items={items} formatAmount={formatAmount} />
+        </div>
+      )}
 
       <div className="mt-4 grid gap-2 text-sm">
         {loading ? (
