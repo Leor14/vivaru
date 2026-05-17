@@ -119,15 +119,15 @@ export type AdminSidebarProps = {
 
 const SEPARATOR_STYLE = {
   height: 0.5,
-  backgroundColor: "rgba(255,255,255,0.07)",
-  margin: "6px 0",
+  backgroundColor: "rgba(255,255,255,0.08)",
+  margin: "8px 0",
 } as const;
 
 const GROUP_LABEL_STYLE = {
-  fontSize: 10,
-  letterSpacing: "0.1em",
-  color: "rgba(255,255,255,0.3)",
-  padding: "12px 14px 4px",
+  fontSize: 11,
+  letterSpacing: "0.09em",
+  color: "rgba(255,255,255,0.42)",
+  padding: "14px 14px 5px",
 } as const;
 
 const BADGE_TONES: Record<AdminSidebarBadge["tone"], { bg: string; color: string }> = {
@@ -141,11 +141,11 @@ function NavBadge({ badge }: { badge: AdminSidebarBadge }) {
   return (
     <span
       aria-label={`${badge.count} pendientes`}
-      className="ml-auto inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none"
+      className="ml-auto inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold leading-none"
       style={{
         backgroundColor: palette.bg,
         color: palette.color,
-        height: 18,
+        height: 20,
       }}
     >
       {badge.count > 99 ? "99+" : badge.count}
@@ -214,20 +214,20 @@ export function AdminSidebar({
                         href={item.href}
                         onClick={onItemClick}
                         className={cn(
-                          "group flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition",
+                          "group flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] transition",
                           active
                             ? "text-white"
-                            : "text-[rgba(255,255,255,0.7)] hover:text-white",
+                            : "text-[rgba(255,255,255,0.75)] hover:text-white",
                         )}
                         style={{
                           backgroundColor: active
-                            ? "rgba(255,255,255,0.10)"
+                            ? "rgba(255,255,255,0.12)"
                             : "transparent",
                         }}
                         onMouseEnter={(event) => {
                           if (!active) {
                             event.currentTarget.style.backgroundColor =
-                              "rgba(255,255,255,0.06)";
+                              "rgba(255,255,255,0.07)";
                           }
                         }}
                         onMouseLeave={(event) => {
@@ -236,7 +236,7 @@ export function AdminSidebar({
                           }
                         }}
                       >
-                        <Icon className="h-4 w-4 shrink-0" strokeWidth={2} />
+                        <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
                         <span className="truncate">{item.label}</span>
                         {badge ? <NavBadge badge={badge} /> : null}
                       </Link>
@@ -260,7 +260,7 @@ export function AdminSidebar({
           <Link
             href={profilePath}
             onClick={onItemClick}
-            className="flex items-center gap-2.5 text-white/90 hover:text-white"
+            className="flex items-center gap-3 text-white/90 hover:text-white"
           >
             <span className="inline-flex shrink-0 rounded-full ring-1 ring-white/10">
               <UserAvatar
@@ -273,7 +273,7 @@ export function AdminSidebar({
             </span>
             <span
               className="truncate"
-              style={{ fontSize: 13, fontWeight: 500 }}
+              style={{ fontSize: 14, fontWeight: 500 }}
             >
               {user.fullName}
             </span>
