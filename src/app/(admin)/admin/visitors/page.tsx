@@ -365,11 +365,11 @@ export default function AdminVisitorsPage() {
         ) : null}
       </div>
 
-      <div className="mt-5 flex gap-1 rounded-xl bg-[var(--slate-100)] p-1 w-fit">
+      <div className="mt-5 flex w-full gap-1 rounded-xl bg-[var(--slate-100)] p-1">
         <button
           type="button"
           onClick={() => setActiveTab("authorizations")}
-          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             activeTab === "authorizations"
               ? "bg-white text-[var(--slate-900)] shadow-sm"
               : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
@@ -380,7 +380,7 @@ export default function AdminVisitorsPage() {
         <button
           type="button"
           onClick={() => setActiveTab("passes")}
-          className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             activeTab === "passes"
               ? "bg-white text-[var(--slate-900)] shadow-sm"
               : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
@@ -477,9 +477,17 @@ export default function AdminVisitorsPage() {
       {activeTab === "passes" && (
         <div className="mt-4">
           {passesLoading ? (
-            <p className="py-6 text-center text-sm text-[var(--slate-500)]">
-              Cargando registros...
-            </p>
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex gap-3 rounded-xl border border-[var(--slate-200)] p-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-4 w-32 animate-pulse rounded bg-[var(--slate-200)]" />
+                    <div className="h-3 w-48 animate-pulse rounded bg-[var(--slate-100)]" />
+                  </div>
+                  <div className="h-5 w-20 animate-pulse rounded-full bg-[var(--slate-100)]" />
+                </div>
+              ))}
+            </div>
           ) : passes.length === 0 ? (
             <p className="mt-4 rounded-xl border border-dashed border-[var(--slate-300)] px-4 py-6 text-center text-sm text-[var(--slate-600)]">
               No hay registros de visitas operativas.
