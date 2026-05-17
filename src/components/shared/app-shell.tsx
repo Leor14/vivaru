@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils/cn";
 
 import { type ResidentModules, DEFAULT_RESIDENT_MODULES } from "@/features/admin/services";
 import { ResidentBottomNav } from "@/components/shared/resident-bottom-nav";
+import { GuardBottomNav } from "@/components/shared/guard-bottom-nav";
 
 type TenantBranding = {
   brandColor: string;
@@ -400,8 +401,9 @@ export function AppShell({
         <p>Tenant: {branding?.tenantName ?? user.tenantName ?? "HOGARU"}</p>
       </footer>
 
-      {/* Bottom nav — solo portal residente, solo mobile */}
+      {/* Bottom nav — portal residente y guardia, solo mobile */}
       {shellRole === "resident" && <ResidentBottomNav />}
+      {(shellRole === "security_guard" || shellRole === "security") && <GuardBottomNav />}
     </div>
   );
 }
