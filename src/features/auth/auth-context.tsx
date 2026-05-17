@@ -664,6 +664,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: refreshError instanceof Error ? refreshError.message : "unknown",
       });
     }
+
+    // refreshSessionProfile may have re-read stale Firestore data where
+    // mustChangePassword is still true (backend write not yet propagated).
+    // Re-apply the override so the app-shell guard never re-blocks the resident.
+    setUser((prev) => {
+      if (!prev || prev.mustChangePassword === false) return prev;
+      const patched: SessionUser = {
+        ...prev,
+        mustChangePassword: false,
+        temporaryPassword: false,
+        passwordStatus: "updated",
+      };
+      saveSession(patched);
+      debugAuth("[auth.force-change] stale-flag-patched", { uid: prev.uid });
+      return patched;
+    });
+    setSession((prev) => {
+      if (!prev || prev.profile.mustChangePassword === false) return prev;
+      return {
+        ...prev,
+        profile: {
+          ...prev.profile,
+          mustChangePassword: false,
+          temporaryPassword: false,
+          passwordStatus: "updated",
+        },
+      };
+    });
+
     debugAuth("[auth.force-change] completed", { uid: sessionUser.uid });
   }, [refreshSessionProfile, user]);
 
