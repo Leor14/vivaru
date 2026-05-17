@@ -892,37 +892,23 @@ export default function ResidentReservationsPage() {
                                 <span className="text-xs text-[var(--slate-400)]">{item.name}</span>
                               </div>
                             )}
-                            <div className="flex items-center justify-between px-2.5 py-2">
-                              <span className="text-sm font-medium text-[var(--slate-900)]">
+                            <div className="px-2.5 pb-2.5 pt-2">
+                              <p className="line-clamp-2 text-xs font-semibold leading-tight text-[var(--slate-900)]">
                                 {item.name}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                {(item.photos ?? []).length > 0 ? (
-                                  <button
-                                    type="button"
-                                    aria-label={`Ver fotos de ${item.name}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setGalleryAmenity(item);
-                                    }}
-                                    className="text-xs text-[var(--slate-500)] hover:underline"
-                                  >
-                                    Ver fotos
-                                  </button>
-                                ) : null}
+                              </p>
+                              {(item.photos ?? []).length > 0 ? (
                                 <button
                                   type="button"
-                                  aria-label={`Ver detalles de ${item.name}`}
+                                  aria-label={`Ver fotos de ${item.name}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedAmenityId(item.id);
-                                    setSelectedAmenityDetail(item);
+                                    setGalleryAmenity(item);
                                   }}
-                                  className="text-xs text-[var(--brand-700)] hover:underline"
+                                  className="mt-1 text-[11px] text-[var(--slate-400)] hover:text-[var(--brand-700)] hover:underline"
                                 >
-                                  Ver detalles
+                                  Ver fotos
                                 </button>
-                              </div>
+                              ) : null}
                             </div>
                           </div>
                         );
