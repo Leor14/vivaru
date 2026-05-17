@@ -68,7 +68,9 @@ body {
 }
 
 html {
-  overflow-x: hidden;
+  /* overflow-x: clip no crea un scroll container (a diferencia de hidden),
+     por lo que position:sticky funciona correctamente en iOS Safari */
+  overflow-x: clip;
 }
 
 .responsive-table-wrap {
