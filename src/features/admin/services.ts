@@ -87,6 +87,24 @@ export type CommunicationItem = {
   updatedAt: string;
 };
 
+export type ServiceItem = {
+  id: string;
+  tenantId: string;
+  title: string;
+  description: string;
+  category: "resident_offer" | "third_party";
+  serviceType: string;
+  providerName: string;
+  providerContact: string;
+  unitId?: string;
+  imageUrl?: string;
+  imagePath?: string;
+  status: "active" | "inactive";
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ReservationItem = {
   id: string;
   tenantId: string;
@@ -626,6 +644,63 @@ export async function uploadCommunicationAttachment(input: { tenantId: string; f
   await uploadBytes(storageRef, input.file, { contentType: input.file.type || "application/pdf" });
   const fileUrl = await getDownloadURL(storageRef);
   return { fileUrl, fileName: input.file.name, storagePath };
+}
+
+export function watchServices(tenantId: string, onData: (items: ServiceItem[]) => void, onError: (message: string) => void) {
+  const firestore = assertDb();
+  return onSnapshot(
+    query(collection(firestore, "services"), where("tenantId", "==", tenantId)),
+    (snapshot) => {
+      const items = snapshot.docs
+        .map((item) => mapDoc<ServiceItem>(item.id, item.data() as Record<string, unknown>))
+        .sort((a, b) => {
+          const aTime = a.createdAt || a.updatedAt || "";
+          const bTime = b.createdAt || b.updatedAt || "";
+          return bTime.localeCompare(aTime);
+        });
+      onData(items);
+    },
+    (error) => onError(error.message),
+  );
+}
+
+export async function createService(
+  tenantId: string,
+  userId: string,
+  payload: Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status" | "unitId" | "imageUrl" | "imagePath">,
+) {
+  const firestore = assertDb();
+  await addDoc(collection(firestore, "services"), {
+    ...payload,
+    tenantId,
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateService(id: string, userId: string, payload: Partial<ServiceItem>) {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "services", id), {
+    ...payload,
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteService(id: string) {
+  const firestore = assertDb();
+  await deleteDoc(doc(firestore, "services", id));
+}
+
+export async function uploadServiceImage(input: { tenantId: string; serviceId: string; file: File }) {
+  const appStorage = assertStorage();
+  const cleanName = input.file.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
+  const storagePath = `tenants/${input.tenantId}/services/${input.serviceId}/${cleanName}`;
+  const storageRef = ref(appStorage, storagePath);
+  await uploadBytes(storageRef, input.file, { contentType: input.file.type || "image/jpeg" });
+  const imageUrl = await getDownloadURL(storageRef);
+  return { imageUrl, storagePath };
 }
 
 export function watchReservations(tenantId: string, onData: (items: ReservationItem[]) => void, onError: (message: string) => void) {

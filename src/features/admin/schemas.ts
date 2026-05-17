@@ -51,6 +51,19 @@ export const communicationSchema = z.object({
   attachmentName: z.string().trim().optional(),
 });
 
+export const serviceSchema = z.object({
+  title: requiredText("Titulo", 4),
+  description: requiredText("Descripcion", 8),
+  category: z.enum(["resident_offer", "third_party"]),
+  serviceType: requiredText("Tipo de servicio", 3),
+  providerName: requiredText("Nombre del proveedor", 3),
+  providerContact: requiredText("Contacto del proveedor", 5),
+  unitId: z.string().trim().optional(),
+  imageUrl: z.string().trim().optional(),
+  imagePath: z.string().trim().optional(),
+  status: z.enum(["active", "inactive"]),
+});
+
 export const reservationSchema = z
   .object({
     amenityName: requiredText("Amenidad", 3),
@@ -168,6 +181,7 @@ export type UnitInput = z.infer<typeof unitSchema>;
 export type PersonInput = z.infer<typeof personSchema>;
 export type PrimaryHolderInput = z.infer<typeof primaryHolderSchema>;
 export type CommunicationInput = z.infer<typeof communicationSchema>;
+export type ServiceInput = z.infer<typeof serviceSchema>;
 export type ReservationInput = z.infer<typeof reservationSchema>;
 export type VisitorInput = z.infer<typeof visitorSchema>;
 export type DocumentInput = z.infer<typeof documentSchema>;

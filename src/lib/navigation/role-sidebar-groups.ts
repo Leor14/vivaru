@@ -11,6 +11,7 @@ import {
   Package,
   ScrollText,
   ShieldCheck,
+  Store,
   Users,
   Wallet,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const ICON_BY_HREF: Record<string, IconComponent> = {
   "/admin/users": Users,
   "/admin/residents": Users,
   "/admin/communications": MessageSquare,
+  "/admin/services": Store,
   "/admin/surveys": ClipboardList,
   "/admin/regulations": ScrollText,
   "/admin/billing": Wallet,

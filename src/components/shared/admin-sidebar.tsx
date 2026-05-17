@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Package,
   ScrollText,
+  Store,
   Users,
   Wallet,
 } from "lucide-react";
@@ -48,6 +49,7 @@ const GROUPS: AdminSidebarGroup[] = [
       { href: "/admin/residents", label: "Residentes y unidades", icon: Users },
       { href: "/admin/visitors", label: "Visitantes", icon: Users },
       { href: "/admin/communications", label: "Comunicaciones", icon: MessageSquare },
+      { href: "/admin/services", label: "Servicios", icon: Store },
       { href: "/admin/surveys", label: "Encuestas", icon: ClipboardList },
       { href: "/admin/regulations", label: "Reglamento", icon: ScrollText },
     ],
