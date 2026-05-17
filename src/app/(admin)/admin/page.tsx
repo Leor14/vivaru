@@ -646,13 +646,13 @@ export default function AdminDashboardPage() {
         }
       >
         {loading ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <Skeleton key={i} className="h-[88px] rounded-2xl" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
             {kpis.map((kpi) => (
               <ExecutiveKpiCard
                 key={kpi.label}
@@ -724,13 +724,13 @@ export default function AdminDashboardPage() {
             </div>
           }
         >
-          <div className="overflow-x-auto rounded-2xl border border-[var(--slate-200)] bg-white p-3">
+          <div className="rounded-2xl border border-[var(--slate-200)] bg-white p-3">
             {chartData.length === 0 ? (
               <p className="rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-soft)] p-5 text-sm text-[var(--slate-600)]">
                 No hay datos suficientes para construir la gráfica con el filtro actual.
               </p>
             ) : (
-              <div className="h-[360px] min-w-[700px] w-full">
+              <div className="h-[260px] w-full sm:h-[360px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData} margin={{ top: 16, right: 18, left: 6, bottom: 8 }}>
                     <defs>
@@ -895,7 +895,7 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <Card className="premium-card-hover border-[#d4e0ec] bg-white p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
