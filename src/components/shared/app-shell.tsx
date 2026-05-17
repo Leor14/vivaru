@@ -273,7 +273,7 @@ export function AppShell({
           <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
         </header>
       ) : (
-        <header className="sticky top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur">
+        <header className="fixed inset-x-0 top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur md:sticky md:inset-x-auto">
           <div
             className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 md:px-8"
             style={{
@@ -364,10 +364,10 @@ export function AppShell({
 
       <div
         className={cn(
-          "mx-auto grid gap-4 px-4 pb-24 pt-4 md:px-8 md:pt-6",
+          "mx-auto grid gap-4 px-4 pb-24 md:px-8 md:pt-6",
           isAdminRole
-            ? "max-w-none md:grid-cols-[240px_1fr]"
-            : "max-w-7xl md:grid-cols-[248px_1fr]",
+            ? "max-w-none pt-4 md:grid-cols-[240px_1fr]"
+            : "max-w-7xl pt-[57px] md:grid-cols-[248px_1fr]",
         )}
       >
         <aside className="hidden md:block">
