@@ -103,7 +103,12 @@ export function LoginForm() {
 
       <div className="relative z-10 flex min-h-full items-center justify-center p-4 sm:p-6">
         <Card className="soft-panel w-full max-w-[460px] rounded-2xl border border-[var(--slate-200)] bg-white p-7 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-9 md:p-10">
-        <div className="mb-6 text-left">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <img
+            src="/images/vivaru.jpeg"
+            alt="Vivaru"
+            className="mb-5 h-14 w-14 rounded-xl object-contain shadow-sm"
+          />
           <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
           <CardDescription className="mt-2">Accede con tu correo para continuar</CardDescription>
         </div>

@@ -15,8 +15,12 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "HOGARU | Propiedad Horizontal SaaS",
+  title: "Vivaru | Administración de Propiedad Horizontal",
   description: "Plataforma multi-tenant para administración de edificios y conjuntos residenciales.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
