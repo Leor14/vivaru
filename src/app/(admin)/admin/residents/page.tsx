@@ -615,10 +615,19 @@ export default function AdminResidentsPage() {
         ...primaryPayload,
       });
 
-      await provisionResidentTemporaryAccessCallable({
-        tenantId: user.tenantId,
-        personId: primaryPersonId,
-      });
+      try {
+        await provisionResidentTemporaryAccessCallable({
+          tenantId: user.tenantId,
+          personId: primaryPersonId,
+        });
+      } catch (provisionError) {
+        debugResidentUnit("provision-access-warning", {
+          functionName: "handleSaveUnitFlow",
+          personId: primaryPersonId,
+          error: provisionError,
+        });
+        toast.warning("Unidad y titular creados. No se pudo configurar el acceso temporal automáticamente — usa 'Restablecer clave' desde la tabla de personas para activarlo manualmente.");
+      }
 
       for (const member of familyMembers) {
         await createPerson(user.tenantId, user.uid, {
@@ -634,7 +643,7 @@ export default function AdminResidentsPage() {
         });
       }
 
-      toast.success("Unidad creada. El titular ya puede ingresar con su documento como clave temporal y debera cambiarla en su primer acceso.");
+      toast.success("Unidad creada. El titular ya puede ingresar con su documento como clave temporal y deberá cambiarla en su primer acceso.");
       setUnitModalOpen(false);
     } catch (error) {
       debugResidentUnit("unit-create-flow-error", {
