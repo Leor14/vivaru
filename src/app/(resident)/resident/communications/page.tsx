@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { BellOff, CalendarDays, ChevronDown, ChevronUp, Dot, FileText } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useCommunications } from "@/features/communications/use-communications";
 
@@ -63,8 +64,23 @@ export default function ResidentCommunicationsPage() {
 
       <div className="mt-5 space-y-4">
         {loading ? (
-          <div className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 text-sm text-[var(--slate-600)]">
-            Cargando comunicados...
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-5 w-40 rounded" />
+                    <Skeleton className="h-3 w-24 rounded" />
+                  </div>
+                  <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-4/5 rounded" />
+                  <Skeleton className="h-4 w-3/5 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
 

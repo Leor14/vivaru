@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BriefcaseBusiness, ChevronDown, ChevronUp, Expand, FileText, Phone, Store, X } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useServices } from "@/features/services/use-services";
 import type { ServiceItem } from "@/features/admin/services";
@@ -104,8 +105,21 @@ export default function ResidentServicesPage() {
       {/* key=categoryFilter forces re-mount → CSS stagger animations restart on filter change */}
       <div key={categoryFilter} className="mt-5 space-y-4">
         {loading ? (
-          <div className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 text-sm text-[var(--slate-600)]">
-            Cargando servicios...
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white">
+                <Skeleton className="h-36 w-full rounded-none sm:h-44" />
+                <div className="space-y-2 p-4 sm:p-5">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-20 rounded-full" />
+                    <Skeleton className="h-3 w-16 rounded" />
+                  </div>
+                  <Skeleton className="h-5 w-48 rounded" />
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-4/5 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : null}
 

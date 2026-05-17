@@ -2,6 +2,7 @@
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useDocuments } from "@/features/documents/use-documents";
 
@@ -14,7 +15,15 @@ export default function ResidentDocumentsPage() {
       <CardTitle>Documentos</CardTitle>
       <CardDescription className="mt-1">Reglamentos, actas y circulares compartidas por la administración.</CardDescription>
       <ul className="mt-4 space-y-2 text-sm text-[var(--slate-700)]">
-        {loading ? <li>Cargando documentos...</li> : null}
+        {loading ? (
+          <>
+            {[1, 2, 3].map((i) => (
+              <li key={i} className="rounded-xl border border-[var(--slate-200)] p-3">
+                <Skeleton className="h-4 w-4/5 rounded" />
+              </li>
+            ))}
+          </>
+        ) : null}
         {!loading && items.length === 0 ? (
           <EmptyState
             title="Sin documentos"
