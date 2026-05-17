@@ -25,6 +25,7 @@ export function DataTable<T>({
   actionsHeader = "Acciones",
   tableMinWidthClassName,
   onRowClick,
+  renderMobileRow,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -37,31 +38,76 @@ export function DataTable<T>({
   actionsHeader?: string;
   tableMinWidthClassName?: string;
   onRowClick?: (row: T) => void;
+  /**
+   * Optional compact mobile renderer.
+   * When provided, rows render as slim 2-line list items (~56px)
+   * instead of the default expanded label-value card layout (~200px).
+   * Return the left-side content (primary + secondary text).
+   * Actions are still handled by `renderActions` on the right.
+   */
+  renderMobileRow?: (row: T) => ReactNode;
 }) {
   const visibleMobileColumns = columns.filter((column) => !column.mobileHidden);
 
   return (
     <>
-      <div className="space-y-3 sm:hidden">
+      <div className="sm:hidden">
         {loading ? (
-          <>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="space-y-2 rounded-xl border border-[var(--slate-200)] p-3">
-                {Array.from({ length: Math.min(visibleMobileColumns.length || 3, 4) }).map((_, j) => (
-                  <div key={j} className="space-y-1">
-                    <Skeleton className="h-3 w-16 rounded" />
-                    <Skeleton className="h-4 w-32 rounded" />
-                  </div>
-                ))}
+          <div className="space-y-px rounded-xl border border-[var(--slate-200)] overflow-hidden">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 bg-white px-3 py-3">
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-32 rounded" />
+                  <Skeleton className="h-3 w-24 rounded" />
+                </div>
+                <Skeleton className="h-7 w-7 rounded-lg" />
               </div>
             ))}
-          </>
+          </div>
         ) : null}
         {!loading && errorText ? <p className="text-sm text-[var(--danger-700)]">{errorText}</p> : null}
         {!loading && !errorText && rows.length === 0 ? <p className="text-sm text-[var(--slate-600)]">{emptyText}</p> : null}
 
-        {!loading && !errorText
+        {!loading && !errorText && renderMobileRow ? (
+          // ── Compact list rows ──────────────────────────────────────────────
+          <div className="overflow-hidden rounded-xl border border-[var(--slate-200)]">
+            {rows.map((row) => (
+              <article
+                key={getRowKey(row)}
+                className={cn(
+                  "flex min-h-[56px] items-center gap-2 border-b border-[var(--slate-200)] bg-white px-3 py-2.5 last:border-b-0",
+                  onRowClick
+                    ? "cursor-pointer transition-colors duration-150 hover:bg-[var(--brand-50)]/40 active:bg-[var(--brand-50)] motion-reduce:transition-none"
+                    : null,
+                )}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                role={onRowClick ? "button" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
+              >
+                <div className="min-w-0 flex-1">{renderMobileRow(row)}</div>
+                {renderActions ? (
+                  <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                    {renderActions(row)}
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        {!loading && !errorText && !renderMobileRow
           ? rows.map((row) => (
+              // ── Default expanded card layout ───────────────────────────────
               <article
                 key={getRowKey(row)}
                 className={cn(

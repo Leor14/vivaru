@@ -926,6 +926,30 @@ export default function AdminResidentsPage() {
             loadingText="Cargando unidades..."
             emptyText="Sin unidades. Crea una o aplica seed."
             tableMinWidthClassName="min-w-[640px] sm:min-w-[680px]"
+            renderMobileRow={(unit) => {
+              const count = people.filter(
+                (p) => p.unitId === unit.id || p.unitId === unit.unitId,
+              ).length;
+              return (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium text-[var(--slate-900)]">{unit.displayName}</span>
+                    <span className="shrink-0 text-xs text-[var(--slate-400)]">·</span>
+                    <span className="truncate text-sm text-[var(--slate-600)]">{formatTowerLabel(unit.tower)}</span>
+                    <StatusBadge status={unit.status} context="unit" className="ml-auto shrink-0 text-[10px]" />
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">
+                    {formatUnitType(unit.type)}
+                    {" · "}
+                    {count === 0 ? (
+                      <span className="text-amber-600">Sin titular</span>
+                    ) : (
+                      `${count} persona${count !== 1 ? "s" : ""}`
+                    )}
+                  </p>
+                </div>
+              );
+            }}
             renderActions={(unit) => (
               <div className="flex justify-end">
                 <RowActionsMenu
@@ -1080,6 +1104,23 @@ export default function AdminResidentsPage() {
             loadingText="Cargando personas..."
             emptyText="No hay personas con esos filtros."
             tableMinWidthClassName="min-w-[760px] xl:min-w-[980px]"
+            renderMobileRow={(person) => {
+              const linkedUnit = unitsById.get(person.unitId);
+              return (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium text-[var(--slate-900)]">{person.fullName}</span>
+                    <StatusBadge status={person.status} context="unit" className="ml-auto shrink-0 text-[10px]" />
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">
+                    {person.email}
+                    {" · "}
+                    {occupancyLabels[person.occupancyType]}
+                    {linkedUnit ? ` · ${linkedUnit.displayName}` : ""}
+                  </p>
+                </div>
+              );
+            }}
             renderActions={(person) => (
               <div className="flex justify-end">
                 <RowActionsMenu
