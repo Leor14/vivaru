@@ -447,7 +447,7 @@ export default function AdminServicesPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Descripcion</label>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">Descripción</label>
             <Textarea {...form.register("description")} placeholder="Describe el servicio disponible para la comunidad" />
             {form.formState.errors.description ? (
               <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.description.message}</p>
@@ -594,7 +594,7 @@ export default function AdminServicesPage() {
         name={pendingDeletion?.title ?? ""}
         description={
           pendingDeletion
-            ? "Esta accion eliminara el servicio del directorio comunitario. No se puede deshacer."
+            ? "Esta acción eliminará el servicio del directorio comunitario. No se puede deshacer."
             : null
         }
         loading={deleting}
@@ -672,7 +672,7 @@ export default function AdminServicesPage() {
             ) : null}
 
             <div>
-              <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Descripcion</p>
+              <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Descripción</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-800)]">{detailItem.description}</p>
             </div>
 

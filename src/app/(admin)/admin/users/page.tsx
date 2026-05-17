@@ -69,7 +69,7 @@ export default function AdminUsersPage() {
     }
 
     if (!fullName.trim() || !email.trim() || temporaryPassword.trim().length < 8) {
-      toast.error("Completa nombre, correo y contrasena temporal (minimo 8 caracteres).");
+      toast.error("Completa nombre, correo y contraseña temporal (mínimo 8 caracteres).");
       return;
     }
 

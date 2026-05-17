@@ -28,12 +28,12 @@ import { updateUserProfile } from "@/features/users/profile-service";
 
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(8, "Ingresa tu contrasena actual"),
-    newPassword: z.string().min(8, "La nueva contrasena debe tener minimo 8 caracteres"),
-    confirmPassword: z.string().min(8, "Confirma la nueva contrasena"),
+    currentPassword: z.string().min(8, "Ingresa tu contraseña actual"),
+    newPassword: z.string().min(8, "La nueva contraseña debe tener mínimo 8 caracteres"),
+    confirmPassword: z.string().min(8, "Confirma la nueva contraseña"),
   })
   .refine((values) => values.newPassword === values.confirmPassword, {
-    message: "La confirmacion no coincide con la nueva contrasena",
+    message: "La confirmación no coincide con la nueva contraseña",
     path: ["confirmPassword"],
   });
 
@@ -129,14 +129,14 @@ export default function AdminSettingsPage() {
   async function handlePasswordChange(values: PasswordForm) {
     try {
       if (!auth?.currentUser || !auth.currentUser.email) {
-        throw new Error("Sesion no valida para actualizar contrasena.");
+        throw new Error("Sesión no válida para actualizar contraseña.");
       }
       setSavingPassword(true);
       const credential = EmailAuthProvider.credential(auth.currentUser.email, values.currentPassword);
       await reauthenticateWithCredential(auth.currentUser, credential);
       await updatePassword(auth.currentUser, values.newPassword);
       passwordForm.reset();
-      toast.success("Contrasena actualizada correctamente.");
+      toast.success("Contraseña actualizada correctamente.");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -251,15 +251,15 @@ export default function AdminSettingsPage() {
         <CardDescription className="mt-1">Actualiza tu contraseña sin salir de tu perfil.</CardDescription>
         <form className="mt-4 grid gap-3 md:max-w-xl" onSubmit={passwordForm.handleSubmit((values) => void handlePasswordChange(values))}>
           <div>
-            <Input type="password" label="Contrasena actual" autoComplete="current-password" {...passwordForm.register("currentPassword")} />
+            <Input type="password" label="Contraseña actual" autoComplete="current-password" {...passwordForm.register("currentPassword")} />
             {passwordForm.formState.errors.currentPassword ? <p className="mt-1 text-xs text-[var(--danger-700)]">{passwordForm.formState.errors.currentPassword.message}</p> : null}
           </div>
           <div>
-            <Input type="password" label="Nueva contrasena" autoComplete="new-password" {...passwordForm.register("newPassword")} />
+            <Input type="password" label="Nueva contraseña" autoComplete="new-password" {...passwordForm.register("newPassword")} />
             {passwordForm.formState.errors.newPassword ? <p className="mt-1 text-xs text-[var(--danger-700)]">{passwordForm.formState.errors.newPassword.message}</p> : null}
           </div>
           <div>
-            <Input type="password" label="Confirmar nueva contrasena" autoComplete="new-password" {...passwordForm.register("confirmPassword")} />
+            <Input type="password" label="Confirmar nueva contraseña" autoComplete="new-password" {...passwordForm.register("confirmPassword")} />
             {passwordForm.formState.errors.confirmPassword ? <p className="mt-1 text-xs text-[var(--danger-700)]">{passwordForm.formState.errors.confirmPassword.message}</p> : null}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

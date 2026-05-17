@@ -551,11 +551,11 @@ export default function AdminResidentsPage() {
         return false;
       }
       if (!member.email.trim() || !member.email.includes("@")) {
-        toast.error("Cada familiar debe tener un correo valido.");
+        toast.error("Cada familiar debe tener un correo válido.");
         return false;
       }
       if (!member.phone.trim() || member.phone.trim().length < 7) {
-        toast.error("Cada familiar debe tener telefono valido.");
+        toast.error("Cada familiar debe tener teléfono válido.");
         return false;
       }
     }
@@ -756,7 +756,7 @@ export default function AdminResidentsPage() {
         tenantId: user.tenantId,
         personId: person.id,
       });
-      toast.success("Clave temporal restablecida correctamente. El residente debera ingresar con su numero de documento y cambiar su contrasena antes de continuar.");
+      toast.success("Clave temporal restablecida correctamente. El residente deberá ingresar con su número de documento y cambiar su contraseña antes de continuar.");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -979,7 +979,7 @@ export default function AdminResidentsPage() {
             <div>
               <CardTitle>Personas asociadas</CardTitle>
               <CardDescription className="mt-1">
-                Titulares y residentes vinculados a cada unidad, con acceso rapido a acciones operativas.
+                Titulares y residentes vinculados a cada unidad, con acceso rápido a acciones operativas.
               </CardDescription>
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1214,7 +1214,7 @@ export default function AdminResidentsPage() {
                     <Input {...personForm.register("email")} error={personForm.formState.errors.email?.message} />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm text-[var(--slate-700)]">Telefono</label>
+                    <label className="mb-1 block text-sm text-[var(--slate-700)]">Teléfono</label>
                     <Input {...personForm.register("phone")} error={personForm.formState.errors.phone?.message} />
                   </div>
                 </div>
@@ -1277,7 +1277,7 @@ export default function AdminResidentsPage() {
                             onChange={(event) => updateFamilyMember(member.id, "email", event.target.value)}
                           />
                           <Input
-                            placeholder="Telefono"
+                            placeholder="Teléfono"
                             value={member.phone}
                             onChange={(event) => updateFamilyMember(member.id, "phone", event.target.value)}
                           />
@@ -1316,7 +1316,7 @@ export default function AdminResidentsPage() {
               <Card className="p-4">
                 <CardTitle className="text-base">4. Credenciales y acceso</CardTitle>
                 <CardDescription className="mt-2">
-                  Al guardar, el titular queda creado y desde la tabla de personas podras usar la accion de restablecimiento de clave por correo.
+                  Al guardar, el titular queda creado y desde la tabla de personas podrás usar la acción de restablecimiento de clave por correo.
                 </CardDescription>
               </Card>
             </>

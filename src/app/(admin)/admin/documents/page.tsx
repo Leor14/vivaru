@@ -110,7 +110,7 @@ export default function AdminDocumentsPage() {
     },
     {
       key: "description",
-      header: "Descripcion",
+      header: "Descripción",
       render: (item) => item.description,
     },
     {
@@ -135,7 +135,7 @@ export default function AdminDocumentsPage() {
               </IconBadge>
               Elegir archivo
             </Button>
-            <span className="text-xs text-[var(--slate-600)]">{file?.name ?? "Ningun archivo seleccionado"}</span>
+            <span className="text-xs text-[var(--slate-600)]">{file?.name ?? "Ningún archivo seleccionado"}</span>
           </div>
           <input
             id="tenant-document-file"
@@ -146,7 +146,7 @@ export default function AdminDocumentsPage() {
           />
         </div>
         <label className="text-sm text-[var(--slate-700)]">
-          Descripcion
+          Descripción
           <Input {...form.register("description")} placeholder="Acta consejo marzo 2026" />
           {form.formState.errors.description ? <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.description.message}</p> : null}
         </label>
@@ -176,7 +176,7 @@ export default function AdminDocumentsPage() {
             Buscar
             <Input
               className="mt-1"
-              placeholder="Nombre de archivo o descripcion"
+              placeholder="Nombre de archivo o descripción"
               value={searchFilter}
               onChange={(event) => setSearchFilter(event.target.value)}
             />

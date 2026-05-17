@@ -413,7 +413,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(financialSummary.collectionRate, previousWindowSummary.rate, "vs ventana anterior"),
       tone: "success" as const,
       href: "/admin/billing",
-      help: "Porcentaje de la cartera cobrada que ya fue recaudada en el periodo. Un 80% o mas es saludable para la operacion.",
+      help: "Porcentaje de la cartera cobrada que ya fue recaudada en el periodo. Un 80% o más es saludable para la operación.",
     },
     {
       label: "Visitantes hoy",
@@ -421,7 +421,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(visitorMonthCurrent, visitorMonthPrevious),
       tone: "neutral" as const,
       href: "/admin/visitors",
-      help: "Total de visitas con autorizacion vigente para hoy. Incluye visitas puntuales y autorizaciones de larga duracion activas.",
+      help: "Total de visitas con autorización vigente para hoy. Incluye visitas puntuales y autorizaciones de larga duración activas.",
     },
     {
       label: "Paquetes pendientes",
@@ -429,7 +429,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(packageMonthCurrent, packageMonthPrevious),
       tone: "pending" as const,
       href: "/admin/packages",
-      help: "Paquetes recibidos en porteria que aun no han sido recogidos por el residente.",
+      help: "Paquetes recibidos en portería que aún no han sido recogidos por el residente.",
     },
     {
       label: "PQRS abiertas",
@@ -900,7 +900,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Operación</p>
-                <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Ingresos validados por porteria hoy. Muestra visitantes activos y completados del dia en curso.">
+                <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Ingresos validados por portería hoy. Muestra visitantes activos y completados del día en curso.">
                   <Users className="h-4 w-4 text-[#416f95]" /> Visitantes hoy
                 </CardTitle>
               </div>
