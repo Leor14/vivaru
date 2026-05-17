@@ -13,6 +13,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   adminProfileSchema,
   type AdminProfileInput,
@@ -146,9 +147,48 @@ export default function AdminSettingsPage() {
   if (branding.loading) {
     return (
       <section className="space-y-4">
-        <h2 className="text-2xl font-semibold text-[var(--slate-900)]">Perfil del edificio</h2>
-        <Card>
-          <p className="text-sm text-[var(--slate-600)]">Cargando configuración...</p>
+        {/* Branding card skeleton */}
+        <div>
+          <Skeleton className="h-7 w-52 rounded-xl" />
+          <Skeleton className="mt-2 h-4 w-72 rounded-xl" />
+        </div>
+        <Card className="space-y-5 p-5">
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-40 rounded-lg" />
+            <Skeleton className="h-4 w-64 rounded-lg" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Skeleton className="h-10 rounded-xl" />
+            <Skeleton className="h-10 rounded-xl" />
+          </div>
+          <Skeleton className="h-[130px] max-w-[260px] rounded-2xl" />
+          <div className="flex items-center gap-2">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-7 w-7 rounded-full" />)}
+            <Skeleton className="h-10 w-[110px] rounded-xl" />
+          </div>
+          <Skeleton className="h-[108px] rounded-2xl" />
+          <div className="flex justify-end gap-2 border-t border-[var(--slate-200)] pt-4">
+            <Skeleton className="h-10 w-24 rounded-xl" />
+            <Skeleton className="h-10 w-28 rounded-xl" />
+          </div>
+        </Card>
+        {/* Profile card skeleton */}
+        <Card className="space-y-4">
+          <Skeleton className="h-5 w-36 rounded-lg" />
+          <Skeleton className="h-10 rounded-xl" />
+          <div className="flex gap-2">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-12 rounded-full" />)}
+          </div>
+          <div className="flex justify-end">
+            <Skeleton className="h-10 w-32 rounded-xl" />
+          </div>
+        </Card>
+        {/* Security card skeleton */}
+        <Card className="space-y-3">
+          <Skeleton className="h-5 w-24 rounded-lg" />
+          <Skeleton className="h-10 rounded-xl" />
+          <Skeleton className="h-10 rounded-xl" />
+          <Skeleton className="h-10 rounded-xl" />
         </Card>
       </section>
     );
@@ -222,10 +262,10 @@ export default function AdminSettingsPage() {
             <Input type="password" label="Confirmar nueva contrasena" autoComplete="new-password" {...passwordForm.register("confirmPassword")} />
             {passwordForm.formState.errors.confirmPassword ? <p className="mt-1 text-xs text-[var(--danger-700)]">{passwordForm.formState.errors.confirmPassword.message}</p> : null}
           </div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-[var(--slate-600)]">Usuario autenticado: {user?.email ?? "-"}</p>
-            <Button type="submit" disabled={savingPassword || !passwordForm.formState.isValid}>
-              {savingPassword ? "Actualizando..." : "Actualizar contrasena"}
+            <Button type="submit" disabled={savingPassword || !passwordForm.formState.isValid} className="w-full sm:w-auto">
+              {savingPassword ? "Actualizando..." : "Actualizar contraseña"}
             </Button>
           </div>
         </form>

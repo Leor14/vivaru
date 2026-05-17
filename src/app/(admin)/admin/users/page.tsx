@@ -8,6 +8,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useAuth } from "@/features/auth/auth-context";
 import { db } from "@/lib/firebase/client";
@@ -104,24 +105,30 @@ export default function AdminUsersPage() {
         </CardDescription>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <Input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Nombre" />
-          <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Correo electronico" />
+          <Input label="Nombre" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="María García" />
+          <Input label="Correo electrónico" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="usuario@ejemplo.com" type="email" autoComplete="email" />
           <Input
+            label="Contraseña temporal"
             value={temporaryPassword}
             onChange={(event) => setTemporaryPassword(event.target.value)}
-            placeholder="Contrasena temporal"
+            placeholder="Mínimo 8 caracteres"
             type="password"
             autoComplete="new-password"
             name="new-temporary-password"
           />
-          <select
-            className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-            value={role}
-            onChange={(event) => setRole(event.target.value as "tenant_admin" | "security_guard")}
-          >
-            <option value="tenant_admin">Admin</option>
-            <option value="security_guard">Guarda de seguridad</option>
-          </select>
+          <div>
+            <label className="block text-sm text-[var(--slate-700)]">
+              Rol
+              <select
+                className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={role}
+                onChange={(event) => setRole(event.target.value as "tenant_admin" | "security_guard")}
+              >
+                <option value="tenant_admin">Admin</option>
+                <option value="security_guard">Guarda de seguridad</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <Button className="mt-4" onClick={() => void handleCreateUser()} disabled={saving}>
@@ -133,8 +140,42 @@ export default function AdminUsersPage() {
         <CardTitle>Usuarios del tenant</CardTitle>
         <CardDescription className="mt-1">Listado de usuarios operativos activos e inactivos.</CardDescription>
 
-        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--slate-200)]">
-          <table className="min-w-[820px] w-full text-sm">
+        {/* Mobile: card list */}
+        <div className="mt-4 space-y-2 sm:hidden">
+          {loading ? (
+            <>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-xl border border-[var(--slate-200)] px-4 py-3 space-y-2">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-48" />
+                  <div className="flex items-center gap-2 pt-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-5 w-14 rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </>
+          ) : managedUsers.length === 0 ? (
+            <p className="py-4 text-sm text-[var(--slate-500)]">No hay usuarios operativos registrados.</p>
+          ) : (
+            managedUsers.map((item) => (
+              <div key={item.id} className="rounded-xl border border-[var(--slate-200)] px-4 py-3">
+                <p className="text-sm font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</p>
+                <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">{item.email ?? "-"}</p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-[var(--slate-600)]">
+                    {item.role === "security_guard" ? "Guarda de seguridad" : "Admin"}
+                  </span>
+                  <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="mt-4 hidden overflow-x-auto rounded-xl border border-[var(--slate-200)] sm:block">
+          <table className="w-full text-sm">
             <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
               <tr>
                 <th className="px-3 py-2">Nombre</th>
@@ -145,9 +186,16 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td className="px-3 py-4 text-[var(--slate-600)]" colSpan={4}>Cargando usuarios...</td>
-                </tr>
+                <>
+                  {[0, 1, 2].map((i) => (
+                    <tr key={i} className="border-t border-[var(--slate-200)]">
+                      <td className="px-3 py-2"><Skeleton className="h-4 w-32" /></td>
+                      <td className="px-3 py-2"><Skeleton className="h-4 w-44" /></td>
+                      <td className="px-3 py-2"><Skeleton className="h-4 w-28" /></td>
+                      <td className="px-3 py-2"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                    </tr>
+                  ))}
+                </>
               ) : null}
 
               {!loading && managedUsers.length === 0 ? (
@@ -156,7 +204,7 @@ export default function AdminUsersPage() {
                 </tr>
               ) : null}
 
-              {managedUsers.map((item) => (
+              {!loading && managedUsers.map((item) => (
                 <tr key={item.id} className="border-t border-[var(--slate-200)]">
                   <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</td>
                   <td className="px-3 py-2">{item.email ?? "-"}</td>

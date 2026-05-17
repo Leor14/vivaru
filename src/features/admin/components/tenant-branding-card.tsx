@@ -108,7 +108,7 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
   return (
     <section className="space-y-4">
       <div>
-        <h2 className="text-2xl font-semibold text-[var(--slate-900)]">Branding del edificio</h2>
+        <h2 className="text-xl font-semibold text-[var(--slate-900)] sm:text-2xl">Branding del edificio</h2>
         <p className="mt-1 text-sm text-[var(--slate-600)]">Configuración visual e identidad del edificio.</p>
       </div>
 
@@ -228,8 +228,8 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
                 onBlur={(event) => commitHex(event.target.value)}
                 placeholder="#000000"
                 aria-label="Color en formato hexadecimal"
+                className="w-[110px]"
                 style={{
-                  width: 110,
                   borderColor: hexError ? "var(--danger-500, #dc2626)" : undefined,
                   transition: "border-color 200ms ease",
                 }}
