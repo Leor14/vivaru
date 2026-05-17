@@ -1156,7 +1156,7 @@ export default function AdminResidentsPage() {
             <CardTitle className="text-base">1. Datos de la unidad</CardTitle>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-sm text-[var(--slate-700)]">Display name</label>
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">Nombre de la unidad</label>
                 <Input {...unitForm.register("displayName")} placeholder="T1-101" />
                 {unitForm.formState.errors.displayName ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.displayName.message}</p> : null}
               </div>
@@ -1170,10 +1170,10 @@ export default function AdminResidentsPage() {
               <label className="text-sm text-[var(--slate-700)]">
                 Tipo
                 <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...unitForm.register("type")}>
-                  <option value="apartment">Apartment</option>
-                  <option value="house">House</option>
-                  <option value="office">Office</option>
-                  <option value="other">Other</option>
+                  <option value="apartment">Apartamento</option>
+                  <option value="house">Casa</option>
+                  <option value="office">Oficina</option>
+                  <option value="other">Otro</option>
                 </select>
               </label>
               <label className="text-sm text-[var(--slate-700)]">
