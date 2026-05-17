@@ -667,11 +667,14 @@ export function watchServices(tenantId: string, onData: (items: ServiceItem[]) =
 export async function createService(
   tenantId: string,
   userId: string,
-  payload: Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status" | "unitId" | "imageUrl" | "imagePath">,
+  payload: Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status"> &
+    Partial<Pick<ServiceItem, "unitId" | "imageUrl" | "imagePath">>,
 ) {
   const firestore = assertDb();
+  // Strip undefined optional fields — Firestore rejects undefined values
+  const clean = Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
   await addDoc(collection(firestore, "services"), {
-    ...payload,
+    ...clean,
     tenantId,
     createdBy: userId,
     createdAt: serverTimestamp(),
@@ -681,8 +684,10 @@ export async function createService(
 
 export async function updateService(id: string, userId: string, payload: Partial<ServiceItem>) {
   const firestore = assertDb();
+  // Strip undefined optional fields — Firestore rejects undefined values
+  const clean = Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
   await updateDoc(doc(firestore, "services", id), {
-    ...payload,
+    ...clean,
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });
