@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -233,81 +234,93 @@ export default function AdminPqrsPage() {
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
 
-        <div className="mt-4 grid gap-2 md:grid-cols-3 lg:grid-cols-4">
-          <label className="text-sm text-[var(--slate-700)]">
-            Estado
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-              <option value="all">Todos</option>
-              <option value="open">Abierto</option>
-              <option value="in_progress">En proceso</option>
-              <option value="responded">Respondido</option>
-              <option value="resolved">Resuelto</option>
-              <option value="closed">Cerrado</option>
-            </select>
-          </label>
+        <div className="mt-4">
+          <MobileFiltersPanel
+            title="Filtros de tickets"
+            collapsibleOnDesktop
+            defaultOpen={false}
+            activeFiltersCount={
+              (statusFilter !== "all" ? 1 : 0) +
+              (typeFilter !== "all" ? 1 : 0) +
+              (unitFilter !== "all" ? 1 : 0) +
+              (residentFilter !== "all" ? 1 : 0) +
+              (dateFrom ? 1 : 0) +
+              (dateTo ? 1 : 0) +
+              (alertFilter !== "all" ? 1 : 0)
+            }
+            openLabel="Mostrar filtros"
+            closeLabel="Ocultar filtros"
+          >
+            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+              <label className="text-xs text-[var(--slate-600)]">
+                Estado
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                  <option value="all">Todos</option>
+                  <option value="open">Abierto</option>
+                  <option value="in_progress">En proceso</option>
+                  <option value="responded">Respondido</option>
+                  <option value="resolved">Resuelto</option>
+                  <option value="closed">Cerrado</option>
+                </select>
+              </label>
 
-          <label className="text-sm text-[var(--slate-700)]">
-            Tipo
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-              <option value="all">Todos</option>
-              {types.map((type) => (
-                <option key={type} value={type}>{getTicketTypeLabel(type)}</option>
-              ))}
-            </select>
-          </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Tipo
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+                  <option value="all">Todos</option>
+                  {types.map((type) => (
+                    <option key={type} value={type}>{getTicketTypeLabel(type)}</option>
+                  ))}
+                </select>
+              </label>
 
-          <label className="text-sm text-[var(--slate-700)]">
-            Unidad
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
-              <option value="all">Todas</option>
-              {units.map((unit) => (
-                <option key={unit} value={unit}>{unit}</option>
-              ))}
-            </select>
-          </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Unidad
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+                  <option value="all">Todas</option>
+                  {units.map((unit) => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+              </label>
 
-          <label className="text-sm text-[var(--slate-700)]">
-            Residente
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={residentFilter} onChange={(event) => setResidentFilter(event.target.value)}>
-              <option value="all">Todos</option>
-              {residents.map((resident) => (
-                <option key={resident} value={resident}>{resident}</option>
-              ))}
-            </select>
-          </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Residente
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={residentFilter} onChange={(event) => setResidentFilter(event.target.value)}>
+                  <option value="all">Todos</option>
+                  {residents.map((resident) => (
+                    <option key={resident} value={resident}>{resident}</option>
+                  ))}
+                </select>
+              </label>
 
-          <Input type="date" label="Radicación desde" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-          <Input type="date" label="Radicación hasta" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+              <Input type="date" label="Radicación desde" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+              <Input type="date" label="Radicación hasta" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
 
-          <label className="text-sm text-[var(--slate-700)]">
-            Prioridad de respuesta
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value as AlertFilter)}>
-              <option value="all">Todas</option>
-              <option value="green">En plazo</option>
-              <option value="yellow">Próximo a vencer</option>
-              <option value="red">Crítico</option>
-            </select>
-          </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Prioridad de respuesta
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value as AlertFilter)}>
+                  <option value="all">Todas</option>
+                  <option value="green">En plazo</option>
+                  <option value="yellow">Próximo a vencer</option>
+                  <option value="red">Crítico</option>
+                </select>
+              </label>
 
-          <label className="text-sm text-[var(--slate-700)]">
-            Orden
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)}>
-              <option value="due">Próximos a vencer</option>
-              <option value="oldest">Más antiguos primero</option>
-              <option value="newest">Más recientes</option>
-            </select>
-          </label>
+              <label className="text-xs text-[var(--slate-600)]">
+                Orden
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)}>
+                  <option value="due">Próximos a vencer</option>
+                  <option value="oldest">Más antiguos primero</option>
+                  <option value="newest">Más recientes</option>
+                </select>
+              </label>
+            </div>
+          </MobileFiltersPanel>
         </div>
 
-        <div className="mt-5 rounded-xl border border-[var(--slate-200)]">
-          <table className="w-full table-fixed text-sm">
-            <colgroup>
-              <col style={{ width: "40%" }} />
-              <col style={{ width: "18%" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "18%" }} />
-              <col style={{ width: "10%" }} />
-            </colgroup>
+        <div className="mt-5 overflow-x-auto rounded-xl border border-[var(--slate-200)]">
+          <table className="w-full text-sm" style={{ minWidth: 700 }}>
             <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
               <tr>
                 <th className="px-3 py-2">Asunto</th>
