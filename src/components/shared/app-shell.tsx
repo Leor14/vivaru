@@ -288,11 +288,11 @@ export function AppShell({
               </Button>
               <div className="min-w-0">
                 <p className="text-label hidden text-[var(--slate-500)] md:block">{ROLE_LABEL[user.role]}</p>
-                <h1 className="text-display truncate text-[var(--slate-900)]">{shellTitle}</h1>
+                <h1 className="truncate text-base font-medium text-[var(--slate-900)] md:text-display">{shellTitle}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="max-w-[140px] truncate text-xs text-[var(--slate-600)] md:max-w-none md:text-sm">{user.fullName}</span>
+              <span className="hidden truncate text-sm text-[var(--slate-600)] md:inline md:max-w-none">{user.fullName}</span>
               <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
             </div>
           </div>
