@@ -31,12 +31,12 @@ export function ResidentBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 bg-white md:hidden"
       aria-label="Navegación principal"
       /* Safe area para iPhone home indicator */
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-stretch border-t border-[var(--slate-200)] bg-white shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
+      <div className="flex items-stretch border-t border-[var(--slate-200)] shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
         {ITEMS.map((item) => {
           const Icon = item.icon;
           // Inicio: coincidencia exacta para no marcar activo en todo el portal
