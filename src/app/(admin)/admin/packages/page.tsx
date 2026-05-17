@@ -211,8 +211,8 @@ export default function AdminPackagesPage() {
         </span>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-xl border border-[var(--slate-200)]">
-        <table className="w-full text-sm">
+      <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--slate-200)]">
+        <table className="min-w-[680px] w-full text-sm">
           <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
             <tr>
               <th className="px-3 py-2 font-medium">Destinatario / Unidad</th>
