@@ -65,7 +65,7 @@ export function VisitorFlowWidget({ tenantId }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-label text-[var(--slate-500)]">Flujo de ingresos</p>
-          <CardTitle className="mt-1 text-lg">Visitantes registrados</CardTitle>
+          <CardTitle className="mt-1 text-lg" help="Conteo diario de ingresos de visitantes validados en porteria. El grafico compara el rango seleccionado y muestra cuantos estan actualmente dentro del conjunto.">Visitantes registrados</CardTitle>
           <CardDescription className="mt-1">
             Conteo diario de ingresos validados en portería.
           </CardDescription>

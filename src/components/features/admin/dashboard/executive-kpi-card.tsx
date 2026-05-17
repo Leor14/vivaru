@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HelpTip } from "@/components/shared/help-tip";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils/cn";
 
@@ -39,18 +40,23 @@ export function ExecutiveKpiCard({
   insight,
   tone = "neutral",
   href,
+  help,
 }: {
   label: string;
   value: string;
   insight: string;
   tone?: KpiTone;
   href?: string;
+  help?: string;
 }) {
   const content = (
     <Card className={cn("premium-card-hover bg-gradient-to-b p-4 sm:p-5", TONE_STYLES[tone].shell)}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-[var(--slate-700)]">{label}</p>
-        <span className={cn("mt-1 h-2.5 w-2.5 rounded-full", TONE_STYLES[tone].dot)} aria-hidden />
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-[var(--slate-700)]">{label}</p>
+          {help ? <HelpTip text={help} side="bottom" /> : null}
+        </div>
+        <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", TONE_STYLES[tone].dot)} aria-hidden />
       </div>
       <p className="kpi-value-fluid kpi-value-fluid-xl mt-3 font-semibold text-[var(--slate-900)]">{value}</p>
       <p className={cn("mt-1 text-xs font-medium", TONE_STYLES[tone].insight)}>{insight}</p>

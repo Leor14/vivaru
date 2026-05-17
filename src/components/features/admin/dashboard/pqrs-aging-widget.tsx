@@ -32,7 +32,7 @@ export function PqrsAgingWidget({ tenantId }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-label text-[var(--slate-500)]">PQRS críticas</p>
-          <CardTitle className="mt-1 text-lg">Casos por antigüedad</CardTitle>
+          <CardTitle className="mt-1 text-lg" help="Distribucion de PQRS abiertas por antiguedad desde su radicacion. Los casos mayores a 30 dias son criticos y requieren atencion inmediata.">Casos por antigüedad</CardTitle>
           <CardDescription className="mt-1">
             Distribución de PQRS abiertas según días desde su radicación.
           </CardDescription>

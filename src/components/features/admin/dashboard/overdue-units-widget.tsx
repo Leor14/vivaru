@@ -70,7 +70,7 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-label text-[var(--slate-500)]">Seguimiento de mora</p>
-          <CardTitle className="mt-1 text-lg">Unidades con mayor saldo vencido</CardTitle>
+          <CardTitle className="mt-1 text-lg" help="Ranking de las unidades con mayor saldo vencido. Permite identificar deudores prioritarios para gestion de cobro. Filtra por torre o cambia el criterio de ordenamiento.">Unidades con mayor saldo vencido</CardTitle>
           <CardDescription className="mt-1">
             Top de unidades a priorizar para gestión de cobranza.
           </CardDescription>

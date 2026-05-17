@@ -405,6 +405,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(totalPortfolio, previousWindowSummary.gap, "vs ventana anterior"),
       tone: "neutral" as const,
       href: "/admin/billing",
+      help: "Suma de saldos pendientes de todas las unidades en el periodo seleccionado. No incluye intereses ni recargos adicionales.",
     },
     {
       label: "% recaudo",
@@ -412,6 +413,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(financialSummary.collectionRate, previousWindowSummary.rate, "vs ventana anterior"),
       tone: "success" as const,
       href: "/admin/billing",
+      help: "Porcentaje de la cartera cobrada que ya fue recaudada en el periodo. Un 80% o mas es saludable para la operacion.",
     },
     {
       label: "Visitantes hoy",
@@ -419,6 +421,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(visitorMonthCurrent, visitorMonthPrevious),
       tone: "neutral" as const,
       href: "/admin/visitors",
+      help: "Total de visitas con autorizacion vigente para hoy. Incluye visitas puntuales y autorizaciones de larga duracion activas.",
     },
     {
       label: "Paquetes pendientes",
@@ -426,6 +429,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(packageMonthCurrent, packageMonthPrevious),
       tone: "pending" as const,
       href: "/admin/packages",
+      help: "Paquetes recibidos en porteria que aun no han sido recogidos por el residente.",
     },
     {
       label: "PQRS abiertas",
@@ -433,6 +437,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(ticketMonthCurrent, ticketMonthPrevious),
       tone: urgentTickets > 0 ? ("alert" as const) : ("neutral" as const),
       href: "/admin/pqrs",
+      help: "Solicitudes, quejas, reclamos o sugerencias que aun no tienen estado resuelto o cerrado. Los casos mayores a 15 dias se marcan como urgentes.",
     },
     {
       label: "Reservas del día",
@@ -440,6 +445,7 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(reservationMonthCurrent, reservationMonthPrevious),
       tone: "success" as const,
       href: "/admin/reservations",
+      help: "Reservas de zonas comunes aprobadas o pendientes para el dia de hoy.",
     },
   ];
 
@@ -655,6 +661,7 @@ export default function AdminDashboardPage() {
                 insight={kpi.insight}
                 tone={kpi.tone}
                 href={kpi.href}
+                help={kpi.help}
               />
             ))}
           </div>
@@ -674,6 +681,7 @@ export default function AdminDashboardPage() {
         <ChartContainer
           title="Comportamiento histórico de cartera"
           description="Comparativo de cobrado y recaudado por periodo con lectura inmediata de porcentaje de recaudo."
+          helpText="Muestra la evolucion mensual del cobro vs. recaudo y el porcentaje de recaudo. Usa los filtros para comparar periodos especificos o aislar una unidad."
           controls={
             <div className="grid gap-2 sm:grid-cols-3">
               <label className="text-xs text-[var(--slate-700)]">
@@ -892,7 +900,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Operación</p>
-                <CardTitle className="mt-1 flex items-center gap-2 text-lg">
+                <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Ingresos validados por porteria hoy. Muestra visitantes activos y completados del dia en curso.">
                   <Users className="h-4 w-4 text-[#416f95]" /> Visitantes hoy
                 </CardTitle>
               </div>
@@ -932,7 +940,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Logística</p>
-                <CardTitle className="mt-1 flex items-center gap-2 text-lg">
+                <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Paquetes en espera de ser recogidos. Haz clic en 'Ver todo' para ver el historial reciente de entregas.">
                   <PackageCheck className="h-4 w-4 text-[#8a6524]" /> Paquetes
                 </CardTitle>
               </div>
@@ -964,7 +972,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className={`text-label ${urgentTickets > 0 ? "text-red-500" : "text-[var(--slate-500)]"}`}>Atención{urgentTickets > 0 ? ` · ${urgentTickets} urgente${urgentTickets > 1 ? "s" : ""}` : ""}</p>
-                <CardTitle className="mt-1 flex items-center gap-2 text-lg">
+                <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Casos abiertos ordenados por antiguedad. Los marcados como urgentes llevan mas de 15 dias sin respuesta.">
                   <ClipboardList className={`h-4 w-4 ${urgentTickets > 0 ? "text-red-500" : "text-[#a34d3f]"}`} /> PQRS
                 </CardTitle>
               </div>
@@ -996,7 +1004,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Comunicación</p>
-                <CardTitle className="mt-1 flex items-center gap-2 text-lg">
+                <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Comunicados publicados y vigentes a la fecha. Los programados o vencidos no aparecen aqui.">
                   <MessageSquareText className="h-4 w-4 text-[#476987]" /> Comunicaciones vigentes
                 </CardTitle>
               </div>

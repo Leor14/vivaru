@@ -34,7 +34,7 @@ export function RegulationComplianceWidget({ tenantId, totalUnits }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-label text-[var(--slate-500)]">Firma del reglamento</p>
-          <CardTitle className="mt-1 text-lg">Cumplimiento por torre</CardTitle>
+          <CardTitle className="mt-1 text-lg" help="Porcentaje de unidades del conjunto que han firmado digitalmente el reglamento activo. Las torres en rojo tienen firma pendiente.">Cumplimiento por torre</CardTitle>
           <CardDescription className="mt-1">
             Avance de residentes que han firmado el reglamento activo.
           </CardDescription>

@@ -34,7 +34,7 @@ export function PackagesBodegaWidget({ tenantId }: Props) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-label text-[var(--slate-500)]">Tiempo en bodega</p>
-          <CardTitle className="mt-1 text-lg">Paquetes pendientes de entrega</CardTitle>
+          <CardTitle className="mt-1 text-lg" help="Paquetes que aun no han sido recogidos por el residente, ordenados por tiempo en bodega. Un paquete con mas de 7 dias debe ser notificado al residente.">Paquetes pendientes de entrega</CardTitle>
           <CardDescription className="mt-1">
             Paquetes sin entregar al residente, ordenados por antigüedad.
           </CardDescription>
