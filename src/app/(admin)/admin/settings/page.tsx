@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/features/auth/auth-context";
 import { auth } from "@/lib/firebase/client";
 import { TenantBrandingCard } from "@/features/admin/components/tenant-branding-card";
+import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
 import { useTenantBrandingForm } from "@/features/admin/hooks/use-tenant-branding-form";
 import { ResidentAvatarPicker } from "../../../../../components/features/resident/ResidentAvatarPicker";
 import { updateUserProfile } from "@/features/users/profile-service";
@@ -248,6 +249,8 @@ export default function AdminSettingsPage() {
           </label>
         </div>
       </Card>
+
+      <ResidentModulesCard tenantId={user?.tenantId} />
     </section>
   );
 }

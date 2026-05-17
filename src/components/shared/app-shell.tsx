@@ -19,11 +19,14 @@ import { ROLE_LABEL, type AppRole } from "@/lib/constants/roles";
 import { db } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils/cn";
 
+import { type ResidentModules, DEFAULT_RESIDENT_MODULES } from "@/features/admin/services";
+
 type TenantBranding = {
   brandColor: string;
   tenantDisplayName?: string;
   tenantName?: string;
   logoUrl?: string;
+  residentModules?: ResidentModules;
 };
 
 const DEFAULT_BRAND_COLOR = "#0b3c5d";
@@ -96,11 +99,23 @@ export function AppShell({
 
         try {
           const data = snapshot.data() as Record<string, unknown>;
+          const rawModules =
+            typeof data.residentModules === "object" && data.residentModules
+              ? (data.residentModules as Record<string, unknown>)
+              : null;
           setBranding({
             brandColor: normalizeBrandColor(data.brandColor),
             tenantDisplayName: normalizeOptionalText(data.tenantDisplayName),
             tenantName: normalizeOptionalText(data.tenantName),
             logoUrl: normalizeOptionalText(data.logoUrl),
+            residentModules: rawModules
+              ? {
+                  reservations: rawModules.reservations !== false,
+                  services: rawModules.services !== false,
+                  surveys: rawModules.surveys !== false,
+                  regulations: rawModules.regulations !== false,
+                }
+              : undefined,
           });
         } catch (parseError) {
           console.error("[app-shell] invalid tenant branding payload", parseError);
@@ -295,7 +310,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
-                  groups={buildRoleSidebarGroups(shellRole)}
+                  groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
                   profileHref={profileHrefForRole(shellRole)}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -331,7 +346,7 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
-              groups={buildRoleSidebarGroups(shellRole)}
+              groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
               profileHref={profileHrefForRole(shellRole)}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}

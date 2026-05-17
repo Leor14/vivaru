@@ -19,6 +19,7 @@ import {
 import { roleNavigation } from "@/lib/constants/navigation";
 import type { AppRole } from "@/lib/constants/roles";
 import type { AdminSidebarGroup } from "@/components/shared/admin-sidebar";
+import { type ResidentModules, DEFAULT_RESIDENT_MODULES } from "@/features/admin/services";
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -71,18 +72,46 @@ const GROUP_LABEL_BY_ROLE: Record<string, string | undefined> = {
   committee: "COMITE",
 };
 
+/** Maps resident module keys to the hrefs they control in the resident sidebar. */
+const RESIDENT_MODULE_HREFS: Record<keyof ResidentModules, string> = {
+  reservations: "/resident/reservations",
+  services: "/resident/services",
+  surveys: "/resident/surveys",
+  regulations: "/resident/regulations",
+};
+
 /**
  * Build sidebar groups for any non-admin role from the shared roleNavigation
  * configuration so all roles share the same dark sidebar visual language.
  * Admin roles render their own curated GROUPS inside AdminSidebar (default).
+ *
+ * For the "resident" role, pass `residentModules` to hide disabled modules.
+ * Omitting `residentModules` defaults to all modules enabled.
  */
-export function buildRoleSidebarGroups(role: AppRole): AdminSidebarGroup[] {
+export function buildRoleSidebarGroups(
+  role: AppRole,
+  residentModules?: ResidentModules,
+): AdminSidebarGroup[] {
   const items = roleNavigation[role] ?? [];
   if (items.length === 0) return [];
+
+  // Build the set of hrefs that should be hidden for the resident role
+  let hiddenHrefs = new Set<string>();
+  if (role === "resident" && residentModules) {
+    const effective = { ...DEFAULT_RESIDENT_MODULES, ...residentModules };
+    for (const [key, href] of Object.entries(RESIDENT_MODULE_HREFS)) {
+      if (!effective[key as keyof ResidentModules]) {
+        hiddenHrefs.add(href);
+      }
+    }
+  }
+
+  const filteredItems = items.filter((item) => !hiddenHrefs.has(item.href));
+
   return [
     {
       label: GROUP_LABEL_BY_ROLE[role],
-      items: items.map((item) => ({
+      items: filteredItems.map((item) => ({
         href: item.href,
         label: item.label,
         icon: ICON_BY_HREF[item.href] ?? Home,

@@ -181,6 +181,20 @@ export type DocumentItem = {
   createdAt: string;
 };
 
+export type ResidentModules = {
+  reservations: boolean;
+  services: boolean;
+  surveys: boolean;
+  regulations: boolean;
+};
+
+export const DEFAULT_RESIDENT_MODULES: ResidentModules = {
+  reservations: true,
+  services: true,
+  surveys: true,
+  regulations: true,
+};
+
 export type TenantSettingsItem = {
   tenantId: string;
   tenantName: string;
@@ -192,6 +206,7 @@ export type TenantSettingsItem = {
   reservationPolicy?: {
     blockOnDebt: boolean;
   };
+  residentModules?: ResidentModules;
   adminProfile?: {
     uid: string;
     fullName: string;
@@ -1127,6 +1142,9 @@ export function watchTenantSettings(
         return;
       }
       const data = snapshot.data() as Record<string, unknown>;
+      const rawModules = typeof data.residentModules === "object" && data.residentModules
+        ? (data.residentModules as Record<string, unknown>)
+        : null;
       onData({
         tenantId,
         tenantName: typeof data.tenantName === "string" ? data.tenantName : "",
@@ -1135,6 +1153,14 @@ export function watchTenantSettings(
         logoPath: typeof data.logoPath === "string" ? data.logoPath : undefined,
         brandColor: typeof data.brandColor === "string" ? data.brandColor : "#0b3c5d",
         updatedAt: toIso(data.updatedAt),
+        residentModules: rawModules
+          ? {
+              reservations: rawModules.reservations !== false,
+              services: rawModules.services !== false,
+              surveys: rawModules.surveys !== false,
+              regulations: rawModules.regulations !== false,
+            }
+          : undefined,
         adminProfile:
           typeof data.adminProfile === "object" && data.adminProfile
             ? {
