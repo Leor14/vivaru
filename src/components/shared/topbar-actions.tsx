@@ -35,7 +35,7 @@ export function TopbarActions({
   return (
     <>
       <div className="flex items-center gap-2">
-        <Link href={profilePath} aria-label="Perfil de usuario">
+        <Link href={profilePath} aria-label="Perfil de usuario" className="hidden md:inline-flex">
           <span className="inline-flex rounded-full ring-1 ring-[var(--slate-200)] transition-shadow hover:ring-[var(--brand-300)]">
             <UserAvatar role={role} photoURL={photoURL} avatarId={avatarId} fullName={userName} size={36} />
           </span>
