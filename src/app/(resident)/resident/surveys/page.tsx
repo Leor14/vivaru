@@ -388,7 +388,7 @@ export default function ResidentSurveysPage() {
                 key={survey.id}
                 className="group relative rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] premium-card-hover sm:p-5"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-semibold leading-6 text-[var(--slate-900)]">
@@ -417,19 +417,20 @@ export default function ResidentSurveysPage() {
                     </p>
                   </div>
 
-                  <div className="shrink-0">
+                  <div className="w-full sm:w-auto sm:shrink-0">
                     {responded ? (
                       <Button
                         type="button"
                         variant="outline"
                         disabled
-                        className="cursor-not-allowed opacity-60"
+                        className="w-full cursor-not-allowed opacity-60 sm:w-auto"
                       >
                         Ya respondiste
                       </Button>
                     ) : (
                       <Button
                         type="button"
+                        className="w-full sm:w-auto"
                         onClick={() => openForm(survey)}
                       >
                         Responder

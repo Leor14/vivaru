@@ -1430,27 +1430,27 @@ function ReservationModeToggleAndWizard(props: {
       <div
         role="tablist"
         aria-label="Tipo de reserva"
-        className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-white p-1 shadow-sm"
+        className="flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-white p-1 shadow-sm"
       >
         <button
           type="button"
           role="tab"
           aria-selected={mode === "amenity"}
           onClick={() => setMode("amenity")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === "amenity"
               ? "bg-[var(--brand-700)] text-white"
               : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
           }`}
         >
-          Reserva de zona común
+          Zona común
         </button>
         <button
           type="button"
           role="tab"
           aria-selected={mode === "mudanza"}
           onClick={() => setMode("mudanza")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === "mudanza"
               ? "bg-[var(--brand-700)] text-white"
               : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"

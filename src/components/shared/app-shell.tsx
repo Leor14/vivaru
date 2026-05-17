@@ -242,13 +242,13 @@ export function AppShell({
         </header>
       ) : (
         <header className="sticky top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 md:px-8 md:py-3">
             <div className="flex min-w-0 items-center gap-2">
               <Button type="button" variant="outline" size="sm" className="md:hidden" onClick={() => setMobileNavOpen(true)}>
                 <Menu className="h-4 w-4" />
               </Button>
               <div className="min-w-0">
-                <p className="text-label text-[var(--slate-500)]">{ROLE_LABEL[user.role]}</p>
+                <p className="text-label hidden text-[var(--slate-500)] md:block">{ROLE_LABEL[user.role]}</p>
                 <h1 className="text-display truncate text-[var(--slate-900)]">{shellTitle}</h1>
               </div>
             </div>
