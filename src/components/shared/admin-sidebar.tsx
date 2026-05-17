@@ -282,7 +282,7 @@ export function AdminSidebar({
             <button
               type="button"
               onClick={onLogout}
-              className="mt-2 inline-flex items-center gap-2 hover:text-white"
+              className="mt-4 inline-flex items-center gap-2 hover:text-white"
               style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}
             >
               <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
