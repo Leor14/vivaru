@@ -293,6 +293,7 @@ export default function AdminServicesPage() {
         <MobileFiltersPanel
           title="Filtros de servicios"
           activeFiltersCount={activeFiltersCount}
+          collapsibleOnDesktop={true}
           footer={
             <Button
               className="w-full md:w-auto"

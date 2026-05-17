@@ -431,6 +431,17 @@ service cloud.firestore {
       allow delete: if signedIn() && sameTenant(resource.data.tenantId) && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    match /services/{docId} {
+      // Admins manage all services for their tenant.
+      // Residents can only read active services.
+      allow read: if signedIn() && resource.data.tenantId is string && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (tenantRole(resource.data.tenantId, 'resident') && resource.data.status == 'active')
+      );
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
     match /packages/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
