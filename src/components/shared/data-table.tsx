@@ -52,7 +52,9 @@ export function DataTable<T>({
                 key={getRowKey(row)}
                 className={cn(
                   "space-y-2 rounded-xl border border-[var(--slate-200)] p-3",
-                  onRowClick ? "cursor-pointer transition hover:border-[var(--brand-700)] hover:bg-[var(--brand-50)]/40" : null,
+                  onRowClick
+                    ? "cursor-pointer [transition:border-color_150ms_ease-out,background-color_150ms_ease-out,transform_120ms_ease-out] hover:border-[var(--brand-700)] hover:bg-[var(--brand-50)]/40 active:scale-[0.98] motion-reduce:[transform:none]"
+                    : null,
                 )}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 role={onRowClick ? "button" : undefined}

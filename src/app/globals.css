@@ -424,6 +424,69 @@ h3 {
   }
 }
 
+/* ── Admin RowActionsMenu ────────────────────────────────────────────────────── */
+/* Emil: admin uses this constantly — keep animations fast and subtle.
+ * Trigger: specific transition (not shorthand) + active:scale-[0.97].
+ * Dropdown: scale from top-right (transform-origin matches visual anchor).
+ *   Enter: 130ms ease-out. Exit: 100ms ease-in (asymmetric — exit is snappy).
+ * Items: background-color only, 100ms — instant enough for power users. */
+.row-actions-trigger {
+  transition: background-color 120ms ease-out, transform 100ms ease-out;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row-actions-trigger:hover {
+    background-color: var(--slate-100);
+    color: var(--slate-900);
+  }
+}
+
+.row-actions-trigger:active {
+  transform: scale(0.97);
+  background-color: var(--slate-100);
+}
+
+.row-actions-dropdown {
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 130ms var(--ease-out), transform 130ms var(--ease-out);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
+}
+
+.row-actions-dropdown[data-open="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.row-actions-dropdown[data-open="false"] {
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 100ms ease-in, transform 100ms ease-in;
+}
+
+.row-actions-item {
+  transition: background-color 100ms ease-out;
+}
+
+.row-actions-item:hover {
+  background-color: var(--surface-soft, var(--slate-50));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-actions-trigger {
+    transition: background-color 100ms ease;
+  }
+  .row-actions-trigger:active {
+    transform: none;
+  }
+  .row-actions-dropdown,
+  .row-actions-dropdown[data-open="true"],
+  .row-actions-dropdown[data-open="false"] {
+    transform: none;
+    transition: opacity 100ms ease;
+  }
+}
+
 /* ── Resident service cards ─────────────────────────────────────────────────── */
 /* Emil: never use transition-all — specify exact properties.
  * Hover lift gated behind pointer media query (touch triggers hover on tap).

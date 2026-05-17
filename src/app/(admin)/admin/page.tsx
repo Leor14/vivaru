@@ -620,7 +620,7 @@ export default function AdminDashboardPage() {
               <p className="mt-1 text-sm text-[var(--slate-600)]">{headerDate}</p>
               <button
                 type="button"
-                className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--slate-300)] bg-white/80 px-3 py-1 transition-colors hover:bg-white hover:border-[var(--slate-400)] cursor-pointer"
+                className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--slate-300)] bg-white/80 px-3 py-1 [transition:background-color_150ms_ease-out,border-color_150ms_ease-out,transform_120ms_ease-out] hover:border-[var(--slate-400)] hover:bg-white active:scale-[0.97] motion-reduce:[transform:none]"
                 onClick={() => setDrawerSection("alerts")}
               >
                 <span
