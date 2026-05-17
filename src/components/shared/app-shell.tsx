@@ -253,53 +253,36 @@ export function AppShell({
 
       {isAdminRole ? (
         <header
-          className={cn(
-            "sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--slate-200)] bg-white/90 px-4 backdrop-blur transition-[padding] duration-200 ease-in-out md:hidden",
-            headerMinimized ? "py-1" : "py-2",
-          )}
+          className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--slate-200)] bg-white/90 px-4 backdrop-blur md:hidden"
+          style={{
+            paddingTop: headerMinimized ? "4px" : "8px",
+            paddingBottom: headerMinimized ? "4px" : "8px",
+            transition: "padding-top 220ms ease-in-out, padding-bottom 220ms ease-in-out",
+          }}
         >
           <Button type="button" variant="outline" size="sm" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú">
             <Menu className="h-4 w-4" />
           </Button>
-          <h1
-            className={cn(
-              "min-w-0 flex-1 truncate font-semibold text-[var(--slate-900)] transition-[font-size] duration-200 ease-in-out",
-              headerMinimized ? "text-sm" : "text-subheading",
-            )}
-          >
-            {shellTitle}
-          </h1>
+          <h1 className="text-subheading min-w-0 flex-1 truncate text-[var(--slate-900)]">{shellTitle}</h1>
           <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
         </header>
       ) : (
         <header className="sticky top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur">
           <div
-            className={cn(
-              "mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 transition-[padding] duration-200 ease-in-out md:px-8",
-              headerMinimized ? "py-1 md:py-2" : "py-2 md:py-3",
-            )}
+            className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 md:px-8"
+            style={{
+              paddingTop: headerMinimized ? "4px" : "8px",
+              paddingBottom: headerMinimized ? "4px" : "8px",
+              transition: "padding-top 220ms ease-in-out, padding-bottom 220ms ease-in-out",
+            }}
           >
             <div className="flex min-w-0 items-center gap-2">
               <Button type="button" variant="outline" size="sm" className="md:hidden" onClick={() => setMobileNavOpen(true)}>
                 <Menu className="h-4 w-4" />
               </Button>
               <div className="min-w-0">
-                <p
-                  className={cn(
-                    "text-label hidden text-[var(--slate-500)] transition-opacity duration-200 md:block",
-                    headerMinimized ? "opacity-0 md:h-0 md:overflow-hidden" : "opacity-100",
-                  )}
-                >
-                  {ROLE_LABEL[user.role]}
-                </p>
-                <h1
-                  className={cn(
-                    "truncate font-semibold text-[var(--slate-900)] transition-[font-size] duration-200 ease-in-out",
-                    headerMinimized ? "text-sm md:text-base" : "text-display",
-                  )}
-                >
-                  {shellTitle}
-                </h1>
+                <p className="text-label hidden text-[var(--slate-500)] md:block">{ROLE_LABEL[user.role]}</p>
+                <h1 className="text-display truncate text-[var(--slate-900)]">{shellTitle}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">

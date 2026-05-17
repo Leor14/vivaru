@@ -49,7 +49,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
           : "top-full mt-2 left-1/2 -translate-x-1/2"; // default: bottom
 
   return (
-    <div ref={containerRef} className={`relative inline-flex shrink-0 ${className}`}>
+    <div ref={containerRef} className={`relative hidden shrink-0 sm:inline-flex ${className}`}>
       <button
         type="button"
         aria-label="Ayuda"
