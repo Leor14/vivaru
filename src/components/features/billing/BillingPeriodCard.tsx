@@ -128,16 +128,16 @@ export function BillingPeriodCard({
           )}
         </div>
 
-        {/* Balance + badge */}
-        <div className="flex shrink-0 items-center gap-3">
+        {/* Balance + badge + chevron */}
+        <div className="flex shrink-0 items-center gap-2">
           <div className="text-right">
             <p className="text-sm font-bold text-[var(--slate-900)]">
               {formatAmount(item.balance)}
             </p>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${config.badgeCls}`}>
+              {config.label}
+            </span>
           </div>
-          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${config.badgeCls}`}>
-            {config.label}
-          </span>
           <ChevronDown
             className={`h-4 w-4 shrink-0 text-[var(--slate-400)] transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`}
             aria-hidden="true"

@@ -24,6 +24,7 @@ const TICKET_TYPES = [
 ] as const;
 
 type TicketTypeValue = typeof TICKET_TYPES[number]["value"];
+type TabId = "mis-pqrs" | "nueva";
 
 const STATUS_CONFIG: Record<Ticket["status"], { label: string; badgeCls: string }> = {
   open:        { label: "Abierto",     badgeCls: "bg-amber-100 text-amber-700" },
@@ -97,6 +98,7 @@ export default function ResidentPqrsPage() {
   const { user } = useAuth();
   const { items, loading } = useTickets(user?.tenantId, user?.unitId);
 
+  const [tab, setTab] = useState<TabId>("mis-pqrs");
   const [ticketType, setTicketType] = useState<TicketTypeValue>("petition");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -122,6 +124,7 @@ export default function ResidentPqrsPage() {
       setMessage("");
       setTicketType("petition");
       toast.success("Solicitud enviada. La administración responderá pronto.");
+      setTab("mis-pqrs");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -129,120 +132,165 @@ export default function ResidentPqrsPage() {
     }
   }
 
-  const activeItems  = items.filter((t) => t.status !== "closed" && t.status !== "resolved");
-  const closedItems  = items.filter((t) => t.status === "closed"  || t.status === "resolved");
+  const activeItems = items.filter((t) => t.status !== "closed" && t.status !== "resolved");
+  const closedItems = items.filter((t) => t.status === "closed"  || t.status === "resolved");
 
   return (
     <Card>
       <CardTitle>PQRS</CardTitle>
       <CardDescription className="mt-1">
-        Envía peticiones, quejas, reclamos o sugerencias a la administración del edificio.
+        Peticiones, quejas, reclamos y sugerencias a la administración del edificio.
       </CardDescription>
 
-      {/* ── Formulario ── */}
-      <div className="mt-4 space-y-3">
-        {/* Tipo */}
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
-            Tipo de solicitud
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {TICKET_TYPES.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setTicketType(t.value)}
-                className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
-                  ticketType === t.value
-                    ? "border-[var(--brand-700)] bg-[var(--brand-50)] font-semibold text-[var(--brand-700)]"
-                    : "border-[var(--slate-200)] text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Asunto */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--slate-600)]" htmlFor="pqrs-subject">
-            Asunto <span className="text-red-500">*</span>
-          </label>
-          <Input
-            id="pqrs-subject"
-            placeholder="Ej: Daño en la iluminación del parqueadero"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-          />
-        </div>
-
-        {/* Descripción */}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--slate-600)]" htmlFor="pqrs-message">
-            Descripción <span className="text-[var(--slate-400)] font-normal">(opcional)</span>
-          </label>
-          <Textarea
-            id="pqrs-message"
-            placeholder="Añade detalles: cuándo ocurrió, dónde, qué esperas como resolución..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={3}
-          />
-        </div>
-
-        <Button onClick={() => void handleCreateTicket()} disabled={!canSubmit}>
-          {submitting ? "Enviando..." : "Enviar solicitud"}
-        </Button>
+      {/* ── Tabs ── */}
+      <div
+        role="tablist"
+        aria-label="Secciones PQRS"
+        className="mt-4 flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-white p-1 shadow-sm"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "mis-pqrs"}
+          onClick={() => setTab("mis-pqrs")}
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            tab === "mis-pqrs"
+              ? "bg-[var(--brand-700)] text-white"
+              : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+          }`}
+        >
+          {activeItems.length > 0 ? `Mis PQRS (${activeItems.length})` : "Mis PQRS"}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "nueva"}
+          onClick={() => setTab("nueva")}
+          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            tab === "nueva"
+              ? "bg-[var(--brand-700)] text-white"
+              : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+          }`}
+        >
+          Nueva solicitud
+        </button>
       </div>
 
-      {/* ── Lista ── */}
-      <div className="mt-6">
-        {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl border border-[var(--slate-200)] bg-white p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <Skeleton className="h-5 w-48 rounded" />
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
-                <div className="flex gap-2">
-                  <Skeleton className="h-4 w-16 rounded-md" />
-                  <Skeleton className="h-4 w-24 rounded" />
-                </div>
-              </div>
-            ))}
+      {/* ── Tab: Nueva ── */}
+      {tab === "nueva" && (
+        <div className="mt-4 space-y-3">
+          {/* Tipo */}
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
+              Tipo de solicitud
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {TICKET_TYPES.map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setTicketType(t.value)}
+                  className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
+                    ticketType === t.value
+                      ? "border-[var(--brand-700)] bg-[var(--brand-50)] font-semibold text-[var(--brand-700)]"
+                      : "border-[var(--slate-200)] text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            title="Sin solicitudes"
-            description="No has enviado ninguna PQRS. Usa el formulario de arriba para crear tu primera solicitud."
-          />
-        ) : (
-          <div className="space-y-5">
-            {activeItems.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
-                  En curso ({activeItems.length})
-                </p>
-                <div className="space-y-2">
-                  {activeItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
-                </div>
-              </div>
-            )}
-            {closedItems.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
-                  Resueltas ({closedItems.length})
-                </p>
-                <div className="space-y-2">
-                  {closedItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
-                </div>
-              </div>
-            )}
+
+          {/* Asunto */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--slate-600)]" htmlFor="pqrs-subject">
+              Asunto <span className="text-red-500">*</span>
+            </label>
+            <Input
+              id="pqrs-subject"
+              placeholder="Ej: Daño en la iluminación del parqueadero"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
           </div>
-        )}
-      </div>
+
+          {/* Descripción */}
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--slate-600)]" htmlFor="pqrs-message">
+              Descripción <span className="text-[var(--slate-400)] font-normal">(opcional)</span>
+            </label>
+            <Textarea
+              id="pqrs-message"
+              placeholder="Añade detalles: cuándo ocurrió, dónde, qué esperas como resolución..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <Button onClick={() => void handleCreateTicket()} disabled={!canSubmit}>
+            {submitting ? "Enviando..." : "Enviar solicitud"}
+          </Button>
+        </div>
+      )}
+
+      {/* ── Tab: Mis PQRS ── */}
+      {tab === "mis-pqrs" && (
+        <div className="mt-4">
+          {loading ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-xl border border-[var(--slate-200)] bg-white p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <Skeleton className="h-5 w-48 rounded" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-4 w-16 rounded-md" />
+                    <Skeleton className="h-4 w-24 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="space-y-3">
+              <EmptyState
+                title="Sin solicitudes"
+                description="No has enviado ninguna PQRS todavía."
+              />
+              <div className="text-center">
+                <Button size="sm" onClick={() => setTab("nueva")}>
+                  Crear primera solicitud
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {activeItems.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
+                    En curso ({activeItems.length})
+                  </p>
+                  <div className="space-y-2">
+                    {activeItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
+                  </div>
+                </div>
+              )}
+              {closedItems.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
+                    Resueltas ({closedItems.length})
+                  </p>
+                  <div className="space-y-2">
+                    {closedItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
