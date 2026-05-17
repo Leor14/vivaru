@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -55,15 +55,49 @@ export default function ResidentVisitorsQrPage() {
   }, [id, user?.tenantId, user?.unitId]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [nativeShareAvailable, setNativeShareAvailable] = useState(false);
 
-  const handleDownload = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const url = canvas.toDataURL("image/png");
+  // Detect Web Share API + file sharing support after mount (SSR-safe)
+  useEffect(() => {
+    setNativeShareAvailable(typeof navigator.share === "function");
+  }, []);
+
+  const getFilename = () => {
     const visitorSlug = (invitation?.visitorName ?? "visitante")
       .trim()
       .replace(/\s+/g, "-");
-    const filename = `QR-${invitation?.invitationCode ?? "QR"}-${visitorSlug}.png`;
+    return `QR-${invitation?.invitationCode ?? "QR"}-${visitorSlug}.png`;
+  };
+
+  const handleAction = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const filename = getFilename();
+
+    // Try native share (iOS/Android) — opens share sheet with "Guardar imagen", apps, etc.
+    if (nativeShareAvailable) {
+      try {
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error("canvas toBlob failed"));
+          }, "image/png");
+        });
+        const file = new File([blob], filename, { type: "image/png" });
+        const shareData: ShareData = { files: [file], title: `QR · ${invitation?.visitorName ?? "Visitante"}` };
+        if (navigator.canShare?.(shareData)) {
+          await navigator.share(shareData);
+          return;
+        }
+      } catch (shareError) {
+        // AbortError = user dismissed the sheet — do nothing
+        if ((shareError as Error)?.name === "AbortError") return;
+        // Other error: fall through to download fallback
+      }
+    }
+
+    // Fallback: classic anchor download (desktop or unsupported browsers)
+    const url = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
@@ -116,12 +150,21 @@ export default function ResidentVisitorsQrPage() {
             <p className="mt-1 text-sm text-[var(--slate-600)]">Usos permitidos: {invitation.allowedUses}</p>
 
             <Button
-              onClick={handleDownload}
+              onClick={() => void handleAction()}
               variant="outline"
               className="mt-4 w-full"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Descargar QR
+              {nativeShareAvailable ? (
+                <>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Guardar o Compartir
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar QR
+                </>
+              )}
             </Button>
 
             {!isActive ? (
