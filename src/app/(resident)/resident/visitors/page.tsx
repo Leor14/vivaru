@@ -161,21 +161,31 @@ export default function ResidentVisitorsPage() {
                   <Badge className={statusClassName[getDisplayStatus(item)]}>{statusLabel[getDisplayStatus(item)]}</Badge>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => router.push(`/resident/visitors/${item.id}`)}>
-                    Ver detalle
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => router.push(`/resident/visitors/${item.id}/qr`)}
-                    disabled={getDisplayStatus(item) !== "active"}
-                  >
-                    Ver QR
-                  </Button>
+                {/* Acciones — fila principal + fila destructiva separada para jerarquía clara en mobile */}
+                <div className="mt-3 space-y-2">
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => router.push(`/resident/visitors/${item.id}`)}
+                    >
+                      Ver detalle
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => router.push(`/resident/visitors/${item.id}/qr`)}
+                      disabled={getDisplayStatus(item) !== "active"}
+                    >
+                      Ver QR
+                    </Button>
+                  </div>
                   <Button
                     size="sm"
                     variant="danger"
+                    className="w-full"
                     onClick={() => void handleCancelInvitation(item.id)}
                     disabled={getDisplayStatus(item) !== "active" || cancellingId === item.id}
                   >

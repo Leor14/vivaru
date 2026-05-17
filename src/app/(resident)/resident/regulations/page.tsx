@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, ScrollText } from "lucide-react";
+import { CheckCircle, ExternalLink, ScrollText } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -185,47 +185,51 @@ export default function ResidentRegulationsPage() {
         </div>
       </div>
 
-      {/* PDF preview */}
-      <div className="space-y-2">
-        <iframe
-          src={activeRegulation.fileUrl}
-          className="w-full rounded-xl border border-[var(--slate-200)]"
-          style={{ height: "24rem" }}
-          title="Reglamento del edificio"
-        />
-        <p className="text-center text-xs text-[var(--slate-500)]">
-          Si no puedes ver el PDF,{" "}
-          <a
-            href={activeRegulation.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-[var(--slate-700)]"
-          >
-            descárgalo aquí
-          </a>
-          .
+      {/* Document card — reemplaza iframe (inoperante en iOS Safari) */}
+      <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-50)]">
+            <ScrollText className="h-5 w-5 text-[var(--brand-700)]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-[var(--slate-900)]">{activeRegulation.title}</p>
+            <p className="text-xs text-[var(--slate-500)]">Documento PDF</p>
+          </div>
+        </div>
+        <a
+          href={activeRegulation.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--brand-200)] bg-[var(--brand-50)] px-4 py-2.5 text-sm font-medium text-[var(--brand-700)] [transition:background-color_150ms_ease-out] hover:bg-[var(--brand-100)] active:bg-[var(--brand-100)]"
+        >
+          <ExternalLink className="h-4 w-4 shrink-0" />
+          Leer reglamento completo
+        </a>
+        <p className="mt-2 text-center text-xs text-[var(--slate-500)]">
+          Se abre en una pestaña nueva. Lee el documento antes de firmar.
         </p>
       </div>
 
       {/* Acceptance card */}
       <Card>
         <div className="space-y-4">
-          <div className="flex items-start gap-3">
+          {/* touch target mínimo 44px — el label envuelve todo el bloque */}
+          <label
+            htmlFor="accept-regulation"
+            className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl"
+          >
             <input
               ref={checkboxRef}
               type="checkbox"
               id="accept-regulation"
-              className="mt-1 h-4 w-4 cursor-pointer rounded accent-[var(--slate-900)]"
+              className="h-5 w-5 shrink-0 cursor-pointer rounded accent-[var(--brand-700)]"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
             />
-            <label
-              htmlFor="accept-regulation"
-              className="cursor-pointer text-sm text-[var(--slate-700)]"
-            >
+            <span className="text-sm text-[var(--slate-700)]">
               He leído y acepto el reglamento del edificio
-            </label>
-          </div>
+            </span>
+          </label>
 
           <Button
             onClick={handleSign}

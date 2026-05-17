@@ -102,7 +102,7 @@ export default function ResidentCommunicationsPage() {
           return (
             <article
               key={item.id}
-              className="group relative rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)] sm:p-5"
+              className="group relative rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] premium-card-hover sm:p-5"
             >
               {index < feedItems.length - 1 ? (
                 <span className="pointer-events-none absolute -bottom-4 left-7 hidden h-4 w-px bg-[var(--slate-200)] sm:block" />

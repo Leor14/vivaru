@@ -6,6 +6,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { confirmPackageReceived, usePackages } from "@/features/packages/use-packages";
 import { getStatusLabel } from "@/utils/statusMapper";
@@ -71,7 +72,26 @@ export default function ResidentPackagesPage() {
       <CardTitle>Paquetería</CardTitle>
       <CardDescription className="mt-1">Consulta de paquetes pendientes y confirmacion de recibido.</CardDescription>
       <div className="mt-4 space-y-3 text-sm">
-        {loading ? <p className="text-[var(--slate-600)]">Cargando paquetería...</p> : null}
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-14 rounded" />
+                    <Skeleton className="h-5 w-28 rounded" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  <Skeleton className="h-4 w-full rounded" />
+                  <Skeleton className="h-4 w-4/5 rounded" />
+                  <Skeleton className="h-4 w-2/3 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
         {!loading && items.length === 0 ? (
           <EmptyState
             title="Sin paquetes"

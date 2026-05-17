@@ -827,7 +827,7 @@ export default function ResidentReservationsPage() {
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-            <section className="rounded-2xl border border-[var(--slate-200)] bg-white/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] sm:p-5">
+            <section className="order-2 rounded-2xl border border-[var(--slate-200)] bg-white/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-1 sm:p-5">
               <h4 className="text-sm font-semibold text-[var(--slate-900)]">Formulario de reserva</h4>
 
               <div className="mt-4 space-y-4">
@@ -1075,7 +1075,7 @@ export default function ResidentReservationsPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-[var(--slate-200)] bg-white/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] sm:p-5">
+            <section className="order-1 rounded-2xl border border-[var(--slate-200)] bg-white/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-2 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-sm font-semibold text-[var(--slate-900)]">Disponibilidad</h4>
                 <div className="flex items-center gap-1">

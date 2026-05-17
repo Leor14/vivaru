@@ -20,6 +20,7 @@ import { db } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils/cn";
 
 import { type ResidentModules, DEFAULT_RESIDENT_MODULES } from "@/features/admin/services";
+import { ResidentBottomNav } from "@/components/shared/resident-bottom-nav";
 
 type TenantBranding = {
   brandColor: string;
@@ -359,6 +360,9 @@ export function AppShell({
       <footer className={cn("mx-auto hidden px-8 pb-8 text-xs text-[var(--slate-500)] md:block", isAdminRole ? "max-w-none" : "max-w-7xl")}>
         <p>Tenant: {branding?.tenantName ?? user.tenantName ?? "HOGARU"}</p>
       </footer>
+
+      {/* Bottom nav — solo portal residente, solo mobile */}
+      {shellRole === "resident" && <ResidentBottomNav />}
     </div>
   );
 }

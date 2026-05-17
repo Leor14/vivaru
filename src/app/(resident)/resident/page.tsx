@@ -45,10 +45,13 @@ function CommunicationItem({ item }: { item: ResidentCommunication }) {
         <p className="mt-0.5 text-xs text-[var(--slate-500)]">{formatPublishedDate(item.publishedAt)}</p>
       ) : null}
 
-      {/* Preview: always-visible first 3 lines (approximate via line-clamp, no animation needed) */}
-      <p className="mt-2 line-clamp-3 text-sm text-[var(--slate-700)]">
-        {item.body}
-      </p>
+      {/* Preview: 3 líneas cuando no está expandido. Ocultar cuando expanded
+          para evitar doble render del body (preview + collapsible simultáneos). */}
+      {(!isLong || !expanded) && (
+        <p className={`mt-2 text-sm text-[var(--slate-700)] ${isLong ? "line-clamp-3" : ""}`}>
+          {item.body}
+        </p>
+      )}
 
       {/* Expanded body: animated with collapsible-grid pattern */}
       {isLong ? (
@@ -158,7 +161,7 @@ export default function ResidentHomePage() {
     <section className="space-y-4">
 
       {/* ── Metric grid ── */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {billingLoading ? (
           <Skeleton className="h-[88px] rounded-2xl" />
         ) : (
@@ -228,7 +231,7 @@ export default function ResidentHomePage() {
         <CardDescription className="mt-1">
           Las acciones más frecuentes de tu unidad, a un toque.
         </CardDescription>
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="mt-4 grid grid-cols-2 gap-2">
           <Link
             className="resident-quick-link font-medium text-[var(--slate-900)]"
             href="/resident/account"
