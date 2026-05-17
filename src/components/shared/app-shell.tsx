@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Menu, X } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -60,7 +60,25 @@ export function AppShell({
   const [branding, setBranding] = useState<TenantBranding | null>(null);
   const [brandingReady, setBrandingReady] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [headerMinimized, setHeaderMinimized] = useState(false);
+  const lastScrollY = useRef(0);
   const forcedPasswordPath = "/resident/change-password-required";
+
+  useEffect(() => {
+    function onScroll() {
+      const currentY = window.scrollY;
+      if (currentY < 60) {
+        setHeaderMinimized(false);
+      } else if (currentY > lastScrollY.current) {
+        setHeaderMinimized(true);   // scrolling down → shrink
+      } else {
+        setHeaderMinimized(false);  // scrolling up → expand
+      }
+      lastScrollY.current = currentY;
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const isAdminRole = role === "tenant_admin" || role === "admin_tenant";
   const navTenantId = isAdminRole ? user?.tenantId : undefined;
@@ -234,23 +252,54 @@ export function AppShell({
       ) : null}
 
       {isAdminRole ? (
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--slate-200)] bg-white/90 px-4 py-2 backdrop-blur md:hidden">
+        <header
+          className={cn(
+            "sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--slate-200)] bg-white/90 px-4 backdrop-blur transition-[padding] duration-200 ease-in-out md:hidden",
+            headerMinimized ? "py-1" : "py-2",
+          )}
+        >
           <Button type="button" variant="outline" size="sm" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú">
             <Menu className="h-4 w-4" />
           </Button>
-          <h1 className="text-subheading min-w-0 flex-1 truncate text-[var(--slate-900)]">{shellTitle}</h1>
+          <h1
+            className={cn(
+              "min-w-0 flex-1 truncate font-semibold text-[var(--slate-900)] transition-[font-size] duration-200 ease-in-out",
+              headerMinimized ? "text-sm" : "text-subheading",
+            )}
+          >
+            {shellTitle}
+          </h1>
           <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
         </header>
       ) : (
         <header className="sticky top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 md:px-8 md:py-3">
+          <div
+            className={cn(
+              "mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 transition-[padding] duration-200 ease-in-out md:px-8",
+              headerMinimized ? "py-1 md:py-2" : "py-2 md:py-3",
+            )}
+          >
             <div className="flex min-w-0 items-center gap-2">
               <Button type="button" variant="outline" size="sm" className="md:hidden" onClick={() => setMobileNavOpen(true)}>
                 <Menu className="h-4 w-4" />
               </Button>
               <div className="min-w-0">
-                <p className="text-label hidden text-[var(--slate-500)] md:block">{ROLE_LABEL[user.role]}</p>
-                <h1 className="text-display truncate text-[var(--slate-900)]">{shellTitle}</h1>
+                <p
+                  className={cn(
+                    "text-label hidden text-[var(--slate-500)] transition-opacity duration-200 md:block",
+                    headerMinimized ? "opacity-0 md:h-0 md:overflow-hidden" : "opacity-100",
+                  )}
+                >
+                  {ROLE_LABEL[user.role]}
+                </p>
+                <h1
+                  className={cn(
+                    "truncate font-semibold text-[var(--slate-900)] transition-[font-size] duration-200 ease-in-out",
+                    headerMinimized ? "text-sm md:text-base" : "text-display",
+                  )}
+                >
+                  {shellTitle}
+                </h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
