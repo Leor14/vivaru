@@ -378,10 +378,70 @@ h3 {
   }
 }
 
+/* ── Resident lightbox ──────────────────────────────────────────────────────── */
+/* Emil: rare/first-time interactions can have delight.
+ * Asymmetric timing: enter deliberate, exit fast ("snappy").
+ * Backdrop: opacity only (180ms). Image: scale + opacity (220ms, 40ms delay).
+ * Exit: 150ms — user already decided to close, don't make them wait. */
+.lightbox-overlay {
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 180ms var(--ease-out);
+}
+.lightbox-overlay[data-open="true"] {
+  background-color: rgba(0, 0, 0, 0.85);
+}
+.lightbox-overlay[data-open="false"] {
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 150ms ease-in;
+}
+
+.lightbox-image {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 220ms var(--ease-out) 40ms, transform 220ms var(--ease-out) 40ms;
+}
+.lightbox-image[data-open="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+.lightbox-image[data-open="false"] {
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 150ms ease-in, transform 150ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-overlay,
+  .lightbox-overlay[data-open="true"],
+  .lightbox-overlay[data-open="false"] {
+    transition: background-color 100ms ease;
+  }
+  .lightbox-image,
+  .lightbox-image[data-open="true"],
+  .lightbox-image[data-open="false"] {
+    transform: none;
+    transition: opacity 100ms ease;
+  }
+}
+
 /* ── Resident service cards ─────────────────────────────────────────────────── */
 /* Emil: never use transition-all — specify exact properties.
  * Hover lift gated behind pointer media query (touch triggers hover on tap).
- * box-shadow + transform are GPU-composited — safe to animate. */
+ * box-shadow + transform are GPU-composited — safe to animate.
+ * Stagger: key=categoryFilter on container forces re-mount → animation restart. */
+@keyframes serviceCardIn {
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.service-card-stagger {
+  opacity: 0;
+  transform: scale(0.97) translateY(8px);
+  animation: serviceCardIn 260ms var(--ease-out) forwards;
+}
+
 .service-card {
   transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
 }
@@ -394,6 +454,11 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .service-card-stagger {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
   .service-card {
     transition: box-shadow 200ms ease;
   }
@@ -436,7 +501,9 @@ h3 {
   }
 }
 
-/* ── Billing card stagger entry ─────────────────────────────────────────────── */
+/* ── Stagger entry keyframe (shared) ────────────────────────────────────────── */
+/* Emil: stagger 30-80ms between items; keep delays short so interaction
+ * isn't blocked while animations play. opacity+translateY is GPU-safe. */
 @keyframes billingCardIn {
   to {
     opacity: 1;
@@ -444,7 +511,23 @@ h3 {
   }
 }
 
+/* Metric cards on resident home — 4-item stagger, 40ms apart */
+.metric-stagger {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: billingCardIn 280ms var(--ease-out) forwards;
+}
+.metric-stagger-0 { animation-delay: 0ms; }
+.metric-stagger-1 { animation-delay: 40ms; }
+.metric-stagger-2 { animation-delay: 80ms; }
+.metric-stagger-3 { animation-delay: 120ms; }
+
 @media (prefers-reduced-motion: reduce) {
+  .metric-stagger {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
   @keyframes billingCardIn {
     to {
       opacity: 1;

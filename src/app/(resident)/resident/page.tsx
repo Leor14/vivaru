@@ -44,18 +44,34 @@ function CommunicationItem({ item }: { item: ResidentCommunication }) {
       {formatPublishedDate(item.publishedAt) ? (
         <p className="mt-0.5 text-xs text-[var(--slate-500)]">{formatPublishedDate(item.publishedAt)}</p>
       ) : null}
-      <p className={`mt-2 text-sm text-[var(--slate-700)] ${!expanded && isLong ? "line-clamp-3" : "whitespace-pre-wrap"}`}>
+
+      {/* Preview: always-visible first 3 lines (approximate via line-clamp, no animation needed) */}
+      <p className="mt-2 line-clamp-3 text-sm text-[var(--slate-700)]">
         {item.body}
       </p>
-      {isLong && (
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-1 text-xs font-medium text-[var(--brand-700)] hover:underline"
-        >
-          {expanded ? "Ver menos" : "Ver más"}
-        </button>
-      )}
+
+      {/* Expanded body: animated with collapsible-grid pattern */}
+      {isLong ? (
+        <>
+          <div
+            className="collapsible-grid"
+            data-open={expanded ? "true" : "false"}
+          >
+            <div>
+              <p className="collapsible-content whitespace-pre-wrap pt-1 text-sm text-[var(--slate-700)]">
+                {item.body}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-1.5 text-xs font-medium text-[var(--brand-700)] [transition:opacity_120ms_ease] hover:underline active:opacity-60"
+          >
+            {expanded ? "Ver menos" : "Ver más"}
+          </button>
+        </>
+      ) : null}
     </li>
   );
 }
@@ -146,42 +162,50 @@ export default function ResidentHomePage() {
         {billingLoading ? (
           <Skeleton className="h-[88px] rounded-2xl" />
         ) : (
-          <MetricCard
-            label="Saldo pendiente"
-            value={formatAmount(pendingBalance)}
-            semantic={billingStatus}
-            href="/resident/account"
-          />
+          <div className="metric-stagger metric-stagger-0">
+            <MetricCard
+              label="Saldo pendiente"
+              value={formatAmount(pendingBalance)}
+              semantic={billingStatus}
+              href="/resident/account"
+            />
+          </div>
         )}
         {reservationsLoading ? (
           <Skeleton className="h-[88px] rounded-2xl" />
         ) : (
-          <MetricCard
-            label="Próxima reserva"
-            value={reservationLabel()}
-            tone="mint"
-            href="/resident/reservations"
-          />
+          <div className="metric-stagger metric-stagger-1">
+            <MetricCard
+              label="Próxima reserva"
+              value={reservationLabel()}
+              tone="mint"
+              href="/resident/reservations"
+            />
+          </div>
         )}
         {visitorsLoading ? (
           <Skeleton className="h-[88px] rounded-2xl" />
         ) : (
-          <MetricCard
-            label="Visitantes activos"
-            value={String(activeVisitors)}
-            tone="peach"
-            href="/resident/visitors"
-          />
+          <div className="metric-stagger metric-stagger-2">
+            <MetricCard
+              label="Visitantes activos"
+              value={String(activeVisitors)}
+              tone="peach"
+              href="/resident/visitors"
+            />
+          </div>
         )}
         {packagesLoading ? (
           <Skeleton className="h-[88px] rounded-2xl" />
         ) : (
-          <MetricCard
-            label="Paquetes pendientes"
-            value={String(pendingPackages)}
-            tone="sand"
-            href="/resident/packages"
-          />
+          <div className="metric-stagger metric-stagger-3">
+            <MetricCard
+              label="Paquetes pendientes"
+              value={String(pendingPackages)}
+              tone="sand"
+              href="/resident/packages"
+            />
+          </div>
         )}
       </div>
 

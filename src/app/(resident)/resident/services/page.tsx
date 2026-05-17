@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BriefcaseBusiness, ChevronDown, ChevronUp, Expand, FileText, Phone, Store, X } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -40,10 +40,28 @@ export default function ResidentServicesPage() {
   const { items, loading, error } = useServices(user?.tenantId);
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
   const [categoryFilter, setCategoryFilter] = useState<"all" | ServiceItem["category"]>("all");
-  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+  // Lightbox state: `content` holds the last seen item so the exit animation
+  // can still render it while fading out. `open` drives the CSS data-open attr.
+  const [lightboxContent, setLightboxContent] = useState<{ url: string; name: string } | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openLightbox = useCallback((url: string, name: string) => setLightbox({ url, name }), []);
-  const closeLightbox = useCallback(() => setLightbox(null), []);
+  const openLightbox = useCallback((url: string, name: string) => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setLightboxContent({ url, name });
+    // Small rAF delay so the browser renders the element before animating in
+    requestAnimationFrame(() => setLightboxOpen(true));
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    // Wait for exit animation (180ms backdrop + a bit of margin) then unmount
+    closeTimerRef.current = setTimeout(() => setLightboxContent(null), 220);
+  }, []);
+
+  useEffect(() => () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+  }, []);
 
   const filteredItems = useMemo(() => {
     if (categoryFilter === "all") return items;
@@ -83,7 +101,8 @@ export default function ResidentServicesPage() {
         ))}
       </div>
 
-      <div className="mt-5 space-y-4">
+      {/* key=categoryFilter forces re-mount → CSS stagger animations restart on filter change */}
+      <div key={categoryFilter} className="mt-5 space-y-4">
         {loading ? (
           <div className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 text-sm text-[var(--slate-600)]">
             Cargando servicios...
@@ -110,7 +129,7 @@ export default function ResidentServicesPage() {
           </div>
         ) : null}
 
-        {filteredItems.map((item) => {
+        {filteredItems.map((item, index) => {
           const expanded = Boolean(expandedById[item.id]);
           const canCollapse = shouldTruncate(item.description);
           const contact = formatContact(item.providerContact);
@@ -118,7 +137,8 @@ export default function ResidentServicesPage() {
           return (
             <article
               key={item.id}
-              className="service-card group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+              className="service-card service-card-stagger group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+              style={{ animationDelay: `${Math.min(index * 50, 200)}ms` }}
             >
               {/* Image */}
               {item.imageUrl ? (
@@ -242,31 +262,33 @@ export default function ResidentServicesPage() {
         })}
       </div>
 
-      {/* Lightbox */}
-      {lightbox ? (
+      {/* Lightbox — animates in on open, fades out before unmounting */}
+      {lightboxContent ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+          className="lightbox-overlay fixed inset-0 z-50 flex items-center justify-center p-4"
+          data-open={lightboxOpen ? "true" : "false"}
           role="dialog"
           aria-modal="true"
-          aria-label={lightbox.name}
+          aria-label={lightboxContent.name}
           onClick={closeLightbox}
         >
           <button
             type="button"
             onClick={closeLightbox}
             aria-label="Cerrar"
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm [transition:background-color_150ms_ease-out] hover:bg-white/20"
           >
             <X className="h-5 w-5" />
           </button>
           <img
-            src={lightbox.url}
-            alt={lightbox.name}
-            className="max-h-[88vh] max-w-full rounded-xl object-contain shadow-2xl"
+            src={lightboxContent.url}
+            alt={lightboxContent.name}
+            className="lightbox-image max-h-[88vh] max-w-full rounded-xl object-contain shadow-2xl"
+            data-open={lightboxOpen ? "true" : "false"}
             onClick={(e) => e.stopPropagation()}
           />
           <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
-            {lightbox.name}
+            {lightboxContent.name}
           </p>
         </div>
       ) : null}
