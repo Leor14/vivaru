@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { HelpCircle, X } from "lucide-react";
 
 interface HelpTipProps {
@@ -13,10 +13,12 @@ interface HelpTipProps {
 /**
  * Small "?" circle button that opens a non-invasive floating tip on click.
  * Closes on outside click, Escape key, or clicking the button again.
+ * Auto-adjusts horizontal position to stay within the viewport.
  */
 export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +39,32 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
+  }, [open]);
+
+  // After the popover renders, clamp it so it never overflows left or right edge.
+  useLayoutEffect(() => {
+    if (!open || !popoverRef.current) return;
+    const el = popoverRef.current;
+    // Reset any previous inline adjustments before measuring.
+    el.style.left = "";
+    el.style.right = "";
+    el.style.transform = "";
+
+    const rect = el.getBoundingClientRect();
+    const MARGIN = 8;
+    const vw = window.innerWidth;
+
+    if (rect.right > vw - MARGIN) {
+      // Overflows right: pin to right edge of the button container.
+      el.style.left = "auto";
+      el.style.right = "0";
+      el.style.transform = "none";
+    } else if (rect.left < MARGIN) {
+      // Overflows left: pin to left edge of the button container.
+      el.style.left = "0";
+      el.style.right = "auto";
+      el.style.transform = "none";
+    }
   }, [open]);
 
   const popoverPositionClass =
@@ -62,6 +90,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
 
       {open ? (
         <div
+          ref={popoverRef}
           role="tooltip"
           className={`absolute z-50 w-64 rounded-xl border border-[var(--slate-200)] bg-white p-3 shadow-lg ${popoverPositionClass}`}
         >
