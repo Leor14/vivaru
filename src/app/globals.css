@@ -214,17 +214,29 @@ h3 {
 }
 
 .premium-card-hover {
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms var(--ease-out);
 }
 
-.premium-card-hover:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--brand-700) 28%, white);
-  box-shadow: 0 18px 34px rgba(7, 33, 57, 0.15);
+/* Gate hover lift behind pointer-capable devices — touch triggers hover on tap */
+@media (hover: hover) and (pointer: fine) {
+  .premium-card-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--brand-700) 28%, white);
+    box-shadow: 0 18px 34px rgba(7, 33, 57, 0.15);
+  }
 }
 
 .premium-card-hover:active {
   transform: translateY(-1px) scale(0.995);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-card-hover {
+    transition: box-shadow 180ms var(--ease-out), border-color 180ms var(--ease-out);
+  }
+  .premium-card-hover:active {
+    transform: none;
+  }
 }
 
 .kpi-value-fluid {
@@ -363,6 +375,64 @@ h3 {
   }
   .collapsible-content {
     transition: opacity 100ms ease;
+  }
+}
+
+/* ── Resident service cards ─────────────────────────────────────────────────── */
+/* Emil: never use transition-all — specify exact properties.
+ * Hover lift gated behind pointer media query (touch triggers hover on tap).
+ * box-shadow + transform are GPU-composited — safe to animate. */
+.service-card {
+  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .service-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-card {
+    transition: box-shadow 200ms ease;
+  }
+  .service-card:hover {
+    transform: none;
+  }
+}
+
+/* ── Resident quick-access links ────────────────────────────────────────────── */
+/* Emil: every pressable surface must confirm the press.
+ * transition: background-color 150ms ease-out (specific, not 'all')
+ * active:scale-[0.98] — instant tactile feedback on tap/click
+ * hover gated behind pointer media query — touch devices fire hover on tap */
+.resident-quick-link {
+  display: block;
+  border-radius: 0.75rem;
+  border: 1px solid var(--slate-200);
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  transition: background-color 150ms var(--ease-out), transform 120ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .resident-quick-link:hover {
+    background-color: var(--slate-100);
+  }
+}
+
+.resident-quick-link:active {
+  transform: scale(0.98);
+  background-color: var(--slate-100);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resident-quick-link {
+    transition: background-color 150ms ease;
+  }
+  .resident-quick-link:active {
+    transform: none;
   }
 }
 

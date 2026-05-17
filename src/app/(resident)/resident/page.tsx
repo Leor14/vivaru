@@ -206,25 +206,25 @@ export default function ResidentHomePage() {
         </CardDescription>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Link
-            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm font-medium text-[var(--slate-900)] hover:bg-[var(--slate-100)] transition-colors"
+            className="resident-quick-link font-medium text-[var(--slate-900)]"
             href="/resident/account"
           >
             Ver estado de cuenta
           </Link>
           <Link
-            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm font-medium text-[var(--slate-900)] hover:bg-[var(--slate-100)] transition-colors"
+            className="resident-quick-link font-medium text-[var(--slate-900)]"
             href="/resident/reservations"
           >
             Reservar amenidades
           </Link>
           <Link
-            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm font-medium text-[var(--slate-900)] hover:bg-[var(--slate-100)] transition-colors"
+            className="resident-quick-link font-medium text-[var(--slate-900)]"
             href="/resident/visitors"
           >
             Autorizar visitantes
           </Link>
           <Link
-            className="rounded-xl border border-[var(--slate-200)] p-3 text-sm text-[var(--slate-600)] hover:bg-[var(--slate-100)] transition-colors"
+            className="resident-quick-link text-[var(--slate-600)]"
             href="/resident/pqrs"
           >
             Crear PQRS

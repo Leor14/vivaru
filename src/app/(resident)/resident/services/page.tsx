@@ -118,7 +118,7 @@ export default function ResidentServicesPage() {
           return (
             <article
               key={item.id}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)]"
+              className="service-card group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
             >
               {/* Image */}
               {item.imageUrl ? (
@@ -174,7 +174,7 @@ export default function ResidentServicesPage() {
                     <button
                       type="button"
                       onClick={() => toggleExpanded(item.id)}
-                      className="mt-1.5 inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-sm font-medium text-[var(--slate-700)] transition-colors hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
+                      className="mt-1.5 inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-sm font-medium text-[var(--slate-700)] [transition:background-color_150ms_ease-out,transform_120ms_ease-out] active:scale-[0.97] hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
                     >
                       {expanded ? "Ocultar" : "Ver mas"}
                       {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -207,7 +207,7 @@ export default function ResidentServicesPage() {
                           alt={item.attachmentName ?? "Información adicional"}
                           className="h-16 w-24 object-cover"
                         />
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 [transition:background-color_150ms_var(--ease-out,ease)] group-hover:bg-black/20">
                           <Expand className="h-4 w-4 text-white opacity-0 drop-shadow-md transition-opacity group-hover:opacity-100" />
                         </span>
                         <span className="absolute bottom-0 left-0 right-0 bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white">
