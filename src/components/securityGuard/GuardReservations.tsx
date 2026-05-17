@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { ReservationsCalendar } from "@/components/features/reservations/ReservationsCalendar";
+import type { AmenityItem, ReservationItem } from "@/features/admin/services";
 import { useReservableAmenities } from "@/features/reservations/use-reservable-amenities";
 import {
   buildTimeMarks,
@@ -153,6 +155,54 @@ function debugGuardReservations(message: string, payload: Record<string, unknown
   console.info(message, payload);
 }
 
+// ─── Mapping Reservation → ReservationItem ────────────────────────────────────
+
+function minutesToClock(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function toReservationItems(reservations: Reservation[]): ReservationItem[] {
+  return reservations
+    .filter((r) => r.status !== "cancelled" && r.status !== "rejected")
+    .map((r) => {
+      let startTime = r.startTime ?? "";
+      let endTime = r.endTime ?? "";
+
+      if ((!startTime || !endTime) && r.slot) {
+        const range = parseSlotRange(r.slot);
+        if (range) {
+          startTime = minutesToClock(range.start);
+          endTime = minutesToClock(range.end);
+        }
+      }
+
+      const status: ReservationItem["status"] =
+        r.status === "approved" ? "approved" :
+        r.status === "pending" ? "pending" :
+        "cancelled";
+
+      const reservedBy =
+        [r.createdByName, r.residentName]
+          .find((v) => typeof v === "string" && v.trim().length > 0)
+          ?.trim() ?? r.unitLabel ?? r.unitId;
+
+      return {
+        id: r.id,
+        tenantId: r.tenantId,
+        amenityName: r.amenity,
+        unitId: r.unitId,
+        reservedBy,
+        date: r.date,
+        startTime,
+        endTime,
+        status,
+        createdAt: r.createdAt ?? "",
+      };
+    });
+}
+
 export function GuardReservations({ tenantId }: { tenantId?: string }) {
   const { items, loading, error } = useReservations(tenantId);
   const { residentNamesByUnit, error: residentDirectoryError } = useResidentDirectory(tenantId);
@@ -161,6 +211,7 @@ export function GuardReservations({ tenantId }: { tenantId?: string }) {
   const [selectedAmenityId, setSelectedAmenityId] = useState("");
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState("");
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     debugGuardReservations("[guard-reservations] tenant resolved", { tenantId: tenantId ?? null });
@@ -481,13 +532,42 @@ export function GuardReservations({ tenantId }: { tenantId?: string }) {
 
   const calendarCells = useMemo(() => chunkCalendarDays(visibleMonth), [visibleMonth]);
 
+  // Items and amenities shaped for ReservationsCalendar
+  const calendarItems = useMemo(() => toReservationItems(items), [items]);
+  const calendarAmenities = useMemo(
+    () => amenities.map((a) => ({ ...a, createdAt: a.createdAt ?? "" })) as AmenityItem[],
+    [amenities],
+  );
+
   return (
     <div className="space-y-5">
+
+      {/* ── Weekly reservations calendar (read-only) ────────────────────────── */}
       <Card className="p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle>Reservas</CardTitle>
-            <CardDescription className="mt-1">Consulta de reservas activas de zonas comunes.</CardDescription>
+            <CardTitle>Reservas por día</CardTitle>
+            <CardDescription className="mt-1">
+              Vista semanal de reservas programadas. Selecciona un día para ver el detalle.
+            </CardDescription>
+          </div>
+          <Badge className="bg-[var(--brand-50)] text-[var(--brand-800)]">Solo lectura</Badge>
+        </div>
+
+        <ReservationsCalendar
+          items={calendarItems}
+          amenities={calendarAmenities}
+          selectedDate={calendarSelectedDate}
+          onSelectDate={setCalendarSelectedDate}
+        />
+      </Card>
+
+      {/* ── Monthly availability + operational table ─────────────────────────── */}
+      <Card className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>Disponibilidad de amenidades</CardTitle>
+            <CardDescription className="mt-1">Consulta de disponibilidad activa de zonas comunes.</CardDescription>
           </div>
           <Badge className="bg-[var(--brand-50)] text-[var(--brand-800)]">Calendario solo lectura</Badge>
         </div>
