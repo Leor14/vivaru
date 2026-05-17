@@ -737,7 +737,7 @@ export default function AdminBillingPage() {
           </div>
         }
       >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <div className="rounded-2xl border border-[#d6e6f3] bg-[#f5faff] p-3">
             <p className="text-xs text-[var(--slate-500)]">Cobrado</p>
             <p className="mt-1 text-lg font-semibold text-[#2c648d]">{formatAmount(trendSummary.totalCharged)}</p>
@@ -761,7 +761,7 @@ export default function AdminBillingPage() {
             No hay datos suficientes para construir la tendencia de cartera con los filtros actuales.
           </div>
         ) : (
-          <div className="mt-4 h-[320px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2">
+          <div className="mt-4 h-[260px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2 sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 16, right: 18, left: 6, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="4 4" stroke="#d6dfeb" vertical={false} />
