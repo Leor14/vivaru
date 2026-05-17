@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
 import {
+  BarChart2,
   Building2,
   CalendarCheck,
   ClipboardList,
@@ -65,6 +66,10 @@ const GROUPS: AdminSidebarGroup[] = [
   {
     label: "FINANCIERO",
     items: [{ href: "/admin/billing", label: "Cartera", icon: Wallet }],
+  },
+  {
+    label: "REPORTES",
+    items: [{ href: "/admin/reports", label: "Reporte de Comité", icon: BarChart2 }],
   },
   {
     label: "CONFIGURACIÓN",
