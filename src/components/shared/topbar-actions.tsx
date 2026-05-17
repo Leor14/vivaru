@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { LogOut, MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,20 @@ export function TopbarActions({
 }) {
   const profilePath = profilePathByRole(role);
   const logoutTone = getIconTone("peach");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [menuOpen]);
 
   return (
     <>
@@ -49,33 +64,45 @@ export function TopbarActions({
         </Button>
       </div>
 
-      <details className="relative md:hidden">
-        <summary className="list-none">
-          <Button type="button" variant="outline" size="sm" className="px-2" aria-label="Abrir acciones">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </summary>
-        <div className="absolute right-0 z-40 mt-2 w-52 rounded-xl border border-[var(--slate-200)] bg-white p-2 shadow-lg">
-          <p className="mb-2 truncate px-2 text-xs text-[var(--slate-600)]">{userName}</p>
-          <Link href={profilePath}>
-            <Button type="button" variant="ghost" className="w-full justify-start">
-              <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full ring-1 ring-[var(--slate-200)]">
-                <UserAvatar role={role} photoURL={photoURL} avatarId={avatarId} fullName={userName} size={24} />
+      {/* Mobile "..." menu */}
+      <div ref={menuRef} className="relative md:hidden">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="px-2"
+          aria-label="Abrir acciones"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+
+        {menuOpen ? (
+          <div className="absolute right-0 z-40 mt-2 w-52 rounded-xl border border-[var(--slate-200)] bg-white p-2 shadow-lg">
+            <p className="mb-2 truncate px-2 text-xs text-[var(--slate-600)]">{userName}</p>
+            <Link href={profilePath} onClick={() => setMenuOpen(false)}>
+              <Button type="button" variant="ghost" className="w-full justify-start">
+                <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full ring-1 ring-[var(--slate-200)]">
+                  <UserAvatar role={role} photoURL={photoURL} avatarId={avatarId} fullName={userName} size={24} />
+                </span>
+                Perfil
+              </Button>
+            </Link>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full justify-start text-[var(--danger-700)]"
+              onClick={() => { setMenuOpen(false); onLogout(); }}
+            >
+              <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg" style={{ backgroundColor: logoutTone.mutedBg, color: logoutTone.mutedFg }}>
+                <LogOut className="h-4 w-4" />
               </span>
-              Perfil
+              Cerrar sesion
             </Button>
-          </Link>
-          <div className="px-2 py-1">
-            <NotificationsBell />
           </div>
-          <Button type="button" variant="ghost" className="w-full justify-start text-[var(--danger-700)]" onClick={onLogout}>
-            <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-lg" style={{ backgroundColor: logoutTone.mutedBg, color: logoutTone.mutedFg }}>
-              <LogOut className="h-4 w-4" />
-            </span>
-            Cerrar sesion
-          </Button>
-        </div>
-      </details>
+        ) : null}
+      </div>
     </>
   );
 }
