@@ -278,27 +278,32 @@ export default function ResidentSurveysPage() {
 
                 {/* likert */}
                 {question.type === "likert" && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((n) => {
-                      const selected = answers[question.id] === n;
-                      return (
-                        <button
-                          key={n}
-                          type="button"
-                          aria-label={`Valor ${n}`}
-                          onClick={() => setAnswer(question.id, n)}
-                          className={[
-                            "flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-semibold transition-colors",
-                            selected
-                              ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
-                              : "border-[var(--slate-300)] bg-white text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]",
-                          ].join(" ")}
-                        >
-                          {n}
-                        </button>
-                      );
-                    })}
-                    <span className="text-xs text-[var(--slate-500)]">1 = Muy malo · 5 = Excelente</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      {[1, 2, 3, 4, 5].map((n) => {
+                        const selected = answers[question.id] === n;
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            aria-label={`Valor ${n}`}
+                            onClick={() => setAnswer(question.id, n)}
+                            className={[
+                              "flex flex-1 items-center justify-center rounded-xl border py-2.5 text-sm font-semibold transition-colors",
+                              selected
+                                ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
+                                : "border-[var(--slate-300)] bg-white text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]",
+                            ].join(" ")}
+                          >
+                            {n}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-between px-0.5 text-[10px] text-[var(--slate-500)]">
+                      <span>Muy malo</span>
+                      <span>Excelente</span>
+                    </div>
                   </div>
                 )}
 

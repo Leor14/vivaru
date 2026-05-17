@@ -10,6 +10,40 @@ import { useCommunications } from "@/features/communications/use-communications"
 
 const PREVIEW_LINES = 5;
 
+// ─── Attachment helpers ───────────────────────────────────────────────────────
+
+const EXT_CONFIG: Record<string, { colorCls: string; badge: string; badgeCls: string }> = {
+  pdf:  { colorCls: "text-red-500",      badge: "PDF",  badgeCls: "bg-red-50 text-red-600" },
+  doc:  { colorCls: "text-blue-600",     badge: "DOC",  badgeCls: "bg-blue-50 text-blue-700" },
+  docx: { colorCls: "text-blue-600",     badge: "DOCX", badgeCls: "bg-blue-50 text-blue-700" },
+  xls:  { colorCls: "text-emerald-600",  badge: "XLS",  badgeCls: "bg-emerald-50 text-emerald-700" },
+  xlsx: { colorCls: "text-emerald-600",  badge: "XLSX", badgeCls: "bg-emerald-50 text-emerald-700" },
+  csv:  { colorCls: "text-emerald-600",  badge: "CSV",  badgeCls: "bg-emerald-50 text-emerald-700" },
+  ppt:  { colorCls: "text-orange-500",   badge: "PPT",  badgeCls: "bg-orange-50 text-orange-700" },
+  pptx: { colorCls: "text-orange-500",   badge: "PPTX", badgeCls: "bg-orange-50 text-orange-700" },
+  jpg:  { colorCls: "text-sky-500",      badge: "IMG",  badgeCls: "bg-sky-50 text-sky-700" },
+  jpeg: { colorCls: "text-sky-500",      badge: "IMG",  badgeCls: "bg-sky-50 text-sky-700" },
+  png:  { colorCls: "text-sky-500",      badge: "PNG",  badgeCls: "bg-sky-50 text-sky-700" },
+  gif:  { colorCls: "text-sky-500",      badge: "GIF",  badgeCls: "bg-sky-50 text-sky-700" },
+  webp: { colorCls: "text-sky-500",      badge: "IMG",  badgeCls: "bg-sky-50 text-sky-700" },
+  zip:  { colorCls: "text-amber-600",    badge: "ZIP",  badgeCls: "bg-amber-50 text-amber-700" },
+  rar:  { colorCls: "text-amber-600",    badge: "RAR",  badgeCls: "bg-amber-50 text-amber-700" },
+};
+
+function getAttachmentMeta(name: string) {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  return EXT_CONFIG[ext] ?? {
+    colorCls: "text-[var(--slate-500)]",
+    badge: ext.toUpperCase() || "DOC",
+    badgeCls: "bg-[var(--slate-100)] text-[var(--slate-600)]",
+  };
+}
+
+function getAttachmentDisplayName(name: string): string {
+  if (!name || name === "Adjunto") return "Ver adjunto";
+  return name.replace(/\.[^/.]+$/, "");
+}
+
 function formatDateLabel(value: string | null | undefined) {
   if (!value) return null;
   const date = new Date(value);
@@ -186,18 +220,25 @@ export default function ResidentCommunicationsPage() {
               {item.attachments.length > 0 ? (
                 <footer className="mt-4 border-t border-[var(--slate-200)] pt-3">
                   <div className="flex flex-wrap gap-2">
-                    {item.attachments.map((attachment) => (
-                      <a
-                        key={`${item.id}-${attachment.url}`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-3 py-1.5 text-sm font-medium text-[var(--slate-700)] transition-colors hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Ver documento
-                      </a>
-                    ))}
+                    {item.attachments.map((attachment) => {
+                      const { colorCls, badge, badgeCls } = getAttachmentMeta(attachment.name);
+                      const displayName = getAttachmentDisplayName(attachment.name);
+                      return (
+                        <a
+                          key={`${item.id}-${attachment.url}`}
+                          className="inline-flex max-w-[200px] items-center gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-3 py-1.5 text-sm font-medium text-[var(--slate-700)] [transition:background-color_150ms_ease-out] hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
+                          href={attachment.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <FileText className={`h-4 w-4 shrink-0 ${colorCls}`} aria-hidden="true" />
+                          <span className="truncate">{displayName}</span>
+                          <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold ${badgeCls}`}>
+                            {badge}
+                          </span>
+                        </a>
+                      );
+                    })}
                   </div>
                 </footer>
               ) : null}
