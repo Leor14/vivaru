@@ -54,7 +54,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
         type="button"
         aria-label="Ayuda"
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={(e) => { e.stopPropagation(); setOpen((prev) => !prev); }}
         className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--slate-300)] bg-white text-[var(--slate-500)] transition-colors hover:border-[var(--brand-400)] hover:text-[var(--brand-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)]"
       >
         <HelpCircle className="h-3.5 w-3.5" />
