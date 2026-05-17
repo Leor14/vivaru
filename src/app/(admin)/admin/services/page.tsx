@@ -167,11 +167,19 @@ export default function AdminServicesPage() {
         imagePath = uploaded.storagePath;
       }
 
-      const payload = {
-        ...values,
-        unitId: values.category === "resident_offer" ? (values.unitId || undefined) : undefined,
-        imageUrl: imageUrl || undefined,
-        imagePath: imagePath || undefined,
+      // Build payload without undefined fields — Firestore rejects undefined values
+      type ServicePayload = Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status" | "unitId" | "imageUrl" | "imagePath">;
+      const payload: ServicePayload = {
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        serviceType: values.serviceType,
+        providerName: values.providerName,
+        providerContact: values.providerContact,
+        status: values.status,
+        ...(values.category === "resident_offer" && values.unitId ? { unitId: values.unitId } : {}),
+        ...(imageUrl ? { imageUrl } : {}),
+        ...(imagePath ? { imagePath } : {}),
       };
 
       if (editingItem) {
