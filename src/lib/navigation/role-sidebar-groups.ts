@@ -49,6 +49,7 @@ const ICON_BY_HREF: Record<string, IconComponent> = {
   "/resident/reservations": CalendarCheck,
   "/resident/visitors": Users,
   "/resident/communications": MessageSquare,
+  "/resident/services": Store,
   "/resident/surveys": ClipboardList,
   "/resident/regulations": ScrollText,
   "/resident/packages": Package,
