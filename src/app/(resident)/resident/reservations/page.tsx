@@ -802,7 +802,7 @@ export default function ResidentReservationsPage() {
               </p>
             </div>
             <a
-              href="/resident/billing"
+              href="/resident/account"
               className="shrink-0 text-sm font-medium text-[var(--danger-700)] underline underline-offset-2 hover:text-[var(--danger-600)]"
             >
               Ver estado de cuenta

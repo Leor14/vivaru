@@ -95,6 +95,15 @@ export default function AdminReservationsPage() {
   const [togglingAmenityId, setTogglingAmenityId] = useState<string | null>(null);
   const [amenityPanelOpen, setAmenityPanelOpen] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+  const pendingPhotoUrls = useMemo(
+    () => pendingPhotos.map((file) => URL.createObjectURL(file)),
+    [pendingPhotos],
+  );
+  useEffect(() => {
+    return () => {
+      pendingPhotoUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [pendingPhotoUrls]);
 
   // Create amenity config state
   const [amenityOperatingStart, setAmenityOperatingStart] = useState("");
@@ -688,7 +697,7 @@ export default function AdminReservationsPage() {
                   <div key={i} className="relative h-20 w-20">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={URL.createObjectURL(file)}
+                      src={pendingPhotoUrls[i] ?? ""}
                       alt=""
                       className="h-20 w-20 rounded-md object-cover"
                     />

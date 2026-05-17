@@ -214,7 +214,7 @@ export function AdminSidebar({
                         href={item.href}
                         onClick={onItemClick}
                         className={cn(
-                          "group flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] transition",
+                          "group flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] transition-colors duration-150",
                           active
                             ? "text-white"
                             : "text-[rgba(255,255,255,0.75)] hover:text-white",

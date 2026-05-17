@@ -603,7 +603,7 @@ export default function AdminSurveysPage() {
                             </div>
                             <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--slate-100)]">
                               <div
-                                className="h-full rounded-full transition-all duration-700"
+                                className="h-full rounded-full transition-[width] duration-700"
                                 style={{
                                   width: `${pct}%`,
                                   backgroundColor: LIKERT_COLORS[k],
@@ -645,7 +645,7 @@ export default function AdminSurveysPage() {
                           </div>
                           <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--slate-100)]">
                             <div
-                              className="h-full rounded-full transition-all duration-700"
+                              className="h-full rounded-full transition-[width] duration-700"
                               style={{
                                 width: `${pct}%`,
                                 backgroundColor: PALETTE[idx % PALETTE.length],

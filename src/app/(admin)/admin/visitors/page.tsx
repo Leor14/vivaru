@@ -132,7 +132,7 @@ export default function AdminVisitorsPage() {
         setError(message);
         setLoading(false);
         // Solo mostrar toast si el error no es de empty state
-        if (message && !/no hay autorizaciónes/i.test(message)) {
+        if (message && !/no hay autorizaciones/i.test(message)) {
           toast.error(message);
         }
       },

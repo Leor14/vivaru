@@ -190,7 +190,7 @@ export default function ResidentCommunicationsPage() {
 
               <div className="mt-3">
                 <p
-                  className="whitespace-pre-wrap text-sm leading-7 text-[var(--slate-700)] transition-all duration-200 sm:text-[15px]"
+                  className="whitespace-pre-wrap text-sm leading-7 text-[var(--slate-700)] sm:text-[15px]"
                   style={
                     !expanded && canCollapse
                       ? {

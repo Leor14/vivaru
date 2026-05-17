@@ -225,12 +225,12 @@ export default function AdminPackagesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-4 text-[var(--slate-600)]">Cargando paquetería...</td>
+                <td colSpan={5} className="px-3 py-4 text-[var(--slate-600)]">Cargando paquetería...</td>
               </tr>
             ) : null}
             {!loading && filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-4">
+                <td colSpan={5} className="px-3 py-4">
                   <EmptyState
                     title={hasActiveFilters ? "Sin resultados" : "Sin paquetes"}
                     description={
