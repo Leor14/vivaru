@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { BriefcaseBusiness, ChevronDown, ChevronUp, Phone, Store } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { BriefcaseBusiness, ChevronDown, ChevronUp, Expand, FileText, Phone, Store, X } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
@@ -40,6 +40,10 @@ export default function ResidentServicesPage() {
   const { items, loading, error } = useServices(user?.tenantId);
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
   const [categoryFilter, setCategoryFilter] = useState<"all" | ServiceItem["category"]>("all");
+  const [lightbox, setLightbox] = useState<{ url: string; name: string } | null>(null);
+
+  const openLightbox = useCallback((url: string, name: string) => setLightbox({ url, name }), []);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   const filteredItems = useMemo(() => {
     if (categoryFilter === "all") return items;
@@ -178,25 +182,38 @@ export default function ResidentServicesPage() {
                   ) : null}
                 </div>
 
-                {/* Attachment */}
+                {/* Attachment — thumbnail chip, expands to lightbox on click */}
                 {item.attachmentUrl ? (
-                  <div className="mt-4">
-                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">Información adicional</p>
+                  <div className="mt-3">
                     {item.attachmentName?.toLowerCase().endsWith(".pdf") ? (
                       <a
                         href={item.attachmentUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand-200)] bg-[var(--brand-50)] px-3 py-2 text-sm font-medium text-[var(--brand-700)] transition-colors hover:bg-[var(--brand-100)]"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--slate-200)] bg-[var(--slate-50)] px-2.5 py-1.5 text-xs font-medium text-[var(--slate-700)] transition-colors hover:bg-[var(--slate-100)]"
                       >
-                        📄 {item.attachmentName}
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-[var(--brand-600)]" />
+                        <span className="max-w-[160px] truncate">{item.attachmentName}</span>
                       </a>
                     ) : (
-                      <img
-                        src={item.attachmentUrl}
-                        alt={item.attachmentName ?? "Información adicional"}
-                        className="max-h-64 w-full rounded-xl object-contain"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => openLightbox(item.attachmentUrl!, item.attachmentName ?? "Información adicional")}
+                        className="group relative inline-flex items-end overflow-hidden rounded-lg border border-[var(--slate-200)] bg-[var(--slate-50)] transition-shadow hover:shadow-md"
+                        aria-label="Ver información adicional"
+                      >
+                        <img
+                          src={item.attachmentUrl}
+                          alt={item.attachmentName ?? "Información adicional"}
+                          className="h-16 w-24 object-cover"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                          <Expand className="h-4 w-4 text-white opacity-0 drop-shadow-md transition-opacity group-hover:opacity-100" />
+                        </span>
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                          Ver más
+                        </span>
+                      </button>
                     )}
                   </div>
                 ) : null}
@@ -224,6 +241,35 @@ export default function ResidentServicesPage() {
           );
         })}
       </div>
+
+      {/* Lightbox */}
+      {lightbox ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={lightbox.name}
+          onClick={closeLightbox}
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={lightbox.url}
+            alt={lightbox.name}
+            className="max-h-[88vh] max-w-full rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+            {lightbox.name}
+          </p>
+        </div>
+      ) : null}
     </Card>
   );
 }
