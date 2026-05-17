@@ -238,7 +238,8 @@ export function AppShell({
           <Button type="button" variant="outline" size="sm" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú">
             <Menu className="h-4 w-4" />
           </Button>
-          <h1 className="text-subheading truncate text-[var(--slate-900)]">{shellTitle}</h1>
+          <h1 className="text-subheading min-w-0 flex-1 truncate text-[var(--slate-900)]">{shellTitle}</h1>
+          <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
         </header>
       ) : (
         <header className="sticky top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur">
