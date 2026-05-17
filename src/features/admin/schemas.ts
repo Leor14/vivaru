@@ -61,6 +61,9 @@ export const serviceSchema = z.object({
   unitId: z.string().trim().optional(),
   imageUrl: z.string().trim().optional(),
   imagePath: z.string().trim().optional(),
+  attachmentUrl: z.string().trim().optional(),
+  attachmentName: z.string().trim().optional(),
+  attachmentPath: z.string().trim().optional(),
   status: z.enum(["active", "inactive"]),
 });
 

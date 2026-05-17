@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { watchServices, type ServiceItem } from "@/features/admin/services";
+import { watchActiveServices, type ServiceItem } from "@/features/admin/services";
 
 export function useServices(tenantId?: string) {
   const [items, setItems] = useState<ServiceItem[]>([]);
@@ -15,10 +15,10 @@ export function useServices(tenantId?: string) {
       return;
     }
 
-    const unsub = watchServices(
+    const unsub = watchActiveServices(
       tenantId,
       (data) => {
-        setItems(data.filter((item) => item.status === "active"));
+        setItems(data);
         setError(null);
         setLoading(false);
       },

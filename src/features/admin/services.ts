@@ -99,6 +99,9 @@ export type ServiceItem = {
   unitId?: string;
   imageUrl?: string;
   imagePath?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentPath?: string;
   status: "active" | "inactive";
   createdBy: string;
   createdAt: string;
@@ -664,11 +667,34 @@ export function watchServices(tenantId: string, onData: (items: ServiceItem[]) =
   );
 }
 
+/** Resident-safe query — only returns active services (matches Firestore rule for 'resident' role). */
+export function watchActiveServices(tenantId: string, onData: (items: ServiceItem[]) => void, onError: (message: string) => void) {
+  const firestore = assertDb();
+  return onSnapshot(
+    query(
+      collection(firestore, "services"),
+      where("tenantId", "==", tenantId),
+      where("status", "==", "active"),
+    ),
+    (snapshot) => {
+      const items = snapshot.docs
+        .map((item) => mapDoc<ServiceItem>(item.id, item.data() as Record<string, unknown>))
+        .sort((a, b) => {
+          const aTime = a.createdAt || a.updatedAt || "";
+          const bTime = b.createdAt || b.updatedAt || "";
+          return bTime.localeCompare(aTime);
+        });
+      onData(items);
+    },
+    (error) => onError(error.message),
+  );
+}
+
 export async function createService(
   tenantId: string,
   userId: string,
   payload: Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status"> &
-    Partial<Pick<ServiceItem, "unitId" | "imageUrl" | "imagePath">>,
+    Partial<Pick<ServiceItem, "unitId" | "imageUrl" | "imagePath" | "attachmentUrl" | "attachmentName" | "attachmentPath">>,
 ) {
   const firestore = assertDb();
   // Strip undefined optional fields — Firestore rejects undefined values
@@ -701,11 +727,21 @@ export async function deleteService(id: string) {
 export async function uploadServiceImage(input: { tenantId: string; serviceId: string; file: File }) {
   const appStorage = assertStorage();
   const cleanName = input.file.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
-  const storagePath = `tenants/${input.tenantId}/services/${input.serviceId}/${cleanName}`;
+  const storagePath = `tenants/${input.tenantId}/services/${input.serviceId}/cover-${cleanName}`;
   const storageRef = ref(appStorage, storagePath);
   await uploadBytes(storageRef, input.file, { contentType: input.file.type || "image/jpeg" });
   const imageUrl = await getDownloadURL(storageRef);
   return { imageUrl, storagePath };
+}
+
+export async function uploadServiceAttachment(input: { tenantId: string; serviceId: string; file: File }) {
+  const appStorage = assertStorage();
+  const cleanName = input.file.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
+  const storagePath = `tenants/${input.tenantId}/services/${input.serviceId}/attachment-${cleanName}`;
+  const storageRef = ref(appStorage, storagePath);
+  await uploadBytes(storageRef, input.file, { contentType: input.file.type || "application/octet-stream" });
+  const attachmentUrl = await getDownloadURL(storageRef);
+  return { attachmentUrl, attachmentName: input.file.name, storagePath };
 }
 
 export function watchReservations(tenantId: string, onData: (items: ReservationItem[]) => void, onError: (message: string) => void) {

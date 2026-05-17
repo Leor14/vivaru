@@ -178,6 +178,29 @@ export default function ResidentServicesPage() {
                   ) : null}
                 </div>
 
+                {/* Attachment */}
+                {item.attachmentUrl ? (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">Información adicional</p>
+                    {item.attachmentName?.toLowerCase().endsWith(".pdf") ? (
+                      <a
+                        href={item.attachmentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[var(--brand-200)] bg-[var(--brand-50)] px-3 py-2 text-sm font-medium text-[var(--brand-700)] transition-colors hover:bg-[var(--brand-100)]"
+                      >
+                        📄 {item.attachmentName}
+                      </a>
+                    ) : (
+                      <img
+                        src={item.attachmentUrl}
+                        alt={item.attachmentName ?? "Información adicional"}
+                        className="max-h-64 w-full rounded-xl object-contain"
+                      />
+                    )}
+                  </div>
+                ) : null}
+
                 {/* Provider info */}
                 <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--slate-100)] pt-3">
                   <div>

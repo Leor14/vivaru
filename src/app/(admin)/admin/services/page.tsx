@@ -24,6 +24,7 @@ import {
   createService,
   deleteService,
   updateService,
+  uploadServiceAttachment,
   uploadServiceImage,
   watchServices,
   watchUnits,
@@ -52,10 +53,12 @@ export default function AdminServicesPage() {
   const [detailItem, setDetailItem] = useState<ServiceItem | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [pendingDeletion, setPendingDeletion] = useState<ServiceItem | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ServiceInput>({
     resolver: zodResolver(serviceSchema),
@@ -69,6 +72,9 @@ export default function AdminServicesPage() {
       unitId: "",
       imageUrl: "",
       imagePath: "",
+      attachmentUrl: "",
+      attachmentName: "",
+      attachmentPath: "",
       status: "active",
     },
   });
@@ -112,7 +118,9 @@ export default function AdminServicesPage() {
     setEditingItem(null);
     setImageFile(null);
     setImagePreview(null);
+    setAttachmentFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (attachmentInputRef.current) attachmentInputRef.current.value = "";
     form.reset({
       title: "",
       description: "",
@@ -123,6 +131,9 @@ export default function AdminServicesPage() {
       unitId: "",
       imageUrl: "",
       imagePath: "",
+      attachmentUrl: "",
+      attachmentName: "",
+      attachmentPath: "",
       status: "active",
     });
     setCreateOpen(true);
@@ -132,7 +143,9 @@ export default function AdminServicesPage() {
     setEditingItem(item);
     setImageFile(null);
     setImagePreview(item.imageUrl ?? null);
+    setAttachmentFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (attachmentInputRef.current) attachmentInputRef.current.value = "";
     form.reset({
       title: item.title,
       description: item.description,
@@ -143,6 +156,9 @@ export default function AdminServicesPage() {
       unitId: item.unitId ?? "",
       imageUrl: item.imageUrl ?? "",
       imagePath: item.imagePath ?? "",
+      attachmentUrl: item.attachmentUrl ?? "",
+      attachmentName: item.attachmentName ?? "",
+      attachmentPath: item.attachmentPath ?? "",
       status: item.status,
     });
     setCreateOpen(true);
@@ -153,11 +169,11 @@ export default function AdminServicesPage() {
     setSubmitting(true);
     setErrorMessage(null);
     try {
+      const tempId = editingItem?.id ?? `new-${Date.now()}`;
       let imageUrl = values.imageUrl;
       let imagePath = values.imagePath;
 
       if (imageFile) {
-        const tempId = editingItem?.id ?? `new-${Date.now()}`;
         const uploaded = await uploadServiceImage({
           tenantId: user.tenantId,
           serviceId: tempId,
@@ -167,8 +183,24 @@ export default function AdminServicesPage() {
         imagePath = uploaded.storagePath;
       }
 
+      let attachmentUrl = values.attachmentUrl;
+      let attachmentName = values.attachmentName;
+      let attachmentPath = values.attachmentPath;
+
+      if (attachmentFile) {
+        const uploaded = await uploadServiceAttachment({
+          tenantId: user.tenantId,
+          serviceId: tempId,
+          file: attachmentFile,
+        });
+        attachmentUrl = uploaded.attachmentUrl;
+        attachmentName = uploaded.attachmentName;
+        attachmentPath = uploaded.storagePath;
+      }
+
       // Build payload without undefined fields — Firestore rejects undefined values
-      type ServicePayload = Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status" | "unitId" | "imageUrl" | "imagePath">;
+      type ServicePayload = Pick<ServiceItem, "title" | "description" | "category" | "serviceType" | "providerName" | "providerContact" | "status"> &
+        Partial<Pick<ServiceItem, "unitId" | "imageUrl" | "imagePath" | "attachmentUrl" | "attachmentName" | "attachmentPath">>;
       const payload: ServicePayload = {
         title: values.title,
         description: values.description,
@@ -180,6 +212,9 @@ export default function AdminServicesPage() {
         ...(values.category === "resident_offer" && values.unitId ? { unitId: values.unitId } : {}),
         ...(imageUrl ? { imageUrl } : {}),
         ...(imagePath ? { imagePath } : {}),
+        ...(attachmentUrl ? { attachmentUrl } : {}),
+        ...(attachmentName ? { attachmentName } : {}),
+        ...(attachmentPath ? { attachmentPath } : {}),
       };
 
       if (editingItem) {
@@ -491,7 +526,8 @@ export default function AdminServicesPage() {
           ) : null}
 
           <div className="space-y-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
-            <p className="text-sm text-[var(--slate-700)]">Imagen del servicio (opcional)</p>
+            <p className="text-sm font-medium text-[var(--slate-700)]">Imagen de portada <span className="font-normal text-[var(--slate-500)]">(opcional)</span></p>
+            <p className="text-xs text-[var(--slate-500)]">Se muestra como imagen principal del servicio en el portal del residente.</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -511,12 +547,29 @@ export default function AdminServicesPage() {
             {imagePreview ? (
               <img
                 src={imagePreview}
-                alt="Vista previa"
+                alt="Vista previa de portada"
                 className="mt-2 h-24 w-24 rounded-lg object-cover"
               />
             ) : null}
             <p className="text-xs text-[var(--slate-500)]">
               {imageFile?.name ?? (form.watch("imageUrl") ? "Imagen guardada" : "Sin imagen")}
+            </p>
+          </div>
+
+          <div className="space-y-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+            <p className="text-sm font-medium text-[var(--slate-700)]">Información adicional <span className="font-normal text-[var(--slate-500)]">(opcional)</span></p>
+            <p className="text-xs text-[var(--slate-500)]">Sube un PDF o imagen con detalles del servicio (tarifas, carta, menú, etc.). El residente podrá verlo en el portal.</p>
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setAttachmentFile(file);
+              }}
+            />
+            <p className="text-xs text-[var(--slate-500)]">
+              {attachmentFile?.name ?? (form.watch("attachmentName") ? form.watch("attachmentName") : "Sin archivo")}
             </p>
           </div>
 
@@ -622,6 +675,28 @@ export default function AdminServicesPage() {
               <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Descripcion</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-800)]">{detailItem.description}</p>
             </div>
+
+            {detailItem.attachmentUrl ? (
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Información adicional</p>
+                {detailItem.attachmentName?.toLowerCase().endsWith(".pdf") ? (
+                  <a
+                    href={detailItem.attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1.5 inline-flex items-center gap-2 rounded-lg border border-[var(--brand-200)] bg-[var(--brand-50)] px-3 py-1.5 text-sm font-medium text-[var(--brand-700)] hover:bg-[var(--brand-100)]"
+                  >
+                    📄 {detailItem.attachmentName}
+                  </a>
+                ) : (
+                  <img
+                    src={detailItem.attachmentUrl}
+                    alt={detailItem.attachmentName ?? "Adjunto"}
+                    className="mt-1.5 max-h-56 w-full rounded-xl object-contain"
+                  />
+                )}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </Drawer>
