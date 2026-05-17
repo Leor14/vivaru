@@ -83,6 +83,16 @@ export function RangePicker({
   placeholder = "Seleccionar rango",
 }: RangePickerProps) {
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const [leftMonth, setLeftMonth] = useState<Date>(() => {
     if (value?.from) return startOfMonth(value.from);
     return startOfMonth(addMonths(new Date(), -1));
@@ -169,131 +179,219 @@ export function RangePicker({
       </button>
 
       {open ? (
-        <div
-          role="dialog"
-          aria-label="Seleccionar rango de fechas"
-          className="vivaru-rangepicker absolute right-0 z-40 mt-2 rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_18px_40px_rgba(10,40,70,0.12)]"
-          style={{ minWidth: 620 }}
-        >
-          <div className="flex">
-            <div className="relative flex-1 px-3 pt-3">
-              <div className="mb-1 flex items-center justify-between">
-                <button
-                  type="button"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--slate-600)] hover:bg-[var(--surface-soft)]"
-                  onClick={() => setLeftMonth((prev) => addMonths(prev, -1))}
-                  aria-label="Mes anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="text-sm font-medium capitalize text-[var(--slate-900)]">
-                  {leftMonth.toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
-                </span>
-                <span className="h-7 w-7" aria-hidden />
-              </div>
-              <DayPicker
-                mode="range"
-                selected={draftRange}
-                onSelect={handleSelect}
-                month={leftMonth}
-                onMonthChange={setLeftMonth}
-                locale={es}
-                weekStartsOn={1}
-                numberOfMonths={1}
-                disabled={[
-                  ...(minDate ? [{ before: minDate }] : []),
-                  ...(maxDate ? [{ after: maxDate }] : []),
-                ]}
-                hideNavigation
-                classNames={{
-                  caption: "hidden",
-                  caption_label: "hidden",
-                  nav: "hidden",
-                  month_caption: "hidden",
-                }}
+        <>
+          {/* Mobile: backdrop + bottom sheet */}
+          {isMobile ? (
+            <div className="fixed inset-0 z-50">
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/30"
+                aria-label="Cerrar selector"
+                onClick={() => setOpen(false)}
               />
-            </div>
-            <div className="w-px self-stretch bg-[var(--slate-200)]" aria-hidden />
-            <div className="relative flex-1 px-3 pt-3">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="h-7 w-7" aria-hidden />
-                <span className="text-sm font-medium capitalize text-[var(--slate-900)]">
-                  {rightMonth.toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--slate-600)] hover:bg-[var(--surface-soft)]"
-                  onClick={() => setLeftMonth((prev) => addMonths(prev, 1))}
-                  aria-label="Mes siguiente"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+              <div
+                role="dialog"
+                aria-label="Seleccionar rango de fechas"
+                className="vivaru-rangepicker absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--slate-200)] bg-white shadow-[0_-8px_32px_rgba(10,40,70,0.12)]"
+              >
+                <div className="px-3 pt-4">
+                  <div className="mb-1 flex items-center justify-between">
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--slate-600)] hover:bg-[var(--surface-soft)]"
+                      onClick={() => setLeftMonth((prev) => addMonths(prev, -1))}
+                      aria-label="Mes anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-sm font-medium capitalize text-[var(--slate-900)]">
+                      {leftMonth.toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--slate-600)] hover:bg-[var(--surface-soft)]"
+                      onClick={() => setLeftMonth((prev) => addMonths(prev, 1))}
+                      aria-label="Mes siguiente"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <DayPicker
+                    mode="range"
+                    selected={draftRange}
+                    onSelect={handleSelect}
+                    month={leftMonth}
+                    onMonthChange={setLeftMonth}
+                    locale={es}
+                    weekStartsOn={1}
+                    numberOfMonths={1}
+                    disabled={[
+                      ...(minDate ? [{ before: minDate }] : []),
+                      ...(maxDate ? [{ after: maxDate }] : []),
+                    ]}
+                    hideNavigation
+                    classNames={{
+                      caption: "hidden",
+                      caption_label: "hidden",
+                      nav: "hidden",
+                      month_caption: "hidden",
+                    }}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--slate-200)] px-3 py-2">
+                  <div className="flex flex-wrap gap-1">
+                    {(["this-month", "last-month", "last-quarter"] as const).map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
+                        onClick={() => handleApplyPreset(preset)}
+                      >
+                        {preset === "this-month" ? "Este mes" : preset === "last-month" ? "Mes anterior" : "Trimestre"}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleApply}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                    style={{ backgroundColor: "#185FA5" }}
+                    disabled={!draftRange?.from}
+                  >
+                    Aplicar
+                  </button>
+                </div>
               </div>
-              <DayPicker
-                mode="range"
-                selected={draftRange}
-                onSelect={handleSelect}
-                month={rightMonth}
-                locale={es}
-                weekStartsOn={1}
-                numberOfMonths={1}
-                disabled={[
-                  ...(minDate ? [{ before: minDate }] : []),
-                  ...(maxDate ? [{ after: maxDate }] : []),
-                ]}
-                hideNavigation
-                classNames={{
-                  caption: "hidden",
-                  caption_label: "hidden",
-                  nav: "hidden",
-                  month_caption: "hidden",
-                }}
-              />
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--slate-200)] px-3 py-2">
-            <div className="flex flex-wrap gap-1">
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
-                onClick={() => handleApplyPreset("this-month")}
-              >
-                Este mes
-              </button>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
-                onClick={() => handleApplyPreset("last-month")}
-              >
-                Mes anterior
-              </button>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
-                onClick={() => handleApplyPreset("last-quarter")}
-              >
-                Último trimestre
-              </button>
-              <button
-                type="button"
-                className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
-                onClick={() => handleApplyPreset("ytd")}
-              >
-                Año en curso
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={handleApply}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ backgroundColor: "#185FA5" }}
-              disabled={!draftRange?.from}
+          ) : (
+            /* Desktop: two-column dropdown */
+            <div
+              role="dialog"
+              aria-label="Seleccionar rango de fechas"
+              className="vivaru-rangepicker absolute right-0 z-40 mt-2 rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_18px_40px_rgba(10,40,70,0.12)]"
+              style={{ minWidth: 620 }}
             >
-              Aplicar
-            </button>
-          </div>
-        </div>
+              <div className="flex">
+                <div className="relative flex-1 px-3 pt-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--slate-600)] hover:bg-[var(--surface-soft)]"
+                      onClick={() => setLeftMonth((prev) => addMonths(prev, -1))}
+                      aria-label="Mes anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-sm font-medium capitalize text-[var(--slate-900)]">
+                      {leftMonth.toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
+                    </span>
+                    <span className="h-7 w-7" aria-hidden />
+                  </div>
+                  <DayPicker
+                    mode="range"
+                    selected={draftRange}
+                    onSelect={handleSelect}
+                    month={leftMonth}
+                    onMonthChange={setLeftMonth}
+                    locale={es}
+                    weekStartsOn={1}
+                    numberOfMonths={1}
+                    disabled={[
+                      ...(minDate ? [{ before: minDate }] : []),
+                      ...(maxDate ? [{ after: maxDate }] : []),
+                    ]}
+                    hideNavigation
+                    classNames={{
+                      caption: "hidden",
+                      caption_label: "hidden",
+                      nav: "hidden",
+                      month_caption: "hidden",
+                    }}
+                  />
+                </div>
+                <div className="w-px self-stretch bg-[var(--slate-200)]" aria-hidden />
+                <div className="relative flex-1 px-3 pt-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="h-7 w-7" aria-hidden />
+                    <span className="text-sm font-medium capitalize text-[var(--slate-900)]">
+                      {rightMonth.toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[var(--slate-600)] hover:bg-[var(--surface-soft)]"
+                      onClick={() => setLeftMonth((prev) => addMonths(prev, 1))}
+                      aria-label="Mes siguiente"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <DayPicker
+                    mode="range"
+                    selected={draftRange}
+                    onSelect={handleSelect}
+                    month={rightMonth}
+                    locale={es}
+                    weekStartsOn={1}
+                    numberOfMonths={1}
+                    disabled={[
+                      ...(minDate ? [{ before: minDate }] : []),
+                      ...(maxDate ? [{ after: maxDate }] : []),
+                    ]}
+                    hideNavigation
+                    classNames={{
+                      caption: "hidden",
+                      caption_label: "hidden",
+                      nav: "hidden",
+                      month_caption: "hidden",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--slate-200)] px-3 py-2">
+                <div className="flex flex-wrap gap-1">
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
+                    onClick={() => handleApplyPreset("this-month")}
+                  >
+                    Este mes
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
+                    onClick={() => handleApplyPreset("last-month")}
+                  >
+                    Mes anterior
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
+                    onClick={() => handleApplyPreset("last-quarter")}
+                  >
+                    Último trimestre
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-1 text-xs text-[var(--slate-700)] hover:bg-[var(--surface-soft)]"
+                    onClick={() => handleApplyPreset("ytd")}
+                  >
+                    Año en curso
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: "#185FA5" }}
+                  disabled={!draftRange?.from}
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : null}
     </div>
   );

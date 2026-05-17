@@ -160,10 +160,13 @@ export function Drawer({
         tabIndex={-1}
         onKeyDown={handlePanelKeyDown}
         className={cn(
-          "drawer-panel absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-white shadow-2xl outline-none md:w-auto",
+          // Mobile: bottom sheet — slides up from bottom
+          "drawer-panel absolute bottom-0 left-0 right-0 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-[var(--slate-200)] bg-white shadow-2xl outline-none",
+          // Desktop (md+): right panel — slides in from right
+          "md:bottom-auto md:left-auto md:right-0 md:top-0 md:h-full md:max-h-none md:rounded-none md:border-l md:border-t-0 md:w-auto",
           className,
         )}
-        style={{ maxWidth: "100vw", width: typeof window !== "undefined" && window.innerWidth >= 768 ? width : "100%" }}
+        style={typeof window !== "undefined" && window.innerWidth >= 768 ? { width } : undefined}
       >
         <header className="flex items-start justify-between gap-3 border-b border-[var(--slate-200)] px-5 py-4">
           <div className="min-w-0 flex-1">
