@@ -966,38 +966,38 @@ export default function AdminBillingPage() {
           </p>
         </div>
 
-        <div className="responsive-table-wrap mt-2">
-          <table className="responsive-table min-w-[980px] text-sm">
+        <div className="responsive-table-wrap mt-2 rounded-xl border border-[var(--slate-200)]">
+          <table className="responsive-table min-w-[860px] text-xs sm:text-sm">
           <thead>
-            <tr className="border-b border-[var(--slate-200)] text-[var(--slate-600)]">
-              <th className="py-2">Apartamento</th>
-              <th className="py-2">Fecha</th>
-              <th className="py-2">Monto</th>
-              <th className="py-2">Abono</th>
-              <th className="py-2">Saldo</th>
-              <th className="py-2">Fecha límite</th>
-              <th className="py-2">Estado</th>
-              <th className="py-2">Acciones</th>
+            <tr className="border-b border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-700)]">
+              <th className="px-3 py-2 font-medium text-left">Apartamento</th>
+              <th className="px-3 py-2 font-medium text-left">Fecha</th>
+              <th className="px-3 py-2 font-medium text-left">Monto</th>
+              <th className="px-3 py-2 font-medium text-left">Abono</th>
+              <th className="px-3 py-2 font-medium text-left">Saldo</th>
+              <th className="px-3 py-2 font-medium text-left">Fecha límite</th>
+              <th className="px-3 py-2 font-medium text-left">Estado</th>
+              <th className="px-3 py-2 font-medium text-left">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skel-${i}`} className="border-b border-[var(--slate-100)]">
-                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="py-2.5"><Skeleton className="h-3.5 w-16 rounded" /></td>
-                  <td className="py-2.5"><Skeleton className="h-3.5 w-24 rounded" /></td>
-                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
-                  <td className="py-2.5"><Skeleton className="h-7 w-16 rounded-xl" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-16 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-24 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-7 w-16 rounded-xl" /></td>
                 </tr>
               ))
             ) : null}
             {!loading && filteredRows.length === 0 ? (
               <tr>
-                <td className="py-2" colSpan={8}>
+                <td className="px-3 py-2" colSpan={8}>
                   <EmptyState
                     title="Sin estados de cuenta"
                     description="No hay facturación registrada para este conjunto con los filtros actuales."
@@ -1010,13 +1010,13 @@ export default function AdminBillingPage() {
               const isPaid = status === "paid";
               return (
               <tr key={item.id} className="border-b border-[var(--slate-100)]">
-                <td className="py-2">{item.unitLabel}</td>
-                <td className="py-2">{formatTableDate(item.period)}</td>
-                <td className="py-2">{formatAmount(item.amount)}</td>
-                <td className="py-2">{formatAmount(item.paymentAmount)}</td>
-                <td className="py-2">{formatAmount(item.balance)}</td>
-                <td className="py-2">{formatTableDate(item.dueDate)}</td>
-                <td className="py-2">
+                <td className="px-3 py-2">{item.unitLabel}</td>
+                <td className="px-3 py-2">{formatTableDate(item.period)}</td>
+                <td className="px-3 py-2">{formatAmount(item.amount)}</td>
+                <td className="px-3 py-2">{formatAmount(item.paymentAmount)}</td>
+                <td className="px-3 py-2">{formatAmount(item.balance)}</td>
+                <td className="px-3 py-2">{formatTableDate(item.dueDate)}</td>
+                <td className="px-3 py-2">
                   {isPaid ? (
                     <span className="inline-flex items-center gap-1 text-emerald-700">
                       <IconBadge tone="mint">
@@ -1040,7 +1040,7 @@ export default function AdminBillingPage() {
                     </span>
                   )}
                 </td>
-                <td className="py-2">
+                <td className="px-3 py-2">
                   <Button
                     size="sm"
                     variant="outline"
