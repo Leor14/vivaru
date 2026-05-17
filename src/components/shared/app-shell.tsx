@@ -66,7 +66,13 @@ export function AppShell({
 
   useEffect(() => {
     function onScroll() {
-      const currentY = window.scrollY;
+      // window.scrollY returns 0 on iOS Safari when body has overflow-x:hidden.
+      // document.documentElement.scrollTop is reliable across all mobile browsers.
+      const currentY =
+        document.documentElement.scrollTop ||
+        document.body.scrollTop ||
+        window.scrollY ||
+        0;
       if (currentY < 60) {
         setHeaderMinimized(false);
       } else if (currentY > lastScrollY.current) {
@@ -76,8 +82,8 @@ export function AppShell({
       }
       lastScrollY.current = currentY;
     }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    document.addEventListener("scroll", onScroll, { passive: true });
+    return () => document.removeEventListener("scroll", onScroll);
   }, []);
 
   const isAdminRole = role === "tenant_admin" || role === "admin_tenant";

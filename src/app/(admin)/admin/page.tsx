@@ -730,7 +730,7 @@ export default function AdminDashboardPage() {
                 No hay datos suficientes para construir la gráfica con el filtro actual.
               </p>
             ) : (
-              <div className="h-[260px] w-full sm:h-[360px]">
+              <div className="h-[320px] w-full sm:h-[420px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData} margin={{ top: 16, right: 18, left: 6, bottom: 8 }}>
                     <defs>
