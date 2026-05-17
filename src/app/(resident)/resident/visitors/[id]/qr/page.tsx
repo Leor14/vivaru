@@ -28,17 +28,17 @@ export default function ResidentVisitorsQrPage() {
       try {
         const loadedInvitation = await getResidentInvitationById(id);
         if (!loadedInvitation) {
-          setError("La invitacion no existe o fue eliminada.");
+          setError("La invitación no existe o fue eliminada.");
           return;
         }
 
         if (user?.tenantId && loadedInvitation.tenantId !== user.tenantId) {
-          setError("No tienes permisos para ver esta invitacion.");
+          setError("No tienes permisos para ver esta invitación.");
           return;
         }
 
         if (user?.unitId && loadedInvitation.unitId !== user.unitId) {
-          setError("No tienes permisos para ver esta invitacion.");
+          setError("No tienes permisos para ver esta invitación.");
           return;
         }
 
@@ -114,9 +114,9 @@ export default function ResidentVisitorsQrPage() {
     <section className="space-y-4">
       <Card>
         <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">Visitantes / Paso 3 de 3</p>
-        <CardTitle className="mt-1 text-xl">QR final de invitacion</CardTitle>
+        <CardTitle className="mt-1 text-xl">QR final de invitación</CardTitle>
         <CardDescription className="mt-1">
-          Presenta este codigo en porteria para validar el ingreso dentro de la vigencia configurada.
+          Presenta este código en portería para validar el ingreso dentro de la vigencia configurada.
         </CardDescription>
       </Card>
 
@@ -169,7 +169,7 @@ export default function ResidentVisitorsQrPage() {
 
             {!isActive ? (
               <p className="mt-3 rounded-lg bg-[var(--danger-100)] px-3 py-2 text-sm font-medium text-[var(--danger-700)]">
-                Esta invitacion no esta activa. Verifica su estado en el detalle.
+                Esta invitación no está activa. Verifica su estado en el detalle.
               </p>
             ) : null}
           </div>

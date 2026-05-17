@@ -131,7 +131,7 @@ export default function ResidentCommunicationsPage() {
             </span>
             <h3 className="mt-4 text-base font-semibold text-[var(--slate-900)]">No hay comunicados vigentes</h3>
             <p className="mt-1 max-w-md text-sm leading-6 text-[var(--slate-600)]">
-              Cuando la administración publique informacion, aparecera aqui.
+              Cuando la administración publique información, aparecerá aquí.
             </p>
           </div>
         ) : null}

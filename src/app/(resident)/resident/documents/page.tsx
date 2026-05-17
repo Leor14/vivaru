@@ -27,7 +27,7 @@ export default function ResidentDocumentsPage() {
         {!loading && items.length === 0 ? (
           <EmptyState
             title="Sin documentos"
-            description="Aun no hay documentos publicados para tu conjunto."
+            description="Aún no hay documentos publicados para tu conjunto."
           />
         ) : null}
         {items.map((item) => (

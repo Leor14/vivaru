@@ -43,7 +43,7 @@ const invitationFormSchema = z
     if (!startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "La fecha/hora no es valida.",
+        message: "La fecha/hora no es válida.",
         path: ["endDate"],
       });
       return;
@@ -51,7 +51,7 @@ const invitationFormSchema = z
     if (!isDateTimeValid(startAt, "visitor")) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "La invitacion debe registrarse con al menos 15 minutos de anticipacion.",
+        message: "La invitación debe registrarse con al menos 15 minutos de anticipación.",
         path: ["startTime"],
       });
     }
@@ -95,7 +95,7 @@ export default function ResidentVisitorsNewPage() {
     if (!startDate || !startTime) return null;
     const startAt = combineDateAndTime(startDate, startTime);
     if (!startAt || !isDateTimeValid(startAt, "visitor", nowDateTime)) {
-      return "La invitacion debe registrarse con al menos 15 minutos de anticipacion.";
+      return "La invitación debe registrarse con al menos 15 minutos de anticipación.";
     }
     return null;
   }, [startDate, startTime, nowDateTime]);
@@ -108,7 +108,7 @@ export default function ResidentVisitorsNewPage() {
 
     const selectedDateTime = combineDateAndTime(values.startDate, values.startTime);
     if (!selectedDateTime || !isDateTimeValid(selectedDateTime, "visitor")) {
-      toast.error("La invitacion debe registrarse con al menos 15 minutos de anticipacion.");
+      toast.error("La invitación debe registrarse con al menos 15 minutos de anticipación.");
       return;
     }
 
@@ -131,7 +131,7 @@ export default function ResidentVisitorsNewPage() {
         endAt: new Date(`${values.endDate}T${values.endTime}`),
       });
 
-      toast.success("Invitacion creada correctamente.");
+      toast.success("Invitación creada correctamente.");
       router.push(`/resident/visitors/${id}`);
     } catch (error) {
       toastFirebaseError(error);
@@ -144,7 +144,7 @@ export default function ResidentVisitorsNewPage() {
     <section className="space-y-4">
       <Card>
         <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">Visitantes / Paso 1 de 3</p>
-        <CardTitle className="mt-1 text-xl">Crear invitacion</CardTitle>
+        <CardTitle className="mt-1 text-xl">Crear invitación</CardTitle>
         <CardDescription className="mt-1">
           Registra los datos del visitante y define la vigencia para generar su acceso.
         </CardDescription>
@@ -159,7 +159,7 @@ export default function ResidentVisitorsNewPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <Input
-              label="Identificacion"
+              label="Identificación"
               {...register("visitorIdentification")}
               error={errors.visitorIdentification?.message}
             />
@@ -167,7 +167,7 @@ export default function ResidentVisitorsNewPage() {
           </div>
 
           <Textarea
-            label="Razon de visita / observaciones"
+            label="Razón de visita / observaciones"
             {...register("visitReason")}
             error={errors.visitReason?.message}
           />
@@ -183,7 +183,7 @@ export default function ResidentVisitorsNewPage() {
             <Input
               type="number"
               min={0}
-              label="Ninos"
+              label="Niños"
               {...register("childrenCount", { valueAsNumber: true })}
               error={errors.childrenCount?.message}
             />
@@ -211,7 +211,7 @@ export default function ResidentVisitorsNewPage() {
             <Link href="/resident/visitors">
               <Button type="button" variant="outline">Cancelar</Button>
             </Link>
-            <Button type="submit" disabled={saving || Boolean(liveDateTimeError)}>{saving ? "Guardando..." : "Crear invitacion"}</Button>
+            <Button type="submit" disabled={saving || Boolean(liveDateTimeError)}>{saving ? "Guardando..." : "Crear invitación"}</Button>
           </div>
         </form>
       </Card>

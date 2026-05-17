@@ -70,7 +70,7 @@ export default function ResidentPackagesPage() {
   return (
     <Card>
       <CardTitle>Paquetería</CardTitle>
-      <CardDescription className="mt-1">Consulta de paquetes pendientes y confirmacion de recibido.</CardDescription>
+      <CardDescription className="mt-1">Consulta de paquetes pendientes y confirmación de recibido.</CardDescription>
       <div className="mt-4 space-y-3 text-sm">
         {loading ? (
           <div className="space-y-3">
@@ -102,7 +102,7 @@ export default function ResidentPackagesPage() {
           <article key={item.id} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_8px_20px_rgba(10,40,70,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs text-[var(--slate-500)]">Codigo</p>
+                <p className="text-xs text-[var(--slate-500)]">Código</p>
                 <p className="text-base font-semibold text-[var(--slate-900)]">{item.reference || `PK-${item.id.slice(0, 6).toUpperCase()}`}</p>
               </div>
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
@@ -111,8 +111,8 @@ export default function ResidentPackagesPage() {
             </div>
 
             <div className="mt-3 grid gap-1 text-sm">
-              <p className="text-[var(--slate-700)]">Descripcion: <span className="font-medium text-[var(--slate-900)]">{item.description?.trim() || "Sin descripcion"}</span></p>
-              <p className="text-[var(--slate-700)]">Recibido en porteria por: <span className="font-medium text-[var(--slate-900)]">{resolveGuardName(item)}</span></p>
+              <p className="text-[var(--slate-700)]">Descripción: <span className="font-medium text-[var(--slate-900)]">{item.description?.trim() || "Sin descripción"}</span></p>
+              <p className="text-[var(--slate-700)]">Recibido en portería por: <span className="font-medium text-[var(--slate-900)]">{resolveGuardName(item)}</span></p>
               <p className="text-[var(--slate-700)]">Fecha de recepción: <span className="font-medium text-[var(--slate-900)]">{formatDate(item.arrivedAt)}</span></p>
               {item.status === "delivered" ? (
                 <p className="text-[var(--slate-700)]">Fecha de entrega: <span className="font-medium text-[var(--slate-900)]">{formatDate(item.deliveredAt || item.receivedAt)}</span></p>

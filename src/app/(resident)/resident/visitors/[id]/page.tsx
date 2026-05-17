@@ -30,17 +30,17 @@ export default function ResidentVisitorsDetailPage() {
       try {
         const loadedInvitation = await getResidentInvitationById(id);
         if (!loadedInvitation) {
-          setError("La invitacion no existe o fue eliminada.");
+          setError("La invitación no existe o fue eliminada.");
           return;
         }
 
         if (user?.tenantId && loadedInvitation.tenantId !== user.tenantId) {
-          setError("No tienes permisos para ver esta invitacion.");
+          setError("No tienes permisos para ver esta invitación.");
           return;
         }
 
         if (user?.unitId && loadedInvitation.unitId !== user.unitId) {
-          setError("No tienes permisos para ver esta invitacion.");
+          setError("No tienes permisos para ver esta invitación.");
           return;
         }
 
@@ -63,7 +63,7 @@ export default function ResidentVisitorsDetailPage() {
     try {
       await cancelResidentInvitation(invitation.id);
       setInvitation({ ...invitation, status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() });
-      toast.success("Invitacion cancelada correctamente.");
+      toast.success("Invitación cancelada correctamente.");
     } catch (cancelError) {
       toastFirebaseError(cancelError);
     } finally {
@@ -75,8 +75,8 @@ export default function ResidentVisitorsDetailPage() {
     <section className="space-y-4">
       <Card>
         <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">Visitantes / Paso 2 de 3</p>
-        <CardTitle className="mt-1 text-xl">Detalle de invitacion</CardTitle>
-        <CardDescription className="mt-1">Revisa la informacion de la invitacion antes de compartir su QR.</CardDescription>
+        <CardTitle className="mt-1 text-xl">Detalle de invitación</CardTitle>
+        <CardDescription className="mt-1">Revisa la información de la invitación antes de compartir su QR.</CardDescription>
       </Card>
 
       <Card>
@@ -91,7 +91,7 @@ export default function ResidentVisitorsDetailPage() {
           ) : null}
         </div>
 
-        {loading ? <p className="text-sm text-[var(--slate-600)]">Cargando invitacion...</p> : null}
+        {loading ? <p className="text-sm text-[var(--slate-600)]">Cargando invitación...</p> : null}
         {error ? <p className="text-sm text-[var(--danger-700)]">{error}</p> : null}
 
         {!loading && !error && invitation ? (

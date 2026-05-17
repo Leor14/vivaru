@@ -572,7 +572,7 @@ export default function ResidentReservationsPage() {
 
     const candidate = { start, end };
     if (!rangeInsideWindow(candidate, amenityWindows)) {
-      return "El rango seleccionado esta fuera del horario permitido de la amenidad.";
+      return "El rango seleccionado está fuera del horario permitido de la amenidad.";
     }
 
     const duration = end - start;

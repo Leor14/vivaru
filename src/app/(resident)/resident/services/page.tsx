@@ -138,7 +138,7 @@ export default function ResidentServicesPage() {
               {categoryFilter === "all" ? "No hay servicios disponibles" : `No hay ${CATEGORY_LABELS[categoryFilter].toLowerCase()} disponibles`}
             </h3>
             <p className="mt-1 max-w-md text-sm leading-6 text-[var(--slate-600)]">
-              Cuando la administracion publique servicios, apareceran aqui.
+              Cuando la administración publique servicios, aparecerán aquí.
             </p>
           </div>
         ) : null}
