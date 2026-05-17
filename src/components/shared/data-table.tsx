@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
 
 export type DataTableColumn<T> = {
@@ -42,7 +43,20 @@ export function DataTable<T>({
   return (
     <>
       <div className="space-y-3 sm:hidden">
-        {loading ? <p className="text-sm text-[var(--slate-600)]">{loadingText}</p> : null}
+        {loading ? (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-2 rounded-xl border border-[var(--slate-200)] p-3">
+                {Array.from({ length: Math.min(visibleMobileColumns.length || 3, 4) }).map((_, j) => (
+                  <div key={j} className="space-y-1">
+                    <Skeleton className="h-3 w-16 rounded" />
+                    <Skeleton className="h-4 w-32 rounded" />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </>
+        ) : null}
         {!loading && errorText ? <p className="text-sm text-[var(--danger-700)]">{errorText}</p> : null}
         {!loading && !errorText && rows.length === 0 ? <p className="text-sm text-[var(--slate-600)]">{emptyText}</p> : null}
 
@@ -100,11 +114,20 @@ export function DataTable<T>({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td className="py-3 text-[var(--slate-600)]" colSpan={columns.length + (renderActions ? 1 : 0)}>
-                  {loadingText}
-                </td>
-              </tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skel-${i}`} className="border-b border-[var(--slate-100)]">
+                  {columns.map((column) => (
+                    <td key={column.key} className="py-3 pr-4 first:pl-1 last:pr-1">
+                      <Skeleton className="h-4 w-24 rounded" />
+                    </td>
+                  ))}
+                  {renderActions ? (
+                    <td className="py-3 pl-3 pr-1 text-right">
+                      <Skeleton className="ml-auto h-7 w-16 rounded-lg" />
+                    </td>
+                  ) : null}
+                </tr>
+              ))
             ) : null}
 
             {!loading && errorText ? (
