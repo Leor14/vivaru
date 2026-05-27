@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #f4f7fb;
@@ -58,6 +59,24 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-manrope);
   --font-display: var(--font-fraunces);
+  /* shadcn semantic tokens — activos dentro de .marketing-theme vía var() cascade */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 }
 
 body {
@@ -609,4 +628,130 @@ h3 {
       transform: none;
     }
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * MARKETING TOKENS — Vivaru Landing
+ * Portado de vivaru-landing/tailwind.config.ts (v3) a sintaxis v4.
+ * Solo se activan en el route group (marketing). El layout aplica
+ * .marketing-theme para hacer cascade de las variables de color.
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── shadcn semantic tokens — scoped al (marketing) layout ──────────────── */
+.marketing-theme {
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #4B5FD4;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #475569;
+  --accent: #F8FAFC;
+  --accent-foreground: #0F172A;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #4B5FD4;
+  --radius: 0.75rem;
+}
+
+/* ── Brand colors, spacing, shadows, z-index, durations, easings ─────────── */
+@theme {
+  /* Brand colors */
+  --color-navy: #0B3C5D;
+  --color-navy-dark: #0B1F3A;
+  --color-brand-blue: #4B5FD4;
+  --color-brand-blue-light: #A8C4E8;
+  --color-brand-purple: #9B59B6;
+  --color-brand-purple-deep: #7C3AED;
+  --color-brand-teal: #0891B2;
+  --color-brand-green: #059669;
+  --color-brand-green-succ: #16A34A;
+  --color-brand-green-resident: #1A7A45;
+  --color-brand-amber: #D97706;
+  --color-brand-red: #DC2626;
+  --color-brand-plum-dark: #3D1460;
+
+  /* Typography scale (line-heights via companion CSS rules below) */
+  --text-hero: 72px;
+  --text-hero-mobile: 56px;
+  --text-h1: 48px;
+  --text-h2: 36px;
+  --text-h3: 24px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 64px;
+  --spacing-3xl: 96px;
+
+  /* Shadows */
+  --shadow-brand-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-brand-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-brand-lg: 0 10px 30px rgba(15, 23, 42, 0.12);
+
+  /* Z-index */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* Transition durations */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+
+  /* Transition easings */
+  --ease-out-brand: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-brand: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Animations (keyframes definidos abajo) */
+  --animate-accordion-down: accordion-down 0.25s ease-out;
+  --animate-accordion-up: accordion-up 0.25s ease-out;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-drift-mesh: drift-mesh 18s linear infinite;
+}
+
+/* ── Companion line-heights para font-size tokens (v4 no los bundlea) ─────── */
+.text-hero        { line-height: 1.05; letter-spacing: -0.02em; }
+.text-hero-mobile { line-height: 1.08; letter-spacing: -0.02em; }
+.text-h1          { line-height: 1.1;  letter-spacing: -0.015em; }
+.text-h2          { line-height: 1.15; }
+.text-h3          { line-height: 1.25; }
+
+/* ── Container — reemplaza config v3 (center, padding por breakpoint, 1280px) */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  max-width: 1280px;
+  @media (width >= 40rem) { padding-inline: 1.5rem; }
+  @media (width >= 64rem) { padding-inline: 2rem; }
+}
+
+/* ── Keyframes (reemplaza plugin tailwindcss-animate) ───────────────────── */
+@keyframes accordion-down {
+  from { height: 0; }
+  to   { height: var(--radix-accordion-content-height); }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to   { height: 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
+}
+@keyframes drift-mesh {
+  0%   { background-position: 0% 0%, 100% 100%; }
+  50%  { background-position: 100% 50%, 0% 50%; }
+  100% { background-position: 0% 0%, 100% 100%; }
 }
