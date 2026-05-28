@@ -37,10 +37,10 @@ import { track } from "@/lib/marketing/analytics";
  */
 
 const NAV_LINKS = [
-  { label: "Producto", href: "/#solucion" },
-  { label: "Soluciones", href: "/#perspectivas" },
-  { label: "Precios", href: "/#precios" },
-  { label: "Recursos", href: "/#faq" },
+  { label: "Producto", href: "/mx#solucion" },
+  { label: "Soluciones", href: "/mx#perspectivas" },
+  { label: "Precios", href: "/mx#precios" },
+  { label: "Recursos", href: "/mx#faq" },
 ] as const;
 
 const PORTAL_LOGIN_TOOLTIP =
@@ -60,7 +60,7 @@ function useScrolled(threshold = 8) {
 function VivaruLogo({ className }: { className?: string }) {
   return (
     <Link
-      href="/"
+      href="/mx"
       aria-label="Vivaru — Inicio"
       className={cn(
         "inline-flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -117,7 +117,8 @@ function LoginAction({ portalUrl }: { portalUrl?: string }) {
 export function Topbar() {
   const scrolled = useScrolled();
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const portalUrl = process.env.NEXT_PUBLIC_PORTAL_LOGIN_URL || undefined;
+  // H2 resolved: defaults to /login (same SaaS app). Override via env var if needed.
+  const portalUrl = process.env.NEXT_PUBLIC_PORTAL_LOGIN_URL || '/login';
   const pathname = usePathname();
   // /diagnostico is a focused lead-magnet flow — the fixed mobile CTA would
   // compete with the page's own primary action. Suppress it there.

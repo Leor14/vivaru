@@ -17,20 +17,20 @@ import Image from "next/image";
  */
 
 const PRODUCT_LINKS = [
-  { label: "Solución (4 pilares)", href: "/#solucion" },
-  { label: "Perspectivas por rol", href: "/#perspectivas" },
-  { label: "Diferenciadores", href: "/#diferenciadores" },
-  { label: "Precios", href: "/#precios" },
+  { label: "Solución (4 pilares)", href: "/mx#solucion" },
+  { label: "Perspectivas por rol", href: "/mx#perspectivas" },
+  { label: "Diferenciadores", href: "/mx#diferenciadores" },
+  { label: "Precios", href: "/mx#precios" },
 ];
 
 const RESOURCE_LINKS = [
   { label: "Diagnóstico gratuito", href: "/diagnostico" },
-  { label: "Preguntas frecuentes", href: "/#faq" },
-  // { label: "Piloto pagado", href: "/#piloto" }, // HIDDEN — see page.tsx
+  { label: "Preguntas frecuentes", href: "/mx#faq" },
+  // { label: "Piloto pagado", href: "/mx#piloto" }, // HIDDEN — see page.tsx
 ];
 
 const COMPANY_LINKS = [
-  { label: "Sobre Vivaru", href: "/#impacto" },
+  { label: "Sobre Vivaru", href: "/mx#impacto" },
   { label: "Contacto", href: "mailto:hola@grupovivaru.com" },
 ];
 
@@ -44,7 +44,7 @@ export function Footer() {
           {/* Column 1 — Brand + tagline */}
           <div className="flex flex-col gap-md">
             <Link
-              href="/"
+              href="/mx"
               aria-label="Vivaru — Inicio"
               className="inline-flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
             >
