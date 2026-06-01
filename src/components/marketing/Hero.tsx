@@ -51,9 +51,9 @@ export function Hero({ variant = "inst" }: HeroProps) {
     }
   }, [ctaInView]);
 
-  // Stagger timings: H1 0ms (400ms), sub 120ms, CTAs 270ms + 420ms, trust 570ms.
+  // Stagger timings: H1 0ms, sub 70ms, CTA1 140ms, CTA2 210ms (last enters by 210ms).
   const fadeBase =
-    "transition-all duration-slow ease-out-brand motion-reduce:transition-none";
+    "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none";
   const fadeIdle = "opacity-0 translate-y-3 motion-reduce:translate-y-0";
   const fadeIn = "opacity-100 translate-y-0";
 
@@ -88,7 +88,7 @@ export function Hero({ variant = "inst" }: HeroProps) {
               fadeBase,
               shown ? fadeIn : fadeIdle,
             )}
-            style={{ transitionDelay: reduced ? "0ms" : "120ms" }}
+            style={{ transitionDelay: reduced ? "0ms" : "70ms" }}
           >
             {SUB}
           </p>
@@ -99,7 +99,7 @@ export function Hero({ variant = "inst" }: HeroProps) {
           >
             <div
               className={cn(fadeBase, shown ? fadeIn : fadeIdle)}
-              style={{ transitionDelay: reduced ? "0ms" : "270ms" }}
+              style={{ transitionDelay: reduced ? "0ms" : "140ms" }}
             >
               <DemoDialog section="hero">
                 <Button
@@ -115,7 +115,7 @@ export function Hero({ variant = "inst" }: HeroProps) {
 
             <div
               className={cn(fadeBase, shown ? fadeIn : fadeIdle)}
-              style={{ transitionDelay: reduced ? "0ms" : "420ms" }}
+              style={{ transitionDelay: reduced ? "0ms" : "210ms" }}
             >
               <Button
                 size="xl"

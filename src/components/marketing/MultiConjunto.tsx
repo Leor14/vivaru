@@ -104,7 +104,7 @@ function ConjuntoStack() {
               className={cn(
                 "flex items-center gap-md rounded-xl bg-white/95 p-md shadow-brand-sm ring-1",
                 c.ring,
-                "transition-all duration-slow ease-out-brand motion-reduce:transition-none",
+                "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
                 inView
                   ? "opacity-100 translate-x-0"
                   : "opacity-0 translate-x-6 motion-reduce:translate-x-0",

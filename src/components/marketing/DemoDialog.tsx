@@ -157,7 +157,14 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
         onClick={() => track("cta_primary_click", { section })}
         render={trigger}
       />
-      <DialogContent className="sm:max-w-lg bg-white shadow-2xl p-6 gap-0 overflow-y-auto max-h-[90svh]">
+      <DialogContent
+          className="bg-white shadow-2xl p-6 gap-0"
+          style={{
+            width: "min(calc(100vw - 2rem), 32rem)",
+            maxHeight: "min(90svh, 90vh)",
+            overflowY: "auto",
+          }}
+        >
         {/* ── Step 1: Contacto ───────────────────────────────────────── */}
         {step === "contact" && (
           <>
