@@ -75,8 +75,8 @@ const TABS: TabDef[] = [
     shotW: 390,
     shotH: 844,
     textActive: "text-white",
-    bgActive: "bg-brand-greenResident",
-    ringActive: "ring-brand-greenResident",
+    bgActive: "bg-brand-green-resident",
+    ringActive: "ring-brand-green-resident",
   },
   {
     key: "porteria",
@@ -94,15 +94,15 @@ const TABS: TabDef[] = [
     shotW: 1024,
     shotH: 768,
     textActive: "text-white",
-    bgActive: "bg-brand-plumDark",
-    ringActive: "ring-brand-plumDark",
+    bgActive: "bg-brand-plum-dark",
+    ringActive: "ring-brand-plum-dark",
   },
 ];
 
 const HEADLINE_COLOR: Record<TabKey, string> = {
   admin: "text-navy",
-  residente: "text-brand-greenResident",
-  porteria: "text-brand-plumDark",
+  residente: "text-brand-green-resident",
+  porteria: "text-brand-plum-dark",
 };
 
 export function Perspectives() {

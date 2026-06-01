@@ -60,8 +60,8 @@ const PAINS: Pain[] = [
     Icon: ShieldAlert,
     title: "Gobernanza nula",
     sub: "Sin auditoría, sin evidencia para juntas.",
-    iconBg: "bg-brand-greenResident/10",
-    iconFg: "text-brand-greenResident",
+    iconBg: "bg-brand-green-resident/10",
+    iconFg: "text-brand-green-resident",
   },
 ];
 
