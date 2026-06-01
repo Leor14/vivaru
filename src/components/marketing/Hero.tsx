@@ -164,7 +164,7 @@ function ProductComposite() {
       {/* Portal Residente mobile overlay (390×844 @3x). */}
       <div className="absolute -bottom-6 right-2 hidden w-[24%] min-w-[140px] max-w-[180px] overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-lg sm:block lg:-bottom-8 lg:right-4 lg:w-[28%]">
         <Image
-          src="/product/hero-resident-home.png"
+          src="/product/hero-resident-reservations.png"
           alt="Portal del residente en Vivaru"
           width={390}
           height={844}
