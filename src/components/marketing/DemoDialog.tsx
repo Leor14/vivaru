@@ -157,8 +157,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
         onClick={() => track("cta_primary_click", { section })}
         render={trigger}
       />
-      <DialogContent className="sm:max-w-lg bg-white shadow-2xl p-0 gap-0 overflow-hidden">
-        <div className="overflow-y-auto max-h-[90svh] p-6">
+      <DialogContent className="sm:max-w-lg bg-white shadow-2xl p-6 gap-0 overflow-y-auto max-h-[90svh]">
         {/* ── Step 1: Contacto ───────────────────────────────────────── */}
         {step === "contact" && (
           <>
@@ -430,7 +429,6 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
             </Button>
           </div>
         )}
-        </div>
       </DialogContent>
     </Dialog>
   );
