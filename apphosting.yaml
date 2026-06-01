@@ -42,14 +42,8 @@ env:
       - RUNTIME
 
   # ── Resend — Email transaccional ──────────────────────────────────────────
-  # La API key se almacena en Firebase Secret Manager (nunca en texto plano).
-  # Para registrarla por primera vez, ejecuta:
-  #   firebase apphosting:secrets:set resend-api-key
-  # y pega la key cuando lo pida.
-  - variable: RESEND_API_KEY
-    secret: resend-api-key
-    availability:
-      - RUNTIME
+  # RESEND_API_KEY se configura desde la consola de Firebase App Hosting
+  # (App Hosting → tu backend → Variables de entorno) para no exponerla en git.
 
   - variable: LEAD_NOTIFICATION_TO
     value: dev@qintilab.com,comercial@qintilab.com
