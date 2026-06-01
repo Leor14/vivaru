@@ -83,7 +83,7 @@ function LoginAction({ portalUrl }: { portalUrl?: string }) {
   if (portalUrl) {
     return (
       <Button
-        variant="ghost"
+        variant="outline"
         size="default"
         render={
           <a
@@ -101,11 +101,10 @@ function LoginAction({ portalUrl }: { portalUrl?: string }) {
   return (
     <Tooltip label={PORTAL_LOGIN_TOOLTIP}>
       <Button
-        variant="ghost"
+        variant="outline"
         size="default"
         type="button"
         onClick={() => track("cta_login_click", { state: "portal_pending" })}
-        className="text-slate-600 hover:text-slate-900"
       >
         Iniciar sesión
         <Info aria-hidden="true" className="ml-1 h-4 w-4 opacity-70" />

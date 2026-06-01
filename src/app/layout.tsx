@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Fraunces } from "next/font/google";
+import { Manrope, Playfair_Display } from "next/font/google";
 
 import { Providers } from "@/app/providers";
 import "./globals.css";
@@ -9,9 +9,10 @@ const manrope = Manrope({
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -30,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${manrope.variable} ${fraunces.variable} antialiased`}>
+      <body className={`${manrope.variable} ${playfairDisplay.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
