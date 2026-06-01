@@ -135,16 +135,6 @@ export function Hero({ variant = "inst" }: HeroProps) {
             </div>
           </div>
 
-          <p
-            className={cn(
-              "mt-lg text-sm text-slate-600",
-              fadeBase,
-              shown ? fadeIn : fadeIdle,
-            )}
-            style={{ transitionDelay: reduced ? "0ms" : "570ms" }}
-          >
-            {TRUST}
-          </p>
         </div>
 
         {/* Right-side product composite — desktop dashboard + phone overlay.

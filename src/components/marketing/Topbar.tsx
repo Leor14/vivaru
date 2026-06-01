@@ -68,12 +68,12 @@ function VivaruLogo({ className }: { className?: string }) {
       )}
     >
       <Image
-        src="/brand/vivaru-logo.svg"
+        src="/brand/vivaru-logo.png"
         alt=""
         width={120}
-        height={28}
+        height={120}
         priority
-        className="h-7 w-auto"
+        className="h-10 w-auto"
       />
     </Link>
   );

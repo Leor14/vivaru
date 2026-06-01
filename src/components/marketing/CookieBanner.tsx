@@ -56,9 +56,10 @@ export function CookieBanner() {
       aria-labelledby="cookie-banner-title"
       aria-describedby="cookie-banner-desc"
       className={cn(
-        "fixed left-0 right-0 z-modal px-4",
-        // Sit above the mobile fixed bottom CTA on small screens.
-        "bottom-24 md:bottom-4 md:left-4 md:right-auto md:max-w-md",
+        // Mobile: stretch between insets so the card always has full width.
+        // Desktop: anchor bottom-left with a fixed width (avoids max-w shrink-wrap).
+        "fixed left-4 right-4 z-modal",
+        "bottom-24 md:bottom-4 md:right-auto md:w-96",
       )}
       style={{
         // Honor iOS safe area when no mobile CTA is present below us.

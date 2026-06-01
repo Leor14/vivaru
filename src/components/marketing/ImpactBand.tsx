@@ -48,11 +48,6 @@ const STATS: Stat[] = [
     suffix: " %",
     label: "Trazabilidad auditable",
   },
-  {
-    value: 72,
-    suffix: " horas",
-    label: "De firma a operación",
-  },
 ];
 
 export function ImpactBand() {
@@ -68,7 +63,7 @@ export function ImpactBand() {
         </h2>
         <ul
           role="list"
-          className="grid gap-lg sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-xl sm:grid-cols-2 lg:grid-cols-3 lg:gap-xxl"
         >
           {STATS.map((stat, i) => (
             <StatCard key={i} stat={stat} index={i} />
