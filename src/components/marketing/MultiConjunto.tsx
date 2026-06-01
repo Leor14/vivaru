@@ -62,7 +62,7 @@ export function MultiConjunto() {
             id="multi-heading"
             className="font-display text-h2 text-navy text-balance"
           >
-            Cada conjunto, su propio sistema.
+            Cada conjunto, su propio sistema
           </h2>
           <ul role="list" className="mt-lg space-y-3">
             {BULLETS.map((b) => (

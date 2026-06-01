@@ -52,7 +52,7 @@ const EMPTY_PROFILE: ProfileData = {
 };
 
 const SELECT_CLASS =
-  "h-9 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
+  "h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
 
 export interface DemoDialogProps {
   /** The trigger button. Must be a single React element. */
@@ -157,7 +157,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
         onClick={() => track("cta_primary_click", { section })}
         render={trigger}
       />
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg bg-white shadow-2xl p-6 gap-0">
         {/* ── Step 1: Contacto ───────────────────────────────────────── */}
         {step === "contact" && (
           <>
@@ -172,7 +172,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
 
             <form
               onSubmit={handleStep1Submit}
-              className="mt-4 flex flex-col gap-4"
+              className="mt-6 flex flex-col gap-5"
               noValidate
             >
               <div className="flex flex-col gap-1.5">
@@ -249,7 +249,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
 
             <form
               onSubmit={handleStep2Submit}
-              className="mt-4 flex flex-col gap-4"
+              className="mt-6 flex flex-col gap-5"
               noValidate
             >
               <div className="flex flex-col gap-1.5">

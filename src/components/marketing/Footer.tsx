@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 
 /**
  * Footer — Sprint 1.
@@ -48,12 +47,15 @@ export function Footer() {
               aria-label="Vivaru — Inicio"
               className="inline-flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
             >
-              <Image
-                src="/brand/vivaru-logo.png"
+              {/* SVG: paths son fill="#000000" sobre fondo transparente.
+                  invert() los convierte a blanco. No usar PNG (tiene fondo blanco sólido). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/vivaru-logo.svg"
                 alt=""
                 width={120}
                 height={120}
-                className="h-12 w-auto brightness-0 invert"
+                className="h-12 w-auto invert"
               />
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-slate-200/80">
