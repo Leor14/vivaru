@@ -78,7 +78,7 @@ function StatCard({ stat, index }: { stat: Stat; index: number }) {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLLIElement>(0.4);
   const animated = useCountUp(stat.value, inView, {
-    durationMs: 800,
+    durationMs: 1200,
     reduce: reduced,
   });
   // Step the start of each card slightly so they cascade visually.

@@ -142,20 +142,27 @@ function PillarCard({ pillar, index }: { pillar: Pillar; index: number }) {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLLIElement>(0.2);
   const { Icon } = pillar;
-  const delayMs = reduced ? 0 : index * 80;
+  const delayMs = reduced ? 0 : index * 60;
 
   return (
     <li
       ref={ref}
       className={cn(
         "group/pillar flex flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-brand-sm",
-        "transition-all duration-base ease-out-brand motion-reduce:transition-none",
-        "hover:-translate-y-1 hover:shadow-brand-lg motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-brand-sm",
-        inView
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-2 motion-reduce:translate-y-0",
+        // Hover lift — gated to pointer:fine devices; no sticky-hover on touch
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-brand-lg",
       )}
-      style={{ transitionDelay: `${delayMs}ms` }}
+      style={reduced ? {} : {
+        clipPath: inView ? "inset(0 0 0% 0)" : "inset(0 0 100% 0)",
+        opacity: inView ? 1 : 0,
+        // Per-property transitions: clip-path reveal + opacity fade for scroll entry,
+        // transform + box-shadow for hover lift. Delays only on reveal properties.
+        transitionProperty: "clip-path, opacity, transform, box-shadow",
+        transitionTimingFunction: "cubic-bezier(0.23, 1, 0.32, 1), ease-out, cubic-bezier(0.23, 1, 0.32, 1), cubic-bezier(0.23, 1, 0.32, 1)",
+        transitionDuration: "320ms, 200ms, 250ms, 250ms",
+        transitionDelay: `${delayMs}ms, ${delayMs}ms, 0ms, 0ms`,
+      }}
     >
       <div className="flex flex-1 flex-col p-lg">
         <div

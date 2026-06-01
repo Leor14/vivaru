@@ -114,7 +114,7 @@ function LoginAction({ portalUrl }: { portalUrl?: string }) {
 }
 
 export function Topbar() {
-  const scrolled = useScrolled();
+  const scrolled = useScrolled(20);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   // H2 resolved: defaults to /login (same SaaS app). Override via env var if needed.
   const portalUrl = process.env.NEXT_PUBLIC_PORTAL_LOGIN_URL || '/login';
@@ -127,8 +127,10 @@ export function Topbar() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-sticky w-full border-b border-transparent bg-background/95 supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-md transition-shadow duration-base ease-out-brand",
-          scrolled && "border-border/60 shadow-brand-md"
+          "sticky top-0 z-sticky w-full border-b border-transparent transition-[box-shadow,background-color] duration-[200ms] ease-out-brand",
+          scrolled
+            ? "border-border/60 shadow-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:backdrop-blur-sm"
+            : "bg-background/95 supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-md"
         )}
       >
         <div className="container flex h-16 items-center justify-between gap-4 md:h-[72px]">
