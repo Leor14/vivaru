@@ -49,11 +49,11 @@ export function Footer() {
               className="inline-flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-navy"
             >
               <Image
-                src="/brand/vivaru-logo.svg"
+                src="/brand/vivaru-logo.png"
                 alt=""
                 width={120}
-                height={28}
-                className="h-7 w-auto brightness-0 invert"
+                height={120}
+                className="h-12 w-auto brightness-0 invert"
               />
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-slate-200/80">

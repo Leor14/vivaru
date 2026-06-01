@@ -722,11 +722,23 @@ h3 {
 }
 
 /* ── Companion line-heights para font-size tokens (v4 no los bundlea) ─────── */
+/* Base classes */
 .text-hero        { line-height: 1.05; letter-spacing: -0.02em; }
 .text-hero-mobile { line-height: 1.08; letter-spacing: -0.02em; }
 .text-h1          { line-height: 1.1;  letter-spacing: -0.015em; }
 .text-h2          { line-height: 1.15; }
 .text-h3          { line-height: 1.25; }
+/* Responsive variants — Tailwind v4 generates lg:text-hero as a separate class
+   name, so .text-hero {} doesn't match it. Must declare each variant explicitly. */
+.lg\:text-hero    { line-height: 1.05; letter-spacing: -0.02em; }
+.lg\:text-h1      { line-height: 1.1;  letter-spacing: -0.015em; }
+.lg\:text-h2      { line-height: 1.15; }
+.lg\:text-h3      { line-height: 1.25; }
+.md\:text-hero    { line-height: 1.05; letter-spacing: -0.02em; }
+.md\:text-h1      { line-height: 1.1;  letter-spacing: -0.015em; }
+.md\:text-h2      { line-height: 1.15; }
+.sm\:text-hero    { line-height: 1.05; letter-spacing: -0.02em; }
+.sm\:text-h1      { line-height: 1.1;  letter-spacing: -0.015em; }
 
 /* ── Container — reemplaza config v3 (center, padding por breakpoint, 1280px) */
 @utility container {
