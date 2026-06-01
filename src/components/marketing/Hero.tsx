@@ -73,7 +73,7 @@ export function Hero({ variant = "inst" }: HeroProps) {
           <h1
             id="hero-h1"
             className={cn(
-              "font-display text-hero-mobile text-navy text-balance lg:text-hero",
+              "font-display font-bold text-[52px] leading-[1.08] tracking-[-0.02em] text-navy text-balance lg:text-[72px] lg:leading-[1.05] lg:tracking-[-0.02em]",
               fadeBase,
               shown ? fadeIn : fadeIdle,
             )}

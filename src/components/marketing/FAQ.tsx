@@ -22,12 +22,6 @@ import { track } from "@/lib/marketing/analytics";
 
 type Q = { id: number; question: string; answer: React.ReactNode };
 
-const HITL_PENDING = (
-  <p className="italic text-slate-500">
-    Pendiente confirmación con equipo comercial.
-  </p>
-);
-
 const QUESTIONS: Q[] = [
   {
     id: 1,
@@ -66,21 +60,13 @@ const QUESTIONS: Q[] = [
     ),
   },
   {
-    /* HITL H8 — Q4 */
-    id: 4,
-    question: "¿Mis residentes tienen que descargar una app?",
-    answer: HITL_PENDING,
-  },
-  {
     id: 5,
     question: "¿Cómo se manejan los datos personales de mis residentes?",
     answer: (
       <p>
         Cumplimos con la Ley Federal de Protección de Datos Personales en
-        Posesión de los Particulares (LFPDPPP). Vivaru opera como encargado
-        del tratamiento — tú eres el responsable. Puedes ver el detalle en
+        Posesión de los Particulares (LFPDPPP). Puedes ver el detalle en
         nuestra{" "}
-        {/* HITL H3: link URL pending */}
         <a
           href="/legal/privacidad"
           className="text-brand-blue underline underline-offset-4 hover:text-navy"
@@ -88,7 +74,6 @@ const QUESTIONS: Q[] = [
           Política de Privacidad
         </a>{" "}
         y el{" "}
-        {/* HITL H3: link URL pending */}
         <a
           href="/legal/datos"
           className="text-brand-blue underline underline-offset-4 hover:text-navy"
@@ -100,10 +85,14 @@ const QUESTIONS: Q[] = [
     ),
   },
   {
-    /* HITL H8 — Q6 */
     id: 6,
     question: "¿Qué pasa si quiero cancelar?",
-    answer: HITL_PENDING,
+    answer: (
+      <p>
+        Comunícate al contacto de nuestro equipo comercial para poder
+        analizar y realizar la cancelación del servicio.
+      </p>
+    ),
   },
   {
     id: 7,
@@ -118,13 +107,6 @@ const QUESTIONS: Q[] = [
         conectamos a él.
       </p>
     ),
-  },
-  {
-    /* HITL H8 — Q8 */
-    id: 8,
-    question:
-      "¿En qué se diferencia de Residentify, Conjunto Feliz o gestionar todo en Excel?",
-    answer: HITL_PENDING,
   },
 ];
 
