@@ -50,7 +50,14 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const NOTIFY_TO = "comercial@qintilab.com";
+// Supports comma-separated list: "dev@qintilab.com,comercial@qintilab.com"
+const NOTIFY_TO: string[] = (
+  process.env.DEMO_NOTIFICATION_TO || "comercial@qintilab.com"
+)
+  .split(",")
+  .map((e) => e.trim())
+  .filter(Boolean);
+
 const NOTIFY_FROM =
   process.env.LEAD_NOTIFICATION_FROM || "Vivaru <onboarding@resend.dev>";
 
@@ -123,7 +130,7 @@ export async function POST(request: Request) {
     try {
       const result = await resend.emails.send({
         from: NOTIFY_FROM,
-        to: [NOTIFY_TO],
+        to: NOTIFY_TO,
         replyTo: d.email,
         subject: notifEmail.subject,
         html: notifEmail.html,

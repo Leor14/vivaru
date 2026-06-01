@@ -40,3 +40,30 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # ── Resend — Email transaccional ──────────────────────────────────────────
+  # La API key se almacena en Firebase Secret Manager (nunca en texto plano).
+  # Para registrarla por primera vez, ejecuta:
+  #   firebase apphosting:secrets:set resend-api-key
+  # y pega la key cuando lo pida.
+  - variable: RESEND_API_KEY
+    secret: resend-api-key
+    availability:
+      - RUNTIME
+
+  - variable: LEAD_NOTIFICATION_TO
+    value: dev@qintilab.com,comercial@qintilab.com
+    availability:
+      - RUNTIME
+
+  - variable: DEMO_NOTIFICATION_TO
+    value: dev@qintilab.com,comercial@qintilab.com
+    availability:
+      - RUNTIME
+
+  # Cambiar a "Vivaru <noreply@grupovivaru.com>" cuando el dominio
+  # esté verificado en resend.com/domains
+  - variable: LEAD_NOTIFICATION_FROM
+    value: Vivaru <onboarding@resend.dev>
+    availability:
+      - RUNTIME

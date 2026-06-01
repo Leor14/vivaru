@@ -38,9 +38,18 @@ function rateLimited(ip: string): boolean {
   return bucket.count > RATE_LIMIT;
 }
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const NOTIFY_TO = process.env.LEAD_NOTIFICATION_TO || "hola@grupovivaru.com";
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+// Supports comma-separated list: "dev@qintilab.com,comercial@qintilab.com"
+const NOTIFY_TO: string[] = (
+  process.env.LEAD_NOTIFICATION_TO || "hola@grupovivaru.com"
+)
+  .split(",")
+  .map((e) => e.trim())
+  .filter(Boolean);
+
 const NOTIFY_FROM =
   process.env.LEAD_NOTIFICATION_FROM || "Vivaru <onboarding@resend.dev>";
 
@@ -97,7 +106,7 @@ export async function POST(request: Request) {
     try {
       const kamResult = await resend.emails.send({
         from: NOTIFY_FROM,
-        to: [NOTIFY_TO],
+        to: NOTIFY_TO,
         replyTo: answers.q9_contacto.email,
         subject: kamEmail.subject,
         html: kamEmail.html,
