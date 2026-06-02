@@ -23,7 +23,11 @@ export function computeBalanceStatus(
   return { balance, status };
 }
 
-/** Suscripción a los comprobantes emitidos (admin: todos; residente: filtra por unidad). */
+/**
+ * Suscripción a los comprobantes emitidos (admin: todos; residente: filtra por
+ * unidad). El orden por secuencial se aplica del lado del cliente para no
+ * exigir un índice compuesto en Firestore.
+ */
 export function watchPaymentVouchers(
   tenantId: string,
   onData: (items: PaymentVoucher[]) => void,
@@ -31,11 +35,13 @@ export function watchPaymentVouchers(
   unitId?: string,
 ) {
   return (
-    subscribeTenantCollection<PaymentVoucher>("paymentVouchers", tenantId, onData, onError, {
-      orderByField: "sequentialValue",
-      orderDirection: "desc",
-      equals: unitId ? [{ field: "payerUnitId", value: unitId }] : undefined,
-    }) ?? (() => {})
+    subscribeTenantCollection<PaymentVoucher>(
+      "paymentVouchers",
+      tenantId,
+      (items) => onData([...items].sort((a, b) => (b.sequentialValue ?? 0) - (a.sequentialValue ?? 0))),
+      onError,
+      { equals: unitId ? [{ field: "payerUnitId", value: unitId }] : undefined },
+    ) ?? (() => {})
   );
 }
 

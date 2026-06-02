@@ -10,17 +10,22 @@ import type { LedgerEntryFormValues } from "./schemas";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Suscripción en tiempo real al libro de movimientos del tenant. */
+/**
+ * Suscripción en tiempo real al libro de movimientos del tenant. El orden se
+ * aplica del lado del cliente para no exigir un índice compuesto en Firestore.
+ */
 export function watchLedger(
   tenantId: string,
   onData: (items: LedgerEntry[]) => void,
   onError: (message: string) => void,
 ) {
   return (
-    subscribeTenantCollection<LedgerEntry>("ledgerEntries", tenantId, onData, onError, {
-      orderByField: "date",
-      orderDirection: "desc",
-    }) ?? (() => {})
+    subscribeTenantCollection<LedgerEntry>(
+      "ledgerEntries",
+      tenantId,
+      (items) => onData([...items].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))),
+      onError,
+    ) ?? (() => {})
   );
 }
 

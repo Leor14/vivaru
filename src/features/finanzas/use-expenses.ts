@@ -16,17 +16,23 @@ import type { ExpenseFormValues } from "./schemas";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-/** Suscripción en tiempo real a los egresos del tenant, ordenados por fecha de emisión. */
+/**
+ * Suscripción en tiempo real a los egresos del tenant. El orden se aplica del
+ * lado del cliente para evitar exigir un índice compuesto en Firestore.
+ */
 export function watchExpenses(
   tenantId: string,
   onData: (items: Expense[]) => void,
   onError: (message: string) => void,
 ) {
   return (
-    subscribeTenantCollection<Expense>("expenses", tenantId, onData, onError, {
-      orderByField: "issueDate",
-      orderDirection: "desc",
-    }) ?? (() => {})
+    subscribeTenantCollection<Expense>(
+      "expenses",
+      tenantId,
+      (items) =>
+        onData([...items].sort((a, b) => (b.issueDate ?? "").localeCompare(a.issueDate ?? ""))),
+      onError,
+    ) ?? (() => {})
   );
 }
 
