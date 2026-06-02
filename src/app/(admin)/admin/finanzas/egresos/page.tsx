@@ -149,7 +149,7 @@ export default function AdminEgresosPage() {
     setErrorMessage(null);
     try {
       if (editingItem) {
-        await updateExpense(editingItem.id, user.uid, values);
+        await updateExpense(editingItem, user.uid, values);
         toast.success("Egreso actualizado.");
       } else {
         await createExpense(user.tenantId, user.uid, values);
@@ -168,7 +168,7 @@ export default function AdminEgresosPage() {
     if (!pendingDeletion) return;
     setDeleting(true);
     try {
-      await deleteExpense(pendingDeletion.id);
+      await deleteExpense(pendingDeletion);
       toast.success("Egreso eliminado.");
       setPendingDeletion(null);
     } catch (error) {

@@ -61,6 +61,17 @@ export const bankAccountSchema = z.object({
 
 export type BankAccountFormValues = z.infer<typeof bankAccountSchema>;
 
+export const ledgerEntrySchema = z.object({
+  type: z.enum(["ingreso", "egreso"]),
+  date: dateText,
+  amount: positiveAmount,
+  concept: requiredText("Concepto", 3),
+  category: z.string().trim().optional(),
+  bankAccountId: z.string().trim().optional(),
+});
+
+export type LedgerEntryFormValues = z.infer<typeof ledgerEntrySchema>;
+
 export const fiscalProfileSchema = z.object({
   taxId: z.string().trim().optional(),
   legalName: z.string().trim().optional(),

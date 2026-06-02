@@ -86,7 +86,7 @@ export async function createTenantDocument(
     throw new Error("Firebase no esta configurado en este entorno.");
   }
 
-  await addDoc(collection(db, collectionName), {
+  return addDoc(collection(db, collectionName), {
     ...payload,
     tenantId,
     createdBy: userId,

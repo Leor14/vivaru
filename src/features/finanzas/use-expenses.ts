@@ -6,6 +6,12 @@ import { db } from "@/lib/firebase/client";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense } from "@/types/domain";
 
+import {
+  createExpenseLedgerEntry,
+  deleteLedgerEntry,
+  resolveExpenseLedgerAction,
+  updateExpenseLedgerEntry,
+} from "./use-ledger";
 import type { ExpenseFormValues } from "./schemas";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -41,33 +47,80 @@ function normalizeExpensePayload(values: ExpenseFormValues) {
 }
 
 export async function createExpense(tenantId: string, userId: string, values: ExpenseFormValues) {
+  if (!db) {
+    throw new Error("Firebase no esta configurado en este entorno.");
+  }
   const payload = normalizeExpensePayload(values);
-  await createTenantDocument("expenses", tenantId, userId, {
+  const paidAt = payload.status === "pagado" ? today() : null;
+
+  const ref = await createTenantDocument("expenses", tenantId, userId, {
     ...payload,
-    paidAt: payload.status === "pagado" ? today() : null,
+    paidAt,
     supportFileUrl: null,
     supportFileName: null,
     supportStoragePath: null,
     ledgerEntryId: null,
   });
+
+  if (payload.status === "pagado") {
+    const ledgerId = await createExpenseLedgerEntry(tenantId, userId, {
+      id: ref.id,
+      description: payload.description,
+      amount: payload.amount,
+      category: payload.category,
+      paidAt,
+      issueDate: payload.issueDate,
+      bankAccountId: payload.bankAccountId,
+    });
+    await updateDoc(doc(db, "expenses", ref.id), { ledgerEntryId: ledgerId });
+  }
 }
 
-export async function updateExpense(id: string, userId: string, values: ExpenseFormValues) {
+export async function updateExpense(prev: Expense, userId: string, values: ExpenseFormValues) {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
   const payload = normalizeExpensePayload(values);
-  await updateDoc(doc(db, "expenses", id), {
+  const paidAt = payload.status === "pagado" ? today() : null;
+
+  await updateDoc(doc(db, "expenses", prev.id), {
     ...payload,
-    paidAt: payload.status === "pagado" ? today() : null,
+    paidAt,
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });
+
+  const action = resolveExpenseLedgerAction({
+    prevLedgerEntryId: prev.ledgerEntryId,
+    nextStatus: payload.status,
+  });
+  const expenseForLedger = {
+    id: prev.id,
+    description: payload.description,
+    amount: payload.amount,
+    category: payload.category,
+    paidAt,
+    issueDate: payload.issueDate,
+    bankAccountId: payload.bankAccountId,
+  };
+
+  if (action === "create") {
+    const ledgerId = await createExpenseLedgerEntry(prev.tenantId, userId, expenseForLedger);
+    await updateDoc(doc(db, "expenses", prev.id), { ledgerEntryId: ledgerId });
+  } else if (action === "update" && prev.ledgerEntryId) {
+    await updateExpenseLedgerEntry(prev.ledgerEntryId, userId, expenseForLedger);
+  } else if (action === "delete" && prev.ledgerEntryId) {
+    await deleteLedgerEntry(prev.ledgerEntryId);
+    await updateDoc(doc(db, "expenses", prev.id), { ledgerEntryId: null });
+  }
 }
 
-export async function deleteExpense(id: string) {
+export async function deleteExpense(expense: Pick<Expense, "id" | "ledgerEntryId">) {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
-  await deleteDoc(doc(db, "expenses", id));
+  if (expense.ledgerEntryId) {
+    await deleteLedgerEntry(expense.ledgerEntryId);
+  }
+  await deleteDoc(doc(db, "expenses", expense.id));
 }
