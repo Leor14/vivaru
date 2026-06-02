@@ -14,6 +14,7 @@ import {
   LogOut,
   MessageSquare,
   Package,
+  Receipt,
   ScrollText,
   Store,
   Users,
@@ -65,7 +66,10 @@ const GROUPS: AdminSidebarGroup[] = [
   },
   {
     label: "FINANCIERO",
-    items: [{ href: "/admin/billing", label: "Cartera", icon: Wallet }],
+    items: [
+      { href: "/admin/billing", label: "Cartera", icon: Wallet },
+      { href: "/admin/finanzas/egresos", label: "Egresos", icon: Receipt },
+    ],
   },
   {
     label: "REPORTES",

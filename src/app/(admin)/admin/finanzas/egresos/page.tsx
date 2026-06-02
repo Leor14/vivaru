@@ -1,0 +1,484 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FilterX, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
+import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
+import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { Modal } from "@/components/shared/modal";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { IconBadge } from "@/components/ui/icon-badge";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/features/auth/auth-context";
+import {
+  createExpense,
+  deleteExpense,
+  updateExpense,
+  watchExpenses,
+} from "@/features/finanzas/use-expenses";
+import { expenseSchema, type ExpenseFormValues } from "@/features/finanzas/schemas";
+import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
+import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
+
+const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
+  nomina: "Nómina",
+  servicios_publicos: "Servicios públicos",
+  mantenimiento: "Mantenimiento",
+  proveedores: "Proveedores",
+  administracion: "Administración",
+  seguros: "Seguros",
+  impuestos: "Impuestos",
+  otros: "Otros",
+};
+
+const STATUS_LABELS: Record<ExpenseStatus, string> = {
+  registrado: "Registrado",
+  pagado: "Pagado",
+  anulado: "Anulado",
+};
+
+const STATUS_CLASSES: Record<ExpenseStatus, string> = {
+  registrado: "text-[#936b24]",
+  pagado: "text-[#2f775f]",
+  anulado: "text-[var(--slate-500)]",
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  transferencia: "Transferencia",
+  cheque: "Cheque",
+  efectivo: "Efectivo",
+  otro: "Otro",
+};
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const EMPTY_DEFAULTS: Partial<ExpenseFormValues> = {
+  category: "proveedores",
+  description: "",
+  vendorName: "",
+  vendorTaxId: "",
+  issueDate: today(),
+  dueDate: "",
+  status: "registrado",
+  paymentMethod: "",
+  checkNumber: "",
+  bankAccountId: "",
+};
+
+export default function AdminEgresosPage() {
+  const { user } = useAuth();
+  const { formatAmount } = useTenantCurrency();
+
+  const [items, setItems] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<Expense | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [pendingDeletion, setPendingDeletion] = useState<Expense | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const [statusFilter, setStatusFilter] = useState<"all" | ExpenseStatus>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | ExpenseCategory>("all");
+  const [searchFilter, setSearchFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: EMPTY_DEFAULTS,
+  });
+  const watchedMethod = form.watch("paymentMethod");
+
+  useEffect(() => {
+    if (!user?.tenantId) {
+      setLoading(false);
+      return;
+    }
+    const unsub = watchExpenses(
+      user.tenantId,
+      (data) => {
+        setItems(data);
+        setErrorMessage(null);
+        setLoading(false);
+      },
+      (message) => {
+        setErrorMessage(message);
+        toast.error(message);
+        setLoading(false);
+      },
+    );
+    return () => unsub();
+  }, [user?.tenantId]);
+
+  function openCreate() {
+    setEditingItem(null);
+    form.reset({ ...EMPTY_DEFAULTS, issueDate: today() });
+    setCreateOpen(true);
+  }
+
+  function openEdit(item: Expense) {
+    setEditingItem(item);
+    form.reset({
+      category: item.category,
+      description: item.description,
+      vendorName: item.vendorName ?? "",
+      vendorTaxId: item.vendorTaxId ?? "",
+      amount: item.amount,
+      issueDate: item.issueDate,
+      dueDate: item.dueDate ?? "",
+      status: item.status,
+      paymentMethod: item.paymentMethod ?? "",
+      checkNumber: item.checkNumber ?? "",
+      bankAccountId: item.bankAccountId ?? "",
+    });
+    setCreateOpen(true);
+  }
+
+  async function handleSave(values: ExpenseFormValues) {
+    if (!user?.tenantId) return;
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      if (editingItem) {
+        await updateExpense(editingItem.id, user.uid, values);
+        toast.success("Egreso actualizado.");
+      } else {
+        await createExpense(user.tenantId, user.uid, values);
+        toast.success("Egreso registrado.");
+      }
+      setCreateOpen(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "No fue posible guardar el egreso.");
+      toastFirebaseError(error);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!pendingDeletion) return;
+    setDeleting(true);
+    try {
+      await deleteExpense(pendingDeletion.id);
+      toast.success("Egreso eliminado.");
+      setPendingDeletion(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const filteredItems = useMemo(() => {
+    const query = searchFilter.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchesStatus = statusFilter === "all" ? true : item.status === statusFilter;
+      const matchesCategory = categoryFilter === "all" ? true : item.category === categoryFilter;
+      const matchesSearch =
+        query.length === 0
+          ? true
+          : `${item.description} ${item.vendorName ?? ""}`.toLowerCase().includes(query);
+      const matchesFrom = !dateFrom ? true : item.issueDate >= dateFrom;
+      const matchesTo = !dateTo ? true : item.issueDate <= dateTo;
+      return matchesStatus && matchesCategory && matchesSearch && matchesFrom && matchesTo;
+    });
+  }, [items, statusFilter, categoryFilter, searchFilter, dateFrom, dateTo]);
+
+  const totals = useMemo(() => {
+    let registrado = 0;
+    let pagado = 0;
+    for (const item of filteredItems) {
+      if (item.status === "pagado") pagado += item.amount;
+      else if (item.status === "registrado") registrado += item.amount;
+    }
+    return { registrado, pagado, porPagar: registrado };
+  }, [filteredItems]);
+
+  const activeFiltersCount =
+    (statusFilter !== "all" ? 1 : 0) +
+    (categoryFilter !== "all" ? 1 : 0) +
+    (searchFilter.trim() ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
+
+  const columns: DataTableColumn<Expense>[] = [
+    {
+      key: "description",
+      header: "Descripción",
+      render: (item) => (
+        <div>
+          <span className="font-medium text-[var(--slate-900)]">{item.description}</span>
+          {item.vendorName ? (
+            <span className="block text-xs text-[var(--slate-500)]">{item.vendorName}</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: "category",
+      header: "Categoría",
+      render: (item) => <span className="text-[var(--slate-700)]">{CATEGORY_LABELS[item.category]}</span>,
+    },
+    {
+      key: "amount",
+      header: "Monto",
+      render: (item) => <span className="font-medium text-[var(--slate-900)]">{formatAmount(item.amount)}</span>,
+    },
+    {
+      key: "issueDate",
+      header: "Emisión",
+      render: (item) => <span className="text-[var(--slate-700)]">{item.issueDate}</span>,
+    },
+    {
+      key: "dueDate",
+      header: "Vence",
+      render: (item) => <span className="text-[var(--slate-700)]">{item.dueDate || "-"}</span>,
+    },
+    {
+      key: "status",
+      header: "Estado",
+      render: (item) => <Badge className={STATUS_CLASSES[item.status]}>{STATUS_LABELS[item.status]}</Badge>,
+    },
+  ];
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <CardTitle help="Registra los egresos y cuentas por pagar del conjunto: nómina, servicios públicos, mantenimiento y proveedores. Es la base del detalle de egresos que exige la ley a la administración.">
+            Egresos
+          </CardTitle>
+          <CardDescription className="mt-1">Cuentas por pagar y pagos del conjunto.</CardDescription>
+        </div>
+        <Button className="w-full sm:w-auto" onClick={openCreate}>
+          <IconBadge tone="mint" className="mr-2">
+            <Plus className="h-4 w-4" />
+          </IconBadge>
+          Registrar egreso
+        </Button>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Por pagar</p>
+          <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatAmount(totals.porPagar)}</p>
+        </div>
+        <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Pagado</p>
+          <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatAmount(totals.pagado)}</p>
+        </div>
+        <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Egresos (filtro)</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--slate-900)]">{filteredItems.length}</p>
+        </div>
+      </div>
+
+      {errorMessage ? <p className="mt-2 text-xs text-[var(--danger-700)]">{errorMessage}</p> : null}
+
+      <div className="mt-4 space-y-3">
+        <MobileFiltersPanel
+          title="Filtros de egresos"
+          activeFiltersCount={activeFiltersCount}
+          footer={
+            <Button
+              className="w-full md:w-auto"
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setStatusFilter("all");
+                setCategoryFilter("all");
+                setSearchFilter("");
+                setDateFrom("");
+                setDateTo("");
+              }}
+            >
+              <IconBadge tone="sand" className="mr-2">
+                <FilterX className="h-4 w-4" />
+              </IconBadge>
+              Limpiar filtros
+            </Button>
+          }
+        >
+          <label className="text-sm text-[var(--slate-700)]">
+            Buscar
+            <Input
+              className="mt-1"
+              placeholder="Descripción o proveedor"
+              value={searchFilter}
+              onChange={(event) => setSearchFilter(event.target.value)}
+            />
+          </label>
+          <label className="text-sm text-[var(--slate-700)]">
+            Estado
+            <select
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as "all" | ExpenseStatus)}
+            >
+              <option value="all">Todos</option>
+              <option value="registrado">Registrado</option>
+              <option value="pagado">Pagado</option>
+              <option value="anulado">Anulado</option>
+            </select>
+          </label>
+          <label className="text-sm text-[var(--slate-700)]">
+            Categoría
+            <select
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value as "all" | ExpenseCategory)}
+            >
+              <option value="all">Todas</option>
+              {(Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((key) => (
+                <option key={key} value={key}>
+                  {CATEGORY_LABELS[key]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-[var(--slate-700)]">
+            Emisión desde
+            <Input type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} />
+          </label>
+          <label className="text-sm text-[var(--slate-700)]">
+            Emisión hasta
+            <Input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} />
+          </label>
+        </MobileFiltersPanel>
+
+        <DataTable
+          columns={columns}
+          rows={filteredItems}
+          getRowKey={(item) => item.id}
+          loading={loading}
+          loadingText="Cargando egresos..."
+          emptyText="No hay egresos con los filtros actuales."
+          errorText={errorMessage}
+          actionsHeader="Acciones"
+          tableMinWidthClassName="min-w-[680px] sm:min-w-[760px]"
+          onRowClick={(item) => openEdit(item)}
+          renderActions={(item) => (
+            <div className="flex justify-end">
+              <RowActionsMenu
+                ariaLabel={`Acciones para ${item.description}`}
+                onView={() => openEdit(item)}
+                onEdit={() => openEdit(item)}
+                onDelete={() => setPendingDeletion(item)}
+              />
+            </div>
+          )}
+        />
+      </div>
+
+      <Modal open={createOpen} title={editingItem ? "Editar egreso" : "Registrar egreso"} onClose={() => setCreateOpen(false)}>
+        <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
+          <div>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">Descripción</label>
+            <Input {...form.register("description")} placeholder="Pago de energía áreas comunes" />
+            {form.formState.errors.description ? (
+              <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.description.message}</p>
+            ) : null}
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[var(--slate-700)]">
+              Categoría
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("category")}>
+                {(Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((key) => (
+                  <option key={key} value={key}>
+                    {CATEGORY_LABELS[key]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Monto</label>
+              <Input type="number" step="0.01" min="0" {...form.register("amount", { valueAsNumber: true })} placeholder="0" />
+              {form.formState.errors.amount ? (
+                <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.amount.message}</p>
+              ) : null}
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[var(--slate-700)]">
+              Proveedor
+              <Input {...form.register("vendorName")} placeholder="Nombre del proveedor" />
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Identificación del proveedor
+              <Input {...form.register("vendorTaxId")} placeholder="RUC / NIT / RFC" />
+            </label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Fecha de emisión</label>
+              <Input type="date" {...form.register("issueDate")} />
+              {form.formState.errors.issueDate ? (
+                <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.issueDate.message}</p>
+              ) : null}
+            </div>
+            <label className="text-sm text-[var(--slate-700)]">
+              Vencimiento
+              <Input type="date" {...form.register("dueDate")} />
+            </label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-sm text-[var(--slate-700)]">
+              Estado
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("status")}>
+                <option value="registrado">Registrado</option>
+                <option value="pagado">Pagado</option>
+                <option value="anulado">Anulado</option>
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Método de pago
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("paymentMethod")}>
+                <option value="">Sin definir</option>
+                {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {watchedMethod === "cheque" ? (
+            <div>
+              <label className="mb-1 block text-sm text-[var(--slate-700)]">Número de cheque</label>
+              <Input {...form.register("checkNumber")} placeholder="No. de cheque" />
+              {form.formState.errors.checkNumber ? (
+                <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.checkNumber.message}</p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="mobile-action-group">
+            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button className="w-full sm:w-auto" type="submit" disabled={submitting}>
+              {submitting ? "Guardando..." : "Guardar"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDeleteDialog
+        open={Boolean(pendingDeletion)}
+        name={pendingDeletion?.description ?? ""}
+        description={pendingDeletion ? "Esta acción eliminará el egreso del registro. No se puede deshacer." : null}
+        loading={deleting}
+        onCancel={() => (deleting ? undefined : setPendingDeletion(null))}
+        onConfirm={() => void handleConfirmDelete()}
+      />
+    </Card>
+  );
+}

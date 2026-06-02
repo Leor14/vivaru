@@ -10,6 +10,9 @@ const dateText = z
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha invalida (YYYY-MM-DD)");
 
+/** Fecha opcional que también acepta cadena vacía desde un input vacío. */
+const optionalDateText = z.union([dateText, z.literal("")]).optional();
+
 export const expenseCategoryEnum = z.enum([
   "nomina",
   "servicios_publicos",
@@ -33,9 +36,9 @@ export const expenseSchema = z
     vendorTaxId: z.string().trim().optional(),
     amount: positiveAmount,
     issueDate: dateText,
-    dueDate: dateText.optional(),
+    dueDate: optionalDateText,
     status: expenseStatusEnum,
-    paymentMethod: paymentMethodEnum.optional(),
+    paymentMethod: z.union([paymentMethodEnum, z.literal("")]).optional(),
     checkNumber: z.string().trim().optional(),
     bankAccountId: z.string().trim().optional(),
   })
