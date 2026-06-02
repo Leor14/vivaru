@@ -222,28 +222,28 @@ function AdminComposite({ shots }: { shots: ShotDef[] }) {
  * Center phone is taller (top-aligned); left and right phones are
  * bottom-aligned and slightly narrower, flanking the center.
  *
- * Container is 280 × 240 px (explicit) so absolute children don't collapse it.
+ * Container is 420 × 360 px (explicit) so absolute children don't collapse it.
  * Phone dimensions (390 × 844 aspect ~9:19.4):
- *   center: 96 px wide → ~208 px tall
- *   sides:  84 px wide → ~182 px tall
- * Stagger: center top at 0, sides top at 240 - 182 = 58 px → 58 px lower.
+ *   center: 148 px wide → ~320 px tall
+ *   sides:  126 px wide → ~273 px tall
+ * Stagger: center top at 0, sides top at 360 - 273 = 87 px → 87 px lower.
  */
 function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div
       className="relative mx-auto"
-      style={{ width: 280, height: 240 }}
+      style={{ width: 420, height: 360 }}
       aria-label="Portal del Residente en tres pantallas"
     >
       {/* Left phone — cuenta/estado */}
       {shots[0] && (
         <div
-          className="absolute bottom-0 left-0 overflow-hidden rounded-[22px] border border-slate-200 shadow-brand-md"
-          style={{ width: 84 }}
+          className="absolute bottom-0 left-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
+          style={{ width: 126 }}
         >
           <Shot
             shot={shots[0]}
-            sizes="84px"
+            sizes="126px"
             className="block w-full"
           />
         </div>
@@ -252,12 +252,12 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
       {/* Center phone — reservas (protagonist) */}
       {shots[1] && (
         <div
-          className="absolute top-0 left-1/2 z-10 overflow-hidden rounded-[24px] border border-slate-200 shadow-brand-lg"
-          style={{ width: 96, transform: "translateX(-50%)" }}
+          className="absolute top-0 left-1/2 z-10 overflow-hidden rounded-[30px] border border-slate-200 shadow-brand-lg"
+          style={{ width: 148, transform: "translateX(-50%)" }}
         >
           <Shot
             shot={shots[1]}
-            sizes="96px"
+            sizes="148px"
             className="block w-full"
           />
         </div>
@@ -266,12 +266,12 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
       {/* Right phone — QR visita */}
       {shots[2] && (
         <div
-          className="absolute bottom-0 right-0 overflow-hidden rounded-[22px] border border-slate-200 shadow-brand-md"
-          style={{ width: 84 }}
+          className="absolute bottom-0 right-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
+          style={{ width: 126 }}
         >
           <Shot
             shot={shots[2]}
-            sizes="84px"
+            sizes="126px"
             className="block w-full"
           />
         </div>
