@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
-import { AlertCircle, CheckCircle2, Clock3, Download, FileSpreadsheet, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
+import { AlertCircle, Banknote, CheckCircle2, Clock3, Download, FileSpreadsheet, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
 import {
   Bar,
   CartesianGrid,
@@ -33,6 +33,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
+import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
 import { Dialog } from "@/components/ui/dialog";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication } from "@/features/admin/services";
@@ -409,6 +410,8 @@ export default function AdminBillingPage() {
       toastFirebaseError(error);
     }
   }
+
+  const [paymentTarget, setPaymentTarget] = useState<BillingStatement | null>(null);
 
   async function handleRowUpdate(input: {
     id: string;
@@ -1041,6 +1044,7 @@ export default function AdminBillingPage() {
                   )}
                 </td>
                 <td className="px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
@@ -1063,6 +1067,30 @@ export default function AdminBillingPage() {
                     </IconBadge>
                     {savingRowId === item.id ? "Guardando..." : "Editar"}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setPaymentTarget({
+                        id: item.id,
+                        tenantId: user?.tenantId ?? "",
+                        unitId: item.unitId,
+                        unitLabel: item.unitLabel,
+                        period: item.period,
+                        amount: item.amount,
+                        paymentAmount: item.paymentAmount,
+                        balance: item.balance,
+                        dueDate: item.dueDate,
+                        status,
+                      })
+                    }
+                  >
+                    <IconBadge tone="mint" className="mr-2">
+                      <Banknote className="h-4 w-4" />
+                    </IconBadge>
+                    Registrar cobro
+                  </Button>
+                  </div>
                 </td>
               </tr>
               );
@@ -1071,6 +1099,12 @@ export default function AdminBillingPage() {
         </table>
       </div>
       </Card>
+
+      <RecordPaymentModal
+        open={Boolean(paymentTarget)}
+        statement={paymentTarget}
+        onClose={() => setPaymentTarget(null)}
+      />
 
       <BillingEditDrawer
         open={isEditDrawerOpen}

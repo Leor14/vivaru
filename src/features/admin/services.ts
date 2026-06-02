@@ -24,6 +24,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage
 
 import { db, storage } from "@/lib/firebase/client";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
+import type { FiscalProfile } from "@/types/domain";
 
 export type UnitItem = {
   id: string;
@@ -207,6 +208,7 @@ export type TenantSettingsItem = {
     blockOnDebt: boolean;
   };
   residentModules?: ResidentModules;
+  fiscalProfile?: FiscalProfile;
   adminProfile?: {
     uid: string;
     fullName: string;
@@ -1161,6 +1163,22 @@ export function watchTenantSettings(
               regulations: rawModules.regulations !== false,
             }
           : undefined,
+        fiscalProfile:
+          typeof data.fiscalProfile === "object" && data.fiscalProfile
+            ? (() => {
+                const fp = data.fiscalProfile as Record<string, unknown>;
+                const country = fp.country;
+                return {
+                  taxId: typeof fp.taxId === "string" ? fp.taxId : undefined,
+                  legalName: typeof fp.legalName === "string" ? fp.legalName : undefined,
+                  address: typeof fp.address === "string" ? fp.address : undefined,
+                  country:
+                    country === "EC" || country === "CO" || country === "MX" ? country : undefined,
+                  voucherSeriesPrefix:
+                    typeof fp.voucherSeriesPrefix === "string" ? fp.voucherSeriesPrefix : undefined,
+                };
+              })()
+            : undefined,
         adminProfile:
           typeof data.adminProfile === "object" && data.adminProfile
             ? {
@@ -1230,6 +1248,30 @@ export async function saveTenantSettings(
       updatedBy: userId,
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function saveFiscalProfile(
+  tenantId: string,
+  userId: string,
+  profile: FiscalProfile,
+) {
+  const firestore = assertDb();
+  await setDoc(
+    doc(firestore, "tenantSettings", tenantId),
+    {
+      tenantId,
+      fiscalProfile: {
+        taxId: profile.taxId?.trim() || null,
+        legalName: profile.legalName?.trim() || null,
+        address: profile.address?.trim() || null,
+        country: profile.country ?? null,
+        voucherSeriesPrefix: profile.voucherSeriesPrefix?.trim() || null,
+      },
+      updatedBy: userId,
+      updatedAt: serverTimestamp(),
     },
     { merge: true },
   );

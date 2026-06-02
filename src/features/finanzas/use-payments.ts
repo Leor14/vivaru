@@ -56,7 +56,7 @@ export async function recordPayment(
   tenantId: string,
   userId: string,
   input: RecordPaymentInput,
-): Promise<{ voucherId: string; ledgerEntryId: string }> {
+): Promise<{ voucherId: string; ledgerEntryId: string; voucher: PaymentVoucher }> {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
@@ -129,5 +129,29 @@ export async function recordPayment(
     updatedAt: serverTimestamp(),
   });
 
-  return { voucherId: voucherRef.id, ledgerEntryId: ledgerRef.id };
+  const voucher: PaymentVoucher = {
+    id: voucherRef.id,
+    tenantId,
+    type: draft.type,
+    sequentialNumber: draft.sequentialNumber,
+    sequentialValue: draft.sequentialValue,
+    issueDate: draft.issueDate,
+    amount: draft.amount,
+    concept: draft.concept,
+    payerName: draft.payerName ?? undefined,
+    payerTaxId: draft.payerTaxId ?? undefined,
+    payerUnitId: draft.payerUnitId ?? undefined,
+    payerUnitLabel: draft.payerUnitLabel ?? undefined,
+    issuerTaxId: draft.issuerTaxId ?? undefined,
+    issuerLegalName: draft.issuerLegalName ?? undefined,
+    issuerAddress: draft.issuerAddress ?? undefined,
+    issuerCountry: draft.issuerCountry ?? undefined,
+    sourceType: draft.sourceType ?? undefined,
+    sourceId: draft.sourceId ?? undefined,
+    fiscalStatus: draft.fiscalStatus,
+    ledgerEntryId: ledgerRef.id,
+    createdBy: userId,
+  };
+
+  return { voucherId: voucherRef.id, ledgerEntryId: ledgerRef.id, voucher };
 }

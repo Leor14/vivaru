@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
 import { BillingPeriodCard } from "@/components/features/billing/BillingPeriodCard";
+import { ResidentVouchersCard } from "@/components/features/finanzas/ResidentVouchersCard";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -102,6 +103,7 @@ export default function ResidentAccountPage() {
   }
 
   return (
+    <div className="space-y-4">
     <Card>
       <div>
         <CardTitle>Estado de cuenta</CardTitle>
@@ -168,5 +170,7 @@ export default function ResidentAccountPage() {
         ))}
       </div>
     </Card>
+    <ResidentVouchersCard />
+    </div>
   );
 }

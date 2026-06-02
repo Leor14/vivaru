@@ -76,7 +76,7 @@ export const fiscalProfileSchema = z.object({
   taxId: z.string().trim().optional(),
   legalName: z.string().trim().optional(),
   address: z.string().trim().optional(),
-  country: z.enum(["EC", "CO", "MX"]).optional(),
+  country: z.union([z.enum(["EC", "CO", "MX"]), z.literal("")]).optional(),
   voucherSeriesPrefix: z.string().trim().optional(),
 });
 
