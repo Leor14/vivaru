@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Package,
   Receipt,
+  Scale,
   ScrollText,
   Store,
   Users,
@@ -71,6 +72,7 @@ const GROUPS: AdminSidebarGroup[] = [
       { href: "/admin/billing", label: "Cartera", icon: Wallet },
       { href: "/admin/finanzas/egresos", label: "Egresos", icon: Receipt },
       { href: "/admin/finanzas", label: "Libro y fondos", icon: BookOpen },
+      { href: "/admin/finanzas/conciliacion", label: "Conciliación", icon: Scale },
     ],
   },
   {
