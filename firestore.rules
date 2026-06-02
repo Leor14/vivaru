@@ -328,6 +328,51 @@ service cloud.firestore {
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    // ── Finanzas (módulo contable PH, F1) ──────────────────────
+    // Back-office financiero: solo admin del tenant (residente no lee).
+    match /expenses/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /bankAccounts/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /bankStatementLines/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /ledgerEntries/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    // Secuencial de comprobantes: se lee/escribe dentro de una transacción.
+    // El read permite documento inexistente (resource == null) para que la
+    // transacción pueda inicializar el contador.
+    match /financialCounters/{docId} {
+      allow read: if signedIn() && (resource == null || tenantAdminOrSuper(resource.data.tenantId));
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && superadmin();
+    }
+
+    // Comprobantes/recibos: admin todos; residente solo los suyos (por unidad).
+    match /paymentVouchers/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.payerUnitId)
+      );
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
     match /documents/{docId} {
       allow read: if signedIn() && sameTenant(resource.data.tenantId);
       allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);

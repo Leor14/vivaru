@@ -239,3 +239,179 @@ export interface TenantDocument {
   url?: string;
   createdBy?: string;
 }
+
+// ─────────────────────────────────────────────────────────────
+// Finanzas — core contable de propiedad horizontal (F1)
+// Diseñado para EC/CO/MX: el core es común; la capa fiscal por país
+// se resuelve con un ComprobanteFiscalProvider (ver features/finanzas).
+// ─────────────────────────────────────────────────────────────
+
+/** País del conjunto; define el provider fiscal del comprobante. */
+export type FiscalCountry = "EC" | "CO" | "MX";
+
+/**
+ * Perfil fiscal del conjunto, usado para emitir comprobantes/recibos.
+ * Persistido dentro del documento de tenantSettings.
+ */
+export interface FiscalProfile {
+  /** RUC (EC) / NIT (CO) / RFC (MX) del conjunto. */
+  taxId?: string;
+  legalName?: string;
+  address?: string;
+  country?: FiscalCountry;
+  /** Prefijo/serie del secuencial de comprobantes, ej. "001-001". */
+  voucherSeriesPrefix?: string;
+}
+
+export type ExpenseCategory =
+  | "nomina"
+  | "servicios_publicos"
+  | "mantenimiento"
+  | "proveedores"
+  | "administracion"
+  | "seguros"
+  | "impuestos"
+  | "otros";
+
+export type PaymentMethod = "transferencia" | "cheque" | "efectivo" | "otro";
+
+export type ExpenseStatus = "registrado" | "pagado" | "anulado";
+
+/** Egreso / cuenta por pagar del conjunto. */
+export interface Expense {
+  id: string;
+  tenantId: string;
+  category: ExpenseCategory;
+  description: string;
+  vendorName?: string;
+  vendorTaxId?: string;
+  amount: number;
+  /** Fecha de causación / emisión del egreso (YYYY-MM-DD). */
+  issueDate: string;
+  /** Vencimiento para cuentas por pagar (YYYY-MM-DD). */
+  dueDate?: string;
+  status: ExpenseStatus;
+  paymentMethod?: PaymentMethod;
+  /** Número de cheque cuando paymentMethod === "cheque". */
+  checkNumber?: string;
+  bankAccountId?: string;
+  paidAt?: string;
+  /** Documento de soporte (factura del proveedor) en Storage. */
+  supportFileUrl?: string;
+  supportFileName?: string;
+  supportStoragePath?: string;
+  /** Movimiento de libro generado al pagar el egreso. */
+  ledgerEntryId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface BankAccount {
+  id: string;
+  tenantId: string;
+  label: string;
+  bankName: string;
+  /** Número de cuenta (puede guardarse enmascarado). */
+  accountNumber?: string;
+  accountType?: "corriente" | "ahorros";
+  currency?: AppCurrency;
+  /** Saldo inicial registrado al dar de alta la cuenta. */
+  openingBalance?: number;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export type LedgerEntryType = "ingreso" | "egreso";
+
+export type LedgerCategory =
+  | ExpenseCategory
+  | "alicuota"
+  | "extraordinaria"
+  | "interes_mora"
+  | "arriendo"
+  | "otros_ingresos";
+
+/** Movimiento del libro de ingresos/egresos. Backbone contable + conciliación. */
+export interface LedgerEntry {
+  id: string;
+  tenantId: string;
+  type: LedgerEntryType;
+  /** Fecha contable del movimiento (YYYY-MM-DD). */
+  date: string;
+  amount: number;
+  concept: string;
+  category?: LedgerCategory;
+  bankAccountId?: string;
+  /** Referencia al origen del movimiento. */
+  sourceType?: "billingStatement" | "expense" | "manual";
+  sourceId?: string;
+  /** Conciliación bancaria. */
+  reconciled?: boolean;
+  reconciledAt?: string;
+  bankStatementLineId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export type VoucherType = "ingreso" | "egreso";
+
+/** Comprobante/recibo emitido (recibo genérico en F1; comprobante de alícuota SRI en F2). */
+export interface PaymentVoucher {
+  id: string;
+  tenantId: string;
+  type: VoucherType;
+  /** Número secuencial formateado, ej. "001-001-000000123". */
+  sequentialNumber: string;
+  /** Valor entero crudo del secuencial (para ordenar/auditar). */
+  sequentialValue: number;
+  issueDate: string;
+  amount: number;
+  concept: string;
+  /** Datos del pagador (residente) — para comprobante de alícuota. */
+  payerName?: string;
+  payerTaxId?: string;
+  payerUnitId?: string;
+  payerUnitLabel?: string;
+  /** Snapshot de los datos fiscales del emisor al momento de emitir. */
+  issuerTaxId?: string;
+  issuerLegalName?: string;
+  issuerAddress?: string;
+  issuerCountry?: FiscalCountry;
+  sourceType?: "billingStatement" | "expense" | "manual";
+  sourceId?: string;
+  ledgerEntryId?: string;
+  /** PDF generado en Storage (si aplica). */
+  pdfUrl?: string;
+  pdfStoragePath?: string;
+  /** Estado de transmisión al ente fiscal — usado por el adaptador de país (F2). */
+  fiscalStatus?: "none" | "pending" | "transmitted" | "error";
+  fiscalProviderRef?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+}
+
+/** Línea de extracto bancario importada para conciliación. */
+export interface BankStatementLine {
+  id: string;
+  tenantId: string;
+  bankAccountId: string;
+  date: string;
+  description: string;
+  /** Positivo = crédito/ingreso; negativo = débito/egreso. */
+  amount: number;
+  /** Conciliación: enlazado a un ledgerEntry. */
+  matchedLedgerEntryId?: string;
+  reconciled: boolean;
+  /** Lote de importación (para revertir una carga). */
+  importBatchId?: string;
+  createdAt?: string;
+  createdBy?: string;
+}
