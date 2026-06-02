@@ -814,10 +814,10 @@ export default function ResidentReservationsPage() {
 
         <div className="relative p-5 sm:p-6 lg:p-7">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="flex-1 min-w-0">
               <CardTitle className="text-xl text-[var(--slate-900)]">Mis reservas</CardTitle>
               <CardDescription className="mt-1 max-w-xl">
-                Elige amenidad, fecha y rango horario con disponibilidad en tiempo real para tu tenant.
+                Elige amenidad, fecha y rango horario con disponibilidad en tiempo real.
               </CardDescription>
             </div>
             <Badge className="bg-[var(--brand-50)] text-[var(--brand-800)]">
