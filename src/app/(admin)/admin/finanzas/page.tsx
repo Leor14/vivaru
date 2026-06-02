@@ -1,10 +1,11 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { FileSpreadsheet, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -21,6 +22,7 @@ import {
   deleteLedgerEntry,
   watchLedger,
 } from "@/features/finanzas/use-ledger";
+import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
 import { ledgerEntrySchema, type LedgerEntryFormValues } from "@/features/finanzas/schemas";
 import { useAuth } from "@/features/auth/auth-context";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -81,6 +83,31 @@ export default function AdminFinanzasLibroPage() {
   function openCreate() {
     form.reset({ type: "ingreso", date: today(), concept: "", category: "", bankAccountId: "" });
     setCreateOpen(true);
+  }
+
+  function handleExportStatement() {
+    const statement = buildFinancialStatement(entries, cuotaIncome);
+    const rows: (string | number)[][] = [
+      ["Estado de ingresos y egresos"],
+      [],
+      ["INGRESOS"],
+      ...statement.incomeByCategory.map((item) => [item.label, item.amount]),
+      ["Total ingresos", statement.totalIncome],
+      [],
+      ["EGRESOS"],
+      ...statement.expenseByCategory.map((item) => [item.label, item.amount]),
+      ["Total egresos", statement.totalExpenses],
+      [],
+      ["Resultado del período", statement.netResult],
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Estado financiero");
+    const movRows: (string | number)[][] = [
+      ["Fecha", "Tipo", "Concepto", "Categoría", "Monto"],
+      ...entries.map((entry) => [entry.date, entry.type, entry.concept, entry.category ?? "", entry.amount]),
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(movRows), "Movimientos");
+    XLSX.writeFile(wb, `estado-financiero-${today()}.xlsx`);
   }
 
   async function handleSave(values: LedgerEntryFormValues) {
@@ -159,12 +186,18 @@ export default function AdminFinanzasLibroPage() {
           </CardTitle>
           <CardDescription className="mt-1">Movimientos de ingresos y egresos del conjunto.</CardDescription>
         </div>
-        <Button className="w-full sm:w-auto" onClick={openCreate}>
-          <IconBadge tone="mint" className="mr-2">
-            <Plus className="h-4 w-4" />
-          </IconBadge>
-          Registrar movimiento
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button className="w-full sm:w-auto" variant="outline" onClick={handleExportStatement}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Estado financiero
+          </Button>
+          <Button className="w-full sm:w-auto" onClick={openCreate}>
+            <IconBadge tone="mint" className="mr-2">
+              <Plus className="h-4 w-4" />
+            </IconBadge>
+            Registrar movimiento
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

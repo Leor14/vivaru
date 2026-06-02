@@ -42,6 +42,13 @@ describe("computeFundPosition", () => {
   it("saldo inicial cero por defecto", () => {
     expect(computeFundPosition([], 0).balance).toBe(0);
   });
+
+  it("excluye asientos de cuota (alicuota) del libro para no duplicar el recaudo", () => {
+    const entries = [{ ...entry("ingreso", 500), category: "alicuota" as const }, entry("ingreso", 100)];
+    const pos = computeFundPosition(entries, 500);
+    expect(pos.ledgerIncome).toBe(100);
+    expect(pos.totalIncome).toBe(600);
+  });
 });
 
 describe("resolveExpenseLedgerAction", () => {

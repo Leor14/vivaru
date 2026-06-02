@@ -134,8 +134,13 @@ export function computeFundPosition(
   let ledgerIncome = 0;
   let expenses = 0;
   for (const entry of entries) {
-    if (entry.type === "ingreso") ledgerIncome += entry.amount;
-    else if (entry.type === "egreso") expenses += entry.amount;
+    if (entry.type === "ingreso") {
+      // El recaudo de cuotas (categoría "alicuota") se cuenta vía cuotaIncome
+      // (derivado de Cartera, fuente completa). Se excluye aquí para no duplicar.
+      if (entry.category !== "alicuota") ledgerIncome += entry.amount;
+    } else if (entry.type === "egreso") {
+      expenses += entry.amount;
+    }
   }
   const totalIncome = cuotaIncome + ledgerIncome;
   return {
