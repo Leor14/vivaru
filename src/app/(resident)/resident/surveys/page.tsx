@@ -397,7 +397,7 @@ export default function ResidentSurveysPage() {
             <h3 className="mt-4 text-base font-semibold text-[var(--slate-900)]">
               No hay encuestas activas
             </h3>
-            <p className="mt-1 max-w-md text-sm leading-6 text-[var(--slate-600)]">
+            <p className="mt-1 max-w-[28rem] text-sm leading-6 text-[var(--slate-600)]">
               Cuando la administración publique una encuesta, aparecerá aquí.
             </p>
           </div>

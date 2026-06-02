@@ -130,7 +130,7 @@ export default function ResidentCommunicationsPage() {
               <BellOff className="h-5 w-5" />
             </span>
             <h3 className="mt-4 text-base font-semibold text-[var(--slate-900)]">No hay comunicados vigentes</h3>
-            <p className="mt-1 max-w-md text-sm leading-6 text-[var(--slate-600)]">
+            <p className="mt-1 max-w-[28rem] text-sm leading-6 text-[var(--slate-600)]">
               Cuando la administración publique información, aparecerá aquí.
             </p>
           </div>

@@ -816,7 +816,7 @@ export default function ResidentReservationsPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-xl text-[var(--slate-900)]">Mis reservas</CardTitle>
-              <CardDescription className="mt-1 max-w-xl">
+              <CardDescription className="mt-1">
                 Elige amenidad, fecha y rango horario con disponibilidad en tiempo real.
               </CardDescription>
             </div>
