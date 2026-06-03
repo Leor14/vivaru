@@ -5,6 +5,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
+import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 
 initializeApp();
 
@@ -1702,4 +1703,33 @@ export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
   }
 
   console.log(`[updateOverdueStatements] Marked ${updated} statement(s) as overdue.`);
+});
+
+// ── F2/G1 · Transmisión del comprobante de alícuota al SRI (Ecuador) ──────────
+// Dispara al crear un comprobante de emisor Ecuador en estado "pending".
+// El transporte real (firma + endpoint SRI) se implementa en G3; aquí usa stub.
+export const onPaymentVoucherCreated = onDocumentCreated("paymentVouchers/{voucherId}", async (event) => {
+  const data = event.data?.data();
+  if (!data || data.issuerCountry !== "EC" || data.fiscalStatus !== "pending") return;
+  await transmitVoucher(db, event.params.voucherId, stubSriTransport);
+});
+
+// Reenvío / reintento manual de la transmisión (admin del tenant o superadmin).
+export const retransmitVoucher = onCall<{ voucherId: string }>(async (request) => {
+  const voucherId = request.data?.voucherId;
+  if (!voucherId) {
+    throw new HttpsError("invalid-argument", "voucherId requerido.");
+  }
+  const snap = await db.collection("paymentVouchers").doc(voucherId).get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "Comprobante no encontrado.");
+  }
+  const voucher = snap.data() as { tenantId: string };
+  await assertTenantAdminOrSuper({
+    tenantId: voucher.tenantId,
+    uid: request.auth?.uid,
+    role: request.auth?.token?.role,
+  });
+  await transmitVoucher(db, voucherId, stubSriTransport);
+  return { ok: true };
 });
