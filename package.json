@@ -20,7 +20,6 @@
     "test:visual": "playwright test tests/visual/mobile-responsive.spec.ts",
     "test:e2e:guard-visitors": "playwright test tests/guard-visitors-qr-flow.spec.ts",
     "test:visual:update": "playwright test tests/visual/mobile-responsive.spec.ts --update-snapshots",
-    "test:e2e:resident-forced-password": "node functions/scripts/run-resident-forced-password-e2e.mjs",
     "seed:demo": "node functions/scripts/seed-demo-users.mjs",
     "seed:superadmin": "node functions/scripts/create-superadmin.mjs",
     "clean:demo": "node functions/scripts/clean-demo-data.js",
