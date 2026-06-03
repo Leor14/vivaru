@@ -19,7 +19,14 @@ export function FiscalProfileCard() {
 
   const form = useForm<FiscalProfileFormValues>({
     resolver: zodResolver(fiscalProfileSchema),
-    defaultValues: { taxId: "", legalName: "", address: "", country: "", voucherSeriesPrefix: "" },
+    defaultValues: {
+      taxId: "",
+      legalName: "",
+      address: "",
+      country: "",
+      voucherSeriesPrefix: "",
+      dataRetentionMonths: 12,
+    },
   });
 
   useEffect(() => {
@@ -35,6 +42,7 @@ export function FiscalProfileCard() {
             address: fp.address ?? "",
             country: fp.country ?? "",
             voucherSeriesPrefix: fp.voucherSeriesPrefix ?? "",
+            dataRetentionMonths: fp.dataRetentionMonths ?? 12,
           });
         }
       },
@@ -53,6 +61,7 @@ export function FiscalProfileCard() {
         address: values.address,
         country: values.country || undefined,
         voucherSeriesPrefix: values.voucherSeriesPrefix,
+        dataRetentionMonths: values.dataRetentionMonths,
       });
       toast.success("Datos fiscales guardados.");
     } catch (error) {
@@ -98,6 +107,19 @@ export function FiscalProfileCard() {
         <label className="block text-sm text-[var(--slate-700)]">
           Serie de comprobantes (opcional)
           <Input className="mt-1" {...form.register("voucherSeriesPrefix")} placeholder="001-001" />
+        </label>
+        <label className="block text-sm text-[var(--slate-700)]">
+          Conservar datos sensibles (meses)
+          <Input
+            className="mt-1"
+            type="number"
+            min="1"
+            {...form.register("dataRetentionMonths", { valueAsNumber: true })}
+            placeholder="12"
+          />
+          <span className="mt-1 block text-xs text-[var(--slate-500)]">
+            Pasado este tiempo se anonimizan la cédula y el nombre en los comprobantes ya transmitidos.
+          </span>
         </label>
         <div className="flex justify-end">
           <Button type="submit" disabled={saving}>

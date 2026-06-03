@@ -78,6 +78,7 @@ export const fiscalProfileSchema = z.object({
   address: z.string().trim().optional(),
   country: z.union([z.enum(["EC", "CO", "MX"]), z.literal("")]).optional(),
   voucherSeriesPrefix: z.string().trim().optional(),
+  dataRetentionMonths: z.number().positive().optional(),
 });
 
 export type FiscalProfileFormValues = z.infer<typeof fiscalProfileSchema>;

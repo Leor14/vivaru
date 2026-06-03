@@ -261,6 +261,12 @@ export interface FiscalProfile {
   country?: FiscalCountry;
   /** Prefijo/serie del secuencial de comprobantes, ej. "001-001". */
   voucherSeriesPrefix?: string;
+  /**
+   * Meses tras los cuales se anonimizan los datos sensibles (cédula, nombre)
+   * de los comprobantes ya transmitidos. La conservación legal recae en el
+   * contribuyente, no en la plataforma. Default 12 si no se define.
+   */
+  dataRetentionMonths?: number;
 }
 
 export type ExpenseCategory =
@@ -393,6 +399,8 @@ export interface PaymentVoucher {
   /** Estado de transmisión al ente fiscal — usado por el adaptador de país (F2). */
   fiscalStatus?: "none" | "pending" | "transmitted" | "error";
   fiscalProviderRef?: string;
+  /** Fecha en que se anonimizaron los datos sensibles (retención, F2/G4). */
+  anonymizedAt?: string;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;

@@ -6,6 +6,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
+import { anonymizeExpiredVouchers } from "./data-retention";
 
 initializeApp();
 
@@ -1732,4 +1733,11 @@ export const retransmitVoucher = onCall<{ voucherId: string }>(async (request) =
   });
   await transmitVoucher(db, voucherId, stubSriTransport);
   return { ok: true };
+});
+
+// ── F2/G4 · Retención: anonimiza datos sensibles de comprobantes vencidos ─────
+// Corre a diario; respeta el período por conjunto (default 12 meses).
+export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async () => {
+  const count = await anonymizeExpiredVouchers(db);
+  console.log(`[data-retention] Anonimizados ${count} comprobante(s).`);
 });

@@ -1176,6 +1176,8 @@ export function watchTenantSettings(
                     country === "EC" || country === "CO" || country === "MX" ? country : undefined,
                   voucherSeriesPrefix:
                     typeof fp.voucherSeriesPrefix === "string" ? fp.voucherSeriesPrefix : undefined,
+                  dataRetentionMonths:
+                    typeof fp.dataRetentionMonths === "number" ? fp.dataRetentionMonths : undefined,
                 };
               })()
             : undefined,
@@ -1269,6 +1271,8 @@ export async function saveFiscalProfile(
         address: profile.address?.trim() || null,
         country: profile.country ?? null,
         voucherSeriesPrefix: profile.voucherSeriesPrefix?.trim() || null,
+        dataRetentionMonths:
+          typeof profile.dataRetentionMonths === "number" ? profile.dataRetentionMonths : null,
       },
       updatedBy: userId,
       updatedAt: serverTimestamp(),
