@@ -23,14 +23,13 @@ type TenantUserItem = {
 };
 
 export default function AdminUsersPage() {
-  const { user } = useAuth();
+  const { user, requestPasswordReset } = useAuth();
   const [items, setItems] = useState<TenantUserItem[]>([]);
   const [loading, setLoading] = useState(Boolean(user?.tenantId));
   const [saving, setSaving] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [temporaryPassword, setTemporaryPassword] = useState("");
   const [role, setRole] = useState<"tenant_admin" | "security_guard">("security_guard");
 
   useEffect(() => {
@@ -68,8 +67,15 @@ export default function AdminUsersPage() {
       return;
     }
 
-    if (!fullName.trim() || !email.trim() || temporaryPassword.trim().length < 8) {
-      toast.error("Completa nombre, correo y contraseña temporal (mínimo 8 caracteres).");
+    if (!fullName.trim() || !email.trim()) {
+      toast.error("Completa nombre y correo.");
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    if (!emailOk) {
+      toast.error("Ingresa un correo con formato válido.");
       return;
     }
 
@@ -78,17 +84,22 @@ export default function AdminUsersPage() {
       await createTenantOperationalUserCallable({
         tenantId: user.tenantId,
         fullName,
-        email,
-        temporaryPassword,
+        email: normalizedEmail,
         role,
         status: "active",
       });
 
+      // Onboarding por enlace: el usuario define su propia contrasena via correo.
+      try {
+        await requestPasswordReset(normalizedEmail);
+        toast.success("Usuario creado. Se le envió un correo para definir su contraseña.");
+      } catch {
+        toast.success("Usuario creado. No se pudo enviar el correo automáticamente; puede usar “¿Olvidaste tu contraseña?” para recibirlo.");
+      }
+
       setFullName("");
       setEmail("");
-      setTemporaryPassword("");
       setRole("security_guard");
-      toast.success("Usuario creado correctamente.");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -107,15 +118,9 @@ export default function AdminUsersPage() {
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <Input label="Nombre" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="María García" />
           <Input label="Correo electrónico" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="usuario@ejemplo.com" type="email" autoComplete="email" />
-          <Input
-            label="Contraseña temporal"
-            value={temporaryPassword}
-            onChange={(event) => setTemporaryPassword(event.target.value)}
-            placeholder="Mínimo 8 caracteres"
-            type="password"
-            autoComplete="new-password"
-            name="new-temporary-password"
-          />
+          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3 text-sm text-[var(--slate-700)] md:col-span-2">
+            Al crear el usuario se le enviará un correo para que defina su propia contraseña. No se asignan contraseñas manuales.
+          </div>
           <div>
             <label className="block text-sm text-[var(--slate-700)]">
               Rol

@@ -7,6 +7,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
+import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 
 initializeApp();
 
@@ -418,17 +419,22 @@ async function upsertResidentTemporaryAccess(input: {
       throw error;
     });
 
+  // Onboarding por enlace: la cuenta nace con una clave aleatoria que nadie conoce.
+  // El residente define su contrasena via el correo de restablecimiento (sendPasswordResetEmail),
+  // por lo que la cedula deja de funcionar como credencial.
+  const randomPassword = generateStrongPassword();
+
   const userRecord = existingUser
     ? await authApi.updateUser(existingUser.uid, {
         email,
         displayName: fullName,
-        password: documentNumber,
+        password: randomPassword,
         disabled: status !== "active",
       })
     : await authApi.createUser({
         email,
         displayName: fullName,
-        password: documentNumber,
+        password: randomPassword,
         emailVerified: true,
         disabled: status !== "active",
       });
@@ -453,9 +459,9 @@ async function upsertResidentTemporaryAccess(input: {
       unitLabel: tower ? `${tower}-${unitId}` : unitId,
       documentNumber,
       status,
-      mustChangePassword: true,
-      temporaryPassword: true,
-      passwordStatus: "temporary",
+      mustChangePassword: false,
+      temporaryPassword: false,
+      passwordStatus: "updated",
       temporaryPasswordUpdatedAt: now,
       updatedAt: now,
       createdAt: now,
@@ -474,8 +480,8 @@ async function upsertResidentTemporaryAccess(input: {
       status,
       unitId,
       unitLabel: tower ? `${tower}-${unitId}` : unitId,
-      mustChangePassword: true,
-      passwordStatus: "temporary",
+      mustChangePassword: false,
+      passwordStatus: "updated",
       updatedAt: now,
       createdAt: now,
     },
@@ -510,16 +516,19 @@ function normalizeCreateTenantAdminPayload(data: CreateTenantAdminInput) {
   const tenantId = normalizeText(data.tenantId);
   const fullName = normalizeText(data.fullName);
   const email = normalizeEmail(data.email);
-  const temporaryPassword = normalizeText(data.temporaryPassword);
+  const providedPassword = normalizeText(data.temporaryPassword);
   const status = data.status;
 
-  if (!tenantId || !fullName || !email || !temporaryPassword || !status) {
+  if (!tenantId || !fullName || !email || !status) {
     throw new HttpsError("invalid-argument", "Datos incompletos para crear admin.");
   }
 
-  if (temporaryPassword.length < 8) {
-    throw new HttpsError("invalid-argument", "La contrasena temporal debe tener minimo 8 caracteres.");
+  // Onboarding por enlace: si no se teclea contrasena, se genera una aleatoria que
+  // nadie conoce; el usuario definira la suya via correo de restablecimiento.
+  if (providedPassword) {
+    assertStrongPassword(providedPassword, "contrasena temporal");
   }
+  const temporaryPassword = providedPassword || generateStrongPassword();
 
   assertAdminStatus(status);
 
@@ -562,13 +571,15 @@ function normalizeCreateTenantOperationalUserPayload(data: CreateTenantOperation
   const role = normalizeText(data.role) as "tenant_admin" | "security_guard";
   const status = data.status;
 
-  if (!tenantId || !fullName || !email || !temporaryPassword || !role || !status) {
+  if (!tenantId || !fullName || !email || !role || !status) {
     throw new HttpsError("invalid-argument", "Datos incompletos para crear usuario operativo.");
   }
 
-  if (temporaryPassword.length < 8) {
-    throw new HttpsError("invalid-argument", "La contrasena temporal debe tener minimo 8 caracteres.");
+  // Onboarding por enlace (ver normalizeCreateTenantAdminPayload).
+  if (temporaryPassword) {
+    assertStrongPassword(temporaryPassword, "contrasena temporal");
   }
+  const finalPassword = temporaryPassword || generateStrongPassword();
 
   assertAdminStatus(status);
   assertOperationalRole(role);
@@ -577,7 +588,7 @@ function normalizeCreateTenantOperationalUserPayload(data: CreateTenantOperation
     tenantId,
     fullName,
     email,
-    temporaryPassword,
+    temporaryPassword: finalPassword,
     role,
     status,
   };
@@ -1163,7 +1174,7 @@ export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporar
 
       return {
         ...result,
-        temporaryPasswordSource: "documentNumber",
+        temporaryPasswordSource: "resetLink",
       };
     } catch (error) {
       if (error instanceof HttpsError) {
