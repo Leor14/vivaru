@@ -12,6 +12,7 @@ import {
 import {
   getIdTokenResult,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   type User,
@@ -65,6 +66,7 @@ interface AuthContextValue {
   error: string | null;
   isConfigured: boolean;
   login: (email: string, password: string) => Promise<SessionUser>;
+  requestPasswordReset: (email: string) => Promise<void>;
   completeForcedPasswordChange: (input: { currentPassword: string; newPassword: string; confirmPassword: string }) => Promise<void>;
   refreshSessionProfile: (options?: { preferServerReads?: boolean }) => Promise<void>;
   logout: () => Promise<void>;
@@ -538,6 +540,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const firebaseAuth = assertFirebaseConfigured();
+    await sendPasswordResetEmail(firebaseAuth, email.trim().toLowerCase());
+  }, []);
+
   const refreshSessionProfile = useCallback(async (options?: { preferServerReads?: boolean }) => {
     const firebaseAuth = assertFirebaseConfigured();
     const currentUser = firebaseAuth.currentUser;
@@ -716,12 +723,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       error,
       isConfigured: isFirebaseConfigured,
       login,
+      requestPasswordReset,
       completeForcedPasswordChange,
       refreshSessionProfile,
       logout,
       hasAnyRole: (roles) => Boolean(user && roles.includes(user.role)),
     }),
-    [user, session, status, loading, error, login, completeForcedPasswordChange, refreshSessionProfile, logout],
+    [user, session, status, loading, error, login, requestPasswordReset, completeForcedPasswordChange, refreshSessionProfile, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
