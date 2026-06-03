@@ -15,11 +15,6 @@ export const adminCreateSchema = z.object({
   tenantId: z.string().trim().min(1, "Selecciona tenant"),
   fullName: z.string().trim().min(3, "Nombre minimo 3 caracteres"),
   email: z.string().trim().email("Correo invalido"),
-  temporaryPassword: z
-    .string()
-    .trim()
-    .min(8, "Minimo 8 caracteres")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/, "Incluye mayuscula, minuscula, numero y simbolo"),
   status: z.enum(["active", "inactive"]),
 });
 

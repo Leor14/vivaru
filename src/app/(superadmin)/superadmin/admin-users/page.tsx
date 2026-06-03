@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/lib/firebase/client";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -47,7 +49,6 @@ export default function SuperadminAdminUsersPage() {
       tenantId: "",
       fullName: "",
       email: "",
-      temporaryPassword: "",
       status: "active",
     },
   });
@@ -106,22 +107,29 @@ export default function SuperadminAdminUsersPage() {
     if (savingCreate) return;
     setSavingCreate(true);
     try {
+      const email = values.email.trim().toLowerCase();
       const normalized = {
         ...values,
         tenantId: values.tenantId.trim(),
         fullName: values.fullName.trim(),
-        email: values.email.trim().toLowerCase(),
-        temporaryPassword: values.temporaryPassword.trim(),
+        email,
       };
 
       await createTenantAdminWorkspace(normalized);
-      toast.success("Admin creado correctamente.");
+
+      // Onboarding por enlace: el admin define su propia contrasena via correo.
+      try {
+        if (auth) await sendPasswordResetEmail(auth, email);
+        toast.success("Admin creado. Se le envió un correo para definir su contraseña.");
+      } catch {
+        toast.success("Admin creado. No se pudo enviar el correo automáticamente; usa “¿Olvidaste tu contraseña?” para reenviarlo.");
+      }
+
       setCreateOpen(false);
       createForm.reset({
         tenantId: "",
         fullName: "",
         email: "",
-        temporaryPassword: "",
         status: "active",
       });
       await reloadAdmins(selectedTenant || undefined);
@@ -346,10 +354,8 @@ export default function SuperadminAdminUsersPage() {
             <Input type="email" {...createForm.register("email")} />
             {createForm.formState.errors.email ? <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.email.message}</p> : null}
           </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Contrasena temporal</label>
-            <Input type="password" {...createForm.register("temporaryPassword")} />
-            {createForm.formState.errors.temporaryPassword ? <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.temporaryPassword.message}</p> : null}
+          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3 text-sm text-[var(--slate-700)]">
+            Al crear el admin se le enviará un correo para que defina su propia contraseña. No se asignan contraseñas manuales.
           </div>
           <div>
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Estado</label>

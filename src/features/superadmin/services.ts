@@ -244,7 +244,6 @@ export async function createTenantAdminWorkspace(input: {
   tenantId: string;
   fullName: string;
   email: string;
-  temporaryPassword: string;
   status: "active" | "inactive";
 }) {
   return createTenantAdminCallable(input);

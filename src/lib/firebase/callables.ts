@@ -36,7 +36,7 @@ type CreateTenantAdminInput = {
   tenantId: string;
   fullName: string;
   email: string;
-  temporaryPassword: string;
+  temporaryPassword?: string;
   status: "active" | "inactive";
 };
 
@@ -52,7 +52,7 @@ type CreateTenantOperationalUserInput = {
   tenantId: string;
   fullName: string;
   email: string;
-  temporaryPassword: string;
+  temporaryPassword?: string;
   role: "tenant_admin" | "security_guard";
   status: "active" | "inactive";
 };
@@ -144,7 +144,7 @@ export async function provisionResidentTemporaryAccessCallable(input: ProvisionR
 
   const callable = httpsCallable<
     ProvisionResidentTemporaryAccessInput,
-    { uid: string; email: string; fullName: string; temporaryPasswordSource: "documentNumber" }
+    { uid: string; email: string; fullName: string; temporaryPasswordSource: "resetLink" }
   >(functions, "provisionResidentTemporaryAccess");
   return executeCallable(callable, input, "No fue posible restablecer la clave temporal del residente.");
 }

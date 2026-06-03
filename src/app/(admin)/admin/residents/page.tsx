@@ -49,7 +49,7 @@ import {
 } from "@/features/admin/services";
 
 export default function AdminResidentsPage() {
-  const { user } = useAuth();
+  const { user, requestPasswordReset } = useAuth();
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [people, setPeople] = useState<PersonItem[]>([]);
   const [loadingUnits, setLoadingUnits] = useState(true);
@@ -616,17 +616,24 @@ export default function AdminResidentsPage() {
       });
 
       try {
-        await provisionResidentTemporaryAccessCallable({
+        const provision = await provisionResidentTemporaryAccessCallable({
           tenantId: user.tenantId,
           personId: primaryPersonId,
         });
+        if (provision?.email) {
+          try {
+            await requestPasswordReset(provision.email);
+          } catch {
+            /* el envío del correo es best-effort; el residente puede usar "¿Olvidaste tu contraseña?" */
+          }
+        }
       } catch (provisionError) {
         debugResidentUnit("provision-access-warning", {
           functionName: "handleSaveUnitFlow",
           personId: primaryPersonId,
           error: provisionError,
         });
-        toast.warning("Unidad y titular creados. No se pudo configurar el acceso temporal automáticamente — usa 'Restablecer clave' desde la tabla de personas para activarlo manualmente.");
+        toast.warning("Unidad y titular creados. No se pudo configurar el acceso automáticamente — usa 'Restablecer acceso' desde la tabla de personas para reenviar el correo.");
       }
 
       for (const member of familyMembers) {
@@ -643,7 +650,7 @@ export default function AdminResidentsPage() {
         });
       }
 
-      toast.success("Unidad creada. El titular ya puede ingresar con su documento como clave temporal y deberá cambiarla en su primer acceso.");
+      toast.success("Unidad creada. Se envió al titular un correo para que defina su contraseña de acceso.");
       setUnitModalOpen(false);
     } catch (error) {
       debugResidentUnit("unit-create-flow-error", {
@@ -711,11 +718,18 @@ export default function AdminResidentsPage() {
         toast.success("Persona actualizada.");
       } else {
         const personId = await createPerson(user.tenantId, user.uid, payload);
-        await provisionResidentTemporaryAccessCallable({
+        const provision = await provisionResidentTemporaryAccessCallable({
           tenantId: user.tenantId,
           personId,
         });
-        toast.success("Persona creada. Se activo clave temporal con documento y cambio obligatorio en primer ingreso.");
+        if (provision?.email) {
+          try {
+            await requestPasswordReset(provision.email);
+          } catch {
+            /* best-effort */
+          }
+        }
+        toast.success("Persona creada. Se le envió un correo para que defina su contraseña de acceso.");
       }
       setPersonModalOpen(false);
     } catch (error) {
@@ -761,11 +775,18 @@ export default function AdminResidentsPage() {
     if (!user?.tenantId) return;
     setSendingResetTo(person.id);
     try {
-      await provisionResidentTemporaryAccessCallable({
+      const provision = await provisionResidentTemporaryAccessCallable({
         tenantId: user.tenantId,
         personId: person.id,
       });
-      toast.success("Clave temporal restablecida correctamente. El residente deberá ingresar con su número de documento y cambiar su contraseña antes de continuar.");
+      if (provision?.email) {
+        try {
+          await requestPasswordReset(provision.email);
+        } catch {
+          /* best-effort */
+        }
+      }
+      toast.success("Acceso restablecido. Se envió al residente un correo para que defina una nueva contraseña.");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -1140,7 +1161,7 @@ export default function AdminResidentsPage() {
                   extraItems={[
                     {
                       key: "reset-password",
-                      label: sendingResetTo === person.id ? "Restableciendo..." : "Restablecer clave",
+                      label: sendingResetTo === person.id ? "Enviando..." : "Reenviar acceso",
                       icon: <KeyRound className="h-3.5 w-3.5" />,
                       disabled: sendingResetTo === person.id,
                       onSelect: () => void handleResetTemporaryPassword(person),
