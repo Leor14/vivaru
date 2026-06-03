@@ -51,6 +51,8 @@ export type RecordPaymentInput = {
   date: string;
   fiscalProfile?: FiscalProfile | null;
   payerName?: string | null;
+  /** Cédula del condómino — obligatoria para el comprobante en Ecuador. */
+  payerTaxId?: string | null;
 };
 
 /**
@@ -68,6 +70,18 @@ export async function recordPayment(
   }
   if (input.amount <= 0) {
     throw new Error("El monto del cobro debe ser mayor a cero.");
+  }
+
+  // En Ecuador el comprobante exige RUC del conjunto + cédula del condómino.
+  if (input.fiscalProfile?.country === "EC") {
+    if (!input.fiscalProfile.taxId?.trim()) {
+      throw new Error(
+        "Configura el RUC del conjunto en Configuración antes de emitir comprobantes en Ecuador.",
+      );
+    }
+    if (!input.payerTaxId?.trim()) {
+      throw new Error("La cédula del condómino es obligatoria para el comprobante en Ecuador.");
+    }
   }
 
   const { statement } = input;
@@ -106,6 +120,7 @@ export async function recordPayment(
     concept,
     payer: {
       name: input.payerName ?? null,
+      taxId: input.payerTaxId ?? null,
       unitId: statement.unitId,
       unitLabel: statement.unitLabel,
     },

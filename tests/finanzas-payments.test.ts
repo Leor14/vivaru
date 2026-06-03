@@ -14,8 +14,13 @@ vi.mock("firebase/firestore", () => ({
   serverTimestamp: vi.fn(() => "SERVER_TS"),
 }));
 
-import { reciboGenericoProvider } from "@/features/finanzas/comprobante/provider";
-import { computeBalanceStatus } from "@/features/finanzas/use-payments";
+import {
+  getComprobanteProvider,
+  reciboGenericoProvider,
+  sriEcuadorProvider,
+} from "@/features/finanzas/comprobante/provider";
+import { computeBalanceStatus, recordPayment } from "@/features/finanzas/use-payments";
+import type { BillingStatement } from "@/types/domain";
 
 describe("computeBalanceStatus", () => {
   it("queda al día (paid) cuando el pago cubre el cargo", () => {
@@ -51,5 +56,63 @@ describe("reciboGenericoProvider.buildVoucher", () => {
     expect(draft.issuerCountry).toBe("EC");
     expect(draft.sequentialNumber).toBe("001-001-000000007");
     expect(draft.payerTaxId).toBeNull();
+  });
+});
+
+describe("getComprobanteProvider", () => {
+  it("usa el adaptador SRI (pending) para Ecuador", () => {
+    expect(getComprobanteProvider("EC")).toBe(sriEcuadorProvider);
+    const draft = sriEcuadorProvider.buildVoucher({
+      type: "ingreso",
+      sequentialValue: 1,
+      sequentialNumber: "1",
+      issueDate: "2026-06-01",
+      amount: 10,
+      concept: "x",
+    });
+    expect(draft.fiscalStatus).toBe("pending");
+  });
+
+  it("usa el recibo genérico (sin transmisión) para CO/MX", () => {
+    expect(getComprobanteProvider("CO")).toBe(reciboGenericoProvider);
+    expect(getComprobanteProvider("MX")).toBe(reciboGenericoProvider);
+    expect(getComprobanteProvider()).toBe(reciboGenericoProvider);
+  });
+});
+
+describe("recordPayment — validación Ecuador", () => {
+  const statement = {
+    id: "s1",
+    tenantId: "t1",
+    unitId: "u1",
+    unitLabel: "T1-101",
+    period: "2026-06",
+    amount: 100,
+    paymentAmount: 0,
+    balance: 100,
+    status: "pending",
+  } as BillingStatement;
+
+  it("rechaza si falta el RUC del conjunto", async () => {
+    await expect(
+      recordPayment("t1", "u1", {
+        statement,
+        amount: 100,
+        date: "2026-06-01",
+        fiscalProfile: { country: "EC" },
+        payerTaxId: "1700000000",
+      }),
+    ).rejects.toThrow(/RUC/i);
+  });
+
+  it("rechaza si falta la cédula del condómino", async () => {
+    await expect(
+      recordPayment("t1", "u1", {
+        statement,
+        amount: 100,
+        date: "2026-06-01",
+        fiscalProfile: { country: "EC", taxId: "1790012345001" },
+      }),
+    ).rejects.toThrow(/cédula/i);
   });
 });

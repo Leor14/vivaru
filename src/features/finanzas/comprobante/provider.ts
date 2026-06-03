@@ -81,9 +81,22 @@ export const reciboGenericoProvider: ComprobanteFiscalProvider = {
 };
 
 /**
- * Resuelve el provider fiscal por país. En F1 todos usan el recibo genérico;
- * el adaptador SRI de Ecuador (F2) se registra aquí sin tocar el resto.
+ * Adaptador Ecuador (F2). Igual al recibo genérico pero marca el comprobante
+ * como `pending` para que la Cloud Function de transmisión al SRI lo tome.
+ * La transmisión en sí vive server-side (ver functions/), no aquí.
  */
-export function getComprobanteProvider(_country?: FiscalCountry | null): ComprobanteFiscalProvider {
-  return reciboGenericoProvider;
+export const sriEcuadorProvider: ComprobanteFiscalProvider = {
+  id: "sri-ecuador",
+  buildVoucher(input) {
+    return { ...reciboGenericoProvider.buildVoucher(input), fiscalStatus: "pending" };
+  },
+};
+
+/**
+ * Resuelve el provider fiscal por país. CO/MX usan el recibo genérico (sin
+ * transmisión); EC usa el adaptador SRI. El seam permite enchufar nuevos
+ * países sin tocar el core contable.
+ */
+export function getComprobanteProvider(country?: FiscalCountry | null): ComprobanteFiscalProvider {
+  return country === "EC" ? sriEcuadorProvider : reciboGenericoProvider;
 }

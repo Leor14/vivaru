@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Modal } from "@/components/shared/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { watchTenantSettings } from "@/features/admin/services";
+import { watchPeople, watchTenantSettings, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
 import { recordPayment } from "@/features/finanzas/use-payments";
@@ -27,36 +27,53 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
   const { formatAmount } = useTenantCurrency();
 
   const [fiscalProfile, setFiscalProfile] = useState<FiscalProfile | null>(null);
+  const [people, setPeople] = useState<PersonItem[]>([]);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
   const [payerName, setPayerName] = useState("");
+  const [payerTaxId, setPayerTaxId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [createdVoucher, setCreatedVoucher] = useState<PaymentVoucher | null>(null);
 
+  const isEcuador = fiscalProfile?.country === "EC";
+  const missingRuc = isEcuador && !fiscalProfile?.taxId?.trim();
+
   useEffect(() => {
     if (!user?.tenantId) return;
-    const unsub = watchTenantSettings(
+    const unsubSettings = watchTenantSettings(
       user.tenantId,
       (item) => setFiscalProfile(item?.fiscalProfile ?? null),
       () => setFiscalProfile(null),
     );
-    return () => unsub();
+    const unsubPeople = watchPeople(user.tenantId, setPeople, () => setPeople([]));
+    return () => {
+      unsubSettings();
+      unsubPeople();
+    };
   }, [user?.tenantId]);
 
   useEffect(() => {
     if (open && statement) {
       setAmount(String(statement.balance > 0 ? statement.balance : ""));
       setDate(today());
-      setPayerName("");
+      // Prellenar nombre y cédula desde el residente de la unidad (prioriza propietario).
+      const unitPeople = people.filter((p) => p.unitId === statement.unitId);
+      const holder = unitPeople.find((p) => p.roleType === "owner_occupant") ?? unitPeople[0];
+      setPayerName(holder?.fullName ?? "");
+      setPayerTaxId(holder?.documentNumber ?? "");
       setCreatedVoucher(null);
     }
-  }, [open, statement]);
+  }, [open, statement, people]);
 
   async function handleSubmit() {
     if (!user?.tenantId || !statement) return;
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       toast.error("Ingresa un monto válido mayor a cero.");
+      return;
+    }
+    if (isEcuador && !payerTaxId.trim()) {
+      toast.error("La cédula del condómino es obligatoria en Ecuador.");
       return;
     }
     setSubmitting(true);
@@ -67,6 +84,7 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
         date,
         fiscalProfile,
         payerName: payerName.trim() || null,
+        payerTaxId: payerTaxId.trim() || null,
       });
       setCreatedVoucher(result.voucher);
       toast.success(`Cobro registrado. Comprobante ${result.voucher.sequentialNumber}.`);
@@ -141,6 +159,26 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
                   placeholder="Nombre del residente"
                 />
               </div>
+              <div>
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">
+                  Cédula del condómino{isEcuador ? "" : " (opcional)"}
+                </label>
+                <Input
+                  value={payerTaxId}
+                  onChange={(event) => setPayerTaxId(event.target.value)}
+                  placeholder="Documento de identidad"
+                />
+                {isEcuador ? (
+                  <p className="mt-1 text-xs text-[var(--slate-500)]">
+                    Obligatoria en Ecuador: el comprobante se emite con el RUC del conjunto y la cédula del condómino.
+                  </p>
+                ) : null}
+              </div>
+              {missingRuc ? (
+                <p className="rounded-xl border border-[var(--danger-300)] bg-[var(--danger-50)] px-3 py-2 text-xs text-[var(--danger-700)]">
+                  Configura el RUC del conjunto en Configuración → Datos fiscales antes de emitir comprobantes en Ecuador.
+                </p>
+              ) : null}
               <div className="mobile-action-group">
                 <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={onClose}>
                   Cancelar
@@ -148,7 +186,7 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
                 <Button
                   className="w-full sm:w-auto"
                   type="button"
-                  disabled={submitting}
+                  disabled={submitting || missingRuc}
                   onClick={() => void handleSubmit()}
                 >
                   {submitting ? "Registrando..." : "Registrar y emitir recibo"}
