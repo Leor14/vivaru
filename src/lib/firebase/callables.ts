@@ -76,6 +76,15 @@ export async function createVisitorPassCallable(input: CreateVisitorPassInput) {
   return executeCallable(callable, input, "No fue posible crear el visitante.");
 }
 
+export async function retransmitVoucherCallable(input: { voucherId: string }) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<{ voucherId: string }, { ok: boolean }>(functions, "retransmitVoucher");
+  return executeCallable(callable, input, "No fue posible reintentar la transmisión al SRI.");
+}
+
 export async function confirmPackageReceiptCallable(input: ConfirmPackageReceiptInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

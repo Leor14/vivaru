@@ -1,5 +1,6 @@
 "use client";
 
+import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { watchPeople, watchTenantSettings, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
+import { retransmitVoucherCallable } from "@/lib/firebase/callables";
+import { db } from "@/lib/firebase/client";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
 import { recordPayment } from "@/features/finanzas/use-payments";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -34,6 +37,8 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
   const [payerTaxId, setPayerTaxId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [createdVoucher, setCreatedVoucher] = useState<PaymentVoucher | null>(null);
+  const [liveFiscalStatus, setLiveFiscalStatus] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
 
   const isEcuador = fiscalProfile?.country === "EC";
   const missingRuc = isEcuador && !fiscalProfile?.taxId?.trim();
@@ -62,8 +67,18 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
       setPayerName(holder?.fullName ?? "");
       setPayerTaxId(holder?.documentNumber ?? "");
       setCreatedVoucher(null);
+      setLiveFiscalStatus(null);
     }
   }, [open, statement, people]);
+
+  // Estado de transmisión al SRI en vivo (solo Ecuador), tras emitir el comprobante.
+  useEffect(() => {
+    if (!createdVoucher || !isEcuador || !db) return;
+    const unsub = onSnapshot(doc(db, "paymentVouchers", createdVoucher.id), (snap) => {
+      setLiveFiscalStatus((snap.data()?.fiscalStatus as string | undefined) ?? null);
+    });
+    return () => unsub();
+  }, [createdVoucher, isEcuador]);
 
   async function handleSubmit() {
     if (!user?.tenantId || !statement) return;
@@ -104,6 +119,19 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
     }
   }
 
+  async function handleRetry() {
+    if (!createdVoucher) return;
+    setRetrying(true);
+    try {
+      await retransmitVoucherCallable({ voucherId: createdVoucher.id });
+      toast.success("Reintentando transmisión al SRI.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setRetrying(false);
+    }
+  }
+
   return (
     <Modal open={open} title="Registrar cobro" onClose={onClose}>
       {statement ? (
@@ -123,6 +151,32 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
                   {formatAmount(createdVoucher.amount)}.
                 </p>
               </div>
+              {isEcuador ? (
+                <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3 text-sm">
+                  <p className="text-[var(--slate-700)]">
+                    Transmisión al SRI:{" "}
+                    <strong>
+                      {liveFiscalStatus === "transmitted"
+                        ? "Transmitido"
+                        : liveFiscalStatus === "error"
+                          ? "Error"
+                          : "Pendiente..."}
+                    </strong>
+                  </p>
+                  {liveFiscalStatus === "error" ? (
+                    <Button
+                      className="mt-2"
+                      size="sm"
+                      variant="outline"
+                      type="button"
+                      disabled={retrying}
+                      onClick={() => void handleRetry()}
+                    >
+                      {retrying ? "Reintentando..." : "Reintentar transmisión"}
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="mobile-action-group">
                 <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={onClose}>
                   Cerrar
