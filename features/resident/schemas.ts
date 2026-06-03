@@ -24,7 +24,10 @@ export type ResidentEmailForm = z.infer<typeof residentEmailSchema>;
 export const residentPasswordSchema = z
   .object({
     currentPassword: z.string().min(6, "Ingresa tu contrasena actual"),
-    newPassword: z.string().min(8, "La nueva contrasena debe tener minimo 8 caracteres"),
+    newPassword: z
+      .string()
+      .min(8, "La nueva contrasena debe tener minimo 8 caracteres")
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/, "Incluye mayuscula, minuscula, numero y simbolo"),
     confirmPassword: z.string().min(8, "Confirma la nueva contrasena"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {

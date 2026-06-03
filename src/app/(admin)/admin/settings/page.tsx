@@ -30,7 +30,10 @@ import { updateUserProfile } from "@/features/users/profile-service";
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(8, "Ingresa tu contraseña actual"),
-    newPassword: z.string().min(8, "La nueva contraseña debe tener mínimo 8 caracteres"),
+    newPassword: z
+      .string()
+      .min(8, "La nueva contraseña debe tener mínimo 8 caracteres")
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).+$/, "Incluye mayúscula, minúscula, número y símbolo"),
     confirmPassword: z.string().min(8, "Confirma la nueva contraseña"),
   })
   .refine((values) => values.newPassword === values.confirmPassword, {
