@@ -115,7 +115,7 @@ export function LoginForm() {
 
         {status === "profile_error" ? (
           <div className="mb-4 rounded-xl border border-[var(--danger-600)]/30 bg-red-50 p-3 text-sm text-[var(--danger-700)]">
-            {error ?? "Tu perfil no se pudo resolver. Contacta soporte de HOGARU."}
+            {error ?? "Tu perfil no se pudo resolver. Contacta soporte de Vivaru."}
           </div>
         ) : null}
 

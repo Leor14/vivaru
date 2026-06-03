@@ -166,7 +166,7 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
   let unitId: string | undefined;
   let unitLabel: string | undefined;
   let tenantName: string | undefined;
-  let fullName = firebaseUser.displayName ?? "Usuario HOGARU";
+  let fullName = firebaseUser.displayName ?? "Usuario Vivaru";
   let photoURL: string | undefined = firebaseUser.photoURL ?? undefined;
   let avatarId: string | undefined;
   let profileStatus: "active" | "inactive" = "active";

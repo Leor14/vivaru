@@ -385,7 +385,7 @@ async function upsertResidentTemporaryAccess(input: {
   }
 
   const email = normalizeEmail(personData.email);
-  const fullName = normalizeText(personData.fullName) || "Residente HOGARU";
+  const fullName = normalizeText(personData.fullName) || "Residente Vivaru";
   const documentNumber = normalizeText(personData.documentNumber);
   const status = normalizeText(personData.status) === "inactive" ? "inactive" : "active";
   const unitId = normalizeText(personData.unitId);
@@ -395,9 +395,9 @@ async function upsertResidentTemporaryAccess(input: {
     throw new HttpsError("failed-precondition", "El residente no tiene correo registrado.");
   }
 
-  if (!documentNumber) {
-    throw new HttpsError("failed-precondition", "El residente no tiene documento registrado.");
-  }
+  // documentNumber (cedula) ya no es credencial (onboarding por enlace); deja de ser
+  // obligatorio para activar acceso. Sigue requiriendose para la capa fiscal EC (SRI),
+  // que lo valida al emitir el comprobante, no aqui.
 
   if (!unitId) {
     throw new HttpsError("failed-precondition", "El residente no tiene unidad asociada.");
@@ -1300,6 +1300,12 @@ export const completeResidentPasswordChange = onCall<CompleteResidentPasswordCha
 
 export const seedDemoData = onCall(async (request) => {
   assertSuperadmin(request.auth);
+
+  // Blindaje go-live: el seed crea cuentas con contrasenas conocidas (Demo1234*).
+  // Solo se permite en el emulador o si se habilita explicitamente por env, nunca por accidente en prod.
+  if (process.env.FUNCTIONS_EMULATOR !== "true" && process.env.ALLOW_DEMO_SEED !== "true") {
+    throw new HttpsError("failed-precondition", "El seed de demo esta deshabilitado en este entorno.");
+  }
 
   const now = Timestamp.now();
   const tenantId = "tenant-santa-maria";
