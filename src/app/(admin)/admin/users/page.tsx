@@ -23,7 +23,7 @@ type TenantUserItem = {
 };
 
 export default function AdminUsersPage() {
-  const { user, requestPasswordReset } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState<TenantUserItem[]>([]);
   const [loading, setLoading] = useState(Boolean(user?.tenantId));
   const [saving, setSaving] = useState(false);
@@ -89,13 +89,8 @@ export default function AdminUsersPage() {
         status: "active",
       });
 
-      // Onboarding por enlace: el usuario define su propia contrasena via correo.
-      try {
-        await requestPasswordReset(normalizedEmail);
-        toast.success("Usuario creado. Se le envió un correo para definir su contraseña.");
-      } catch {
-        toast.success("Usuario creado. No se pudo enviar el correo automáticamente; puede usar “¿Olvidaste tu contraseña?” para recibirlo.");
-      }
+      // El backend genera el enlace y envía el correo (Resend, marca Vivaru).
+      toast.success("Usuario creado. Se le envió un correo para definir su contraseña.");
 
       setFullName("");
       setEmail("");

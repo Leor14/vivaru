@@ -49,7 +49,7 @@ import {
 } from "@/features/admin/services";
 
 export default function AdminResidentsPage() {
-  const { user, requestPasswordReset } = useAuth();
+  const { user } = useAuth();
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [people, setPeople] = useState<PersonItem[]>([]);
   const [loadingUnits, setLoadingUnits] = useState(true);
@@ -616,17 +616,11 @@ export default function AdminResidentsPage() {
       });
 
       try {
-        const provision = await provisionResidentTemporaryAccessCallable({
+        // El backend genera el enlace y envía el correo de acceso (Resend).
+        await provisionResidentTemporaryAccessCallable({
           tenantId: user.tenantId,
           personId: primaryPersonId,
         });
-        if (provision?.email) {
-          try {
-            await requestPasswordReset(provision.email);
-          } catch {
-            /* el envío del correo es best-effort; el residente puede usar "¿Olvidaste tu contraseña?" */
-          }
-        }
       } catch (provisionError) {
         debugResidentUnit("provision-access-warning", {
           functionName: "handleSaveUnitFlow",
@@ -718,17 +712,10 @@ export default function AdminResidentsPage() {
         toast.success("Persona actualizada.");
       } else {
         const personId = await createPerson(user.tenantId, user.uid, payload);
-        const provision = await provisionResidentTemporaryAccessCallable({
+        await provisionResidentTemporaryAccessCallable({
           tenantId: user.tenantId,
           personId,
         });
-        if (provision?.email) {
-          try {
-            await requestPasswordReset(provision.email);
-          } catch {
-            /* best-effort */
-          }
-        }
         toast.success("Persona creada. Se le envió un correo para que defina su contraseña de acceso.");
       }
       setPersonModalOpen(false);
@@ -775,17 +762,10 @@ export default function AdminResidentsPage() {
     if (!user?.tenantId) return;
     setSendingResetTo(person.id);
     try {
-      const provision = await provisionResidentTemporaryAccessCallable({
+      await provisionResidentTemporaryAccessCallable({
         tenantId: user.tenantId,
         personId: person.id,
       });
-      if (provision?.email) {
-        try {
-          await requestPasswordReset(provision.email);
-        } catch {
-          /* best-effort */
-        }
-      }
       toast.success("Acceso restablecido. Se envió al residente un correo para que defina una nueva contraseña.");
     } catch (error) {
       toastFirebaseError(error);

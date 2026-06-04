@@ -4,8 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase/client";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
@@ -117,13 +115,8 @@ export default function SuperadminAdminUsersPage() {
 
       await createTenantAdminWorkspace(normalized);
 
-      // Onboarding por enlace: el admin define su propia contrasena via correo.
-      try {
-        if (auth) await sendPasswordResetEmail(auth, email);
-        toast.success("Admin creado. Se le envió un correo para definir su contraseña.");
-      } catch {
-        toast.success("Admin creado. No se pudo enviar el correo automáticamente; usa “¿Olvidaste tu contraseña?” para reenviarlo.");
-      }
+      // El backend genera el enlace y envía el correo (Resend, marca Vivaru).
+      toast.success("Admin creado. Se le envió un correo para definir su contraseña.");
 
       setCreateOpen(false);
       createForm.reset({

@@ -8,6 +8,7 @@ import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation"
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
+import { resendApiKey, sendAccountEmail, type AccountEmailVariant } from "./email";
 
 initializeApp();
 
@@ -192,6 +193,18 @@ async function writeAuditLog(tenantId: string, actorUid: string | undefined, act
     metadata,
     createdAt: Timestamp.now(),
   });
+}
+
+// A5: genera el enlace seguro de Firebase y lo envía por Resend (marca Vivaru).
+// Best-effort: nunca rompe la creación del usuario; si falla, queda en logs y el
+// usuario siempre puede usar "¿Olvidaste tu contraseña?" (reset nativo).
+async function sendPasswordSetupEmail(email: string, fullName: string, variant: AccountEmailVariant = "welcome") {
+  try {
+    const link = await getAuth().generatePasswordResetLink(email);
+    await sendAccountEmail({ to: email, fullName, link, variant });
+  } catch (error) {
+    console.warn("[email] no se pudo enviar el correo de acceso", { email, variant, error });
+  }
 }
 
 async function listTenantUidsByRoles(tenantId: string, roles: string[]) {
@@ -509,6 +522,7 @@ async function upsertResidentTemporaryAccess(input: {
     uid: userRecord.uid,
     email,
     fullName,
+    isNewUser: !existingUser,
   };
 }
 
@@ -785,6 +799,7 @@ export const createTenantAdmin = onCall<CreateTenantAdminInput>(
   {
     cors: callableCorsOrigins,
     invoker: "public",
+    secrets: [resendApiKey],
   },
   async (request) => {
   assertSuperadmin(request.auth);
@@ -876,6 +891,8 @@ export const createTenantAdmin = onCall<CreateTenantAdminInput>(
       ]);
       throw persistError;
     }
+
+    await sendPasswordSetupEmail(data.email, data.fullName);
 
     try {
       await writeAuditLog(data.tenantId, request.auth?.uid, "create_tenant_admin", {
@@ -1015,6 +1032,7 @@ export const createTenantOperationalUser = onCall<CreateTenantOperationalUserInp
   {
     cors: callableCorsOrigins,
     invoker: "public",
+    secrets: [resendApiKey],
   },
   async (request) => {
     if (!request.auth?.uid) {
@@ -1117,6 +1135,8 @@ export const createTenantOperationalUser = onCall<CreateTenantOperationalUserInp
         throw persistError;
       }
 
+      await sendPasswordSetupEmail(data.email, data.fullName);
+
       await writeAuditLog(targetTenantId, request.auth.uid, "create_tenant_operational_user", {
         uid: userRecord.uid,
         email: data.email,
@@ -1150,6 +1170,7 @@ export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporar
   {
     cors: callableCorsOrigins,
     invoker: "public",
+    secrets: [resendApiKey],
   },
   async (request) => {
     const tenantId = normalizeText(request.data?.tenantId);
@@ -1166,11 +1187,14 @@ export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporar
     });
 
     try {
-      const result = await upsertResidentTemporaryAccess({
+      const { isNewUser, ...result } = await upsertResidentTemporaryAccess({
         tenantId,
         personId,
         actorUid: request.auth?.uid,
       });
+
+      // Cuenta nueva → bienvenida; reenvío de acceso a residente existente → restablecimiento.
+      await sendPasswordSetupEmail(result.email, result.fullName, isNewUser ? "welcome" : "reset");
 
       return {
         ...result,
