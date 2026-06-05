@@ -416,6 +416,17 @@ async function upsertResidentTemporaryAccess(input: {
     throw new HttpsError("failed-precondition", "El residente no tiene unidad asociada.");
   }
 
+  // Etiqueta legible de la unidad: usa el displayName del doc de unidad (unitId = doc id).
+  // Fallback compatible con datos antiguos donde unitId pudiera ser un slug.
+  let unitLabel = tower ? `${tower}-${unitId}` : unitId;
+  try {
+    const unitSnap = await db.collection("units").doc(unitId).get();
+    const displayName = unitSnap.exists ? normalizeText((unitSnap.data() as Record<string, unknown>).displayName) : "";
+    if (displayName) unitLabel = displayName;
+  } catch {
+    /* usa el fallback */
+  }
+
   const authApi = getAuth();
   const existingUser = await authApi
     .getUserByEmail(email)
@@ -469,7 +480,7 @@ async function upsertResidentTemporaryAccess(input: {
       role: "resident",
       tenantId,
       unitId,
-      unitLabel: tower ? `${tower}-${unitId}` : unitId,
+      unitLabel,
       documentNumber,
       status,
       mustChangePassword: false,
@@ -492,7 +503,7 @@ async function upsertResidentTemporaryAccess(input: {
       role: "resident",
       status,
       unitId,
-      unitLabel: tower ? `${tower}-${unitId}` : unitId,
+      unitLabel,
       mustChangePassword: false,
       passwordStatus: "updated",
       updatedAt: now,

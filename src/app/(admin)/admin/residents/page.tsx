@@ -599,7 +599,7 @@ export default function AdminResidentsPage() {
         ...primaryHolder,
         roleType: primaryHolder.occupancyType,
         occupancyType: primaryHolder.occupancyType,
-        unitId: createdUnit.unitId,
+        unitId: createdUnit.id,
         tower: unitValues.tower.trim(),
         status: "active" as const,
       };
@@ -638,7 +638,7 @@ export default function AdminResidentsPage() {
           documentNumber: member.documentNumber,
           roleType: member.occupancyType,
           occupancyType: member.occupancyType,
-          unitId: createdUnit.unitId,
+          unitId: createdUnit.id,
           tower: unitValues.tower,
           status: member.status,
         });
