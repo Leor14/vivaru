@@ -554,7 +554,11 @@ export async function updatePerson(id: string, userId: string, payload: Partial<
     if (shouldAttachToResidents(previousRole)) {
       removePayload.residentIds = arrayRemove(id);
     }
-    await updateDoc(doc(firestore, "units", previousUnitId), removePayload);
+    try {
+      await updateDoc(doc(firestore, "units", previousUnitId), removePayload);
+    } catch (unitUpdateError) {
+      console.warn("[updatePerson] no se pudo desvincular de la unidad anterior", unitUpdateError);
+    }
   }
 
   if (nextUnitId) {
@@ -568,7 +572,11 @@ export async function updatePerson(id: string, userId: string, payload: Partial<
     if (shouldAttachToResidents(nextRole)) {
       addPayload.residentIds = arrayUnion(id);
     }
-    await updateDoc(doc(firestore, "units", nextUnitId), addPayload);
+    try {
+      await updateDoc(doc(firestore, "units", nextUnitId), addPayload);
+    } catch (unitUpdateError) {
+      console.warn("[updatePerson] no se pudo vincular a la unidad nueva", unitUpdateError);
+    }
   }
 }
 
@@ -589,7 +597,13 @@ export async function deletePerson(id: string) {
     if (shouldAttachToResidents(roleType)) {
       removePayload.residentIds = arrayRemove(id);
     }
-    await updateDoc(doc(firestore, "units", person.unitId), removePayload);
+    // Best-effort: si la unidad referenciada no existe (p. ej. registros antiguos
+    // cuyo unitId era un slug), no bloquear la eliminación de la persona.
+    try {
+      await updateDoc(doc(firestore, "units", person.unitId), removePayload);
+    } catch (unitUpdateError) {
+      console.warn("[deletePerson] no se pudo desvincular de la unidad (continuo con el borrado)", unitUpdateError);
+    }
   }
 
   await deleteDoc(doc(firestore, "people", id));

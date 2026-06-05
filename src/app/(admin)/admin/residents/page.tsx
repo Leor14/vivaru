@@ -587,6 +587,21 @@ export default function AdminResidentsPage() {
     }
     if (!validateFamilyMembers()) return;
 
+    // Evitar unidades duplicadas: mismo nombre (slug) y misma torre en el tenant.
+    const newSlug = unitValues.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const newTower = unitValues.tower.trim().toLowerCase();
+    const isDuplicateUnit = units.some((u) => {
+      const sameTower = (u.tower ?? "").trim().toLowerCase() === newTower;
+      const sameName =
+        (u.unitId ?? "").toLowerCase() === newSlug ||
+        (u.displayName ?? "").trim().toLowerCase() === unitValues.displayName.trim().toLowerCase();
+      return sameTower && sameName;
+    });
+    if (isDuplicateUnit) {
+      toast.error("Ya existe una unidad con ese nombre en esa torre. Usa un nombre distinto o edita la existente.");
+      return;
+    }
+
     setSavingUnit(true);
     try {
       const createdUnit = await createUnit(user.tenantId, user.uid, unitValues);
@@ -680,6 +695,14 @@ export default function AdminResidentsPage() {
   }
 
   async function handleDeleteUnit(unit: UnitItem) {
+    // Bloquear borrado si la unidad aún tiene personas asociadas (evita huérfanos).
+    const associated = people.filter((p) => p.unitId === unit.id || p.unitId === unit.unitId).length;
+    if (associated > 0) {
+      toast.error(
+        `No puedes eliminar esta unidad: tiene ${associated} persona${associated === 1 ? "" : "s"} asociada${associated === 1 ? "" : "s"}. Elimina o reasigna esas personas primero.`,
+      );
+      return;
+    }
     setPendingUnitDeletion(unit);
   }
 
@@ -1444,7 +1467,7 @@ export default function AdminResidentsPage() {
         name={pendingUnitDeletion?.displayName ?? ""}
         description={
           pendingUnitDeletion
-            ? `Se eliminará la unidad ${pendingUnitDeletion.displayName} (Agrupación ${pendingUnitDeletion.tower}). Las personas asociadas perderán el vínculo con esta unidad. No se puede deshacer.`
+            ? `Se eliminará la unidad ${pendingUnitDeletion.displayName} (Agrupación ${pendingUnitDeletion.tower}). No se puede deshacer.`
             : null
         }
         loading={deletingUnit}

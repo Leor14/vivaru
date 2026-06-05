@@ -56,7 +56,9 @@ function buildHtml(fullName: string, link: string, variant: AccountEmailVariant)
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
     <tr><td align="center">
       <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;max-width:480px;">
-        <tr><td style="font-size:20px;font-weight:bold;color:#0f172a;padding-bottom:8px;">Vivaru</td></tr>
+        <tr><td style="padding-bottom:12px;">
+          <img src="https://www.grupovivaru.com/images/vivaru.jpeg" alt="Vivaru" width="44" height="44" style="border-radius:10px;display:block;border:0;outline:none;text-decoration:none;" />
+        </td></tr>
         <tr><td style="font-size:15px;line-height:1.6;padding-bottom:16px;">${greeting}</td></tr>
         <tr><td style="font-size:15px;line-height:1.6;padding-bottom:24px;">${copy.intro}</td></tr>
         <tr><td style="padding-bottom:24px;">
