@@ -11,7 +11,12 @@ service firebase.storage {
 
     // Path strategy: tenants/{tenantId}/...
     match /tenants/{tenantId}/{allPaths=**} {
-      allow read: if signedIn();
+      // Solo miembros del mismo tenant (o superadmin) pueden leer. Sin este
+      // filtro, cualquier usuario autenticado de OTRO conjunto leeria estos
+      // archivos (actas, reglamento, documentos) — fuga cross-tenant.
+      allow read: if signedIn() && (
+        superadmin() || request.auth.token.tenantId == tenantId
+      );
 
       // Admin and superadmin can upload tenant documents.
       allow write: if signedIn() && (
