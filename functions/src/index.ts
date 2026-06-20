@@ -8,7 +8,7 @@ import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation"
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
-import { resendApiKey, sendAccountEmail, type AccountEmailVariant } from "./email";
+import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import {
   resolveNotificationCopy,
   type NotificationKey,
@@ -325,23 +325,55 @@ function formatPeriodFromDate(value: string | undefined): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-/** Construye NotificationInput[] in-app para una lista de residentes usando el resolver. */
-function buildResidentNotifications(
+/** Correos (activos) de una lista de uids de residentes. Chunked por el límite de "in". */
+async function getResidentEmails(uids: string[]): Promise<string[]> {
+  const emails: string[] = [];
+  for (let i = 0; i < uids.length; i += 30) {
+    const chunk = uids.slice(i, i + 30);
+    const snap = await db.collection("users").where("uid", "in", chunk).get();
+    snap.forEach((d) => {
+      const u = d.data() as { email?: string; status?: string };
+      if (u.email && (!u.status || u.status === "active")) emails.push(u.email);
+    });
+  }
+  return emails;
+}
+
+/**
+ * Entrega una notificación a una lista de residentes: in-app siempre y, si el
+ * tenant activó el correo para esa notificación, también por email (best-effort,
+ * el fallo de correo nunca rompe la notificación in-app).
+ */
+async function deliverResidentNotifications(
   key: NotificationKey,
   tenantId: string,
   residentUids: string[],
   vars: Record<string, string>,
   override: NotificationOverride | undefined,
-): NotificationInput[] {
+): Promise<void> {
+  if (residentUids.length === 0) return;
   const copy = resolveNotificationCopy(key, override, vars);
-  return residentUids.map((uid) => ({
-    userId: uid,
-    tenantId,
-    type: copy.type,
-    title: copy.title,
-    description: copy.body,
-    link: copy.link,
-  }));
+
+  await createNotifications(
+    residentUids.map((uid) => ({
+      userId: uid,
+      tenantId,
+      type: copy.type,
+      title: copy.title,
+      description: copy.body,
+      link: copy.link,
+    })),
+  );
+
+  if (!copy.emailEnabled) return;
+  const emails = await getResidentEmails(residentUids);
+  for (const to of emails) {
+    try {
+      await sendNotificationEmail({ to, subject: copy.emailSubject, body: copy.emailBody, link: copy.link });
+    } catch (e) {
+      console.error(`[notif-email][${key}]`, e);
+    }
+  }
 }
 
 function isTodayDateString(value: string | undefined) {
@@ -1708,7 +1740,7 @@ export const onReservationCreated = onDocumentCreated("reservations/{reservation
   ]);
 });
 
-export const onReservationUpdated = onDocumentUpdated("reservations/{reservationId}", async (event) => {
+export const onReservationUpdated = onDocumentUpdated({ document: "reservations/{reservationId}", secrets: [resendApiKey] }, async (event) => {
   const before = event.data?.before.data() as { status?: string } | undefined;
   const after = event.data?.after.data() as
     | { status?: string; tenantId?: string; createdBy?: string; updatedBy?: string; amenity?: string }
@@ -1741,21 +1773,19 @@ export const onReservationUpdated = onDocumentUpdated("reservations/{reservation
       getTenantNotificationOverride(after.tenantId, "reservation_rejected"),
       getTenantName(after.tenantId),
     ]);
-    await createNotifications(
-      buildResidentNotifications(
-        "reservation_rejected",
-        after.tenantId,
-        [after.createdBy],
-        { amenidad: after.amenity ?? "", conjunto },
-        override,
-      ),
+    await deliverResidentNotifications(
+      "reservation_rejected",
+      after.tenantId,
+      [after.createdBy],
+      { amenidad: after.amenity ?? "", conjunto },
+      override,
     );
   }
 });
 
 // Notifica a los residentes en alcance cuando un acuerdo de comité se manda a
 // firma / se publica (transición a "enviado").
-export const onCommitteeAgreementUpdated = onDocumentUpdated("committee_agreements/{agreementId}", async (event) => {
+export const onCommitteeAgreementUpdated = onDocumentUpdated({ document: "committee_agreements/{agreementId}", secrets: [resendApiKey] }, async (event) => {
   const before = event.data?.before.data() as { status?: string } | undefined;
   const after = event.data?.after.data() as
     | {
@@ -1782,19 +1812,12 @@ export const onCommitteeAgreementUpdated = onDocumentUpdated("committee_agreemen
     residentUids = await listTenantUidsByRoles(tenantId, ["resident"]);
   }
 
-  const session = after.sessionDate ? ` (sesión del ${after.sessionDate})` : "";
-  await createNotifications(
-    residentUids.map((uid) => ({
-      userId: uid,
-      tenantId,
-      type: "regulation" as const,
-      title: isInformativo ? "Nuevo acuerdo de comité" : "Acuerdo de comité por firmar",
-      description: isInformativo
-        ? `La administración publicó un acuerdo de comité${session}.`
-        : `Tienes un acuerdo de comité por firmar${session}.`,
-      link: "/resident/agreements",
-    })),
-  );
+  const key: NotificationKey = isInformativo ? "agreement_info" : "agreement_signature";
+  const [override, conjunto] = await Promise.all([
+    getTenantNotificationOverride(tenantId, key),
+    getTenantName(tenantId),
+  ]);
+  await deliverResidentNotifications(key, tenantId, residentUids, { fecha: after.sessionDate ?? "", conjunto }, override);
 });
 
 export const onVisitorPassCreated = onDocumentCreated("visitorPasses/{visitorPassId}", async (event) => {
@@ -1857,7 +1880,7 @@ export const onTicketCreated = onDocumentCreated("tickets/{ticketId}", async (ev
 });
 
 // PQRS respondido: notifica al residente la primera vez que la administración responde.
-export const onTicketUpdated = onDocumentUpdated("tickets/{ticketId}", async (event) => {
+export const onTicketUpdated = onDocumentUpdated({ document: "tickets/{ticketId}", secrets: [resendApiKey] }, async (event) => {
   const before = event.data?.before.data() as { status?: string; response?: string } | undefined;
   const after = event.data?.after.data() as
     | { status?: string; response?: string; tenantId?: string; residentId?: string; subject?: string }
@@ -1872,14 +1895,12 @@ export const onTicketUpdated = onDocumentUpdated("tickets/{ticketId}", async (ev
     getTenantNotificationOverride(after.tenantId, "ticket_answered"),
     getTenantName(after.tenantId),
   ]);
-  await createNotifications(
-    buildResidentNotifications(
-      "ticket_answered",
-      after.tenantId,
-      [after.residentId],
-      { asunto: after.subject ?? "", conjunto },
-      override,
-    ),
+  await deliverResidentNotifications(
+    "ticket_answered",
+    after.tenantId,
+    [after.residentId],
+    { asunto: after.subject ?? "", conjunto },
+    override,
   );
 });
 
@@ -1887,7 +1908,7 @@ export const onTicketUpdated = onDocumentUpdated("tickets/{ticketId}", async (ev
 
 // Cobro nuevo individual. Los cobros de una importación masiva (source="import")
 // se agrupan en un solo aviso vía el callable notifyBillingBatch.
-export const onBillingStatementCreated = onDocumentCreated("billingStatements/{statementId}", async (event) => {
+export const onBillingStatementCreated = onDocumentCreated({ document: "billingStatements/{statementId}", secrets: [resendApiKey] }, async (event) => {
   const data = event.data?.data() as
     | {
         tenantId?: string;
@@ -1916,13 +1937,13 @@ export const onBillingStatementCreated = onDocumentCreated("billingStatements/{s
     unidad: data.unitLabel ?? "",
     conjunto,
   };
-  await createNotifications(buildResidentNotifications("billing_new", data.tenantId, residentUids, vars, override));
+  await deliverResidentNotifications("billing_new", data.tenantId, residentUids, vars, override);
 });
 
 // Aviso agrupado tras una importación masiva de cartera: 1 notificación por
 // residente de las unidades afectadas (lo invoca el front al terminar el import).
 export const notifyBillingBatch = onCall<{ tenantId: string; period: string; unitIds: string[] }>(
-  { cors: callableCorsOrigins },
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
   async (request) => {
     const tenantId = request.data?.tenantId;
     const period = request.data?.period ?? "";
@@ -1940,15 +1961,13 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
     const residentUids = Array.from(new Set(lists.flat()));
     if (residentUids.length === 0) return { ok: true, notified: 0 };
 
-    await createNotifications(
-      buildResidentNotifications("billing_batch", tenantId, residentUids, { período: period, conjunto }, override),
-    );
+    await deliverResidentNotifications("billing_batch", tenantId, residentUids, { período: period, conjunto }, override);
     return { ok: true, notified: residentUids.length };
   },
 );
 
 // Runs every day at 07:00 UTC (02:00 Colombia)
-export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
+export const updateOverdueStatements = onSchedule({ schedule: "0 7 * * *", secrets: [resendApiKey] }, async () => {
   const now = new Date();
   const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
 
@@ -1991,14 +2010,10 @@ export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
       getTenantNotificationOverride(tenantId, "billing_overdue"),
       getTenantName(tenantId),
     ]);
-    const notifications: NotificationInput[] = [];
     for (const [unitId, unitLabel] of units) {
       const residentUids = await listResidentUidsByUnit(tenantId, unitId);
-      notifications.push(
-        ...buildResidentNotifications("billing_overdue", tenantId, residentUids, { unidad: unitLabel, conjunto }, override),
-      );
+      await deliverResidentNotifications("billing_overdue", tenantId, residentUids, { unidad: unitLabel, conjunto }, override);
     }
-    await createNotifications(notifications);
   }
 
   console.log(`[updateOverdueStatements] Marked ${updated} statement(s) as overdue.`);
@@ -2007,7 +2022,7 @@ export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
 // ── F2/G1 · Transmisión del comprobante de alícuota al SRI (Ecuador) ──────────
 // Dispara al crear un comprobante de emisor Ecuador en estado "pending".
 // El transporte real (firma + endpoint SRI) se implementa en G3; aquí usa stub.
-export const onPaymentVoucherCreated = onDocumentCreated("paymentVouchers/{voucherId}", async (event) => {
+export const onPaymentVoucherCreated = onDocumentCreated({ document: "paymentVouchers/{voucherId}", secrets: [resendApiKey] }, async (event) => {
   const data = event.data?.data();
   if (!data) return;
 
@@ -2019,14 +2034,12 @@ export const onPaymentVoucherCreated = onDocumentCreated("paymentVouchers/{vouch
         getTenantNotificationOverride(data.tenantId, "billing_receipt"),
         getTenantName(data.tenantId),
       ]);
-      await createNotifications(
-        buildResidentNotifications(
-          "billing_receipt",
-          data.tenantId,
-          residentUids,
-          { período: formatPeriodFromDate(data.issueDate), conjunto },
-          override,
-        ),
+      await deliverResidentNotifications(
+        "billing_receipt",
+        data.tenantId,
+        residentUids,
+        { período: formatPeriodFromDate(data.issueDate), conjunto },
+        override,
       );
     }
   }
@@ -2040,7 +2053,7 @@ export const onPaymentVoucherCreated = onDocumentCreated("paymentVouchers/{vouch
 
 // Reglamento nuevo: al subir un documento de categoría "reglamento" (el flujo de
 // carga lo deja activo), notifica a todos los residentes para que lo firmen.
-export const onRegulationDocumentCreated = onDocumentCreated("documents/{documentId}", async (event) => {
+export const onRegulationDocumentCreated = onDocumentCreated({ document: "documents/{documentId}", secrets: [resendApiKey] }, async (event) => {
   const data = event.data?.data() as { tenantId?: string; category?: string } | undefined;
   if (!data?.tenantId || data.category !== "reglamento") return;
 
@@ -2051,15 +2064,13 @@ export const onRegulationDocumentCreated = onDocumentCreated("documents/{documen
     getTenantNotificationOverride(data.tenantId, "regulation_new"),
     getTenantName(data.tenantId),
   ]);
-  await createNotifications(
-    buildResidentNotifications("regulation_new", data.tenantId, residentUids, { conjunto }, override),
-  );
+  await deliverResidentNotifications("regulation_new", data.tenantId, residentUids, { conjunto }, override);
 });
 
 // Encuesta nueva: las encuestas se crean en borrador y se publican por update;
 // notifica a los residentes al transicionar a "published". (El portal del
 // residente filtra la visibilidad por audiencia; aquí avisamos a todos.)
-export const onSurveyUpdated = onDocumentUpdated("surveys/{surveyId}", async (event) => {
+export const onSurveyUpdated = onDocumentUpdated({ document: "surveys/{surveyId}", secrets: [resendApiKey] }, async (event) => {
   const before = event.data?.before.data() as { status?: string } | undefined;
   const after = event.data?.after.data() as { status?: string; tenantId?: string } | undefined;
   if (!after?.tenantId) return;
@@ -2072,9 +2083,7 @@ export const onSurveyUpdated = onDocumentUpdated("surveys/{surveyId}", async (ev
     getTenantNotificationOverride(after.tenantId, "survey_new"),
     getTenantName(after.tenantId),
   ]);
-  await createNotifications(
-    buildResidentNotifications("survey_new", after.tenantId, residentUids, { conjunto }, override),
-  );
+  await deliverResidentNotifications("survey_new", after.tenantId, residentUids, { conjunto }, override);
 });
 
 // Reenvío / reintento manual de la transmisión (admin del tenant o superadmin).

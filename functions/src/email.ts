@@ -77,6 +77,70 @@ function buildHtml(fullName: string, link: string, variant: AccountEmailVariant)
 </body></html>`;
 }
 
+// Base pública de la app para construir el CTA absoluto de las notificaciones.
+const APP_BASE_URL = "https://www.grupovivaru.com";
+
+function buildNotificationHtml(body: string, ctaUrl: string): string {
+  const safeBody = escapeHtml(body);
+  return `<!doctype html>
+<html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px;max-width:480px;">
+        <tr><td style="padding-bottom:12px;">
+          <img src="https://www.grupovivaru.com/images/vivaru.jpeg" alt="Vivaru" width="44" height="44" style="border-radius:10px;display:block;border:0;outline:none;text-decoration:none;" />
+        </td></tr>
+        <tr><td style="font-size:15px;line-height:1.6;padding-bottom:24px;">${safeBody}</td></tr>
+        <tr><td style="padding-bottom:24px;">
+          <a href="${ctaUrl}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 24px;border-radius:10px;">Ver en Vivaru</a>
+        </td></tr>
+        <tr><td style="font-size:12px;line-height:1.5;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px;">
+          Recibes este correo porque la administración de tu conjunto activó las notificaciones por correo en Vivaru.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+/**
+ * Envía por Resend una notificación al residente (cartera, PQRS, reglamento, etc.).
+ * Best-effort: el llamador captura el error para no romper la notificación in-app.
+ * `link` puede ser relativo ("/resident/...") o absoluto.
+ */
+export async function sendNotificationEmail(input: {
+  to: string;
+  subject: string;
+  body: string;
+  link: string;
+}): Promise<void> {
+  const apiKey = resendApiKey.value();
+  if (!apiKey) {
+    console.warn("[email] RESEND_API_KEY no configurado; se omite el correo de notificación.");
+    return;
+  }
+
+  const ctaUrl = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
+  const response = await httpFetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: FROM,
+      to: input.to,
+      subject: input.subject,
+      html: buildNotificationHtml(input.body, ctaUrl),
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Resend respondió ${response.status}: ${detail}`);
+  }
+}
+
 /**
  * Envía por Resend el correo de "define/restablece tu contraseña".
  * `variant`: "welcome" (cuenta nueva) | "reset" (restablecimiento).
