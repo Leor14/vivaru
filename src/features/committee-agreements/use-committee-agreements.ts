@@ -42,6 +42,39 @@ export function useCommitteeAgreements(tenantId?: string) {
 }
 
 /**
+ * Firmas de la unidad del residente (realtime). Solo filtros de igualdad
+ * (tenantId + unitId), sin índice compuesto. Sirve para saber qué acuerdos ya
+ * firmó esa unidad.
+ */
+export function useMyAgreementSignatures(tenantId?: string, unitId?: string) {
+  const [signatures, setSignatures] = useState<CommitteeAgreementSignature[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!tenantId || !unitId) {
+      setSignatures([]);
+      setLoading(false);
+      return;
+    }
+    const unsub = subscribeTenantCollection<CommitteeAgreementSignature>(
+      "committee_agreement_signatures",
+      tenantId,
+      (data) => {
+        setSignatures(data);
+        setLoading(false);
+      },
+      () => setLoading(false),
+      { equals: [{ field: "unitId", value: unitId }] },
+    );
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [tenantId, unitId]);
+
+  return { signatures, loading };
+}
+
+/**
  * Firmas de un acuerdo específico (realtime). Requiere el índice
  * (tenantId, agreementId, signedAt desc).
  */

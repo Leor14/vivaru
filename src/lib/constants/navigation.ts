@@ -71,6 +71,7 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/resident/services", label: "Servicios" },
     { href: "/resident/surveys", label: "Encuestas" },
     { href: "/resident/regulations", label: "Reglamento" },
+    { href: "/resident/agreements", label: "Acuerdos de comité" },
     { href: "/resident/packages", label: "Paquetería" },
     { href: "/resident/pqrs", label: "PQRS" },
     { href: "/resident/profile", label: "Perfil" },
