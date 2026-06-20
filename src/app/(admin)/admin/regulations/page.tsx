@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HelpTip } from "@/components/shared/help-tip";
+import { CommitteeAgreementsTab } from "@/components/features/admin/regulations/committee-agreements-tab";
 import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
 import { useAuth } from "@/features/auth/auth-context";
@@ -282,6 +283,8 @@ export default function AdminRegulationsPage() {
   const pendingCount = totalActive - signedCount;
   const complianceRate = totalActive > 0 ? Math.round((signedCount / totalActive) * 100) : 0;
 
+  const [tab, setTab] = useState<"reglamento" | "acuerdos">("reglamento");
+
   // ── Upload ────────────────────────────────────────────────────────────────
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -335,24 +338,49 @@ export default function AdminRegulationsPage() {
           </div>
         </div>
 
-        <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <Button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading || !tenantId}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            {uploading ? "Subiendo…" : "Subir nuevo reglamento"}
-          </Button>
-        </div>
+        {tab === "reglamento" ? (
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || !tenantId}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              {uploading ? "Subiendo…" : "Subir nuevo reglamento"}
+            </Button>
+          </div>
+        ) : null}
       </div>
 
+      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 border-b border-[var(--slate-200)]">
+        {([
+          ["reglamento", "Reglamento"],
+          ["acuerdos", "Acuerdos de comité"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              tab === key
+                ? "border-[var(--brand-700)] text-[var(--brand-700)]"
+                : "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "reglamento" ? (
+        <>
       {/* ── Active regulation card ──────────────────────────────────────────── */}
       <Card>
         <div className="flex items-start justify-between gap-4">
@@ -468,6 +496,16 @@ export default function AdminRegulationsPage() {
           </p>
         </div>
       )}
+        </>
+      ) : null}
+
+      {tab === "acuerdos" ? (
+        <CommitteeAgreementsTab
+          tenantId={tenantId}
+          userId={user?.uid}
+          units={units.map((u) => ({ id: u.id, label: u.displayName ?? u.id }))}
+        />
+      ) : null}
     </div>
   );
 }
