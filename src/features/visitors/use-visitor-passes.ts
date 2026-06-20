@@ -316,6 +316,7 @@ export async function createVisitorPass(input: {
     tower: splitTowerUnit(input.unitLabel).tower,
     unit: splitTowerUnit(input.unitLabel).unit,
     date: input.date,
+    eventDate: input.date,
     scheduledTime: input.scheduledTime,
     status: "scheduled",
     checkInAt: null,

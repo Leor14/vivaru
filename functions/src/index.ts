@@ -1503,6 +1503,7 @@ export const createVisitorPass = onCall<CreateVisitorPassInput>(async (request) 
     tower: typeof data.tower === "string" && data.tower.trim().length > 0 ? data.tower.trim() : towerValue?.trim() || "-",
     unit: typeof data.unit === "string" && data.unit.trim().length > 0 ? data.unit.trim() : unitValue?.trim() || data.unitLabel,
     date: data.date,
+    eventDate: typeof data.date === "string" ? data.date.slice(0, 10) : data.date,
     scheduledTime: data.scheduledTime,
     status: "scheduled",
     checkInAt: null,

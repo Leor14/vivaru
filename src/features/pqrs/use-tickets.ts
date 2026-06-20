@@ -133,6 +133,7 @@ export async function createTicket(input: {
     status: "open",
     radicado: `PQRS-${Date.now().toString().slice(-6)}`,
     radicationDate: nowIso,
+    eventDate: nowIso.slice(0, 10),
     updatedAt: nowIso,
   });
 }

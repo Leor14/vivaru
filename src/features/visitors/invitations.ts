@@ -200,6 +200,7 @@ export async function createResidentInvitation(input: CreateInvitationInput) {
       tower: towerValue?.trim() || "-",
       unit: unitValue?.trim() || normalizedUnitLabel,
       date: input.startAt.toISOString().slice(0, 10),
+      eventDate: input.startAt.toISOString().slice(0, 10),
       scheduledTime: input.startAt.toISOString(),
       status: "scheduled",
       checkInAt: null,

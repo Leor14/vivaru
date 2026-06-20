@@ -109,6 +109,8 @@ export interface Ticket {
   status: "open" | "in_progress" | "resolved" | "responded" | "closed";
   priority?: "low" | "medium" | "high";
   radicationDate?: string;
+  /** Fecha canónica del evento (YYYY-MM-DD) para reportes/consultas por rango. Ver utils/event-date.ts */
+  eventDate?: string;
   createdAt?: string;
   updatedAt: string;
   residentId?: string;
@@ -175,6 +177,8 @@ export interface VisitorPass {
   tower: string;
   unit: string;
   date: string;
+  /** Fecha canónica del evento (YYYY-MM-DD) para reportes/consultas por rango. Ver utils/event-date.ts */
+  eventDate?: string;
   scheduledTime: string;
   status: "scheduled" | "inside" | "completed";
   checkInAt?: string;
