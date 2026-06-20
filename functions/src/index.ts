@@ -2036,6 +2036,47 @@ export const onPaymentVoucherCreated = onDocumentCreated("paymentVouchers/{vouch
   await transmitVoucher(db, event.params.voucherId, stubSriTransport);
 });
 
+// ── F4 · Notificaciones de publicaciones del admin ────────────────────────────
+
+// Reglamento nuevo: al subir un documento de categoría "reglamento" (el flujo de
+// carga lo deja activo), notifica a todos los residentes para que lo firmen.
+export const onRegulationDocumentCreated = onDocumentCreated("documents/{documentId}", async (event) => {
+  const data = event.data?.data() as { tenantId?: string; category?: string } | undefined;
+  if (!data?.tenantId || data.category !== "reglamento") return;
+
+  const residentUids = await listTenantUidsByRoles(data.tenantId, ["resident"]);
+  if (residentUids.length === 0) return;
+
+  const [override, conjunto] = await Promise.all([
+    getTenantNotificationOverride(data.tenantId, "regulation_new"),
+    getTenantName(data.tenantId),
+  ]);
+  await createNotifications(
+    buildResidentNotifications("regulation_new", data.tenantId, residentUids, { conjunto }, override),
+  );
+});
+
+// Encuesta nueva: las encuestas se crean en borrador y se publican por update;
+// notifica a los residentes al transicionar a "published". (El portal del
+// residente filtra la visibilidad por audiencia; aquí avisamos a todos.)
+export const onSurveyUpdated = onDocumentUpdated("surveys/{surveyId}", async (event) => {
+  const before = event.data?.before.data() as { status?: string } | undefined;
+  const after = event.data?.after.data() as { status?: string; tenantId?: string } | undefined;
+  if (!after?.tenantId) return;
+  if (before?.status === "published" || after.status !== "published") return;
+
+  const residentUids = await listTenantUidsByRoles(after.tenantId, ["resident"]);
+  if (residentUids.length === 0) return;
+
+  const [override, conjunto] = await Promise.all([
+    getTenantNotificationOverride(after.tenantId, "survey_new"),
+    getTenantName(after.tenantId),
+  ]);
+  await createNotifications(
+    buildResidentNotifications("survey_new", after.tenantId, residentUids, { conjunto }, override),
+  );
+});
+
 // Reenvío / reintento manual de la transmisión (admin del tenant o superadmin).
 export const retransmitVoucher = onCall<{ voucherId: string }>(async (request) => {
   const voucherId = request.data?.voucherId;
