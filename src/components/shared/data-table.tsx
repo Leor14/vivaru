@@ -1,5 +1,9 @@
+"use client";
+
 import type { ReactNode } from "react";
 
+import { TablePager } from "@/components/shared/table-pager";
+import { DEFAULT_PAGE_SIZE, usePagination } from "@/components/shared/use-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
 
@@ -26,6 +30,7 @@ export function DataTable<T>({
   tableMinWidthClassName,
   onRowClick,
   renderMobileRow,
+  pageSize = DEFAULT_PAGE_SIZE,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -46,8 +51,11 @@ export function DataTable<T>({
    * Actions are still handled by `renderActions` on the right.
    */
   renderMobileRow?: (row: T) => ReactNode;
+  /** Tamaño de página. La paginación aparece solo cuando hay más filas que esto. */
+  pageSize?: number;
 }) {
   const visibleMobileColumns = columns.filter((column) => !column.mobileHidden);
+  const { page, totalPages, total, start, hasPagination, pageItems, prev, next } = usePagination(rows, pageSize);
 
   return (
     <>
@@ -71,7 +79,7 @@ export function DataTable<T>({
         {!loading && !errorText && renderMobileRow ? (
           // ── Compact list rows ──────────────────────────────────────────────
           <div className="overflow-hidden rounded-xl border border-[var(--slate-200)]">
-            {rows.map((row) => (
+            {pageItems.map((row) => (
               <article
                 key={getRowKey(row)}
                 className={cn(
@@ -106,7 +114,7 @@ export function DataTable<T>({
         ) : null}
 
         {!loading && !errorText && !renderMobileRow
-          ? rows.map((row) => (
+          ? pageItems.map((row) => (
               // ── Default expanded card layout ───────────────────────────────
               <article
                 key={getRowKey(row)}
@@ -193,7 +201,7 @@ export function DataTable<T>({
             ) : null}
 
             {!loading && !errorText
-              ? rows.map((row) => (
+              ? pageItems.map((row) => (
                   <tr
                     key={getRowKey(row)}
                     className={cn(
@@ -218,6 +226,18 @@ export function DataTable<T>({
           </tbody>
         </table>
       </div>
+
+      {!loading && !errorText && hasPagination ? (
+        <TablePager
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          start={start}
+          pageSize={pageSize}
+          onPrev={prev}
+          onNext={next}
+        />
+      ) : null}
     </>
   );
 }
