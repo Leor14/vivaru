@@ -150,6 +150,15 @@ export default function AdminReportsPage() {
       ["Aprobadas", report.reservations.approved],
       ["Pendientes", report.reservations.pending],
       ["Canceladas", report.reservations.cancelled],
+      [],
+      ["ACUERDOS DE COMITÉ"],
+      ["Acuerdos del período", report.agreements.total],
+      ["De firma", report.agreements.forSignature],
+      ["Informativos", report.agreements.informative],
+      ["Firmas esperadas", report.agreements.expectedSignatures],
+      ["Firmas registradas", report.agreements.signed],
+      ["Firmas pendientes", report.agreements.pending],
+      ["% de firma", `${report.agreements.signatureRate}%`],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumenData), "Resumen");
 
@@ -517,6 +526,28 @@ export default function AdminReportsPage() {
               </section>
                 </>
               )}
+
+              {report.sectionLoading.agreements ? (
+                <SectionLoading />
+              ) : report.agreements.total > 0 ? (
+                <section>
+                  <SectionTitle>🤝 Acuerdos de comité</SectionTitle>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <KpiCard label="Acuerdos del período" value={report.agreements.total} />
+                    <KpiCard label="De firma" value={report.agreements.forSignature} />
+                    <KpiCard
+                      label="% de firma"
+                      value={`${report.agreements.signatureRate}%`}
+                      tone={report.agreements.signatureRate >= 80 ? "success" : "neutral"}
+                    />
+                    <KpiCard
+                      label="Firmas pendientes"
+                      value={report.agreements.pending}
+                      tone={report.agreements.pending > 0 ? "danger" : "neutral"}
+                    />
+                  </div>
+                </section>
+              ) : null}
 
             </div>
         </div>

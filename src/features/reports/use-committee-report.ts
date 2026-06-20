@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
+import type { CommitteeAgreement, CommitteeAgreementSignature } from "@/features/committee-agreements/types";
 import type { BillingStatement, LedgerEntry, PackageItem, Ticket, VisitorPass, Reservation } from "@/types/domain";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -91,6 +92,17 @@ export type CommitteeReport = {
     expenseByCategory: Array<{ category: string; label: string; amount: number }>;
   };
 
+  /** Acuerdos de comité del período (por sessionDate/eventDate). */
+  agreements: {
+    total: number;
+    forSignature: number;     // de firma (obligatoria + parcial)
+    informative: number;      // informativos
+    expectedSignatures: number;
+    signed: number;
+    pending: number;
+    signatureRate: number;    // % firmado sobre lo esperado
+  };
+
   /** Loading por sección, para render progresivo (cada una aparece al cargar). */
   sectionLoading: {
     billing: boolean;
@@ -99,6 +111,7 @@ export type CommitteeReport = {
     tickets: boolean;
     visitors: boolean;
     reservations: boolean;
+    agreements: boolean;
   };
 };
 
@@ -195,7 +208,8 @@ const EMPTY: CommitteeReport = {
   visitors: { total: 0, byWeek: [], insideNow: 0 },
   reservations: { total: 0, approved: 0, pending: 0, cancelled: 0, byAmenity: [] },
   financial: { totalIncome: 0, totalExpenses: 0, netResult: 0, fundBalance: 0, expenseByCategory: [] },
-  sectionLoading: { billing: true, financial: true, packages: true, tickets: true, visitors: true, reservations: true },
+  agreements: { total: 0, forSignature: 0, informative: 0, expectedSignatures: 0, signed: 0, pending: 0, signatureRate: 0 },
+  sectionLoading: { billing: true, financial: true, packages: true, tickets: true, visitors: true, reservations: true, agreements: true },
 };
 
 export function useCommitteeReport(tenantId: string | undefined, range: DateRange): CommitteeReport {
@@ -206,6 +220,9 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [visitorsInside, setVisitorsInside] = useState<VisitorPass[]>([]);
+  const [agreements, setAgreements] = useState<CommitteeAgreement[]>([]);
+  const [agreementSignatures, setAgreementSignatures] = useState<CommitteeAgreementSignature[]>([]);
+  const [units, setUnits] = useState<Array<{ id: string; status?: string }>>([]);
 
   const [loadingBilling, setLoadingBilling] = useState(true);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -214,6 +231,9 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [loadingLedger, setLoadingLedger] = useState(true);
   const [loadingVisitorsInside, setLoadingVisitorsInside] = useState(true);
+  const [loadingAgreements, setLoadingAgreements] = useState(true);
+  const [loadingAgreementSignatures, setLoadingAgreementSignatures] = useState(true);
+  const [loadingUnits, setLoadingUnits] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Lecturas que NO dependen del período (solo cambian con el tenant):
@@ -226,6 +246,8 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       setLoadingPackages(false);
       setLoadingLedger(false);
       setLoadingVisitorsInside(false);
+      setLoadingAgreementSignatures(false);
+      setLoadingUnits(false);
       return;
     }
 
@@ -256,6 +278,8 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     load<LedgerEntry>("ledgerEntries", { orderByField: "date", orderDirection: "desc" }, setLedger, setLoadingLedger);
     load<PackageItem>("packages", { orderByField: "arrivedAt", orderDirection: "desc" }, setPackages, setLoadingPackages);
     load<VisitorPass>("visitorPasses", { equals: [{ field: "status", value: "inside" }] }, setVisitorsInside, setLoadingVisitorsInside);
+    load<CommitteeAgreementSignature>("committee_agreement_signatures", undefined, setAgreementSignatures, setLoadingAgreementSignatures);
+    load<{ id: string; status?: string }>("units", undefined, setUnits, setLoadingUnits);
     return () => {
       cancelled = true;
     };
@@ -269,6 +293,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       setLoadingReservations(false);
       setLoadingVisitors(false);
       setLoadingTickets(false);
+      setLoadingAgreements(false);
       return;
     }
     const tid = tenantId;
@@ -302,6 +327,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     loadRanged<Reservation>("reservations", "date", setReservations, setLoadingReservations);
     loadRanged<VisitorPass>("visitorPasses", "eventDate", setVisitors, setLoadingVisitors);
     loadRanged<Ticket>("tickets", "eventDate", setTickets, setLoadingTickets);
+    loadRanged<CommitteeAgreement>("committee_agreements", "eventDate", setAgreements, setLoadingAgreements);
 
     return () => {
       cancelled = true;
@@ -310,7 +336,8 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
 
   const report = useMemo((): CommitteeReport => {
     const loading =
-      loadingBilling || loadingPackages || loadingTickets || loadingVisitors || loadingReservations || loadingLedger || loadingVisitorsInside;
+      loadingBilling || loadingPackages || loadingTickets || loadingVisitors || loadingReservations || loadingLedger || loadingVisitorsInside ||
+      loadingAgreements || loadingAgreementSignatures || loadingUnits;
     const { start, end } = range;
 
     // ── Billing ──────────────────────────────────────────────────────────────
@@ -451,6 +478,26 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       expenseByCategory: statement.expenseByCategory,
     };
 
+    // ── Acuerdos de comité ─────────────────────────────────────────────────────
+    // agreements ya viene limitado por rango de eventDate (período).
+    const activeUnitsCount = units.filter((u) => u.status === "active").length;
+    const forSignatureAgreements = agreements.filter((a) => a.signatureMode !== "informativo");
+    const forSignatureIds = new Set(forSignatureAgreements.map((a) => a.id));
+    const expectedSignatures = forSignatureAgreements.reduce(
+      (sum, a) => sum + (a.signerScope === "selected" ? (a.signerUnitIds?.length ?? 0) : activeUnitsCount),
+      0,
+    );
+    const agreementsSigned = agreementSignatures.filter((s) => forSignatureIds.has(s.agreementId)).length;
+    const agreementMetrics = {
+      total: agreements.length,
+      forSignature: forSignatureAgreements.length,
+      informative: agreements.length - forSignatureAgreements.length,
+      expectedSignatures,
+      signed: agreementsSigned,
+      pending: Math.max(expectedSignatures - agreementsSigned, 0),
+      signatureRate: expectedSignatures > 0 ? Math.round((agreementsSigned / expectedSignatures) * 100) : 0,
+    };
+
     return {
       loading,
       error,
@@ -460,6 +507,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       visitors: visitorMetrics,
       reservations: reservationMetrics,
       financial: financialMetrics,
+      agreements: agreementMetrics,
       sectionLoading: {
         billing: loadingBilling,
         financial: loadingBilling || loadingLedger,
@@ -467,10 +515,12 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
         tickets: loadingTickets,
         visitors: loadingVisitors,
         reservations: loadingReservations,
+        agreements: loadingAgreements || loadingAgreementSignatures || loadingUnits,
       },
     };
-  }, [billing, packages, tickets, visitors, visitorsInside, reservations, ledger, range, error,
-    loadingBilling, loadingPackages, loadingTickets, loadingVisitors, loadingReservations, loadingLedger, loadingVisitorsInside]);
+  }, [billing, packages, tickets, visitors, visitorsInside, reservations, ledger, agreements, agreementSignatures, units, range, error,
+    loadingBilling, loadingPackages, loadingTickets, loadingVisitors, loadingReservations, loadingLedger, loadingVisitorsInside,
+    loadingAgreements, loadingAgreementSignatures, loadingUnits]);
 
   if (!tenantId) return EMPTY;
   return report;
