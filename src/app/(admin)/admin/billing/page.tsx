@@ -33,6 +33,7 @@ import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { computeStatementStatus } from "@/features/billing/statement-status";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
 import { CuentasPorPagarTablero } from "@/components/features/finanzas/cuentas-por-pagar-tablero";
@@ -57,7 +58,6 @@ type UnitCollectionItem = {
 };
 
 type BillingStatusFilter = "all" | "paid" | "pending" | "overdue";
-type BillingStatus = BillingStatement["status"];
 
 function parseCurrency(value: string) {
   const cleaned = value.replace(/[^0-9-]/g, "");
@@ -68,13 +68,6 @@ function parseCurrency(value: string) {
 function formatCurrencyInput(value: string) {
   const parsed = parseCurrency(value);
   return parsed.toLocaleString("es-CO");
-}
-
-function computeStatus(balance: number, dueDate?: string): BillingStatus {
-  if (balance <= 0) return "paid";
-  const today = new Date().toISOString().slice(0, 10);
-  if (dueDate && dueDate < today) return "overdue";
-  return "pending";
 }
 
 function buildCsvRows(rows: Array<Record<string, string | number>>) {
@@ -302,7 +295,7 @@ export default function AdminBillingPage() {
       const rowAmount = typeof item.amount === "number" ? item.amount : (item.balance || 0) + (item.paymentAmount || 0);
       const rowPayment = item.paymentAmount || 0;
       const rowDueDate = item.dueDate || "";
-      const status = computeStatus(item.balance || 0, rowDueDate);
+      const status = computeStatementStatus(item.balance || 0, { dueDate: rowDueDate, period: item.period });
       return {
         ...item,
         amount: rowAmount,
@@ -851,7 +844,7 @@ export default function AdminBillingPage() {
       <Card className="soft-panel">
         <div className="flex items-center gap-2">
           <CardTitle>Crear nuevo cobro</CardTitle>
-          <HelpTip text="Registra aquí la cuota mensual de una unidad. Si el residente ya realizó un pago parcial, anótalo en el campo Abono desde el inicio. La Fecha de recaudo es la fecha límite de pago, no la fecha en que llegó el dinero. El estado se asigna automáticamente: saldo en cero queda Al día, saldo pendiente antes de la fecha límite queda Pendiente, y saldo pendiente con fecha vencida pasa a En mora. Ten presente que el sistema permite registrar más de un cobro para la misma unidad y mes." />
+          <HelpTip text="Registra aquí la cuota mensual de una unidad. Si el residente ya realizó un pago parcial, anótalo en el campo Abono desde el inicio. La Fecha de recaudo es la fecha límite de pago, no la fecha en que llegó el dinero. El estado se asigna automáticamente: saldo en cero queda Al día, saldo pendiente antes de la fecha límite queda Pendiente, y saldo pendiente con fecha vencida pasa a En mora. Si no registras una fecha límite, se usa el mes del cobro: un mes ya pasado con saldo pendiente queda En mora. Ten presente que el sistema permite registrar más de un cobro para la misma unidad y mes." />
         </div>
         <CardDescription className="mt-1">
           Registra cartera mensual por unidad con estructura financiera clara y trazable.
@@ -1050,7 +1043,7 @@ export default function AdminBillingPage() {
               </tr>
             ) : null}
             {filteredRows.map((item) => {
-              const status = computeStatus(item.balance, item.dueDate);
+              const status = computeStatementStatus(item.balance, { dueDate: item.dueDate, period: item.period });
               const isPaid = status === "paid";
               return (
               <tr key={item.id} className="border-b border-[var(--slate-100)]">

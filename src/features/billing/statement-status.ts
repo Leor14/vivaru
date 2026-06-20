@@ -1,0 +1,24 @@
+export type StatementStatus = "paid" | "pending" | "overdue";
+
+/**
+ * Estado de un estado de cuenta de cartera.
+ * - "paid": sin saldo.
+ * - "overdue" (En mora): saldo pendiente y vencido.
+ * - "pending": saldo pendiente aún no vencido.
+ *
+ * Si hay fecha de recaudo (`dueDate`) se usa esa para decidir el vencimiento.
+ * Si NO hay fecha, se usa el `period` (mes del cobro, "YYYY-MM"): un mes ya
+ * pasado con saldo queda en mora. Antes la mora exigía `dueDate`, así que los
+ * cobros registrados sin fecha quedaban como "pendiente" aunque debieran meses.
+ * `asOf` se inyecta en pruebas; por defecto usa hoy.
+ */
+export function computeStatementStatus(
+  balance: number,
+  opts: { dueDate?: string; period?: string; asOf?: string } = {},
+): StatementStatus {
+  if (balance <= 0) return "paid";
+  const today = opts.asOf ?? new Date().toISOString().slice(0, 10);
+  if (opts.dueDate) return opts.dueDate < today ? "overdue" : "pending";
+  if (opts.period && opts.period < today.slice(0, 7)) return "overdue";
+  return "pending";
+}

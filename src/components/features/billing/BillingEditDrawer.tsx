@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { computeStatementStatus } from "@/features/billing/statement-status";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
 export type BillingEditRecord = {
@@ -42,11 +43,9 @@ function parseCurrency(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function computeStatus(balance: number, dueDate?: string) {
-  if (balance <= 0) return "Al dia";
-  const today = new Date().toISOString().slice(0, 10);
-  if (dueDate && dueDate < today) return "En mora";
-  return "Pendiente";
+function computeStatus(balance: number, dueDate?: string, period?: string) {
+  const status = computeStatementStatus(balance, { dueDate, period });
+  return status === "paid" ? "Al dia" : status === "overdue" ? "En mora" : "Pendiente";
 }
 
 function logDebug(event: string, payload?: Record<string, unknown>) {
@@ -118,7 +117,7 @@ export function BillingEditDrawer({ open, record, saving, onClose, onDirtyChange
   const parsedAmount = useMemo(() => parseCurrency(amount), [amount]);
   const parsedPayment = useMemo(() => parseCurrency(paymentAmount), [paymentAmount]);
   const computedBalance = Math.max(parsedAmount - parsedPayment, 0);
-  const computedStatus = computeStatus(computedBalance, dueDate || undefined);
+  const computedStatus = computeStatus(computedBalance, dueDate || undefined, period);
   const isDirty =
     unitLabel.trim() !== initialValues.unitLabel ||
     period !== initialValues.period ||
