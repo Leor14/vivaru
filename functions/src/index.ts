@@ -9,6 +9,7 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, type AccountEmailVariant } from "./email";
+import type { NotificationType } from "./notification-catalog";
 
 initializeApp();
 
@@ -22,7 +23,7 @@ const callableCorsOrigins = [
   "http://localhost:3000",
 ];
 
-type NotificationType = "package" | "communication" | "reservation" | "visitor" | "ticket" | "system";
+// NotificationType vive en ./notification-catalog (fuente única).
 
 type NotificationInput = {
   userId: string;
@@ -1703,7 +1704,7 @@ export const onCommitteeAgreementUpdated = onDocumentUpdated("committee_agreemen
     residentUids.map((uid) => ({
       userId: uid,
       tenantId,
-      type: "communication" as const,
+      type: "regulation" as const,
       title: isInformativo ? "Nuevo acuerdo de comité" : "Acuerdo de comité por firmar",
       description: isInformativo
         ? `La administración publicó un acuerdo de comité${session}.`

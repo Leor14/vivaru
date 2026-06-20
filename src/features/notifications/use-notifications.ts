@@ -39,7 +39,7 @@ function toIsoDate(value: unknown) {
 }
 
 function mapNotification(id: string, data: DocumentData): UserNotification {
-  const allowedTypes = ["package", "communication", "reservation", "visitor", "ticket", "system"] as const;
+  const allowedTypes = ["package", "communication", "reservation", "visitor", "ticket", "system", "billing", "regulation", "survey"] as const;
   const rawType = typeof data.type === "string" ? data.type : "";
   const normalizedType = allowedTypes.includes(rawType as (typeof allowedTypes)[number])
     ? (rawType as (typeof allowedTypes)[number])

@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, CheckCheck, Dot, Loader2, MessageSquare, Package, ShieldCheck, Ticket, UserRoundCheck, type LucideIcon } from "lucide-react";
+import { Bell, CheckCheck, ClipboardList, Dot, Loader2, MessageSquare, Package, Receipt, ScrollText, ShieldCheck, Ticket, UserRoundCheck, type LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { useNotifications } from "@/features/notifications/use-notifications";
 
-type NotificationKind = "package" | "communication" | "reservation" | "visitor" | "ticket" | "system";
+type NotificationKind = "package" | "communication" | "reservation" | "visitor" | "ticket" | "system" | "billing" | "regulation" | "survey";
 
 const NOTIFICATION_TYPE_UI: Record<NotificationKind, { label: string; Icon: LucideIcon; chipClassName: string }> = {
   package: {
@@ -43,6 +43,21 @@ const NOTIFICATION_TYPE_UI: Record<NotificationKind, { label: string; Icon: Luci
     Icon: Bell,
     chipClassName: "bg-slate-100 text-slate-800",
   },
+  billing: {
+    label: "Cartera",
+    Icon: Receipt,
+    chipClassName: "bg-teal-100 text-teal-800",
+  },
+  regulation: {
+    label: "Reglamento",
+    Icon: ScrollText,
+    chipClassName: "bg-violet-100 text-violet-800",
+  },
+  survey: {
+    label: "Encuesta",
+    Icon: ClipboardList,
+    chipClassName: "bg-cyan-100 text-cyan-800",
+  },
 };
 
 function formatRelativeDate(value?: string) {
@@ -67,6 +82,9 @@ function buildFallbackDescription(type: NotificationKind) {
   if (type === "communication") return "Nueva comunicación";
   if (type === "visitor") return "Hay una novedad en visitantes.";
   if (type === "ticket") return "Se registró una novedad de PQRS.";
+  if (type === "billing") return "Tienes un movimiento en tu cartera.";
+  if (type === "regulation") return "Hay una novedad de reglamento.";
+  if (type === "survey") return "Hay una nueva encuesta disponible.";
   return "Tienes una nueva notificación.";
 }
 

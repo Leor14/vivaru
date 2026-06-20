@@ -17,9 +17,23 @@ export interface Tenant {
     primaryColor: string;
     accentColor: string;
   };
+  /** Overrides de copy de notificaciones por tenant (editor en Perfil). Vacío = default. */
+  notificationTemplates?: NotificationTemplates;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Override editable de una notificación. Cualquier campo vacío usa el default del catálogo. */
+export interface NotificationTemplateOverride {
+  title?: string;
+  body?: string;
+  emailSubject?: string;
+  emailBody?: string;
+  emailEnabled?: boolean;
+}
+
+/** Mapa por clave de notificación (ver catálogo) → override del tenant. */
+export type NotificationTemplates = Record<string, NotificationTemplateOverride>;
 
 export interface SessionUser {
   uid: string;
@@ -43,7 +57,7 @@ export interface UserNotification {
   id: string;
   userId: string;
   tenantId?: string;
-  type: "package" | "communication" | "reservation" | "visitor" | "ticket" | "system";
+  type: "package" | "communication" | "reservation" | "visitor" | "ticket" | "system" | "billing" | "regulation" | "survey";
   title: string;
   description: string;
   read: boolean;
