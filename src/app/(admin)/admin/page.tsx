@@ -46,6 +46,7 @@ import { usePackages } from "@/features/packages/use-packages";
 import { useTickets } from "@/features/pqrs/use-tickets";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import { useAgreementsComplianceSummary } from "@/features/committee-agreements/use-agreements-compliance-summary";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { formatUnitInline } from "@/lib/utils/unit";
 
@@ -250,6 +251,7 @@ export default function AdminDashboardPage() {
   const { items: tickets, loading: loadingTickets, error: ticketsError } = useTickets(tenantId);
   const { items: packages, loading: loadingPackages, error: packagesError } = usePackages(tenantId);
   const { items: visitorPasses, loading: loadingVisitors, error: visitorsError } = useVisitorPasses(tenantId);
+  const { pendingAgreements, pendingSignatures } = useAgreementsComplianceSummary(tenantId);
   const {
     items: communications,
     loading: loadingCommunications,
@@ -392,7 +394,7 @@ export default function AdminDashboardPage() {
   }, [openTickets, todayDate]);
 
   const urgentTickets = ticketsWithUrgency.filter((ticket) => ticket.urgent).length;
-  const alertCount = overdueStatementsCount + urgentTickets + pendingPackages.length;
+  const alertCount = overdueStatementsCount + urgentTickets + pendingPackages.length + pendingAgreements;
 
   const metricsError = reservationsError || ticketsError || packagesError || visitorsError;
 
@@ -421,6 +423,17 @@ export default function AdminDashboardPage() {
       tone: urgentTickets > 0 ? ("alert" as const) : ("neutral" as const),
       href: "/admin/pqrs",
       help: "Solicitudes sin estado resuelto o cerrado, al día de hoy. Los casos mayores a 15 días se marcan como urgentes.",
+    },
+    {
+      label: "Acuerdos sin firma",
+      value: String(pendingAgreements),
+      insight:
+        pendingSignatures > 0
+          ? `${pendingSignatures} firma${pendingSignatures !== 1 ? "s" : ""} pendiente${pendingSignatures !== 1 ? "s" : ""}`
+          : "Todo firmado",
+      tone: pendingAgreements > 0 ? ("alert" as const) : ("neutral" as const),
+      href: "/admin/regulations",
+      help: "Acuerdos de comité enviados a firma que aún tienen unidades sin firmar.",
     },
   ];
 
@@ -540,6 +553,16 @@ export default function AdminDashboardPage() {
           id: "alert-packages",
           primary: "Paquetes pendientes de entrega",
           secondary: `Tipo: Paquetes · Prioridad: Media · ${pendingPackages.length} paquete(s)`,
+          status: "pending",
+          dateLabel: todayIso,
+        });
+      }
+
+      if (pendingAgreements > 0) {
+        rows.push({
+          id: "alert-agreements",
+          primary: "Acuerdos de comité sin firma",
+          secondary: `Tipo: Reglamento · Prioridad: Media · ${pendingAgreements} acuerdo(s)`,
           status: "pending",
           dateLabel: todayIso,
         });
