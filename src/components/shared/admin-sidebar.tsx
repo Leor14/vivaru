@@ -244,7 +244,7 @@ export function AdminSidebar({
                           }
                         }}
                       >
-                        <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                        <Icon className={cn("nav-icon h-[18px] w-[18px] shrink-0", active && "nav-icon--active")} strokeWidth={1.75} />
                         <span className="truncate">{item.label}</span>
                         {badge ? <NavBadge badge={badge} /> : null}
                       </Link>

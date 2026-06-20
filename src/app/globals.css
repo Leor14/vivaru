@@ -523,6 +523,31 @@ h3 {
  * Hover lift gated behind pointer media query (touch triggers hover on tap).
  * box-shadow + transform are GPU-composited — safe to animate.
  * Stagger: key=categoryFilter on container forces re-mount → animation restart. */
+/* Íconos del menú de navegación: pop con rebote al seleccionar el item. */
+@keyframes nav-icon-select {
+  0% { transform: scale(1) translateY(0); }
+  35% { transform: scale(1.2) translateY(-2px); }
+  65% { transform: scale(0.94) translateY(0); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+.nav-icon {
+  transition: transform 180ms var(--ease-out);
+  will-change: transform;
+}
+
+.nav-icon--active {
+  animation: nav-icon-select 420ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-icon,
+  .nav-icon--active {
+    animation: none;
+    transition: none;
+  }
+}
+
 @keyframes serviceCardIn {
   to {
     opacity: 1;

@@ -78,7 +78,7 @@ export function RoleNav({ role, mobile = false, drawer = false }: { role: AppRol
                   color: active ? "#ffffff" : tone.mutedFg,
                 }}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={cn("nav-icon h-4 w-4", active && "nav-icon--active")} />
               </span>
               <span className="truncate">{item.label}</span>
             </Link>
@@ -113,7 +113,7 @@ export function RoleNav({ role, mobile = false, drawer = false }: { role: AppRol
                   color: active ? tone.activeFg : tone.mutedFg,
                 }}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={cn("nav-icon h-4 w-4", active && "nav-icon--active")} />
               </span>
               <span className="truncate">{item.label}</span>
             </Link>
@@ -147,7 +147,7 @@ export function RoleNav({ role, mobile = false, drawer = false }: { role: AppRol
                 color: active ? tone.activeFg : tone.mutedFg,
               }}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={cn("nav-icon h-4 w-4", active && "nav-icon--active")} />
             </span>
             {item.label}
           </Link>

@@ -79,7 +79,7 @@ export function GuardBottomNav() {
                 )}
               >
                 <Icon
-                  className="h-5 w-5 shrink-0"
+                  className={cn("nav-icon h-5 w-5 shrink-0", isActive && "nav-icon--active")}
                   strokeWidth={isActive ? 2.5 : 1.75}
                 />
               </span>
