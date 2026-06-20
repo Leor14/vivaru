@@ -68,6 +68,8 @@ export async function createBillingStatement(input: {
   paymentAmount: number;
   balance: number;
   dueDate?: string;
+  /** "import" agrupa el aviso al residente (lote); "manual" notifica individual. */
+  source?: "manual" | "import";
 }) {
   if (!input.unitId || !input.unitId.trim()) {
     throw new Error("unitId es obligatorio en createBillingStatement. No se permite derivar unitId desde unitLabel.");
@@ -81,6 +83,7 @@ export async function createBillingStatement(input: {
     paymentAmount: input.paymentAmount,
     balance: input.balance,
     dueDate: input.dueDate ?? null,
+    source: input.source ?? "manual",
     status: input.balance <= 0 ? "paid" : input.dueDate && input.dueDate < new Date().toISOString().slice(0, 10) ? "overdue" : "pending",
     lastPaymentAt: input.paymentAmount > 0 ? new Date().toISOString().slice(0, 10) : null,
   });

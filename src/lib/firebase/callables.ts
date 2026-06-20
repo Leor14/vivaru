@@ -85,6 +85,15 @@ export async function retransmitVoucherCallable(input: { voucherId: string }) {
   return executeCallable(callable, input, "No fue posible reintentar la transmisión al SRI.");
 }
 
+export async function notifyBillingBatchCallable(input: { tenantId: string; period: string; unitIds: string[] }) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { ok: boolean; notified: number }>(functions, "notifyBillingBatch");
+  return executeCallable(callable, input, "No fue posible notificar a los residentes del lote de cartera.");
+}
+
 export async function confirmPackageReceiptCallable(input: ConfirmPackageReceiptInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

@@ -9,7 +9,12 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, type AccountEmailVariant } from "./email";
-import type { NotificationType } from "./notification-catalog";
+import {
+  resolveNotificationCopy,
+  type NotificationKey,
+  type NotificationOverride,
+  type NotificationType,
+} from "./notification-catalog";
 
 initializeApp();
 
@@ -284,6 +289,59 @@ async function createNotifications(inputs: NotificationInput[]) {
   }
 
   await batch.commit();
+}
+
+// ── Resolución de copy de notificaciones (overrides por tenant) ───────────────
+
+/** Lee el override de una notificación del tenant (tenantSettings.notificationTemplates). */
+async function getTenantNotificationOverride(
+  tenantId: string,
+  key: NotificationKey,
+): Promise<NotificationOverride | undefined> {
+  const snap = await db.collection("tenantSettings").doc(tenantId).get();
+  const templates = snap.exists
+    ? (snap.data()?.notificationTemplates as Record<string, NotificationOverride> | undefined)
+    : undefined;
+  return templates?.[key];
+}
+
+/** Nombre del conjunto (variable {conjunto}). */
+async function getTenantName(tenantId: string): Promise<string> {
+  const snap = await db.collection("tenants").doc(tenantId).get();
+  return (snap.exists ? (snap.data()?.name as string | undefined) : undefined) ?? "";
+}
+
+/** Formatea un monto entero con separadores es-CO, con prefijo "$". */
+function formatMoney(value: number): string {
+  return `$${Math.round(value).toLocaleString("es-CO")}`;
+}
+
+/** "2026-06-20" → "junio 2026" (variable {período} de recibos). */
+function formatPeriodFromDate(value: string | undefined): string {
+  if (!value) return "";
+  const d = new Date(`${value.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return "";
+  const label = d.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** Construye NotificationInput[] in-app para una lista de residentes usando el resolver. */
+function buildResidentNotifications(
+  key: NotificationKey,
+  tenantId: string,
+  residentUids: string[],
+  vars: Record<string, string>,
+  override: NotificationOverride | undefined,
+): NotificationInput[] {
+  const copy = resolveNotificationCopy(key, override, vars);
+  return residentUids.map((uid) => ({
+    userId: uid,
+    tenantId,
+    type: copy.type,
+    title: copy.title,
+    description: copy.body,
+    link: copy.link,
+  }));
 }
 
 function isTodayDateString(value: string | undefined) {
@@ -1773,6 +1831,70 @@ export const onTicketCreated = onDocumentCreated("tickets/{ticketId}", async (ev
   ]);
 });
 
+// ── F2 · Notificaciones de cartera al residente ───────────────────────────────
+
+// Cobro nuevo individual. Los cobros de una importación masiva (source="import")
+// se agrupan en un solo aviso vía el callable notifyBillingBatch.
+export const onBillingStatementCreated = onDocumentCreated("billingStatements/{statementId}", async (event) => {
+  const data = event.data?.data() as
+    | {
+        tenantId?: string;
+        unitId?: string;
+        unitLabel?: string;
+        period?: string;
+        amount?: number;
+        balance?: number;
+        source?: string;
+      }
+    | undefined;
+  if (!data?.tenantId || !data?.unitId) return;
+  if (data.source === "import") return; // el lote lo agrupa el callable.
+  if ((data.balance ?? 0) <= 0) return; // sin saldo por cobrar, no se notifica.
+
+  const residentUids = await listResidentUidsByUnit(data.tenantId, data.unitId);
+  if (residentUids.length === 0) return;
+
+  const [override, conjunto] = await Promise.all([
+    getTenantNotificationOverride(data.tenantId, "billing_new"),
+    getTenantName(data.tenantId),
+  ]);
+  const vars = {
+    período: data.period ?? "",
+    monto: formatMoney(data.amount ?? data.balance ?? 0),
+    unidad: data.unitLabel ?? "",
+    conjunto,
+  };
+  await createNotifications(buildResidentNotifications("billing_new", data.tenantId, residentUids, vars, override));
+});
+
+// Aviso agrupado tras una importación masiva de cartera: 1 notificación por
+// residente de las unidades afectadas (lo invoca el front al terminar el import).
+export const notifyBillingBatch = onCall<{ tenantId: string; period: string; unitIds: string[] }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const tenantId = request.data?.tenantId;
+    const period = request.data?.period ?? "";
+    const unitIds = request.data?.unitIds ?? [];
+    if (!tenantId || !Array.isArray(unitIds) || unitIds.length === 0) {
+      throw new HttpsError("invalid-argument", "tenantId y unitIds son requeridos.");
+    }
+    await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+
+    const [override, conjunto] = await Promise.all([
+      getTenantNotificationOverride(tenantId, "billing_batch"),
+      getTenantName(tenantId),
+    ]);
+    const lists = await Promise.all(unitIds.map((unitId) => listResidentUidsByUnit(tenantId, unitId)));
+    const residentUids = Array.from(new Set(lists.flat()));
+    if (residentUids.length === 0) return { ok: true, notified: 0 };
+
+    await createNotifications(
+      buildResidentNotifications("billing_batch", tenantId, residentUids, { período: period, conjunto }, override),
+    );
+    return { ok: true, notified: residentUids.length };
+  },
+);
+
 // Runs every day at 07:00 UTC (02:00 Colombia)
 export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
   const now = new Date();
@@ -1803,6 +1925,30 @@ export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
     updated += chunk.length;
   }
 
+  // Notifica la mora a los residentes afectados, agrupado por tenant (dedup unidad).
+  const overdueByTenant = new Map<string, Map<string, string>>(); // tenantId -> (unitId -> unitLabel)
+  for (const doc of docs) {
+    const d = doc.data() as { tenantId?: string; unitId?: string; unitLabel?: string };
+    if (!d.tenantId || !d.unitId) continue;
+    const units = overdueByTenant.get(d.tenantId) ?? new Map<string, string>();
+    units.set(d.unitId, d.unitLabel ?? "");
+    overdueByTenant.set(d.tenantId, units);
+  }
+  for (const [tenantId, units] of overdueByTenant) {
+    const [override, conjunto] = await Promise.all([
+      getTenantNotificationOverride(tenantId, "billing_overdue"),
+      getTenantName(tenantId),
+    ]);
+    const notifications: NotificationInput[] = [];
+    for (const [unitId, unitLabel] of units) {
+      const residentUids = await listResidentUidsByUnit(tenantId, unitId);
+      notifications.push(
+        ...buildResidentNotifications("billing_overdue", tenantId, residentUids, { unidad: unitLabel, conjunto }, override),
+      );
+    }
+    await createNotifications(notifications);
+  }
+
   console.log(`[updateOverdueStatements] Marked ${updated} statement(s) as overdue.`);
 });
 
@@ -1811,7 +1957,30 @@ export const updateOverdueStatements = onSchedule("0 7 * * *", async () => {
 // El transporte real (firma + endpoint SRI) se implementa en G3; aquí usa stub.
 export const onPaymentVoucherCreated = onDocumentCreated("paymentVouchers/{voucherId}", async (event) => {
   const data = event.data?.data();
-  if (!data || data.issuerCountry !== "EC" || data.fiscalStatus !== "pending") return;
+  if (!data) return;
+
+  // Recibo disponible: notifica al residente de la unidad pagadora (cualquier país).
+  if (data.tenantId && data.payerUnitId) {
+    const residentUids = await listResidentUidsByUnit(data.tenantId, data.payerUnitId);
+    if (residentUids.length > 0) {
+      const [override, conjunto] = await Promise.all([
+        getTenantNotificationOverride(data.tenantId, "billing_receipt"),
+        getTenantName(data.tenantId),
+      ]);
+      await createNotifications(
+        buildResidentNotifications(
+          "billing_receipt",
+          data.tenantId,
+          residentUids,
+          { período: formatPeriodFromDate(data.issueDate), conjunto },
+          override,
+        ),
+      );
+    }
+  }
+
+  // Transmisión al SRI (Ecuador) — comportamiento existente.
+  if (data.issuerCountry !== "EC" || data.fiscalStatus !== "pending") return;
   await transmitVoucher(db, event.params.voucherId, stubSriTransport);
 });
 

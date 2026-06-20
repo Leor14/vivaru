@@ -35,6 +35,7 @@ import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { notifyBillingBatchCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
@@ -607,6 +608,8 @@ export default function AdminBillingPage() {
       let successCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
+      // Unidades importadas con saldo, agrupadas por período (para el aviso agrupado).
+      const importedByPeriod = new Map<string, Set<string>>();
 
       for (const row of rows) {
         const unitLabelRaw = String(row["unitLabel"] ?? "").trim();
@@ -643,8 +646,14 @@ export default function AdminBillingPage() {
             paymentAmount: safePayment,
             balance,
             dueDate,
+            source: "import",
           });
           successCount += 1;
+          if (balance > 0) {
+            const set = importedByPeriod.get(period) ?? new Set<string>();
+            set.add(matchedUnit.id);
+            importedByPeriod.set(period, set);
+          }
         } catch (rowErr) {
           errorCount += 1;
           errors.push(`Error al guardar "${unitLabelRaw}" ${period}`);
@@ -658,6 +667,15 @@ export default function AdminBillingPage() {
       if (errorCount > 0) {
         console.warn("[billing import] errores:", errors);
         toast.error(`${errorCount} fila(s) con error. Revisa la consola para detalles.`);
+      }
+
+      // Aviso agrupado a los residentes (1 por unidad con saldo, por período).
+      for (const [period, unitIds] of importedByPeriod) {
+        try {
+          await notifyBillingBatchCallable({ tenantId: user.tenantId, period, unitIds: Array.from(unitIds) });
+        } catch (notifyErr) {
+          console.error("[billing import] notify error", notifyErr);
+        }
       }
     } catch (err) {
       console.error("[billing import] parse error", err);
