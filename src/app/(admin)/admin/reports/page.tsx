@@ -117,6 +117,12 @@ export default function AdminReportsPage() {
     const resumenData = [
       ["Reporte de Comité — " + periodLabel],
       [],
+      ["RESUMEN FINANCIERO"],
+      ["Ingresos del período", report.financial.totalIncome],
+      ["Egresos del período", report.financial.totalExpenses],
+      ["Resultado neto", report.financial.netResult],
+      ["Saldo de fondos", report.financial.fundBalance],
+      [],
       ["CARTERA"],
       ["Cobrado en período", report.billing.totalCollected],
       ["Total vencido", report.billing.totalOverdue],
@@ -146,6 +152,13 @@ export default function AdminReportsPage() {
       ["Canceladas", report.reservations.cancelled],
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumenData), "Resumen");
+
+    // Egresos por categoría sheet
+    if (report.financial.expenseByCategory.length > 0) {
+      const finData = [["Categoría", "Egreso"],
+        ...report.financial.expenseByCategory.map((c) => [c.label, c.amount])];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(finData), "Egresos");
+    }
 
     // Cartera vencida sheet
     if (report.billing.overdueUnits.length > 0) {

@@ -255,12 +255,42 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     load<PackageItem>("packages", { orderByField: "arrivedAt", orderDirection: "desc" }, setPackages, setLoadingPackages);
     load<Ticket>("tickets", undefined, setTickets, setLoadingTickets);
     load<VisitorPass>("visitorPasses", { orderByField: "date", orderDirection: "desc" }, setVisitors, setLoadingVisitors);
-    load<Reservation>("reservations", { orderByField: "date", orderDirection: "desc" }, setReservations, setLoadingReservations);
-
     return () => {
       cancelled = true;
     };
   }, [tenantId]);
+
+  // reservations.date es requerido y tiene índice (tenantId, date): se limita por
+  // rango server-side (no lee toda la historia), así que se re-consulta cuando
+  // cambia el período.
+  useEffect(() => {
+    if (!tenantId) {
+      setLoadingReservations(false);
+      return;
+    }
+    const tid = tenantId;
+    let cancelled = false;
+    setLoadingReservations(true);
+    fetchTenantCollection<Reservation>("reservations", tid, {
+      orderByField: "date",
+      orderDirection: "desc",
+      range: { field: "date", start: range.start, end: range.end },
+    })
+      .then((items) => {
+        if (cancelled) return;
+        setReservations(items);
+        setLoadingReservations(false);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        console.error("[committee-report][reservations]", e);
+        setError("No fue posible cargar parte del reporte.");
+        setLoadingReservations(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, range.start, range.end]);
 
   const report = useMemo((): CommitteeReport => {
     const loading = loadingBilling || loadingPackages || loadingTickets || loadingVisitors || loadingReservations || loadingLedger;

@@ -89,6 +89,12 @@ export async function fetchTenantCollection<T extends { id: string }>(
     orderByField?: string;
     orderDirection?: "asc" | "desc";
     equals?: Array<{ field: string; value: string }>;
+    /**
+     * Filtro por rango de fecha server-side (reduce documentos leídos). El campo
+     * debe coincidir con orderByField y estar poblado consistentemente en todos
+     * los documentos, o se perderían registros sin ese campo.
+     */
+    range?: { field: string; start: string; end: string };
   },
 ): Promise<T[]> {
   if (!db) return [];
@@ -98,6 +104,10 @@ export async function fetchTenantCollection<T extends { id: string }>(
     for (const filter of options.equals) {
       constraints.push(where(filter.field, "==", filter.value));
     }
+  }
+  if (options?.range) {
+    constraints.push(where(options.range.field, ">=", options.range.start));
+    constraints.push(where(options.range.field, "<=", options.range.end));
   }
   if (options?.orderByField) {
     constraints.push(orderBy(options.orderByField, options.orderDirection ?? "desc"));
