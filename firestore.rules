@@ -637,5 +637,28 @@ service cloud.firestore {
         request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
       allow update, delete: if false;
     }
+
+    match /committee_agreements/{docId} {
+      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
+    match /committee_agreement_signatures/{docId} {
+      // Admins/superadmins leen todas las firmas del tenant; el residente solo la de su unidad.
+      allow read: if signedIn() && (
+        resource == null ||
+        (resource.data.tenantId is string && tenantAdminOrSuper(resource.data.tenantId)) ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      // El residente crea solo la firma de su unidad (write-once; update/delete denegados).
+      allow create: if signedIn() &&
+        residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
+        request.resource.data.tenantId is string &&
+        request.resource.data.unitId is string &&
+        request.resource.data.signedBy == request.auth.uid &&
+        request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
+      allow update, delete: if false;
+    }
   }
 }
