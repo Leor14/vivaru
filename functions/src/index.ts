@@ -1669,6 +1669,50 @@ export const onReservationUpdated = onDocumentUpdated("reservations/{reservation
   ]);
 });
 
+// Notifica a los residentes en alcance cuando un acuerdo de comité se manda a
+// firma / se publica (transición a "enviado").
+export const onCommitteeAgreementUpdated = onDocumentUpdated("committee_agreements/{agreementId}", async (event) => {
+  const before = event.data?.before.data() as { status?: string } | undefined;
+  const after = event.data?.after.data() as
+    | {
+        status?: string;
+        tenantId?: string;
+        sessionDate?: string;
+        signatureMode?: string;
+        signerScope?: string;
+        signerUnitIds?: string[];
+      }
+    | undefined;
+  if (!after?.tenantId) return;
+  // Solo al transicionar a "enviado" (no en otras actualizaciones).
+  if (before?.status === "enviado" || after.status !== "enviado") return;
+
+  const tenantId = after.tenantId;
+  const isInformativo = after.signatureMode === "informativo";
+
+  let residentUids: string[];
+  if (after.signerScope === "selected" && Array.isArray(after.signerUnitIds) && after.signerUnitIds.length > 0) {
+    const lists = await Promise.all(after.signerUnitIds.map((unitId) => listResidentUidsByUnit(tenantId, unitId)));
+    residentUids = Array.from(new Set(lists.flat()));
+  } else {
+    residentUids = await listTenantUidsByRoles(tenantId, ["resident"]);
+  }
+
+  const session = after.sessionDate ? ` (sesión del ${after.sessionDate})` : "";
+  await createNotifications(
+    residentUids.map((uid) => ({
+      userId: uid,
+      tenantId,
+      type: "communication" as const,
+      title: isInformativo ? "Nuevo acuerdo de comité" : "Acuerdo de comité por firmar",
+      description: isInformativo
+        ? `La administración publicó un acuerdo de comité${session}.`
+        : `Tienes un acuerdo de comité por firmar${session}.`,
+      link: "/resident/agreements",
+    })),
+  );
+});
+
 export const onVisitorPassCreated = onDocumentCreated("visitorPasses/{visitorPassId}", async (event) => {
   const data = event.data?.data() as { tenantId?: string; visitorName?: string; date?: string; unitLabel?: string } | undefined;
   if (!data?.tenantId) return;
