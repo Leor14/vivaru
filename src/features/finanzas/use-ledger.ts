@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
@@ -27,6 +28,39 @@ export function watchLedger(
       onError,
     ) ?? (() => {})
   );
+}
+
+/**
+ * Hook de conveniencia: suscribe el libro del tenant y expone los asientos.
+ * Permite que un tablero (p. ej. Liquidez) traiga sus propios datos sin que el
+ * contenedor tenga que cablearlos. Mismo patrón que la página de Libro y fondos.
+ */
+export function useLedgerEntries(tenantId?: string) {
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
+    const unsub = watchLedger(
+      tenantId,
+      (data) => {
+        setEntries(data);
+        setError(null);
+        setLoading(false);
+      },
+      (message) => {
+        setError(message);
+        setLoading(false);
+      },
+    );
+    return () => unsub();
+  }, [tenantId]);
+
+  return { entries, loading, error };
 }
 
 export async function createManualLedgerEntry(

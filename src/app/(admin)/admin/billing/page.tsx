@@ -35,6 +35,7 @@ import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
+import { LiquidezTablero } from "@/components/features/finanzas/liquidez-tablero";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { Dialog } from "@/components/ui/dialog";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
@@ -365,6 +366,11 @@ export default function AdminBillingPage() {
         collectionRate: item.totalCharged > 0 ? (item.totalCollected / item.totalCharged) * 100 : 0,
       })),
     [chartTrend],
+  );
+
+  const cuotaIncome = useMemo(
+    () => items.reduce((sum, item) => sum + (item.paymentAmount ?? 0), 0),
+    [items],
   );
 
   const filteredRows = useMemo(() => {
@@ -787,6 +793,13 @@ export default function AdminBillingPage() {
           </div>
         )}
       </ChartContainer>
+
+      <LiquidezTablero
+        tenantId={user?.tenantId}
+        cuotaIncome={cuotaIncome}
+        formatAmount={formatAmount}
+        formatAmountCompact={formatAmountCompact}
+      />
 
       <PaymentReceiptsReviewPanel
         tenantId={user?.tenantId}
