@@ -281,6 +281,7 @@ export default function AdminPackagesPage() {
           pageSize={pager.pageSize}
           onPrev={pager.prev}
           onNext={pager.next}
+          onPageSizeChange={pager.setPageSize}
         />
       ) : null}
     </Card>

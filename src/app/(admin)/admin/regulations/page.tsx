@@ -136,6 +136,7 @@ function SignaturesTable({
           pageSize={pager.pageSize}
           onPrev={pager.prev}
           onNext={pager.next}
+          onPageSizeChange={pager.setPageSize}
         />
       ) : null}
     </div>
@@ -214,6 +215,7 @@ function PendingUnitsTable({
           pageSize={pager.pageSize}
           onPrev={pager.prev}
           onNext={pager.next}
+          onPageSizeChange={pager.setPageSize}
         />
       ) : null}
     </div>

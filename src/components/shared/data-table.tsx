@@ -55,7 +55,18 @@ export function DataTable<T>({
   pageSize?: number;
 }) {
   const visibleMobileColumns = columns.filter((column) => !column.mobileHidden);
-  const { page, totalPages, total, start, hasPagination, pageItems, prev, next } = usePagination(rows, pageSize);
+  const {
+    page,
+    totalPages,
+    total,
+    start,
+    hasPagination,
+    pageItems,
+    prev,
+    next,
+    pageSize: currentPageSize,
+    setPageSize,
+  } = usePagination(rows, pageSize);
 
   return (
     <>
@@ -233,9 +244,10 @@ export function DataTable<T>({
           totalPages={totalPages}
           total={total}
           start={start}
-          pageSize={pageSize}
+          pageSize={currentPageSize}
           onPrev={prev}
           onNext={next}
+          onPageSizeChange={setPageSize}
         />
       ) : null}
     </>

@@ -16,6 +16,8 @@ import {
 import * as XLSX from "xlsx";
 import { BarChart2, Download, FileSpreadsheet, Printer } from "lucide-react";
 
+import { TablePager } from "@/components/shared/table-pager";
+import { usePagination } from "@/components/shared/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
@@ -94,6 +96,7 @@ export default function AdminReportsPage() {
 
   const report = useCommitteeReport(user?.tenantId, range);
   const periodLabel = useMemo(() => formatPeriodLabel(range), [range]);
+  const overduePager = usePagination(report?.billing.overdueUnits ?? []);
   const printRef = useRef<HTMLDivElement>(null);
 
   // ── Excel export ─────────────────────────────────────────────────────────────
@@ -303,7 +306,7 @@ export default function AdminReportsPage() {
                 {report.billing.overdueUnits.length > 0 ? (
                   <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
                     <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Unidades con saldo vencido (top 10)</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Unidades con saldo vencido</p>
                     </div>
                     <table className="w-full text-sm">
                       <thead>
@@ -314,7 +317,7 @@ export default function AdminReportsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {report.billing.overdueUnits.slice(0, 10).map((u) => (
+                        {overduePager.pageItems.map((u) => (
                           <tr key={u.unitId} className="border-b border-[var(--slate-50)] last:border-0">
                             <td className="px-4 py-2 text-[var(--slate-800)]">{u.unitLabel}</td>
                             <td className="px-4 py-2 text-right font-medium text-[var(--danger-700)]">{formatCurrency(u.balance)}</td>
@@ -323,6 +326,20 @@ export default function AdminReportsPage() {
                         ))}
                       </tbody>
                     </table>
+                    {overduePager.hasPagination ? (
+                      <div className="px-4 pb-3">
+                        <TablePager
+                          page={overduePager.page}
+                          totalPages={overduePager.totalPages}
+                          total={overduePager.total}
+                          start={overduePager.start}
+                          pageSize={overduePager.pageSize}
+                          onPrev={overduePager.prev}
+                          onNext={overduePager.next}
+                          onPageSizeChange={overduePager.setPageSize}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-emerald-700">✓ Sin unidades con saldo vencido en este período.</p>

@@ -1145,6 +1145,7 @@ export default function AdminBillingPage() {
           pageSize={billingPager.pageSize}
           onPrev={billingPager.prev}
           onNext={billingPager.next}
+          onPageSizeChange={billingPager.setPageSize}
         />
       ) : null}
       </Card>
