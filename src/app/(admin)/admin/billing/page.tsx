@@ -179,6 +179,19 @@ export default function AdminBillingPage() {
   const [dueDate, setDueDate] = useState("");
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
   const [periodMonths, setPeriodMonths] = useState(3);
+
+  // Persiste el período de análisis de los tableros entre visitas.
+  useEffect(() => {
+    const stored = Number(window.localStorage.getItem("vivaru:cartera:period-months"));
+    if (Number.isInteger(stored) && stored >= 1 && stored <= 24) setPeriodMonths(stored);
+  }, []);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("vivaru:cartera:period-months", String(periodMonths));
+    } catch {
+      // localStorage no disponible: no persiste, sin romper.
+    }
+  }, [periodMonths]);
   const [fromPeriod, setFromPeriod] = useState("");
   const [toPeriod, setToPeriod] = useState("");
   const [statusFilter, setStatusFilter] = useState<BillingStatusFilter>("all");

@@ -1,6 +1,23 @@
 import type { BillingStatement, Expense } from "@/types/domain";
 
+import { granularityFor } from "./fund-coverage";
 import { addDaysIso } from "./payables";
+
+/**
+ * Horizontes de proyección (en días) según el período: la granularidad escala
+ * con el período (semanal → quincenal → mensual) y se topa en 6 checkpoints para
+ * no saturar el gráfico de barras agrupadas. P. ej. 1 mes → [7,14,21,28];
+ * 3 meses → [15..90]; 12 meses → [60..360].
+ */
+export function projectionCheckpoints(periodMonths: number): number[] {
+  const g = granularityFor(periodMonths);
+  const spanDays = g.unit === "week" ? 7 : g.unit === "fortnight" ? 15 : 30;
+  const step = Math.max(1, Math.ceil(g.count / 6));
+  const days: number[] = [];
+  for (let i = step; i < g.count; i += step) days.push(i * spanDays);
+  days.push(g.count * spanDays);
+  return days;
+}
 
 /**
  * Proyección de flujo de caja: cruza el ingreso esperado de Cartera (saldos por

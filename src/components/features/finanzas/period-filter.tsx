@@ -40,19 +40,22 @@ export function PeriodFilter({
 }) {
   const isPreset = options.some((o) => o.months === value);
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(String(value));
+
+  const draftNum = Number(draft);
+  const draftValid = Number.isInteger(draftNum) && draftNum >= MIN_MONTHS && draftNum <= MAX_MONTHS;
 
   function selectPreset(months: number) {
     onChange(months);
     setOpen(false);
   }
   function toggleCustom() {
-    setDraft(value);
+    setDraft(String(value));
     setOpen((prev) => !prev);
   }
   function applyCustom() {
-    const n = Math.max(MIN_MONTHS, Math.min(MAX_MONTHS, Math.round(Number(draft) || MIN_MONTHS)));
-    onChange(n);
+    if (!draftValid) return;
+    onChange(draftNum);
     setOpen(false);
   }
 
@@ -88,25 +91,31 @@ export function PeriodFilter({
       </div>
 
       {open ? (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2">
           <label className="flex items-center gap-2 text-sm text-[var(--slate-600)]">
             Meses
             <input
               type="number"
               min={MIN_MONTHS}
               max={MAX_MONTHS}
+              step={1}
               value={draft}
-              onChange={(e) => setDraft(Number(e.target.value))}
+              onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") applyCustom();
               }}
+              aria-invalid={!draftValid}
               className="h-8 w-16 rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm"
             />
           </label>
+          <span className={cn("text-xs", draftValid ? "text-[var(--slate-400)]" : "text-[var(--danger-700)]")}>
+            {draftValid ? `${MIN_MONTHS}–${MAX_MONTHS} meses` : `Ingresa un entero entre ${MIN_MONTHS} y ${MAX_MONTHS}`}
+          </span>
           <button
             type="button"
             onClick={applyCustom}
-            className="rounded-lg border border-[var(--brand-200)] bg-[var(--brand-50)] px-3 py-1 text-sm font-medium text-[var(--brand-700)] transition-colors hover:bg-[var(--brand-200)]/40"
+            disabled={!draftValid}
+            className="rounded-lg border border-[var(--brand-200)] bg-[var(--brand-50)] px-3 py-1 text-sm font-medium text-[var(--brand-700)] transition-colors hover:bg-[var(--brand-200)]/40 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Aplicar
           </button>

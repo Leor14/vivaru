@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
 import { StatTile, type StatTone } from "@/components/features/finanzas/stat-tile";
 import { chartAxis, chartBar, chartColors, chartGrid, chartMargin } from "@/features/finanzas/chart-theme";
-import { projectCashFlow } from "@/features/finanzas/cashflow-projection";
+import { projectCashFlow, projectionCheckpoints } from "@/features/finanzas/cashflow-projection";
 import { useExpenses } from "@/features/finanzas/use-expenses";
 import type { BillingStatement } from "@/types/domain";
 
@@ -14,7 +14,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 /**
  * Tablero "Flujo de caja proyectado": cruza el ingreso esperado de Cartera
  * (saldos por cobrar que vencen en el horizonte) con las salidas esperadas de
- * Egresos, a 30 y 60 días. Recibe los estados de cuenta del padre y trae sus
+ * Egresos, con horizontes según el período. Recibe los estados de cuenta y trae sus
  * propios egresos. Mismos primitivos de la familia.
  */
 export function FlujoCajaTablero({
@@ -31,15 +31,13 @@ export function FlujoCajaTablero({
   formatAmountCompact: (value: number) => string;
 }) {
   const { expenses } = useExpenses(tenantId);
-  // Período corto (1 mes) → checkpoints semanales; períodos largos → 1 mes vs período.
-  const weekly = periodMonths <= 1;
-  const farDays = periodMonths * 30;
-  const horizons = weekly ? [7, 14, 21, 28] : farDays > 30 ? [30, farDays] : [30];
+  // Granularidad de la proyección según el período (semanal/quincenal/mensual).
+  const horizons = projectionCheckpoints(periodMonths);
   const proj = projectCashFlow(statements, expenses, { asOf: todayIso(), horizons });
 
   const monthsLabel = (m: number) => `${m} ${m === 1 ? "mes" : "meses"}`;
   const horizonLabel = (days: number) =>
-    weekly ? `${Math.round(days / 7)} sem` : monthsLabel(Math.round(days / 30));
+    days % 30 === 0 ? monthsLabel(days / 30) : days % 7 === 0 ? `${days / 7} sem` : `${days} d`;
   const headline = proj.horizons[proj.horizons.length - 1];
   const periodLabel = horizonLabel(headline.horizonDays);
   const chartRows = proj.horizons.map((h) => ({

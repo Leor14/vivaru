@@ -42,6 +42,11 @@ export function TableroCarousel({
   const go = (target: number) => setIndex(Math.max(0, Math.min(count - 1, target)));
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
+    // No iniciar arrastre si el gesto empieza sobre un control interactivo (p. ej.
+    // el botón de ayuda "?"): la captura de puntero suprimiría su clic.
+    if ((e.target as HTMLElement).closest("button, a, input, select, textarea, [role='button']")) {
+      return;
+    }
     startX.current = e.clientX;
     setDragging(true);
     e.currentTarget.setPointerCapture?.(e.pointerId);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { projectCashFlow } from "@/features/finanzas/cashflow-projection";
+import { projectCashFlow, projectionCheckpoints } from "@/features/finanzas/cashflow-projection";
 import { summarizePayables } from "@/features/finanzas/payables";
 import type { BillingStatement, Expense } from "@/types/domain";
 
@@ -48,5 +48,13 @@ describe("projectCashFlow", () => {
     const res = projectCashFlow(statements, expenses, { asOf: "2026-06-19", horizons: [30, 60] });
     expect(res.horizons[0]).toMatchObject({ inflow: 12_000_000, outflow: 5_000_000, net: 7_000_000 });
     expect(res.horizons[1]).toMatchObject({ inflow: 18_000_000, outflow: 8_000_000, net: 10_000_000 });
+  });
+});
+
+describe("projectionCheckpoints", () => {
+  it("escala con el período y se topa en 6 checkpoints", () => {
+    expect(projectionCheckpoints(1)).toEqual([7, 14, 21, 28]);
+    expect(projectionCheckpoints(3)).toEqual([15, 30, 45, 60, 75, 90]);
+    expect(projectionCheckpoints(12)).toEqual([60, 120, 180, 240, 300, 360]);
   });
 });
