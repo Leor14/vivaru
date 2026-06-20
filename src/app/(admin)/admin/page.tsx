@@ -40,6 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
+import { computeStatementStatus } from "@/features/billing/statement-status";
 import { useCommunications } from "@/features/communications/use-communications";
 import { usePackages } from "@/features/packages/use-packages";
 import { useTickets } from "@/features/pqrs/use-tickets";
@@ -127,6 +128,14 @@ function formatPeriodLabel(period: string) {
 
 function monthKey(date: Date) {
   return date.toISOString().slice(0, 7);
+}
+
+function countOnDay<T>(items: T[], getDate: (item: T) => unknown, dayIso: string): number {
+  return items.filter((item) => asDateLabel(getDate(item)) === dayIso).length;
+}
+
+function countInMonth<T>(items: T[], getDate: (item: T) => unknown, month: string): number {
+  return items.filter((item) => monthKey(toDate(getDate(item)) ?? new Date(0)) === month).length;
 }
 
 function percentageDelta(current: number, previous: number): number | null {
@@ -234,7 +243,7 @@ export default function AdminDashboardPage() {
   const [fromPeriod, setFromPeriod] = useState("");
   const [toPeriod, setToPeriod] = useState("");
   const [drawerSection, setDrawerSection] = useState<DrawerSection>(null);
-  const [dashboardPeriod, setDashboardPeriod] = useState<"current" | "previous">("current");
+  const [dashboardPeriod, setDashboardPeriod] = useState<"today" | "current" | "previous">("today");
 
   const { items: billing, loading: loadingBilling, error: billingError } = useBillingStatements(tenantId);
   const { items: reservations, loading: loadingReservations, error: reservationsError } = useReservations(tenantId);
@@ -259,10 +268,18 @@ export default function AdminDashboardPage() {
   const previousPreviousMonthDate = new Date(todayDate);
   previousPreviousMonthDate.setMonth(previousPreviousMonthDate.getMonth() - 2);
   const previousPreviousMonth = monthKey(previousPreviousMonthDate);
-  // Período del grupo "Actividad" (gobernado por el filtro): mes seleccionado y su comparación.
-  const periodMonth = dashboardPeriod === "previous" ? previousMonth : todayMonth;
-  const comparisonMonth = dashboardPeriod === "previous" ? previousPreviousMonth : previousMonth;
-  const periodLabel = dashboardPeriod === "previous" ? "mes pasado" : "este mes";
+  const yesterdayDate = new Date(todayDate);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayIso = yesterdayDate.toISOString().slice(0, 10);
+
+  // Grupo "Actividad", gobernado por el filtro Hoy / Este mes / Mes pasado.
+  const isToday = dashboardPeriod === "today";
+  const periodSuffix = isToday ? "vs ayer" : "vs mes anterior";
+  const periodLabel = isToday ? "hoy" : dashboardPeriod === "previous" ? "mes pasado" : "este mes";
+  const activityMonth = dashboardPeriod === "previous" ? previousMonth : todayMonth;
+  const activityComparisonMonth = dashboardPeriod === "previous" ? previousPreviousMonth : previousMonth;
+  // Recaudo es mensual: "hoy"/"este mes" usan el mes en curso; "mes pasado", el anterior.
+  const recaudoLabel = dashboardPeriod === "previous" ? "mes pasado" : "mes en curso";
 
   const availableUnits = useMemo(() => {
     const unique = new Set<string>();
@@ -321,7 +338,13 @@ export default function AdminDashboardPage() {
   );
 
   const totalPortfolio = billing.reduce((acc, statement) => acc + Math.max(asNumber(statement.balance), 0), 0);
-  const overdueBilling = billing.filter((statement) => statement.status === "overdue").length;
+  // Usa la misma regla que Cartera (computeStatementStatus): sin fecha de recaudo,
+  // un mes pasado con saldo cuenta como mora. El status guardado puede estar viejo.
+  const overdueStatements = billing.filter(
+    (statement) => computeStatementStatus(asNumber(statement.balance), { dueDate: statement.dueDate, period: statement.period }) === "overdue",
+  );
+  const overdueStatementsCount = overdueStatements.length;
+  const overdueUnitsCount = new Set(overdueStatements.map((statement) => statement.unitId)).size;
 
   const visitorsToday = visitorPasses.filter((visitor) => asDateLabel(visitor.date ?? visitor.visitDate) === todayIso);
   const pendingPackages = packages.filter((entry) => entry.status === "pending");
@@ -329,17 +352,21 @@ export default function AdminDashboardPage() {
   const openTickets = tickets.filter((ticket) => !["resolved", "closed"].includes(asText(ticket.status, "open")));
   const reservationsToday = reservations.filter((reservation) => asDateLabel(reservation.date) === todayIso);
 
-  // Actividad del período seleccionado vs el mes anterior equivalente.
-  const visitorsPeriod = visitorPasses.filter(
-    (item) => monthKey(toDate(item.date ?? item.visitDate) ?? new Date(0)) === periodMonth,
-  ).length;
-  const visitorsComparison = visitorPasses.filter(
-    (item) => monthKey(toDate(item.date ?? item.visitDate) ?? new Date(0)) === comparisonMonth,
-  ).length;
-  const reservationsPeriod = reservations.filter((item) => monthKey(toDate(item.date) ?? new Date(0)) === periodMonth).length;
-  const reservationsComparison = reservations.filter(
-    (item) => monthKey(toDate(item.date) ?? new Date(0)) === comparisonMonth,
-  ).length;
+  // Visitantes y reservas: por día (hoy vs ayer) o por mes (vs mes anterior).
+  const visitorDate = (item: { date?: string; visitDate?: string }) => item.date ?? item.visitDate;
+  const reservationDate = (item: { date?: string }) => item.date;
+  const visitorsPeriod = isToday
+    ? countOnDay(visitorPasses, visitorDate, todayIso)
+    : countInMonth(visitorPasses, visitorDate, activityMonth);
+  const visitorsComparison = isToday
+    ? countOnDay(visitorPasses, visitorDate, yesterdayIso)
+    : countInMonth(visitorPasses, visitorDate, activityComparisonMonth);
+  const reservationsPeriod = isToday
+    ? countOnDay(reservations, reservationDate, todayIso)
+    : countInMonth(reservations, reservationDate, activityMonth);
+  const reservationsComparison = isToday
+    ? countOnDay(reservations, reservationDate, yesterdayIso)
+    : countInMonth(reservations, reservationDate, activityComparisonMonth);
 
   const monthRate = (month: string) => {
     const stmts = billing.filter((b) => b.period === month);
@@ -347,8 +374,8 @@ export default function AdminDashboardPage() {
     const collected = stmts.reduce((acc, b) => acc + asNumber(b.paymentAmount), 0);
     return charged > 0 ? (collected / charged) * 100 : 0;
   };
-  const recaudoPeriod = monthRate(periodMonth);
-  const recaudoComparison = monthRate(comparisonMonth);
+  const recaudoPeriod = monthRate(activityMonth);
+  const recaudoComparison = monthRate(activityComparisonMonth);
 
   const ticketsWithUrgency = useMemo(() => {
     return openTickets
@@ -365,7 +392,7 @@ export default function AdminDashboardPage() {
   }, [openTickets, todayDate]);
 
   const urgentTickets = ticketsWithUrgency.filter((ticket) => ticket.urgent).length;
-  const alertCount = overdueBilling + urgentTickets + pendingPackages.length;
+  const alertCount = overdueStatementsCount + urgentTickets + pendingPackages.length;
 
   const metricsError = reservationsError || ticketsError || packagesError || visitorsError;
 
@@ -374,7 +401,7 @@ export default function AdminDashboardPage() {
     {
       label: "Cartera total",
       value: formatAmount(totalPortfolio),
-      insight: overdueBilling > 0 ? `${overdueBilling} unidad${overdueBilling !== 1 ? "es" : ""} en mora` : "Sin unidades en mora",
+      insight: overdueUnitsCount > 0 ? `${overdueUnitsCount} unidad${overdueUnitsCount !== 1 ? "es" : ""} en mora` : "Sin unidades en mora",
       tone: "neutral" as const,
       href: "/admin/billing",
       help: "Suma de saldos pendientes de todas las unidades, al día de hoy. Es un estado actual, no de un período.",
@@ -397,32 +424,31 @@ export default function AdminDashboardPage() {
     },
   ];
 
-  // Actividad del período: gobernada por el filtro; valor y delta sobre el mismo mes.
-  const periodSuffix = "vs mes anterior";
+  // Actividad del período: gobernada por el filtro Hoy / Este mes / Mes pasado.
   const actividadPeriodo = [
     {
       label: "% recaudo",
       value: `${recaudoPeriod.toFixed(1)}%`,
-      insight: getTrendInsight(recaudoPeriod, recaudoComparison, periodSuffix),
+      insight: getTrendInsight(recaudoPeriod, recaudoComparison, "vs mes anterior"),
       tone: "success" as const,
       href: "/admin/billing",
-      help: `Porcentaje de la cartera del período (${periodLabel}) que ya fue recaudada. Un 80% o más es saludable.`,
+      help: `Porcentaje de la cartera del ${recaudoLabel} que ya fue recaudada. Un 80% o más es saludable.`,
     },
     {
-      label: "Visitantes",
+      label: isToday ? "Visitantes hoy" : "Visitantes",
       value: String(visitorsPeriod),
       insight: getTrendInsight(visitorsPeriod, visitorsComparison, periodSuffix),
       tone: "neutral" as const,
       href: "/admin/visitors",
-      help: `Visitas registradas en el período seleccionado (${periodLabel}).`,
+      help: `Visitas registradas (${periodLabel}).`,
     },
     {
-      label: "Reservas",
+      label: isToday ? "Reservas hoy" : "Reservas",
       value: String(reservationsPeriod),
       insight: getTrendInsight(reservationsPeriod, reservationsComparison, periodSuffix),
       tone: "success" as const,
       href: "/admin/reservations",
-      help: `Reservas de zonas comunes en el período seleccionado (${periodLabel}).`,
+      help: `Reservas de zonas comunes (${periodLabel}).`,
     },
   ];
 
@@ -499,11 +525,11 @@ export default function AdminDashboardPage() {
         });
       }
 
-      if (overdueBilling > 0) {
+      if (overdueStatementsCount > 0) {
         rows.push({
           id: "alert-billing",
           primary: "Cartera en mora",
-          secondary: `Tipo: Cartera · Prioridad: Media · ${overdueBilling} cuenta(s)`,
+          secondary: `Tipo: Cartera · Prioridad: Media · ${overdueStatementsCount} cuenta(s)`,
           status: "overdue",
           dateLabel: todayIso,
         });
@@ -652,6 +678,7 @@ export default function AdminDashboardPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Actividad del período</p>
                 <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-1">
                   {([
+                    ["today", "Hoy"],
                     ["current", "Este mes"],
                     ["previous", "Mes pasado"],
                   ] as const).map(([key, lbl]) => (

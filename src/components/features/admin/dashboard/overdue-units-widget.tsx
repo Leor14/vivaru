@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { computeStatementStatus } from "@/features/billing/statement-status";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import type { BillingStatement } from "@/types/domain";
 
@@ -37,13 +38,10 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
 
   const enriched = useMemo(() => {
     return items
-      .filter((item) => {
-        const today = new Date().toISOString().slice(0, 10);
-        const isOverdue =
-          item.status === "overdue" ||
-          (item.balance > 0 && item.dueDate && item.dueDate < today);
-        return Boolean(isOverdue);
-      })
+      .filter(
+        (item) =>
+          computeStatementStatus(item.balance, { dueDate: item.dueDate, period: item.period }) === "overdue",
+      )
       .map((item) => ({
         id: item.id,
         unitLabel: item.unitLabel,
