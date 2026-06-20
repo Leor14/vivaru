@@ -50,7 +50,7 @@ export type GranularityUnit = "week" | "fortnight" | "month";
  */
 export function granularityFor(months: number): { unit: GranularityUnit; count: number; label: string } {
   if (months <= 1) return { unit: "week", count: 4, label: "semanal" };
-  if (months <= 3) return { unit: "fortnight", count: 6, label: "quincenal" };
+  if (months <= 3) return { unit: "fortnight", count: months * 2, label: "quincenal" };
   return { unit: "month", count: months, label: "mensual" };
 }
 
