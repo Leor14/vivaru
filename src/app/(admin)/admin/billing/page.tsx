@@ -35,6 +35,8 @@ import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
+import { CuentasPorPagarTablero } from "@/components/features/finanzas/cuentas-por-pagar-tablero";
+import { FlujoCajaTablero } from "@/components/features/finanzas/flujo-caja-tablero";
 import { LiquidezTablero } from "@/components/features/finanzas/liquidez-tablero";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { Dialog } from "@/components/ui/dialog";
@@ -797,6 +799,19 @@ export default function AdminBillingPage() {
       <LiquidezTablero
         tenantId={user?.tenantId}
         cuotaIncome={cuotaIncome}
+        formatAmount={formatAmount}
+        formatAmountCompact={formatAmountCompact}
+      />
+
+      <CuentasPorPagarTablero
+        tenantId={user?.tenantId}
+        formatAmount={formatAmount}
+        formatAmountCompact={formatAmountCompact}
+      />
+
+      <FlujoCajaTablero
+        tenantId={user?.tenantId}
+        statements={items}
         formatAmount={formatAmount}
         formatAmountCompact={formatAmountCompact}
       />

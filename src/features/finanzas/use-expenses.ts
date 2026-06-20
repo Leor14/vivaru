@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
@@ -34,6 +35,38 @@ export function watchExpenses(
       onError,
     ) ?? (() => {})
   );
+}
+
+/**
+ * Hook de conveniencia: suscribe los egresos del tenant y los expone. Permite
+ * que un tablero (Cuentas por pagar, Flujo de caja) traiga sus propios datos.
+ */
+export function useExpenses(tenantId?: string) {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
+    const unsub = watchExpenses(
+      tenantId,
+      (data) => {
+        setExpenses(data);
+        setError(null);
+        setLoading(false);
+      },
+      (message) => {
+        setError(message);
+        setLoading(false);
+      },
+    );
+    return () => unsub();
+  }, [tenantId]);
+
+  return { expenses, loading, error };
 }
 
 function normalizeExpensePayload(values: ExpenseFormValues) {
