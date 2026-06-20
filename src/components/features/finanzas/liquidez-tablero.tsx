@@ -5,18 +5,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
 import { StatTile, type StatTone } from "@/components/features/finanzas/stat-tile";
 import { chartAxis, chartBar, chartColors, chartGrid, chartMargin } from "@/features/finanzas/chart-theme";
-import { buildWeeklyExpenseSeries, computeFundCoverage } from "@/features/finanzas/fund-coverage";
+import { buildExpenseSeries, computeFundCoverage, granularityFor } from "@/features/finanzas/fund-coverage";
 import { computeFundPosition, useLedgerEntries } from "@/features/finanzas/use-ledger";
 
 const COVERAGE_TARGET_MONTHS = 6;
-const MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
-
-function monthLabel(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  return `${MONTH_ABBR[m - 1] ?? month} ${String(y).slice(2)}`;
-}
 
 /** Tono semántico de la cobertura: verde sana, ámbar ajustada, rojo crítica. */
 function coverageTone(months: number | null): StatTone {
@@ -53,11 +47,10 @@ export function LiquidezTablero({
 
   const coverageText =
     coverage.coverageMonths == null ? "—" : `${coverage.coverageMonths.toFixed(1)} meses`;
-  // Período corto (1 mes) → desglose semanal; períodos largos → mensual.
-  const weekly = months <= 1;
-  const chartRows = weekly
-    ? buildWeeklyExpenseSeries(entries, { asOf })
-    : coverage.monthlyExpenses.map((x) => ({ label: monthLabel(x.month), amount: x.amount }));
+  // La granularidad del desglose de egresos depende del período: semanal (1 mes),
+  // quincenal (hasta 3 meses) o mensual.
+  const granularity = granularityFor(months);
+  const chartRows = buildExpenseSeries(entries, { asOf, unit: granularity.unit, count: granularity.count });
 
   return (
     <ChartContainer
@@ -71,14 +64,15 @@ export function LiquidezTablero({
         <StatTile tone="slate" label={`Gasto prom./mes (${months}m)`} value={formatAmount(coverage.avgMonthlyExpense)} />
       </div>
 
-      <div className="mt-4 h-[220px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2">
+      <p className="mt-4 text-xs text-[var(--slate-500)]">Egresos por período · vista {granularity.label}</p>
+      <div className="mt-2 h-[220px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartRows} margin={chartMargin}>
             <CartesianGrid {...chartGrid} />
             <XAxis dataKey="label" {...chartAxis} />
             <YAxis tickFormatter={(value) => formatAmountCompact(Number(value))} {...chartAxis} />
             <Tooltip formatter={(value) => formatAmount(Number(value))} cursor={{ fill: "rgba(140,178,214,0.12)" }} />
-            <Bar dataKey="amount" name="Egresos del mes" fill={chartColors.barAmber} {...chartBar} />
+            <Bar dataKey="amount" name="Egresos" fill={chartColors.barAmber} {...chartBar} />
           </BarChart>
         </ResponsiveContainer>
       </div>

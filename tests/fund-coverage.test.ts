@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildWeeklyExpenseSeries, computeFundCoverage } from "@/features/finanzas/fund-coverage";
+import { buildExpenseSeries, computeFundCoverage, granularityFor } from "@/features/finanzas/fund-coverage";
 import type { LedgerEntry } from "@/types/domain";
 
 const egreso = (date: string, amount: number): LedgerEntry =>
@@ -57,16 +57,47 @@ describe("computeFundCoverage", () => {
   });
 });
 
-describe("buildWeeklyExpenseSeries", () => {
-  it("agrupa egresos en las últimas 4 semanas (antigua → reciente) e ignora lo de fuera", () => {
+describe("granularityFor", () => {
+  it("escala la granularidad según el período", () => {
+    expect(granularityFor(1)).toMatchObject({ unit: "week", count: 4 });
+    expect(granularityFor(3)).toMatchObject({ unit: "fortnight", count: 6 });
+    expect(granularityFor(6)).toMatchObject({ unit: "month", count: 6 });
+    expect(granularityFor(12)).toMatchObject({ unit: "month", count: 12 });
+  });
+});
+
+describe("buildExpenseSeries", () => {
+  it("agrupa por semana (antigua → reciente) e ignora lo de fuera", () => {
     const entries = [
       egreso("2026-06-15", 1_000_000),
       egreso("2026-06-10", 2_000_000),
       egreso("2026-05-25", 3_000_000),
       egreso("2026-04-01", 9_000_000),
     ];
-    const res = buildWeeklyExpenseSeries(entries, { asOf: "2026-06-19", weeks: 4 });
+    const res = buildExpenseSeries(entries, { asOf: "2026-06-19", unit: "week", count: 4 });
     expect(res).toHaveLength(4);
     expect(res.map((b) => b.amount)).toEqual([3_000_000, 0, 2_000_000, 1_000_000]);
+  });
+
+  it("agrupa por quincena (6 buckets sobre 3 meses)", () => {
+    const entries = [
+      egreso("2026-06-10", 1_000_000),
+      egreso("2026-05-25", 2_000_000),
+      egreso("2026-04-10", 3_000_000),
+    ];
+    const res = buildExpenseSeries(entries, { asOf: "2026-06-19", unit: "fortnight", count: 6 });
+    expect(res).toHaveLength(6);
+    expect(res.map((b) => b.amount)).toEqual([0, 3_000_000, 0, 0, 2_000_000, 1_000_000]);
+  });
+
+  it("agrupa por mes calendario", () => {
+    const entries = [
+      egreso("2026-04-10", 6_000_000),
+      egreso("2026-05-12", 9_000_000),
+      egreso("2026-06-03", 3_000_000),
+    ];
+    const res = buildExpenseSeries(entries, { asOf: "2026-06-19", unit: "month", count: 3 });
+    expect(res.map((b) => b.amount)).toEqual([6_000_000, 9_000_000, 3_000_000]);
+    expect(res.map((b) => b.label)).toEqual(["abr 26", "may 26", "jun 26"]);
   });
 });

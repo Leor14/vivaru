@@ -41,21 +41,49 @@ function trailingMonths(asOfMonth: string, count: number): string[] {
 }
 
 export type SeriesBucket = { label: string; amount: number };
+export type GranularityUnit = "week" | "fortnight" | "month";
 
 /**
- * Serie de egresos por semana (granularidad fina para períodos cortos, p. ej.
- * cuando el filtro de página está en 1 mes). Devuelve las últimas `weeks`
- * semanas terminando en `asOf`, de la más antigua a la más reciente.
+ * Mapea el período de análisis a la granularidad de la serie temporal: cuanto
+ * más corto el período, más fino el bucket. 1 mes → semanal, hasta 3 meses →
+ * quincenal, más allá → mensual. Una sola fuente de verdad para los tableros.
  */
-export function buildWeeklyExpenseSeries(
+export function granularityFor(months: number): { unit: GranularityUnit; count: number; label: string } {
+  if (months <= 1) return { unit: "week", count: 4, label: "semanal" };
+  if (months <= 3) return { unit: "fortnight", count: 6, label: "quincenal" };
+  return { unit: "month", count: months, label: "mensual" };
+}
+
+/**
+ * Serie de egresos agrupada según la granularidad (semanal, quincenal o
+ * mensual), de la más antigua a la más reciente terminando en `asOf`. Alimenta
+ * el gráfico del tablero de Liquidez según el período seleccionado.
+ */
+export function buildExpenseSeries(
   entries: LedgerEntry[],
-  opts: { asOf: string; weeks?: number },
+  opts: { asOf: string; unit: GranularityUnit; count: number },
 ): SeriesBucket[] {
-  const weeks = opts.weeks ?? 4;
+  const { asOf, unit, count } = opts;
+
+  if (unit === "month") {
+    const months = trailingMonths(asOf.slice(0, 7), count);
+    const byMonth = new Map<string, number>(months.map((mm) => [mm, 0]));
+    for (const entry of entries) {
+      if (entry.type !== "egreso" || !entry.date) continue;
+      const mm = entry.date.slice(0, 7);
+      if (byMonth.has(mm)) byMonth.set(mm, (byMonth.get(mm) ?? 0) + entry.amount);
+    }
+    return months.map((mm) => {
+      const [y, m] = mm.split("-").map(Number);
+      return { label: `${MONTH_ABBR[m - 1]} ${String(y).slice(2)}`, amount: byMonth.get(mm) ?? 0 };
+    });
+  }
+
+  const span = unit === "fortnight" ? 15 : 7;
   const buckets: { start: string; end: string; label: string; amount: number }[] = [];
-  for (let i = 0; i < weeks; i += 1) {
-    const end = addDaysIso(opts.asOf, -7 * i);
-    const start = addDaysIso(opts.asOf, -7 * i - 6);
+  for (let i = 0; i < count; i += 1) {
+    const end = addDaysIso(asOf, -span * i);
+    const start = addDaysIso(asOf, -span * i - (span - 1));
     const [, m, d] = start.split("-").map(Number);
     buckets.unshift({ start, end, label: `${d} ${MONTH_ABBR[m - 1]}`, amount: 0 });
   }
