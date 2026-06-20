@@ -129,15 +129,15 @@ function monthKey(date: Date) {
   return date.toISOString().slice(0, 7);
 }
 
-function percentageDelta(current: number, previous: number) {
-  if (previous <= 0) {
-    return current > 0 ? 100 : 0;
-  }
+function percentageDelta(current: number, previous: number): number | null {
+  // Sin base previa no hay porcentaje real: devolver null en vez de inventar ±100%.
+  if (previous <= 0) return null;
   return ((current - previous) / previous) * 100;
 }
 
 function getTrendInsight(current: number, previous: number, suffix = "vs mes anterior") {
   const delta = percentageDelta(current, previous);
+  if (delta === null) return current > 0 ? `Sin base previa (${suffix})` : "Sin actividad";
   if (delta === 0) return `Sin variación ${suffix}`;
   const signal = delta > 0 ? "+" : "";
   return `${signal}${delta.toFixed(1)}% ${suffix}`;
@@ -234,6 +234,7 @@ export default function AdminDashboardPage() {
   const [fromPeriod, setFromPeriod] = useState("");
   const [toPeriod, setToPeriod] = useState("");
   const [drawerSection, setDrawerSection] = useState<DrawerSection>(null);
+  const [dashboardPeriod, setDashboardPeriod] = useState<"current" | "previous">("current");
 
   const { items: billing, loading: loadingBilling, error: billingError } = useBillingStatements(tenantId);
   const { items: reservations, loading: loadingReservations, error: reservationsError } = useReservations(tenantId);
@@ -255,6 +256,13 @@ export default function AdminDashboardPage() {
   const previousMonthDate = new Date(todayDate);
   previousMonthDate.setMonth(previousMonthDate.getMonth() - 1);
   const previousMonth = monthKey(previousMonthDate);
+  const previousPreviousMonthDate = new Date(todayDate);
+  previousPreviousMonthDate.setMonth(previousPreviousMonthDate.getMonth() - 2);
+  const previousPreviousMonth = monthKey(previousPreviousMonthDate);
+  // Período del grupo "Actividad" (gobernado por el filtro): mes seleccionado y su comparación.
+  const periodMonth = dashboardPeriod === "previous" ? previousMonth : todayMonth;
+  const comparisonMonth = dashboardPeriod === "previous" ? previousPreviousMonth : previousMonth;
+  const periodLabel = dashboardPeriod === "previous" ? "mes pasado" : "este mes";
 
   const availableUnits = useMemo(() => {
     const unique = new Set<string>();
@@ -297,46 +305,10 @@ export default function AdminDashboardPage() {
     if (nextTo !== toPeriod) setToPeriod(nextTo);
   }, [availablePeriods, fromPeriod, toPeriod]);
 
-  const fullBillingTrend = useMemo(() => buildBillingTrend(billing, unitFilter, "", ""), [billing, unitFilter]);
   const monthlyBilling = useMemo(
     () => buildBillingTrend(billing, unitFilter, fromPeriod, toPeriod),
     [billing, unitFilter, fromPeriod, toPeriod],
   );
-
-  const previousWindowSummary = useMemo(() => {
-    if (!fromPeriod || !toPeriod || availablePeriods.length === 0) {
-      return { charged: 0, collected: 0, gap: 0, rate: 0 };
-    }
-
-    const fromIndex = availablePeriods.indexOf(fromPeriod);
-    const toIndex = availablePeriods.indexOf(toPeriod);
-    if (fromIndex < 0 || toIndex < 0 || toIndex < fromIndex) {
-      return { charged: 0, collected: 0, gap: 0, rate: 0 };
-    }
-
-    const windowSize = toIndex - fromIndex + 1;
-    const prevEndIndex = fromIndex - 1;
-    const prevStartIndex = Math.max(0, prevEndIndex - windowSize + 1);
-    if (prevEndIndex < 0) {
-      return { charged: 0, collected: 0, gap: 0, rate: 0 };
-    }
-
-    const previousPeriods = new Set(availablePeriods.slice(prevStartIndex, prevEndIndex + 1));
-    const previousWindow = fullBillingTrend.filter((item) => previousPeriods.has(item.period));
-    const charged = previousWindow.reduce((acc, item) => acc + item.totalCharged, 0);
-    const collected = previousWindow.reduce((acc, item) => acc + item.totalCollected, 0);
-    const gap = Math.max(charged - collected, 0);
-    const rate = charged > 0 ? (collected / charged) * 100 : 0;
-    return { charged, collected, gap, rate };
-  }, [availablePeriods, fromPeriod, toPeriod, fullBillingTrend]);
-
-  const financialSummary = useMemo(() => {
-    const totalCharged = monthlyBilling.reduce((acc, item) => acc + item.totalCharged, 0);
-    const totalCollected = monthlyBilling.reduce((acc, item) => acc + item.totalCollected, 0);
-    const collectionRate = totalCharged > 0 ? (totalCollected / totalCharged) * 100 : 0;
-    const gap = Math.max(totalCharged - totalCollected, 0);
-    return { totalCharged, totalCollected, collectionRate, gap };
-  }, [monthlyBilling]);
 
   const chartData = useMemo(
     () =>
@@ -357,27 +329,26 @@ export default function AdminDashboardPage() {
   const openTickets = tickets.filter((ticket) => !["resolved", "closed"].includes(asText(ticket.status, "open")));
   const reservationsToday = reservations.filter((reservation) => asDateLabel(reservation.date) === todayIso);
 
-  const visitorMonthCurrent = visitorPasses.filter(
-    (item) => monthKey(toDate(item.date ?? item.visitDate) ?? new Date(0)) === todayMonth,
+  // Actividad del período seleccionado vs el mes anterior equivalente.
+  const visitorsPeriod = visitorPasses.filter(
+    (item) => monthKey(toDate(item.date ?? item.visitDate) ?? new Date(0)) === periodMonth,
   ).length;
-  const visitorMonthPrevious = visitorPasses.filter(
-    (item) => monthKey(toDate(item.date ?? item.visitDate) ?? new Date(0)) === previousMonth,
+  const visitorsComparison = visitorPasses.filter(
+    (item) => monthKey(toDate(item.date ?? item.visitDate) ?? new Date(0)) === comparisonMonth,
   ).length;
-
-  const packageMonthCurrent = packages.filter((item) => monthKey(toDate(item.arrivedAt) ?? new Date(0)) === todayMonth).length;
-  const packageMonthPrevious = packages.filter((item) => monthKey(toDate(item.arrivedAt) ?? new Date(0)) === previousMonth).length;
-
-  const ticketMonthCurrent = tickets.filter(
-    (item) => monthKey(toDate(item.radicationDate ?? item.createdAt ?? item.updatedAt) ?? new Date(0)) === todayMonth,
-  ).length;
-  const ticketMonthPrevious = tickets.filter(
-    (item) => monthKey(toDate(item.radicationDate ?? item.createdAt ?? item.updatedAt) ?? new Date(0)) === previousMonth,
+  const reservationsPeriod = reservations.filter((item) => monthKey(toDate(item.date) ?? new Date(0)) === periodMonth).length;
+  const reservationsComparison = reservations.filter(
+    (item) => monthKey(toDate(item.date) ?? new Date(0)) === comparisonMonth,
   ).length;
 
-  const reservationMonthCurrent = reservations.filter((item) => monthKey(toDate(item.date) ?? new Date(0)) === todayMonth).length;
-  const reservationMonthPrevious = reservations.filter(
-    (item) => monthKey(toDate(item.date) ?? new Date(0)) === previousMonth,
-  ).length;
+  const monthRate = (month: string) => {
+    const stmts = billing.filter((b) => b.period === month);
+    const charged = stmts.reduce((acc, b) => acc + Math.max(asNumber(b.amount) || asNumber(b.balance) + asNumber(b.paymentAmount), 0), 0);
+    const collected = stmts.reduce((acc, b) => acc + asNumber(b.paymentAmount), 0);
+    return charged > 0 ? (collected / charged) * 100 : 0;
+  };
+  const recaudoPeriod = monthRate(periodMonth);
+  const recaudoComparison = monthRate(comparisonMonth);
 
   const ticketsWithUrgency = useMemo(() => {
     return openTickets
@@ -398,54 +369,60 @@ export default function AdminDashboardPage() {
 
   const metricsError = reservationsError || ticketsError || packagesError || visitorsError;
 
-  const kpis = [
+  // Estado actual: snapshots en vivo (sin período); el subtítulo es descriptivo, no un delta.
+  const estadoActual = [
     {
       label: "Cartera total",
       value: formatAmount(totalPortfolio),
-      insight: getTrendInsight(totalPortfolio, previousWindowSummary.gap, "vs ventana anterior"),
+      insight: overdueBilling > 0 ? `${overdueBilling} unidad${overdueBilling !== 1 ? "es" : ""} en mora` : "Sin unidades en mora",
       tone: "neutral" as const,
       href: "/admin/billing",
-      help: "Suma de saldos pendientes de todas las unidades en el periodo seleccionado. No incluye intereses ni recargos adicionales.",
-    },
-    {
-      label: "% recaudo",
-      value: `${financialSummary.collectionRate.toFixed(1)}%`,
-      insight: getTrendInsight(financialSummary.collectionRate, previousWindowSummary.rate, "vs ventana anterior"),
-      tone: "success" as const,
-      href: "/admin/billing",
-      help: "Porcentaje de la cartera cobrada que ya fue recaudada en el periodo. Un 80% o más es saludable para la operación.",
-    },
-    {
-      label: "Visitantes hoy",
-      value: String(visitorsToday.length),
-      insight: getTrendInsight(visitorMonthCurrent, visitorMonthPrevious),
-      tone: "neutral" as const,
-      href: "/admin/visitors",
-      help: "Total de visitas con autorización vigente para hoy. Incluye visitas puntuales y autorizaciones de larga duración activas.",
+      help: "Suma de saldos pendientes de todas las unidades, al día de hoy. Es un estado actual, no de un período.",
     },
     {
       label: "Paquetes pendientes",
       value: String(pendingPackages.length),
-      insight: getTrendInsight(packageMonthCurrent, packageMonthPrevious),
+      insight: pendingPackages.length > 0 ? "En bodega, sin recoger" : "Bodega al día",
       tone: "pending" as const,
       href: "/admin/packages",
-      help: "Paquetes recibidos en portería que aún no han sido recogidos por el residente.",
+      help: "Paquetes recibidos en portería que aún no han sido recogidos. Estado actual.",
     },
     {
       label: "PQRS abiertas",
       value: String(openTickets.length),
-      insight: getTrendInsight(ticketMonthCurrent, ticketMonthPrevious),
+      insight: urgentTickets > 0 ? `${urgentTickets} urgente${urgentTickets !== 1 ? "s" : ""} (>15 días)` : "Ninguna urgente",
       tone: urgentTickets > 0 ? ("alert" as const) : ("neutral" as const),
       href: "/admin/pqrs",
-      help: "Solicitudes, quejas, reclamos o sugerencias que aun no tienen estado resuelto o cerrado. Los casos mayores a 15 dias se marcan como urgentes.",
+      help: "Solicitudes sin estado resuelto o cerrado, al día de hoy. Los casos mayores a 15 días se marcan como urgentes.",
+    },
+  ];
+
+  // Actividad del período: gobernada por el filtro; valor y delta sobre el mismo mes.
+  const periodSuffix = "vs mes anterior";
+  const actividadPeriodo = [
+    {
+      label: "% recaudo",
+      value: `${recaudoPeriod.toFixed(1)}%`,
+      insight: getTrendInsight(recaudoPeriod, recaudoComparison, periodSuffix),
+      tone: "success" as const,
+      href: "/admin/billing",
+      help: `Porcentaje de la cartera del período (${periodLabel}) que ya fue recaudada. Un 80% o más es saludable.`,
     },
     {
-      label: "Reservas del día",
-      value: String(reservationsToday.length),
-      insight: getTrendInsight(reservationMonthCurrent, reservationMonthPrevious),
+      label: "Visitantes",
+      value: String(visitorsPeriod),
+      insight: getTrendInsight(visitorsPeriod, visitorsComparison, periodSuffix),
+      tone: "neutral" as const,
+      href: "/admin/visitors",
+      help: `Visitas registradas en el período seleccionado (${periodLabel}).`,
+    },
+    {
+      label: "Reservas",
+      value: String(reservationsPeriod),
+      insight: getTrendInsight(reservationsPeriod, reservationsComparison, periodSuffix),
       tone: "success" as const,
       href: "/admin/reservations",
-      help: "Reservas de zonas comunes aprobadas o pendientes para el dia de hoy.",
+      help: `Reservas de zonas comunes en el período seleccionado (${periodLabel}).`,
     },
   ];
 
@@ -652,18 +629,62 @@ export default function AdminDashboardPage() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            {kpis.map((kpi) => (
-              <ExecutiveKpiCard
-                key={kpi.label}
-                label={kpi.label}
-                value={kpi.value}
-                insight={kpi.insight}
-                tone={kpi.tone}
-                href={kpi.href}
-                help={kpi.help}
-              />
-            ))}
+          <div className="space-y-5">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Estado actual</p>
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+                {estadoActual.map((kpi) => (
+                  <ExecutiveKpiCard
+                    key={kpi.label}
+                    label={kpi.label}
+                    value={kpi.value}
+                    insight={kpi.insight}
+                    tone={kpi.tone}
+                    href={kpi.href}
+                    help={kpi.help}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Actividad del período</p>
+                <div className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-1">
+                  {([
+                    ["current", "Este mes"],
+                    ["previous", "Mes pasado"],
+                  ] as const).map(([key, lbl]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={dashboardPeriod === key}
+                      onClick={() => setDashboardPeriod(key)}
+                      className={`rounded-lg px-3 py-1 text-sm transition-colors ${
+                        dashboardPeriod === key
+                          ? "bg-white font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
+                          : "text-[var(--slate-600)] hover:text-[var(--slate-900)]"
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+                {actividadPeriodo.map((kpi) => (
+                  <ExecutiveKpiCard
+                    key={kpi.label}
+                    label={kpi.label}
+                    value={kpi.value}
+                    insight={kpi.insight}
+                    tone={kpi.tone}
+                    href={kpi.href}
+                    help={kpi.help}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
         {metricsError ? <p className="text-xs text-[var(--danger-700)]">{getQueryErrorLabel(metricsError)}</p> : null}
