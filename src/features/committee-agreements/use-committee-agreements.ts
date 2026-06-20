@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
-import type { CommitteeAgreement } from "./types";
+import type { CommitteeAgreement, CommitteeAgreementSignature } from "./types";
 
 /**
  * Acuerdos de comité del tenant, ordenados por fecha de sesión (más nuevos
@@ -39,4 +39,37 @@ export function useCommitteeAgreements(tenantId?: string) {
   }, [tenantId]);
 
   return { items, loading, error };
+}
+
+/**
+ * Firmas de un acuerdo específico (realtime). Requiere el índice
+ * (tenantId, agreementId, signedAt desc).
+ */
+export function useAgreementSignatures(tenantId?: string, agreementId?: string) {
+  const [signatures, setSignatures] = useState<CommitteeAgreementSignature[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!tenantId || !agreementId) {
+      setSignatures([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const unsub = subscribeTenantCollection<CommitteeAgreementSignature>(
+      "committee_agreement_signatures",
+      tenantId,
+      (data) => {
+        setSignatures(data);
+        setLoading(false);
+      },
+      () => setLoading(false),
+      { equals: [{ field: "agreementId", value: agreementId }], orderByField: "signedAt", orderDirection: "desc" },
+    );
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [tenantId, agreementId]);
+
+  return { signatures, loading };
 }

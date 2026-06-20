@@ -25,6 +25,8 @@ import type {
 import { useCommitteeAgreements } from "@/features/committee-agreements/use-committee-agreements";
 import { formatDateSafe } from "@/utils/date";
 
+import { CommitteeAgreementBoard, type BoardPerson, type BoardUnit } from "./committee-agreement-board";
+
 const MODE_LABEL: Record<AgreementSignatureMode, string> = {
   obligatoria: "Firma obligatoria",
   parcial: "Firma parcial",
@@ -37,18 +39,18 @@ const STATUS_STYLE: Record<CommitteeAgreement["status"], { label: string; classN
   cerrado: { label: "Cerrado", className: "bg-emerald-100 text-emerald-700" },
 };
 
-type UnitOption = { id: string; label: string };
-
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function CommitteeAgreementsTab({
   tenantId,
   userId,
   units,
+  peopleByUnitId,
 }: {
   tenantId?: string;
   userId?: string;
-  units: UnitOption[];
+  units: BoardUnit[];
+  peopleByUnitId: ReadonlyMap<string, BoardPerson>;
 }) {
   const { items, loading } = useCommitteeAgreements(tenantId);
 
@@ -62,6 +64,7 @@ export function CommitteeAgreementsTab({
 
   const [pendingDelete, setPendingDelete] = useState<CommitteeAgreement | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [boardAgreement, setBoardAgreement] = useState<CommitteeAgreement | null>(null);
 
   const uploadTargetRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -243,6 +246,11 @@ export function CommitteeAgreementsTab({
                   <FileUp className="mr-1 h-3.5 w-3.5" />
                   {a.fileUrl ? "Reemplazar" : "Cargar PDF"}
                 </Button>
+                {a.signatureMode !== "informativo" ? (
+                  <Button type="button" size="xs" variant="outline" onClick={() => setBoardAgreement(a)}>
+                    Firmas
+                  </Button>
+                ) : null}
                 {a.status === "borrador" && a.fileUrl ? (
                   <Button type="button" size="xs" onClick={() => void handleSend(a)}>
                     <Send className="mr-1 h-3.5 w-3.5" />
@@ -316,7 +324,7 @@ export function CommitteeAgreementsTab({
                           checked={selectedUnits.includes(u.id)}
                           onChange={() => toggleUnit(u.id)}
                         />
-                        {u.label}
+                        {u.displayName ?? u.id}
                       </label>
                     ))
                   )}
@@ -334,6 +342,21 @@ export function CommitteeAgreementsTab({
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(boardAgreement)}
+        title={boardAgreement ? `Firmas · ${boardAgreement.title}` : "Firmas"}
+        onClose={() => setBoardAgreement(null)}
+      >
+        {boardAgreement ? (
+          <CommitteeAgreementBoard
+            agreement={boardAgreement}
+            tenantId={tenantId}
+            units={units}
+            peopleByUnitId={peopleByUnitId}
+          />
+        ) : null}
       </Modal>
 
       <ConfirmDeleteDialog

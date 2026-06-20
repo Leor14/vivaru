@@ -503,7 +503,8 @@ export default function AdminRegulationsPage() {
         <CommitteeAgreementsTab
           tenantId={tenantId}
           userId={user?.uid}
-          units={units.map((u) => ({ id: u.id, label: u.displayName ?? u.id }))}
+          units={units}
+          peopleByUnitId={peopleByUnitId}
         />
       ) : null}
     </div>
