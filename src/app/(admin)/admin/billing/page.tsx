@@ -35,11 +35,13 @@ import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
+import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { Dialog } from "@/components/ui/dialog";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication } from "@/features/admin/services";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { chartAxis, chartBar, chartColors, chartGrid, chartLine, chartMargin } from "@/features/finanzas/chart-theme";
 import type { BillingStatement } from "@/types/domain";
 
 type UnitCollectionItem = {
@@ -748,22 +750,10 @@ export default function AdminBillingPage() {
         }
       >
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div className="rounded-2xl border border-[#d6e6f3] bg-[#f5faff] p-3">
-            <p className="text-xs text-[var(--slate-500)]">Cobrado</p>
-            <p className="mt-1 text-lg font-semibold text-[#2c648d]">{formatAmount(trendSummary.totalCharged)}</p>
-          </div>
-          <div className="rounded-2xl border border-[#d6ede4] bg-[#f1fbf7] p-3">
-            <p className="text-xs text-[var(--slate-500)]">Recaudado</p>
-            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatAmount(trendSummary.totalCollected)}</p>
-          </div>
-          <div className="rounded-2xl border border-[#eee0c1] bg-[#fff8e8] p-3">
-            <p className="text-xs text-[var(--slate-500)]">Brecha</p>
-            <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatAmount(trendSummary.gap)}</p>
-          </div>
-          <div className="rounded-2xl border border-[#d9e5f2] bg-[#f3f8ff] p-3">
-            <p className="text-xs text-[var(--slate-500)]">% recaudo</p>
-            <p className="mt-1 text-lg font-semibold text-[#355f87]">{trendSummary.collectionRate.toFixed(1)}%</p>
-          </div>
+          <StatTile tone="blue" label="Cobrado" value={formatAmount(trendSummary.totalCharged)} />
+          <StatTile tone="green" label="Recaudado" value={formatAmount(trendSummary.totalCollected)} />
+          <StatTile tone="amber" label="Brecha" value={formatAmount(trendSummary.gap)} />
+          <StatTile tone="blue" label="% recaudo" value={`${trendSummary.collectionRate.toFixed(1)}%`} />
         </div>
 
         {chartData.length === 0 ? (
@@ -773,35 +763,25 @@ export default function AdminBillingPage() {
         ) : (
           <div className="mt-4 h-[320px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2 sm:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 16, right: 18, left: 6, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="4 4" stroke="#d6dfeb" vertical={false} />
-                <XAxis
-                  dataKey="period"
-                  tickFormatter={formatPeriodLabel}
-                  tick={{ fill: "#4f6273", fontSize: 12 }}
-                  axisLine={{ stroke: "#b9c6d6" }}
-                  tickLine={{ stroke: "#b9c6d6" }}
-                />
+              <ComposedChart data={chartData} margin={chartMargin}>
+                <CartesianGrid {...chartGrid} />
+                <XAxis dataKey="period" tickFormatter={formatPeriodLabel} {...chartAxis} />
                 <YAxis
                   yAxisId="money"
                   tickFormatter={(value) => formatAmountCompact(Number(value))}
-                  tick={{ fill: "#4f6273", fontSize: 12 }}
-                  axisLine={{ stroke: "#b9c6d6" }}
-                  tickLine={{ stroke: "#b9c6d6" }}
+                  {...chartAxis}
                 />
                 <YAxis
                   yAxisId="rate"
                   orientation="right"
                   domain={[0, 100]}
                   tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
-                  tick={{ fill: "#4f6273", fontSize: 12 }}
-                  axisLine={{ stroke: "#b9c6d6" }}
-                  tickLine={{ stroke: "#b9c6d6" }}
+                  {...chartAxis}
                 />
                 <Tooltip content={<BillingTrendTooltip formatAmount={formatAmount} />} />
-                <Bar yAxisId="money" dataKey="totalCharged" name="Cobrado" fill="#8cb2d6" radius={[8, 8, 0, 0]} maxBarSize={36} />
-                <Bar yAxisId="money" dataKey="totalCollected" name="Recaudado" fill="#7ec4a9" radius={[8, 8, 0, 0]} maxBarSize={36} />
-                <Line yAxisId="rate" type="monotone" dataKey="collectionRate" name="% recaudo" stroke="#4d7190" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                <Bar yAxisId="money" dataKey="totalCharged" name="Cobrado" fill={chartColors.barBlue} {...chartBar} />
+                <Bar yAxisId="money" dataKey="totalCollected" name="Recaudado" fill={chartColors.barGreen} {...chartBar} />
+                <Line yAxisId="rate" dataKey="collectionRate" name="% recaudo" {...chartLine} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
