@@ -1710,22 +1710,47 @@ export const onReservationCreated = onDocumentCreated("reservations/{reservation
 
 export const onReservationUpdated = onDocumentUpdated("reservations/{reservationId}", async (event) => {
   const before = event.data?.before.data() as { status?: string } | undefined;
-  const after = event.data?.after.data() as { status?: string; tenantId?: string; createdBy?: string; amenity?: string } | undefined;
+  const after = event.data?.after.data() as
+    | { status?: string; tenantId?: string; createdBy?: string; updatedBy?: string; amenity?: string }
+    | undefined;
   if (!after?.tenantId || !after?.createdBy) return;
-
   if (before?.status === after.status) return;
-  if (after.status !== "approved") return;
 
-  await createNotifications([
-    {
-      userId: after.createdBy,
-      tenantId: after.tenantId,
-      type: "reservation",
-      title: "Reserva aprobada",
-      description: `Tu reserva de ${after.amenity ?? "amenidad"} fue aprobada.`,
-      link: "/resident/reservations",
-    },
-  ]);
+  if (after.status === "approved") {
+    await createNotifications([
+      {
+        userId: after.createdBy,
+        tenantId: after.tenantId,
+        type: "reservation",
+        title: "Reserva aprobada",
+        description: `Tu reserva de ${after.amenity ?? "amenidad"} fue aprobada.`,
+        link: "/resident/reservations",
+      },
+    ]);
+    return;
+  }
+
+  // Rechazo por la administración: cancelled/rejected hecho por alguien distinto al
+  // creador (evita falsos positivos cuando el residente cancela su propia reserva).
+  if (
+    (after.status === "cancelled" || after.status === "rejected") &&
+    after.updatedBy &&
+    after.updatedBy !== after.createdBy
+  ) {
+    const [override, conjunto] = await Promise.all([
+      getTenantNotificationOverride(after.tenantId, "reservation_rejected"),
+      getTenantName(after.tenantId),
+    ]);
+    await createNotifications(
+      buildResidentNotifications(
+        "reservation_rejected",
+        after.tenantId,
+        [after.createdBy],
+        { amenidad: after.amenity ?? "", conjunto },
+        override,
+      ),
+    );
+  }
 });
 
 // Notifica a los residentes en alcance cuando un acuerdo de comité se manda a
@@ -1829,6 +1854,33 @@ export const onTicketCreated = onDocumentCreated("tickets/{ticketId}", async (ev
       link: "/superadmin/analytics",
     })),
   ]);
+});
+
+// PQRS respondido: notifica al residente la primera vez que la administración responde.
+export const onTicketUpdated = onDocumentUpdated("tickets/{ticketId}", async (event) => {
+  const before = event.data?.before.data() as { status?: string; response?: string } | undefined;
+  const after = event.data?.after.data() as
+    | { status?: string; response?: string; tenantId?: string; residentId?: string; subject?: string }
+    | undefined;
+  if (!after?.tenantId || !after?.residentId) return;
+
+  const wasAnswered = before?.status === "responded" || before?.status === "resolved" || Boolean(before?.response);
+  const isAnswered = after.status === "responded" || after.status === "resolved" || Boolean(after.response);
+  if (wasAnswered || !isAnswered) return; // solo la primera vez que se responde.
+
+  const [override, conjunto] = await Promise.all([
+    getTenantNotificationOverride(after.tenantId, "ticket_answered"),
+    getTenantName(after.tenantId),
+  ]);
+  await createNotifications(
+    buildResidentNotifications(
+      "ticket_answered",
+      after.tenantId,
+      [after.residentId],
+      { asunto: after.subject ?? "", conjunto },
+      override,
+    ),
+  );
 });
 
 // ── F2 · Notificaciones de cartera al residente ───────────────────────────────
