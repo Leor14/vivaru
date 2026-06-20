@@ -61,8 +61,8 @@ No cambiar las consultas a rango hasta que **todos** los docs tengan `eventDate`
 ## Estado de ejecución
 
 - [x] Fase 0 — tipos + `resolveEventDate` + tests
-- [x] Fase 1 — write-path
-- [ ] Fase 2 — backfill script
-- [ ] Fase 3 — índices
+- [x] Fase 1 — write-path (desplegado)
+- [x] Fase 2 — backfill aplicado (36 visitorPasses + 4 tickets; sin fecha resoluble: 0)
+- [x] Fase 3 — índices `(tenantId, eventDate)` desplegados
 - [ ] Fase 4 — switch de consultas
 - [ ] Fase 5 — validación
