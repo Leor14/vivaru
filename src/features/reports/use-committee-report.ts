@@ -205,6 +205,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
   const [visitors, setVisitors] = useState<VisitorPass[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [visitorsInside, setVisitorsInside] = useState<VisitorPass[]>([]);
 
   const [loadingBilling, setLoadingBilling] = useState(true);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -212,24 +213,25 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
   const [loadingVisitors, setLoadingVisitors] = useState(true);
   const [loadingReservations, setLoadingReservations] = useState(true);
   const [loadingLedger, setLoadingLedger] = useState(true);
+  const [loadingVisitorsInside, setLoadingVisitorsInside] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Lecturas que NO dependen del período (solo cambian con el tenant):
+  // billing/ledger se necesitan históricos (saldo de fondos, mora); packages
+  // tiene KPI "pendientes" de todo el tiempo; visitorsInside = "actualmente
+  // dentro" (consulta de igualdad, fuera del rango del período).
   useEffect(() => {
     if (!tenantId) {
       setLoadingBilling(false);
       setLoadingPackages(false);
-      setLoadingTickets(false);
-      setLoadingVisitors(false);
-      setLoadingReservations(false);
       setLoadingLedger(false);
+      setLoadingVisitorsInside(false);
       return;
     }
 
     const tid = tenantId;
     let cancelled = false;
 
-    // Lectura única por colección: cada una resuelve independiente para que su
-    // sección se renderice sin esperar a las demás (carga progresiva).
     function load<T extends { id: string }>(
       name: string,
       options: Parameters<typeof fetchTenantCollection>[2],
@@ -253,47 +255,62 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     load<BillingStatement>("billingStatements", { orderByField: "period", orderDirection: "desc" }, setBilling, setLoadingBilling);
     load<LedgerEntry>("ledgerEntries", { orderByField: "date", orderDirection: "desc" }, setLedger, setLoadingLedger);
     load<PackageItem>("packages", { orderByField: "arrivedAt", orderDirection: "desc" }, setPackages, setLoadingPackages);
-    load<Ticket>("tickets", undefined, setTickets, setLoadingTickets);
-    load<VisitorPass>("visitorPasses", { orderByField: "date", orderDirection: "desc" }, setVisitors, setLoadingVisitors);
+    load<VisitorPass>("visitorPasses", { equals: [{ field: "status", value: "inside" }] }, setVisitorsInside, setLoadingVisitorsInside);
     return () => {
       cancelled = true;
     };
   }, [tenantId]);
 
-  // reservations.date es requerido y tiene índice (tenantId, date): se limita por
-  // rango server-side (no lee toda la historia), así que se re-consulta cuando
-  // cambia el período.
+  // Colecciones limitadas por rango de fecha server-side: se re-consultan al
+  // cambiar el período. reservations por `date`; visitorPasses y tickets por el
+  // campo canónico `eventDate` (poblado 100% por write-path + backfill).
   useEffect(() => {
     if (!tenantId) {
       setLoadingReservations(false);
+      setLoadingVisitors(false);
+      setLoadingTickets(false);
       return;
     }
     const tid = tenantId;
     let cancelled = false;
-    setLoadingReservations(true);
-    fetchTenantCollection<Reservation>("reservations", tid, {
-      orderByField: "date",
-      orderDirection: "desc",
-      range: { field: "date", start: range.start, end: range.end },
-    })
-      .then((items) => {
-        if (cancelled) return;
-        setReservations(items);
-        setLoadingReservations(false);
+
+    function loadRanged<T extends { id: string }>(
+      name: string,
+      field: string,
+      setData: (items: T[]) => void,
+      setLoading: (value: boolean) => void,
+    ) {
+      setLoading(true);
+      fetchTenantCollection<T>(name, tid, {
+        orderByField: field,
+        orderDirection: "desc",
+        range: { field, start: range.start, end: range.end },
       })
-      .catch((e) => {
-        if (cancelled) return;
-        console.error("[committee-report][reservations]", e);
-        setError("No fue posible cargar parte del reporte.");
-        setLoadingReservations(false);
-      });
+        .then((items) => {
+          if (cancelled) return;
+          setData(items);
+          setLoading(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          console.error(`[committee-report][${name}]`, e);
+          setError("No fue posible cargar parte del reporte.");
+          setLoading(false);
+        });
+    }
+
+    loadRanged<Reservation>("reservations", "date", setReservations, setLoadingReservations);
+    loadRanged<VisitorPass>("visitorPasses", "eventDate", setVisitors, setLoadingVisitors);
+    loadRanged<Ticket>("tickets", "eventDate", setTickets, setLoadingTickets);
+
     return () => {
       cancelled = true;
     };
   }, [tenantId, range.start, range.end]);
 
   const report = useMemo((): CommitteeReport => {
-    const loading = loadingBilling || loadingPackages || loadingTickets || loadingVisitors || loadingReservations || loadingLedger;
+    const loading =
+      loadingBilling || loadingPackages || loadingTickets || loadingVisitors || loadingReservations || loadingLedger || loadingVisitorsInside;
     const { start, end } = range;
 
     // ── Billing ──────────────────────────────────────────────────────────────
@@ -351,10 +368,8 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     };
 
     // ── Tickets ───────────────────────────────────────────────────────────────
-    const ticketsInPeriod = tickets.filter((t) => {
-      const d = toDateStr(t.createdAt ?? t.radicationDate);
-      return inRange(d, start, end);
-    });
+    // tickets ya viene limitado por rango (eventDate) server-side.
+    const ticketsInPeriod = tickets;
     const RESOLVED_STATUSES: Ticket["status"][] = ["resolved", "responded", "closed"];
     const ticketMetrics = {
       total: ticketsInPeriod.length,
@@ -369,15 +384,14 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     };
 
     // ── Visitors ─────────────────────────────────────────────────────────────
-    const visitorsInPeriod = visitors.filter((v) => {
-      const d = toDateStr(v.date ?? v.visitDate ?? v.checkInAt);
-      return inRange(d, start, end);
-    });
+    // visitors ya viene limitado por rango (eventDate) server-side; insideNow
+    // ("actualmente dentro") es una consulta de igualdad aparte (todo el tiempo).
+    const visitorsInPeriod = visitors;
 
     // Group by week
     const weekMap = new Map<string, number>();
     for (const v of visitorsInPeriod) {
-      const d = toDateStr(v.date ?? v.visitDate ?? v.checkInAt);
+      const d = v.eventDate ?? "";
       if (d) {
         const label = weekLabel(d, start);
         weekMap.set(label, (weekMap.get(label) ?? 0) + 1);
@@ -394,7 +408,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     const visitorMetrics = {
       total: visitorsInPeriod.length,
       byWeek,
-      insideNow: visitors.filter((v) => v.status === "inside").length,
+      insideNow: visitorsInside.length,
     };
 
     // ── Reservations ──────────────────────────────────────────────────────────
@@ -455,8 +469,8 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
         reservations: loadingReservations,
       },
     };
-  }, [billing, packages, tickets, visitors, reservations, ledger, range, error,
-    loadingBilling, loadingPackages, loadingTickets, loadingVisitors, loadingReservations, loadingLedger]);
+  }, [billing, packages, tickets, visitors, visitorsInside, reservations, ledger, range, error,
+    loadingBilling, loadingPackages, loadingTickets, loadingVisitors, loadingReservations, loadingLedger, loadingVisitorsInside]);
 
   if (!tenantId) return EMPTY;
   return report;

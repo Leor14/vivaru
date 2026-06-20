@@ -64,5 +64,7 @@ No cambiar las consultas a rango hasta que **todos** los docs tengan `eventDate`
 - [x] Fase 1 — write-path (desplegado)
 - [x] Fase 2 — backfill aplicado (36 visitorPasses + 4 tickets; sin fecha resoluble: 0)
 - [x] Fase 3 — índices `(tenantId, eventDate)` desplegados
-- [ ] Fase 4 — switch de consultas
-- [ ] Fase 5 — validación
+- [x] Fase 4 — switch de consultas (visitorPasses y tickets por `eventDate`; insideNow por igualdad)
+- [x] Fase 5 — validación (0 docs sin eventDate; rango devuelve 100%)
+
+**Completado.** El Reporte de Comité ya no lee la historia completa de visitas/tickets.
