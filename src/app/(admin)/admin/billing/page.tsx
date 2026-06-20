@@ -39,6 +39,7 @@ import { CuentasPorPagarTablero } from "@/components/features/finanzas/cuentas-p
 import { FlujoCajaTablero } from "@/components/features/finanzas/flujo-caja-tablero";
 import { LiquidezTablero } from "@/components/features/finanzas/liquidez-tablero";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
+import { TableroCarousel } from "@/components/features/finanzas/tablero-carousel";
 import { Dialog } from "@/components/ui/dialog";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication } from "@/features/admin/services";
@@ -796,25 +797,25 @@ export default function AdminBillingPage() {
         )}
       </ChartContainer>
 
-      <LiquidezTablero
-        tenantId={user?.tenantId}
-        cuotaIncome={cuotaIncome}
-        formatAmount={formatAmount}
-        formatAmountCompact={formatAmountCompact}
-      />
-
-      <CuentasPorPagarTablero
-        tenantId={user?.tenantId}
-        formatAmount={formatAmount}
-        formatAmountCompact={formatAmountCompact}
-      />
-
-      <FlujoCajaTablero
-        tenantId={user?.tenantId}
-        statements={items}
-        formatAmount={formatAmount}
-        formatAmountCompact={formatAmountCompact}
-      />
+      <TableroCarousel ariaLabel="Tableros financieros de cartera">
+        <LiquidezTablero
+          tenantId={user?.tenantId}
+          cuotaIncome={cuotaIncome}
+          formatAmount={formatAmount}
+          formatAmountCompact={formatAmountCompact}
+        />
+        <CuentasPorPagarTablero
+          tenantId={user?.tenantId}
+          formatAmount={formatAmount}
+          formatAmountCompact={formatAmountCompact}
+        />
+        <FlujoCajaTablero
+          tenantId={user?.tenantId}
+          statements={items}
+          formatAmount={formatAmount}
+          formatAmountCompact={formatAmountCompact}
+        />
+      </TableroCarousel>
 
       <PaymentReceiptsReviewPanel
         tenantId={user?.tenantId}
