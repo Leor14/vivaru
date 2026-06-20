@@ -79,6 +79,16 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function SectionLoading() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-[68px] animate-pulse rounded-2xl border border-[var(--slate-200)] bg-[var(--slate-50)]" />
+      ))}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const { user } = useAuth();
   const { formatAmount: formatCurrency } = useTenantCurrency();
@@ -277,12 +287,7 @@ export default function AdminReportsPage() {
             </p>
           </div>
 
-          {report.loading ? (
-            <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-dashed border-[var(--slate-200)] bg-white">
-              <p className="text-sm text-[var(--slate-500)]">Cargando datos del período...</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
+          <div className="space-y-6">
 
               {/* ── Período label ── */}
               <div className="flex items-center gap-2">
@@ -291,6 +296,36 @@ export default function AdminReportsPage() {
                   {range.start} → {range.end}
                 </span>
               </div>
+
+              {report.sectionLoading.financial ? (
+                <SectionLoading />
+              ) : (
+                <>
+              {/* ── Resumen financiero ── */}
+              <section>
+                <SectionTitle>📊 Resumen financiero</SectionTitle>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <KpiCard label="Ingresos del período" value={formatCurrency(report.financial.totalIncome)} tone="success" />
+                  <KpiCard label="Egresos del período" value={formatCurrency(report.financial.totalExpenses)} tone={report.financial.totalExpenses > 0 ? "danger" : "neutral"} />
+                  <KpiCard label="Resultado neto" value={formatCurrency(report.financial.netResult)} tone={report.financial.netResult >= 0 ? "success" : "danger"} />
+                  <KpiCard label="Saldo de fondos" value={formatCurrency(report.financial.fundBalance)} />
+                </div>
+                {report.financial.expenseByCategory.length > 0 ? (
+                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                    <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por categoría</p>
+                    </div>
+                    <div className="divide-y divide-[var(--slate-50)]">
+                      {report.financial.expenseByCategory.map((c) => (
+                        <div key={c.category} className="flex items-center justify-between px-4 py-2 text-sm">
+                          <span className="text-[var(--slate-700)]">{c.label}</span>
+                          <span className="font-semibold text-[var(--slate-900)]">{formatCurrency(c.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
 
               {/* ── Cartera ── */}
               <section>
@@ -345,7 +380,16 @@ export default function AdminReportsPage() {
                   <p className="mt-3 text-sm text-emerald-700">✓ Sin unidades con saldo vencido en este período.</p>
                 )}
               </section>
+                </>
+              )}
 
+              {report.sectionLoading.visitors ||
+              report.sectionLoading.tickets ||
+              report.sectionLoading.packages ||
+              report.sectionLoading.reservations ? (
+                <SectionLoading />
+              ) : (
+                <>
               {/* ── Visitantes ── */}
               <section>
                 <SectionTitle>🏠 Visitantes</SectionTitle>
@@ -458,9 +502,10 @@ export default function AdminReportsPage() {
                   </div>
                 ) : null}
               </section>
+                </>
+              )}
 
             </div>
-          )}
         </div>
 
         {/* ── Bottom export bar (mobile-friendly) ── */}

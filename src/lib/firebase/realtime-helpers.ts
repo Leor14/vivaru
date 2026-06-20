@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   type FirestoreError,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -74,6 +75,36 @@ export function subscribeTenantCollection<T extends { id: string }>(
       onError(normalizeRealtimeError(collectionName, tenantId, error));
     },
   );
+}
+
+/**
+ * Lectura única (getDocs) de una colección del tenant. A diferencia de
+ * subscribeTenantCollection no abre un listener en vivo — útil para vistas que
+ * solo necesitan una foto (p. ej. el reporte de comité), reduciendo overhead.
+ */
+export async function fetchTenantCollection<T extends { id: string }>(
+  collectionName: string,
+  tenantId: string,
+  options?: {
+    orderByField?: string;
+    orderDirection?: "asc" | "desc";
+    equals?: Array<{ field: string; value: string }>;
+  },
+): Promise<T[]> {
+  if (!db) return [];
+
+  const constraints: QueryConstraint[] = [where("tenantId", "==", tenantId)];
+  if (options?.equals?.length) {
+    for (const filter of options.equals) {
+      constraints.push(where(filter.field, "==", filter.value));
+    }
+  }
+  if (options?.orderByField) {
+    constraints.push(orderBy(options.orderByField, options.orderDirection ?? "desc"));
+  }
+
+  const snapshot = await getDocs(query(collection(db, collectionName), ...constraints));
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as T);
 }
 
 export async function createTenantDocument(
