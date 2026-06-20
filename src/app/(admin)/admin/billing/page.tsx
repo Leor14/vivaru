@@ -22,6 +22,7 @@ import { BillingBulkMessageDrawer, type BillingUnitOption } from "@/components/f
 import { EmptyState } from "@/components/shared/empty-state";
 import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { SectionIntro } from "@/components/shared/section-intro";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -702,6 +703,12 @@ export default function AdminBillingPage() {
 
   return (
     <section className="space-y-4">
+      <SectionIntro
+        storageKey="cartera"
+        title="Cartera"
+        purpose="Controlar lo que cada unidad debe y lo que ha pagado (cuotas o alícuotas de administración)."
+        how="Generas los cobros del período por unidad, registras los pagos recibidos y emites el comprobante a cada residente. Los pagos alimentan el Libro y fondos."
+      />
       <ChartContainer
         title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por período con lectura inmediata de brecha y porcentaje de recaudo."

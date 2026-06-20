@@ -11,6 +11,7 @@ import { DataTable, type DataTableColumn } from "@/components/shared/data-table"
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Modal } from "@/components/shared/modal";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { SectionIntro } from "@/components/shared/section-intro";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -251,12 +252,17 @@ export default function AdminEgresosPage() {
   ];
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4">
+      <SectionIntro
+        storageKey="egresos"
+        title="Egresos"
+        purpose="Las cuentas por pagar y los pagos del conjunto: nómina, servicios públicos, mantenimiento y proveedores."
+        how="Registras cada egreso y, al marcarlo como pagado, entra automáticamente como salida en el Libro y fondos."
+      />
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle help="Registra los egresos y cuentas por pagar del conjunto: nómina, servicios públicos, mantenimiento y proveedores. Es la base del detalle de egresos que exige la ley a la administración.">
-            Egresos
-          </CardTitle>
+          <CardTitle>Egresos</CardTitle>
           <CardDescription className="mt-1">Cuentas por pagar y pagos del conjunto.</CardDescription>
         </div>
         <Button className="w-full sm:w-auto" onClick={openCreate}>
@@ -479,6 +485,7 @@ export default function AdminEgresosPage() {
         onCancel={() => (deleting ? undefined : setPendingDeletion(null))}
         onConfirm={() => void handleConfirmDelete()}
       />
-    </Card>
+      </Card>
+    </div>
   );
 }

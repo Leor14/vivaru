@@ -10,6 +10,7 @@ import * as XLSX from "xlsx";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { Modal } from "@/components/shared/modal";
+import { SectionIntro } from "@/components/shared/section-intro";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -178,12 +179,17 @@ export default function AdminFinanzasLibroPage() {
   ];
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4">
+      <SectionIntro
+        storageKey="libro-fondos"
+        title="Libro y fondos"
+        purpose="El libro de ingresos y egresos y el saldo de fondos del conjunto."
+        how="El recaudo de cuotas viene de Cartera y los egresos pagados entran automáticamente; aquí agregas movimientos manuales (saldo inicial, otros ingresos) y exportas el estado financiero."
+      />
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle help="Libro de ingresos y egresos del conjunto. El recaudo de cuotas se toma de Cartera; aquí registras egresos pagados (automáticos) y otros movimientos manuales como saldos iniciales u otros ingresos.">
-            Libro y fondos
-          </CardTitle>
+          <CardTitle>Libro y fondos</CardTitle>
           <CardDescription className="mt-1">Movimientos de ingresos y egresos del conjunto.</CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -302,6 +308,7 @@ export default function AdminFinanzasLibroPage() {
         onCancel={() => (deleting ? undefined : setPendingDeletion(null))}
         onConfirm={() => void handleConfirmDelete()}
       />
-    </Card>
+      </Card>
+    </div>
   );
 }

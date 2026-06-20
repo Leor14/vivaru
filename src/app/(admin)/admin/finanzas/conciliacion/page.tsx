@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
+import { SectionIntro } from "@/components/shared/section-intro";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -166,12 +167,17 @@ export default function AdminConciliacionPage() {
   }, [matchTarget, unreconciledLedger]);
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-4">
+      <SectionIntro
+        storageKey="conciliacion"
+        title="Conciliación bancaria"
+        purpose="Cuadrar lo registrado en el Libro contra lo que realmente se movió en el banco."
+        how="Importas el extracto bancario (CSV) y emparejas cada línea con un movimiento del libro para detectar diferencias."
+      />
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <CardTitle help="Importa el extracto bancario (CSV) y concilia cada línea con un movimiento del libro. Así verificas que lo registrado coincide con lo que efectivamente entró o salió del banco.">
-            Conciliación bancaria
-          </CardTitle>
+          <CardTitle>Conciliación bancaria</CardTitle>
           <CardDescription className="mt-1">Importa el extracto y cuádralo contra el libro.</CardDescription>
         </div>
         <Button variant="outline" className="w-full sm:w-auto" onClick={() => setAccountModalOpen(true)}>
@@ -379,6 +385,7 @@ export default function AdminConciliacionPage() {
           </div>
         ) : null}
       </Modal>
-    </Card>
+      </Card>
+    </div>
   );
 }
