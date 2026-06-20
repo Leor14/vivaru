@@ -177,6 +177,7 @@ export default function AdminBillingPage() {
   const [paymentAmount, setPaymentAmount] = useState("0");
   const [dueDate, setDueDate] = useState("");
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
+  const [periodMonths, setPeriodMonths] = useState(3);
   const [fromPeriod, setFromPeriod] = useState("");
   const [toPeriod, setToPeriod] = useState("");
   const [statusFilter, setStatusFilter] = useState<BillingStatusFilter>("all");
@@ -797,25 +798,46 @@ export default function AdminBillingPage() {
         )}
       </ChartContainer>
 
-      <TableroCarousel ariaLabel="Tableros financieros de cartera">
-        <LiquidezTablero
-          tenantId={user?.tenantId}
-          cuotaIncome={cuotaIncome}
-          formatAmount={formatAmount}
-          formatAmountCompact={formatAmountCompact}
-        />
-        <CuentasPorPagarTablero
-          tenantId={user?.tenantId}
-          formatAmount={formatAmount}
-          formatAmountCompact={formatAmountCompact}
-        />
-        <FlujoCajaTablero
-          tenantId={user?.tenantId}
-          statements={items}
-          formatAmount={formatAmount}
-          formatAmountCompact={formatAmountCompact}
-        />
-      </TableroCarousel>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-base font-semibold text-[var(--slate-900)]">Tableros financieros</h2>
+          <label className="flex items-center gap-2 text-sm text-[var(--slate-600)]">
+            Período de análisis
+            <select
+              value={periodMonths}
+              onChange={(e) => setPeriodMonths(Number(e.target.value))}
+              className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            >
+              <option value={3}>3 meses</option>
+              <option value={6}>6 meses</option>
+              <option value={12}>12 meses</option>
+            </select>
+          </label>
+        </div>
+
+        <TableroCarousel ariaLabel="Tableros financieros de cartera">
+          <LiquidezTablero
+            tenantId={user?.tenantId}
+            cuotaIncome={cuotaIncome}
+            months={periodMonths}
+            formatAmount={formatAmount}
+            formatAmountCompact={formatAmountCompact}
+          />
+          <CuentasPorPagarTablero
+            tenantId={user?.tenantId}
+            periodMonths={periodMonths}
+            formatAmount={formatAmount}
+            formatAmountCompact={formatAmountCompact}
+          />
+          <FlujoCajaTablero
+            tenantId={user?.tenantId}
+            statements={items}
+            periodMonths={periodMonths}
+            formatAmount={formatAmount}
+            formatAmountCompact={formatAmountCompact}
+          />
+        </TableroCarousel>
+      </div>
 
       <PaymentReceiptsReviewPanel
         tenantId={user?.tenantId}

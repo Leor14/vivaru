@@ -18,26 +18,29 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
  */
 export function CuentasPorPagarTablero({
   tenantId,
+  periodMonths = 3,
   formatAmount,
   formatAmountCompact,
 }: {
   tenantId?: string;
+  periodMonths?: number;
   formatAmount: (value: number) => string;
   formatAmountCompact: (value: number) => string;
 }) {
   const { expenses } = useExpenses(tenantId);
-  const summary = summarizePayables(expenses, { asOf: todayIso(), horizonDays: 30 });
+  const summary = summarizePayables(expenses, { asOf: todayIso(), horizonDays: periodMonths * 30 });
   const chartRows = summary.byCategory.map((c) => ({ label: c.label, amount: c.amount }));
+  const dueSoonLabel = `Vence en ${periodMonths} ${periodMonths === 1 ? "mes" : "meses"}`;
 
   return (
     <ChartContainer
       title="Cuentas por pagar"
       description="Egresos pendientes del conjunto y su vencimiento."
-      helpText="Solo cuenta egresos pendientes de pago (no los pagados ni anulados). 'Vence en 30 días' y 'Vencido' se calculan con la fecha de vencimiento de cada egreso."
+      helpText="Solo cuenta egresos pendientes de pago (no los pagados ni anulados). 'Vence en…' y 'Vencido' se calculan con la fecha de vencimiento de cada egreso, según el período de análisis."
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatTile tone="blue" label="Total por pagar" value={formatAmount(summary.totalPayable)} />
-        <StatTile tone="amber" label="Vence en 30 días" value={formatAmount(summary.dueSoon)} />
+        <StatTile tone="amber" label={dueSoonLabel} value={formatAmount(summary.dueSoon)} />
         <StatTile tone="red" label="Vencido" value={formatAmount(summary.overdue)} />
       </div>
 

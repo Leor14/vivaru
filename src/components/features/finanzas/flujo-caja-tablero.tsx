@@ -20,36 +20,43 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 export function FlujoCajaTablero({
   tenantId,
   statements,
+  periodMonths = 3,
   formatAmount,
   formatAmountCompact,
 }: {
   tenantId?: string;
   statements: BillingStatement[];
+  periodMonths?: number;
   formatAmount: (value: number) => string;
   formatAmountCompact: (value: number) => string;
 }) {
   const { expenses } = useExpenses(tenantId);
-  const proj = projectCashFlow(statements, expenses, { asOf: todayIso(), horizons: [30, 60] });
-  const h30 = proj.horizons[0];
+  const farDays = Math.max(periodMonths, 1) * 30;
+  const horizons = farDays > 30 ? [30, farDays] : [30];
+  const proj = projectCashFlow(statements, expenses, { asOf: todayIso(), horizons });
+
+  const monthsLabel = (months: number) => `${months} ${months === 1 ? "mes" : "meses"}`;
+  const periodLabel = monthsLabel(periodMonths);
+  const headline = proj.horizons[proj.horizons.length - 1];
   const chartRows = proj.horizons.map((h) => ({
-    label: `${h.horizonDays} días`,
+    label: monthsLabel(Math.round(h.horizonDays / 30)),
     Entradas: h.inflow,
     Salidas: h.outflow,
   }));
 
-  const netTone: StatTone = h30.net >= 0 ? "green" : "red";
-  const netText = `${h30.net >= 0 ? "+" : "−"}${formatAmount(Math.abs(h30.net))}`;
+  const netTone: StatTone = headline.net >= 0 ? "green" : "red";
+  const netText = `${headline.net >= 0 ? "+" : "−"}${formatAmount(Math.abs(headline.net))}`;
 
   return (
     <ChartContainer
       title="Flujo de caja proyectado"
-      description="Entradas esperadas vs salidas por pagar, a 30 y 60 días."
-      helpText="Entradas: saldos de Cartera por cobrar que vencen en el horizonte. Salidas: cuentas por pagar de Egresos que vencen en el horizonte. El resultado es la diferencia."
+      description="Entradas esperadas vs salidas por pagar dentro del período."
+      helpText="Entradas: saldos de Cartera por cobrar que vencen en el horizonte. Salidas: cuentas por pagar de Egresos que vencen en el horizonte. El horizonte lo fija el período de análisis; el resultado es la diferencia."
     >
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <StatTile tone="green" label="Entradas 30 días" value={formatAmount(h30.inflow)} />
-        <StatTile tone="red" label="Salidas 30 días" value={formatAmount(h30.outflow)} />
-        <StatTile tone={netTone} label="Resultado proy. (30d)" value={netText} />
+        <StatTile tone="green" label={`Entradas (${periodLabel})`} value={formatAmount(headline.inflow)} />
+        <StatTile tone="red" label={`Salidas (${periodLabel})`} value={formatAmount(headline.outflow)} />
+        <StatTile tone={netTone} label={`Resultado proy. (${periodLabel})`} value={netText} />
       </div>
 
       <div className="mt-3 flex items-center gap-4 text-xs text-[var(--slate-500)]">
