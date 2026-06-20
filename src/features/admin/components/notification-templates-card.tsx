@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { HelpTip } from "@/components/shared/help-tip";
 import { db } from "@/lib/firebase/client";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import {
@@ -16,12 +17,6 @@ import {
   type NotificationTemplateDef,
 } from "@/features/notifications/catalog";
 import type { NotificationTemplateOverride, NotificationTemplates } from "@/types/domain";
-
-const RELEVANCE_PILL: Record<NotificationTemplateDef["relevance"], string> = {
-  alta: "bg-rose-100 text-rose-700",
-  media: "bg-amber-100 text-amber-700",
-  baja: "bg-slate-100 text-slate-600",
-};
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)]";
@@ -111,9 +106,6 @@ function NotificationEditorRow({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-[var(--slate-900)]">{def.label}</span>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${RELEVANCE_PILL[def.relevance]}`}>
-            {def.relevance}
-          </span>
           {hasOverride ? (
             <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-700">
               Personalizado
@@ -196,7 +188,10 @@ function NotificationEditorRow({
 
         {/* Variables insertables */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-[var(--slate-400)]">Variables:</span>
+          <span className="flex items-center gap-1 text-xs text-[var(--slate-400)]">
+            Variables:
+            <HelpTip text="Las variables entre llaves se reemplazan automáticamente al enviar la notificación. Por ejemplo, {período} se convierte en 'junio 2026' y {monto} en el valor del cobro. Haz clic en una variable para insertarla en el campo donde estés escribiendo." />
+          </span>
           {def.variables.map((v) => (
             <button
               key={v.name}

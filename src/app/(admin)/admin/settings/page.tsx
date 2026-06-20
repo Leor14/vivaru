@@ -24,6 +24,7 @@ import { TenantBrandingCard } from "@/features/admin/components/tenant-branding-
 import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
 import { NotificationTemplatesCard } from "@/features/admin/components/notification-templates-card";
 import { FiscalProfileCard } from "@/components/features/finanzas/FiscalProfileCard";
+import { SectionIntro } from "@/components/shared/section-intro";
 import { useTenantBrandingForm } from "@/features/admin/hooks/use-tenant-branding-form";
 import { ResidentAvatarPicker } from "../../../../../components/features/resident/ResidentAvatarPicker";
 import { updateUserProfile } from "@/features/users/profile-service";
@@ -50,6 +51,7 @@ export default function AdminSettingsPage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [blockOnDebt, setBlockOnDebt] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
+  const [tab, setTab] = useState<"conjunto" | "residente" | "cuenta">("conjunto");
 
   const branding = useTenantBrandingForm({
     tenantId: user?.tenantId,
@@ -201,6 +203,36 @@ export default function AdminSettingsPage() {
 
   return (
     <section className="space-y-4">
+      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 border-b border-[var(--slate-200)]">
+        {([
+          ["conjunto", "Conjunto"],
+          ["residente", "Portal del residente"],
+          ["cuenta", "Mi cuenta"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              tab === key
+                ? "border-[var(--brand-700)] text-[var(--brand-700)]"
+                : "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "conjunto" ? (
+        <>
+          <SectionIntro
+            storageKey="settings-conjunto"
+            title="Conjunto"
+            purpose="La identidad visual y los datos fiscales de tu conjunto."
+            how="El logo y los colores se reflejan en el portal del residente y en los correos; los datos fiscales alimentan los comprobantes de pago."
+          />
       <TenantBrandingCard
         form={branding.form}
         loading={branding.loading}
@@ -220,7 +252,18 @@ export default function AdminSettingsPage() {
         onCancel={branding.cancelChanges}
         onSubmit={branding.submitBranding}
       />
+          <FiscalProfileCard />
+        </>
+      ) : null}
 
+      {tab === "cuenta" ? (
+        <>
+          <SectionIntro
+            storageKey="settings-cuenta"
+            title="Mi cuenta"
+            purpose="Tus datos personales de acceso al panel."
+            how="Actualiza tu nombre visible, tu avatar y tu contraseña. Solo afectan tu cuenta, no la configuración del conjunto."
+          />
       <Card>
         <CardTitle help="Tu identidad operativa en Vivaru: el nombre que los residentes verán en comunicaciones y respuestas. Mantenlo actualizado para que la administración tenga una cara reconocible y confiable.">Perfil del usuario</CardTitle>
         <CardDescription className="mt-1">Actualiza tu nombre visible y avatar operativo en una sola vista.</CardDescription>
@@ -275,6 +318,17 @@ export default function AdminSettingsPage() {
           </div>
         </form>
       </Card>
+        </>
+      ) : null}
+
+      {tab === "residente" ? (
+        <>
+          <SectionIntro
+            storageKey="settings-residente"
+            title="Portal del residente"
+            purpose="Lo que tus residentes ven y reciben en su portal."
+            how="Activa o desactiva módulos, personaliza el texto de las notificaciones y define las reglas de reserva del conjunto."
+          />
       <Card>
         <CardTitle help="Define los parámetros globales que aplican a todas las reservas del conjunto. Cuando requieres pago al día, los residentes con saldo pendiente verán el bloqueo de forma automática en su app, sin intervención manual tuya.">Políticas de reservas</CardTitle>
         <CardDescription className="mt-1">Controla el acceso a reservas según el estado de pago de cada unidad.</CardDescription>
@@ -298,8 +352,8 @@ export default function AdminSettingsPage() {
       <ResidentModulesCard tenantId={user?.tenantId} />
 
       <NotificationTemplatesCard tenantId={user?.tenantId} />
-
-      <FiscalProfileCard />
+        </>
+      ) : null}
     </section>
   );
 }
