@@ -17,13 +17,15 @@ export interface Tenant {
     primaryColor: string;
     accentColor: string;
   };
-  /** Overrides de copy de notificaciones por tenant (editor en Perfil). Vacío = default. */
-  notificationTemplates?: NotificationTemplates;
   createdAt: string;
   updatedAt: string;
 }
 
-/** Override editable de una notificación. Cualquier campo vacío usa el default del catálogo. */
+/**
+ * Override editable de una notificación. Cualquier campo vacío usa el default del
+ * catálogo. Se persiste en tenantSettings/{tenantId}.notificationTemplates (mapa
+ * por clave de notificación).
+ */
 export interface NotificationTemplateOverride {
   title?: string;
   body?: string;
