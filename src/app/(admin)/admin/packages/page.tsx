@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { TablePager } from "@/components/shared/table-pager";
+import { usePagination } from "@/components/shared/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
@@ -89,6 +91,8 @@ export default function AdminPackagesPage() {
       return torreOk && nameOk && fromOk && toOk;
     });
   }, [items, torreFilter, debouncedNameQuery, dateFrom, dateTo]);
+
+  const pager = usePagination(filteredItems);
 
   const activeFiltersCount =
     (torreFilter !== "all" ? 1 : 0) + (debouncedNameQuery ? 1 : 0) + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0);
@@ -242,7 +246,7 @@ export default function AdminPackagesPage() {
                 </td>
               </tr>
             ) : null}
-            {filteredItems.map((item) => {
+            {pager.pageItems.map((item) => {
               const identity = resolveIdentityCell({
                 unitLabel: item.unitLabel,
                 personName: item.residentName || item.recipientName,
@@ -268,6 +272,17 @@ export default function AdminPackagesPage() {
           </tbody>
         </table>
       </div>
+      {pager.hasPagination ? (
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          start={pager.start}
+          pageSize={pager.pageSize}
+          onPrev={pager.prev}
+          onNext={pager.next}
+        />
+      ) : null}
     </Card>
   );
 }

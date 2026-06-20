@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HelpTip } from "@/components/shared/help-tip";
+import { TablePager } from "@/components/shared/table-pager";
+import { usePagination } from "@/components/shared/use-pagination";
 import { useAuth } from "@/features/auth/auth-context";
 import {
   setActiveRegulation,
@@ -52,6 +54,8 @@ function SignaturesTable({
   unitsById: Map<string, UnitItem>;
   peopleByUnitId: Map<string, PersonItem>;
 }) {
+  const pager = usePagination(signatures);
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -84,7 +88,7 @@ function SignaturesTable({
           </tr>
         </thead>
         <tbody>
-          {signatures.map((sig) => {
+          {pager.pageItems.map((sig) => {
             const unit = unitsById.get(sig.unitId);
             const person = peopleByUnitId.get(sig.unitId);
 
@@ -123,6 +127,17 @@ function SignaturesTable({
           })}
         </tbody>
       </table>
+      {pager.hasPagination ? (
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          start={pager.start}
+          pageSize={pager.pageSize}
+          onPrev={pager.prev}
+          onNext={pager.next}
+        />
+      ) : null}
     </div>
   );
 }
@@ -139,6 +154,8 @@ function PendingUnitsTable({
   peopleByUnitId: Map<string, PersonItem>;
 }) {
   const pending = units.filter((u) => u.status === "active" && !signedUnitIds.has(u.id));
+
+  const pager = usePagination(pending);
 
   if (pending.length === 0) {
     return (
@@ -161,7 +178,7 @@ function PendingUnitsTable({
           </tr>
         </thead>
         <tbody>
-          {pending.map((unit) => {
+          {pager.pageItems.map((unit) => {
             const person = peopleByUnitId.get(unit.id);
             return (
               <tr
@@ -188,6 +205,17 @@ function PendingUnitsTable({
           })}
         </tbody>
       </table>
+      {pager.hasPagination ? (
+        <TablePager
+          page={pager.page}
+          totalPages={pager.totalPages}
+          total={pager.total}
+          start={pager.start}
+          pageSize={pager.pageSize}
+          onPrev={pager.prev}
+          onNext={pager.next}
+        />
+      ) : null}
     </div>
   );
 }

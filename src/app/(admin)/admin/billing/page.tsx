@@ -23,6 +23,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { SectionIntro } from "@/components/shared/section-intro";
+import { TablePager } from "@/components/shared/table-pager";
+import { usePagination } from "@/components/shared/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -393,6 +395,8 @@ export default function AdminBillingPage() {
   }, [normalizedRows, statusFilter, unitFilter]);
 
   const overdueRows = useMemo(() => normalizedRows.filter((item) => item.status === "overdue"), [normalizedRows]);
+
+  const billingPager = usePagination(filteredRows);
 
   const units = useMemo(() => Array.from(new Set(normalizedRows.map((item) => item.unitLabel))).sort((a, b) => a.localeCompare(b)), [normalizedRows]);
 
@@ -1042,7 +1046,7 @@ export default function AdminBillingPage() {
                 </td>
               </tr>
             ) : null}
-            {filteredRows.map((item) => {
+            {billingPager.pageItems.map((item) => {
               const status = computeStatementStatus(item.balance, { dueDate: item.dueDate, period: item.period });
               const isPaid = status === "paid";
               return (
@@ -1132,6 +1136,17 @@ export default function AdminBillingPage() {
           </tbody>
         </table>
       </div>
+      {billingPager.hasPagination ? (
+        <TablePager
+          page={billingPager.page}
+          totalPages={billingPager.totalPages}
+          total={billingPager.total}
+          start={billingPager.start}
+          pageSize={billingPager.pageSize}
+          onPrev={billingPager.prev}
+          onNext={billingPager.next}
+        />
+      ) : null}
       </Card>
 
       <RecordPaymentModal

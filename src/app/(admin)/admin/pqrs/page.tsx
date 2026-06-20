@@ -7,6 +7,8 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { EmptyState } from "@/components/shared/empty-state";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { TablePager } from "@/components/shared/table-pager";
+import { usePagination } from "@/components/shared/use-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -193,6 +195,8 @@ export default function AdminPqrsPage() {
     });
   }, [enrichedItems, statusFilter, typeFilter, unitFilter, residentFilter, dateFrom, dateTo, alertFilter, sortBy]);
 
+  const pager = usePagination(filteredItems);
+
   function openTicketDrawer(ticketId: string) {
     setSelectedTicketId(ticketId);
     setDrawerOpen(true);
@@ -369,7 +373,7 @@ export default function AdminPqrsPage() {
                 </tr>
               ) : null}
 
-              {filteredItems.map((ticket) => {
+              {pager.pageItems.map((ticket) => {
                 const identity = resolveIdentityCell({ unitLabel: ticket.unitLabel, personName: ticket.residentName });
                 const dueBadge = getDueBadge({
                   isClosed: ticket.sla.isClosed,
@@ -415,6 +419,18 @@ export default function AdminPqrsPage() {
             </tbody>
           </table>
         </div>
+
+        {pager.hasPagination ? (
+          <TablePager
+            page={pager.page}
+            totalPages={pager.totalPages}
+            total={pager.total}
+            start={pager.start}
+            pageSize={pager.pageSize}
+            onPrev={pager.prev}
+            onNext={pager.next}
+          />
+        ) : null}
 
         {!loading && (
           <p className="mt-2 text-right text-xs text-[var(--slate-500)]">

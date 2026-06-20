@@ -5,6 +5,8 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
+import { TablePager } from "@/components/shared/table-pager";
+import { usePagination } from "@/components/shared/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,8 @@ export default function AdminUsersPage() {
     () => items.filter((item) => item.role === "tenant_admin" || item.role === "security_guard"),
     [items],
   );
+
+  const pager = usePagination(managedUsers);
 
   async function handleCreateUser() {
     if (!user?.tenantId) {
@@ -158,7 +162,7 @@ export default function AdminUsersPage() {
           ) : managedUsers.length === 0 ? (
             <p className="py-4 text-sm text-[var(--slate-500)]">No hay usuarios operativos registrados.</p>
           ) : (
-            managedUsers.map((item) => (
+            pager.pageItems.map((item) => (
               <div key={item.id} className="rounded-xl border border-[var(--slate-200)] px-4 py-3">
                 <p className="text-sm font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</p>
                 <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">{item.email ?? "-"}</p>
@@ -204,7 +208,7 @@ export default function AdminUsersPage() {
                 </tr>
               ) : null}
 
-              {!loading && managedUsers.map((item) => (
+              {!loading && pager.pageItems.map((item) => (
                 <tr key={item.id} className="border-t border-[var(--slate-200)]">
                   <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</td>
                   <td className="px-3 py-2">{item.email ?? "-"}</td>
@@ -219,6 +223,17 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        {pager.hasPagination ? (
+          <TablePager
+            page={pager.page}
+            totalPages={pager.totalPages}
+            total={pager.total}
+            start={pager.start}
+            pageSize={pager.pageSize}
+            onPrev={pager.prev}
+            onNext={pager.next}
+          />
+        ) : null}
       </Card>
     </section>
   );
