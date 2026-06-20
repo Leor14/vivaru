@@ -31,15 +31,19 @@ export function FlujoCajaTablero({
   formatAmountCompact: (value: number) => string;
 }) {
   const { expenses } = useExpenses(tenantId);
-  const farDays = Math.max(periodMonths, 1) * 30;
-  const horizons = farDays > 30 ? [30, farDays] : [30];
+  // Período corto (1 mes) → checkpoints semanales; períodos largos → 1 mes vs período.
+  const weekly = periodMonths <= 1;
+  const farDays = periodMonths * 30;
+  const horizons = weekly ? [7, 14, 21, 28] : farDays > 30 ? [30, farDays] : [30];
   const proj = projectCashFlow(statements, expenses, { asOf: todayIso(), horizons });
 
-  const monthsLabel = (months: number) => `${months} ${months === 1 ? "mes" : "meses"}`;
-  const periodLabel = monthsLabel(periodMonths);
+  const monthsLabel = (m: number) => `${m} ${m === 1 ? "mes" : "meses"}`;
+  const horizonLabel = (days: number) =>
+    weekly ? `${Math.round(days / 7)} sem` : monthsLabel(Math.round(days / 30));
   const headline = proj.horizons[proj.horizons.length - 1];
+  const periodLabel = horizonLabel(headline.horizonDays);
   const chartRows = proj.horizons.map((h) => ({
-    label: monthsLabel(Math.round(h.horizonDays / 30)),
+    label: horizonLabel(h.horizonDays),
     Entradas: h.inflow,
     Salidas: h.outflow,
   }));

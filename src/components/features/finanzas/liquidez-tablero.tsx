@@ -5,7 +5,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
 import { StatTile, type StatTone } from "@/components/features/finanzas/stat-tile";
 import { chartAxis, chartBar, chartColors, chartGrid, chartMargin } from "@/features/finanzas/chart-theme";
-import { computeFundCoverage } from "@/features/finanzas/fund-coverage";
+import { buildWeeklyExpenseSeries, computeFundCoverage } from "@/features/finanzas/fund-coverage";
 import { computeFundPosition, useLedgerEntries } from "@/features/finanzas/use-ledger";
 
 const COVERAGE_TARGET_MONTHS = 6;
@@ -47,12 +47,17 @@ export function LiquidezTablero({
   formatAmountCompact: (value: number) => string;
 }) {
   const { entries } = useLedgerEntries(tenantId);
+  const asOf = todayIso();
   const fund = computeFundPosition(entries, cuotaIncome);
-  const coverage = computeFundCoverage(entries, fund.balance, { asOf: todayIso(), months });
+  const coverage = computeFundCoverage(entries, fund.balance, { asOf, months });
 
   const coverageText =
     coverage.coverageMonths == null ? "—" : `${coverage.coverageMonths.toFixed(1)} meses`;
-  const chartRows = coverage.monthlyExpenses.map((x) => ({ label: monthLabel(x.month), amount: x.amount }));
+  // Período corto (1 mes) → desglose semanal; períodos largos → mensual.
+  const weekly = months <= 1;
+  const chartRows = weekly
+    ? buildWeeklyExpenseSeries(entries, { asOf })
+    : coverage.monthlyExpenses.map((x) => ({ label: monthLabel(x.month), amount: x.amount }));
 
   return (
     <ChartContainer

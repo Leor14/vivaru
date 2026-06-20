@@ -1,5 +1,9 @@
 import type { LedgerEntry } from "@/types/domain";
 
+import { addDaysIso } from "./payables";
+
+const MONTH_ABBR = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
 /**
  * Cobertura del fondo ("runway"): cuántos meses de gastos cubre el saldo de
  * fondos al ritmo de egreso reciente. Selector puro (sin I/O ni Date) para que
@@ -34,6 +38,36 @@ function trailingMonths(asOfMonth: string, count: number): string[] {
     }
   }
   return out;
+}
+
+export type SeriesBucket = { label: string; amount: number };
+
+/**
+ * Serie de egresos por semana (granularidad fina para períodos cortos, p. ej.
+ * cuando el filtro de página está en 1 mes). Devuelve las últimas `weeks`
+ * semanas terminando en `asOf`, de la más antigua a la más reciente.
+ */
+export function buildWeeklyExpenseSeries(
+  entries: LedgerEntry[],
+  opts: { asOf: string; weeks?: number },
+): SeriesBucket[] {
+  const weeks = opts.weeks ?? 4;
+  const buckets: { start: string; end: string; label: string; amount: number }[] = [];
+  for (let i = 0; i < weeks; i += 1) {
+    const end = addDaysIso(opts.asOf, -7 * i);
+    const start = addDaysIso(opts.asOf, -7 * i - 6);
+    const [, m, d] = start.split("-").map(Number);
+    buckets.unshift({ start, end, label: `${d} ${MONTH_ABBR[m - 1]}`, amount: 0 });
+  }
+
+  for (const entry of entries) {
+    if (entry.type !== "egreso" || !entry.date) continue;
+    const date = entry.date;
+    const bucket = buckets.find((b) => date >= b.start && date <= b.end);
+    if (bucket) bucket.amount += entry.amount;
+  }
+
+  return buckets.map((b) => ({ label: b.label, amount: b.amount }));
 }
 
 export function computeFundCoverage(

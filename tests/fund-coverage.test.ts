@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { computeFundCoverage } from "@/features/finanzas/fund-coverage";
+import { buildWeeklyExpenseSeries, computeFundCoverage } from "@/features/finanzas/fund-coverage";
 import type { LedgerEntry } from "@/types/domain";
 
 const egreso = (date: string, amount: number): LedgerEntry =>
@@ -54,5 +54,19 @@ describe("computeFundCoverage", () => {
       "2026-02",
     ]);
     expect(res.avgMonthlyExpense).toBe(1_000_000);
+  });
+});
+
+describe("buildWeeklyExpenseSeries", () => {
+  it("agrupa egresos en las últimas 4 semanas (antigua → reciente) e ignora lo de fuera", () => {
+    const entries = [
+      egreso("2026-06-15", 1_000_000),
+      egreso("2026-06-10", 2_000_000),
+      egreso("2026-05-25", 3_000_000),
+      egreso("2026-04-01", 9_000_000),
+    ];
+    const res = buildWeeklyExpenseSeries(entries, { asOf: "2026-06-19", weeks: 4 });
+    expect(res).toHaveLength(4);
+    expect(res.map((b) => b.amount)).toEqual([3_000_000, 0, 2_000_000, 1_000_000]);
   });
 });

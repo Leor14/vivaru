@@ -38,6 +38,7 @@ import { RecordPaymentModal } from "@/components/features/finanzas/RecordPayment
 import { CuentasPorPagarTablero } from "@/components/features/finanzas/cuentas-por-pagar-tablero";
 import { FlujoCajaTablero } from "@/components/features/finanzas/flujo-caja-tablero";
 import { LiquidezTablero } from "@/components/features/finanzas/liquidez-tablero";
+import { PeriodFilter } from "@/components/features/finanzas/period-filter";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { TableroCarousel } from "@/components/features/finanzas/tablero-carousel";
 import { Dialog } from "@/components/ui/dialog";
@@ -801,18 +802,7 @@ export default function AdminBillingPage() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-[var(--slate-900)]">Tableros financieros</h2>
-          <label className="flex items-center gap-2 text-sm text-[var(--slate-600)]">
-            Período de análisis
-            <select
-              value={periodMonths}
-              onChange={(e) => setPeriodMonths(Number(e.target.value))}
-              className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-            >
-              <option value={3}>3 meses</option>
-              <option value={6}>6 meses</option>
-              <option value={12}>12 meses</option>
-            </select>
-          </label>
+          <PeriodFilter value={periodMonths} onChange={setPeriodMonths} />
         </div>
 
         <TableroCarousel ariaLabel="Tableros financieros de cartera">
