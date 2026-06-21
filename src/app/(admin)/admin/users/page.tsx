@@ -17,6 +17,7 @@ import { db } from "@/lib/firebase/client";
 import { Modal } from "@/components/shared/modal";
 import {
   createTenantOperationalUserCallable,
+  deleteOperationalUserCallable,
   setOperationalUserStatusCallable,
   updateOperationalUserCallable,
 } from "@/lib/firebase/callables";
@@ -142,13 +143,45 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function handleDelete(item: TenantUserItem) {
+    if (!user?.tenantId) return;
+    if (
+      !window.confirm(
+        `Vas a ELIMINAR permanentemente a ${item.fullName ?? "este usuario"}. Esta acción no se puede deshacer. ¿Continuar?`,
+      )
+    ) {
+      return;
+    }
+    setStatusBusy(item.id);
+    try {
+      await deleteOperationalUserCallable({ tenantId: user.tenantId, uid: item.id });
+      toast.success("Usuario eliminado.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setStatusBusy(null);
+    }
+  }
+
   function renderRowActions(item: TenantUserItem) {
+    const busy = statusBusy === item.id;
     return (
       <div className="flex items-center justify-end gap-2">
         <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
           Editar
         </Button>
         {renderStatusAction(item)}
+        {item.status === "inactive" ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => void handleDelete(item)}
+            className="text-[var(--danger-700)]"
+          >
+            Eliminar
+          </Button>
+        ) : null}
       </div>
     );
   }

@@ -176,6 +176,15 @@ export async function updateOperationalUserCallable(input: {
   return executeCallable(callable, input, "No fue posible actualizar el usuario.");
 }
 
+export async function deleteOperationalUserCallable(input: { tenantId: string; uid: string }) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "deleteOperationalUser");
+  return executeCallable(callable, input, "No fue posible eliminar el usuario.");
+}
+
 export async function provisionResidentTemporaryAccessCallable(input: ProvisionResidentTemporaryAccessInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

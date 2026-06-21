@@ -1455,6 +1455,78 @@ export const updateOperationalUser = onCall<UpdateOperationalUserInput>(
   },
 );
 
+// Baja definitiva (irreversible) de un usuario operativo: borra Auth + docs. Solo
+// se permite sobre usuarios YA inactivos (desactivar primero corta el acceso y es
+// reversible; este paso purga).
+type DeleteOperationalUserInput = { tenantId: string; uid: string };
+
+export const deleteOperationalUser = onCall<DeleteOperationalUserInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+
+    const tenantId = normalizeText(request.data?.tenantId);
+    const targetUid = normalizeText(request.data?.uid);
+    if (!tenantId || !targetUid) {
+      throw new HttpsError("invalid-argument", "tenantId y uid son requeridos.");
+    }
+
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "No puedes gestionar usuarios de otro tenant.");
+    }
+
+    if (targetUid === request.auth.uid) {
+      throw new HttpsError("failed-precondition", "No puedes eliminar tu propia cuenta.");
+    }
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const targetTenantId = actor.tenantId;
+
+    const membershipRef = db.collection("tenantUsers").doc(`${targetTenantId}_${targetUid}`);
+    const membershipSnap = await membershipRef.get();
+    if (!membershipSnap.exists) {
+      throw new HttpsError("not-found", "El usuario no pertenece a este tenant.");
+    }
+    const membership = membershipSnap.data() as { role?: string; status?: string };
+    if (membership.role !== "tenant_admin" && membership.role !== "security_guard") {
+      throw new HttpsError("failed-precondition", "Solo puedes eliminar usuarios operativos (admin o guarda).");
+    }
+    // Solo usuarios ya desactivados (soft-delete previo obligatorio).
+    if ((membership.status ?? "active") !== "inactive") {
+      throw new HttpsError("failed-precondition", "Primero debes desactivar al usuario; luego podrás eliminarlo.");
+    }
+
+    const authApi = getAuth();
+    const results = await Promise.allSettled([
+      db.collection("users").doc(targetUid).delete(),
+      membershipRef.delete(),
+      authApi.deleteUser(targetUid).catch((error: unknown) => {
+        const code =
+          typeof error === "object" && error !== null && "code" in error
+            ? String((error as { code?: unknown }).code)
+            : "";
+        if (code === "auth/user-not-found") return; // ya no existe en Auth: ok
+        throw error;
+      }),
+    ]);
+    const failed = results.find((r) => r.status === "rejected");
+    if (failed && failed.status === "rejected") {
+      console.error("[deleteOperationalUser] partial failure", failed.reason);
+      throw new HttpsError("internal", "No fue posible completar la eliminación. Reintenta.");
+    }
+
+    await writeAuditLog(targetTenantId, request.auth.uid, "delete_operational_user", {
+      uid: targetUid,
+      role: membership.role,
+    });
+
+    return { ok: true };
+  },
+);
+
 export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporaryAccessInput>(
   {
     cors: callableCorsOrigins,
