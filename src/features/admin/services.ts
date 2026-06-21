@@ -180,6 +180,41 @@ export type DocumentItem = {
   storagePath: string;
   uploadedBy: string;
   createdAt: string;
+  // F0 (carpetas): clasificación y metadatos. Opcionales para compatibilidad con
+  // documentos existentes.
+  folderId?: string | null;
+  category?: DocumentCategory;
+  uploadedByName?: string;
+  fileSize?: number;
+  contentType?: string;
+};
+
+/** Taxonomía de categorías de documento (ver plan-documentos-carpetas). */
+export type DocumentCategory =
+  | "asamblea"
+  | "contrato"
+  | "plano"
+  | "memoria"
+  | "financiero"
+  | "legal"
+  | "otro";
+
+/** Carpeta del repositorio documental (estilo Drive). Solo admin. */
+export type DocumentFolder = {
+  id: string;
+  tenantId: string;
+  name: string;
+  description?: string;
+  /** null = carpeta madre (raíz del tenant). */
+  parentId: string | null;
+  /** Ruta materializada de ids, p. ej. "rootId/childId". Habilita breadcrumb/subárbol. */
+  path: string;
+  /** 0 = madre … máx 4 (madre + 4 niveles de subcarpetas). */
+  depth: number;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt?: string;
 };
 
 export type ResidentModules = {

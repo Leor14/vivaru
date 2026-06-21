@@ -18,9 +18,12 @@ service firebase.storage {
         superadmin() || request.auth.token.tenantId == tenantId
       );
 
-      // Admin and superadmin can upload tenant documents.
+      // Admin and superadmin can upload tenant documents. Límite de 25 MB por
+      // archivo (gobernanza de costo/abuso). En delete request.resource es null.
       allow write: if signedIn() && (
         superadmin() || request.auth.token.tenantId == tenantId
+      ) && (
+        request.resource == null || request.resource.size < 25 * 1024 * 1024
       );
     }
 

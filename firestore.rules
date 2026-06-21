@@ -379,6 +379,14 @@ service cloud.firestore {
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    // Carpetas del repositorio documental (sistema tipo Drive). Solo admin del
+    // tenant. Se crean/renombran/borran vía Cloud Functions (integridad de
+    // path/depth y cascada) — el cliente solo lee.
+    match /documentFolders/{docId} {
+      allow read: if signedIn() && resource.data.tenantId is string && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update, delete: if false;
+    }
+
     match /amenities/{docId} {
       allow read: if signedIn() && resource.data.tenantId is string && sameTenant(resource.data.tenantId) && (
         tenantAdminOrSuper(resource.data.tenantId) ||

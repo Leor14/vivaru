@@ -1527,6 +1527,80 @@ export const deleteOperationalUser = onCall<DeleteOperationalUserInput>(
   },
 );
 
+// ── Repositorio documental: carpetas (sistema tipo Drive, solo admin) ──────────
+// Crea una carpeta validando el límite de profundidad como fuente de verdad:
+// carpeta madre (depth 0) + hasta 4 niveles de subcarpetas (depth máx 4).
+type CreateDocumentFolderInput = { tenantId: string; name: string; parentId?: string | null; description?: string };
+
+export const createDocumentFolder = onCall<CreateDocumentFolderInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+    const tenantId = normalizeText(request.data?.tenantId);
+    const name = normalizeText(request.data?.name);
+    const parentId = request.data?.parentId ? normalizeText(request.data.parentId) : null;
+    const description = request.data?.description !== undefined ? normalizeText(request.data.description) : "";
+    if (!tenantId || !name) {
+      throw new HttpsError("invalid-argument", "tenantId y name son requeridos.");
+    }
+
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "No puedes crear carpetas en otro tenant.");
+    }
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const targetTenantId = actor.tenantId;
+
+    let depth = 0;
+    let parentPath = "";
+    if (parentId) {
+      const parentSnap = await db.collection("documentFolders").doc(parentId).get();
+      if (!parentSnap.exists) {
+        throw new HttpsError("not-found", "La carpeta padre no existe.");
+      }
+      const parent = parentSnap.data() as { tenantId?: string; depth?: number; path?: string };
+      if (parent.tenantId !== targetTenantId) {
+        throw new HttpsError("permission-denied", "La carpeta padre es de otro tenant.");
+      }
+      depth = (parent.depth ?? 0) + 1;
+      if (depth > 4) {
+        throw new HttpsError("failed-precondition", "Máximo 4 niveles de subcarpetas bajo la carpeta madre.");
+      }
+      parentPath = parent.path ?? parentId;
+    }
+
+    const profileSnap = await db.collection("users").doc(request.auth.uid).get();
+    const createdByName = (profileSnap.data() as { fullName?: string } | undefined)?.fullName ?? "";
+
+    const now = Timestamp.now();
+    const ref = db.collection("documentFolders").doc();
+    const path = parentId ? `${parentPath}/${ref.id}` : ref.id;
+    await ref.set({
+      tenantId: targetTenantId,
+      name,
+      description,
+      parentId,
+      path,
+      depth,
+      createdBy: request.auth.uid,
+      createdByName,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await writeAuditLog(targetTenantId, request.auth.uid, "create_document_folder", {
+      folderId: ref.id,
+      parentId,
+      depth,
+    });
+
+    return { ok: true, folderId: ref.id, depth, path };
+  },
+);
+
 export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporaryAccessInput>(
   {
     cors: callableCorsOrigins,

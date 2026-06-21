@@ -185,6 +185,23 @@ export async function deleteOperationalUserCallable(input: { tenantId: string; u
   return executeCallable(callable, input, "No fue posible eliminar el usuario.");
 }
 
+export async function createDocumentFolderCallable(input: {
+  tenantId: string;
+  name: string;
+  parentId?: string | null;
+  description?: string;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { ok: boolean; folderId: string; depth: number; path: string }>(
+    functions,
+    "createDocumentFolder",
+  );
+  return executeCallable(callable, input, "No fue posible crear la carpeta.");
+}
+
 export async function provisionResidentTemporaryAccessCallable(input: ProvisionResidentTemporaryAccessInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
