@@ -15,7 +15,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type DragEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
@@ -67,6 +67,10 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
   const [moving, setMoving] = useState(false);
   const [folderMoveTarget, setFolderMoveTarget] = useState<DocumentFolder | null>(null);
   const [movingFolder, setMovingFolder] = useState(false);
+
+  // Drag & drop (solo web). Mantiene el item arrastrado y el destino resaltado.
+  const [dragItem, setDragItem] = useState<{ kind: "doc" | "folder"; id: string } | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const [renameTarget, setRenameTarget] = useState<DocumentFolder | null>(null);
   const [renameName, setRenameName] = useState("");
@@ -316,6 +320,57 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     }
   }
 
+  // ── Drag & drop (web) ────────────────────────────────────────────────────────
+  function canDropOn(targetFolderId: string | null): boolean {
+    if (!dragItem) return false;
+    if (dragItem.kind === "doc") return true; // un documento puede ir a cualquier carpeta
+    const folder = foldersById.get(dragItem.id);
+    if (!folder) return false;
+    if (targetFolderId === dragItem.id) return false; // no a sí misma
+    if (targetFolderId) {
+      const target = foldersById.get(targetFolderId);
+      if (!target) return false;
+      if ((target.path || target.id).startsWith(`${folder.path || folder.id}/`)) return false; // descendiente
+    }
+    return true;
+  }
+
+  async function handleDropOn(targetFolderId: string | null) {
+    const item = dragItem;
+    setDragItem(null);
+    setDragOverId(null);
+    if (!item || !tenantId || !canDropOn(targetFolderId)) return;
+    try {
+      if (item.kind === "doc") {
+        await setDocumentFolder({ documentId: item.id, folderId: targetFolderId });
+        toast.success("Documento movido.");
+      } else {
+        await moveDocumentFolderCallable({ tenantId, folderId: item.id, targetParentId: targetFolderId });
+        toast.success("Carpeta movida.");
+      }
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
+  // Props de zona-soltable reutilizables (carpetas y breadcrumb).
+  function dropTargetProps(targetFolderId: string | null) {
+    if (isMobile) return {};
+    return {
+      onDragOver: (e: DragEvent) => {
+        if (canDropOn(targetFolderId)) {
+          e.preventDefault();
+          setDragOverId(targetFolderId ?? "__root__");
+        }
+      },
+      onDragLeave: () => setDragOverId(null),
+      onDrop: (e: DragEvent) => {
+        e.preventDefault();
+        void handleDropOn(targetFolderId);
+      },
+    };
+  }
+
   return (
     <div className="space-y-4">
       {/* Breadcrumb + acción */}
@@ -324,7 +379,10 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
           <button
             type="button"
             onClick={() => enterFolder(null)}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[var(--slate-600)] hover:bg-[var(--slate-100)]"
+            {...dropTargetProps(null)}
+            className={`flex items-center gap-1 rounded-md px-2 py-1 hover:bg-[var(--slate-100)] ${
+              dragOverId === "__root__" ? "bg-[var(--brand-100)] text-[var(--brand-700)]" : "text-[var(--slate-600)]"
+            }`}
           >
             <Home className="h-4 w-4" />
             Inicio
@@ -335,7 +393,10 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
               <button
                 type="button"
                 onClick={() => enterFolder(f.id)}
-                className="rounded-md px-2 py-1 text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                {...dropTargetProps(f.id)}
+                className={`rounded-md px-2 py-1 hover:bg-[var(--slate-100)] ${
+                  dragOverId === f.id ? "bg-[var(--brand-100)] text-[var(--brand-700)]" : "text-[var(--slate-700)]"
+                }`}
               >
                 {f.name}
               </button>
@@ -387,20 +448,35 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                 {subfolders.map((f) => {
                   const c = folderColor(f.color);
                   const isSel = selected?.type === "folder" && selected.id === f.id;
+                  const isDropTarget = dragOverId === f.id;
                   return (
                     <div
                       key={f.id}
                       role="button"
                       tabIndex={0}
+                      draggable={!isMobile}
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        setDragItem({ kind: "folder", id: f.id });
+                      }}
+                      onDragEnd={() => {
+                        setDragItem(null);
+                        setDragOverId(null);
+                      }}
+                      {...dropTargetProps(f.id)}
                       onClick={() => handleFolderClick(f.id)}
                       onDoubleClick={() => enterFolder(f.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") enterFolder(f.id);
                       }}
                       className={`relative flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-3 hover:bg-[var(--slate-50)] ${
-                        isSel ? "" : "border-[var(--slate-200)]"
+                        isDropTarget
+                          ? "border-[var(--brand-700)] ring-2 ring-[var(--brand-700)]"
+                          : isSel
+                            ? ""
+                            : "border-[var(--slate-200)]"
                       }`}
-                      style={isSel ? { borderColor: c.ring, boxShadow: `0 0 0 1px ${c.ring}` } : undefined}
+                      style={!isDropTarget && isSel ? { borderColor: c.ring, boxShadow: `0 0 0 1px ${c.ring}` } : undefined}
                     >
                       <div
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
@@ -476,6 +552,12 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                 {folderDocs.map((d) => (
                 <div
                   key={d.id}
+                  draggable={!isMobile}
+                  onDragStart={() => setDragItem({ kind: "doc", id: d.id })}
+                  onDragEnd={() => {
+                    setDragItem(null);
+                    setDragOverId(null);
+                  }}
                   className={`flex items-center justify-between gap-3 px-3 py-2 ${
                     selected?.type === "doc" && selected.id === d.id ? "bg-[var(--slate-50)]" : ""
                   }`}
