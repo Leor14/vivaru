@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -1598,6 +1599,110 @@ export const createDocumentFolder = onCall<CreateDocumentFolderInput>(
     });
 
     return { ok: true, folderId: ref.id, depth, path };
+  },
+);
+
+// Renombrar carpeta (no cambia path/depth/parent; integridad intacta).
+export const renameDocumentFolder = onCall<{ tenantId: string; folderId: string; name: string; description?: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const folderId = normalizeText(request.data?.folderId);
+    const name = normalizeText(request.data?.name);
+    const description = request.data?.description !== undefined ? normalizeText(request.data.description) : undefined;
+    if (!tenantId || !folderId || !name) {
+      throw new HttpsError("invalid-argument", "tenantId, folderId y name son requeridos.");
+    }
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const ref = db.collection("documentFolders").doc(folderId);
+    const snap = await ref.get();
+    if (!snap.exists || (snap.data() as { tenantId?: string }).tenantId !== actor.tenantId) {
+      throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
+    }
+    const updates: Record<string, unknown> = { name, updatedAt: Timestamp.now() };
+    if (description !== undefined) updates.description = description;
+    await ref.update(updates);
+    await writeAuditLog(actor.tenantId, request.auth.uid, "rename_document_folder", { folderId, name });
+    return { ok: true };
+  },
+);
+
+// Eliminar carpeta: solo si está vacía (sin subcarpetas ni documentos).
+export const deleteDocumentFolder = onCall<{ tenantId: string; folderId: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const folderId = normalizeText(request.data?.folderId);
+    if (!tenantId || !folderId) throw new HttpsError("invalid-argument", "tenantId y folderId son requeridos.");
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const ref = db.collection("documentFolders").doc(folderId);
+    const snap = await ref.get();
+    if (!snap.exists || (snap.data() as { tenantId?: string }).tenantId !== actor.tenantId) {
+      throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
+    }
+    const subs = await db
+      .collection("documentFolders")
+      .where("tenantId", "==", actor.tenantId)
+      .where("parentId", "==", folderId)
+      .limit(1)
+      .get();
+    if (!subs.empty) throw new HttpsError("failed-precondition", "La carpeta tiene subcarpetas. Vacíala antes de eliminar.");
+    const docs = await db
+      .collection("documents")
+      .where("tenantId", "==", actor.tenantId)
+      .where("folderId", "==", folderId)
+      .limit(1)
+      .get();
+    if (!docs.empty) throw new HttpsError("failed-precondition", "La carpeta tiene documentos. Muévelos o elimínalos antes.");
+
+    await ref.delete();
+    await writeAuditLog(actor.tenantId, request.auth.uid, "delete_document_folder", { folderId });
+    return { ok: true };
+  },
+);
+
+// Enlace de descarga: verifica admin, audita la descarga y emite una URL firmada de
+// corta duración (10 min). Si el service account no puede firmar, cae al fileUrl.
+export const getDocumentDownloadUrl = onCall<{ documentId: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const documentId = normalizeText(request.data?.documentId);
+    if (!documentId) throw new HttpsError("invalid-argument", "documentId requerido.");
+
+    const snap = await db.collection("documents").doc(documentId).get();
+    if (!snap.exists) throw new HttpsError("not-found", "Documento no encontrado.");
+    const docData = snap.data() as { tenantId?: string; storagePath?: string; fileUrl?: string; fileName?: string };
+    if (!docData.tenantId) throw new HttpsError("failed-precondition", "Documento sin tenant.");
+
+    await assertActiveTenantAdmin(docData.tenantId, request.auth.uid);
+    await writeAuditLog(docData.tenantId, request.auth.uid, "download_document", {
+      documentId,
+      fileName: docData.fileName ?? null,
+    });
+
+    let url = docData.fileUrl ?? "";
+    if (docData.storagePath) {
+      try {
+        const [signed] = await getStorage()
+          .bucket()
+          .file(docData.storagePath)
+          .getSignedUrl({ version: "v4", action: "read", expires: Date.now() + 10 * 60 * 1000 });
+        url = signed;
+      } catch (error) {
+        console.warn("[getDocumentDownloadUrl] firma no disponible; se usa fileUrl", error);
+      }
+    }
+    if (!url) throw new HttpsError("internal", "No fue posible generar el enlace.");
+    return { url };
   },
 );
 

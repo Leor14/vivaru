@@ -202,6 +202,29 @@ export async function createDocumentFolderCallable(input: {
   return executeCallable(callable, input, "No fue posible crear la carpeta.");
 }
 
+export async function renameDocumentFolderCallable(input: {
+  tenantId: string;
+  folderId: string;
+  name: string;
+  description?: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "renameDocumentFolder");
+  return executeCallable(callable, input, "No fue posible renombrar la carpeta.");
+}
+
+export async function deleteDocumentFolderCallable(input: { tenantId: string; folderId: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "deleteDocumentFolder");
+  return executeCallable(callable, input, "No fue posible eliminar la carpeta.");
+}
+
+export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");
+  return executeCallable(callable, input, "No fue posible abrir el documento.");
+}
+
 export async function provisionResidentTemporaryAccessCallable(input: ProvisionResidentTemporaryAccessInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

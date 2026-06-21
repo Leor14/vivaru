@@ -1,13 +1,18 @@
 "use client";
 
-import { ChevronRight, ExternalLink, FileText, FolderInput, FolderOpen, FolderPlus, Home } from "lucide-react";
+import { ChevronRight, ExternalLink, FileText, FolderInput, FolderOpen, FolderPlus, Home, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createDocumentFolderCallable } from "@/lib/firebase/callables";
+import {
+  createDocumentFolderCallable,
+  deleteDocumentFolderCallable,
+  getDocumentDownloadUrlCallable,
+  renameDocumentFolderCallable,
+} from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import {
   setDocumentFolder,
@@ -30,6 +35,12 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
 
   const [moveTarget, setMoveTarget] = useState<DocumentItem | null>(null);
   const [moving, setMoving] = useState(false);
+
+  const [renameTarget, setRenameTarget] = useState<DocumentFolder | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renameDesc, setRenameDesc] = useState("");
+  const [renameSaving, setRenameSaving] = useState(false);
+  const [deletingFolder, setDeletingFolder] = useState(false);
 
   // Web: 1 clic = seleccionar (panel de detalle/preview), doble clic = entrar/abrir.
   // Mobile: 1 toque = entrar/abrir directo (sin panel).
@@ -94,6 +105,11 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     () => documents.filter((d) => (d.folderId ?? null) === currentFolderId && (d.category as string) !== "reglamento"),
     [documents, currentFolderId],
   );
+  // Metering: uso total del repositorio (todos los documentos del tenant).
+  const usage = useMemo(() => {
+    const bytes = documents.reduce((sum, d) => sum + (d.fileSize ?? 0), 0);
+    return { count: documents.length, mb: bytes / 1024 / 1024 };
+  }, [documents]);
 
   const canCreateHere = !currentFolder || currentFolder.depth < MAX_DEPTH;
 
@@ -125,12 +141,60 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     if (isMobile) enterFolder(id);
     else setSelected({ type: "folder", id });
   }
-  function openDoc(url: string) {
-    window.open(url, "_blank", "noopener");
+  async function openDoc(d: DocumentItem) {
+    // Pre-abre la pestaña (gesto del usuario) y luego coloca la URL firmada para
+    // evitar bloqueadores de pop-ups tras el await.
+    const w = window.open("about:blank", "_blank");
+    try {
+      const { url } = await getDocumentDownloadUrlCallable({ documentId: d.id });
+      if (w) w.location.href = url;
+      else window.open(url, "_blank");
+    } catch (error) {
+      if (w) w.close();
+      toastFirebaseError(error);
+    }
   }
   function handleDocClick(d: DocumentItem) {
-    if (isMobile) openDoc(d.fileUrl);
+    if (isMobile) void openDoc(d);
     else setSelected({ type: "doc", id: d.id });
+  }
+
+  function startRename(folder: DocumentFolder) {
+    setRenameTarget(folder);
+    setRenameName(folder.name);
+    setRenameDesc(folder.description ?? "");
+  }
+  async function handleRename() {
+    if (!tenantId || !renameTarget) return;
+    const name = renameName.trim();
+    if (!name) {
+      toast.error("Escribe un nombre.");
+      return;
+    }
+    setRenameSaving(true);
+    try {
+      await renameDocumentFolderCallable({ tenantId, folderId: renameTarget.id, name, description: renameDesc.trim() });
+      toast.success("Carpeta actualizada.");
+      setRenameTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setRenameSaving(false);
+    }
+  }
+  async function handleDeleteFolder(folder: DocumentFolder) {
+    if (!tenantId) return;
+    if (!window.confirm(`¿Eliminar la carpeta "${folder.name}"? Debe estar vacía (sin subcarpetas ni documentos).`)) return;
+    setDeletingFolder(true);
+    try {
+      await deleteDocumentFolderCallable({ tenantId, folderId: folder.id });
+      toast.success("Carpeta eliminada.");
+      setSelected(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setDeletingFolder(false);
+    }
   }
 
   const selectedFolder = selected?.type === "folder" ? foldersById.get(selected.id) ?? null : null;
@@ -214,6 +278,11 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
         </Button>
       </div>
 
+      <p className="text-xs text-[var(--slate-400)]">
+        {usage.count} archivo(s) · {usage.mb.toFixed(1)} MB usados
+        {!isMobile ? " · un clic para ver el detalle, doble clic para abrir" : ""}
+      </p>
+
       <div className={selected && !isMobile ? "grid gap-4 lg:grid-cols-[1fr_340px]" : ""}>
         <div className="min-w-0 space-y-4">
       {currentFolder?.description ? (
@@ -271,19 +340,17 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                   <button
                     type="button"
                     onClick={() => handleDocClick(d)}
-                    onDoubleClick={() => openDoc(d.fileUrl)}
+                    onDoubleClick={() => void openDoc(d)}
                     className="flex min-w-0 items-center gap-2 text-left"
                   >
                     <FileText className="h-4 w-4 shrink-0 text-[var(--slate-500)]" />
                     <span className="truncate text-sm text-[var(--slate-800)]">{d.fileName}</span>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
-                    <a href={d.fileUrl} target="_blank" rel="noreferrer">
-                      <Button size="sm" variant="ghost" type="button">
-                        <ExternalLink className="mr-1 h-3.5 w-3.5" />
-                        Abrir
-                      </Button>
-                    </a>
+                    <Button size="sm" variant="ghost" type="button" onClick={() => void openDoc(d)}>
+                      <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                      Abrir
+                    </Button>
                     <Button size="sm" variant="ghost" type="button" onClick={() => setMoveTarget(d)}>
                       <FolderInput className="mr-1 h-3.5 w-3.5" />
                       Mover
@@ -321,6 +388,23 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                   <FolderOpen className="mr-2 h-4 w-4" />
                   Abrir carpeta
                 </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => startRename(selectedFolder)}>
+                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                    Renombrar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 text-[var(--danger-700)]"
+                    disabled={deletingFolder || childCount(selectedFolder.id) > 0}
+                    title={childCount(selectedFolder.id) > 0 ? "La carpeta debe estar vacía para eliminarla." : undefined}
+                    onClick={() => void handleDeleteFolder(selectedFolder)}
+                  >
+                    <Trash2 className="mr-1 h-3.5 w-3.5" />
+                    Eliminar
+                  </Button>
+                </div>
               </>
             ) : selectedDoc ? (
               <>
@@ -358,7 +442,7 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                   ) : null}
                 </dl>
                 <div className="flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={() => openDoc(selectedDoc.fileUrl)}>
+                  <Button size="sm" className="flex-1" onClick={() => void openDoc(selectedDoc)}>
                     <ExternalLink className="mr-1 h-3.5 w-3.5" />
                     Abrir
                   </Button>
@@ -424,6 +508,28 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                 {folderPathLabel(f)}
               </button>
             ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: renombrar carpeta */}
+      <Modal open={renameTarget !== null} title="Renombrar carpeta" onClose={() => setRenameTarget(null)}>
+        <div className="space-y-3">
+          <label className="text-sm text-[var(--slate-700)]">
+            Nombre
+            <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} />
+          </label>
+          <label className="text-sm text-[var(--slate-700)]">
+            Descripción (opcional)
+            <Input value={renameDesc} onChange={(e) => setRenameDesc(e.target.value)} />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setRenameTarget(null)} disabled={renameSaving}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void handleRename()} disabled={renameSaving || !renameName.trim()}>
+              {renameSaving ? "Guardando…" : "Guardar"}
+            </Button>
           </div>
         </div>
       </Modal>
