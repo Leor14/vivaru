@@ -46,6 +46,7 @@ export default function AdminDocumentsPage() {
   const [category, setCategory] = useState<DocumentCategory>("otro");
   const [uploading, setUploading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
+  const [tab, setTab] = useState<"carpetas" | "todos">("todos");
 
   const form = useForm<DocumentInput>({
     resolver: zodResolver(documentSchema),
@@ -121,6 +122,8 @@ export default function AdminDocumentsPage() {
   const filteredItems = useMemo(() => {
     const query = searchFilter.trim().toLowerCase();
     return items.filter((item) => {
+      // El reglamento tiene su propio módulo; no se mezcla en este repositorio.
+      if ((item.category as string) === "reglamento") return false;
       if (query.length === 0) return true;
       return `${item.fileName} ${item.description}`.toLowerCase().includes(query);
     });
@@ -162,9 +165,59 @@ export default function AdminDocumentsPage() {
   ];
 
   return (
+    <section className="space-y-4">
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
+          <FolderOpen className="h-5 w-5 text-[var(--slate-600)]" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-[var(--slate-900)]">Documentos</h1>
+            <HelpTip text="Centraliza los archivos oficiales del conjunto: actas, contratos, planos y memorias. Tenerlos organizados evita pérdidas de información crítica y facilita cualquier auditoría o revisión legal." />
+          </div>
+          <p className="text-sm text-[var(--slate-500)]">Repositorio de archivos oficiales del conjunto, solo para la administración.</p>
+        </div>
+      </div>
+
+      {/* ── Tabs ────────────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 border-b border-[var(--slate-200)]">
+        {([
+          ["carpetas", "Carpetas"],
+          ["todos", "Todos los documentos"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+              tab === key
+                ? "border-[var(--brand-700)] text-[var(--brand-700)]"
+                : "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "carpetas" ? (
+        <Card>
+          <CardTitle>Carpetas</CardTitle>
+          <CardDescription className="mt-1">
+            Organiza los documentos en carpetas y subcarpetas (estilo Drive), hasta 4 niveles bajo la carpeta madre.
+          </CardDescription>
+          <div className="mt-6 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--slate-300)] py-10 text-center">
+            <FolderOpen className="h-8 w-8 text-[var(--slate-400)]" />
+            <p className="text-sm text-[var(--slate-500)]">Próximamente: crea carpetas, navégalas y mueve documentos aquí.</p>
+          </div>
+        </Card>
+      ) : null}
+
+      {tab === "todos" ? (
     <Card>
-      <CardTitle help="Centraliza los archivos clave del conjunto: actas de asamblea, contratos, planos y memorias. Tener los documentos organizados y accesibles evita pérdidas de información crítica y facilita cualquier auditoría o revisión legal.">Repositorio documental</CardTitle>
-      <CardDescription className="mt-1">Sube y organiza los documentos oficiales del conjunto.</CardDescription>
+      <CardTitle help="Todos los archivos del conjunto, sin importar su carpeta. El reglamento tiene su propio módulo y no aparece aquí.">Todos los documentos</CardTitle>
+      <CardDescription className="mt-1">Sube nuevos archivos, clasifícalos por categoría y búscalos en el listado.</CardDescription>
 
       <form className="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr_1.4fr_auto]" onSubmit={form.handleSubmit((values) => void handleUpload(values))}>
         <div className="text-sm text-[var(--slate-700)]">
@@ -269,5 +322,7 @@ export default function AdminDocumentsPage() {
         />
       </div>
     </Card>
+      ) : null}
+    </section>
   );
 }
