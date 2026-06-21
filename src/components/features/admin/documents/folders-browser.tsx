@@ -1,6 +1,19 @@
 "use client";
 
-import { ChevronRight, ExternalLink, FileText, FolderInput, FolderOpen, FolderPlus, Home, Pencil, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Database,
+  ExternalLink,
+  FileText,
+  FolderInput,
+  FolderOpen,
+  FolderPlus,
+  Home,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +36,20 @@ import {
 
 const MAX_DEPTH = 4; // carpeta madre = depth 0; máximo depth 4 (madre + 4 niveles).
 
+// Paleta para diferenciar carpetas (clave → fondo/ícono/anillo). Default: gris.
+const FOLDER_COLORS: Record<string, { chipBg: string; chipFg: string; ring: string }> = {
+  gray: { chipBg: "#F1EFE8", chipFg: "#444441", ring: "#888780" },
+  blue: { chipBg: "#E6F1FB", chipFg: "#0C447C", ring: "#378ADD" },
+  green: { chipBg: "#EAF3DE", chipFg: "#27500A", ring: "#639922" },
+  amber: { chipBg: "#FAEEDA", chipFg: "#633806", ring: "#BA7517" },
+  purple: { chipBg: "#EEEDFE", chipFg: "#3C3489", ring: "#7F77DD" },
+  teal: { chipBg: "#E1F5EE", chipFg: "#085041", ring: "#1D9E75" },
+};
+const COLOR_KEYS = ["gray", "blue", "green", "amber", "purple", "teal"] as const;
+function folderColor(key?: string) {
+  return FOLDER_COLORS[key ?? "gray"] ?? FOLDER_COLORS.gray;
+}
+
 export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: string; documents: DocumentItem[] }) {
   const [folders, setFolders] = useState<DocumentFolder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +66,10 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
   const [renameTarget, setRenameTarget] = useState<DocumentFolder | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renameDesc, setRenameDesc] = useState("");
+  const [renameColor, setRenameColor] = useState<string>("gray");
   const [renameSaving, setRenameSaving] = useState(false);
   const [deletingFolder, setDeletingFolder] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
   // Web: 1 clic = seleccionar (panel de detalle/preview), doble clic = entrar/abrir.
   // Mobile: 1 toque = entrar/abrir directo (sin panel).
@@ -55,6 +84,13 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => {
+    if (!menuOpenId) return;
+    const close = () => setMenuOpenId(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [menuOpenId]);
 
   useEffect(() => {
     if (!tenantId) {
@@ -160,9 +196,11 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
   }
 
   function startRename(folder: DocumentFolder) {
+    setMenuOpenId(null);
     setRenameTarget(folder);
     setRenameName(folder.name);
     setRenameDesc(folder.description ?? "");
+    setRenameColor(folder.color ?? "gray");
   }
   async function handleRename() {
     if (!tenantId || !renameTarget) return;
@@ -173,7 +211,13 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     }
     setRenameSaving(true);
     try {
-      await updateDocumentFolderCallable({ tenantId, folderId: renameTarget.id, name, description: renameDesc.trim() });
+      await updateDocumentFolderCallable({
+        tenantId,
+        folderId: renameTarget.id,
+        name,
+        description: renameDesc.trim(),
+        color: renameColor as "gray" | "blue" | "green" | "amber" | "purple" | "teal",
+      });
       toast.success("Carpeta actualizada.");
       setRenameTarget(null);
     } catch (error) {
@@ -267,21 +311,26 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
           ))}
         </nav>
 
-        <Button
-          size="sm"
-          onClick={() => setCreateOpen(true)}
-          disabled={!canCreateHere}
-          title={canCreateHere ? undefined : "Máximo 4 niveles de subcarpetas bajo la carpeta madre."}
-        >
-          <FolderPlus className="mr-2 h-4 w-4" />
-          Nueva carpeta
-        </Button>
+        <div className="flex items-center gap-2">
+          <span className="hidden items-center gap-1 rounded-md px-2 py-1 text-xs text-[var(--slate-500)] sm:inline-flex">
+            <Database className="h-3.5 w-3.5" />
+            {usage.count} archivo(s) · {usage.mb.toFixed(1)} MB
+          </span>
+          <Button
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            disabled={!canCreateHere}
+            title={canCreateHere ? undefined : "Máximo 4 niveles de subcarpetas bajo la carpeta madre."}
+          >
+            <FolderPlus className="mr-2 h-4 w-4" />
+            Nueva carpeta
+          </Button>
+        </div>
       </div>
 
-      <p className="text-xs text-[var(--slate-400)]">
-        {usage.count} archivo(s) · {usage.mb.toFixed(1)} MB usados
-        {!isMobile ? " · un clic para ver el detalle, doble clic para abrir" : ""}
-      </p>
+      {!isMobile ? (
+        <p className="text-xs text-[var(--slate-400)]">Un clic muestra el detalle · doble clic abre.</p>
+      ) : null}
 
       <div className={selected && !isMobile ? "grid gap-4 lg:grid-cols-[1fr_340px]" : ""}>
         <div className="min-w-0 space-y-4">
@@ -302,35 +351,91 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
         <div className="space-y-4">
           {/* Subcarpetas */}
           {subfolders.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {subfolders.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => handleFolderClick(f.id)}
-                  onDoubleClick={() => enterFolder(f.id)}
-                  className={`flex items-center gap-3 rounded-xl border bg-white p-3 text-left hover:border-[var(--brand-700)] hover:bg-[var(--slate-50)] ${
-                    selected?.type === "folder" && selected.id === f.id
-                      ? "border-[var(--brand-700)] ring-1 ring-[var(--brand-700)]"
-                      : "border-[var(--slate-200)]"
-                  }`}
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-                    <FolderOpen className="h-5 w-5 text-amber-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[var(--slate-900)]">{f.name}</p>
-                    <p className="text-xs text-[var(--slate-500)]">{childCount(f.id)} elemento(s)</p>
-                  </div>
-                </button>
-              ))}
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+                Carpetas · {subfolders.length}
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {subfolders.map((f) => {
+                  const c = folderColor(f.color);
+                  const isSel = selected?.type === "folder" && selected.id === f.id;
+                  return (
+                    <div
+                      key={f.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => handleFolderClick(f.id)}
+                      onDoubleClick={() => enterFolder(f.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") enterFolder(f.id);
+                      }}
+                      className={`relative flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-3 hover:bg-[var(--slate-50)] ${
+                        isSel ? "" : "border-[var(--slate-200)]"
+                      }`}
+                      style={isSel ? { borderColor: c.ring, boxShadow: `0 0 0 1px ${c.ring}` } : undefined}
+                    >
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                        style={{ backgroundColor: c.chipBg }}
+                      >
+                        <FolderOpen className="h-5 w-5" style={{ color: c.chipFg }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate pr-5 text-sm font-medium text-[var(--slate-900)]">{f.name}</p>
+                        <p className="text-xs text-[var(--slate-500)]">{childCount(f.id)} elemento(s)</p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Acciones de carpeta"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(menuOpenId === f.id ? null : f.id);
+                        }}
+                        className="absolute right-2 top-2 rounded-md p-1 text-[var(--slate-400)] hover:bg-[var(--slate-100)] hover:text-[var(--slate-700)]"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                      {menuOpenId === f.id ? (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-2 top-9 z-10 w-36 overflow-hidden rounded-lg border border-[var(--slate-200)] bg-white py-1 shadow-lg"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => startRename(f)}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--slate-100)]"
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Editar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={childCount(f.id) > 0}
+                            title={childCount(f.id) > 0 ? "La carpeta debe estar vacía." : undefined}
+                            onClick={() => {
+                              setMenuOpenId(null);
+                              void handleDeleteFolder(f);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-[var(--danger-700)] hover:bg-[var(--slate-100)] disabled:opacity-40"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
 
           {/* Documentos de la carpeta */}
           {folderDocs.length > 0 ? (
-            <div className="divide-y divide-[var(--slate-100)] rounded-xl border border-[var(--slate-200)]">
-              {folderDocs.map((d) => (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
+                Archivos · {folderDocs.length}
+              </p>
+              <div className="divide-y divide-[var(--slate-100)] rounded-xl border border-[var(--slate-200)]">
+                {folderDocs.map((d) => (
                 <div
                   key={d.id}
                   className={`flex items-center justify-between gap-3 px-3 py-2 ${
@@ -357,7 +462,8 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                     </Button>
                   </div>
                 </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
@@ -369,7 +475,12 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
             {selectedFolder ? (
               <>
                 <div className="flex items-center gap-2">
-                  <FolderOpen className="h-5 w-5 text-amber-500" />
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: folderColor(selectedFolder.color).chipBg }}
+                  >
+                    <FolderOpen className="h-4 w-4" style={{ color: folderColor(selectedFolder.color).chipFg }} />
+                  </span>
                   <p className="truncate font-medium text-[var(--slate-900)]">{selectedFolder.name}</p>
                 </div>
                 {selectedFolder.description ? (
@@ -391,7 +502,7 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1" onClick={() => startRename(selectedFolder)}>
                     <Pencil className="mr-1 h-3.5 w-3.5" />
-                    Renombrar
+                    Editar
                   </Button>
                   <Button
                     size="sm"
@@ -512,8 +623,8 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
         </div>
       </Modal>
 
-      {/* Modal: renombrar carpeta */}
-      <Modal open={renameTarget !== null} title="Renombrar carpeta" onClose={() => setRenameTarget(null)}>
+      {/* Modal: editar carpeta */}
+      <Modal open={renameTarget !== null} title="Editar carpeta" onClose={() => setRenameTarget(null)}>
         <div className="space-y-3">
           <label className="text-sm text-[var(--slate-700)]">
             Nombre
@@ -523,6 +634,27 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
             Descripción (opcional)
             <Input value={renameDesc} onChange={(e) => setRenameDesc(e.target.value)} />
           </label>
+          <div>
+            <p className="text-sm text-[var(--slate-700)]">Color</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {COLOR_KEYS.map((key) => {
+                const c = FOLDER_COLORS[key];
+                const active = renameColor === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-label={`Color ${key}`}
+                    onClick={() => setRenameColor(key)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full"
+                    style={{ backgroundColor: c.ring, outline: active ? "2px solid var(--slate-900)" : "none", outlineOffset: "2px" }}
+                  >
+                    {active ? <Check className="h-4 w-4 text-white" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setRenameTarget(null)} disabled={renameSaving}>
               Cancelar
