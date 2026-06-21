@@ -1270,6 +1270,87 @@ export const createTenantOperationalUser = onCall<CreateTenantOperationalUserInp
   },
 );
 
+// ── Gestión de usuarios operativos: baja / reactivación ───────────────────────
+// Cambia el estado de un usuario operativo (admin/guarda) del mismo tenant. Baja
+// correcta: status en users + tenantUsers, deshabilita Auth y revoca la sesión.
+type SetOperationalUserStatusInput = { tenantId: string; uid: string; status: "active" | "inactive" };
+
+export const setOperationalUserStatus = onCall<SetOperationalUserStatusInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+
+    const tenantId = normalizeText(request.data?.tenantId);
+    const targetUid = normalizeText(request.data?.uid);
+    const status = request.data?.status;
+    if (!tenantId || !targetUid || (status !== "active" && status !== "inactive")) {
+      throw new HttpsError("invalid-argument", "tenantId, uid y status (active|inactive) son requeridos.");
+    }
+
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "No puedes gestionar usuarios de otro tenant.");
+    }
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const targetTenantId = actor.tenantId;
+
+    // No puedes desactivarte a ti mismo (evita auto-lockout).
+    if (targetUid === request.auth.uid && status === "inactive") {
+      throw new HttpsError("failed-precondition", "No puedes desactivar tu propia cuenta.");
+    }
+
+    // El objetivo debe ser un usuario operativo del mismo tenant.
+    const membershipRef = db.collection("tenantUsers").doc(`${targetTenantId}_${targetUid}`);
+    const membershipSnap = await membershipRef.get();
+    if (!membershipSnap.exists) {
+      throw new HttpsError("not-found", "El usuario no pertenece a este tenant.");
+    }
+    const targetRole = (membershipSnap.data() as { role?: string }).role;
+    if (targetRole !== "tenant_admin" && targetRole !== "security_guard") {
+      throw new HttpsError("failed-precondition", "Solo puedes gestionar usuarios operativos (admin o guarda).");
+    }
+
+    // Guardrail: no dejar el tenant sin ningún admin activo.
+    if (targetRole === "tenant_admin" && status === "inactive") {
+      const admins = await db
+        .collection("tenantUsers")
+        .where("tenantId", "==", targetTenantId)
+        .where("role", "==", "tenant_admin")
+        .get();
+      const remainingActive = admins.docs.filter((d) => {
+        const data = d.data() as { status?: string };
+        return d.id !== `${targetTenantId}_${targetUid}` && (data.status ?? "active") === "active";
+      }).length;
+      if (remainingActive === 0) {
+        throw new HttpsError("failed-precondition", "No puedes desactivar al último administrador activo del conjunto.");
+      }
+    }
+
+    const now = Timestamp.now();
+    const batch = db.batch();
+    batch.set(db.collection("users").doc(targetUid), { status, updatedAt: now }, { merge: true });
+    batch.set(membershipRef, { status, updatedAt: now }, { merge: true });
+    await batch.commit();
+
+    const authApi = getAuth();
+    await authApi.updateUser(targetUid, { disabled: status === "inactive" });
+    if (status === "inactive") {
+      await authApi.revokeRefreshTokens(targetUid);
+    }
+
+    await writeAuditLog(targetTenantId, request.auth.uid, "set_operational_user_status", {
+      uid: targetUid,
+      role: targetRole,
+      status,
+    });
+
+    return { ok: true, status };
+  },
+);
+
 export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporaryAccessInput>(
   {
     cors: callableCorsOrigins,

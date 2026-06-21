@@ -146,6 +146,22 @@ export async function createTenantOperationalUserCallable(input: CreateTenantOpe
   return executeCallable(callable, input, "No fue posible crear el usuario operativo.");
 }
 
+export async function setOperationalUserStatusCallable(input: {
+  tenantId: string;
+  uid: string;
+  status: "active" | "inactive";
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { ok: boolean; status: "active" | "inactive" }>(
+    functions,
+    "setOperationalUserStatus",
+  );
+  return executeCallable(callable, input, "No fue posible actualizar el estado del usuario.");
+}
+
 export async function provisionResidentTemporaryAccessCallable(input: ProvisionResidentTemporaryAccessInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
