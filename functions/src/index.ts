@@ -1351,6 +1351,110 @@ export const setOperationalUserStatus = onCall<SetOperationalUserStatusInput>(
   },
 );
 
+// Edita nombre y/o rol de un usuario operativo. Si cambia el rol, actualiza los
+// custom claims y revoca tokens para que el nuevo permiso tome efecto.
+type UpdateOperationalUserInput = {
+  tenantId: string;
+  uid: string;
+  fullName?: string;
+  role?: "tenant_admin" | "security_guard";
+};
+
+export const updateOperationalUser = onCall<UpdateOperationalUserInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+
+    const tenantId = normalizeText(request.data?.tenantId);
+    const targetUid = normalizeText(request.data?.uid);
+    const fullName = request.data?.fullName !== undefined ? normalizeText(request.data.fullName) : undefined;
+    const role =
+      request.data?.role !== undefined
+        ? (normalizeText(request.data.role) as "tenant_admin" | "security_guard")
+        : undefined;
+
+    if (!tenantId || !targetUid) {
+      throw new HttpsError("invalid-argument", "tenantId y uid son requeridos.");
+    }
+    if (fullName === undefined && role === undefined) {
+      throw new HttpsError("invalid-argument", "No hay cambios para aplicar.");
+    }
+    if (fullName !== undefined && !fullName) {
+      throw new HttpsError("invalid-argument", "El nombre no puede estar vacío.");
+    }
+    if (role !== undefined) {
+      assertOperationalRole(role);
+    }
+
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "No puedes gestionar usuarios de otro tenant.");
+    }
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const targetTenantId = actor.tenantId;
+
+    const membershipRef = db.collection("tenantUsers").doc(`${targetTenantId}_${targetUid}`);
+    const membershipSnap = await membershipRef.get();
+    if (!membershipSnap.exists) {
+      throw new HttpsError("not-found", "El usuario no pertenece a este tenant.");
+    }
+    const membership = membershipSnap.data() as { role?: string; status?: string };
+    const currentRole = membership.role;
+    if (currentRole !== "tenant_admin" && currentRole !== "security_guard") {
+      throw new HttpsError("failed-precondition", "Solo puedes editar usuarios operativos (admin o guarda).");
+    }
+
+    const roleChanged = role !== undefined && role !== currentRole;
+
+    // Guardrail: no degradar al último admin activo a guarda.
+    if (roleChanged && currentRole === "tenant_admin" && role === "security_guard") {
+      const admins = await db
+        .collection("tenantUsers")
+        .where("tenantId", "==", targetTenantId)
+        .where("role", "==", "tenant_admin")
+        .get();
+      const remainingActive = admins.docs.filter((d) => {
+        const data = d.data() as { status?: string };
+        return d.id !== `${targetTenantId}_${targetUid}` && (data.status ?? "active") === "active";
+      }).length;
+      if (remainingActive === 0) {
+        throw new HttpsError("failed-precondition", "No puedes cambiar el rol del último administrador activo del conjunto.");
+      }
+    }
+
+    const now = Timestamp.now();
+    const updates: Record<string, unknown> = { updatedAt: now };
+    if (fullName !== undefined) updates.fullName = fullName;
+    if (role !== undefined) updates.role = role;
+
+    const batch = db.batch();
+    batch.set(db.collection("users").doc(targetUid), updates, { merge: true });
+    batch.set(membershipRef, updates, { merge: true });
+    await batch.commit();
+
+    const authApi = getAuth();
+    if (fullName !== undefined) {
+      await authApi.updateUser(targetUid, { displayName: fullName });
+    }
+    if (roleChanged && role !== undefined) {
+      await authApi.setCustomUserClaims(targetUid, { role, tenantId: targetTenantId });
+      await authApi.revokeRefreshTokens(targetUid); // fuerza refresco del nuevo claim
+    }
+
+    await writeAuditLog(targetTenantId, request.auth.uid, "update_operational_user", {
+      uid: targetUid,
+      fullName: fullName ?? null,
+      role: role ?? null,
+      roleChanged,
+    });
+
+    return { ok: true };
+  },
+);
+
 export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporaryAccessInput>(
   {
     cors: callableCorsOrigins,

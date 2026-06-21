@@ -14,7 +14,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useAuth } from "@/features/auth/auth-context";
 import { db } from "@/lib/firebase/client";
-import { createTenantOperationalUserCallable, setOperationalUserStatusCallable } from "@/lib/firebase/callables";
+import { Modal } from "@/components/shared/modal";
+import {
+  createTenantOperationalUserCallable,
+  setOperationalUserStatusCallable,
+  updateOperationalUserCallable,
+} from "@/lib/firebase/callables";
 
 type TenantUserItem = {
   id: string;
@@ -94,6 +99,58 @@ export default function AdminUsersPage() {
     if (item.id === user?.uid) return "No puedes desactivar tu propia cuenta.";
     if (item.role === "tenant_admin" && activeAdminCount <= 1) return "Es el último administrador activo del conjunto.";
     return null;
+  }
+
+  // ── Edición de nombre/rol ──────────────────────────────────────────────────
+  const [editTarget, setEditTarget] = useState<TenantUserItem | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState<"tenant_admin" | "security_guard">("security_guard");
+  const [editSaving, setEditSaving] = useState(false);
+
+  function openEdit(item: TenantUserItem) {
+    setEditTarget(item);
+    setEditName(item.fullName ?? "");
+    setEditRole(item.role === "tenant_admin" ? "tenant_admin" : "security_guard");
+  }
+
+  async function handleSaveEdit() {
+    if (!editTarget || !user?.tenantId) return;
+    const name = editName.trim();
+    if (!name) {
+      toast.error("El nombre no puede estar vacío.");
+      return;
+    }
+    const payload: { tenantId: string; uid: string; fullName?: string; role?: "tenant_admin" | "security_guard" } = {
+      tenantId: user.tenantId,
+      uid: editTarget.id,
+    };
+    if (name !== (editTarget.fullName ?? "")) payload.fullName = name;
+    if (editRole !== editTarget.role) payload.role = editRole;
+    if (payload.fullName === undefined && payload.role === undefined) {
+      setEditTarget(null);
+      return;
+    }
+    setEditSaving(true);
+    try {
+      await updateOperationalUserCallable(payload);
+      toast.success("Usuario actualizado.");
+      setEditTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  function renderRowActions(item: TenantUserItem) {
+    return (
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
+          Editar
+        </Button>
+        {renderStatusAction(item)}
+      </div>
+    );
   }
 
   function renderStatusAction(item: TenantUserItem) {
@@ -228,7 +285,7 @@ export default function AdminUsersPage() {
                     </span>
                     <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
                   </div>
-                  {renderStatusAction(item)}
+                  {renderRowActions(item)}
                 </div>
               </div>
             ))
@@ -279,7 +336,7 @@ export default function AdminUsersPage() {
                     <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
                   </td>
                   <td className="px-3 py-2 text-right">
-                    {renderStatusAction(item)}
+                    {renderRowActions(item)}
                   </td>
                 </tr>
               ))}
@@ -299,6 +356,39 @@ export default function AdminUsersPage() {
           />
         ) : null}
       </Card>
+
+      <Modal open={editTarget !== null} title="Editar usuario" onClose={() => setEditTarget(null)}>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm text-[var(--slate-700)]">
+              Nombre
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </label>
+          </div>
+          <div>
+            <label className="text-sm text-[var(--slate-700)]">Rol</label>
+            <select
+              value={editRole}
+              onChange={(e) => setEditRole(e.target.value as "tenant_admin" | "security_guard")}
+              className="mt-1 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-900)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)]"
+            >
+              <option value="security_guard">Guarda de seguridad</option>
+              <option value="tenant_admin">Admin</option>
+            </select>
+            <p className="mt-1 text-xs text-[var(--slate-500)]">
+              El correo no se puede cambiar. Al cambiar el rol, el usuario deberá iniciar sesión de nuevo para aplicar sus permisos.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={editSaving}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void handleSaveEdit()} disabled={editSaving}>
+              {editSaving ? "Guardando…" : "Guardar"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

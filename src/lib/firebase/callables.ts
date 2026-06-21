@@ -162,6 +162,20 @@ export async function setOperationalUserStatusCallable(input: {
   return executeCallable(callable, input, "No fue posible actualizar el estado del usuario.");
 }
 
+export async function updateOperationalUserCallable(input: {
+  tenantId: string;
+  uid: string;
+  fullName?: string;
+  role?: "tenant_admin" | "security_guard";
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "updateOperationalUser");
+  return executeCallable(callable, input, "No fue posible actualizar el usuario.");
+}
+
 export async function provisionResidentTemporaryAccessCallable(input: ProvisionResidentTemporaryAccessInput) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
