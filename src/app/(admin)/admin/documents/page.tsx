@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink, FilterX, FolderOpen, Star, Trash2, Upload } from "lucide-react";
+import { Download, ExternalLink, FilterX, FolderOpen, Star, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -127,6 +127,29 @@ export default function AdminDocumentsPage() {
       else window.open(url, "_blank");
     } catch (error) {
       if (w) w.close();
+      toastFirebaseError(error);
+    }
+  }
+
+  async function downloadDocument(item: DocumentItem) {
+    try {
+      const { url } = await getDocumentDownloadUrlCallable({ documentId: item.id });
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("fetch failed");
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = item.fileName || "documento";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+      } catch {
+        window.open(url, "_blank", "noopener");
+      }
+    } catch (error) {
       toastFirebaseError(error);
     }
   }
@@ -344,7 +367,7 @@ export default function AdminDocumentsPage() {
           loadingText="Cargando documentos..."
           emptyText="No hay documentos con los filtros actuales."
           actionsHeader="Acciones"
-          tableMinWidthClassName="min-w-[960px] sm:min-w-[1120px]"
+          tableMinWidthClassName="min-w-[1040px] sm:min-w-[1240px]"
           renderActions={(item) => (
             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
               <button
@@ -358,6 +381,10 @@ export default function AdminDocumentsPage() {
               <Button size="sm" variant="outline" type="button" onClick={() => void openDocument(item)}>
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                 Abrir
+              </Button>
+              <Button size="sm" variant="outline" type="button" onClick={() => void downloadDocument(item)}>
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                Descargar
               </Button>
               <Button size="sm" variant="danger" type="button" onClick={() => void handleDelete(item)}>
                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
