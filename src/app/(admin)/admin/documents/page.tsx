@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { DocumentFoldersBrowser } from "@/components/features/admin/documents/folders-browser";
 import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Button } from "@/components/ui/button";
@@ -207,9 +208,8 @@ export default function AdminDocumentsPage() {
           <CardDescription className="mt-1">
             Organiza los documentos en carpetas y subcarpetas (estilo Drive), hasta 4 niveles bajo la carpeta madre.
           </CardDescription>
-          <div className="mt-6 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--slate-300)] py-10 text-center">
-            <FolderOpen className="h-8 w-8 text-[var(--slate-400)]" />
-            <p className="text-sm text-[var(--slate-500)]">Próximamente: crea carpetas, navégalas y mueve documentos aquí.</p>
+          <div className="mt-4">
+            <DocumentFoldersBrowser tenantId={user?.tenantId} documents={items} />
           </div>
         </Card>
       ) : null}

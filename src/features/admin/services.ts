@@ -1187,6 +1187,37 @@ export async function deleteDocumentItem(input: { documentId: string; storagePat
   }
 }
 
+/** Carpetas del repositorio (realtime). Solo lectura; la creación va por Cloud Function. */
+export function watchDocumentFolders(
+  tenantId: string,
+  onData: (items: DocumentFolder[]) => void,
+  onError: (message: string) => void,
+) {
+  const firestore = assertDb();
+  return onSnapshot(
+    query(collection(firestore, "documentFolders"), where("tenantId", "==", tenantId)),
+    (snapshot) => {
+      const items = snapshot.docs
+        .map((item) => mapDoc<DocumentFolder>(item.id, item.data() as Record<string, unknown>))
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      onData(items);
+    },
+    (error) => {
+      const firestoreError = error as FirestoreError;
+      onError(toRealtimeUserError(firestoreError));
+    },
+  );
+}
+
+/** Asigna (o quita, con null) la carpeta de un documento. */
+export async function setDocumentFolder(input: { documentId: string; folderId: string | null }) {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "documents", input.documentId), {
+    folderId: input.folderId,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 export function watchTenantSettings(
   tenantId: string,
   onData: (item: TenantSettingsItem | null) => void,
