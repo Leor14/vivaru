@@ -212,6 +212,11 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
     avatarId = userProfileData.avatarId.trim();
   }
   profileStatus = mapStatus(userProfileData.status);
+  if (profileStatus === "inactive") {
+    // Defensa en profundidad: aunque la baja deshabilita la cuenta de Auth, aquí
+    // también se corta el acceso si quedara una sesión viva o un doc inactivo.
+    throw new Error("Tu cuenta está inactiva. Contacta al administrador del conjunto.");
+  }
   mustChangePassword = userProfileData.mustChangePassword === true;
   temporaryPassword = userProfileData.temporaryPassword === true;
   passwordStatus = userProfileData.passwordStatus === "temporary" ? "temporary" : "updated";

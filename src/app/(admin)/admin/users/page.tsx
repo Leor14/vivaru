@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useAuth } from "@/features/auth/auth-context";
 import { db } from "@/lib/firebase/client";
-import { createTenantOperationalUserCallable } from "@/lib/firebase/callables";
+import { createTenantOperationalUserCallable, setOperationalUserStatusCallable } from "@/lib/firebase/callables";
 
 type TenantUserItem = {
   id: string;
@@ -64,6 +64,61 @@ export default function AdminUsersPage() {
   );
 
   const pager = usePagination(managedUsers);
+
+  const [statusBusy, setStatusBusy] = useState<string | null>(null);
+  // Admins activos (para no permitir desactivar al último desde la UI).
+  const activeAdminCount = useMemo(
+    () => managedUsers.filter((u) => u.role === "tenant_admin" && (u.status ?? "active") !== "inactive").length,
+    [managedUsers],
+  );
+
+  async function handleToggleStatus(item: TenantUserItem) {
+    if (!user?.tenantId) return;
+    const next = item.status === "inactive" ? "active" : "inactive";
+    const verb = next === "inactive" ? "desactivar" : "reactivar";
+    if (!window.confirm(`¿Seguro que deseas ${verb} a ${item.fullName ?? "este usuario"}?`)) return;
+    setStatusBusy(item.id);
+    try {
+      await setOperationalUserStatusCallable({ tenantId: user.tenantId, uid: item.id, status: next });
+      toast.success(next === "inactive" ? "Usuario desactivado." : "Usuario reactivado.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setStatusBusy(null);
+    }
+  }
+
+  /** Razón por la que la baja está bloqueada en la UI (o null si se permite). */
+  function deactivateBlockedReason(item: TenantUserItem): string | null {
+    if (item.status === "inactive") return null; // reactivar siempre permitido
+    if (item.id === user?.uid) return "No puedes desactivar tu propia cuenta.";
+    if (item.role === "tenant_admin" && activeAdminCount <= 1) return "Es el último administrador activo del conjunto.";
+    return null;
+  }
+
+  function renderStatusAction(item: TenantUserItem) {
+    const busy = statusBusy === item.id;
+    if (item.status === "inactive") {
+      return (
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleToggleStatus(item)}>
+          {busy ? "…" : "Reactivar"}
+        </Button>
+      );
+    }
+    const blocked = deactivateBlockedReason(item);
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy || blocked !== null}
+        title={blocked ?? undefined}
+        onClick={() => void handleToggleStatus(item)}
+        className="text-[var(--danger-700)]"
+      >
+        {busy ? "…" : "Desactivar"}
+      </Button>
+    );
+  }
 
   async function handleCreateUser() {
     if (!user?.tenantId) {
@@ -166,11 +221,14 @@ export default function AdminUsersPage() {
               <div key={item.id} className="rounded-xl border border-[var(--slate-200)] px-4 py-3">
                 <p className="text-sm font-medium text-[var(--slate-900)]">{item.fullName ?? "-"}</p>
                 <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">{item.email ?? "-"}</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-[var(--slate-600)]">
-                    {item.role === "security_guard" ? "Guarda de seguridad" : "Admin"}
-                  </span>
-                  <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[var(--slate-600)]">
+                      {item.role === "security_guard" ? "Guarda de seguridad" : "Admin"}
+                    </span>
+                    <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
+                  </div>
+                  {renderStatusAction(item)}
                 </div>
               </div>
             ))
@@ -186,6 +244,7 @@ export default function AdminUsersPage() {
                 <th className="px-3 py-2">Correo</th>
                 <th className="px-3 py-2">Rol</th>
                 <th className="px-3 py-2">Estado</th>
+                <th className="px-3 py-2 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -197,6 +256,7 @@ export default function AdminUsersPage() {
                       <td className="px-3 py-2"><Skeleton className="h-4 w-44" /></td>
                       <td className="px-3 py-2"><Skeleton className="h-4 w-28" /></td>
                       <td className="px-3 py-2"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                      <td className="px-3 py-2"><Skeleton className="ml-auto h-8 w-24 rounded-lg" /></td>
                     </tr>
                   ))}
                 </>
@@ -204,7 +264,7 @@ export default function AdminUsersPage() {
 
               {!loading && managedUsers.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-4 text-[var(--slate-600)]" colSpan={4}>No hay usuarios operativos registrados.</td>
+                  <td className="px-3 py-4 text-[var(--slate-600)]" colSpan={5}>No hay usuarios operativos registrados.</td>
                 </tr>
               ) : null}
 
@@ -217,6 +277,9 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-3 py-2">
                     <StatusBadge status={item.status === "inactive" ? "inactive" : "active"} />
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {renderStatusAction(item)}
                   </td>
                 </tr>
               ))}
