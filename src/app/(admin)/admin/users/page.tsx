@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { UsersRound } from "lucide-react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -12,6 +13,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { HelpTip } from "@/components/shared/help-tip";
 import { useAuth } from "@/features/auth/auth-context";
 import { db } from "@/lib/firebase/client";
 import { Modal } from "@/components/shared/modal";
@@ -253,8 +255,23 @@ export default function AdminUsersPage() {
 
   return (
     <section className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
+          <UsersRound className="h-5 w-5 text-[var(--slate-600)]" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-[var(--slate-900)]">Usuarios</h1>
+            <HelpTip text="Administra quién tiene acceso al panel: administradores y guardas de seguridad. Mantener el listado al día y dar de baja a quien ya no opera es una práctica de seguridad esencial; solo quienes lo necesitan deben tener acceso operativo." />
+          </div>
+          <p className="text-sm text-[var(--slate-500)]">
+            Crea y administra los usuarios operativos (administradores y guardas) con acceso al panel.
+          </p>
+        </div>
+      </div>
+
       <Card>
-        <CardTitle help="Administra quién tiene acceso al panel de administración. Mantener el listado de usuarios actualizado es una práctica de seguridad esencial: solo quienes realmente lo necesitan deben tener acceso operativo al conjunto.">Administración / Usuarios</CardTitle>
+        <CardTitle>Crear usuario</CardTitle>
         <CardDescription className="mt-1">
           Crea usuarios operativos del tenant con rol Admin o Guarda de seguridad.
         </CardDescription>

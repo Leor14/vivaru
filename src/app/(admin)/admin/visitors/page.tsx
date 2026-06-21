@@ -391,6 +391,9 @@ export default function AdminVisitorsPage() {
       </div>
 
       {activeTab === "authorizations" && (<>
+      <p className="mt-4 text-sm text-[var(--slate-600)]">
+        Pases de visita autorizados por los residentes (puntuales o de larga duración), con su categoría y responsable de autorización.
+      </p>
       <div className="mt-4">
         <MobileFiltersPanel
           title="Filtros de visitantes"
@@ -475,6 +478,10 @@ export default function AdminVisitorsPage() {
       </>)}
 
       {activeTab === "passes" && (
+        <>
+        <p className="mt-4 text-sm text-[var(--slate-600)]">
+          Bitácora de pases registrados por portería: ingresos y salidas de visitantes, con su estado y la unidad de destino.
+        </p>
         <div className="mt-4">
           {passesLoading ? (
             <div className="space-y-2">
@@ -563,6 +570,7 @@ export default function AdminVisitorsPage() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {selectedPass ? (
