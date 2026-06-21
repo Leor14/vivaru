@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -18,15 +19,31 @@ import {
   deleteDocumentItem,
   uploadDocumentForTenant,
   watchDocuments,
+  type DocumentCategory,
   type DocumentItem,
 } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
+
+const CATEGORY_OPTIONS: { value: DocumentCategory; label: string }[] = [
+  { value: "asamblea", label: "Asamblea" },
+  { value: "contrato", label: "Contrato" },
+  { value: "plano", label: "Plano" },
+  { value: "memoria", label: "Memoria" },
+  { value: "financiero", label: "Financiero" },
+  { value: "legal", label: "Legal" },
+  { value: "otro", label: "Otro" },
+];
+const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c.label]));
+const ACCEPTED_TYPES =
+  "application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
 export default function AdminDocumentsPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
+  const [category, setCategory] = useState<DocumentCategory>("otro");
   const [uploading, setUploading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
 
@@ -63,15 +80,22 @@ export default function AdminDocumentsPage() {
       toast.error("Selecciona un archivo antes de subir.");
       return;
     }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("El archivo supera el límite de 25 MB.");
+      return;
+    }
     setUploading(true);
     try {
       await uploadDocumentForTenant({
         tenantId: user.tenantId,
         userId: user.uid,
+        userName: user.fullName,
         file,
         description: values.description,
+        category,
       });
       setFile(null);
+      setCategory("otro");
       form.reset();
       toast.success("Documento subido y registrado.");
     } catch (error) {
@@ -109,9 +133,26 @@ export default function AdminDocumentsPage() {
       render: (item) => <span className="font-medium text-[var(--slate-900)]">{item.fileName}</span>,
     },
     {
+      key: "category",
+      header: "Categoría",
+      render: (item) =>
+        item.category ? (
+          <span className="rounded-full bg-[var(--slate-100)] px-2 py-0.5 text-xs font-medium text-[var(--slate-700)]">
+            {CATEGORY_LABEL[item.category] ?? item.category}
+          </span>
+        ) : (
+          <span className="text-[var(--slate-400)]">—</span>
+        ),
+    },
+    {
       key: "description",
       header: "Descripción",
       render: (item) => item.description,
+    },
+    {
+      key: "uploadedByName",
+      header: "Subido por",
+      render: (item) => item.uploadedByName || <span className="text-[var(--slate-400)]">—</span>,
     },
     {
       key: "createdAt",
@@ -125,9 +166,12 @@ export default function AdminDocumentsPage() {
       <CardTitle help="Centraliza los archivos clave del conjunto: actas de asamblea, contratos, planos y memorias. Tener los documentos organizados y accesibles evita pérdidas de información crítica y facilita cualquier auditoría o revisión legal.">Repositorio documental</CardTitle>
       <CardDescription className="mt-1">Sube y organiza los documentos oficiales del conjunto.</CardDescription>
 
-      <form className="mt-4 grid gap-3 md:grid-cols-[1fr_2fr_auto]" onSubmit={form.handleSubmit((values) => void handleUpload(values))}>
+      <form className="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr_1.4fr_auto]" onSubmit={form.handleSubmit((values) => void handleUpload(values))}>
         <div className="text-sm text-[var(--slate-700)]">
-          <p className="mb-1">Seleccionar archivo</p>
+          <p className="mb-1 flex items-center gap-1">
+            Seleccionar archivo
+            <HelpTip text="Sube documentos oficiales del conjunto (PDF, imágenes JPG/PNG u Office) de hasta 25 MB. El archivo se guarda aislado por conjunto y solo la administración puede verlo. Asígnale una categoría para mantener el repositorio ordenado y evitar un listado abultado." />
+          </p>
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white p-2">
             <Button type="button" variant="outline" onClick={() => document.getElementById("tenant-document-file")?.click()}>
               <IconBadge tone="sky" className="mr-2">
@@ -141,10 +185,22 @@ export default function AdminDocumentsPage() {
             id="tenant-document-file"
             className="sr-only"
             type="file"
-            accept="application/pdf"
+            accept={ACCEPTED_TYPES}
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </div>
+        <label className="text-sm text-[var(--slate-700)]">
+          Categoría
+          <select
+            className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            value={category}
+            onChange={(event) => setCategory(event.target.value as DocumentCategory)}
+          >
+            {CATEGORY_OPTIONS.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </label>
         <label className="text-sm text-[var(--slate-700)]">
           Descripción
           <Input {...form.register("description")} placeholder="Acta consejo marzo 2026" />
@@ -191,7 +247,7 @@ export default function AdminDocumentsPage() {
           loadingText="Cargando documentos..."
           emptyText="No hay documentos con los filtros actuales."
           actionsHeader="Acciones"
-          tableMinWidthClassName="min-w-[720px] sm:min-w-[920px]"
+          tableMinWidthClassName="min-w-[960px] sm:min-w-[1120px]"
           renderActions={(item) => (
             <div className="flex flex-wrap gap-2">
               <a href={item.fileUrl} target="_blank" rel="noreferrer">

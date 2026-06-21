@@ -1143,8 +1143,11 @@ export function watchDocuments(tenantId: string, onData: (items: DocumentItem[])
 export async function uploadDocumentForTenant(input: {
   tenantId: string;
   userId: string;
+  userName?: string;
   file: File;
   description: string;
+  category: DocumentCategory;
+  folderId?: string | null;
 }) {
   const firestore = assertDb();
   const appStorage = assertStorage();
@@ -1163,6 +1166,11 @@ export async function uploadDocumentForTenant(input: {
     fileUrl,
     storagePath,
     uploadedBy: input.userId,
+    uploadedByName: input.userName ?? "",
+    category: input.category,
+    folderId: input.folderId ?? null,
+    fileSize: input.file.size,
+    contentType: input.file.type || "",
     createdBy: input.userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
