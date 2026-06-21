@@ -328,10 +328,6 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
         </div>
       </div>
 
-      {!isMobile ? (
-        <p className="text-xs text-[var(--slate-400)]">Un clic muestra el detalle · doble clic abre.</p>
-      ) : null}
-
       <div className={selected && !isMobile ? "grid gap-4 lg:grid-cols-[1fr_340px]" : ""}>
         <div className="min-w-0 space-y-4">
       {currentFolder?.description ? (

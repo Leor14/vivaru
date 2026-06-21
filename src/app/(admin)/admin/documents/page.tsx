@@ -221,8 +221,8 @@ export default function AdminDocumentsPage() {
           <SectionIntro
             storageKey="documentos-carpetas"
             title="Carpetas"
-            purpose="Organiza los documentos del conjunto en carpetas, como en Drive."
-            how="Crea una carpeta madre, agrega subcarpetas (hasta 4 niveles), navega entre ellas y mueve documentos. En computador, un clic muestra el detalle y doble clic abre; en celular, un toque abre."
+            purpose="Organiza los documentos del conjunto en carpetas para encontrarlos fácil."
+            how="Crea carpetas, agrupa los documentos dentro y muévelos entre ellas cuando lo necesites."
           />
           <Card>
             <DocumentFoldersBrowser tenantId={user?.tenantId} documents={items} />
@@ -235,8 +235,8 @@ export default function AdminDocumentsPage() {
           <SectionIntro
             storageKey="documentos-todos"
             title="Todos los documentos"
-            purpose="Todos los archivos oficiales del conjunto en un solo lugar, sin importar su carpeta."
-            how="Sube un archivo, asígnale una categoría y una descripción, y luego búscalo o ábrelo desde el listado. El reglamento tiene su propio módulo y no aparece aquí."
+            purpose="Todos los archivos oficiales del conjunto, reunidos en un solo lugar."
+            how="Sube un archivo, asígnale una categoría y una descripción, y luego búscalo o ábrelo desde el listado."
           />
           <Card>
             <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-4">
