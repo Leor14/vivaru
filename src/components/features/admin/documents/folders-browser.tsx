@@ -31,6 +31,20 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
   const [moveTarget, setMoveTarget] = useState<DocumentItem | null>(null);
   const [moving, setMoving] = useState(false);
 
+  // Web: 1 clic = seleccionar (panel de detalle/preview), doble clic = entrar/abrir.
+  // Mobile: 1 toque = entrar/abrir directo (sin panel).
+  const [isMobile, setIsMobile] = useState(false);
+  const [selected, setSelected] = useState<{ type: "folder" | "doc"; id: string } | null>(null);
+
+  useEffect(() => {
+    function check() {
+      setIsMobile(window.innerWidth < 768);
+    }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   useEffect(() => {
     if (!tenantId) {
       setLoading(false);
@@ -103,6 +117,25 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     return subs + docs;
   }
 
+  function enterFolder(id: string | null) {
+    setSelected(null);
+    setCurrentFolderId(id);
+  }
+  function handleFolderClick(id: string) {
+    if (isMobile) enterFolder(id);
+    else setSelected({ type: "folder", id });
+  }
+  function openDoc(url: string) {
+    window.open(url, "_blank", "noopener");
+  }
+  function handleDocClick(d: DocumentItem) {
+    if (isMobile) openDoc(d.fileUrl);
+    else setSelected({ type: "doc", id: d.id });
+  }
+
+  const selectedFolder = selected?.type === "folder" ? foldersById.get(selected.id) ?? null : null;
+  const selectedDoc = selected?.type === "doc" ? documents.find((d) => d.id === selected.id) ?? null : null;
+
   async function handleCreate() {
     if (!tenantId) return;
     const name = newName.trim();
@@ -150,7 +183,7 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
         <nav className="flex flex-wrap items-center gap-1 text-sm">
           <button
             type="button"
-            onClick={() => setCurrentFolderId(null)}
+            onClick={() => enterFolder(null)}
             className="flex items-center gap-1 rounded-md px-2 py-1 text-[var(--slate-600)] hover:bg-[var(--slate-100)]"
           >
             <Home className="h-4 w-4" />
@@ -161,7 +194,7 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
               <ChevronRight className="h-4 w-4 text-[var(--slate-400)]" />
               <button
                 type="button"
-                onClick={() => setCurrentFolderId(f.id)}
+                onClick={() => enterFolder(f.id)}
                 className="rounded-md px-2 py-1 text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
               >
                 {f.name}
@@ -181,6 +214,8 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
         </Button>
       </div>
 
+      <div className={selected && !isMobile ? "grid gap-4 lg:grid-cols-[1fr_340px]" : ""}>
+        <div className="min-w-0 space-y-4">
       {currentFolder?.description ? (
         <p className="rounded-lg bg-[var(--slate-50)] px-3 py-2 text-sm text-[var(--slate-600)]">{currentFolder.description}</p>
       ) : null}
@@ -203,8 +238,13 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => setCurrentFolderId(f.id)}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--slate-200)] bg-white p-3 text-left hover:border-[var(--brand-700)] hover:bg-[var(--slate-50)]"
+                  onClick={() => handleFolderClick(f.id)}
+                  onDoubleClick={() => enterFolder(f.id)}
+                  className={`flex items-center gap-3 rounded-xl border bg-white p-3 text-left hover:border-[var(--brand-700)] hover:bg-[var(--slate-50)] ${
+                    selected?.type === "folder" && selected.id === f.id
+                      ? "border-[var(--brand-700)] ring-1 ring-[var(--brand-700)]"
+                      : "border-[var(--slate-200)]"
+                  }`}
                 >
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
                     <FolderOpen className="h-5 w-5 text-amber-500" />
@@ -222,11 +262,21 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
           {folderDocs.length > 0 ? (
             <div className="divide-y divide-[var(--slate-100)] rounded-xl border border-[var(--slate-200)]">
               {folderDocs.map((d) => (
-                <div key={d.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                  <div className="flex min-w-0 items-center gap-2">
+                <div
+                  key={d.id}
+                  className={`flex items-center justify-between gap-3 px-3 py-2 ${
+                    selected?.type === "doc" && selected.id === d.id ? "bg-[var(--slate-50)]" : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleDocClick(d)}
+                    onDoubleClick={() => openDoc(d.fileUrl)}
+                    className="flex min-w-0 items-center gap-2 text-left"
+                  >
                     <FileText className="h-4 w-4 shrink-0 text-[var(--slate-500)]" />
                     <span className="truncate text-sm text-[var(--slate-800)]">{d.fileName}</span>
-                  </div>
+                  </button>
                   <div className="flex shrink-0 items-center gap-1">
                     <a href={d.fileUrl} target="_blank" rel="noreferrer">
                       <Button size="sm" variant="ghost" type="button">
@@ -245,6 +295,83 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
           ) : null}
         </div>
       )}
+        </div>
+
+        {selected && !isMobile ? (
+          <aside className="space-y-3 self-start rounded-xl border border-[var(--slate-200)] p-4">
+            {selectedFolder ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5 text-amber-500" />
+                  <p className="truncate font-medium text-[var(--slate-900)]">{selectedFolder.name}</p>
+                </div>
+                {selectedFolder.description ? (
+                  <p className="text-sm text-[var(--slate-600)]">{selectedFolder.description}</p>
+                ) : null}
+                <dl className="space-y-1 text-xs text-[var(--slate-500)]">
+                  <div className="flex justify-between"><dt>Elementos</dt><dd>{childCount(selectedFolder.id)}</dd></div>
+                  <div className="flex justify-between"><dt>Nivel</dt><dd>{selectedFolder.depth + 1}</dd></div>
+                  <div className="flex justify-between"><dt>Creada por</dt><dd>{selectedFolder.createdByName || "—"}</dd></div>
+                  <div className="flex justify-between">
+                    <dt>Fecha</dt>
+                    <dd>{selectedFolder.createdAt ? new Date(selectedFolder.createdAt).toLocaleDateString() : "—"}</dd>
+                  </div>
+                </dl>
+                <Button size="sm" className="w-full" onClick={() => enterFolder(selectedFolder.id)}>
+                  <FolderOpen className="mr-2 h-4 w-4" />
+                  Abrir carpeta
+                </Button>
+              </>
+            ) : selectedDoc ? (
+              <>
+                <p className="truncate font-medium text-[var(--slate-900)]">{selectedDoc.fileName}</p>
+                {selectedDoc.contentType?.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedDoc.fileUrl}
+                    alt={selectedDoc.fileName}
+                    className="max-h-60 w-full rounded-lg bg-[var(--slate-50)] object-contain"
+                  />
+                ) : selectedDoc.contentType === "application/pdf" || selectedDoc.fileName.toLowerCase().endsWith(".pdf") ? (
+                  <iframe
+                    title="Vista previa"
+                    src={selectedDoc.fileUrl}
+                    className="h-64 w-full rounded-lg border border-[var(--slate-200)]"
+                  />
+                ) : (
+                  <div className="flex h-32 items-center justify-center rounded-lg bg-[var(--slate-50)] px-3 text-center text-xs text-[var(--slate-500)]">
+                    Sin vista previa. Abre el archivo para verlo.
+                  </div>
+                )}
+                <dl className="space-y-1 text-xs text-[var(--slate-500)]">
+                  <div className="flex justify-between"><dt>Categoría</dt><dd>{selectedDoc.category ?? "—"}</dd></div>
+                  <div className="flex justify-between"><dt>Subido por</dt><dd>{selectedDoc.uploadedByName || "—"}</dd></div>
+                  <div className="flex justify-between">
+                    <dt>Fecha</dt>
+                    <dd>{selectedDoc.createdAt ? new Date(selectedDoc.createdAt).toLocaleDateString() : "—"}</dd>
+                  </div>
+                  {selectedDoc.fileSize ? (
+                    <div className="flex justify-between">
+                      <dt>Tamaño</dt>
+                      <dd>{(selectedDoc.fileSize / 1024 / 1024).toFixed(2)} MB</dd>
+                    </div>
+                  ) : null}
+                </dl>
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1" onClick={() => openDoc(selectedDoc.fileUrl)}>
+                    <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                    Abrir
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => setMoveTarget(selectedDoc)}>
+                    <FolderInput className="mr-1 h-3.5 w-3.5" />
+                    Mover
+                  </Button>
+                </div>
+              </>
+            ) : null}
+          </aside>
+        ) : null}
+      </div>
 
       {/* Modal: crear carpeta */}
       <Modal open={createOpen} title="Nueva carpeta" onClose={() => setCreateOpen(false)}>
