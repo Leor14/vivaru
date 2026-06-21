@@ -11,7 +11,7 @@ import {
   createDocumentFolderCallable,
   deleteDocumentFolderCallable,
   getDocumentDownloadUrlCallable,
-  renameDocumentFolderCallable,
+  updateDocumentFolderCallable,
 } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import {
@@ -173,7 +173,7 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     }
     setRenameSaving(true);
     try {
-      await renameDocumentFolderCallable({ tenantId, folderId: renameTarget.id, name, description: renameDesc.trim() });
+      await updateDocumentFolderCallable({ tenantId, folderId: renameTarget.id, name, description: renameDesc.trim() });
       toast.success("Carpeta actualizada.");
       setRenameTarget(null);
     } catch (error) {

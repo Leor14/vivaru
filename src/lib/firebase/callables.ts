@@ -202,15 +202,16 @@ export async function createDocumentFolderCallable(input: {
   return executeCallable(callable, input, "No fue posible crear la carpeta.");
 }
 
-export async function renameDocumentFolderCallable(input: {
+export async function updateDocumentFolderCallable(input: {
   tenantId: string;
   folderId: string;
-  name: string;
+  name?: string;
   description?: string;
+  color?: "gray" | "blue" | "green" | "amber" | "purple" | "teal";
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "renameDocumentFolder");
-  return executeCallable(callable, input, "No fue posible renombrar la carpeta.");
+  return executeCallable(callable, input, "No fue posible actualizar la carpeta.");
 }
 
 export async function deleteDocumentFolderCallable(input: { tenantId: string; folderId: string }) {

@@ -1602,18 +1602,33 @@ export const createDocumentFolder = onCall<CreateDocumentFolderInput>(
   },
 );
 
-// Renombrar carpeta (no cambia path/depth/parent; integridad intacta).
-export const renameDocumentFolder = onCall<{ tenantId: string; folderId: string; name: string; description?: string }>(
+// Actualizar carpeta: nombre, descripción y/o color (no cambia path/depth/parent;
+// integridad intacta). El nombre del callable se conserva por compatibilidad.
+const FOLDER_COLORS = ["gray", "blue", "green", "amber", "purple", "teal"];
+export const renameDocumentFolder = onCall<{
+  tenantId: string;
+  folderId: string;
+  name?: string;
+  description?: string;
+  color?: string;
+}>(
   { cors: callableCorsOrigins },
   async (request) => {
     if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
     const folderId = normalizeText(request.data?.folderId);
-    const name = normalizeText(request.data?.name);
+    const name = request.data?.name !== undefined ? normalizeText(request.data.name) : undefined;
     const description = request.data?.description !== undefined ? normalizeText(request.data.description) : undefined;
-    if (!tenantId || !folderId || !name) {
-      throw new HttpsError("invalid-argument", "tenantId, folderId y name son requeridos.");
+    const color = request.data?.color !== undefined ? normalizeText(request.data.color) : undefined;
+    if (!tenantId || !folderId) {
+      throw new HttpsError("invalid-argument", "tenantId y folderId son requeridos.");
     }
+    if (name === undefined && description === undefined && color === undefined) {
+      throw new HttpsError("invalid-argument", "No hay cambios para aplicar.");
+    }
+    if (name !== undefined && !name) throw new HttpsError("invalid-argument", "El nombre no puede estar vacío.");
+    if (color !== undefined && !FOLDER_COLORS.includes(color)) throw new HttpsError("invalid-argument", "Color no permitido.");
+
     const tokenTenantId = normalizeText(request.auth.token?.tenantId);
     if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
 
@@ -1623,10 +1638,12 @@ export const renameDocumentFolder = onCall<{ tenantId: string; folderId: string;
     if (!snap.exists || (snap.data() as { tenantId?: string }).tenantId !== actor.tenantId) {
       throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
     }
-    const updates: Record<string, unknown> = { name, updatedAt: Timestamp.now() };
+    const updates: Record<string, unknown> = { updatedAt: Timestamp.now() };
+    if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
+    if (color !== undefined) updates.color = color;
     await ref.update(updates);
-    await writeAuditLog(actor.tenantId, request.auth.uid, "rename_document_folder", { folderId, name });
+    await writeAuditLog(actor.tenantId, request.auth.uid, "update_document_folder", { folderId, name, color });
     return { ok: true };
   },
 );

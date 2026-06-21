@@ -199,12 +199,17 @@ export type DocumentCategory =
   | "legal"
   | "otro";
 
+/** Colores disponibles para diferenciar carpetas (clave; el mapa hex vive en la UI). */
+export type DocumentFolderColor = "gray" | "blue" | "green" | "amber" | "purple" | "teal";
+
 /** Carpeta del repositorio documental (estilo Drive). Solo admin. */
 export type DocumentFolder = {
   id: string;
   tenantId: string;
   name: string;
   description?: string;
+  /** Color para diferenciar la carpeta (default visual: gris si está ausente). */
+  color?: DocumentFolderColor;
   /** null = carpeta madre (raíz del tenant). */
   parentId: string | null;
   /** Ruta materializada de ids, p. ej. "rootId/childId". Habilita breadcrumb/subárbol. */
