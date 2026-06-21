@@ -58,7 +58,7 @@ export default function AdminUsersPage() {
       },
       (error) => {
         console.error("[admin-users] query failed", error);
-        toast.error("No fue posible cargar los usuarios del tenant.");
+        toast.error("No fue posible cargar los usuarios del conjunto.");
         setLoading(false);
       },
     );
@@ -303,8 +303,8 @@ export default function AdminUsersPage() {
       </Card>
 
       <Card>
-        <CardTitle>Usuarios del tenant</CardTitle>
-        <CardDescription className="mt-1">Listado de usuarios operativos activos e inactivos.</CardDescription>
+        <CardTitle>Usuarios del conjunto</CardTitle>
+        <CardDescription className="mt-1">Administradores y guardas con acceso al panel, activos e inactivos.</CardDescription>
 
         {/* Mobile: card list */}
         <div className="mt-4 space-y-2 sm:hidden">

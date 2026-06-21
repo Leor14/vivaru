@@ -747,7 +747,7 @@ export default function AdminReservationsPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle help="Controla el uso de las amenidades del conjunto: salón comunal, piscina, gimnasio y más. Define horarios, límites mensuales y requisitos de pago para que el acceso sea ordenado y equitativo para todos los residentes.">Reservas de zonas comunes</CardTitle>
-          <CardDescription className="mt-1">Creación, edición y cancelación con refresco inmediato en tabla.</CardDescription>
+          <CardDescription className="mt-1">Aprueba, edita y cancela las reservas de las zonas comunes del conjunto.</CardDescription>
         </div>
         {canEdit ? (
           <Button className="w-full sm:w-auto" onClick={openCreate} disabled={activeAmenities.length === 0}>

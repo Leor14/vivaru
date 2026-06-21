@@ -266,7 +266,7 @@ export default function AdminSettingsPage() {
           />
       <Card>
         <CardTitle help="Tu identidad operativa en Vivaru: el nombre que los residentes verán en comunicaciones y respuestas. Mantenlo actualizado para que la administración tenga una cara reconocible y confiable.">Perfil del usuario</CardTitle>
-        <CardDescription className="mt-1">Actualiza tu nombre visible y avatar operativo en una sola vista.</CardDescription>
+        <CardDescription className="mt-1">Actualiza tu nombre visible y tu avatar.</CardDescription>
 
         <form className="mt-4 space-y-3" onSubmit={profileForm.handleSubmit((values) => void handleSaveProfile(values))}>
           <label className="text-sm text-[var(--slate-700)]">

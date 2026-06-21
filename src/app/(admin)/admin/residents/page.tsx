@@ -1392,7 +1392,7 @@ export default function AdminResidentsPage() {
                 }}
               >
                 <option value="owner_occupant">Propietario ocupante</option>
-                <option value="tenant">Tenant / Inquilino</option>
+                <option value="tenant">Inquilino</option>
                 <option value="investor">Inversionista</option>
                 <option value="other">Otro</option>
               </select>

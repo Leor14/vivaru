@@ -234,7 +234,7 @@ export default function AdminPqrsPage() {
     <div className="flex flex-col gap-4">
       <Card className="min-w-0 flex-1">
         <CardTitle help="Gestiona las peticiones, quejas, reclamos y sugerencias de los residentes con trazabilidad completa. Cada ticket tiene un plazo legal de 15 días hábiles — el módulo te alerta cuando estás próximo al límite para que ninguna solicitud quede sin atender.">PQRS e incidencias</CardTitle>
-        <CardDescription className="mt-1">Gestión operativa con trazabilidad, respuesta y control de plazo de 15 días hábiles.</CardDescription>
+        <CardDescription className="mt-1">Recibe, responde y haz seguimiento a las solicitudes de los residentes, dentro del plazo de 15 días hábiles.</CardDescription>
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
 
