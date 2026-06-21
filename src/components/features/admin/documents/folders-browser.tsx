@@ -4,6 +4,7 @@ import {
   Check,
   ChevronRight,
   Database,
+  Download,
   ExternalLink,
   FileText,
   FolderInput,
@@ -202,6 +203,30 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
   function handleDocClick(d: DocumentItem) {
     if (isMobile) void openDoc(d);
     else setSelected({ type: "doc", id: d.id });
+  }
+
+  async function downloadDoc(d: DocumentItem) {
+    try {
+      const { url } = await getDocumentDownloadUrlCallable({ documentId: d.id });
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("fetch failed");
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = d.fileName || "documento";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+      } catch {
+        // Si el navegador bloquea el fetch (CORS), abre en pestaña como fallback.
+        window.open(url, "_blank", "noopener");
+      }
+    } catch (error) {
+      toastFirebaseError(error);
+    }
   }
 
   function startRename(folder: DocumentFolder) {
@@ -584,6 +609,10 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                       <ExternalLink className="mr-1 h-3.5 w-3.5" />
                       Abrir
                     </Button>
+                    <Button size="sm" variant="ghost" type="button" onClick={() => void downloadDoc(d)}>
+                      <Download className="mr-1 h-3.5 w-3.5" />
+                      Descargar
+                    </Button>
                     <Button size="sm" variant="ghost" type="button" onClick={() => setMoveTarget(d)}>
                       <FolderInput className="mr-1 h-3.5 w-3.5" />
                       Mover
@@ -690,10 +719,14 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                     </div>
                   ) : null}
                 </dl>
+                <Button size="sm" className="w-full" onClick={() => void openDoc(selectedDoc)}>
+                  <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                  Abrir
+                </Button>
                 <div className="flex gap-2">
-                  <Button size="sm" className="flex-1" onClick={() => void openDoc(selectedDoc)}>
-                    <ExternalLink className="mr-1 h-3.5 w-3.5" />
-                    Abrir
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => void downloadDoc(selectedDoc)}>
+                    <Download className="mr-1 h-3.5 w-3.5" />
+                    Descargar
                   </Button>
                   <Button size="sm" variant="outline" className="flex-1" onClick={() => setMoveTarget(selectedDoc)}>
                     <FolderInput className="mr-1 h-3.5 w-3.5" />
