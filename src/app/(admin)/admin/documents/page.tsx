@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ExternalLink, FilterX, FolderOpen, Trash2, Upload } from "lucide-react";
+import { ExternalLink, FilterX, FolderOpen, Star, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { documentSchema, type DocumentInput } from "@/features/admin/schemas";
 import {
   deleteDocumentItem,
+  setDocumentStarred,
   uploadDocumentForTenant,
   watchDocuments,
   type DocumentCategory,
@@ -49,6 +50,7 @@ export default function AdminDocumentsPage() {
   const [category, setCategory] = useState<DocumentCategory>("otro");
   const [uploading, setUploading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
+  const [starredOnly, setStarredOnly] = useState(false);
   const [tab, setTab] = useState<"carpetas" | "todos">("todos");
 
   const form = useForm<DocumentInput>({
@@ -109,6 +111,14 @@ export default function AdminDocumentsPage() {
     }
   }
 
+  async function toggleStar(item: DocumentItem) {
+    try {
+      await setDocumentStarred({ documentId: item.id, starred: !item.starred });
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
   async function openDocument(item: DocumentItem) {
     const w = window.open("about:blank", "_blank");
     try {
@@ -139,10 +149,11 @@ export default function AdminDocumentsPage() {
     return items.filter((item) => {
       // El reglamento tiene su propio módulo; no se mezcla en este repositorio.
       if ((item.category as string) === "reglamento") return false;
+      if (starredOnly && !item.starred) return false;
       if (query.length === 0) return true;
       return `${item.fileName} ${item.description}`.toLowerCase().includes(query);
     });
-  }, [items, searchFilter]);
+  }, [items, searchFilter, starredOnly]);
 
   const columns: DataTableColumn<DocumentItem>[] = [
     {
@@ -296,7 +307,7 @@ export default function AdminDocumentsPage() {
         <MobileFiltersPanel
           title="Filtros de documentos"
           footer={
-            <Button className="w-full md:w-auto" type="button" variant="outline" onClick={() => setSearchFilter("")}>
+            <Button className="w-full md:w-auto" type="button" variant="outline" onClick={() => { setSearchFilter(""); setStarredOnly(false); }}>
               <IconBadge tone="sand" className="mr-2">
                 <FilterX className="h-4 w-4" />
               </IconBadge>
@@ -313,6 +324,16 @@ export default function AdminDocumentsPage() {
               onChange={(event) => setSearchFilter(event.target.value)}
             />
           </label>
+          <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-[var(--slate-700)]">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+              checked={starredOnly}
+              onChange={(event) => setStarredOnly(event.target.checked)}
+            />
+            <Star className="h-4 w-4" style={{ fill: "#EF9F27", color: "#EF9F27" }} />
+            Solo destacados
+          </label>
         </MobileFiltersPanel>
 
         <DataTable
@@ -326,6 +347,14 @@ export default function AdminDocumentsPage() {
           tableMinWidthClassName="min-w-[960px] sm:min-w-[1120px]"
           renderActions={(item) => (
             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+              <button
+                type="button"
+                aria-label={item.starred ? "Quitar de destacados" : "Destacar"}
+                onClick={() => void toggleStar(item)}
+                className="rounded-md p-1.5 text-[var(--slate-400)] hover:bg-[var(--slate-100)]"
+              >
+                <Star className="h-4 w-4" style={item.starred ? { fill: "#EF9F27", color: "#EF9F27" } : undefined} />
+              </button>
               <Button size="sm" variant="outline" type="button" onClick={() => void openDocument(item)}>
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                 Abrir

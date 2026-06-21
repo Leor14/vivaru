@@ -12,6 +12,7 @@ import {
   Home,
   MoreVertical,
   Pencil,
+  Star,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -24,11 +25,13 @@ import {
   createDocumentFolderCallable,
   deleteDocumentFolderCallable,
   getDocumentDownloadUrlCallable,
+  moveDocumentFolderCallable,
   updateDocumentFolderCallable,
 } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import {
   setDocumentFolder,
+  setDocumentStarred,
   watchDocumentFolders,
   type DocumentFolder,
   type DocumentItem,
@@ -62,6 +65,8 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
 
   const [moveTarget, setMoveTarget] = useState<DocumentItem | null>(null);
   const [moving, setMoving] = useState(false);
+  const [folderMoveTarget, setFolderMoveTarget] = useState<DocumentFolder | null>(null);
+  const [movingFolder, setMovingFolder] = useState(false);
 
   const [renameTarget, setRenameTarget] = useState<DocumentFolder | null>(null);
   const [renameName, setRenameName] = useState("");
@@ -284,6 +289,33 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     }
   }
 
+  async function handleMoveFolder(targetParentId: string | null) {
+    if (!folderMoveTarget || !tenantId) return;
+    setMovingFolder(true);
+    try {
+      await moveDocumentFolderCallable({ tenantId, folderId: folderMoveTarget.id, targetParentId });
+      toast.success("Carpeta movida.");
+      setFolderMoveTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setMovingFolder(false);
+    }
+  }
+
+  function validFolderTargets(folder: DocumentFolder) {
+    const prefix = `${folder.path || folder.id}/`;
+    return folders.filter((f) => f.id !== folder.id && !(f.path || f.id).startsWith(prefix));
+  }
+
+  async function toggleStar(d: DocumentItem) {
+    try {
+      await setDocumentStarred({ documentId: d.id, starred: !d.starred });
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Breadcrumb + acción */}
@@ -405,6 +437,16 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                           </button>
                           <button
                             type="button"
+                            onClick={() => {
+                              setMenuOpenId(null);
+                              setFolderMoveTarget(f);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-[var(--slate-100)]"
+                          >
+                            <FolderInput className="h-3.5 w-3.5" /> Mover
+                          </button>
+                          <button
+                            type="button"
                             disabled={childCount(f.id) > 0}
                             title={childCount(f.id) > 0 ? "La carpeta debe estar vacía." : undefined}
                             onClick={() => {
@@ -448,6 +490,14 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                     <span className="truncate text-sm text-[var(--slate-800)]">{d.fileName}</span>
                   </button>
                   <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label={d.starred ? "Quitar de destacados" : "Destacar"}
+                      onClick={() => void toggleStar(d)}
+                      className="rounded-md p-1.5 text-[var(--slate-400)] hover:bg-[var(--slate-100)]"
+                    >
+                      <Star className="h-4 w-4" style={d.starred ? { fill: "#EF9F27", color: "#EF9F27" } : undefined} />
+                    </button>
                     <Button size="sm" variant="ghost" type="button" onClick={() => void openDoc(d)}>
                       <ExternalLink className="mr-1 h-3.5 w-3.5" />
                       Abrir
@@ -515,7 +565,17 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
               </>
             ) : selectedDoc ? (
               <>
-                <p className="truncate font-medium text-[var(--slate-900)]">{selectedDoc.fileName}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="truncate font-medium text-[var(--slate-900)]">{selectedDoc.fileName}</p>
+                  <button
+                    type="button"
+                    aria-label={selectedDoc.starred ? "Quitar de destacados" : "Destacar"}
+                    onClick={() => void toggleStar(selectedDoc)}
+                    className="shrink-0 rounded-md p-1 text-[var(--slate-400)] hover:bg-[var(--slate-100)]"
+                  >
+                    <Star className="h-4 w-4" style={selectedDoc.starred ? { fill: "#EF9F27", color: "#EF9F27" } : undefined} />
+                  </button>
+                </div>
                 {selectedDoc.contentType?.startsWith("image/") ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -658,6 +718,38 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
             <Button onClick={() => void handleRename()} disabled={renameSaving || !renameName.trim()}>
               {renameSaving ? "Guardando…" : "Guardar"}
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal: mover carpeta */}
+      <Modal open={folderMoveTarget !== null} title="Mover carpeta" onClose={() => setFolderMoveTarget(null)}>
+        <div className="space-y-2">
+          <p className="text-xs text-[var(--slate-500)]">Elige la carpeta destino para “{folderMoveTarget?.name}”.</p>
+          <div className="max-h-[50vh] space-y-1 overflow-y-auto">
+            <button
+              type="button"
+              disabled={movingFolder || (folderMoveTarget?.parentId ?? null) === null}
+              onClick={() => void handleMoveFolder(null)}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--slate-100)] disabled:opacity-40"
+            >
+              <Home className="h-4 w-4 text-[var(--slate-500)]" />
+              Raíz (sin carpeta madre)
+            </button>
+            {folderMoveTarget
+              ? validFolderTargets(folderMoveTarget).map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    disabled={movingFolder || folderMoveTarget.parentId === f.id}
+                    onClick={() => void handleMoveFolder(f.id)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--slate-100)] disabled:opacity-40"
+                  >
+                    <FolderOpen className="h-4 w-4 text-amber-500" />
+                    {folderPathLabel(f)}
+                  </button>
+                ))
+              : null}
           </div>
         </div>
       </Modal>

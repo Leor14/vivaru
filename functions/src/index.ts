@@ -1686,6 +1686,71 @@ export const deleteDocumentFolder = onCall<{ tenantId: string; folderId: string 
   },
 );
 
+// Mover carpeta a otra carpeta (o a la raíz). Re-parenta la carpeta y recalcula
+// path/depth de todo su subárbol; valida ciclos y que no supere los 4 niveles.
+export const moveDocumentFolder = onCall<{ tenantId: string; folderId: string; targetParentId?: string | null }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const folderId = normalizeText(request.data?.folderId);
+    const targetParentId = request.data?.targetParentId ? normalizeText(request.data.targetParentId) : null;
+    if (!tenantId || !folderId) throw new HttpsError("invalid-argument", "tenantId y folderId son requeridos.");
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const targetTenantId = actor.tenantId;
+
+    const snap = await db.collection("documentFolders").where("tenantId", "==", targetTenantId).get();
+    const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as { parentId?: string | null; path?: string; depth?: number }) }));
+    const folder = all.find((f) => f.id === folderId);
+    if (!folder) throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
+
+    const target = targetParentId ? all.find((f) => f.id === targetParentId) : null;
+    if (targetParentId && !target) throw new HttpsError("not-found", "La carpeta destino no existe.");
+    if (targetParentId === folderId) throw new HttpsError("failed-precondition", "No puedes mover una carpeta dentro de sí misma.");
+
+    const oldPath = folder.path || folder.id;
+    if (target && (target.id === folder.id || (target.path || target.id).startsWith(`${oldPath}/`))) {
+      throw new HttpsError("failed-precondition", "No puedes mover una carpeta dentro de una de sus subcarpetas.");
+    }
+    if ((folder.parentId ?? null) === (targetParentId ?? null)) {
+      return { ok: true }; // ya está en ese destino
+    }
+
+    const folderDepth = folder.depth ?? 0;
+    const newDepth = target ? (target.depth ?? 0) + 1 : 0;
+    const descendants = all.filter((f) => (f.path || f.id).startsWith(`${oldPath}/`));
+    const subtreeMaxDepth = descendants.reduce((m, f) => Math.max(m, f.depth ?? 0), folderDepth);
+    const height = subtreeMaxDepth - folderDepth;
+    if (newDepth + height > 4) {
+      throw new HttpsError("failed-precondition", "El movimiento superaría los 4 niveles de subcarpetas.");
+    }
+
+    const newPath = target ? `${target.path || target.id}/${folderId}` : folderId;
+    const depthDelta = newDepth - folderDepth;
+    const now = Timestamp.now();
+    const batch = db.batch();
+    batch.update(db.collection("documentFolders").doc(folderId), {
+      parentId: targetParentId ?? null,
+      path: newPath,
+      depth: newDepth,
+      updatedAt: now,
+    });
+    for (const d of descendants) {
+      batch.update(db.collection("documentFolders").doc(d.id), {
+        path: newPath + (d.path || "").slice(oldPath.length),
+        depth: (d.depth ?? 0) + depthDelta,
+        updatedAt: now,
+      });
+    }
+    await batch.commit();
+    await writeAuditLog(targetTenantId, request.auth.uid, "move_document_folder", { folderId, targetParentId, moved: descendants.length + 1 });
+    return { ok: true };
+  },
+);
+
 // Enlace de descarga: verifica admin, audita la descarga y emite una URL firmada de
 // corta duración (10 min). Si el service account no puede firmar, cae al fileUrl.
 export const getDocumentDownloadUrl = onCall<{ documentId: string }>(

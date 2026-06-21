@@ -220,6 +220,16 @@ export async function deleteDocumentFolderCallable(input: { tenantId: string; fo
   return executeCallable(callable, input, "No fue posible eliminar la carpeta.");
 }
 
+export async function moveDocumentFolderCallable(input: {
+  tenantId: string;
+  folderId: string;
+  targetParentId?: string | null;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "moveDocumentFolder");
+  return executeCallable(callable, input, "No fue posible mover la carpeta.");
+}
+
 export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");

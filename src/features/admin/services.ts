@@ -187,6 +187,8 @@ export type DocumentItem = {
   uploadedByName?: string;
   fileSize?: number;
   contentType?: string;
+  /** Documento destacado (estrella, estilo Drive). */
+  starred?: boolean;
 };
 
 /** Taxonomía de categorías de documento (ver plan-documentos-carpetas). */
@@ -1219,6 +1221,15 @@ export async function setDocumentFolder(input: { documentId: string; folderId: s
   const firestore = assertDb();
   await updateDoc(doc(firestore, "documents", input.documentId), {
     folderId: input.folderId,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Marca o desmarca un documento como destacado (estrella). */
+export async function setDocumentStarred(input: { documentId: string; starred: boolean }) {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "documents", input.documentId), {
+    starred: input.starred,
     updatedAt: serverTimestamp(),
   });
 }
