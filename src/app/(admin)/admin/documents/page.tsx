@@ -11,8 +11,10 @@ import { DataTable, type DataTableColumn } from "@/components/shared/data-table"
 import { DocumentFoldersBrowser } from "@/components/features/admin/documents/folders-browser";
 import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { SectionIntro } from "@/components/shared/section-intro";
+import { getDocumentDownloadUrlCallable } from "@/lib/firebase/callables";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { documentSchema, type DocumentInput } from "@/features/admin/schemas";
@@ -104,6 +106,18 @@ export default function AdminDocumentsPage() {
       toastFirebaseError(error);
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function openDocument(item: DocumentItem) {
+    const w = window.open("about:blank", "_blank");
+    try {
+      const { url } = await getDocumentDownloadUrlCallable({ documentId: item.id });
+      if (w) w.location.href = url;
+      else window.open(url, "_blank");
+    } catch (error) {
+      if (w) w.close();
+      toastFirebaseError(error);
     }
   }
 
@@ -203,23 +217,31 @@ export default function AdminDocumentsPage() {
       </div>
 
       {tab === "carpetas" ? (
-        <Card>
-          <CardTitle>Carpetas</CardTitle>
-          <CardDescription className="mt-1">
-            Organiza los documentos en carpetas y subcarpetas (estilo Drive), hasta 4 niveles bajo la carpeta madre.
-          </CardDescription>
-          <div className="mt-4">
+        <>
+          <SectionIntro
+            storageKey="documentos-carpetas"
+            title="Carpetas"
+            purpose="Organiza los documentos del conjunto en carpetas, como en Drive."
+            how="Crea una carpeta madre, agrega subcarpetas (hasta 4 niveles), navega entre ellas y mueve documentos. En computador, un clic muestra el detalle y doble clic abre; en celular, un toque abre."
+          />
+          <Card>
             <DocumentFoldersBrowser tenantId={user?.tenantId} documents={items} />
-          </div>
-        </Card>
+          </Card>
+        </>
       ) : null}
 
       {tab === "todos" ? (
-    <Card>
-      <CardTitle help="Todos los archivos del conjunto, sin importar su carpeta. El reglamento tiene su propio módulo y no aparece aquí.">Todos los documentos</CardTitle>
-      <CardDescription className="mt-1">Sube nuevos archivos, clasifícalos por categoría y búscalos en el listado.</CardDescription>
-
-      <form className="mt-4 grid gap-3 md:grid-cols-[1.2fr_1fr_1.4fr_auto]" onSubmit={form.handleSubmit((values) => void handleUpload(values))}>
+        <>
+          <SectionIntro
+            storageKey="documentos-todos"
+            title="Todos los documentos"
+            purpose="Todos los archivos oficiales del conjunto en un solo lugar, sin importar su carpeta."
+            how="Sube un archivo, asígnale una categoría y una descripción, y luego búscalo o ábrelo desde el listado. El reglamento tiene su propio módulo y no aparece aquí."
+          />
+          <Card>
+            <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-4">
+              <p className="text-sm font-semibold text-[var(--slate-800)]">Subir documento</p>
+              <form className="mt-3 grid gap-3 md:grid-cols-[1.2fr_1fr_1.4fr_auto] md:items-end" onSubmit={form.handleSubmit((values) => void handleUpload(values))}>
         <div className="text-sm text-[var(--slate-700)]">
           <p className="mb-1 flex items-center gap-1">
             Seleccionar archivo
@@ -267,9 +289,10 @@ export default function AdminDocumentsPage() {
             {uploading ? "Subiendo..." : "Subir"}
           </Button>
         </div>
-      </form>
+              </form>
+            </div>
 
-      <div className="mt-4 space-y-3">
+            <div className="mt-6 space-y-3">
         <MobileFiltersPanel
           title="Filtros de documentos"
           footer={
@@ -302,26 +325,21 @@ export default function AdminDocumentsPage() {
           actionsHeader="Acciones"
           tableMinWidthClassName="min-w-[960px] sm:min-w-[1120px]"
           renderActions={(item) => (
-            <div className="flex flex-wrap gap-2">
-              <a href={item.fileUrl} target="_blank" rel="noreferrer">
-                <Button className="w-full sm:w-auto" size="sm" variant="outline" type="button">
-                  <IconBadge tone="sky" className="mr-2">
-                    <ExternalLink className="h-4 w-4" />
-                  </IconBadge>
-                  Abrir
-                </Button>
-              </a>
-              <Button className="w-full sm:w-auto" size="sm" variant="danger" type="button" onClick={() => void handleDelete(item)}>
-                <IconBadge tone="peach" className="mr-2">
-                  <Trash2 className="h-4 w-4" />
-                </IconBadge>
+            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+              <Button size="sm" variant="outline" type="button" onClick={() => void openDocument(item)}>
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                Abrir
+              </Button>
+              <Button size="sm" variant="danger" type="button" onClick={() => void handleDelete(item)}>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                 Eliminar
               </Button>
             </div>
           )}
         />
-      </div>
-    </Card>
+            </div>
+          </Card>
+        </>
       ) : null}
     </section>
   );
