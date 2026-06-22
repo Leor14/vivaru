@@ -1120,13 +1120,57 @@ export async function createVisitor(
   }
 }
 
-export async function updateVisitor(id: string, userId: string, payload: Partial<VisitorItem>) {
+export async function updateVisitor(
+  id: string,
+  userId: string,
+  payload: Partial<VisitorItem>,
+  unitInfo?: { unitLabel: string; tower: string; unit: string },
+) {
   const firestore = assertDb();
   await updateDoc(doc(firestore, "visitorAuthorizations", id), {
     ...payload,
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });
+
+  // Re-sincroniza el pase operativo vinculado (datos descriptivos y de vigencia),
+  // preservando el estado operativo (status / checkInAt / checkOutAt).
+  const passesSnap = await getDocs(
+    query(collection(firestore, "visitorPasses"), where("sourceAuthorizationId", "==", id)),
+  );
+  if (passesSnap.empty) return;
+
+  const passUpdate: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (payload.visitorName !== undefined) passUpdate.visitorName = payload.visitorName;
+  if (payload.visitorDocument !== undefined) passUpdate.documentNumber = payload.visitorDocument;
+  if (payload.qrCode !== undefined) passUpdate.qrCodeValue = payload.qrCode;
+  if (payload.authorizedBy !== undefined) {
+    passUpdate.hostResidentName = payload.authorizedBy;
+    passUpdate.residentName = payload.authorizedBy;
+    passUpdate.createdByName = payload.authorizedBy;
+  }
+  if (payload.unitId !== undefined) passUpdate.unitId = payload.unitId;
+  if (unitInfo) {
+    passUpdate.unitLabel = unitInfo.unitLabel;
+    passUpdate.tower = unitInfo.tower;
+    passUpdate.unit = unitInfo.unit;
+  }
+  if (payload.authorizationType !== undefined) {
+    passUpdate.authorizationType = payload.authorizationType;
+    passUpdate.validUntil =
+      payload.authorizationType === "larga_duracion"
+        ? payload.endDate || payload.startDate || null
+        : payload.startDate || null;
+  }
+  if (payload.startDate !== undefined) {
+    passUpdate.date = payload.startDate;
+    passUpdate.validFrom = payload.startDate;
+    if (payload.startTime !== undefined) {
+      passUpdate.scheduledTime = `${payload.startDate}T${payload.startTime}:00`;
+    }
+  }
+
+  await Promise.all(passesSnap.docs.map((d) => updateDoc(d.ref, passUpdate)));
 }
 
 export async function deleteVisitor(id: string) {

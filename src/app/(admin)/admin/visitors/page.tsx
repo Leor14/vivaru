@@ -298,19 +298,16 @@ export default function AdminVisitorsPage() {
         endDate: values.authorizationType === "puntual" ? values.startDate : values.endDate,
       };
 
+      const selectedUnit = units.find((u) => u.id === payload.unitId);
+      const unitInfo = selectedUnit
+        ? { unitLabel: selectedUnit.displayName, tower: selectedUnit.tower, unit: selectedUnit.unitId }
+        : undefined;
+
       if (editingItem) {
-        await updateVisitor(editingItem.id, user.uid, payload);
+        await updateVisitor(editingItem.id, user.uid, payload, unitInfo);
         toast.success("Visitante actualizado.");
       } else {
-        const selectedUnit = units.find((u) => u.id === payload.unitId);
-        await createVisitor(
-          user.tenantId,
-          user.uid,
-          payload,
-          selectedUnit
-            ? { unitLabel: selectedUnit.displayName, tower: selectedUnit.tower, unit: selectedUnit.unitId }
-            : undefined,
-        );
+        await createVisitor(user.tenantId, user.uid, payload, unitInfo);
         toast.success("Visitante creado.");
       }
       setOpenModal(false);
