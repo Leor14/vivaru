@@ -1,6 +1,7 @@
 "use client";
 
-import { ScrollText, Upload } from "lucide-react";
+import { FolderOpen, ScrollText, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -14,9 +15,11 @@ import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
 import { useAuth } from "@/features/auth/auth-context";
 import {
+  foldRegulationsIntoFolder,
   setActiveRegulation,
   uploadRegulationDocument,
 } from "@/features/regulations/services";
+import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
 import type { RegulationSignature } from "@/features/regulations/types";
 import {
   useActiveRegulation,
@@ -284,6 +287,27 @@ export default function AdminRegulationsPage() {
   const complianceRate = totalActive > 0 ? Math.round((signedCount / totalActive) * 100) : 0;
 
   const [tab, setTab] = useState<"reglamento" | "acuerdos">("reglamento");
+  const router = useRouter();
+
+  // Carpeta de sistema "Reglamentos": se asegura y se backfillean los existentes.
+  const [regulationsFolderId, setRegulationsFolderId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { folderId } = await ensureSystemFolderCallable({ tenantId, systemKey: "regulations" });
+        if (cancelled) return;
+        setRegulationsFolderId(folderId);
+        await foldRegulationsIntoFolder(tenantId, folderId);
+      } catch {
+        // best-effort: si falla, los reglamentos quedan sin carpeta.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
 
   // ── Upload ────────────────────────────────────────────────────────────────
   const [uploading, setUploading] = useState(false);
@@ -306,6 +330,7 @@ export default function AdminRegulationsPage() {
         userId: user.uid,
         file,
         title,
+        folderId: regulationsFolderId,
       });
       await setActiveRegulation(tenantId, newDocId);
       toast.success("Reglamento actualizado correctamente.");
@@ -339,7 +364,7 @@ export default function AdminRegulationsPage() {
         </div>
 
         {tab === "reglamento" ? (
-          <div>
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -347,6 +372,12 @@ export default function AdminRegulationsPage() {
               className="hidden"
               onChange={handleFileChange}
             />
+            {regulationsFolderId ? (
+              <Button variant="outline" type="button" onClick={() => router.push(`/admin/documents?folder=${regulationsFolderId}`)}>
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Carpeta de reglamentos
+              </Button>
+            ) : null}
             <Button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || !tenantId}

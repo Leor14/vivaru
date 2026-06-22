@@ -27,6 +27,7 @@ export async function uploadRegulationDocument(input: {
   userId: string;
   file: File;
   title: string;
+  folderId?: string | null;
 }): Promise<string> {
   if (!db) throw new Error("DB_UNAVAILABLE");
   if (!storage) throw new Error("STORAGE_UNAVAILABLE");
@@ -41,11 +42,15 @@ export async function uploadRegulationDocument(input: {
   const docRef = await addDoc(collection(db, "documents"), {
     tenantId: input.tenantId,
     title: input.title,
+    description: input.title,
     category: "reglamento",
     audience: "all",
     fileName: input.file.name,
     fileUrl,
     storagePath,
+    folderId: input.folderId ?? null,
+    fileSize: input.file.size,
+    contentType: input.file.type || "",
     uploadedBy: input.userId,
     createdBy: input.userId,
     uploadedAt: new Date().toISOString(),
@@ -54,6 +59,16 @@ export async function uploadRegulationDocument(input: {
   });
 
   return docRef.id;
+}
+
+/** Backfill: asigna la carpeta de Reglamentos a los reglamentos que aún no la tienen. */
+export async function foldRegulationsIntoFolder(tenantId: string, folderId: string): Promise<void> {
+  if (!db) return;
+  const snap = await getDocs(
+    query(collection(db, "documents"), where("tenantId", "==", tenantId), where("category", "==", "reglamento")),
+  );
+  const pending = snap.docs.filter((d) => !(d.data() as { folderId?: string | null }).folderId);
+  await Promise.all(pending.map((d) => updateDoc(d.ref, { folderId, updatedAt: serverTimestamp() })));
 }
 
 // ─── Active regulation ────────────────────────────────────────────────────────

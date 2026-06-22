@@ -163,7 +163,13 @@ export function DocumentFoldersBrowser({
     [folders, currentFolderId],
   );
   const folderDocs = useMemo(
-    () => documents.filter((d) => (d.folderId ?? null) === currentFolderId && (d.category as string) !== "reglamento"),
+    () =>
+      documents.filter((d) => {
+        if ((d.folderId ?? null) !== currentFolderId) return false;
+        // Reglamentos: solo dentro de su carpeta, nunca en la raíz.
+        if ((d.category as string) === "reglamento" && currentFolderId === null) return false;
+        return true;
+      }),
     [documents, currentFolderId],
   );
   // Metering: uso total del repositorio (todos los documentos del tenant).
