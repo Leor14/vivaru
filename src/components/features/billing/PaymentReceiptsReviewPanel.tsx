@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { approveReceiptAndRegisterPayment, usePaymentReceipts, updateReceiptStatus } from "@/features/billing/use-payment-receipts";
-import { notifyResidentReceiptCallable } from "@/lib/firebase/callables";
+import { createDocumentRecord } from "@/features/admin/services";
+import { ensureSystemFolderCallable, notifyResidentReceiptCallable } from "@/lib/firebase/callables";
 import type { BillingStatement, PaymentReceipt } from "@/types/domain";
 
 type Props = {
@@ -69,6 +70,28 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
     return stmt?.balance ?? 0;
   }
 
+  /** Archiva el comprobante aprobado en la carpeta de sistema "Comprobantes de pago". */
+  async function archiveReceipt(receipt: PaymentReceipt) {
+    if (!tenantId || !reviewerId || !receipt.storagePath) return;
+    try {
+      const { folderId } = await ensureSystemFolderCallable({ tenantId, systemKey: "payment_receipts" });
+      await createDocumentRecord({
+        tenantId,
+        userId: reviewerId,
+        userName: reviewerName,
+        fileName: receipt.fileName || "Comprobante",
+        fileUrl: receipt.fileUrl,
+        storagePath: receipt.storagePath,
+        category: "comprobante",
+        source: "payment_receipt",
+        sourceId: receipt.id,
+        folderId,
+      });
+    } catch {
+      // best-effort: el archivo ya existe en Storage; no bloquea la aprobación.
+    }
+  }
+
   async function handleApproveAndRegister(receipt: PaymentReceipt) {
     if (!reviewerId || !receipt.statementId) return;
     const amount = parseFloat(amountValue(receipt).replace(/[^0-9.-]/g, ""));
@@ -86,6 +109,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
         reviewerName,
       });
       toast.success("Pago registrado y comprobante aprobado.");
+      void archiveReceipt(receipt);
 
       // Si el monto se ajustó respecto a lo declarado y el admin lo pidió, avisar al residente.
       const expected = referenceAmount(receipt);
@@ -117,6 +141,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
         reviewedByName: reviewerName,
       });
       toast.success("Comprobante aprobado");
+      void archiveReceipt(receipt);
     } catch {
       toast.error("No se pudo aprobar el comprobante. Intenta de nuevo.");
     } finally {

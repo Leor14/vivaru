@@ -213,6 +213,7 @@ export type DocumentCategory =
   | "legal"
   | "comunicado"
   | "acuerdo"
+  | "comprobante"
   | "otro";
 
 /** Colores disponibles para diferenciar carpetas (clave; el mapa hex vive en la UI). */
