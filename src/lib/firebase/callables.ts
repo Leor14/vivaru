@@ -230,6 +230,12 @@ export async function moveDocumentFolderCallable(input: {
   return executeCallable(callable, input, "No fue posible mover la carpeta.");
 }
 
+export async function ensureCommunicationsFolderCallable(input: { tenantId: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { folderId: string }>(functions, "ensureCommunicationsFolder");
+  return executeCallable(callable, input, "No fue posible abrir la carpeta de comunicados.");
+}
+
 export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");

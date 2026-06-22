@@ -53,6 +53,15 @@ export default function AdminDocumentsPage() {
   const [searchFilter, setSearchFilter] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
   const [tab, setTab] = useState<"carpetas" | "todos">("todos");
+  const [folderParam, setFolderParam] = useState<string | null>(null);
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("folder");
+    if (param) {
+      setFolderParam(param);
+      setTab("carpetas");
+    }
+  }, []);
 
   const form = useForm<DocumentInput>({
     resolver: zodResolver(documentSchema),
@@ -260,7 +269,7 @@ export default function AdminDocumentsPage() {
             how="Crea carpetas, agrupa los documentos dentro y muévelos entre ellas cuando lo necesites."
           />
           <Card>
-            <DocumentFoldersBrowser tenantId={user?.tenantId} documents={items} />
+            <DocumentFoldersBrowser tenantId={user?.tenantId} documents={items} initialFolderId={folderParam} />
           </Card>
         </>
       ) : null}

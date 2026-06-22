@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FilterX, Plus } from "lucide-react";
+import { FilterX, FolderOpen, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -31,13 +31,16 @@ import {
   type CommunicationAttachment,
   type CommunicationItem,
 } from "@/features/admin/services";
+import { ensureCommunicationsFolderCallable } from "@/lib/firebase/callables";
 import { useAuth } from "@/features/auth/auth-context";
+import { useRouter } from "next/navigation";
 
 const ATTACHMENT_ACCEPT = "application/pdf,image/jpeg,image/png";
 const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024;
 
 export default function AdminCommunicationsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<CommunicationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<CommunicationItem | null>(null);
@@ -89,6 +92,16 @@ export default function AdminCommunicationsPage() {
 
     return () => unsub();
   }, [user?.tenantId]);
+
+  async function openAttachmentsFolder() {
+    if (!user?.tenantId) return;
+    try {
+      const { folderId } = await ensureCommunicationsFolderCallable({ tenantId: user.tenantId });
+      router.push(`/admin/documents?folder=${folderId}`);
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
 
   function openCreate() {
     setEditingItem(null);
@@ -177,6 +190,12 @@ export default function AdminCommunicationsPage() {
         const tid = user.tenantId;
         const uid = user.uid;
         const uname = user.fullName;
+        let folderId: string | null = null;
+        try {
+          folderId = (await ensureCommunicationsFolderCallable({ tenantId: tid })).folderId;
+        } catch {
+          folderId = null; // si falla, los adjuntos quedan en la raíz del repositorio.
+        }
         await Promise.allSettled(
           uploadedNew.map((att) =>
             createDocumentRecord({
@@ -192,6 +211,7 @@ export default function AdminCommunicationsPage() {
               description: values.title ? `Comunicado: ${values.title}` : "Adjunto de comunicado",
               source: "communication",
               sourceId: commId,
+              folderId,
             }),
           ),
         );
@@ -315,12 +335,20 @@ export default function AdminCommunicationsPage() {
           <CardTitle help="Envía mensajes, circulares y notificaciones a toda la comunidad o a grupos específicos. La comunicación oportuna reduce malentendidos y construye confianza entre la administración y los residentes.">Comunicaciones</CardTitle>
           <CardDescription className="mt-1">Centro de mensajes y notificaciones.</CardDescription>
         </div>
-        <Button className="w-full sm:w-auto" onClick={openCreate}>
-          <IconBadge tone="mint" className="mr-2">
-            <Plus className="h-4 w-4" />
-          </IconBadge>
-          Crear comunicado
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button className="w-full sm:w-auto" variant="outline" type="button" onClick={() => void openAttachmentsFolder()}>
+            <IconBadge tone="sky" className="mr-2">
+              <FolderOpen className="h-4 w-4" />
+            </IconBadge>
+            Carpeta de adjuntos
+          </Button>
+          <Button className="w-full sm:w-auto" onClick={openCreate}>
+            <IconBadge tone="mint" className="mr-2">
+              <Plus className="h-4 w-4" />
+            </IconBadge>
+            Crear comunicado
+          </Button>
+        </div>
       </div>
       {errorMessage ? <p className="mt-2 text-xs text-[var(--danger-700)]">{errorMessage}</p> : null}
       <div className="mt-4 space-y-3">

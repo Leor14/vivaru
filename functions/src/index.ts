@@ -1602,6 +1602,52 @@ export const createDocumentFolder = onCall<CreateDocumentFolderInput>(
   },
 );
 
+// Carpeta de sistema "Comunicados" (find-or-create). Aloja los adjuntos de los
+// comunicados; es protegida (no se renombra/mueve/elimina).
+export const ensureCommunicationsFolder = onCall<{ tenantId: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    if (!tenantId) throw new HttpsError("invalid-argument", "tenantId requerido.");
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const tid = actor.tenantId;
+
+    const existing = await db
+      .collection("documentFolders")
+      .where("tenantId", "==", tid)
+      .where("systemKey", "==", "communications")
+      .limit(1)
+      .get();
+    if (!existing.empty) return { folderId: existing.docs[0].id };
+
+    const profileSnap = await db.collection("users").doc(request.auth.uid).get();
+    const createdByName = (profileSnap.data() as { fullName?: string } | undefined)?.fullName ?? "";
+    const now = Timestamp.now();
+    const ref = db.collection("documentFolders").doc();
+    await ref.set({
+      tenantId: tid,
+      name: "Comunicados",
+      description: "Adjuntos de los comunicados publicados. Carpeta del sistema.",
+      parentId: null,
+      path: ref.id,
+      depth: 0,
+      color: "blue",
+      system: true,
+      systemKey: "communications",
+      createdBy: request.auth.uid,
+      createdByName,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await writeAuditLog(tid, request.auth.uid, "ensure_communications_folder", { folderId: ref.id });
+    return { folderId: ref.id };
+  },
+);
+
 // Actualizar carpeta: nombre, descripción y/o color (no cambia path/depth/parent;
 // integridad intacta). El nombre del callable se conserva por compatibilidad.
 const FOLDER_COLORS = ["gray", "blue", "green", "amber", "purple", "teal"];
@@ -1638,6 +1684,9 @@ export const renameDocumentFolder = onCall<{
     if (!snap.exists || (snap.data() as { tenantId?: string }).tenantId !== actor.tenantId) {
       throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
     }
+    if ((snap.data() as { system?: boolean }).system === true) {
+      throw new HttpsError("failed-precondition", "Es una carpeta del sistema y no se puede modificar.");
+    }
     const updates: Record<string, unknown> = { updatedAt: Timestamp.now() };
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
@@ -1664,6 +1713,9 @@ export const deleteDocumentFolder = onCall<{ tenantId: string; folderId: string 
     const snap = await ref.get();
     if (!snap.exists || (snap.data() as { tenantId?: string }).tenantId !== actor.tenantId) {
       throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
+    }
+    if ((snap.data() as { system?: boolean }).system === true) {
+      throw new HttpsError("failed-precondition", "Es una carpeta del sistema y no se puede eliminar.");
     }
     const subs = await db
       .collection("documentFolders")
@@ -1706,6 +1758,9 @@ export const moveDocumentFolder = onCall<{ tenantId: string; folderId: string; t
     const all = snap.docs.map((d) => ({ id: d.id, ...(d.data() as { parentId?: string | null; path?: string; depth?: number }) }));
     const folder = all.find((f) => f.id === folderId);
     if (!folder) throw new HttpsError("not-found", "La carpeta no existe en este tenant.");
+    if ((folder as { system?: boolean }).system === true) {
+      throw new HttpsError("failed-precondition", "Es una carpeta del sistema y no se puede mover.");
+    }
 
     const target = targetParentId ? all.find((f) => f.id === targetParentId) : null;
     if (targetParentId && !target) throw new HttpsError("not-found", "La carpeta destino no existe.");

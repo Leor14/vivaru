@@ -231,6 +231,10 @@ export type DocumentFolder = {
   path: string;
   /** 0 = madre … máx 4 (madre + 4 niveles de subcarpetas). */
   depth: number;
+  /** Carpeta gestionada por el sistema (p. ej. "Comunicados"): no se renombra/mueve/elimina. */
+  system?: boolean;
+  /** Clave estable de la carpeta de sistema (p. ej. "communications"). */
+  systemKey?: string;
   createdBy: string;
   createdByName?: string;
   createdAt: string;
@@ -1261,6 +1265,7 @@ export async function createDocumentRecord(input: {
   description?: string;
   source?: string;
   sourceId?: string;
+  folderId?: string | null;
 }) {
   const firestore = assertDb();
   await addDoc(collection(firestore, "documents"), {
@@ -1272,7 +1277,7 @@ export async function createDocumentRecord(input: {
     uploadedBy: input.userId,
     uploadedByName: input.userName ?? "",
     category: input.category,
-    folderId: null,
+    folderId: input.folderId ?? null,
     fileSize: input.fileSize ?? 0,
     contentType: input.contentType ?? "",
     source: input.source ?? null,

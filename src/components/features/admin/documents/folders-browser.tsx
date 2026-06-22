@@ -54,7 +54,15 @@ function folderColor(key?: string) {
   return FOLDER_COLORS[key ?? "gray"] ?? FOLDER_COLORS.gray;
 }
 
-export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: string; documents: DocumentItem[] }) {
+export function DocumentFoldersBrowser({
+  tenantId,
+  documents,
+  initialFolderId,
+}: {
+  tenantId?: string;
+  documents: DocumentItem[];
+  initialFolderId?: string | null;
+}) {
   const [folders, setFolders] = useState<DocumentFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -101,6 +109,10 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
   }, [menuOpenId]);
+
+  useEffect(() => {
+    if (initialFolderId) setCurrentFolderId(initialFolderId);
+  }, [initialFolderId]);
 
   useEffect(() => {
     if (!tenantId) {
@@ -513,6 +525,12 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                         <p className="truncate pr-5 text-sm font-medium text-[var(--slate-900)]">{f.name}</p>
                         <p className="text-xs text-[var(--slate-500)]">{childCount(f.id)} elemento(s)</p>
                       </div>
+                      {f.system ? (
+                        <span className="absolute right-2 top-2 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                          Sistema
+                        </span>
+                      ) : (
+                        <>
                       <button
                         type="button"
                         aria-label="Acciones de carpeta"
@@ -560,6 +578,8 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                           </button>
                         </div>
                       ) : null}
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -656,6 +676,11 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                   <FolderOpen className="mr-2 h-4 w-4" />
                   Abrir carpeta
                 </Button>
+                {selectedFolder.system ? (
+                  <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                    Carpeta del sistema: no se puede renombrar, mover ni eliminar.
+                  </p>
+                ) : (
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" className="flex-1" onClick={() => startRename(selectedFolder)}>
                     <Pencil className="mr-1 h-3.5 w-3.5" />
@@ -673,6 +698,7 @@ export function DocumentFoldersBrowser({ tenantId, documents }: { tenantId?: str
                     Eliminar
                   </Button>
                 </div>
+                )}
               </>
             ) : selectedDoc ? (
               <>
