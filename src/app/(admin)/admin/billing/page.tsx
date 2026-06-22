@@ -35,8 +35,8 @@ import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { BILLING_CONCEPTS, billingConceptLabel, createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
-import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
-import { notifyBillingBatchCallable } from "@/lib/firebase/callables";
+import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
+import { ensureSystemFolderCallable, notifyBillingBatchCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
@@ -178,6 +178,25 @@ export default function AdminBillingPage() {
   const [concept, setConcept] = useState<BillingConcept>("administracion");
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
   const [periodMonths, setPeriodMonths] = useState(3);
+
+  // F5: archiva en la carpeta de sistema los comprobantes aprobados aún no registrados.
+  useEffect(() => {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "payment_receipts" });
+        if (!cancelled) await backfillApprovedReceipts({ tenantId: tid, folderId, userId: uid, userName: user?.fullName });
+      } catch {
+        // best-effort.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.tenantId, user?.uid, user?.fullName]);
 
   // Persiste el período de análisis de los tableros entre visitas.
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
@@ -137,4 +137,53 @@ export async function approveReceiptAndRegisterPayment(input: {
     rejectedReason: null,
   });
   await batch.commit();
+}
+
+/**
+ * Backfill: archiva en la carpeta de sistema los comprobantes ya aprobados que aún no
+ * están registrados en Documentos. Deduplica por storagePath. Idempotente.
+ */
+export async function backfillApprovedReceipts(input: {
+  tenantId: string;
+  folderId: string;
+  userId: string;
+  userName?: string;
+}): Promise<number> {
+  if (!db) return 0;
+  const firestore = db;
+  const [receipts, docsSnap] = await Promise.all([
+    getDocs(query(collection(firestore, "paymentReceipts"), where("tenantId", "==", input.tenantId), where("status", "==", "approved"))),
+    getDocs(query(collection(firestore, "documents"), where("tenantId", "==", input.tenantId), where("category", "==", "comprobante"))),
+  ]);
+  const registered = new Set(
+    docsSnap.docs.map((d) => (d.data() as { storagePath?: string }).storagePath).filter(Boolean) as string[],
+  );
+  const pending = receipts.docs.filter((r) => {
+    const data = r.data() as { storagePath?: string; fileUrl?: string };
+    return Boolean(data.storagePath && data.fileUrl && !registered.has(data.storagePath));
+  });
+  await Promise.all(
+    pending.map((r) => {
+      const data = r.data() as { storagePath?: string; fileUrl?: string; fileName?: string };
+      return addDoc(collection(firestore, "documents"), {
+        tenantId: input.tenantId,
+        fileName: data.fileName || "Comprobante",
+        description: "",
+        fileUrl: data.fileUrl,
+        storagePath: data.storagePath,
+        uploadedBy: input.userId,
+        uploadedByName: input.userName ?? "",
+        category: "comprobante",
+        folderId: input.folderId,
+        fileSize: 0,
+        contentType: "",
+        source: "payment_receipt",
+        sourceId: r.id,
+        createdBy: input.userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }),
+  );
+  return pending.length;
 }
