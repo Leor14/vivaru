@@ -78,13 +78,26 @@ function parseVisitDateTime(date: string, scheduledTime: string) {
   return combineLocalDateTime(normalizedDate, normalizedTime);
 }
 
+/** Una autorización de larga duración está vigente hasta el fin del día de validUntil. */
+function isWithinValidity(item: VisitorPass): boolean {
+  const until = item.validUntil;
+  if (!until) return true;
+  const endOfDay = new Date(`${until}T23:59:59`);
+  return Number.isNaN(endOfDay.getTime()) ? true : endOfDay.getTime() >= Date.now();
+}
+
 function resolveOperationalStatus(item: VisitorPass): OperationalStatus {
   if (item.status === "inside") return "inside";
   if (item.status === "completed") return "completed";
 
+  // Larga duración: vigente mientras no se pase validUntil (ingresos repetidos).
+  if (item.authorizationType === "larga_duracion" && item.validUntil) {
+    return isWithinValidity(item) ? "scheduled" : "expired";
+  }
+
+  // Puntual / legacy: expira al pasar la fecha-hora programada (comportamiento existente).
   const visitDateTime = parseVisitDateTime(item.date, item.scheduledTime);
   if (!visitDateTime) return "scheduled";
-
   return visitDateTime.getTime() < Date.now() ? "expired" : "scheduled";
 }
 
@@ -156,12 +169,14 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
 
     setUpdatingId(item.id);
     try {
+      const reentrable = item.authorizationType === "larga_duracion" && isWithinValidity(item);
       await markVisitorAsCompleted({
         visitorId: item.id,
         tenantId,
         previousStatus: item.status,
+        reentrable,
       });
-      toast.success("Salida registrada correctamente");
+      toast.success(reentrable ? "Salida registrada. La autorización sigue vigente." : "Salida registrada correctamente");
     } catch (actionError) {
       toastFirebaseError(actionError);
     } finally {
@@ -522,7 +537,14 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                       <h3 className="text-lg font-semibold text-[var(--slate-900)]">{item.visitorName}</h3>
                       <p className="mt-1 text-sm text-[var(--slate-600)]">Documento: {item.documentNumber || "-"}</p>
                     </div>
-                    <Badge className={getStatusClass(item.operationalStatus)}>{getStatusLabel(item.operationalStatus)}</Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={getStatusClass(item.operationalStatus)}>{getStatusLabel(item.operationalStatus)}</Badge>
+                      {item.authorizationType === "larga_duracion" && item.validUntil ? (
+                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+                          Vigente hasta {formatDate(item.validUntil)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">

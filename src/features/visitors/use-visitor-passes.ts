@@ -89,6 +89,9 @@ function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
     date,
     scheduledTime,
     status: asStatus(raw.status),
+    authorizationType: raw.authorizationType === "larga_duracion" ? "larga_duracion" : raw.authorizationType === "puntual" ? "puntual" : undefined,
+    validFrom: asString(raw.validFrom) || undefined,
+    validUntil: asString(raw.validUntil) || undefined,
     checkInAt: asTimestampIso(raw.checkInAt) || undefined,
     checkOutAt: asTimestampIso(raw.checkOutAt) || undefined,
     visitDate: asString(raw.visitDate) || undefined,
@@ -349,21 +352,25 @@ export async function markVisitorAsCompleted(input: {
   visitorId: string;
   tenantId: string;
   previousStatus: VisitorPass["status"];
+  /** Si la autorización sigue vigente (larga duración), el pase vuelve a "scheduled"
+   * para permitir ingresos repetidos en lugar de cerrarse. */
+  reentrable?: boolean;
 }) {
   if (!db) throw new Error("Firebase no esta configurado.");
   if (input.previousStatus !== "inside") {
     throw new Error("Solo se puede registrar salida para visitantes en estado Dentro.");
   }
 
+  const nextStatus = input.reentrable ? "scheduled" : "completed";
   console.debug("[guard:visitors] update status", {
     tenantId: input.tenantId,
     visitorId: input.visitorId,
     from: input.previousStatus,
-    to: "completed",
+    to: nextStatus,
   });
 
   await updateDoc(doc(db, "visitorPasses", input.visitorId), {
-    status: "completed",
+    status: nextStatus,
     checkOutAt: serverTimestamp(),
   });
 }

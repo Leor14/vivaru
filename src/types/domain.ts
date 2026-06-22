@@ -197,6 +197,11 @@ export interface VisitorPass {
   eventDate?: string;
   scheduledTime: string;
   status: "scheduled" | "inside" | "completed";
+  /** Tipo de autorización de origen (puntual = un día; larga_duracion = ventana). */
+  authorizationType?: "puntual" | "larga_duracion";
+  /** Ventana de vigencia (YYYY-MM-DD). validUntil ausente ⇒ se asume `date`. */
+  validFrom?: string;
+  validUntil?: string;
   checkInAt?: string;
   checkOutAt?: string;
   // Legacy compatibility fields for existing records not yet migrated.
