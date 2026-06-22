@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FilterX, PenSquare, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { FilterX, PenSquare, Plus, QrCode, Trash2 } from "lucide-react";
+import { QRCodeCanvas } from "qrcode.react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -66,6 +67,8 @@ export default function AdminVisitorsPage() {
   const { items: passes, loading: passesLoading } = useVisitorPasses(user?.tenantId);
   const [selectedPass, setSelectedPass] = useState<VisitorPass | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<VisitorItem | null>(null);
+  const [qrTarget, setQrTarget] = useState<VisitorItem | null>(null);
+  const qrRef = useRef<HTMLDivElement | null>(null);
 
   const form = useForm<VisitorInput>({
     resolver: zodResolver(visitorSchema),
@@ -314,6 +317,45 @@ export default function AdminVisitorsPage() {
     setDeleteTarget(item);
   }
 
+  function fmtDate(value?: string): string {
+    if (!value) return "—";
+    const d = new Date(`${value}T12:00:00`);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString("es-CO");
+  }
+  function vigenciaLabel(item: VisitorItem): string {
+    if (item.authorizationType === "larga_duracion") {
+      return `Vigente: ${fmtDate(item.startDate)} – ${fmtDate(item.endDate || item.startDate)}`;
+    }
+    return `Fecha: ${fmtDate(item.startDate)}`;
+  }
+  function downloadQr() {
+    const canvas = qrRef.current?.querySelector("canvas");
+    if (!canvas || !qrTarget) return;
+    const url = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `QR-${qrTarget.visitorName.replace(/\s+/g, "_")}.png`;
+    a.click();
+  }
+  function printQr() {
+    const canvas = qrRef.current?.querySelector("canvas");
+    if (!canvas || !qrTarget) return;
+    const url = canvas.toDataURL("image/png");
+    const w = window.open("", "_blank", "width=420,height=560");
+    if (!w) return;
+    w.document.write(
+      `<html><head><title>QR de acceso</title></head><body style="font-family:sans-serif;text-align:center;padding:24px;color:#0f172a;">` +
+        `<img src="${url}" width="240" height="240" alt="QR" />` +
+        `<h2 style="margin:12px 0 4px;">${qrTarget.visitorName}</h2>` +
+        `<p style="margin:0;color:#555;">Documento: ${qrTarget.visitorDocument || "—"}</p>` +
+        `<p style="margin:4px 0;color:#555;">${vigenciaLabel(qrTarget)}</p>` +
+        `</body></html>`,
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return;
     try {
@@ -459,6 +501,12 @@ export default function AdminVisitorsPage() {
           tableMinWidthClassName="min-w-[760px] sm:min-w-[980px]"
           renderActions={canEdit ? (item) => (
             <div className="flex flex-wrap gap-2">
+              <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => setQrTarget(item)}>
+                <IconBadge tone="mint" className="mr-2">
+                  <QrCode className="h-4 w-4" />
+                </IconBadge>
+                QR
+              </Button>
               <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => openEdit(item)}>
                 <IconBadge tone="sky" className="mr-2">
                   <PenSquare className="h-4 w-4" />
@@ -785,6 +833,28 @@ export default function AdminVisitorsPage() {
             <Button className="w-full sm:w-auto" type="submit" disabled={saving || Boolean(visitorDateTimeError)}>{saving ? "Guardando..." : "Guardar"}</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={qrTarget !== null} title="Código QR de acceso" onClose={() => setQrTarget(null)}>
+        {qrTarget ? (
+          <div className="space-y-4">
+            <div ref={qrRef} className="flex flex-col items-center gap-3 rounded-xl border border-[var(--slate-200)] p-5 text-center">
+              <QRCodeCanvas value={qrTarget.qrCode} size={200} marginSize={2} />
+              <div>
+                <p className="text-lg font-semibold text-[var(--slate-900)]">{qrTarget.visitorName}</p>
+                <p className="text-sm text-[var(--slate-600)]">Documento: {qrTarget.visitorDocument || "—"}</p>
+                <p className="text-sm text-[var(--slate-600)]">{vigenciaLabel(qrTarget)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--slate-500)]">
+              Comparte este código con el visitante. En portería pueden escanearlo o validar por documento.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={downloadQr}>Descargar</Button>
+              <Button variant="outline" onClick={printQr}>Imprimir</Button>
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </Card>
   );
