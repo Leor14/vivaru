@@ -48,7 +48,10 @@ const FOLDER_COLORS: Record<string, { chipBg: string; chipFg: string; ring: stri
   amber: { chipBg: "#FAEEDA", chipFg: "#633806", ring: "#BA7517" },
   purple: { chipBg: "#EEEDFE", chipFg: "#3C3489", ring: "#7F77DD" },
   teal: { chipBg: "#E1F5EE", chipFg: "#085041", ring: "#1D9E75" },
+  // Color reservado para carpetas del sistema (no seleccionable en el editor).
+  system: { chipBg: "#E2E8F0", chipFg: "#334155", ring: "#475569" },
 };
+// Colores que el admin puede elegir (excluye el reservado "system").
 const COLOR_KEYS = ["gray", "blue", "green", "amber", "purple", "teal"] as const;
 function folderColor(key?: string) {
   return FOLDER_COLORS[key ?? "gray"] ?? FOLDER_COLORS.gray;

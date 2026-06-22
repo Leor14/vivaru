@@ -215,7 +215,8 @@ export type DocumentCategory =
   | "otro";
 
 /** Colores disponibles para diferenciar carpetas (clave; el mapa hex vive en la UI). */
-export type DocumentFolderColor = "gray" | "blue" | "green" | "amber" | "purple" | "teal";
+// "system" es un color reservado para carpetas del sistema; no es seleccionable.
+export type DocumentFolderColor = "gray" | "blue" | "green" | "amber" | "purple" | "teal" | "system";
 
 /** Carpeta del repositorio documental (estilo Drive). Solo admin. */
 export type DocumentFolder = {

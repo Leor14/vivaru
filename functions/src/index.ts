@@ -1602,8 +1602,72 @@ export const createDocumentFolder = onCall<CreateDocumentFolderInput>(
   },
 );
 
-// Carpeta de sistema "Comunicados" (find-or-create). Aloja los adjuntos de los
-// comunicados; es protegida (no se renombra/mueve/elimina).
+// Carpetas de sistema (find-or-create). Alojan archivos de cada fuente; son
+// protegidas (no se renombran/mueven/eliminan) y usan el color reservado "system".
+const SYSTEM_FOLDERS: Record<string, { name: string; description: string }> = {
+  communications: { name: "Comunicados", description: "Adjuntos de los comunicados publicados. Carpeta del sistema." },
+  regulations: { name: "Reglamentos", description: "Reglamentos del conjunto. Carpeta del sistema." },
+  committee_agreements: { name: "Acuerdos de comité", description: "Actas y acuerdos de comité. Carpeta del sistema." },
+};
+
+async function ensureSystemFolderImpl(tenantId: string, actorUid: string, systemKey: string): Promise<string> {
+  const cfg = SYSTEM_FOLDERS[systemKey];
+  if (!cfg) throw new HttpsError("invalid-argument", "Carpeta de sistema desconocida.");
+
+  const existing = await db
+    .collection("documentFolders")
+    .where("tenantId", "==", tenantId)
+    .where("systemKey", "==", systemKey)
+    .limit(1)
+    .get();
+  if (!existing.empty) {
+    const found = existing.docs[0];
+    const data = found.data() as { color?: string; system?: boolean };
+    if (data.color !== "system" || data.system !== true) {
+      await found.ref.update({ color: "system", system: true, updatedAt: Timestamp.now() });
+    }
+    return found.id;
+  }
+
+  const profileSnap = await db.collection("users").doc(actorUid).get();
+  const createdByName = (profileSnap.data() as { fullName?: string } | undefined)?.fullName ?? "";
+  const now = Timestamp.now();
+  const ref = db.collection("documentFolders").doc();
+  await ref.set({
+    tenantId,
+    name: cfg.name,
+    description: cfg.description,
+    parentId: null,
+    path: ref.id,
+    depth: 0,
+    color: "system",
+    system: true,
+    systemKey,
+    createdBy: actorUid,
+    createdByName,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await writeAuditLog(tenantId, actorUid, "ensure_system_folder", { folderId: ref.id, systemKey });
+  return ref.id;
+}
+
+export const ensureSystemFolder = onCall<{ tenantId: string; systemKey: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const systemKey = normalizeText(request.data?.systemKey);
+    if (!tenantId || !systemKey) throw new HttpsError("invalid-argument", "tenantId y systemKey requeridos.");
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const folderId = await ensureSystemFolderImpl(actor.tenantId, request.auth.uid, systemKey);
+    return { folderId };
+  },
+);
+
+// Compatibilidad: el flujo de comunicados sigue llamando este nombre.
 export const ensureCommunicationsFolder = onCall<{ tenantId: string }>(
   { cors: callableCorsOrigins },
   async (request) => {
@@ -1612,39 +1676,9 @@ export const ensureCommunicationsFolder = onCall<{ tenantId: string }>(
     if (!tenantId) throw new HttpsError("invalid-argument", "tenantId requerido.");
     const tokenTenantId = normalizeText(request.auth.token?.tenantId);
     if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
-
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
-    const tid = actor.tenantId;
-
-    const existing = await db
-      .collection("documentFolders")
-      .where("tenantId", "==", tid)
-      .where("systemKey", "==", "communications")
-      .limit(1)
-      .get();
-    if (!existing.empty) return { folderId: existing.docs[0].id };
-
-    const profileSnap = await db.collection("users").doc(request.auth.uid).get();
-    const createdByName = (profileSnap.data() as { fullName?: string } | undefined)?.fullName ?? "";
-    const now = Timestamp.now();
-    const ref = db.collection("documentFolders").doc();
-    await ref.set({
-      tenantId: tid,
-      name: "Comunicados",
-      description: "Adjuntos de los comunicados publicados. Carpeta del sistema.",
-      parentId: null,
-      path: ref.id,
-      depth: 0,
-      color: "blue",
-      system: true,
-      systemKey: "communications",
-      createdBy: request.auth.uid,
-      createdByName,
-      createdAt: now,
-      updatedAt: now,
-    });
-    await writeAuditLog(tid, request.auth.uid, "ensure_communications_folder", { folderId: ref.id });
-    return { folderId: ref.id };
+    const folderId = await ensureSystemFolderImpl(actor.tenantId, request.auth.uid, "communications");
+    return { folderId };
   },
 );
 
