@@ -73,6 +73,16 @@ function shouldAttachToResidents(role: PersonRole) {
   return role === "tenant" || role === "other";
 }
 
+/** Adjunto de un comunicado (PDF o imagen). El residente lee {url, name}; el resto
+ * habilita el repositorio (F2) y el render de imagen. */
+export type CommunicationAttachment = {
+  url: string;
+  name: string;
+  path?: string;
+  contentType?: string;
+  size?: number;
+};
+
 export type CommunicationItem = {
   id: string;
   tenantId: string;
@@ -81,8 +91,10 @@ export type CommunicationItem = {
   status: "published" | "draft" | "archived" | "scheduled" | "expired";
   startsAt?: string;
   endsAt?: string;
+  // Legacy (un solo PDF). El flujo nuevo usa `attachments`.
   attachmentUrl?: string;
   attachmentName?: string;
+  attachments?: CommunicationAttachment[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -685,7 +697,7 @@ export async function listCommunicationsOnce(tenantId: string) {
 export async function createCommunication(
   tenantId: string,
   userId: string,
-  payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName">,
+  payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName" | "attachments">,
 ) {
   const firestore = assertDb();
   await addDoc(collection(firestore, "communications"), {

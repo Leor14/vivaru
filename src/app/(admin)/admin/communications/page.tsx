@@ -27,9 +27,13 @@ import {
   uploadCommunicationAttachment,
   updateCommunication,
   watchCommunications,
+  type CommunicationAttachment,
   type CommunicationItem,
 } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
+
+const ATTACHMENT_ACCEPT = "application/pdf,image/jpeg,image/png";
+const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024;
 
 export default function AdminCommunicationsPage() {
   const { user } = useAuth();
@@ -44,7 +48,8 @@ export default function AdminCommunicationsPage() {
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [detailItem, setDetailItem] = useState<CommunicationItem | null>(null);
-  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<CommunicationAttachment[]>([]);
   const [pendingDeletion, setPendingDeletion] = useState<CommunicationItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -86,14 +91,22 @@ export default function AdminCommunicationsPage() {
 
   function openCreate() {
     setEditingItem(null);
-    setAttachmentFile(null);
+    setAttachmentFiles([]);
+    setExistingAttachments([]);
     form.reset({ title: "", message: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
     setCreateOpen(true);
   }
 
+  function attachmentsOf(item: CommunicationItem): CommunicationAttachment[] {
+    if (item.attachments && item.attachments.length > 0) return item.attachments;
+    if (item.attachmentUrl) return [{ url: item.attachmentUrl, name: item.attachmentName || "Adjunto" }];
+    return [];
+  }
+
   function openEdit(item: CommunicationItem) {
     setEditingItem(item);
-    setAttachmentFile(null);
+    setAttachmentFiles([]);
+    setExistingAttachments(attachmentsOf(item));
     form.reset({
       title: item.title,
       message: item.message,
@@ -111,14 +124,18 @@ export default function AdminCommunicationsPage() {
     setSubmitting(true);
     setErrorMessage(null);
     try {
-      let attachmentUrl = values.attachmentUrl;
-      let attachmentName = values.attachmentName;
-
-      if (attachmentFile) {
-        const uploaded = await uploadCommunicationAttachment({ tenantId: user.tenantId, file: attachmentFile });
-        attachmentUrl = uploaded.fileUrl;
-        attachmentName = uploaded.fileName;
+      const uploadedNew: CommunicationAttachment[] = [];
+      for (const file of attachmentFiles) {
+        const uploaded = await uploadCommunicationAttachment({ tenantId: user.tenantId, file });
+        uploadedNew.push({
+          url: uploaded.fileUrl,
+          name: uploaded.fileName,
+          path: uploaded.storagePath,
+          contentType: file.type || "",
+          size: file.size,
+        });
       }
+      const attachments = [...existingAttachments, ...uploadedNew];
 
       const today = new Date().toISOString().slice(0, 10);
       const startsAt = values.startsAt || undefined;
@@ -139,8 +156,9 @@ export default function AdminCommunicationsPage() {
         startsAt,
         endsAt,
         status: computedStatus,
-        attachmentUrl,
-        attachmentName,
+        attachmentUrl: "",
+        attachmentName: "",
+        attachments,
       };
 
       if (editingItem) {
@@ -239,14 +257,26 @@ export default function AdminCommunicationsPage() {
     {
       key: "attachment",
       header: "Adjunto",
-      render: (item) =>
-        item.attachmentUrl ? (
-          <a className="text-[var(--brand-700)] hover:underline" href={item.attachmentUrl} target="_blank" rel="noreferrer">
-            {item.attachmentName || "PDF"}
-          </a>
-        ) : (
-          "-"
-        ),
+      render: (item) => {
+        const atts = attachmentsOf(item);
+        if (atts.length === 0) return "-";
+        return (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {atts.slice(0, 3).map((a) => (
+              <a
+                key={a.url}
+                className="max-w-[140px] truncate text-[var(--brand-700)] hover:underline"
+                href={a.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {a.name || "Adjunto"}
+              </a>
+            ))}
+            {atts.length > 3 ? <span className="text-xs text-[var(--slate-500)]">+{atts.length - 3}</span> : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -379,13 +409,56 @@ export default function AdminCommunicationsPage() {
             </label>
           </div>
           <div className="space-y-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
-            <p className="text-sm text-[var(--slate-700)]">Adjunto PDF</p>
+            <p className="text-sm text-[var(--slate-700)]">Adjuntos (PDF o imágenes JPG/PNG)</p>
             <input
               type="file"
-              accept="application/pdf"
-              onChange={(event) => setAttachmentFile(event.target.files?.[0] ?? null)}
+              accept={ATTACHMENT_ACCEPT}
+              multiple
+              onChange={(event) => {
+                const picked = Array.from(event.target.files ?? []);
+                const valid = picked.filter((f) => {
+                  if (f.size > MAX_ATTACHMENT_SIZE) {
+                    toast.error(`"${f.name}" supera el límite de 25 MB.`);
+                    return false;
+                  }
+                  return true;
+                });
+                setAttachmentFiles((prev) => [...prev, ...valid]);
+                event.target.value = "";
+              }}
             />
-            <p className="text-xs text-[var(--slate-500)]">{attachmentFile?.name ?? (form.watch("attachmentName") || "Sin adjunto")}</p>
+            {existingAttachments.length === 0 && attachmentFiles.length === 0 ? (
+              <p className="text-xs text-[var(--slate-500)]">Sin adjuntos</p>
+            ) : (
+              <ul className="space-y-1">
+                {existingAttachments.map((a) => (
+                  <li key={a.url} className="flex items-center justify-between gap-2 text-xs text-[var(--slate-700)]">
+                    <span className="truncate">{a.name}</span>
+                    <button
+                      type="button"
+                      className="shrink-0 text-[var(--danger-700)]"
+                      onClick={() => setExistingAttachments((prev) => prev.filter((x) => x.url !== a.url))}
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                ))}
+                {attachmentFiles.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 text-xs text-[var(--slate-700)]">
+                    <span className="truncate">
+                      {f.name} <span className="text-[var(--slate-400)]">(nuevo)</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="shrink-0 text-[var(--danger-700)]"
+                      onClick={() => setAttachmentFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="mobile-action-group">
             <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
@@ -465,17 +538,27 @@ export default function AdminCommunicationsPage() {
               <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Mensaje</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-800)]">{detailItem.message}</p>
             </div>
-            {detailItem.attachmentUrl ? (
+            {attachmentsOf(detailItem).length > 0 ? (
               <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Adjunto</p>
-                <a
-                  className="mt-1 inline-flex items-center gap-1 text-[var(--brand-700)] hover:underline"
-                  href={detailItem.attachmentUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {detailItem.attachmentName || "Descargar PDF"}
-                </a>
+                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Adjuntos</p>
+                <div className="mt-1 flex flex-col gap-2">
+                  {attachmentsOf(detailItem).map((a) =>
+                    a.contentType?.startsWith("image/") ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={a.url} src={a.url} alt={a.name} className="max-h-48 w-auto rounded-lg border border-[var(--slate-200)]" />
+                    ) : (
+                      <a
+                        key={a.url}
+                        className="inline-flex items-center gap-1 text-[var(--brand-700)] hover:underline"
+                        href={a.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {a.name || "Descargar"}
+                      </a>
+                    ),
+                  )}
+                </div>
               </div>
             ) : null}
           </div>
