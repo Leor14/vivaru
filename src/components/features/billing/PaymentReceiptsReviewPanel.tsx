@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { approveReceiptAndRegisterPayment, usePaymentReceipts, updateReceiptStatus } from "@/features/billing/use-payment-receipts";
+import { notifyResidentReceiptCallable } from "@/lib/firebase/callables";
 import type { BillingStatement, PaymentReceipt } from "@/types/domain";
 
 type Props = {
@@ -40,6 +41,8 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
   const [rejectionReason, setRejectionReason] = useState("");
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [notifyAdjust, setNotifyAdjust] = useState<Record<string, boolean>>({});
+  const [notifyOnReject, setNotifyOnReject] = useState(true);
 
   const statementsById = useMemo(() => {
     const map = new Map<string, BillingStatement>();
@@ -75,6 +78,17 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
         reviewerName,
       });
       toast.success("Pago registrado y comprobante aprobado.");
+
+      // Si el monto se ajustó respecto al esperado y el admin lo pidió, avisar al residente.
+      const expected = receipt.statementId ? statementsById.get(receipt.statementId)?.balance ?? 0 : 0;
+      if (tenantId && receipt.unitId && amount !== expected && notifyAdjust[receipt.id] !== false) {
+        try {
+          await notifyResidentReceiptCallable({ tenantId, unitId: receipt.unitId, kind: "adjusted", amount });
+          toast.success("Se notificó el ajuste al residente.");
+        } catch {
+          // best-effort.
+        }
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No se pudo registrar el pago.");
     } finally {
@@ -121,6 +135,13 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
         rejectedReason: reason,
       });
       toast.success("Comprobante rechazado");
+      if (tenantId && receipt.unitId && notifyOnReject) {
+        try {
+          await notifyResidentReceiptCallable({ tenantId, unitId: receipt.unitId, kind: "rejected", reason });
+        } catch {
+          // best-effort.
+        }
+      }
       setRejectingId(null);
       setRejectionReason("");
     } catch {
@@ -171,6 +192,8 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
               const isBusy = pendingActionId === receipt.id;
               const isRejecting = rejectingId === receipt.id;
               const linkedStmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
+              const amtNum = parseFloat(amountValue(receipt).replace(/[^0-9.-]/g, ""));
+              const amountDiffers = Boolean(linkedStmt) && Number.isFinite(amtNum) && amtNum !== (linkedStmt?.balance ?? 0);
               return (
                 <li
                   key={receipt.id}
@@ -211,25 +234,37 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                         Abrir archivo
                       </a>
                       {linkedStmt ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            value={amountValue(receipt)}
-                            onChange={(e) => setAmounts((prev) => ({ ...prev, [receipt.id]: e.target.value }))}
-                            className="h-9 w-28 rounded-xl border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)]"
-                            placeholder="Monto"
-                            aria-label="Monto pagado"
-                          />
-                          <Button
-                            type="button"
-                            onClick={() => handleApproveAndRegister(receipt)}
-                            disabled={isBusy || isRejecting}
-                            className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                            Aprobar y registrar
-                          </Button>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={amountValue(receipt)}
+                              onChange={(e) => setAmounts((prev) => ({ ...prev, [receipt.id]: e.target.value }))}
+                              className="h-9 w-28 rounded-xl border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)]"
+                              placeholder="Monto"
+                              aria-label="Monto pagado"
+                            />
+                            <Button
+                              type="button"
+                              onClick={() => handleApproveAndRegister(receipt)}
+                              disabled={isBusy || isRejecting}
+                              className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                              Aprobar y registrar
+                            </Button>
+                          </div>
+                          {amountDiffers ? (
+                            <label className="flex items-center gap-1 text-[11px] text-[var(--slate-600)]">
+                              <input
+                                type="checkbox"
+                                checked={notifyAdjust[receipt.id] !== false}
+                                onChange={(e) => setNotifyAdjust((p) => ({ ...p, [receipt.id]: e.target.checked }))}
+                              />
+                              Avisar el ajuste de monto al residente
+                            </label>
+                          ) : null}
                         </div>
                       ) : (
                         <Button
@@ -270,6 +305,14 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                           className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
                           autoFocus
                         />
+                      </label>
+                      <label className="flex items-center gap-1 text-[11px] text-[var(--slate-600)]">
+                        <input
+                          type="checkbox"
+                          checked={notifyOnReject}
+                          onChange={(e) => setNotifyOnReject(e.target.checked)}
+                        />
+                        Avisar al residente
                       </label>
                       <Button
                         type="button"

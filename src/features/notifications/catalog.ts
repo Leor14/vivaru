@@ -8,6 +8,8 @@ export type NotificationKey =
   | "billing_batch"
   | "billing_overdue"
   | "billing_receipt"
+  | "payment_adjusted"
+  | "payment_rejected"
   | "ticket_answered"
   | "reservation_rejected"
   | "regulation_new"
@@ -94,6 +96,30 @@ export const NOTIFICATION_CATALOG: NotificationTemplateDef[] = [
     body: "Se generó el recibo de tu pago de {período}.",
     emailSubject: "Tu recibo de {período} está disponible — {conjunto}",
     emailBody: "Se generó el recibo de tu pago de {período}. Ingresa para descargarlo.",
+  },
+  {
+    key: "payment_adjusted",
+    group: "Cartera",
+    label: "Comprobante aceptado con ajuste",
+    relevance: "alta",
+    emailDefault: false,
+    variables: [MONTO, CONJUNTO],
+    title: "Comprobante aceptado con ajuste",
+    body: "Aceptamos tu comprobante, pero ajustamos el monto registrado a {monto}.",
+    emailSubject: "Tu comprobante fue aceptado con un ajuste — {conjunto}",
+    emailBody: "Aceptamos tu comprobante de pago, pero el monto registrado se ajustó a {monto}. Ingresa para ver tu estado de cuenta.",
+  },
+  {
+    key: "payment_rejected",
+    group: "Cartera",
+    label: "Comprobante no aceptado",
+    relevance: "alta",
+    emailDefault: false,
+    variables: [{ name: "motivo", example: "El monto no coincide con el comprobante", required: false }, CONJUNTO],
+    title: "Comprobante no aceptado",
+    body: "Tu comprobante de pago no fue aceptado: {motivo}.",
+    emailSubject: "Tu comprobante no fue aceptado — {conjunto}",
+    emailBody: "Tu comprobante de pago no fue aceptado. Motivo: {motivo}. Ingresa para revisarlo.",
   },
   {
     key: "ticket_answered",

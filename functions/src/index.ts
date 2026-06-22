@@ -2573,6 +2573,55 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
   },
 );
 
+// Notifica al residente el resultado de la revisión de su comprobante: aceptado con
+// ajuste de monto, o no aceptado (con motivo). Lo dispara el admin desde la revisión.
+export const notifyResidentReceipt = onCall<{
+  tenantId: string;
+  unitId: string;
+  kind: "adjusted" | "rejected";
+  amount?: number;
+  reason?: string;
+}>(
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const unitId = normalizeText(request.data?.unitId);
+    const kind = request.data?.kind;
+    if (!tenantId || !unitId || (kind !== "adjusted" && kind !== "rejected")) {
+      throw new HttpsError("invalid-argument", "tenantId, unitId y kind son requeridos.");
+    }
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) throw new HttpsError("permission-denied", "Tenant incorrecto.");
+    await assertActiveTenantAdmin(tenantId, request.auth.uid);
+
+    const residentUids = await listResidentUidsByUnit(tenantId, unitId);
+    if (residentUids.length === 0) return { ok: true, notified: 0 };
+    const conjunto = await getTenantName(tenantId);
+
+    if (kind === "adjusted") {
+      const override = await getTenantNotificationOverride(tenantId, "payment_adjusted");
+      await deliverResidentNotifications(
+        "payment_adjusted",
+        tenantId,
+        residentUids,
+        { monto: formatMoney(request.data?.amount ?? 0), conjunto },
+        override,
+      );
+    } else {
+      const override = await getTenantNotificationOverride(tenantId, "payment_rejected");
+      await deliverResidentNotifications(
+        "payment_rejected",
+        tenantId,
+        residentUids,
+        { motivo: normalizeText(request.data?.reason) || "el monto no coincide con el comprobante", conjunto },
+        override,
+      );
+    }
+    return { ok: true, notified: residentUids.length };
+  },
+);
+
 // Runs every day at 07:00 UTC (02:00 Colombia)
 export const updateOverdueStatements = onSchedule({ schedule: "0 7 * * *", secrets: [resendApiKey] }, async () => {
   const now = new Date();

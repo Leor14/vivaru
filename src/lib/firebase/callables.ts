@@ -245,6 +245,18 @@ export async function ensureSystemFolderCallable(input: {
   return executeCallable(callable, input, "No fue posible abrir la carpeta del sistema.");
 }
 
+export async function notifyResidentReceiptCallable(input: {
+  tenantId: string;
+  unitId: string;
+  kind: "adjusted" | "rejected";
+  amount?: number;
+  reason?: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean; notified: number }>(functions, "notifyResidentReceipt");
+  return executeCallable(callable, input, "No fue posible notificar al residente.");
+}
+
 export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");
