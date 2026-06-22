@@ -36,6 +36,7 @@ const CATEGORY_OPTIONS: { value: DocumentCategory; label: string }[] = [
   { value: "financiero", label: "Financiero" },
   { value: "legal", label: "Legal" },
   { value: "comunicado", label: "Comunicados" },
+  { value: "acuerdo", label: "Acuerdos" },
   { value: "otro", label: "Otro" },
 ];
 const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c.label]));

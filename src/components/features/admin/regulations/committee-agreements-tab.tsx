@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ExternalLink, FileUp, Plus, Send, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ExternalLink, FileUp, FolderOpen, Plus, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
@@ -14,9 +15,11 @@ import { Input } from "@/components/ui/input";
 import {
   createCommitteeAgreement,
   deleteCommitteeAgreement,
+  foldAgreementsIntoFolder,
   sendAgreementToSignature,
   uploadAgreementFile,
 } from "@/features/committee-agreements/services";
+import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
 import type {
   AgreementSignatureMode,
   AgreementSignerScope,
@@ -53,6 +56,27 @@ export function CommitteeAgreementsTab({
   peopleByUnitId: ReadonlyMap<string, BoardPerson>;
 }) {
   const { items, loading } = useCommitteeAgreements(tenantId);
+  const router = useRouter();
+
+  // Carpeta de sistema "Acuerdos de comité": se asegura y se backfillean los existentes.
+  const [agreementsFolderId, setAgreementsFolderId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!tenantId || !userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { folderId } = await ensureSystemFolderCallable({ tenantId, systemKey: "committee_agreements" });
+        if (cancelled) return;
+        setAgreementsFolderId(folderId);
+        await foldAgreementsIntoFolder(tenantId, folderId, userId);
+      } catch {
+        // best-effort.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, userId]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -126,7 +150,8 @@ export function CommitteeAgreementsTab({
       return;
     }
     try {
-      await uploadAgreementFile({ tenantId, userId, agreementId, file });
+      const agreement = items.find((a) => a.id === agreementId);
+      await uploadAgreementFile({ tenantId, userId, agreementId, file, folderId: agreementsFolderId, title: agreement?.title });
       toast.success("PDF cargado.");
     } catch {
       toast.error("No se pudo cargar el PDF.");
@@ -224,10 +249,18 @@ export function CommitteeAgreementsTab({
               {loading ? "Cargando acuerdos…" : `${items.length} acuerdo${items.length !== 1 ? "s" : ""} registrado${items.length !== 1 ? "s" : ""}.`}
             </CardDescription>
           </div>
-          <Button onClick={() => setCreateOpen(true)} disabled={!tenantId}>
-            <Plus className="mr-2 h-4 w-4" />
-            Crear acuerdo
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {agreementsFolderId ? (
+              <Button variant="outline" type="button" onClick={() => router.push(`/admin/documents?folder=${agreementsFolderId}`)}>
+                <FolderOpen className="mr-2 h-4 w-4" />
+                Carpeta de acuerdos
+              </Button>
+            ) : null}
+            <Button onClick={() => setCreateOpen(true)} disabled={!tenantId}>
+              <Plus className="mr-2 h-4 w-4" />
+              Crear acuerdo
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4">
