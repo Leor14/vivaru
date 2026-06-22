@@ -57,8 +57,16 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
 
   function amountValue(receipt: PaymentReceipt): string {
     if (receipt.id in amounts) return amounts[receipt.id];
+    if (receipt.amount != null) return String(receipt.amount);
     const stmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
     return stmt ? String(stmt.balance ?? "") : "";
+  }
+
+  /** Monto de referencia para detectar ajuste: lo declarado por el residente o el saldo. */
+  function referenceAmount(receipt: PaymentReceipt): number {
+    if (receipt.amount != null) return receipt.amount;
+    const stmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
+    return stmt?.balance ?? 0;
   }
 
   async function handleApproveAndRegister(receipt: PaymentReceipt) {
@@ -79,8 +87,8 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
       });
       toast.success("Pago registrado y comprobante aprobado.");
 
-      // Si el monto se ajustó respecto al esperado y el admin lo pidió, avisar al residente.
-      const expected = receipt.statementId ? statementsById.get(receipt.statementId)?.balance ?? 0 : 0;
+      // Si el monto se ajustó respecto a lo declarado y el admin lo pidió, avisar al residente.
+      const expected = referenceAmount(receipt);
       if (tenantId && receipt.unitId && amount !== expected && notifyAdjust[receipt.id] !== false) {
         try {
           await notifyResidentReceiptCallable({ tenantId, unitId: receipt.unitId, kind: "adjusted", amount });
@@ -193,7 +201,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
               const isRejecting = rejectingId === receipt.id;
               const linkedStmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
               const amtNum = parseFloat(amountValue(receipt).replace(/[^0-9.-]/g, ""));
-              const amountDiffers = Boolean(linkedStmt) && Number.isFinite(amtNum) && amtNum !== (linkedStmt?.balance ?? 0);
+              const amountDiffers = Boolean(linkedStmt) && Number.isFinite(amtNum) && amtNum !== referenceAmount(receipt);
               return (
                 <li
                   key={receipt.id}
@@ -213,6 +221,12 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                       <p className="mt-0.5 text-xs text-[var(--slate-500)]">
                         Subido: {formatUploadedAt(receipt.uploadedAt)}
                       </p>
+                      {receipt.amount != null ? (
+                        <p className="mt-0.5 text-xs text-[var(--slate-600)]">
+                          Declarado por el residente:{" "}
+                          <span className="font-medium text-[var(--slate-800)]">{formatMoney(receipt.amount)}</span>
+                        </p>
+                      ) : null}
                       {linkedStmt ? (
                         <p className="mt-0.5 text-xs text-[var(--slate-600)]">
                           Cobro {linkedStmt.period} · Saldo{" "}

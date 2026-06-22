@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
-import { AlertCircle, Banknote, CheckCircle2, Clock3, Download, FileSpreadsheet, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
+import { AlertCircle, Banknote, CheckCircle2, Clock3, Download, FileSpreadsheet, FileText, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
 import {
   Bar,
   CartesianGrid,
@@ -35,6 +35,7 @@ import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { notifyBillingBatchCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
@@ -163,6 +164,7 @@ export default function AdminBillingPage() {
   const { user } = useAuth();
   const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const { items, loading, error } = useBillingStatements(user?.tenantId);
+  const { receiptByStatementId } = usePaymentReceipts(user?.tenantId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
   const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
@@ -1037,6 +1039,7 @@ export default function AdminBillingPage() {
               <th className="px-3 py-2 font-medium text-left">Saldo</th>
               <th className="px-3 py-2 font-medium text-left">Fecha límite</th>
               <th className="px-3 py-2 font-medium text-left">Estado</th>
+              <th className="px-3 py-2 font-medium text-left">Comprobante</th>
               <th className="px-3 py-2 font-medium text-left">Acciones</th>
             </tr>
           </thead>
@@ -1051,13 +1054,14 @@ export default function AdminBillingPage() {
                   <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-7 w-16 rounded-xl" /></td>
                 </tr>
               ))
             ) : null}
             {!loading && filteredRows.length === 0 ? (
               <tr>
-                <td className="px-3 py-2" colSpan={8}>
+                <td className="px-3 py-2" colSpan={9}>
                   <EmptyState
                     title="Sin estados de cuenta"
                     description="No hay facturación registrada para este conjunto con los filtros actuales."
@@ -1099,6 +1103,23 @@ export default function AdminBillingPage() {
                       Pendiente
                     </span>
                   )}
+                </td>
+                <td className="px-3 py-2">
+                  {(() => {
+                    const rcpt = receiptByStatementId.get(item.id);
+                    if (!rcpt) return <span className="text-[var(--slate-400)]">—</span>;
+                    return (
+                      <a
+                        href={rcpt.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-300)] bg-white px-2.5 py-1.5 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                      >
+                        <FileText className="h-3.5 w-3.5" aria-hidden />
+                        Ver
+                      </a>
+                    );
+                  })()}
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2">

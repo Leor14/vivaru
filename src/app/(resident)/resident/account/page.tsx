@@ -9,6 +9,7 @@ import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
 import { BillingPeriodCard } from "@/components/features/billing/BillingPeriodCard";
 import { ResidentVouchersCard } from "@/components/features/finanzas/ResidentVouchersCard";
 import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
@@ -30,6 +31,9 @@ export default function ResidentAccountPage() {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingStatementId = useRef<string | null>(null);
+  // F1: el residente confirma el monto antes de enviar el comprobante.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [declaredAmount, setDeclaredAmount] = useState("");
 
   // Sort statements newest-first
   const sortedItems = [...items].sort((a, b) => (a.period > b.period ? -1 : 1));
@@ -39,23 +43,10 @@ export default function ResidentAccountPage() {
     fileInputRef.current?.click();
   }
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = "";
     if (!file) return;
-
-    const tenantId = user?.tenantId;
-    const unitId = user?.unitId;
-    const uid = user?.uid;
-    const statementId = pendingStatementId.current;
-
-    if (!tenantId || !unitId || !uid) {
-      toast.error("No se pudo identificar tu unidad. Recarga la página.");
-      return;
-    }
-    if (!db || !storage) {
-      toast.error("Firebase no está disponible en este momento.");
-      return;
-    }
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
     if (!allowedTypes.includes(file.type)) {
@@ -64,6 +55,40 @@ export default function ResidentAccountPage() {
     }
     if (file.size > 10 * 1024 * 1024) {
       toast.error("El archivo no puede superar 10 MB.");
+      return;
+    }
+
+    // Pre-llena el monto con el saldo del período para que el residente lo confirme/ajuste.
+    const stmt = items.find((i) => i.id === pendingStatementId.current);
+    setDeclaredAmount(stmt && stmt.balance ? String(stmt.balance) : "");
+    setPendingFile(file);
+  }
+
+  function cancelUpload() {
+    setPendingFile(null);
+    setDeclaredAmount("");
+    pendingStatementId.current = null;
+  }
+
+  async function confirmUpload() {
+    const file = pendingFile;
+    const tenantId = user?.tenantId;
+    const unitId = user?.unitId;
+    const uid = user?.uid;
+    const statementId = pendingStatementId.current;
+
+    if (!file) return;
+    if (!tenantId || !unitId || !uid) {
+      toast.error("No se pudo identificar tu unidad. Recarga la página.");
+      return;
+    }
+    if (!db || !storage) {
+      toast.error("Firebase no está disponible en este momento.");
+      return;
+    }
+    const amount = parseFloat(declaredAmount.replace(/[^0-9.-]/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Indica el monto que pagaste.");
       return;
     }
 
@@ -86,19 +111,21 @@ export default function ResidentAccountPage() {
         fileUrl,
         fileName: file.name,
         storagePath,
+        amount,
         status: "pending",
-        // F2: statementId links this receipt to a specific billing period
+        // statementId links this receipt to a specific billing period
         ...(statementId ? { statementId } : {}),
       });
 
       toast.success("Comprobante enviado. El administrador lo revisará pronto.");
+      setPendingFile(null);
+      setDeclaredAmount("");
     } catch {
       toast.error("No fue posible subir el comprobante. Intenta de nuevo.");
     } finally {
       setUploading(false);
       setUploadingFor(null);
       pendingStatementId.current = null;
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -171,6 +198,38 @@ export default function ResidentAccountPage() {
       </div>
     </Card>
     <ResidentVouchersCard />
+
+    {pendingFile ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+          <h3 className="text-base font-semibold text-[var(--slate-900)]">Confirmar comprobante</h3>
+          <p className="mt-1 text-sm text-[var(--slate-600)]">
+            Indica el monto que pagaste. Así el administrador lo valida más rápido.
+          </p>
+          <label className="mt-4 block text-xs font-medium text-[var(--slate-700)]">
+            Monto pagado
+            <input
+              type="number"
+              inputMode="decimal"
+              value={declaredAmount}
+              onChange={(e) => setDeclaredAmount(e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              placeholder="0"
+              autoFocus
+            />
+          </label>
+          <p className="mt-2 truncate text-xs text-[var(--slate-500)]">Archivo: {pendingFile.name}</p>
+          <div className="mt-5 flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={cancelUpload} disabled={uploading}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={confirmUpload} disabled={uploading}>
+              {uploading ? "Enviando..." : "Enviar comprobante"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    ) : null}
     </div>
   );
 }

@@ -247,6 +247,8 @@ export interface PaymentReceipt {
   status: "pending" | "approved" | "rejected";
   /** Links this receipt to a specific billing period */
   statementId?: string;
+  /** Monto declarado por el residente al subir el comprobante */
+  amount?: number;
   reviewedAt?: string;
   reviewedBy?: string;
   reviewedByName?: string;
