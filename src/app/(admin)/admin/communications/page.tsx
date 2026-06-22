@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { communicationSchema, type CommunicationInput } from "@/features/admin/schemas";
 import {
   createCommunication,
+  createDocumentRecord,
   deleteCommunication,
   listCommunicationsOnce,
   uploadCommunicationAttachment,
@@ -161,12 +162,39 @@ export default function AdminCommunicationsPage() {
         attachments,
       };
 
+      let commId = editingItem?.id;
       if (editingItem) {
         await updateCommunication(editingItem.id, user.uid, payload);
         toast.success("Comunicado actualizado.");
       } else {
-        await createCommunication(user.tenantId, user.uid, payload);
+        commId = await createCommunication(user.tenantId, user.uid, payload);
         toast.success("Comunicado creado.");
+      }
+
+      // Repositorio: registra los adjuntos NUEVOS en Documentos (categoría Comunicados).
+      // Best-effort: si falla, no rompe el guardado del comunicado.
+      if (uploadedNew.length > 0) {
+        const tid = user.tenantId;
+        const uid = user.uid;
+        const uname = user.fullName;
+        await Promise.allSettled(
+          uploadedNew.map((att) =>
+            createDocumentRecord({
+              tenantId: tid,
+              userId: uid,
+              userName: uname,
+              fileName: att.name,
+              fileUrl: att.url,
+              storagePath: att.path ?? "",
+              contentType: att.contentType,
+              fileSize: att.size,
+              category: "comunicado",
+              description: values.title ? `Comunicado: ${values.title}` : "Adjunto de comunicado",
+              source: "communication",
+              sourceId: commId,
+            }),
+          ),
+        );
       }
       const refreshed = await listCommunicationsOnce(user.tenantId);
       setItems(refreshed);

@@ -211,6 +211,7 @@ export type DocumentCategory =
   | "memoria"
   | "financiero"
   | "legal"
+  | "comunicado"
   | "otro";
 
 /** Colores disponibles para diferenciar carpetas (clave; el mapa hex vive en la UI). */
@@ -700,7 +701,7 @@ export async function createCommunication(
   payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName" | "attachments">,
 ) {
   const firestore = assertDb();
-  await addDoc(collection(firestore, "communications"), {
+  const ref = await addDoc(collection(firestore, "communications"), {
     ...payload,
     tenantId,
     createdBy: userId,
@@ -708,6 +709,7 @@ export async function createCommunication(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+  return ref.id;
 }
 
 export async function updateCommunication(id: string, userId: string, payload: Partial<CommunicationItem>) {
@@ -1238,6 +1240,43 @@ export async function uploadDocumentForTenant(input: {
     folderId: input.folderId ?? null,
     fileSize: input.file.size,
     contentType: input.file.type || "",
+    createdBy: input.userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Crea un registro en `documents` referenciando un archivo YA subido (sin volver a
+ * subirlo). Lo usa el repositorio de adjuntos de comunicaciones. */
+export async function createDocumentRecord(input: {
+  tenantId: string;
+  userId: string;
+  userName?: string;
+  fileName: string;
+  fileUrl: string;
+  storagePath: string;
+  contentType?: string;
+  fileSize?: number;
+  category: DocumentCategory;
+  description?: string;
+  source?: string;
+  sourceId?: string;
+}) {
+  const firestore = assertDb();
+  await addDoc(collection(firestore, "documents"), {
+    tenantId: input.tenantId,
+    fileName: input.fileName,
+    description: input.description ?? "",
+    fileUrl: input.fileUrl,
+    storagePath: input.storagePath,
+    uploadedBy: input.userId,
+    uploadedByName: input.userName ?? "",
+    category: input.category,
+    folderId: null,
+    fileSize: input.fileSize ?? 0,
+    contentType: input.contentType ?? "",
+    source: input.source ?? null,
+    sourceId: input.sourceId ?? null,
     createdBy: input.userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
