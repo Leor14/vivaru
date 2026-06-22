@@ -302,7 +302,15 @@ export default function AdminVisitorsPage() {
         await updateVisitor(editingItem.id, user.uid, payload);
         toast.success("Visitante actualizado.");
       } else {
-        await createVisitor(user.tenantId, user.uid, payload);
+        const selectedUnit = units.find((u) => u.id === payload.unitId);
+        await createVisitor(
+          user.tenantId,
+          user.uid,
+          payload,
+          selectedUnit
+            ? { unitLabel: selectedUnit.displayName, tower: selectedUnit.tower, unit: selectedUnit.unitId }
+            : undefined,
+        );
         toast.success("Visitante creado.");
       }
       setOpenModal(false);

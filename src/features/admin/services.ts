@@ -1067,6 +1067,7 @@ export async function createVisitor(
   tenantId: string,
   userId: string,
   payload: Omit<VisitorItem, "id" | "tenantId" | "createdAt">,
+  unitInfo?: { unitLabel: string; tower: string; unit: string },
 ) {
   const visitorDateTime = combineDateAndTime(payload.startDate, payload.startTime);
   if (!visitorDateTime) {
@@ -1087,8 +1088,8 @@ export async function createVisitor(
       updatedAt: serverTimestamp(),
     });
 
-    const unitLabel = payload.unitId;
-    const [towerValue, unitValue] = unitLabel.split("-");
+    // Label/torre/unidad reales de la unidad (no derivados del doc id).
+    const unitLabel = unitInfo?.unitLabel || payload.unitId;
     await addDoc(collection(firestore, "visitorPasses"), {
       tenantId,
       unitId: payload.unitId,
@@ -1097,8 +1098,8 @@ export async function createVisitor(
       documentNumber: payload.visitorDocument,
       qrCodeValue: payload.qrCode,
       hostResidentName: payload.authorizedBy,
-      tower: towerValue?.trim() || "-",
-      unit: unitValue?.trim() || unitLabel,
+      tower: unitInfo?.tower || "-",
+      unit: unitInfo?.unit || unitLabel,
       date: payload.startDate,
       scheduledTime: `${payload.startDate}T${payload.startTime}:00`,
       status: "scheduled",
