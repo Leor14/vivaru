@@ -2513,6 +2513,16 @@ export const onTicketUpdated = onDocumentUpdated({ document: "tickets/{ticketId}
 
 // ── F2 · Notificaciones de cartera al residente ───────────────────────────────
 
+const BILLING_CONCEPT_LABELS: Record<string, string> = {
+  administracion: "Administración",
+  extraordinaria: "Cuota extraordinaria",
+  multa: "Multa / sanción",
+  reparacion: "Reparación / daño",
+  interes_mora: "Interés de mora",
+  parqueadero: "Parqueadero / amenidad",
+  otro: "Otro",
+};
+
 // Cobro nuevo individual. Los cobros de una importación masiva (source="import")
 // se agrupan en un solo aviso vía el callable notifyBillingBatch.
 export const onBillingStatementCreated = onDocumentCreated({ document: "billingStatements/{statementId}", secrets: [resendApiKey] }, async (event) => {
@@ -2522,6 +2532,7 @@ export const onBillingStatementCreated = onDocumentCreated({ document: "billingS
         unitId?: string;
         unitLabel?: string;
         period?: string;
+        concept?: string;
         amount?: number;
         balance?: number;
         source?: string;
@@ -2540,6 +2551,7 @@ export const onBillingStatementCreated = onDocumentCreated({ document: "billingS
   ]);
   const vars = {
     período: data.period ?? "",
+    concepto: BILLING_CONCEPT_LABELS[data.concept ?? "administracion"] ?? "Administración",
     monto: formatMoney(data.amount ?? data.balance ?? 0),
     unidad: data.unitLabel ?? "",
     conjunto,

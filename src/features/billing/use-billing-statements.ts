@@ -5,7 +5,22 @@ import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
-import type { BillingStatement } from "@/types/domain";
+import type { BillingConcept, BillingStatement } from "@/types/domain";
+
+/** Conceptos de cobro (best practice PH). El primero es el default. */
+export const BILLING_CONCEPTS: { value: BillingConcept; label: string }[] = [
+  { value: "administracion", label: "Administración" },
+  { value: "extraordinaria", label: "Cuota extraordinaria" },
+  { value: "multa", label: "Multa / sanción" },
+  { value: "reparacion", label: "Reparación / daño" },
+  { value: "interes_mora", label: "Interés de mora" },
+  { value: "parqueadero", label: "Parqueadero / amenidad" },
+  { value: "otro", label: "Otro" },
+];
+
+export function billingConceptLabel(concept?: string): string {
+  return BILLING_CONCEPTS.find((c) => c.value === concept)?.label ?? "Administración";
+}
 
 export function useBillingStatements(tenantId?: string, unitId?: string) {
   const [items, setItems] = useState<BillingStatement[]>([]);
@@ -68,6 +83,7 @@ export async function createBillingStatement(input: {
   paymentAmount: number;
   balance: number;
   dueDate?: string;
+  concept?: BillingConcept;
   /** "import" agrupa el aviso al residente (lote); "manual" notifica individual. */
   source?: "manual" | "import";
 }) {
@@ -79,6 +95,7 @@ export async function createBillingStatement(input: {
     unitId: input.unitId,
     unitLabel: input.unitLabel,
     period: input.period,
+    concept: input.concept ?? "administracion",
     amount: input.amount,
     paymentAmount: input.paymentAmount,
     balance: input.balance,

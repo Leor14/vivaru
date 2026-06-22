@@ -217,12 +217,23 @@ export interface VisitorPass {
   }>;
 }
 
+export type BillingConcept =
+  | "administracion"
+  | "extraordinaria"
+  | "multa"
+  | "reparacion"
+  | "interes_mora"
+  | "parqueadero"
+  | "otro";
+
 export interface BillingStatement {
   id: string;
   tenantId: string;
   unitId: string;
   unitLabel: string;
   period: string;
+  /** Concepto del cobro (default: administración). */
+  concept?: BillingConcept;
   amount?: number;
   paymentAmount?: number;
   balance: number;

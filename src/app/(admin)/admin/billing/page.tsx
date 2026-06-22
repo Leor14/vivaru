@@ -34,7 +34,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
-import { createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BILLING_CONCEPTS, billingConceptLabel, createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { notifyBillingBatchCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -52,7 +52,7 @@ import { createCommunication } from "@/features/admin/services";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { chartAxis, chartBar, chartColors, chartGrid, chartLine, chartMargin } from "@/features/finanzas/chart-theme";
-import type { BillingStatement } from "@/types/domain";
+import type { BillingConcept, BillingStatement } from "@/types/domain";
 
 type UnitCollectionItem = {
   id: string;
@@ -175,6 +175,7 @@ export default function AdminBillingPage() {
   const [amount, setAmount] = useState("1.120.000");
   const [paymentAmount, setPaymentAmount] = useState("0");
   const [dueDate, setDueDate] = useState("");
+  const [concept, setConcept] = useState<BillingConcept>("administracion");
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
   const [periodMonths, setPeriodMonths] = useState(3);
 
@@ -425,6 +426,7 @@ export default function AdminBillingPage() {
         unitId: selectedUnitId,
         unitLabel: unitLabel.trim(),
         period: date.slice(0, 7),
+        concept,
         amount: rawAmount,
         paymentAmount: rawPayment,
         balance,
@@ -875,7 +877,21 @@ export default function AdminBillingPage() {
           Registra cartera mensual por unidad con estructura financiera clara y trazable.
         </CardDescription>
         <p className="mt-3 text-sm font-semibold text-[var(--slate-800)]">{billingFormTitle}</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-5">
+        <div className="mt-4 grid gap-3 md:grid-cols-6">
+          <label className="text-sm text-[var(--slate-700)]">
+            Concepto
+            <select
+              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              value={concept}
+              onChange={(event) => setConcept(event.target.value as BillingConcept)}
+            >
+              {BILLING_CONCEPTS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="text-sm text-[var(--slate-700)]">
             Unidad
             <select
@@ -900,7 +916,7 @@ export default function AdminBillingPage() {
           </label>
           <Input label="Fecha" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           <Input
-            label="Valor administración"
+            label={concept === "administracion" ? "Valor administración" : "Valor"}
             inputMode="numeric"
             value={amount}
             onChange={(event) => setAmount(formatCurrencyInput(event.target.value))}
@@ -1074,7 +1090,12 @@ export default function AdminBillingPage() {
               const isPaid = status === "paid";
               return (
               <tr key={item.id} className="border-b border-[var(--slate-100)]">
-                <td className="px-3 py-2">{item.unitLabel}</td>
+                <td className="px-3 py-2">
+                  <div>{item.unitLabel}</div>
+                  {item.concept && item.concept !== "administracion" ? (
+                    <div className="text-[11px] text-[var(--slate-500)]">{billingConceptLabel(item.concept)}</div>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2">{formatTableDate(item.period)}</td>
                 <td className="px-3 py-2">{formatAmount(item.amount)}</td>
                 <td className="px-3 py-2">{formatAmount(item.paymentAmount)}</td>

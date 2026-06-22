@@ -5,6 +5,7 @@ import { ChevronDown, Clock, FileText, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { HelpTip } from "@/components/shared/help-tip";
+import { billingConceptLabel } from "@/features/billing/use-billing-statements";
 import type { BillingStatement } from "@/types/domain";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -120,6 +121,11 @@ export function BillingPeriodCard({
           <p className="truncate text-sm font-semibold capitalize text-[var(--slate-900)]">
             {periodLabel}
           </p>
+          {item.concept && item.concept !== "administracion" ? (
+            <span className="mt-0.5 inline-block rounded-full bg-[var(--slate-100)] px-2 py-0.5 text-[11px] font-medium text-[var(--slate-700)]">
+              {billingConceptLabel(item.concept)}
+            </span>
+          ) : null}
           {item.dueDate && hasDebt && (
             <p className="flex items-center gap-1 text-xs text-[var(--slate-500)]">
               <Clock className="h-3 w-3" aria-hidden="true" />
