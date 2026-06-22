@@ -861,6 +861,7 @@ export default function AdminBillingPage() {
         tenantId={user?.tenantId}
         reviewerId={user?.uid}
         reviewerName={user?.fullName}
+        statements={items}
       />
 
       <Card className="soft-panel">

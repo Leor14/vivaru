@@ -7,14 +7,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
-import { usePaymentReceipts, updateReceiptStatus } from "@/features/billing/use-payment-receipts";
-import type { PaymentReceipt } from "@/types/domain";
+import { approveReceiptAndRegisterPayment, usePaymentReceipts, updateReceiptStatus } from "@/features/billing/use-payment-receipts";
+import type { BillingStatement, PaymentReceipt } from "@/types/domain";
 
 type Props = {
   tenantId?: string;
   reviewerId?: string;
   reviewerName?: string;
+  statements?: BillingStatement[];
 };
+
+function formatMoney(value: number): string {
+  return `$${Math.round(value).toLocaleString("es-CO")}`;
+}
 
 function formatUploadedAt(value: string): string {
   if (!value) return "—";
@@ -29,16 +34,53 @@ function formatUploadedAt(value: string): string {
   });
 }
 
-export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName }: Props) {
+export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName, statements }: Props) {
   const { items, loading, error } = usePaymentReceipts(tenantId);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+
+  const statementsById = useMemo(() => {
+    const map = new Map<string, BillingStatement>();
+    for (const s of statements ?? []) map.set(s.id, s);
+    return map;
+  }, [statements]);
 
   const pendingReceipts = useMemo(
     () => items.filter((receipt) => receipt.status === "pending"),
     [items],
   );
+
+  function amountValue(receipt: PaymentReceipt): string {
+    if (receipt.id in amounts) return amounts[receipt.id];
+    const stmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
+    return stmt ? String(stmt.balance ?? "") : "";
+  }
+
+  async function handleApproveAndRegister(receipt: PaymentReceipt) {
+    if (!reviewerId || !receipt.statementId) return;
+    const amount = parseFloat(amountValue(receipt).replace(/[^0-9.-]/g, ""));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Ingresa el monto pagado para registrar.");
+      return;
+    }
+    setPendingActionId(receipt.id);
+    try {
+      await approveReceiptAndRegisterPayment({
+        receiptId: receipt.id,
+        statementId: receipt.statementId,
+        amount,
+        reviewerId,
+        reviewerName,
+      });
+      toast.success("Pago registrado y comprobante aprobado.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo registrar el pago.");
+    } finally {
+      setPendingActionId(null);
+    }
+  }
 
   async function handleApprove(receipt: PaymentReceipt) {
     if (!reviewerId) {
@@ -128,6 +170,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName 
             {pendingReceipts.map((receipt) => {
               const isBusy = pendingActionId === receipt.id;
               const isRejecting = rejectingId === receipt.id;
+              const linkedStmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
               return (
                 <li
                   key={receipt.id}
@@ -147,6 +190,14 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName 
                       <p className="mt-0.5 text-xs text-[var(--slate-500)]">
                         Subido: {formatUploadedAt(receipt.uploadedAt)}
                       </p>
+                      {linkedStmt ? (
+                        <p className="mt-0.5 text-xs text-[var(--slate-600)]">
+                          Cobro {linkedStmt.period} · Saldo{" "}
+                          <span className="font-medium text-[var(--slate-800)]">{formatMoney(linkedStmt.balance ?? 0)}</span>
+                        </p>
+                      ) : (
+                        <p className="mt-0.5 text-xs text-amber-700">Sin cobro vinculado — apruébalo y registra el pago manualmente.</p>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -159,15 +210,38 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName 
                         <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                         Abrir archivo
                       </a>
-                      <Button
-                        type="button"
-                        onClick={() => handleApprove(receipt)}
-                        disabled={isBusy || isRejecting}
-                        className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                        Aprobar
-                      </Button>
+                      {linkedStmt ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={amountValue(receipt)}
+                            onChange={(e) => setAmounts((prev) => ({ ...prev, [receipt.id]: e.target.value }))}
+                            className="h-9 w-28 rounded-xl border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)]"
+                            placeholder="Monto"
+                            aria-label="Monto pagado"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => handleApproveAndRegister(receipt)}
+                            disabled={isBusy || isRejecting}
+                            className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                            Aprobar y registrar
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={() => handleApprove(receipt)}
+                          disabled={isBusy || isRejecting}
+                          className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                          Aprobar
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="ghost"

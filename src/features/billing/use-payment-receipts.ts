@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
@@ -93,4 +93,48 @@ export async function updateReceiptStatus(
       ? { rejectedReason: input.rejectedReason }
       : { rejectedReason: null }),
   });
+}
+
+/**
+ * Aprueba el comprobante Y registra el pago en el cobro vinculado (flujo semi-ágil):
+ * aplica el monto confirmado por el admin al `billingStatement` (abono/saldo/estado) y
+ * marca el comprobante como aprobado, en una sola transacción.
+ */
+export async function approveReceiptAndRegisterPayment(input: {
+  receiptId: string;
+  statementId: string;
+  amount: number;
+  reviewerId: string;
+  reviewerName?: string;
+}): Promise<void> {
+  if (!db) throw new Error("DB_UNAVAILABLE");
+  const stmtRef = doc(db, "billingStatements", input.statementId);
+  const snap = await getDoc(stmtRef);
+  if (!snap.exists()) throw new Error("El cobro vinculado ya no existe.");
+
+  const s = snap.data() as { amount?: number; paymentAmount?: number; dueDate?: string };
+  const charge = s.amount ?? 0;
+  const newPayment = Math.max((s.paymentAmount ?? 0) + input.amount, 0);
+  const balance = Math.max(charge - newPayment, 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const status = balance <= 0 ? "paid" : s.dueDate && s.dueDate < today ? "overdue" : "pending";
+
+  const batch = writeBatch(db);
+  batch.update(stmtRef, {
+    paymentAmount: newPayment,
+    balance,
+    status,
+    lastPaymentAt: today,
+    lastReceiptId: input.receiptId,
+    updatedAt: serverTimestamp(),
+  });
+  batch.update(doc(db, "paymentReceipts", input.receiptId), {
+    status: "approved",
+    registeredAmount: input.amount,
+    reviewedAt: serverTimestamp(),
+    reviewedBy: input.reviewerId,
+    ...(input.reviewerName ? { reviewedByName: input.reviewerName } : {}),
+    rejectedReason: null,
+  });
+  await batch.commit();
 }
