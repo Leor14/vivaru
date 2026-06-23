@@ -34,7 +34,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
-import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingSchedule, createBillingStatement, updateBillingStatement, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingCampaign, createBillingSchedule, createBillingStatement, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -108,6 +108,19 @@ function formatPeriodLabel(period: string) {
   return new Intl.DateTimeFormat("es-CO", { month: "short", year: "2-digit" }).format(date);
 }
 
+// `sentAt` viene como Firestore Timestamp (el helper realtime no lo serializa).
+function formatSentAt(value: unknown): string {
+  if (!value) return "—";
+  if (typeof value === "object" && value !== null && typeof (value as { toDate?: unknown }).toDate === "function") {
+    return (value as { toDate: () => Date }).toDate().toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  }
+  if (typeof value === "string") {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  }
+  return "—";
+}
+
 function formatTableDate(dateStr: string | undefined): string {
   if (!dateStr) return "—";
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -166,6 +179,8 @@ export default function AdminBillingPage() {
   const { items, loading, error } = useBillingStatements(user?.tenantId);
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId);
   const { items: scheduledCharges } = useBillingSchedules(user?.tenantId);
+  const { items: campaigns } = useBillingCampaigns(user?.tenantId);
+  const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
   const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
@@ -418,9 +433,10 @@ export default function AdminBillingPage() {
     return normalizedRows.filter((item) => {
       const byStatus = statusFilter === "all" ? true : item.status === statusFilter;
       const byUnit = unitFilter === "all" ? true : item.unitLabel === unitFilter;
-      return byStatus && byUnit;
+      const byCampaign = campaignFilter ? item.campaignId === campaignFilter : true;
+      return byStatus && byUnit && byCampaign;
     });
-  }, [normalizedRows, statusFilter, unitFilter]);
+  }, [normalizedRows, statusFilter, unitFilter, campaignFilter]);
 
   const overdueRows = useMemo(() => normalizedRows.filter((item) => item.status === "overdue"), [normalizedRows]);
 
@@ -443,6 +459,22 @@ export default function AdminBillingPage() {
     () => catalogUnits.filter((u) => !excludedUnits.has(u.id)).map((u) => ({ unitId: u.id, unitLabel: u.label })),
     [catalogUnits, excludedUnits],
   );
+
+  // Filas de campañas con totales derivados de sus statements. Mantenimiento primero.
+  const campaignRows = useMemo(() => {
+    const rows = campaigns.map((c) => {
+      const stmts = items.filter((s) => s.campaignId === c.id);
+      const emitido = stmts.reduce((acc, s) => acc + (s.amount ?? 0), 0);
+      const recaudado = stmts.reduce((acc, s) => acc + (s.paymentAmount ?? 0), 0);
+      const pendiente = stmts.reduce((acc, s) => acc + (s.balance ?? 0), 0);
+      const pendientesUnitIds = stmts.filter((s) => (s.balance ?? 0) > 0).map((s) => s.unitId);
+      const unitCount = stmts.length || c.unitCount || 0;
+      const pct = emitido > 0 ? Math.round((recaudado / emitido) * 100) : 0;
+      return { c, emitido, recaudado, pendiente, pendientesUnitIds, unitCount, pct };
+    });
+    // Mantenimiento (administración) primero; dentro, el orden por sentAt desc del hook.
+    return rows.sort((a, b) => (a.c.concept === "administracion" ? 0 : 1) - (b.c.concept === "administracion" ? 0 : 1));
+  }, [campaigns, items]);
 
   // Etiquetas de unidad repetidas (docs duplicados con el mismo nombre) → se señalan.
   const duplicateLabels = useMemo(() => {
@@ -495,11 +527,15 @@ export default function AdminBillingPage() {
           toast.success("Lote programado.");
           setCreateResult(`Lote programado para el ${scheduledFor} (${batchTargets.length} unidades). Revísalo o cancélalo en “Cobros programados”.`);
         } else {
+          const campaignId = await createBillingCampaign({
+            tenantId: tid, userId: uid, concept, period, unitAmount: rawAmount,
+            dueDate: dueDate || undefined, unitCount: batchTargets.length, source: "immediate",
+          });
           const unitIds: string[] = [];
           for (const t of batchTargets) {
             await createBillingStatement({
               tenantId: tid, userId: uid, unitId: t.unitId, unitLabel: t.unitLabel,
-              period, concept, amount: rawAmount, paymentAmount: 0, balance: rawAmount,
+              period, concept, campaignId, amount: rawAmount, paymentAmount: 0, balance: rawAmount,
               dueDate: dueDate || undefined, source: "import",
             });
             unitIds.push(t.unitId);
@@ -511,8 +547,8 @@ export default function AdminBillingPage() {
               console.error("[billing batch] notify error", notifyErr);
             }
           }
-          toast.success(`Lote creado (${unitIds.length} cobros).`);
-          setCreateResult(`Se crearon ${unitIds.length} cobros de ${period}. Los residentes fueron notificados. Aparecen en la tabla de abajo.`);
+          toast.success(`Campaña creada (${unitIds.length} cobros).`);
+          setCreateResult(`Se creó la campaña de ${billingConceptLabel(concept)} de ${period} (${unitIds.length} unidades). Los residentes fueron notificados. Revísala en “Campañas de cobro”.`);
         }
       }
       // Reset a estado limpio: vuelve a "Una unidad" y limpia la selección del lote.
@@ -1261,6 +1297,64 @@ export default function AdminBillingPage() {
         />
       </Card>
 
+      {campaignRows.length > 0 ? (
+        <Card className="soft-panel">
+          <CardTitle>Campañas de cobro</CardTitle>
+          <CardDescription className="mt-1">
+            Cada lote enviado, con su recaudo. Mantenimiento y Administración primero. Abre una campaña para ver su detalle por unidad en la tabla de abajo.
+          </CardDescription>
+          <div className="responsive-table-wrap mt-3 rounded-xl border border-[var(--slate-200)]">
+            <table className="responsive-table min-w-[820px] text-xs sm:text-sm">
+              <thead>
+                <tr className="border-b border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-700)]">
+                  <th className="px-3 py-2 font-medium text-left">Concepto</th>
+                  <th className="px-3 py-2 font-medium text-left">Período</th>
+                  <th className="px-3 py-2 font-medium text-left">Enviado</th>
+                  <th className="px-3 py-2 font-medium text-left"># unidades</th>
+                  <th className="px-3 py-2 font-medium text-left">Valor</th>
+                  <th className="px-3 py-2 font-medium text-left">Recaudado / Pendiente</th>
+                  <th className="px-3 py-2 font-medium text-left">% recaudo</th>
+                  <th className="px-3 py-2 font-medium text-left">Estado</th>
+                  <th className="px-3 py-2 font-medium text-left">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {campaignRows.map(({ c, recaudado, pendiente, pendientesUnitIds, unitCount, pct }) => (
+                  <tr key={c.id} className={`border-b border-[var(--slate-100)] ${campaignFilter === c.id ? "bg-[var(--slate-50)]" : ""}`}>
+                    <td className="px-3 py-2 font-medium text-[var(--slate-800)]">{billingConceptLabel(c.concept)}</td>
+                    <td className="px-3 py-2">{formatTableDate(c.period)}</td>
+                    <td className="px-3 py-2">{formatSentAt(c.sentAt)}</td>
+                    <td className="px-3 py-2">{unitCount}</td>
+                    <td className="px-3 py-2">{formatAmount(c.unitAmount)}</td>
+                    <td className="px-3 py-2">{formatAmount(recaudado)} / {formatAmount(pendiente)}</td>
+                    <td className="px-3 py-2">{pct}%</td>
+                    <td className="px-3 py-2">{c.status === "cerrada" ? "Cerrada" : "Vigente"}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setCampaignFilter(campaignFilter === c.id ? null : c.id)}>
+                          {campaignFilter === c.id ? "Quitar filtro" : "Ver detalle"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={pendientesUnitIds.length === 0 || remindingUnitId === `camp-${c.id}`}
+                          onClick={() => void handleSendReminder(pendientesUnitIds, `camp-${c.id}`, "Recordatorio enviado a pendientes")}
+                        >
+                          <IconBadge tone="sand" className="mr-2">
+                            <SendHorizontal className="h-4 w-4" />
+                          </IconBadge>
+                          {remindingUnitId === `camp-${c.id}` ? "Enviando..." : "Recordar a pendientes"}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
+
       <Card>
         <MobileFiltersPanel
           title="Filtros de cartera"
@@ -1297,11 +1391,20 @@ export default function AdminBillingPage() {
         <div className="mt-4 flex items-center justify-between gap-2">
           <p className="text-xs text-[var(--slate-500)]">
             {loading ? "Cargando registros..." : (
-              statusFilter === "all" && unitFilter === "all"
+              statusFilter === "all" && unitFilter === "all" && !campaignFilter
                 ? `${filteredRows.length} registro${filteredRows.length !== 1 ? "s" : ""}`
                 : `${filteredRows.length} de ${normalizedRows.length} registro${normalizedRows.length !== 1 ? "s" : ""}`
             )}
           </p>
+          {campaignFilter ? (
+            <button
+              type="button"
+              onClick={() => setCampaignFilter(null)}
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--slate-300)] bg-white px-3 py-1 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+            >
+              Viendo una campaña · quitar filtro ✕
+            </button>
+          ) : null}
         </div>
 
         <div className="responsive-table-wrap mt-2 rounded-xl border border-[var(--slate-200)]">

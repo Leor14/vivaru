@@ -234,15 +234,36 @@ export interface BillingStatement {
   period: string;
   /** Concepto del cobro (default: administración). */
   concept?: BillingConcept;
+  /** Liga el cobro a una campaña (lote). null/ausente = cobro individual. */
+  campaignId?: string | null;
   amount?: number;
   paymentAmount?: number;
   balance: number;
   dueDate?: string;
   status: "pending" | "paid" | "overdue";
   lastPaymentAt?: string;
+  /** Nº de recordatorios enviados (trazabilidad CRM, C2). */
+  reminderCount?: number;
+  /** Período cerrado/archivado: fuera de la tabla viva del admin (C4a). No borra datos. */
+  archived?: boolean;
   createdBy?: string;
   updatedAt?: string;
   updatedBy?: string;
+}
+
+/** Campaña de cobro = una corrida de lote (inmediata o programada al publicarse). */
+export interface BillingCampaign {
+  id: string;
+  tenantId: string;
+  concept?: BillingConcept;
+  period: string;
+  unitAmount: number;
+  dueDate?: string | null;
+  source: "immediate" | "scheduled";
+  unitCount: number;
+  sentAt?: string;
+  status: "vigente" | "cerrada";
+  createdBy?: string;
 }
 
 export interface PaymentReceipt {

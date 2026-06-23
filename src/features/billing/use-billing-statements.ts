@@ -5,11 +5,11 @@ import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
-import type { BillingConcept, BillingStatement } from "@/types/domain";
+import type { BillingCampaign, BillingConcept, BillingStatement } from "@/types/domain";
 
 /** Conceptos de cobro (best practice PH). El primero es el default. */
 export const BILLING_CONCEPTS: { value: BillingConcept; label: string }[] = [
-  { value: "administracion", label: "Administración" },
+  { value: "administracion", label: "Mantenimiento y Administración" },
   { value: "extraordinaria", label: "Cuota extraordinaria" },
   { value: "multa", label: "Multa / sanción" },
   { value: "reparacion", label: "Reparación / daño" },
@@ -19,7 +19,7 @@ export const BILLING_CONCEPTS: { value: BillingConcept; label: string }[] = [
 ];
 
 export function billingConceptLabel(concept?: string): string {
-  return BILLING_CONCEPTS.find((c) => c.value === concept)?.label ?? "Administración";
+  return BILLING_CONCEPTS.find((c) => c.value === concept)?.label ?? "Mantenimiento y Administración";
 }
 
 export function useBillingStatements(tenantId?: string, unitId?: string) {
@@ -84,6 +84,7 @@ export async function createBillingStatement(input: {
   balance: number;
   dueDate?: string;
   concept?: BillingConcept;
+  campaignId?: string | null;
   /** "import" agrupa el aviso al residente (lote); "manual" notifica individual. */
   source?: "manual" | "import";
 }) {
@@ -96,6 +97,7 @@ export async function createBillingStatement(input: {
     unitLabel: input.unitLabel,
     period: input.period,
     concept: input.concept ?? "administracion",
+    campaignId: input.campaignId ?? null,
     amount: input.amount,
     paymentAmount: input.paymentAmount,
     balance: input.balance,
@@ -217,4 +219,55 @@ export async function createBillingSchedule(input: {
 export async function cancelBillingSchedule(id: string) {
   if (!db) return;
   await updateDoc(doc(db, "billingSchedules", id), { status: "cancelled", updatedAt: serverTimestamp() });
+}
+
+// ─── Campañas de cobro (C1) ───────────────────────────────────────────────────
+
+export function useBillingCampaigns(tenantId?: string) {
+  const [items, setItems] = useState<BillingCampaign[]>([]);
+  const [loading, setLoading] = useState(Boolean(tenantId));
+
+  useEffect(() => {
+    if (!tenantId || !db) return;
+    const unsub = subscribeTenantCollection<BillingCampaign>(
+      "billingCampaigns",
+      tenantId,
+      (data) => {
+        setItems(data);
+        setLoading(false);
+      },
+      () => setLoading(false),
+      { orderByField: "sentAt", orderDirection: "desc" },
+    );
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [tenantId]);
+
+  if (!tenantId || !db) return { items: [], loading: false };
+  return { items, loading };
+}
+
+/** Crea la campaña (lote) y devuelve su id para ligar los statements. */
+export async function createBillingCampaign(input: {
+  tenantId: string;
+  userId: string;
+  concept?: BillingConcept;
+  period: string;
+  unitAmount: number;
+  dueDate?: string;
+  unitCount: number;
+  source: "immediate" | "scheduled";
+}): Promise<string> {
+  const ref = await createTenantDocument("billingCampaigns", input.tenantId, input.userId, {
+    concept: input.concept ?? "administracion",
+    period: input.period,
+    unitAmount: input.unitAmount,
+    dueDate: input.dueDate ?? null,
+    unitCount: input.unitCount,
+    source: input.source,
+    status: "vigente",
+    sentAt: serverTimestamp(),
+  });
+  return ref.id;
 }

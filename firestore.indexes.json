@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "billingCampaigns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "committee_agreements",
       "queryScope": "COLLECTION",
       "fields": [

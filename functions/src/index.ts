@@ -2515,7 +2515,7 @@ export const onTicketUpdated = onDocumentUpdated({ document: "tickets/{ticketId}
 // ── F2 · Notificaciones de cartera al residente ───────────────────────────────
 
 const BILLING_CONCEPT_LABELS: Record<string, string> = {
-  administracion: "Administración",
+  administracion: "Mantenimiento y Administración",
   extraordinaria: "Cuota extraordinaria",
   multa: "Multa / sanción",
   reparacion: "Reparación / daño",
@@ -2552,7 +2552,7 @@ export const onBillingStatementCreated = onDocumentCreated({ document: "billingS
   ]);
   const vars = {
     período: data.period ?? "",
-    concepto: BILLING_CONCEPT_LABELS[data.concept ?? "administracion"] ?? "Administración",
+    concepto: BILLING_CONCEPT_LABELS[data.concept ?? "administracion"] ?? "Mantenimiento y Administración",
     monto: formatMoney(data.amount ?? data.balance ?? 0),
     unidad: data.unitLabel ?? "",
     conjunto,
@@ -2808,6 +2808,26 @@ export const publishScheduledCharges = onSchedule({ schedule: "0 8 * * *", secre
     const actor = s.createdBy ?? "system";
 
     const batch = db.batch();
+    // Lote programado → crea la campaña y liga los cobros (C1).
+    let campaignId: string | null = null;
+    if (isBatch) {
+      const campRef = db.collection("billingCampaigns").doc();
+      campaignId = campRef.id;
+      batch.set(campRef, {
+        tenantId: s.tenantId,
+        concept: s.concept ?? "administracion",
+        period,
+        unitAmount: amount,
+        dueDate,
+        source: "scheduled",
+        unitCount: targets.length,
+        sentAt: Timestamp.now(),
+        status: "vigente",
+        createdBy: actor,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
     for (const t of targets) {
       const ref = db.collection("billingStatements").doc();
       batch.set(ref, {
@@ -2816,6 +2836,7 @@ export const publishScheduledCharges = onSchedule({ schedule: "0 8 * * *", secre
         unitLabel: t.unitLabel,
         period,
         concept: s.concept ?? "administracion",
+        campaignId,
         amount,
         paymentAmount: 0,
         balance: amount,
