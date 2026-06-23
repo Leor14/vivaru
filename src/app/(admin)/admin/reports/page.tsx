@@ -153,6 +153,23 @@ export default function AdminReportsPage() {
     return { bullets, alerts };
   }, [report, formatCurrency]);
 
+  // ── Antigüedad de cartera (aging) por nº de períodos en mora (R3) ───────────
+  const aging = useMemo(() => {
+    const buckets = [
+      { key: "1", label: "1 período", min: 1, max: 1, units: 0, amount: 0 },
+      { key: "2-3", label: "2–3 períodos", min: 2, max: 3, units: 0, amount: 0 },
+      { key: "4+", label: "4+ períodos", min: 4, max: Infinity, units: 0, amount: 0 },
+    ];
+    for (const u of report.billing.overdueUnits) {
+      const bk = buckets.find((b) => u.periods >= b.min && u.periods <= b.max);
+      if (bk) {
+        bk.units += 1;
+        bk.amount += u.balance;
+      }
+    }
+    return buckets;
+  }, [report.billing.overdueUnits]);
+
   // ── Excel export ─────────────────────────────────────────────────────────────
   const handleExcelExport = useCallback(() => {
     const wb = XLSX.utils.book_new();
@@ -187,6 +204,9 @@ export default function AdminReportsPage() {
       ["Pagadas", report.billing.paidCount],
       ["Pendientes", report.billing.pendingCount],
       ["Vencidas", report.billing.overdueCount],
+      [],
+      ["ANTIGÜEDAD DE LA MORA"],
+      ...aging.map((bk) => [bk.label, bk.amount, `${bk.units} unidad(es)`]),
       [],
       ["PAQUETERÍA"],
       ["Recibidos en período", report.packages.totalReceived],
@@ -258,7 +278,7 @@ export default function AdminReportsPage() {
     }
 
     XLSX.writeFile(wb, `Reporte-Comite-${range.start}-${range.end}.xlsx`);
-  }, [report, periodLabel, range, execSummary]);
+  }, [report, periodLabel, range, execSummary, aging]);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -462,9 +482,27 @@ export default function AdminReportsPage() {
                 </div>
 
                 {report.billing.overdueUnits.length > 0 ? (
+                  <div className="mt-4">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Antigüedad de la mora</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {aging.map((bk) => {
+                        const chronic = bk.key === "4+" && bk.units > 0;
+                        return (
+                          <div key={bk.key} className={`rounded-xl border p-3 ${chronic ? "border-red-300 bg-red-50" : "border-[var(--slate-200)] bg-white"}`}>
+                            <p className="text-xs text-[var(--slate-500)]">{bk.label}</p>
+                            <p className={`mt-0.5 text-lg font-bold ${chronic ? "text-[var(--danger-700)]" : "text-[var(--slate-900)]"}`}>{formatCurrency(bk.amount)}</p>
+                            <p className="text-xs text-[var(--slate-500)]">{bk.units} unidad(es)</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {report.billing.overdueUnits.length > 0 ? (
                   <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
                     <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Unidades con saldo vencido</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Mayores deudores (por saldo)</p>
                     </div>
                     <table className="w-full text-sm">
                       <thead>
@@ -479,7 +517,10 @@ export default function AdminReportsPage() {
                           <tr key={u.unitId} className="border-b border-[var(--slate-50)] last:border-0">
                             <td className="px-4 py-2 text-[var(--slate-800)]">{u.unitLabel}</td>
                             <td className="px-4 py-2 text-right font-medium text-[var(--danger-700)]">{formatCurrency(u.balance)}</td>
-                            <td className="px-4 py-2 text-right text-[var(--slate-500)]">{u.periods}</td>
+                            <td className={`px-4 py-2 text-right ${u.periods >= 4 ? "font-semibold text-[var(--danger-700)]" : "text-[var(--slate-500)]"}`}>
+                              {u.periods}
+                              {u.periods >= 4 ? <span className="ml-1 rounded bg-red-100 px-1 text-[10px] font-medium text-[var(--danger-700)]">crónico</span> : null}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
