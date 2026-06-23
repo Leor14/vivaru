@@ -181,6 +181,7 @@ export default function AdminBillingPage() {
   const { items: scheduledCharges } = useBillingSchedules(user?.tenantId);
   const { items: campaigns } = useBillingCampaigns(user?.tenantId);
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
+  const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit">("campaigns");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
   const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
@@ -434,9 +435,11 @@ export default function AdminBillingPage() {
       const byStatus = statusFilter === "all" ? true : item.status === statusFilter;
       const byUnit = unitFilter === "all" ? true : item.unitLabel === unitFilter;
       const byCampaign = campaignFilter ? item.campaignId === campaignFilter : true;
-      return byStatus && byUnit && byCampaign;
+      // "Cobros individuales" = sin campaña; "Por unidad" = todos.
+      const byView = listView === "individuals" ? item.campaignId == null : true;
+      return byStatus && byUnit && byCampaign && byView;
     });
-  }, [normalizedRows, statusFilter, unitFilter, campaignFilter]);
+  }, [normalizedRows, statusFilter, unitFilter, campaignFilter, listView]);
 
   const overdueRows = useMemo(() => normalizedRows.filter((item) => item.status === "overdue"), [normalizedRows]);
 
@@ -1303,12 +1306,35 @@ export default function AdminBillingPage() {
         />
       </Card>
 
-      {campaignRows.length > 0 ? (
+      <div className="inline-flex flex-wrap rounded-xl border border-[var(--slate-300)] bg-white p-0.5">
+        {([
+          { key: "campaigns", label: "Campañas" },
+          { key: "individuals", label: "Cobros individuales" },
+          { key: "byUnit", label: "Por unidad" },
+        ] as const).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => {
+              setListView(t.key);
+              if (t.key !== "byUnit") setCampaignFilter(null);
+            }}
+            className={`rounded-lg px-3 py-1.5 text-sm ${listView === t.key ? "bg-[var(--slate-900)] text-white" : "text-[var(--slate-600)]"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {listView === "campaigns" ? (
         <Card className="soft-panel">
           <CardTitle>Campañas de cobro</CardTitle>
           <CardDescription className="mt-1">
-            Cada lote enviado, con su recaudo. Mantenimiento y Administración primero. Abre una campaña para ver su detalle por unidad en la tabla de abajo.
+            Cada lote enviado, con su recaudo. Mantenimiento y Administración primero. Abre una campaña para ver su detalle por unidad.
           </CardDescription>
+          {campaignRows.length === 0 ? (
+            <div className="mt-3"><EmptyState title="Sin campañas" description="Crea un cobro en lote para ver aquí su campaña y su recaudo." /></div>
+          ) : (
           <div className="responsive-table-wrap mt-3 rounded-xl border border-[var(--slate-200)]">
             <table className="responsive-table min-w-[820px] text-xs sm:text-sm">
               <thead>
@@ -1337,8 +1363,8 @@ export default function AdminBillingPage() {
                     <td className="px-3 py-2">{c.status === "cerrada" ? "Cerrada" : "Vigente"}</td>
                     <td className="px-3 py-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setCampaignFilter(campaignFilter === c.id ? null : c.id)}>
-                          {campaignFilter === c.id ? "Quitar filtro" : "Ver detalle"}
+                        <Button size="sm" variant="outline" onClick={() => { setCampaignFilter(c.id); setListView("byUnit"); }}>
+                          Ver detalle
                         </Button>
                         <Button
                           size="sm"
@@ -1358,9 +1384,11 @@ export default function AdminBillingPage() {
               </tbody>
             </table>
           </div>
+          )}
         </Card>
       ) : null}
 
+      {listView !== "campaigns" ? (
       <Card>
         <MobileFiltersPanel
           title="Filtros de cartera"
@@ -1618,6 +1646,7 @@ export default function AdminBillingPage() {
         />
       ) : null}
       </Card>
+      ) : null}
 
       <RecordPaymentModal
         open={Boolean(paymentTarget)}
