@@ -9,6 +9,7 @@ import * as XLSX from "xlsx";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Modal } from "@/components/shared/modal";
 import { SectionIntro } from "@/components/shared/section-intro";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,29 @@ export default function AdminFinanzasLibroPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeletion, setPendingDeletion] = useState<LedgerEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  // Filtro de movimientos por mes o rango (el rango tiene prioridad). Solo afecta la
+  // tabla; el saldo de fondos sigue siendo acumulado.
+  const monthOptions = useMemo(() => {
+    const set = new Set(entries.map((e) => (e.date ?? "").slice(0, 7)).filter(Boolean));
+    return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  }, [entries]);
+  const filteredEntries = useMemo(() => {
+    return entries.filter((e) => {
+      const d = e.date ?? "";
+      if (dateFrom || dateTo) {
+        if (dateFrom && d < dateFrom) return false;
+        if (dateTo && d > dateTo) return false;
+        return true;
+      }
+      if (monthFilter !== "all" && d.slice(0, 7) !== monthFilter) return false;
+      return true;
+    });
+  }, [entries, monthFilter, dateFrom, dateTo]);
+  const libroActiveFilters = (monthFilter !== "all" ? 1 : 0) + (dateFrom ? 1 : 0) + (dateTo ? 1 : 0);
 
   const form = useForm<LedgerEntryFormValues>({
     resolver: zodResolver(ledgerEntrySchema),
@@ -227,14 +251,52 @@ export default function AdminFinanzasLibroPage() {
 
       {errorMessage ? <p className="mt-2 text-xs text-[var(--danger-700)]">{errorMessage}</p> : null}
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-3">
+        <MobileFiltersPanel
+          title="Filtros del libro"
+          collapsibleOnDesktop
+          defaultOpen={false}
+          openLabel="Filtros del libro"
+          closeLabel="Ocultar filtros"
+          activeFiltersCount={libroActiveFilters}
+          helpText="Filtra los movimientos por mes o por un rango de fechas (el rango tiene prioridad). No cambia el saldo de fondos, que es acumulado."
+          footer={
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => { setMonthFilter("all"); setDateFrom(""); setDateTo(""); }}>
+              Limpiar filtros
+            </Button>
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="text-sm text-[var(--slate-700)]">
+              Mes
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm disabled:opacity-60"
+                value={monthFilter}
+                disabled={Boolean(dateFrom || dateTo)}
+                onChange={(e) => setMonthFilter(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </label>
+            <Input label="Desde" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <Input label="Hasta" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+        </MobileFiltersPanel>
+
+        <p className="text-xs text-[var(--slate-500)]">
+          {libroActiveFilters > 0 ? `${filteredEntries.length} de ${entries.length} movimientos` : `${entries.length} movimientos`}
+        </p>
+
         <DataTable
           columns={columns}
-          rows={entries}
+          rows={filteredEntries}
           getRowKey={(item) => item.id}
           loading={loading}
           loadingText="Cargando movimientos..."
-          emptyText="Aún no hay movimientos registrados."
+          emptyText={libroActiveFilters > 0 ? "No hay movimientos con los filtros actuales." : "Aún no hay movimientos registrados."}
           errorText={errorMessage}
           actionsHeader="Acciones"
           tableMinWidthClassName="min-w-[640px] sm:min-w-[720px]"
