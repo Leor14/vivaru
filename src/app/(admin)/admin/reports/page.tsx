@@ -50,20 +50,35 @@ function KpiCard({
   value,
   sub,
   tone = "neutral",
+  delta,
+  deltaSuffix = "%",
+  deltaGoodWhenUp = true,
 }: {
   label: string;
   value: string | number;
   sub?: string;
   tone?: "neutral" | "danger" | "success";
+  delta?: number | null;
+  deltaSuffix?: string;
+  deltaGoodWhenUp?: boolean;
 }) {
   const textColor =
     tone === "danger" ? "text-[var(--danger-700)]" :
     tone === "success" ? "text-emerald-700" :
     "text-[var(--slate-900)]";
+  const showDelta = delta !== undefined && delta !== null && delta !== 0;
+  const deltaGood = showDelta ? (delta! > 0) === deltaGoodWhenUp : false;
   return (
     <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4 print:border-[var(--slate-300)]">
       <p className="text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${textColor}`}>{value}</p>
+      <p className={`mt-1 text-2xl font-bold ${textColor}`}>
+        {value}
+        {showDelta ? (
+          <span className={`ml-1.5 align-middle text-xs font-semibold ${deltaGood ? "text-emerald-600" : "text-[var(--danger-700)]"}`}>
+            {delta! > 0 ? "▲" : "▼"}{Math.abs(delta!)}{deltaSuffix}
+          </span>
+        ) : null}
+      </p>
       {sub ? <p className="mt-0.5 text-xs text-[var(--slate-500)]">{sub}</p> : null}
     </div>
   );
@@ -116,6 +131,14 @@ export default function AdminReportsPage() {
     // Resumen sheet
     const resumenData = [
       ["Reporte de Comité — " + periodLabel],
+      [],
+      ["TABLERO EJECUTIVO"],
+      ["% de recaudo", `${report.executive.collectionRate}%`],
+      ["Resultado neto", report.financial.netResult],
+      ["Índice de morosidad", `${report.executive.delinquencyRate}%`],
+      ["Meses de fondo de reserva", report.executive.reserveMonths ?? "—"],
+      ["Resolución de PQRS", `${report.executive.pqrsResolutionRate}%`],
+      ["% de firma de acuerdos", `${report.agreements.signatureRate}%`],
       [],
       ["RESUMEN FINANCIERO"],
       ["Ingresos del período", report.financial.totalIncome],
@@ -323,6 +346,20 @@ export default function AdminReportsPage() {
                 <SectionLoading />
               ) : (
                 <>
+              {/* ── Tablero ejecutivo ── */}
+              <section>
+                <SectionTitle>⭐ Tablero ejecutivo</SectionTitle>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  <KpiCard label="% de recaudo" value={`${report.executive.collectionRate}%`} delta={report.executive.collectionRateDelta} deltaSuffix=" pp" />
+                  <KpiCard label="Resultado neto" value={formatCurrency(report.financial.netResult)} tone={report.financial.netResult >= 0 ? "success" : "danger"} delta={report.executive.netResultDelta} deltaSuffix="%" />
+                  <KpiCard label="Morosidad" value={`${report.executive.delinquencyRate}%`} tone={report.executive.delinquencyRate > 15 ? "danger" : "neutral"} sub={`${report.billing.overdueUnits.length}/${report.executive.activeUnits} unidades`} deltaGoodWhenUp={false} />
+                  <KpiCard label="Meses de fondo" value={report.executive.reserveMonths === null ? "—" : `${report.executive.reserveMonths}`} tone={report.executive.reserveMonths !== null && report.executive.reserveMonths < 3 ? "danger" : "success"} sub="reserva ÷ egreso mensual" />
+                  <KpiCard label="Resolución PQRS" value={`${report.executive.pqrsResolutionRate}%`} tone={report.executive.pqrsResolutionRate >= 70 ? "success" : "neutral"} />
+                  <KpiCard label="% de firma" value={`${report.agreements.signatureRate}%`} tone={report.agreements.signatureRate >= 80 ? "success" : "neutral"} />
+                </div>
+                <p className="mt-2 text-xs text-[var(--slate-500)]">▲▼ comparado con el período anterior equivalente. Morosidad = unidades con saldo vencido sobre unidades activas; meses de fondo = saldo de reserva ÷ egreso mensual promedio.</p>
+              </section>
+
               {/* ── Resumen financiero ── */}
               <section>
                 <SectionTitle>📊 Resumen financiero</SectionTitle>

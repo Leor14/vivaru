@@ -83,6 +83,18 @@ export type CommitteeReport = {
     byAmenity: Array<{ amenity: string; count: number }>;
   };
 
+  /** Tablero ejecutivo: ratios de gestión + deltas vs período anterior (R1). */
+  executive: {
+    collectionRate: number;           // % recaudo del período (recaudado / facturado)
+    collectionRateDelta: number | null; // puntos vs período anterior
+    collectedDelta: number | null;    // % cambio del recaudado vs período anterior
+    delinquencyRate: number;          // % morosidad (unidades morosas / activas)
+    reserveMonths: number | null;     // meses de fondo de reserva (saldo / egreso mensual)
+    pqrsResolutionRate: number;       // % de PQRS resueltos
+    netResultDelta: number | null;    // % cambio del resultado neto vs período anterior
+    activeUnits: number;
+  };
+
   /** Resumen financiero del período: cartera + libro/fondos */
   financial: {
     totalIncome: number;                 // ingresos del período (recaudo + otros)
@@ -203,6 +215,7 @@ const EMPTY: CommitteeReport = {
   loading: true,
   error: null,
   billing: { totalCollected: 0, totalOverdue: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, overdueUnits: [] },
+  executive: { collectionRate: 0, collectionRateDelta: null, collectedDelta: null, delinquencyRate: 0, reserveMonths: null, pqrsResolutionRate: 0, netResultDelta: null, activeUnits: 0 },
   packages: { totalReceived: 0, totalDelivered: 0, stillPending: 0 },
   tickets: { total: 0, open: 0, inProgress: 0, resolved: 0, byCategory: { pqrs: 0, maintenance: 0, billing: 0 } },
   visitors: { total: 0, byWeek: [], insideNow: 0 },
@@ -498,9 +511,61 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       signatureRate: expectedSignatures > 0 ? Math.round((agreementsSigned / expectedSignatures) * 100) : 0,
     };
 
+    // ── Tablero ejecutivo (R1): ratios + comparativo vs período anterior ────────
+    // Período anterior equivalente (mismo largo, justo antes del actual).
+    const startD = new Date(start + "T12:00:00");
+    const endD = new Date(end + "T12:00:00");
+    const lenMs = endD.getTime() - startD.getTime();
+    const prevEndD = new Date(startD.getTime() - 24 * 3600 * 1000);
+    const prevStartD = new Date(prevEndD.getTime() - lenMs);
+    const prevStartStr = prevStartD.toISOString().slice(0, 10);
+    const prevEndStr = prevEndD.toISOString().slice(0, 10);
+    const prevStartMonth = prevStartStr.slice(0, 7);
+    const prevEndMonth = prevEndStr.slice(0, 7);
+    const monthsInRange =
+      (endD.getFullYear() * 12 + endD.getMonth()) - (startD.getFullYear() * 12 + startD.getMonth()) + 1;
+
+    // % de recaudo (recaudado / facturado) del período y del anterior.
+    const billed = billingInPeriod.reduce((s, b) => s + (b.amount ?? 0), 0);
+    const recaudado = billingInPeriod.reduce((s, b) => s + (b.paymentAmount ?? 0), 0);
+    const collectionRate = billed > 0 ? Math.round((recaudado / billed) * 100) : 0;
+
+    const billingPrev = billing.filter((b) => b.period >= prevStartMonth && b.period <= prevEndMonth);
+    const billedPrev = billingPrev.reduce((s, b) => s + (b.amount ?? 0), 0);
+    const recaudadoPrev = billingPrev.reduce((s, b) => s + (b.paymentAmount ?? 0), 0);
+    const collectionRatePrev = billedPrev > 0 ? Math.round((recaudadoPrev / billedPrev) * 100) : 0;
+    const collectionRateDelta = billedPrev > 0 ? collectionRate - collectionRatePrev : null;
+    const collectedDelta = recaudadoPrev > 0 ? Math.round(((recaudado - recaudadoPrev) / recaudadoPrev) * 100) : null;
+
+    // Resultado neto del período anterior (mismo método que el actual).
+    const totalCollectedPrev = billingPrev
+      .filter((b) => b.status === "paid")
+      .reduce((s, b) => s + (b.paymentAmount ?? b.amount ?? 0), 0);
+    const prevLedger = ledger.filter((e) => inRange(toDateStr(e.date), prevStartStr, prevEndStr));
+    const prevNet = buildFinancialStatement(prevLedger, totalCollectedPrev).netResult;
+    const netResultDelta = prevNet !== 0 ? Math.round(((statement.netResult - prevNet) / Math.abs(prevNet)) * 100) : null;
+
+    // Morosidad, meses de fondo y resolución de PQRS.
+    const delinquencyRate = activeUnitsCount > 0 ? Math.round((overdueUnits.length / activeUnitsCount) * 100) : 0;
+    const monthlyExpense = monthsInRange > 0 ? statement.totalExpenses / monthsInRange : statement.totalExpenses;
+    const reserveMonths = monthlyExpense > 0 ? Math.round((fundPosition.balance / monthlyExpense) * 10) / 10 : null;
+    const pqrsResolutionRate = ticketMetrics.total > 0 ? Math.round((ticketMetrics.resolved / ticketMetrics.total) * 100) : 0;
+
+    const executiveMetrics = {
+      collectionRate,
+      collectionRateDelta,
+      collectedDelta,
+      delinquencyRate,
+      reserveMonths,
+      pqrsResolutionRate,
+      netResultDelta,
+      activeUnits: activeUnitsCount,
+    };
+
     return {
       loading,
       error,
+      executive: executiveMetrics,
       billing: billingMetrics,
       packages: packageMetrics,
       tickets: ticketMetrics,
