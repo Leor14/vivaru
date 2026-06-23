@@ -5,6 +5,8 @@ import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { randomUUID } from "crypto";
+import * as XLSX from "xlsx";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
@@ -3057,6 +3059,136 @@ export const retransmitVoucher = onCall<{ voucherId: string }>(async (request) =
   });
   await transmitVoucher(db, voucherId, stubSriTransport);
   return { ok: true };
+});
+
+// ── P4 · Archivo mensual automático: reporte de comité + histórico de cartera ──
+
+const ARCHIVE_PATH: Record<string, string> = {
+  cartera_history: "cartera-history",
+  committee_reports: "committee-reports",
+};
+
+// Construye un .xlsx server-side, lo sube a Storage (con token de descarga) y lo registra
+// en la carpeta de sistema correspondiente de Documentos.
+async function archiveXlsx(input: {
+  tenantId: string;
+  systemKey: "cartera_history" | "committee_reports";
+  fileName: string;
+  sheets: { name: string; rows: (string | number)[][] }[];
+  description: string;
+  source: string;
+  sourceId: string;
+  category: string;
+}): Promise<void> {
+  const wb = XLSX.utils.book_new();
+  for (const s of input.sheets) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s.rows), s.name.slice(0, 31));
+  }
+  const buf = XLSX.write(wb, { bookType: "xlsx", type: "buffer" }) as Buffer;
+  const contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  const token = randomUUID();
+  const path = `tenants/${input.tenantId}/${ARCHIVE_PATH[input.systemKey]}/${input.sourceId}-${Date.now()}.xlsx`;
+  const bucket = getStorage().bucket();
+  await bucket.file(path).save(buf, { metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } } });
+  const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+
+  const folderId = await ensureSystemFolderImpl(input.tenantId, "system", input.systemKey);
+  await db.collection("documents").add({
+    tenantId: input.tenantId,
+    fileName: input.fileName,
+    description: input.description,
+    fileUrl,
+    storagePath: path,
+    uploadedBy: "system",
+    uploadedByName: "Automático",
+    category: input.category,
+    folderId,
+    fileSize: buf.length,
+    contentType,
+    source: input.source,
+    sourceId: input.sourceId,
+    createdBy: "system",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+}
+
+// Día 1 de cada mes (06:00 UTC): por cada conjunto, archiva el histórico de cartera y el
+// resumen mensual del comité (núcleo financiero) en sus carpetas de sistema.
+export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeoutSeconds: 540, memory: "512MiB" }, async () => {
+  const now = new Date();
+  const prev = new Date(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
+  const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+  const stamp = now.toISOString().slice(0, 10);
+
+  const tenants = await db.collection("tenants").get();
+  for (const tDoc of tenants.docs) {
+    const tenantId = tDoc.id;
+    const status = (tDoc.data() as { status?: string }).status;
+    if (status && status !== "active" && status !== "trial") continue;
+
+    const bsSnap = await db.collection("billingStatements").where("tenantId", "==", tenantId).get();
+    if (bsSnap.empty) continue;
+    const stmts = bsSnap.docs.map((d) => d.data() as { period?: string; amount?: number; paymentAmount?: number; balance?: number; status?: string; unitId?: string; unitLabel?: string });
+
+    // ── Histórico de cartera (recaudo por período + morosos) ──
+    const byPeriod = new Map<string, { f: number; r: number; p: number }>();
+    for (const s of stmts) {
+      const k = s.period ?? "";
+      if (!k) continue;
+      const e = byPeriod.get(k) ?? { f: 0, r: 0, p: 0 };
+      e.f += s.amount ?? 0; e.r += s.paymentAmount ?? 0; e.p += s.balance ?? 0;
+      byPeriod.set(k, e);
+    }
+    const periodRows = Array.from(byPeriod.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([k, v]) => [k, v.f, v.r, v.f > 0 ? `${Math.round((v.r / v.f) * 100)}%` : "0%", v.p]);
+    const byUnit = new Map<string, { label: string; deuda: number; periodos: Set<string> }>();
+    for (const s of stmts) {
+      if ((s.balance ?? 0) <= 0) continue;
+      const id = s.unitId ?? "";
+      const e = byUnit.get(id) ?? { label: s.unitLabel ?? id, deuda: 0, periodos: new Set<string>() };
+      e.deuda += s.balance ?? 0; if (s.period) e.periodos.add(s.period);
+      byUnit.set(id, e);
+    }
+    const morososRows = Array.from(byUnit.values()).sort((a, b) => b.deuda - a.deuda).map((m) => [m.label, m.deuda, m.periodos.size]);
+    await archiveXlsx({
+      tenantId, systemKey: "cartera_history", fileName: `Historico-cartera-${stamp}.xlsx`,
+      sheets: [
+        { name: "Recaudo por período", rows: [["Período", "Facturado (esperado)", "Recaudado", "% recaudo", "Pendiente"], ...periodRows] },
+        { name: "Morosos", rows: [["Unidad", "Deuda total", "# períodos"], ...morososRows] },
+      ],
+      description: `Histórico de cartera al ${stamp} (automático)`, source: "cartera_history", sourceId: stamp, category: "financiero",
+    });
+
+    // ── Reporte de comité: resumen financiero del mes anterior ──
+    const bsMonth = stmts.filter((s) => s.period === prevMonth);
+    const facturado = bsMonth.reduce((a, s) => a + (s.amount ?? 0), 0);
+    const recaudado = bsMonth.reduce((a, s) => a + (s.paymentAmount ?? 0), 0);
+    const billedAll = stmts.reduce((a, s) => a + (s.amount ?? 0), 0);
+    const overdueAmt = stmts.filter((s) => s.status === "overdue").reduce((a, s) => a + (s.balance ?? 0), 0);
+    const ledSnap = await db.collection("ledgerEntries").where("tenantId", "==", tenantId).get();
+    const monthLed = ledSnap.docs.map((d) => d.data() as { type?: string; category?: string; date?: string; amount?: number }).filter((e) => (e.date ?? "").slice(0, 7) === prevMonth);
+    const ingresosOtros = monthLed.filter((e) => e.type === "ingreso" && e.category !== "alicuota").reduce((a, e) => a + (e.amount ?? 0), 0);
+    const egresos = monthLed.filter((e) => e.type === "egreso").reduce((a, e) => a + (e.amount ?? 0), 0);
+    const ingresos = recaudado + ingresosOtros;
+    await archiveXlsx({
+      tenantId, systemKey: "committee_reports", fileName: `Reporte-Comite-${prevMonth}.xlsx`,
+      sheets: [{ name: "Resumen", rows: [
+        ["Reporte de comité — Resumen mensual (automático)", prevMonth],
+        [],
+        ["Facturado del mes", facturado],
+        ["Recaudado del mes", recaudado],
+        ["% de recaudo", facturado > 0 ? `${Math.round((recaudado / facturado) * 100)}%` : "0%"],
+        ["Índice de morosidad (monto, acum.)", billedAll > 0 ? `${Math.round((overdueAmt / billedAll) * 100)}%` : "0%"],
+        ["Ingresos del mes", ingresos],
+        ["Egresos del mes", egresos],
+        ["Resultado neto del mes", ingresos - egresos],
+      ] }],
+      description: `Reporte de comité ${prevMonth} (automático, resumen financiero)`, source: "committee_report", sourceId: prevMonth, category: "reporte",
+    });
+  }
+  console.log(`[monthly-archive] Procesados ${tenants.size} tenant(s) para ${prevMonth}.`);
 });
 
 // ── F2/G4 · Retención: anonimiza datos sensibles de comprobantes vencidos ─────
