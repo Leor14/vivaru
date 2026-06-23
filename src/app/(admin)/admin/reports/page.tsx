@@ -14,6 +14,9 @@ import {
   Pie,
   Cell,
   Legend,
+  ComposedChart,
+  Line,
+  CartesianGrid,
 } from "recharts";
 import * as XLSX from "xlsx";
 import { BarChart2, Download, FileSpreadsheet, Printer } from "lucide-react";
@@ -43,7 +46,14 @@ const PERIOD_OPTIONS: { key: ReportPeriodKey; label: string }[] = [
 ];
 
 const PIE_COLORS = ["#6366f1", "#f59e0b", "#10b981"];
+const CARTERA_COLORS = ["#10b981", "#f59e0b", "#ef4444"]; // al día / pendiente / vencida
+const EXPENSE_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#0ea5e9", "#a855f7", "#64748b"];
 const BAR_COLOR = "#6366f1";
+const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+function monthShort(period: string): string {
+  const m = parseInt(period.slice(5, 7), 10);
+  return MONTHS_SHORT[m - 1] ?? period;
+}
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
@@ -108,7 +118,7 @@ function SectionLoading() {
 
 export default function AdminReportsPage() {
   const { user } = useAuth();
-  const { formatAmount: formatCurrency } = useTenantCurrency();
+  const { formatAmount: formatCurrency, formatAmountCompact } = useTenantCurrency();
 
   const [periodKey, setPeriodKey] = useState<ReportPeriodKey>("last_month");
   const [customRange, setCustomRange] = useState<DateRange>({
@@ -317,6 +327,12 @@ export default function AdminReportsPage() {
     { name: "Resueltos", value: report.tickets.resolved },
   ].filter((d) => d.value > 0);
 
+  const carteraStateData = [
+    { name: "Al día", value: report.billing.paidCount },
+    { name: "Pendiente", value: report.billing.pendingCount },
+    { name: "Vencida", value: report.billing.overdueCount },
+  ].filter((d) => d.value > 0);
+
   return (
     <>
       {/* Print styles — injected globally via <style> */}
@@ -487,17 +503,35 @@ export default function AdminReportsPage() {
                   <KpiCard label="Saldo de fondos" value={formatCurrency(report.financial.fundBalance)} />
                 </div>
                 {report.financial.expenseByCategory.length > 0 ? (
-                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
-                    <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por categoría</p>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                      <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por categoría</p>
+                      </div>
+                      <div className="divide-y divide-[var(--slate-50)]">
+                        {report.financial.expenseByCategory.map((c) => (
+                          <div key={c.category} className="flex items-center justify-between px-4 py-2 text-sm">
+                            <span className="text-[var(--slate-700)]">{c.label}</span>
+                            <span className="font-semibold text-[var(--slate-900)]">{formatCurrency(c.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="divide-y divide-[var(--slate-50)]">
-                      {report.financial.expenseByCategory.map((c) => (
-                        <div key={c.category} className="flex items-center justify-between px-4 py-2 text-sm">
-                          <span className="text-[var(--slate-700)]">{c.label}</span>
-                          <span className="font-semibold text-[var(--slate-900)]">{formatCurrency(c.amount)}</span>
-                        </div>
-                      ))}
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Composición de egresos</p>
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={report.financial.expenseByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" outerRadius={56}>
+                              {report.financial.expenseByCategory.map((_, i) => (
+                                <Cell key={i} fill={EXPENSE_COLORS[i % EXPENSE_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
                 ) : null}
@@ -513,6 +547,24 @@ export default function AdminReportsPage() {
                   <KpiCard label="Pendientes" value={report.billing.pendingCount} />
                   <KpiCard label="Vencidas" value={report.billing.overdueCount} tone={report.billing.overdueCount > 0 ? "danger" : "neutral"} />
                 </div>
+
+                {carteraStateData.length > 0 ? (
+                  <div className="mt-4 rounded-xl border border-[var(--slate-200)] bg-white p-4 sm:max-w-md">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Distribución por estado (período)</p>
+                    <div className="h-40">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={carteraStateData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={56} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                            {carteraStateData.map((_, i) => (
+                              <Cell key={i} fill={CARTERA_COLORS[i % CARTERA_COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ) : null}
 
                 {report.billing.overdueUnits.length > 0 ? (
                   <div className="mt-4">
@@ -577,6 +629,47 @@ export default function AdminReportsPage() {
                   <p className="mt-3 text-sm text-emerald-700">✓ Sin unidades con saldo vencido en este período.</p>
                 )}
               </section>
+
+              {/* ── Tendencias (últimos 12 meses) ── */}
+              {report.trends.byMonth.length > 0 ? (
+                <section>
+                  <SectionTitle>📈 Tendencias (últimos 12 meses)</SectionTitle>
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Recaudo: facturado vs recaudado</p>
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={report.trends.byMonth}>
+                            <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                            <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={44} />
+                            <YAxis yAxisId="rate" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={36} />
+                            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(value, name) => (name === "% recaudo" ? [`${value}%`, name] : [formatCurrency(Number(value)), name])} labelFormatter={(label) => monthShort(String(label))} />
+                            <Bar dataKey="facturado" name="Facturado" fill="#cbd5e1" radius={[3, 3, 0, 0]} />
+                            <Bar dataKey="recaudado" name="Recaudado" fill="#10b981" radius={[3, 3, 0, 0]} />
+                            <Line yAxisId="rate" dataKey="collectionRate" name="% recaudo" stroke="#6366f1" dot={false} strokeWidth={2} />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Ingresos vs egresos por mes</p>
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={report.trends.byMonth}>
+                            <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                            <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
+                            <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={44} />
+                            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(value, name) => [formatCurrency(Number(value)), name]} labelFormatter={(label) => monthShort(String(label))} />
+                            <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[3, 3, 0, 0]} />
+                            <Bar dataKey="egresos" name="Egresos" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
                 </>
               )}
 

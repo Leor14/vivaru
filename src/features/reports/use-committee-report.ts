@@ -96,6 +96,20 @@ export type CommitteeReport = {
     activeUnits: number;
   };
 
+  /** Tendencias por mes (últimos 12) para gráficos — desde datos ya cargados (P3). */
+  trends: {
+    byMonth: Array<{
+      period: string;        // YYYY-MM
+      facturado: number;
+      recaudado: number;
+      collectionRate: number;
+      vencido: number;
+      ingresos: number;
+      egresos: number;
+      neto: number;
+    }>;
+  };
+
   /** Resumen financiero del período: cartera + libro/fondos */
   financial: {
     totalIncome: number;                 // ingresos del período (recaudo + otros)
@@ -219,6 +233,7 @@ const EMPTY: CommitteeReport = {
   error: null,
   billing: { totalCollected: 0, totalOverdue: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, overdueUnits: [] },
   executive: { collectionRate: 0, collectionRateDelta: null, collectedDelta: null, delinquencyAmount: 0, delinquencyRate: 0, reserveMonths: null, pqrsResolutionRate: 0, netResultDelta: null, activeUnits: 0 },
+  trends: { byMonth: [] },
   packages: { totalReceived: 0, totalDelivered: 0, stillPending: 0 },
   tickets: { total: 0, open: 0, inProgress: 0, resolved: 0, byCategory: { pqrs: 0, maintenance: 0, billing: 0 } },
   visitors: { total: 0, byWeek: [], insideNow: 0 },
@@ -589,10 +604,39 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       activeUnits: activeUnitsCount,
     };
 
+    // ── Tendencias por mes (últimos 12) — sin lecturas extra ────────────────────
+    const TREND_MONTHS = 12;
+    const trendMonths: string[] = [];
+    for (let k = TREND_MONTHS - 1; k >= 0; k--) {
+      const d = new Date(endD.getFullYear(), endD.getMonth() - k, 1);
+      trendMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    const byMonth = trendMonths.map((period) => {
+      const bs = billing.filter((b) => b.period === period);
+      const facturado = bs.reduce((s, b) => s + (b.amount ?? 0), 0);
+      const recaudado = bs.reduce((s, b) => s + (b.paymentAmount ?? 0), 0);
+      const vencido = bs.filter((b) => b.status === "overdue").reduce((s, b) => s + (b.balance ?? 0), 0);
+      const monthLedger = ledger.filter((e) => toDateStr(e.date).slice(0, 7) === period);
+      const ingresosOtros = monthLedger.filter((e) => e.type === "ingreso" && e.category !== "alicuota").reduce((s, e) => s + e.amount, 0);
+      const egresos = monthLedger.filter((e) => e.type === "egreso").reduce((s, e) => s + e.amount, 0);
+      const ingresos = recaudado + ingresosOtros;
+      return {
+        period,
+        facturado,
+        recaudado,
+        collectionRate: facturado > 0 ? Math.round((recaudado / facturado) * 100) : 0,
+        vencido,
+        ingresos,
+        egresos,
+        neto: ingresos - egresos,
+      };
+    });
+
     return {
       loading,
       error,
       executive: executiveMetrics,
+      trends: { byMonth },
       billing: billingMetrics,
       packages: packageMetrics,
       tickets: ticketMetrics,
