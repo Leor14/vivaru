@@ -263,6 +263,12 @@ export async function sendBillingReminderCallable(input: { tenantId: string; uni
   return executeCallable(callable, input, "No fue posible enviar el recordatorio.");
 }
 
+export async function mergeUnitsCallable(input: { tenantId: string; survivorId: string; duplicateIds: string[] }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean; merged: number; repointed: number }>(functions, "mergeUnits");
+  return executeCallable(callable, input, "No fue posible fusionar las unidades.");
+}
+
 export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");

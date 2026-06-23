@@ -47,6 +47,7 @@ import {
   type PersonItem,
   type UnitItem,
 } from "@/features/admin/services";
+import { DuplicateUnitsPanel } from "@/components/features/admin/residents/DuplicateUnitsPanel";
 
 export default function AdminResidentsPage() {
   const { user } = useAuth();
@@ -856,6 +857,8 @@ export default function AdminResidentsPage() {
           </div>
         </div>
       </Card>
+
+      <DuplicateUnitsPanel tenantId={user?.tenantId} units={units} people={people} />
 
       <Card>
         <CardTitle help="El inventario de apartamentos, locales o casas del conjunto. Cada unidad es el punto de anclaje para cobros, residentes, reservas y PQRS. Mantén este listado preciso y todo lo demás fluye con consistencia.">Unidades</CardTitle>

@@ -2611,6 +2611,117 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
   },
 );
 
+// Colecciones que referencian una unidad por su doc id (campo a re-apuntar al fusionar).
+const UNIT_REF_FIELDS: { collection: string; field: string }[] = [
+  { collection: "people", field: "unitId" },
+  { collection: "billingStatements", field: "unitId" },
+  { collection: "paymentReceipts", field: "unitId" },
+  { collection: "reservations", field: "unitId" },
+  { collection: "tickets", field: "unitId" },
+  { collection: "visitorAuthorizations", field: "unitId" },
+  { collection: "visitorPasses", field: "unitId" },
+  { collection: "services", field: "unitId" },
+  { collection: "paymentVouchers", field: "payerUnitId" },
+];
+
+// Fusiona unidades duplicadas (mismo nombre, distinto doc): re-apunta TODAS las referencias
+// de las duplicadas a la superviviente y borra las duplicadas. Server-side por atomicidad y
+// porque tenantUsers es de escritura restringida en reglas.
+export const mergeUnits = onCall<{ tenantId: string; survivorId: string; duplicateIds: string[] }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const tenantId = normalizeText(request.data?.tenantId);
+    const survivorId = normalizeText(request.data?.survivorId);
+    const duplicateIds = (request.data?.duplicateIds ?? []).map((x) => normalizeText(x)).filter(Boolean);
+    if (!tenantId || !survivorId || duplicateIds.length === 0) {
+      throw new HttpsError("invalid-argument", "tenantId, survivorId y duplicateIds son requeridos.");
+    }
+    if (duplicateIds.includes(survivorId)) {
+      throw new HttpsError("invalid-argument", "La unidad que se conserva no puede estar en las duplicadas.");
+    }
+    await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+
+    const survivorSnap = await db.collection("units").doc(survivorId).get();
+    if (!survivorSnap.exists || (survivorSnap.data() as { tenantId?: string }).tenantId !== tenantId) {
+      throw new HttpsError("not-found", "La unidad que se conserva no existe en este conjunto.");
+    }
+    const dupSnaps = await Promise.all(duplicateIds.map((id) => db.collection("units").doc(id).get()));
+    for (const ds of dupSnaps) {
+      if (!ds.exists || (ds.data() as { tenantId?: string }).tenantId !== tenantId) {
+        throw new HttpsError("not-found", "Una de las unidades duplicadas no existe en este conjunto.");
+      }
+    }
+
+    let repointed = 0;
+
+    for (const dupId of duplicateIds) {
+      // Referencias simples (colección/campo).
+      for (const { collection, field } of UNIT_REF_FIELDS) {
+        const snap = await db.collection(collection).where("tenantId", "==", tenantId).where(field, "==", dupId).get();
+        let batch = db.batch();
+        let n = 0;
+        for (const d of snap.docs) {
+          batch.update(d.ref, { [field]: survivorId });
+          repointed++;
+          if (++n >= 400) { await batch.commit(); batch = db.batch(); n = 0; }
+        }
+        if (n > 0) await batch.commit();
+      }
+      // tenantUsers + su perfil en users/{uid}.
+      const tuSnap = await db.collection("tenantUsers").where("tenantId", "==", tenantId).where("unitId", "==", dupId).get();
+      let tuBatch = db.batch();
+      let tn = 0;
+      for (const d of tuSnap.docs) {
+        tuBatch.update(d.ref, { unitId: survivorId });
+        const uid = (d.data() as { uid?: string }).uid;
+        if (uid) tuBatch.set(db.collection("users").doc(uid), { unitId: survivorId }, { merge: true });
+        repointed++;
+        tn += 2;
+        if (tn >= 400) { await tuBatch.commit(); tuBatch = db.batch(); tn = 0; }
+      }
+      if (tn > 0) await tuBatch.commit();
+    }
+
+    // billingSchedules.targets[] (arrays): re-mapear y deduplicar.
+    const schedSnap = await db.collection("billingSchedules").where("tenantId", "==", tenantId).where("status", "==", "scheduled").get();
+    for (const d of schedSnap.docs) {
+      const targets = (d.data() as { targets?: { unitId: string; unitLabel: string }[] }).targets ?? [];
+      if (!targets.some((t) => duplicateIds.includes(t.unitId))) continue;
+      const seen = new Set<string>();
+      const remapped: { unitId: string; unitLabel: string }[] = [];
+      for (const t of targets) {
+        const id = duplicateIds.includes(t.unitId) ? survivorId : t.unitId;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        remapped.push({ ...t, unitId: id });
+      }
+      await d.ref.update({ targets: remapped });
+    }
+
+    // Fusionar listas de personas en la superviviente y borrar las duplicadas.
+    const sData = survivorSnap.data() as { ownerIds?: string[]; residentIds?: string[] };
+    const owners = new Set(sData.ownerIds ?? []);
+    const residents = new Set(sData.residentIds ?? []);
+    for (const ds of dupSnaps) {
+      const dd = ds.data() as { ownerIds?: string[]; residentIds?: string[] };
+      (dd.ownerIds ?? []).forEach((x) => owners.add(x));
+      (dd.residentIds ?? []).forEach((x) => residents.add(x));
+    }
+    await db.collection("units").doc(survivorId).update({
+      ownerIds: Array.from(owners),
+      residentIds: Array.from(residents),
+      updatedAt: Timestamp.now(),
+    });
+    const delBatch = db.batch();
+    for (const id of duplicateIds) delBatch.delete(db.collection("units").doc(id));
+    await delBatch.commit();
+
+    await writeAuditLog(tenantId, request.auth?.uid, "units.merge", { survivorId, duplicateIds, repointed });
+
+    return { ok: true, merged: duplicateIds.length, repointed };
+  },
+);
+
 // Notifica al residente el resultado de la revisión de su comprobante: aceptado con
 // ajuste de monto, o no aceptado (con motivo). Lo dispara el admin desde la revisión.
 export const notifyResidentReceipt = onCall<{
