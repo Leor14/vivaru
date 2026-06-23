@@ -1,49 +1,50 @@
 ---
 tags: [modulo, admin, billing, cartera]
 tipo: concepto
-fuentes: ["domain.ts", "DESIGN.md", "BACKLOG.md"]
+fuentes: ["domain.ts", "DESIGN.md", "BACKLOG.md", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-06-23
 ---
 
 # Billing (Cartera)
 
-Módulo de gestión de cartera y cobros del portal administrador (`/admin/billing`). Permite al administrador ver el estado de cuenta de cada unidad, registrar pagos, y gestionar recibos de pago subidos por residentes.
+Módulo de cartera y cobros del portal administrador (`/admin/billing`). En junio 2026 se reconvirtió en un **CRM de cobros**: el administrador crea cobros (individuales o en lote), notifica a los residentes, hace seguimiento del recaudo y cierra/archiva períodos. El detalle del CRM (campañas, embudo, cierre) vive en [[cartera-campanas]].
 
 ## Entidades principales
 
-Las entidades del módulo están definidas en [[domain-types]]:
-- **BillingStatement**: estado de cuenta por unidad. Campos clave: `period`, `amount?`, `paymentAmount?`, `balance`, `dueDate?`, `status` (pending|paid|overdue).
-- **PaymentReceipt**: recibo subido por el residente. Estados: pending|approved|rejected. Incluye `rejectedReason?` para retroalimentar al residente.
+Definidas en [[domain-types]]:
+- **BillingStatement**: cobro por unidad. Campos: `period`, `concept?`, `campaignId?`, `amount?`, `paymentAmount?`, `balance`, `dueDate?`, `status` (pending|paid|overdue), `reminderCount?`, `archived?`.
+- **BillingCampaign**: una corrida de lote — ver [[cartera-campanas]].
+- **BillingSchedule** / **BillingReminderJob**: cobros y recordatorios programados, publicados por crons (ver [[firebase-firestore]]).
+- **PaymentReceipt**: comprobante del residente; ahora con `amount` declarado y ligado al cobro vía `statementId`.
 
-## Estados y colores semánticos
+## Tipos de cobro (concepto)
 
-Los tres estados de cartera se visualizan con los colores semánticos de [[tokens-color]]:
-- "Al día" → emerald
-- "Pendiente" → amber
-- "Vencido" → red
+Cada cobro tiene un `concept` (best practice de PH): **Mantenimiento y Administración** (default, priorizado en los listados), Cuota extraordinaria, Multa/sanción, Reparación/daño, Interés de mora, Parqueadero/amenidad, Otro. El residente ve el concepto en su [[portal-residente]] y se incluye en la notificación de cobro (catálogo en [[notificaciones-residentes]]).
 
-Estos mismos términos aparecen en el [[dashboard-admin]] y en el [[portal-residente]]. La moneda se renderiza via `useTenantCurrency()` — COP para Colombia, MXN para México. Ver [[multi-tenancy]].
+## Crear cobro: destinatario, lote y programación
 
-## Layout del módulo
+El formulario "Crear nuevo cobro" combina **destinatario** (Una unidad / Lote) × **tiempo** (inmediato / programado):
+- **Lote** arranca con todas las unidades activas y permite destildar; marca las **unidades con nombre repetido** (que se resuelven con [[fusion-unidades]]).
+- **Programar para** una fecha futura → el cobro queda en `billingSchedules` y un cron lo publica ese día y notifica. Un **banner persistente** confirma el resultado y dónde verlo (campaña o cobro individual).
 
-Sigue el [[layout-patterns|patrón admin page]]: Card → header con filtros por estado → [[data-table-pattern|DataTable]] con `renderMobileRow` para filas compactas (~56px) en mobile. Ver [[mobile-first-ios]] para el comportamiento del scroll en iOS.
+## Comprobantes semi-ágil
 
-El Drawer de detalle de unidad sigue el [[drawer-pattern|patrón Drawer]]: right-anchored, 480px desktop, full-width mobile.
+El residente sube el comprobante **con el monto pagado** desde [[portal-residente]]. El administrador lo revisa junto al cobro ligado y, en un clic, **Aprobar y registrar** aplica el pago a la cartera (sin doble captura). Puede **ajustar el monto** y avisar al residente, o **rechazar** con motivo — ambos disparan notificación (ver [[notificaciones-residentes]]). Los comprobantes aprobados se archivan en la carpeta de sistema "Comprobantes de pago" en Documentos.
 
-## Estado: ✅ fixes aplicados
+## Estados, colores y layout
 
-Los fixes corrigen la visualización de estados en mobile, el formato de moneda y las transiciones de [[componentes|StatusBadge]].
+Los estados usan los colores semánticos de [[tokens-color]] ("Al día"→emerald, "Pendiente"→amber, "Vencido"→red), consistentes con el [[dashboard-admin]]. La moneda via `useTenantCurrency()` (COP/MXN — ver [[multi-tenancy]]). Sigue el [[layout-patterns|patrón admin page]] con [[data-table-pattern|DataTable]] y [[mobile-first-ios]]; la edición usa el [[drawer-pattern|Drawer]].
 
-## Flujo del residente
+## Estado: ✅ CRM completo (jun 2026)
 
-El residente puede subir un comprobante de pago desde [[portal-residente]]. El administrador lo ve como `PaymentReceipt` en estado `pending`, lo aprueba o rechaza con motivo. Si rechaza, el residente recibe el `rejectedReason` en su portal.
+Comprobantes semi-ágil, tipos de cobro, lote/programación, trazabilidad y cierre de períodos implementados. Diferido: optimización de memoria por agregados (ver [[roadmap-tecnico]]).
 
 ## Relaciones
 
-- Véase también: [[domain-types]], [[tokens-color]], [[data-table-pattern]]
+- Véase también: [[cartera-campanas]], [[notificaciones-residentes]], [[domain-types]]
 - Depende de: [[multi-tenancy]], [[firebase-firestore]]
-- Se conecta con: [[dashboard-admin]], [[portal-residente]], [[layout-patterns]], [[componentes]]
+- Se conecta con: [[dashboard-admin]], [[portal-residente]], [[fusion-unidades]], [[tokens-color]]
 
 ## Fuentes
 

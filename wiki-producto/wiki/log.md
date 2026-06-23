@@ -3,10 +3,46 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-31
+fecha_actualizacion: 2026-06-23
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-06-23] ingest | Sesión Cartera CRM (junio 2026)
+
+Fuente: trabajo de la sesión de reconversión de Cartera en CRM de cobros (comprobantes
+semi-ágil, tipos de cobro, lote/programación, campañas, trazabilidad, cierre/archivado,
+recordatorios, fusión de unidades duplicadas, notificaciones a residentes).
+
+- Páginas creadas: 3 → [[cartera-campanas]], [[notificaciones-residentes]], [[fusion-unidades]]
+- Páginas actualizadas: 5 → [[billing]], [[correos-mensajeria]], [[estado-modulos]], [[trampas-conocidas]], [[index|index]]
+- Entidades extraídas: BillingCampaign, BillingSchedule, BillingReminderJob, concept (Mantenimiento y Administración), campaignId/archived/reminderCount, callable mergeUnits + mapa de referencias unitId, crons publishScheduledCharges/sendScheduledReminders/updateOverdueStatements, catálogo de notificaciones (billing_reminder, payment_adjusted, payment_rejected), carpetas de sistema (Comprobantes de pago, Cierres de cartera), contrato de seguridad de `archived`.
+- Trampas nuevas: subscribeTenantCollection no serializa Timestamps; `archived` se filtra solo en tablas vivas; desplegar reglas antes del front para colecciones nuevas.
+
+## [2026-06-23] lint | post-ingest Cartera CRM
+
+- Fantasmas introducidos por el ingest: 0. (Preexistentes ajenos: `consolidacion-landing-2026`, `wikilinks` en index — no tocados.)
+- Densidad: billing 29, cartera-campanas 19, notificaciones-residentes 19, fusion-unidades 19 (todas ≥ 8).
+- Frontmatter: 5/5 campos en las 3 páginas nuevas. Idioma es-CO: OK.
+
+---
+
+## [2026-06-09] UPDATE | Remediación de autenticación y mensajería (go-live)
+
+- **Operación**: UPDATE post-sesión de trabajo
+- **Páginas creadas**: 1
+  - `wiki/arquitectura/correos-mensajeria.md` — sistema híbrido Resend (onboarding) + Firebase nativo (forgot-password), plantillas welcome/reset, dominio notificaciones.grupovivaru.com, página /restablecer, URL de acción
+- **Páginas actualizadas**: 3
+  - `wiki/arquitectura/autenticacion-roles.md` — onboarding por enlace (cédula deja de ser credencial), recuperación self-service, cambio de contraseña + política unificada, página /restablecer (A6), CORS de callables; roles a `tenant_admin`/`security_guard`
+  - `wiki/decisiones/trampas-conocidas.md` — 5 trampas nuevas: CORS de callables, unitId doc-id vs slug, recompilar+secret antes de deploy functions, URL de acción (dominio autorizado + Owner), no importar functions/ desde src/tests
+  - `wiki/index.md` — registrada `correos-mensajeria` (🆕), actualizadas descripciones de auth, usuarios y trampas
+- **Trabajo técnico de la sesión (incrementos A0–A6 + fixes)**:
+  - A0 política de contraseña unificada server-side; A1 recuperación self-service; A2 onboarding por enlace; A3 cambio de contraseña + complejidad; A4 endurecimiento (documentNumber, seed, marca); A5 correos por Resend; A6 página `/restablecer`
+  - Fixes: CORS `www.grupovivaru.com` en callables; `unitId` por doc id; unidades duplicadas bloqueadas; borrado de persona robusto; logo en correo
+- **Pendientes del usuario**: guardar la URL de acción en Firebase Console (requiere Owner); commits/deploys desde su terminal
+- ⚠️ **LINT pendiente**: verificar enlaces entrantes (≥5) hacia `correos-mensajeria` y frontmatter
 
 ---
 

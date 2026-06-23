@@ -1,9 +1,9 @@
 ---
 tags: [indice, navegacion]
 tipo: concepto
-fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
+fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-31
+fecha_actualizacion: 2026-06-23
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -31,7 +31,9 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 |---|---|
 | [[estructura-app-router]] | Rutas Next.js 15: portales SaaS + route group (marketing) público |
 | [[landing-marketing]] | 🆕 Route group (marketing): rutas, componentes, lib y assets del landing |
-| [[autenticacion-roles]] | Firebase Auth, Custom Claims, RBAC y flujo de sesión |
+| [[autenticacion-roles]] | Firebase Auth, Custom Claims, RBAC, onboarding por enlace y recuperación |
+| [[correos-mensajeria]] | 🆕 Mensajería híbrida: Resend (onboarding) + Firebase nativo, página /restablecer |
+| [[notificaciones-residentes]] | 🆕 Avisos in-app + email a residentes: catálogo editable, triggers y crons |
 | [[multi-tenancy]] | Modelo multi-tenant lógico sobre Firestore, aislamiento y planes |
 | [[stack-tecnico]] | Stack: Next.js 15 / React 19 / Tailwind v4 / Firebase App Hosting |
 
@@ -42,7 +44,8 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | Página | Descripción |
 |---|---|
 | [[dashboard-admin]] | Vista principal del administrador: KPIs, accesos rápidos, widgets |
-| [[billing]] | Cartera y cobros: estados de cuenta, recibos, flujo de pago |
+| [[billing]] | Cartera y cobros: CRM de cobros, comprobantes, tipos de cobro, lote/programación |
+| [[cartera-campanas]] | 🆕 Campañas, listados por pestaña, embudo CRM, recordatorios y cierre de períodos |
 | [[pqrs]] | Peticiones, quejas, reclamos y sugerencias: tickets, radicados, historial |
 | [[reservaciones]] | Reserva de amenidades y mudanzas: slots, aprobación, depósitos |
 | [[visitantes]] | Registro de visitas, QR, check-in/out, guardas |
@@ -51,7 +54,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[encuestas]] | Encuestas internas del conjunto residencial |
 | [[reglamento]] | Documentos del conjunto: reglamento, actas, circulares |
 | [[reportes]] | Reportes operativos y financieros del administrador |
-| [[usuarios]] | Gestión de usuarios del tenant: roles, acceso, contraseñas temporales |
+| [[usuarios]] | Gestión de usuarios del tenant: roles, acceso, onboarding por enlace |
 | [[configuracion]] | Configuración del tenant: branding, datos generales |
 | [[portal-residente]] | Portal mobile-first para propietarios e inquilinos |
 | [[portal-guardia]] | Portal mobile-first para guardas: 4 funciones clave |
@@ -87,6 +90,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[drawer-pattern]] | Drawer right-anchored, 480px desktop, ease-drawer, flujos complejos |
 | [[form-validation]] | Zod + React Hook Form, React.forwardRef, patrones de validación |
 | [[firebase-firestore]] | Colecciones, reglas, Cloud Functions, auditoría |
+| [[fusion-unidades]] | 🆕 Fusionar unidades duplicadas: callable mergeUnits y mapa de referencias |
 
 ---
 
@@ -97,4 +101,4 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[absolute-bans]] | Prohibiciones absolutas de diseño y código (bugs si se violan) |
 | [[estado-modulos]] | Estado de módulos SaaS + estado de secciones del landing marketing |
 | [[roadmap-tecnico]] | Fases GTM 0–4: seguridad, branding, compliance, escalado |
-| [[trampas-conocidas]] | Errores recurrentes + nuevas trampas Tailwind v4 (kebab-case, @utility) |
+| [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions |

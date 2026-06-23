@@ -1,9 +1,9 @@
 ---
 tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
-fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026"]
+fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-31
+fecha_actualizacion: 2026-06-23
 ---
 
 # Trampas Conocidas
@@ -57,9 +57,41 @@ La solución correcta es usar selectores scoped con mayor especificidad (`.marke
 
 En Tailwind v3, el config generaba `bg-brand-greenResident` desde la clave `greenResident`. En Tailwind v4, la clase se genera desde el nombre de la variable CSS: `--color-brand-green-resident` → `bg-brand-green-resident`. Los nombres camelCase del v3 generan clase vacía sin error. Siempre verificar kebab-case en nombres de color al migrar desde v3. Ver [[tokens-color]].
 
+## CORS de Cloud Functions callable (jun 2026)
+
+Las callables que fijan `cors: callableCorsOrigins` (`createTenantAdmin`, `createTenantOperationalUser`, `provisionResidentTemporaryAccess`, `completeResidentPasswordChange`) **rechazan orígenes no listados**. Síntoma exacto: en los logs solo aparece `OPTIONS 204` (preflight) y ningún `POST`; en el navegador, `net::ERR_FAILED`. El dominio que sirve la app (`www.grupovivaru.com`) debe estar en `callableCorsOrigins` o todas esas operaciones fallan en silencio. Ver [[autenticacion-roles]].
+
+## unitId de personas: doc id, no slug
+
+`createUnit` crea el doc de unidad con **ID autogenerado** y guarda un slug en el campo `unitId`. La persona debe referenciar el **doc id** (`createdUnit.id`), no el slug. Si se guarda el slug, `createPerson`/`deletePerson` hacen `updateDoc(units/<slug>)` sobre un doc inexistente → la regla evalúa `tenantId` indefinido → `permission-denied` ("No tienes permiso"). Por eso los borrados de unidad ahora son *best-effort*. Ver [[firebase-firestore]] y [[usuarios]].
+
+## Functions: recompilar y fijar secret antes de deploy
+
+El bloque `functions` de `firebase.json` no tiene `predeploy`, así que `firebase deploy --only functions` sube el `lib/` ya compilado. Si no se corre `npm --prefix functions run build` antes, se despliega código viejo y el deploy dice "sin cambios". Además, una función que referencia un secret (`RESEND_API_KEY`) **no despliega** si el secret no existe: hay que `firebase functions:secrets:set` **primero**, luego desplegar. Ver [[correos-mensajeria]].
+
+## URL de acción personalizada de Firebase Auth
+
+Para que el enlace de los correos abra `/restablecer`, se fija la URL de acción global en Authentication → Templates. Falla con "Se produjo un error al actualizar la URL de acción" si: el dominio no está en **Dominios autorizados**, o la cuenta de consola no es **Owner/Editor** del proyecto. Es un ajuste global (aplica a todas las plantillas). Ver [[correos-mensajeria]].
+
+## Nunca importar functions/ desde src/ o tests/
+
+App Hosting hace `npm ci` solo en la raíz (sin `functions/node_modules`), así que importar código de `functions/` desde `src/` o `tests/` rompe el `next build` con "Cannot find module 'firebase-admin/...'", aunque el build local pase. El cliente invoca las Cloud Functions por nombre vía `httpsCallable`, nunca importando su código. Ver [[stack-tecnico]].
+
+## subscribeTenantCollection no serializa Timestamps
+
+El helper hace `{ id, ...doc.data() }` crudo: los campos `serverTimestamp` (p. ej. `BillingCampaign.sentAt`) llegan como **Firestore Timestamp**, no como string. Renderizarlos directo en JSX lanza "Objects are not valid as a React child", y pasarlos a un formateador que hace `.split("-")` también revienta. Usar un formateador defensivo que detecte `.toDate` (`formatSentAt` en [[cartera-campanas|Cartera]]). Ver [[firebase-firestore]].
+
+## Cartera: el flag `archived` se filtra SOLO en las tablas vivas
+
+Archivar un período de [[billing|cartera]] pone `archived=true` pero **no borra**. El filtro de `archived` debe aplicarse únicamente en la tabla viva del admin (a nivel página). El hook `useBillingStatements` conserva su firma; el gráfico histórico, `cuotaIncome`, los tableros, el [[reportes|reporte de comité]] y la vista del [[portal-residente]] leen el set completo. Si se filtra `archived` en el hook o en esos consumidores, se pierde el análisis por período y el residente deja de ver su deuda. La mora de meses cerrados vive en la pestaña Cartera vencida — ver [[cartera-campanas]].
+
+## Colecciones nuevas: desplegar reglas antes del front
+
+Cuando el front empieza a escribir una colección nueva (`billingCampaigns`, `billingSchedules`, `billingReminderJobs`) o a llamar `ensureSystemFolder` con una clave nueva, hay que **desplegar reglas/functions ANTES** del push del front (App Hosting). Si no, la primera escritura del usuario cae en `permission-denied` o `invalid-argument`. Secuencia segura: deploy de reglas + functions → luego push de `master`. Ver [[firebase-firestore]] y [[correos-mensajeria]].
+
 ## Relaciones
 
-- Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]]
+- Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]]
 - Depende de: —
 - Se conecta con: [[animaciones]], [[domain-types]], [[firebase-firestore]], [[stack-tecnico]], [[tokens-color]]
 

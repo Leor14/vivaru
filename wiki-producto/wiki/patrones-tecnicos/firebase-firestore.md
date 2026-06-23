@@ -59,7 +59,7 @@ El ítem A1 del [[gtm-tecnico|GTM técnico]] son los tests de las reglas Firesto
 
 - Véase también: [[multi-tenancy]], [[autenticacion-roles]], [[domain-types]]
 - Depende de: [[stack-tecnico]]
-- Se conecta con: [[form-validation]], [[superadmin]], [[gtm-tecnico]], [[roadmap-tecnico]]
+- Se conecta con: [[form-validation]], [[superadmin]], [[gtm-tecnico]], [[roadmap-tecnico]], [[correos-mensajeria]]
 
 ## Fuentes
 

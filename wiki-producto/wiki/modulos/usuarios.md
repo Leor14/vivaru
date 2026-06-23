@@ -43,7 +43,7 @@ El acceso a este módulo está restringido al rol `admin`. El [[middleware-ts]] 
 
 - Véase también: [[domain-types]], [[autenticacion-roles]], [[middleware-ts]]
 - Depende de: [[firebase-firestore]], [[multi-tenancy]]
-- Se conecta con: [[portal-residente]], [[superadmin]], [[componentes]], [[gtm-tecnico]]
+- Se conecta con: [[portal-residente]], [[superadmin]], [[componentes]], [[gtm-tecnico]], [[correos-mensajeria]]
 
 ## Fuentes
 

@@ -3,7 +3,7 @@ tags: [decision, estado, modulos, backlog]
 tipo: decision
 fuentes: ["BACKLOG.md", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-31
+fecha_actualizacion: 2026-06-23
 ---
 
 # Estado de Módulos
@@ -15,9 +15,9 @@ Tabla de estado actual de todos los módulos del producto. Se actualiza después
 | Módulo | Ruta | Estado | Notas |
 |---|---|---|---|
 | Dashboard | `/admin` | ✅ fixes aplicados | KPIs fluid, layout corregido |
-| Residentes y Unidades | `/admin/residents` | ✅ filas compactas mobile | — |
+| Residentes y Unidades | `/admin/residents` | ✅ + fusión de duplicadas | Ver [[fusion-unidades]] |
 | Visitantes | `/admin/visitors` | ✅ fixes aplicados | Ver [[visitantes]] |
-| Cartera (Billing) | `/admin/billing` | ✅ fixes aplicados | Ver [[billing]] |
+| Cartera (Billing) | `/admin/billing` | ✅ CRM completo (jun 2026) | Ver [[billing]], [[cartera-campanas]] |
 | PQRS | `/admin/pqrs` | ✅ tabla mobile corregida | Ver [[pqrs]] |
 | Usuarios | `/admin/users` | ✅ card mobile + skeleton | Ver [[usuarios]] |
 | Configuración | `/admin/settings` | ✅ skeleton + footer mobile | Ver [[configuracion]] |

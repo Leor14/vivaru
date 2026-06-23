@@ -3,12 +3,12 @@ tags: [arquitectura, autenticacion, rbac, seguridad]
 tipo: tecnica
 fuentes: ["middleware.ts", "domain.ts"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-06-09
 ---
 
 # Autenticación y Roles
 
-Vivaru implementa autenticación basada en Firebase Auth con Custom Claims para el control de acceso por rol (RBAC). La sesión se persiste en una cookie HTTP-only y el [[middleware-ts|middleware de Next.js]] enforza el RBAC en cada petición.
+Vivaru implementa autenticación basada en Firebase Auth con Custom Claims para el control de acceso por rol (RBAC). La sesión se persiste en una cookie HTTP-only y el [[middleware-ts|middleware de Next.js]] enforza el RBAC en cada petición. Toda la mensajería de credenciales vive en [[correos-mensajeria]].
 
 ## Flujo de autenticación
 
@@ -20,34 +20,42 @@ Vivaru implementa autenticación basada en Firebase Auth con Custom Claims para 
 
 Si la sesión es inválida o el rol no tiene acceso al path solicitado, el usuario es redirigido a `/unauthorized`. Ver [[middleware-ts]].
 
-## Custom Claims
+## Custom Claims y membresía
 
-Firebase Auth almacena `role` y `tenantId` como Custom Claims en el token JWT. Esto permite que tanto el middleware (edge) como las reglas de Firestore lean el rol sin consultar la base de datos.
+Firebase Auth almacena `role` y `tenantId` como Custom Claims en el token JWT, leídos por el middleware (edge) y por `firestore.rules`. **Importante:** para el rol de tenant, las reglas leen el documento `tenantUsers/{tenantId}_{uid}` (no el claim) vía `tenantRole()`; ese documento es la fuente de verdad del acceso. Ver [[multi-tenancy]] y [[domain-types|SessionUser.role]]. Tras cambiar claims, el usuario debe re-loguearse para refrescar el token.
 
 ## Roles del sistema
 
 | Rol | Portal | Acceso |
 |---|---|---|
-| `admin` | `/admin` | Todos los módulos del tenant |
+| `tenant_admin` | `/admin` | Todos los módulos del tenant |
 | `resident` | `/resident` | Solo su unidad |
-| `guard` | `/guard` | 4 funciones de seguridad |
+| `security_guard` | `/guard` | 4 funciones de seguridad |
 | `superadmin` | `/superadmin` | Consola global multi-tenant |
 
-Los roles están definidos en [[domain-types|SessionUser.role]]. La membresía de cada usuario a un tenant se almacena en la colección `tenantUsers/{tenantId}_{uid}`, que es la fuente de verdad para el acceso. Ver [[multi-tenancy]].
+## Onboarding por enlace (jun 2026, A2)
 
-## Contraseña temporal y onboarding
+No hay auto-registro. Toda cuenta la crea un admin/superadmin vía Cloud Functions (`createTenantAdmin`, `createTenantOperationalUser`, `provisionResidentTemporaryAccess`). El principio rector: **nunca se transmite una contraseña**. La cuenta nace con una clave aleatoria que nadie conoce (`generateStrongPassword`), y el usuario recibe un correo con un enlace para definir la suya. La **cédula dejó de ser credencial** (antes el residente entraba con su documento). Ver [[usuarios]] y [[correos-mensajeria]].
 
-Cuando un residente es creado via Cloud Function `provisionResidentTemporaryAccess`, recibe una contraseña temporal. Si `mustChangePassword=true` está en su [[domain-types|SessionUser]], el middleware lo redirige a `/resident/change-password-required` en cada request, sin importar la ruta solicitada. Ver [[portal-residente]].
+## Recuperación y cambio de contraseña
 
-## Reglas Firestore
+- **Auto-servicio (A1):** `/forgot-password` dispara `sendPasswordResetEmail` (Firebase nativo) con mensaje neutro anti-enumeración. Cubre todos los roles.
+- **Cambiar contraseña (A3):** admins en Configuración → Seguridad y residentes en su perfil (reautenticación + `updatePassword`).
+- **Política unificada (A0):** mínimo 8 caracteres con mayúscula, minúscula, número y símbolo (`assertStrongPassword` en `functions/`), aplicada también a los formularios de cambio. Ver [[form-validation]].
 
-El aislamiento entre tenants se enforza en `firestore.rules` (700+ líneas), donde cada read/write verifica que `request.auth.token.tenantId == resource.data.tenantId`. Ver [[firebase-firestore]].
+## Página propia de reset (A6)
+
+`/restablecer` valida el `oobCode` con `verifyPasswordResetCode` + `confirmPasswordReset`, en español y con marca, manejando enlace válido/expirado/éxito. Es ruta pública en [[middleware-ts]]. Requiere fijar la **URL de acción** en Firebase Console a `https://www.grupovivaru.com/restablecer` (ajuste global; exige dominio en "Dominios autorizados" y cuenta Owner — ver [[trampas-conocidas]]).
+
+## Seguridad de las callables
+
+Las Cloud Functions callable de identidad restringen el origen con `callableCorsOrigins`; debe incluir el dominio que sirve la app (`www.grupovivaru.com`) o el `POST` se bloquea por CORS. Ver [[trampas-conocidas]] y [[firebase-firestore]].
 
 ## Relaciones
 
-- Véase también: [[middleware-ts]], [[multi-tenancy]], [[firebase-firestore]]
+- Véase también: [[middleware-ts]], [[multi-tenancy]], [[firebase-firestore]], [[correos-mensajeria]]
 - Depende de: [[domain-types]], [[stack-tecnico]]
-- Se conecta con: [[usuarios]], [[portal-residente]], [[portal-guardia]], [[estructura-app-router]]
+- Se conecta con: [[usuarios]], [[portal-residente]], [[portal-guardia]], [[estructura-app-router]], [[trampas-conocidas]]
 
 ## Fuentes
 
