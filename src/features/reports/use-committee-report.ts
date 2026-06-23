@@ -113,6 +113,8 @@ export type CommitteeReport = {
     signed: number;
     pending: number;
     signatureRate: number;    // % firmado sobre lo esperado
+    /** Detalle por acuerdo (accionable): cuáles faltan por firmar. */
+    items: Array<{ id: string; title: string; forSignature: boolean; expected: number; signed: number; pending: number; rate: number }>;
   };
 
   /** Loading por sección, para render progresivo (cada una aparece al cargar). */
@@ -221,7 +223,7 @@ const EMPTY: CommitteeReport = {
   visitors: { total: 0, byWeek: [], insideNow: 0 },
   reservations: { total: 0, approved: 0, pending: 0, cancelled: 0, byAmenity: [] },
   financial: { totalIncome: 0, totalExpenses: 0, netResult: 0, fundBalance: 0, expenseByCategory: [] },
-  agreements: { total: 0, forSignature: 0, informative: 0, expectedSignatures: 0, signed: 0, pending: 0, signatureRate: 0 },
+  agreements: { total: 0, forSignature: 0, informative: 0, expectedSignatures: 0, signed: 0, pending: 0, signatureRate: 0, items: [] },
   sectionLoading: { billing: true, financial: true, packages: true, tickets: true, visitors: true, reservations: true, agreements: true },
 };
 
@@ -501,6 +503,25 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       0,
     );
     const agreementsSigned = agreementSignatures.filter((s) => forSignatureIds.has(s.agreementId)).length;
+    const agreementItems = agreements
+      .map((a) => {
+        const isForSignature = a.signatureMode !== "informativo";
+        const expected = isForSignature
+          ? (a.signerScope === "selected" ? (a.signerUnitIds?.length ?? 0) : activeUnitsCount)
+          : 0;
+        const signed = agreementSignatures.filter((s) => s.agreementId === a.id).length;
+        const pending = Math.max(expected - signed, 0);
+        return {
+          id: a.id,
+          title: a.title ?? "Acuerdo",
+          forSignature: isForSignature,
+          expected,
+          signed,
+          pending,
+          rate: expected > 0 ? Math.round((signed / expected) * 100) : 0,
+        };
+      })
+      .sort((x, y) => y.pending - x.pending); // los que más faltan, primero
     const agreementMetrics = {
       total: agreements.length,
       forSignature: forSignatureAgreements.length,
@@ -509,6 +530,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       signed: agreementsSigned,
       pending: Math.max(expectedSignatures - agreementsSigned, 0),
       signatureRate: expectedSignatures > 0 ? Math.round((agreementsSigned / expectedSignatures) * 100) : 0,
+      items: agreementItems,
     };
 
     // ── Tablero ejecutivo (R1): ratios + comparativo vs período anterior ────────

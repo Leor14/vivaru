@@ -277,6 +277,14 @@ export default function AdminReportsPage() {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resData), "Reservaciones");
     }
 
+    // Acuerdos de firma — estado por acuerdo
+    const agForSig = report.agreements.items.filter((a) => a.forSignature);
+    if (agForSig.length > 0) {
+      const agData = [["Acuerdo", "Firmado", "Esperado", "Pendientes", "%"],
+        ...agForSig.map((a) => [a.title, a.signed, a.expected, a.pending, `${a.rate}%`])];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(agData), "Acuerdos");
+    }
+
     XLSX.writeFile(wb, `Reporte-Comite-${range.start}-${range.end}.xlsx`);
   }, [report, periodLabel, range, execSummary, aging]);
 
@@ -688,6 +696,36 @@ export default function AdminReportsPage() {
                       tone={report.agreements.pending > 0 ? "danger" : "neutral"}
                     />
                   </div>
+
+                  {report.agreements.items.filter((a) => a.forSignature).length > 0 ? (
+                    <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                      <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Estado de firma por acuerdo</p>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--slate-100)] bg-[var(--slate-50)]">
+                            <th className="px-4 py-2 text-left text-xs font-medium text-[var(--slate-500)]">Acuerdo</th>
+                            <th className="px-4 py-2 text-right text-xs font-medium text-[var(--slate-500)]">Firmado</th>
+                            <th className="px-4 py-2 text-right text-xs font-medium text-[var(--slate-500)]">Pendientes</th>
+                            <th className="px-4 py-2 text-right text-xs font-medium text-[var(--slate-500)]">%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.agreements.items.filter((a) => a.forSignature).map((a) => (
+                            <tr key={a.id} className="border-b border-[var(--slate-50)] last:border-0">
+                              <td className="px-4 py-2 text-[var(--slate-800)]">{a.title}</td>
+                              <td className="px-4 py-2 text-right text-[var(--slate-600)]">{a.signed}/{a.expected}</td>
+                              <td className={`px-4 py-2 text-right font-medium ${a.pending > 0 ? "text-[var(--danger-700)]" : "text-emerald-700"}`}>
+                                {a.pending > 0 ? a.pending : "✓"}
+                              </td>
+                              <td className="px-4 py-2 text-right text-[var(--slate-500)]">{a.rate}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
                 </section>
               ) : null}
 
