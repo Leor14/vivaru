@@ -124,6 +124,35 @@ export default function AdminReportsPage() {
   const overduePager = usePagination(report?.billing.overdueUnits ?? []);
   const printRef = useRef<HTMLDivElement>(null);
 
+  // ── Resumen ejecutivo: narrativa + alertas (R2) ─────────────────────────────
+  const execSummary = useMemo(() => {
+    const e = report.executive;
+    const f = report.financial;
+    const b = report.billing;
+    const t = report.tickets;
+    const a = report.agreements;
+    const fmt = formatCurrency;
+    const dPP = (v: number | null) => (v != null && v !== 0 ? ` (${v > 0 ? "+" : ""}${v} pp vs. período anterior)` : "");
+    const dPct = (v: number | null) => (v != null && v !== 0 ? ` (${v > 0 ? "+" : ""}${v}% vs. anterior)` : "");
+
+    const bullets: string[] = [];
+    bullets.push(`Recaudo del ${e.collectionRate}% de lo facturado${dPP(e.collectionRateDelta)}.`);
+    if (b.overdueUnits.length > 0) bullets.push(`${b.overdueUnits.length} unidad(es) con saldo vencido por ${fmt(b.totalOverdue)} (morosidad ${e.delinquencyRate}%).`);
+    bullets.push(`Resultado neto: ${fmt(f.netResult)}${dPct(e.netResultDelta)}.`);
+    if (e.reserveMonths != null) bullets.push(`Fondo de reserva: ${fmt(f.fundBalance)} (~${e.reserveMonths} meses de gastos).`);
+    if (t.total > 0) bullets.push(`${t.total} PQRS: ${t.resolved} resuelto(s) (${e.pqrsResolutionRate}%), ${t.open} abierto(s).`);
+    if (a.forSignature > 0) bullets.push(`${a.forSignature} acuerdo(s) de firma: ${a.signatureRate}% firmado, ${a.pending} pendiente(s).`);
+
+    const alerts: { text: string; tone: "danger" | "warn" }[] = [];
+    if (f.netResult < 0) alerts.push({ text: "Resultado neto negativo en el período.", tone: "danger" });
+    if (e.delinquencyRate > 15) alerts.push({ text: `Morosidad del ${e.delinquencyRate}% (supera el 15%).`, tone: "danger" });
+    if (e.reserveMonths != null && e.reserveMonths < 3) alerts.push({ text: `El fondo cubre solo ${e.reserveMonths} mes(es) de gastos (< 3).`, tone: "danger" });
+    if (t.open > 0) alerts.push({ text: `${t.open} PQRS abierto(s) sin resolver.`, tone: "warn" });
+    if (a.pending > 0) alerts.push({ text: `${a.pending} firma(s) de acuerdos pendiente(s).`, tone: "warn" });
+
+    return { bullets, alerts };
+  }, [report, formatCurrency]);
+
   // ── Excel export ─────────────────────────────────────────────────────────────
   const handleExcelExport = useCallback(() => {
     const wb = XLSX.utils.book_new();
@@ -131,6 +160,12 @@ export default function AdminReportsPage() {
     // Resumen sheet
     const resumenData = [
       ["Reporte de Comité — " + periodLabel],
+      [],
+      ["RESUMEN EJECUTIVO"],
+      ...execSummary.bullets.map((b) => [b]),
+      [],
+      ["REQUIERE ATENCIÓN DEL COMITÉ"],
+      ...(execSummary.alerts.length === 0 ? [["Sin alertas."]] : execSummary.alerts.map((a) => [a.text])),
       [],
       ["TABLERO EJECUTIVO"],
       ["% de recaudo", `${report.executive.collectionRate}%`],
@@ -223,7 +258,7 @@ export default function AdminReportsPage() {
     }
 
     XLSX.writeFile(wb, `Reporte-Comite-${range.start}-${range.end}.xlsx`);
-  }, [report, periodLabel, range]);
+  }, [report, periodLabel, range, execSummary]);
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -346,6 +381,35 @@ export default function AdminReportsPage() {
                 <SectionLoading />
               ) : (
                 <>
+              {/* ── Resumen ejecutivo ── */}
+              <section>
+                <SectionTitle>📝 Resumen ejecutivo</SectionTitle>
+                <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--slate-700)]">
+                    {execSummary.bullets.map((b, i) => (
+                      <li key={i}>{b}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 border-t border-[var(--slate-100)] pt-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Requiere atención del comité</p>
+                    {execSummary.alerts.length === 0 ? (
+                      <p className="mt-1 text-sm text-emerald-700">✓ Sin alertas para el comité.</p>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {execSummary.alerts.map((a, i) => (
+                          <span
+                            key={i}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${a.tone === "danger" ? "bg-red-50 text-[var(--danger-700)]" : "bg-amber-50 text-amber-700"}`}
+                          >
+                            {a.tone === "danger" ? "⛔" : "⚠️"} {a.text}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
               {/* ── Tablero ejecutivo ── */}
               <section>
                 <SectionTitle>⭐ Tablero ejecutivo</SectionTitle>
