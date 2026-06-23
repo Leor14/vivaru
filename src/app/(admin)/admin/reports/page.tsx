@@ -154,7 +154,7 @@ export default function AdminReportsPage() {
 
     const bullets: string[] = [];
     bullets.push(`Recaudo del ${e.collectionRate}% de lo facturado${dPP(e.collectionRateDelta)}.`);
-    if (b.overdueUnits.length > 0) bullets.push(`${b.overdueUnits.length} unidad(es) con saldo vencido por ${fmt(b.totalOverdue)} (morosidad ${e.delinquencyRate}%).`);
+    if (b.totalOverdue > 0) bullets.push(`Morosidad acumulada ${e.delinquencyAmount}% del facturado (${fmt(b.totalOverdue)} vencido en ${b.overdueUnits.length} unidad(es); ${e.delinquencyRate}% de unidades).`);
     bullets.push(`Resultado neto: ${fmt(f.netResult)}${dPct(e.netResultDelta)}.`);
     if (e.reserveMonths != null) bullets.push(`Fondo de reserva: ${fmt(f.fundBalance)} (~${e.reserveMonths} meses de gastos).`);
     if (t.total > 0) bullets.push(`${t.total} PQRS: ${t.resolved} resuelto(s) (${e.pqrsResolutionRate}%), ${t.open} abierto(s).`);
@@ -162,7 +162,7 @@ export default function AdminReportsPage() {
 
     const alerts: { text: string; tone: "danger" | "warn" }[] = [];
     if (f.netResult < 0) alerts.push({ text: "Resultado neto negativo en el período.", tone: "danger" });
-    if (e.delinquencyRate > 15) alerts.push({ text: `Morosidad del ${e.delinquencyRate}% (supera el 15%).`, tone: "danger" });
+    if (e.delinquencyAmount > 15) alerts.push({ text: `Morosidad (monto) del ${e.delinquencyAmount}% del facturado (supera el 15%).`, tone: "danger" });
     if (e.reserveMonths != null && e.reserveMonths < 3) alerts.push({ text: `El fondo cubre solo ${e.reserveMonths} mes(es) de gastos (< 3).`, tone: "danger" });
     if (t.open > 0) alerts.push({ text: `${t.open} PQRS abierto(s) sin resolver.`, tone: "warn" });
     if (a.pending > 0) alerts.push({ text: `${a.pending} firma(s) de acuerdos pendiente(s).`, tone: "warn" });
@@ -204,7 +204,8 @@ export default function AdminReportsPage() {
       ["TABLERO EJECUTIVO"],
       ["% de recaudo", `${report.executive.collectionRate}%`],
       ["Resultado neto", report.financial.netResult],
-      ["Índice de morosidad", `${report.executive.delinquencyRate}%`],
+      ["Índice de morosidad (monto, acum.)", `${report.executive.delinquencyAmount}%`],
+      ["% de unidades morosas", `${report.executive.delinquencyRate}%`],
       ["Meses de fondo de reserva", report.executive.reserveMonths ?? "—"],
       ["Resolución de PQRS", `${report.executive.pqrsResolutionRate}%`],
       ["% de firma de acuerdos", `${report.agreements.signatureRate}%`],
@@ -468,7 +469,7 @@ export default function AdminReportsPage() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                   <KpiCard label="% de recaudo" value={`${report.executive.collectionRate}%`} delta={report.executive.collectionRateDelta} deltaSuffix=" pp" />
                   <KpiCard label="Resultado neto" value={formatCurrency(report.financial.netResult)} tone={report.financial.netResult >= 0 ? "success" : "danger"} delta={report.executive.netResultDelta} deltaSuffix="%" />
-                  <KpiCard label="Morosidad" value={`${report.executive.delinquencyRate}%`} tone={report.executive.delinquencyRate > 15 ? "danger" : "neutral"} sub={`${report.billing.overdueUnits.length}/${report.executive.activeUnits} unidades`} deltaGoodWhenUp={false} />
+                  <KpiCard label="Morosidad (monto, acum.)" value={`${report.executive.delinquencyAmount}%`} tone={report.executive.delinquencyAmount > 15 ? "danger" : "neutral"} sub={`${report.executive.delinquencyRate}% de unidades · ${report.billing.overdueUnits.length}/${report.executive.activeUnits}`} />
                   <KpiCard label="Meses de fondo" value={report.executive.reserveMonths === null ? "—" : `${report.executive.reserveMonths}`} tone={report.executive.reserveMonths !== null && report.executive.reserveMonths < 3 ? "danger" : "success"} sub="reserva ÷ egreso mensual" />
                   <KpiCard label="Resolución PQRS" value={`${report.executive.pqrsResolutionRate}%`} tone={report.executive.pqrsResolutionRate >= 70 ? "success" : "neutral"} />
                   <KpiCard label="% de firma" value={`${report.agreements.signatureRate}%`} tone={report.agreements.signatureRate >= 80 ? "success" : "neutral"} />

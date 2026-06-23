@@ -88,7 +88,8 @@ export type CommitteeReport = {
     collectionRate: number;           // % recaudo del período (recaudado / facturado)
     collectionRateDelta: number | null; // puntos vs período anterior
     collectedDelta: number | null;    // % cambio del recaudado vs período anterior
-    delinquencyRate: number;          // % morosidad (unidades morosas / activas)
+    delinquencyAmount: number;        // ÍNDICE de morosidad por MONTO (cartera vencida / facturado, acumulado)
+    delinquencyRate: number;          // secundario: % de unidades morosas (vencidas / activas)
     reserveMonths: number | null;     // meses de fondo de reserva (saldo / egreso mensual)
     pqrsResolutionRate: number;       // % de PQRS resueltos
     netResultDelta: number | null;    // % cambio del resultado neto vs período anterior
@@ -217,7 +218,7 @@ const EMPTY: CommitteeReport = {
   loading: true,
   error: null,
   billing: { totalCollected: 0, totalOverdue: 0, paidCount: 0, pendingCount: 0, overdueCount: 0, overdueUnits: [] },
-  executive: { collectionRate: 0, collectionRateDelta: null, collectedDelta: null, delinquencyRate: 0, reserveMonths: null, pqrsResolutionRate: 0, netResultDelta: null, activeUnits: 0 },
+  executive: { collectionRate: 0, collectionRateDelta: null, collectedDelta: null, delinquencyAmount: 0, delinquencyRate: 0, reserveMonths: null, pqrsResolutionRate: 0, netResultDelta: null, activeUnits: 0 },
   packages: { totalReceived: 0, totalDelivered: 0, stillPending: 0 },
   tickets: { total: 0, open: 0, inProgress: 0, resolved: 0, byCategory: { pqrs: 0, maintenance: 0, billing: 0 } },
   visitors: { total: 0, byWeek: [], insideNow: 0 },
@@ -567,7 +568,10 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     const prevNet = buildFinancialStatement(prevLedger, totalCollectedPrev).netResult;
     const netResultDelta = prevNet !== 0 ? Math.round(((statement.netResult - prevNet) / Math.abs(prevNet)) * 100) : null;
 
-    // Morosidad, meses de fondo y resolución de PQRS.
+    // Morosidad: índice por MONTO (cartera vencida acumulada / facturado acumulado) como
+    // primario; % de unidades morosas como secundario. Ambos acumulados (todo el tiempo).
+    const billedAllTime = billing.reduce((sum, b) => sum + (b.amount ?? 0), 0);
+    const delinquencyAmount = billedAllTime > 0 ? Math.round((totalOverdue / billedAllTime) * 100) : 0;
     const delinquencyRate = activeUnitsCount > 0 ? Math.round((overdueUnits.length / activeUnitsCount) * 100) : 0;
     const monthlyExpense = monthsInRange > 0 ? statement.totalExpenses / monthsInRange : statement.totalExpenses;
     const reserveMonths = monthlyExpense > 0 ? Math.round((fundPosition.balance / monthlyExpense) * 10) / 10 : null;
@@ -577,6 +581,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       collectionRate,
       collectionRateDelta,
       collectedDelta,
+      delinquencyAmount,
       delinquencyRate,
       reserveMonths,
       pqrsResolutionRate,
