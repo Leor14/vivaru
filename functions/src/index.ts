@@ -2586,6 +2586,31 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
   },
 );
 
+// Recordatorio de pago: reenvía un aviso a los residentes de las unidades indicadas
+// (una unidad o todas las morosas). Lo dispara el admin manualmente.
+export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] }>(
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  async (request) => {
+    const tenantId = request.data?.tenantId;
+    const unitIds = request.data?.unitIds ?? [];
+    if (!tenantId || !Array.isArray(unitIds) || unitIds.length === 0) {
+      throw new HttpsError("invalid-argument", "tenantId y unitIds son requeridos.");
+    }
+    await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+
+    const [override, conjunto] = await Promise.all([
+      getTenantNotificationOverride(tenantId, "billing_reminder"),
+      getTenantName(tenantId),
+    ]);
+    const lists = await Promise.all(unitIds.map((unitId) => listResidentUidsByUnit(tenantId, unitId)));
+    const residentUids = Array.from(new Set(lists.flat()));
+    if (residentUids.length === 0) return { ok: true, notified: 0 };
+
+    await deliverResidentNotifications("billing_reminder", tenantId, residentUids, { conjunto }, override);
+    return { ok: true, notified: residentUids.length };
+  },
+);
+
 // Notifica al residente el resultado de la revisión de su comprobante: aceptado con
 // ajuste de monto, o no aceptado (con motivo). Lo dispara el admin desde la revisión.
 export const notifyResidentReceipt = onCall<{

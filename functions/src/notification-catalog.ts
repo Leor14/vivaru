@@ -23,6 +23,7 @@ export type NotificationKey =
   | "billing_batch"
   | "billing_overdue"
   | "billing_receipt"
+  | "billing_reminder"
   | "payment_adjusted"
   | "payment_rejected"
   | "ticket_answered"
@@ -111,6 +112,17 @@ export const NOTIFICATION_CATALOG: Record<NotificationKey, NotificationTemplate>
     body: "Se generó el recibo de tu pago de {período}.",
     emailSubject: "Tu recibo de {período} está disponible — {conjunto}",
     emailBody: "Se generó el recibo de tu pago de {período}. Ingresa para descargarlo.",
+  },
+  billing_reminder: {
+    type: "billing",
+    link: "/resident/account",
+    relevance: "alta",
+    emailDefault: false,
+    variables: [CONJUNTO],
+    title: "Recordatorio de pago",
+    body: "Tienes un saldo pendiente en tu cartera. Ingresa para ponerte al día.",
+    emailSubject: "Recordatorio de pago — {conjunto}",
+    emailBody: "Tienes un saldo pendiente en tu cartera de {conjunto}. Ingresa a tu portal para ponerte al día.",
   },
   payment_adjusted: {
     type: "billing",

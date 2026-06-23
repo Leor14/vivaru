@@ -36,7 +36,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingSchedule, createBillingStatement, updateBillingStatement, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
-import { ensureSystemFolderCallable, notifyBillingBatchCallable } from "@/lib/firebase/callables";
+import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
 import { BillingEditDrawer, type BillingEditRecord } from "@/components/features/billing/BillingEditDrawer";
 import { RecordPaymentModal } from "@/components/features/finanzas/RecordPaymentModal";
@@ -517,6 +517,26 @@ export default function AdminBillingPage() {
       toast.success("Cobro programado cancelado.");
     } catch (error) {
       toastFirebaseError(error);
+    }
+  }
+
+  const [remindingUnitId, setRemindingUnitId] = useState<string | null>(null);
+
+  async function handleSendReminder(unitIds: string[], busyKey: string, successMsg: string) {
+    if (!user?.tenantId) return;
+    const unique = Array.from(new Set(unitIds.filter(Boolean)));
+    if (unique.length === 0) {
+      toast.error("No hay unidades para recordar.");
+      return;
+    }
+    setRemindingUnitId(busyKey);
+    try {
+      const res = await sendBillingReminderCallable({ tenantId: user.tenantId, unitIds: unique });
+      toast.success(`${successMsg} (${res.notified} residente(s)).`);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setRemindingUnitId(null);
     }
   }
 
@@ -1160,12 +1180,25 @@ export default function AdminBillingPage() {
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-3">
           <p className="text-sm text-[var(--slate-700)]">En mora: <strong>{overdueRows.length}</strong></p>
-          <Button type="button" variant="outline" onClick={() => setIsBulkDrawerOpen(true)}>
-            <IconBadge tone="mint" className="mr-2">
-              <SendHorizontal className="h-4 w-4" />
-            </IconBadge>
-            Enviar mensaje masivo
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={overdueRows.length === 0 || remindingUnitId === "__overdue__"}
+              onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a morosos")}
+            >
+              <IconBadge tone="sand" className="mr-2">
+                <SendHorizontal className="h-4 w-4" />
+              </IconBadge>
+              {remindingUnitId === "__overdue__" ? "Enviando..." : "Recordar a morosos"}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setIsBulkDrawerOpen(true)}>
+              <IconBadge tone="mint" className="mr-2">
+                <SendHorizontal className="h-4 w-4" />
+              </IconBadge>
+              Enviar mensaje masivo
+            </Button>
+          </div>
         </div>
 
         <input
@@ -1371,6 +1404,19 @@ export default function AdminBillingPage() {
                     </IconBadge>
                     Registrar cobro
                   </Button>
+                  {!isPaid ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={remindingUnitId === item.id}
+                      onClick={() => void handleSendReminder([item.unitId], item.id, "Recordatorio enviado")}
+                    >
+                      <IconBadge tone="sand" className="mr-2">
+                        <SendHorizontal className="h-4 w-4" />
+                      </IconBadge>
+                      {remindingUnitId === item.id ? "Enviando..." : "Recordar"}
+                    </Button>
+                  ) : null}
                   </div>
                 </td>
               </tr>

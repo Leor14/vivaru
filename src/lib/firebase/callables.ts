@@ -257,6 +257,12 @@ export async function notifyResidentReceiptCallable(input: {
   return executeCallable(callable, input, "No fue posible notificar al residente.");
 }
 
+export async function sendBillingReminderCallable(input: { tenantId: string; unitIds: string[] }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean; notified: number }>(functions, "sendBillingReminder");
+  return executeCallable(callable, input, "No fue posible enviar el recordatorio.");
+}
+
 export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");
