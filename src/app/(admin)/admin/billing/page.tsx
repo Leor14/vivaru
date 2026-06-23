@@ -34,7 +34,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
-import { BILLING_CONCEPTS, billingConceptLabel, createBillingStatement, updateBillingStatement, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingSchedule, createBillingStatement, updateBillingStatement, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -165,6 +165,7 @@ export default function AdminBillingPage() {
   const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const { items, loading, error } = useBillingStatements(user?.tenantId);
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId);
+  const { items: scheduledCharges } = useBillingSchedules(user?.tenantId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
   const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
@@ -176,6 +177,9 @@ export default function AdminBillingPage() {
   const [paymentAmount, setPaymentAmount] = useState("0");
   const [dueDate, setDueDate] = useState("");
   const [concept, setConcept] = useState<BillingConcept>("administracion");
+  const [chargeMode, setChargeMode] = useState<"individual" | "batch">("individual");
+  const [scheduledFor, setScheduledFor] = useState("");
+  const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
   const [periodMonths, setPeriodMonths] = useState(3);
 
@@ -433,27 +437,84 @@ export default function AdminBillingPage() {
     return ["all", ...labels];
   }, [catalogUnits]);
 
+  // Unidades destino del lote: todas las del catálogo menos las destildadas.
+  const batchTargets = useMemo(
+    () => catalogUnits.filter((u) => !excludedUnits.has(u.id)).map((u) => ({ unitId: u.id, unitLabel: u.label })),
+    [catalogUnits, excludedUnits],
+  );
+
   async function handleCreate() {
-    if (!user?.tenantId || !selectedUnitId.trim() || !unitLabel.trim() || !date.trim() || !amount.trim()) return;
+    if (!user?.tenantId || !date.trim() || !amount.trim()) return;
+    const tid = user.tenantId;
+    const uid = user.uid;
     const rawAmount = parseCurrency(amount);
-    const rawPayment = parseCurrency(paymentAmount);
-    const balance = Math.max(rawAmount - rawPayment, 0);
+    const period = date.slice(0, 7);
     try {
-      await createBillingStatement({
-        tenantId: user.tenantId,
-        userId: user.uid,
-        unitId: selectedUnitId,
-        unitLabel: unitLabel.trim(),
-        period: date.slice(0, 7),
-        concept,
-        amount: rawAmount,
-        paymentAmount: rawPayment,
-        balance,
-        dueDate: dueDate || undefined,
-      });
-      toast.success("Estado de cuenta registrado.");
+      if (chargeMode === "individual") {
+        if (!selectedUnitId.trim() || !unitLabel.trim()) {
+          toast.error("Selecciona la unidad.");
+          return;
+        }
+        if (scheduledFor) {
+          await createBillingSchedule({
+            tenantId: tid, userId: uid, concept, amount: rawAmount, period,
+            dueDate: dueDate || undefined, scheduledFor, isBatch: false,
+            targets: [{ unitId: selectedUnitId, unitLabel: unitLabel.trim() }],
+          });
+          toast.success(`Cobro programado para el ${scheduledFor}.`);
+        } else {
+          const rawPayment = parseCurrency(paymentAmount);
+          const balance = Math.max(rawAmount - rawPayment, 0);
+          await createBillingStatement({
+            tenantId: tid, userId: uid, unitId: selectedUnitId, unitLabel: unitLabel.trim(),
+            period, concept, amount: rawAmount, paymentAmount: rawPayment, balance,
+            dueDate: dueDate || undefined,
+          });
+          toast.success("Estado de cuenta registrado.");
+        }
+      } else {
+        if (batchTargets.length === 0) {
+          toast.error("Selecciona al menos una unidad para el lote.");
+          return;
+        }
+        if (scheduledFor) {
+          await createBillingSchedule({
+            tenantId: tid, userId: uid, concept, amount: rawAmount, period,
+            dueDate: dueDate || undefined, scheduledFor, isBatch: true, targets: batchTargets,
+          });
+          toast.success(`Lote programado para ${batchTargets.length} unidad(es) el ${scheduledFor}.`);
+        } else {
+          const unitIds: string[] = [];
+          for (const t of batchTargets) {
+            await createBillingStatement({
+              tenantId: tid, userId: uid, unitId: t.unitId, unitLabel: t.unitLabel,
+              period, concept, amount: rawAmount, paymentAmount: 0, balance: rawAmount,
+              dueDate: dueDate || undefined, source: "import",
+            });
+            unitIds.push(t.unitId);
+          }
+          if (unitIds.length > 0 && rawAmount > 0) {
+            try {
+              await notifyBillingBatchCallable({ tenantId: tid, period, unitIds });
+            } catch (notifyErr) {
+              console.error("[billing batch] notify error", notifyErr);
+            }
+          }
+          toast.success(`Lote creado para ${unitIds.length} unidad(es).`);
+        }
+      }
       setPaymentAmount("0");
       setAmount("0");
+      setScheduledFor("");
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
+  async function handleCancelSchedule(id: string) {
+    try {
+      await cancelBillingSchedule(id);
+      toast.success("Cobro programado cancelado.");
     } catch (error) {
       toastFirebaseError(error);
     }
@@ -896,6 +957,39 @@ export default function AdminBillingPage() {
           Registra cartera mensual por unidad con estructura financiera clara y trazable.
         </CardDescription>
         <p className="mt-3 text-sm font-semibold text-[var(--slate-800)]">{billingFormTitle}</p>
+        <div className="mt-3 flex flex-wrap items-end gap-4">
+          <div className="text-sm text-[var(--slate-700)]">
+            <span className="block">Destinatario</span>
+            <div className="mt-1 inline-flex rounded-xl border border-[var(--slate-300)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setChargeMode("individual")}
+                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "individual" ? "bg-[var(--slate-900)] text-white" : "text-[var(--slate-600)]"}`}
+              >
+                Una unidad
+              </button>
+              <button
+                type="button"
+                onClick={() => setChargeMode("batch")}
+                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "batch" ? "bg-[var(--slate-900)] text-white" : "text-[var(--slate-600)]"}`}
+              >
+                Lote (varias)
+              </button>
+            </div>
+          </div>
+          <label className="text-sm text-[var(--slate-700)]">
+            Programar para (opcional)
+            <input
+              type="date"
+              value={scheduledFor}
+              onChange={(event) => setScheduledFor(event.target.value)}
+              className="mt-1 block h-11 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+            />
+          </label>
+          {scheduledFor ? (
+            <p className="text-xs text-[var(--slate-500)]">Se publicará automáticamente esa fecha; el residente no lo verá antes.</p>
+          ) : null}
+        </div>
         <div className="mt-4 grid gap-3 md:grid-cols-6">
           <label className="text-sm text-[var(--slate-700)]">
             Concepto
@@ -916,7 +1010,7 @@ export default function AdminBillingPage() {
             <select
               className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
               value={selectedUnitId}
-              disabled={catalogUnitsLoading || catalogUnits.length === 0}
+              disabled={catalogUnitsLoading || catalogUnits.length === 0 || chargeMode === "batch"}
               onChange={(event) => {
                 const nextId = event.target.value;
                 const selected = catalogUnits.find((unit) => unit.id === nextId);
@@ -943,21 +1037,90 @@ export default function AdminBillingPage() {
           <Input
             label="Abono"
             inputMode="numeric"
-            value={paymentAmount}
+            value={chargeMode === "batch" || scheduledFor ? "0" : paymentAmount}
+            disabled={chargeMode === "batch" || Boolean(scheduledFor)}
             onChange={(event) => setPaymentAmount(formatCurrencyInput(event.target.value))}
           />
           <Input label="Fecha de recaudo" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
         </div>
+        {chargeMode === "batch" ? (
+          <div className="mt-3 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-medium text-[var(--slate-800)]">
+                Unidades del lote: {batchTargets.length} de {catalogUnits.length}
+              </p>
+              <div className="flex gap-3 text-xs">
+                <button type="button" className="text-[var(--slate-700)] underline" onClick={() => setExcludedUnits(new Set())}>
+                  Todas
+                </button>
+                <button type="button" className="text-[var(--slate-600)] underline" onClick={() => setExcludedUnits(new Set(catalogUnits.map((u) => u.id)))}>
+                  Ninguna
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 grid max-h-44 grid-cols-2 gap-x-4 gap-y-1 overflow-auto sm:grid-cols-3 lg:grid-cols-4">
+              {catalogUnits.map((u) => (
+                <label key={u.id} className="flex items-center gap-1.5 text-xs text-[var(--slate-700)]">
+                  <input
+                    type="checkbox"
+                    checked={!excludedUnits.has(u.id)}
+                    onChange={(event) =>
+                      setExcludedUnits((prev) => {
+                        const next = new Set(prev);
+                        if (event.target.checked) next.delete(u.id);
+                        else next.add(u.id);
+                        return next;
+                      })
+                    }
+                  />
+                  <span className="truncate">{u.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-[var(--slate-700)]">Unidad seleccionada: <strong>{unitLabel || "-"}</strong></div>
-          <Button className="w-full sm:w-auto" onClick={() => void handleCreate()} disabled={!selectedUnitId || !date || !amount}>
-            Registrar
+          <div className="text-sm text-[var(--slate-700)]">
+            {chargeMode === "batch"
+              ? <>Lote: <strong>{batchTargets.length} unidad(es)</strong></>
+              : <>Unidad seleccionada: <strong>{unitLabel || "-"}</strong></>}
+          </div>
+          <Button
+            className="w-full sm:w-auto"
+            onClick={() => void handleCreate()}
+            disabled={!date || !amount || (chargeMode === "individual" && !selectedUnitId) || (chargeMode === "batch" && batchTargets.length === 0)}
+          >
+            {scheduledFor ? "Programar" : chargeMode === "batch" ? "Crear lote" : "Registrar"}
           </Button>
         </div>
 
         {catalogUnitsLoading ? <p className="mt-3 text-xs text-[var(--slate-600)]">Estamos cargando el listado de unidades del conjunto.</p> : null}
         {catalogUnitsError ? <p className="mt-3 text-xs text-[var(--danger-700)]">{catalogUnitsError}</p> : null}
       </Card>
+
+      {scheduledCharges.length > 0 ? (
+        <Card className="soft-panel">
+          <CardTitle>Cobros programados</CardTitle>
+          <CardDescription className="mt-1">
+            Se publican automáticamente en su fecha. Puedes cancelarlos antes de que se publiquen.
+          </CardDescription>
+          <ul className="mt-4 space-y-2">
+            {scheduledCharges.map((s) => (
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2">
+                <div className="text-sm text-[var(--slate-800)]">
+                  <span className="font-medium">{billingConceptLabel(s.concept)}</span> · {formatAmount(s.amount)} · {s.period}
+                  <span className="block text-xs text-[var(--slate-500)]">
+                    {s.isBatch ? `Lote · ${s.targets?.length ?? 0} unidad(es)` : `Unidad ${s.targets?.[0]?.unitLabel ?? "-"}`} · publica {s.scheduledFor}
+                  </span>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => void handleCancelSchedule(s.id)}>
+                  Cancelar
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
 
       <Card className="soft-panel">
         <div className="flex items-center gap-2">

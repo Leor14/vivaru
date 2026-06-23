@@ -2636,6 +2636,82 @@ export const notifyResidentReceipt = onCall<{
 );
 
 // Runs every day at 07:00 UTC (02:00 Colombia)
+// Publica los cobros programados cuya fecha llegó: crea los billingStatements por unidad
+// y notifica (agrupado si es lote, individual vía trigger si es una sola unidad).
+export const publishScheduledCharges = onSchedule({ schedule: "0 8 * * *", secrets: [resendApiKey] }, async () => {
+  const now = new Date();
+  const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+
+  const snap = await db.collection("billingSchedules").where("status", "==", "scheduled").get();
+  for (const docSnap of snap.docs) {
+    const s = docSnap.data() as {
+      tenantId?: string;
+      concept?: string;
+      amount?: number;
+      period?: string;
+      dueDate?: string | null;
+      scheduledFor?: string;
+      isBatch?: boolean;
+      targets?: { unitId: string; unitLabel: string }[];
+      createdBy?: string;
+    };
+    if (!s.tenantId || !s.scheduledFor || s.scheduledFor > today) continue;
+
+    const targets = (s.targets ?? []).filter((t) => t && t.unitId);
+    if (targets.length === 0) {
+      await docSnap.ref.update({ status: "published", publishedAt: Timestamp.now() });
+      continue;
+    }
+
+    const amount = s.amount ?? 0;
+    const period = s.period ?? today.slice(0, 7);
+    const dueDate = s.dueDate ?? null;
+    const status = amount <= 0 ? "paid" : dueDate && dueDate < today ? "overdue" : "pending";
+    const isBatch = Boolean(s.isBatch) && targets.length > 1;
+    const source = isBatch ? "import" : "manual";
+    const actor = s.createdBy ?? "system";
+
+    const batch = db.batch();
+    for (const t of targets) {
+      const ref = db.collection("billingStatements").doc();
+      batch.set(ref, {
+        tenantId: s.tenantId,
+        unitId: t.unitId,
+        unitLabel: t.unitLabel,
+        period,
+        concept: s.concept ?? "administracion",
+        amount,
+        paymentAmount: 0,
+        balance: amount,
+        dueDate,
+        source,
+        status,
+        lastPaymentAt: null,
+        createdBy: actor,
+        updatedBy: actor,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+    }
+    await batch.commit();
+
+    // Lote: aviso agrupado. Individual (source "manual"): lo notifica onBillingStatementCreated.
+    if (isBatch && amount > 0) {
+      const lists = await Promise.all(targets.map((t) => listResidentUidsByUnit(s.tenantId as string, t.unitId)));
+      const residentUids = Array.from(new Set(lists.flat()));
+      if (residentUids.length > 0) {
+        const [override, conjunto] = await Promise.all([
+          getTenantNotificationOverride(s.tenantId, "billing_batch"),
+          getTenantName(s.tenantId),
+        ]);
+        await deliverResidentNotifications("billing_batch", s.tenantId, residentUids, { período: period, conjunto }, override);
+      }
+    }
+
+    await docSnap.ref.update({ status: "published", publishedAt: Timestamp.now() });
+  }
+});
+
 export const updateOverdueStatements = onSchedule({ schedule: "0 7 * * *", secrets: [resendApiKey] }, async () => {
   const now = new Date();
   const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;

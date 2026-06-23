@@ -140,3 +140,81 @@ export async function updateBillingStatement(
     updatedAt: serverTimestamp(),
   });
 }
+
+// ─── Cobros programados (F3) ──────────────────────────────────────────────────
+
+export interface BillingScheduleTarget {
+  unitId: string;
+  unitLabel: string;
+}
+
+export interface BillingSchedule {
+  id: string;
+  tenantId: string;
+  concept?: BillingConcept;
+  amount: number;
+  period: string;
+  dueDate?: string | null;
+  scheduledFor: string;
+  isBatch: boolean;
+  targets: BillingScheduleTarget[];
+  status: "scheduled" | "published" | "cancelled";
+}
+
+export function useBillingSchedules(tenantId?: string) {
+  const [items, setItems] = useState<BillingSchedule[]>([]);
+  const [loading, setLoading] = useState(Boolean(tenantId));
+
+  useEffect(() => {
+    if (!tenantId || !db) return;
+    const unsub = subscribeTenantCollection<BillingSchedule>(
+      "billingSchedules",
+      tenantId,
+      (data) => {
+        setItems(data);
+        setLoading(false);
+      },
+      () => setLoading(false),
+      {
+        orderByField: "scheduledFor",
+        orderDirection: "asc",
+        equals: [{ field: "status", value: "scheduled" }],
+      },
+    );
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [tenantId]);
+
+  if (!tenantId || !db) return { items: [], loading: false };
+  return { items, loading };
+}
+
+export async function createBillingSchedule(input: {
+  tenantId: string;
+  userId: string;
+  concept?: BillingConcept;
+  amount: number;
+  period: string;
+  dueDate?: string;
+  scheduledFor: string;
+  isBatch: boolean;
+  targets: BillingScheduleTarget[];
+}) {
+  if (!input.targets.length) throw new Error("Selecciona al menos una unidad.");
+  await createTenantDocument("billingSchedules", input.tenantId, input.userId, {
+    concept: input.concept ?? "administracion",
+    amount: input.amount,
+    period: input.period,
+    dueDate: input.dueDate ?? null,
+    scheduledFor: input.scheduledFor,
+    isBatch: input.isBatch,
+    targets: input.targets,
+    status: "scheduled",
+  });
+}
+
+export async function cancelBillingSchedule(id: string) {
+  if (!db) return;
+  await updateDoc(doc(db, "billingSchedules", id), { status: "cancelled", updatedAt: serverTimestamp() });
+}

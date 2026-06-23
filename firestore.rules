@@ -328,6 +328,13 @@ service cloud.firestore {
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    // Cobros programados (F3): solo admin; el cron los publica con Admin SDK.
+    match /billingSchedules/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+    }
+
     // ── Finanzas (módulo contable PH, F1) ──────────────────────
     // Back-office financiero: solo admin del tenant (residente no lee).
     match /expenses/{docId} {
