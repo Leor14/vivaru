@@ -293,6 +293,10 @@ export default function AdminEgresosPage() {
       <div className="mt-4 space-y-3">
         <MobileFiltersPanel
           title="Filtros de egresos"
+          collapsibleOnDesktop
+          defaultOpen={false}
+          openLabel="Filtros de egresos"
+          closeLabel="Ocultar filtros"
           activeFiltersCount={activeFiltersCount}
           footer={
             <Button

@@ -171,8 +171,16 @@ export default function AdminConciliacionPage() {
       <SectionIntro
         storageKey="conciliacion"
         title="Conciliación bancaria"
-        purpose="Cuadrar lo registrado en el Libro contra lo que realmente se movió en el banco."
-        how="Importas el extracto bancario (CSV) y emparejas cada línea con un movimiento del libro para detectar diferencias."
+        purpose="Cuadrar lo registrado en el Libro contra lo que realmente se movió en el banco, para que el saldo contable coincida con el saldo real de la cuenta."
+        how={
+          <ol className="list-decimal space-y-1 pl-4">
+            <li>Agrega la(s) cuenta(s) bancaria(s) del conjunto (botón “Agregar cuenta”).</li>
+            <li>Selecciona la cuenta e importa el extracto del banco en formato CSV.</li>
+            <li>Empareja cada línea del extracto con su movimiento en el Libro (“Conciliar”).</li>
+            <li>Las líneas sin pareja quedan <strong>pendientes</strong>: ahí están las diferencias — un movimiento que faltó registrar, un cobro doble o una comisión bancaria.</li>
+            <li>Cuando no quedan pendientes, el saldo del banco coincide con el del Libro: la cuenta queda conciliada del período.</li>
+          </ol>
+        }
       />
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-3">
