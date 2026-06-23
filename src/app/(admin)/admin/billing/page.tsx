@@ -180,6 +180,7 @@ export default function AdminBillingPage() {
   const [chargeMode, setChargeMode] = useState<"individual" | "batch">("individual");
   const [scheduledFor, setScheduledFor] = useState("");
   const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
+  const [createResult, setCreateResult] = useState<string | null>(null);
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
   const [periodMonths, setPeriodMonths] = useState(3);
 
@@ -443,6 +444,13 @@ export default function AdminBillingPage() {
     [catalogUnits, excludedUnits],
   );
 
+  // Etiquetas de unidad repetidas (docs duplicados con el mismo nombre) → se señalan.
+  const duplicateLabels = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const u of catalogUnits) counts.set(u.label, (counts.get(u.label) ?? 0) + 1);
+    return new Set(Array.from(counts.entries()).filter(([, n]) => n > 1).map(([label]) => label));
+  }, [catalogUnits]);
+
   async function handleCreate() {
     if (!user?.tenantId || !date.trim() || !amount.trim()) return;
     const tid = user.tenantId;
@@ -461,7 +469,8 @@ export default function AdminBillingPage() {
             dueDate: dueDate || undefined, scheduledFor, isBatch: false,
             targets: [{ unitId: selectedUnitId, unitLabel: unitLabel.trim() }],
           });
-          toast.success(`Cobro programado para el ${scheduledFor}.`);
+          toast.success("Cobro programado.");
+          setCreateResult(`Cobro programado para ${unitLabel.trim()} el ${scheduledFor}. Puedes revisarlo o cancelarlo en “Cobros programados”.`);
         } else {
           const rawPayment = parseCurrency(paymentAmount);
           const balance = Math.max(rawAmount - rawPayment, 0);
@@ -471,6 +480,7 @@ export default function AdminBillingPage() {
             dueDate: dueDate || undefined,
           });
           toast.success("Estado de cuenta registrado.");
+          setCreateResult(`Cobro registrado para ${unitLabel.trim()} (${period}). Aparece en la tabla de abajo.`);
         }
       } else {
         if (batchTargets.length === 0) {
@@ -482,7 +492,8 @@ export default function AdminBillingPage() {
             tenantId: tid, userId: uid, concept, amount: rawAmount, period,
             dueDate: dueDate || undefined, scheduledFor, isBatch: true, targets: batchTargets,
           });
-          toast.success(`Lote programado para ${batchTargets.length} unidad(es) el ${scheduledFor}.`);
+          toast.success("Lote programado.");
+          setCreateResult(`Lote programado para el ${scheduledFor} (${batchTargets.length} unidades). Revísalo o cancélalo en “Cobros programados”.`);
         } else {
           const unitIds: string[] = [];
           for (const t of batchTargets) {
@@ -500,12 +511,16 @@ export default function AdminBillingPage() {
               console.error("[billing batch] notify error", notifyErr);
             }
           }
-          toast.success(`Lote creado para ${unitIds.length} unidad(es).`);
+          toast.success(`Lote creado (${unitIds.length} cobros).`);
+          setCreateResult(`Se crearon ${unitIds.length} cobros de ${period}. Los residentes fueron notificados. Aparecen en la tabla de abajo.`);
         }
       }
+      // Reset a estado limpio: vuelve a "Una unidad" y limpia la selección del lote.
       setPaymentAmount("0");
       setAmount("0");
       setScheduledFor("");
+      setChargeMode("individual");
+      setExcludedUnits(new Set());
     } catch (error) {
       toastFirebaseError(error);
     }
@@ -974,9 +989,23 @@ export default function AdminBillingPage() {
           <HelpTip text="Registra aquí la cuota mensual de una unidad. Si el residente ya realizó un pago parcial, anótalo en el campo Abono desde el inicio. La Fecha de recaudo es la fecha límite de pago, no la fecha en que llegó el dinero. El estado se asigna automáticamente: saldo en cero queda Al día, saldo pendiente antes de la fecha límite queda Pendiente, y saldo pendiente con fecha vencida pasa a En mora. Si no registras una fecha límite, se usa el mes del cobro: un mes ya pasado con saldo pendiente queda En mora. Ten presente que el sistema permite registrar más de un cobro para la misma unidad y mes." />
         </div>
         <CardDescription className="mt-1">
-          Registra cartera mensual por unidad con estructura financiera clara y trazable.
+          Elige a quién cobrar (una unidad o un lote), el concepto y el valor. Si quieres, programa la fecha en que el cobro se publica y se notifica a los residentes.
         </CardDescription>
         <p className="mt-3 text-sm font-semibold text-[var(--slate-800)]">{billingFormTitle}</p>
+
+        {createResult ? (
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <p className="text-sm text-emerald-800">{createResult}</p>
+            <button
+              type="button"
+              onClick={() => setCreateResult(null)}
+              className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+              aria-label="Cerrar aviso"
+            >
+              Entendido
+            </button>
+          </div>
+        ) : null}
         <div className="mt-3 flex flex-wrap items-end gap-4">
           <div className="text-sm text-[var(--slate-700)]">
             <span className="block">Destinatario</span>
@@ -1010,6 +1039,11 @@ export default function AdminBillingPage() {
             <p className="text-xs text-[var(--slate-500)]">Se publicará automáticamente esa fecha; el residente no lo verá antes.</p>
           ) : null}
         </div>
+        <p className="mt-1 text-xs text-[var(--slate-500)]">
+          {chargeMode === "batch"
+            ? "Lote: crea el mismo cobro para todas las unidades que dejes marcadas abajo."
+            : "Una unidad: registra un cobro individual (puedes anotar un abono inicial)."}
+        </p>
         <div className="mt-4 grid gap-3 md:grid-cols-6">
           <label className="text-sm text-[var(--slate-700)]">
             Concepto
@@ -1025,12 +1059,13 @@ export default function AdminBillingPage() {
               ))}
             </select>
           </label>
+          {chargeMode === "individual" ? (
           <label className="text-sm text-[var(--slate-700)]">
             Unidad
             <select
               className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
               value={selectedUnitId}
-              disabled={catalogUnitsLoading || catalogUnits.length === 0 || chargeMode === "batch"}
+              disabled={catalogUnitsLoading || catalogUnits.length === 0}
               onChange={(event) => {
                 const nextId = event.target.value;
                 const selected = catalogUnits.find((unit) => unit.id === nextId);
@@ -1047,6 +1082,7 @@ export default function AdminBillingPage() {
               ))}
             </select>
           </label>
+          ) : null}
           <Input label="Fecha" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           <Input
             label={concept === "administracion" ? "Valor administración" : "Valor"}
@@ -1054,13 +1090,14 @@ export default function AdminBillingPage() {
             value={amount}
             onChange={(event) => setAmount(formatCurrencyInput(event.target.value))}
           />
-          <Input
-            label="Abono"
-            inputMode="numeric"
-            value={chargeMode === "batch" || scheduledFor ? "0" : paymentAmount}
-            disabled={chargeMode === "batch" || Boolean(scheduledFor)}
-            onChange={(event) => setPaymentAmount(formatCurrencyInput(event.target.value))}
-          />
+          {chargeMode === "individual" && !scheduledFor ? (
+            <Input
+              label="Abono"
+              inputMode="numeric"
+              value={paymentAmount}
+              onChange={(event) => setPaymentAmount(formatCurrencyInput(event.target.value))}
+            />
+          ) : null}
           <Input label="Fecha de recaudo" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
         </div>
         {chargeMode === "batch" ? (
@@ -1078,6 +1115,11 @@ export default function AdminBillingPage() {
                 </button>
               </div>
             </div>
+            {duplicateLabels.size > 0 ? (
+              <p className="mt-1 text-[11px] text-amber-700">
+                Hay unidades con el mismo nombre; revisa antes de cobrar al lote para no duplicar el cobro a una misma unidad.
+              </p>
+            ) : null}
             <div className="mt-2 grid max-h-44 grid-cols-2 gap-x-4 gap-y-1 overflow-auto sm:grid-cols-3 lg:grid-cols-4">
               {catalogUnits.map((u) => (
                 <label key={u.id} className="flex items-center gap-1.5 text-xs text-[var(--slate-700)]">
@@ -1094,6 +1136,9 @@ export default function AdminBillingPage() {
                     }
                   />
                   <span className="truncate">{u.label}</span>
+                  {duplicateLabels.has(u.label) ? (
+                    <span className="shrink-0 rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-700">repetida</span>
+                  ) : null}
                 </label>
               ))}
             </div>
