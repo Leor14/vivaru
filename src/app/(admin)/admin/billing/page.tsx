@@ -183,7 +183,7 @@ export default function AdminBillingPage() {
   const { items: scheduledCharges } = useBillingSchedules(user?.tenantId);
   const { items: campaigns } = useBillingCampaigns(user?.tenantId);
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
-  const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit">("campaigns");
+  const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit" | "overdue">("campaigns");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
   const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
@@ -437,6 +437,10 @@ export default function AdminBillingPage() {
       const byStatus = statusFilter === "all" ? true : item.status === statusFilter;
       const byUnit = unitFilter === "all" ? true : item.unitLabel === unitFilter;
       const byCampaign = campaignFilter ? item.campaignId === campaignFilter : true;
+      // "Cartera vencida": todos los cobros con saldo, incluso de períodos cerrados.
+      if (listView === "overdue") {
+        return (item.balance ?? 0) > 0 && byStatus && byUnit && byCampaign;
+      }
       // "Cobros individuales" = sin campaña; "Por unidad" = todos. Oculta archivados.
       const byView = listView === "individuals" ? item.campaignId == null : true;
       return !item.archived && byStatus && byUnit && byCampaign && byView;
@@ -500,6 +504,7 @@ export default function AdminBillingPage() {
   }, [items]);
   const openPeriods = useMemo(() => periodAgg.filter((p) => p.activos > 0), [periodAgg]);
   const closedPeriods = useMemo(() => periodAgg.filter((p) => p.activos === 0 && p.archivados > 0), [periodAgg]);
+  const currentPeriod = new Date().toISOString().slice(0, 7);
   const [closingPeriod, setClosingPeriod] = useState<string | null>(null);
 
   // Etiquetas de unidad repetidas (docs duplicados con el mismo nombre) → se señalan.
@@ -604,10 +609,6 @@ export default function AdminBillingPage() {
     const periodRows = normalizedRows.filter((r) => r.period === period && !r.archived);
     if (periodRows.length === 0) return;
     const pending = periodRows.filter((r) => (r.balance ?? 0) > 0).length;
-    if (pending > 0) {
-      toast.error(`El período ${period} tiene ${pending} cobro(s) con saldo pendiente. Liquídalos antes de cerrar.`);
-      return;
-    }
     if (!storage) {
       toast.error("Almacenamiento no disponible.");
       return;
@@ -654,7 +655,11 @@ export default function AdminBillingPage() {
 
       await setStatementsArchived(periodRows.map((r) => r.id), true, uid);
       await setCampaignStatus(campaigns.filter((c) => c.period === period).map((c) => c.id), "cerrada");
-      toast.success(`Período ${period} cerrado. El reporte quedó en Documentos → “Cierres de cartera”.`);
+      toast.success(
+        pending > 0
+          ? `Período ${period} cerrado. Reporte en Documentos. Los ${pending} morosos quedan en “Cartera vencida”.`
+          : `Período ${period} cerrado. El reporte quedó en Documentos → “Cierres de cartera”.`,
+      );
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -1411,6 +1416,7 @@ export default function AdminBillingPage() {
           { key: "campaigns", label: "Campañas" },
           { key: "individuals", label: "Cobros individuales" },
           { key: "byUnit", label: "Por unidad" },
+          { key: "overdue", label: "Cartera vencida" },
         ] as const).map((t) => (
           <button
             key={t.key}
@@ -1540,6 +1546,12 @@ export default function AdminBillingPage() {
             </button>
           ) : null}
         </div>
+
+        {listView === "overdue" ? (
+          <p className="mt-2 text-xs text-amber-700">
+            Todos los cobros con saldo, incluida la mora de meses ya cerrados. Recuérdales o registra su pago desde aquí.
+          </p>
+        ) : null}
 
         {campaignFilter ? (() => {
           const sel = campaignRows.find((r) => r.c.id === campaignFilter);
@@ -1751,7 +1763,7 @@ export default function AdminBillingPage() {
       <Card className="soft-panel">
         <CardTitle>Cierre de períodos</CardTitle>
         <CardDescription className="mt-1">
-          Archiva los períodos ya liquidados: se guarda un reporte en Documentos → “Cierres de cartera” y dejan de aparecer en las tablas de arriba. Los datos y el análisis por período se conservan; puedes reabrir un período cuando quieras.
+          Cierra los meses pasados: se guarda un reporte en Documentos → “Cierres de cartera” y el mes deja de aparecer en las tablas. Si quedan morosos, su deuda no se pierde: pasa a la pestaña “Cartera vencida”, donde puedes seguir cobrando. El mes vigente no se cierra y puedes reabrir un período cuando quieras.
         </CardDescription>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
@@ -1760,19 +1772,22 @@ export default function AdminBillingPage() {
               <p className="mt-1 text-xs text-[var(--slate-500)]">—</p>
             ) : (
               <ul className="mt-1 space-y-1">
-                {openPeriods.map((p) => (
+                {openPeriods.map((p) => {
+                  const isCurrent = p.period >= currentPeriod;
+                  return (
                   <li key={p.period} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-3 py-1.5 text-xs">
                     <span className="text-[var(--slate-700)]">{formatTableDate(p.period)} · saldo {formatAmount(p.pendiente)}</span>
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={closingPeriod === p.period || p.pendiente > 0}
+                      disabled={closingPeriod === p.period || isCurrent}
                       onClick={() => void handleClosePeriod(p.period)}
                     >
-                      {closingPeriod === p.period ? "Cerrando..." : p.pendiente > 0 ? "Con saldo" : "Cerrar y archivar"}
+                      {closingPeriod === p.period ? "Cerrando..." : isCurrent ? "Mes vigente" : "Cerrar y archivar"}
                     </Button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>
