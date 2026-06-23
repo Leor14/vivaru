@@ -214,6 +214,9 @@ export interface VisitorPass {
     createdAt: string;   // ISO string, normalizado desde Firestore Timestamp
     guardId: string;
     guardName?: string;
+    /** Imagen adjunta a la nota (sube el guardia; visible para el admin). */
+    imageUrl?: string;
+    storagePath?: string;
   }>;
 }
 

@@ -104,6 +104,8 @@ function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
           createdAt: asTimestampIso(n.createdAt) || new Date().toISOString(),
           guardId: String(n.guardId ?? ""),
           guardName: n.guardName ? String(n.guardName) : undefined,
+          imageUrl: n.imageUrl ? String(n.imageUrl) : undefined,
+          storagePath: n.storagePath ? String(n.storagePath) : undefined,
         }))
       : undefined,
   };
@@ -377,7 +379,7 @@ export async function markVisitorAsCompleted(input: {
 
 export async function addGuardNote(
   passId: string,
-  note: { text: string; guardId: string; guardName?: string },
+  note: { text: string; guardId: string; guardName?: string; imageUrl?: string; storagePath?: string },
 ): Promise<void> {
   if (!db) throw new Error("Firebase no esta configurado.");
   await updateDoc(doc(db, "visitorPasses", passId), {
@@ -386,6 +388,8 @@ export async function addGuardNote(
       createdAt: Timestamp.now(),
       guardId: note.guardId,
       guardName: note.guardName ?? null,
+      imageUrl: note.imageUrl ?? null,
+      storagePath: note.storagePath ?? null,
     }),
   });
 }

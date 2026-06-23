@@ -25,6 +25,8 @@ import {
   type VisitorCardItem,
 } from "@/features/visitors/guard-qr-validation";
 import type { VisitorPass } from "@/types/domain";
+import { storage } from "@/lib/firebase/client";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { combineLocalDateTime, formatDateSafe, formatDateTimeSafe, toLocalDate } from "@/utils/date";
 import { getStatusLabel as mapStatusLabel } from "@/utils/statusMapper";
 
@@ -127,6 +129,8 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
   const [noteDialogOpen, setNoteDialogOpen] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [noteImage, setNoteImage] = useState<File | null>(null);
+  const [notePreview, setNotePreview] = useState<string | null>(null);
 
   const [selectedVisitorId, setSelectedVisitorId] = useState<string | null>(null);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
@@ -205,27 +209,66 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
     return liveVisitor ?? scanResult.visitor;
   }, [rows, scanResult]);
 
+  function clearNoteImage() {
+    setNoteImage(null);
+    setNotePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }
+
+  function handleNoteImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo se permiten imágenes.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 8 MB.");
+      return;
+    }
+    clearNoteImage();
+    setNoteImage(file);
+    setNotePreview(URL.createObjectURL(file));
+  }
+
   function openNoteDialog(item: VisitorPass) {
     setNoteDialogOpen(item.id);
     setNoteText("");
+    clearNoteImage();
   }
 
   function closeNoteDialog() {
     setNoteDialogOpen(null);
     setNoteText("");
+    clearNoteImage();
   }
 
   async function handleSaveNote() {
-    if (!noteDialogOpen || !guardId || !noteText.trim()) return;
+    if (!noteDialogOpen || !guardId || (!noteText.trim() && !noteImage)) return;
     setSavingNote(true);
     try {
+      let imageUrl: string | undefined;
+      let storagePath: string | undefined;
+      if (noteImage && tenantId && storage) {
+        const clean = noteImage.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
+        storagePath = `tenants/${tenantId}/visitor-notes/${noteDialogOpen}/${Date.now()}-${clean}`;
+        const sref = storageRef(storage, storagePath);
+        await uploadBytes(sref, noteImage);
+        imageUrl = await getDownloadURL(sref);
+      }
       await addGuardNote(noteDialogOpen, {
         text: noteText.trim(),
         guardId,
         guardName,
+        imageUrl,
+        storagePath,
       });
       toast.success("Nota guardada");
       setNoteText("");
+      clearNoteImage();
       setNoteDialogOpen(null);
     } catch (err) {
       toastFirebaseError(err);
@@ -654,7 +697,13 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                   <ul className="mt-3 space-y-2 text-sm">
                     {selectedVisitor.guardNotes!.map((n, i) => (
                       <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
-                        <p className="text-[var(--slate-800)]">{n.text}</p>
+                        {n.text ? <p className="text-[var(--slate-800)]">{n.text}</p> : null}
+                        {n.imageUrl ? (
+                          <a href={n.imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={n.imageUrl} alt="Adjunto de la nota" className="max-h-40 rounded-lg border border-amber-200 object-cover" />
+                          </a>
+                        ) : null}
                         <p className="mt-1 text-xs text-[var(--slate-500)]">
                           {n.guardName ?? "Guardia"} · {new Date(n.createdAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
                         </p>
@@ -702,7 +751,13 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
               <ul className="mt-4 space-y-2 text-sm">
                 {noteVisitor.guardNotes!.map((n, i) => (
                   <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2">
-                    <p className="text-[var(--slate-800)]">{n.text}</p>
+                    {n.text ? <p className="text-[var(--slate-800)]">{n.text}</p> : null}
+                    {n.imageUrl ? (
+                      <a href={n.imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={n.imageUrl} alt="Adjunto de la nota" className="max-h-40 rounded-lg border border-amber-200 object-cover" />
+                      </a>
+                    ) : null}
                     <p className="mt-1 text-xs text-[var(--slate-500)]">
                       {n.guardName ?? "Guardia"} · {new Date(n.createdAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
                     </p>
@@ -722,9 +777,35 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                 rows={3}
               />
               <p className="text-right text-xs text-[var(--slate-500)]">{noteText.length}/300</p>
+
+              <div>
+                <input id="guard-note-image" type="file" accept="image/*" className="hidden" onChange={handleNoteImageChange} />
+                {notePreview ? (
+                  <div className="relative inline-block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={notePreview} alt="Previsualización" className="max-h-32 rounded-lg border border-[var(--slate-200)]" />
+                    <button
+                      type="button"
+                      onClick={clearNoteImage}
+                      className="absolute -right-2 -top-2 rounded-full bg-[var(--slate-900)] px-2 py-0.5 text-xs font-medium text-white"
+                      aria-label="Quitar imagen"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="guard-note-image"
+                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--slate-300)] px-3 py-1.5 text-sm font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                  >
+                    📷 Adjuntar imagen
+                  </label>
+                )}
+              </div>
+
               <Button
                 className="w-full"
-                disabled={!noteText.trim() || savingNote}
+                disabled={(!noteText.trim() && !noteImage) || savingNote}
                 onClick={() => void handleSaveNote()}
               >
                 {savingNote ? "Guardando..." : "Guardar nota"}

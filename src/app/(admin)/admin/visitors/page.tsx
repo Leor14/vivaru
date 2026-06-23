@@ -713,7 +713,13 @@ export default function AdminVisitorsPage() {
                   <ul className="mt-3 space-y-2">
                     {selectedPass.guardNotes!.map((n, i) => (
                       <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm">
-                        <p className="text-[var(--slate-800)]">{n.text}</p>
+                        {n.text ? <p className="text-[var(--slate-800)]">{n.text}</p> : null}
+                        {n.imageUrl ? (
+                          <a href={n.imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={n.imageUrl} alt="Adjunto de la nota" className="max-h-48 rounded-lg border border-amber-200 object-cover" />
+                          </a>
+                        ) : null}
                         <p className="mt-1 text-xs text-[var(--slate-500)]">
                           {n.guardName ?? "Guardia"} ·{" "}
                           {new Date(n.createdAt).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
