@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase/client";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
+import { db, storage } from "@/lib/firebase/client";
+import { toast } from "sonner";
+import { createDocumentRecord } from "@/features/admin/services";
+import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 import {
   BarChart,
   Bar,
@@ -19,7 +24,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import * as XLSX from "xlsx";
-import { BarChart2, Download, FileSpreadsheet, Printer } from "lucide-react";
+import { BarChart2, Download, FileSpreadsheet, FolderPlus, Printer } from "lucide-react";
 
 import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
@@ -197,8 +202,8 @@ export default function AdminReportsPage() {
     return buckets;
   }, [report.billing.overdueUnits]);
 
-  // ── Excel export ─────────────────────────────────────────────────────────────
-  const handleExcelExport = useCallback(() => {
+  // ── Excel: arma el libro (reusado por descargar y por guardar en Documentos) ──
+  const buildWorkbook = useCallback(() => {
     const wb = XLSX.utils.book_new();
 
     // Resumen sheet
@@ -313,8 +318,41 @@ export default function AdminReportsPage() {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(agData), "Acuerdos");
     }
 
-    XLSX.writeFile(wb, `Reporte-Comite-${range.start}-${range.end}.xlsx`);
-  }, [report, periodLabel, range, execSummary, aging]);
+    return wb;
+  }, [report, periodLabel, execSummary, aging]);
+
+  const handleExcelExport = useCallback(() => {
+    XLSX.writeFile(buildWorkbook(), `Reporte-Comite-${range.start}-${range.end}.xlsx`);
+  }, [buildWorkbook, range]);
+
+  const [savingDoc, setSavingDoc] = useState(false);
+  async function handleSaveToDocuments() {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid || !storage) return;
+    setSavingDoc(true);
+    try {
+      const buf = XLSX.write(buildWorkbook(), { bookType: "xlsx", type: "array" });
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const fileName = `Reporte-Comite-${range.start}-${range.end}.xlsx`;
+      const path = `tenants/${tid}/committee-reports/${range.start}-${range.end}-${Date.now()}.xlsx`;
+      const sref = storageRef(storage, path);
+      await uploadBytes(sref, blob);
+      const fileUrl = await getDownloadURL(sref);
+      const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "committee_reports" });
+      await createDocumentRecord({
+        tenantId: tid, userId: uid, userName: user?.fullName,
+        fileName, fileUrl, storagePath: path, fileSize: blob.size, contentType: blob.type,
+        category: "reporte", description: `Reporte de comité ${periodLabel}`,
+        source: "committee_report", sourceId: `${range.start}-${range.end}`, folderId,
+      });
+      toast.success("Reporte guardado en Documentos → “Reportes de comité”.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSavingDoc(false);
+    }
+  }
 
   const handlePrint = useCallback(() => {
     window.print();
@@ -366,6 +404,10 @@ export default function AdminReportsPage() {
             <Button variant="outline" onClick={handlePrint} disabled={report.loading}>
               <Printer className="mr-2 h-4 w-4" />
               Imprimir / PDF
+            </Button>
+            <Button onClick={() => void handleSaveToDocuments()} disabled={report.loading || savingDoc}>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              {savingDoc ? "Guardando..." : "Guardar en Documentos"}
             </Button>
           </div>
         </div>

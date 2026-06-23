@@ -712,6 +712,60 @@ export default function AdminBillingPage() {
     }
   }
 
+  const [savingHistory, setSavingHistory] = useState(false);
+  async function handleSaveCarteraHistory() {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid || !storage) return;
+    setSavingHistory(true);
+    try {
+      // Recaudo por período (esperado vs cobrado).
+      const byPeriod = new Map<string, { facturado: number; recaudado: number; pendiente: number }>();
+      for (const s of items) {
+        const e = byPeriod.get(s.period) ?? { facturado: 0, recaudado: 0, pendiente: 0 };
+        e.facturado += s.amount ?? 0;
+        e.recaudado += s.paymentAmount ?? 0;
+        e.pendiente += s.balance ?? 0;
+        byPeriod.set(s.period, e);
+      }
+      const periodRows = Array.from(byPeriod.entries())
+        .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+        .map(([period, v]) => [period, v.facturado, v.recaudado, v.facturado > 0 ? `${Math.round((v.recaudado / v.facturado) * 100)}%` : "0%", v.pendiente]);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([["Período", "Facturado (esperado)", "Recaudado", "% recaudo", "Pendiente"], ...periodRows]),
+        "Recaudo por período",
+      );
+      XLSX.utils.book_append_sheet(
+        wb,
+        XLSX.utils.aoa_to_sheet([["Unidad", "Deuda total", "# períodos", "Más antiguo"], ...morosos.map((m) => [m.unitLabel, m.deuda, m.periodos.length, m.periodos[0] ?? ""])]),
+        "Morosos",
+      );
+      const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const stamp = new Date().toISOString().slice(0, 10);
+      const fileName = `Historico-cartera-${stamp}.xlsx`;
+      const path = `tenants/${tid}/cartera-history/${stamp}-${Date.now()}.xlsx`;
+      const sref = storageRef(storage, path);
+      await uploadBytes(sref, blob);
+      const fileUrl = await getDownloadURL(sref);
+      const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "cartera_history" });
+      await createDocumentRecord({
+        tenantId: tid, userId: uid, userName: user?.fullName,
+        fileName, fileUrl, storagePath: path, fileSize: blob.size, contentType: blob.type,
+        category: "financiero", description: `Histórico de cartera al ${stamp}`,
+        source: "cartera_history", sourceId: stamp, folderId,
+      });
+      toast.success("Histórico guardado en Documentos → “Histórico de cartera”.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSavingHistory(false);
+    }
+  }
+
   async function handleScheduleReminder() {
     const tid = user?.tenantId;
     const uid = user?.uid;
@@ -1417,6 +1471,12 @@ export default function AdminBillingPage() {
               <Printer className="h-4 w-4" />
             </IconBadge>
             Imprimir PDF
+          </Button>
+          <Button type="button" variant="outline" disabled={savingHistory} onClick={() => void handleSaveCarteraHistory()}>
+            <IconBadge tone="sky" className="mr-2">
+              <FileSpreadsheet className="h-4 w-4" />
+            </IconBadge>
+            {savingHistory ? "Guardando..." : "Guardar histórico en Documentos"}
           </Button>
         </div>
 

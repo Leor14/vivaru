@@ -238,7 +238,7 @@ export async function ensureCommunicationsFolderCallable(input: { tenantId: stri
 
 export async function ensureSystemFolderCallable(input: {
   tenantId: string;
-  systemKey: "communications" | "regulations" | "committee_agreements" | "payment_receipts" | "billing_closures";
+  systemKey: "communications" | "regulations" | "committee_agreements" | "payment_receipts" | "billing_closures" | "committee_reports" | "cartera_history";
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { folderId: string }>(functions, "ensureSystemFolder");
