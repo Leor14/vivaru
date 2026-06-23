@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, increment, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
@@ -219,6 +219,15 @@ export async function createBillingSchedule(input: {
 export async function cancelBillingSchedule(id: string) {
   if (!db) return;
   await updateDoc(doc(db, "billingSchedules", id), { status: "cancelled", updatedAt: serverTimestamp() });
+}
+
+/** Suma 1 al contador de recordatorios de los cobros indicados (trazabilidad CRM, C2). */
+export async function incrementReminderCount(ids: string[]) {
+  if (!db || ids.length === 0) return;
+  const firestore = db;
+  const batch = writeBatch(firestore);
+  for (const id of ids) batch.update(doc(firestore, "billingStatements", id), { reminderCount: increment(1) });
+  await batch.commit();
 }
 
 // ─── Campañas de cobro (C1) ───────────────────────────────────────────────────

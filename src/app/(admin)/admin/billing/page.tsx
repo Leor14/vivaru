@@ -34,7 +34,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
-import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingCampaign, createBillingSchedule, createBillingStatement, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingCampaign, createBillingSchedule, createBillingStatement, incrementReminderCount, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -467,10 +467,14 @@ export default function AdminBillingPage() {
       const emitido = stmts.reduce((acc, s) => acc + (s.amount ?? 0), 0);
       const recaudado = stmts.reduce((acc, s) => acc + (s.paymentAmount ?? 0), 0);
       const pendiente = stmts.reduce((acc, s) => acc + (s.balance ?? 0), 0);
-      const pendientesUnitIds = stmts.filter((s) => (s.balance ?? 0) > 0).map((s) => s.unitId);
+      const pendientes = stmts.filter((s) => (s.balance ?? 0) > 0);
+      const pendientesUnitIds = pendientes.map((s) => s.unitId);
+      const pendientesStatementIds = pendientes.map((s) => s.id);
       const unitCount = stmts.length || c.unitCount || 0;
+      const paidCount = stmts.filter((s) => (s.balance ?? 0) <= 0).length;
+      const reminders = stmts.reduce((acc, s) => acc + (s.reminderCount ?? 0), 0);
       const pct = emitido > 0 ? Math.round((recaudado / emitido) * 100) : 0;
-      return { c, emitido, recaudado, pendiente, pendientesUnitIds, unitCount, pct };
+      return { c, emitido, recaudado, pendiente, pendientesUnitIds, pendientesStatementIds, unitCount, paidCount, reminders, pct };
     });
     // Mantenimiento (administración) primero; dentro, el orden por sentAt desc del hook.
     return rows.sort((a, b) => (a.c.concept === "administracion" ? 0 : 1) - (b.c.concept === "administracion" ? 0 : 1));
@@ -573,7 +577,7 @@ export default function AdminBillingPage() {
 
   const [remindingUnitId, setRemindingUnitId] = useState<string | null>(null);
 
-  async function handleSendReminder(unitIds: string[], busyKey: string, successMsg: string) {
+  async function handleSendReminder(unitIds: string[], busyKey: string, successMsg: string, statementIds: string[] = []) {
     if (!user?.tenantId) return;
     const unique = Array.from(new Set(unitIds.filter(Boolean)));
     if (unique.length === 0) {
@@ -583,6 +587,8 @@ export default function AdminBillingPage() {
     setRemindingUnitId(busyKey);
     try {
       const res = await sendBillingReminderCallable({ tenantId: user.tenantId, unitIds: unique });
+      // Trazabilidad: suma 1 al contador de recordatorios de esos cobros.
+      await incrementReminderCount(Array.from(new Set(statementIds.filter(Boolean))));
       toast.success(`${successMsg} (${res.notified} residente(s)).`);
     } catch (error) {
       toastFirebaseError(error);
@@ -1266,7 +1272,7 @@ export default function AdminBillingPage() {
               type="button"
               variant="outline"
               disabled={overdueRows.length === 0 || remindingUnitId === "__overdue__"}
-              onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a morosos")}
+              onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a morosos", overdueRows.map((r) => r.id))}
             >
               <IconBadge tone="sand" className="mr-2">
                 <SendHorizontal className="h-4 w-4" />
@@ -1319,7 +1325,7 @@ export default function AdminBillingPage() {
                 </tr>
               </thead>
               <tbody>
-                {campaignRows.map(({ c, recaudado, pendiente, pendientesUnitIds, unitCount, pct }) => (
+                {campaignRows.map(({ c, recaudado, pendiente, pendientesUnitIds, pendientesStatementIds, unitCount, pct }) => (
                   <tr key={c.id} className={`border-b border-[var(--slate-100)] ${campaignFilter === c.id ? "bg-[var(--slate-50)]" : ""}`}>
                     <td className="px-3 py-2 font-medium text-[var(--slate-800)]">{billingConceptLabel(c.concept)}</td>
                     <td className="px-3 py-2">{formatTableDate(c.period)}</td>
@@ -1338,7 +1344,7 @@ export default function AdminBillingPage() {
                           size="sm"
                           variant="outline"
                           disabled={pendientesUnitIds.length === 0 || remindingUnitId === `camp-${c.id}`}
-                          onClick={() => void handleSendReminder(pendientesUnitIds, `camp-${c.id}`, "Recordatorio enviado a pendientes")}
+                          onClick={() => void handleSendReminder(pendientesUnitIds, `camp-${c.id}`, "Recordatorio enviado a pendientes", pendientesStatementIds)}
                         >
                           <IconBadge tone="sand" className="mr-2">
                             <SendHorizontal className="h-4 w-4" />
@@ -1407,6 +1413,23 @@ export default function AdminBillingPage() {
           ) : null}
         </div>
 
+        {campaignFilter ? (() => {
+          const sel = campaignRows.find((r) => r.c.id === campaignFilter);
+          if (!sel) return null;
+          return (
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2 text-xs">
+              <span className="font-semibold text-[var(--slate-800)]">{billingConceptLabel(sel.c.concept)} · {formatTableDate(sel.c.period)}</span>
+              <span className="text-[var(--slate-600)]">Emitidos <strong>{sel.unitCount}</strong></span>
+              <span className="text-[var(--slate-400)]">→</span>
+              <span className="text-[var(--slate-600)]">Notificados <strong>{sel.unitCount}</strong></span>
+              <span className="text-[var(--slate-400)]">→</span>
+              <span className="text-emerald-700">Pagados <strong>{sel.paidCount}</strong></span>
+              <span className="rounded-full bg-white px-2 py-0.5 font-medium text-[var(--slate-700)]">{sel.pct}% recaudo</span>
+              <span className="text-[var(--slate-600)]">Recordatorios enviados: <strong>{sel.reminders}</strong></span>
+            </div>
+          );
+        })() : null}
+
         <div className="responsive-table-wrap mt-2 rounded-xl border border-[var(--slate-200)]">
           <table className="responsive-table min-w-[860px] text-xs sm:text-sm">
           <thead>
@@ -1419,6 +1442,7 @@ export default function AdminBillingPage() {
               <th className="px-3 py-2 font-medium text-left">Fecha límite</th>
               <th className="px-3 py-2 font-medium text-left">Estado</th>
               <th className="px-3 py-2 font-medium text-left">Comprobante</th>
+              <th className="px-3 py-2 font-medium text-left">Recordatorios</th>
               <th className="px-3 py-2 font-medium text-left">Acciones</th>
             </tr>
           </thead>
@@ -1434,13 +1458,14 @@ export default function AdminBillingPage() {
                   <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-8 rounded" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-7 w-16 rounded-xl" /></td>
                 </tr>
               ))
             ) : null}
             {!loading && filteredRows.length === 0 ? (
               <tr>
-                <td className="px-3 py-2" colSpan={9}>
+                <td className="px-3 py-2" colSpan={10}>
                   <EmptyState
                     title="Sin estados de cuenta"
                     description="No hay facturación registrada para este conjunto con los filtros actuales."
@@ -1506,6 +1531,13 @@ export default function AdminBillingPage() {
                   })()}
                 </td>
                 <td className="px-3 py-2">
+                  {item.reminderCount ? (
+                    <span className="font-medium text-[var(--slate-700)]">{item.reminderCount}</span>
+                  ) : (
+                    <span className="text-[var(--slate-400)]">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
@@ -1557,7 +1589,7 @@ export default function AdminBillingPage() {
                       size="sm"
                       variant="outline"
                       disabled={remindingUnitId === item.id}
-                      onClick={() => void handleSendReminder([item.unitId], item.id, "Recordatorio enviado")}
+                      onClick={() => void handleSendReminder([item.unitId], item.id, "Recordatorio enviado", [item.id])}
                     >
                       <IconBadge tone="sand" className="mr-2">
                         <SendHorizontal className="h-4 w-4" />
