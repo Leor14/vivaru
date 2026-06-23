@@ -186,7 +186,10 @@ export default function AdminBillingPage() {
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
   const [reminderTarget, setReminderTarget] = useState<{ campaignId: string; label: string; unitIds: string[]; statementIds: string[] } | null>(null);
   const [reminderDate, setReminderDate] = useState("");
-  const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit" | "overdue">("campaigns");
+  const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit" | "overdue" | "morosos">("campaigns");
+  const [conceptFilter, setConceptFilter] = useState<BillingConcept | "all">("all");
+  const [periodFilter, setPeriodFilter] = useState("all");
+  const [pendingClosePeriod, setPendingClosePeriod] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
   const [catalogUnitsLoading, setCatalogUnitsLoading] = useState(false);
@@ -439,16 +442,19 @@ export default function AdminBillingPage() {
     return normalizedRows.filter((item) => {
       const byStatus = statusFilter === "all" ? true : item.status === statusFilter;
       const byUnit = unitFilter === "all" ? true : item.unitLabel === unitFilter;
+      const byConcept = conceptFilter === "all" ? true : (item.concept ?? "administracion") === conceptFilter;
+      const byPeriod = periodFilter === "all" ? true : item.period === periodFilter;
       const byCampaign = campaignFilter ? item.campaignId === campaignFilter : true;
+      const base = byStatus && byUnit && byConcept && byPeriod && byCampaign;
       // "Cartera vencida": todos los cobros con saldo, incluso de períodos cerrados.
       if (listView === "overdue") {
-        return (item.balance ?? 0) > 0 && byStatus && byUnit && byCampaign;
+        return (item.balance ?? 0) > 0 && base;
       }
       // "Cobros individuales" = sin campaña; "Por unidad" = todos. Oculta archivados.
       const byView = listView === "individuals" ? item.campaignId == null : true;
-      return !item.archived && byStatus && byUnit && byCampaign && byView;
+      return !item.archived && base && byView;
     });
-  }, [normalizedRows, statusFilter, unitFilter, campaignFilter, listView]);
+  }, [normalizedRows, statusFilter, unitFilter, conceptFilter, periodFilter, campaignFilter, listView]);
 
   const overdueRows = useMemo(() => normalizedRows.filter((item) => item.status === "overdue"), [normalizedRows]);
 
@@ -508,6 +514,26 @@ export default function AdminBillingPage() {
   const openPeriods = useMemo(() => periodAgg.filter((p) => p.activos > 0), [periodAgg]);
   const closedPeriods = useMemo(() => periodAgg.filter((p) => p.activos === 0 && p.archivados > 0), [periodAgg]);
   const currentPeriod = new Date().toISOString().slice(0, 7);
+
+  // Tablero de morosos: agrega por unidad todos los cobros con saldo (incluye cerrados).
+  const morosos = useMemo(() => {
+    const map = new Map<string, { unitId: string; unitLabel: string; deuda: number; periodos: string[]; statementIds: string[]; lastPaymentAt?: string }>();
+    for (const s of items) {
+      if ((s.balance ?? 0) <= 0) continue;
+      const e = map.get(s.unitId) ?? { unitId: s.unitId, unitLabel: s.unitLabel, deuda: 0, periodos: [], statementIds: [], lastPaymentAt: undefined };
+      e.deuda += s.balance ?? 0;
+      e.statementIds.push(s.id);
+      if (!e.periodos.includes(s.period)) e.periodos.push(s.period);
+      if (s.lastPaymentAt && (!e.lastPaymentAt || s.lastPaymentAt > e.lastPaymentAt)) e.lastPaymentAt = s.lastPaymentAt;
+      map.set(s.unitId, e);
+    }
+    return Array.from(map.values())
+      .map((m) => ({ ...m, periodos: m.periodos.sort() }))
+      .sort((a, b) => b.deuda - a.deuda);
+  }, [items]);
+  const morososTotal = useMemo(() => morosos.reduce((acc, m) => acc + m.deuda, 0), [morosos]);
+  const periodOptions = useMemo(() => periodAgg.map((p) => p.period), [periodAgg]);
+  const carteraActiveFilters = [statusFilter !== "all", unitFilter !== "all", conceptFilter !== "all", periodFilter !== "all"].filter(Boolean).length;
   const [closingPeriod, setClosingPeriod] = useState<string | null>(null);
 
   // Etiquetas de unidad repetidas (docs duplicados con el mismo nombre) → se señalan.
@@ -1438,6 +1464,7 @@ export default function AdminBillingPage() {
           { key: "individuals", label: "Cobros individuales" },
           { key: "byUnit", label: "Por unidad" },
           { key: "overdue", label: "Cartera vencida" },
+          { key: "morosos", label: "Morosos" },
         ] as const).map((t) => (
           <button
             key={t.key}
@@ -1523,44 +1550,71 @@ export default function AdminBillingPage() {
         </Card>
       ) : null}
 
-      {listView !== "campaigns" ? (
+      {listView !== "campaigns" && listView !== "morosos" ? (
       <Card>
         <MobileFiltersPanel
           title="Filtros de cartera"
-          helpText="Encuentra rápido lo que buscas en la tabla. Filtra por estado — Al día, Pendiente o En mora — y por unidad, o combina ambos para afinar aún más. El resultado es instantáneo. Ten en cuenta que estos filtros no tocan el gráfico de arriba, que maneja sus propios controles. Cuando exportes a Excel, el archivo reflejará exactamente lo que estás viendo en ese momento."
+          collapsibleOnDesktop
+          defaultOpen={false}
+          openLabel="Filtros de cartera"
+          closeLabel="Ocultar filtros"
+          activeFiltersCount={carteraActiveFilters}
+          helpText="Filtra por estado, unidad, concepto o período, o combínalos para afinar. El resultado es instantáneo. Estos filtros no tocan el gráfico de arriba. Al exportar, el archivo refleja lo que estás viendo."
           footer={
             <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => {
               setStatusFilter("all");
               setUnitFilter("all");
+              setConceptFilter("all");
+              setPeriodFilter("all");
             }}>
               Limpiar filtros
             </Button>
           }
         >
-          <label className="text-sm text-[var(--slate-700)]">
-            Estado
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as BillingStatusFilter)}>
-              <option value="all">Todos</option>
-              <option value="paid">Al día</option>
-              <option value="pending">Pendiente</option>
-              <option value="overdue">En mora</option>
-            </select>
-          </label>
-          <label className="text-sm text-[var(--slate-700)]">
-            Unidad
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
-              <option value="all">Todas</option>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm text-[var(--slate-700)]">
+              Estado
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as BillingStatusFilter)}>
+                <option value="all">Todos</option>
+                <option value="paid">Al día</option>
+                <option value="pending">Pendiente</option>
+                <option value="overdue">En mora</option>
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Unidad
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+                <option value="all">Todas</option>
                 {allUnitLabels.map((unit) => (
-                <option key={unit} value={unit}>{unit}</option>
-              ))}
-            </select>
-          </label>
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Concepto
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={conceptFilter} onChange={(event) => setConceptFilter(event.target.value as BillingConcept | "all")}>
+                <option value="all">Todos</option>
+                {BILLING_CONCEPTS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-[var(--slate-700)]">
+              Período
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
+                <option value="all">Todos</option>
+                {periodOptions.map((p) => (
+                  <option key={p} value={p}>{formatTableDate(p)}</option>
+                ))}
+              </select>
+            </label>
+          </div>
         </MobileFiltersPanel>
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <p className="text-xs text-[var(--slate-500)]">
             {loading ? "Cargando registros..." : (
-              statusFilter === "all" && unitFilter === "all" && !campaignFilter
+              carteraActiveFilters === 0 && !campaignFilter
                 ? `${filteredRows.length} registro${filteredRows.length !== 1 ? "s" : ""}`
                 : `${filteredRows.length} de ${normalizedRows.length} registro${normalizedRows.length !== 1 ? "s" : ""}`
             )}
@@ -1815,6 +1869,60 @@ export default function AdminBillingPage() {
       </Card>
       ) : null}
 
+      {listView === "morosos" ? (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>Morosos</CardTitle>
+            <p className="text-sm text-[var(--slate-700)]">{morosos.length} unidad(es) · deuda total <strong>{formatAmount(morososTotal)}</strong></p>
+          </div>
+          <CardDescription className="mt-1">
+            Unidades con saldo pendiente (incluye la mora de períodos cerrados), ordenadas por deuda.
+          </CardDescription>
+          {morosos.length === 0 ? (
+            <div className="mt-3"><EmptyState title="Sin morosos" description="Ninguna unidad tiene saldo pendiente." /></div>
+          ) : (
+            <div className="responsive-table-wrap mt-3 rounded-xl border border-[var(--slate-200)]">
+              <table className="responsive-table min-w-[760px] text-xs sm:text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-700)]">
+                    <th className="px-3 py-2 font-medium text-left">Unidad</th>
+                    <th className="px-3 py-2 font-medium text-left">Deuda total</th>
+                    <th className="px-3 py-2 font-medium text-left"># períodos</th>
+                    <th className="px-3 py-2 font-medium text-left">Más antiguo</th>
+                    <th className="px-3 py-2 font-medium text-left">Último pago</th>
+                    <th className="px-3 py-2 font-medium text-left">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {morosos.map((m) => (
+                    <tr key={m.unitId} className="border-b border-[var(--slate-100)]">
+                      <td className="px-3 py-2 font-medium text-[var(--slate-800)]">{m.unitLabel}</td>
+                      <td className="px-3 py-2 font-semibold text-red-700">{formatAmount(m.deuda)}</td>
+                      <td className="px-3 py-2">{m.periodos.length}</td>
+                      <td className="px-3 py-2">{formatTableDate(m.periodos[0])}</td>
+                      <td className="px-3 py-2">{m.lastPaymentAt ? formatTableDate(m.lastPaymentAt) : "—"}</td>
+                      <td className="px-3 py-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={remindingUnitId === `mor-${m.unitId}`}
+                          onClick={() => void handleSendReminder([m.unitId], `mor-${m.unitId}`, "Recordatorio enviado", m.statementIds)}
+                        >
+                          <IconBadge tone="sand" className="mr-2">
+                            <SendHorizontal className="h-4 w-4" />
+                          </IconBadge>
+                          {remindingUnitId === `mor-${m.unitId}` ? "Enviando..." : "Recordar"}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      ) : null}
+
       <Card className="soft-panel">
         <CardTitle>Cierre de períodos</CardTitle>
         <CardDescription className="mt-1">
@@ -1836,7 +1944,7 @@ export default function AdminBillingPage() {
                       size="sm"
                       variant="outline"
                       disabled={closingPeriod === p.period || isCurrent}
-                      onClick={() => void handleClosePeriod(p.period)}
+                      onClick={() => setPendingClosePeriod(p.period)}
                     >
                       {closingPeriod === p.period ? "Cerrando..." : isCurrent ? "Mes vigente" : "Cerrar y archivar"}
                     </Button>
@@ -1925,6 +2033,39 @@ export default function AdminBillingPage() {
         onClose={handleCloseEditDrawer}
         onSave={handleRowUpdate}
       />
+
+      <Dialog open={Boolean(pendingClosePeriod)} onClose={() => setPendingClosePeriod(null)} className="max-w-md p-6">
+        <h3 className="text-base font-semibold text-[var(--slate-900)]">Cerrar y archivar período</h3>
+        <p className="mt-2 text-sm text-[var(--slate-700)]">
+          Vas a cerrar <strong>{pendingClosePeriod ? formatTableDate(pendingClosePeriod) : ""}</strong>. Al aceptar:
+        </p>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--slate-600)]">
+          <li>Se genera un reporte Excel en Documentos → “Cierres de cartera”.</li>
+          <li>Sus cobros dejan de aparecer en las tablas vivas (no se borran).</li>
+          {(() => {
+            const agg = periodAgg.find((p) => p.period === pendingClosePeriod);
+            return agg && agg.pendiente > 0 ? (
+              <li>La mora de <strong>{formatAmount(agg.pendiente)}</strong> se conserva en “Cartera vencida” y “Morosos”.</li>
+            ) : null;
+          })()}
+          <li>Puedes reabrir el período cuando quieras.</li>
+        </ul>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setPendingClosePeriod(null)} disabled={closingPeriod === pendingClosePeriod}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              const p = pendingClosePeriod;
+              setPendingClosePeriod(null);
+              if (p) void handleClosePeriod(p);
+            }}
+            disabled={closingPeriod === pendingClosePeriod}
+          >
+            Cerrar y archivar
+          </Button>
+        </div>
+      </Dialog>
 
       <Dialog open={isSwitchConfirmOpen} onClose={closeSwitchConfirm} className="max-w-md p-6">
         <h3 className="text-base font-semibold text-[var(--slate-900)]">Cambiar de registro</h3>
