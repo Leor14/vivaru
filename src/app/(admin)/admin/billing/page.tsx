@@ -34,7 +34,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
-import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingCampaign, createBillingSchedule, createBillingStatement, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, cancelReminderJob, createBillingCampaign, createBillingSchedule, createBillingStatement, createReminderJob, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements, useReminderJobs } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -182,7 +182,10 @@ export default function AdminBillingPage() {
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId);
   const { items: scheduledCharges } = useBillingSchedules(user?.tenantId);
   const { items: campaigns } = useBillingCampaigns(user?.tenantId);
+  const { items: reminderJobs } = useReminderJobs(user?.tenantId);
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
+  const [reminderTarget, setReminderTarget] = useState<{ campaignId: string; label: string; unitIds: string[]; statementIds: string[] } | null>(null);
+  const [reminderDate, setReminderDate] = useState("");
   const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit" | "overdue">("campaigns");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [catalogUnits, setCatalogUnits] = useState<BillingUnitOption[]>([]);
@@ -683,6 +686,20 @@ export default function AdminBillingPage() {
     }
   }
 
+  async function handleScheduleReminder() {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid || !reminderTarget || !reminderDate) return;
+    try {
+      await createReminderJob({ tenantId: tid, userId: uid, campaignId: reminderTarget.campaignId, scheduledFor: reminderDate });
+      toast.success(`Recordatorio programado para el ${reminderDate}. Se enviará a quienes sigan pendientes ese día.`);
+      setReminderTarget(null);
+      setReminderDate("");
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
   const [remindingUnitId, setRemindingUnitId] = useState<string | null>(null);
 
   async function handleSendReminder(unitIds: string[], busyKey: string, successMsg: string, statementIds: string[] = []) {
@@ -697,7 +714,11 @@ export default function AdminBillingPage() {
       const res = await sendBillingReminderCallable({ tenantId: user.tenantId, unitIds: unique });
       // Trazabilidad: suma 1 al contador de recordatorios de esos cobros.
       await incrementReminderCount(Array.from(new Set(statementIds.filter(Boolean))));
-      toast.success(`${successMsg} (${res.notified} residente(s)).`);
+      const sinCuenta = res.unitsWithoutRecipient ?? 0;
+      toast.success(
+        `${successMsg}: ${res.notified} residente(s)` +
+          (sinCuenta > 0 ? ` · ${sinCuenta} unidad(es) sin residente con cuenta activa` : ""),
+      );
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -1476,7 +1497,15 @@ export default function AdminBillingPage() {
                           size="sm"
                           variant="outline"
                           disabled={pendientesUnitIds.length === 0 || remindingUnitId === `camp-${c.id}`}
-                          onClick={() => void handleSendReminder(pendientesUnitIds, `camp-${c.id}`, "Recordatorio enviado a pendientes", pendientesStatementIds)}
+                          onClick={() => {
+                            setReminderTarget({
+                              campaignId: c.id,
+                              label: `${billingConceptLabel(c.concept)} · ${formatTableDate(c.period)}`,
+                              unitIds: pendientesUnitIds,
+                              statementIds: pendientesStatementIds,
+                            });
+                            setReminderDate("");
+                          }}
                         >
                           <IconBadge tone="sand" className="mr-2">
                             <SendHorizontal className="h-4 w-4" />
@@ -1556,17 +1585,43 @@ export default function AdminBillingPage() {
         {campaignFilter ? (() => {
           const sel = campaignRows.find((r) => r.c.id === campaignFilter);
           if (!sel) return null;
+          const scheduled = reminderJobs.filter((j) => j.campaignId === sel.c.id).length;
           return (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2 text-xs">
-              <span className="font-semibold text-[var(--slate-800)]">{billingConceptLabel(sel.c.concept)} · {formatTableDate(sel.c.period)}</span>
-              <span className="text-[var(--slate-600)]">Emitidos <strong>{sel.unitCount}</strong></span>
-              <span className="text-[var(--slate-400)]">→</span>
-              <span className="text-[var(--slate-600)]">Notificados <strong>{sel.unitCount}</strong></span>
-              <span className="text-[var(--slate-400)]">→</span>
-              <span className="text-emerald-700">Pagados <strong>{sel.paidCount}</strong></span>
-              <span className="rounded-full bg-white px-2 py-0.5 font-medium text-[var(--slate-700)]">{sel.pct}% recaudo</span>
-              <span className="text-[var(--slate-600)]">Recordatorios enviados: <strong>{sel.reminders}</strong></span>
-            </div>
+            <>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2 text-xs">
+                <span className="font-semibold text-[var(--slate-800)]">{billingConceptLabel(sel.c.concept)} · {formatTableDate(sel.c.period)}</span>
+                <span className="text-[var(--slate-600)]">Emitidos <strong>{sel.unitCount}</strong></span>
+                <span className="text-[var(--slate-400)]">→</span>
+                <span className="text-[var(--slate-600)]">Notificados <strong>{sel.unitCount}</strong></span>
+                <span className="text-[var(--slate-400)]">→</span>
+                <span className="text-emerald-700">Pagados <strong>{sel.paidCount}</strong></span>
+                <span className="rounded-full bg-white px-2 py-0.5 font-medium text-[var(--slate-700)]">{sel.pct}% recaudo</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2 text-xs">
+                <span className="text-[var(--slate-600)]">Notificación enviada: <strong>{formatSentAt(sel.c.sentAt)}</strong></span>
+                <span className="text-[var(--slate-400)]">·</span>
+                <span className="text-[var(--slate-600)]">Recordatorios enviados: <strong>{sel.reminders}</strong></span>
+                {scheduled > 0 ? (
+                  <>
+                    <span className="text-[var(--slate-400)]">·</span>
+                    <span className="text-amber-700">Programados:</span>
+                    {reminderJobs
+                      .filter((j) => j.campaignId === sel.c.id)
+                      .map((j) => (
+                        <button
+                          key={j.id}
+                          type="button"
+                          onClick={() => void cancelReminderJob(j.id)}
+                          title="Cancelar recordatorio programado"
+                          className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700 hover:bg-amber-100"
+                        >
+                          {j.scheduledFor} ✕
+                        </button>
+                      ))}
+                  </>
+                ) : null}
+              </div>
+            </>
           );
         })() : null}
 
@@ -1810,6 +1865,50 @@ export default function AdminBillingPage() {
           </div>
         </div>
       </Card>
+
+      {reminderTarget ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-[var(--slate-900)]">Recordar a pendientes</h3>
+            <p className="mt-1 text-sm text-[var(--slate-600)]">
+              {reminderTarget.label} · {reminderTarget.unitIds.length} unidad(es) pendiente(s).
+            </p>
+            <div className="mt-4 space-y-3">
+              <Button
+                className="w-full"
+                disabled={remindingUnitId === `camp-${reminderTarget.campaignId}`}
+                onClick={() => {
+                  const t = reminderTarget;
+                  setReminderTarget(null);
+                  void handleSendReminder(t.unitIds, `camp-${t.campaignId}`, "Recordatorio enviado a pendientes", t.statementIds);
+                }}
+              >
+                Enviar ahora
+              </Button>
+              <div className="rounded-xl border border-[var(--slate-200)] p-3">
+                <label className="block text-xs font-medium text-[var(--slate-700)]">
+                  Programar para
+                  <input
+                    type="date"
+                    value={reminderDate}
+                    onChange={(e) => setReminderDate(e.target.value)}
+                    className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+                  />
+                </label>
+                <p className="mt-1 text-[11px] text-[var(--slate-500)]">Se enviará ese día a quienes sigan pendientes en ese momento.</p>
+                <Button variant="outline" className="mt-2 w-full" disabled={!reminderDate} onClick={() => void handleScheduleReminder()}>
+                  Programar
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button variant="ghost" onClick={() => { setReminderTarget(null); setReminderDate(""); }}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <RecordPaymentModal
         open={Boolean(paymentTarget)}

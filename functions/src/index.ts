@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
@@ -2605,12 +2605,60 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
     ]);
     const lists = await Promise.all(unitIds.map((unitId) => listResidentUidsByUnit(tenantId, unitId)));
     const residentUids = Array.from(new Set(lists.flat()));
-    if (residentUids.length === 0) return { ok: true, notified: 0 };
+    const unitsWithoutRecipient = lists.filter((l) => l.length === 0).length;
+    if (residentUids.length === 0) {
+      return { ok: true, notified: 0, units: unitIds.length, unitsWithoutRecipient };
+    }
 
     await deliverResidentNotifications("billing_reminder", tenantId, residentUids, { conjunto }, override);
-    return { ok: true, notified: residentUids.length };
+    return { ok: true, notified: residentUids.length, units: unitIds.length, unitsWithoutRecipient };
   },
 );
+
+// Recordatorios programados: al dispararse, RECALCULA los pendientes de la campaña en ese
+// momento y los notifica (no congela la lista al programar).
+export const sendScheduledReminders = onSchedule({ schedule: "0 9 * * *", secrets: [resendApiKey] }, async () => {
+  const now = new Date();
+  const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
+
+  const snap = await db.collection("billingReminderJobs").where("status", "==", "scheduled").get();
+  for (const docSnap of snap.docs) {
+    const job = docSnap.data() as { tenantId?: string; campaignId?: string | null; scheduledFor?: string };
+    if (!job.tenantId || !job.scheduledFor || job.scheduledFor > today) continue;
+
+    // Pendientes actuales de la campaña.
+    let pendingStmts: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+    if (job.campaignId) {
+      const s = await db
+        .collection("billingStatements")
+        .where("tenantId", "==", job.tenantId)
+        .where("campaignId", "==", job.campaignId)
+        .get();
+      pendingStmts = s.docs.filter((d) => ((d.data() as { balance?: number }).balance ?? 0) > 0);
+    }
+    const unitIds = Array.from(
+      new Set(pendingStmts.map((d) => (d.data() as { unitId?: string }).unitId).filter(Boolean) as string[]),
+    );
+
+    if (unitIds.length > 0) {
+      const lists = await Promise.all(unitIds.map((u) => listResidentUidsByUnit(job.tenantId as string, u)));
+      const residentUids = Array.from(new Set(lists.flat()));
+      if (residentUids.length > 0) {
+        const [override, conjunto] = await Promise.all([
+          getTenantNotificationOverride(job.tenantId, "billing_reminder"),
+          getTenantName(job.tenantId),
+        ]);
+        await deliverResidentNotifications("billing_reminder", job.tenantId, residentUids, { conjunto }, override);
+        for (let i = 0; i < pendingStmts.length; i += 400) {
+          const batch = db.batch();
+          for (const d of pendingStmts.slice(i, i + 400)) batch.update(d.ref, { reminderCount: FieldValue.increment(1) });
+          await batch.commit();
+        }
+      }
+    }
+    await docSnap.ref.update({ status: "sent", sentAt: Timestamp.now(), notifiedUnits: unitIds.length });
+  }
+});
 
 // Colecciones que referencian una unidad por su doc id (campo a re-apuntar al fusionar).
 const UNIT_REF_FIELDS: { collection: string; field: string }[] = [

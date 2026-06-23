@@ -310,3 +310,50 @@ export async function createBillingCampaign(input: {
   });
   return ref.id;
 }
+
+// ─── Recordatorios programados (2º lote) ──────────────────────────────────────
+
+export interface BillingReminderJob {
+  id: string;
+  tenantId: string;
+  campaignId?: string | null;
+  scheduledFor: string;
+  status: "scheduled" | "sent" | "cancelled";
+}
+
+export function useReminderJobs(tenantId?: string) {
+  const [items, setItems] = useState<BillingReminderJob[]>([]);
+  useEffect(() => {
+    if (!tenantId || !db) return;
+    const unsub = subscribeTenantCollection<BillingReminderJob>(
+      "billingReminderJobs",
+      tenantId,
+      (data) => setItems(data),
+      () => {},
+      { orderByField: "scheduledFor", orderDirection: "asc", equals: [{ field: "status", value: "scheduled" }] },
+    );
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [tenantId]);
+  if (!tenantId || !db) return { items: [] };
+  return { items };
+}
+
+export async function createReminderJob(input: {
+  tenantId: string;
+  userId: string;
+  campaignId: string;
+  scheduledFor: string;
+}) {
+  await createTenantDocument("billingReminderJobs", input.tenantId, input.userId, {
+    campaignId: input.campaignId,
+    scheduledFor: input.scheduledFor,
+    status: "scheduled",
+  });
+}
+
+export async function cancelReminderJob(id: string) {
+  if (!db) return;
+  await updateDoc(doc(db, "billingReminderJobs", id), { status: "cancelled", updatedAt: serverTimestamp() });
+}

@@ -259,7 +259,7 @@ export async function notifyResidentReceiptCallable(input: {
 
 export async function sendBillingReminderCallable(input: { tenantId: string; unitIds: string[] }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
-  const callable = httpsCallable<typeof input, { ok: boolean; notified: number }>(functions, "sendBillingReminder");
+  const callable = httpsCallable<typeof input, { ok: boolean; notified: number; units?: number; unitsWithoutRecipient?: number }>(functions, "sendBillingReminder");
   return executeCallable(callable, input, "No fue posible enviar el recordatorio.");
 }
 
