@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase/client";
 import {
   BarChart,
   Bar,
@@ -121,6 +123,21 @@ export default function AdminReportsPage() {
 
   const report = useCommitteeReport(user?.tenantId, range);
   const periodLabel = useMemo(() => formatPeriodLabel(range), [range]);
+
+  // Logo del conjunto para el encabezado del informe (R5).
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.tenantId || !db) return;
+    return onSnapshot(doc(db, "tenants", user.tenantId), (snap) => {
+      const url = (snap.data()?.branding as { logoUrl?: string } | undefined)?.logoUrl;
+      setLogoUrl(typeof url === "string" && url ? url : null);
+    });
+  }, [user?.tenantId]);
+
+  const generatedAt = useMemo(
+    () => new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" }),
+    [],
+  );
   const overduePager = usePagination(report?.billing.overdueUnits ?? []);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -384,15 +401,22 @@ export default function AdminReportsPage() {
 
         {/* ── Report body (printable) ── */}
         <div id="committee-report" ref={printRef}>
-          {/* Print header */}
+          {/* Print header (informe formal, R5) */}
           <div className="mb-6 hidden items-center justify-between border-b border-[var(--slate-200)] pb-4 print:flex">
-            <div>
-              <p className="text-lg font-bold text-[var(--slate-900)]">Reporte de Comité</p>
-              <p className="text-sm text-[var(--slate-600)]">{periodLabel}</p>
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="h-12 w-12 rounded object-contain" />
+              ) : null}
+              <div>
+                <p className="text-lg font-bold text-[var(--slate-900)]">{user?.tenantName ?? "Conjunto"}</p>
+                <p className="text-sm text-[var(--slate-600)]">Reporte de Comité · {periodLabel}</p>
+              </div>
             </div>
-            <p className="text-xs text-[var(--slate-400)]">
-              Generado: {new Date().toLocaleDateString("es-MX", { day: "2-digit", month: "long", year: "numeric" })}
-            </p>
+            <div className="text-right text-xs text-[var(--slate-500)]">
+              <p>Generado: {generatedAt}</p>
+              {user?.fullName ? <p>Preparado por: {user.fullName}</p> : null}
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -728,6 +752,22 @@ export default function AdminReportsPage() {
                   ) : null}
                 </section>
               ) : null}
+
+              {/* ── Aprobación del comité (informe formal, R5) ── */}
+              <section className="mt-2 border-t border-[var(--slate-200)] pt-6">
+                <SectionTitle>✍️ Aprobación del comité</SectionTitle>
+                <p className="text-sm text-[var(--slate-600)]">
+                  El comité revisó y aprueba el presente reporte del período <strong>{periodLabel}</strong>.
+                </p>
+                <div className="mt-10 grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-3">
+                  {["Presidente", "Tesorero / Secretario", "Administrador"].map((role) => (
+                    <div key={role} className="text-center">
+                      <div className="border-t border-[var(--slate-400)] pt-1 text-xs font-medium text-[var(--slate-700)]">{role}</div>
+                      <div className="mt-0.5 text-[10px] text-[var(--slate-400)]">Nombre, firma y fecha</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
             </div>
         </div>
