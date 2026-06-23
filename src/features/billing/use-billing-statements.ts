@@ -221,6 +221,36 @@ export async function cancelBillingSchedule(id: string) {
   await updateDoc(doc(db, "billingSchedules", id), { status: "cancelled", updatedAt: serverTimestamp() });
 }
 
+/** Marca/desmarca como archivados los cobros indicados (C4a). No borra datos. */
+export async function setStatementsArchived(ids: string[], archived: boolean, userId?: string) {
+  if (!db || ids.length === 0) return;
+  const firestore = db;
+  for (let i = 0; i < ids.length; i += 400) {
+    const batch = writeBatch(firestore);
+    for (const id of ids.slice(i, i + 400)) {
+      batch.update(doc(firestore, "billingStatements", id), {
+        archived,
+        ...(userId ? { updatedBy: userId } : {}),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+  }
+}
+
+/** Cambia el estado de las campañas indicadas (vigente/cerrada). */
+export async function setCampaignStatus(ids: string[], status: "vigente" | "cerrada") {
+  if (!db || ids.length === 0) return;
+  const firestore = db;
+  for (let i = 0; i < ids.length; i += 400) {
+    const batch = writeBatch(firestore);
+    for (const id of ids.slice(i, i + 400)) {
+      batch.update(doc(firestore, "billingCampaigns", id), { status, updatedAt: serverTimestamp() });
+    }
+    await batch.commit();
+  }
+}
+
 /** Suma 1 al contador de recordatorios de los cobros indicados (trazabilidad CRM, C2). */
 export async function incrementReminderCount(ids: string[]) {
   if (!db || ids.length === 0) return;

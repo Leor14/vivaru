@@ -1609,6 +1609,7 @@ const SYSTEM_FOLDERS: Record<string, { name: string; description: string }> = {
   regulations: { name: "Reglamentos", description: "Reglamentos del conjunto. Carpeta del sistema." },
   committee_agreements: { name: "Acuerdos de comité", description: "Actas y acuerdos de comité. Carpeta del sistema." },
   payment_receipts: { name: "Comprobantes de pago", description: "Comprobantes de pago aprobados de los residentes. Carpeta del sistema." },
+  billing_closures: { name: "Cierres de cartera", description: "Reportes de cierre de períodos de cartera. Carpeta del sistema." },
 };
 
 async function ensureSystemFolderImpl(tenantId: string, actorUid: string, systemKey: string): Promise<string> {

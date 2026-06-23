@@ -34,7 +34,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
-import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingCampaign, createBillingSchedule, createBillingStatement, incrementReminderCount, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
+import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, createBillingCampaign, createBillingSchedule, createBillingStatement, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -48,7 +48,9 @@ import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { TableroCarousel } from "@/components/features/finanzas/tablero-carousel";
 import { Dialog } from "@/components/ui/dialog";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
-import { createCommunication } from "@/features/admin/services";
+import { createCommunication, createDocumentRecord } from "@/features/admin/services";
+import { storage } from "@/lib/firebase/client";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { chartAxis, chartBar, chartColors, chartGrid, chartLine, chartMargin } from "@/features/finanzas/chart-theme";
@@ -435,9 +437,9 @@ export default function AdminBillingPage() {
       const byStatus = statusFilter === "all" ? true : item.status === statusFilter;
       const byUnit = unitFilter === "all" ? true : item.unitLabel === unitFilter;
       const byCampaign = campaignFilter ? item.campaignId === campaignFilter : true;
-      // "Cobros individuales" = sin campaña; "Por unidad" = todos.
+      // "Cobros individuales" = sin campaña; "Por unidad" = todos. Oculta archivados.
       const byView = listView === "individuals" ? item.campaignId == null : true;
-      return byStatus && byUnit && byCampaign && byView;
+      return !item.archived && byStatus && byUnit && byCampaign && byView;
     });
   }, [normalizedRows, statusFilter, unitFilter, campaignFilter, listView]);
 
@@ -482,6 +484,23 @@ export default function AdminBillingPage() {
     // Mantenimiento (administración) primero; dentro, el orden por sentAt desc del hook.
     return rows.sort((a, b) => (a.c.concept === "administracion" ? 0 : 1) - (b.c.concept === "administracion" ? 0 : 1));
   }, [campaigns, items]);
+
+  // Agregado por período para el cierre/archivado (C4a). Usa el set completo.
+  const periodAgg = useMemo(() => {
+    const map = new Map<string, { period: string; total: number; pendiente: number; activos: number; archivados: number }>();
+    for (const s of items) {
+      const e = map.get(s.period) ?? { period: s.period, total: 0, pendiente: 0, activos: 0, archivados: 0 };
+      e.total += s.amount ?? 0;
+      e.pendiente += s.balance ?? 0;
+      if (s.archived) e.archivados += 1;
+      else e.activos += 1;
+      map.set(s.period, e);
+    }
+    return Array.from(map.values()).sort((a, b) => (a.period < b.period ? 1 : -1));
+  }, [items]);
+  const openPeriods = useMemo(() => periodAgg.filter((p) => p.activos > 0), [periodAgg]);
+  const closedPeriods = useMemo(() => periodAgg.filter((p) => p.activos === 0 && p.archivados > 0), [periodAgg]);
+  const [closingPeriod, setClosingPeriod] = useState<string | null>(null);
 
   // Etiquetas de unidad repetidas (docs duplicados con el mismo nombre) → se señalan.
   const duplicateLabels = useMemo(() => {
@@ -575,6 +594,87 @@ export default function AdminBillingPage() {
       toast.success("Cobro programado cancelado.");
     } catch (error) {
       toastFirebaseError(error);
+    }
+  }
+
+  async function handleClosePeriod(period: string) {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid) return;
+    const periodRows = normalizedRows.filter((r) => r.period === period && !r.archived);
+    if (periodRows.length === 0) return;
+    const pending = periodRows.filter((r) => (r.balance ?? 0) > 0).length;
+    if (pending > 0) {
+      toast.error(`El período ${period} tiene ${pending} cobro(s) con saldo pendiente. Liquídalos antes de cerrar.`);
+      return;
+    }
+    if (!storage) {
+      toast.error("Almacenamiento no disponible.");
+      return;
+    }
+    setClosingPeriod(period);
+    try {
+      // Reporte de cierre (Excel) → Storage.
+      const ws = XLSX.utils.json_to_sheet(
+        periodRows.map((r) => ({
+          Apartamento: r.unitLabel,
+          Concepto: billingConceptLabel(r.concept),
+          Monto: r.amount ?? 0,
+          Abono: r.paymentAmount ?? 0,
+          Saldo: r.balance ?? 0,
+          Estado: r.status,
+        })),
+      );
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, period);
+      const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const fileName = `Cierre-cartera-${period}.xlsx`;
+      const path = `tenants/${tid}/billing-closures/${period}-${Date.now()}.xlsx`;
+      const sref = storageRef(storage, path);
+      await uploadBytes(sref, blob);
+      const fileUrl = await getDownloadURL(sref);
+
+      const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "billing_closures" });
+      await createDocumentRecord({
+        tenantId: tid,
+        userId: uid,
+        userName: user?.fullName,
+        fileName,
+        fileUrl,
+        storagePath: path,
+        fileSize: blob.size,
+        contentType: blob.type,
+        category: "financiero",
+        description: `Cierre de cartera ${period}`,
+        source: "billing_closure",
+        sourceId: period,
+        folderId,
+      });
+
+      await setStatementsArchived(periodRows.map((r) => r.id), true, uid);
+      await setCampaignStatus(campaigns.filter((c) => c.period === period).map((c) => c.id), "cerrada");
+      toast.success(`Período ${period} cerrado. El reporte quedó en Documentos → “Cierres de cartera”.`);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setClosingPeriod(null);
+    }
+  }
+
+  async function handleReopenPeriod(period: string) {
+    const uid = user?.uid;
+    const ids = items.filter((s) => s.period === period && s.archived).map((s) => s.id);
+    if (ids.length === 0) return;
+    setClosingPeriod(period);
+    try {
+      await setStatementsArchived(ids, false, uid);
+      await setCampaignStatus(campaigns.filter((c) => c.period === period).map((c) => c.id), "vigente");
+      toast.success(`Período ${period} reabierto.`);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setClosingPeriod(null);
     }
   }
 
@@ -1647,6 +1747,54 @@ export default function AdminBillingPage() {
       ) : null}
       </Card>
       ) : null}
+
+      <Card className="soft-panel">
+        <CardTitle>Cierre de períodos</CardTitle>
+        <CardDescription className="mt-1">
+          Archiva los períodos ya liquidados: se guarda un reporte en Documentos → “Cierres de cartera” y dejan de aparecer en las tablas de arriba. Los datos y el análisis por período se conservan; puedes reabrir un período cuando quieras.
+        </CardDescription>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold text-[var(--slate-500)]">Abiertos</p>
+            {openPeriods.length === 0 ? (
+              <p className="mt-1 text-xs text-[var(--slate-500)]">—</p>
+            ) : (
+              <ul className="mt-1 space-y-1">
+                {openPeriods.map((p) => (
+                  <li key={p.period} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-3 py-1.5 text-xs">
+                    <span className="text-[var(--slate-700)]">{formatTableDate(p.period)} · saldo {formatAmount(p.pendiente)}</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={closingPeriod === p.period || p.pendiente > 0}
+                      onClick={() => void handleClosePeriod(p.period)}
+                    >
+                      {closingPeriod === p.period ? "Cerrando..." : p.pendiente > 0 ? "Con saldo" : "Cerrar y archivar"}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-[var(--slate-500)]">Cerrados</p>
+            {closedPeriods.length === 0 ? (
+              <p className="mt-1 text-xs text-[var(--slate-500)]">—</p>
+            ) : (
+              <ul className="mt-1 space-y-1">
+                {closedPeriods.map((p) => (
+                  <li key={p.period} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-1.5 text-xs">
+                    <span className="text-[var(--slate-700)]">{formatTableDate(p.period)} · {p.archivados} cobro(s)</span>
+                    <Button size="sm" variant="ghost" disabled={closingPeriod === p.period} onClick={() => void handleReopenPeriod(p.period)}>
+                      {closingPeriod === p.period ? "..." : "Reabrir"}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <RecordPaymentModal
         open={Boolean(paymentTarget)}
