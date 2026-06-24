@@ -1733,9 +1733,23 @@ export default function AdminBillingPage() {
         </div>
 
         {listView === "overdue" ? (
-          <p className="mt-2 text-xs text-amber-700">
-            Todos los cobros con saldo, incluida la mora de meses ya cerrados. Recuérdales o registra su pago desde aquí.
-          </p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-amber-700">
+              Todos los cobros con saldo, incluida la mora de meses ya cerrados. Recuérdales o registra su pago desde aquí.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={overdueRows.length === 0 || remindingUnitId === "__overdue__"}
+              onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a cartera vencida", overdueRows.map((r) => r.id))}
+            >
+              <IconBadge tone="sand" className="mr-2">
+                <SendHorizontal className="h-4 w-4" />
+              </IconBadge>
+              {remindingUnitId === "__overdue__" ? "Enviando..." : "Recordar a todos"}
+            </Button>
+          </div>
         ) : null}
 
         {campaignFilter ? (() => {
