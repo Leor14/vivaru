@@ -952,6 +952,25 @@ export default function AdminBillingPage() {
     URL.revokeObjectURL(url);
   }
 
+  // Plantilla de carga inicial: la cartera con la que llega un conjunto nuevo.
+  // Una fila por unidad; period = mes de arranque; amount = saldo pendiente; sin pago.
+  function handleDownloadOpeningBalances() {
+    const now = new Date();
+    const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const csv = buildCsvRows([
+      { unitLabel: "T1-101", period, amount: 450000, paymentAmount: 0, dueDate: "" },
+      { unitLabel: "T1-102", period, amount: 0, paymentAmount: 0, dueDate: "" },
+      { unitLabel: "T2-201", period, amount: 1200000, paymentAmount: 0, dueDate: "" },
+    ]);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "plantilla-saldos-iniciales.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleImportCsv(file: File) {
     if (!user?.tenantId) return;
 
@@ -1454,6 +1473,15 @@ export default function AdminBillingPage() {
             </IconBadge>
             Descargar plantilla
           </Button>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="outline" className="flex-1" onClick={handleDownloadOpeningBalances}>
+              <IconBadge tone="peach" className="mr-2">
+                <Download className="h-4 w-4" />
+              </IconBadge>
+              Plantilla saldos iniciales
+            </Button>
+            <HelpTip text="Para arrancar un conjunto nuevo: carga la cartera con la que llega. Una fila por unidad — period = mes de arranque (p. ej. 2026-06), amount = saldo pendiente de esa unidad (0 si está al día), paymentAmount = 0. Descarga esta plantilla, complétala con tus unidades y súbela con 'Importar Excel'. Las unidades deben existir antes (impórtalas en el módulo de residentes)." />
+          </div>
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
             <IconBadge tone="mint" className="mr-2">
               <Upload className="h-4 w-4" />
