@@ -165,19 +165,17 @@ const TABS: TabDef[] = [
     inPractice:
       "Generas el reporte del trimestre, registras los acuerdos firmados en la junta y exportas el informe a PDF para la asamblea.",
     shots: [
-      // Reuso de screenshots reales existentes (tablero ejecutivo + cartera)
-      // mientras se capturan las del Reporte de Comité. Ambas son 16:10.
       {
-        src: "/product/hero-admin-dashboard.png",
-        alt: "Tablero ejecutivo del conjunto en Vivaru",
-        width: 1440,
-        height: 900,
+        src: "/product/perspectives-comite-tablero.png",
+        alt: "Reporte de comité — tablero ejecutivo en Vivaru",
+        width: 1996,
+        height: 1512,
       },
       {
-        src: "/product/perspectives-admin-cartera.png",
-        alt: "Cartera y antigüedad de saldos en Vivaru",
-        width: 1440,
-        height: 900,
+        src: "/product/perspectives-comite-cartera.png",
+        alt: "Antigüedad de cartera y mayores deudores en Vivaru",
+        width: 1984,
+        height: 1520,
       },
     ],
     textActive: "text-white",
