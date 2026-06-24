@@ -21,6 +21,7 @@ import { ChartContainer } from "@/components/features/admin/dashboard/chart-cont
 import { BillingBulkMessageDrawer, type BillingUnitOption } from "@/components/features/billing/BillingBulkMessageDrawer";
 import { EmptyState } from "@/components/shared/empty-state";
 import { HelpTip } from "@/components/shared/help-tip";
+import { Modal } from "@/components/shared/modal";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { SectionIntro } from "@/components/shared/section-intro";
 import { TablePager } from "@/components/shared/table-pager";
@@ -244,6 +245,7 @@ export default function AdminBillingPage() {
   const [statusFilter, setStatusFilter] = useState<BillingStatusFilter>("all");
   const [unitFilter, setUnitFilter] = useState("all");
   const [isBulkDrawerOpen, setIsBulkDrawerOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [selectedBulkUnitIds, setSelectedBulkUnitIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");
   const [isBulkSending, setIsBulkSending] = useState(false);
@@ -1139,6 +1141,12 @@ export default function AdminBillingPage() {
         purpose="Controlar lo que cada unidad debe y lo que ha pagado (cuotas o alícuotas de administración)."
         how="Generas los cobros del período por unidad, registras los pagos recibidos y emites el comprobante a cada residente. Los pagos alimentan el Libro y fondos."
       />
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={() => setIsBulkDrawerOpen(true)}>
+          <SendHorizontal className="mr-2 h-4 w-4" />
+          Enviar aviso a residentes
+        </Button>
+      </div>
       <ChartContainer
         title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por período con lectura inmediata de brecha y porcentaje de recaudo."
@@ -1254,9 +1262,15 @@ export default function AdminBillingPage() {
       />
 
       <Card className="soft-panel">
-        <div className="flex items-center gap-2">
-          <CardTitle>Crear nuevo cobro</CardTitle>
-          <HelpTip text="Registra aquí la cuota mensual de una unidad. Si el residente ya realizó un pago parcial, anótalo en el campo Abono desde el inicio. La Fecha de recaudo es la fecha límite de pago, no la fecha en que llegó el dinero. El estado se asigna automáticamente: saldo en cero queda Al día, saldo pendiente antes de la fecha límite queda Pendiente, y saldo pendiente con fecha vencida pasa a En mora. Si no registras una fecha límite, se usa el mes del cobro: un mes ya pasado con saldo pendiente queda En mora. Ten presente que el sistema permite registrar más de un cobro para la misma unidad y mes." />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CardTitle>Crear nuevo cobro</CardTitle>
+            <HelpTip text="Registra aquí la cuota mensual de una unidad. Si el residente ya realizó un pago parcial, anótalo en el campo Abono desde el inicio. La Fecha de recaudo es la fecha límite de pago, no la fecha en que llegó el dinero. El estado se asigna automáticamente: saldo en cero queda Al día, saldo pendiente antes de la fecha límite queda Pendiente, y saldo pendiente con fecha vencida pasa a En mora. Si no registras una fecha límite, se usa el mes del cobro: un mes ya pasado con saldo pendiente queda En mora. Ten presente que el sistema permite registrar más de un cobro para la misma unidad y mes." />
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setImportModalOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Importar cobros (Excel)
+          </Button>
         </div>
         <CardDescription className="mt-1">
           Elige a quién cobrar (una unidad o un lote), el concepto y el valor. Si quieres, programa la fecha en que el cobro se publica y se notifica a los residentes.
@@ -1457,108 +1471,67 @@ export default function AdminBillingPage() {
         </Card>
       ) : null}
 
-      <Card className="soft-panel">
-        <div className="flex items-center gap-2">
-          <CardTitle>Herramientas de gestión</CardTitle>
-          <HelpTip text="Todo lo que necesitas para gestionar la cartera en volumen. Descarga la plantilla, complétala con los cobros del mes e impórtala de una vez. Al exportar, el archivo incluye solo lo que ves en la tabla según los filtros activos. El botón Imprimir genera un reporte con los registros en mora únicamente. Y cuando necesites avisar sobre saldos pendientes, usa Enviar mensaje masivo: el aviso llega al feed de comunicaciones de los residentes dentro de la app." />
-        </div>
-        <CardDescription className="mt-1">
-          Acciones operativas agrupadas por tarea: cargar datos, exportar/archivar y comunicar.
-        </CardDescription>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".csv,.xlsx"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) {
+            void handleImportCsv(file);
+            event.target.value = "";
+          }
+        }}
+      />
 
-        {/* ① Cargar datos ─────────────────────────────────────────────────── */}
-        <section className="mt-4">
-          <div className="flex items-center gap-2">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--slate-500)]">Cargar datos</h4>
-            <HelpTip text="Sube los cobros del mes en lote. Descarga la plantilla, complétala e impórtala de una vez. Las unidades deben existir antes (módulo de residentes)." />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button type="button" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
-              <Upload className="mr-2 h-4 w-4" />
-              {isImporting ? "Importando..." : "Importar Excel"}
-            </Button>
-            <Button type="button" variant="outline" onClick={handleDownloadTemplate}>
-              <IconBadge tone="sky" className="mr-2">
-                <Download className="h-4 w-4" />
-              </IconBadge>
-              Descargar plantilla
-            </Button>
-          </div>
-          <details className="group mt-2 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+      <Modal open={importModalOpen} title="Importar cobros desde Excel" onClose={() => setImportModalOpen(false)}>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-[var(--slate-600)]">
+            Carga muchos cobros de una vez en lugar de uno por uno. Las unidades deben existir
+            antes (módulo de residentes).
+          </p>
+          <ol className="flex flex-col gap-3">
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-white">1</span>
+              <div>
+                <p className="text-sm font-medium text-[var(--slate-800)]">Descarga la plantilla y complétala</p>
+                <p className="text-xs text-[var(--slate-500)]">Una fila por cobro: unidad, período, valor y abono.</p>
+                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={handleDownloadTemplate}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar plantilla de ejemplo
+                </Button>
+              </div>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-white">2</span>
+              <div>
+                <p className="text-sm font-medium text-[var(--slate-800)]">Sube el archivo completado</p>
+                <p className="text-xs text-[var(--slate-500)]">Aceptamos .xlsx y .csv.</p>
+                <Button type="button" size="sm" className="mt-2" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {isImporting ? "Importando..." : "Subir e importar"}
+                </Button>
+              </div>
+            </li>
+          </ol>
+          <details className="group rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
             <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-[var(--slate-600)]">
               <span className="transition-transform group-open:rotate-90">▸</span>
-              Carga inicial — solo al abrir el conjunto
+              Carga inicial del conjunto — solo al abrir
             </summary>
-            <div className="mt-2 flex flex-wrap items-center gap-1">
-              <Button type="button" variant="outline" onClick={handleDownloadOpeningBalances}>
-                <IconBadge tone="peach" className="mr-2">
-                  <Download className="h-4 w-4" />
-                </IconBadge>
-                Plantilla saldos iniciales
-              </Button>
-              <HelpTip text="Para arrancar un conjunto nuevo: carga la cartera con la que llega. Una fila por unidad — period = mes de arranque (p. ej. 2026-06), amount = saldo pendiente de esa unidad (0 si está al día), paymentAmount = 0. Complétala y súbela con 'Importar Excel'." />
-            </div>
+            <p className="mt-2 text-xs text-[var(--slate-500)]">
+              Para arrancar un conjunto nuevo con la cartera que ya trae: una fila por unidad con su
+              saldo pendiente (período = mes de arranque, valor = deuda, abono = 0). Descarga esta
+              plantilla, complétala y súbela con el paso 2.
+            </p>
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={handleDownloadOpeningBalances}>
+              <Download className="mr-2 h-4 w-4" />
+              Plantilla de saldos iniciales
+            </Button>
           </details>
-        </section>
-
-        {/* ② Exportar y archivar ──────────────────────────────────────────── */}
-        <section className="mt-4 border-t border-[var(--slate-200)] pt-4">
-          <div className="flex items-center gap-2">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--slate-500)]">Exportar y archivar</h4>
-            <HelpTip text="Genera salidas de lo que ves en la tabla según los filtros activos. Exportar Excel baja el detalle; Imprimir PDF genera el aviso de morosos; Guardar histórico archiva el corte en Documentos." />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={handleExportCsv}>
-              <IconBadge tone="sky" className="mr-2">
-                <FileSpreadsheet className="h-4 w-4" />
-              </IconBadge>
-              Exportar Excel
-            </Button>
-            <Button type="button" variant="outline" onClick={handlePrintOverdueNotice}>
-              <IconBadge tone="sand" className="mr-2">
-                <Printer className="h-4 w-4" />
-              </IconBadge>
-              Imprimir PDF
-            </Button>
-            <Button type="button" variant="outline" disabled={savingHistory} onClick={() => void handleSaveCarteraHistory()}>
-              <IconBadge tone="sky" className="mr-2">
-                <FileSpreadsheet className="h-4 w-4" />
-              </IconBadge>
-              {savingHistory ? "Guardando..." : "Guardar histórico en Documentos"}
-            </Button>
-          </div>
-        </section>
-
-        {/* ③ Comunicar con residentes ─────────────────────────────────────── */}
-        <section className="mt-4 border-t border-[var(--slate-200)] pt-4">
-          <div className="flex items-center gap-2">
-            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--slate-500)]">Comunicar con residentes</h4>
-            <HelpTip text="El mensaje llega al feed de comunicaciones de los residentes dentro de la app. Para recordar específicamente a los morosos, usa la pestaña Morosos." />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsBulkDrawerOpen(true)}>
-              <IconBadge tone="mint" className="mr-2">
-                <SendHorizontal className="h-4 w-4" />
-              </IconBadge>
-              Enviar mensaje masivo
-            </Button>
-          </div>
-        </section>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          accept=".csv,.xlsx"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              void handleImportCsv(file);
-              event.target.value = "";
-            }
-          }}
-        />
-      </Card>
+        </div>
+      </Modal>
 
       <div className="inline-flex flex-wrap rounded-xl border border-[var(--slate-300)] bg-white p-0.5">
         {([
@@ -1713,7 +1686,7 @@ export default function AdminBillingPage() {
           </div>
         </MobileFiltersPanel>
 
-        <div className="mt-4 flex items-center justify-between gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-[var(--slate-500)]">
             {loading ? "Cargando registros..." : (
               carteraActiveFilters === 0 && !campaignFilter
@@ -1721,15 +1694,21 @@ export default function AdminBillingPage() {
                 : `${filteredRows.length} de ${normalizedRows.length} registro${normalizedRows.length !== 1 ? "s" : ""}`
             )}
           </p>
-          {campaignFilter ? (
-            <button
-              type="button"
-              onClick={() => setCampaignFilter(null)}
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--slate-300)] bg-white px-3 py-1 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-            >
-              Viendo una campaña · quitar filtro ✕
-            </button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {campaignFilter ? (
+              <button
+                type="button"
+                onClick={() => setCampaignFilter(null)}
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--slate-300)] bg-white px-3 py-1 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+              >
+                Viendo una campaña · quitar filtro ✕
+              </button>
+            ) : null}
+            <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+              <Download className="mr-2 h-4 w-4" />
+              Descargar a Excel
+            </Button>
+          </div>
         </div>
 
         {listView === "overdue" ? (
@@ -1737,18 +1716,26 @@ export default function AdminBillingPage() {
             <p className="text-xs text-amber-700">
               Todos los cobros con saldo, incluida la mora de meses ya cerrados. Recuérdales o registra su pago desde aquí.
             </p>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={overdueRows.length === 0 || remindingUnitId === "__overdue__"}
-              onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a cartera vencida", overdueRows.map((r) => r.id))}
-            >
-              <IconBadge tone="sand" className="mr-2">
-                <SendHorizontal className="h-4 w-4" />
-              </IconBadge>
-              {remindingUnitId === "__overdue__" ? "Enviando..." : "Recordar a todos"}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={handlePrintOverdueNotice}>
+                <IconBadge tone="sand" className="mr-2">
+                  <Printer className="h-4 w-4" />
+                </IconBadge>
+                Imprimir aviso de mora
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={overdueRows.length === 0 || remindingUnitId === "__overdue__"}
+                onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a cartera vencida", overdueRows.map((r) => r.id))}
+              >
+                <IconBadge tone="sand" className="mr-2">
+                  <SendHorizontal className="h-4 w-4" />
+                </IconBadge>
+                {remindingUnitId === "__overdue__" ? "Enviando..." : "Recordar a todos"}
+              </Button>
+            </div>
           </div>
         ) : null}
 
@@ -2058,6 +2045,15 @@ export default function AdminBillingPage() {
         <CardDescription className="mt-1">
           Cierra los meses pasados: se guarda un reporte en Documentos → “Cierres de cartera” y el mes deja de aparecer en las tablas. Si quedan morosos, su deuda no se pierde: pasa a la pestaña “Cartera vencida”, donde puedes seguir cobrando. El mes vigente no se cierra y puedes reabrir un período cuando quieras.
         </CardDescription>
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+          <Button type="button" variant="outline" size="sm" disabled={savingHistory} onClick={() => void handleSaveCarteraHistory()}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            {savingHistory ? "Guardando..." : "Guardar corte en Documentos"}
+          </Button>
+          <span className="text-xs text-[var(--slate-500)]">
+            El corte (recaudo y morosos) se archiva automáticamente el día 1 de cada mes; usa esto solo si quieres guardarlo ahora.
+          </span>
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-xs font-semibold text-[var(--slate-500)]">Abiertos</p>
