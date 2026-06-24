@@ -325,28 +325,113 @@ export default function AdminReportsPage() {
     XLSX.writeFile(buildWorkbook(), `Reporte-Comite-${range.start}-${range.end}.xlsx`);
   }, [buildWorkbook, range]);
 
+  // PDF estructurado del reporte (texto seleccionable, sin depender de oklch/charts).
+  const buildPdfBlob = useCallback(async (): Promise<Blob> => {
+    const { jsPDF } = await import("jspdf");
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const left = 48;
+    const rightX = pageW - 48;
+    let y = 56;
+    const fmt = formatCurrency;
+    const ensure = (space: number) => { if (y + space > pageH - 56) { pdf.addPage(); y = 56; } };
+    const heading = (t: string) => {
+      ensure(30); y += 8;
+      pdf.setFont("helvetica", "bold"); pdf.setFontSize(12); pdf.setTextColor(15, 23, 42);
+      pdf.text(t, left, y); y += 16;
+      pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.setTextColor(51, 65, 85);
+    };
+    const row = (label: string, value: string) => {
+      ensure(16);
+      pdf.setTextColor(71, 85, 105); pdf.text(label, left, y);
+      pdf.setTextColor(15, 23, 42); pdf.text(value, rightX, y, { align: "right" }); y += 15;
+    };
+    const bullet = (t: string) => {
+      const lines = pdf.splitTextToSize(`• ${t}`, rightX - left);
+      ensure(lines.length * 13 + 2);
+      pdf.setTextColor(51, 65, 85); pdf.text(lines, left, y); y += lines.length * 13 + 2;
+    };
+
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(16); pdf.setTextColor(15, 23, 42);
+    pdf.text(user?.tenantName ?? "Conjunto", left, y); y += 20;
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(11); pdf.setTextColor(71, 85, 105);
+    pdf.text(`Reporte de Comité · ${periodLabel}`, left, y); y += 15;
+    pdf.setFontSize(9); pdf.setTextColor(100, 116, 139);
+    pdf.text(`Generado: ${generatedAt}${user?.fullName ? ` · Preparado por: ${user.fullName}` : ""}`, left, y); y += 10;
+
+    heading("Resumen ejecutivo");
+    execSummary.bullets.forEach(bullet);
+    heading("Requiere atención del comité");
+    if (execSummary.alerts.length === 0) bullet("Sin alertas para el comité.");
+    else execSummary.alerts.forEach((a) => bullet(a.text));
+
+    heading("Tablero ejecutivo");
+    row("% de recaudo", `${report.executive.collectionRate}%`);
+    row("Resultado neto", fmt(report.financial.netResult));
+    row("Morosidad (monto, acum.)", `${report.executive.delinquencyAmount}%`);
+    row("Meses de fondo de reserva", report.executive.reserveMonths == null ? "—" : `${report.executive.reserveMonths}`);
+    row("Resolución de PQRS", `${report.executive.pqrsResolutionRate}%`);
+    row("% de firma de acuerdos", `${report.agreements.signatureRate}%`);
+
+    heading("Resumen financiero");
+    row("Ingresos del período", fmt(report.financial.totalIncome));
+    row("Egresos del período", fmt(report.financial.totalExpenses));
+    row("Resultado neto", fmt(report.financial.netResult));
+    row("Saldo de fondos", fmt(report.financial.fundBalance));
+    report.financial.expenseByCategory.forEach((c) => row(`   ${c.label}`, fmt(c.amount)));
+
+    heading("Cartera");
+    row("Cobrado", fmt(report.billing.totalCollected));
+    row("Total vencido", fmt(report.billing.totalOverdue));
+    row("Pagadas / Pendientes / Vencidas", `${report.billing.paidCount} / ${report.billing.pendingCount} / ${report.billing.overdueCount}`);
+    aging.forEach((bk) => row(`   Mora ${bk.label}`, `${fmt(bk.amount)} (${bk.units} u.)`));
+
+    heading("Operación");
+    row("Visitantes (período)", String(report.visitors.total));
+    row("PQRS (total / abiertos / resueltos)", `${report.tickets.total} / ${report.tickets.open} / ${report.tickets.resolved}`);
+    row("Paquetería (recibidos / entregados / pendientes)", `${report.packages.totalReceived} / ${report.packages.totalDelivered} / ${report.packages.stillPending}`);
+    row("Reservas (total / aprobadas / pendientes)", `${report.reservations.total} / ${report.reservations.approved} / ${report.reservations.pending}`);
+    row("Acuerdos (de firma / % firmado / pendientes)", `${report.agreements.forSignature} / ${report.agreements.signatureRate}% / ${report.agreements.pending}`);
+
+    ensure(90); y += 26; heading("Aprobación del comité"); y += 28;
+    const colW = (rightX - left) / 3;
+    ["Presidente", "Tesorero / Secretario", "Administrador"].forEach((roleLabel, i) => {
+      const cx = left + colW * i + 6;
+      pdf.setDrawColor(148, 163, 184); pdf.line(cx, y, cx + colW - 24, y);
+      pdf.setFontSize(8); pdf.setTextColor(71, 85, 105); pdf.text(roleLabel, cx, y + 12);
+    });
+
+    return pdf.output("blob");
+  }, [report, execSummary, aging, periodLabel, generatedAt, user, formatCurrency]);
+
   const [savingDoc, setSavingDoc] = useState(false);
   async function handleSaveToDocuments() {
     const tid = user?.tenantId;
     const uid = user?.uid;
     if (!tid || !uid || !storage) return;
+    const st = storage;
     setSavingDoc(true);
     try {
-      const buf = XLSX.write(buildWorkbook(), { bookType: "xlsx", type: "array" });
-      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      const fileName = `Reporte-Comite-${range.start}-${range.end}.xlsx`;
-      const path = `tenants/${tid}/committee-reports/${range.start}-${range.end}-${Date.now()}.xlsx`;
-      const sref = storageRef(storage, path);
-      await uploadBytes(sref, blob);
-      const fileUrl = await getDownloadURL(sref);
       const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "committee_reports" });
-      await createDocumentRecord({
-        tenantId: tid, userId: uid, userName: user?.fullName,
-        fileName, fileUrl, storagePath: path, fileSize: blob.size, contentType: blob.type,
-        category: "reporte", description: `Reporte de comité ${periodLabel}`,
-        source: "committee_report", sourceId: `${range.start}-${range.end}`, folderId,
-      });
-      toast.success("Reporte guardado en Documentos → “Reportes de comité”.");
+      const stamp = `${range.start}-${range.end}`;
+      const uploadOne = async (blob: Blob, ext: string, sourceSuffix: string) => {
+        const path = `tenants/${tid}/committee-reports/${stamp}-${Date.now()}.${ext}`;
+        const sref = storageRef(st, path);
+        await uploadBytes(sref, blob);
+        const fileUrl = await getDownloadURL(sref);
+        await createDocumentRecord({
+          tenantId: tid, userId: uid, userName: user?.fullName,
+          fileName: `Reporte-Comite-${stamp}.${ext}`, fileUrl, storagePath: path,
+          fileSize: blob.size, contentType: blob.type, category: "reporte",
+          description: `Reporte de comité ${periodLabel}`, source: "committee_report",
+          sourceId: `${stamp}${sourceSuffix}`, folderId,
+        });
+      };
+      const xlsxBuf = XLSX.write(buildWorkbook(), { bookType: "xlsx", type: "array" });
+      await uploadOne(new Blob([xlsxBuf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), "xlsx", "");
+      await uploadOne(await buildPdfBlob(), "pdf", "-pdf");
+      toast.success("Reporte guardado en Documentos (Excel + PDF).");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
