@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils/cn";
  * /public/product/ (Phase 2 of the screenshot capture sprint).
  */
 
-type TabKey = "admin" | "residente" | "porteria";
+type TabKey = "admin" | "residente" | "porteria" | "comite";
 
 type ShotDef = {
   /** Undefined while screenshot is pending. */
@@ -35,8 +35,12 @@ type ShotDef = {
 type TabDef = {
   key: TabKey;
   label: string;
+  /** Capa 1: el problema en la voz del perfil. */
+  problem: string;
   headline: string;
   bullets: string[];
+  /** Capa 3: un caso de uso concreto en una línea. */
+  inPractice: string;
   shots: ShotDef[];
   textActive: string;
   bgActive: string;
@@ -47,13 +51,17 @@ const TABS: TabDef[] = [
   {
     key: "admin",
     label: "Admin",
+    problem:
+      "Llevo la cartera en Excel, persigo los pagos por WhatsApp y armo el reporte a mano. Nunca sé con certeza quién pagó.",
     headline: "Centro de control completo",
     bullets: [
-      "Dashboard de cartera y KPIs en tiempo real",
+      "Cobra en lote y recuerda a morosos automáticamente",
+      "Aprueba comprobantes y concilia en un clic",
       "Comunicados oficiales con lectura confirmada",
-      "PQRS con plazo de respuesta",
-      "Reservas con calendario visual",
+      "Cierra el mes y archiva el reporte",
     ],
+    inPractice:
+      "Lanzas la cuota de junio a 120 unidades, el sistema notifica, apruebas los comprobantes en un clic y cierras el mes con el reporte listo.",
     shots: [
       {
         src: "/product/perspectives-admin-cartera.png",
@@ -75,6 +83,8 @@ const TABS: TabDef[] = [
   {
     key: "residente",
     label: "Residente",
+    problem:
+      "No sé cuánto debo, pago y nadie me confirma, y me entero tarde de lo del conjunto. Para una visita tengo que llamar a portería.",
     headline: "Autoservicio 24/7",
     bullets: [
       "Estado de cuenta y saldo en su teléfono",
@@ -82,6 +92,8 @@ const TABS: TabDef[] = [
       "Comprobantes de pago desde el celular",
       "PQRS con código y semáforo",
     ],
+    inPractice:
+      "Ves tu saldo, subes el comprobante y recibes la confirmación; generas un QR y tu invitado entra sin llamadas.",
     shots: [
       {
         src: "/product/perspectives-resident-account.png",
@@ -109,6 +121,8 @@ const TABS: TabDef[] = [
   {
     key: "porteria",
     label: "Portería",
+    problem:
+      "Autorizo visitas por llamada, anoto los paquetes en un cuaderno y del turno no queda registro.",
     headline: "Tu portería, ordenada",
     bullets: [
       "Validación instantánea con QR",
@@ -116,6 +130,8 @@ const TABS: TabDef[] = [
       "Calendario de reservas en lectura",
       "Bitácora digital del turno",
     ],
+    inPractice:
+      "Escaneas el QR y la visita entra autorizada, registras el paquete con foto y firma, y dejas una nota con evidencia que el admin ve al instante.",
     shots: [
       {
         src: "/product/perspectives-porteria-scanner.png",
@@ -134,12 +150,45 @@ const TABS: TabDef[] = [
     bgActive: "bg-brand-plum-dark",
     ringActive: "ring-brand-plum-dark",
   },
+  {
+    key: "comite",
+    label: "Comité",
+    problem:
+      "Llego a la asamblea sin datos duros, las decisiones no quedan documentadas y no sé si las finanzas del conjunto están sanas.",
+    headline: "Gobierna con evidencia",
+    bullets: [
+      "Reporte de comité: tablero ejecutivo y comparativo",
+      "Antigüedad de cartera (aging) y alertas tempranas",
+      "Acuerdos con aprobación y firma",
+      "Informe exportable a PDF y Excel",
+    ],
+    inPractice:
+      "Generas el reporte del trimestre, registras los acuerdos firmados en la junta y exportas el informe a PDF para la asamblea.",
+    shots: [
+      {
+        src: "/product/perspectives-comite-reporte.png",
+        alt: "Reporte de comité — tablero ejecutivo",
+        width: 1440,
+        height: 900,
+      },
+      {
+        src: "/product/perspectives-comite-acuerdos.png",
+        alt: "Antigüedad de cartera y acuerdos firmados",
+        width: 1440,
+        height: 900,
+      },
+    ],
+    textActive: "text-white",
+    bgActive: "bg-brand-blue",
+    ringActive: "ring-brand-blue",
+  },
 ];
 
 const HEADLINE_COLOR: Record<TabKey, string> = {
   admin: "text-navy",
   residente: "text-brand-green-resident",
   porteria: "text-brand-plum-dark",
+  comite: "text-brand-blue",
 };
 
 // ─── Shot helper ─────────────────────────────────────────────────────────────
@@ -304,7 +353,8 @@ function PorteriaComposite({ shots }: { shots: ShotDef[] }) {
 }
 
 function TabComposite({ tab }: { tab: TabDef }) {
-  if (tab.key === "admin") return <AdminComposite shots={tab.shots} />;
+  // Comité reusa el layout desktop del Admin (primario + secundario).
+  if (tab.key === "admin" || tab.key === "comite") return <AdminComposite shots={tab.shots} />;
   if (tab.key === "residente") return <ResidenteComposite shots={tab.shots} />;
   return <PorteriaComposite shots={tab.shots} />;
 }
@@ -356,7 +406,7 @@ export function Perspectives() {
             id="perspectivas-heading"
             className="max-w-3xl font-display text-h2 text-navy text-balance"
           >
-            Una plataforma, tres experiencias
+            Una plataforma, cuatro experiencias
           </h2>
 
           {/* Tab strip */}
@@ -422,17 +472,26 @@ export function Perspectives() {
                 transition={{ duration: reduced ? 0 : 0.2, ease: "easeOut" }}
                 className="grid items-center gap-xl lg:grid-cols-2 lg:gap-xxl"
               >
-                {/* Copy */}
+                {/* Copy — 3 capas: problema → solución → en la práctica */}
                 <div>
+                  {/* Capa 1 — el problema, en la voz del perfil */}
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    El problema
+                  </p>
+                  <p className="mt-1 text-lg italic leading-snug text-slate-500 text-balance">
+                    “{active.problem}”
+                  </p>
+
+                  {/* Capa 2 — la solución */}
                   <h3
                     className={cn(
-                      "font-display text-h2 text-balance",
+                      "mt-lg font-display text-h2 text-balance",
                       HEADLINE_COLOR[active.key],
                     )}
                   >
                     {active.headline}
                   </h3>
-                  <ul role="list" className="mt-lg space-y-3">
+                  <ul role="list" className="mt-md space-y-3">
                     {active.bullets.map((b) => (
                       <li
                         key={b}
@@ -449,6 +508,21 @@ export function Perspectives() {
                       </li>
                     ))}
                   </ul>
+
+                  {/* Capa 3 — en la práctica (caso de uso) */}
+                  <div className="mt-lg rounded-xl bg-white p-4 shadow-brand-sm ring-1 ring-border">
+                    <p
+                      className={cn(
+                        "text-xs font-semibold uppercase tracking-[0.14em]",
+                        HEADLINE_COLOR[active.key],
+                      )}
+                    >
+                      En la práctica
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      {active.inPractice}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Composite */}
