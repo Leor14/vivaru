@@ -3,6 +3,16 @@
 > Orden: G1 (carga inicial) primero — es lo que más fricción quita para onboardear.
 > Acompaña a `checklist-go-live-vivaru.md`.
 
+## Estado (avance)
+
+- **G1.1 Import de residentes — ✅ HECHO y desplegado** (`cfe1a1a`).
+- **G1.2 Saldos iniciales de cartera — ✅ HECHO y desplegado** (`4cd5060`).
+- **G1.3 Saldo inicial del libro — ya posible hoy** (movimiento manual); atajo opcional no construido.
+- **G2 Legal/privacidad — fuera de alcance por ahora** (decisión del usuario: contenido legal aparte).
+- **G3 Auth URL branded — pendiente del Owner** (config en Firebase Console).
+- **G4 Monitoreo de errores — ✅ HECHO y desplegado** (`b851045`; función `logClientError` + panel superadmin "Errores").
+- **G4 Backups — pendiente:** requiere `gcloud auth login` del usuario; luego se crea el schedule diario.
+
 ## G1 — Carga inicial de datos del conjunto
 
 Estado base: **unidades** ya tienen import en lote (`UnitBulkImportWizard` + `bulkCreateUnits`).
