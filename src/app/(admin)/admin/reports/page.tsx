@@ -591,19 +591,22 @@ export default function AdminReportsPage() {
                 </div>
 
                 {carteraStateData.length > 0 ? (
-                  <div className="mt-4 rounded-xl border border-[var(--slate-200)] bg-white p-4 sm:max-w-md">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Distribución por estado (período)</p>
-                    <div className="h-40">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={carteraStateData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={56} label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                            {carteraStateData.map((_, i) => (
-                              <Cell key={i} fill={CARTERA_COLORS[i % CARTERA_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} />
-                        </PieChart>
-                      </ResponsiveContainer>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Distribución por estado (período)</p>
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={carteraStateData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={56}>
+                              {carteraStateData.map((_, i) => (
+                                <Cell key={i} fill={CARTERA_COLORS[i % CARTERA_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
                 ) : null}
