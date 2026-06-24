@@ -1463,65 +1463,79 @@ export default function AdminBillingPage() {
           <HelpTip text="Todo lo que necesitas para gestionar la cartera en volumen. Descarga la plantilla, complétala con los cobros del mes e impórtala de una vez. Al exportar, el archivo incluye solo lo que ves en la tabla según los filtros activos. El botón Imprimir genera un reporte con los registros en mora únicamente. Y cuando necesites avisar sobre saldos pendientes, usa Enviar mensaje masivo: el aviso llega al feed de comunicaciones de los residentes dentro de la app." />
         </div>
         <CardDescription className="mt-1">
-          Acciones operativas para carga, salida de información y comunicación masiva.
+          Acciones operativas agrupadas por tarea: cargar datos, exportar/archivar y comunicar.
         </CardDescription>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <Button type="button" variant="outline" onClick={handleDownloadTemplate}>
-            <IconBadge tone="sky" className="mr-2">
-              <Download className="h-4 w-4" />
-            </IconBadge>
-            Descargar plantilla
-          </Button>
-          <div className="flex items-center gap-1">
-            <Button type="button" variant="outline" className="flex-1" onClick={handleDownloadOpeningBalances}>
-              <IconBadge tone="peach" className="mr-2">
+        {/* ① Cargar datos ─────────────────────────────────────────────────── */}
+        <section className="mt-4">
+          <div className="flex items-center gap-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--slate-500)]">Cargar datos</h4>
+            <HelpTip text="Sube los cobros del mes en lote. Descarga la plantilla, complétala e impórtala de una vez. Las unidades deben existir antes (módulo de residentes)." />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
+              <Upload className="mr-2 h-4 w-4" />
+              {isImporting ? "Importando..." : "Importar Excel"}
+            </Button>
+            <Button type="button" variant="outline" onClick={handleDownloadTemplate}>
+              <IconBadge tone="sky" className="mr-2">
                 <Download className="h-4 w-4" />
               </IconBadge>
-              Plantilla saldos iniciales
+              Descargar plantilla
             </Button>
-            <HelpTip text="Para arrancar un conjunto nuevo: carga la cartera con la que llega. Una fila por unidad — period = mes de arranque (p. ej. 2026-06), amount = saldo pendiente de esa unidad (0 si está al día), paymentAmount = 0. Descarga esta plantilla, complétala con tus unidades y súbela con 'Importar Excel'. Las unidades deben existir antes (impórtalas en el módulo de residentes)." />
           </div>
-          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isImporting}>
-            <IconBadge tone="mint" className="mr-2">
-              <Upload className="h-4 w-4" />
-            </IconBadge>
-            {isImporting ? "Importando..." : "Importar Excel"}
-          </Button>
-          <Button type="button" variant="outline" onClick={handleExportCsv}>
-            <IconBadge tone="sky" className="mr-2">
-              <FileSpreadsheet className="h-4 w-4" />
-            </IconBadge>
-            Exportar Excel
-          </Button>
-          <Button type="button" variant="outline" onClick={handlePrintOverdueNotice}>
-            <IconBadge tone="sand" className="mr-2">
-              <Printer className="h-4 w-4" />
-            </IconBadge>
-            Imprimir PDF
-          </Button>
-          <Button type="button" variant="outline" disabled={savingHistory} onClick={() => void handleSaveCarteraHistory()}>
-            <IconBadge tone="sky" className="mr-2">
-              <FileSpreadsheet className="h-4 w-4" />
-            </IconBadge>
-            {savingHistory ? "Guardando..." : "Guardar histórico en Documentos"}
-          </Button>
-        </div>
+          <details className="group mt-2 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+            <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-[var(--slate-600)]">
+              <span className="transition-transform group-open:rotate-90">▸</span>
+              Carga inicial — solo al abrir el conjunto
+            </summary>
+            <div className="mt-2 flex flex-wrap items-center gap-1">
+              <Button type="button" variant="outline" onClick={handleDownloadOpeningBalances}>
+                <IconBadge tone="peach" className="mr-2">
+                  <Download className="h-4 w-4" />
+                </IconBadge>
+                Plantilla saldos iniciales
+              </Button>
+              <HelpTip text="Para arrancar un conjunto nuevo: carga la cartera con la que llega. Una fila por unidad — period = mes de arranque (p. ej. 2026-06), amount = saldo pendiente de esa unidad (0 si está al día), paymentAmount = 0. Complétala y súbela con 'Importar Excel'." />
+            </div>
+          </details>
+        </section>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-3">
-          <p className="text-sm text-[var(--slate-700)]">En mora: <strong>{overdueRows.length}</strong></p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={overdueRows.length === 0 || remindingUnitId === "__overdue__"}
-              onClick={() => void handleSendReminder(overdueRows.map((r) => r.unitId), "__overdue__", "Recordatorio enviado a morosos", overdueRows.map((r) => r.id))}
-            >
-              <IconBadge tone="sand" className="mr-2">
-                <SendHorizontal className="h-4 w-4" />
+        {/* ② Exportar y archivar ──────────────────────────────────────────── */}
+        <section className="mt-4 border-t border-[var(--slate-200)] pt-4">
+          <div className="flex items-center gap-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--slate-500)]">Exportar y archivar</h4>
+            <HelpTip text="Genera salidas de lo que ves en la tabla según los filtros activos. Exportar Excel baja el detalle; Imprimir PDF genera el aviso de morosos; Guardar histórico archiva el corte en Documentos." />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={handleExportCsv}>
+              <IconBadge tone="sky" className="mr-2">
+                <FileSpreadsheet className="h-4 w-4" />
               </IconBadge>
-              {remindingUnitId === "__overdue__" ? "Enviando..." : "Recordar a morosos"}
+              Exportar Excel
             </Button>
+            <Button type="button" variant="outline" onClick={handlePrintOverdueNotice}>
+              <IconBadge tone="sand" className="mr-2">
+                <Printer className="h-4 w-4" />
+              </IconBadge>
+              Imprimir PDF
+            </Button>
+            <Button type="button" variant="outline" disabled={savingHistory} onClick={() => void handleSaveCarteraHistory()}>
+              <IconBadge tone="sky" className="mr-2">
+                <FileSpreadsheet className="h-4 w-4" />
+              </IconBadge>
+              {savingHistory ? "Guardando..." : "Guardar histórico en Documentos"}
+            </Button>
+          </div>
+        </section>
+
+        {/* ③ Comunicar con residentes ─────────────────────────────────────── */}
+        <section className="mt-4 border-t border-[var(--slate-200)] pt-4">
+          <div className="flex items-center gap-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--slate-500)]">Comunicar con residentes</h4>
+            <HelpTip text="El mensaje llega al feed de comunicaciones de los residentes dentro de la app. Para recordar específicamente a los morosos, usa la pestaña Morosos." />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => setIsBulkDrawerOpen(true)}>
               <IconBadge tone="mint" className="mr-2">
                 <SendHorizontal className="h-4 w-4" />
@@ -1529,7 +1543,7 @@ export default function AdminBillingPage() {
               Enviar mensaje masivo
             </Button>
           </div>
-        </div>
+        </section>
 
         <input
           ref={fileInputRef}
@@ -1961,7 +1975,21 @@ export default function AdminBillingPage() {
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>Morosos</CardTitle>
-            <p className="text-sm text-[var(--slate-700)]">{morosos.length} unidad(es) · deuda total <strong>{formatAmount(morososTotal)}</strong></p>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-[var(--slate-700)]">{morosos.length} unidad(es) · deuda total <strong>{formatAmount(morososTotal)}</strong></p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={morosos.length === 0 || remindingUnitId === "__morosos__"}
+                onClick={() => void handleSendReminder(morosos.map((m) => m.unitId), "__morosos__", "Recordatorio enviado a morosos", morosos.flatMap((m) => m.statementIds))}
+              >
+                <IconBadge tone="sand" className="mr-2">
+                  <SendHorizontal className="h-4 w-4" />
+                </IconBadge>
+                {remindingUnitId === "__morosos__" ? "Enviando..." : "Recordar a todos"}
+              </Button>
+            </div>
           </div>
           <CardDescription className="mt-1">
             Unidades con saldo pendiente (incluye la mora de períodos cerrados), ordenadas por deuda.
