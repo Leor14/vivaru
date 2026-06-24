@@ -29,6 +29,10 @@ import { ledgerEntrySchema, type LedgerEntryFormValues } from "@/features/finanz
 import { useAuth } from "@/features/auth/auth-context";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { createDocumentRecord } from "@/features/admin/services";
+import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
+import { storage } from "@/lib/firebase/client";
+import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import type { LedgerEntry } from "@/types/domain";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -133,6 +137,50 @@ export default function AdminFinanzasLibroPage() {
     ];
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(movRows), "Movimientos");
     XLSX.writeFile(wb, `estado-financiero-${today()}.xlsx`);
+  }
+
+  const [savingLedgerDoc, setSavingLedgerDoc] = useState(false);
+  async function handleSaveLedgerPeriod() {
+    const tid = user?.tenantId;
+    const uid = user?.uid;
+    if (!tid || !uid || !storage) return;
+    if (filteredEntries.length === 0) {
+      toast.error("No hay movimientos con el filtro actual.");
+      return;
+    }
+    const st = storage;
+    const label = dateFrom || dateTo ? `${dateFrom || "inicio"}_a_${dateTo || "hoy"}` : monthFilter !== "all" ? monthFilter : "todos";
+    setSavingLedgerDoc(true);
+    try {
+      const ingresos = filteredEntries.filter((e) => e.type === "ingreso").reduce((a, e) => a + (e.amount ?? 0), 0);
+      const egresos = filteredEntries.filter((e) => e.type === "egreso").reduce((a, e) => a + (e.amount ?? 0), 0);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ["Fecha", "Tipo", "Concepto", "Categoría", "Monto"],
+        ...filteredEntries.map((e) => [e.date, e.type, e.concept, e.category ?? "", e.amount]),
+      ]), "Movimientos");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ["Resumen del período", label], [],
+        ["Total ingresos", ingresos], ["Total egresos", egresos], ["Resultado neto", ingresos - egresos],
+      ]), "Resumen");
+      const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const path = `tenants/${tid}/ledger-history/${label}-${Date.now()}.xlsx`;
+      const sref = storageRef(st, path);
+      await uploadBytes(sref, blob);
+      const fileUrl = await getDownloadURL(sref);
+      const { folderId } = await ensureSystemFolderCallable({ tenantId: tid, systemKey: "ledger_history" });
+      await createDocumentRecord({
+        tenantId: tid, userId: uid, userName: user?.fullName,
+        fileName: `Libro-${label}.xlsx`, fileUrl, storagePath: path, fileSize: blob.size, contentType: blob.type,
+        category: "financiero", description: `Libro — ${label}`, source: "ledger_period", sourceId: label, folderId,
+      });
+      toast.success("Período guardado en Documentos → “Histórico del libro”.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSavingLedgerDoc(false);
+    }
   }
 
   async function handleSave(values: LedgerEntryFormValues) {
@@ -286,9 +334,20 @@ export default function AdminFinanzasLibroPage() {
           </div>
         </MobileFiltersPanel>
 
-        <p className="text-xs text-[var(--slate-500)]">
-          {libroActiveFilters > 0 ? `${filteredEntries.length} de ${entries.length} movimientos` : `${entries.length} movimientos`}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-[var(--slate-500)]">
+            {libroActiveFilters > 0 ? `${filteredEntries.length} de ${entries.length} movimientos` : `${entries.length} movimientos`}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={savingLedgerDoc || filteredEntries.length === 0}
+            onClick={() => void handleSaveLedgerPeriod()}
+          >
+            {savingLedgerDoc ? "Guardando..." : "Guardar período en Documentos"}
+          </Button>
+        </div>
 
         <DataTable
           columns={columns}
