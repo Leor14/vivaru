@@ -299,6 +299,21 @@ export async function completeResidentPasswordChangeCallable(input: CompleteResi
   return executeCallable(callable, input, "No fue posible completar el cambio obligatorio de contrasena.");
 }
 
+// G4 · Observabilidad: envío best-effort de errores del cliente. No usa
+// executeCallable (no debe mostrar toasts ni propagar si el log falla).
+export async function logClientErrorCallable(input: {
+  message: string;
+  stack?: string;
+  context?: string;
+  url?: string;
+  severity?: "error" | "warning";
+}) {
+  if (!functions) return { ok: false };
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "logClientError");
+  const result = await callable(input);
+  return result.data;
+}
+
 function normalizeCallableError(error: unknown, fallbackMessage: string) {
   if (error instanceof TypeError && /fetch/i.test(error.message)) {
     return "CORS_ERROR: No fue posible conectar con el servicio de creación. Verifica sesion, red y origen permitido.";

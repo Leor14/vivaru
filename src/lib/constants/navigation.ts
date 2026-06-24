@@ -14,6 +14,7 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/superadmin/metrics", label: "Métricas" },
     { href: "/superadmin/support", label: "Soporte" },
     { href: "/superadmin/audit", label: "Auditoria" },
+    { href: "/superadmin/errors", label: "Errores" },
   ],
   superadmin: [
     { href: "/superadmin", label: "Dashboard global" },
@@ -23,6 +24,7 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/superadmin/metrics", label: "Métricas" },
     { href: "/superadmin/support", label: "Soporte" },
     { href: "/superadmin/audit", label: "Auditoria" },
+    { href: "/superadmin/errors", label: "Errores" },
   ],
   admin_tenant: [
     { href: "/admin", label: "Panel de Control" },

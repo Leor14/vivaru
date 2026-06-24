@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 
 import { AuthProvider } from "@/features/auth/auth-context";
+import { ErrorTracker } from "@/components/observability/ErrorTracker";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   if (isResilientPublicRoute) {
     return (
       <>
+        <ErrorTracker />
         {children}
         <Toaster richColors position="top-center" />
       </>
@@ -22,6 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
+      <ErrorTracker />
       {children}
       <Toaster richColors position="top-center" />
     </AuthProvider>

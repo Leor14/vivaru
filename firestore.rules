@@ -689,5 +689,12 @@ service cloud.firestore {
         request.resource.data.unitId == membershipDoc(request.resource.data.tenantId).data.unitId;
       allow update, delete: if false;
     }
+
+    // G4 · Observabilidad: errores del cliente. Solo el superadmin los lee; la
+    // escritura la hace exclusivamente la Cloud Function (admin SDK, salta reglas).
+    match /errorLogs/{docId} {
+      allow read: if superadmin();
+      allow write: if false;
+    }
   }
 }

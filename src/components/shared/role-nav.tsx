@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { Grid3X3, BarChart2, Building2, FileText, ShieldCheck, Home, MessageSquare, Package, CalendarCheck, Users, Wallet } from "lucide-react";
+import { Grid3X3, BarChart2, Building2, FileText, ShieldCheck, Home, MessageSquare, Package, CalendarCheck, Users, Wallet, AlertTriangle } from "lucide-react";
 
 import { roleNavigation } from "@/lib/constants/navigation";
 import { resolveActiveNavHref } from "@/lib/navigation/active-item";
@@ -18,6 +18,7 @@ const iconByHref: Record<string, ComponentType<{ className?: string }>> = {
   "/superadmin/metrics": BarChart2,
   "/superadmin/support": MessageSquare,
   "/superadmin/audit": FileText,
+  "/superadmin/errors": AlertTriangle,
   "/admin": Grid3X3,
   "/admin/users": Users,
   "/admin/residents": Users,

@@ -3258,3 +3258,37 @@ export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async
   const count = await anonymizeExpiredVouchers(db);
   console.log(`[data-retention] Anonimizados ${count} comprobante(s).`);
 });
+
+// ── G4 · Observabilidad: captura de errores no controlados del cliente ────────
+// El front llama este callable (best-effort) ante un error no manejado. Escribe
+// en errorLogs (solo lectura para superadmin). Degrada en silencio si falta el
+// mensaje; nunca debe romper el flujo del usuario.
+type LogClientErrorInput = {
+  message?: string;
+  stack?: string;
+  context?: string;
+  url?: string;
+  severity?: "error" | "warning";
+};
+
+export const logClientError = onCall<LogClientErrorInput>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const message = normalizeText(request.data?.message).slice(0, 2000);
+    if (!message) return { ok: false };
+
+    const severity = request.data?.severity === "warning" ? "warning" : "error";
+    await db.collection("errorLogs").add({
+      message,
+      stack: normalizeText(request.data?.stack).slice(0, 8000) || null,
+      context: normalizeText(request.data?.context).slice(0, 500) || null,
+      url: normalizeText(request.data?.url).slice(0, 500) || null,
+      severity,
+      uid: request.auth?.uid ?? null,
+      tenantId: normalizeText(request.auth?.token?.tenantId) || null,
+      role: normalizeText(request.auth?.token?.role) || null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { ok: true };
+  },
+);
