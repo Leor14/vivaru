@@ -11,6 +11,7 @@ import { db } from "@/lib/firebase/client";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { UnitBulkImportWizard } from "@/components/features/residents/UnitBulkImportWizard";
+import { ResidentBulkImportWizard } from "@/components/features/residents/ResidentBulkImportWizard";
 import { Modal } from "@/components/shared/modal";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -35,6 +36,7 @@ import {
 } from "@/features/admin/schemas";
 import {
   bulkCreateUnits,
+  bulkCreatePeople,
   createPerson,
   createUnit,
   deletePerson,
@@ -72,6 +74,7 @@ export default function AdminResidentsPage() {
   const [unitNoPersonFilter, setUnitNoPersonFilter] = useState(false);
 
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [residentImportOpen, setResidentImportOpen] = useState(false);
   const [unitModalOpen, setUnitModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<UnitItem | null>(null);
   const [personModalOpen, setPersonModalOpen] = useState(false);
@@ -806,6 +809,23 @@ export default function AdminResidentsPage() {
     toast.success(`${count} unidad${count !== 1 ? "es" : ""} importada${count !== 1 ? "s" : ""} correctamente.`);
   }
 
+  async function handleBulkImportPeople(
+    rows: Array<{
+      fullName: string;
+      email: string;
+      phone: string;
+      documentNumber?: string;
+      roleType: PersonItem["roleType"];
+      occupancyType: PersonItem["occupancyType"];
+      unitId: string;
+      tower: string;
+    }>,
+  ) {
+    if (!user?.tenantId) return;
+    const count = await bulkCreatePeople(user.tenantId, user.uid, rows);
+    toast.success(`${count} residente${count !== 1 ? "s" : ""} importado${count !== 1 ? "s" : ""} correctamente.`);
+  }
+
   function clearPeopleFilters() {
     setUnitRoleFilter("all");
     setUnitIdFilter("all");
@@ -851,7 +871,11 @@ export default function AdminResidentsPage() {
             )}
             <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
-              Cargar CSV
+              Cargar unidades (CSV)
+            </Button>
+            <Button variant="outline" onClick={() => setResidentImportOpen(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Cargar residentes (CSV)
             </Button>
             <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
           </div>
@@ -1462,6 +1486,19 @@ export default function AdminResidentsPage() {
           existingUnits={units}
           onImport={handleBulkImport}
           onClose={() => setBulkImportOpen(false)}
+        />
+      </Modal>
+
+      <Modal
+        open={residentImportOpen}
+        title="Importar residentes desde CSV"
+        onClose={() => setResidentImportOpen(false)}
+      >
+        <ResidentBulkImportWizard
+          existingUnits={units}
+          existingPeople={people}
+          onImport={handleBulkImportPeople}
+          onClose={() => setResidentImportOpen(false)}
         />
       </Modal>
 

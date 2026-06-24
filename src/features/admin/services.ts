@@ -499,6 +499,61 @@ export async function bulkCreateUnits(
   return created;
 }
 
+export async function bulkCreatePeople(
+  tenantId: string,
+  userId: string,
+  rows: Array<{
+    fullName: string;
+    email: string;
+    phone: string;
+    documentNumber?: string;
+    roleType: PersonItem["roleType"];
+    occupancyType: PersonItem["occupancyType"];
+    unitId: string; // doc id de la unidad
+    tower: string;
+  }>,
+): Promise<number> {
+  const firestore = assertDb();
+  const CHUNK = 200; // cada fila = hasta 2 escrituras (persona + update de unidad)
+  let created = 0;
+
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    const batch = writeBatch(firestore);
+
+    for (const row of chunk) {
+      const ref = doc(collection(firestore, "people"));
+      batch.set(ref, {
+        tenantId,
+        fullName: row.fullName,
+        email: row.email,
+        phone: row.phone,
+        ...(row.documentNumber ? { documentNumber: row.documentNumber } : {}),
+        roleType: row.roleType,
+        occupancyType: row.occupancyType,
+        unitId: row.unitId,
+        tower: row.tower,
+        status: "active",
+        createdBy: userId,
+        updatedBy: userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      if (shouldAttachToOwners(row.roleType)) {
+        batch.update(doc(firestore, "units", row.unitId), { ownerIds: arrayUnion(ref.id), updatedAt: serverTimestamp(), updatedBy: userId });
+      }
+      if (shouldAttachToResidents(row.roleType)) {
+        batch.update(doc(firestore, "units", row.unitId), { residentIds: arrayUnion(ref.id), updatedAt: serverTimestamp(), updatedBy: userId });
+      }
+      created++;
+    }
+
+    await batch.commit();
+  }
+
+  return created;
+}
+
 export async function updateUnit(
   id: string,
   userId: string,
