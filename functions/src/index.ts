@@ -7,6 +7,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
+import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
@@ -3068,8 +3069,47 @@ const ARCHIVE_PATH: Record<string, string> = {
   committee_reports: "committee-reports",
 };
 
-// Construye un .xlsx server-side, lo sube a Storage (con token de descarga) y lo registra
-// en la carpeta de sistema correspondiente de Documentos.
+// Sube un buffer a Storage (con token de descarga) y lo registra en la carpeta de sistema.
+async function archiveBuffer(input: {
+  tenantId: string;
+  systemKey: "cartera_history" | "committee_reports";
+  fileName: string;
+  ext: string;
+  contentType: string;
+  buffer: Buffer;
+  description: string;
+  source: string;
+  sourceId: string;
+  category: string;
+}): Promise<void> {
+  const token = randomUUID();
+  const path = `tenants/${input.tenantId}/${ARCHIVE_PATH[input.systemKey]}/${input.sourceId}-${Date.now()}.${input.ext}`;
+  const bucket = getStorage().bucket();
+  await bucket.file(path).save(input.buffer, { metadata: { contentType: input.contentType, metadata: { firebaseStorageDownloadTokens: token } } });
+  const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
+
+  const folderId = await ensureSystemFolderImpl(input.tenantId, "system", input.systemKey);
+  await db.collection("documents").add({
+    tenantId: input.tenantId,
+    fileName: input.fileName,
+    description: input.description,
+    fileUrl,
+    storagePath: path,
+    uploadedBy: "system",
+    uploadedByName: "Automático",
+    category: input.category,
+    folderId,
+    fileSize: input.buffer.length,
+    contentType: input.contentType,
+    source: input.source,
+    sourceId: input.sourceId,
+    createdBy: "system",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  });
+}
+
+// Construye un .xlsx server-side y lo archiva.
 async function archiveXlsx(input: {
   tenantId: string;
   systemKey: "cartera_history" | "committee_reports";
@@ -3084,33 +3124,33 @@ async function archiveXlsx(input: {
   for (const s of input.sheets) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s.rows), s.name.slice(0, 31));
   }
-  const buf = XLSX.write(wb, { bookType: "xlsx", type: "buffer" }) as Buffer;
-  const contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  const buffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" }) as Buffer;
+  await archiveBuffer({
+    ...input, ext: "xlsx",
+    contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    buffer,
+  });
+}
 
-  const token = randomUUID();
-  const path = `tenants/${input.tenantId}/${ARCHIVE_PATH[input.systemKey]}/${input.sourceId}-${Date.now()}.xlsx`;
-  const bucket = getStorage().bucket();
-  await bucket.file(path).save(buf, { metadata: { contentType, metadata: { firebaseStorageDownloadTokens: token } } });
-  const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
-
-  const folderId = await ensureSystemFolderImpl(input.tenantId, "system", input.systemKey);
-  await db.collection("documents").add({
-    tenantId: input.tenantId,
-    fileName: input.fileName,
-    description: input.description,
-    fileUrl,
-    storagePath: path,
-    uploadedBy: "system",
-    uploadedByName: "Automático",
-    category: input.category,
-    folderId,
-    fileSize: buf.length,
-    contentType,
-    source: input.source,
-    sourceId: input.sourceId,
-    createdBy: "system",
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
+// Construye un PDF simple (texto) a partir de pares etiqueta/valor.
+function buildSummaryPdf(title: string, subtitle: string, rows: [string, string][]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const docpdf = new PDFDocument({ size: "A4", margin: 48 });
+    const chunks: Buffer[] = [];
+    docpdf.on("data", (c: Buffer) => chunks.push(c));
+    docpdf.on("end", () => resolve(Buffer.concat(chunks)));
+    docpdf.on("error", reject);
+    docpdf.font("Helvetica-Bold").fontSize(16).fillColor("#0f172a").text(title);
+    docpdf.moveDown(0.3);
+    docpdf.font("Helvetica").fontSize(11).fillColor("#475569").text(subtitle);
+    docpdf.moveDown(1);
+    for (const [label, value] of rows) {
+      const y = docpdf.y;
+      docpdf.font("Helvetica").fontSize(10).fillColor("#475569").text(label, 48, y);
+      docpdf.font("Helvetica-Bold").fillColor("#0f172a").text(value, 48, y, { align: "right" });
+      docpdf.moveDown(0.4);
+    }
+    docpdf.end();
   });
 }
 
@@ -3128,6 +3168,7 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
     const status = (tDoc.data() as { status?: string }).status;
     if (status && status !== "active" && status !== "trial") continue;
 
+    try {
     const bsSnap = await db.collection("billingStatements").where("tenantId", "==", tenantId).get();
     if (bsSnap.empty) continue;
     const stmts = bsSnap.docs.map((d) => d.data() as { period?: string; amount?: number; paymentAmount?: number; balance?: number; status?: string; unitId?: string; unitLabel?: string });
@@ -3187,6 +3228,25 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
       ] }],
       description: `Reporte de comité ${prevMonth} (automático, resumen financiero)`, source: "committee_report", sourceId: prevMonth, category: "reporte",
     });
+
+    // Mismo resumen como PDF.
+    await archiveBuffer({
+      tenantId, systemKey: "committee_reports", fileName: `Reporte-Comite-${prevMonth}.pdf`,
+      ext: "pdf", contentType: "application/pdf",
+      buffer: await buildSummaryPdf("Reporte de comité — Resumen mensual", `${prevMonth} · generado automáticamente`, [
+        ["Facturado del mes", formatMoney(facturado)],
+        ["Recaudado del mes", formatMoney(recaudado)],
+        ["% de recaudo", facturado > 0 ? `${Math.round((recaudado / facturado) * 100)}%` : "0%"],
+        ["Índice de morosidad (monto, acum.)", billedAll > 0 ? `${Math.round((overdueAmt / billedAll) * 100)}%` : "0%"],
+        ["Ingresos del mes", formatMoney(ingresos)],
+        ["Egresos del mes", formatMoney(egresos)],
+        ["Resultado neto del mes", formatMoney(ingresos - egresos)],
+      ]),
+      description: `Reporte de comité ${prevMonth} (automático, resumen financiero)`, source: "committee_report", sourceId: prevMonth, category: "reporte",
+    });
+    } catch (e) {
+      console.error(`[monthly-archive][${tenantId}]`, e);
+    }
   }
   console.log(`[monthly-archive] Procesados ${tenants.size} tenant(s) para ${prevMonth}.`);
 });
