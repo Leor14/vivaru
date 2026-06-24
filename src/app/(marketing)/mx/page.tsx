@@ -6,7 +6,9 @@ import { Pain } from '@/components/marketing/Pain';
 import { Solution } from '@/components/marketing/Solution';
 import { MultiConjunto } from '@/components/marketing/MultiConjunto';
 import { PerspectivesLazy } from '@/components/marketing/PerspectivesLazy';
+import { CasosDeUso } from '@/components/marketing/CasosDeUso';
 import { Differentiators } from '@/components/marketing/Differentiators';
+import { TrustOnboarding } from '@/components/marketing/TrustOnboarding';
 import { Pricing } from '@/components/marketing/Pricing';
 // import { Pilot } from '@/components/marketing/Pilot';
 import { FAQ } from '@/components/marketing/FAQ';
@@ -16,9 +18,9 @@ import { FinalCTA } from '@/components/marketing/FinalCTA';
  * Marketing home — grupovivaru.com /
  *
  * Section order: Topbar → Hero → ImpactBand → Pain → Solution →
- * Perspectives → MultiConjunto → Differentiators → Pricing →
- * FAQ → FinalCTA → Footer. CookieBanner lives in (marketing)/layout.tsx
- * so it also appears on /diagnostico and /legal/*.
+ * Perspectives → CasosDeUso → MultiConjunto → Differentiators →
+ * TrustOnboarding → Pricing → FAQ → FinalCTA → Footer. CookieBanner lives
+ * in (marketing)/layout.tsx so it also appears on /diagnostico and /legal/*.
  *
  * HIDDEN: Pilot removed — decisión comercial pendiente HITL H4 + fee.
  * Reactivar descomentando el import y añadiendo <Pilot /> debajo de <Pricing />.
@@ -33,8 +35,10 @@ export default function Home() {
         <Pain />
         <Solution />
         <PerspectivesLazy />
+        <CasosDeUso />
         <MultiConjunto />
         <Differentiators />
+        <TrustOnboarding />
         <Pricing />
         {/* HIDDEN — HITL H4 + fee pendiente */}
         {/* <Pilot /> */}
