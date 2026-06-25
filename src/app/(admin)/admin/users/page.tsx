@@ -20,6 +20,7 @@ import { Modal } from "@/components/shared/modal";
 import {
   createTenantOperationalUserCallable,
   deleteOperationalUserCallable,
+  resendAccountInviteCallable,
   setOperationalUserStatusCallable,
   updateOperationalUserCallable,
 } from "@/lib/firebase/callables";
@@ -74,6 +75,20 @@ export default function AdminUsersPage() {
   const pager = usePagination(managedUsers);
 
   const [statusBusy, setStatusBusy] = useState<string | null>(null);
+  const [resendBusy, setResendBusy] = useState<string | null>(null);
+
+  async function handleResendInvite(item: TenantUserItem) {
+    if (!user?.tenantId) return;
+    setResendBusy(item.id);
+    try {
+      await resendAccountInviteCallable({ tenantId: user.tenantId, uid: item.id });
+      toast.success("Acceso reenviado al correo del usuario.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setResendBusy(null);
+    }
+  }
   // Admins activos (para no permitir desactivar al último desde la UI).
   const activeAdminCount = useMemo(
     () => managedUsers.filter((u) => u.role === "tenant_admin" && (u.status ?? "active") !== "inactive").length,
@@ -172,6 +187,17 @@ export default function AdminUsersPage() {
         <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
           Editar
         </Button>
+        {item.status !== "inactive" ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={resendBusy === item.id}
+            title="Reenvía el correo con el enlace para activar la cuenta"
+            onClick={() => void handleResendInvite(item)}
+          >
+            {resendBusy === item.id ? "…" : "Reenviar acceso"}
+          </Button>
+        ) : null}
         {renderStatusAction(item)}
         {item.status === "inactive" ? (
           <Button

@@ -13,6 +13,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/restablecer") ||
+    pathname.startsWith("/activar") ||
     pathname.startsWith("/setup-error") ||
     pathname.startsWith("/unauthorized");
 

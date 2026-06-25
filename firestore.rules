@@ -696,5 +696,11 @@ service cloud.firestore {
       allow read: if superadmin();
       allow write: if false;
     }
+
+    // Invitaciones de onboarding (Opción B). El token es secreto y solo se valida
+    // por Cloud Functions (admin SDK). Ningún cliente lee ni escribe directamente.
+    match /accountInvites/{token} {
+      allow read, write: if false;
+    }
   }
 }

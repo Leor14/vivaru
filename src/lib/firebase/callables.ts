@@ -314,6 +314,29 @@ export async function logClientErrorCallable(input: {
   return result.data;
 }
 
+// Onboarding por invitación (Opción B). getAccountInvite valida sin consumir.
+export async function getAccountInviteCallable(token: string) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    { token: string },
+    { status: "valid" | "invalid" | "expired" | "used"; email?: string; fullName?: string }
+  >(functions, "getAccountInvite");
+  const result = await callable({ token });
+  return result.data;
+}
+
+export async function activateAccountCallable(input: { token: string; password: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true }>(functions, "activateAccount");
+  return executeCallable(callable, input, "No fue posible activar la cuenta.");
+}
+
+export async function resendAccountInviteCallable(input: { tenantId: string; uid: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true }>(functions, "resendAccountInvite");
+  return executeCallable(callable, input, "No fue posible reenviar el acceso.");
+}
+
 function normalizeCallableError(error: unknown, fallbackMessage: string) {
   if (error instanceof TypeError && /fetch/i.test(error.message)) {
     return "CORS_ERROR: No fue posible conectar con el servicio de creación. Verifica sesion, red y origen permitido.";

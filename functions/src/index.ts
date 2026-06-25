@@ -219,6 +219,39 @@ async function sendPasswordSetupEmail(email: string, fullName: string, variant: 
   }
 }
 
+// Onboarding robusto (Opción B): invitación con token PROPIO, no los oobCode de
+// Firebase (que un escáner de correo puede consumir y que expiran en 1h fija).
+// El enlace abre /activar?token=… (GET no consume el token); recién al enviar la
+// contraseña se valida y se marca usado. TTL configurable.
+const INVITE_TTL_DAYS = 7;
+
+async function sendOnboardingInvite(
+  uid: string,
+  email: string,
+  fullName: string,
+  tenantId: string,
+  role: string,
+  variant: AccountEmailVariant = "welcome",
+) {
+  try {
+    const token = randomUUID();
+    const expiresAt = Timestamp.fromMillis(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+    await db.collection("accountInvites").doc(token).set({
+      uid,
+      email: email.toLowerCase(),
+      fullName,
+      tenantId,
+      role,
+      usedAt: null,
+      createdAt: Timestamp.now(),
+      expiresAt,
+    });
+    await sendAccountEmail({ to: email, fullName, link: `/activar?token=${token}`, variant });
+  } catch (error) {
+    console.warn("[invite] no se pudo crear/enviar la invitacion de acceso", { email, error });
+  }
+}
+
 async function listTenantUidsByRoles(tenantId: string, roles: string[]) {
   if (!roles.length) return [] as string[];
 
@@ -1000,7 +1033,7 @@ export const createTenantAdmin = onCall<CreateTenantAdminInput>(
       throw persistError;
     }
 
-    await sendPasswordSetupEmail(data.email, data.fullName);
+    await sendOnboardingInvite(userRecord.uid, data.email, data.fullName, data.tenantId, "tenant_admin");
 
     try {
       await writeAuditLog(data.tenantId, request.auth?.uid, "create_tenant_admin", {
@@ -1243,7 +1276,7 @@ export const createTenantOperationalUser = onCall<CreateTenantOperationalUserInp
         throw persistError;
       }
 
-      await sendPasswordSetupEmail(data.email, data.fullName);
+      await sendOnboardingInvite(userRecord.uid, data.email, data.fullName, targetTenantId, data.role);
 
       await writeAuditLog(targetTenantId, request.auth.uid, "create_tenant_operational_user", {
         uid: userRecord.uid,
@@ -3290,5 +3323,84 @@ export const logClientError = onCall<LogClientErrorInput>(
       createdAt: FieldValue.serverTimestamp(),
     });
     return { ok: true };
+  },
+);
+
+// ── Onboarding por invitación (Opción B) ──────────────────────────────────────
+// Público (sin auth): la página /activar los llama antes de tener sesión.
+
+// Valida el token SIN consumirlo (GET de la página). Devuelve el estado para
+// pintar el formulario o el mensaje de invitación inválida/expirada/usada.
+export const getAccountInvite = onCall<{ token?: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const token = normalizeText(request.data?.token);
+    if (!token) return { status: "invalid" as const };
+    const snap = await db.collection("accountInvites").doc(token).get();
+    if (!snap.exists) return { status: "invalid" as const };
+    const data = snap.data() as { email?: string; fullName?: string; usedAt?: unknown; expiresAt?: Timestamp };
+    if (data.usedAt) return { status: "used" as const };
+    if (data.expiresAt && data.expiresAt.toMillis() < Date.now()) return { status: "expired" as const };
+    return { status: "valid" as const, email: data.email ?? "", fullName: data.fullName ?? "" };
+  },
+);
+
+// Consume el token (transaccional, un solo uso) y fija la contraseña. Solo aquí
+// se invalida la invitación, por eso un escáner que hace GET no la rompe.
+export const activateAccount = onCall<{ token?: string; password?: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const token = normalizeText(request.data?.token);
+    const password = typeof request.data?.password === "string" ? request.data.password : "";
+    if (!token) throw new HttpsError("invalid-argument", "Falta el token de activación.");
+    assertStrongPassword(password, "contraseña");
+
+    const ref = db.collection("accountInvites").doc(token);
+    const result = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new HttpsError("not-found", "La invitación no existe.");
+      const data = snap.data() as { uid?: string; usedAt?: unknown; expiresAt?: Timestamp };
+      if (data.usedAt) throw new HttpsError("failed-precondition", "Esta invitación ya fue usada.");
+      if (data.expiresAt && data.expiresAt.toMillis() < Date.now()) {
+        throw new HttpsError("failed-precondition", "La invitación expiró. Pide un nuevo enlace de acceso.");
+      }
+      if (!data.uid) throw new HttpsError("failed-precondition", "Invitación inválida.");
+      tx.update(ref, { usedAt: Timestamp.now() });
+      return { uid: data.uid };
+    });
+
+    await getAuth().updateUser(result.uid, { password });
+    await db.collection("users").doc(result.uid).set(
+      { onboardingStatus: "completed", mustChangePassword: false, updatedAt: Timestamp.now() },
+      { merge: true },
+    );
+    return { ok: true as const };
+  },
+);
+
+// Reenvía el acceso a un usuario operativo del mismo tenant (regenera invitación).
+export const resendAccountInvite = onCall<{ tenantId?: string; uid?: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    const tenantId = normalizeText(request.data?.tenantId);
+    const targetUid = normalizeText(request.data?.uid);
+    if (!tenantId || !targetUid) throw new HttpsError("invalid-argument", "tenantId y uid son requeridos.");
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const membershipSnap = await db.collection("tenantUsers").doc(`${actor.tenantId}_${targetUid}`).get();
+    if (!membershipSnap.exists) throw new HttpsError("not-found", "El usuario no pertenece a este tenant.");
+    const role = (membershipSnap.data() as { role?: string }).role ?? "security_guard";
+
+    const userSnap = await db.collection("users").doc(targetUid).get();
+    const userData = userSnap.data() as { email?: string; fullName?: string } | undefined;
+    const authUser = await getAuth().getUser(targetUid).catch(() => null);
+    const email = userData?.email ?? authUser?.email ?? "";
+    const fullName = userData?.fullName ?? authUser?.displayName ?? "";
+    if (!email) throw new HttpsError("failed-precondition", "El usuario no tiene correo registrado.");
+
+    await sendOnboardingInvite(targetUid, email, fullName, actor.tenantId, role, "welcome");
+    await writeAuditLog(actor.tenantId, request.auth.uid, "resend_account_invite", { uid: targetUid });
+    return { ok: true as const };
   },
 );
