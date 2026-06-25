@@ -1,12 +1,16 @@
+"use client";
+
 import * as React from "react";
 import { Upload, KeyRound, ShieldCheck, MessageCircle, type LucideIcon } from "lucide-react";
+import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * Migración + Confianza — manejo de objeción antes del precio (blueprint §3.9).
  *
  * Resuelve las dos objeciones que frenan la venta B2B cuando se maneja dinero y
  * datos: "cambiar es un dolor" y "¿está seguro?". Va justo antes de Pricing.
- * Sección estática (server component).
+ * Scroll-reveal + hover lift para mantener cohesión con el resto de la página.
  */
 
 type Item = {
@@ -38,6 +42,33 @@ const ITEMS: Item[] = [
   },
 ];
 
+function TrustCard({ item, index }: { item: Item; index: number }) {
+  const { Icon, title, body } = item;
+  const reduced = useReducedMotion();
+  const [ref, inView] = useInView<HTMLLIElement>(0.05);
+  const delayMs = reduced ? 0 : index * 60;
+
+  return (
+    <li
+      ref={ref}
+      className={cn(
+        "flex flex-col rounded-2xl border border-border bg-background p-lg shadow-brand-sm",
+        "transition-[opacity,transform,box-shadow] duration-[280ms] ease-out motion-reduce:transition-none",
+        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-brand-lg",
+      )}
+      style={{ transitionDelay: reduced || inView ? "0ms" : `${delayMs}ms` }}
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-blue/10 ring-4 ring-brand-blue/20">
+        <Icon className="h-6 w-6 text-brand-blue" aria-hidden="true" />
+      </div>
+      <p className="mt-md font-display text-lg text-navy">{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-slate-600">{body}</p>
+    </li>
+  );
+}
+
 export function TrustOnboarding() {
   return (
     <section
@@ -56,17 +87,8 @@ export function TrustOnboarding() {
       </p>
 
       <ul role="list" className="mt-xl grid gap-lg sm:grid-cols-2 lg:grid-cols-4">
-        {ITEMS.map(({ Icon, title, body }) => (
-          <li
-            key={title}
-            className="flex flex-col rounded-2xl border border-border bg-background p-lg shadow-brand-sm"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-blue/10 ring-4 ring-brand-blue/20">
-              <Icon className="h-6 w-6 text-brand-blue" aria-hidden="true" />
-            </div>
-            <p className="mt-md font-display text-lg text-navy">{title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-600">{body}</p>
-          </li>
+        {ITEMS.map((item, i) => (
+          <TrustCard key={item.title} item={item} index={i} />
         ))}
       </ul>
     </section>

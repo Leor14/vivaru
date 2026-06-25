@@ -1,11 +1,15 @@
+"use client";
+
 import * as React from "react";
+import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { cn } from "@/lib/utils/cn";
 
 /**
  * Casos de uso reales — prueba narrativa (blueprint §3.6).
  *
  * Un escenario concreto por perfil en formato Situación → Con Vivaru → Resultado.
  * Aterriza la promesa ("controla tu cartera") en una escena ("así cobras la cuota").
- * Sección estática (server component) para mantenerla ligera.
+ * Scroll-reveal + hover lift para mantener cohesión con Solution/Differentiators.
  */
 
 type Caso = {
@@ -79,6 +83,33 @@ function StepBlock({ label, text, dot }: { label: string; text: string; dot: str
   );
 }
 
+function CasoCard({ caso, index }: { caso: Caso; index: number }) {
+  const reduced = useReducedMotion();
+  const [ref, inView] = useInView<HTMLLIElement>(0.05);
+  const delayMs = reduced ? 0 : index * 60;
+
+  return (
+    <li
+      ref={ref}
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl border border-border bg-background p-lg shadow-brand-sm",
+        "transition-[opacity,transform,box-shadow] duration-[280ms] ease-out motion-reduce:transition-none",
+        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1",
+        "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-brand-lg",
+      )}
+      style={{ transitionDelay: reduced || inView ? "0ms" : `${delayMs}ms` }}
+    >
+      <p className={`text-sm font-semibold uppercase tracking-[0.12em] ${caso.labelColor}`}>
+        {caso.label}
+      </p>
+      <StepBlock label="Situación" text={caso.situation} dot={caso.dot} />
+      <StepBlock label="Con Vivaru" text={caso.withVivaru} dot={caso.dot} />
+      <StepBlock label="Resultado" text={caso.result} dot={caso.dot} />
+    </li>
+  );
+}
+
 export function CasosDeUso() {
   return (
     <section
@@ -97,18 +128,8 @@ export function CasosDeUso() {
       </p>
 
       <ul role="list" className="mt-xl grid gap-lg sm:grid-cols-2">
-        {CASOS.map((c) => (
-          <li
-            key={c.key}
-            className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-lg shadow-brand-sm"
-          >
-            <p className={`text-sm font-semibold uppercase tracking-[0.12em] ${c.labelColor}`}>
-              {c.label}
-            </p>
-            <StepBlock label="Situación" text={c.situation} dot={c.dot} />
-            <StepBlock label="Con Vivaru" text={c.withVivaru} dot={c.dot} />
-            <StepBlock label="Resultado" text={c.result} dot={c.dot} />
-          </li>
+        {CASOS.map((c, i) => (
+          <CasoCard key={c.key} caso={c} index={i} />
         ))}
       </ul>
     </section>

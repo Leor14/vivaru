@@ -104,7 +104,7 @@ function PainCard({ pain, index }: { pain: Pain; index: number }) {
       ref={ref}
       className={cn(
         "flex gap-md rounded-xl border border-border bg-background p-lg shadow-brand-sm",
-        "transition-all duration-slow ease-out-brand motion-reduce:transition-none",
+        "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
         inView
           ? "opacity-100 scale-100"
           : "opacity-0 scale-[0.95] motion-reduce:scale-100",

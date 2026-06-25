@@ -466,10 +466,10 @@ export function Perspectives() {
                 id={`perspectives-panel-${active.key}`}
                 role="tabpanel"
                 aria-labelledby={`perspectives-tab-${active.key}`}
-                initial={reduced ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={reduced ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ duration: reduced ? 0 : 0.2, ease: "easeOut" }}
+                initial={reduced ? false : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                exit={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
+                transition={{ duration: reduced ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
                 className="grid items-center gap-xl lg:grid-cols-2 lg:gap-xxl"
               >
                 {/* Copy — 3 capas: problema → solución → en la práctica */}

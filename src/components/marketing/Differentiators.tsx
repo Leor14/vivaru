@@ -130,7 +130,7 @@ function DiffCard({ item, index }: { item: Differentiator; index: number }) {
       ref={ref}
       className={cn(
         "rounded-2xl border border-border bg-background p-lg shadow-brand-sm",
-        "transition-all duration-base ease-out-brand motion-reduce:transition-none",
+        "transition-[opacity,transform,box-shadow] duration-base ease-out-brand motion-reduce:transition-none",
         "hover:scale-[1.02] hover:shadow-brand-md motion-reduce:hover:scale-100",
         inView
           ? "opacity-100 translate-y-0"
