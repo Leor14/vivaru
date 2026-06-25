@@ -19,7 +19,6 @@ const PRODUCT_LINKS = [
   { label: "Solución (4 pilares)", href: "/mx#solucion" },
   { label: "Perspectivas por rol", href: "/mx#perspectivas" },
   { label: "Diferenciadores", href: "/mx#diferenciadores" },
-  { label: "Precios", href: "/mx#precios" },
 ];
 
 const RESOURCE_LINKS = [

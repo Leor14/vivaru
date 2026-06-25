@@ -9,7 +9,7 @@ import { PerspectivesLazy } from '@/components/marketing/PerspectivesLazy';
 import { CasosDeUso } from '@/components/marketing/CasosDeUso';
 import { Differentiators } from '@/components/marketing/Differentiators';
 import { TrustOnboarding } from '@/components/marketing/TrustOnboarding';
-import { Pricing } from '@/components/marketing/Pricing';
+// import { Pricing } from '@/components/marketing/Pricing';
 // import { Pilot } from '@/components/marketing/Pilot';
 import { FAQ } from '@/components/marketing/FAQ';
 import { FinalCTA } from '@/components/marketing/FinalCTA';
@@ -19,8 +19,11 @@ import { FinalCTA } from '@/components/marketing/FinalCTA';
  *
  * Section order: Topbar → Hero → ImpactBand → Pain → Solution →
  * Perspectives → CasosDeUso → MultiConjunto → Differentiators →
- * TrustOnboarding → Pricing → FAQ → FinalCTA → Footer. CookieBanner lives
+ * TrustOnboarding → FAQ → FinalCTA → Footer. CookieBanner lives
  * in (marketing)/layout.tsx so it also appears on /diagnostico and /legal/*.
+ *
+ * HIDDEN: Pricing ocultada a pedido (segmentos/datos de unidades por revisar).
+ * Reactivar descomentando el import y <Pricing /> debajo de <TrustOnboarding />.
  *
  * HIDDEN: Pilot removed — decisión comercial pendiente HITL H4 + fee.
  * Reactivar descomentando el import y añadiendo <Pilot /> debajo de <Pricing />.
@@ -39,7 +42,8 @@ export default function Home() {
         <MultiConjunto />
         <Differentiators />
         <TrustOnboarding />
-        <Pricing />
+        {/* HIDDEN — sección de planes ocultada a pedido (datos de unidades por revisar) */}
+        {/* <Pricing /> */}
         {/* HIDDEN — HITL H4 + fee pendiente */}
         {/* <Pilot /> */}
         <FAQ />

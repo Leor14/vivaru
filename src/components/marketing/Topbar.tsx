@@ -39,7 +39,6 @@ import { track } from "@/lib/marketing/analytics";
 const NAV_LINKS = [
   { label: "Producto", href: "/mx#solucion" },
   { label: "Soluciones", href: "/mx#perspectivas" },
-  { label: "Precios", href: "/mx#precios" },
   { label: "Recursos", href: "/mx#faq" },
 ] as const;
 
