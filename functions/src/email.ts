@@ -159,6 +159,10 @@ export async function sendAccountEmail(input: {
     return;
   }
 
+  // Los correos requieren URL absoluta. Los enlaces de Firebase ya vienen absolutos
+  // (http…); los propios (p. ej. /activar?token=…) se prefijan con la base pública.
+  const absoluteLink = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
+
   const response = await httpFetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -169,7 +173,7 @@ export async function sendAccountEmail(input: {
       from: FROM,
       to: input.to,
       subject: COPY[input.variant].subject,
-      html: buildHtml(input.fullName, input.link, input.variant),
+      html: buildHtml(input.fullName, absoluteLink, input.variant),
     }),
   });
 
