@@ -3380,7 +3380,7 @@ export const activateAccount = onCall<{ token?: string; password?: string }>(
 
 // Reenvía el acceso a un usuario operativo del mismo tenant (regenera invitación).
 export const resendAccountInvite = onCall<{ tenantId?: string; uid?: string }>(
-  { cors: callableCorsOrigins },
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
   async (request) => {
     if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
