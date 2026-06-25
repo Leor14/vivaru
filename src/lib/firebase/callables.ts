@@ -327,8 +327,15 @@ export async function getAccountInviteCallable(token: string) {
 
 export async function activateAccountCallable(input: { token: string; password: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  // Flujo PÚBLICO (sin sesión): no usar executeCallable, que exige usuario
+  // autenticado. Se llama directo y se normaliza el error de la función.
   const callable = httpsCallable<typeof input, { ok: true }>(functions, "activateAccount");
-  return executeCallable(callable, input, "No fue posible activar la cuenta.");
+  try {
+    const result = await callable(input);
+    return result.data;
+  } catch (error) {
+    throw new Error(normalizeCallableError(error, "No fue posible activar la cuenta."));
+  }
 }
 
 export async function resendAccountInviteCallable(input: { tenantId: string; uid: string }) {
