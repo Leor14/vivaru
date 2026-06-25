@@ -13,8 +13,6 @@ import { useInView } from "@/lib/marketing/hooks";
 type Tier = {
   key: "operacion" | "profesional" | "enterprise";
   name: string;
-  /** Para quién es el plan (ancla por perfil). */
-  audience: string;
   minUnits: string;
   modules: string[];
   borderClass: string;
@@ -25,7 +23,6 @@ const TIERS: Tier[] = [
   {
     key: "operacion",
     name: "Operación",
-    audience: "Para conjuntos que arrancan por comunicación y portería.",
     minUnits: "Mínimo 50 unidades",
     modules: [
       "Comunidad",
@@ -39,7 +36,6 @@ const TIERS: Tier[] = [
   {
     key: "profesional",
     name: "Profesional",
-    audience: "Para el administrador que gestiona cartera y rinde a la asamblea.",
     minUnits: "Mínimo 50 unidades",
     modules: [
       "Todo en Operación",
@@ -55,7 +51,6 @@ const TIERS: Tier[] = [
   {
     key: "enterprise",
     name: "Enterprise",
-    audience: "Para administradoras con varios conjuntos y marca propia.",
     minUnits: "Mínimo 100 unidades",
     modules: [
       "Todos los módulos",
@@ -154,8 +149,7 @@ function TierCard({ tier }: { tier: Tier }) {
       ) : null}
 
       <h3 className="font-display text-h3 text-navy">{tier.name}</h3>
-      <p className="mt-1 text-sm font-medium text-slate-700">{tier.audience}</p>
-      <p className="mt-0.5 text-sm text-slate-500">{tier.minUnits}</p>
+      <p className="mt-1 text-sm text-slate-500">{tier.minUnits}</p>
 
       <div className="mt-md">
         <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">

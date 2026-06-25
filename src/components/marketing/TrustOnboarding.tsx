@@ -18,13 +18,13 @@ type Item = {
 const ITEMS: Item[] = [
   {
     Icon: Upload,
-    title: "Migra tu cartera en 72 horas",
+    title: "Migra tu cartera en pocas horas",
     body: "Importa unidades, residentes y la cartera con la que llega tu conjunto desde Excel. Operas el día 1 con tu realidad, no desde cero.",
   },
   {
     Icon: KeyRound,
     title: "Acceso seguro por enlace",
-    body: "Cada usuario activa su cuenta desde un enlace y recupera su clave solo. Sin contraseñas compartidas ni la cédula como llave.",
+    body: "Cada usuario activa su cuenta y restablece su contraseña desde un enlace seguro. Sin claves compartidas.",
   },
   {
     Icon: ShieldCheck,
@@ -52,7 +52,7 @@ export function TrustOnboarding() {
         Empieza sin fricción, opera con confianza
       </h2>
       <p className="mt-md max-w-2xl text-base leading-relaxed text-slate-600">
-        Migrar tu conjunto no debería costar meses. Y manejar dinero y datos exige respaldo.
+        Migra tu conjunto de forma fácil y sin fricciones.
       </p>
 
       <ul role="list" className="mt-xl grid gap-lg sm:grid-cols-2 lg:grid-cols-4">

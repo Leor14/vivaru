@@ -45,7 +45,7 @@ const CASOS: Caso[] = [
     label: "Portería",
     labelColor: "text-brand-plum-dark",
     dot: "bg-brand-plum-dark",
-    situation: "Llega un invitado y, a la vez, una encomienda al turno.",
+    situation: "Llega un visitante y, al mismo tiempo, un paquete para un residente.",
     withVivaru:
       "Escanea el QR (la visita ya está autorizada), registra el paquete con foto y firma, y deja una nota con foto de una novedad.",
     result: "Todo queda registrado y el administrador lo ve en tiempo real.",

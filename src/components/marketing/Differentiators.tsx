@@ -77,7 +77,7 @@ const ITEMS: Differentiator[] = [
     key: "porteria",
     Icon: Shield,
     title: "Portería digital",
-    desc: "Panel dedicado con 4 funciones. Diseñado para no-técnicos.",
+    desc: "Un panel propio para el portero: valida visitas con QR, recibe paquetes y registra el turno. Fácil de usar.",
     iconBg: "bg-brand-amber/10",
     iconRing: "ring-brand-amber/20",
     iconFg: "text-brand-amber",
