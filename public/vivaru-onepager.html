@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vivaru — One pager comercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #0B3C5D;
+    --navy-dark: #0B1F3A;
+    --blue: #4B5FD4;
+    --teal: #0891B2;
+    --green: #1A7A45;
+    --plum: #3D1460;
+    --amber: #D97706;
+    --ink: #0f172a;
+    --muted: #475569;
+    --line: #e2e8f0;
+    --bg: #f4f7fb;
+    --soft: #f7fafc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #e9eef5; color: var(--ink); font-family: "Manrope", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  .page {
+    width: 210mm; min-height: 297mm; margin: 16px auto; background: #fff;
+    box-shadow: 0 10px 40px rgba(11,31,58,.12); overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+  .display { font-family: "Playfair Display", Georgia, serif; }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  .header { background: var(--navy); color: #fff; padding: 22px 30px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 40px; height: 40px; border-radius: 10px; background: #fff; display: flex; align-items: center; justify-content: center; }
+  .logo svg { width: 24px; height: 24px; }
+  .brand .name { font-family: "Playfair Display", serif; font-weight: 800; font-size: 24px; letter-spacing: .5px; }
+  .brand .tag { font-size: 10.5px; color: #c7d6e6; letter-spacing: .3px; margin-top: 1px; }
+  .header .region { text-align: right; font-size: 10.5px; color: #c7d6e6; line-height: 1.5; }
+  .header .region strong { color: #fff; }
+
+  /* ── Hero ───────────────────────────────────────────────── */
+  .hero { padding: 26px 30px 10px; }
+  .hero h1 { font-family: "Playfair Display", serif; font-weight: 800; font-size: 27px; line-height: 1.18; color: var(--navy); max-width: 92%; }
+  .hero p { margin-top: 9px; font-size: 12.5px; line-height: 1.55; color: var(--muted); max-width: 95%; }
+
+  /* ── Stats ──────────────────────────────────────────────── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px 30px 6px; }
+  .stat { border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; background: var(--soft); }
+  .stat .n { font-family: "Playfair Display", serif; font-weight: 700; font-size: 21px; color: var(--navy); }
+  .stat .l { font-size: 9.5px; color: var(--muted); margin-top: 3px; line-height: 1.35; text-transform: uppercase; letter-spacing: .4px; }
+
+  /* ── Section heads ──────────────────────────────────────── */
+  .section { padding: 14px 30px 0; }
+  .eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; color: var(--blue); }
+
+  /* ── Profiles ───────────────────────────────────────────── */
+  .profiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 9px; }
+  .pcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; border-left-width: 4px; }
+  .pcard.admin { border-left-color: var(--navy); }
+  .pcard.comite { border-left-color: var(--blue); }
+  .pcard.resi { border-left-color: var(--green); }
+  .pcard.port { border-left-color: var(--plum); }
+  .pcard h3 { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+  .pcard.admin h3 { color: var(--navy); }
+  .pcard.comite h3 { color: var(--blue); }
+  .pcard.resi h3 { color: var(--green); }
+  .pcard.port h3 { color: var(--plum); }
+  .pcard p { font-size: 11px; line-height: 1.5; color: var(--muted); margin-top: 5px; }
+
+  /* ── Why ────────────────────────────────────────────────── */
+  .why { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 22px; margin-top: 9px; }
+  .why li { list-style: none; font-size: 11px; line-height: 1.45; color: var(--ink); padding-left: 18px; position: relative; }
+  .why li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--green); font-weight: 800; }
+  .why li strong { color: var(--navy); }
+
+  /* ── Modules ────────────────────────────────────────────── */
+  .modules { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 10.5px; font-weight: 600; color: var(--navy); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; }
+
+  /* ── Trust strip ────────────────────────────────────────── */
+  .trust { margin: 14px 30px 0; background: var(--soft); border: 1px solid var(--line); border-radius: 12px; padding: 11px 16px; font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+  .trust strong { color: var(--navy); }
+
+  /* ── CTA footer ─────────────────────────────────────────── */
+  .cta { margin-top: auto; background: var(--navy); color: #fff; padding: 18px 30px; display: flex; align-items: center; justify-content: space-between; }
+  .cta .l h2 { font-family: "Playfair Display", serif; font-weight: 700; font-size: 18px; }
+  .cta .l p { font-size: 11px; color: #c7d6e6; margin-top: 3px; }
+  .cta .r { text-align: right; font-size: 11px; line-height: 1.7; }
+  .cta .r a { color: #fff; text-decoration: none; font-weight: 700; }
+  .cta .btn { display: inline-block; background: #fff; color: var(--navy); font-weight: 800; font-size: 12px; padding: 9px 16px; border-radius: 10px; margin-bottom: 6px; }
+
+  @media print {
+    html, body { background: #fff; }
+    .page { box-shadow: none; margin: 0; width: 210mm; min-height: 297mm; }
+    @page { size: A4; margin: 0; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <div class="header">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2 3 8v12a1 1 0 0 0 1 1h6v-6h4v6h6a1 1 0 0 0 1-1V8l-9-6Z" fill="#0B3C5D"/></svg>
+        </span>
+        <div>
+          <div class="name">Vivaru</div>
+          <div class="tag">Administración de propiedad horizontal</div>
+        </div>
+      </div>
+      <div class="region">
+        <strong>México · Colombia · Ecuador</strong><br/>
+        Activación en 72 h · Soporte en español
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>Opera tu conjunto con orden, recaudo y evidencia.</h1>
+      <p>La plataforma para administrar conjuntos, condominios y fraccionamientos. Reemplaza WhatsApp, Excel y los cuadernos de portería por un solo sistema —
+        con cartera bajo control, comunicación oficial y trazabilidad para la asamblea.</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat"><div class="n">−20% a −35%</div><div class="l">Trabajo manual del administrador</div></div>
+      <div class="stat"><div class="n">+10% a +25%</div><div class="l">Recaudo de cartera</div></div>
+      <div class="stat"><div class="n">100%</div><div class="l">Operaciones con trazabilidad</div></div>
+      <div class="stat"><div class="n">72 h</div><div class="l">Activación promedio</div></div>
+    </div>
+
+    <!-- Profiles -->
+    <div class="section">
+      <span class="eyebrow">Una plataforma, para cada perfil del conjunto</span>
+      <div class="profiles">
+        <div class="pcard admin">
+          <h3>Administrador</h3>
+          <p>Cobra en lote, recuerda a los morosos automáticamente, aprueba comprobantes en un clic y concilia el banco. Cierra el mes en una tarde, sin Excel.</p>
+        </div>
+        <div class="pcard comite">
+          <h3>Comité / Presidente</h3>
+          <p>Llega a la asamblea con el informe hecho: tablero ejecutivo, antigüedad de cartera y acuerdos firmados, exportables a PDF y Excel.</p>
+        </div>
+        <div class="pcard resi">
+          <h3>Residente</h3>
+          <p>Su cuota, sus pagos y sus visitas desde el teléfono: consulta su saldo, paga con una foto y autoriza a sus invitados con un QR.</p>
+        </div>
+        <div class="pcard port">
+          <h3>Portería</h3>
+          <p>Valida visitas con un escaneo, recibe paquetes con foto y firma, y deja bitácora con evidencia. Sin papel y sin llamadas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why -->
+    <div class="section">
+      <span class="eyebrow">Por qué Vivaru</span>
+      <ul class="why">
+        <li><strong>Cada conjunto aislado</strong>, con su propia marca — único en el mercado.</li>
+        <li><strong>Ciclo financiero completo</strong>: de la cuota a la conciliación.</li>
+        <li><strong>Reporte de comité</strong> listo para la asamblea.</li>
+        <li><strong>Portería digital</strong> pensada para no-técnicos.</li>
+        <li><strong>Gobernanza</strong> con auditoría de operaciones sensibles.</li>
+        <li><strong>Multi-conjunto</strong>: administra tu portafolio desde una cuenta.</li>
+      </ul>
+    </div>
+
+    <!-- Modules -->
+    <div class="section">
+      <span class="eyebrow">Todo en un solo lugar</span>
+      <div class="modules">
+        <span class="chip">Cartera y finanzas</span>
+        <span class="chip">Comunicados</span>
+        <span class="chip">Visitantes con QR</span>
+        <span class="chip">Paquetería</span>
+        <span class="chip">Reservas</span>
+        <span class="chip">PQRS</span>
+        <span class="chip">Documentos</span>
+        <span class="chip">Reportes para asamblea</span>
+        <span class="chip">Multi-conjunto</span>
+      </div>
+    </div>
+
+    <!-- Trust -->
+    <div class="trust">
+      <strong>Empieza sin fricción:</strong> migra unidades, residentes y la cartera con la que llega tu conjunto desde Excel y opera en pocas horas.
+      <strong>Con confianza:</strong> acceso seguro por enlace, respaldos diarios y registro auditable. Tu información, protegida.
+    </div>
+
+    <!-- CTA -->
+    <div class="cta">
+      <div class="l">
+        <h2>¿Listo para ordenar tu conjunto?</h2>
+        <p>Agenda una demo gratuita y recibe una propuesta en 24 horas.</p>
+      </div>
+      <div class="r">
+        <span class="btn">Agenda una demo</span><br/>
+        <a href="https://www.grupovivaru.com">www.grupovivaru.com</a><br/>
+        <a href="mailto:hola@grupovivaru.com">hola@grupovivaru.com</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
