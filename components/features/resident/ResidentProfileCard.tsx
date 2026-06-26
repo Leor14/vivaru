@@ -409,7 +409,9 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
           {unitChangeRequest.reason ? <div className="text-xs text-muted-foreground"><span className="font-medium">Motivo:</span> {unitChangeRequest.reason}</div> : null}
         </div>
       ) : unitChangeRequestError ? (
-        <div className="mt-4 text-xs text-destructive">{unitChangeRequestError}</div>
+        <div className="mt-4 text-xs text-muted-foreground">
+          No pudimos cargar el estado de tu solicitud de cambio de unidad en este momento.
+        </div>
       ) : null}
     </Card>
   );

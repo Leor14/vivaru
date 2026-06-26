@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import type { UnitChangeRequest } from "../types";
+
+// createdAt puede llegar como Timestamp de Firestore, Date o forma serializada.
+function toMillis(value: unknown): number {
+  if (value && typeof (value as { toMillis?: () => number }).toMillis === "function") {
+    return (value as { toMillis: () => number }).toMillis();
+  }
+  if (value instanceof Date) return value.getTime();
+  if (value && typeof (value as { seconds?: number }).seconds === "number") {
+    return (value as { seconds: number }).seconds * 1000;
+  }
+  return 0;
+}
 
 export function useResidentUnitChangeRequest(userId: string) {
   const [request, setRequest] = useState<UnitChangeRequest | null>(null);
@@ -20,18 +32,22 @@ export function useResidentUnitChangeRequest(userId: string) {
         return;
       }
       try {
+        // Solo igualdad (sin orderBy) para no exigir un indice compuesto. Un
+        // residente tiene muy pocas solicitudes: ordenamos en el cliente y
+        // tomamos la mas reciente.
         const q = query(
           collection(db, "unitChangeRequests"),
           where("userId", "==", userId),
-          orderBy("createdAt", "desc"),
-          limit(1)
         );
         const snap = await getDocs(q);
-        if (!snap.empty) {
-          const docSnap = snap.docs[0];
-          setRequest({ id: docSnap.id, ...docSnap.data() } as UnitChangeRequest);
-        } else {
+        if (snap.empty) {
           setRequest(null);
+        } else {
+          const docs = snap.docs.map(
+            (docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as UnitChangeRequest,
+          );
+          docs.sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+          setRequest(docs[0]);
         }
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Error al consultar solicitud");
@@ -40,7 +56,7 @@ export function useResidentUnitChangeRequest(userId: string) {
       }
     };
     fetchRequest();
-  }, [userId, db]);
+  }, [userId]);
 
   return { request, loading, error };
 }
