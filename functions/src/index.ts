@@ -29,6 +29,7 @@ const callableCorsOrigins = [
   "https://grupovivaru.com",
   "https://vivaru--hogaru-1.us-central1.hosted.app",
   "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
+  "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app", // staging
   "http://localhost:3000",
 ];
 
