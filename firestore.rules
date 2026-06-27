@@ -297,13 +297,17 @@ service cloud.firestore {
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
 
+      // El buffer de 15 min (comparación de wall-clock) no es zona-horaria-segura;
+      // el cliente ya lo valida en hora local. Para el admin (confiable) no se
+      // aplica en la regla para no rechazar visitas válidas del mismo día.
       allow create: if signedIn() && (
         tenantAdminOrSuper(request.resource.data.tenantId) ||
         (
           residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
-          request.resource.data.createdBy == request.auth.uid
+          request.resource.data.createdBy == request.auth.uid &&
+          isDateTimeAtOrAfterBuffer(request.resource.data.startDate, request.resource.data.startTime, 15)
         )
-      ) && isDateTimeAtOrAfterBuffer(request.resource.data.startDate, request.resource.data.startTime, 15);
+      );
 
       allow update, delete: if signedIn() && sameTenant(resource.data.tenantId) && (
         tenantAdminOrSuper(resource.data.tenantId) ||

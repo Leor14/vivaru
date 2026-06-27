@@ -1146,6 +1146,13 @@ export function watchVisitors(tenantId: string, onData: (items: VisitorItem[]) =
   return subscribeTenant<VisitorItem>("visitorAuthorizations", tenantId, onData, onError);
 }
 
+// Firestore rechaza `undefined` (getFirestore sin ignoreUndefinedProperties).
+// Quita los campos undefined antes de escribir (p. ej. endTime/notes vacíos en
+// autorizaciones "puntual").
+function stripUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
+}
+
 export async function createVisitor(
   tenantId: string,
   userId: string,
@@ -1164,7 +1171,7 @@ export async function createVisitor(
   try {
     const firestore = assertDb();
     const createdAuthorization = await addDoc(collection(firestore, "visitorAuthorizations"), {
-      ...payload,
+      ...stripUndefined(payload),
       tenantId,
       createdBy: userId,
       createdAt: serverTimestamp(),
@@ -1211,7 +1218,7 @@ export async function updateVisitor(
 ) {
   const firestore = assertDb();
   await updateDoc(doc(firestore, "visitorAuthorizations", id), {
-    ...payload,
+    ...stripUndefined(payload),
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });

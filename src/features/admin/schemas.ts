@@ -98,7 +98,7 @@ export type AmenityConfigInput = z.infer<typeof amenityConfigSchema>;
 export const visitorSchema = z
   .object({
     visitorName: requiredText("Nombre visitante", 3),
-    visitorDocument: requiredText("Cedula visitante", 5),
+    visitorDocument: requiredText("Numero de Identificacion", 5),
     qrCode: requiredText("Codigo QR", 5),
     authorizationType: z.enum(["puntual", "larga_duracion"]),
     visitorCategory: z.enum(["familiar", "servicio", "otro"]),

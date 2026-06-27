@@ -760,7 +760,7 @@ export default function AdminVisitorsPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
-              Cédula visitante
+              Número de Identificación
               <Input {...form.register("visitorDocument")} />
             </label>
             <label className="text-sm text-[var(--slate-700)]">
