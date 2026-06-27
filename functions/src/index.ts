@@ -3404,3 +3404,61 @@ export const resendAccountInvite = onCall<{ tenantId?: string; uid?: string }>(
     return { ok: true as const };
   },
 );
+
+// ── Visitas sin salida registrada ─────────────────────────────────────────────
+// Avisa a los guardias cuando una visita sigue "inside" y su fecha esperada de
+// salida (validUntil para larga duración, date para puntual) ya pasó. Marca cada
+// pase con exitAlertNotifiedAt para notificar una sola vez por pase (sin spam).
+export const notifyPendingVisitorExits = onSchedule("0 8 * * *", async () => {
+  const n = new Date();
+  const todayStr = `${n.getUTCFullYear()}-${String(n.getUTCMonth() + 1).padStart(2, "0")}-${String(n.getUTCDate()).padStart(2, "0")}`;
+
+  // Igualdad simple (sin índice compuesto); se filtra el resto en código.
+  const snap = await db.collection("visitorPasses").where("status", "==", "inside").get();
+
+  const byTenant = new Map<string, number>();
+  const markBatch = db.batch();
+  let pendingCount = 0;
+
+  for (const doc of snap.docs) {
+    const p = doc.data() as {
+      tenantId?: string;
+      authorizationType?: string;
+      validUntil?: string;
+      date?: string;
+      exitAlertNotifiedAt?: unknown;
+    };
+    if (p.exitAlertNotifiedAt) continue; // ya avisado
+    if (!p.tenantId) continue;
+    const expected = p.authorizationType === "larga_duracion" && p.validUntil ? p.validUntil : p.date;
+    if (!expected || expected >= todayStr) continue; // aún no vencida
+
+    byTenant.set(p.tenantId, (byTenant.get(p.tenantId) ?? 0) + 1);
+    markBatch.update(doc.ref, { exitAlertNotifiedAt: Timestamp.now() });
+    pendingCount += 1;
+  }
+
+  if (pendingCount === 0) {
+    console.log("[visitor-exits] sin visitas pendientes de salida.");
+    return;
+  }
+
+  await markBatch.commit();
+
+  for (const [tenantId, count] of byTenant) {
+    const guardUids = await listTenantUidsByRoles(tenantId, ["security_guard", "security"]);
+    if (guardUids.length === 0) continue;
+    await createNotifications(
+      guardUids.map((uid) => ({
+        userId: uid,
+        tenantId,
+        type: "visitor" as const,
+        title: "Visitas sin salida registrada",
+        description: `${count} visita(s) siguen marcadas como “Dentro” y su fecha ya pasó. Revisa y registra la salida.`,
+        link: "/guard/visitors",
+      })),
+    );
+  }
+
+  console.log(`[visitor-exits] notificadas ${byTenant.size} comunidad(es), ${pendingCount} pase(s).`);
+});

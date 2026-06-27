@@ -122,6 +122,18 @@ function getStatusClass(status: OperationalStatus) {
   return "bg-amber-100 text-amber-700";
 }
 
+/**
+ * Salida pendiente: la visita sigue "inside" y su fecha esperada de salida ya
+ * pasó. Fecha esperada = validUntil (larga duración) o date (puntual).
+ * `todayStr` en formato local YYYY-MM-DD.
+ */
+function isExitPending(item: VisitorPass, todayStr: string): boolean {
+  if (item.status !== "inside") return false;
+  const expected =
+    item.authorizationType === "larga_duracion" && item.validUntil ? item.validUntil : item.date;
+  return Boolean(expected) && expected < todayStr;
+}
+
 export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: string; guardId?: string; guardName?: string }) {
   const { items, loading, error } = useVisitorPasses(tenantId);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -191,6 +203,16 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
   const rows = useMemo<VisitorCardItem[]>(
     () => items.map((item) => ({ ...item, operationalStatus: resolveOperationalStatus(item) })),
     [items],
+  );
+
+  // Fecha local de hoy (YYYY-MM-DD) para detectar visitas sin salida registrada.
+  const todayStr = useMemo(() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+  }, []);
+  const pendingExits = useMemo(
+    () => rows.filter((item) => isExitPending(item, todayStr)),
+    [rows, todayStr],
   );
 
   const noteVisitor = useMemo(
@@ -549,6 +571,17 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
 
+        {!loading && pendingExits.length > 0 ? (
+          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-900">
+              ⚠️ {pendingExits.length} visita{pendingExits.length !== 1 ? "s" : ""} sin salida registrada
+            </p>
+            <p className="mt-0.5 text-xs text-amber-800">
+              Siguen marcadas como “Dentro” y su fecha de visita ya pasó. Registra su salida con el botón “Salió” o verifica en sitio.
+            </p>
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="mt-4 space-y-3">
             <Skeleton className="h-44 w-full" />
@@ -582,6 +615,11 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <Badge className={getStatusClass(item.operationalStatus)}>{getStatusLabel(item.operationalStatus)}</Badge>
+                      {isExitPending(item, todayStr) ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                          Salida pendiente
+                        </span>
+                      ) : null}
                       {item.authorizationType === "larga_duracion" && item.validUntil ? (
                         <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">
                           Vigente hasta {formatDate(item.validUntil)}
