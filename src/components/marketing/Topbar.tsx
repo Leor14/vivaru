@@ -72,7 +72,7 @@ function VivaruLogo({ className }: { className?: string }) {
         width={120}
         height={120}
         priority
-        className="h-12 w-auto"
+        className="h-14 w-auto md:h-16"
       />
     </Link>
   );
