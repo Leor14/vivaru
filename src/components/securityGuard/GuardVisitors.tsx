@@ -816,8 +816,14 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
       ) : null}
 
       {scannerOpen ? (
-        <div className="fixed inset-0 z-[70] bg-slate-950/60 backdrop-blur-sm">
-          <section className="h-full w-full bg-white p-4 sm:ml-auto sm:h-full sm:max-w-xl sm:p-5">
+        <div className="fixed inset-0 z-[70]">
+          <button
+            type="button"
+            aria-label="Cerrar escáner"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+            onClick={closeScanner}
+          />
+          <aside className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto border-l border-[var(--slate-200)] bg-white p-4 shadow-2xl sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Porteria</p>
@@ -871,7 +877,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                 QR valido para {validatedVisitor.visitorName}. Abriendo detalle operativo.
               </p>
             ) : null}
-          </section>
+          </aside>
         </div>
       ) : null}
     </>
