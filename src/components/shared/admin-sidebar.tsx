@@ -197,7 +197,7 @@ export function AdminSidebar({
         />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 pb-3" aria-label="Navegacion principal">
+      <nav className="px-2 pb-3" aria-label="Navegacion principal">
         {effectiveGroups.map((group, groupIndex) => {
           const isFirst = groupIndex === 0;
           return (
@@ -259,7 +259,7 @@ export function AdminSidebar({
 
       {user ? (
         <div
-          className="mt-auto border-t"
+          className="border-t"
           style={{
             borderColor: "rgba(255,255,255,0.07)",
             padding: "12px 14px",

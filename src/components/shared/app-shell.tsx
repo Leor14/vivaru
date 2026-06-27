@@ -374,7 +374,7 @@ export function AppShell({
         <aside className="hidden md:block">
           {isAdminRole ? (
             <AdminSidebar
-              className="sticky top-4 h-[calc(100vh-2rem)]"
+              className=""
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
               badges={sidebarBadges}
@@ -384,7 +384,7 @@ export function AppShell({
             />
           ) : (
             <AdminSidebar
-              className="sticky top-4 h-[calc(100vh-2rem)]"
+              className=""
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
               groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
