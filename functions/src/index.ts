@@ -52,12 +52,48 @@ type CreateTenantInput = {
   adminFullName: string;
 };
 
+type ModuleVariants = {
+  visitors: "qr_full" | "registro_simple";
+  packages: "con_evidencia" | "aviso_simple";
+  finance: "completa" | "solo_consulta";
+  governance: "formal" | "informativo";
+};
+
+// Defaults = comportamiento actual. Si el alta no envia variantes (o faltan claves), se aplican
+// estos, de modo que los conjuntos quedan en el modo vigente sin requerir migracion.
+const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
+  visitors: "qr_full",
+  packages: "con_evidencia",
+  finance: "completa",
+  governance: "formal",
+};
+
+const MODULE_VARIANT_VALUES: Record<keyof ModuleVariants, readonly string[]> = {
+  visitors: ["qr_full", "registro_simple"],
+  packages: ["con_evidencia", "aviso_simple"],
+  finance: ["completa", "solo_consulta"],
+  governance: ["formal", "informativo"],
+};
+
+function normalizeModuleVariants(input: unknown): ModuleVariants {
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const result = { ...DEFAULT_MODULE_VARIANTS };
+  for (const key of Object.keys(MODULE_VARIANT_VALUES) as Array<keyof ModuleVariants>) {
+    const value = raw[key];
+    if (typeof value === "string" && MODULE_VARIANT_VALUES[key].includes(value)) {
+      (result[key] as string) = value;
+    }
+  }
+  return result;
+}
+
 type CreateTenantWorkspaceInput = {
   name: string;
   city: string;
   planId: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
+  moduleVariants?: Partial<ModuleVariants>;
 };
 
 type CreateTenantAdminInput = {
@@ -909,6 +945,7 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
   assertOnboardingStatus(data.onboardingStatus);
 
   const now = Timestamp.now();
+  const moduleVariants = normalizeModuleVariants(data.moduleVariants);
   const tenantRef = db.collection("tenants").doc();
 
   await tenantRef.set({
@@ -922,6 +959,18 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
     createdBy: request.auth?.uid,
   });
 
+  // Inicializa tenantSettings con los modos de operacion elegidos en el alta. Hoy el alta no
+  // creaba este doc; al crearlo aqui, las variantes quedan disponibles desde el primer momento.
+  await db.collection("tenantSettings").doc(tenantRef.id).set(
+    {
+      tenantId: tenantRef.id,
+      tenantName: data.name,
+      moduleVariants,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
   await db.collection("auditLogs").add({
     tenantId: tenantRef.id,
     actorUid: request.auth?.uid,
@@ -929,6 +978,7 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
     metadata: {
       city: data.city,
       planId: data.planId,
+      moduleVariants,
     },
     createdAt: now,
   });

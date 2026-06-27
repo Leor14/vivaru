@@ -25,6 +25,7 @@ import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage
 import { db, storage } from "@/lib/firebase/client";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import type { FiscalProfile } from "@/types/domain";
+import type { ModuleVariants } from "@/lib/config/module-variants";
 
 export type UnitItem = {
   id: string;
@@ -271,6 +272,7 @@ export type TenantSettingsItem = {
     blockOnDebt: boolean;
   };
   residentModules?: ResidentModules;
+  moduleVariants?: Partial<ModuleVariants>;
   fiscalProfile?: FiscalProfile;
   adminProfile?: {
     uid: string;

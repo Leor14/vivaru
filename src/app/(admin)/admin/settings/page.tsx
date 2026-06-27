@@ -22,6 +22,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { auth } from "@/lib/firebase/client";
 import { TenantBrandingCard } from "@/features/admin/components/tenant-branding-card";
 import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
+import { ModuleVariantsCard } from "@/features/admin/components/module-variants-card";
 import { NotificationTemplatesCard } from "@/features/admin/components/notification-templates-card";
 import { FiscalProfileCard } from "@/components/features/finanzas/FiscalProfileCard";
 import { SectionIntro } from "@/components/shared/section-intro";
@@ -350,6 +351,8 @@ export default function AdminSettingsPage() {
       </Card>
 
       <ResidentModulesCard tenantId={user?.tenantId} />
+
+      <ModuleVariantsCard tenantId={user?.tenantId} />
 
       <NotificationTemplatesCard tenantId={user?.tenantId} />
         </>

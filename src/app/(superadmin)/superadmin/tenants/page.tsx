@@ -27,6 +27,11 @@ import {
   type TenantWorkspaceItem,
 } from "@/features/superadmin/services";
 import { CURRENCY_OPTIONS } from "@/lib/currency";
+import {
+  DEFAULT_MODULE_VARIANTS,
+  MODULE_VARIANT_META,
+  VARIANT_EDITABILITY,
+} from "@/lib/config/module-variants";
 
 const ONBOARDING_OPTIONS = ["not_started", "in_progress", "completed"] as const;
 const TENANT_STATUS_OPTIONS = ["active", "trial", "suspended"] as const;
@@ -51,6 +56,7 @@ export default function SuperadminTenantsPage() {
       status: "trial",
       onboardingStatus: "not_started",
       currency: "COP",
+      moduleVariants: DEFAULT_MODULE_VARIANTS,
     },
   });
 
@@ -355,6 +361,44 @@ export default function SuperadminTenantsPage() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3">
+            <p className="text-sm font-semibold text-[var(--slate-900)]">Modos de operación</p>
+            <p className="mb-3 text-xs text-[var(--slate-600)]">
+              Define cómo opera cada módulo. Finanzas y Gobernanza se fijan aquí al crear el conjunto.
+            </p>
+            <div className="space-y-3">
+              {MODULE_VARIANT_META.map((mod) => {
+                const locked = VARIANT_EDITABILITY[mod.key] === "locked";
+                const selected = createForm.watch(`moduleVariants.${mod.key}`);
+                const selectedMeta = mod.options.find((opt) => opt.value === selected);
+                return (
+                  <div key={mod.key}>
+                    <label className="mb-1 flex items-center gap-2 text-sm text-[var(--slate-700)]">
+                      {mod.label}
+                      {locked ? (
+                        <span className="rounded-full bg-[var(--slate-200)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-600)]">
+                          se fija al crear
+                        </span>
+                      ) : null}
+                    </label>
+                    <select
+                      className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                      {...createForm.register(`moduleVariants.${mod.key}`)}
+                    >
+                      {mod.options.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedMeta ? (
+                      <p className="mt-1 text-xs text-[var(--slate-500)]">{selectedMeta.description}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div className="mobile-action-group">
             <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>
