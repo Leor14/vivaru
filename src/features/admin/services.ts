@@ -1001,8 +1001,14 @@ export async function updateAmenity(id: string, userId: string, payload: Partial
       operatingHoursStart && operatingHoursEnd && slotDurationMinutes
         ? generateReservationSlots(operatingHoursStart, operatingHoursEnd, slotDurationMinutes)
         : undefined;
+    // Firestore rechaza `undefined`. Un campo en undefined significa "limpiarlo":
+    // se convierte a deleteField() para no romper el guardado (p. ej. usageRules vacío).
+    const sanitizedRest: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      sanitizedRest[key] = value === undefined ? deleteField() : value;
+    }
     await updateDoc(doc(firestore, "amenities", id), {
-      ...rest,
+      ...sanitizedRest,
       ...(operatingHoursStart !== undefined && { operatingHoursStart }),
       ...(operatingHoursEnd !== undefined && { operatingHoursEnd }),
       ...(slotDurationMinutes !== undefined && { slotDurationMinutes }),
