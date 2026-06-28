@@ -45,10 +45,18 @@ financiera/legal, más se fija al crear el conjunto.
 
 ## Dónde se configura
 
+Ambas superficies usan el componente compartido `VariantOptionPicker`
+(`src/components/shared/variant-option-picker.tsx`): tarjetas de opción (radio) que muestran las
+dos alternativas a la vez con resumen, "para quién" (`bestFor`) y viñetas (`highlights`), tomadas de
+`MODULE_VARIANT_META` (que además aporta `helpText` por módulo y `changeNote` para los `warn`). Así
+se entiende cada opción **antes** de elegirla.
+
 - **Al crear el conjunto:** alta de [[superadmin]] (`createTenantWorkspace`), que ahora inicializa
-  `tenantSettings` con las variantes elegidas.
-- **Después:** [[configuracion]] del admin, pestaña "Módulos" (las `locked` aparecen como solo
-  lectura).
+  `tenantSettings` con las variantes elegidas. Las `locked` muestran una banda de irreversibilidad
+  y un checkbox "Entiendo que no se puede cambiar después" que gatea el guardado.
+- **Después:** [[configuracion]] del admin, pestaña "Módulos". Las `warn` piden confirmación (con el
+  `changeNote` del módulo y la opción destino); las `free` cambian directo; las `locked` aparecen
+  como solo lectura.
 
 ## Pilotos implementados
 

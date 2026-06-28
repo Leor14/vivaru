@@ -10,6 +10,14 @@ fecha_actualizacion: 2026-06-23
 
 ---
 
+## [2026-06-27] update | Explicación de opciones de variante (VariantOptionPicker)
+
+- Páginas actualizadas: 1 ([[modulos-variantes]] — sección "Dónde se configura").
+- Entidades: `VariantOptionPicker`, campos `bestFor`/`highlights`/`helpText`/`changeNote`, banda de
+  irreversibilidad + checkbox de confirmación para variantes `locked` al crear el conjunto.
+
+---
+
 ## [2026-06-27] ingest | Sesión Módulos con variantes (junio 2026)
 
 Fuente: implementación del piloto de `moduleVariants` (los 6 módulos: Visitas, Paquetería, PQRS, Comunicaciones, Gobernanza y Finanzas).
