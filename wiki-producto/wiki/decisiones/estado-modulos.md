@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-06-23
 
 # Estado de Módulos
 
-Tabla de estado actual de todos los módulos del producto. Se actualiza después de cada sesión de critique → execute → commit. Algunos módulos operan en variantes configurables por conjunto (ver [[modulos-variantes]]): el piloto cubre [[visitantes]] y [[paquetes]]; siguen PQRS y [[comunicaciones]].
+Tabla de estado actual de todos los módulos del producto. Se actualiza después de cada sesión de critique → execute → commit. Algunos módulos operan en variantes configurables por conjunto (ver [[modulos-variantes]]): ya implementados en [[visitantes]], [[paquetes]] y [[pqrs]]; sigue [[comunicaciones]].
 
 ## Portal Admin (`/admin`)
 
