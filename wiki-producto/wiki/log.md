@@ -10,6 +10,15 @@ fecha_actualizacion: 2026-06-23
 
 ---
 
+## [2026-06-27] ingest | Sesión Módulos con variantes (junio 2026)
+
+Fuente: implementación del piloto de `moduleVariants` (Visitas + Paquetería).
+- Páginas creadas: 1 ([[modulos-variantes]] en arquitectura).
+- Páginas actualizadas: 5 ([[index]], [[visitantes]], [[paquetes]], [[configuracion]], [[estado-modulos]]).
+- Entidades extraídas: moduleVariants, getModuleVariant, useModuleVariant, VARIANT_EDITABILITY (locked/warn/free), variantes `qr_full`/`registro_simple` y `con_evidencia`/`aviso_simple`, Cloud Function `registerWalkInVisit`.
+
+---
+
 ## [2026-06-23] ingest | Sesión Cartera CRM (junio 2026)
 
 Fuente: trabajo de la sesión de reconversión de Cartera en CRM de cobros (comprobantes

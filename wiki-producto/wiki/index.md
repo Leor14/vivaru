@@ -35,6 +35,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[correos-mensajeria]] | 🆕 Mensajería híbrida: Resend (onboarding) + Firebase nativo, página /restablecer |
 | [[notificaciones-residentes]] | 🆕 Avisos in-app + email a residentes: catálogo editable, triggers y crons |
 | [[multi-tenancy]] | Modelo multi-tenant lógico sobre Firestore, aislamiento y planes |
+| [[modulos-variantes]] | 🆕 moduleVariants: modos de operación por módulo (Visitas/Paquetería simple vs completo) |
 | [[stack-tecnico]] | Stack: Next.js 15 / React 19 / Tailwind v4 / Firebase App Hosting |
 
 ---
