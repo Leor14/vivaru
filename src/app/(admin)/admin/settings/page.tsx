@@ -52,7 +52,7 @@ export default function AdminSettingsPage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [blockOnDebt, setBlockOnDebt] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
-  const [tab, setTab] = useState<"conjunto" | "residente" | "cuenta">("conjunto");
+  const [tab, setTab] = useState<"conjunto" | "modulos" | "residente" | "cuenta">("conjunto");
 
   const branding = useTenantBrandingForm({
     tenantId: user?.tenantId,
@@ -208,6 +208,7 @@ export default function AdminSettingsPage() {
       <div className="flex gap-1 border-b border-[var(--slate-200)]">
         {([
           ["conjunto", "Conjunto"],
+          ["modulos", "Módulos"],
           ["residente", "Portal del residente"],
           ["cuenta", "Mi cuenta"],
         ] as const).map(([key, label]) => (
@@ -328,7 +329,7 @@ export default function AdminSettingsPage() {
             storageKey="settings-residente"
             title="Portal del residente"
             purpose="Lo que tus residentes ven y reciben en su portal."
-            how="Activa o desactiva módulos, personaliza el texto de las notificaciones y define las reglas de reserva del conjunto."
+            how="Personaliza el texto de las notificaciones y define las reglas de reserva del conjunto."
           />
       <Card>
         <CardTitle help="Define los parámetros globales que aplican a todas las reservas del conjunto. Cuando requieres pago al día, los residentes con saldo pendiente verán el bloqueo de forma automática en su app, sin intervención manual tuya.">Políticas de reservas</CardTitle>
@@ -350,11 +351,22 @@ export default function AdminSettingsPage() {
         </div>
       </Card>
 
-      <ResidentModulesCard tenantId={user?.tenantId} />
-
-      <ModuleVariantsCard tenantId={user?.tenantId} />
-
       <NotificationTemplatesCard tenantId={user?.tenantId} />
+        </>
+      ) : null}
+
+      {tab === "modulos" ? (
+        <>
+          <SectionIntro
+            storageKey="settings-modulos"
+            title="Módulos"
+            purpose="Qué módulos están disponibles y cómo operan en este conjunto."
+            how="Activa o desactiva los módulos del portal del residente, y elige el modo de operación de cada módulo (por ejemplo, Visitas con QR o registro simple)."
+          />
+
+          <ResidentModulesCard tenantId={user?.tenantId} />
+
+          <ModuleVariantsCard tenantId={user?.tenantId} />
         </>
       ) : null}
     </section>
