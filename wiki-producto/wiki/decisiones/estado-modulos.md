@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-06-23
 
 # Estado de Módulos
 
-Tabla de estado actual de todos los módulos del producto. Se actualiza después de cada sesión de critique → execute → commit. Algunos módulos operan en variantes configurables por conjunto (ver [[modulos-variantes]]): ya implementados en [[visitantes]], [[paquetes]] y [[pqrs]]; sigue [[comunicaciones]].
+Tabla de estado actual de todos los módulos del producto. Se actualiza después de cada sesión de critique → execute → commit. Algunos módulos operan en variantes configurables por conjunto (ver [[modulos-variantes]]): ya implementados en [[visitantes]], [[paquetes]], [[pqrs]] y [[comunicaciones]]; faltan los estructurales (Finanzas y Gobernanza, fijos al crear).
 
 ## Portal Admin (`/admin`)
 

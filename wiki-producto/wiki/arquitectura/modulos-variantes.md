@@ -62,9 +62,14 @@ financiera/legal, más se fija al crear el conjunto.
 - **[[pqrs]] — `buzon_simple`:** el módulo se vuelve un buzón de mensajes. Se ocultan el semáforo
   SLA (15 días), las categorías/tipo y el radicado, tanto en el residente como en el admin. El
   residente envía asunto + mensaje y el admin responde. Solo cambia la UI; el dato no cambia.
+- **[[comunicaciones]] — `tablon_simple`:** muro de publicar-y-ver. Se ocultan la vigencia/
+  programación (fechas inicio/fin) y los estados Programado/Vencido; los comunicados se publican
+  directo. Nota: el seguimiento de lectura (read receipts) aún no existe en el módulo, por lo que
+  `canal_oficial` se enmarca en vigencia/programación, no en confirmación de lectura.
 
 ## Cómo extender
 
 Añadir la clave a `ModuleVariants` + valores + metadatos en `module-variants.ts`, ramificar el
 comportamiento por capa, y (si hay creación por rol no permitido en reglas) preferir una Cloud
-Function con Admin SDK. Candidato siguiente en [[estado-modulos]]: [[comunicaciones]].
+Function con Admin SDK. Faltan los estructurales (fijos al crear): Finanzas y Gobernanza
+(ver [[estado-modulos]]).
