@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { createTicket, useTickets } from "@/features/pqrs/use-tickets";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import type { Ticket } from "@/types/domain";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ function formatDate(value: string | undefined): string {
 
 // ─── TicketRow ────────────────────────────────────────────────────────────────
 
-function TicketRow({ ticket }: { ticket: Ticket }) {
+function TicketRow({ ticket, simple = false }: { ticket: Ticket; simple?: boolean }) {
   const statusCfg = STATUS_CONFIG[ticket.status] ?? STATUS_CONFIG.open;
   const typeLabel = ticket.type ? (TYPE_LABELS[ticket.type] ?? "General") : "General";
   const date = formatDate(ticket.createdAt ?? ticket.updatedAt);
@@ -69,11 +70,13 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
 
       {/* Meta */}
       <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--slate-500)]">
-        <span className="rounded-md bg-[var(--slate-100)] px-1.5 py-0.5 font-medium text-[var(--slate-700)]">
-          {typeLabel}
-        </span>
+        {!simple && (
+          <span className="rounded-md bg-[var(--slate-100)] px-1.5 py-0.5 font-medium text-[var(--slate-700)]">
+            {typeLabel}
+          </span>
+        )}
         {date && <span>{date}</span>}
-        {ticket.radicado && (
+        {!simple && ticket.radicado && (
           <span className="font-mono text-[var(--slate-400)]">#{ticket.radicado}</span>
         )}
       </div>
@@ -97,6 +100,7 @@ function TicketRow({ ticket }: { ticket: Ticket }) {
 export default function ResidentPqrsPage() {
   const { user } = useAuth();
   const { items, loading } = useTickets(user?.tenantId, user?.unitId);
+  const isSimpleMode = useModuleVariant(user?.tenantId, "pqrs") === "buzon_simple";
 
   const [tab, setTab] = useState<TabId>("mis-pqrs");
   const [ticketType, setTicketType] = useState<TicketTypeValue>("petition");
@@ -139,7 +143,9 @@ export default function ResidentPqrsPage() {
     <Card>
       <CardTitle>PQRS</CardTitle>
       <CardDescription className="mt-1">
-        Peticiones, quejas, reclamos y sugerencias a la administración del edificio.
+        {isSimpleMode
+          ? "Envía un mensaje a la administración del edificio y recibe su respuesta."
+          : "Peticiones, quejas, reclamos y sugerencias a la administración del edificio."}
       </CardDescription>
 
       {/* ── Tabs ── */}
@@ -180,27 +186,29 @@ export default function ResidentPqrsPage() {
       {tab === "nueva" && (
         <div className="mt-4 space-y-3">
           {/* Tipo */}
-          <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
-              Tipo de solicitud
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {TICKET_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setTicketType(t.value)}
-                  className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
-                    ticketType === t.value
-                      ? "border-[var(--brand-700)] bg-[var(--brand-50)] font-semibold text-[var(--brand-700)]"
-                      : "border-[var(--slate-200)] text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+          {!isSimpleMode && (
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
+                Tipo de solicitud
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {TICKET_TYPES.map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => setTicketType(t.value)}
+                    className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
+                      ticketType === t.value
+                        ? "border-[var(--brand-700)] bg-[var(--brand-50)] font-semibold text-[var(--brand-700)]"
+                        : "border-[var(--slate-200)] text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Asunto */}
           <div>
@@ -273,7 +281,7 @@ export default function ResidentPqrsPage() {
                     En curso ({activeItems.length})
                   </p>
                   <div className="space-y-2">
-                    {activeItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
+                    {activeItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} simple={isSimpleMode} />)}
                   </div>
                 </div>
               )}
@@ -283,7 +291,7 @@ export default function ResidentPqrsPage() {
                     Resueltas ({closedItems.length})
                   </p>
                   <div className="space-y-2">
-                    {closedItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} />)}
+                    {closedItems.map((ticket) => <TicketRow key={ticket.id} ticket={ticket} simple={isSimpleMode} />)}
                   </div>
                 </div>
               )}

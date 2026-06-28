@@ -13,6 +13,7 @@
 
 export type VisitorsVariant = "qr_full" | "registro_simple";
 export type PackagesVariant = "con_evidencia" | "aviso_simple";
+export type PqrsVariant = "con_sla" | "buzon_simple";
 // Reservados — fijos al crear (fuera del piloto Visitas + Paquetería):
 export type FinanceVariant = "completa" | "solo_consulta";
 export type GovernanceVariant = "formal" | "informativo";
@@ -20,6 +21,7 @@ export type GovernanceVariant = "formal" | "informativo";
 export type ModuleVariants = {
   visitors: VisitorsVariant;
   packages: PackagesVariant;
+  pqrs: PqrsVariant;
   finance: FinanceVariant;
   governance: GovernanceVariant;
 };
@@ -30,6 +32,7 @@ export type ModuleVariantKey = keyof ModuleVariants;
 export const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
   visitors: "qr_full",
   packages: "con_evidencia",
+  pqrs: "con_sla",
   finance: "completa",
   governance: "formal",
 };
@@ -38,6 +41,7 @@ export const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
 export const MODULE_VARIANT_VALUES: Record<ModuleVariantKey, readonly string[]> = {
   visitors: ["qr_full", "registro_simple"],
   packages: ["con_evidencia", "aviso_simple"],
+  pqrs: ["con_sla", "buzon_simple"],
   finance: ["completa", "solo_consulta"],
   governance: ["formal", "informativo"],
 };
@@ -51,6 +55,7 @@ export const MODULE_VARIANT_VALUES: Record<ModuleVariantKey, readonly string[]> 
 export const VARIANT_EDITABILITY: Record<ModuleVariantKey, "locked" | "warn" | "free"> = {
   visitors: "warn",
   packages: "free",
+  pqrs: "warn",
   finance: "locked",
   governance: "locked",
 };
@@ -95,6 +100,22 @@ export const MODULE_VARIANT_META: ModuleVariantMeta[] = [
         value: "aviso_simple",
         label: "Aviso simple",
         description: "La portería registra el paquete y notifica al residente. Sin foto ni firma.",
+      },
+    ],
+  },
+  {
+    key: "pqrs",
+    label: "PQRS",
+    options: [
+      {
+        value: "con_sla",
+        label: "Con SLA",
+        description: "Radicado, categoría y semáforo de tiempo de respuesta (15 días).",
+      },
+      {
+        value: "buzon_simple",
+        label: "Buzón simple",
+        description: "El residente envía un mensaje y el admin responde. Sin categorías ni semáforo.",
       },
     ],
   },

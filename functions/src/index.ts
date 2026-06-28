@@ -55,6 +55,7 @@ type CreateTenantInput = {
 type ModuleVariants = {
   visitors: "qr_full" | "registro_simple";
   packages: "con_evidencia" | "aviso_simple";
+  pqrs: "con_sla" | "buzon_simple";
   finance: "completa" | "solo_consulta";
   governance: "formal" | "informativo";
 };
@@ -64,6 +65,7 @@ type ModuleVariants = {
 const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
   visitors: "qr_full",
   packages: "con_evidencia",
+  pqrs: "con_sla",
   finance: "completa",
   governance: "formal",
 };
@@ -71,6 +73,7 @@ const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
 const MODULE_VARIANT_VALUES: Record<keyof ModuleVariants, readonly string[]> = {
   visitors: ["qr_full", "registro_simple"],
   packages: ["con_evidencia", "aviso_simple"],
+  pqrs: ["con_sla", "buzon_simple"],
   finance: ["completa", "solo_consulta"],
   governance: ["formal", "informativo"],
 };
