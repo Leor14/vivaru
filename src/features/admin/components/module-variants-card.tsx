@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Modal } from "@/components/shared/modal";
+import { VariantOptionPicker } from "@/components/shared/variant-option-picker";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/firebase/client";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -81,48 +82,20 @@ export function ModuleVariantsCard({ tenantId }: { tenantId?: string }) {
           Elige cómo opera cada módulo. Algunos modos solo pueden definirse al crear el conjunto.
         </CardDescription>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-5">
           {MODULE_VARIANT_META.map((mod) => {
             const editability = VARIANT_EDITABILITY[mod.key];
-            const locked = editability === "locked";
-            const current = variants[mod.key];
-            const currentMeta = mod.options.find((opt) => opt.value === current);
             const isSaving = saving === mod.key;
             return (
-              <div key={mod.key}>
-                <div className="mb-1 flex items-center gap-2">
-                  <p className="text-sm font-medium text-[var(--slate-900)]">{mod.label}</p>
-                  {locked ? (
-                    <span className="rounded-full bg-[var(--slate-200)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-600)]">
-                      se fija al crear
-                    </span>
-                  ) : editability === "warn" ? (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700">
-                      cambio con aviso
-                    </span>
-                  ) : null}
-                </div>
-                <select
-                  className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm disabled:cursor-not-allowed disabled:bg-[var(--slate-50)] disabled:text-[var(--slate-500)]"
-                  value={current}
-                  disabled={locked || isSaving}
-                  onChange={(e) => handleSelect(mod.key, e.target.value)}
-                >
-                  {mod.options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                {currentMeta ? (
-                  <p className="mt-1 text-xs text-[var(--slate-500)]">{currentMeta.description}</p>
-                ) : null}
-                {locked ? (
-                  <p className="mt-1 text-xs text-[var(--slate-400)]">
-                    Para cambiar este modo, contacta a soporte.
-                  </p>
-                ) : null}
-              </div>
+              <VariantOptionPicker
+                key={mod.key}
+                meta={mod}
+                value={variants[mod.key]}
+                editability={editability}
+                context="edit"
+                disabled={isSaving}
+                onSelect={(value) => handleSelect(mod.key, value)}
+              />
             );
           })}
         </div>
@@ -133,11 +106,26 @@ export function ModuleVariantsCard({ tenantId }: { tenantId?: string }) {
         title={`Cambiar el modo de "${pending?.label ?? ""}"`}
         onClose={() => setPending(null)}
       >
-        <p className="text-sm text-[var(--slate-600)]">
-          Cambiar el modo altera cómo opera el módulo de aquí en adelante. Los registros ya
-          existentes en el modo anterior (por ejemplo, autorizaciones o códigos QR activos) podrían
-          quedar sin uso. ¿Quieres continuar?
-        </p>
+        {(() => {
+          const mod = MODULE_VARIANT_META.find((m) => m.key === pending?.key);
+          const target = mod?.options.find((o) => o.value === pending?.value);
+          return (
+            <div className="space-y-3 text-sm text-[var(--slate-600)]">
+              {target ? (
+                <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3">
+                  <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Vas a cambiar a</p>
+                  <p className="mt-0.5 text-sm font-semibold text-[var(--slate-900)]">{target.label}</p>
+                  <p className="mt-0.5 text-xs text-[var(--slate-600)]">{target.description}</p>
+                </div>
+              ) : null}
+              <p>
+                {mod?.changeNote ??
+                  "Cambiar el modo altera cómo opera el módulo de aquí en adelante."}{" "}
+                ¿Quieres continuar?
+              </p>
+            </div>
+          );
+        })()}
         <div className="mobile-action-group mt-4">
           <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setPending(null)}>
             Cancelar

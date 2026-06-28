@@ -32,6 +32,7 @@ import {
   MODULE_VARIANT_META,
   VARIANT_EDITABILITY,
 } from "@/lib/config/module-variants";
+import { VariantOptionPicker } from "@/components/shared/variant-option-picker";
 
 const ONBOARDING_OPTIONS = ["not_started", "in_progress", "completed"] as const;
 const TENANT_STATUS_OPTIONS = ["active", "trial", "suspended"] as const;
@@ -42,6 +43,7 @@ export default function SuperadminTenantsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTenant, setEditingTenant] = useState<TenantWorkspaceItem | null>(null);
   const [savingCreate, setSavingCreate] = useState(false);
+  const [lockedAck, setLockedAck] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "trial" | "suspended">("all");
   const [onboardingFilter, setOnboardingFilter] = useState<"all" | "not_started" | "in_progress" | "completed">("all");
@@ -111,6 +113,7 @@ export default function SuperadminTenantsPage() {
       toast.success("Tenant creado correctamente.");
       setCreateOpen(false);
       createForm.reset();
+      setLockedAck(false);
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -207,7 +210,7 @@ export default function SuperadminTenantsPage() {
             <CardTitle>Gestión de tenants</CardTitle>
             <CardDescription className="mt-1">Workspace operativo para crear, editar, suspender y cambiar onboarding.</CardDescription>
           </div>
-          <Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>Crear tenant</Button>
+          <Button className="w-full sm:w-auto" onClick={() => { setLockedAck(false); setCreateOpen(true); }}>Crear tenant</Button>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-xl border border-[var(--slate-200)] p-3">
@@ -367,44 +370,38 @@ export default function SuperadminTenantsPage() {
             <p className="mb-3 text-xs text-[var(--slate-600)]">
               Define cómo opera cada módulo. Finanzas y Gobernanza se fijan aquí al crear el conjunto.
             </p>
-            <div className="space-y-3">
-              {MODULE_VARIANT_META.map((mod) => {
-                const locked = VARIANT_EDITABILITY[mod.key] === "locked";
-                const selected = createForm.watch(`moduleVariants.${mod.key}`);
-                const selectedMeta = mod.options.find((opt) => opt.value === selected);
-                return (
-                  <div key={mod.key}>
-                    <label className="mb-1 flex items-center gap-2 text-sm text-[var(--slate-700)]">
-                      {mod.label}
-                      {locked ? (
-                        <span className="rounded-full bg-[var(--slate-200)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-600)]">
-                          se fija al crear
-                        </span>
-                      ) : null}
-                    </label>
-                    <select
-                      className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-                      {...createForm.register(`moduleVariants.${mod.key}`)}
-                    >
-                      {mod.options.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedMeta ? (
-                      <p className="mt-1 text-xs text-[var(--slate-500)]">{selectedMeta.description}</p>
-                    ) : null}
-                  </div>
-                );
-              })}
+            <div className="space-y-5">
+              {MODULE_VARIANT_META.map((mod) => (
+                <VariantOptionPicker
+                  key={mod.key}
+                  meta={mod}
+                  value={createForm.watch(`moduleVariants.${mod.key}`) ?? DEFAULT_MODULE_VARIANTS[mod.key]}
+                  editability={VARIANT_EDITABILITY[mod.key]}
+                  context="create"
+                  onSelect={(value) =>
+                    createForm.setValue(`moduleVariants.${mod.key}`, value as never, { shouldDirty: true })
+                  }
+                />
+              ))}
             </div>
+            <label className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-amber-300 accent-amber-600"
+                checked={lockedAck}
+                onChange={(e) => setLockedAck(e.target.checked)}
+              />
+              <span>
+                Entiendo que <strong>Finanzas</strong> y <strong>Gobernanza</strong> se fijan al crear el
+                conjunto y no se pueden cambiar después.
+              </span>
+            </label>
           </div>
           <div className="mobile-action-group">
             <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar
             </Button>
-            <Button className="w-full sm:w-auto" type="submit" disabled={savingCreate}>
+            <Button className="w-full sm:w-auto" type="submit" disabled={savingCreate || !lockedAck}>
               {savingCreate ? "Guardando..." : "Guardar tenant"}
             </Button>
           </div>

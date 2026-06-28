@@ -65,110 +65,190 @@ export const VARIANT_EDITABILITY: Record<ModuleVariantKey, "locked" | "warn" | "
   governance: "locked",
 };
 
-/** Metadatos para la UI (etiquetas y descripción por opción). */
-export type VariantOptionMeta = { value: string; label: string; description: string };
+/** Metadatos para la UI (explicación por opción, para elegir con criterio). */
+export type VariantOptionMeta = {
+  value: string;
+  label: string;
+  /** Resumen corto de la opción. */
+  description: string;
+  /** Para qué tipo de conjunto/escenario conviene. */
+  bestFor: string;
+  /** Qué incluye / qué cambia (2–4 viñetas). */
+  highlights: string[];
+};
 export type ModuleVariantMeta = {
   key: ModuleVariantKey;
   label: string;
+  /** Explica el eje de elección del módulo (qué se está decidiendo). */
+  helpText: string;
   options: VariantOptionMeta[];
+  /** Implicación al cambiar de modo (solo aplica a módulos `warn`: datos en vuelo). */
+  changeNote?: string;
 };
 
 export const MODULE_VARIANT_META: ModuleVariantMeta[] = [
   {
     key: "visitors",
     label: "Visitas",
+    helpText: "Define cómo la portería gestiona el ingreso de visitantes.",
+    changeNote: "Si pasas de QR a registro simple, las autorizaciones y QR activos dejan de usarse.",
     options: [
       {
         value: "qr_full",
         label: "Control completo (QR)",
         description:
           "El residente pre-autoriza, se genera QR y la portería registra ingreso y salida.",
+        bestFor: "Conjuntos con control estricto, varias torres o alto flujo de visitas.",
+        highlights: [
+          "El residente pre-autoriza la visita y se genera un QR.",
+          "La portería escanea y registra ingreso y salida.",
+          "Soporta autorizaciones de larga duración (ingresos repetidos).",
+        ],
       },
       {
         value: "registro_simple",
         label: "Registro simple",
         description:
           "La portería registra la visita al llegar y notifica al residente. Sin QR.",
+        bestFor: "Conjuntos pequeños o que prefieren cero fricción.",
+        highlights: [
+          "La portería registra la visita al llegar, sin QR ni pre-autorización.",
+          "El residente recibe la notificación de la visita.",
+        ],
       },
     ],
   },
   {
     key: "packages",
     label: "Paquetería",
+    helpText: "Define el nivel de control al recibir y entregar paquetes.",
     options: [
       {
         value: "con_evidencia",
         label: "Con evidencia",
         description: "Recepción con foto y firma, estados de bodega y retiro confirmado.",
+        bestFor: "Conjuntos con bodega y volumen de correspondencia.",
+        highlights: [
+          "Recepción con foto y firma.",
+          "Estados de bodega y retiro confirmado con destinatario.",
+        ],
       },
       {
         value: "aviso_simple",
         label: "Aviso simple",
         description: "La portería registra el paquete y notifica al residente. Sin foto ni firma.",
+        bestFor: "Conjuntos chicos sin bodega formal.",
+        highlights: [
+          "La portería registra “llegó un paquete” y notifica al residente.",
+          "Entrega de un toque, sin foto ni firma.",
+        ],
       },
     ],
   },
   {
     key: "pqrs",
     label: "PQRS",
+    helpText: "Define si las solicitudes se gestionan con trazabilidad formal o como un buzón.",
+    changeNote: "Los PQRS abiertos con SLA dejarán de mostrar su semáforo al pasar a buzón.",
     options: [
       {
         value: "con_sla",
         label: "Con SLA",
         description: "Radicado, categoría y semáforo de tiempo de respuesta (15 días).",
+        bestFor: "Administradoras profesionales o conjuntos grandes.",
+        highlights: [
+          "Radicado único y categorías (petición, queja, reclamo, sugerencia).",
+          "Semáforo de tiempo de respuesta (15 días hábiles) y auditoría.",
+        ],
       },
       {
         value: "buzon_simple",
         label: "Buzón simple",
         description: "El residente envía un mensaje y el admin responde. Sin categorías ni semáforo.",
+        bestFor: "Comunidades pequeñas que solo quieren recibir y responder.",
+        highlights: [
+          "El residente envía asunto + mensaje; el admin responde.",
+          "Sin radicado, categorías ni semáforo.",
+        ],
       },
     ],
   },
   {
     key: "communications",
     label: "Comunicaciones",
+    helpText: "Define si los comunicados tienen vigencia/programación o son un muro simple.",
     options: [
       {
         value: "canal_oficial",
         label: "Canal oficial",
         description: "Comunicados con vigencia y programación (fecha de inicio y expiración).",
+        bestFor: "Conjuntos que programan y dan vigencia a sus avisos.",
+        highlights: [
+          "Comunicados con fecha de inicio y expiración.",
+          "Estados Programado/Vencido y filtros por vigencia.",
+        ],
       },
       {
         value: "tablon_simple",
         label: "Tablón simple",
         description: "Muro de anuncios: publica y se ve, sin fechas de vigencia.",
+        bestFor: "Comunidades que solo quieren un muro de anuncios.",
+        highlights: [
+          "Publicar y ver, sin fechas de vigencia ni programación.",
+        ],
       },
     ],
   },
   {
     key: "finance",
     label: "Finanzas / Cartera",
+    helpText: "Define si la cartera se administra dentro de Vivaru o solo se consulta.",
     options: [
       {
         value: "completa",
         label: "Gestión completa",
         description: "Cobros, conciliación, comprobantes, mora y reportes.",
+        bestFor: "Administradoras que cobran y concilian en la plataforma.",
+        highlights: [
+          "Cobros individuales y en lote, conciliación, comprobantes y mora.",
+          "Reportes y cierre de períodos.",
+        ],
       },
       {
         value: "solo_consulta",
         label: "Solo consulta",
         description: "El admin publica el estado de cuenta; el residente lo consulta.",
+        bestFor: "Conjuntos que llevan la contabilidad por fuera.",
+        highlights: [
+          "El residente consulta su estado de cuenta y sube comprobantes.",
+          "Sin cobros automáticos, conciliación ni mora; el admin no gestiona cartera aquí.",
+        ],
       },
     ],
   },
   {
     key: "governance",
     label: "Gobernanza",
+    helpText: "Define si las decisiones del comité tienen validez formal (firma) o son informativas.",
     options: [
       {
         value: "formal",
         label: "Formal (firma / votación)",
         description: "Acuerdos con firma digital y votaciones con quórum.",
+        bestFor: "Conjuntos que exigen formalidad legal en sus decisiones.",
+        highlights: [
+          "Acuerdos con firma digital.",
+          "Seguimiento de firmas (firmados/pendientes) y modalidades obligatoria/parcial.",
+        ],
       },
       {
         value: "informativo",
         label: "Informativo",
         description: "Se publican acuerdos y encuestas sin firma ni validez formal.",
+        bestFor: "Comunidades informales.",
+        highlights: [
+          "Los acuerdos se publican sin firma y quedan como informativos.",
+        ],
       },
     ],
   },
