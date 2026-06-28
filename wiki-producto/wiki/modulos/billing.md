@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-06-23
 
 # Billing (Cartera)
 
-Módulo de cartera y cobros del portal administrador (`/admin/billing`). En junio 2026 se reconvirtió en un **CRM de cobros**: el administrador crea cobros (individuales o en lote), notifica a los residentes, hace seguimiento del recaudo y cierra/archiva períodos. El detalle del CRM (campañas, embudo, cierre) vive en [[cartera-campanas]].
+Módulo de cartera y cobros del portal administrador (`/admin/billing`). En junio 2026 se reconvirtió en un **CRM de cobros**: el administrador crea cobros (individuales o en lote), notifica a los residentes, hace seguimiento del recaudo y cierra/archiva períodos. El detalle del CRM (campañas, embudo, cierre) vive en [[cartera-campanas]]. Opera en dos variantes (ver [[modulos-variantes]]): `completa` (CRM completo) o `solo_consulta` (la cartera se administra fuera de Vivaru; el conjunto solo consulta saldos y comprobantes). Es estructural: se fija al crear el conjunto.
 
 ## Entidades principales
 

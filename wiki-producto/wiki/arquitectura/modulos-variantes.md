@@ -70,10 +70,18 @@ financiera/legal, más se fija al crear el conjunto.
   El alta de acuerdos fuerza la modalidad a `informativo` y oculta Modalidad/Firmantes; el tablero
   de firmas y la firma del residente ya estaban gateados por `signatureMode` por-acuerdo. Encuestas
   sin cambios (no hay votación formal/quórum). Es **estructural (`locked`)**: se fija al crear.
+- **[[billing|Finanzas]] — `solo_consulta`:** la cartera se administra fuera de Vivaru; el conjunto
+  solo consulta saldos y comprobantes. Por su tamaño (~40–50 archivos) se hizo en 3 fases: **(1)**
+  navegación — el sidebar oculta Egresos/Libro/Conciliación (`buildAdminSidebarGroups`); **(2)** en
+  `/admin/billing` se ocultan crear/programar cobros, cierre de períodos y avisos masivos, con un
+  banner "Modo consulta" (quedan tableros, tabla de cartera, morosos y revisión de comprobantes);
+  **(3)** guards en las Cloud Functions `notifyBillingBatch`/`sendBillingReminder`. Es **estructural
+  (`locked`)**: se fija al crear.
 
 ## Cómo extender
 
 Añadir la clave a `ModuleVariants` + valores + metadatos en `module-variants.ts`, ramificar el
 comportamiento por capa, y (si hay creación por rol no permitido en reglas) preferir una Cloud
-Function con Admin SDK. Falta el estructural [[billing|Finanzas]] (`solo_consulta`), de mayor
-blast radius (~40–50 archivos); se abordará por fases (ver [[estado-modulos]]).
+Function con Admin SDK, o gating por **fases** cuando el blast radius es grande (como
+[[billing|Finanzas]]: navegación → acciones en página → guards de funciones). Los 6 módulos del
+catálogo ya tienen variante (ver [[estado-modulos]]).
