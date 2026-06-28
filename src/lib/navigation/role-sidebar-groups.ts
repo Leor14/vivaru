@@ -18,8 +18,9 @@ import {
 
 import { roleNavigation } from "@/lib/constants/navigation";
 import type { AppRole } from "@/lib/constants/roles";
-import type { AdminSidebarGroup } from "@/components/shared/admin-sidebar";
+import { ADMIN_SIDEBAR_GROUPS, type AdminSidebarGroup } from "@/components/shared/admin-sidebar";
 import { type ResidentModules, DEFAULT_RESIDENT_MODULES } from "@/features/admin/services";
+import type { FinanceVariant } from "@/lib/config/module-variants";
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
 
@@ -96,7 +97,7 @@ export function buildRoleSidebarGroups(
   if (items.length === 0) return [];
 
   // Build the set of hrefs that should be hidden for the resident role
-  let hiddenHrefs = new Set<string>();
+  const hiddenHrefs = new Set<string>();
   if (role === "resident" && residentModules) {
     const effective = { ...DEFAULT_RESIDENT_MODULES, ...residentModules };
     for (const [key, href] of Object.entries(RESIDENT_MODULE_HREFS)) {
@@ -118,6 +119,23 @@ export function buildRoleSidebarGroups(
       })),
     },
   ];
+}
+
+/** Rutas del grupo FINANCIERO que permanecen en modo `solo_consulta` (solo Cartera/consulta). */
+const SOLO_CONSULTA_FINANCE_HREFS = new Set<string>(["/admin/billing"]);
+
+/**
+ * Grupos del sidebar admin, gateados por la variante de Finanzas. En `solo_consulta` se ocultan
+ * las herramientas contables pesadas (Egresos, Libro y fondos, Conciliación); queda solo Cartera.
+ * En `completa` (default) devuelve los grupos completos sin cambios.
+ */
+export function buildAdminSidebarGroups(financeVariant?: FinanceVariant): AdminSidebarGroup[] {
+  if (financeVariant !== "solo_consulta") return ADMIN_SIDEBAR_GROUPS;
+  return ADMIN_SIDEBAR_GROUPS.map((group) =>
+    group.label === "FINANCIERO"
+      ? { ...group, items: group.items.filter((item) => SOLO_CONSULTA_FINANCE_HREFS.has(item.href)) }
+      : group,
+  );
 }
 
 export function profileHrefForRole(role: AppRole): string {

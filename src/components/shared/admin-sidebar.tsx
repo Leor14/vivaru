@@ -43,7 +43,7 @@ export type AdminSidebarGroup = {
   items: AdminSidebarItem[];
 };
 
-const GROUPS: AdminSidebarGroup[] = [
+export const ADMIN_SIDEBAR_GROUPS: AdminSidebarGroup[] = [
   {
     items: [{ href: "/admin", label: "Panel de Control", icon: Grid3X3 }],
   },
@@ -174,7 +174,7 @@ export function AdminSidebar({
   profileHref,
 }: AdminSidebarProps) {
   const pathname = usePathname();
-  const effectiveGroups = groups ?? GROUPS;
+  const effectiveGroups = groups ?? ADMIN_SIDEBAR_GROUPS;
   const effectiveHrefs = effectiveGroups.flatMap((group) => group.items.map((item) => item.href));
   const activeHref = resolveActiveNavHref(pathname, effectiveHrefs);
   const profilePath = profileHref ?? "/admin/settings";
