@@ -101,6 +101,24 @@ async function getTenantVisitorsVariant(tenantId: string): Promise<ModuleVariant
   return value === "registro_simple" || value === "qr_full" ? value : DEFAULT_MODULE_VARIANTS.visitors;
 }
 
+// Lee la variante de Finanzas del conjunto aplicando el default si falta.
+async function getTenantFinanceVariant(tenantId: string): Promise<ModuleVariants["finance"]> {
+  const snap = await db.collection("tenantSettings").doc(tenantId).get();
+  const mv = (snap.data()?.moduleVariants ?? {}) as Partial<ModuleVariants>;
+  const value = mv.finance;
+  return value === "solo_consulta" || value === "completa" ? value : DEFAULT_MODULE_VARIANTS.finance;
+}
+
+// En modo solo_consulta no se gestionan cobros: las acciones de cartera quedan deshabilitadas.
+async function assertFinanceManagementEnabled(tenantId: string) {
+  if ((await getTenantFinanceVariant(tenantId)) === "solo_consulta") {
+    throw new HttpsError(
+      "failed-precondition",
+      "La gestión de cobros está deshabilitada: este conjunto opera en modo solo consulta.",
+    );
+  }
+}
+
 type CreateTenantWorkspaceInput = {
   name: string;
   city: string;
@@ -2782,6 +2800,7 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
       throw new HttpsError("invalid-argument", "tenantId y unitIds son requeridos.");
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+    await assertFinanceManagementEnabled(tenantId);
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_batch"),
@@ -2807,6 +2826,7 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
       throw new HttpsError("invalid-argument", "tenantId y unitIds son requeridos.");
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+    await assertFinanceManagementEnabled(tenantId);
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_reminder"),
