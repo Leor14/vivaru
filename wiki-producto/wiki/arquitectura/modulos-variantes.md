@@ -66,10 +66,14 @@ financiera/legal, más se fija al crear el conjunto.
   programación (fechas inicio/fin) y los estados Programado/Vencido; los comunicados se publican
   directo. Nota: el seguimiento de lectura (read receipts) aún no existe en el módulo, por lo que
   `canal_oficial` se enmarca en vigencia/programación, no en confirmación de lectura.
+- **Gobernanza ([[reglamento]]) — `informativo`:** los acuerdos de comité se publican sin firma.
+  El alta de acuerdos fuerza la modalidad a `informativo` y oculta Modalidad/Firmantes; el tablero
+  de firmas y la firma del residente ya estaban gateados por `signatureMode` por-acuerdo. Encuestas
+  sin cambios (no hay votación formal/quórum). Es **estructural (`locked`)**: se fija al crear.
 
 ## Cómo extender
 
 Añadir la clave a `ModuleVariants` + valores + metadatos en `module-variants.ts`, ramificar el
 comportamiento por capa, y (si hay creación por rol no permitido en reglas) preferir una Cloud
-Function con Admin SDK. Faltan los estructurales (fijos al crear): Finanzas y Gobernanza
-(ver [[estado-modulos]]).
+Function con Admin SDK. Falta el estructural [[billing|Finanzas]] (`solo_consulta`), de mayor
+blast radius (~40–50 archivos); se abordará por fases (ver [[estado-modulos]]).

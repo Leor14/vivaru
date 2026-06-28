@@ -12,10 +12,11 @@ fecha_actualizacion: 2026-06-23
 
 ## [2026-06-27] ingest | Sesión Módulos con variantes (junio 2026)
 
-Fuente: implementación del piloto de `moduleVariants` (Visitas + Paquetería + PQRS + Comunicaciones).
+Fuente: implementación del piloto de `moduleVariants` (Visitas + Paquetería + PQRS + Comunicaciones + Gobernanza).
 - Páginas creadas: 1 ([[modulos-variantes]] en arquitectura).
-- Páginas actualizadas: 7 ([[index]], [[visitantes]], [[paquetes]], [[pqrs]], [[comunicaciones]], [[configuracion]], [[estado-modulos]]).
-- Entidades extraídas: moduleVariants, getModuleVariant, useModuleVariant, VARIANT_EDITABILITY (locked/warn/free), variantes `qr_full`/`registro_simple`, `con_evidencia`/`aviso_simple`, `con_sla`/`buzon_simple` y `canal_oficial`/`tablon_simple`, Cloud Function `registerWalkInVisit`.
+- Páginas actualizadas: 8 ([[index]], [[visitantes]], [[paquetes]], [[pqrs]], [[comunicaciones]], [[reglamento]], [[configuracion]], [[estado-modulos]]).
+- Entidades extraídas: moduleVariants, getModuleVariant, useModuleVariant, VARIANT_EDITABILITY (locked/warn/free), variantes `qr_full`/`registro_simple`, `con_evidencia`/`aviso_simple`, `con_sla`/`buzon_simple`, `canal_oficial`/`tablon_simple` y `formal`/`informativo`, Cloud Function `registerWalkInVisit`.
+- Pendiente: Finanzas `solo_consulta` (estructural, ~40–50 archivos, por fases).
 
 ---
 
