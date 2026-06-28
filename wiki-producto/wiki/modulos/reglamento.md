@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-05-20
 
 # Reglamento (Documentos)
 
-Módulo de gestión de documentos del conjunto residencial (`/admin/regulations`). Centraliza el reglamento de propiedad horizontal, actas de asamblea y circulares para que administradores y residentes puedan consultarlos.
+Módulo de gestión de documentos del conjunto residencial (`/admin/regulations`). Centraliza el reglamento de propiedad horizontal, actas de asamblea y circulares para que administradores y residentes puedan consultarlos. Incluye los acuerdos de comité, cuya gobernanza opera en dos variantes (ver [[modulos-variantes]]): `formal` (acuerdos con firma digital) o `informativo` (se publican sin firma).
 
 ## Entidades principales
 

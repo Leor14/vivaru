@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-05-20
 
 # Visitantes
 
-Módulo de control de acceso de visitantes (`/admin/visitors`). Permite al administrador y al guardia registrar entradas, verificar pases QR y consultar el historial de visitas.
+Módulo de control de acceso de visitantes (`/admin/visitors`). Permite al administrador y al guardia registrar entradas, verificar pases QR y consultar el historial de visitas. Opera en dos variantes (ver [[modulos-variantes]]): `qr_full` (pre-autorización + QR) o `registro_simple` (la portería registra al llegar y notifica, sin QR).
 
 ## Entidades principales
 

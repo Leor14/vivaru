@@ -76,6 +76,26 @@ export async function createVisitorPassCallable(input: CreateVisitorPassInput) {
   return executeCallable(callable, input, "No fue posible crear el visitante.");
 }
 
+export type RegisterWalkInVisitInput = {
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  visitorName: string;
+  documentNumber: string;
+  hostResidentName?: string;
+  date?: string;
+  scheduledTime?: string;
+};
+
+export async function registerWalkInVisitCallable(input: RegisterWalkInVisitInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<RegisterWalkInVisitInput, { visitorPassId: string }>(functions, "registerWalkInVisit");
+  return executeCallable(callable, input, "No fue posible registrar la visita.");
+}
+
 export async function retransmitVoucherCallable(input: { voucherId: string }) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

@@ -20,6 +20,7 @@ import {
   updateTenantAdminCallable,
 } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
+import type { ModuleVariants } from "@/lib/config/module-variants";
 
 function assertDb() {
   if (!db) {
@@ -121,6 +122,7 @@ export async function createTenantWorkspace(input: {
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
   currency: "COP" | "MXN" | "USD";
+  moduleVariants?: ModuleVariants;
 }) {
   return createTenantWorkspaceCallable(input);
 }

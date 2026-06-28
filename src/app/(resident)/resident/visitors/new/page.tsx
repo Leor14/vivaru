@@ -16,6 +16,7 @@ import { TimeSelect } from "@/components/ui/TimeSelect";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { createResidentInvitation } from "@/features/visitors/invitations";
+import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import {
   combineDateAndTime,
   isDateTimeValid,
@@ -70,6 +71,7 @@ type InvitationFormValues = z.output<typeof invitationFormSchema>;
 export default function ResidentVisitorsNewPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const visitorsVariant = useVisitorsVariant(user?.tenantId);
   const [saving, setSaving] = useState(false);
 
   const {
@@ -138,6 +140,25 @@ export default function ResidentVisitorsNewPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (visitorsVariant === "registro_simple") {
+    return (
+      <section className="space-y-4">
+        <Card>
+          <CardTitle className="text-xl">Las invitaciones no están disponibles</CardTitle>
+          <CardDescription className="mt-1">
+            En este conjunto la portería registra las visitas al llegar y te notifica automáticamente.
+            No necesitas crear invitaciones ni generar códigos QR.
+          </CardDescription>
+          <div className="mt-4">
+            <Link href="/resident/visitors">
+              <Button>Ver mis visitas</Button>
+            </Link>
+          </div>
+        </Card>
+      </section>
+    );
   }
 
   return (

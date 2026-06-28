@@ -14,7 +14,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 
-import { createVisitorPassCallable } from "@/lib/firebase/callables";
+import { createVisitorPassCallable, registerWalkInVisitCallable } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
 import { createTenantDocument } from "@/lib/firebase/realtime-helpers";
 import type { VisitorPass } from "@/types/domain";
@@ -94,6 +94,7 @@ function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
     validUntil: asString(raw.validUntil) || undefined,
     checkInAt: asTimestampIso(raw.checkInAt) || undefined,
     checkOutAt: asTimestampIso(raw.checkOutAt) || undefined,
+    registeredByGuard: raw.registeredByGuard === true,
     visitDate: asString(raw.visitDate) || undefined,
     residentName: asString(raw.residentName) || undefined,
     createdBy: asString(raw.createdBy) || undefined,
@@ -329,6 +330,25 @@ export async function createVisitorPass(input: {
     createdByName: input.createdByName?.trim() || "",
     residentName: input.createdByName?.trim() || "",
   });
+}
+
+/**
+ * Registro simple de visita por portería (variante `registro_simple`). La portería registra una
+ * visita que ya llegó; el pase nace "inside" (sin QR) y la Cloud Function notifica al residente.
+ * Envía la fecha/hora local de la portería para evitar desfases de zona horaria.
+ */
+export async function registerWalkInVisit(input: {
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  visitorName: string;
+  documentNumber: string;
+  hostResidentName?: string;
+}) {
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const scheduledTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  await registerWalkInVisitCallable({ ...input, date, scheduledTime });
 }
 
 export async function markVisitorAsInside(input: { visitorId: string; tenantId: string; previousStatus: VisitorPass["status"] }) {

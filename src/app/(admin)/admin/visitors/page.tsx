@@ -48,12 +48,16 @@ function asDateLabel(value: unknown) {
 }
 import { useAuth } from "@/features/auth/auth-context";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
+import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import { resolveIdentityCell } from "@/lib/utils/identity";
 import type { VisitorPass } from "@/types/domain";
 
 export default function AdminVisitorsPage() {
   const { user } = useAuth();
-  const canEdit = user?.role === "tenant_admin";
+  const visitorsVariant = useVisitorsVariant(user?.tenantId);
+  const isSimpleMode = visitorsVariant === "registro_simple";
+  // En modo registro simple no hay autorizaciones/QR del residente: solo registros operativos.
+  const canEdit = user?.role === "tenant_admin" && !isSimpleMode;
   const [items, setItems] = useState<VisitorItem[]>([]);
   const [units, setUnits] = useState<UnitItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +69,10 @@ export default function AdminVisitorsPage() {
   const [unitFilter, setUnitFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"authorizations" | "passes">("authorizations");
   const { items: passes, loading: passesLoading } = useVisitorPasses(user?.tenantId);
+  // En modo registro simple solo aplica la vista de registros operativos.
+  useEffect(() => {
+    if (isSimpleMode) setActiveTab("passes");
+  }, [isSimpleMode]);
   const [selectedPass, setSelectedPass] = useState<VisitorPass | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<VisitorItem | null>(null);
   const [qrTarget, setQrTarget] = useState<VisitorItem | null>(null);
@@ -399,7 +407,9 @@ export default function AdminVisitorsPage() {
         <div>
           <CardTitle help="Controla el ingreso de visitantes al conjunto mediante pases autorizados por los propios residentes. Un registro de visitas activo disuade accesos no autorizados y ofrece trazabilidad ante cualquier incidente de seguridad.">Visitantes y acceso</CardTitle>
           <CardDescription className="mt-1">
-            Autorizaciones puntuales o de larga duración, con categoría y responsable de autorización.
+            {isSimpleMode
+              ? "Modo registro simple: la portería registra las visitas al llegar. Aquí ves los registros operativos."
+              : "Autorizaciones puntuales o de larga duración, con categoría y responsable de autorización."}
           </CardDescription>
         </div>
         {canEdit ? (
@@ -412,32 +422,34 @@ export default function AdminVisitorsPage() {
         ) : null}
       </div>
 
-      <div className="mt-5 flex w-full gap-1 rounded-xl bg-[var(--slate-100)] p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab("authorizations")}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            activeTab === "authorizations"
-              ? "bg-white text-[var(--slate-900)] shadow-sm"
-              : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
-          }`}
-        >
-          Autorizaciones
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("passes")}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            activeTab === "passes"
-              ? "bg-white text-[var(--slate-900)] shadow-sm"
-              : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
-          }`}
-        >
-          Registros operativos
-        </button>
-      </div>
+      {isSimpleMode ? null : (
+        <div className="mt-5 flex w-full gap-1 rounded-xl bg-[var(--slate-100)] p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("authorizations")}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === "authorizations"
+                ? "bg-white text-[var(--slate-900)] shadow-sm"
+                : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+            }`}
+          >
+            Autorizaciones
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("passes")}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === "passes"
+                ? "bg-white text-[var(--slate-900)] shadow-sm"
+                : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
+            }`}
+          >
+            Registros operativos
+          </button>
+        </div>
+      )}
 
-      {activeTab === "authorizations" && (<>
+      {!isSimpleMode && activeTab === "authorizations" && (<>
       <p className="mt-4 text-sm text-[var(--slate-600)]">
         Pases de visita autorizados por los residentes (puntuales o de larga duración), con su categoría y responsable de autorización.
       </p>

@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker";
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, cancelReminderJob, createBillingCampaign, createBillingSchedule, createBillingStatement, createReminderJob, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements, useReminderJobs } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
@@ -178,6 +179,8 @@ function BillingTrendTooltip({
 
 export default function AdminBillingPage() {
   const { user } = useAuth();
+  // Finanzas solo_consulta: oculta la gestión de cobros; deja la cartera y comprobantes en consulta.
+  const soloConsulta = useModuleVariant(user?.tenantId, "finance") === "solo_consulta";
   const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const { items, loading, error } = useBillingStatements(user?.tenantId);
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId);
@@ -1141,12 +1144,18 @@ export default function AdminBillingPage() {
         purpose="Controlar lo que cada unidad debe y lo que ha pagado (cuotas o alícuotas de administración)."
         how="Generas los cobros del período por unidad, registras los pagos recibidos y emites el comprobante a cada residente. Los pagos alimentan el Libro y fondos."
       />
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => setIsBulkDrawerOpen(true)}>
-          <SendHorizontal className="mr-2 h-4 w-4" />
-          Enviar aviso a residentes
-        </Button>
-      </div>
+      {soloConsulta ? (
+        <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-4 py-3 text-sm text-[var(--slate-600)]">
+          <span className="font-medium text-[var(--slate-800)]">Modo consulta.</span> La cartera de este conjunto se administra fuera de Vivaru. Aquí solo se consulta el estado de cuenta y los comprobantes; la creación y programación de cobros, el cierre de períodos y los avisos masivos están desactivados.
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setIsBulkDrawerOpen(true)}>
+            <SendHorizontal className="mr-2 h-4 w-4" />
+            Enviar aviso a residentes
+          </Button>
+        </div>
+      )}
       <ChartContainer
         title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por período con lectura inmediata de brecha y porcentaje de recaudo."
@@ -1261,6 +1270,7 @@ export default function AdminBillingPage() {
         statements={items}
       />
 
+      {!soloConsulta && (
       <Card className="soft-panel">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -1446,8 +1456,9 @@ export default function AdminBillingPage() {
         {catalogUnitsLoading ? <p className="mt-3 text-xs text-[var(--slate-600)]">Estamos cargando el listado de unidades del conjunto.</p> : null}
         {catalogUnitsError ? <p className="mt-3 text-xs text-[var(--danger-700)]">{catalogUnitsError}</p> : null}
       </Card>
+      )}
 
-      {scheduledCharges.length > 0 ? (
+      {!soloConsulta && scheduledCharges.length > 0 ? (
         <Card className="soft-panel">
           <CardTitle>Cobros programados</CardTitle>
           <CardDescription className="mt-1">
@@ -2040,6 +2051,7 @@ export default function AdminBillingPage() {
         </Card>
       ) : null}
 
+      {!soloConsulta && (
       <Card className="soft-panel">
         <CardTitle>Cierre de períodos</CardTitle>
         <CardDescription className="mt-1">
@@ -2099,6 +2111,7 @@ export default function AdminBillingPage() {
           </div>
         </div>
       </Card>
+      )}
 
       {reminderTarget ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

@@ -16,8 +16,12 @@ import {
   addGuardNote,
   markVisitorAsCompleted,
   markVisitorAsInside,
+  registerWalkInVisit,
   useVisitorPasses,
 } from "@/features/visitors/use-visitor-passes";
+import { usePackageDirectory } from "@/features/security-guard/use-package-directory";
+import { getModuleVariant } from "@/lib/config/module-variants";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   normalizeQrPayload,
   resolveVisitorFromQr,
@@ -25,7 +29,7 @@ import {
   type VisitorCardItem,
 } from "@/features/visitors/guard-qr-validation";
 import type { VisitorPass } from "@/types/domain";
-import { storage } from "@/lib/firebase/client";
+import { db, storage } from "@/lib/firebase/client";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
 import { combineLocalDateTime, formatDateSafe, formatDateTimeSafe, toLocalDate } from "@/utils/date";
 import { getStatusLabel as mapStatusLabel } from "@/utils/statusMapper";
@@ -161,6 +165,67 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
   const isStartingScannerRef = useRef(false);
   const isProcessingScanRef = useRef(false);
   const lastProcessedCodeRef = useRef<string>("");
+
+  // Variante de Visitas del conjunto: "qr_full" (default) o "registro_simple".
+  const [visitorsVariant, setVisitorsVariant] = useState<"qr_full" | "registro_simple">("qr_full");
+  const isSimpleMode = visitorsVariant === "registro_simple";
+
+  useEffect(() => {
+    if (!tenantId || !db) return;
+    const unsub = onSnapshot(doc(db, "tenantSettings", tenantId), (snap) => {
+      const data = snap.exists() ? (snap.data() as Record<string, unknown>) : null;
+      setVisitorsVariant(getModuleVariant(data, "visitors"));
+    });
+    return unsub;
+  }, [tenantId]);
+
+  // Directorio de unidades (solo se usa en modo registro simple para elegir la unidad anfitriona).
+  const { units: directoryUnits, residentsByUnitId } = usePackageDirectory(isSimpleMode ? tenantId : undefined);
+
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [savingRegister, setSavingRegister] = useState(false);
+  const [regUnitId, setRegUnitId] = useState("");
+  const [regVisitorName, setRegVisitorName] = useState("");
+  const [regDocument, setRegDocument] = useState("");
+  const [regHost, setRegHost] = useState("");
+
+  function openRegister() {
+    setRegUnitId("");
+    setRegVisitorName("");
+    setRegDocument("");
+    setRegHost("");
+    setRegisterOpen(true);
+  }
+
+  async function handleRegisterWalkIn() {
+    if (!tenantId || savingRegister) return;
+    const unit = directoryUnits.find((u) => u.id === regUnitId);
+    if (!unit) {
+      toast.error("Selecciona la unidad anfitriona.");
+      return;
+    }
+    if (!regVisitorName.trim() || !regDocument.trim()) {
+      toast.error("Ingresa el nombre y el número de identificación del visitante.");
+      return;
+    }
+    setSavingRegister(true);
+    try {
+      await registerWalkInVisit({
+        tenantId,
+        unitId: unit.id,
+        unitLabel: unit.displayName,
+        visitorName: regVisitorName.trim(),
+        documentNumber: regDocument.trim(),
+        hostResidentName: regHost.trim() || undefined,
+      });
+      toast.success("Visita registrada. Se notificó al residente.");
+      setRegisterOpen(false);
+    } catch (registerError) {
+      toastFirebaseError(registerError);
+    } finally {
+      setSavingRegister(false);
+    }
+  }
 
   async function handleCheckIn(item: VisitorPass) {
     if (!tenantId || updatingId) return;
@@ -562,11 +627,21 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle>Visitantes</CardTitle>
-            <CardDescription className="mt-1">Operación en tiempo real para validar identidad y registrar ingreso/salida sin friccion.</CardDescription>
+            <CardDescription className="mt-1">
+              {isSimpleMode
+                ? "Registra la visita al llegar; el residente recibe la notificación al instante."
+                : "Operación en tiempo real para validar identidad y registrar ingreso/salida sin friccion."}
+            </CardDescription>
           </div>
-          <Button className="w-full sm:w-auto" onClick={openScanner}>
-            Escanear QR
-          </Button>
+          {isSimpleMode ? (
+            <Button className="w-full sm:w-auto" onClick={openRegister}>
+              Registrar visita
+            </Button>
+          ) : (
+            <Button className="w-full sm:w-auto" onClick={openScanner}>
+              Escanear QR
+            </Button>
+          )}
         </div>
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
@@ -635,9 +710,15 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                     <p className="text-[var(--slate-700)]">Hora: <span className="font-medium">{formatTime(item.scheduledTime)}</span></p>
                   </div>
 
-                  <div className="mt-3 inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 font-mono text-xs font-medium text-sky-700">
-                    QR {abbreviateQrCode(item.qrCodeValue || "-")}
-                  </div>
+                  {item.qrCodeValue ? (
+                    <div className="mt-3 inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 font-mono text-xs font-medium text-sky-700">
+                      QR {abbreviateQrCode(item.qrCodeValue)}
+                    </div>
+                  ) : item.registeredByGuard ? (
+                    <div className="mt-3 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                      Registrada en portería
+                    </div>
+                  ) : null}
                 </button>
 
                 <div className="mt-4">{renderActions(item)}</div>
@@ -915,6 +996,91 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                 QR valido para {validatedVisitor.visitorName}. Abriendo detalle operativo.
               </p>
             ) : null}
+          </aside>
+        </div>
+      ) : null}
+
+      {registerOpen ? (
+        <div className="fixed inset-0 z-[70]">
+          <button
+            type="button"
+            aria-label="Cerrar registro"
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
+            onClick={() => setRegisterOpen(false)}
+          />
+          <aside className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-[var(--slate-200)] bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Portería</p>
+                <h2 className="text-xl font-semibold text-[var(--slate-900)]">Registrar visita</h2>
+              </div>
+              <Button type="button" variant="outline" onClick={() => setRegisterOpen(false)}>Cerrar</Button>
+            </div>
+
+            <p className="mt-2 text-sm text-[var(--slate-600)]">
+              Registra la visita que acaba de llegar. El residente de la unidad recibirá la notificación.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[var(--slate-700)]">Unidad anfitriona</label>
+                <select
+                  className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  value={regUnitId}
+                  onChange={(e) => {
+                    setRegUnitId(e.target.value);
+                    setRegHost("");
+                  }}
+                >
+                  <option value="">Selecciona una unidad</option>
+                  {directoryUnits.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {regUnitId && (residentsByUnitId.get(regUnitId)?.length ?? 0) > 0 ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[var(--slate-700)]">Residente que visita (opcional)</label>
+                  <select
+                    className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                    value={regHost}
+                    onChange={(e) => setRegHost(e.target.value)}
+                  >
+                    <option value="">Sin especificar</option>
+                    {residentsByUnitId.get(regUnitId)!.map((resident) => (
+                      <option key={resident.id} value={resident.fullName}>
+                        {resident.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              <Input
+                label="Nombre del visitante"
+                value={regVisitorName}
+                onChange={(e) => setRegVisitorName(e.target.value)}
+                placeholder="Ej: Laura Gómez"
+              />
+
+              <Input
+                label="Número de identificación"
+                value={regDocument}
+                onChange={(e) => setRegDocument(e.target.value)}
+                placeholder="Ej: 1234567890"
+              />
+
+              <Button
+                className="w-full"
+                disabled={savingRegister || !regUnitId || !regVisitorName.trim() || !regDocument.trim()}
+                onClick={() => void handleRegisterWalkIn()}
+              >
+                {savingRegister ? "Registrando..." : "Registrar visita"}
+              </Button>
+            </div>
           </aside>
         </div>
       ) : null}

@@ -10,6 +10,24 @@ fecha_actualizacion: 2026-06-23
 
 ---
 
+## [2026-06-27] update | Explicación de opciones de variante (VariantOptionPicker)
+
+- Páginas actualizadas: 1 ([[modulos-variantes]] — sección "Dónde se configura").
+- Entidades: `VariantOptionPicker`, campos `bestFor`/`highlights`/`helpText`/`changeNote`, banda de
+  irreversibilidad + checkbox de confirmación para variantes `locked` al crear el conjunto.
+
+---
+
+## [2026-06-27] ingest | Sesión Módulos con variantes (junio 2026)
+
+Fuente: implementación del piloto de `moduleVariants` (los 6 módulos: Visitas, Paquetería, PQRS, Comunicaciones, Gobernanza y Finanzas).
+- Páginas creadas: 1 ([[modulos-variantes]] en arquitectura).
+- Páginas actualizadas: 9 ([[index]], [[visitantes]], [[paquetes]], [[pqrs]], [[comunicaciones]], [[reglamento]], [[billing]], [[configuracion]], [[estado-modulos]]).
+- Entidades extraídas: moduleVariants, getModuleVariant, useModuleVariant, VARIANT_EDITABILITY (locked/warn/free), variantes `qr_full`/`registro_simple`, `con_evidencia`/`aviso_simple`, `con_sla`/`buzon_simple`, `canal_oficial`/`tablon_simple`, `formal`/`informativo` y `completa`/`solo_consulta`, Cloud Functions `registerWalkInVisit`, `assertFinanceManagementEnabled`, `buildAdminSidebarGroups`.
+- Finanzas `solo_consulta` (estructural, ~40–50 archivos) se hizo en 3 fases: navegación, acciones en página, guards de funciones.
+
+---
+
 ## [2026-06-23] ingest | Sesión Cartera CRM (junio 2026)
 
 Fuente: trabajo de la sesión de reconversión de Cartera en CRM de cobros (comprobantes

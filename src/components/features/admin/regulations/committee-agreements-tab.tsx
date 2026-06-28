@@ -26,6 +26,7 @@ import type {
   CommitteeAgreement,
 } from "@/features/committee-agreements/types";
 import { useCommitteeAgreements } from "@/features/committee-agreements/use-committee-agreements";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { formatDateSafe } from "@/utils/date";
 
 import { CommitteeAgreementBoard, type BoardPerson, type BoardUnit } from "./committee-agreement-board";
@@ -57,6 +58,8 @@ export function CommitteeAgreementsTab({
 }) {
   const { items, loading } = useCommitteeAgreements(tenantId);
   const router = useRouter();
+  // Gobernanza informativa: los acuerdos se publican sin firma (modo informativo forzado).
+  const isInformativo = useModuleVariant(tenantId, "governance") === "informativo";
 
   // Carpeta de sistema "Acuerdos de comité": se asegura y se backfillean los existentes.
   const [agreementsFolderId, setAgreementsFolderId] = useState<string | null>(null);
@@ -82,6 +85,12 @@ export function CommitteeAgreementsTab({
   const [title, setTitle] = useState("");
   const [sessionDate, setSessionDate] = useState(today);
   const [mode, setMode] = useState<AgreementSignatureMode>("obligatoria");
+
+  // En conjuntos con gobernanza informativa, todo acuerdo es informativo (sin firma).
+  useEffect(() => {
+    if (isInformativo) setMode("informativo");
+  }, [isInformativo]);
+
   const [scope, setScope] = useState<AgreementSignerScope>("all");
   const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -96,7 +105,7 @@ export function CommitteeAgreementsTab({
   function resetForm() {
     setTitle("");
     setSessionDate(today());
-    setMode("obligatoria");
+    setMode(isInformativo ? "informativo" : "obligatoria");
     setScope("all");
     setSelectedUnits([]);
   }
@@ -320,18 +329,27 @@ export function CommitteeAgreementsTab({
               <label className="mb-1 block text-sm text-[var(--slate-700)]">Fecha de sesión</label>
               <Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} />
             </div>
-            <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Modalidad</label>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value as AgreementSignatureMode)}
-                className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-              >
-                <option value="obligatoria">Firma obligatoria</option>
-                <option value="parcial">Firma parcial</option>
-                <option value="informativo">Informativo (sin firma)</option>
-              </select>
-            </div>
+            {isInformativo ? (
+              <div>
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">Modalidad</label>
+                <p className="flex h-10 items-center rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 text-sm text-[var(--slate-600)]">
+                  Informativo (sin firma)
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1 block text-sm text-[var(--slate-700)]">Modalidad</label>
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as AgreementSignatureMode)}
+                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                >
+                  <option value="obligatoria">Firma obligatoria</option>
+                  <option value="parcial">Firma parcial</option>
+                  <option value="informativo">Informativo (sin firma)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {mode !== "informativo" ? (

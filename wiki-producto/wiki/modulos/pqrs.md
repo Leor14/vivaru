@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-05-20
 
 # PQRS (Peticiones, Quejas, Reclamos y Sugerencias)
 
-Módulo de gestión de tickets del portal administrador (`/admin/pqrs`). Centraliza las comunicaciones formales entre residentes y administración, con radicado, historial de respuestas y priorización.
+Módulo de gestión de tickets del portal administrador (`/admin/pqrs`). Centraliza las comunicaciones formales entre residentes y administración, con radicado, historial de respuestas y priorización. Opera en dos variantes (ver [[modulos-variantes]]): `con_sla` (radicado + categorías + semáforo de 15 días) o `buzon_simple` (buzón de mensajes sin SLA ni categorías).
 
 ## Entidades principales
 

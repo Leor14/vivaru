@@ -54,7 +54,7 @@ export function Footer() {
                 alt=""
                 width={120}
                 height={120}
-                className="h-12 w-auto invert"
+                className="h-16 w-auto invert md:h-20"
               />
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-slate-200/80">

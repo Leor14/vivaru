@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const moduleVariantsSchema = z.object({
+  visitors: z.enum(["qr_full", "registro_simple"]),
+  packages: z.enum(["con_evidencia", "aviso_simple"]),
+  pqrs: z.enum(["con_sla", "buzon_simple"]),
+  communications: z.enum(["canal_oficial", "tablon_simple"]),
+  finance: z.enum(["completa", "solo_consulta"]),
+  governance: z.enum(["formal", "informativo"]),
+});
+
 export const tenantCreateSchema = z.object({
   name: z.string().min(3, "Nombre minimo 3 caracteres"),
   city: z.string().min(2, "Ciudad obligatoria"),
@@ -7,6 +16,9 @@ export const tenantCreateSchema = z.object({
   status: z.enum(["active", "suspended", "trial"]),
   onboardingStatus: z.enum(["not_started", "in_progress", "completed"]),
   currency: z.enum(["COP", "MXN", "USD"]),
+  // Modos de operación elegidos al crear el conjunto. Opcional para no afectar el update,
+  // que reutiliza este schema; el formulario de creacion siempre los provee por defaultValues.
+  moduleVariants: moduleVariantsSchema.optional(),
 });
 
 export const tenantUpdateSchema = tenantCreateSchema;

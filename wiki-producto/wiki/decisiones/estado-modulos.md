@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-06-23
 
 # Estado de Módulos
 
-Tabla de estado actual de todos los módulos del producto. Se actualiza después de cada sesión de critique → execute → commit.
+Tabla de estado actual de todos los módulos del producto. Se actualiza después de cada sesión de critique → execute → commit. Todos los módulos del catálogo de variantes ya están implementados (ver [[modulos-variantes]]): [[visitantes]], [[paquetes]], [[pqrs]], [[comunicaciones]], Gobernanza ([[reglamento]]) y [[billing|Finanzas]] (`solo_consulta`, estructural, hecho en 3 fases).
 
 ## Portal Admin (`/admin`)
 

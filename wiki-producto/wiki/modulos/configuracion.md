@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-05-20
 
 # Configuración
 
-Módulo de configuración del tenant en el portal administrador (`/admin/settings`). Permite al administrador personalizar el branding del conjunto, gestionar datos generales y ajustar preferencias operativas.
+Módulo de configuración del tenant en el portal administrador (`/admin/settings`). Permite al administrador personalizar el branding del conjunto, gestionar datos generales y ajustar preferencias operativas. La pestaña "Módulos" agrupa los toggles ON/OFF del residente y los modos de operación de cada módulo (ver [[modulos-variantes]]).
 
 ## Datos configurables
 

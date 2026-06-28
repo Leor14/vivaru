@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-05-20
 
 # Comunicaciones
 
-Módulo de comunicados del portal administrador (`/admin/communications`). Permite al administrador publicar avisos, circulares y anuncios dirigidos a todo el conjunto o a grupos específicos de residentes.
+Módulo de comunicados del portal administrador (`/admin/communications`). Permite al administrador publicar avisos, circulares y anuncios dirigidos a todo el conjunto o a grupos específicos de residentes. Opera en dos variantes (ver [[modulos-variantes]]): `canal_oficial` (con vigencia y programación) o `tablon_simple` (muro de publicar-y-ver, sin fechas de vigencia).
 
 ## Entidades principales
 

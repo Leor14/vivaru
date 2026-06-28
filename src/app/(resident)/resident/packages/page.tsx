@@ -9,6 +9,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { confirmPackageReceived, usePackages } from "@/features/packages/use-packages";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { getStatusLabel } from "@/utils/statusMapper";
 
 function formatDate(value: unknown) {
@@ -56,6 +57,7 @@ function resolveGuardName(item: {
 export default function ResidentPackagesPage() {
   const { user } = useAuth();
   const { items, loading } = usePackages(user?.tenantId, user?.unitId);
+  const isSimpleMode = useModuleVariant(user?.tenantId, "packages") === "aviso_simple";
 
   async function handleConfirm(packageId: string) {
     if (!user?.tenantId) return;
@@ -70,7 +72,11 @@ export default function ResidentPackagesPage() {
   return (
     <Card>
       <CardTitle>Paquetería</CardTitle>
-      <CardDescription className="mt-1">Consulta de paquetes pendientes y confirmación de recibido.</CardDescription>
+      <CardDescription className="mt-1">
+        {isSimpleMode
+          ? "Consulta de paquetes registrados para tu unidad. La portería gestiona la entrega."
+          : "Consulta de paquetes pendientes y confirmación de recibido."}
+      </CardDescription>
       <div className="mt-4 space-y-3 text-sm">
         {loading ? (
           <div className="space-y-3">
@@ -119,7 +125,7 @@ export default function ResidentPackagesPage() {
               ) : null}
             </div>
 
-            {item.status === "pending" ? (
+            {item.status === "pending" && !isSimpleMode ? (
               <Button className="mt-2" size="sm" onClick={() => void handleConfirm(item.id)}>
                 Confirmar recibido
               </Button>

@@ -53,12 +53,80 @@ type CreateTenantInput = {
   adminFullName: string;
 };
 
+type ModuleVariants = {
+  visitors: "qr_full" | "registro_simple";
+  packages: "con_evidencia" | "aviso_simple";
+  pqrs: "con_sla" | "buzon_simple";
+  communications: "canal_oficial" | "tablon_simple";
+  finance: "completa" | "solo_consulta";
+  governance: "formal" | "informativo";
+};
+
+// Defaults = comportamiento actual. Si el alta no envia variantes (o faltan claves), se aplican
+// estos, de modo que los conjuntos quedan en el modo vigente sin requerir migracion.
+const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
+  visitors: "qr_full",
+  packages: "con_evidencia",
+  pqrs: "con_sla",
+  communications: "canal_oficial",
+  finance: "completa",
+  governance: "formal",
+};
+
+const MODULE_VARIANT_VALUES: Record<keyof ModuleVariants, readonly string[]> = {
+  visitors: ["qr_full", "registro_simple"],
+  packages: ["con_evidencia", "aviso_simple"],
+  pqrs: ["con_sla", "buzon_simple"],
+  communications: ["canal_oficial", "tablon_simple"],
+  finance: ["completa", "solo_consulta"],
+  governance: ["formal", "informativo"],
+};
+
+function normalizeModuleVariants(input: unknown): ModuleVariants {
+  const raw = (input ?? {}) as Record<string, unknown>;
+  const result = { ...DEFAULT_MODULE_VARIANTS };
+  for (const key of Object.keys(MODULE_VARIANT_VALUES) as Array<keyof ModuleVariants>) {
+    const value = raw[key];
+    if (typeof value === "string" && MODULE_VARIANT_VALUES[key].includes(value)) {
+      (result[key] as string) = value;
+    }
+  }
+  return result;
+}
+
+// Lee la variante de Visitas del conjunto aplicando el default si falta.
+async function getTenantVisitorsVariant(tenantId: string): Promise<ModuleVariants["visitors"]> {
+  const snap = await db.collection("tenantSettings").doc(tenantId).get();
+  const mv = (snap.data()?.moduleVariants ?? {}) as Partial<ModuleVariants>;
+  const value = mv.visitors;
+  return value === "registro_simple" || value === "qr_full" ? value : DEFAULT_MODULE_VARIANTS.visitors;
+}
+
+// Lee la variante de Finanzas del conjunto aplicando el default si falta.
+async function getTenantFinanceVariant(tenantId: string): Promise<ModuleVariants["finance"]> {
+  const snap = await db.collection("tenantSettings").doc(tenantId).get();
+  const mv = (snap.data()?.moduleVariants ?? {}) as Partial<ModuleVariants>;
+  const value = mv.finance;
+  return value === "solo_consulta" || value === "completa" ? value : DEFAULT_MODULE_VARIANTS.finance;
+}
+
+// En modo solo_consulta no se gestionan cobros: las acciones de cartera quedan deshabilitadas.
+async function assertFinanceManagementEnabled(tenantId: string) {
+  if ((await getTenantFinanceVariant(tenantId)) === "solo_consulta") {
+    throw new HttpsError(
+      "failed-precondition",
+      "La gestión de cobros está deshabilitada: este conjunto opera en modo solo consulta.",
+    );
+  }
+}
+
 type CreateTenantWorkspaceInput = {
   name: string;
   city: string;
   planId: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
+  moduleVariants?: Partial<ModuleVariants>;
 };
 
 type CreateTenantAdminInput = {
@@ -98,6 +166,18 @@ type CreateVisitorPassInput = {
   hostResidentName?: string;
   tower?: string;
   unit?: string;
+};
+
+type RegisterWalkInVisitInput = {
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  visitorName: string;
+  documentNumber: string;
+  hostResidentName?: string;
+  // Fecha/hora local del cliente (la porteria). Si faltan, la funcion usa el reloj del servidor.
+  date?: string;
+  scheduledTime?: string;
 };
 
 type ConfirmPackageReceiptInput = {
@@ -910,6 +990,7 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
   assertOnboardingStatus(data.onboardingStatus);
 
   const now = Timestamp.now();
+  const moduleVariants = normalizeModuleVariants(data.moduleVariants);
   const tenantRef = db.collection("tenants").doc();
 
   await tenantRef.set({
@@ -923,6 +1004,18 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
     createdBy: request.auth?.uid,
   });
 
+  // Inicializa tenantSettings con los modos de operacion elegidos en el alta. Hoy el alta no
+  // creaba este doc; al crearlo aqui, las variantes quedan disponibles desde el primer momento.
+  await db.collection("tenantSettings").doc(tenantRef.id).set(
+    {
+      tenantId: tenantRef.id,
+      tenantName: data.name,
+      moduleVariants,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
   await db.collection("auditLogs").add({
     tenantId: tenantRef.id,
     actorUid: request.auth?.uid,
@@ -930,6 +1023,7 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
     metadata: {
       city: data.city,
       planId: data.planId,
+      moduleVariants,
     },
     createdAt: now,
   });
@@ -2263,6 +2357,100 @@ export const createVisitorPass = onCall<CreateVisitorPassInput>(async (request) 
   return { visitorPassId: createdRef.id };
 });
 
+/**
+ * Registro simple de visita por porteria (modo `registro_simple`). La porteria registra una
+ * visita que ya llego: el pase nace en estado "inside" (sin QR) y se notifica a los residentes
+ * de la unidad. Solo disponible cuando la variante de Visitas del conjunto es `registro_simple`.
+ */
+export const registerWalkInVisit = onCall<RegisterWalkInVisitInput>(async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Debes autenticarte para registrar visitas.");
+  }
+
+  const data = request.data;
+  if (!data.tenantId || !data.unitId || !data.unitLabel || !data.visitorName || !data.documentNumber) {
+    throw new HttpsError("invalid-argument", "Datos incompletos para registrar la visita.");
+  }
+
+  const membership = await assertTenantMember(data.tenantId, request.auth.uid);
+  const role = membership.role;
+  const isGuard = role === "security_guard" || role === "security";
+  if (!isGuard && role !== "tenant_admin" && request.auth.token.role !== "superadmin") {
+    throw new HttpsError("permission-denied", "No tienes permisos para registrar visitas.");
+  }
+
+  const variant = await getTenantVisitorsVariant(data.tenantId);
+  if (variant !== "registro_simple") {
+    throw new HttpsError(
+      "failed-precondition",
+      "El registro simple de visitas no esta habilitado para este conjunto.",
+    );
+  }
+
+  const now = Timestamp.now();
+  const serverDate = now.toDate();
+  const date =
+    typeof data.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.date)
+      ? data.date
+      : serverDate.toISOString().slice(0, 10);
+  const scheduledTime =
+    typeof data.scheduledTime === "string" && /^\d{2}:\d{2}/.test(data.scheduledTime)
+      ? data.scheduledTime.slice(0, 5)
+      : `${String(serverDate.getUTCHours()).padStart(2, "0")}:${String(serverDate.getUTCMinutes()).padStart(2, "0")}`;
+
+  const [towerValue, unitValue] = data.unitLabel.split("-");
+  const hostResidentName =
+    typeof data.hostResidentName === "string" && data.hostResidentName.trim().length > 0
+      ? data.hostResidentName.trim()
+      : "";
+
+  const createdRef = await db.collection("visitorPasses").add({
+    tenantId: data.tenantId,
+    unitId: data.unitId,
+    unitLabel: data.unitLabel,
+    visitorName: data.visitorName,
+    documentNumber: data.documentNumber,
+    qrCodeValue: "",
+    hostResidentName,
+    tower: towerValue?.trim() || "-",
+    unit: unitValue?.trim() || data.unitLabel,
+    date,
+    eventDate: date,
+    scheduledTime,
+    status: "inside",
+    checkInAt: now,
+    checkOutAt: null,
+    registeredByGuard: true,
+    createdBy: request.auth.uid,
+    createdByName: typeof membership.fullName === "string" ? membership.fullName : "",
+    residentName: hostResidentName,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Notifica a los residentes de la unidad anfitriona.
+  const residentUids = await listResidentUidsByUnit(data.tenantId, data.unitId);
+  if (residentUids.length > 0) {
+    await createNotifications(
+      residentUids.map((uid) => ({
+        userId: uid,
+        tenantId: data.tenantId,
+        type: "visitor" as const,
+        title: "Visita registrada",
+        description: `La porteria registro el ingreso de ${data.visitorName} a tu unidad.`,
+        link: "/resident/visitors",
+      })),
+    );
+  }
+
+  await writeAuditLog(data.tenantId, request.auth.uid, "register_walk_in_visit", {
+    visitorPassId: createdRef.id,
+    unitId: data.unitId,
+  });
+
+  return { visitorPassId: createdRef.id };
+});
+
 export const confirmPackageReceipt = onCall<ConfirmPackageReceiptInput>(async (request) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "Debes autenticarte para confirmar paquetes.");
@@ -2613,6 +2801,7 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
       throw new HttpsError("invalid-argument", "tenantId y unitIds son requeridos.");
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+    await assertFinanceManagementEnabled(tenantId);
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_batch"),
@@ -2638,6 +2827,7 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
       throw new HttpsError("invalid-argument", "tenantId y unitIds son requeridos.");
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+    await assertFinanceManagementEnabled(tenantId);
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_reminder"),

@@ -33,6 +33,7 @@ import {
 } from "@/features/admin/services";
 import { ensureCommunicationsFolderCallable } from "@/lib/firebase/callables";
 import { useAuth } from "@/features/auth/auth-context";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { useRouter } from "next/navigation";
 
 const ATTACHMENT_ACCEPT = "application/pdf,image/jpeg,image/png";
@@ -41,6 +42,7 @@ const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024;
 export default function AdminCommunicationsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const isSimpleMode = useModuleVariant(user?.tenantId, "communications") === "tablon_simple";
   const [items, setItems] = useState<CommunicationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<CommunicationItem | null>(null);
@@ -152,8 +154,9 @@ export default function AdminCommunicationsPage() {
       const attachments = [...existingAttachments, ...uploadedNew];
 
       const today = new Date().toISOString().slice(0, 10);
-      const startsAt = values.startsAt || undefined;
-      const endsAt = values.endsAt || undefined;
+      // Tablón simple: sin vigencia/programación; los comunicados se publican directo.
+      const startsAt = isSimpleMode ? undefined : values.startsAt || undefined;
+      const endsAt = isSimpleMode ? undefined : values.endsAt || undefined;
       let computedStatus: CommunicationItem["status"] = values.status;
       if (values.status !== "draft" && values.status !== "archived") {
         if (startsAt && startsAt > today) {
@@ -392,20 +395,24 @@ export default function AdminCommunicationsPage() {
             >
               <option value="all">Todos</option>
               <option value="published">Publicado</option>
-              <option value="scheduled">Programado</option>
-              <option value="expired">Vencido</option>
+              {!isSimpleMode && <option value="scheduled">Programado</option>}
+              {!isSimpleMode && <option value="expired">Vencido</option>}
               <option value="draft">Borrador</option>
               <option value="archived">Archivado</option>
             </select>
           </label>
-          <label className="text-sm text-[var(--slate-700)]">
-            Vigencia desde
-            <Input type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} />
-          </label>
-          <label className="text-sm text-[var(--slate-700)]">
-            Vigencia hasta
-            <Input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} />
-          </label>
+          {!isSimpleMode && (
+            <>
+              <label className="text-sm text-[var(--slate-700)]">
+                Vigencia desde
+                <Input type="date" value={dateFrom} max={dateTo || undefined} onChange={(event) => setDateFrom(event.target.value)} />
+              </label>
+              <label className="text-sm text-[var(--slate-700)]">
+                Vigencia hasta
+                <Input type="date" value={dateTo} min={dateFrom || undefined} onChange={(event) => setDateTo(event.target.value)} />
+              </label>
+            </>
+          )}
         </MobileFiltersPanel>
 
         <DataTable
@@ -448,22 +455,24 @@ export default function AdminCommunicationsPage() {
             Estado
             <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("status")}>
               <option value="published">Publicado</option>
-              <option value="scheduled">Programado</option>
-              <option value="expired">Vencido</option>
+              {!isSimpleMode && <option value="scheduled">Programado</option>}
+              {!isSimpleMode && <option value="expired">Vencido</option>}
               <option value="draft">Borrador</option>
               <option value="archived">Archivado</option>
             </select>
           </label>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-sm text-[var(--slate-700)]">
-              Vigencia desde
-              <Input type="date" {...form.register("startsAt")} />
-            </label>
-            <label className="text-sm text-[var(--slate-700)]">
-              Vigencia hasta
-              <Input type="date" {...form.register("endsAt")} />
-            </label>
-          </div>
+          {!isSimpleMode && (
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="text-sm text-[var(--slate-700)]">
+                Vigencia desde
+                <Input type="date" {...form.register("startsAt")} />
+              </label>
+              <label className="text-sm text-[var(--slate-700)]">
+                Vigencia hasta
+                <Input type="date" {...form.register("endsAt")} />
+              </label>
+            </div>
+          )}
           <div className="space-y-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
             <p className="text-sm text-[var(--slate-700)]">Adjuntos (PDF o imágenes JPG/PNG)</p>
             <input
@@ -580,16 +589,18 @@ export default function AdminCommunicationsPage() {
       >
         {detailItem ? (
           <div className="space-y-4 text-sm text-[var(--slate-800)]">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Vigencia desde</p>
-                <p className="mt-0.5 text-[var(--slate-900)]">{detailItem.startsAt || "Sin definir"}</p>
+            {!isSimpleMode && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Vigencia desde</p>
+                  <p className="mt-0.5 text-[var(--slate-900)]">{detailItem.startsAt || "Sin definir"}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Vigencia hasta</p>
+                  <p className="mt-0.5 text-[var(--slate-900)]">{detailItem.endsAt || "Sin definir"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Vigencia hasta</p>
-                <p className="mt-0.5 text-[var(--slate-900)]">{detailItem.endsAt || "Sin definir"}</p>
-              </div>
-            </div>
+            )}
             <div>
               <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Mensaje</p>
               <p className="mt-1 whitespace-pre-wrap text-[var(--slate-800)]">{detailItem.message}</p>

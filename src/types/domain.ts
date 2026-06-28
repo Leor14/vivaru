@@ -204,6 +204,8 @@ export interface VisitorPass {
   validUntil?: string;
   checkInAt?: string;
   checkOutAt?: string;
+  /** True si la visita fue registrada por portería en modo registro simple (sin QR). */
+  registeredByGuard?: boolean;
   // Legacy compatibility fields for existing records not yet migrated.
   visitDate?: string;
   residentName?: string;

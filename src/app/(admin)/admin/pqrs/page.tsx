@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { formatTicketDate, getTicketSla } from "@/features/pqrs/sla";
 import { respondTicket, useTickets } from "@/features/pqrs/use-tickets";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import type { Ticket } from "@/types/domain";
 import { getStatusLabel } from "@/utils/statusMapper";
 
@@ -91,6 +92,7 @@ function getDueBadge(params: { isClosed: boolean; businessDaysRemaining: number 
 export default function AdminPqrsPage() {
   const { user } = useAuth();
   const { items, loading, error } = useTickets(user?.tenantId);
+  const isSimpleMode = useModuleVariant(user?.tenantId, "pqrs") === "buzon_simple";
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -155,6 +157,15 @@ export default function AdminPqrsPage() {
 
     setResponseStatus(selectedTicket.status === "closed" ? "closed" : "responded");
   }, [drawerOpen, selectedTicket]);
+
+  // En modo buzón simple no hay semáforo ni tipos: orden por recientes y sin filtros de SLA/tipo.
+  useEffect(() => {
+    if (isSimpleMode) {
+      setSortBy("newest");
+      setTypeFilter("all");
+      setAlertFilter("all");
+    }
+  }, [isSimpleMode]);
 
   const filteredItems = useMemo(() => {
     const filtered = enrichedItems.filter((ticket) => {
@@ -233,8 +244,12 @@ export default function AdminPqrsPage() {
   return (
     <div className="flex flex-col gap-4">
       <Card className="min-w-0 flex-1">
-        <CardTitle help="Gestiona las peticiones, quejas, reclamos y sugerencias de los residentes con trazabilidad completa. Cada ticket tiene un plazo legal de 15 días hábiles — el módulo te alerta cuando estás próximo al límite para que ninguna solicitud quede sin atender.">PQRS e incidencias</CardTitle>
-        <CardDescription className="mt-1">Recibe, responde y haz seguimiento a las solicitudes de los residentes, dentro del plazo de 15 días hábiles.</CardDescription>
+        <CardTitle help={isSimpleMode ? "Buzón de mensajes de los residentes. Recibe y responde sin categorías ni semáforo de tiempo." : "Gestiona las peticiones, quejas, reclamos y sugerencias de los residentes con trazabilidad completa. Cada ticket tiene un plazo legal de 15 días hábiles — el módulo te alerta cuando estás próximo al límite para que ninguna solicitud quede sin atender."}>PQRS e incidencias</CardTitle>
+        <CardDescription className="mt-1">
+          {isSimpleMode
+            ? "Recibe y responde los mensajes de los residentes."
+            : "Recibe, responde y haz seguimiento a las solicitudes de los residentes, dentro del plazo de 15 días hábiles."}
+        </CardDescription>
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
 
@@ -268,15 +283,17 @@ export default function AdminPqrsPage() {
                 </select>
               </label>
 
-              <label className="text-xs text-[var(--slate-600)]">
-                Tipo
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-                  <option value="all">Todos</option>
-                  {types.map((type) => (
-                    <option key={type} value={type}>{getTicketTypeLabel(type)}</option>
-                  ))}
-                </select>
-              </label>
+              {!isSimpleMode && (
+                <label className="text-xs text-[var(--slate-600)]">
+                  Tipo
+                  <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+                    <option value="all">Todos</option>
+                    {types.map((type) => (
+                      <option key={type} value={type}>{getTicketTypeLabel(type)}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <label className="text-xs text-[var(--slate-600)]">
                 Unidad
@@ -301,20 +318,22 @@ export default function AdminPqrsPage() {
               <Input type="date" label="Radicación desde" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
               <Input type="date" label="Radicación hasta" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
 
-              <label className="text-xs text-[var(--slate-600)]">
-                Prioridad de respuesta
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value as AlertFilter)}>
-                  <option value="all">Todas</option>
-                  <option value="green">En plazo</option>
-                  <option value="yellow">Próximo a vencer</option>
-                  <option value="red">Crítico</option>
-                </select>
-              </label>
+              {!isSimpleMode && (
+                <label className="text-xs text-[var(--slate-600)]">
+                  Prioridad de respuesta
+                  <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value as AlertFilter)}>
+                    <option value="all">Todas</option>
+                    <option value="green">En plazo</option>
+                    <option value="yellow">Próximo a vencer</option>
+                    <option value="red">Crítico</option>
+                  </select>
+                </label>
+              )}
 
               <label className="text-xs text-[var(--slate-600)]">
                 Orden
                 <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)}>
-                  <option value="due">Próximos a vencer</option>
+                  {!isSimpleMode && <option value="due">Próximos a vencer</option>}
                   <option value="oldest">Más antiguos primero</option>
                   <option value="newest">Más recientes</option>
                 </select>
@@ -330,7 +349,7 @@ export default function AdminPqrsPage() {
                 <th className="px-3 py-2">Asunto</th>
                 <th className="px-3 py-2">Unidad / Residente</th>
                 <th className="px-3 py-2">Estado</th>
-                <th className="px-3 py-2">Vencimiento</th>
+                {!isSimpleMode && <th className="px-3 py-2">Vencimiento</th>}
                 <th className="px-3 py-2 text-center">Acción</th>
               </tr>
             </thead>
@@ -363,7 +382,7 @@ export default function AdminPqrsPage() {
 
               {!loading && filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4">
+                  <td colSpan={isSimpleMode ? 4 : 5} className="px-3 py-4">
                     {enrichedItems.length === 0 ? (
                       <EmptyState title="Sin tickets" description="Cuando residentes creen solicitudes, aparecerán aquí para gestión operativa." />
                     ) : (
@@ -388,7 +407,7 @@ export default function AdminPqrsPage() {
                     <td className="px-3 py-2">
                       <p className="pqrs-asunto truncate font-medium text-[var(--slate-900)]">{ticket.subject}</p>
                       <p className="mt-0.5 truncate text-[11px] text-[var(--slate-500)]">
-                        {ticket.radicado} · {formatTicketDate(ticket.radicationDate)}
+                        {isSimpleMode ? formatTicketDate(ticket.radicationDate) : `${ticket.radicado} · ${formatTicketDate(ticket.radicationDate)}`}
                       </p>
                     </td>
                     <td className="px-3 py-2">
@@ -400,9 +419,11 @@ export default function AdminPqrsPage() {
                     <td className="px-3 py-2">
                       <StatusBadge status={ticket.status} context="pqrs" />
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge className={dueBadge.className}>{dueBadge.label}</Badge>
-                    </td>
+                    {!isSimpleMode && (
+                      <td className="px-3 py-2">
+                        <Badge className={dueBadge.className}>{dueBadge.label}</Badge>
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-center">
                       <button
                         type="button"
@@ -448,7 +469,7 @@ export default function AdminPqrsPage() {
           selectedTicket ? (
             <>
               <StatusBadge status={selectedTicket.status} context="pqrs" />
-              <span className="text-xs text-[var(--slate-500)]">{selectedTicket.radicado}</span>
+              {!isSimpleMode && <span className="text-xs text-[var(--slate-500)]">{selectedTicket.radicado}</span>}
             </>
           ) : null
         }
@@ -498,10 +519,12 @@ export default function AdminPqrsPage() {
         {selectedTicket ? (
           <div className="space-y-4 text-sm text-[var(--slate-800)]">
             <dl className="grid grid-cols-2 gap-3">
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Radicado</dt>
-                <dd className="mt-0.5 text-[var(--slate-900)]">{selectedTicket.radicado}</dd>
-              </div>
+              {!isSimpleMode && (
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Radicado</dt>
+                  <dd className="mt-0.5 text-[var(--slate-900)]">{selectedTicket.radicado}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Fecha</dt>
                 <dd className="mt-0.5 text-[var(--slate-900)]">{formatTicketDate(selectedTicket.radicationDate)}</dd>
@@ -513,22 +536,26 @@ export default function AdminPqrsPage() {
                   <span className="block text-[var(--slate-500)]">{selectedTicket.unitLabel || "\u2014"}</span>
                 </dd>
               </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Tipo</dt>
-                <dd className="mt-0.5 text-[var(--slate-900)]">{getTicketTypeLabel(selectedTicket.type)}</dd>
-              </div>
-              <div className="col-span-2">
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Vencimiento</dt>
-                <dd className="mt-0.5">
-                  {(() => {
-                    const badge = getDueBadge({
-                      isClosed: selectedTicket.sla.isClosed,
-                      businessDaysRemaining: selectedTicket.sla.businessDaysRemaining,
-                    });
-                    return <Badge className={badge.className}>{badge.label}</Badge>;
-                  })()}
-                </dd>
-              </div>
+              {!isSimpleMode && (
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Tipo</dt>
+                  <dd className="mt-0.5 text-[var(--slate-900)]">{getTicketTypeLabel(selectedTicket.type)}</dd>
+                </div>
+              )}
+              {!isSimpleMode && (
+                <div className="col-span-2">
+                  <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Vencimiento</dt>
+                  <dd className="mt-0.5">
+                    {(() => {
+                      const badge = getDueBadge({
+                        isClosed: selectedTicket.sla.isClosed,
+                        businessDaysRemaining: selectedTicket.sla.businessDaysRemaining,
+                      });
+                      return <Badge className={badge.className}>{badge.label}</Badge>;
+                    })()}
+                  </dd>
+                </div>
+              )}
             </dl>
 
             <div className="border-t border-[var(--slate-200)] pt-3">

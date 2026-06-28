@@ -7,6 +7,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useCommunications } from "@/features/communications/use-communications";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 
 const PREVIEW_LINES = 5;
 
@@ -79,6 +80,7 @@ function shouldTruncateBody(body: string) {
 export default function ResidentCommunicationsPage() {
   const { user } = useAuth();
   const { items, loading, error } = useCommunications(user?.tenantId);
+  const isSimpleMode = useModuleVariant(user?.tenantId, "communications") === "tablon_simple";
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
 
   const feedItems = useMemo(() => items, [items]);
@@ -172,7 +174,7 @@ export default function ResidentCommunicationsPage() {
                         <span>{publishedLabel}</span>
                       </>
                     ) : null}
-                    {endLabel ? (
+                    {!isSimpleMode && endLabel ? (
                       <>
                         <Dot className="h-3.5 w-3.5" />
                         <span>Vigente hasta {endLabel}</span>

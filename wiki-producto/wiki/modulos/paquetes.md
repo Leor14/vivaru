@@ -8,7 +8,7 @@ fecha_actualizacion: 2026-05-20
 
 # Paquetería
 
-Módulo de gestión de paquetes y correspondencia del portal administrador (`/admin/packages`). Registra la llegada de paquetes, notifica al residente y confirma la entrega.
+Módulo de gestión de paquetes y correspondencia del portal administrador (`/admin/packages`). Registra la llegada de paquetes, notifica al residente y confirma la entrega. Opera en dos variantes (ver [[modulos-variantes]]): `con_evidencia` (con seguimiento de retiro) o `aviso_simple` (registro + aviso, entrega de un toque).
 
 ## Entidades principales
 

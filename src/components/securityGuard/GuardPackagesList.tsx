@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { confirmPackageReceived, usePackages } from "@/features/packages/use-packages";
 import { usePackageDirectory } from "@/features/security-guard/use-package-directory";
+import { useModuleVariant } from "@/lib/config/use-module-variant";
 import type { PackageItem } from "@/types/domain";
 import { getStatusLabel } from "@/utils/statusMapper";
 import { splitTowerUnit } from "@/lib/utils/unit-display";
@@ -52,6 +53,7 @@ function getDeliveredToName(item: PackageItem) {
 export function GuardPackagesList({ tenantId, userId }: { tenantId?: string; userId?: string }) {
   const { items, loading, error } = usePackages(tenantId);
   const { residents, residentsByUnitId, loading: loadingDirectory, error: directoryError } = usePackageDirectory(tenantId);
+  const isSimpleMode = useModuleVariant(tenantId, "packages") === "aviso_simple";
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [deliveredToByPackageId, setDeliveredToByPackageId] = useState<Record<string, string>>({});
 
@@ -125,10 +127,31 @@ export function GuardPackagesList({ tenantId, userId }: { tenantId?: string; use
     }
   }
 
+  // Modo aviso simple: entrega de un toque, sin elegir residente ni firma.
+  async function markDeliveredSimple(item: PackageItem) {
+    if (!tenantId || !userId) {
+      toast.error("No se pudo identificar tu sesion para entregar paquetes.");
+      return;
+    }
+    try {
+      setProcessingId(item.id);
+      await confirmPackageReceived({ tenantId, packageId: item.id, userId });
+      toast.success("Paquete marcado como entregado.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   return (
     <Card>
       <CardTitle>Paquetes recibidos</CardTitle>
-      <CardDescription className="mt-1">Operación de entrega con trazabilidad de quien recibe cada paquete.</CardDescription>
+      <CardDescription className="mt-1">
+        {isSimpleMode
+          ? "Registro de paquetes y entrega rápida. El residente recibe la notificación al registrarse."
+          : "Operación de entrega con trazabilidad de quien recibe cada paquete."}
+      </CardDescription>
 
       {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
       {directoryError ? <p className="mt-2 text-sm text-[var(--danger-700)]">{directoryError}</p> : null}
@@ -167,6 +190,15 @@ export function GuardPackagesList({ tenantId, userId }: { tenantId?: string; use
                     <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                       Entregado a: {getDeliveredToName(item)}
                     </p>
+                  ) : isSimpleMode ? (
+                    <Button
+                      type="button"
+                      className="h-11 w-full"
+                      disabled={processingId === item.id}
+                      onClick={() => void markDeliveredSimple(item)}
+                    >
+                      {processingId === item.id ? "Procesando..." : "Marcar entregado"}
+                    </Button>
                   ) : (
                     <>
                       <label className="block text-sm font-medium text-[var(--slate-700)]">Entregado a</label>

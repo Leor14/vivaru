@@ -9,7 +9,8 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminSidebar, type AdminSidebarBadges } from "@/components/shared/admin-sidebar";
-import { buildRoleSidebarGroups, profileHrefForRole } from "@/lib/navigation/role-sidebar-groups";
+import { buildAdminSidebarGroups, buildRoleSidebarGroups, profileHrefForRole } from "@/lib/navigation/role-sidebar-groups";
+import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-variants";
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
@@ -29,6 +30,7 @@ type TenantBranding = {
   tenantName?: string;
   logoUrl?: string;
   residentModules?: ResidentModules;
+  financeVariant?: FinanceVariant;
 };
 
 const DEFAULT_BRAND_COLOR = "#0b3c5d";
@@ -142,6 +144,7 @@ export function AppShell({
                   regulations: rawModules.regulations !== false,
                 }
               : undefined,
+            financeVariant: getModuleVariant(data, "finance"),
           });
         } catch (parseError) {
           console.error("[app-shell] invalid tenant branding payload", parseError);
@@ -328,6 +331,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
+                  groups={buildAdminSidebarGroups(branding?.financeVariant)}
                   badges={sidebarBadges}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -377,6 +381,7 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
+              groups={buildAdminSidebarGroups(branding?.financeVariant)}
               badges={sidebarBadges}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}
