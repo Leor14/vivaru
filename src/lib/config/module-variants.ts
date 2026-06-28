@@ -14,6 +14,7 @@
 export type VisitorsVariant = "qr_full" | "registro_simple";
 export type PackagesVariant = "con_evidencia" | "aviso_simple";
 export type PqrsVariant = "con_sla" | "buzon_simple";
+export type CommunicationsVariant = "canal_oficial" | "tablon_simple";
 // Reservados — fijos al crear (fuera del piloto Visitas + Paquetería):
 export type FinanceVariant = "completa" | "solo_consulta";
 export type GovernanceVariant = "formal" | "informativo";
@@ -22,6 +23,7 @@ export type ModuleVariants = {
   visitors: VisitorsVariant;
   packages: PackagesVariant;
   pqrs: PqrsVariant;
+  communications: CommunicationsVariant;
   finance: FinanceVariant;
   governance: GovernanceVariant;
 };
@@ -33,6 +35,7 @@ export const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
   visitors: "qr_full",
   packages: "con_evidencia",
   pqrs: "con_sla",
+  communications: "canal_oficial",
   finance: "completa",
   governance: "formal",
 };
@@ -42,6 +45,7 @@ export const MODULE_VARIANT_VALUES: Record<ModuleVariantKey, readonly string[]> 
   visitors: ["qr_full", "registro_simple"],
   packages: ["con_evidencia", "aviso_simple"],
   pqrs: ["con_sla", "buzon_simple"],
+  communications: ["canal_oficial", "tablon_simple"],
   finance: ["completa", "solo_consulta"],
   governance: ["formal", "informativo"],
 };
@@ -56,6 +60,7 @@ export const VARIANT_EDITABILITY: Record<ModuleVariantKey, "locked" | "warn" | "
   visitors: "warn",
   packages: "free",
   pqrs: "warn",
+  communications: "free",
   finance: "locked",
   governance: "locked",
 };
@@ -116,6 +121,22 @@ export const MODULE_VARIANT_META: ModuleVariantMeta[] = [
         value: "buzon_simple",
         label: "Buzón simple",
         description: "El residente envía un mensaje y el admin responde. Sin categorías ni semáforo.",
+      },
+    ],
+  },
+  {
+    key: "communications",
+    label: "Comunicaciones",
+    options: [
+      {
+        value: "canal_oficial",
+        label: "Canal oficial",
+        description: "Comunicados con vigencia y programación (fecha de inicio y expiración).",
+      },
+      {
+        value: "tablon_simple",
+        label: "Tablón simple",
+        description: "Muro de anuncios: publica y se ve, sin fechas de vigencia.",
       },
     ],
   },

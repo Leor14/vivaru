@@ -4,6 +4,7 @@ export const moduleVariantsSchema = z.object({
   visitors: z.enum(["qr_full", "registro_simple"]),
   packages: z.enum(["con_evidencia", "aviso_simple"]),
   pqrs: z.enum(["con_sla", "buzon_simple"]),
+  communications: z.enum(["canal_oficial", "tablon_simple"]),
   finance: z.enum(["completa", "solo_consulta"]),
   governance: z.enum(["formal", "informativo"]),
 });

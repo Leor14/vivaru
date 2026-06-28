@@ -56,6 +56,7 @@ type ModuleVariants = {
   visitors: "qr_full" | "registro_simple";
   packages: "con_evidencia" | "aviso_simple";
   pqrs: "con_sla" | "buzon_simple";
+  communications: "canal_oficial" | "tablon_simple";
   finance: "completa" | "solo_consulta";
   governance: "formal" | "informativo";
 };
@@ -66,6 +67,7 @@ const DEFAULT_MODULE_VARIANTS: ModuleVariants = {
   visitors: "qr_full",
   packages: "con_evidencia",
   pqrs: "con_sla",
+  communications: "canal_oficial",
   finance: "completa",
   governance: "formal",
 };
@@ -74,6 +76,7 @@ const MODULE_VARIANT_VALUES: Record<keyof ModuleVariants, readonly string[]> = {
   visitors: ["qr_full", "registro_simple"],
   packages: ["con_evidencia", "aviso_simple"],
   pqrs: ["con_sla", "buzon_simple"],
+  communications: ["canal_oficial", "tablon_simple"],
   finance: ["completa", "solo_consulta"],
   governance: ["formal", "informativo"],
 };
