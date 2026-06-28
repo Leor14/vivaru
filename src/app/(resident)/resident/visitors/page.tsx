@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { cancelResidentInvitation, subscribeResidentInvitations } from "@/features/visitors/invitations";
+import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import type { VisitorInvitation, VisitorInvitationStatus } from "features/visitors/types";
 import { formatDateTime } from "features/visitors/utils/formatDateTime";
 
@@ -33,6 +34,8 @@ const statusClassName: Record<VisitorInvitationStatus, string> = {
 export default function ResidentVisitorsPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const visitorsVariant = useVisitorsVariant(user?.tenantId);
+  const isSimpleMode = visitorsVariant === "registro_simple";
   const [items, setItems] = useState<VisitorInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,12 +96,16 @@ export default function ResidentVisitorsPage() {
             <p className="text-xs font-medium tracking-wide text-[var(--slate-500)] uppercase">Módulo residentes</p>
             <CardTitle className="mt-1 text-xl">Visitantes y autorizaciones</CardTitle>
             <CardDescription className="mt-1">
-              Gestiona invitaciones activas, revisa vigencias y comparte el QR final sin salir de tu portal.
+              {isSimpleMode
+                ? "En este conjunto la portería registra las visitas al llegar y te notifica. Aquí ves el historial de tus visitas."
+                : "Gestiona invitaciones activas, revisa vigencias y comparte el QR final sin salir de tu portal."}
             </CardDescription>
           </div>
-          <Link href="/resident/visitors/new">
-            <Button>Crear invitación</Button>
-          </Link>
+          {isSimpleMode ? null : (
+            <Link href="/resident/visitors/new">
+              <Button>Crear invitación</Button>
+            </Link>
+          )}
         </div>
       </Card>
 
@@ -136,14 +143,20 @@ export default function ResidentVisitorsPage() {
         {!loading && !error && !hasInvitations ? (
           <div className="space-y-3">
             <EmptyState
-              title="Aún no tienes invitaciones"
-              description="Crea tu primera invitación para compartir acceso con tus visitantes desde este mismo módulo."
+              title={isSimpleMode ? "Aún no tienes visitas registradas" : "Aún no tienes invitaciones"}
+              description={
+                isSimpleMode
+                  ? "Cuando la portería registre una visita para tu unidad, aparecerá aquí y recibirás una notificación."
+                  : "Crea tu primera invitación para compartir acceso con tus visitantes desde este mismo módulo."
+              }
             />
-            <div className="text-center">
-              <Link href="/resident/visitors/new">
-                <Button size="sm">Crear invitación</Button>
-              </Link>
-            </div>
+            {isSimpleMode ? null : (
+              <div className="text-center">
+                <Link href="/resident/visitors/new">
+                  <Button size="sm">Crear invitación</Button>
+                </Link>
+              </div>
+            )}
           </div>
         ) : null}
 
