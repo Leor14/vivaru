@@ -4,34 +4,39 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
+# NOTA (rama develop = STAGING): la config de Firebase apunta a vivaru-staging-02 a
+# propósito. El backend de staging (vivaru-staging-web) construye de develop y lee este
+# apphosting.yaml (no tiene "Environment name = staging", por lo que apphosting.staging.yaml
+# es inerte). En master estos valores son los de prod (hogaru-1). Al fusionar master ->
+# develop, resolver el conflicto de este archivo MANTENIENDO los valores de staging.
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyDRvUIFC9SiODRNaBJkN5rNXRm3bYu4JxA
+    value: AIzaSyChPlJL3WESeNggGXBPMiHzIAAicEH8J6c
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: hogaru-1.firebaseapp.com
+    value: vivaru-staging-02.firebaseapp.com
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: hogaru-1
+    value: vivaru-staging-02
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: hogaru-1.firebasestorage.app
+    value: vivaru-staging-02.firebasestorage.app
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "1047056648517"
+    value: "765613061037"
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:1047056648517:web:a76ad8d0cb2138c3d9d62c
+    value: 1:765613061037:web:37c450d7c1a20b4812a724
     availability:
       - BUILD
       - RUNTIME
