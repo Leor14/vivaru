@@ -34,21 +34,30 @@ import {
   BILLING_MX, PQRS_MX, VISITORS_MX, PACKAGES_MX, COMMUNICATIONS_MX, RESERVATIONS_MX,
 } from "./seed-data-mx.mjs";
 
+import {
+  TENANT_PLAYAS, MODULE_VARIANTS_PLAYAS, RESIDENT_MODULES_PLAYAS,
+  USERS_PLAYAS, UNITS_PLAYAS, PEOPLE_PLAYAS, AMENITIES_PLAYAS,
+  BILLING_PLAYAS, PAYMENT_RECEIPTS_PLAYAS, PQRS_PLAYAS, VISITORS_PLAYAS,
+  PACKAGES_PLAYAS, COMMUNICATIONS_PLAYAS, RESERVATIONS_PLAYAS,
+  SURVEYS_PLAYAS, SURVEY_RESPONSES_PLAYAS, AGREEMENTS_PLAYAS,
+} from "./seed-data-playas.mjs";
+
 // ── Config ────────────────────────────────────────────────────────────────────
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "hogaru-1";
 const CLEAR = process.env.CLEAR === "true";
 
 const CLEARABLE_COLLECTIONS = [
-  "tenants", "users", "tenantUsers", "units", "people",
-  "amenities", "communications", "billingStatements",
+  "tenants", "tenantSettings", "users", "tenantUsers", "units", "people",
+  "amenities", "communications", "billingStatements", "paymentReceipts",
   "packages", "visitors", "visitorPasses", "pqrs",
   "reservations", "documents", "notifications",
+  "surveys", "survey_responses", "committee_agreements", "committee_agreement_signatures",
 ];
 
 // ── CLI arg ───────────────────────────────────────────────────────────────────
 const tenantArg = process.argv.find((a) => a.startsWith("--tenant="))?.split("=")[1];
-if (!tenantArg || !["co", "mx", "all"].includes(tenantArg)) {
-  console.error("Uso: node seed-tenant.mjs --tenant=co|mx|all");
+if (!tenantArg || !["co", "mx", "playas", "all"].includes(tenantArg)) {
+  console.error("Uso: node seed-tenant.mjs --tenant=co|mx|playas|all");
   process.exit(1);
 }
 
@@ -139,7 +148,7 @@ async function clearTenant(db, tenantId) {
 
 // ── Main seed function ────────────────────────────────────────────────────────
 async function seedTenant(tenantData, users, units, people, amenities, billing,
-                          pqrs, visitors, packages, communications, reservations) {
+                          pqrs, visitors, packages, communications, reservations, extras = {}) {
   const db = admin.firestore();
   const now = ts(0);
   const tenantId = tenantData.id;
@@ -165,6 +174,20 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
   }, { merge: true });
   stats.tenants = 1;
   console.log(`  ✓ tenants: 1`);
+
+  // 1b. tenantSettings (moduleVariants + residentModules) — solo si se pasan extras.
+  if (extras.moduleVariants || extras.residentModules) {
+    await db.collection("tenantSettings").doc(tenantId).set({
+      tenantId,
+      tenantName: tenantData.name,
+      brandColor: tenantData.branding?.primaryColor ?? "#0b3c5d",
+      ...(extras.moduleVariants ? { moduleVariants: extras.moduleVariants } : {}),
+      ...(extras.residentModules ? { residentModules: extras.residentModules } : {}),
+      updatedAt: now,
+    }, { merge: true });
+    stats.tenantSettings = 1;
+    console.log(`  ✓ tenantSettings: 1`);
+  }
 
   // 2–3. Auth + users + tenantUsers
   let usersCount = 0;
@@ -285,6 +308,7 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
       status: b.status,
       dueDate: b.dueDate ?? null,
       ...(b.concept ? { concept: b.concept } : {}),
+      ...(b.source ? { source: b.source } : {}),
       createdAt: now,
       updatedAt: now,
     }, { merge: true });
@@ -389,6 +413,102 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
   stats.reservations = reservations.length;
   console.log(`  ✓ reservations: ${reservations.length}`);
 
+  // 13. Payment receipts (comprobantes subidos por residentes, pendientes de revisión)
+  const receipts = extras.paymentReceipts ?? [];
+  for (const r of receipts) {
+    await db.collection("paymentReceipts").doc(r.id).set({
+      tenantId,
+      unitId: r.unitId,
+      unitLabel: r.unitLabel,
+      statementId: r.statementId,
+      uploadedByName: r.uploadedByName,
+      amount: r.amount,
+      status: r.status,
+      fileName: r.fileName,
+      fileUrl: "",
+      uploadedAt: ts(r.uploadedOffsetDays ?? -1),
+      createdAt: now,
+      updatedAt: now,
+    }, { merge: true });
+  }
+  if (receipts.length) { stats.paymentReceipts = receipts.length; console.log(`  ✓ paymentReceipts: ${receipts.length}`); }
+
+  // 14. Surveys + responses
+  const surveys = extras.surveys ?? [];
+  for (const s of surveys) {
+    await db.collection("surveys").doc(s.id).set({
+      tenantId,
+      title: s.title,
+      description: s.description,
+      questions: s.questions,
+      targetAudience: { type: "all" },
+      minResponsesForResults: s.minResponsesForResults ?? 3,
+      responseCount: s.responseCount ?? 0,
+      status: s.status,
+      createdBy: s.createdBy,
+      createdAt: ts(s.createdOffsetDays ?? -5),
+      updatedAt: now,
+      ...(s.closingOffsetDays !== undefined ? { closingDate: dateStr(s.closingOffsetDays) } : {}),
+    }, { merge: true });
+  }
+  if (surveys.length) { stats.surveys = surveys.length; console.log(`  ✓ surveys: ${surveys.length}`); }
+
+  const surveyResponses = extras.surveyResponses ?? [];
+  for (const sr of surveyResponses) {
+    await db.collection("survey_responses").doc(sr.id).set({
+      tenantId,
+      surveyId: sr.surveyId,
+      respondentUid: sr.respondentUid ?? null,
+      respondentName: sr.respondentName ?? "",
+      unitId: sr.unitId ?? null,
+      answers: sr.answers,
+      respondedAt: ts(sr.respondedOffsetDays ?? -10),
+      createdAt: ts(sr.respondedOffsetDays ?? -10),
+      updatedAt: now,
+    }, { merge: true });
+  }
+  if (surveyResponses.length) { stats.surveyResponses = surveyResponses.length; console.log(`  ✓ survey_responses: ${surveyResponses.length}`); }
+
+  // 15. Committee agreements + signatures
+  const agreements = extras.agreements ?? [];
+  let signaturesCount = 0;
+  for (const a of agreements) {
+    const sessionDate = dateStr(a.sessionOffsetDays ?? -15);
+    await db.collection("committee_agreements").doc(a.id).set({
+      tenantId,
+      title: a.title,
+      sessionDate,
+      eventDate: sessionDate,
+      signatureMode: a.signatureMode,
+      signerScope: a.signerScope ?? "all",
+      status: a.status ?? "enviado",
+      fileUrl: a.fileUrl ?? "",
+      createdBy: a.createdBy,
+      createdAt: ts(a.sessionOffsetDays ?? -15),
+      updatedAt: now,
+    }, { merge: true });
+
+    for (const unitId of a.signedUnitIds ?? []) {
+      const sigId = `sig-${a.id}-${unitId}`;
+      await db.collection("committee_agreement_signatures").doc(sigId).set({
+        tenantId,
+        agreementId: a.id,
+        unitId,
+        signedBy: unitId,
+        signatureDate: dateStr((a.sessionOffsetDays ?? -15) + 1),
+        status: "signed",
+        createdAt: ts((a.sessionOffsetDays ?? -15) + 1),
+        updatedAt: now,
+      }, { merge: true });
+      signaturesCount++;
+    }
+  }
+  if (agreements.length) {
+    stats.committee_agreements = agreements.length;
+    stats.committee_agreement_signatures = signaturesCount;
+    console.log(`  ✓ committee_agreements: ${agreements.length} (firmas: ${signaturesCount})`);
+  }
+
   return stats;
 }
 
@@ -409,6 +529,19 @@ async function run() {
       allStats.mx = await seedTenant(
         TENANT_MX, USERS_MX, UNITS_MX, PEOPLE_MX, AMENITIES_MX,
         BILLING_MX, PQRS_MX, VISITORS_MX, PACKAGES_MX, COMMUNICATIONS_MX, RESERVATIONS_MX,
+      );
+    } else if (t === "playas") {
+      allStats.playas = await seedTenant(
+        TENANT_PLAYAS, USERS_PLAYAS, UNITS_PLAYAS, PEOPLE_PLAYAS, AMENITIES_PLAYAS,
+        BILLING_PLAYAS, PQRS_PLAYAS, VISITORS_PLAYAS, PACKAGES_PLAYAS, COMMUNICATIONS_PLAYAS, RESERVATIONS_PLAYAS,
+        {
+          moduleVariants: MODULE_VARIANTS_PLAYAS,
+          residentModules: RESIDENT_MODULES_PLAYAS,
+          paymentReceipts: PAYMENT_RECEIPTS_PLAYAS,
+          surveys: SURVEYS_PLAYAS,
+          surveyResponses: SURVEY_RESPONSES_PLAYAS,
+          agreements: AGREEMENTS_PLAYAS,
+        },
       );
     }
   }
