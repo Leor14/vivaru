@@ -35,6 +35,7 @@ import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
+import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
 import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, cancelReminderJob, createBillingCampaign, createBillingSchedule, createBillingStatement, createReminderJob, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements, useReminderJobs } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
@@ -1156,6 +1157,7 @@ export default function AdminBillingPage() {
           </Button>
         </div>
       )}
+      <WidgetErrorBoundary label="el gráfico de cartera">
       <ChartContainer
         title="Comportamiento histórico de cartera"
         description="Comparativo de cobrado y recaudado por período con lectura inmediata de brecha y porcentaje de recaudo."
@@ -1232,6 +1234,7 @@ export default function AdminBillingPage() {
           </div>
         )}
       </ChartContainer>
+      </WidgetErrorBoundary>
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1263,12 +1266,14 @@ export default function AdminBillingPage() {
         </TableroCarousel>
       </div>
 
-      <PaymentReceiptsReviewPanel
-        tenantId={user?.tenantId}
-        reviewerId={user?.uid}
-        reviewerName={user?.fullName}
-        statements={items}
-      />
+      <WidgetErrorBoundary label="la revisión de comprobantes">
+        <PaymentReceiptsReviewPanel
+          tenantId={user?.tenantId}
+          reviewerId={user?.uid}
+          reviewerName={user?.fullName}
+          statements={items}
+        />
+      </WidgetErrorBoundary>
 
       {!soloConsulta && (
       <Card className="soft-panel">

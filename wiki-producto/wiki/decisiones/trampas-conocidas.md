@@ -10,6 +10,14 @@ fecha_actualizacion: 2026-06-23
 
 Errores que han ocurrido o que tienen alta probabilidad de ocurrir durante el desarrollo. Documentados para no repetirlos.
 
+## Un widget que falla tumba todo /admin (sin aislamiento)
+
+La ruta `/admin` tiene un único error boundary de nivel ruta (`src/app/(admin)/admin/error.tsx`), que muestra "No pudimos cargar el workspace de administración". Si **cualquier** widget/tablero de una página lanza durante el render (típico: un chart de **recharts** con un dato límite, o un `Intl.NumberFormat` con `currency` undefined), el error sube hasta ese boundary y **toda la interfaz de /admin se cae**, no solo el widget. Pasó en Cartera al poblar los tableros financieros (Liquidez, Cuentas por pagar, Flujo de caja). Regla: envolver toda sección de dashboard/tablero que consuma datos del tenant en `WidgetErrorBoundary` (`src/components/shared/widget-error-boundary.tsx`) para degradar el widget y mantener viva la página. Ver [[layout-patterns]] y [[billing]].
+
+## Tenant sin `currency` rompe formateadores
+
+Un tenant creado por seed/alta sin el campo `currency` (`COP`|`MXN`|`USD`) hace que cualquier `Intl.NumberFormat(..., { currency })` reciba `undefined` y lance "Invalid currency code". Regla: el alta/seed siempre escribe `currency`; los hooks de formato (`useTenantCurrency`) defaultean a un valor válido. Ver [[multi-tenancy]] y [[billing]].
+
 ## replace_all con acentos
 
 Usar `replace_all` con palabras acentuadas en el editor puede corromper plurales o palabras que comparten la raíz. Ejemplo: reemplazar `"configuración"` puede afectar `"configuraciones"`. Siempre proporcionar suficiente contexto en el string a reemplazar para que sea único.
