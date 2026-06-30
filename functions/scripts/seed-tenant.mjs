@@ -50,7 +50,7 @@ const CLEAR = process.env.CLEAR === "true";
 const CLEARABLE_COLLECTIONS = [
   "tenants", "tenantSettings", "users", "tenantUsers", "units", "people",
   "amenities", "communications", "billingStatements", "billingCampaigns", "paymentReceipts",
-  "packages", "visitors", "visitorPasses", "pqrs",
+  "packages", "visitors", "visitorPasses", "pqrs", "tickets",
   "reservations", "documents", "notifications",
   "surveys", "survey_responses", "committee_agreements", "committee_agreement_signatures",
   "expenses", "ledgerEntries", "bankAccounts", "bankStatementLines",
@@ -372,10 +372,10 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
   stats.visitors = visitors.length;
   console.log(`  ✓ visitors + visitorPasses: ${visitors.length}`);
 
-  // 11. PQRS / tickets
+  // 11. PQRS / tickets (la app lee de la colección "tickets")
   for (const t of pqrs) {
     const radicationDate = dateStr(t.radicationOffsetDays);
-    await db.collection("pqrs").doc(t.id).set({
+    await db.collection("tickets").doc(t.id).set({
       tenantId,
       unitId: t.unitId,
       unitLabel: t.unitLabel,
