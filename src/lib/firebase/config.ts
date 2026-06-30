@@ -18,26 +18,35 @@ const fallbackFirebaseEnv: Record<(typeof requiredFirebaseEnvKeys)[number], stri
   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: "G-L1XRDSMWBG",
 };
 
-function readEnv(key: (typeof requiredFirebaseEnvKeys)[number]) {
-  const value = process.env[key];
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value;
+function pick(envValue: string | undefined, key: (typeof requiredFirebaseEnvKeys)[number]) {
+  if (typeof envValue === "string" && envValue.trim().length > 0) {
+    return envValue;
   }
-
-  // App Hosting can expose runtime env correctly while some client bundles are built without NEXT_PUBLIC injection.
-  // Fall back to the canonical web config for hogaru-1 to avoid false "misconfigured" states.
+  // Fallback al config canónico (hogaru-1) para evitar estados "misconfigured".
   return fallbackFirebaseEnv[key];
 }
 
+// IMPORTANTE: cada variable se lee con CLAVE LITERAL (process.env.NEXT_PUBLIC_*).
+// Next.js solo inyecta en el bundle del cliente los accesos literales; un acceso
+// dinámico (process.env[key]) queda undefined en el navegador y siempre caería al
+// fallback (hogaru-1), ignorando la config inyectada por App Hosting (p. ej. staging).
 export const firebaseConfig = {
-  apiKey: readEnv("NEXT_PUBLIC_FIREBASE_API_KEY"),
-  authDomain: readEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
-  projectId: readEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
-  storageBucket: readEnv("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
-  messagingSenderId: readEnv("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"),
-  appId: readEnv("NEXT_PUBLIC_FIREBASE_APP_ID"),
+  apiKey: pick(process.env.NEXT_PUBLIC_FIREBASE_API_KEY, "NEXT_PUBLIC_FIREBASE_API_KEY"),
+  authDomain: pick(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
+  projectId: pick(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID, "NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
+  storageBucket: pick(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET, "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET"),
+  messagingSenderId: pick(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID, "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"),
+  appId: pick(process.env.NEXT_PUBLIC_FIREBASE_APP_ID, "NEXT_PUBLIC_FIREBASE_APP_ID"),
 };
 
-export const missingFirebaseEnvKeys = requiredFirebaseEnvKeys.filter((key) => !readEnv(key));
+// Con los fallbacks, las claves de config nunca quedan vacías; se mantiene el export
+// por compatibilidad con quienes lo consumen (pantalla de setup-error).
+export const missingFirebaseEnvKeys = (
+  [firebaseConfig.apiKey, firebaseConfig.authDomain, firebaseConfig.projectId, firebaseConfig.appId].some(
+    (v) => !v || v.trim().length === 0,
+  )
+    ? requiredFirebaseEnvKeys
+    : []
+) as (typeof requiredFirebaseEnvKeys)[number][];
 
-export const isFirebaseConfigured = missingFirebaseEnvKeys.length === 0;
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
