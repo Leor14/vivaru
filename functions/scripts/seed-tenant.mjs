@@ -39,7 +39,8 @@ import {
   USERS_PLAYAS, UNITS_PLAYAS, PEOPLE_PLAYAS, AMENITIES_PLAYAS,
   BILLING_PLAYAS, PAYMENT_RECEIPTS_PLAYAS, PQRS_PLAYAS, VISITORS_PLAYAS,
   PACKAGES_PLAYAS, COMMUNICATIONS_PLAYAS, RESERVATIONS_PLAYAS,
-  SURVEYS_PLAYAS, SURVEY_RESPONSES_PLAYAS, AGREEMENTS_PLAYAS,
+  SURVEYS_PLAYAS, SURVEY_RESPONSES_PLAYAS, SURVEY_RESPONSE_COUNTS_PLAYAS, AGREEMENTS_PLAYAS,
+  CAMPAIGNS_PLAYAS, BANK_ACCOUNTS_PLAYAS, EXPENSES_PLAYAS, LEDGER_PLAYAS, BANK_LINES_PLAYAS,
 } from "./seed-data-playas.mjs";
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -48,10 +49,11 @@ const CLEAR = process.env.CLEAR === "true";
 
 const CLEARABLE_COLLECTIONS = [
   "tenants", "tenantSettings", "users", "tenantUsers", "units", "people",
-  "amenities", "communications", "billingStatements", "paymentReceipts",
+  "amenities", "communications", "billingStatements", "billingCampaigns", "paymentReceipts",
   "packages", "visitors", "visitorPasses", "pqrs",
   "reservations", "documents", "notifications",
   "surveys", "survey_responses", "committee_agreements", "committee_agreement_signatures",
+  "expenses", "ledgerEntries", "bankAccounts", "bankStatementLines",
 ];
 
 // ── CLI arg ───────────────────────────────────────────────────────────────────
@@ -309,6 +311,9 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
       dueDate: b.dueDate ?? null,
       ...(b.concept ? { concept: b.concept } : {}),
       ...(b.source ? { source: b.source } : {}),
+      ...(b.paymentAmount !== undefined ? { paymentAmount: b.paymentAmount } : {}),
+      ...(b.lastPaymentAt ? { lastPaymentAt: b.lastPaymentAt } : {}),
+      ...(b.campaignId ? { campaignId: b.campaignId } : {}),
       createdAt: now,
       updatedAt: now,
     }, { merge: true });
@@ -443,7 +448,7 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
       questions: s.questions,
       targetAudience: { type: "all" },
       minResponsesForResults: s.minResponsesForResults ?? 3,
-      responseCount: s.responseCount ?? 0,
+      responseCount: extras.surveyResponseCounts?.[s.id] ?? s.responseCount ?? 0,
       status: s.status,
       createdBy: s.createdBy,
       createdAt: ts(s.createdOffsetDays ?? -5),
@@ -509,6 +514,88 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
     console.log(`  ✓ committee_agreements: ${agreements.length} (firmas: ${signaturesCount})`);
   }
 
+  // 16. Financiero: campañas, cuentas bancarias, egresos, libro/fondos y conciliación.
+  const campaigns = extras.campaigns ?? [];
+  for (const c of campaigns) {
+    await db.collection("billingCampaigns").doc(c.id).set({
+      tenantId,
+      concept: c.concept ?? "administracion",
+      period: c.period,
+      unitAmount: c.unitAmount,
+      dueDate: c.dueDate ?? null,
+      unitCount: c.unitCount,
+      source: c.source ?? "immediate",
+      status: c.status ?? "vigente",
+      sentAt: ts(c.sentOffsetDays ?? -14),
+      createdAt: now,
+      updatedAt: now,
+    }, { merge: true });
+  }
+  if (campaigns.length) { stats.billingCampaigns = campaigns.length; console.log(`  ✓ billingCampaigns: ${campaigns.length}`); }
+
+  const bankAccounts = extras.bankAccounts ?? [];
+  for (const a of bankAccounts) {
+    await db.collection("bankAccounts").doc(a.id).set({
+      tenantId,
+      label: a.label, bankName: a.bankName, accountNumber: a.accountNumber ?? null,
+      accountType: a.accountType ?? "corriente", currency: a.currency ?? "MXN",
+      openingBalance: a.openingBalance ?? 0, active: a.active !== false,
+      createdAt: now, updatedAt: now,
+    }, { merge: true });
+  }
+  if (bankAccounts.length) { stats.bankAccounts = bankAccounts.length; console.log(`  ✓ bankAccounts: ${bankAccounts.length}`); }
+
+  const expenses = extras.expenses ?? [];
+  for (const e of expenses) {
+    const paid = e.status === "pagado";
+    await db.collection("expenses").doc(e.id).set({
+      tenantId,
+      category: e.category, description: e.description,
+      vendorName: e.vendorName ?? null, amount: e.amount,
+      issueDate: dateStr(e.issueOffsetDays),
+      ...(e.dueOffsetDays !== undefined ? { dueDate: dateStr(e.dueOffsetDays) } : {}),
+      status: e.status,
+      paymentMethod: e.paymentMethod ?? null,
+      bankAccountId: e.bankAccountId ?? "bank-playas-001",
+      ...(paid ? { paidAt: dateStr(e.paidOffsetDays ?? e.issueOffsetDays), ledgerEntryId: `ledger-out-${e.id}` } : {}),
+      createdAt: now, updatedAt: now,
+    }, { merge: true });
+  }
+  if (expenses.length) { stats.expenses = expenses.length; console.log(`  ✓ expenses: ${expenses.length}`); }
+
+  const ledger = extras.ledger ?? [];
+  for (const l of ledger) {
+    await db.collection("ledgerEntries").doc(l.id).set({
+      tenantId,
+      type: l.type, date: l.date, amount: l.amount, concept: l.concept,
+      category: l.category ?? null, bankAccountId: l.bankAccountId ?? "bank-playas-001",
+      sourceType: l.sourceType ?? "manual", sourceId: l.sourceId ?? null,
+      reconciled: false,
+      createdAt: now, updatedAt: now,
+    }, { merge: true });
+  }
+  if (ledger.length) { stats.ledgerEntries = ledger.length; console.log(`  ✓ ledgerEntries: ${ledger.length}`); }
+
+  const bankLines = extras.bankLines ?? [];
+  for (const bl of bankLines) {
+    await db.collection("bankStatementLines").doc(bl.id).set({
+      tenantId,
+      bankAccountId: bl.bankAccountId ?? "bank-playas-001",
+      date: bl.date, description: bl.description, amount: bl.amount,
+      reconciled: bl.reconciled === true,
+      matchedLedgerEntryId: bl.matchedLedgerEntryId ?? null,
+      createdAt: now,
+    }, { merge: true });
+    // Si la línea está conciliada, marca el ledgerEntry como conciliado.
+    if (bl.reconciled && bl.matchedLedgerEntryId) {
+      await db.collection("ledgerEntries").doc(bl.matchedLedgerEntryId).set(
+        { reconciled: true, reconciledAt: bl.date, bankStatementLineId: bl.id, updatedAt: now },
+        { merge: true },
+      );
+    }
+  }
+  if (bankLines.length) { stats.bankStatementLines = bankLines.length; console.log(`  ✓ bankStatementLines: ${bankLines.length}`); }
+
   return stats;
 }
 
@@ -540,7 +627,13 @@ async function run() {
           paymentReceipts: PAYMENT_RECEIPTS_PLAYAS,
           surveys: SURVEYS_PLAYAS,
           surveyResponses: SURVEY_RESPONSES_PLAYAS,
+          surveyResponseCounts: SURVEY_RESPONSE_COUNTS_PLAYAS,
           agreements: AGREEMENTS_PLAYAS,
+          campaigns: CAMPAIGNS_PLAYAS,
+          bankAccounts: BANK_ACCOUNTS_PLAYAS,
+          expenses: EXPENSES_PLAYAS,
+          ledger: LEDGER_PLAYAS,
+          bankLines: BANK_LINES_PLAYAS,
         },
       );
     }
