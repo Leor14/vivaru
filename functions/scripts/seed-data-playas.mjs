@@ -45,6 +45,7 @@ export const TENANT_PLAYAS = {
   name: "Conjunto Las Playas",
   city: "Cancún, Quintana Roo",
   country: "MX",
+  currency: "MXN",
   planId: "plus",
   status: "active",
   onboardingStatus: "completed",

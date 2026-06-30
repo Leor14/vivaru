@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Children, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils/cn";
+import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 
 const SWIPE_THRESHOLD = 60;
 
@@ -104,7 +105,7 @@ export function TableroCarousel({
                 className="min-w-0 shrink-0 grow-0 basis-full px-0.5"
                 aria-hidden={i !== index}
               >
-                {slide}
+                <WidgetErrorBoundary label="este tablero">{slide}</WidgetErrorBoundary>
               </div>
             ))}
           </div>
