@@ -99,13 +99,20 @@ function toDate(value: unknown) {
   return null;
 }
 
+/** Clave de fecha YYYY-MM-DD en hora LOCAL (no UTC). Evita off-by-one en "hoy". */
+function dateKeyLocal(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function asDateLabel(value: unknown) {
-  const parsed = toDate(value);
-  if (parsed) {
-    return parsed.toISOString().slice(0, 10);
-  }
+  // Si ya es un string YYYY-MM-DD (como guardan los módulos), respetarlo tal cual
+  // (es fecha local). Solo convertir a clave local cuando viene como Date/Timestamp.
   if (typeof value === "string") {
     return value;
+  }
+  const parsed = toDate(value);
+  if (parsed) {
+    return dateKeyLocal(parsed);
   }
   return "Fecha no disponible";
 }
@@ -262,7 +269,7 @@ export default function AdminDashboardPage() {
     loadingBilling || loadingReservations || loadingTickets || loadingPackages || loadingVisitors || loadingCommunications;
 
   const todayDate = new Date();
-  const todayIso = todayDate.toISOString().slice(0, 10);
+  const todayIso = dateKeyLocal(todayDate);
   const todayMonth = monthKey(todayDate);
   const previousMonthDate = new Date(todayDate);
   previousMonthDate.setMonth(previousMonthDate.getMonth() - 1);

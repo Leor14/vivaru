@@ -77,8 +77,9 @@ function ts(offsetDays = 0) {
 }
 
 function dateStr(offsetDays = 0) {
+  // Hora LOCAL (no UTC) para que la fecha "hoy" del seed coincida con el panel/módulos.
   const d = new Date(Date.now() + offsetDays * 86_400_000);
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // ── Auth upsert ───────────────────────────────────────────────────────────────

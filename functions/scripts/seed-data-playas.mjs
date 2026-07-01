@@ -34,9 +34,10 @@ function dueStr(monthsAgo, day) {
   const d = day === "last" ? lastDay : Math.min(day, lastDay);
   return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
-/** YYYY-MM-DD a partir de un offset en días desde hoy. */
+/** YYYY-MM-DD (hora LOCAL) a partir de un offset en días desde hoy. */
 function dayStr(offsetDays) {
-  return new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+  const d = new Date(Date.now() + offsetDays * 86_400_000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // ── Tenant ──────────────────────────────────────────────────────────────────────
