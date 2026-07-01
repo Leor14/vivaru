@@ -17,7 +17,12 @@ export function computeStatementStatus(
   opts: { dueDate?: string; period?: string; asOf?: string } = {},
 ): StatementStatus {
   if (balance <= 0) return "paid";
-  const today = opts.asOf ?? new Date().toISOString().slice(0, 10);
+  // Hora LOCAL (no UTC): `toISOString` desfasaría el "hoy" cerca de medianoche en
+  // zonas != UTC (p. ej. México UTC-6) y marcaría cobros como vencidos un día antes.
+  const now = new Date();
+  const today =
+    opts.asOf ??
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   if (opts.dueDate) return opts.dueDate < today ? "overdue" : "pending";
   if (opts.period && opts.period < today.slice(0, 7)) return "overdue";
   return "pending";
