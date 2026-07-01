@@ -331,7 +331,7 @@ export default function AdminSurveysPage() {
     setResultsLoading(true);
     setView("results");
     try {
-      const raw = await getSurveyResults(survey.id);
+      const raw = await getSurveyResults(survey.id, user?.tenantId);
       setResultsData(raw);
     } catch {
       toast.error("No fue posible cargar los resultados.");
