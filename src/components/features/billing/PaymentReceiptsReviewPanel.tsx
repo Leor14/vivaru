@@ -23,10 +23,19 @@ function formatMoney(value: number): string {
   return `$${Math.round(value).toLocaleString("es-CO")}`;
 }
 
-function formatUploadedAt(value: string): string {
+function formatUploadedAt(value: unknown): string {
   if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  let date: Date;
+  // Acepta Firestore Timestamp (con .toDate()), string ISO o número. Nunca devuelve
+  // un objeto: renderizar un objeto como hijo de React lanza y tumbaría el widget.
+  if (typeof value === "object" && typeof (value as { toDate?: unknown }).toDate === "function") {
+    date = (value as { toDate: () => Date }).toDate();
+  } else if (typeof value === "string" || typeof value === "number") {
+    date = new Date(value);
+  } else {
+    return "—";
+  }
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("es-CO", {
     day: "numeric",
     month: "short",

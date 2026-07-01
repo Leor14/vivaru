@@ -432,7 +432,7 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
       status: r.status,
       fileName: r.fileName,
       fileUrl: "",
-      uploadedAt: ts(r.uploadedOffsetDays ?? -1),
+      uploadedAt: ts(r.uploadedOffsetDays ?? -1).toDate().toISOString(),
       createdAt: now,
       updatedAt: now,
     }, { merge: true });
