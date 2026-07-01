@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { IconBadge } from "@/components/ui/icon-badge";
-import { FilterX } from "lucide-react";
+import { CalendarDays, FilterX, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { reservationSchema, type ReservationInput } from "@/features/admin/schemas";
 import {
@@ -57,6 +57,17 @@ function asDateLabel(value: unknown) {
     if (typeof candidate.seconds === "number") return new Date(candidate.seconds * 1000).toLocaleString();
   }
   return "-";
+}
+
+/** Formatea "YYYY-MM-DD" a etiqueta local ("4 jul 2026") sin desfase de zona. */
+function formatDayChipLabel(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return value;
+  return new Date(year, month - 1, day).toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -465,6 +476,29 @@ export default function AdminReservationsPage() {
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
 
+  const clearFilters = () => {
+    setCalendarDate(null);
+    setStatusFilter("all");
+    setUnitFilter("all");
+    setAmenityFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  const clearDateFilter = () => {
+    setCalendarDate(null);
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  // Chip de fecha activa: el calendario setea dateFrom == dateTo al día elegido.
+  const dateChipLabel =
+    dateFrom && dateFrom === dateTo
+      ? formatDayChipLabel(dateFrom)
+      : dateFrom || dateTo
+        ? `${dateFrom ? formatDayChipLabel(dateFrom) : "…"} – ${dateTo ? formatDayChipLabel(dateTo) : "…"}`
+        : null;
+
   const columns: DataTableColumn<ReservationItem>[] = [
     {
       key: "amenity",
@@ -738,9 +772,12 @@ export default function AdminReservationsPage() {
         amenities={amenities}
         selectedDate={calendarDate}
         onSelectDate={(date) => {
-          setCalendarDate(date);
-          setDateFrom(date ?? "");
-          setDateTo(date ?? "");
+          // Toggle: volver a tocar el día ya seleccionado lo deselecciona y
+          // devuelve el listado completo (reversibilidad simétrica).
+          const next = date && date === calendarDate ? null : date;
+          setCalendarDate(next);
+          setDateFrom(next ?? "");
+          setDateTo(next ?? "");
         }}
       />
 
@@ -748,6 +785,18 @@ export default function AdminReservationsPage() {
         <div>
           <CardTitle help="Controla el uso de las amenidades del conjunto: salón comunal, piscina, gimnasio y más. Define horarios, límites mensuales y requisitos de pago para que el acceso sea ordenado y equitativo para todos los residentes.">Reservas de zonas comunes</CardTitle>
           <CardDescription className="mt-1">Aprueba, edita y cancela las reservas de las zonas comunes del conjunto.</CardDescription>
+          {dateChipLabel ? (
+            <button
+              type="button"
+              onClick={clearDateFilter}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-200)] bg-[var(--brand-50)] py-1 pl-2.5 pr-2 text-xs font-medium text-[var(--brand-800)] hover:bg-[var(--brand-100)]"
+              aria-label={`Quitar filtro de fecha ${dateChipLabel}`}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              {dateChipLabel}
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
         </div>
         {canEdit ? (
           <Button className="w-full sm:w-auto" onClick={openCreate} disabled={activeAmenities.length === 0}>
@@ -763,19 +812,13 @@ export default function AdminReservationsPage() {
           activeFiltersCount={activeFiltersCount}
           openLabel="Mostrar filtros"
           closeLabel="Ocultar filtros"
+          onClear={clearFilters}
           footer={
             <Button
               className="w-full md:w-auto"
               type="button"
               variant="outline"
-              onClick={() => {
-                setCalendarDate(null);
-                setStatusFilter("all");
-                setUnitFilter("all");
-                setAmenityFilter("all");
-                setDateFrom("");
-                setDateTo("");
-              }}
+              onClick={clearFilters}
             >
               <IconBadge tone="sand" className="mr-2">
                 <FilterX className="h-3.5 w-3.5" />
