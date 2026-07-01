@@ -14,6 +14,10 @@ Errores que han ocurrido o que tienen alta probabilidad de ocurrir durante el de
 
 La ruta `/admin` tiene un único error boundary de nivel ruta (`src/app/(admin)/admin/error.tsx`), que muestra "No pudimos cargar el workspace de administración". Si **cualquier** widget/tablero de una página lanza durante el render (típico: un chart de **recharts** con un dato límite, o un `Intl.NumberFormat` con `currency` undefined), el error sube hasta ese boundary y **toda la interfaz de /admin se cae**, no solo el widget. Pasó en Cartera al poblar los tableros financieros (Liquidez, Cuentas por pagar, Flujo de caja). Regla: envolver toda sección de dashboard/tablero que consuma datos del tenant en `WidgetErrorBoundary` (`src/components/shared/widget-error-boundary.tsx`) para degradar el widget y mantener viva la página. Ver [[layout-patterns]] y [[billing]].
 
+## Las reglas de Firestore no son filtros: query sin `tenantId` = permission-denied
+
+Consultar una colección con regla por-tenant (`tenantAdminOrSuper(resource.data.tenantId)`) filtrando **solo por otro campo** (p. ej. `where("surveyId","==",id)` en `survey_responses`) hace que Firestore **deniegue toda la query**: no puede garantizar que todos los resultados sean del tenant permitido (las reglas no filtran, evalúan). Síntoma: `permission-denied` / "No fue posible cargar los resultados" aunque el Admin SDK sí lea los datos. Regla: toda query cliente a una colección tenant-scoped debe incluir `where("tenantId","==",tenantId)`. Pasó con `getSurveyResults`. Ver [[encuestas]] y [[firebase-firestore]].
+
 ## Tenant sin `currency` rompe formateadores
 
 Un tenant creado por seed/alta sin el campo `currency` (`COP`|`MXN`|`USD`) hace que cualquier `Intl.NumberFormat(..., { currency })` reciba `undefined` y lance "Invalid currency code". Regla: el alta/seed siempre escribe `currency`; los hooks de formato (`useTenantCurrency`) defaultean a un valor válido. Ver [[multi-tenancy]] y [[billing]].

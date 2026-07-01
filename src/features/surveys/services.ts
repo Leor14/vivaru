@@ -167,17 +167,25 @@ export async function hasResponded(surveyId: string, unitId: string): Promise<bo
   return snap.exists();
 }
 
-export async function getSurveyResults(surveyId: string): Promise<SurveyAnswer[][]> {
+export async function getSurveyResults(surveyId: string, tenantId?: string): Promise<SurveyAnswer[][]> {
   if (!db) return [];
 
-  const snap = await getDocs(
-    query(collection(db, "survey_responses"), where("surveyId", "==", surveyId)),
-  );
+  // Se consulta por tenantId (rules-safe: el admin puede leer las respuestas de SU tenant) y
+  // se filtra por surveyId en cliente. Consultar solo por surveyId hace que Firestore no pueda
+  // garantizar que todos los resultados son del tenant del admin y DENIEGA la query
+  // (las reglas no son filtros). Ver wiki/trampas-conocidas.
+  const constraints = tenantId
+    ? [where("tenantId", "==", tenantId), where("surveyId", "==", surveyId)]
+    : [where("surveyId", "==", surveyId)];
 
-  return snap.docs.map((d) => {
-    const data = d.data() as { answers?: SurveyAnswer[] };
-    return data.answers ?? [];
-  });
+  const snap = await getDocs(query(collection(db, "survey_responses"), ...constraints));
+
+  return snap.docs
+    .filter((d) => (d.data() as { surveyId?: string }).surveyId === surveyId)
+    .map((d) => {
+      const data = d.data() as { answers?: SurveyAnswer[] };
+      return data.answers ?? [];
+    });
 }
 
 // ─── Real-time listeners ───────────────────────────────────────────────────────
