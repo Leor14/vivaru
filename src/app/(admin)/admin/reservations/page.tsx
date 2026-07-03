@@ -27,6 +27,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { CalendarDays, FilterX, X } from "lucide-react";
 
+import { findReservationConflict } from "@/features/reservations/conflicts";
 import { normalizeTower } from "@/utils/tower";
 import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import { Input } from "@/components/ui/input";
@@ -278,6 +279,16 @@ export default function AdminReservationsPage() {
     const selectedDateTime = combineDateAndTime(values.date, values.startTime);
     if (!selectedDateTime || !isDateTimeValid(selectedDateTime, "reservation")) {
       toast.error("La reserva requiere al menos 30 minutos de anticipación.");
+      return;
+    }
+
+    // Doble reserva silenciosa (VIV-804): validar solapamiento contra las
+    // reservas existentes de la misma amenidad y día antes de guardar.
+    const conflict = findReservationConflict(items, values, editingItem?.id);
+    if (conflict) {
+      toast.error(
+        `Horario ocupado: ${conflict.amenityName} ya tiene una reserva el ${values.date} de ${conflict.startTime} a ${conflict.endTime ?? "…"} (${resolveUnitName(conflict.unitId ?? "", unitIndex)}).`,
+      );
       return;
     }
 

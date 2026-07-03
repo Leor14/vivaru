@@ -20,6 +20,7 @@ type PrimitiveCommunication = {
   attachmentUrl?: unknown;
   attachmentName?: unknown;
   attachments?: unknown;
+  audienceUnitIds?: unknown;
 };
 
 export type ResidentCommunicationAttachment = {
@@ -37,6 +38,8 @@ export type ResidentCommunication = {
   startsAt: string | null;
   endsAt: string | null;
   attachments: ResidentCommunicationAttachment[];
+  /** Audiencia segmentada (VIV-401): vacío = todo el conjunto. */
+  audienceUnitIds: string[];
 };
 
 function pickFirstText(values: unknown[]) {
@@ -170,5 +173,8 @@ export function normalizeResidentCommunication(item: PrimitiveCommunication, now
     startsAt: toIso(startsAtDate) || null,
     endsAt: toIso(endsAtDate) || null,
     attachments: normalizeAttachments(item),
+    audienceUnitIds: Array.isArray(item.audienceUnitIds)
+      ? (item.audienceUnitIds as unknown[]).filter((v): v is string => typeof v === "string")
+      : [],
   };
 }

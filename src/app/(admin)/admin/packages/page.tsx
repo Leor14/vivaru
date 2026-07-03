@@ -11,8 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { toast } from "sonner";
+
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { useAuth } from "@/features/auth/auth-context";
-import { usePackages } from "@/features/packages/use-packages";
+import { confirmPackageReceived, usePackages } from "@/features/packages/use-packages";
+import { remindPackagePickupCallable } from "@/lib/firebase/callables";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
+import type { PackageItem } from "@/types/domain";
 import { resolveIdentityCell } from "@/lib/utils/identity";
 import { resolveUnitName } from "@/lib/utils/unit";
 import { normalizeTower } from "@/utils/tower";
@@ -56,6 +62,37 @@ function resolveGuardName(item: {
 export default function AdminPackagesPage() {
   const { user } = useAuth();
   const { items, loading } = usePackages(user?.tenantId);
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+
+  /** Reenvía el aviso in-app al residente del paquete (VIV-901). */
+  async function handleRemind(item: PackageItem) {
+    if (!user?.tenantId) return;
+    setActionBusyId(item.id);
+    try {
+      const result = await remindPackagePickupCallable({ tenantId: user.tenantId, packageId: item.id });
+      const notified = result?.notified ?? 0;
+      toast.success(notified > 0 ? `Recordatorio enviado a ${notified} residente(s).` : "La unidad no tiene residentes con acceso para notificar.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setActionBusyId(null);
+    }
+  }
+
+  /** Marca el paquete como entregado (entrega registrada por el admin). */
+  async function handleMarkDelivered(item: PackageItem) {
+    if (!user?.tenantId) return;
+    if (!window.confirm(`¿Marcar como entregado el paquete de ${item.residentName || item.recipientName || item.unitLabel || "esta unidad"}?`)) return;
+    setActionBusyId(item.id);
+    try {
+      await confirmPackageReceived({ tenantId: user.tenantId, packageId: item.id, userId: user.uid, deliveredToName: item.residentName || item.recipientName || undefined });
+      toast.success("Paquete marcado como entregado.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setActionBusyId(null);
+    }
+  }
 
   const [torreFilter, setTorreFilter] = useState<string>("all");
   const [nameQuery, setNameQuery] = useState("");
@@ -226,17 +263,18 @@ export default function AdminPackagesPage() {
               <th className="px-3 py-2 font-medium">Recibido por</th>
               <th className="px-3 py-2 font-medium">Fecha recepción</th>
               <th className="px-3 py-2 font-medium">Estado</th>
+              <th className="px-3 py-2 text-right font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-4 text-[var(--slate-600)]">Cargando paquetería...</td>
+                <td colSpan={6} className="px-3 py-4 text-[var(--slate-600)]">Cargando paquetería...</td>
               </tr>
             ) : null}
             {!loading && filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-4">
+                <td colSpan={6} className="px-3 py-4">
                   <EmptyState
                     title={hasActiveFilters ? "Sin resultados" : "Sin paquetes"}
                     description={
@@ -267,6 +305,31 @@ export default function AdminPackagesPage() {
                   <td className="px-3 py-2 text-[var(--slate-700)]">{formatDate(item.arrivedAt)}</td>
                   <td className="px-3 py-2">
                     <StatusBadge status={item.status} context="package" />
+                  </td>
+                  <td className="px-3 py-2">
+                    {item.status === "pending" ? (
+                      <div className="flex justify-end">
+                        <RowActionsMenu
+                          ariaLabel={`Acciones para el paquete de ${item.unitLabel ?? "la unidad"}`}
+                          items={[
+                            {
+                              key: "remind",
+                              label: actionBusyId === item.id ? "Enviando…" : "Notificar al residente",
+                              disabled: actionBusyId === item.id,
+                              onSelect: () => void handleRemind(item),
+                            },
+                            {
+                              key: "delivered",
+                              label: "Marcar entregado",
+                              disabled: actionBusyId === item.id,
+                              onSelect: () => void handleMarkDelivered(item),
+                            },
+                          ]}
+                        />
+                      </div>
+                    ) : (
+                      <span className="block text-right text-xs text-[var(--slate-400)]">—</span>
+                    )}
                   </td>
                 </tr>
               );

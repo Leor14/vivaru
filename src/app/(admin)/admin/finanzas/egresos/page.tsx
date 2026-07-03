@@ -24,6 +24,7 @@ import {
   updateExpense,
   watchExpenses,
 } from "@/features/finanzas/use-expenses";
+import { detectAmountAnomaly } from "@/features/finanzas/expense-anomaly";
 import { expenseSchema, type ExpenseFormValues } from "@/features/finanzas/schemas";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -146,6 +147,20 @@ export default function AdminEgresosPage() {
 
   async function handleSave(values: ExpenseFormValues) {
     if (!user?.tenantId) return;
+
+    // Advertencia suave de monto atípico (VIV-1201): compara contra la mediana
+    // del histórico de la misma categoría — atrapa el cero de más o de menos.
+    const categoryHistory = items
+      .filter((item) => item.category === values.category && item.id !== editingItem?.id)
+      .map((item) => item.amount);
+    const anomaly = detectAmountAnomaly(categoryHistory, values.amount);
+    if (anomaly) {
+      const ok = window.confirm(
+        `El monto ${formatAmount(values.amount)} es inusualmente ${anomaly.direction === "low" ? "BAJO" : "ALTO"} para esta categoría (histórico típico: ${formatAmount(anomaly.median)}). ¿Registrar de todas formas?`,
+      );
+      if (!ok) return;
+    }
+
     setSubmitting(true);
     setErrorMessage(null);
     try {

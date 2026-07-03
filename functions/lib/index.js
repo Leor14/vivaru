@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -2218,6 +2218,36 @@ exports.onBillingStatementCreated = (0, firestore_2.onDocumentCreated)({ documen
         conjunto,
     };
     await deliverResidentNotifications("billing_new", data.tenantId, residentUids, vars, override);
+});
+// Recordatorio de paquete en bodega: el admin reenvía el aviso in-app al
+// residente desde el módulo de Paquetería (VIV-901).
+exports.remindPackagePickup = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+    const tenantId = request.data?.tenantId;
+    const packageId = request.data?.packageId;
+    if (!tenantId || !packageId) {
+        throw new https_1.HttpsError("invalid-argument", "tenantId y packageId son requeridos.");
+    }
+    await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+    const snap = await db.collection("packages").doc(packageId).get();
+    const data = snap.data();
+    if (!snap.exists || data?.tenantId !== tenantId) {
+        throw new https_1.HttpsError("not-found", "Paquete no encontrado.");
+    }
+    if ((data?.status ?? "pending") !== "pending") {
+        throw new https_1.HttpsError("failed-precondition", "El paquete ya fue entregado.");
+    }
+    const residentUids = await listResidentUidsByUnit(tenantId, data?.unitId ?? "");
+    if (residentUids.length === 0)
+        return { ok: true, notified: 0 };
+    await createNotifications(residentUids.map((uid) => ({
+        userId: uid,
+        tenantId,
+        type: "package",
+        title: "Recordatorio: paquete en portería",
+        description: `Tienes un paquete pendiente de recoger${data?.unitLabel ? ` (${data.unitLabel})` : ""}.`,
+        link: "/resident/packages",
+    })));
+    return { ok: true, notified: residentUids.length };
 });
 // Aviso agrupado tras una importación masiva de cartera: 1 notificación por
 // residente de las unidades afectadas (lo invoca el front al terminar el import).

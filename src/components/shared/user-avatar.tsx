@@ -42,6 +42,53 @@ function RoleGlyph({ role }: { role: AppRole }) {
   return <UserCircle className="h-4 w-4" />;
 }
 
+/** Paleta procedural para avatares de iniciales (tonos sobrios de la marca). */
+const INITIALS_PALETTE: Array<{ bg: string; fg: string }> = [
+  { bg: "#e8eef8", fg: "#2f4f7f" },
+  { bg: "#eaf3de", fg: "#3b6d11" },
+  { bg: "#f3e8f8", fg: "#6b2f7f" },
+  { bg: "#faeeda", fg: "#8a5a06" },
+  { bg: "#e6f1fb", fg: "#0c447c" },
+  { bg: "#f0e8e0", fg: "#6b4f2f" },
+];
+
+function initialsOf(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0]?.charAt(0) ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1]?.charAt(0) ?? "" : "";
+  return (first + last).toLocaleUpperCase("es-CO") || "?";
+}
+
+function paletteFor(fullName: string) {
+  let hash = 0;
+  for (let i = 0; i < fullName.length; i++) hash = (hash * 31 + fullName.charCodeAt(i)) | 0;
+  return INITIALS_PALETTE[Math.abs(hash) % INITIALS_PALETTE.length];
+}
+
+function InitialsAvatar({ fullName, size }: { fullName: string; size: number }) {
+  const palette = paletteFor(fullName);
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full font-semibold"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: palette.bg,
+        color: palette.fg,
+        fontSize: Math.max(10, Math.floor(size * 0.4)),
+        letterSpacing: "0.02em",
+      }}
+      aria-label={`Avatar de ${fullName}`}
+      title={fullName}
+    >
+      {initialsOf(fullName)}
+    </span>
+  );
+}
+
+const STAFF_ROLES: ReadonlyArray<AppRole> = ["tenant_admin", "admin_tenant", "superadmin", "security_guard", "security"];
+
 export function UserAvatar({
   role,
   photoURL,
@@ -66,6 +113,12 @@ export function UserAvatar({
         style={{ width: size, height: size }}
       />
     );
+  }
+
+  // Roles de operación/administración: iniciales con color procedural, nunca
+  // emoji — un admin no debe aparecer como "🐸 Carlos" en registros (VIV-1802).
+  if (STAFF_ROLES.includes(role) && fullName.trim()) {
+    return <InitialsAvatar fullName={fullName} size={size} />;
   }
 
   const selectedEmoji = avatarId ? RESIDENT_EMOJI_BY_AVATAR_ID[avatarId] : undefined;

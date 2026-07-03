@@ -28,7 +28,7 @@ import { NotificationTemplatesCard } from "@/features/admin/components/notificat
 import { FiscalProfileCard } from "@/components/features/finanzas/FiscalProfileCard";
 import { SectionIntro } from "@/components/shared/section-intro";
 import { useTenantBrandingForm } from "@/features/admin/hooks/use-tenant-branding-form";
-import { ResidentAvatarPicker } from "../../../../../components/features/resident/ResidentAvatarPicker";
+import { UserAvatar } from "@/components/shared/user-avatar";
 import { updateUserProfile } from "@/features/users/profile-service";
 
 const passwordSchema = z
@@ -280,16 +280,19 @@ export default function AdminSettingsPage() {
           {profileForm.formState.errors.fullName ? (
             <p className="text-xs text-[var(--danger-700)]">{profileForm.formState.errors.fullName.message}</p>
           ) : null}
-          <div>
-            <ResidentAvatarPicker
-              value={profileForm.watch("avatarId") ?? "emoji1"}
-              onChange={(id) => profileForm.setValue("avatarId", id, { shouldDirty: true, shouldValidate: true })}
-              disabled={savingProfile}
+          {/* Avatar profesional (VIV-1802): iniciales con color procedural en vez
+              del selector de emojis — cómo te ven residentes y registros. */}
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+            <UserAvatar
+              role={user?.role ?? "tenant_admin"}
+              fullName={profileForm.watch("fullName") || user?.fullName || ""}
+              size={40}
             />
+            <p className="text-xs text-[var(--slate-600)]">
+              Tu avatar usa tus iniciales con un color asignado automáticamente. Así apareces en la
+              operación y las notificaciones del conjunto.
+            </p>
           </div>
-          {profileForm.formState.errors.avatarId ? (
-            <p className="text-xs text-[var(--danger-700)]">{profileForm.formState.errors.avatarId.message}</p>
-          ) : null}
           <div className="flex justify-end">
             <Button type="submit" disabled={savingProfile || !profileForm.formState.isDirty || !profileForm.formState.isValid}>
               {savingProfile ? "Guardando..." : "Guardar perfil"}
