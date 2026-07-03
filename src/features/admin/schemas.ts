@@ -4,6 +4,7 @@ import {
   getBufferMinutes,
   isDateTimeValid,
 } from "@/utils/datetimeValidation";
+import { normalizeTower } from "@/utils/tower";
 
 const requiredText = (label: string, min = 2) => z.string().trim().min(min, `${label} es obligatorio`);
 
@@ -13,10 +14,8 @@ export const unitSchema = z.object({
     .string()
     .trim()
     .min(1, "Torre es obligatorio")
-    .transform((val) => {
-      const normalized = val.trim().replace(/^(torre\s*|t\s*)(\d+)$/i, (_, __, n) => `Torre ${n}`);
-      return normalized || val.trim();
-    }),
+    // Canonización única (src/utils/tower.ts): "t1"/"torre 1"/"TORRE 1" → "Torre 1".
+    .transform((val) => normalizeTower(val) || val.trim()),
   type: z.enum(["apartment", "house", "office", "other"]),
   status: z.enum(["active", "inactive"]),
 });

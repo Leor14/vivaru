@@ -23,6 +23,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import { db, storage } from "@/lib/firebase/client";
+import { normalizeTower } from "@/utils/tower";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import type { FiscalProfile } from "@/types/domain";
 import type { ModuleVariants } from "@/lib/config/module-variants";
@@ -273,6 +274,8 @@ export type TenantSettingsItem = {
   };
   residentModules?: ResidentModules;
   moduleVariants?: Partial<ModuleVariants>;
+  /** Lista canónica de agrupaciones (torres/bloques) del conjunto. */
+  agrupaciones?: string[];
   fiscalProfile?: FiscalProfile;
   adminProfile?: {
     uid: string;
@@ -437,7 +440,9 @@ export async function createUnit(
     tenantId,
     unitId,
     displayName: payload.displayName,
-    tower: payload.tower,
+    // Normalización canónica en el punto de escritura: evita que variantes
+    // ("torre 1"/"T1") fragmenten filtros y KPIs (ver src/utils/tower.ts).
+    tower: normalizeTower(payload.tower) || payload.tower,
     type: payload.type,
     status: payload.status,
     ownerIds: [],
@@ -482,7 +487,7 @@ export async function bulkCreateUnits(
         tenantId,
         unitId,
         displayName: row.displayName,
-        tower: row.tower,
+        tower: normalizeTower(row.tower) || row.tower,
         type: row.type,
         status: row.status,
         ownerIds: [],
@@ -569,6 +574,7 @@ export async function updateUnit(
   const firestore = assertDb();
   await updateDoc(doc(firestore, "units", id), {
     ...payload,
+    tower: normalizeTower(payload.tower) || payload.tower,
     unitId: payload.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     updatedBy: userId,
     updatedAt: serverTimestamp(),
@@ -1445,6 +1451,9 @@ export function watchTenantSettings(
               regulations: rawModules.regulations !== false,
             }
           : undefined,
+        agrupaciones: Array.isArray(data.agrupaciones)
+          ? (data.agrupaciones as unknown[]).filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+          : undefined,
         fiscalProfile:
           typeof data.fiscalProfile === "object" && data.fiscalProfile
             ? (() => {
@@ -1532,6 +1541,24 @@ export async function saveTenantSettings(
       updatedBy: userId,
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+/**
+ * Guarda la lista canónica de agrupaciones (torres/bloques) del conjunto.
+ * La lista llega ya normalizada con `normalizeTower` — aquí solo se persiste.
+ */
+export async function saveAgrupaciones(tenantId: string, userId: string, agrupaciones: string[]) {
+  const firestore = assertDb();
+  await setDoc(
+    doc(firestore, "tenantSettings", tenantId),
+    {
+      tenantId,
+      agrupaciones,
+      updatedBy: userId,
+      updatedAt: serverTimestamp(),
     },
     { merge: true },
   );

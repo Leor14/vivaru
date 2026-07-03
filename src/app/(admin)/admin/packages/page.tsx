@@ -15,6 +15,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
 import { resolveIdentityCell } from "@/lib/utils/identity";
 import { resolveUnitName } from "@/lib/utils/unit";
+import { normalizeTower } from "@/utils/tower";
 import { useDebounce } from "@/lib/utils/use-debounce";
 
 function toDate(value: unknown): Date | null {
@@ -65,10 +66,11 @@ export default function AdminPackagesPage() {
   const torres = useMemo(() => {
     const set = new Set<string>();
     items.forEach((item) => {
-      const torre = resolveUnitName(item.unitLabel || "").torre;
+      // Canónico: "T1"/"torre 1" cuentan como la misma torre en el filtro.
+      const torre = normalizeTower(resolveUnitName(item.unitLabel || "").torre);
       if (torre) set.add(torre);
     });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es-CO", { numeric: true }));
   }, [items]);
 
   const filteredItems = useMemo(() => {
@@ -76,7 +78,7 @@ export default function AdminPackagesPage() {
     const fromMs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
     const toMs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
     return items.filter((item) => {
-      const torre = resolveUnitName(item.unitLabel || "").torre;
+      const torre = normalizeTower(resolveUnitName(item.unitLabel || "").torre);
       const torreOk = torreFilter === "all" ? true : torre === torreFilter;
       const name = (item.residentName || item.recipientName || "").toLowerCase();
       const reference = (item.reference || "").toLowerCase();

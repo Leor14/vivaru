@@ -39,7 +39,9 @@ export function resolveUnitName(unitId: string): { torre: string; apto: string }
   if (looksLikeFirestoreId(trimmed)) {
     return { torre: "Sin torre", apto: "" };
   }
-  return { torre: trimmed.slice(0, 8), apto };
+  // Sin prefijo de torre reconocible: devolver el valor completo (antes se
+  // truncaba a 8 chars y producía basura tipo "APARTAME" en filtros).
+  return { torre: trimmed, apto };
 }
 
 /**

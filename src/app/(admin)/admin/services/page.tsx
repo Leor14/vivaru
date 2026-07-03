@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { serviceSchema, type ServiceInput } from "@/features/admin/schemas";
+import { normalizeTower } from "@/utils/tower";
 import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import {
   createService,
@@ -521,7 +522,7 @@ export default function AdminServicesPage() {
                   .filter((u) => u.status === "active")
                   .map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.displayName} — {u.tower}
+                      {u.displayName} — {normalizeTower(u.tower) || u.tower}
                     </option>
                   ))}
               </select>
