@@ -25,7 +25,6 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/lib/utils/use-debounce";
 import { useAuth } from "@/features/auth/auth-context";
 import { provisionResidentTemporaryAccessCallable } from "@/lib/firebase/callables";
-import { resolveUnitName } from "@/lib/utils/unit";
 import {
   personSchema,
   primaryHolderSchema,
@@ -41,14 +40,17 @@ import {
   createUnit,
   deletePerson,
   deleteUnit,
+  saveAgrupaciones,
   seedTenantOperationalData,
   updatePerson,
   updateUnit,
   watchPeople,
+  watchTenantSettings,
   watchUnits,
   type PersonItem,
   type UnitItem,
 } from "@/features/admin/services";
+import { DEFAULT_TOWER, distinctTowers, normalizeTower } from "@/utils/tower";
 import { DuplicateUnitsPanel } from "@/components/features/admin/residents/DuplicateUnitsPanel";
 
 export default function AdminResidentsPage() {
@@ -88,6 +90,10 @@ export default function AdminResidentsPage() {
   const [deletingUnit, setDeletingUnit] = useState(false);
   const [deletingPerson, setDeletingPerson] = useState(false);
   const [unitExempt, setUnitExempt] = useState(false);
+  /** Lista canónica de agrupaciones del tenant (tenantSettings.agrupaciones). */
+  const [tenantAgrupaciones, setTenantAgrupaciones] = useState<string[] | null>(null);
+  /** true cuando el usuario elige "+ Nueva agrupación…" en el modal de unidad. */
+  const [customTower, setCustomTower] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<
     Array<{
       id: string;
@@ -160,9 +166,16 @@ export default function AdminResidentsPage() {
       },
     );
 
+    const unsubSettings = watchTenantSettings(
+      user.tenantId,
+      (item) => setTenantAgrupaciones(item?.agrupaciones ?? null),
+      () => {},
+    );
+
     return () => {
       unsubUnits();
       unsubPeople();
+      unsubSettings();
     };
   }, [user?.tenantId]);
 
@@ -187,24 +200,23 @@ export default function AdminResidentsPage() {
     return new Map(units.map((unit) => [unit.id, unit]));
   }, [units]);
 
-  const uniqueGroups = useMemo(() => {
-    const seen = new Set<string>();
-    const result: string[] = [];
-    for (const unit of units) {
-      const g = unit.tower?.trim();
-      if (g && !seen.has(g)) {
-        seen.add(g);
-        result.push(g);
-      }
-    }
-    return result.sort((a, b) => a.localeCompare(b));
-  }, [units]);
+  // Filtro "Agrupación": valores canónicos (T1 / torre 1 / torre1 colapsan en "Torre 1").
+  const uniqueGroups = useMemo(() => distinctTowers(units.map((unit) => unit.tower)), [units]);
+
+  /** Opciones del selector de agrupación del modal: lista canónica del tenant ∪ las
+   *  presentes en unidades (para no ocultar variantes legadas hasta la migración). */
+  const towerOptions = useMemo(() => {
+    const merged = new Set<string>(tenantAgrupaciones ?? []);
+    for (const g of uniqueGroups) merged.add(g);
+    if (merged.size === 0) merged.add(DEFAULT_TOWER);
+    return Array.from(merged).sort((a, b) => a.localeCompare(b, "es-CO", { numeric: true }));
+  }, [tenantAgrupaciones, uniqueGroups]);
 
   const filteredUnits = useMemo(() => {
     const q = debouncedUnitSearch.toLowerCase();
     return units.filter((unit) => {
       if (q && !unit.displayName.toLowerCase().includes(q) && !(unit.tower ?? "").toLowerCase().includes(q)) return false;
-      if (unitGroupFilter !== "all" && unit.tower?.trim() !== unitGroupFilter) return false;
+      if (unitGroupFilter !== "all" && normalizeTower(unit.tower) !== unitGroupFilter) return false;
       if (unitTypeTableFilter !== "all" && unit.type !== unitTypeTableFilter) return false;
       if (unitStatusTableFilter !== "all" && unit.status !== unitStatusTableFilter) return false;
       if (unitNoPersonFilter) {
@@ -331,12 +343,7 @@ export default function AdminResidentsPage() {
   }
 
   function formatTowerLabel(value: string | undefined | null): string {
-    if (!value) return "-";
-    const trimmed = value.trim();
-    if (!trimmed) return "-";
-    const { torre } = resolveUnitName(trimmed);
-    if (torre && torre !== "Sin torre") return torre;
-    return trimmed;
+    return normalizeTower(value) || "-";
   }
 
   const unitColumns: DataTableColumn<UnitItem>[] = [
@@ -442,9 +449,11 @@ export default function AdminResidentsPage() {
   function openCreateUnit() {
     setEditingUnit(null);
     setUnitExempt(false);
+    setCustomTower(false);
     unitForm.reset({
       displayName: "",
-      tower: "",
+      // Con una sola agrupación en la lista, se preselecciona (caso conjunto de un bloque).
+      tower: towerOptions.length === 1 ? towerOptions[0] : "",
       type: "apartment",
       status: "active",
     });
@@ -466,9 +475,12 @@ export default function AdminResidentsPage() {
   function openEditUnit(unit: UnitItem) {
     setEditingUnit(unit);
     setUnitExempt(unit.reservationExempt ?? false);
+    setCustomTower(false);
     unitForm.reset({
       displayName: unit.displayName,
-      tower: unit.tower,
+      // Variantes legadas ("torre 1") se muestran ya canónicas ("Torre 1"): al
+      // guardar, la unidad queda normalizada — migración progresiva por edición.
+      tower: normalizeTower(unit.tower),
       type: unit.type,
       status: unit.status,
     });
@@ -566,6 +578,22 @@ export default function AdminResidentsPage() {
     return true;
   }
 
+  /** Suma la agrupación a la lista canónica del tenant si aún no está (fire-and-forget). */
+  async function ensureTowerInCanonicalList(tower: string) {
+    if (!user?.tenantId || !tower) return;
+    const list = tenantAgrupaciones ?? [];
+    if (list.includes(tower)) return;
+    try {
+      await saveAgrupaciones(
+        user.tenantId,
+        user.uid,
+        [...list, tower].sort((a, b) => a.localeCompare(b, "es-CO", { numeric: true })),
+      );
+    } catch {
+      /* no bloquear el flujo de la unidad por esto */
+    }
+  }
+
   async function handleSaveUnitFlow() {
     if (!user?.tenantId) return;
 
@@ -578,10 +606,14 @@ export default function AdminResidentsPage() {
       return;
     }
 
-    const unitValues = unitForm.getValues();
+    // getValues() devuelve los valores CRUDOS del form (el transform de zod solo
+    // aplica vía handleSubmit) — normalizar aquí explícitamente.
+    const unitValues = { ...unitForm.getValues() };
+    unitValues.tower = normalizeTower(unitValues.tower) || DEFAULT_TOWER;
 
     if (editingUnit) {
       await handleSaveUnit(unitValues);
+      void ensureTowerInCanonicalList(unitValues.tower);
       return;
     }
 
@@ -591,11 +623,12 @@ export default function AdminResidentsPage() {
     }
     if (!validateFamilyMembers()) return;
 
-    // Evitar unidades duplicadas: mismo nombre (slug) y misma torre en el tenant.
+    // Evitar unidades duplicadas: mismo nombre (slug) y misma torre CANÓNICA en el
+    // tenant ("T1" y "torre 1" cuentan como la misma torre).
     const newSlug = unitValues.displayName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const newTower = unitValues.tower.trim().toLowerCase();
+    const newTower = normalizeTower(unitValues.tower).toLowerCase();
     const isDuplicateUnit = units.some((u) => {
-      const sameTower = (u.tower ?? "").trim().toLowerCase() === newTower;
+      const sameTower = normalizeTower(u.tower).toLowerCase() === newTower;
       const sameName =
         (u.unitId ?? "").toLowerCase() === newSlug ||
         (u.displayName ?? "").trim().toLowerCase() === unitValues.displayName.trim().toLowerCase();
@@ -664,6 +697,7 @@ export default function AdminResidentsPage() {
       }
 
       toast.success("Unidad creada. Se envió al titular un correo para que defina su contraseña de acceso.");
+      void ensureTowerInCanonicalList(unitValues.tower);
       setUnitModalOpen(false);
     } catch (error) {
       debugResidentUnit("unit-create-flow-error", {
@@ -1222,7 +1256,39 @@ export default function AdminResidentsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[var(--slate-700)]">Agrupación</label>
-                <Input {...unitForm.register("tower")} placeholder="T1, Bloque A, Manzana 3…" />
+                {/* Selección desde la lista canónica (no texto libre): las variantes
+                    T1/torre 1/torre1 fragmentaban filtros y KPIs. "+ Nueva…" permite
+                    crear una agrupación nueva, que se suma a la lista del conjunto. */}
+                <select
+                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  value={customTower ? "__nueva__" : unitForm.watch("tower") || ""}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === "__nueva__") {
+                      setCustomTower(true);
+                      unitForm.setValue("tower", "", { shouldValidate: false });
+                    } else {
+                      setCustomTower(false);
+                      unitForm.setValue("tower", value, { shouldValidate: true, shouldDirty: true });
+                    }
+                  }}
+                >
+                  <option value="">Selecciona una agrupación…</option>
+                  {towerOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                  <option value="__nueva__">+ Nueva agrupación…</option>
+                </select>
+                {customTower ? (
+                  <Input
+                    className="mt-2"
+                    {...unitForm.register("tower")}
+                    placeholder="Ej: Torre 3, Bloque B, Manzana 5…"
+                    autoFocus
+                  />
+                ) : null}
                 {unitForm.formState.errors.tower ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.tower.message}</p> : null}
               </div>
             </div>

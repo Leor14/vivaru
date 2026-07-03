@@ -35,19 +35,23 @@ describe("unitSchema.tower — normalización a 'Torre N'", () => {
   }
 });
 
-// ── Sin cambio: nombres sin número simple pasan como están ────────────────────
-describe("unitSchema.tower — valores sin número pasan sin cambio", () => {
-  const casesPassthru: string[] = [
-    "Torre Central",
-    "TORRE CE",
-    "Bloque A",
-    "Penthouse",
-    "Casa de Campo",
+// ── Valores sin número: canónicos en Title Case (conectores en minúscula) ─────
+// Desde la canonización global (src/utils/tower.ts) los valores libres ya no
+// pasan "tal cual": se colapsan espacios y se aplica Title Case es-CO para que
+// "TORRE CENTRAL" y "torre central" cuenten como la misma agrupación.
+describe("unitSchema.tower — valores sin número se canonizan (Title Case)", () => {
+  const casesCanonical: Array<[string, string]> = [
+    ["Torre Central", "Torre Central"],
+    ["TORRE CE", "Torre Ce"],
+    ["Bloque A", "Bloque A"],
+    ["Penthouse", "Penthouse"],
+    ["Casa de Campo", "Casa de Campo"],
+    ["CASA DE CAMPO", "Casa de Campo"],
   ];
 
-  for (const input of casesPassthru) {
-    it(`"${input}" pasa sin cambio`, () => {
-      expect(parse(input).tower).toBe(input.trim());
+  for (const [input, expected] of casesCanonical) {
+    it(`"${input}" → "${expected}"`, () => {
+      expect(parse(input).tower).toBe(expected);
     });
   }
 });
