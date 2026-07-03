@@ -50,6 +50,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import { resolveIdentityCell } from "@/lib/utils/identity";
+import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import type { VisitorPass } from "@/types/domain";
 
 export default function AdminVisitorsPage() {
@@ -161,13 +162,15 @@ export default function AdminVisitorsPage() {
     };
   }, [user?.tenantId]);
 
+  const unitIndex = useMemo(() => buildUnitIndex(units), [units]);
+
   const mappedItems = useMemo(
     () =>
       items.map((item) => ({
         ...item,
-        unitLabel: units.find((unit) => unit.id === item.unitId)?.displayName ?? item.unitId,
+        unitLabel: resolveUnitName(item.unitId, unitIndex),
       })),
-    [items, units],
+    [items, unitIndex],
   );
 
   const filteredItems = useMemo(() => {
@@ -590,7 +593,7 @@ export default function AdminVisitorsPage() {
                             {pass.documentNumber || "-"}
                           </td>
                           <td className="px-4 py-3 text-[var(--slate-600)]">
-                            {pass.unitLabel || "-"}
+                            {pass.unitLabel ? resolveUnitName(pass.unitLabel, unitIndex) : "-"}
                           </td>
                           <td className="px-4 py-3 text-[var(--slate-600)]">
                             {pass.date || "-"}

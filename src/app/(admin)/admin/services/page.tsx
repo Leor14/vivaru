@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { serviceSchema, type ServiceInput } from "@/features/admin/schemas";
+import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import {
   createService,
   deleteService,
@@ -263,6 +264,8 @@ export default function AdminServicesPage() {
       setDeleting(false);
     }
   }
+
+  const unitIndex = useMemo(() => buildUnitIndex(units), [units]);
 
   const filteredItems = useMemo(() => {
     const q = searchFilter.trim().toLowerCase();
@@ -666,7 +669,7 @@ export default function AdminServicesPage() {
               <div>
                 <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Unidad</p>
                 <p className="mt-0.5 text-[var(--slate-900)]">
-                  {units.find((u) => u.id === detailItem.unitId)?.displayName ?? detailItem.unitId}
+                  {resolveUnitName(detailItem.unitId, unitIndex)}
                 </p>
               </div>
             ) : null}

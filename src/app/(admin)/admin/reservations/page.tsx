@@ -26,6 +26,8 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { CalendarDays, FilterX, X } from "lucide-react";
+
+import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import { Input } from "@/components/ui/input";
 import { reservationSchema, type ReservationInput } from "@/features/admin/schemas";
 import {
@@ -476,6 +478,8 @@ export default function AdminReservationsPage() {
     (dateFrom ? 1 : 0) +
     (dateTo ? 1 : 0);
 
+  const unitIndex = useMemo(() => buildUnitIndex(units), [units]);
+
   const clearFilters = () => {
     setCalendarDate(null);
     setStatusFilter("all");
@@ -509,7 +513,7 @@ export default function AdminReservationsPage() {
       key: "unit",
       header: "Unidad / Reservado por",
       render: (item) => {
-        const displayName = units.find((unit) => unit.id === item.unitId)?.displayName ?? item.unitId;
+        const displayName = resolveUnitName(item.unitId, unitIndex);
         return (
           <span>
             <span className="block text-[var(--slate-900)]">{item.reservedBy || "—"}</span>
