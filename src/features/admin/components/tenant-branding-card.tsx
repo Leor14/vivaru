@@ -253,7 +253,7 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
           </div>
 
           <div className="space-y-3 rounded-2xl border border-[var(--slate-200)] p-4">
-            <p className="text-sm font-medium text-[var(--slate-900)]">Logo compania</p>
+            <p className="text-sm font-medium text-[var(--slate-900)]">Logo compañía</p>
             <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer items-center rounded-xl border border-[var(--slate-300)] bg-white px-4 py-2 text-sm font-medium text-[var(--slate-800)] hover:bg-[var(--slate-100)]">
                 Elegir archivo
@@ -264,12 +264,12 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
                   onChange={(event) => onLogoSelect(event.target.files?.[0] ?? null)}
                 />
               </label>
-              <span className="text-sm text-[var(--slate-600)]">{logoFileName || "Ningun archivo seleccionado"}</span>
+              <span className="text-sm text-[var(--slate-600)]">{logoFileName || "Ningún archivo seleccionado"}</span>
               <Button type="button" variant="outline" onClick={onRemoveLogo} disabled={saving}>
                 Quitar logo
               </Button>
             </div>
-            <p className="text-xs text-[var(--slate-500)]">PNG, JPG o WEBP. Max 1.2MB. Proporcion horizontal recomendada.</p>
+            <p className="text-xs text-[var(--slate-500)]">PNG, JPG o WEBP. Máx 1.2MB. Proporción horizontal recomendada.</p>
 
             <div className="rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--slate-50)] p-4">
               {logoPreviewUrl ? (

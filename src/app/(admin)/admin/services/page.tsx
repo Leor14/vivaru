@@ -513,7 +513,7 @@ export default function AdminServicesPage() {
                 className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
                 {...form.register("unitId")}
               >
-                <option value="">Sin unidad especifica</option>
+                <option value="">Sin unidad específica</option>
                 {units
                   .filter((u) => u.status === "active")
                   .map((u) => (
