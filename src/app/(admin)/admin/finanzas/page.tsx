@@ -30,6 +30,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { createDocumentRecord } from "@/features/admin/services";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
 import { storage } from "@/lib/firebase/client";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
@@ -388,15 +389,18 @@ export default function AdminFinanzasLibroPage() {
             if (item.sourceType === "manual") {
               return (
                 <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    aria-label={`Reversar ${item.concept}`}
-                    title="Reversar (crea el asiento inverso)"
-                    onClick={() => setPendingDeletion(item)}
-                  >
-                    <Undo2 className="h-4 w-4 text-[var(--danger-700)]" />
-                  </Button>
+                  <RowActionsMenu
+                    ariaLabel={`Acciones para ${item.concept}`}
+                    items={[
+                      {
+                        key: "reverse",
+                        label: "Reversar movimiento",
+                        icon: <Undo2 className="h-4 w-4" />,
+                        danger: true,
+                        onSelect: () => setPendingDeletion(item),
+                      },
+                    ]}
+                  />
                 </div>
               );
             }

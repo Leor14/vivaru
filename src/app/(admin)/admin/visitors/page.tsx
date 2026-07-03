@@ -12,6 +12,7 @@ import { Modal } from "@/components/shared/modal";
 import { Dialog } from "@/components/ui/dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
@@ -520,25 +521,20 @@ export default function AdminVisitorsPage() {
           emptyText="No hay autorizaciónes registradas con los filtros actuales."
           tableMinWidthClassName="min-w-[760px] sm:min-w-[980px]"
           renderActions={canEdit ? (item) => (
-            <div className="flex flex-wrap gap-2">
-              <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => setQrTarget(item)}>
+            // Patrón unificado (VIV-003): la acción frecuente y no destructiva (QR)
+            // queda inline; Editar/Eliminar viven en el menú contextual "…".
+            <div className="flex items-center justify-end gap-1">
+              <Button size="sm" variant="outline" onClick={() => setQrTarget(item)}>
                 <IconBadge tone="mint" className="mr-2">
                   <QrCode className="h-4 w-4" />
                 </IconBadge>
                 QR
               </Button>
-              <Button className="w-full sm:w-auto" size="sm" variant="outline" onClick={() => openEdit(item)}>
-                <IconBadge tone="sky" className="mr-2">
-                  <PenSquare className="h-4 w-4" />
-                </IconBadge>
-                Editar
-              </Button>
-              <Button className="w-full sm:w-auto" size="sm" variant="danger" onClick={() => void handleDelete(item)}>
-                <IconBadge tone="peach" className="mr-2">
-                  <Trash2 className="h-4 w-4" />
-                </IconBadge>
-                Eliminar
-              </Button>
+              <RowActionsMenu
+                ariaLabel={`Acciones para ${item.visitorName}`}
+                onEdit={() => openEdit(item)}
+                onDelete={() => void handleDelete(item)}
+              />
             </div>
           ) : undefined}
         />

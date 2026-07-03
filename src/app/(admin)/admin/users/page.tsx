@@ -17,6 +17,7 @@ import { HelpTip } from "@/components/shared/help-tip";
 import { useAuth } from "@/features/auth/auth-context";
 import { db } from "@/lib/firebase/client";
 import { Modal } from "@/components/shared/modal";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import {
   createTenantOperationalUserCallable,
   deleteOperationalUserCallable,
@@ -182,34 +183,29 @@ export default function AdminUsersPage() {
 
   function renderRowActions(item: TenantUserItem) {
     const busy = statusBusy === item.id;
+    // Patrón unificado (VIV-003): el toggle de estado queda inline (conserva el
+    // tooltip de bloqueo de auto-desactivación, VIV-1602); Editar, Reenviar
+    // acceso (emite correo) y Eliminar viven en el menú contextual "…".
     return (
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
-          Editar
-        </Button>
-        {item.status !== "inactive" ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={resendBusy === item.id}
-            title="Reenvía el correo con el enlace para activar la cuenta"
-            onClick={() => void handleResendInvite(item)}
-          >
-            {resendBusy === item.id ? "…" : "Reenviar acceso"}
-          </Button>
-        ) : null}
+      <div className="flex items-center justify-end gap-1">
         {renderStatusAction(item)}
-        {item.status === "inactive" ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => void handleDelete(item)}
-            className="text-[var(--danger-700)]"
-          >
-            Eliminar
-          </Button>
-        ) : null}
+        <RowActionsMenu
+          ariaLabel={`Acciones para ${item.fullName || item.email}`}
+          onEdit={() => openEdit(item)}
+          extraItems={
+            item.status !== "inactive"
+              ? [
+                  {
+                    key: "resend",
+                    label: resendBusy === item.id ? "Enviando…" : "Reenviar acceso",
+                    disabled: resendBusy === item.id,
+                    onSelect: () => void handleResendInvite(item),
+                  },
+                ]
+              : undefined
+          }
+          onDelete={item.status === "inactive" && !busy ? () => void handleDelete(item) : undefined}
+        />
       </div>
     );
   }

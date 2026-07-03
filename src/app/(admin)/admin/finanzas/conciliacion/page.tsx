@@ -24,6 +24,7 @@ import {
 } from "@/features/finanzas/use-reconciliation";
 import { bankAccountSchema, type BankAccountFormValues } from "@/features/finanzas/schemas";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { BankAccount, BankStatementLine, LedgerEntry } from "@/types/domain";
 
@@ -281,14 +282,19 @@ export default function AdminConciliacionPage() {
                     Conciliar
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  aria-label="Eliminar línea"
-                  onClick={() => void handleDeleteLine(line)}
-                >
-                  <Trash2 className="h-4 w-4 text-[var(--danger-700)]" />
-                </Button>
+                {/* Destructiva al menú "…" — antes convivía con "Deshacer" al
+                    mismo peso visual y propiciaba el clic accidental (VIV-1401). */}
+                <RowActionsMenu
+                  ariaLabel={`Acciones para la línea del ${line.date}`}
+                  items={[
+                    {
+                      key: "delete",
+                      label: "Eliminar línea",
+                      danger: true,
+                      onSelect: () => void handleDeleteLine(line),
+                    },
+                  ]}
+                />
               </div>
             </li>
           ))}

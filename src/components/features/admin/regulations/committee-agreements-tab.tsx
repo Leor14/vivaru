@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { Modal } from "@/components/shared/modal";
+import { RowActionsMenu, type RowActionsMenuItem } from "@/components/shared/row-actions-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -37,9 +38,11 @@ const MODE_LABEL: Record<AgreementSignatureMode, string> = {
   informativo: "Informativo",
 };
 
+// Semántica de color (VIV-702): "Enviado" es un estado POSITIVO (ya salió a
+// firma) → azul informativo; el amarillo queda reservado a advertencias.
 const STATUS_STYLE: Record<CommitteeAgreement["status"], { label: string; className: string }> = {
   borrador: { label: "Borrador", className: "bg-[var(--slate-100)] text-[var(--slate-600)]" },
-  enviado: { label: "Enviado", className: "bg-amber-100 text-amber-700" },
+  enviado: { label: "Enviado", className: "bg-sky-100 text-sky-700" },
   cerrado: { label: "Cerrado", className: "bg-emerald-100 text-emerald-700" },
 };
 
@@ -282,36 +285,54 @@ export function CommitteeAgreementsTab({
             emptyText="Aún no hay acuerdos de comité. Crea el primero."
             actionsHeader="Acciones"
             tableMinWidthClassName="min-w-[720px]"
-            renderActions={(a) => (
-              <div className="flex flex-wrap justify-end gap-1">
-                <Button type="button" size="xs" variant="outline" onClick={() => triggerUpload(a.id)}>
-                  <FileUp className="mr-1 h-3.5 w-3.5" />
-                  {a.fileUrl ? "Reemplazar" : "Cargar PDF"}
-                </Button>
-                {a.signatureMode !== "informativo" ? (
-                  <Button type="button" size="xs" variant="outline" onClick={() => setBoardAgreement(a)}>
-                    Firmas
-                  </Button>
-                ) : null}
-                {a.status === "borrador" && a.fileUrl ? (
-                  <Button type="button" size="xs" onClick={() => void handleSend(a)}>
-                    <Send className="mr-1 h-3.5 w-3.5" />
-                    {a.signatureMode === "informativo" ? "Publicar" : "Mandar a firma"}
-                  </Button>
-                ) : null}
-                {a.status === "borrador" ? (
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="ghost"
-                    aria-label={`Eliminar ${a.title}`}
-                    onClick={() => setPendingDelete(a)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-[var(--danger-700)]" />
-                  </Button>
-                ) : null}
-              </div>
-            )}
+            renderActions={(a) => {
+              // Inline solo lo primario del flujo (cargar PDF la primera vez,
+              // enviar, ver firmas). Reemplazar el PDF y Eliminar — acciones
+              // sensibles — viven en el menú contextual (VIV-702/VIV-003).
+              const menuItems: RowActionsMenuItem[] = [];
+              if (a.fileUrl) {
+                menuItems.push({
+                  key: "replace",
+                  label: "Reemplazar PDF",
+                  icon: <FileUp className="h-4 w-4" />,
+                  onSelect: () => triggerUpload(a.id),
+                });
+              }
+              if (a.status === "borrador") {
+                menuItems.push({
+                  key: "delete",
+                  label: "Eliminar",
+                  icon: <Trash2 className="h-4 w-4" />,
+                  danger: true,
+                  separatorBefore: menuItems.length > 0,
+                  onSelect: () => setPendingDelete(a),
+                });
+              }
+              return (
+                <div className="flex flex-wrap items-center justify-end gap-1">
+                  {!a.fileUrl ? (
+                    <Button type="button" size="xs" variant="outline" onClick={() => triggerUpload(a.id)}>
+                      <FileUp className="mr-1 h-3.5 w-3.5" />
+                      Cargar PDF
+                    </Button>
+                  ) : null}
+                  {a.signatureMode !== "informativo" ? (
+                    <Button type="button" size="xs" variant="outline" onClick={() => setBoardAgreement(a)}>
+                      Firmas
+                    </Button>
+                  ) : null}
+                  {a.status === "borrador" && a.fileUrl ? (
+                    <Button type="button" size="xs" onClick={() => void handleSend(a)}>
+                      <Send className="mr-1 h-3.5 w-3.5" />
+                      {a.signatureMode === "informativo" ? "Publicar" : "Mandar a firma"}
+                    </Button>
+                  ) : null}
+                  {menuItems.length > 0 ? (
+                    <RowActionsMenu ariaLabel={`Acciones para ${a.title}`} items={menuItems} />
+                  ) : null}
+                </div>
+              );
+            }}
           />
         </div>
       </Card>
