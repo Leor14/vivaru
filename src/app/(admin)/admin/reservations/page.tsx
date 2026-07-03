@@ -27,6 +27,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { CalendarDays, FilterX, X } from "lucide-react";
 
+import { normalizeTower } from "@/utils/tower";
 import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import { Input } from "@/components/ui/input";
 import { reservationSchema, type ReservationInput } from "@/features/admin/schemas";
@@ -480,6 +481,21 @@ export default function AdminReservationsPage() {
 
   const unitIndex = useMemo(() => buildUnitIndex(units), [units]);
 
+  /** Unidades activas agrupadas por torre canónica, para el select del modal. */
+  const unitTowerGroups = useMemo(() => {
+    const groups = new Map<string, UnitItem[]>();
+    for (const unit of units) {
+      if (unit.status === "inactive") continue;
+      const tower = normalizeTower(unit.tower) || "Sin agrupación";
+      if (!groups.has(tower)) groups.set(tower, []);
+      groups.get(tower)!.push(unit);
+    }
+    for (const list of groups.values()) {
+      list.sort((a, b) => a.displayName.localeCompare(b.displayName, "es-CO", { numeric: true }));
+    }
+    return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0], "es-CO", { numeric: true }));
+  }, [units]);
+
   const clearFilters = () => {
     setCalendarDate(null);
     setStatusFilter("all");
@@ -918,17 +934,24 @@ export default function AdminReservationsPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
-              Unidad (ID o etiqueta)
-              <Input
-                list="reservation-units"
+              Unidad
+              {/* Selección directa agrupada por torre — antes era un input de texto
+                  que pedía al admin escribir el ID de la unidad (VIV-801). */}
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
                 {...form.register("unitId")}
-                placeholder="T1-101 o u-t1-101"
-              />
-              <datalist id="reservation-units">
-                {units.map((unit) => (
-                  <option key={unit.id} value={unit.id}>{unit.displayName}</option>
+              >
+                <option value="">Selecciona la unidad…</option>
+                {unitTowerGroups.map(([tower, groupUnits]) => (
+                  <optgroup key={tower} label={tower}>
+                    {groupUnits.map((unit) => (
+                      <option key={unit.id} value={unit.id}>
+                        {unit.displayName}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
-              </datalist>
+              </select>
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Reservado por

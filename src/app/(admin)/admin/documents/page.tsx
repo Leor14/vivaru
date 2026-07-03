@@ -11,6 +11,7 @@ import { DataTable, type DataTableColumn } from "@/components/shared/data-table"
 import { DocumentFoldersBrowser } from "@/components/features/admin/documents/folders-browser";
 import { HelpTip } from "@/components/shared/help-tip";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { SectionIntro } from "@/components/shared/section-intro";
 import { getDocumentDownloadUrlCallable } from "@/lib/firebase/callables";
 import { Button } from "@/components/ui/button";
@@ -399,10 +400,11 @@ export default function AdminDocumentsPage() {
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 Descargar
               </Button>
-              <Button size="sm" variant="danger" type="button" onClick={() => void handleDelete(item)}>
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                Eliminar
-              </Button>
+              {/* Destructivas al menú contextual (VIV-003). */}
+              <RowActionsMenu
+                ariaLabel={`Acciones para ${item.fileName || "documento"}`}
+                onDelete={() => void handleDelete(item)}
+              />
             </div>
           )}
         />

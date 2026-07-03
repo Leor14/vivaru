@@ -622,11 +622,18 @@ export default function AdminSurveysPage() {
               }
 
               // ── Single / Multiple choice bars ────────────────────────────
+              // TODAS las opciones definidas aparecen aunque tengan 0 votos, y
+              // también cualquier respuesta registrada fuera de la lista (VIV-601):
+              // ocultar opciones sin votos sesga la lectura del resultado.
               const counts = entry.counts ?? {};
-              const options = (question.options ?? Object.keys(counts)).filter(Boolean);
+              const options = Array.from(
+                new Set([...(question.options ?? []), ...Object.keys(counts)]),
+              ).filter(Boolean);
+              const allNumeric = options.length > 0 && options.every((k) => /^\d+$/.test(k.trim()));
               const barEntries = options
                 .map((k) => [k, counts[k] ?? 0] as [string, number])
-                .sort((a, b) => b[1] - a[1]);
+                // Escalas numéricas en orden natural (1…10); el resto por votos.
+                .sort((a, b) => (allNumeric ? Number(a[0]) - Number(b[0]) : b[1] - a[1]));
               const total = barEntries.reduce((s, [, n]) => s + n, 0);
 
               return (
