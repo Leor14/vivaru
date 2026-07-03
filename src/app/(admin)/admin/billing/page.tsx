@@ -210,6 +210,9 @@ export default function AdminBillingPage() {
   const [scheduledFor, setScheduledFor] = useState("");
   const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
   const [createResult, setCreateResult] = useState<string | null>(null);
+  /** Confirmación previa a registrar/programar un cobro (emite notificación al residente). */
+  const [confirmCreateOpen, setConfirmCreateOpen] = useState(false);
+  const [creatingCharge, setCreatingCharge] = useState(false);
   const [chartUnitFilter, setChartUnitFilter] = useState("all");
   const [periodMonths, setPeriodMonths] = useState(3);
 
@@ -1451,12 +1454,60 @@ export default function AdminBillingPage() {
           </div>
           <Button
             className="w-full sm:w-auto"
-            onClick={() => void handleCreate()}
+            onClick={() => setConfirmCreateOpen(true)}
             disabled={!date || !amount || (chargeMode === "individual" && !selectedUnitId) || (chargeMode === "batch" && batchTargets.length === 0)}
           >
             {scheduledFor ? "Programar" : chargeMode === "batch" ? "Crear lote" : "Registrar"}
           </Button>
         </div>
+
+        {/* Confirmación con preview: un cobro emite notificación al residente y no
+            siempre puede anularse — nunca registrar con un solo clic (VIV-1104). */}
+        <Modal
+          open={confirmCreateOpen}
+          title={scheduledFor ? "Confirmar programación del cobro" : "Confirmar registro del cobro"}
+          onClose={() => (creatingCharge ? undefined : setConfirmCreateOpen(false))}
+        >
+          <div className="space-y-3 text-sm text-[var(--slate-700)]">
+            <dl className="grid grid-cols-[130px_1fr] gap-x-3 gap-y-1.5">
+              <dt className="font-medium text-[var(--slate-500)]">Destinatario</dt>
+              <dd className="text-[var(--slate-900)]">
+                {chargeMode === "batch" ? `${batchTargets.length} unidad(es)` : unitLabel || "—"}
+              </dd>
+              <dt className="font-medium text-[var(--slate-500)]">Concepto</dt>
+              <dd className="text-[var(--slate-900)]">{billingConceptLabel(concept)}</dd>
+              <dt className="font-medium text-[var(--slate-500)]">Monto por unidad</dt>
+              <dd className="font-semibold text-[var(--slate-900)]">{formatAmount(parseCurrency(amount))}</dd>
+              <dt className="font-medium text-[var(--slate-500)]">Período</dt>
+              <dd className="text-[var(--slate-900)]">{date ? date.slice(0, 7) : "—"}</dd>
+              <dt className="font-medium text-[var(--slate-500)]">Vencimiento</dt>
+              <dd className="text-[var(--slate-900)]">{dueDate || "Sin fecha"}</dd>
+            </dl>
+            <p className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--slate-600)]">
+              {scheduledFor
+                ? `El cobro se ejecutará automáticamente el ${scheduledFor}; podrás cancelarlo antes en “Cobros programados”.`
+                : "Al confirmar, el cobro queda registrado y el residente recibirá la notificación en su portal."}
+            </p>
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
+              <Button type="button" variant="outline" onClick={() => setConfirmCreateOpen(false)} disabled={creatingCharge}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setCreatingCharge(true);
+                  void handleCreate().finally(() => {
+                    setCreatingCharge(false);
+                    setConfirmCreateOpen(false);
+                  });
+                }}
+                disabled={creatingCharge}
+              >
+                {creatingCharge ? "Registrando…" : scheduledFor ? "Confirmar y programar" : "Confirmar y registrar"}
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         {catalogUnitsLoading ? <p className="mt-3 text-xs text-[var(--slate-600)]">Estamos cargando el listado de unidades del conjunto.</p> : null}
         {catalogUnitsError ? <p className="mt-3 text-xs text-[var(--danger-700)]">{catalogUnitsError}</p> : null}

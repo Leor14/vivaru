@@ -81,11 +81,57 @@ export async function createManualLedgerEntry(
   });
 }
 
+/**
+ * Borrado físico de un asiento. SOLO para el ciclo automático de egresos
+ * (sincronizar el asiento auto-generado cuando el egreso deja de estar pagado).
+ * Los movimientos manuales NO se borran desde la UI: se reversan con
+ * `reverseLedgerEntry` para conservar la trazabilidad contable.
+ */
 export async function deleteLedgerEntry(id: string) {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
   await deleteDoc(doc(db, "ledgerEntries", id));
+}
+
+/**
+ * Anula un movimiento manual creando su asiento inverso (mismo tipo, monto
+ * NEGATIVO) y marcando el original con `reversedByEntryId`. El monto negativo
+ * — en vez de tipo opuesto — mantiene simétricas todas las agregaciones
+ * (`computeFundPosition` y la exclusión de "alicuota" aplican igual al
+ * original y a su reverso). Convención contable: nunca borrar, siempre anular.
+ */
+export async function reverseLedgerEntry(
+  tenantId: string,
+  userId: string,
+  entry: LedgerEntry,
+): Promise<string> {
+  if (!db) {
+    throw new Error("Firebase no esta configurado en este entorno.");
+  }
+  if (entry.sourceType === "reversal" || entry.amount < 0) {
+    throw new Error("Un reverso no se puede reversar.");
+  }
+  if (entry.reversedByEntryId) {
+    throw new Error("Este movimiento ya fue anulado.");
+  }
+  const ref = await createTenantDocument("ledgerEntries", tenantId, userId, {
+    type: entry.type,
+    date: today(),
+    amount: -Math.abs(entry.amount),
+    concept: `Reverso: ${entry.concept}`,
+    category: entry.category ?? null,
+    bankAccountId: entry.bankAccountId ?? null,
+    sourceType: "reversal",
+    sourceId: entry.id,
+    reconciled: false,
+  });
+  await updateDoc(doc(db, "ledgerEntries", entry.id), {
+    reversedByEntryId: ref.id,
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
 }
 
 // ── Movimientos automáticos derivados de egresos pagados ──────────────────
