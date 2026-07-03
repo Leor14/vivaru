@@ -24,7 +24,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import * as XLSX from "xlsx";
-import { BarChart2, Download, FileSpreadsheet, FolderPlus, Printer } from "lucide-react";
+import { AlertTriangle, BarChart2, Download, FileSpreadsheet, FolderPlus, Printer } from "lucide-react";
 
 import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
@@ -102,9 +102,13 @@ function KpiCard({
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
+  // El Reporte de Comité es un documento formal (se imprime, se archiva y se firma):
+  // los encabezados van sin emojis. Si el título llega con un símbolo/emoji al inicio
+  // (p. ej. "📊 Resumen financiero"), se retira antes de renderizar.
+  const clean = typeof children === "string" ? children.replace(/^[^\p{L}\p{N}]+/u, "") : children;
   return (
     <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--slate-500)] print:text-xs">
-      {children}
+      {clean}
     </h2>
   );
 }
@@ -597,7 +601,8 @@ export default function AdminReportsPage() {
                             key={i}
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${a.tone === "danger" ? "bg-red-50 text-[var(--danger-700)]" : "bg-amber-50 text-amber-700"}`}
                           >
-                            {a.tone === "danger" ? "⛔" : "⚠️"} {a.text}
+                            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+                            {a.text}
                           </span>
                         ))}
                       </div>

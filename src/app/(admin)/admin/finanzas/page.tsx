@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FileSpreadsheet, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -278,10 +278,27 @@ export default function AdminFinanzasLibroPage() {
         </div>
       </div>
 
+      {fundPosition.balance < 0 ? (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#e2b6b6] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+          <span>
+            <strong>Fondo insuficiente.</strong> El saldo de fondos es negativo ({formatAmount(fundPosition.balance)}). Revisa los ingresos pendientes y evita registrar nuevos egresos hasta regularizarlo.
+          </span>
+        </div>
+      ) : null}
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+        <div
+          className={
+            fundPosition.balance < 0
+              ? "rounded-xl border border-[#e2b6b6] bg-[#FCEBEB] p-3"
+              : "rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3"
+          }
+        >
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Saldo de fondos</p>
-          <p className="mt-1 text-lg font-semibold text-[#2c648d]">{formatAmount(fundPosition.balance)}</p>
+          <p className={`mt-1 text-lg font-semibold ${fundPosition.balance < 0 ? "text-[#A32D2D]" : "text-[#2c648d]"}`}>
+            {formatAmount(fundPosition.balance)}
+          </p>
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Ingresos por cuotas</p>
