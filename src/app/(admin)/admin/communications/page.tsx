@@ -28,9 +28,12 @@ import {
   uploadCommunicationAttachment,
   updateCommunication,
   watchCommunications,
+  watchUnits,
   type CommunicationAttachment,
   type CommunicationItem,
+  type UnitItem,
 } from "@/features/admin/services";
+import { normalizeTower } from "@/utils/tower";
 import { ensureCommunicationsFolderCallable } from "@/lib/firebase/callables";
 import { useAuth } from "@/features/auth/auth-context";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
@@ -58,6 +61,10 @@ export default function AdminCommunicationsPage() {
   const [existingAttachments, setExistingAttachments] = useState<CommunicationAttachment[]>([]);
   const [pendingDeletion, setPendingDeletion] = useState<CommunicationItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  // Audiencia (VIV-401): "all" o segmentado por torres canónicas.
+  const [units, setUnits] = useState<UnitItem[]>([]);
+  const [audienceType, setAudienceType] = useState<"all" | "towers">("all");
+  const [selectedTowers, setSelectedTowers] = useState<string[]>([]);
 
   const form = useForm<CommunicationInput>({
     resolver: zodResolver(communicationSchema),
@@ -92,8 +99,23 @@ export default function AdminCommunicationsPage() {
       },
     );
 
-    return () => unsub();
+    const unsubUnits = watchUnits(user.tenantId, setUnits, () => {});
+
+    return () => {
+      unsub();
+      unsubUnits();
+    };
   }, [user?.tenantId]);
+
+  /** Torres canónicas presentes en el conjunto (para el selector de audiencia). */
+  const availableTowers = useMemo(() => {
+    const seen = new Set<string>();
+    for (const unit of units) {
+      const tower = normalizeTower(unit.tower);
+      if (tower) seen.add(tower);
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b, "es-CO", { numeric: true }));
+  }, [units]);
 
   async function openAttachmentsFolder() {
     if (!user?.tenantId) return;
@@ -109,6 +131,8 @@ export default function AdminCommunicationsPage() {
     setEditingItem(null);
     setAttachmentFiles([]);
     setExistingAttachments([]);
+    setAudienceType("all");
+    setSelectedTowers([]);
     form.reset({ title: "", message: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
     setCreateOpen(true);
   }
@@ -123,6 +147,8 @@ export default function AdminCommunicationsPage() {
     setEditingItem(item);
     setAttachmentFiles([]);
     setExistingAttachments(attachmentsOf(item));
+    setAudienceType(item.audience === "towers" ? "towers" : "all");
+    setSelectedTowers(item.audienceTowers ?? []);
     form.reset({
       title: item.title,
       message: item.message,
@@ -168,6 +194,18 @@ export default function AdminCommunicationsPage() {
         }
       }
 
+      // Audiencia (VIV-401): al publicar segmentado, las torres se resuelven a
+      // unitIds — el residente filtra por su unitId sin depender de nombres.
+      const segmented = audienceType === "towers" && selectedTowers.length > 0;
+      if (audienceType === "towers" && selectedTowers.length === 0) {
+        toast.error("Selecciona al menos una torre para la audiencia segmentada.");
+        setSubmitting(false);
+        return;
+      }
+      const audienceUnitIds = segmented
+        ? units.filter((u) => selectedTowers.includes(normalizeTower(u.tower))).map((u) => u.id)
+        : [];
+
       const payload = {
         ...values,
         startsAt,
@@ -176,6 +214,9 @@ export default function AdminCommunicationsPage() {
         attachmentUrl: "",
         attachmentName: "",
         attachments,
+        audience: segmented ? ("towers" as const) : ("all" as const),
+        audienceTowers: segmented ? selectedTowers : [],
+        audienceUnitIds,
       };
 
       let commId = editingItem?.id;
@@ -450,6 +491,46 @@ export default function AdminCommunicationsPage() {
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Mensaje</label>
             <Textarea {...form.register("message")} placeholder="Detalle para residentes" />
             {form.formState.errors.message ? <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.message.message}</p> : null}
+          </div>
+          {/* Audiencia (VIV-401): todos o segmentado por torre. */}
+          <div>
+            <label className="text-sm text-[var(--slate-700)]">
+              Audiencia
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={audienceType}
+                onChange={(event) => setAudienceType(event.target.value === "towers" ? "towers" : "all")}
+              >
+                <option value="all">Todo el conjunto</option>
+                <option value="towers" disabled={availableTowers.length === 0}>
+                  Solo algunas torres…
+                </option>
+              </select>
+            </label>
+            {audienceType === "towers" ? (
+              <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+                {availableTowers.map((tower) => {
+                  const checked = selectedTowers.includes(tower);
+                  return (
+                    <label key={tower} className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-[var(--slate-700)]">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setSelectedTowers((prev) =>
+                            checked ? prev.filter((t) => t !== tower) : [...prev, tower],
+                          )
+                        }
+                      />
+                      {tower}
+                    </label>
+                  );
+                })}
+                <p className="w-full text-xs text-[var(--slate-500)]">
+                  Solo los residentes de las torres marcadas verán este comunicado.
+                </p>
+              </div>
+            ) : null}
           </div>
           <label className="text-sm text-[var(--slate-700)]">
             Estado

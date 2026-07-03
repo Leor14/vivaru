@@ -93,6 +93,12 @@ export type CommunicationItem = {
   status: "published" | "draft" | "archived" | "scheduled" | "expired";
   startsAt?: string;
   endsAt?: string;
+  /** Audiencia (VIV-401): "all" (default) o "towers" (segmentado por torre). */
+  audience?: "all" | "towers";
+  /** Torres canónicas elegidas (solo display). */
+  audienceTowers?: string[];
+  /** Unidades resueltas al publicar — el residente filtra por su unitId. */
+  audienceUnitIds?: string[];
   // Legacy (un solo PDF). El flujo nuevo usa `attachments`.
   attachmentUrl?: string;
   attachmentName?: string;
@@ -769,7 +775,7 @@ export async function listCommunicationsOnce(tenantId: string) {
 export async function createCommunication(
   tenantId: string,
   userId: string,
-  payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName" | "attachments">,
+  payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName" | "attachments" | "audience" | "audienceTowers" | "audienceUnitIds">,
 ) {
   const firestore = assertDb();
   const ref = await addDoc(collection(firestore, "communications"), {

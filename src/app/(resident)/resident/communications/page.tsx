@@ -83,7 +83,17 @@ export default function ResidentCommunicationsPage() {
   const isSimpleMode = useModuleVariant(user?.tenantId, "communications") === "tablon_simple";
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
 
-  const feedItems = useMemo(() => items, [items]);
+  // Audiencia segmentada (VIV-401): un comunicado con audienceUnitIds solo lo
+  // ve el residente cuya unidad está incluida; sin lista = todo el conjunto.
+  const feedItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.audienceUnitIds.length === 0 ||
+          (user?.unitId ? item.audienceUnitIds.includes(user.unitId) : false),
+      ),
+    [items, user?.unitId],
+  );
 
   const toggleExpanded = (id: string) => {
     setExpandedById((current) => ({ ...current, [id]: !current[id] }));

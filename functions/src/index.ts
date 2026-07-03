@@ -2791,6 +2791,44 @@ export const onBillingStatementCreated = onDocumentCreated({ document: "billingS
   await deliverResidentNotifications("billing_new", data.tenantId, residentUids, vars, override);
 });
 
+// Recordatorio de paquete en bodega: el admin reenvía el aviso in-app al
+// residente desde el módulo de Paquetería (VIV-901).
+export const remindPackagePickup = onCall<{ tenantId: string; packageId: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const tenantId = request.data?.tenantId;
+    const packageId = request.data?.packageId;
+    if (!tenantId || !packageId) {
+      throw new HttpsError("invalid-argument", "tenantId y packageId son requeridos.");
+    }
+    await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
+
+    const snap = await db.collection("packages").doc(packageId).get();
+    const data = snap.data() as { tenantId?: string; unitId?: string; unitLabel?: string; status?: string } | undefined;
+    if (!snap.exists || data?.tenantId !== tenantId) {
+      throw new HttpsError("not-found", "Paquete no encontrado.");
+    }
+    if ((data?.status ?? "pending") !== "pending") {
+      throw new HttpsError("failed-precondition", "El paquete ya fue entregado.");
+    }
+
+    const residentUids = await listResidentUidsByUnit(tenantId, data?.unitId ?? "");
+    if (residentUids.length === 0) return { ok: true, notified: 0 };
+
+    await createNotifications(
+      residentUids.map((uid) => ({
+        userId: uid,
+        tenantId,
+        type: "package" as const,
+        title: "Recordatorio: paquete en portería",
+        description: `Tienes un paquete pendiente de recoger${data?.unitLabel ? ` (${data.unitLabel})` : ""}.`,
+        link: "/resident/packages",
+      })),
+    );
+    return { ok: true, notified: residentUids.length };
+  },
+);
+
 // Aviso agrupado tras una importación masiva de cartera: 1 notificación por
 // residente de las unidades afectadas (lo invoca el front al terminar el import).
 export const notifyBillingBatch = onCall<{ tenantId: string; period: string; unitIds: string[] }>(

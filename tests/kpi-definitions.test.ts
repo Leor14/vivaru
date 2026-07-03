@@ -74,3 +74,28 @@ describe("isTicketPending — definición única de PQRS pendiente", () => {
     expect([...PENDING_TICKET_STATUSES]).toEqual(["open", "in_progress"]);
   });
 });
+
+// ── VIV-1201: anomalía de monto en egresos ────────────────────────────────────
+import { detectAmountAnomaly } from "@/features/finanzas/expense-anomaly";
+
+describe("detectAmountAnomaly", () => {
+  const history = [1_500_000, 1_400_000, 1_600_000, 1_550_000];
+
+  it("detecta el cero de menos (monto 10x menor que la mediana)", () => {
+    expect(detectAmountAnomaly(history, 15_000)?.direction).toBe("low");
+  });
+
+  it("detecta el cero de más (monto 10x mayor)", () => {
+    expect(detectAmountAnomaly(history, 55_000_000)?.direction).toBe("high");
+  });
+
+  it("montos normales no alertan", () => {
+    expect(detectAmountAnomaly(history, 1_200_000)).toBeNull();
+    expect(detectAmountAnomaly(history, 2_000_000)).toBeNull();
+  });
+
+  it("sin histórico suficiente (<3) no opina", () => {
+    expect(detectAmountAnomaly([1_500_000, 1_400_000], 15_000)).toBeNull();
+    expect(detectAmountAnomaly([], 15_000)).toBeNull();
+  });
+});
