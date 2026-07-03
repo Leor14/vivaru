@@ -21,6 +21,7 @@ import {
 } from "@/features/regulations/services";
 import { ensureSystemFolderCallable } from "@/lib/firebase/callables";
 import type { RegulationSignature } from "@/features/regulations/types";
+import { buildUnitIndex, resolveUnitName } from "@/utils/unitLabel";
 import {
   useActiveRegulation,
   useRegulationSignatures,
@@ -59,6 +60,7 @@ function SignaturesTable({
   peopleByUnitId: Map<string, PersonItem>;
 }) {
   const pager = usePagination(signatures);
+  const unitIndex = useMemo(() => buildUnitIndex(Array.from(unitsById.values())), [unitsById]);
 
   if (loading) {
     return (
@@ -109,7 +111,7 @@ function SignaturesTable({
                 className="border-b border-[var(--slate-100)] last:border-0"
               >
                 <td className="py-3 pr-4 font-medium text-[var(--slate-900)]">
-                  {unit?.displayName ?? sig.unitId}
+                  {resolveUnitName(sig.unitId, unitIndex)}
                 </td>
                 <td className="py-3 pr-4 text-[var(--slate-600)]">
                   {unit?.tower ?? "—"}

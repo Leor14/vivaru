@@ -628,14 +628,16 @@ async function upsertResidentTemporaryAccess(input: {
   }
 
   // Etiqueta legible de la unidad: usa el displayName del doc de unidad (unitId = doc id).
-  // Fallback compatible con datos antiguos donde unitId pudiera ser un slug.
-  let unitLabel = tower ? `${tower}-${unitId}` : unitId;
+  // El fallback NUNCA debe incrustar el docId (antes era `${tower}-${unitId}`, que se
+  // denormalizaba a reservas/paquetería/notificaciones como "torre1-<idFirestore>").
+  // Si no hay displayName, se usa la torre legible o "Unidad" — jamás un ID crudo.
+  let unitLabel = tower || "Unidad";
   try {
     const unitSnap = await db.collection("units").doc(unitId).get();
     const displayName = unitSnap.exists ? normalizeText((unitSnap.data() as Record<string, unknown>).displayName) : "";
     if (displayName) unitLabel = displayName;
   } catch {
-    /* usa el fallback */
+    /* usa el fallback legible */
   }
 
   const authApi = getAuth();
