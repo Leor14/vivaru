@@ -14,6 +14,7 @@ import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-varia
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
+import { isTicketPending } from "@/features/pqrs/ticket-status";
 import { useTickets } from "@/features/pqrs/use-tickets";
 import { canAccessPath, routeByRole } from "@/lib/auth/routing";
 import { ROLE_LABEL, type AppRole } from "@/lib/constants/roles";
@@ -95,11 +96,8 @@ export function AppShell({
   const { items: packages } = usePackages(navTenantId);
 
   const sidebarBadges: AdminSidebarBadges = useMemo(() => {
-    const closedStatuses = new Set(["resolved", "closed"]);
-    const openTickets = tickets.filter((ticket) => {
-      const status = typeof ticket.status === "string" ? ticket.status : "open";
-      return !closedStatuses.has(status);
-    }).length;
+    // Misma definición de "pendiente" que el Dashboard (open + in_progress).
+    const openTickets = tickets.filter((ticket) => isTicketPending(ticket.status)).length;
     const pendingPackages = packages.filter((entry) => entry.status === "pending").length;
     return {
       "/admin/pqrs": openTickets > 0 ? { count: openTickets, tone: "red" } : undefined,

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { fetchTenantCollection } from "@/lib/firebase/realtime-helpers";
+import { computeCollectionSummary, statementChargedAmount } from "@/features/billing/collection";
 import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
 import type { CommitteeAgreement, CommitteeAgreementSignature } from "@/features/committee-agreements/types";
@@ -563,16 +564,17 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     const monthsInRange =
       (endD.getFullYear() * 12 + endD.getMonth()) - (startD.getFullYear() * 12 + startD.getMonth()) + 1;
 
-    // % de recaudo (recaudado / facturado) del período y del anterior.
-    const billed = billingInPeriod.reduce((s, b) => s + (b.amount ?? 0), 0);
-    const recaudado = billingInPeriod.reduce((s, b) => s + (b.paymentAmount ?? 0), 0);
-    const collectionRate = billed > 0 ? Math.round((recaudado / billed) * 100) : 0;
+    // % de recaudo del período y del anterior — fórmula única compartida con
+    // Dashboard y Cartera (src/features/billing/collection.ts, VIV-1103).
+    const currentCollection = computeCollectionSummary(billingInPeriod);
+    const recaudado = currentCollection.collected;
+    const collectionRate = Math.round(currentCollection.rate);
 
     const billingPrev = billing.filter((b) => b.period >= prevStartMonth && b.period <= prevEndMonth);
-    const billedPrev = billingPrev.reduce((s, b) => s + (b.amount ?? 0), 0);
-    const recaudadoPrev = billingPrev.reduce((s, b) => s + (b.paymentAmount ?? 0), 0);
-    const collectionRatePrev = billedPrev > 0 ? Math.round((recaudadoPrev / billedPrev) * 100) : 0;
-    const collectionRateDelta = billedPrev > 0 ? collectionRate - collectionRatePrev : null;
+    const prevCollection = computeCollectionSummary(billingPrev);
+    const recaudadoPrev = prevCollection.collected;
+    const collectionRatePrev = Math.round(prevCollection.rate);
+    const collectionRateDelta = prevCollection.charged > 0 ? collectionRate - collectionRatePrev : null;
     const collectedDelta = recaudadoPrev > 0 ? Math.round(((recaudado - recaudadoPrev) / recaudadoPrev) * 100) : null;
 
     // Resultado neto del período anterior (mismo método que el actual).
@@ -585,7 +587,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
 
     // Morosidad: índice por MONTO (cartera vencida acumulada / facturado acumulado) como
     // primario; % de unidades morosas como secundario. Ambos acumulados (todo el tiempo).
-    const billedAllTime = billing.reduce((sum, b) => sum + (b.amount ?? 0), 0);
+    const billedAllTime = billing.reduce((sum, b) => sum + statementChargedAmount(b), 0);
     const delinquencyAmount = billedAllTime > 0 ? Math.round((totalOverdue / billedAllTime) * 100) : 0;
     const delinquencyRate = activeUnitsCount > 0 ? Math.round((overdueUnits.length / activeUnitsCount) * 100) : 0;
     const monthlyExpense = monthsInRange > 0 ? statement.totalExpenses / monthsInRange : statement.totalExpenses;
@@ -613,8 +615,9 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     }
     const byMonth = trendMonths.map((period) => {
       const bs = billing.filter((b) => b.period === period);
-      const facturado = bs.reduce((s, b) => s + (b.amount ?? 0), 0);
-      const recaudado = bs.reduce((s, b) => s + (b.paymentAmount ?? 0), 0);
+      const monthCollection = computeCollectionSummary(bs);
+      const facturado = monthCollection.charged;
+      const recaudado = monthCollection.collected;
       const vencido = bs.filter((b) => b.status === "overdue").reduce((s, b) => s + (b.balance ?? 0), 0);
       const monthLedger = ledger.filter((e) => toDateStr(e.date).slice(0, 7) === period);
       const ingresosOtros = monthLedger.filter((e) => e.type === "ingreso" && e.category !== "alicuota").reduce((s, e) => s + e.amount, 0);
@@ -624,7 +627,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
         period,
         facturado,
         recaudado,
-        collectionRate: facturado > 0 ? Math.round((recaudado / facturado) * 100) : 0,
+        collectionRate: Math.round(monthCollection.rate),
         vencido,
         ingresos,
         egresos,

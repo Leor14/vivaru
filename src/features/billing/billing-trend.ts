@@ -1,3 +1,4 @@
+import { statementChargedAmount, statementCollectedAmount } from "@/features/billing/collection";
 import type { BillingStatement } from "@/types/domain";
 
 export type BillingTrendPoint = {
@@ -52,9 +53,9 @@ export function buildBillingTrend(
     if (fromPeriod && period < fromPeriod) return;
     if (toPeriod && period > toPeriod) return;
 
-    const collected = toNumber(statement.paymentAmount);
-    const amount = toNumber(statement.amount);
-    const charged = amount > 0 ? amount : toNumber(statement.balance) + collected;
+    // Fórmula única de facturado/recaudado (src/features/billing/collection.ts).
+    const collected = statementCollectedAmount(statement);
+    const charged = statementChargedAmount(statement);
 
     const current = grouped.get(period) ?? { period, totalCharged: 0, totalCollected: 0 };
     current.totalCharged += charged;

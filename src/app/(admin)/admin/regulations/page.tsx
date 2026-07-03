@@ -283,9 +283,15 @@ export default function AdminRegulationsPage() {
   );
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const totalActive = units.filter((u) => u.status === "active").length;
-  const signedCount = signatures.length;
-  const pendingCount = totalActive - signedCount;
+  // Misma regla que el widget del Panel de Control (use-regulation-compliance-
+  // summary): cuentan las firmas vinculadas a una unidad ACTIVA. Antes se usaba
+  // signatures.length crudo, que contaba firmas huérfanas o de unidades
+  // inactivas → cifras distintas entre Panel y módulo (VIV-103) y "pendientes"
+  // negativos.
+  const activeUnits = units.filter((u) => u.status === "active");
+  const totalActive = activeUnits.length;
+  const signedCount = activeUnits.filter((u) => signedUnitIds.has(u.id)).length;
+  const pendingCount = Math.max(totalActive - signedCount, 0);
   const complianceRate = totalActive > 0 ? Math.round((signedCount / totalActive) * 100) : 0;
 
   const [tab, setTab] = useState<"reglamento" | "acuerdos">("reglamento");

@@ -39,10 +39,12 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
+import { computeCollectionSummary } from "@/features/billing/collection";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { computeStatementStatus } from "@/features/billing/statement-status";
 import { useCommunications } from "@/features/communications/use-communications";
 import { usePackages } from "@/features/packages/use-packages";
+import { isTicketPending } from "@/features/pqrs/ticket-status";
 import { useTickets } from "@/features/pqrs/use-tickets";
 import { useReservations } from "@/features/reservations/use-reservations";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
@@ -358,7 +360,8 @@ export default function AdminDashboardPage() {
   const visitorsToday = visitorPasses.filter((visitor) => asDateLabel(visitor.date ?? visitor.visitDate) === todayIso);
   const pendingPackages = packages.filter((entry) => entry.status === "pending");
   const deliveredPackagesRecent = packages.filter((entry) => entry.status === "delivered").slice(0, 5);
-  const openTickets = tickets.filter((ticket) => !["resolved", "closed"].includes(asText(ticket.status, "open")));
+  // Pendiente de acción = open + in_progress (responded ya fue atendida) — VIV-1003.
+  const openTickets = tickets.filter((ticket) => isTicketPending(ticket.status));
   const reservationsToday = reservations.filter((reservation) => asDateLabel(reservation.date) === todayIso);
 
   // Visitantes y reservas: por día (hoy vs ayer) o por mes (vs mes anterior).
@@ -377,12 +380,9 @@ export default function AdminDashboardPage() {
     ? countOnDay(reservations, reservationDate, yesterdayIso)
     : countInMonth(reservations, reservationDate, activityComparisonMonth);
 
-  const monthRate = (month: string) => {
-    const stmts = billing.filter((b) => b.period === month);
-    const charged = stmts.reduce((acc, b) => acc + Math.max(asNumber(b.amount) || asNumber(b.balance) + asNumber(b.paymentAmount), 0), 0);
-    const collected = stmts.reduce((acc, b) => acc + asNumber(b.paymentAmount), 0);
-    return charged > 0 ? (collected / charged) * 100 : 0;
-  };
+  // % recaudo del mes: misma fórmula que Cartera y Reporte de Comité (VIV-1103).
+  const monthRate = (month: string) =>
+    computeCollectionSummary(billing.filter((b) => b.period === month)).rate;
   const recaudoPeriod = monthRate(activityMonth);
   const recaudoComparison = monthRate(activityComparisonMonth);
 
