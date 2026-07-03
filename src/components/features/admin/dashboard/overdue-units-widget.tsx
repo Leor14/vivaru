@@ -22,11 +22,24 @@ function deriveTower(unitLabel: string) {
   return "Sin torre";
 }
 
-function daysOverdue(dueDate?: string): number {
-  if (!dueDate) return 0;
+/**
+ * Días de mora. Sin `dueDate`, se cuenta desde el fin del mes del `period`
+ * ("YYYY-MM") — la misma regla con la que computeStatementStatus declara la
+ * mora. Antes estos cobros mostraban "0 días vencido" y aun así ofrecían
+ * "Enviar aviso" (VIV-102).
+ */
+function daysOverdue(dueDate?: string, period?: string): number {
+  let refDate = dueDate;
+  if (!refDate && period && /^\d{4}-\d{2}$/.test(period)) {
+    const [year, month] = period.split("-").map(Number);
+    // Día 0 del mes siguiente = último día del mes del período (fecha local).
+    const lastDay = new Date(year, month, 0);
+    refDate = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}-${String(lastDay.getDate()).padStart(2, "0")}`;
+  }
+  if (!refDate) return 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(`${dueDate}T00:00:00`);
+  const due = new Date(`${refDate}T00:00:00`);
   if (Number.isNaN(due.getTime())) return 0;
   return Math.max(Math.floor((today.getTime() - due.getTime()) / 86400000), 0);
 }
@@ -46,9 +59,11 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
         id: item.id,
         unitLabel: item.unitLabel,
         balance: Math.max(item.balance, 0),
-        days: daysOverdue(item.dueDate),
+        days: daysOverdue(item.dueDate, item.period),
         tower: deriveTower(item.unitLabel ?? ""),
-      }));
+      }))
+      // Solo mora efectiva: a 0 días no corresponde "Enviar aviso" (VIV-102).
+      .filter((item) => item.days > 0);
   }, [items]);
 
   const towerOptions = useMemo(

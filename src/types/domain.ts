@@ -417,9 +417,11 @@ export interface LedgerEntry {
   concept: string;
   category?: LedgerCategory;
   bankAccountId?: string;
-  /** Referencia al origen del movimiento. */
-  sourceType?: "billingStatement" | "expense" | "manual";
+  /** Referencia al origen del movimiento. "reversal" = asiento inverso de otro movimiento. */
+  sourceType?: "billingStatement" | "expense" | "manual" | "reversal";
   sourceId?: string;
+  /** Id del asiento inverso que anuló este movimiento (los asientos contables no se borran). */
+  reversedByEntryId?: string;
   /** Conciliación bancaria. */
   reconciled?: boolean;
   reconciledAt?: string;

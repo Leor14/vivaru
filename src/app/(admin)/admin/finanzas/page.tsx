@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, Plus, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import { useBillingStatements } from "@/features/billing/use-billing-statements"
 import {
   computeFundPosition,
   createManualLedgerEntry,
-  deleteLedgerEntry,
+  reverseLedgerEntry,
   watchLedger,
 } from "@/features/finanzas/use-ledger";
 import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
@@ -197,12 +197,14 @@ export default function AdminFinanzasLibroPage() {
     }
   }
 
-  async function handleConfirmDelete() {
-    if (!pendingDeletion) return;
+  async function handleConfirmReverse() {
+    if (!pendingDeletion || !user?.tenantId) return;
     setDeleting(true);
     try {
-      await deleteLedgerEntry(pendingDeletion.id);
-      toast.success("Movimiento eliminado.");
+      // Convención contable: el movimiento no se borra — se crea su asiento
+      // inverso y el original queda anulado pero visible (trazabilidad).
+      await reverseLedgerEntry(user.tenantId, user.uid, pendingDeletion);
+      toast.success("Movimiento anulado: se creó el asiento inverso.");
       setPendingDeletion(null);
     } catch (error) {
       toastFirebaseError(error);
@@ -376,22 +378,30 @@ export default function AdminFinanzasLibroPage() {
           errorText={errorMessage}
           actionsHeader="Acciones"
           tableMinWidthClassName="min-w-[640px] sm:min-w-[720px]"
-          renderActions={(item) =>
-            item.sourceType === "manual" ? (
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  aria-label={`Eliminar ${item.concept}`}
-                  onClick={() => setPendingDeletion(item)}
-                >
-                  <Trash2 className="h-4 w-4 text-[var(--danger-700)]" />
-                </Button>
-              </div>
-            ) : (
-              <span className="block text-right text-xs text-[var(--slate-400)]">Automático</span>
-            )
-          }
+          renderActions={(item) => {
+            if (item.sourceType === "reversal") {
+              return <span className="block text-right text-xs text-[var(--slate-400)]">Reverso</span>;
+            }
+            if (item.reversedByEntryId) {
+              return <span className="block text-right text-xs text-[var(--slate-400)]">Anulado</span>;
+            }
+            if (item.sourceType === "manual") {
+              return (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    aria-label={`Reversar ${item.concept}`}
+                    title="Reversar (crea el asiento inverso)"
+                    onClick={() => setPendingDeletion(item)}
+                  >
+                    <Undo2 className="h-4 w-4 text-[var(--danger-700)]" />
+                  </Button>
+                </div>
+              );
+            }
+            return <span className="block text-right text-xs text-[var(--slate-400)]">Automático</span>;
+          }}
         />
       </div>
 
@@ -441,10 +451,16 @@ export default function AdminFinanzasLibroPage() {
       <ConfirmDeleteDialog
         open={Boolean(pendingDeletion)}
         name={pendingDeletion?.concept ?? ""}
-        description={pendingDeletion ? "Esta acción eliminará el movimiento del libro. No se puede deshacer." : null}
+        title={pendingDeletion ? `Reversar "${pendingDeletion.concept}"` : undefined}
+        confirmLabel="Reversar movimiento"
+        description={
+          pendingDeletion
+            ? `Se creará un asiento inverso por ${pendingDeletion.amount.toLocaleString("es-CO")} y el movimiento original quedará anulado pero visible en el libro. Los registros contables no se eliminan, para conservar la trazabilidad ante auditorías.`
+            : null
+        }
         loading={deleting}
         onCancel={() => (deleting ? undefined : setPendingDeletion(null))}
-        onConfirm={() => void handleConfirmDelete()}
+        onConfirm={() => void handleConfirmReverse()}
       />
       </Card>
     </div>
