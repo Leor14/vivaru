@@ -11,6 +11,16 @@ export function normalizeFirebaseError(error: unknown): string {
   const code = typeof rawCode === "string" ? rawCode.replace(/^[a-z-]+\//, "") : "";
 
   const messages: Record<string, string> = {
+    // Firebase Auth (login): sin estos códigos, una credencial incorrecta se
+    // mostraba como "error inesperado" y parecía una caída de la plataforma.
+    "invalid-credential":        "Correo o contraseña incorrectos.",
+    "invalid-login-credentials": "Correo o contraseña incorrectos.",
+    "wrong-password":            "Correo o contraseña incorrectos.",
+    "user-not-found":            "No existe una cuenta con ese correo.",
+    "invalid-email":             "El correo no tiene un formato válido.",
+    "user-disabled":             "Esta cuenta está desactivada. Contacta a la administración.",
+    "too-many-requests":         "Demasiados intentos. Espera unos minutos e intenta de nuevo.",
+    "network-request-failed":    "Sin conexión con el servidor. Revisa tu internet e intenta de nuevo.",
     "permission-denied":   "No tienes permiso para realizar esta acción.",
     "unauthenticated":     "Tu sesión ha expirado. Vuelve a iniciar sesión.",
     "not-found":           "No se encontró la información solicitada.",
