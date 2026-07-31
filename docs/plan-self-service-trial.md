@@ -499,25 +499,100 @@ health-score de la columna "Uso real": no hay que inventarlo, hay que conectarlo
 | 5 | Cómo ve los otros roles | **Cuentas de prueba propias** (residente + portería), auto-creadas, con credenciales visibles para él — sin involucrar a residentes reales |
 | 6 | Módulos abiertos | Núcleo (Residentes, Visitantes, Paquetería, Comunicaciones, PQRS) + los dos que sorprenden (**Reservas** y **Encuestas**) |
 
-### Pendientes
+| 7 | Buzón comercial | **`comercial@qintilab.com`** — destino único de todas las alertas (trial nuevo, día 7, día 15, intención de compra) y de los formularios del landing. Se unifica: hoy conviven dos direcciones |
+| 8 | Al vencer | **Solo lectura**, se conserva 60 días y luego se purga |
+| 9 | Planes al convertir | **No hay catálogo de planes ofrecido.** La conversión es siempre "contactar a un asesor" vía `comercial@qintilab.com`; el precio se negocia persona a persona |
 
-1. **¿Buzón y responsable comercial** para las alertas de trial? (hoy los formularios del
-   landing apuntan a `comercial@qintilab.com` y `hola@grupovivaru.com` — hay que unificar).
-2. **¿Confirmas que al vencer queda en solo lectura** y se conserva 60 días antes de purgar?
-   Es la opción que preserva el activo comercial.
-3. **¿Qué planes se ofrecen al convertir?** Hoy `/superadmin/plans` tiene el CRUD pero
-   `Pricing.tsx` está comentado y sin precios. Convertir exige elegir un plan real.
+### Consecuencia de la decisión 9 — no hay pricing en ninguna parte de la experiencia
+
+Esto simplifica el producto y hay que respetarlo en todo el recorrido:
+
+- **Landing**: `Pricing.tsx` permanece fuera. No se publican precios ni tiers.
+- **Dentro del trial**: el CTA nunca dice "elige tu plan" ni "actualizar plan". Dice
+  **"Hablar con un asesor"** y abre el formulario de contacto.
+- **Al vencer**: la pantalla de solo lectura ofrece "Hablar con un asesor", no "pagar".
+- **En la consola interna**: `plans` sigue siendo **configuración interna** (para registrar
+  qué se negoció y con qué límites queda el cliente), nunca un menú que se le muestre al
+  prospecto. La colección y su CRUD en `/superadmin/plans` ya existen y sirven para esto.
+
+El trial, entonces, **no convierte solo: califica**. Su único trabajo es producir una
+conversación comercial con contexto de uso real.
+
+### Ninguna pendiente
+
+Todas las decisiones de producto y comerciales están resueltas. Siguiente paso: ejecución
+(§12).
 
 ---
 
-## 12. Fases de ejecución sugeridas
+## 12. Plan de ejecución
 
-| Fase | Contenido | Valor |
-|---|---|---|
-| **0. Cimientos** | Persistir `leads` (hoy se pierden), unificar dominio de correo, hacer que `tenants.status` signifique algo | Tapa agujeros que existen **hoy**, sin depender del trial |
-| **1. Provisión** | `createTrialWorkspace` + `trialEndsAt` + notificación al equipo + vista de trials en superadmin | Ya se puede operar el trial "a mano" desde el landing actual |
-| **2. Candado** | `assertModuleAllowed` + límites de plan + banner de días restantes + overlays de upgrade | El trial se vuelve seguro y vendedor |
-| **3. Experiencia** | Registro público en el landing + checklist de activación + cuentas demo por rol | Autoservicio completo |
-| **4. Ciclo de vida** | Cron de expiración + correos de días 7/12/15 + conversión y purga | Operación desatendida |
+Principio de ordenamiento: **cada fase deja algo utilizable y reduce el riesgo de la
+siguiente.** Tras la Fase 1 ya se pueden operar trials creados a mano; el registro público
+—lo irreversible de cara al mercado— llega en la Fase 3, cuando el candado ya existe.
 
-La Fase 0 tiene valor **independientemente** de que el trial se construya o no.
+### Fase 0 — Cimientos (valor independiente del trial)
+
+Tapa tres agujeros que existen **hoy**, con o sin trial.
+
+| Entregable | Detalle técnico |
+|---|---|
+| Persistir leads | Colección `leads` + reglas (solo superadmin lee). `api/demo/route.ts` y `api/lead/route.ts` escriben antes de mandar correo, conservando el patrón best-effort (un fallo de correo nunca pierde el lead) |
+| Unificar correo | `DEMO_NOTIFICATION_TO` y `LEAD_NOTIFICATION_TO` → `comercial@qintilab.com`. `LEAD_NOTIFICATION_FROM` → dominio verificado (hoy cae a `onboarding@resend.dev`, de mala entregabilidad) |
+| `status` con efecto | `assertTenantOperable(tenantId)` en functions: bloquea escrituras si el tenant está `suspended`/`expired`. Guard equivalente en `firestore.rules` |
+
+**Riesgo:** bajo. Nada de esto altera el comportamiento de un tenant activo.
+
+### Fase 1 — Provisión y consola mínima
+
+Permite que el equipo **cree y convierta trials a mano** antes de abrir el registro público.
+
+| Entregable | Detalle técnico |
+|---|---|
+| Modelo | `trialStartedAt`, `trialEndsAt`, `leadId`, `convertedAt/By` en `tenants`; `"expired"` en `TenantStatus` |
+| **Siembra parametrizable** | ⚠️ **La pieza más pesada.** Portar el seed de Las Playas a Cloud Function y **prefijar todos los IDs con el `tenantId`** — hoy están hardcodeados y dos ambientes chocarían entre sí |
+| `createTrialWorkspace` | Callable que hace en una transacción lo que hoy son 2 pasos de superadmin: `lead` + `tenant` + `tenantSettings` + admin + **2 cuentas de prueba** + siembra. Reutiliza `sendOnboardingInvite`/`accountInvites`/`/activar` sin tocarlos |
+| Aviso al equipo | Copia del patrón de `api/demo/route.ts:126-165` (destino + `replyTo` + best-effort) hacia `comercial@qintilab.com` |
+| Consola v1 | `/superadmin/ambientes` con filtros por estado y la acción **Convertir a cliente** |
+
+**Riesgo:** medio, concentrado en la siembra. Mitigación: probar en staging creando 3
+ambientes seguidos y verificar que no comparten documentos.
+
+### Fase 2 — El candado
+
+| Entregable | Detalle técnico |
+|---|---|
+| Gate de backend | `assertModuleAllowed(tenantId, modulo)` generalizando `assertFinanceManagementEnabled` (que ya existe y funciona). Aplicado en toda callable con efecto |
+| Matriz de módulos | Config declarativa de la Regla A por estado de tenant, en un solo módulo compartido — mismo criterio que los KPIs de fórmula única: una definición, muchos consumidores |
+| UI del candado | Ítem con 🔒 en el sidebar del admin (hoy es una constante estática, hay que hacerlo dinámico) + overlay de vista previa + pantalla de upgrade si entra por URL |
+| Banner de vigencia | Días restantes + **"Hablar con un asesor"** siempre visible |
+
+**Riesgo:** medio. El sidebar del admin nunca ha sido dinámico; hay que verificar que no
+rompa la navegación de los clientes activos (para ellos, todo desbloqueado).
+
+### Fase 3 — Autoservicio
+
+Aquí se abre al mercado. No antes: sin la Fase 2, un trial tendría acceso a todo.
+
+| Entregable | Detalle técnico |
+|---|---|
+| `/registro` | 3 pasos + verificación de correo obligatoria. Rate-limit y 1 trial por dominio de correo |
+| Landing | CTA principal "Prueba gratis 15 días"; el `DemoDialog` se reetiqueta "Hablar con un asesor" (cambio de copy, no de lógica) |
+| Checklist de activación | 7 pasos persistidos en `tenants.onboardingChecklist`, reutilizando el copy de `MODULE_VARIANT_META` |
+| "Mis cuentas de prueba" | Panel en Configuración con credenciales visibles y accesos directos a ambos portales |
+
+### Fase 4 — Ciclo de vida automatizado
+
+| Entregable | Detalle técnico |
+|---|---|
+| Cron de vigencia | Un `onSchedule` diario: correos días 7/12/15, `→ expired` el 16, aviso de purga el 68, purga el 75 |
+| Consola v2 | Días restantes con semáforo, activación, uso real e intención de compra — conectando `TenantAdoptionMetrics`, que ya existe |
+| Acciones restantes | Extender prueba, marcar como perdido con motivo, purgar |
+| Métricas del funnel | Instrumentar §9 |
+
+### Dependencias críticas
+
+1. **Fase 2 antes que Fase 3** — no exponer registro público sin el candado de backend.
+2. **La siembra parametrizable (Fase 1) bloquea todo lo demás**: sin IDs por tenant no hay
+   trials múltiples. Es lo primero que conviene atacar.
+3. **Fase 0 es independiente** y puede ejecutarse ya.
