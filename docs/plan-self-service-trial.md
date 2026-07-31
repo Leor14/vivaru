@@ -1,6 +1,7 @@
 # Plan — Self-service: trial de 15 días con conversión asistida
 
-> Estado: planeación, sin ejecutar. Decisiones de producto resueltas (§11); quedan 3 decisiones comerciales.
+> Estado: **definición cerrada**, sin ejecutar. Todas las decisiones de producto y
+> comerciales están resueltas (§11). Listo para ejecutar por fases (§12).
 
 ## 0. Qué es esto y qué no
 
