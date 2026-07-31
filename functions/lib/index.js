@@ -60,6 +60,7 @@ const callableCorsOrigins = [
     "https://grupovivaru.com",
     "https://vivaru--hogaru-1.us-central1.hosted.app",
     "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
+    "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app", // staging
     "http://localhost:3000",
 ];
 // Defaults = comportamiento actual. Si el alta no envia variantes (o faltan claves), se aplican
@@ -124,6 +125,30 @@ async function assertTenantMember(tenantId, uid) {
     }
     return membershipSnap.data();
 }
+/**
+ * Estados de tenant que permiten ESCRITURA. `suspended` (cliente que dejó de
+ * pagar) y `expired` (prueba vencida) quedan en solo lectura: conservan sus
+ * datos y pueden consultarlos, pero no operar.
+ *
+ * Hasta ahora `tenants.status` era decorativo — se mostraba y filtraba en el
+ * superadmin pero no bloqueaba nada, así que el botón "suspender" no tenía
+ * ningún efecto real. El superadmin nunca queda bloqueado: necesita operar
+ * sobre un tenant suspendido para reactivarlo o convertirlo.
+ */
+const WRITABLE_TENANT_STATUSES = ["active", "trial"];
+async function assertTenantOperable(tenantId) {
+    const snap = await db.collection("tenants").doc(tenantId).get();
+    if (!snap.exists)
+        return;
+    const status = snap.data()?.status;
+    // Sin status explícito se asume operable (compatibilidad con datos antiguos).
+    if (!status || WRITABLE_TENANT_STATUSES.includes(status))
+        return;
+    const reason = status === "expired"
+        ? "El período de prueba de este conjunto terminó. Contacta a un asesor de Vivaru para reactivarlo."
+        : "Este conjunto está suspendido. Contacta a un asesor de Vivaru para reactivarlo.";
+    throw new https_1.HttpsError("failed-precondition", reason);
+}
 async function assertTenantAdminOrSuper(input) {
     if (input.role === "superadmin") {
         return;
@@ -135,6 +160,7 @@ async function assertTenantAdminOrSuper(input) {
     if (membership.role !== "tenant_admin") {
         throw new https_1.HttpsError("permission-denied", "No tienes permisos para gestionar credenciales de residentes.");
     }
+    await assertTenantOperable(input.tenantId);
 }
 async function assertActiveTenantAdmin(tenantId, uid) {
     const membershipRef = db.collection("tenantUsers").doc(`${tenantId}_${uid}`);
@@ -166,6 +192,7 @@ async function assertActiveTenantAdmin(tenantId, uid) {
     if ((profile.status ?? "active") !== "active") {
         throw new https_1.HttpsError("failed-precondition", "Tu perfil administrador se encuentra inactivo.");
     }
+    await assertTenantOperable(tenantId);
     return { tenantId };
 }
 async function writeAuditLog(tenantId, actorUid, action, metadata) {

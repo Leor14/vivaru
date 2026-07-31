@@ -40,6 +40,18 @@ service cloud.firestore {
       return superadmin() || tenantMember(tenantId);
     }
 
+    // Estados que permiten ESCRITURA. 'suspended' (cliente que dejó de pagar) y
+    // 'expired' (prueba vencida) quedan en solo lectura: conservan sus datos y
+    // pueden consultarlos, pero no operar. La LECTURA nunca pasa por aquí.
+    // Un tenant sin `status` se asume operable (datos previos a este campo).
+    // Espejo de assertTenantOperable() en functions/src/index.ts.
+    function tenantOperable(tenantId) {
+      return superadmin() ||
+        !exists(/databases/$(database)/documents/tenants/$(tenantId)) ||
+        !('status' in get(/databases/$(database)/documents/tenants/$(tenantId)).data) ||
+        get(/databases/$(database)/documents/tenants/$(tenantId)).data.status in ['active', 'trial'];
+    }
+
     function amenityDoc(amenityId) {
       return get(/databases/$(database)/documents/amenities/$(amenityId));
     }
@@ -201,12 +213,12 @@ service cloud.firestore {
       allow read: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && sameTenant(resource.data.tenantId);
 
       // Strict write policy: tenant admins manage operational collections, residents limited per collection below.
-      allow create, update: if signedIn() && relaxedTenantCollection(collection) && request.resource.data.tenantId is string && (
+      allow create, update: if signedIn() && relaxedTenantCollection(collection) && request.resource.data.tenantId is string && tenantOperable(request.resource.data.tenantId) && (
         superadmin() || tenantRole(request.resource.data.tenantId, 'tenant_admin')
       );
 
       // Delete must validate against existing resource because request.resource is null on deletes.
-      allow delete: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && (
+      allow delete: if signedIn() && relaxedTenantCollection(collection) && resource.data.tenantId is string && tenantOperable(resource.data.tenantId) && (
         superadmin() || tenantRole(resource.data.tenantId, 'tenant_admin')
       );
     }
