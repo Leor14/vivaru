@@ -539,7 +539,8 @@ Tapa tres agujeros que existen **hoy**, con o sin trial.
 | Entregable | Detalle técnico |
 |---|---|
 | Persistir leads | Colección `leads` + reglas (solo superadmin lee). `api/demo/route.ts` y `api/lead/route.ts` escriben antes de mandar correo, conservando el patrón best-effort (un fallo de correo nunca pierde el lead) |
-| Unificar correo | `DEMO_NOTIFICATION_TO` y `LEAD_NOTIFICATION_TO` → `comercial@qintilab.com`. `LEAD_NOTIFICATION_FROM` → dominio verificado (hoy cae a `onboarding@resend.dev`, de mala entregabilidad) |
+| Unificar correo **por ambiente** | **Producción:** `DEMO_NOTIFICATION_TO` y `LEAD_NOTIFICATION_TO` → `comercial@qintilab.com`; `LEAD_NOTIFICATION_FROM` → dominio verificado (hoy cae a `onboarding@resend.dev`). **Staging:** solo `dev@qintilab.com` con prefijo `[STAGING]` — hoy ambos ambientes escriben al mismo buzón comercial (§13.2) |
+| Separar staging | `NEXT_PUBLIC_APP_ENV` + `noindex`/`robots.txt` + banda "AMBIENTE DE PRUEBAS" (§13.3) — prerequisito para poder validar las fases siguientes |
 | `status` con efecto | `assertTenantOperable(tenantId)` en functions: bloquea escrituras si el tenant está `suspended`/`expired`. Guard equivalente en `firestore.rules` |
 
 **Riesgo:** bajo. Nada de esto altera el comportamiento de un tenant activo.
@@ -597,3 +598,75 @@ Aquí se abre al mercado. No antes: sin la Fase 2, un trial tendría acceso a to
 2. **La siembra parametrizable (Fase 1) bloquea todo lo demás**: sin IDs por tenant no hay
    trials múltiples. Es lo primero que conviene atacar.
 3. **Fase 0 es independiente** y puede ejecutarse ya.
+4. **Toda fase se valida completa en el ambiente de pruebas antes de tocar producción**
+   (§13). Es la única forma de probar un funnel que empieza en el landing y termina en la
+   consola interna.
+
+---
+
+## 13. El ambiente de pruebas y su propio landing
+
+Regla de ejecución: **el trial se construye y se valida entero en staging antes de llegar a
+producción.** No es opcional — es el único flujo del producto que empieza en una página
+pública y termina creando un tenant, así que no se puede probar por partes.
+
+### 13.1 Punto de partida: el landing YA existe en staging
+
+Staging sirve el mismo código desde `develop`, así que
+`vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app/mx` **ya responde 200 con el
+landing completo**. El trabajo no es construir un landing: es **separarlo del de
+producción** en cuatro dimensiones donde hoy están peligrosamente mezclados.
+
+### 13.2 Los dos riesgos reales (verificados, no hipotéticos)
+
+**① El landing de staging es indexable por Google.** Verificado: `/mx` en staging **no
+tiene `noindex`** ni existe `robots.txt` en el repo. Hoy importa poco porque nadie lo
+enlaza; en el momento en que ahí viva un formulario de registro funcional, el riesgo es
+doble: contenido duplicado que canibaliza el SEO de `grupovivaru.com`, y **prospectos
+reales cayendo desde un buscador en un ambiente de pruebas** —creando trials que nadie va a
+atender.
+
+**② Staging y producción escriben al MISMO buzón comercial.** Verificado: ambos ambientes
+tienen `LEAD_NOTIFICATION_TO` y `DEMO_NOTIFICATION_TO` = `dev@qintilab.com,comercial@qintilab.com`.
+Cada prueba interna generaría un lead **indistinguible de uno real** en la bandeja de
+ventas. Con trials de por medio, esto contamina el proceso comercial desde el día uno.
+
+Bonus ya detectado: ambos usan `LEAD_NOTIFICATION_FROM = onboarding@resend.dev`, el dominio
+de pruebas de Resend, de mala entregabilidad. Se corrige en la Fase 0 para producción.
+
+### 13.3 Las cuatro separaciones
+
+| # | Separación | Qué hacer |
+|---|---|---|
+| 1 | **Indexación** | `robots.txt` dinámico + `noindex` global cuando el ambiente no es producción. Un solo flag (`NEXT_PUBLIC_APP_ENV=staging`) gobierna ambos |
+| 2 | **Correo** | En staging, `LEAD_NOTIFICATION_TO` y `DEMO_NOTIFICATION_TO` → **solo** `dev@qintilab.com`. El buzón comercial nunca recibe nada de pruebas. Además, prefijo `[STAGING]` en todos los asuntos |
+| 3 | **Analítica** | Proyecto de PostHog distinto (o `NEXT_PUBLIC_POSTHOG_KEY` vacío en staging) para no ensuciar el funnel real |
+| 4 | **Identificación visual** | Banda superior permanente **"AMBIENTE DE PRUEBAS"** en todo el sitio de staging —landing incluido— para que nadie confunda dónde está |
+
+Las cuatro se resuelven con **una sola variable de entorno** (`NEXT_PUBLIC_APP_ENV`)
+consultada en cuatro lugares. Es trabajo pequeño y de bajo riesgo.
+
+### 13.4 Dominio amigable (recomendado, no bloqueante)
+
+La URL `vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app` es impracticable para
+pruebas realistas (no se puede dictar por teléfono ni compartir con un asesor). Recomiendo
+**`pruebas.grupovivaru.com`** apuntando al backend de staging.
+
+Ya tenemos el procedimiento probado: es el mismo flujo de dominio custom de App Hosting
+documentado en `wiki-producto/wiki/arquitectura/dominios-app-hosting.md`, incluido qué
+hacer si vuelve a aparecer el 403. Debe crearse **con `noindex` desde el primer día.**
+
+### 13.5 Protocolo de validación por fase
+
+Cada fase se cierra probando en staging, de punta a punta:
+
+| Fase | Qué se valida en staging |
+|---|---|
+| 0 | El lead se persiste en Firestore; el correo llega **solo** a `dev@`; un tenant suspendido queda de verdad en solo lectura |
+| 1 | **Crear 3 ambientes seguidos** y verificar que no comparten un solo documento (la prueba que valida la siembra parametrizable) |
+| 2 | Un tenant en trial no puede operar Cartera ni siquiera llamando la callable directo; un cliente activo sí |
+| 3 | El funnel completo: registro → verificación de correo → ambiente creado → checklist → entrar como residente y como portería |
+| 4 | Adelantar `trialEndsAt` a mano y comprobar que el cron expira, notifica y deja en solo lectura sin borrar nada |
+
+La prueba de la Fase 1 —tres ambientes simultáneos— es la más importante de todas: es la
+que demuestra que el trial es multi-tenant de verdad y no un demo que solo funciona una vez.
