@@ -706,5 +706,13 @@ service cloud.firestore {
     match /accountInvites/{token} {
       allow read, write: if false;
     }
+
+    // Leads de marketing (formularios del landing y, más adelante, altas de trial).
+    // Contienen datos de contacto de prospectos: solo el superadmin los lee. La
+    // escritura la hacen las rutas de servidor con admin SDK, que salta reglas.
+    match /leads/{leadId} {
+      allow read: if superadmin();
+      allow write: if false;
+    }
   }
 }

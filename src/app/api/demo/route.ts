@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { Resend } from "resend";
 import { z } from "zod";
 
+import { persistLead } from "@/lib/marketing/leads";
+
 export const runtime = "nodejs";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -118,6 +120,21 @@ export async function POST(request: Request) {
     ts: new Date().toISOString(),
     ip,
     emailDomain: d.email.split("@")[1]?.toLowerCase() ?? "",
+    conjuntos: d.conjuntos,
+    timeline: d.timeline,
+  });
+
+  // Persistencia del lead — best-effort, igual que el correo: si Firestore
+  // falla, la captura no se penaliza y la respuesta al usuario sigue siendo ok.
+  await persistLead({
+    leadId,
+    origen: "demo",
+    nombre: d.nombre,
+    email: d.email,
+    telefono: d.telefono,
+    empresa: d.empresa,
+    cargo: d.cargo,
+    unidadesEstimadas: d.unidades,
     conjuntos: d.conjuntos,
     timeline: d.timeline,
   });
