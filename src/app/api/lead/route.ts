@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Resend } from "resend";
 
 import { diagnosticSchema } from "@/lib/marketing/diagnostic-schema";
+import { persistLead } from "@/lib/marketing/leads";
 import { calculateScore } from "@/lib/marketing/diagnostic-score";
 import { RECOMMENDATIONS } from "@/lib/marketing/diagnostic-recommendations";
 import {
@@ -94,6 +95,27 @@ export async function POST(request: Request) {
     timeline: answers.q8_timeline,
     units: answers.q2_unidades,
     emailDomain: answers.q9_contacto.email.split("@")[1]?.toLowerCase() ?? "",
+  });
+
+  // Persistencia del lead — best-effort. Guarda además el resultado del
+  // diagnóstico (score, pilar de dolor, tier sugerido), que es contexto de
+  // calificación que hoy se perdía al cerrar la pestaña.
+  const contacto = answers.q9_contacto;
+  await persistLead({
+    leadId,
+    origen: "diagnostico",
+    nombre: contacto.nombre,
+    email: contacto.email,
+    telefono: contacto.whatsapp,
+    empresa: contacto.conjunto,
+    unidadesEstimadas: answers.q2_unidades,
+    timeline: answers.q8_timeline,
+    meta: {
+      score,
+      pilarDolor: pillar,
+      tierSugerido: recommendation.recommendedTier,
+      respuestas: answers,
+    },
   });
 
   // Email dispatch — best-effort. Lead capture is NEVER penalised by email
