@@ -47,7 +47,7 @@ Animación `animated-pulse` para estados de carga. Implementado en [[usuarios]] 
 
 ## Relaciones
 
-- Véase también: [[design-md]], [[tokens-color]], [[animaciones]]
+- Véase también: [[acciones-de-fila]], [[design-md]], [[tokens-color]], [[animaciones]]
 - Depende de: [[absolute-bans]]
 - Se conecta con: [[drawer-pattern]], [[data-table-pattern]], [[mobile-first-ios]], [[layout-patterns]]
 

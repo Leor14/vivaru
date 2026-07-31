@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-06-23
+fecha_actualizacion: 2026-07-03
 ---
 
 # Trampas Conocidas
@@ -101,9 +101,25 @@ Archivar un período de [[billing|cartera]] pone `archived=true` pero **no borra
 
 Cuando el front empieza a escribir una colección nueva (`billingCampaigns`, `billingSchedules`, `billingReminderJobs`) o a llamar `ensureSystemFolder` con una clave nueva, hay que **desplegar reglas/functions ANTES** del push del front (App Hosting). Si no, la primera escritura del usuario cae en `permission-denied` o `invalid-argument`. Secuencia segura: deploy de reglas + functions → luego push de `master`. Ver [[firebase-firestore]] y [[correos-mensajeria]].
 
+## RHF getValues() NO aplica el transform de zod
+
+Con `zodResolver`, los `.transform()` del schema solo corren vía `handleSubmit`. Un flujo que hace `trigger()` + `getValues()` recibe los valores **crudos** — así se colaron torres sin normalizar a Firestore pese a existir transform. Regla: toda normalización crítica va en la **capa de servicios** (chokepoint de escritura), no solo en el schema. Ver [[torres-canonicas]].
+
+## Errores auth/* sin mapear parecen caída de plataforma
+
+`normalizeFirebaseError` no incluía los códigos de Firebase Auth: cualquier contraseña incorrecta en el login mostraba "Ocurrió un error inesperado" y los usuarios reportaban la plataforma como caída. El mapa ya incluye `invalid-credential`, `user-not-found`, `too-many-requests`, etc. Al agregar flujos de auth nuevos, mapear sus códigos primero. Ver [[autenticacion-roles]].
+
+## Fallbacks que incrustan IDs se denormalizan para siempre
+
+El fallback `${tower}-${unitId}` de `activateResidency` contaminó reservas, paquetería y notificaciones con compuestos tipo `torre1-<docId>` — y las notificaciones son inmutables. Un fallback de texto visible **jamás** debe incrustar un ID; usar un valor legible y dejar que [[resolucion-unit-id]] resuelva en lectura.
+
+## Dominio custom en 403 con config "en verde"
+
+Un custom domain de App Hosting puede quedar `HOST_ACTIVE/CERT_ACTIVE` y aun así devolver 403 en el edge (enrutamiento interno roto tras rollout). No es DNS ni cert: el fix es recrear el dominio (delete+create+TXT nuevo). La URL directa `*.hosted.app` es el acceso de contingencia. Runbook completo en [[dominios-app-hosting]].
+
 ## Relaciones
 
-- Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]]
+- Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]], [[triaje-auditoria-ux]], [[kpis-formula-unica]]
 - Depende de: —
 - Se conecta con: [[animaciones]], [[domain-types]], [[firebase-firestore]], [[stack-tecnico]], [[tokens-color]]
 

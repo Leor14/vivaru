@@ -53,7 +53,7 @@ El matcher excluye `_next`, `favicon` y archivos con extensión. Esto garantiza 
 
 ## Relaciones
 
-- Véase también: [[stack-tecnico]], [[autenticacion-roles]], [[middleware-ts]], [[landing-marketing]]
+- Véase también: [[dominios-app-hosting]], [[stack-tecnico]], [[autenticacion-roles]], [[middleware-ts]], [[landing-marketing]]
 - Depende de: [[multi-tenancy]]
 - Se conecta con: [[layout-patterns]], [[mobile-first-ios]], [[portal-residente]], [[portal-guardia]], [[superadmin]], [[tailwind-v4-spacing-fix]]
 
