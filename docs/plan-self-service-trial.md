@@ -1,6 +1,6 @@
 # Plan — Self-service: trial de 15 días con conversión asistida
 
-> Estado: planeación, sin ejecutar. Requiere decisiones de negocio (§11) antes de construir.
+> Estado: planeación, sin ejecutar. Decisiones de producto resueltas (§11); quedan 3 decisiones comerciales.
 
 ## 0. Qué es esto y qué no
 
@@ -40,71 +40,109 @@ mitiga con (a) el gate de backend de §5, (b) el prefijo de IDs de §6 y (c) la 
 
 ## 2. Las tres reglas que definen el trial
 
-### Regla A — Módulos: tres niveles, no dos
+### Regla A — Módulos: núcleo operativo + dos que sorprenden, y lo que se vende bajo llave
 
-Un candado binario (abierto/cerrado) desperdicia el mejor activo comercial: **lo que el
-prospecto no puede usar, pero sí ver, es lo que genera el deseo de pagar.** Por eso tres
-niveles:
+Tres niveles, porque un candado binario desperdicia el mejor activo comercial: **lo que el
+prospecto ve pero no puede usar es lo que genera el deseo de pagar.**
 
 | Nivel | Qué puede hacer | Para qué sirve |
 |---|---|---|
 | **Libre** | Usar sin restricción durante los 15 días | Demostrar el valor operativo diario |
-| **Limitado** | Usar con cuota (unidades, envíos, storage) | Sentirlo real sin poder operar gratis un conjunto |
-| **Vista previa** 🔒 | **Ver** la pantalla con datos de ejemplo; no operar, no exportar, no enviar | Generar deseo → es donde vive el CTA de asesor |
+| **Limitado** | Usar con cuota (storage, correos a terceros) | Contener costo y riesgo, no capacidad |
+| **Vista previa** 🔒 | **Ver** la pantalla con datos de ejemplo; no operar, no exportar | Generar deseo → es donde vive el CTA de asesor |
 
-Criterio para clasificar (aplicable a módulos futuros):
+#### El núcleo operativo (libre) — lo que un administrador de PH hace todos los días
 
-- **Libre** si no tiene costo marginal para Vivaru, ni implicación legal/fiscal, ni es el
-  diferenciador de venta.
-- **Limitado** si tiene costo marginal real (correos, storage) o permitiría operar un
-  conjunto de verdad sin pagar.
-- **Vista previa** si toca dinero real, tiene valor legal, o es la pieza que cierra la venta.
+Estos cinco son la rutina real de un administrador en LATAM. Si no funcionan, no hay venta:
 
-Aplicación concreta:
-
-| Módulo | Nivel | Razón |
-|---|---|---|
-| Residentes y unidades | **Limitado** — máx. 15 unidades | Es el cimiento de todo; el tope impide operar un conjunto real |
-| Visitantes | Libre | Valor diario visible, sin costo marginal |
-| Paquetería | Libre | Idem |
-| Reservas | Libre | Idem |
-| PQRS | Libre | Idem |
-| Encuestas | Libre | Sin costo |
-| Comunicaciones | **Limitado** — máx. 3 publicaciones, **sin envío de correo a terceros** | Cada envío es costo real y riesgo de reputación del dominio |
-| Documentos | **Limitado** — máx. 10 archivos / 50 MB | Costo de storage |
-| Configuración | Libre salvo datos fiscales | Necesita configurar; lo fiscal no aplica en prueba |
-| **Cartera / Cobros** | 🔒 Vista previa | Dinero real. Es el módulo que más pesa en la decisión de compra |
-| **Egresos, Libro y fondos, Conciliación** | 🔒 Vista previa | Contable: un registro en prueba no debe parecer contabilidad válida |
-| **Reglamento con firmas** | 🔒 Vista previa | Una firma en un ambiente que expira no tiene valor legal — y prometerlo es un riesgo |
-| **Reporte de Comité** | 🔒 Vista previa | Es el artefacto que cierra ventas: verlo lleno de sus propios datos es el mejor argumento |
-
-Los módulos en vista previa se muestran **con el dataset demo pre-sembrado** (§6), no
-vacíos. Un módulo financiero vacío no vende nada; uno con 4 meses de cartera, sí.
-
-### Regla B — Usuarios: configura todo, pero no le escribimos a terceros
-
-| Qué | Límite en trial |
+| Módulo | Dolor diario que resuelve |
 |---|---|
-| Administradores | **1** — el que se registró. No puede crear más admins |
-| Guardias | **1** cuenta demo pre-creada |
-| Residentes | **3** cuentas demo pre-creadas |
-| Unidades y personas como *datos* | Hasta 15 unidades, sin límite de personas |
-| **Invitaciones por correo a personas reales** | **Bloqueadas** |
+| **Residentes y unidades** | El maestro de datos: sin esto no existe nada más |
+| **Visitantes** | Portería descoordinada — el problema operativo #1 |
+| **Paquetería** | Paquetes perdidos y reclamos constantes |
+| **Comunicaciones** | Hoy viven en grupos de WhatsApp que son un caos |
+| **PQRS** | Quejas dispersas en WhatsApp y papel, sin rastro ni responsable |
 
-La regla clave es la última y va contra la intuición, así que la argumento:
+#### Los dos que sorprenden (libre) — donde se gana la conversión
 
-1. **Reputación del dominio.** `noreply@notificaciones.grupovivaru.com` es el remitente de
-   todos los correos transaccionales de los clientes que **sí pagan**. Que trials envíen
-   invitaciones a listas frías es la forma más rápida de terminar en spam y romper el
-   correo de los clientes reales.
-2. **Datos personales de terceros.** Invitar residentes reales a un ambiente que expira en
-   15 días y se purga después es un problema de tratamiento de datos que no queremos.
-3. **No hace falta para vender.** Lo que el prospecto necesita es *ver* la experiencia del
-   residente y del portero — y eso se resuelve con las cuentas demo (§4), sin escribirle a
-   nadie.
+Un administrador *espera* cobros y comunicados: eso lo prometen todos los competidores. Lo
+que **no espera** es esto, y es lo que convierte una demo tibia en un "esto sí lo necesito":
 
-Puede cargar unidades y personas como datos (incluso por CSV) para sentir su conjunto real;
-simplemente **no se dispara el correo de invitación** hasta que convierta.
+**1. Reservas de zonas comunes con detección de conflictos.** El dolor no es agendar: es que
+hoy se agenda por WhatsApp, se cruzan dos familias el mismo sábado en el salón, y **el
+administrador queda acusado de favoritismo**. Que el sistema **impida** la doble reserva
+—no que la reporte después— le quita de encima un conflicto político recurrente. Ya está
+construido (detección de solapamiento, VIV-804) y es muy demostrable en vivo.
+
+**2. Encuestas con resultados.** Casi ningún administrador tiene una herramienta para
+consultar a la copropiedad sin convocar asamblea. Poder preguntar "¿cambiamos el horario de
+la piscina?" y **mostrarle al comité un resultado con evidencia** cambia su posición
+política dentro del conjunto. Es el módulo que menos esperan y el que más los sorprende.
+
+#### El "aha" transversal (no es un módulo)
+
+- **El Panel de Control con sus propios datos**: la primera vez que ven su operación en
+  números.
+- **El portal del residente**: descubrir que sus residentes tienen su propia app —y que por
+  eso van a dejar de escribirle por WhatsApp— es, para muchos, el argumento definitivo. Lo
+  ve con sus cuentas de prueba (Regla B).
+
+#### Limitados (por costo, no por capacidad)
+
+| Módulo | Límite | Razón |
+|---|---|---|
+| Documentos | 10 archivos / 50 MB | Costo de storage |
+| Correo saliente a terceros | Bloqueado (ver Regla B) | Reputación del dominio |
+| Configuración | Todo salvo datos fiscales | Lo fiscal no aplica a una prueba |
+
+#### 🔒 Vista previa — lo que se vende (confirmado)
+
+| Módulo | Razón |
+|---|---|
+| **Cartera / Cobros** | Dinero real. Es lo que más pesa en la decisión de compra |
+| **Egresos, Libro y fondos, Conciliación** | Un registro contable en prueba no debe parecer contabilidad válida |
+| **Reglamento con firmas** | Una firma en un ambiente que expira no tiene valor legal; prometerlo es un riesgo |
+| **Reporte de Comité** | Es el artefacto que cierra ventas: verlo lleno de sus datos es el mejor argumento |
+
+Se muestran **poblados con el dataset de ejemplo** (§6), nunca vacíos: un módulo financiero
+en blanco no vende nada; uno con cuatro meses de cartera y su conciliación, sí.
+
+### Regla B — Usuarios: carga libre + cuentas de prueba propias del administrador
+
+Corrección respecto de la versión anterior de este plan: **no se limita cuántos residentes
+puede cargar.** El administrador decide si sube todo su conjunto o solo unos cuantos para
+probar — esa libertad es parte de la experiencia.
+
+| Qué | En trial |
+|---|---|
+| Unidades y personas como *datos* | **Libre** (tope técnico anti-abuso: 100 unidades) |
+| Carga masiva por CSV | Habilitada |
+| Administradores | 1 — el que se registró |
+| **Cuentas de prueba propias** | **1 residente + 1 portería, auto-creadas** |
+| Invitaciones por correo a personas reales | Bloqueadas hasta convertir |
+
+#### "Mis cuentas de prueba" — la pieza central de esta regla
+
+El administrador necesita **ver la experiencia del residente y del portero sin molestar a
+nadie ni compartir contraseñas con un residente real.** Por eso el ambiente se crea con dos
+cuentas que son **suyas**, no de terceros:
+
+- `demo-residente@<su-conjunto>.vivaru.app` — asignada a una unidad de ejemplo
+- `demo-porteria@<su-conjunto>.vivaru.app`
+
+Con contraseña **visible para él** en un panel de "Mis cuentas de prueba" dentro de
+Configuración, con botón "Abrir portal del residente" / "Abrir portal de portería" en otra
+pestaña. Puede reiniciar la contraseña cuando quiera.
+
+Que sean cuentas técnicas (no correos reales) resuelve tres cosas a la vez: no se le
+escribe a ningún tercero, no hay datos personales ajenos en un ambiente que expira, y él
+entra cuando quiera sin pedirle permiso a nadie.
+
+**Los correos de prueba sí funcionan**, pero solo hacia esas cuentas y hacia el propio
+correo del administrador. Así puede ver cómo llega un comunicado o un aviso de paquete sin
+que salga un solo correo a una lista fría — protegiendo la reputación de
+`noreply@notificaciones.grupovivaru.com`, que es el remitente de los clientes que **sí
+pagan**.
 
 ### Regla C — Vigencia: 15 días, y el día 16 no se borra nada
 
@@ -172,10 +210,22 @@ El modelo ya existe (`maxUnits`, `maxNotificationsPerMonth`, `featuresEnabled`) 
 
 ## 4. Flujo end-to-end
 
-### Fase 1 — Captura (landing)
+### Fase 1 — Captura (landing) — **decidido: el trial reemplaza a la demo**
 
-Nuevo CTA **"Prueba gratis 15 días"** junto al de "Agenda una demo" (§11 tiene la decisión
-comercial sobre si conviven o se segmentan). Lleva a `/registro`:
+El CTA principal pasa a ser **"Prueba gratis 15 días"** → `/registro`. El agendamiento de
+demo se retira como camino principal, pero **se conserva una vía asistida**: un CTA
+secundario **"Hablar con un asesor"** que abre un formulario de contacto para quien no
+quiere probar solo (típicamente conjuntos grandes o administradoras con varios conjuntos).
+
+Reutilización directa: el `DemoDialog` actual ya captura exactamente los campos correctos
+(nombre, email, teléfono, empresa, cargo, número de conjuntos, unidades, horizonte de
+decisión) y ya notifica al equipo. Se reetiqueta como "Hablar con un asesor" —cambio de
+copy, no de lógica— y se le conecta la persistencia de `leads` de §3.
+
+Ambos caminos alimentan la misma colección `leads`, diferenciados por `origen: "trial" |
+"asesor"`, para poder comparar cuál convierte mejor.
+
+Flujo de `/registro`:
 
 **Paso 1 — Contacto:** nombre, email corporativo, teléfono, cargo.
 **Paso 2 — Tu conjunto:** nombre del conjunto, ciudad, país, número de unidades.
@@ -221,17 +271,20 @@ Por qué checklist y no tour: el tour se salta y no vuelve; el checklist queda, 
 además **alimenta el health-score comercial** (§9) — un prospecto que completó 6 de 7
 pasos es una llamada prioritaria.
 
-### Fase 4 — Ver los otros roles
+### Fase 4 — Ver los otros roles con sus cuentas de prueba
 
-El paso 7 del checklist abre un panel con las **credenciales demo visibles** (residente y
-portería) y un botón "Abrir en otra pestaña". Login real, experiencia real.
+El paso 7 del checklist abre **"Mis cuentas de prueba"** (Regla B): las credenciales de su
+residente y su portero, visibles, con botón "Abrir en otra pestaña". Login real,
+experiencia real, sin involucrar a ninguna persona.
 
-Se descarta la suplantación de sesión ("ver como residente" sin logout) para la v1: es más
-elegante pero exige tocar reglas de Firestore y manejo de claims — riesgo de seguridad
-alto para un beneficio de comodidad. Queda como v2 si el login demo resulta friccionante.
+Se descarta la suplantación de sesión ("ver como residente" sin cerrar sesión) para la v1:
+es más elegante pero exige tocar reglas de Firestore y manejo de claims — riesgo de
+seguridad alto para un beneficio de comodidad. Queda como v2 si el login resulta
+friccionante.
 
-Las cuentas demo también tienen módulos acotados (§2), para que la experiencia sea
-coherente con lo que se vende.
+Las cuentas de prueba ven los módulos según la Regla A, para que la experiencia sea
+coherente con lo que se vende. El objetivo es que el administrador descubra el portal del
+residente: es el "aha" más fuerte del trial.
 
 ### Fase 5 — Conversión
 
@@ -315,29 +368,94 @@ que unificar en el dominio verificado antes de abrir el trial.
 
 ---
 
-## 8. Superadmin — nueva vista y la acción que importa
+## 8. La consola interna de Vivaru — ciclo de vida de los ambientes
 
-Nueva pestaña **"Ambientes de prueba"** (`/superadmin/trials`):
+Esta es la herramienta de trabajo del equipo Vivaru. La idea rectora: **una sola vista con
+todos los ambientes habitacionales**, sean de prueba o de clientes, con un estado explícito
+y las acciones que hacen avanzar ese estado. Hoy `/superadmin/tenants` lista tenants pero
+el estado no significa nada y no hay noción de vencimiento.
 
-| Columna | Detalle |
+### 8.1 Máquina de estados
+
+```
+  [registro verificado]
+          │
+          ▼
+     🟡 PRUEBA ──── convertir ────▶ 🟢 CLIENTE ──── suspender ────▶ ⏸️ SUSPENDIDO
+     (15 días)                          ▲                                │
+          │                             │                                │
+          │                             └──────── reactivar ─────────────┘
+          │  extender (+N días)
+          │       ↺
+          │
+   vence el día 16
+          │
+          ▼
+     🔴 VENCIDO ──── convertir (rescate) ────▶ 🟢 CLIENTE
+     (solo lectura)
+          │
+     purga día 75
+          ▼
+      ⚫ ARCHIVADO
+```
+
+Los tres estados que hoy no existen o no operan: **VENCIDO** (nuevo), **PRUEBA con fecha**
+(hoy `trial` no tiene vencimiento) y **SUSPENDIDO con efecto real** (hoy es solo una
+etiqueta).
+
+### 8.2 La vista: `/superadmin/ambientes`
+
+Reemplaza a `/superadmin/tenants` con filtros por estado:
+
+`Todos` · `🟢 Clientes` · `🟡 En prueba` · `🔴 Vencidos` · `⏸️ Suspendidos`
+
+Columnas comunes: conjunto, ciudad, plan, unidades, último acceso, estado.
+
+Columnas específicas de prueba y vencidos —que son las que sirven para vender—:
+
+| Columna | Para qué |
 |---|---|
-| Conjunto | Nombre + ciudad |
-| Contacto | Nombre, email, teléfono (del lead) |
-| Días restantes | Con semáforo (verde >7, ámbar 3–7, rojo <3, gris expirado) |
-| Activación | "5 de 7" del checklist |
-| Uso | Unidades creadas, módulos tocados, último acceso |
-| Intención | Si hizo clic en "Quiero contratar" |
+| **Días restantes** | Semáforo: verde >7, ámbar 3–7, rojo <3, gris vencido |
+| **Contacto** | Nombre, correo y teléfono del lead — a un clic de llamar |
+| **Activación** | "5 de 7" del checklist: mide si de verdad lo usó |
+| **Uso real** | Unidades cargadas, módulos que tocó, número de sesiones |
+| **Intención** | 🔥 si hizo clic en "Quiero contratar Vivaru" |
 
-Acciones:
+Una regla de operación comercial que la vista debe hacer obvia: **un ambiente con
+activación alta y pocos días restantes es la llamada más urgente del día.**
 
-- **Convertir a cliente** — la acción central: `status: "trial"` → `"active"`, quita
-  `trialEndsAt`, asigna plan real, desbloquea módulos, sella `convertedAt`. **Sin migrar un
-  solo documento.** Opción de purgar el dataset demo y dejar solo lo que el cliente cargó.
-- **Extender prueba** (+N días) — para negociaciones en curso.
-- **Marcar como perdido** con motivo — alimenta el aprendizaje comercial.
+### 8.3 Las acciones
 
-Base reutilizable: `/superadmin/metrics` ya calcula `TenantAdoptionMetrics` (unidades,
-residentes activos, tickets, visitas, adoptionScore) — es directamente el health-score.
+**① Convertir a cliente** — la acción central y el corazón de tu punto 12.
+
+Un modal que exige elegir plan y muestra explícitamente qué va a pasar:
+
+> Vas a convertir **Conjunto Las Palmas** en cliente con plan **Profesional**.
+> · Se conserva **todo** lo que configuró: 48 unidades, 96 residentes, 12 visitas, 3 comunicados
+> · Se desbloquean Cartera, Egresos, Libro y fondos, Reglamento y Reporte de Comité
+> · Se elimina la fecha de vencimiento
+> · ☐ Eliminar los datos de ejemplo y dejar solo lo que el cliente cargó
+
+Técnicamente: `status → "active"`, borra `trialEndsAt`, asigna `planId` real, sella
+`convertedAt`/`convertedBy`, marca el lead como `convertido`, y dispara correo de bienvenida
+al administrador. **No se mueve un solo documento** — por eso funciona igual para rescatar
+un ambiente ya vencido.
+
+**② Extender prueba (+N días)** — para negociaciones en curso. Registra quién y por qué.
+
+**③ Marcar como perdido** — con motivo (precio, competencia, no era el perfil, sin
+respuesta). Es lo que después te dice por qué se pierden los trials.
+
+**④ Suspender / reactivar cliente** — para el cliente que deja de pagar. Hoy este botón
+existe pero **no hace nada**; debe pasar a dejar el ambiente en solo lectura.
+
+**⑤ Purgar** — solo para vencidos pasados los 75 días, con doble confirmación.
+
+### 8.4 Qué se reutiliza
+
+`/superadmin/metrics` ya calcula `TenantAdoptionMetrics` (unidades, residentes activos,
+tickets, visitas, `adoptionScore`, `adoptionLevel`) por tenant. Es **directamente** el
+health-score de la columna "Uso real": no hay que inventarlo, hay que conectarlo.
 
 ---
 
@@ -368,27 +486,27 @@ residentes activos, tickets, visitas, adoptionScore) — es directamente el heal
 
 ---
 
-## 11. Decisiones que necesito de ti
+## 11. Decisiones
 
-1. **¿Trial y demo asistida conviven, o se segmentan?** Hoy el landing vende "Agenda una
-   demo" y las secciones de Precios y Piloto están **comentadas por decisión comercial
-   pendiente**. Mi recomendación: conviven pero segmentados — trial autoservicio como CTA
-   principal, y demo asistida destacada para quien declare +100 unidades.
+### Resueltas
 
-2. **¿Confirmas la clasificación de módulos de la Regla A?** En particular: ¿Cartera y
-   Reporte de Comité en vista previa (mi recomendación, son el argumento de venta), o
-   abiertos con límite?
+| # | Decisión | Resolución |
+|---|---|---|
+| 1 | Trial vs. demo asistida | **El trial reemplaza a la demo** como camino principal. Se conserva un CTA "Hablar con un asesor" en el landing para quien no quiera probar solo (§4) |
+| 2 | Cartera y Reporte de Comité | **En vista previa** 🔒 — confirmado |
+| 3 | Validación de que es administrador | **Verificación de correo + datos de calificación**; la validación real la hace el asesor en el follow-up |
+| 4 | Límite de residentes | **Sin límite funcional** — el administrador decide si carga todo su conjunto o solo unos cuantos (tope técnico anti-abuso: 100 unidades) |
+| 5 | Cómo ve los otros roles | **Cuentas de prueba propias** (residente + portería), auto-creadas, con credenciales visibles para él — sin involucrar a residentes reales |
+| 6 | Módulos abiertos | Núcleo (Residentes, Visitantes, Paquetería, Comunicaciones, PQRS) + los dos que sorprenden (**Reservas** y **Encuestas**) |
 
-3. **¿15 unidades es el tope correcto?** Debe ser suficiente para que se sienta real e
-   insuficiente para operar. Depende del tamaño típico de tu mercado objetivo.
+### Pendientes
 
-4. **¿Aceptas no invitar residentes reales durante el trial?** Es la regla más
-   contraintuitiva del plan y la más importante para proteger el correo de los clientes
-   que pagan.
-
-5. **¿Qué pasa al expirar: solo lectura (mi recomendación) o bloqueo total?**
-
-6. **¿Buzón interno y responsable comercial** para las alertas de trial?
+1. **¿Buzón y responsable comercial** para las alertas de trial? (hoy los formularios del
+   landing apuntan a `comercial@qintilab.com` y `hola@grupovivaru.com` — hay que unificar).
+2. **¿Confirmas que al vencer queda en solo lectura** y se conserva 60 días antes de purgar?
+   Es la opción que preserva el activo comercial.
+3. **¿Qué planes se ofrecen al convertir?** Hoy `/superadmin/plans` tiene el CRUD pero
+   `Pricing.tsx` está comentado y sin precios. Convertir exige elegir un plan real.
 
 ---
 
