@@ -49,7 +49,7 @@ El contenedor usa `overflow-x: auto` (no `overflow-x: hidden`) para no romper `p
 
 ## Relaciones
 
-- Véase también: [[componentes]], [[layout-patterns]], [[mobile-first-ios]]
+- Véase también: [[acciones-de-fila]], [[componentes]], [[layout-patterns]], [[mobile-first-ios]]
 - Depende de: [[absolute-bans]]
 - Se conecta con: [[billing]], [[pqrs]], [[visitantes]], [[usuarios]]
 

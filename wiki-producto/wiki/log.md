@@ -130,8 +130,39 @@ Historial cronológico de ingestas, actualizaciones y operaciones de mantenimien
 
 ---
 
+## [2026-07-03] ingest | Auditoría UX/UI jul-2026 + sesión de remediación
+
+Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución completa.
+
+- **Páginas creadas: 8**
+  - `fuentes/auditoria-ux-jul-2026` — la fuente y sus tres tesis
+  - `decisiones/triaje-auditoria-ux` — metodología de verificación (aplica / ya resuelto / data demo / negocio)
+  - `decisiones/torres-canonicas` — normalizeTower, lista por tenant, migración one-off
+  - `decisiones/integridad-financiera` — reversos, confirmación de cobros, mora real
+  - `patrones-tecnicos/resolucion-unit-id` — resolver único unitId→nombre
+  - `patrones-tecnicos/kpis-formula-unica` — % recaudo, PQRS pendientes, firma
+  - `patrones-tecnicos/acciones-de-fila` — patrón único de acciones destructivas
+  - `arquitectura/dominios-app-hosting` — topología y runbook del 403
+- **Páginas actualizadas: 2** — `index.md` (8 entradas nuevas), `trampas-conocidas` (4 trampas: transform de zod con getValues, códigos auth/* sin mapear, fallbacks que incrustan IDs, dominio 403 en verde)
+- **Entidades extraídas:** normalizeTower, resolveUnitName, computeCollectionSummary, isTicketPending, reverseLedgerEntry, detectAmountAnomaly, findReservationConflict, RowActionsMenu, remindPackagePickup, migrate-towers.mjs
+
+---
+
 ## Próximas operaciones sugeridas
 
 - **LINT post-batch**: verificar frontmatter, fantasmas, densidad de links
 - **INGEST**: cuando se actualice PRODUCT.md, DESIGN.md o se complete un módulo pendiente
 - **UPDATE estado-modulos**: cuando Reservaciones, Paquetes, Comunicaciones, Encuestas, Reglamento o Reportes pasen a ✅
+- **INGEST pendientes del Grupo 3**: al ejecutar el split de Cartera en sub-rutas (VIV-1102) y el rich text en comunicados (VIV-402)
+- **DECISIONES de negocio abiertas**: Panamá en el selector fiscal (VIV-1801) y roles de comité + firma digital (VIV-1503/1601)
+
+---
+
+## [2026-07-03] lint | Post-batch auditoría UX
+
+- **Frontmatter**: 8/8 páginas nuevas con los 5 campos exactos ✅
+- **Idioma**: 100% es-CO ✅
+- **Fantasmas introducidos**: 0 ✅ (persisten preexistentes: `consolidacion-landing-2026`, `globals-css`, `analytics`, `pain-section` — fuentes citadas sin página propia)
+- **Densidad**: todas las nuevas ≥8 wikilinks (rango 8–17) ✅
+- **Entrantes**: mínimo 4 por página nueva tras añadir backlinks desde `stack-tecnico`, `estructura-app-router`, `componentes` y `data-table-pattern`
+- **Total wiki**: 57 páginas

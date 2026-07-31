@@ -51,7 +51,7 @@ El [[landing-marketing|route group (marketing)]] requiere dependencias adicional
 
 ## Relaciones
 
-- Véase también: [[estructura-app-router]], [[multi-tenancy]], [[firebase-firestore]], [[landing-marketing]]
+- Véase también: [[dominios-app-hosting]], [[estructura-app-router]], [[multi-tenancy]], [[firebase-firestore]], [[landing-marketing]]
 - Depende de: —
 - Se conecta con: [[autenticacion-roles]], [[form-validation]], [[tokens-color]], [[domain-types]], [[tailwind-v4-spacing-fix]]
 

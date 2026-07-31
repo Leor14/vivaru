@@ -3,7 +3,7 @@ tags: [indice, navegacion]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-06-23
+fecha_actualizacion: 2026-07-03
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -22,6 +22,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[backlog-md]] | Estado actual de módulos: completados, en progreso y pendientes |
 | [[middleware-ts]] | Lógica de autenticación, RBAC y routing por rol |
 | [[gtm-tecnico]] | Roadmap técnico go-to-market, fases 0 a 4+ |
+| [[auditoria-ux-jul-2026]] | 🆕 Auditoría UX/UI externa de julio 2026: 42 hallazgos VIV-### sobre el portal admin |
 
 ---
 
@@ -37,6 +38,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[multi-tenancy]] | Modelo multi-tenant lógico sobre Firestore, aislamiento y planes |
 | [[modulos-variantes]] | 🆕 moduleVariants: modos de operación por módulo (Visitas/Paquetería simple vs completo) |
 | [[stack-tecnico]] | Stack: Next.js 15 / React 19 / Tailwind v4 / Firebase App Hosting |
+| [[dominios-app-hosting]] | 🆕 Topología prod/staging, dominios custom y runbook del incidente 403 |
 
 ---
 
@@ -92,6 +94,9 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[form-validation]] | Zod + React Hook Form, React.forwardRef, patrones de validación |
 | [[firebase-firestore]] | Colecciones, reglas, Cloud Functions, auditoría |
 | [[fusion-unidades]] | 🆕 Fusionar unidades duplicadas: callable mergeUnits y mapa de referencias |
+| [[resolucion-unit-id]] | 🆕 Resolver único unitId→nombre: índice por doc-id y slug, jamás un ID crudo en la UI |
+| [[kpis-formula-unica]] | 🆕 Un indicador, una definición compartida: % recaudo, PQRS pendientes, cumplimiento de firma |
+| [[acciones-de-fila]] | 🆕 Patrón único de acciones: inline lo frecuente, destructivas al menú contextual |
 
 ---
 
@@ -103,3 +108,6 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[estado-modulos]] | Estado de módulos SaaS + estado de secciones del landing marketing |
 | [[roadmap-tecnico]] | Fases GTM 0–4: seguridad, branding, compliance, escalado |
 | [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions |
+| [[triaje-auditoria-ux]] | 🆕 Cómo se verifica un reporte externo contra código antes de ejecutarlo |
+| [[torres-canonicas]] | 🆕 Agrupaciones canónicas: normalizeTower, lista por tenant y migración one-off |
+| [[integridad-financiera]] | 🆕 Reversar en vez de borrar, confirmar cobros y mora real |
