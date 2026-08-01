@@ -4,6 +4,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { sendNotificationEmail } from "./email";
 import { seedTrialWorkspace } from "./trial-seed";
 
 /**
@@ -31,6 +32,26 @@ export const TRIAL_PLAN_ID = "trial";
 
 /** Dominio de las cuentas de prueba: no son correos reales de nadie. */
 const DEMO_ACCOUNT_DOMAIN = "ejemplo.vivaru.app";
+
+/**
+ * Buzón comercial. Igual que en el front, **staging nunca le escribe**: un
+ * trial de prueba no debe aparecer como prospecto real en la bandeja de ventas.
+ * En functions el ambiente se deduce del proyecto en el que corre.
+ */
+const COMMERCIAL_INBOX = "comercial@qintilab.com";
+const DEV_INBOX = "dev@qintilab.com";
+
+function isProductionProject(): boolean {
+  return (process.env.GCLOUD_PROJECT ?? process.env.GCP_PROJECT ?? "") === "hogaru-1";
+}
+
+function notifyInbox(): string {
+  return isProductionProject() ? COMMERCIAL_INBOX : DEV_INBOX;
+}
+
+function envSubjectTag(): string {
+  return isProductionProject() ? "" : "[STAGING] ";
+}
 
 export type CreateTrialInput = {
   nombre: string;
@@ -195,6 +216,41 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
     { merge: true },
   );
 
+  // ── 5. Lead: el ambiente queda atribuido a su origen comercial ────────────
+  const leadId = input.leadId ?? randomUUID();
+  await db.collection("leads").doc(leadId).set(
+    {
+      origen: "trial",
+      nombre: input.nombre.trim(),
+      email,
+      emailDomain: email.split("@")[1] ?? "",
+      telefono: input.telefono ?? null,
+      empresa: input.conjunto.trim(),
+      ciudad: input.ciudad.trim(),
+      pais: input.pais ?? "MX",
+      unidadesEstimadas: input.unidadesEstimadas ?? null,
+      tenantId,
+      status: "nuevo",
+      appEnv: isProductionProject() ? "production" : "staging",
+      createdAt: now,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+  await db.collection("tenants").doc(tenantId).set({ leadId, updatedAt: now }, { merge: true });
+
+  // ── 6. Aviso al equipo — best-effort, nunca tumba la provisión ────────────
+  try {
+    await notifyTeamOfNewTrial({
+      tenantId,
+      trialEndsAt: endsAt.toISOString(),
+      input: { ...input, email },
+      seeded,
+    });
+  } catch (error) {
+    console.error("[trial] aviso al equipo falló", { tenantId, error });
+  }
+
   return {
     tenantId,
     adminUid: adminUser.uid,
@@ -202,4 +258,40 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
     demoAccounts,
     seeded,
   };
+}
+
+/**
+ * Avisa al equipo comercial de un ambiente de prueba nuevo. Mismo criterio que
+ * los formularios del landing: el correo es best-effort y nunca penaliza la
+ * operación principal, y fuera de producción va al buzón interno.
+ */
+async function notifyTeamOfNewTrial(args: {
+  tenantId: string;
+  trialEndsAt: string;
+  input: CreateTrialInput;
+  seeded: Record<string, number>;
+}): Promise<void> {
+  const { tenantId, trialEndsAt, input } = args;
+  const vence = trialEndsAt.slice(0, 10);
+  const unidades = input.unidadesEstimadas ? `${input.unidadesEstimadas} unidades` : "unidades no declaradas";
+
+  const body = [
+    `${input.nombre.trim()} levantó un ambiente de prueba.`,
+    "",
+    `Conjunto:  ${input.conjunto.trim()}`,
+    `Ubicación: ${input.ciudad.trim()}, ${input.pais ?? "MX"}`,
+    `Tamaño:    ${unidades}`,
+    `Correo:    ${input.email}`,
+    `Teléfono:  ${input.telefono?.trim() || "no declarado"}`,
+    "",
+    `Ambiente:  ${tenantId}`,
+    `Vence:     ${vence} (${TRIAL_DAYS} días)`,
+  ].join("\n");
+
+  await sendNotificationEmail({
+    to: notifyInbox(),
+    subject: `${envSubjectTag()}[Trial] ${input.nombre.trim()} · ${input.conjunto.trim()} · ${input.ciudad.trim()}`,
+    body,
+    link: "/superadmin/ambientes",
+  });
 }

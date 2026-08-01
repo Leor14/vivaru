@@ -9,6 +9,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Modal } from "@/components/shared/modal";
+import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -20,12 +21,15 @@ import {
   type TenantUpdateInput,
 } from "@/features/superadmin/schemas";
 import {
+  convertTenantToCustomer,
+  extendTrial,
   setTenantStatus,
   updateTenantWorkspace,
   watchTenants,
   createTenantWorkspace,
   type TenantWorkspaceItem,
 } from "@/features/superadmin/services";
+import { useAuth } from "@/features/auth/auth-context";
 import { CURRENCY_OPTIONS } from "@/lib/currency";
 import {
   DEFAULT_MODULE_VARIANTS,
@@ -35,7 +39,23 @@ import {
 import { VariantOptionPicker } from "@/components/shared/variant-option-picker";
 
 const ONBOARDING_OPTIONS = ["not_started", "in_progress", "completed"] as const;
-const TENANT_STATUS_OPTIONS = ["active", "trial", "suspended"] as const;
+const TENANT_STATUS_OPTIONS = ["active", "trial", "suspended", "expired"] as const;
+
+/** Etiqueta y tono por estado del ambiente (ver docs/plan-self-service-trial.md §8). */
+const STATUS_META: Record<string, { label: string; className: string }> = {
+  active: { label: "Cliente", className: "bg-emerald-100 text-emerald-700" },
+  trial: { label: "En prueba", className: "bg-amber-100 text-amber-700" },
+  expired: { label: "Vencido", className: "bg-red-100 text-red-700" },
+  suspended: { label: "Suspendido", className: "bg-[var(--slate-200)] text-[var(--slate-700)]" },
+};
+
+/** Días que faltan para que venza la prueba (negativo = ya venció). */
+function daysLeft(trialEndsAt?: string): number | null {
+  if (!trialEndsAt) return null;
+  const end = new Date(trialEndsAt).getTime();
+  if (Number.isNaN(end)) return null;
+  return Math.ceil((end - Date.now()) / 86400000);
+}
 
 export default function SuperadminTenantsPage() {
   const [tenants, setTenants] = useState<TenantWorkspaceItem[]>([]);
@@ -45,9 +65,14 @@ export default function SuperadminTenantsPage() {
   const [savingCreate, setSavingCreate] = useState(false);
   const [lockedAck, setLockedAck] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "trial" | "suspended">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "trial" | "suspended" | "expired">("all");
   const [onboardingFilter, setOnboardingFilter] = useState<"all" | "not_started" | "in_progress" | "completed">("all");
   const [searchFilter, setSearchFilter] = useState("");
+  // Conversión de prueba a cliente (acción central de la consola).
+  const [convertTarget, setConvertTarget] = useState<TenantWorkspaceItem | null>(null);
+  const [convertPlan, setConvertPlan] = useState("starter");
+  const [converting, setConverting] = useState(false);
+  const { user } = useAuth();
 
   const createForm = useForm<TenantCreateInput>({
     resolver: zodResolver(tenantCreateSchema),
@@ -109,7 +134,9 @@ export default function SuperadminTenantsPage() {
   async function handleCreate(values: TenantCreateInput) {
     setSavingCreate(true);
     try {
-      await createTenantWorkspace(values);
+      // "expired" solo se alcanza venciendo una prueba, nunca al crear.
+      const status = values.status === "expired" ? "trial" : values.status;
+      await createTenantWorkspace({ ...values, status });
       toast.success("Tenant creado correctamente.");
       setCreateOpen(false);
       createForm.reset();
@@ -145,6 +172,36 @@ export default function SuperadminTenantsPage() {
     try {
       await setTenantStatus(tenant.id, targetStatus);
       toast.success(`Tenant ${actionLabel}do correctamente.`);
+    } catch (error) {
+      toastFirebaseError(error);
+    }
+  }
+
+  async function handleConvert() {
+    if (!convertTarget || !user?.uid) return;
+    setConverting(true);
+    try {
+      await convertTenantToCustomer({
+        tenantId: convertTarget.id,
+        planId: convertPlan,
+        convertedByUid: user.uid,
+      });
+      toast.success(`${convertTarget.name} ahora es cliente. Se conservó toda su configuración.`);
+      setConvertTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setConverting(false);
+    }
+  }
+
+  async function handleExtend(tenant: TenantWorkspaceItem) {
+    const raw = window.prompt(`¿Cuántos días extender la prueba de ${tenant.name}?`, "7");
+    const days = Number(raw);
+    if (!raw || !Number.isFinite(days) || days <= 0) return;
+    try {
+      await extendTrial(tenant.id, days);
+      toast.success(`Prueba extendida ${days} días.`);
     } catch (error) {
       toastFirebaseError(error);
     }
@@ -193,7 +250,25 @@ export default function SuperadminTenantsPage() {
     {
       key: "status",
       header: "Estado",
-      render: (tenant) => <Badge>{tenant.status}</Badge>,
+      render: (tenant) => {
+        const meta = STATUS_META[tenant.status] ?? { label: tenant.status, className: "" };
+        return <Badge className={meta.className}>{meta.label}</Badge>;
+      },
+    },
+    {
+      key: "vigencia",
+      header: "Vigencia",
+      // Semáforo de la prueba: verde >7 días, ámbar 3–7, rojo <3, gris vencido.
+      render: (tenant) => {
+        const left = daysLeft(tenant.trialEndsAt);
+        if (tenant.status === "active") {
+          return <span className="text-xs text-[var(--slate-500)]">{tenant.convertedAt ? "Convertido" : "—"}</span>;
+        }
+        if (left === null) return <span className="text-xs text-[var(--slate-400)]">—</span>;
+        if (left < 0) return <span className="text-xs font-medium text-[var(--danger-700)]">Venció hace {Math.abs(left)} d</span>;
+        const tone = left > 7 ? "text-emerald-700" : left >= 3 ? "text-amber-700" : "text-[var(--danger-700)]";
+        return <span className={`text-xs font-medium ${tone}`}>{left} día{left === 1 ? "" : "s"}</span>;
+      },
     },
     {
       key: "onboarding",
@@ -300,18 +375,83 @@ export default function SuperadminTenantsPage() {
           emptyText="No hay tenants con los filtros actuales."
           actionsHeader="Acciones"
           tableMinWidthClassName="min-w-[760px] sm:min-w-[920px]"
-          renderActions={(tenant) => (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => openEditTenant(tenant)}>
-                Editar
-              </Button>
-              <Button size="sm" variant={tenant.status === "suspended" ? "default" : "danger"} onClick={() => void handleToggleStatus(tenant)}>
-                {tenant.status === "suspended" ? "Activar" : "Suspender"}
-              </Button>
-            </div>
-          )}
+          renderActions={(tenant) => {
+            const enPrueba = tenant.status === "trial" || tenant.status === "expired";
+            return (
+              <div className="flex flex-wrap justify-end gap-2">
+                {enPrueba ? (
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setConvertPlan(tenant.planId === "trial" ? "starter" : tenant.planId);
+                      setConvertTarget(tenant);
+                    }}
+                  >
+                    Convertir a cliente
+                  </Button>
+                ) : null}
+                <Button size="sm" variant="outline" onClick={() => openEditTenant(tenant)}>
+                  Editar
+                </Button>
+                <RowActionsMenu
+                  ariaLabel={`Acciones para ${tenant.name}`}
+                  items={[
+                    ...(enPrueba
+                      ? [{ key: "extend", label: "Extender prueba…", onSelect: () => void handleExtend(tenant) }]
+                      : []),
+                    {
+                      key: "toggle",
+                      label: tenant.status === "suspended" ? "Reactivar" : "Suspender",
+                      danger: tenant.status !== "suspended",
+                      onSelect: () => void handleToggleStatus(tenant),
+                    },
+                  ]}
+                />
+              </div>
+            );
+          }}
         />
       </Card>
+
+      {/* Conversión de prueba a cliente: la acción central de la consola.
+          Se muestra explícitamente qué se conserva, porque el argumento de
+          venta es justamente que NO se migra ni se pierde nada. */}
+      <Modal
+        open={convertTarget !== null}
+        title="Convertir a cliente"
+        onClose={() => (converting ? undefined : setConvertTarget(null))}
+      >
+        {convertTarget ? (
+          <div className="space-y-3 text-sm text-[var(--slate-700)]">
+            <p>
+              Vas a convertir <strong>{convertTarget.name}</strong> ({convertTarget.city}) en cliente.
+            </p>
+            <label className="block text-sm">
+              Plan negociado
+              <Input
+                className="mt-1"
+                value={convertPlan}
+                onChange={(event) => setConvertPlan(event.target.value)}
+                placeholder="starter"
+              />
+            </label>
+            <ul className="list-disc space-y-1 rounded-xl bg-[var(--surface-soft)] p-3 pl-7 text-xs text-[var(--slate-600)]">
+              <li>Se conserva <strong>todo</strong> lo que configuró: unidades, residentes y su operación.</li>
+              <li>Se desbloquean los módulos que estaban en vista previa.</li>
+              <li>Se elimina la fecha de vencimiento de la prueba.</li>
+              <li>No se mueve ningún documento — por eso funciona igual con una prueba ya vencida.</li>
+            </ul>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setConvertTarget(null)} disabled={converting}>
+                Cancelar
+              </Button>
+              <Button onClick={() => void handleConvert()} disabled={converting || !convertPlan.trim()}>
+                {converting ? "Convirtiendo…" : "Convertir a cliente"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       <Modal open={createOpen} title="Crear tenant" onClose={() => setCreateOpen(false)}>
         <form className="space-y-3" onSubmit={createForm.handleSubmit((values) => void handleCreate(values))}>

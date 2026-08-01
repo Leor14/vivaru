@@ -3019,7 +3019,7 @@ exports.notifyPendingVisitorExits = (0, scheduler_1.onSchedule)("0 8 * * *", asy
 // Pública a propósito: la llama el registro del landing. La contención del
 // abuso es rate limiting + verificación de correo del lado del llamador, y el
 // "un correo = un trial" que valida provisionTrialWorkspace.
-exports.createTrialWorkspace = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public" }, async (request) => {
+exports.createTrialWorkspace = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
         throw new https_1.HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");

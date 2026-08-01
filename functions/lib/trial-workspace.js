@@ -6,6 +6,7 @@ const node_crypto_1 = require("node:crypto");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const email_1 = require("./email");
 const trial_seed_1 = require("./trial-seed");
 /**
  * Provisión del ambiente de prueba (Fase 1 del self-service).
@@ -29,6 +30,22 @@ exports.TRIAL_DAYS = 15;
 exports.TRIAL_PLAN_ID = "trial";
 /** Dominio de las cuentas de prueba: no son correos reales de nadie. */
 const DEMO_ACCOUNT_DOMAIN = "ejemplo.vivaru.app";
+/**
+ * Buzón comercial. Igual que en el front, **staging nunca le escribe**: un
+ * trial de prueba no debe aparecer como prospecto real en la bandeja de ventas.
+ * En functions el ambiente se deduce del proyecto en el que corre.
+ */
+const COMMERCIAL_INBOX = "comercial@qintilab.com";
+const DEV_INBOX = "dev@qintilab.com";
+function isProductionProject() {
+    return (process.env.GCLOUD_PROJECT ?? process.env.GCP_PROJECT ?? "") === "hogaru-1";
+}
+function notifyInbox() {
+    return isProductionProject() ? COMMERCIAL_INBOX : DEV_INBOX;
+}
+function envSubjectTag() {
+    return isProductionProject() ? "" : "[STAGING] ";
+}
 /** Slug legible y único a partir del nombre del conjunto. */
 function buildTenantId(conjunto) {
     const base = conjunto
@@ -144,6 +161,37 @@ async function provisionTrialWorkspace(input) {
     // Las credenciales de prueba se guardan para mostrarlas en "Mis cuentas de
     // prueba"; solo las lee el admin del tenant y el superadmin (ver reglas).
     await db.collection("tenantSettings").doc(tenantId).set({ demoAccounts, updatedAt: now }, { merge: true });
+    // ── 5. Lead: el ambiente queda atribuido a su origen comercial ────────────
+    const leadId = input.leadId ?? (0, node_crypto_1.randomUUID)();
+    await db.collection("leads").doc(leadId).set({
+        origen: "trial",
+        nombre: input.nombre.trim(),
+        email,
+        emailDomain: email.split("@")[1] ?? "",
+        telefono: input.telefono ?? null,
+        empresa: input.conjunto.trim(),
+        ciudad: input.ciudad.trim(),
+        pais: input.pais ?? "MX",
+        unidadesEstimadas: input.unidadesEstimadas ?? null,
+        tenantId,
+        status: "nuevo",
+        appEnv: isProductionProject() ? "production" : "staging",
+        createdAt: now,
+        updatedAt: now,
+    }, { merge: true });
+    await db.collection("tenants").doc(tenantId).set({ leadId, updatedAt: now }, { merge: true });
+    // ── 6. Aviso al equipo — best-effort, nunca tumba la provisión ────────────
+    try {
+        await notifyTeamOfNewTrial({
+            tenantId,
+            trialEndsAt: endsAt.toISOString(),
+            input: { ...input, email },
+            seeded,
+        });
+    }
+    catch (error) {
+        console.error("[trial] aviso al equipo falló", { tenantId, error });
+    }
     return {
         tenantId,
         adminUid: adminUser.uid,
@@ -151,4 +199,32 @@ async function provisionTrialWorkspace(input) {
         demoAccounts,
         seeded,
     };
+}
+/**
+ * Avisa al equipo comercial de un ambiente de prueba nuevo. Mismo criterio que
+ * los formularios del landing: el correo es best-effort y nunca penaliza la
+ * operación principal, y fuera de producción va al buzón interno.
+ */
+async function notifyTeamOfNewTrial(args) {
+    const { tenantId, trialEndsAt, input } = args;
+    const vence = trialEndsAt.slice(0, 10);
+    const unidades = input.unidadesEstimadas ? `${input.unidadesEstimadas} unidades` : "unidades no declaradas";
+    const body = [
+        `${input.nombre.trim()} levantó un ambiente de prueba.`,
+        "",
+        `Conjunto:  ${input.conjunto.trim()}`,
+        `Ubicación: ${input.ciudad.trim()}, ${input.pais ?? "MX"}`,
+        `Tamaño:    ${unidades}`,
+        `Correo:    ${input.email}`,
+        `Teléfono:  ${input.telefono?.trim() || "no declarado"}`,
+        "",
+        `Ambiente:  ${tenantId}`,
+        `Vence:     ${vence} (${exports.TRIAL_DAYS} días)`,
+    ].join("\n");
+    await (0, email_1.sendNotificationEmail)({
+        to: notifyInbox(),
+        subject: `${envSubjectTag()}[Trial] ${input.nombre.trim()} · ${input.conjunto.trim()} · ${input.ciudad.trim()}`,
+        body,
+        link: "/superadmin/ambientes",
+    });
 }

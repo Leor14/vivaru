@@ -3731,7 +3731,7 @@ export const notifyPendingVisitorExits = onSchedule("0 8 * * *", async () => {
 // abuso es rate limiting + verificación de correo del lado del llamador, y el
 // "un correo = un trial" que valida provisionTrialWorkspace.
 export const createTrialWorkspace = onCall<CreateTrialInput>(
-  { cors: callableCorsOrigins, invoker: "public" },
+  { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },
   async (request) => {
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
