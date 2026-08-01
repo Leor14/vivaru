@@ -12,6 +12,7 @@ import {
   ScrollText,
   ShieldCheck,
   Store,
+  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -27,6 +28,7 @@ type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>
 const ICON_BY_HREF: Record<string, IconComponent> = {
   "/superadmin": ShieldCheck,
   "/superadmin/tenants": Building2,
+  "/superadmin/leads": UserPlus,
   "/superadmin/admin-users": Users,
   "/superadmin/plans": Wallet,
   "/superadmin/metrics": BarChart2,

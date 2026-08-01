@@ -3745,6 +3745,17 @@ export const createTrialWorkspace = onCall<CreateTrialInput>(
 
     const result = await provisionTrialWorkspace(d);
 
+    // Enlace de activación: es también la verificación del correo — sin acceso
+    // al buzón no se entra al ambiente. Reutiliza el flujo probado de
+    // accountInvites + /activar, sin tocarlo.
+    await sendOnboardingInvite(
+      result.adminUid,
+      d.email.trim().toLowerCase(),
+      d.nombre.trim(),
+      result.tenantId,
+      "tenant_admin",
+    );
+
     await writeAuditLog(result.tenantId, undefined, "create_trial_workspace", {
       email: d.email.trim().toLowerCase(),
       conjunto: d.conjunto.trim(),

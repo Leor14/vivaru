@@ -105,6 +105,36 @@ export async function retransmitVoucherCallable(input: { voucherId: string }) {
   return executeCallable(callable, input, "No fue posible reintentar la transmisión al SRI.");
 }
 
+/**
+ * Provisión del ambiente de prueba desde el registro público del landing.
+ * No requiere sesión: es el único punto de entrada del self-service.
+ */
+export async function createTrialWorkspaceCallable(input: {
+  nombre: string;
+  email: string;
+  telefono?: string;
+  conjunto: string;
+  ciudad: string;
+  pais?: string;
+  unidadesEstimadas?: number;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { tenantId: string; trialEndsAt: string }>(
+    functions,
+    "createTrialWorkspace",
+  );
+  // Sin sesión: no se puede usar executeCallable (que exige usuario autenticado).
+  try {
+    const response = await callable(input);
+    return response.data;
+  } catch (error) {
+    throw new Error(normalizeCallableError(error, "No fue posible crear tu ambiente de prueba. Intenta de nuevo."));
+  }
+}
+
 export async function remindPackagePickupCallable(input: { tenantId: string; packageId: string }) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

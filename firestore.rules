@@ -214,6 +214,14 @@ service cloud.firestore {
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    // Credenciales de las cuentas de prueba del trial. Contienen contraseñas en
+    // claro, así que NO pueden vivir en tenantSettings (que lee cualquier
+    // miembro del tenant): solo el admin del conjunto y el superadmin.
+    match /tenantDemoAccounts/{tenantId} {
+      allow read: if signedIn() && tenantAdminOrSuper(tenantId);
+      allow write: if false;  // solo el Admin SDK al provisionar
+    }
+
     match /tenantSettings/{tenantId} {
       allow read: if signedIn() && sameTenant(tenantId);
       allow create, update: if signedIn() && tenantAdminOrSuper(tenantId) && request.resource.data.tenantId == tenantId;

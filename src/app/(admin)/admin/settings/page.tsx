@@ -22,6 +22,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { auth } from "@/lib/firebase/client";
 import { TenantBrandingCard } from "@/features/admin/components/tenant-branding-card";
 import { TowersCard } from "@/features/admin/components/towers-card";
+import { DemoAccountsCard } from "@/features/admin/components/demo-accounts-card";
 import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
 import { ModuleVariantsCard } from "@/features/admin/components/module-variants-card";
 import { NotificationTemplatesCard } from "@/features/admin/components/notification-templates-card";
@@ -255,6 +256,7 @@ export default function AdminSettingsPage() {
         onCancel={branding.cancelChanges}
         onSubmit={branding.submitBranding}
       />
+          <DemoAccountsCard />
           <TowersCard />
           <FiscalProfileCard />
         </>

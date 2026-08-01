@@ -209,10 +209,11 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
   // ── 4. Siembra (IDs prefijados por tenant) ────────────────────────────────
   const seeded = await seedTrialWorkspace(tenantId, input.pais === "CO" ? "COP" : "MXN");
 
-  // Las credenciales de prueba se guardan para mostrarlas en "Mis cuentas de
-  // prueba"; solo las lee el admin del tenant y el superadmin (ver reglas).
-  await db.collection("tenantSettings").doc(tenantId).set(
-    { demoAccounts, updatedAt: now },
+  // Las credenciales de prueba van en su PROPIA colección, no en tenantSettings:
+  // ese doc lo puede leer cualquier miembro del tenant (incluidos residentes) y
+  // aquí hay contraseñas en claro. `tenantDemoAccounts` solo lo lee el admin.
+  await db.collection("tenantDemoAccounts").doc(tenantId).set(
+    { tenantId, demoAccounts, updatedAt: now },
     { merge: true },
   );
 

@@ -158,9 +158,10 @@ async function provisionTrialWorkspace(input) {
     await authApi.setCustomUserClaims(adminUser.uid, { role: "tenant_admin", tenantId });
     // ── 4. Siembra (IDs prefijados por tenant) ────────────────────────────────
     const seeded = await (0, trial_seed_1.seedTrialWorkspace)(tenantId, input.pais === "CO" ? "COP" : "MXN");
-    // Las credenciales de prueba se guardan para mostrarlas en "Mis cuentas de
-    // prueba"; solo las lee el admin del tenant y el superadmin (ver reglas).
-    await db.collection("tenantSettings").doc(tenantId).set({ demoAccounts, updatedAt: now }, { merge: true });
+    // Las credenciales de prueba van en su PROPIA colección, no en tenantSettings:
+    // ese doc lo puede leer cualquier miembro del tenant (incluidos residentes) y
+    // aquí hay contraseñas en claro. `tenantDemoAccounts` solo lo lee el admin.
+    await db.collection("tenantDemoAccounts").doc(tenantId).set({ tenantId, demoAccounts, updatedAt: now }, { merge: true });
     // ── 5. Lead: el ambiente queda atribuido a su origen comercial ────────────
     const leadId = input.leadId ?? (0, node_crypto_1.randomUUID)();
     await db.collection("leads").doc(leadId).set({

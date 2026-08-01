@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
   const isPublic =
     pathname === "/" ||
     pathname.startsWith("/login") ||
+    pathname.startsWith("/registro") ||  // self-service: alta pública del trial
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/restablecer") ||
     pathname.startsWith("/activar") ||
