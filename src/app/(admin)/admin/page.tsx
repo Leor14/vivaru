@@ -897,7 +897,7 @@ export default function AdminDashboardPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
-            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Cumplimiento</p>
+            <p className="text-label text-[var(--slate-500)] uppercase tracking-widest px-1">Cumplimiento</p>
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
           </div>
           <RegulationComplianceWidget tenantId={tenantId} />
@@ -916,7 +916,7 @@ export default function AdminDashboardPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
-            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Operativo</p>
+            <p className="text-label text-[var(--slate-500)] uppercase tracking-widest px-1">Operativo</p>
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
@@ -938,7 +938,7 @@ export default function AdminDashboardPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
-            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Financiero</p>
+            <p className="text-label text-[var(--slate-500)] uppercase tracking-widest px-1">Financiero</p>
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
           </div>
           <OverdueUnitsWidget items={billing} loading={loadingBilling} />
@@ -957,7 +957,7 @@ export default function AdminDashboardPage() {
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
-            <p className="text-label text-[var(--slate-400)] uppercase tracking-widest px-1">Logística</p>
+            <p className="text-label text-[var(--slate-500)] uppercase tracking-widest px-1">Logística</p>
             <div className="h-px flex-1 bg-[var(--slate-200)]" />
           </div>
           <PackagesBodegaWidget tenantId={tenantId} />
