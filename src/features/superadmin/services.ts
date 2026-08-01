@@ -182,6 +182,11 @@ export async function convertTenantToCustomer(input: {
     trialEndsAt: deleteField(),
     convertedAt: new Date().toISOString(),
     convertedBy: input.convertedByUid,
+    // Al convertir cambia la misión, y con ella el recorrido: quien ya probó
+    // el producto ahora tiene que invitar a su comunidad y emitir el primer
+    // cobro. Los pasos compartidos se conservan hechos, así que no arranca de
+    // cero — pasa de "7 de 7" a algo como "7 de 10", que invita a seguir.
+    onboardingTrack: "cliente",
     updatedAt: serverTimestamp(),
   });
 }

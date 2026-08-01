@@ -11,14 +11,16 @@ import { runGuidedAction, useHasGuidedAction } from "@/features/onboarding/guide
 import { useGuidedNavigation } from "@/features/onboarding/route-transition";
 import { markStepSeen } from "@/features/onboarding/services";
 import { useOnboardingProgress } from "@/features/onboarding/use-onboarding-progress";
+import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import {
   GUIDE_PARAM,
-  ONBOARDING_BLOCKS,
+  blocksForTrack,
   hrefFor,
   nextStepAfter,
   positionInBlock,
   stepByKey,
   type OnboardingStep,
+  type OnboardingTrack,
 } from "@/lib/onboarding/steps";
 
 /**
@@ -38,24 +40,27 @@ import {
  */
 export function GuidedStepBanner() {
   const params = useSearchParams();
-  const step = stepByKey(params.get(GUIDE_PARAM));
-  if (!step) return null;
-  return <GuidedStepBannerInner step={step} />;
+  const { user } = useAuth();
+  const trial = useTenantTrial(user?.tenantId);
+  const track = trial.onboardingTrack;
+  const step = stepByKey(params.get(GUIDE_PARAM), track ?? "trial");
+  if (!track || !step) return null;
+  return <GuidedStepBannerInner step={step} track={track} />;
 }
 
-function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
+function GuidedStepBannerInner({ step, track }: { step: OnboardingStep; track: OnboardingTrack }) {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const progress = useOnboardingProgress(user?.tenantId);
+  const progress = useOnboardingProgress(user?.tenantId, track);
   const hasAction = useHasGuidedAction(step.key);
   const navigate = useGuidedNavigation();
   const [confirming, setConfirming] = useState(false);
 
   const tenantId = user?.tenantId;
   const done = progress.isDone(step.key);
-  const block = ONBOARDING_BLOCKS.find((item) => item.key === step.block);
-  const { index, total } = positionInBlock(step);
+  const block = blocksForTrack(track).find((item) => item.key === step.block);
+  const { index, total } = positionInBlock(step, track);
   const tone = getIconTone(step.tone);
   const StepIcon = step.icon;
 
@@ -73,7 +78,7 @@ function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
     return () => clearTimeout(timer);
   }, [tenantId, step.key, step.block, progressLoading, alreadySeen]);
 
-  const next = nextStepAfter(step, progress.isDone);
+  const next = nextStepAfter(step, progress.isDone, track);
 
   function dismiss() {
     router.replace(pathname, { scroll: false });
@@ -180,7 +185,7 @@ function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
 
           <div className="flex flex-wrap items-center gap-2">
             {step.action && hasAction ? (
-              <Button size="sm" onClick={() => runGuidedAction(step.key)}>
+              <Button size="sm" onClick={() => runGuidedAction(step.key, track)}>
                 {step.action.label}
               </Button>
             ) : null}

@@ -19,7 +19,15 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
  * formulario justo la explicación que el usuario vino a leer.
  */
 
-type Handler = () => void;
+import type { OnboardingTrack } from "@/lib/onboarding/steps";
+
+/**
+ * Recibe el recorrido porque un mismo paso puede querer cosas distintas: en la
+ * prueba «Crea tu primera unidad» abre el alta individual, y en un cliente
+ * «Importa tus unidades» abre el asistente de carga masiva. Es el mismo paso,
+ * no dos.
+ */
+type Handler = (track: OnboardingTrack) => void;
 
 const handlers = new Map<string, Handler>();
 const listeners = new Set<() => void>();
@@ -46,8 +54,8 @@ export function useHasGuidedAction(stepKey: string | undefined): boolean {
 }
 
 /** Ejecuta la acción del paso, si hay quien la atienda. */
-export function runGuidedAction(stepKey: string) {
-  handlers.get(stepKey)?.();
+export function runGuidedAction(stepKey: string, track: OnboardingTrack) {
+  handlers.get(stepKey)?.(track);
 }
 
 /**
@@ -72,7 +80,7 @@ export function useGuidedAction(stepKey: string, handler: Handler) {
   });
 
   useEffect(() => {
-    const stable = () => latest.current();
+    const stable: Handler = (track) => latest.current(track);
     handlers.set(stepKey, stable);
     emit();
     return () => {

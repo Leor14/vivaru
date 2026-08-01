@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import type { OnboardingTrack } from "@/lib/onboarding/steps";
 import type { TenantStatus } from "@/types/domain";
 
 /**
@@ -17,6 +18,17 @@ export type TenantTrialState = {
   daysLeft: number | null;
   isTrial: boolean;
   isExpired: boolean;
+  /**
+   * Recorrido de puesta en marcha, o `null` si a este ambiente no le toca.
+   *
+   * La regla es deliberadamente asimétrica. Las pruebas se reconocen por su
+   * `status`, como hasta ahora. Los clientes solo entran si el documento trae
+   * `onboardingTrack`, que se escribe **al provisionar**: los conjuntos que ya
+   * existen no lo tienen y por tanto no ven nada. Sin esa asimetría, encender
+   * la guía para clientes le habría puesto un checklist de puesta en marcha a
+   * conjuntos que llevan meses operando.
+   */
+  onboardingTrack: OnboardingTrack | null;
   loading: boolean;
 };
 
@@ -26,6 +38,7 @@ const INITIAL: TenantTrialState = {
   daysLeft: null,
   isTrial: false,
   isExpired: false,
+  onboardingTrack: null,
   loading: true,
 };
 
@@ -48,14 +61,25 @@ export function useTenantTrial(tenantId: string | undefined): TenantTrialState {
     const unsub = onSnapshot(
       doc(db, "tenants", tenantId),
       (snap) => {
-        const data = snap.data() as { status?: TenantStatus; trialEndsAt?: string } | undefined;
+        const data = snap.data() as
+          | { status?: TenantStatus; trialEndsAt?: string; onboardingTrack?: string }
+          | undefined;
         const status = data?.status;
+        const isTrial = status === "trial";
+        const isExpired = status === "expired";
+        const declarado = data?.onboardingTrack;
         setState({
           status,
           trialEndsAt: data?.trialEndsAt,
           daysLeft: computeDaysLeft(data?.trialEndsAt),
-          isTrial: status === "trial",
-          isExpired: status === "expired",
+          isTrial,
+          isExpired,
+          onboardingTrack:
+            declarado === "cliente" || declarado === "trial"
+              ? declarado
+              : isTrial || isExpired
+                ? "trial"
+                : null,
           loading: false,
         });
       },

@@ -139,6 +139,13 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
       status: input.asCustomer ? "active" : "trial",
       planId: input.asCustomer ? (input.planId?.trim() || FULL_SERVICE_PLAN_ID) : TRIAL_PLAN_ID,
       onboardingStatus: "not_started",
+      /**
+       * Recorrido de puesta en marcha. Se escribe SOLO aquí, al provisionar,
+       * y por eso los conjuntos que ya existen no lo tienen: la guía no se les
+       * enciende. Sin esa asimetría, un cliente con meses de operación
+       * amanecería con un checklist de puesta en marcha.
+       */
+      onboardingTrack: input.asCustomer ? "cliente" : "trial",
       // Un cliente no lleva vigencia de prueba.
       ...(input.asCustomer
         ? { convertedAt: startedAt.toISOString(), convertedBy: "superadmin" }

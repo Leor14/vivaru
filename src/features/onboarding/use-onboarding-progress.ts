@@ -5,10 +5,11 @@ import { collection, doc, limit, onSnapshot, query, where } from "firebase/fires
 
 import { db } from "@/lib/firebase/client";
 import {
-  ACTIVATION_STEPS,
-  DISCOVERY_STEPS,
-  ONBOARDING_STEPS,
+  activationStepsFor,
+  discoveryStepsFor,
+  stepsForTrack,
   type OnboardingStep,
+  type OnboardingTrack,
 } from "@/lib/onboarding/steps";
 
 /**
@@ -57,7 +58,7 @@ function collectWatches(steps: OnboardingStep[]): Watch[] {
   return [...byCollection.values()];
 }
 
-const WATCHES = collectWatches(ONBOARDING_STEPS);
+
 
 /**
  * Cuántos documentos traer para decidir si hay alguno "real".
@@ -72,10 +73,14 @@ function pageSizeFor(watch: Watch) {
 
 const EMPTY_SEEN: Record<string, string> = {};
 
-export function useOnboardingProgress(tenantId: string | undefined): OnboardingProgress {
+export function useOnboardingProgress(
+  tenantId: string | undefined,
+  track: OnboardingTrack = "trial",
+): OnboardingProgress {
   const [agrupaciones, setAgrupaciones] = useState<number | null>(null);
   const [seen, setSeen] = useState<Record<string, string>>(EMPTY_SEEN);
   const [hasGuard, setHasGuard] = useState<boolean | null>(null);
+  const [hasResident, setHasResident] = useState<boolean | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
 
@@ -87,7 +92,8 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
     const firestore = db;
     setReady(false);
 
-    const pending = new Set<string>(["settings", "onboarding", "guard", ...WATCHES.map((w) => w.collection)]);
+    const watches = collectWatches(stepsForTrack(track));
+    const pending = new Set<string>(["settings", "onboarding", "guard", ...watches.map((w) => w.collection)]);
     const settle = (key: string) => {
       pending.delete(key);
       if (pending.size === 0) setReady(true);
@@ -138,22 +144,24 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
       onSnapshot(
         query(collection(firestore, "users"), where("tenantId", "==", tenantId)),
         (snap) => {
-          setHasGuard(
+          const real = (role: string) =>
             snap.docs.some((item) => {
               const data = item.data() as { role?: string; isDemoAccount?: boolean };
-              return data.role === "security_guard" && data.isDemoAccount !== true;
-            }),
-          );
+              return data.role === role && data.isDemoAccount !== true;
+            });
+          setHasGuard(real("security_guard"));
+          setHasResident(real("resident"));
           settle("guard");
         },
         () => {
           setHasGuard(false);
+          setHasResident(false);
           settle("guard");
         },
       ),
     );
 
-    for (const watch of WATCHES) {
+    for (const watch of watches) {
       unsubs.push(
         onSnapshot(
           query(
@@ -181,11 +189,11 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
     return () => {
       for (const unsub of unsubs) unsub();
     };
-  }, [tenantId]);
+  }, [tenantId, track]);
 
   const done = useMemo(() => {
     const result: Record<string, boolean> = {};
-    for (const step of ONBOARDING_STEPS) {
+    for (const step of stepsForTrack(track)) {
       let complete = false;
       switch (step.signal.kind) {
         case "agrupaciones":
@@ -196,6 +204,9 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
           break;
         case "guardUser":
           complete = hasGuard === true;
+          break;
+        case "residentUser":
+          complete = hasResident === true;
           break;
         case "seen":
           complete = Boolean(seen[step.key]);
@@ -208,7 +219,7 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
       result[step.key] = complete;
     }
     return result;
-  }, [agrupaciones, counts, hasGuard, seen]);
+  }, [agrupaciones, counts, hasGuard, hasResident, seen, track]);
 
   const isDone = useCallback((key: string) => done[key] === true, [done]);
 
@@ -216,8 +227,8 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
     loading: !ready,
     done,
     seen,
-    activationDone: ACTIVATION_STEPS.filter((step) => done[step.key]).length,
-    discoveryDone: DISCOVERY_STEPS.filter((step) => done[step.key]).length,
+    activationDone: activationStepsFor(track).filter((step) => done[step.key]).length,
+    discoveryDone: discoveryStepsFor(track).filter((step) => done[step.key]).length,
     isDone,
   };
 }

@@ -12,12 +12,13 @@ import { useOnboardingProgress } from "@/features/onboarding/use-onboarding-prog
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import { isModuleLocked } from "@/lib/config/trial-modules";
 import {
-  ACTIVATION_TOTAL,
-  DISCOVERY_TOTAL,
-  ONBOARDING_BLOCKS,
-  ONBOARDING_STEPS,
+  activationStepsFor,
+  blocksForTrack,
+  discoveryStepsFor,
   hrefFor,
+  stepsForTrack,
   type OnboardingStep,
+  type OnboardingTrack,
 } from "@/lib/onboarding/steps";
 import { getIconTone } from "@/lib/ui/icon-tones";
 import { cn } from "@/lib/utils/cn";
@@ -42,9 +43,15 @@ export function OnboardingChecklist() {
   const trial = useTenantTrial(user?.tenantId);
   // Solo se suscribe a las colecciones si el ambiente es de prueba: en un
   // cliente ya contratado la guía no se muestra y no vale pagar los listeners.
+  // La compuerta: sin recorrido asignado, la guía no existe. Ver
+  // `onboardingTrack` en use-tenant-trial.ts para por qué es asimétrica.
+  const track = trial.onboardingTrack;
   const progress = useOnboardingProgress(
-    trial.isTrial || trial.isExpired ? user?.tenantId : undefined,
+    track ? user?.tenantId : undefined,
+    track ?? "trial",
   );
+  const activationTotal = activationStepsFor(track ?? "trial").length;
+  const discoveryTotal = discoveryStepsFor(track ?? "trial").length;
   const [collapsed, setCollapsed] = useState(false);
   const [showDiscovery, setShowDiscovery] = useState(false);
 
@@ -58,7 +65,7 @@ export function OnboardingChecklist() {
 
   // Solo en pruebas: en un cliente ya contratado el hook no se suscribe a nada
   // y publicar su "0 de 7" ensuciaría la consola comercial con un dato falso.
-  const tenantId = trial.isTrial || trial.isExpired ? user?.tenantId : undefined;
+  const tenantId = track ? user?.tenantId : undefined;
   const { activationDone, discoveryDone, loading: progressLoading } = progress;
 
   // El avance se deja contado en el documento del ambiente para que la consola
@@ -68,20 +75,20 @@ export function OnboardingChecklist() {
     void saveOnboardingSummary({
       tenantId,
       activationDone,
-      activationTotal: ACTIVATION_TOTAL,
+      activationTotal,
       discoveryDone,
-      discoveryTotal: DISCOVERY_TOTAL,
+      discoveryTotal,
     });
-  }, [tenantId, progressLoading, activationDone, discoveryDone]);
+  }, [tenantId, progressLoading, activationDone, discoveryDone, activationTotal, discoveryTotal]);
 
   // La guía acompaña la evaluación del producto. Un cliente ya contratado tiene
   // acompañamiento humano y no necesita que le ocupemos el tablero.
-  if (!trial.isTrial && !trial.isExpired) return null;
+  if (!track) return null;
   if (trial.loading || progress.loading) return null;
 
-  const activationComplete = progress.activationDone >= ACTIVATION_TOTAL;
+  const activationComplete = progress.activationDone >= activationTotal;
   // Terminado el recorrido completo, la guía deja de ocupar el tablero.
-  if (activationComplete && progress.discoveryDone >= DISCOVERY_TOTAL) return null;
+  if (activationComplete && progress.discoveryDone >= discoveryTotal) return null;
 
   function toggle() {
     setCollapsed((prev) => {
@@ -98,7 +105,7 @@ export function OnboardingChecklist() {
   return (
     <Card className="mb-4 border-[var(--brand-200)]/70 bg-gradient-to-br from-white via-[var(--brand-50)]/60 to-[var(--sky-50)] p-5">
       <div className="flex items-start gap-4">
-        <ProgressRing done={progress.activationDone} total={ACTIVATION_TOTAL} />
+        <ProgressRing done={progress.activationDone} total={activationTotal} />
 
         <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex items-start justify-between gap-3">
@@ -134,8 +141,8 @@ export function OnboardingChecklist() {
 
       {collapsed ? null : (
         <div className="mt-5 space-y-5">
-          {ONBOARDING_BLOCKS.map((block) => {
-            const steps = ONBOARDING_STEPS.filter((step) => step.block === block.key);
+          {blocksForTrack(track).map((block) => {
+            const steps = stepsForTrack(track).filter((step) => step.block === block.key);
             const isDiscovery = block.key === "descubre";
             // El bloque de descubrimiento arranca plegado: quince filas de golpe
             // se leen como tarea escolar, y lo urgente son los siete primeros.
@@ -159,7 +166,7 @@ export function OnboardingChecklist() {
                     >
                       {showDiscovery
                         ? "Ocultar"
-                        : `Ver los ${DISCOVERY_TOTAL} módulos (${progress.discoveryDone} recorridos)`}
+                        : `Ver los ${discoveryTotal} módulos (${progress.discoveryDone} recorridos)`}
                       <ChevronDown
                         className={cn(
                           "h-4 w-4 [transition-property:transform] duration-200 ease-[var(--ease-out)]",
