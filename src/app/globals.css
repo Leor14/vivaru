@@ -38,6 +38,10 @@
   --slate-100: #f2f5f8;
   --slate-200: #d9e2ec;
   --slate-300: #c2ccda;
+  /* Paso intermedio de la escala (H 214°, OKLab L 0.68 ≈ punto medio 300↔500).
+     Contraste 2.8:1 sobre blanco: apto para glifos e iconos decorativos, NO
+     para texto informativo — ese debe usar --slate-500 (4.9:1). */
+  --slate-400: #8b9bb0;
   --slate-500: #607286;
   --slate-600: #4c5f74;
   --slate-700: #33485f;

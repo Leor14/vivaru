@@ -390,10 +390,10 @@ function AdminFinanzasLibroPageContent() {
           tableMinWidthClassName="min-w-[640px] sm:min-w-[720px]"
           renderActions={(item) => {
             if (item.sourceType === "reversal") {
-              return <span className="block text-right text-xs text-[var(--slate-400)]">Reverso</span>;
+              return <span className="block text-right text-xs text-[var(--slate-500)]">Reverso</span>;
             }
             if (item.reversedByEntryId) {
-              return <span className="block text-right text-xs text-[var(--slate-400)]">Anulado</span>;
+              return <span className="block text-right text-xs text-[var(--slate-500)]">Anulado</span>;
             }
             if (item.sourceType === "manual") {
               return (
@@ -413,7 +413,7 @@ function AdminFinanzasLibroPageContent() {
                 </div>
               );
             }
-            return <span className="block text-right text-xs text-[var(--slate-400)]">Automático</span>;
+            return <span className="block text-right text-xs text-[var(--slate-500)]">Automático</span>;
           }}
         />
       </div>

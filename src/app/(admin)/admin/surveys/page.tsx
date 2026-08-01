@@ -505,7 +505,7 @@ export default function AdminSurveysPage() {
               // ── Question header (shared) ─────────────────────────────────
               const questionHeader = (
                 <div className="mb-5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--slate-400)]">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--slate-500)]">
                     Pregunta {qIdx + 1} · {QUESTION_TYPE_LABELS[question.type]}
                   </p>
                   <p className="mt-1 text-base font-semibold text-[var(--slate-900)]">

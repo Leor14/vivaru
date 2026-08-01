@@ -56,7 +56,9 @@ export function ResidentBottomNav() {
                 "relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium",
                 "transition-colors duration-150",
                 "active:scale-95 motion-reduce:active:scale-100",
-                isActive ? "text-[var(--brand-700)]" : "text-[var(--slate-400)] hover:text-[var(--slate-600)]",
+                // slate-500 (no 400): la pestaña inactiva es un enlace activo de 10px
+                // y debe cumplir WCAG AA (4.9:1); slate-400 solo da 2.8:1.
+                isActive ? "text-[var(--brand-700)]" : "text-[var(--slate-500)] hover:text-[var(--slate-700)]",
               )}
             >
               {/* Pill de fondo cuando está activo */}

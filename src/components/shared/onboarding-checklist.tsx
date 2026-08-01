@@ -278,7 +278,7 @@ function ChecklistRow({
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl [transition:opacity_180ms_var(--ease-out)]"
           style={{
             backgroundColor: done ? "var(--slate-100)" : tone.mutedBg,
-            color: done ? "var(--slate-500)" : tone.mutedFg,
+            color: done ? "var(--slate-400)" : tone.mutedFg,
           }}
           aria-hidden
         >
@@ -294,6 +294,8 @@ function ChecklistRow({
           >
             {step.title}
             {locked ? (
+              // El candado comunica estado, no adorna: se queda en slate-500
+              // porque slate-400 (2.8:1) no llega al 3:1 de WCAG 1.4.11.
               <Lock className="h-3 w-3 shrink-0 text-[var(--slate-500)]" aria-label="En vista previa" />
             ) : null}
           </span>
@@ -325,7 +327,7 @@ function CompletionIndicator({ done }: { done: boolean }) {
 
   return (
     <ChevronRight
-      className="h-4 w-4 shrink-0 text-[var(--slate-500)] [transition:transform_180ms_var(--ease-out),color_180ms_var(--ease-out)] group-hover:translate-x-0.5 group-hover:text-[var(--brand-700)]"
+      className="h-4 w-4 shrink-0 text-[var(--slate-400)] [transition:transform_180ms_var(--ease-out),color_180ms_var(--ease-out)] group-hover:translate-x-0.5 group-hover:text-[var(--brand-700)]"
       aria-hidden
     />
   );
