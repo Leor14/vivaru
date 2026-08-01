@@ -65,7 +65,11 @@ export function runGuidedAction(stepKey: string) {
  */
 export function useGuidedAction(stepKey: string, handler: Handler) {
   const latest = useRef(handler);
-  latest.current = handler;
+  // Sin arreglo de dependencias a propósito: se refresca tras cada render, que
+  // es justo lo que mantiene viva la versión más reciente del manejador.
+  useEffect(() => {
+    latest.current = handler;
+  });
 
   useEffect(() => {
     const stable = () => latest.current();
