@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { z } from "zod";
 
 import { persistLead } from "@/lib/marketing/leads";
+import { envSubject, resolveNotifyTo } from "@/lib/marketing/notify-target";
 
 export const runtime = "nodejs";
 
@@ -53,12 +54,11 @@ const resend = process.env.RESEND_API_KEY
   : null;
 
 // Supports comma-separated list: "dev@qintilab.com,comercial@qintilab.com"
-const NOTIFY_TO: string[] = (
-  process.env.DEMO_NOTIFICATION_TO || "comercial@qintilab.com"
-)
-  .split(",")
-  .map((e) => e.trim())
-  .filter(Boolean);
+// Fuera de producción se descartan los buzones comerciales (ver notify-target).
+const NOTIFY_TO: string[] = resolveNotifyTo(
+  process.env.DEMO_NOTIFICATION_TO,
+  "comercial@qintilab.com",
+);
 
 const NOTIFY_FROM =
   process.env.LEAD_NOTIFICATION_FROM || "Vivaru <onboarding@resend.dev>";
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
         from: NOTIFY_FROM,
         to: NOTIFY_TO,
         replyTo: d.email,
-        subject: notifEmail.subject,
+        subject: envSubject(notifEmail.subject),
         html: notifEmail.html,
         text: notifEmail.text,
         tags: [{ name: "type", value: "demo_notification" }],
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
         from: NOTIFY_FROM,
         to: [d.email],
         replyTo: NOTIFY_TO,
-        subject: confirmEmail.subject,
+        subject: envSubject(confirmEmail.subject),
         html: confirmEmail.html,
         text: confirmEmail.text,
         tags: [{ name: "type", value: "demo_confirmation" }],

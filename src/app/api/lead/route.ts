@@ -4,6 +4,7 @@ import { Resend } from "resend";
 
 import { diagnosticSchema } from "@/lib/marketing/diagnostic-schema";
 import { persistLead } from "@/lib/marketing/leads";
+import { envSubject, resolveNotifyTo } from "@/lib/marketing/notify-target";
 import { calculateScore } from "@/lib/marketing/diagnostic-score";
 import { RECOMMENDATIONS } from "@/lib/marketing/diagnostic-recommendations";
 import {
@@ -44,12 +45,11 @@ const resend = process.env.RESEND_API_KEY
   : null;
 
 // Supports comma-separated list: "dev@qintilab.com,comercial@qintilab.com"
-const NOTIFY_TO: string[] = (
-  process.env.LEAD_NOTIFICATION_TO || "hola@grupovivaru.com"
-)
-  .split(",")
-  .map((e) => e.trim())
-  .filter(Boolean);
+// Fuera de producción se descartan los buzones comerciales (ver notify-target).
+const NOTIFY_TO: string[] = resolveNotifyTo(
+  process.env.LEAD_NOTIFICATION_TO,
+  "comercial@qintilab.com",
+);
 
 const NOTIFY_FROM =
   process.env.LEAD_NOTIFICATION_FROM || "Vivaru <onboarding@resend.dev>";
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
         from: NOTIFY_FROM,
         to: NOTIFY_TO,
         replyTo: answers.q9_contacto.email,
-        subject: kamEmail.subject,
+        subject: envSubject(kamEmail.subject),
         html: kamEmail.html,
         text: kamEmail.text,
         tags: [
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
         from: NOTIFY_FROM,
         to: [answers.q9_contacto.email],
         replyTo: NOTIFY_TO,
-        subject: leadEmail.subject,
+        subject: envSubject(leadEmail.subject),
         html: leadEmail.html,
         text: leadEmail.text,
         tags: [{ name: "type", value: "lead_confirmation" }],
