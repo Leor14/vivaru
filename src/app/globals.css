@@ -14,6 +14,11 @@
   --brand-100: #d2e2f2;
   --brand-200: #bdd4ea;
   --brand-300: #96b3cb;
+  /* Pasos medios 200↔700. El 400 (3.2:1) es para bordes e iconos; el 500
+     (4.6:1) y el 600 (7.3:1) sí sirven para texto. */
+  --brand-400: #7294af;
+  --brand-500: #527995;
+  --brand-600: #2f5a79;
   --brand-700: #0b3c5d;
   --brand-800: #092f49;
   --brand-900: #08243a;
@@ -61,8 +66,33 @@
      principal, aplanando la jerarquía que este token existe para crear. */
   --slate-800: #24374b;
   --slate-900: #152536;
+  /* ── Escala de error ──────────────────────────────────────────────────────
+     Solo existían el 600 y el 700, pero se usaban cinco pasos más. Los avisos
+     de error se veían con borde oscuro y SIN relleno, y las insignias de
+     estado ("Cancelado") salían como texto suelto, sin píldora. Los pasos
+     claros se generan mezclando el 600 hacia blanco, así que comparten matiz.
+     Contraste del texto (danger-700): 8.2:1 sobre el 50, 7.4:1 sobre el 100. */
+  --danger-50: #faf2f1;
+  --danger-100: #f6e5e3;
+  --danger-200: #edcac8;
+  --danger-300: #e1a7a3;
+  --danger-500: #bd3d34;
   --danger-600: #b42318;
   --danger-700: #8e1c13;
+
+  /* ── Escala de advertencia ────────────────────────────────────────────────
+     Anclada en el ámbar de marca (#d97706). `--warning-*` es la MISMA rampa
+     con otro nombre: se dejan como alias en vez de reescribir los usos, pero
+     el código nuevo debería usar `--amber-*`.
+     Contraste: amber-900 sobre amber-50 9.8:1; amber-800 sobre el 100 6.6:1. */
+  --amber-50: #fcf5ee;
+  --amber-100: #faecdc;
+  --amber-300: #f1cba0;
+  --amber-700: #b45309;
+  --amber-800: #7e4503;
+  --amber-900: #5f3403;
+  --warning-100: var(--amber-100);
+  --warning-800: var(--amber-800);
 
   /* ── Custom easing curves ── */
   /* Strong ease-out: immediate movement, decelerates to stop. Use for entering elements. */
