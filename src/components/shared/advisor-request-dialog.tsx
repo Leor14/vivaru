@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, FileQuestion, HelpCircle, Loader2, Rocket, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, FileQuestion, HelpCircle, Loader2, MapPin, Rocket, Sparkles } from "lucide-react";
+import { doc, getDoc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { requestAdvisorContactCallable } from "@/lib/firebase/callables";
+import { db } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -50,6 +52,23 @@ const MOTIVOS = [
   },
 ];
 
+/**
+ * Lo ÚNICO que no sabemos ya. Nombre, correo, conjunto, ciudad, país,
+ * teléfono y número de unidades vienen del registro y viajan solos en el
+ * correo al asesor: volver a pedirlos sería fricción y, peor, invitaría a que
+ * el prospecto escriba algo distinto de lo que ya tenemos guardado.
+ *
+ * El cargo sí importa y no lo tenemos: le dice al asesor si está hablando con
+ * quien decide o con quien tendrá que convencer a un comité.
+ */
+const CARGOS = [
+  "Administrador(a) del conjunto",
+  "Miembro del comité o consejo",
+  "Empresa administradora",
+  "Propietario o residente",
+  "Otro",
+];
+
 const HORARIOS = ["Mañana (9–12)", "Mediodía (12–15)", "Tarde (15–18)", "Cualquier horario"];
 
 export function AdvisorRequestDialog({
@@ -66,8 +85,25 @@ export function AdvisorRequestDialog({
   const [mensaje, setMensaje] = useState("");
   const [telefono, setTelefono] = useState("");
   const [horario, setHorario] = useState(HORARIOS[3]);
+  const [cargo, setCargo] = useState(CARGOS[0]);
+  const [ubicacion, setUbicacion] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Se lee al abrir, no al montar: el diálogo vive en el shell y no vale una
+  // consulta por cada carga de pantalla.
+  useEffect(() => {
+    if (!open || !user?.tenantId || !db) return;
+    let vivo = true;
+    void getDoc(doc(db, "tenants", user.tenantId)).then((snap) => {
+      if (!vivo) return;
+      const d = snap.data() as { city?: string; country?: string } | undefined;
+      setUbicacion([d?.city, d?.country].filter(Boolean).join(", ") || null);
+    }).catch(() => setUbicacion(null));
+    return () => {
+      vivo = false;
+    };
+  }, [open, user?.tenantId]);
 
   async function handleSend() {
     if (!user?.tenantId) return;
@@ -79,6 +115,7 @@ export function AdvisorRequestDialog({
         mensaje: mensaje.trim() || undefined,
         telefono: telefono.trim() || undefined,
         horarioPreferido: horario,
+        cargo,
       });
       setSent(true);
     } catch (error) {
@@ -204,10 +241,25 @@ export function AdvisorRequestDialog({
             />
           </label>
 
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]">
+              Tu rol en el conjunto
+            </span>
+            <select
+              className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              value={cargo}
+              onChange={(e) => setCargo(e.target.value)}
+            >
+              {CARGOS.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]">
-                Teléfono de contacto
+                Teléfono <span className="normal-case text-[var(--slate-500)]">(si prefieres otro)</span>
               </span>
               <Input
                 className="mt-1.5"
@@ -232,11 +284,42 @@ export function AdvisorRequestDialog({
             </label>
           </div>
 
-          <p className="rounded-xl bg-[var(--surface-soft)] p-3 text-xs leading-relaxed text-[var(--slate-600)]">
-            Escribimos a <strong>{user?.email ?? "tu correo"}</strong>. Tu asesor ya verá cómo
-            configuraste tu conjunto, así que la conversación arranca con contexto — y define
-            contigo el alcance y las condiciones del servicio.
-          </p>
+          {/* Mostrar en vez de preguntar: estos datos ya se dieron al registrarse
+              y viajan solos. Se enseñan para que nada vaya a espaldas del
+              usuario y pueda detectar un error, no para que los reescriba. */}
+          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]">
+              Enviamos esto contigo
+            </p>
+            <dl className="mt-2 grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-[var(--slate-500)]">Nombre</dt>
+                <dd className="truncate font-medium text-[var(--slate-800)]">
+                  {user?.fullName ?? "—"}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-[var(--slate-500)]">Correo</dt>
+                <dd className="truncate font-medium text-[var(--slate-800)]">{user?.email ?? "—"}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-[var(--slate-500)]">Conjunto</dt>
+                <dd className="truncate font-medium text-[var(--slate-800)]">
+                  {user?.tenantName ?? "—"}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="shrink-0 text-[var(--slate-500)]">
+                  <MapPin className="mt-0.5 inline h-3 w-3" aria-hidden /> Ubicación
+                </dt>
+                <dd className="truncate font-medium text-[var(--slate-800)]">{ubicacion ?? "—"}</dd>
+              </div>
+            </dl>
+            <p className="mt-2.5 text-xs leading-relaxed text-[var(--slate-600)]">
+              Tu asesor también verá cómo configuraste tu conjunto, así que la conversación arranca
+              con contexto. ¿Algo no cuadra? Corrígelo en Configuración → Conjunto.
+            </p>
+          </div>
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" onClick={handleClose} disabled={sending}>

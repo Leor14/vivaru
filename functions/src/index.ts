@@ -3874,6 +3874,8 @@ export const requestAdvisorContact = onCall<{
   mensaje?: string;
   telefono?: string;
   horarioPreferido?: string;
+  /** Único dato que no tenemos ya del registro: quién es esta persona. */
+  cargo?: string;
 }>(
   { cors: callableCorsOrigins, secrets: [resendApiKey] },
   async (request) => {
@@ -3886,22 +3888,49 @@ export const requestAdvisorContact = onCall<{
 
     const tenantSnap = await db.collection("tenants").doc(tenantId).get();
     const tenant = tenantSnap.data() as
-      | { name?: string; city?: string; status?: string; trialEndsAt?: string; leadId?: string }
+      | { name?: string; city?: string; country?: string; status?: string; trialEndsAt?: string; leadId?: string }
       | undefined;
     const userSnap = await db.collection("users").doc(uid).get();
     const solicitante = userSnap.data() as { fullName?: string; email?: string } | undefined;
+
+    // Contexto que ya existe y no hace falta volver a pedirle: el lead guarda
+    // lo que declaró al registrarse, y tenantOnboarding cuánto avanzó. Ese
+    // avance es la señal comercial más útil del correo — quien va 6 de 7 está
+    // enganchado; quien va 0 necesita una mano, no un guion de venta.
+    const [leadSnap, onboardingSnap] = await Promise.all([
+      tenant?.leadId ? db.collection("leads").doc(tenant.leadId).get() : Promise.resolve(null),
+      db.collection("tenantOnboarding").doc(tenantId).get(),
+    ]);
+    const lead = leadSnap?.data() as
+      | { telefono?: string | null; unidadesEstimadas?: number | null; pais?: string; cargo?: string }
+      | undefined;
+    const avance = onboardingSnap.data() as
+      | { activationDone?: number; activationTotal?: number; discoveryDone?: number }
+      | undefined;
 
     const motivo = request.data?.motivo?.trim() || "Quiere contratar Vivaru";
     const mensaje = request.data?.mensaje?.trim() || "";
     const telefono = request.data?.telefono?.trim() || "";
     const horario = request.data?.horarioPreferido?.trim() || "";
+    const cargo = request.data?.cargo?.trim() || lead?.cargo || "";
+    // Si no reescribió el teléfono, vale el que dejó al registrarse.
+    const telefonoFinal = telefono || (lead?.telefono ?? "");
 
     // El lead pasa a CALIFICADO: pidió hablar tras probar el producto.
     if (tenant?.leadId) {
       await db.collection("leads").doc(tenant.leadId).set(
         {
           status: "calificado",
-          solicitudAsesor: { motivo, mensaje, telefono, horario, solicitadoAt: new Date().toISOString() },
+          ...(cargo ? { cargo } : {}),
+          ...(telefonoFinal ? { telefono: telefonoFinal } : {}),
+          solicitudAsesor: {
+            motivo,
+            mensaje,
+            telefono: telefonoFinal,
+            horario,
+            cargo,
+            solicitadoAt: new Date().toISOString(),
+          },
           updatedAt: Timestamp.now(),
         },
         { merge: true },
@@ -3909,19 +3938,33 @@ export const requestAdvisorContact = onCall<{
     }
 
     const isProd = (process.env.GCLOUD_PROJECT ?? "") === "hogaru-1";
+    const ubicacion = [tenant?.city, lead?.pais ?? tenant?.country].filter(Boolean).join(", ") || "-";
+    const activacion = avance?.activationTotal
+      ? `${avance.activationDone ?? 0} de ${avance.activationTotal}` +
+        (avance.discoveryDone ? ` · ${avance.discoveryDone} módulos recorridos` : "")
+      : "sin datos";
+
     const cuerpo = [
       `${solicitante?.fullName ?? "Un administrador"} solicitó hablar con un asesor.`,
       "",
+      "— QUIÉN —",
+      `Nombre:    ${solicitante?.fullName ?? "-"}`,
+      `Correo:    ${solicitante?.email ?? "-"}`,
+      cargo ? `Cargo:     ${cargo}` : "",
+      telefonoFinal ? `Teléfono:  ${telefonoFinal}` : "",
+      horario ? `Prefiere:  ${horario}` : "",
+      "",
+      "— QUÉ PIDE —",
       `Motivo:    ${motivo}`,
       mensaje ? `Mensaje:   ${mensaje}` : "",
       "",
-      `Conjunto:  ${tenant?.name ?? tenantId} (${tenant?.city ?? "-"})`,
+      "— SU CONJUNTO —",
+      `Conjunto:  ${tenant?.name ?? tenantId}`,
+      `Ubicación: ${ubicacion}`,
+      lead?.unidadesEstimadas ? `Tamaño:    ${lead.unidadesEstimadas} unidades declaradas` : "",
       `Estado:    ${tenant?.status ?? "-"}${tenant?.trialEndsAt ? ` · vence ${tenant.trialEndsAt.slice(0, 10)}` : ""}`,
+      `Activación: ${activacion}`,
       `Ambiente:  ${tenantId}`,
-      "",
-      `Contacto:  ${solicitante?.email ?? "-"}`,
-      telefono ? `Teléfono:  ${telefono}` : "",
-      horario ? `Prefiere:  ${horario}` : "",
     ]
       .filter(Boolean)
       .join("\n");
@@ -3937,7 +3980,7 @@ export const requestAdvisorContact = onCall<{
       console.error("[advisor-request] correo falló", { tenantId, error });
     }
 
-    await writeAuditLog(tenantId, uid, "request_advisor_contact", { motivo });
+    await writeAuditLog(tenantId, uid, "request_advisor_contact", { motivo, cargo });
     return { ok: true };
   },
 );
