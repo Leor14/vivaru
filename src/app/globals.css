@@ -7,7 +7,13 @@
   --surface-strong: #ffffff;
   --surface-soft: #f7fafc;
   --brand-50: #e7f1fb;
+  /* Pasos que faltaban de la escala de marca: se usaban (9 y 2 veces) sin
+     estar declarados, con el mismo fallo que los slate — los fondos no se
+     pintaban y los bordes caían a currentColor. Matiz alineado con sus
+     vecinos; ambos son superficie y borde, nunca texto. */
+  --brand-100: #d2e2f2;
   --brand-200: #bdd4ea;
+  --brand-300: #96b3cb;
   --brand-700: #0b3c5d;
   --brand-800: #092f49;
   --brand-900: #08243a;
