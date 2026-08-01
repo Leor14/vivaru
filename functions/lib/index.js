@@ -52,6 +52,7 @@ const sri_ecuador_1 = require("./sri-ecuador");
 const data_retention_1 = require("./data-retention");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
+const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
 (0, app_1.initializeApp)();
@@ -2288,6 +2289,8 @@ exports.notifyBillingBatch = (0, https_1.onCall)({ cors: callableCorsOrigins, se
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
     await assertFinanceManagementEnabled(tenantId);
+    // Durante la prueba, Cartera es solo vista previa: se ve, no se opera.
+    await (0, trial_modules_1.assertModuleAllowed)(tenantId, "billing");
     const [override, conjunto] = await Promise.all([
         getTenantNotificationOverride(tenantId, "billing_batch"),
         getTenantName(tenantId),
@@ -2309,6 +2312,8 @@ exports.sendBillingReminder = (0, https_1.onCall)({ cors: callableCorsOrigins, s
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
     await assertFinanceManagementEnabled(tenantId);
+    // Durante la prueba, Cartera es solo vista previa: se ve, no se opera.
+    await (0, trial_modules_1.assertModuleAllowed)(tenantId, "billing");
     const [override, conjunto] = await Promise.all([
         getTenantNotificationOverride(tenantId, "billing_reminder"),
         getTenantName(tenantId),

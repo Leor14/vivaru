@@ -1,5 +1,6 @@
 "use client";
 
+import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
 import { AlertCircle, Banknote, CheckCircle2, Clock3, Download, FileSpreadsheet, FileText, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
@@ -178,7 +179,7 @@ function BillingTrendTooltip({
   );
 }
 
-export default function AdminBillingPage() {
+function AdminBillingPageContent() {
   const { user } = useAuth();
   // Finanzas solo_consulta: oculta la gestión de cobros; deja la cartera y comprobantes en consulta.
   const soloConsulta = useModuleVariant(user?.tenantId, "finance") === "solo_consulta";
@@ -2297,5 +2298,18 @@ export default function AdminBillingPage() {
         isSending={isBulkSending}
       />
     </section>
+  );
+}
+
+/**
+ * Durante la prueba este módulo es VISTA PREVIA: se explora con datos de
+ * ejemplo pero no se opera (ver src/lib/config/trial-modules.ts). Para un
+ * cliente activo, el gate es transparente.
+ */
+export default function AdminBillingPage() {
+  return (
+    <ModulePreviewGate module="billing">
+      <AdminBillingPageContent />
+    </ModulePreviewGate>
   );
 }

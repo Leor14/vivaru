@@ -13,6 +13,7 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
+import { assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
   resolveNotificationCopy,
@@ -2874,6 +2875,8 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
     await assertFinanceManagementEnabled(tenantId);
+    // Durante la prueba, Cartera es solo vista previa: se ve, no se opera.
+    await assertModuleAllowed(tenantId, "billing");
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_batch"),
@@ -2900,6 +2903,8 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
     await assertFinanceManagementEnabled(tenantId);
+    // Durante la prueba, Cartera es solo vista previa: se ve, no se opera.
+    await assertModuleAllowed(tenantId, "billing");
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_reminder"),

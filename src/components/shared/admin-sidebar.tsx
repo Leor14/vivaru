@@ -12,6 +12,7 @@ import {
   FileText,
   Grid3X3,
   Home,
+  Lock,
   LogOut,
   MessageSquare,
   Package,
@@ -36,6 +37,8 @@ export type AdminSidebarItem = {
   href: string;
   label: string;
   icon: IconComponent;
+  /** Módulo en vista previa durante la prueba: se marca con candado. */
+  locked?: boolean;
 };
 
 export type AdminSidebarGroup = {
@@ -246,6 +249,12 @@ export function AdminSidebar({
                       >
                         <Icon className={cn("nav-icon h-[18px] w-[18px] shrink-0", active && "nav-icon--active")} strokeWidth={1.75} />
                         <span className="truncate">{item.label}</span>
+                        {item.locked ? (
+                          <Lock
+                            className="ml-auto h-3.5 w-3.5 shrink-0 opacity-70"
+                            aria-label="Disponible con tu plan"
+                          />
+                        ) : null}
                         {badge ? <NavBadge badge={badge} /> : null}
                       </Link>
                     </li>
