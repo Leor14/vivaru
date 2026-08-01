@@ -151,8 +151,26 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
     { merge: true },
   );
 
+  // Variantes de módulo EXPLÍCITAS. Sin esto el ambiente quedaba sin
+  // `moduleVariants` y dependía de los defaults implícitos — frágil, y el
+  // superadmin no podía ver con qué variante opera. Se fijan las COMPLETAS,
+  // que son las que muestra el servicio contratado.
   await db.collection("tenantSettings").doc(tenantId).set(
-    { tenantId, tenantName: input.conjunto.trim(), brandColor: "#0B3C5D", updatedAt: now },
+    {
+      tenantId,
+      tenantName: input.conjunto.trim(),
+      brandColor: "#0B3C5D",
+      moduleVariants: {
+        visitors: "qr_full",
+        packages: "con_evidencia",
+        pqrs: "con_sla",
+        communications: "canal_oficial",
+        finance: "completa",
+        governance: "formal",
+      },
+      residentModules: { reservations: true, services: true, surveys: true, regulations: true },
+      updatedAt: now,
+    },
     { merge: true },
   );
 
