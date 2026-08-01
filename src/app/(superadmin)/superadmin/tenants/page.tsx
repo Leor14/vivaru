@@ -71,7 +71,8 @@ export default function SuperadminTenantsPage() {
   const [searchFilter, setSearchFilter] = useState("");
   // Conversión de prueba a cliente (acción central de la consola).
   const [convertTarget, setConvertTarget] = useState<TenantWorkspaceItem | null>(null);
-  const [convertPlan, setConvertPlan] = useState("starter");
+  // Sin selector: Vivaru se contrata completo, no por planes ni por módulos.
+  const convertPlan = "completo";
   const [converting, setConverting] = useState(false);
   const { user } = useAuth();
 
@@ -397,7 +398,6 @@ export default function SuperadminTenantsPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      setConvertPlan(tenant.planId === "trial" ? "starter" : tenant.planId);
                       setConvertTarget(tenant);
                     }}
                   >
@@ -443,18 +443,9 @@ export default function SuperadminTenantsPage() {
             <p>
               Vas a convertir <strong>{convertTarget.name}</strong> ({convertTarget.city}) en cliente.
             </p>
-            <label className="block text-sm">
-              Plan negociado
-              <Input
-                className="mt-1"
-                value={convertPlan}
-                onChange={(event) => setConvertPlan(event.target.value)}
-                placeholder="starter"
-              />
-            </label>
             <ul className="list-disc space-y-1 rounded-xl bg-[var(--surface-soft)] p-3 pl-7 text-xs text-[var(--slate-600)]">
               <li>Se conserva <strong>todo</strong> lo que configuró: unidades, residentes y su operación.</li>
-              <li>Se desbloquean los módulos que estaban en vista previa.</li>
+              <li>Queda con el <strong>servicio completo</strong>: se desbloquean todos los módulos que estaban en vista previa.</li>
               <li>Se elimina la fecha de vencimiento de la prueba.</li>
               <li>No se mueve ningún documento — por eso funciona igual con una prueba ya vencida.</li>
             </ul>
@@ -462,7 +453,7 @@ export default function SuperadminTenantsPage() {
               <Button variant="outline" onClick={() => setConvertTarget(null)} disabled={converting}>
                 Cancelar
               </Button>
-              <Button onClick={() => void handleConvert()} disabled={converting || !convertPlan.trim()}>
+              <Button onClick={() => void handleConvert()} disabled={converting}>
                 {converting ? "Convirtiendo…" : "Convertir a cliente"}
               </Button>
             </div>

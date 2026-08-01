@@ -69,22 +69,27 @@ export const TRIAL_MODULE_ACCESS: Record<TrialModuleKey, ModuleAccess> = {
 };
 
 /** Copy del candado por módulo: qué es y por qué vale la pena. */
+/**
+ * Copy del candado. OJO: Vivaru no se contrata por módulos sueltos ni tiene
+ * planes que el usuario elija — es el servicio completo. El texto debe invitar
+ * a contratar, nunca a "activar este módulo".
+ */
 export const PREVIEW_COPY: Partial<Record<TrialModuleKey, { title: string; body: string }>> = {
   billing: {
     title: "Cartera y cobros",
-    body: "Emite cuotas por unidad o en lote, registra pagos, controla la mora y envía recordatorios automáticos. Lo que ves abajo son datos de ejemplo.",
+    body: "Emite cuotas por unidad o en lote, registra pagos, controla la mora y envía recordatorios automáticos. Se incluye al contratar Vivaru; lo que ves abajo son datos de ejemplo.",
   },
   finanzas: {
     title: "Finanzas del conjunto",
-    body: "Libro de ingresos y egresos, fondo de reserva y conciliación bancaria contra el extracto. Lo que ves abajo son datos de ejemplo.",
+    body: "Libro de ingresos y egresos, fondo de reserva y conciliación bancaria contra el extracto. Se incluye al contratar Vivaru; lo que ves abajo son datos de ejemplo.",
   },
   reports: {
     title: "Reporte de Comité",
-    body: "El informe ejecutivo que presentas al comité y a la asamblea: cartera, morosidad, resultado del período y firmas. Lo que ves abajo son datos de ejemplo.",
+    body: "El informe ejecutivo que presentas al comité y a la asamblea: cartera, morosidad, resultado del período y firmas. Se incluye al contratar Vivaru; lo que ves abajo son datos de ejemplo.",
   },
   regulations: {
     title: "Reglamento y firmas",
-    body: "Publica el reglamento y recoge la firma de cada unidad con constancia. Durante la prueba no se emiten firmas con valor legal.",
+    body: "Publica el reglamento y recoge la firma de cada unidad con constancia. Se incluye al contratar Vivaru; durante la prueba no se emiten firmas con valor legal.",
   },
 };
 

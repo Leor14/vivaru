@@ -29,6 +29,12 @@ function getDb() {
 
 export const TRIAL_DAYS = 15;
 export const TRIAL_PLAN_ID = "trial";
+/**
+ * Plan de un cliente contratado. Vivaru NO se vende por planes ni por módulos
+ * sueltos: la contratación es del servicio completo. Este valor existe solo
+ * para marcar el tenant como cliente en la consola interna.
+ */
+export const FULL_SERVICE_PLAN_ID = "completo";
 
 /** Dominio de las cuentas de prueba: no son correos reales de nadie. */
 const DEMO_ACCOUNT_DOMAIN = "ejemplo.vivaru.app";
@@ -131,7 +137,7 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
       country: input.pais ?? "MX",
       currency: input.pais === "CO" ? "COP" : "MXN",
       status: input.asCustomer ? "active" : "trial",
-      planId: input.asCustomer ? (input.planId?.trim() || "starter") : TRIAL_PLAN_ID,
+      planId: input.asCustomer ? (input.planId?.trim() || FULL_SERVICE_PLAN_ID) : TRIAL_PLAN_ID,
       onboardingStatus: "not_started",
       // Un cliente no lleva vigencia de prueba.
       ...(input.asCustomer

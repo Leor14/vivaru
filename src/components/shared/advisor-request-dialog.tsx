@@ -18,14 +18,19 @@ import { requestAdvisorContactCallable } from "@/lib/firebase/callables";
  * configurado y perdía por completo lo que el administrador quería decir. Aquí
  * el mensaje y los datos quedan registrados, el equipo recibe el contexto del
  * ambiente, y el lead pasa a **calificado** — el evento más valioso del funnel.
+ *
+ * OJO al modelo de negocio: Vivaru NO se activa por módulos sueltos ni tiene
+ * planes que el usuario elija. La contratación es del servicio completo y se
+ * cierra hablando con una persona. Este formulario **solo recoge la solicitud
+ * de contacto**; nada de lo que se marque aquí activa nada por sí solo.
  */
 
 const MOTIVOS = [
   { value: "contratar", label: "Quiero contratar Vivaru para mi conjunto" },
-  { value: "modulo", label: "Necesito activar un módulo que está bloqueado" },
-  { value: "precio", label: "Quiero conocer precios y formas de pago" },
+  { value: "info", label: "Necesito más información antes de decidir" },
+  { value: "implementacion", label: "Tengo dudas sobre la implementación" },
   { value: "mas_tiempo", label: "Necesito más tiempo de prueba" },
-  { value: "dudas", label: "Tengo dudas antes de decidir" },
+  { value: "comite", label: "Debo presentarlo al comité o a la asamblea" },
 ];
 
 const HORARIOS = ["Mañana (9–12)", "Mediodía (12–15)", "Tarde (15–18)", "Cualquier horario"];
@@ -84,8 +89,9 @@ export function AdvisorRequestDialog({
           </div>
           <h2 className="text-lg font-semibold text-[var(--slate-900)]">Recibimos tu solicitud</h2>
           <p className="mt-2 text-sm text-[var(--slate-600)]">
-            Un asesor de Vivaru te contacta en menos de <strong>24 horas hábiles</strong>. Mientras
-            tanto puedes seguir usando tu ambiente con normalidad.
+            Un asesor de Vivaru te contacta en menos de <strong>24 horas hábiles</strong> para
+            definir contigo la contratación. Mientras tanto puedes seguir usando tu ambiente con
+            normalidad.
           </p>
           <Button className="mt-5" onClick={handleClose}>
             Entendido
@@ -94,8 +100,8 @@ export function AdvisorRequestDialog({
       ) : (
         <div className="space-y-3 text-sm text-[var(--slate-700)]">
           <p className="text-[var(--slate-600)]">
-            Cuéntanos qué necesitas y un asesor te acompaña para dejar tu conjunto operando por
-            completo. Sin compromiso.
+            Déjanos tus datos y un asesor te contacta para acompañarte en la contratación y dejar
+            tu conjunto operando por completo. Sin compromiso.
           </p>
 
           <label className="block">
@@ -148,7 +154,8 @@ export function AdvisorRequestDialog({
 
           <p className="rounded-xl bg-[var(--surface-soft)] p-3 text-xs text-[var(--slate-600)]">
             Escribimos a <strong>{user?.email ?? "tu correo"}</strong>. Tu asesor ya verá cómo
-            configuraste tu conjunto, así que la conversación arranca con contexto.
+            configuraste tu conjunto, así que la conversación arranca con contexto — y define
+            contigo el alcance y las condiciones del servicio.
           </p>
 
           <div className="flex justify-end gap-2 pt-1">

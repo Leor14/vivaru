@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TRIAL_PLAN_ID = exports.TRIAL_DAYS = void 0;
+exports.FULL_SERVICE_PLAN_ID = exports.TRIAL_PLAN_ID = exports.TRIAL_DAYS = void 0;
 exports.provisionTrialWorkspace = provisionTrialWorkspace;
 const node_crypto_1 = require("node:crypto");
 const auth_1 = require("firebase-admin/auth");
@@ -28,6 +28,12 @@ function getDb() {
 }
 exports.TRIAL_DAYS = 15;
 exports.TRIAL_PLAN_ID = "trial";
+/**
+ * Plan de un cliente contratado. Vivaru NO se vende por planes ni por módulos
+ * sueltos: la contratación es del servicio completo. Este valor existe solo
+ * para marcar el tenant como cliente en la consola interna.
+ */
+exports.FULL_SERVICE_PLAN_ID = "completo";
 /** Dominio de las cuentas de prueba: no son correos reales de nadie. */
 const DEMO_ACCOUNT_DOMAIN = "ejemplo.vivaru.app";
 /**
@@ -86,7 +92,7 @@ async function provisionTrialWorkspace(input) {
         country: input.pais ?? "MX",
         currency: input.pais === "CO" ? "COP" : "MXN",
         status: input.asCustomer ? "active" : "trial",
-        planId: input.asCustomer ? (input.planId?.trim() || "starter") : exports.TRIAL_PLAN_ID,
+        planId: input.asCustomer ? (input.planId?.trim() || exports.FULL_SERVICE_PLAN_ID) : exports.TRIAL_PLAN_ID,
         onboardingStatus: "not_started",
         // Un cliente no lleva vigencia de prueba.
         ...(input.asCustomer

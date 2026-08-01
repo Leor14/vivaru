@@ -72,7 +72,6 @@ export default function SuperadminLeadsPage() {
   const [search, setSearch] = useState("");
   // Alta de cliente desde un lead sin ambiente (se acordó la suscripción).
   const [altaTarget, setAltaTarget] = useState<Lead | null>(null);
-  const [altaPlan, setAltaPlan] = useState("starter");
   const [altaSeed, setAltaSeed] = useState(false);
   const [creando, setCreando] = useState(false);
 
@@ -82,7 +81,6 @@ export default function SuperadminLeadsPage() {
     try {
       const res = await createTenantFromLeadCallable({
         leadId: altaTarget.id,
-        planId: altaPlan.trim() || "starter",
         seedExamples: altaSeed,
       });
       toast.success(`Ambiente creado: ${res.tenantId}. Se envió el acceso al administrador.`);
@@ -242,8 +240,7 @@ export default function SuperadminLeadsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            setAltaPlan("starter");
-                            setAltaSeed(false);
+                                                  setAltaSeed(false);
                             setAltaTarget(lead);
                           }}
                         >
@@ -272,17 +269,13 @@ export default function SuperadminLeadsPage() {
               Vas a crear el ambiente de <strong>{altaTarget.empresa ?? altaTarget.nombre}</strong> para{" "}
               <strong>{altaTarget.nombre}</strong> ({altaTarget.email}).
             </p>
-            <label className="block text-sm">
-              Plan acordado
-              <Input className="mt-1" value={altaPlan} onChange={(e) => setAltaPlan(e.target.value)} placeholder="starter" />
-            </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={altaSeed} onChange={(e) => setAltaSeed(e.target.checked)} />
               Sembrar datos de ejemplo
               <span className="text-xs text-[var(--slate-500)]">(normalmente no: cargará los suyos)</span>
             </label>
             <ul className="list-disc space-y-1 rounded-xl bg-[var(--surface-soft)] p-3 pl-7 text-xs text-[var(--slate-600)]">
-              <li>El ambiente nace <strong>activo</strong>, sin vencimiento y con todos los módulos desbloqueados.</li>
+              <li>El ambiente nace <strong>activo</strong>, sin vencimiento y con el <strong>servicio completo</strong> — Vivaru no se activa por módulos sueltos.</li>
               <li>Al administrador le llega el correo para definir su contraseña.</li>
               <li>El lead queda marcado como <strong>convertido</strong>.</li>
             </ul>

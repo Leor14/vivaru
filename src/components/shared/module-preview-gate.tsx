@@ -54,7 +54,7 @@ export function ModulePreviewGate({
               </h2>
               <p className="mt-1 max-w-2xl text-sm text-[var(--slate-700)]">
                 {copy?.body ??
-                  "Este módulo está disponible al contratar Vivaru. Abajo puedes explorarlo con datos de ejemplo."}
+                  "Forma parte del servicio completo de Vivaru. Abajo puedes explorarlo con datos de ejemplo."}
               </p>
             </div>
           </div>
@@ -63,12 +63,12 @@ export function ModulePreviewGate({
             onClick={() => setDialogOpen(true)}
             className="inline-flex shrink-0 items-center rounded-xl bg-[#0C447C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
-            Activar este módulo
+            Quiero contratar Vivaru
           </button>
         </div>
       </div>
 
-      <AdvisorRequestDialog open={dialogOpen} onClose={() => setDialogOpen(false)} motivoInicial="modulo" />
+      <AdvisorRequestDialog open={dialogOpen} onClose={() => setDialogOpen(false)} motivoInicial="contratar" />
 
       {/* El contenido queda visible pero inerte: se explora, no se opera. */}
       <div aria-hidden className="pointer-events-none select-none opacity-95">
