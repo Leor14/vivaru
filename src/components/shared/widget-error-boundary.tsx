@@ -10,7 +10,18 @@ import { Component, type ReactNode } from "react";
  * Regla del proyecto: toda sección de dashboard/tablero que consuma datos del
  * tenant (especialmente charts de recharts) debe ir envuelta en este boundary.
  */
-type Props = { children: ReactNode; label?: string };
+type Props = {
+  children: ReactNode;
+  label?: string;
+  /**
+   * Qué mostrar si el hijo lanza. Por defecto un aviso discreto.
+   *
+   * Pasar `null` sirve para lo accesorio —una banda de ayuda, un adorno—: ahí un
+   * recuadro de error en todas las pantallas sería más ruido que el fallo que
+   * intenta reportar. Lo esencial sí debe avisar.
+   */
+  fallback?: ReactNode;
+};
 type State = { hasError: boolean };
 
 export class WidgetErrorBoundary extends Component<Props, State> {
@@ -27,6 +38,7 @@ export class WidgetErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if ("fallback" in this.props) return this.props.fallback;
       return (
         <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--slate-600)]">
           No se pudo cargar {this.props.label ?? "esta sección"}. Recarga la página o inténtalo más tarde.

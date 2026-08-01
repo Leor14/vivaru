@@ -14,6 +14,7 @@ import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-varia
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { TrialBanner } from "@/components/shared/trial-banner";
 import { GuidedStepBanner } from "@/components/shared/guided-step-banner";
+import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { DemoEnvironmentNotice } from "@/components/shared/demo-environment-notice";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import { isModuleLocked, moduleForPath } from "@/lib/config/trial-modules";
@@ -422,11 +423,19 @@ export function AppShell({
           {isAdminRole ? <TrialBanner trial={trial} /> : <DemoEnvironmentNotice />}
           {/* La ayuda del recorrido guiado vive en el shell y no en cada página:
               así las 16 pantallas del admin la reciben con un solo montaje.
-              Suspense porque `useSearchParams` lo exige fuera de render dinámico. */}
+              Suspense porque `useSearchParams` lo exige fuera de render dinámico.
+
+              El boundary NO es decorativo: al estar en el shell, un throw aquí
+              lo atraparía el error.tsx de la ruta y tumbaría las 16 pantallas
+              con "No pudimos cargar el workspace" — no solo el tablero. Suspense
+              no cubre esto: atrapa suspensiones, no errores. Fallback nulo
+              porque una guía que falla debe desaparecer, no gritar. */}
           {isAdminRole ? (
-            <Suspense fallback={null}>
-              <GuidedStepBanner />
-            </Suspense>
+            <WidgetErrorBoundary label="la guía de puesta en marcha" fallback={null}>
+              <Suspense fallback={null}>
+                <GuidedStepBanner />
+              </Suspense>
+            </WidgetErrorBoundary>
           ) : null}
           {children}
         </main>
