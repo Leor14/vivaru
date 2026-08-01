@@ -641,7 +641,7 @@ function AdminReportsPageContent() {
                       <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por categoría</p>
                       </div>
-                      <div className="divide-y divide-[var(--slate-50)]">
+                      <div className="divide-y divide-[var(--slate-100)]">
                         {report.financial.expenseByCategory.map((c) => (
                           <div key={c.category} className="flex items-center justify-between px-4 py-2 text-sm">
                             <span className="text-[var(--slate-700)]">{c.label}</span>
@@ -917,7 +917,7 @@ function AdminReportsPageContent() {
                     <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Por amenidad</p>
                     </div>
-                    <div className="divide-y divide-[var(--slate-50)]">
+                    <div className="divide-y divide-[var(--slate-100)]">
                       {report.reservations.byAmenity.map((r) => (
                         <div key={r.amenity} className="flex items-center justify-between px-4 py-2 text-sm">
                           <span className="text-[var(--slate-700)]">{r.amenity}</span>

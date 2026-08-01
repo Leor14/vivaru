@@ -35,6 +35,10 @@
   --icon-lavender-muted-fg: #5d5782;
   --icon-lavender-active-bg: #e2dcf7;
   --icon-lavender-active-fg: #433c69;
+  /* Extremo claro de la escala (H 210°, un paso por encima del 100). Se usaba
+     en 48 fondos sin estar declarado: `background-color` NO se hereda, así que
+     caía a `transparent` y esas superficies sencillamente no se pintaban. */
+  --slate-50: #f8fafc;
   --slate-100: #f2f5f8;
   --slate-200: #d9e2ec;
   --slate-300: #c2ccda;
@@ -45,6 +49,11 @@
   --slate-500: #607286;
   --slate-600: #4c5f74;
   --slate-700: #33485f;
+  /* Paso intermedio 700↔900 (H 211°, 12.2:1 sobre blanco — entre el 9.4 del
+     700 y el 15.6 del 900). Se usaba en 66 textos sin estar declarado: `color`
+     SÍ se hereda, así que caían a --foreground (17.2:1) y se veían como texto
+     principal, aplanando la jerarquía que este token existe para crear. */
+  --slate-800: #24374b;
   --slate-900: #152536;
   --danger-600: #b42318;
   --danger-700: #8e1c13;
