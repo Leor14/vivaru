@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Clock } from "lucide-react";
+import { ArrowRight, Clock, Sparkles } from "lucide-react";
 
 import { AdvisorRequestDialog } from "@/components/shared/advisor-request-dialog";
 import type { TenantTrialState } from "@/features/tenant/use-tenant-trial";
@@ -48,13 +48,20 @@ export function TrialBanner({ trial }: { trial: TenantTrialState }) {
         <Clock className="h-4 w-4 flex-shrink-0" aria-hidden />
         <span>{message}</span>
       </span>
+      {/* El CTA es sólido y no un contorno tenue: es la única acción comercial
+          del portal y competía en peso con el texto informativo de al lado.
+          Con fondo de marca gana jerarquía sin gritar. */}
       <button
         type="button"
         onClick={() => setDialogOpen(true)}
-        className="inline-flex shrink-0 items-center rounded-lg border px-3 py-1 text-xs font-semibold hover:opacity-80"
-        style={{ borderColor: tone.text, color: tone.text }}
+        className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--brand-700)] px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(11,60,93,0.22)] [transition:background-color_180ms_var(--ease-out),transform_140ms_var(--ease-out),box-shadow_180ms_var(--ease-out)] hover:bg-[var(--brand-800)] hover:shadow-[0_6px_18px_rgba(11,60,93,0.28)] active:scale-[0.97] motion-reduce:transform-none"
       >
-        Hablar con un asesor
+        <Sparkles className="h-3.5 w-3.5" aria-hidden />
+        Inicia tu suscripción
+        <ArrowRight
+          className="h-3.5 w-3.5 [transition-property:transform] duration-200 ease-[var(--ease-out)] group-hover:translate-x-0.5 motion-reduce:transform-none"
+          aria-hidden
+        />
       </button>
       <AdvisorRequestDialog
         open={dialogOpen}

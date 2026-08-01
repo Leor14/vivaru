@@ -3,7 +3,20 @@
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
-import { AlertCircle, Banknote, CheckCircle2, Clock3, Download, FileSpreadsheet, FileText, PenSquare, Printer, SendHorizontal, Upload } from "lucide-react";
+import {
+  AlertCircle,
+  Banknote,
+  CheckCircle2,
+  Clock3,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  PenSquare,
+  Printer,
+  SendHorizontal,
+  Upload,
+  Wallet,
+} from "lucide-react";
 import {
   Bar,
   CartesianGrid,
@@ -1145,6 +1158,8 @@ function AdminBillingPageContent() {
     <section className="space-y-4">
       <SectionIntro
         storageKey="cartera"
+            icon={Wallet}
+            tone="lavender"
         title="Cartera"
         purpose="Controlar lo que cada unidad debe y lo que ha pagado (cuotas o alícuotas de administración)."
         how="Generas los cobros del período por unidad, registras los pagos recibidos y emites el comprobante a cada residente. Los pagos alimentan el Libro y fondos."

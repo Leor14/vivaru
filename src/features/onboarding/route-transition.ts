@@ -54,6 +54,20 @@ function setActive(next: boolean) {
   emit();
 }
 
+/**
+ * Enciende el velo sin temporizador propio: lo apaga quien sabe que la pantalla
+ * destino ya está lista. Se usa al iniciar sesión, donde la espera no es
+ * decorativa —hay que resolver la sesión y el perfil— y el velo cubre un vacío
+ * real en vez de inventarlo.
+ */
+export function beginRouteVeil() {
+  setActive(true);
+}
+
+export function endRouteVeil() {
+  setActive(false);
+}
+
 function prefersReducedMotion() {
   if (typeof window === "undefined" || !window.matchMedia) return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;

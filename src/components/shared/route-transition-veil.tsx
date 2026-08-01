@@ -1,6 +1,11 @@
 "use client";
 
-import { useRouteTransitionActive } from "@/features/onboarding/route-transition";
+import { useEffect } from "react";
+
+import { endRouteVeil, useRouteTransitionActive } from "@/features/onboarding/route-transition";
+
+/** Tope de seguridad: si algo falla, el velo nunca deja la pantalla bloqueada. */
+const MAX_VISIBLE_MS = 4000;
 
 /**
  * El velo de marca que aparece entre un paso de la guía y su pantalla.
@@ -23,6 +28,15 @@ import { useRouteTransitionActive } from "@/features/onboarding/route-transition
  */
 export function RouteTransitionVeil() {
   const active = useRouteTransitionActive();
+
+  // Un velo que se queda pegado es peor que no tenerlo: bloquea la pantalla y
+  // el usuario no tiene forma de salir. Pase lo que pase, se apaga.
+  useEffect(() => {
+    if (!active) return;
+    const timer = setTimeout(() => endRouteVeil(), MAX_VISIBLE_MS);
+    return () => clearTimeout(timer);
+  }, [active]);
+
   if (!active) return null;
 
   return (

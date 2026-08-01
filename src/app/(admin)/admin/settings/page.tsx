@@ -32,6 +32,12 @@ import { SectionIntro } from "@/components/shared/section-intro";
 import { useTenantBrandingForm } from "@/features/admin/hooks/use-tenant-branding-form";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { updateUserProfile } from "@/features/users/profile-service";
+import {
+  Building2,
+  SlidersHorizontal,
+  Smartphone,
+  UserCog,
+} from "lucide-react";
 
 const passwordSchema = z
   .object({
@@ -251,6 +257,8 @@ export default function AdminSettingsPage() {
         <>
           <SectionIntro
             storageKey="settings-conjunto"
+            icon={Building2}
+            tone="sky"
             title="Conjunto"
             purpose="La identidad visual y los datos fiscales de tu conjunto."
             how="El logo y los colores se reflejan en el portal del residente y en los correos; los datos fiscales alimentan los comprobantes de pago."
@@ -288,6 +296,8 @@ export default function AdminSettingsPage() {
         <>
           <SectionIntro
             storageKey="settings-cuenta"
+            icon={UserCog}
+            tone="sky"
             title="Mi cuenta"
             purpose="Tus datos personales de acceso al panel."
             how="Actualiza tu nombre visible, tu avatar y tu contraseña. Solo afectan tu cuenta, no la configuración del conjunto."
@@ -356,6 +366,8 @@ export default function AdminSettingsPage() {
         <>
           <SectionIntro
             storageKey="settings-residente"
+            icon={Smartphone}
+            tone="mint"
             title="Portal del residente"
             purpose="Lo que tus residentes ven y reciben en su portal."
             how="Personaliza el texto de las notificaciones y define las reglas de reserva del conjunto."
@@ -388,6 +400,8 @@ export default function AdminSettingsPage() {
         <>
           <SectionIntro
             storageKey="settings-modulos"
+            icon={SlidersHorizontal}
+            tone="lavender"
             title="Módulos"
             purpose="Qué módulos están disponibles y cómo operan en este conjunto."
             how="Activa o desactiva los módulos del portal del residente, y elige el modo de operación de cada módulo (por ejemplo, Visitas con QR o registro simple)."
