@@ -1,7 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Download, ExternalLink, FilterX, FolderOpen, Star, Trash2, Upload } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  Files,
+  FilterX,
+  FolderOpen,
+  Star,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -268,6 +277,8 @@ export default function AdminDocumentsPage() {
         <>
           <SectionIntro
             storageKey="documentos-carpetas"
+            icon={FolderOpen}
+            tone="sand"
             title="Carpetas"
             purpose="Organiza los documentos del conjunto en carpetas para encontrarlos fácil."
             how="Crea carpetas, agrupa los documentos dentro y muévelos entre ellas cuando lo necesites."
@@ -282,6 +293,8 @@ export default function AdminDocumentsPage() {
         <>
           <SectionIntro
             storageKey="documentos-todos"
+            icon={Files}
+            tone="sand"
             title="Todos los documentos"
             purpose="Todos los archivos oficiales del conjunto, reunidos en un solo lugar."
             how="Sube un archivo, asígnale una categoría y una descripción, y luego búscalo o ábrelo desde el listado."

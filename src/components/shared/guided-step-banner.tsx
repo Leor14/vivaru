@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, CheckCircle2, Lightbulb, ListChecks, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { getIconTone } from "@/lib/ui/icon-tones";
 import { useAuth } from "@/features/auth/auth-context";
 import { runGuidedAction, useHasGuidedAction } from "@/features/onboarding/guided-action";
+import { useGuidedNavigation } from "@/features/onboarding/route-transition";
 import { markStepSeen } from "@/features/onboarding/services";
 import { useOnboardingProgress } from "@/features/onboarding/use-onboarding-progress";
 import {
@@ -48,12 +49,15 @@ function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
   const pathname = usePathname();
   const progress = useOnboardingProgress(user?.tenantId);
   const hasAction = useHasGuidedAction(step.key);
+  const navigate = useGuidedNavigation();
   const [confirming, setConfirming] = useState(false);
 
   const tenantId = user?.tenantId;
   const done = progress.isDone(step.key);
   const block = ONBOARDING_BLOCKS.find((item) => item.key === step.block);
   const { index, total } = positionInBlock(step);
+  const tone = getIconTone(step.tone);
+  const StepIcon = step.icon;
 
   /**
    * Los pasos de descubrimiento se completan con recorrerlos: el objetivo del
@@ -92,30 +96,41 @@ function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
   return (
     <section
       aria-label={`Guía: ${step.title}`}
-      className="mb-4 rounded-2xl border border-[var(--brand-200)] bg-[var(--brand-50)] px-4 py-3"
+      className="mb-4 rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-white via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[var(--brand-700)]">
-            <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--brand-200)]/50 px-2 py-0.5">
-              <ListChecks className="h-3.5 w-3.5" aria-hidden />
-              Guía de puesta en marcha
-            </span>
-            <span className="text-[var(--slate-500)]">
-              Paso {index} de {total}
-              {block ? ` · ${block.title}` : ""}
-            </span>
-          </p>
-          <h2 className="mt-1.5 flex items-center gap-2 text-base font-semibold text-[var(--brand-900)]">
-            {done ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden /> : null}
-            {step.title}
-          </h2>
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl"
+            style={{
+              backgroundColor: done ? "#dcfce7" : tone.mutedBg,
+              color: done ? "#15803d" : tone.mutedFg,
+            }}
+            aria-hidden
+          >
+            {done ? <CheckCircle2 className="h-5 w-5" /> : <StepIcon className="h-5 w-5" />}
+          </span>
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[var(--brand-700)]">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-white/70 px-2 py-0.5">
+                <ListChecks className="h-3.5 w-3.5" aria-hidden />
+                Guía de puesta en marcha
+              </span>
+              <span className="text-[var(--slate-500)]">
+                Paso {index} de {total}
+                {block ? ` · ${block.title}` : ""}
+              </span>
+            </p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-[var(--brand-900)]">
+              {step.title}
+            </h2>
+          </div>
         </div>
         <button
           type="button"
           onClick={dismiss}
           aria-label="Cerrar la guía de este paso"
-          className="shrink-0 rounded-lg p-1 text-[var(--brand-700)] hover:bg-[var(--brand-200)]/40"
+          className="shrink-0 rounded-lg p-1 text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out),transform_140ms_var(--ease-out)] hover:bg-white/80 active:scale-95"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>
@@ -129,18 +144,14 @@ function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {next ? (
-              <Link href={hrefFor(next)}>
-                <Button size="sm">
-                  Siguiente: {next.title}
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
-                </Button>
-              </Link>
-            ) : null}
-            <Link href="/admin">
-              <Button size="sm" variant="outline">
-                Volver a la guía
+              <Button size="sm" onClick={() => navigate(hrefFor(next))}>
+                Siguiente: {next.title}
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </Button>
-            </Link>
+            ) : null}
+            <Button size="sm" variant="outline" onClick={() => navigate("/admin")}>
+              Volver a la guía
+            </Button>
           </div>
         </div>
       ) : (
@@ -178,11 +189,9 @@ function GuidedStepBannerInner({ step }: { step: OnboardingStep }) {
                 {confirming ? "Guardando…" : "Ya lo recorrí"}
               </Button>
             ) : null}
-            <Link href="/admin">
-              <Button size="sm" variant="outline">
-                Volver a la guía
-              </Button>
-            </Link>
+            <Button size="sm" variant="outline" onClick={() => navigate("/admin")}>
+              Volver a la guía
+            </Button>
           </div>
         </div>
       )}

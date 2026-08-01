@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lock } from "lucide-react";
+import { ArrowRight, Lock, Sparkles } from "lucide-react";
 
 import { AdvisorRequestDialog } from "@/components/shared/advisor-request-dialog";
 import { useAuth } from "@/features/auth/auth-context";
@@ -58,12 +58,20 @@ export function ModulePreviewGate({
               </p>
             </div>
           </div>
+          {/* Mismo CTA que la banda de vigencia: una sola acción comercial en
+              todo el portal, con un solo nombre. Dos etiquetas distintas para
+              lo mismo hacen dudar de si llevan a sitios distintos. */}
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
-            className="inline-flex shrink-0 items-center rounded-xl bg-[#0C447C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-[var(--brand-700)] px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(11,60,93,0.22)] [transition:background-color_180ms_var(--ease-out),transform_140ms_var(--ease-out),box-shadow_180ms_var(--ease-out)] hover:bg-[var(--brand-800)] hover:shadow-[0_6px_18px_rgba(11,60,93,0.28)] active:scale-[0.97] motion-reduce:transform-none"
           >
-            Quiero contratar Vivaru
+            <Sparkles className="h-4 w-4" aria-hidden />
+            Inicia tu suscripción
+            <ArrowRight
+              className="h-4 w-4 [transition-property:transform] duration-200 ease-[var(--ease-out)] group-hover:translate-x-0.5 motion-reduce:transform-none"
+              aria-hidden
+            />
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { ChevronDown, Info } from "lucide-react";
 import * as React from "react";
 
+import { getIconTone, type IconToneName } from "@/lib/ui/icon-tones";
 import { cn } from "@/lib/utils/cn";
 
 type SectionIntroProps = {
@@ -14,21 +15,39 @@ type SectionIntroProps = {
   purpose: React.ReactNode;
   /** Cómo se usa / de dónde salen y a dónde van los datos. */
   how: React.ReactNode;
+  /** Icono del apartado. Por defecto el de información. */
+  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  /** Tono del chip, del sistema pastel del producto (`--icon-*`). */
+  tone?: IconToneName;
   className?: string;
 };
 
 const KEY_PREFIX = "vivaru:section-intro:";
 
 /**
- * Banner explicativo colapsable que encabeza cada apartado del módulo Financiero.
- * Explica "para qué sirve" y "cómo funciona" el apartado. El admin puede colapsarlo
- * y la preferencia se recuerda por apartado en localStorage. Copy neutral por país
- * (no afirma marcos legales específicos de CO/MX/EC). Ver wiki: layout-patterns.
+ * Banner explicativo colapsable que encabeza un apartado: para qué sirve y cómo
+ * funciona. El admin puede colapsarlo y la preferencia se recuerda por apartado.
+ * Copy neutral por país (no afirma marcos legales específicos de CO/MX/EC).
+ *
+ * Comparte lenguaje visual con la banda del recorrido guiado
+ * (`guided-step-banner.tsx`): mismo chip de icono, mismo degradado, mismos
+ * encabezados "Para qué sirve / Cómo funciona". No es decoración: cuando el
+ * administrador llega aquí desde la guía, la ayuda que ya venía leyendo y la
+ * de la sección tienen que verse como la misma voz, no como dos productos.
  */
-export function SectionIntro({ storageKey, title, purpose, how, className }: SectionIntroProps) {
+export function SectionIntro({
+  storageKey,
+  title,
+  purpose,
+  how,
+  icon: Icon = Info,
+  tone = "sky",
+  className,
+}: SectionIntroProps) {
   const storageId = `${KEY_PREFIX}${storageKey}`;
   const bodyId = `section-intro-${storageKey}`;
   const [collapsed, setCollapsed] = React.useState(false);
+  const token = getIconTone(tone);
 
   React.useEffect(() => {
     try {
@@ -53,25 +72,36 @@ export function SectionIntro({ storageKey, title, purpose, how, className }: Sec
   return (
     <section
       className={cn(
-        "rounded-2xl border border-[var(--brand-200)] bg-[var(--brand-50)] px-4 py-3",
+        "rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-white via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Info className="h-4 w-4 shrink-0 text-[var(--brand-700)]" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-[var(--brand-900)]">{title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl"
+            style={{ backgroundColor: token.mutedBg, color: token.mutedFg }}
+            aria-hidden
+          >
+            <Icon className="h-4.5 w-4.5" />
+          </span>
+          <h2 className="truncate text-base font-semibold tracking-tight text-[var(--brand-900)]">
+            {title}
+          </h2>
         </div>
         <button
           type="button"
           onClick={toggle}
           aria-expanded={!collapsed}
           aria-controls={bodyId}
-          className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] hover:bg-[var(--brand-200)]/40"
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out),transform_140ms_var(--ease-out)] hover:bg-white/80 active:scale-95"
         >
           {collapsed ? "Cómo funciona" : "Ocultar"}
           <ChevronDown
-            className={cn("h-4 w-4 [transition-property:transform] duration-200", collapsed ? "" : "rotate-180")}
+            className={cn(
+              "h-4 w-4 [transition-property:transform] duration-200 ease-[var(--ease-out)]",
+              collapsed ? "" : "rotate-180",
+            )}
             aria-hidden="true"
           />
         </button>

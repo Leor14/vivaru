@@ -1,7 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Link2, Plus, Trash2, Upload } from "lucide-react";
+import {
+  Check,
+  Link2,
+  Plus,
+  Scale,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -171,6 +178,8 @@ export default function AdminConciliacionPage() {
     <div className="space-y-4">
       <SectionIntro
         storageKey="conciliacion"
+            icon={Scale}
+            tone="lavender"
         title="Conciliación bancaria"
         purpose="Cuadrar lo registrado en el Libro contra lo que realmente se movió en el banco, para que el saldo contable coincida con el saldo real de la cuenta."
         how={

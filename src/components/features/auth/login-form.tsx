@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-context";
+import { beginRouteVeil, endRouteVeil } from "@/features/onboarding/route-transition";
 import { canAccessPath, routeByRole } from "@/lib/auth/routing";
 
 const schema = z.object({
@@ -68,6 +69,11 @@ export function LoginForm() {
         mustChangePassword: session.mustChangePassword,
       });
 
+      // Aquí la espera no es decorativa: falta resolver perfil, tenant y marca
+      // antes de que el portal pinte algo. El velo cubre ese vacío —que hoy es
+      // una pantalla en blanco— y lo apaga el AppShell al montar con sesión.
+      beginRouteVeil();
+
       if (session.role === "resident" && session.mustChangePassword) {
         router.push("/resident/change-password-required");
         return;
@@ -84,6 +90,7 @@ export function LoginForm() {
       }
     } catch (error) {
       console.error("[login-form] submit:error", error);
+      endRouteVeil();
       toastFirebaseError(error);
     } finally {
       console.info("[login-form] submit:end");

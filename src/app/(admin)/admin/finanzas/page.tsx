@@ -2,7 +2,13 @@
 
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, FileSpreadsheet, Plus, Undo2 } from "lucide-react";
+import {
+  AlertTriangle,
+  BookOpen,
+  FileSpreadsheet,
+  Plus,
+  Undo2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -258,6 +264,8 @@ function AdminFinanzasLibroPageContent() {
     <div className="space-y-4">
       <SectionIntro
         storageKey="libro-fondos"
+            icon={BookOpen}
+            tone="lavender"
         title="Libro y fondos"
         purpose="El libro de ingresos y egresos y el saldo de fondos del conjunto."
         how="El recaudo de cuotas viene de Cartera y los egresos pagados entran automáticamente; aquí agregas movimientos manuales (saldo inicial, otros ingresos) y exportas el estado financiero."
@@ -382,10 +390,10 @@ function AdminFinanzasLibroPageContent() {
           tableMinWidthClassName="min-w-[640px] sm:min-w-[720px]"
           renderActions={(item) => {
             if (item.sourceType === "reversal") {
-              return <span className="block text-right text-xs text-[var(--slate-400)]">Reverso</span>;
+              return <span className="block text-right text-xs text-[var(--slate-500)]">Reverso</span>;
             }
             if (item.reversedByEntryId) {
-              return <span className="block text-right text-xs text-[var(--slate-400)]">Anulado</span>;
+              return <span className="block text-right text-xs text-[var(--slate-500)]">Anulado</span>;
             }
             if (item.sourceType === "manual") {
               return (
@@ -405,7 +413,7 @@ function AdminFinanzasLibroPageContent() {
                 </div>
               );
             }
-            return <span className="block text-right text-xs text-[var(--slate-400)]">Automático</span>;
+            return <span className="block text-right text-xs text-[var(--slate-500)]">Automático</span>;
           }}
         />
       </div>

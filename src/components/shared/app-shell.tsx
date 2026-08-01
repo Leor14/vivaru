@@ -22,6 +22,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
 import { isTicketPending } from "@/features/pqrs/ticket-status";
 import { useTickets } from "@/features/pqrs/use-tickets";
+import { endRouteVeil } from "@/features/onboarding/route-transition";
 import { canAccessPath, routeByRole } from "@/lib/auth/routing";
 import { ROLE_LABEL, type AppRole } from "@/lib/constants/roles";
 import { db } from "@/lib/firebase/client";
@@ -128,6 +129,12 @@ export function AppShell({
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
+
+  // El velo que encendió el login se apaga aquí: este es el primer momento en
+  // que el portal existe de verdad, con sesión y perfil ya resueltos.
+  useEffect(() => {
+    if (!loading && user) endRouteVeil();
+  }, [loading, user]);
 
   useEffect(() => {
     if (!user?.tenantId || !db) {
