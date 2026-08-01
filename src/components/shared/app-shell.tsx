@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Menu, X } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -13,6 +13,7 @@ import { buildAdminSidebarGroups, buildRoleSidebarGroups, profileHrefForRole } f
 import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-variants";
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { TrialBanner } from "@/components/shared/trial-banner";
+import { GuidedStepBanner } from "@/components/shared/guided-step-banner";
 import { DemoEnvironmentNotice } from "@/components/shared/demo-environment-notice";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import { isModuleLocked, moduleForPath } from "@/lib/config/trial-modules";
@@ -419,6 +420,14 @@ export function AppShell({
           {/* El CTA comercial es solo para el admin (es quien decide y compra);
               residentes y portería ven una nota informativa, sin venta. */}
           {isAdminRole ? <TrialBanner trial={trial} /> : <DemoEnvironmentNotice />}
+          {/* La ayuda del recorrido guiado vive en el shell y no en cada página:
+              así las 16 pantallas del admin la reciben con un solo montaje.
+              Suspense porque `useSearchParams` lo exige fuera de render dinámico. */}
+          {isAdminRole ? (
+            <Suspense fallback={null}>
+              <GuidedStepBanner />
+            </Suspense>
+          ) : null}
           {children}
         </main>
       </div>

@@ -30,6 +30,10 @@ import {
   createTenantWorkspace,
   type TenantWorkspaceItem,
 } from "@/features/superadmin/services";
+import {
+  watchOnboardingSummaries,
+  type OnboardingSummary,
+} from "@/features/onboarding/services";
 import { useAuth } from "@/features/auth/auth-context";
 import { CURRENCY_OPTIONS } from "@/lib/currency";
 import {
@@ -233,6 +237,9 @@ export default function SuperadminTenantsPage() {
     });
   }, [tenants, statusFilter, onboardingFilter, searchFilter]);
 
+  const [onboardingByTenant, setOnboardingByTenant] = useState<Record<string, OnboardingSummary>>({});
+  useEffect(() => watchOnboardingSummaries(setOnboardingByTenant), []);
+
   const columns: DataTableColumn<TenantWorkspaceItem>[] = [
     {
       key: "name",
@@ -283,6 +290,37 @@ export default function SuperadminTenantsPage() {
         if (left < 0) return <span className="text-xs font-medium text-[var(--danger-700)]">Venció hace {Math.abs(left)} d</span>;
         const tone = left > 7 ? "text-emerald-700" : left >= 3 ? "text-amber-700" : "text-[var(--danger-700)]";
         return <span className={`text-xs font-medium ${tone}`}>{left} día{left === 1 ? "" : "s"}</span>;
+      },
+    },
+    {
+      key: "activacion",
+      header: "Activación",
+      // Cuánto avanzó el prospecto en la guía de puesta en marcha. Es la señal
+      // más útil para priorizar a quién llamar: quien va 5 de 7 está enganchado;
+      // quien lleva 0 al quinto día necesita una mano, no un correo automático.
+      render: (tenant) => {
+        const summary = onboardingByTenant[tenant.id];
+        if (!summary || summary.activationTotal === 0) {
+          return <span className="text-xs text-[var(--slate-400)]">Sin datos</span>;
+        }
+        const complete = summary.activationDone >= summary.activationTotal;
+        const tone = complete
+          ? "text-emerald-700"
+          : summary.activationDone === 0
+            ? "text-[var(--danger-700)]"
+            : "text-amber-700";
+        return (
+          <div>
+            <p className={`text-xs font-semibold ${tone}`}>
+              {summary.activationDone} de {summary.activationTotal}
+            </p>
+            {summary.discoveryDone > 0 ? (
+              <p className="text-xs text-[var(--slate-500)]">
+                {summary.discoveryDone} módulos recorridos
+              </p>
+            ) : null}
+          </div>
+        );
       },
     },
     {

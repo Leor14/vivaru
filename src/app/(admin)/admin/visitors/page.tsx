@@ -48,6 +48,7 @@ function asDateLabel(value: unknown) {
   return "-";
 }
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import { resolveIdentityCell } from "@/lib/utils/identity";
@@ -65,6 +66,8 @@ export default function AdminVisitorsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openModal, setOpenModal] = useState(false);
+  // Enganche del recorrido guiado (src/lib/onboarding/steps.ts).
+  useGuidedAction("visita", () => setOpenModal(true));
   const [saving, setSaving] = useState(false);
   const [editingItem, setEditingItem] = useState<VisitorItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expired" | "cancelled">("all");
