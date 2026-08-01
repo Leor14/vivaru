@@ -13,6 +13,7 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
+import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
@@ -3770,5 +3771,25 @@ export const createTrialWorkspace = onCall<CreateTrialInput>(
       trialEndsAt: result.trialEndsAt,
       seeded: result.seeded,
     };
+  },
+);
+
+// ── Ciclo de vida de los ambientes de prueba (Fase 4 del self-service) ───────
+// Diario a las 10:00 UTC. Avisa en los días 7/3/1, pasa a `expired` al vencer
+// (SIN borrar nada) y reporta los vencidos que superaron la retención.
+export const trialLifecycleDaily = onSchedule(
+  { schedule: "0 10 * * *", secrets: [resendApiKey], timeoutSeconds: 540 },
+  async () => {
+    const report = await runTrialLifecycle();
+    console.log("[trial-lifecycle]", JSON.stringify(report));
+    if (report.purgaPendiente.length > 0) {
+      // La purga automática está apagada a propósito (ver AUTO_PURGE_ENABLED):
+      // borrar datos de un prospecto es irreversible y se decide con la vista
+      // puesta en datos reales, no por defecto.
+      console.warn(
+        `[trial-lifecycle] ${report.purgaPendiente.length} ambiente(s) superaron la retención y NO se purgaron:`,
+        report.purgaPendiente.join(", "),
+      );
+    }
   },
 );

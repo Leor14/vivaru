@@ -186,6 +186,26 @@ export async function convertTenantToCustomer(input: {
   });
 }
 
+/**
+ * Marca un ambiente de prueba como perdido, con motivo. Alimenta el aprendizaje
+ * comercial: sin el motivo no se sabe POR QUÉ se pierden los trials.
+ */
+export async function markTrialAsLost(input: { tenantId: string; leadId?: string; motivo: string }) {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "tenants", input.tenantId), {
+    lostAt: new Date().toISOString(),
+    lostReason: input.motivo,
+    updatedAt: serverTimestamp(),
+  });
+  if (input.leadId) {
+    await updateDoc(doc(firestore, "leads", input.leadId), {
+      status: "perdido",
+      lostReason: input.motivo,
+      updatedAt: serverTimestamp(),
+    }).catch(() => undefined);
+  }
+}
+
 /** Extiende la prueba N días desde hoy (negociaciones en curso). */
 export async function extendTrial(tenantId: string, days: number) {
   const firestore = assertDb();

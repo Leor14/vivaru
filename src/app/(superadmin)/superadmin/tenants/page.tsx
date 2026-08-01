@@ -23,6 +23,7 @@ import {
 import {
   convertTenantToCustomer,
   extendTrial,
+  markTrialAsLost,
   setTenantStatus,
   updateTenantWorkspace,
   watchTenants,
@@ -192,6 +193,19 @@ export default function SuperadminTenantsPage() {
       toastFirebaseError(error);
     } finally {
       setConverting(false);
+    }
+  }
+
+  async function handleLost(tenant: TenantWorkspaceItem) {
+    const motivo = window.prompt(
+      `¿Por qué se perdió ${tenant.name}? (precio, competencia, no era el perfil, sin respuesta…)`,
+    );
+    if (!motivo?.trim()) return;
+    try {
+      await markTrialAsLost({ tenantId: tenant.id, leadId: tenant.leadId, motivo: motivo.trim() });
+      toast.success("Marcado como perdido.");
+    } catch (error) {
+      toastFirebaseError(error);
     }
   }
 
@@ -397,7 +411,10 @@ export default function SuperadminTenantsPage() {
                   ariaLabel={`Acciones para ${tenant.name}`}
                   items={[
                     ...(enPrueba
-                      ? [{ key: "extend", label: "Extender prueba…", onSelect: () => void handleExtend(tenant) }]
+                      ? [
+                          { key: "extend", label: "Extender prueba…", onSelect: () => void handleExtend(tenant) },
+                          { key: "lost", label: "Marcar como perdido…", onSelect: () => void handleLost(tenant) },
+                        ]
                       : []),
                     {
                       key: "toggle",

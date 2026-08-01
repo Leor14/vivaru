@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -52,6 +53,7 @@ const sri_ecuador_1 = require("./sri-ecuador");
 const data_retention_1 = require("./data-retention");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
+const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
@@ -3047,4 +3049,17 @@ exports.createTrialWorkspace = (0, https_1.onCall)({ cors: callableCorsOrigins, 
         trialEndsAt: result.trialEndsAt,
         seeded: result.seeded,
     };
+});
+// ── Ciclo de vida de los ambientes de prueba (Fase 4 del self-service) ───────
+// Diario a las 10:00 UTC. Avisa en los días 7/3/1, pasa a `expired` al vencer
+// (SIN borrar nada) y reporta los vencidos que superaron la retención.
+exports.trialLifecycleDaily = (0, scheduler_1.onSchedule)({ schedule: "0 10 * * *", secrets: [email_1.resendApiKey], timeoutSeconds: 540 }, async () => {
+    const report = await (0, trial_lifecycle_1.runTrialLifecycle)();
+    console.log("[trial-lifecycle]", JSON.stringify(report));
+    if (report.purgaPendiente.length > 0) {
+        // La purga automática está apagada a propósito (ver AUTO_PURGE_ENABLED):
+        // borrar datos de un prospecto es irreversible y se decide con la vista
+        // puesta en datos reales, no por defecto.
+        console.warn(`[trial-lifecycle] ${report.purgaPendiente.length} ambiente(s) superaron la retención y NO se purgaron:`, report.purgaPendiente.join(", "));
+    }
 });
