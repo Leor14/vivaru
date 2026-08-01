@@ -1,6 +1,7 @@
 import {
   Timestamp,
   collection,
+  deleteField,
   doc,
   getDocs,
   limit,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
 import type { ModuleVariants } from "@/lib/config/module-variants";
+import type { TenantStatus } from "@/types/domain";
 
 function assertDb() {
   if (!db) {
@@ -45,8 +47,8 @@ function normalizeOnboarding(value: unknown): "not_started" | "in_progress" | "c
   return "not_started";
 }
 
-function normalizeTenantStatus(value: unknown): "active" | "suspended" | "trial" {
-  if (value === "active" || value === "suspended" || value === "trial") return value;
+function normalizeTenantStatus(value: unknown): TenantStatus {
+  if (value === "active" || value === "suspended" || value === "trial" || value === "expired") return value;
   return "trial";
 }
 
@@ -55,9 +57,13 @@ export interface TenantWorkspaceItem {
   name: string;
   city: string;
   planId: string;
-  status: "active" | "suspended" | "trial";
+  status: TenantStatus;
   onboardingStatus: "not_started" | "in_progress" | "completed";
   currency: "COP" | "MXN" | "USD";
+  /** Ciclo de vida del trial (ver docs/plan-self-service-trial.md). */
+  trialEndsAt?: string;
+  leadId?: string;
+  convertedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -104,6 +110,9 @@ export function watchTenants(
           status: normalizeTenantStatus(data.status),
           onboardingStatus: normalizeOnboarding(data.onboardingStatus),
           currency: (data.currency === "COP" || data.currency === "MXN" || data.currency === "USD") ? data.currency : "COP",
+          trialEndsAt: typeof data.trialEndsAt === "string" ? data.trialEndsAt : undefined,
+          leadId: typeof data.leadId === "string" ? data.leadId : undefined,
+          convertedAt: typeof data.convertedAt === "string" ? data.convertedAt : undefined,
           createdAt: toIsoString(data.createdAt),
           updatedAt: toIsoString(data.updatedAt),
         } as TenantWorkspaceItem;
@@ -133,7 +142,7 @@ export async function updateTenantWorkspace(
     name: string;
     city: string;
     planId: string;
-    status: "active" | "suspended" | "trial";
+    status: TenantStatus;
     onboardingStatus: "not_started" | "in_progress" | "completed";
     currency: "COP" | "MXN" | "USD";
   },
@@ -145,10 +154,66 @@ export async function updateTenantWorkspace(
   });
 }
 
-export async function setTenantStatus(tenantId: string, status: "active" | "suspended" | "trial") {
+export async function setTenantStatus(tenantId: string, status: TenantStatus) {
   const firestore = assertDb();
   await updateDoc(doc(firestore, "tenants", tenantId), {
     status,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Convierte un ambiente de prueba (o uno ya vencido) en cliente.
+ *
+ * Es la acción central de la consola: **no migra un solo documento.** Cambia el
+ * estado, asigna el plan negociado y quita el vencimiento — todo lo que el
+ * prospecto configuró se conserva tal cual. Por eso funciona igual para
+ * rescatar un ambiente que ya venció.
+ */
+export async function convertTenantToCustomer(input: {
+  tenantId: string;
+  planId: string;
+  convertedByUid: string;
+}) {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "tenants", input.tenantId), {
+    status: "active",
+    planId: input.planId,
+    trialEndsAt: deleteField(),
+    convertedAt: new Date().toISOString(),
+    convertedBy: input.convertedByUid,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Marca un ambiente de prueba como perdido, con motivo. Alimenta el aprendizaje
+ * comercial: sin el motivo no se sabe POR QUÉ se pierden los trials.
+ */
+export async function markTrialAsLost(input: { tenantId: string; leadId?: string; motivo: string }) {
+  const firestore = assertDb();
+  await updateDoc(doc(firestore, "tenants", input.tenantId), {
+    lostAt: new Date().toISOString(),
+    lostReason: input.motivo,
+    updatedAt: serverTimestamp(),
+  });
+  if (input.leadId) {
+    await updateDoc(doc(firestore, "leads", input.leadId), {
+      status: "perdido",
+      lostReason: input.motivo,
+      updatedAt: serverTimestamp(),
+    }).catch(() => undefined);
+  }
+}
+
+/** Extiende la prueba N días desde hoy (negociaciones en curso). */
+export async function extendTrial(tenantId: string, days: number) {
+  const firestore = assertDb();
+  const next = new Date();
+  next.setDate(next.getDate() + days);
+  await updateDoc(doc(firestore, "tenants", tenantId), {
+    status: "trial",
+    trialEndsAt: next.toISOString(),
     updatedAt: serverTimestamp(),
   });
 }

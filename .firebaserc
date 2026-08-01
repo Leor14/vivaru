@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "hogaru-1"
+    "default": "hogaru-1",
+    "prod": "hogaru-1",
+    "staging": "vivaru-staging-02"
   }
 }

@@ -438,6 +438,58 @@ describe("Firestore Rules - HOGARU", () => {
     await assertSucceeds(getDoc(doc(resident.firestore(), "documents", "doc-1")));
   });
 
+  // ── Recorrido guiado (tenantOnboarding) ─────────────────────────────────────
+  // Vive fuera de `tenants` a propósito: ese documento guarda `status` y
+  // `trialEndsAt`, y dar escritura al admin para palomear un checklist le
+  // abriría la puerta a extenderse la prueba solo.
+
+  it("permite a tenant_admin registrar su avance del recorrido guiado", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "tenantOnboarding", "tenant-a"), {
+        tenantId: "tenant-a",
+        seen: { "portal-residente": "2026-08-01T10:00:00.000Z" },
+        activationDone: 5,
+        activationTotal: 7,
+      }),
+    );
+  });
+
+  it("bloquea a un residente leer el avance del recorrido de su conjunto", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(resident.firestore(), "tenantOnboarding", "tenant-a")));
+  });
+
+  it("bloquea a un residente escribir el avance del recorrido", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(resident.firestore(), "tenantOnboarding", "tenant-a"), {
+        tenantId: "tenant-a",
+        activationDone: 7,
+      }),
+    );
+  });
+
+  it("bloquea a un admin tocar el avance de otro tenant", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "tenantOnboarding", "tenant-b"), {
+        tenantId: "tenant-b",
+        activationDone: 0,
+      }),
+    );
+  });
+
+  it("bloquea escribir un avance cuyo tenantId no coincide con el documento", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "tenantOnboarding", "tenant-a"), {
+        tenantId: "tenant-b",
+        activationDone: 7,
+      }),
+    );
+  });
+
   it("permite a tenant_admin crear amenidades de su tenant", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(

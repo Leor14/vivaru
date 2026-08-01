@@ -36,6 +36,7 @@ import {
 import { normalizeTower } from "@/utils/tower";
 import { ensureCommunicationsFolderCallable } from "@/lib/firebase/callables";
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { useRouter } from "next/navigation";
 
@@ -50,6 +51,8 @@ export default function AdminCommunicationsPage() {
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<CommunicationItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Enganche del recorrido guiado (src/lib/onboarding/steps.ts).
+  useGuidedAction("comunicados", () => setCreateOpen(true));
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft" | "archived" | "scheduled" | "expired">("all");

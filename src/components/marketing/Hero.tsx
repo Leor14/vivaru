@@ -101,16 +101,22 @@ export function Hero({ variant = "inst" }: HeroProps) {
               className={cn(fadeBase, shown ? fadeIn : fadeIdle)}
               style={{ transitionDelay: reduced ? "0ms" : "160ms" }}
             >
-              <DemoDialog section="hero">
-                <Button
-                  type="button"
-                  size="xl"
-                  variant="default"
-                  className="w-full sm:w-auto"
-                >
-                  Agenda una demo →
-                </Button>
-              </DemoDialog>
+              {/* Self-service: el trial reemplaza a la demo como camino
+                  principal; "Hablar con un asesor" queda como vía asistida
+                  (ver docs/plan-self-service-trial.md §4). */}
+              <Button
+                size="xl"
+                variant="default"
+                className="w-full sm:w-auto"
+                render={
+                  <Link
+                    href="/registro"
+                    onClick={() => track("cta_primary_click", { section: "hero", cta: "trial" })}
+                  />
+                }
+              >
+                Prueba gratis 15 días →
+              </Button>
             </div>
 
             <div

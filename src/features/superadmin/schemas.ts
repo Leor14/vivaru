@@ -13,7 +13,7 @@ export const tenantCreateSchema = z.object({
   name: z.string().min(3, "Nombre minimo 3 caracteres"),
   city: z.string().min(2, "Ciudad obligatoria"),
   planId: z.string().min(1, "Selecciona un plan"),
-  status: z.enum(["active", "suspended", "trial"]),
+  status: z.enum(["active", "suspended", "trial", "expired"]),
   onboardingStatus: z.enum(["not_started", "in_progress", "completed"]),
   currency: z.enum(["COP", "MXN", "USD"]),
   // Modos de operación elegidos al crear el conjunto. Opcional para no afectar el update,

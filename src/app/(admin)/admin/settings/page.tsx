@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -19,9 +19,11 @@ import {
   type AdminProfileInput,
 } from "@/features/admin/schemas";
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { auth } from "@/lib/firebase/client";
 import { TenantBrandingCard } from "@/features/admin/components/tenant-branding-card";
 import { TowersCard } from "@/features/admin/components/towers-card";
+import { DemoAccountsCard } from "@/features/admin/components/demo-accounts-card";
 import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
 import { ModuleVariantsCard } from "@/features/admin/components/module-variants-card";
 import { NotificationTemplatesCard } from "@/features/admin/components/notification-templates-card";
@@ -54,6 +56,23 @@ export default function AdminSettingsPage() {
   const [blockOnDebt, setBlockOnDebt] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
   const [tab, setTab] = useState<"conjunto" | "modulos" | "residente" | "cuenta">("conjunto");
+
+  /**
+   * Enganches del recorrido guiado: aquí el botón de la banda no abre un modal
+   * sino que lleva la vista hasta la tarjeta correcta — en una pantalla con
+   * pestañas y cinco tarjetas, "está en Configuración" no es una indicación
+   * suficiente. Ver `src/lib/onboarding/steps.ts`.
+   */
+  const scrollToCard = useCallback((elementId: string) => {
+    setTab("conjunto");
+    // En el siguiente frame, para que la pestaña ya esté montada.
+    requestAnimationFrame(() => {
+      document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+  useGuidedAction("agrupaciones", () => scrollToCard("guia-agrupaciones"));
+  useGuidedAction("portal-porteria", () => scrollToCard("guia-cuentas-prueba"));
+  useGuidedAction("portal-residente", () => scrollToCard("guia-cuentas-prueba"));
 
   const branding = useTenantBrandingForm({
     tenantId: user?.tenantId,
@@ -255,7 +274,12 @@ export default function AdminSettingsPage() {
         onCancel={branding.cancelChanges}
         onSubmit={branding.submitBranding}
       />
-          <TowersCard />
+          <div id="guia-cuentas-prueba" className="scroll-mt-24">
+            <DemoAccountsCard />
+          </div>
+          <div id="guia-agrupaciones" className="scroll-mt-24">
+            <TowersCard />
+          </div>
           <FiscalProfileCard />
         </>
       ) : null}

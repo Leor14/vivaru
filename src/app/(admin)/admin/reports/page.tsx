@@ -1,5 +1,6 @@
 "use client";
 
+import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { getDownloadURL, ref as storageRef, uploadBytes } from "firebase/storage";
@@ -125,7 +126,7 @@ function SectionLoading() {
   );
 }
 
-export default function AdminReportsPage() {
+function AdminReportsPageContent() {
   const { user } = useAuth();
   const { formatAmount: formatCurrency, formatAmountCompact } = useTenantCurrency();
 
@@ -1014,5 +1015,18 @@ export default function AdminReportsPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Durante la prueba este módulo es VISTA PREVIA: se explora con datos de
+ * ejemplo pero no se opera (ver src/lib/config/trial-modules.ts). Para un
+ * cliente activo, el gate es transparente.
+ */
+export default function AdminReportsPage() {
+  return (
+    <ModulePreviewGate module="reports">
+      <AdminReportsPageContent />
+    </ModulePreviewGate>
   );
 }

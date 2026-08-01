@@ -34,6 +34,7 @@ import {
   type UnitItem,
 } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 
 const CATEGORY_LABELS: Record<ServiceItem["category"], string> = {
   resident_offer: "Oferta residente",
@@ -47,6 +48,8 @@ export default function AdminServicesPage() {
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<ServiceItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  // Enganche del recorrido guiado (src/lib/onboarding/steps.ts).
+  useGuidedAction("servicios", () => setCreateOpen(true));
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<"all" | ServiceItem["category"]>("all");

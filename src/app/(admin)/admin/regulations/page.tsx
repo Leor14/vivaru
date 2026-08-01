@@ -1,5 +1,6 @@
 "use client";
 
+import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { FolderOpen, ScrollText, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -230,7 +231,7 @@ function PendingUnitsTable({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function AdminRegulationsPage() {
+function AdminRegulationsPageContent() {
   const { user } = useAuth();
   const tenantId = user?.tenantId ?? "";
 
@@ -547,5 +548,18 @@ export default function AdminRegulationsPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Durante la prueba este módulo es VISTA PREVIA: se explora con datos de
+ * ejemplo pero no se opera (ver src/lib/config/trial-modules.ts). Para un
+ * cliente activo, el gate es transparente.
+ */
+export default function AdminRegulationsPage() {
+  return (
+    <ModulePreviewGate module="regulations">
+      <AdminRegulationsPageContent />
+    </ModulePreviewGate>
   );
 }

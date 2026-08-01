@@ -34,6 +34,7 @@ import { PqrsAgingWidget } from "@/components/features/admin/dashboard/pqrs-agin
 import { RegulationComplianceWidget } from "@/components/features/admin/dashboard/regulation-compliance-widget";
 import { StatusPill } from "@/components/features/admin/dashboard/status-pill";
 import { VisitorFlowWidget } from "@/components/features/admin/dashboard/visitor-flow-widget";
+import { OnboardingChecklist } from "@/components/shared/onboarding-checklist";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -636,6 +637,11 @@ export default function AdminDashboardPage() {
 
   return (
     <section className="space-y-5 pb-2">
+      {/* Primero lo primero: mientras el conjunto no esté en marcha, la guía
+          pesa más que los indicadores (que además estarían casi vacíos). */}
+      <DashboardSectionBoundary section="onboarding" fallback={null}>
+        <OnboardingChecklist />
+      </DashboardSectionBoundary>
       <DashboardSectionBoundary
         section="header"
         fallback={

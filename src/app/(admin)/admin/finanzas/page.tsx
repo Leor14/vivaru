@@ -1,5 +1,6 @@
 "use client";
 
+import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertTriangle, FileSpreadsheet, Plus, Undo2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -38,7 +39,7 @@ import type { LedgerEntry } from "@/types/domain";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function AdminFinanzasLibroPage() {
+function AdminFinanzasLibroPageContent() {
   const { user } = useAuth();
   const { formatAmount } = useTenantCurrency();
   const { items: statements } = useBillingStatements(user?.tenantId);
@@ -468,5 +469,18 @@ export default function AdminFinanzasLibroPage() {
       />
       </Card>
     </div>
+  );
+}
+
+/**
+ * Durante la prueba este módulo es VISTA PREVIA: se explora con datos de
+ * ejemplo pero no se opera (ver src/lib/config/trial-modules.ts). Para un
+ * cliente activo, el gate es transparente.
+ */
+export default function AdminFinanzasLibroPage() {
+  return (
+    <ModulePreviewGate module="finanzas">
+      <AdminFinanzasLibroPageContent />
+    </ModulePreviewGate>
   );
 }

@@ -24,6 +24,7 @@ import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/lib/utils/use-debounce";
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { provisionResidentTemporaryAccessCallable } from "@/lib/firebase/callables";
 import {
   personSchema,
@@ -445,6 +446,20 @@ export default function AdminResidentsPage() {
       render: (person) => <StatusBadge status={person.status} context="unit" />,
     },
   ];
+
+  /**
+   * Enganches del recorrido guiado (ver `src/lib/onboarding/steps.ts`): la banda
+   * de ayuda que aparece al llegar con `?guia=` no conoce el DOM de esta
+   * pantalla, así que aquí se declara qué hace su botón.
+   */
+  useGuidedAction("unidades", () => openCreateUnit());
+  useGuidedAction("residentes", () => {
+    // Se agrega el titular a la primera unidad propia del conjunto; si aún no
+    // hay ninguna, se abre el alta —que ya crea unidad y titulares juntos.
+    const own = units.find((unit) => !(unit as { isExample?: boolean }).isExample);
+    if (own) openAddPersonToUnit(own);
+    else openCreateUnit();
+  });
 
   function openCreateUnit() {
     setEditingUnit(null);

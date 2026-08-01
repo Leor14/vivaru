@@ -52,6 +52,18 @@ service cloud.firestore {
         get(/databases/$(database)/documents/tenants/$(tenantId)).data.status in ['active', 'trial'];
     }
 
+    // Módulos en VISTA PREVIA durante la prueba (Regla A del plan self-service):
+    // Cartera, Egresos/Libro/Conciliación, Reporte de Comité y firmas del
+    // Reglamento se VEN con datos de ejemplo pero no se operan hasta contratar.
+    // Un cliente (`active`) nunca se bloquea. Espejo de assertModuleAllowed()
+    // en functions/src/trial-modules.ts.
+    function previewModuleWritable(tenantId) {
+      return superadmin() ||
+        !exists(/databases/$(database)/documents/tenants/$(tenantId)) ||
+        !('status' in get(/databases/$(database)/documents/tenants/$(tenantId)).data) ||
+        !(get(/databases/$(database)/documents/tenants/$(tenantId)).data.status in ['trial', 'expired']);
+    }
+
     function amenityDoc(amenityId) {
       return get(/databases/$(database)/documents/amenities/$(amenityId));
     }
@@ -202,6 +214,26 @@ service cloud.firestore {
       allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
     }
 
+    // Credenciales de las cuentas de prueba del trial. Contienen contraseñas en
+    // claro, así que NO pueden vivir en tenantSettings (que lee cualquier
+    // miembro del tenant): solo el admin del conjunto y el superadmin.
+    match /tenantDemoAccounts/{tenantId} {
+      allow read: if signedIn() && tenantAdminOrSuper(tenantId);
+      allow write: if false;  // solo el Admin SDK al provisionar
+    }
+
+    // Progreso del recorrido guiado. Colección propia y NO un campo de
+    // `tenants`: ese documento guarda `status` y `trialEndsAt`, y darle
+    // escritura al admin para palomear un checklist le abriría la puerta a
+    // extenderse la prueba solo. Aquí lo peor que puede hacer es mentirse a sí
+    // mismo sobre su propio avance.
+    match /tenantOnboarding/{tenantId} {
+      allow read: if signedIn() && tenantAdminOrSuper(tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(tenantId)
+        && request.resource.data.tenantId == tenantId;
+      allow delete: if signedIn() && superadmin();
+    }
+
     match /tenantSettings/{tenantId} {
       allow read: if signedIn() && sameTenant(tenantId);
       allow create, update: if signedIn() && tenantAdminOrSuper(tenantId) && request.resource.data.tenantId == tenantId;
@@ -340,55 +372,55 @@ service cloud.firestore {
         tenantAdminOrSuper(resource.data.tenantId) ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     // Cobros programados (F3): solo admin; el cron los publica con Admin SDK.
     match /billingSchedules/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     // Campañas de cobro (C1): solo admin; el cron las crea con Admin SDK.
     match /billingCampaigns/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     // Recordatorios programados: solo admin; el cron los envía con Admin SDK.
     match /billingReminderJobs/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     // ── Finanzas (módulo contable PH, F1) ──────────────────────
     // Back-office financiero: solo admin del tenant (residente no lee).
     match /expenses/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     match /bankAccounts/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     match /bankStatementLines/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     match /ledgerEntries/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId);
-      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId);
+      allow delete: if signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId);
     }
 
     // Secuencial de comprobantes: se lee/escribe dentro de una transacción.

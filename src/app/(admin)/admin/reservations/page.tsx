@@ -74,6 +74,7 @@ function formatDayChipLabel(value: string) {
   });
 }
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 
 function debugAdminReservations(message: string, payload: Record<string, unknown>) {
   if (process.env.NODE_ENV === "production") return;
@@ -109,6 +110,8 @@ export default function AdminReservationsPage() {
   const [savingAmenityEdit, setSavingAmenityEdit] = useState(false);
   const [togglingAmenityId, setTogglingAmenityId] = useState<string | null>(null);
   const [amenityPanelOpen, setAmenityPanelOpen] = useState(false);
+  // Enganche del recorrido guiado (src/lib/onboarding/steps.ts).
+  useGuidedAction("reservas", () => setAmenityPanelOpen(true));
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const pendingPhotoUrls = useMemo(
     () => pendingPhotos.map((file) => URL.createObjectURL(file)),

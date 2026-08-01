@@ -2,16 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Menu, X } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AdminSidebar, type AdminSidebarBadges } from "@/components/shared/admin-sidebar";
+import { AdminSidebar, type AdminSidebarBadges, type AdminSidebarGroup } from "@/components/shared/admin-sidebar";
 import { buildAdminSidebarGroups, buildRoleSidebarGroups, profileHrefForRole } from "@/lib/navigation/role-sidebar-groups";
 import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-variants";
 import { TopbarActions } from "@/components/shared/topbar-actions";
+import { TrialBanner } from "@/components/shared/trial-banner";
+import { GuidedStepBanner } from "@/components/shared/guided-step-banner";
+import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
+import { DemoEnvironmentNotice } from "@/components/shared/demo-environment-notice";
+import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
+import { isModuleLocked, moduleForPath } from "@/lib/config/trial-modules";
 import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
 import { isTicketPending } from "@/features/pqrs/ticket-status";
@@ -92,6 +98,20 @@ export function AppShell({
 
   const isAdminRole = role === "tenant_admin" || role === "admin_tenant";
   const navTenantId = isAdminRole ? user?.tenantId : undefined;
+  const trial = useTenantTrial(user?.tenantId);
+
+  /** Marca con candado los módulos que en la prueba son solo vista previa. */
+  const markLocked = useCallback(
+    (groups: AdminSidebarGroup[]): AdminSidebarGroup[] =>
+      groups.map((group) => ({
+        ...group,
+        items: group.items.map((item) => {
+          const key = moduleForPath(item.href);
+          return key && isModuleLocked(trial.status, key) ? { ...item, locked: true } : item;
+        }),
+      })),
+    [trial.status],
+  );
   const { items: tickets } = useTickets(navTenantId);
   const { items: packages } = usePackages(navTenantId);
 
@@ -329,7 +349,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
-                  groups={buildAdminSidebarGroups(branding?.financeVariant)}
+                  groups={markLocked(buildAdminSidebarGroups(branding?.financeVariant))}
                   badges={sidebarBadges}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -353,7 +373,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
-                  groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
+                  groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES, trial.isTrial || trial.isExpired)}
                   profileHref={profileHrefForRole(shellRole)}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -379,7 +399,7 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
-              groups={buildAdminSidebarGroups(branding?.financeVariant)}
+              groups={markLocked(buildAdminSidebarGroups(branding?.financeVariant))}
               badges={sidebarBadges}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}
@@ -390,14 +410,35 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
-              groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
+              groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES, trial.isTrial || trial.isExpired)}
               profileHref={profileHrefForRole(shellRole)}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}
             />
           )}
         </aside>
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0">
+          {/* El CTA comercial es solo para el admin (es quien decide y compra);
+              residentes y portería ven una nota informativa, sin venta. */}
+          {isAdminRole ? <TrialBanner trial={trial} /> : <DemoEnvironmentNotice />}
+          {/* La ayuda del recorrido guiado vive en el shell y no en cada página:
+              así las 16 pantallas del admin la reciben con un solo montaje.
+              Suspense porque `useSearchParams` lo exige fuera de render dinámico.
+
+              El boundary NO es decorativo: al estar en el shell, un throw aquí
+              lo atraparía el error.tsx de la ruta y tumbaría las 16 pantallas
+              con "No pudimos cargar el workspace" — no solo el tablero. Suspense
+              no cubre esto: atrapa suspensiones, no errores. Fallback nulo
+              porque una guía que falla debe desaparecer, no gritar. */}
+          {isAdminRole ? (
+            <WidgetErrorBoundary label="la guía de puesta en marcha" fallback={null}>
+              <Suspense fallback={null}>
+                <GuidedStepBanner />
+              </Suspense>
+            </WidgetErrorBoundary>
+          ) : null}
+          {children}
+        </main>
       </div>
 
       <footer className={cn("mx-auto hidden px-8 pb-8 text-xs text-[var(--slate-500)] md:block", isAdminRole ? "max-w-none" : "max-w-7xl")}>

@@ -13,6 +13,9 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
+import { runTrialLifecycle } from "./trial-lifecycle";
+import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
   resolveNotificationCopy,
   type NotificationKey,
@@ -29,6 +32,7 @@ const callableCorsOrigins = [
   "https://grupovivaru.com",
   "https://vivaru--hogaru-1.us-central1.hosted.app",
   "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
+  "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app", // staging
   "http://localhost:3000",
 ];
 
@@ -2064,6 +2068,8 @@ export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporar
       uid: request.auth?.uid,
       role: request.auth?.token?.role,
     });
+    // Regla B: en prueba no se invita a personas reales.
+    await assertCanInviteRealPeople(tenantId);
 
     try {
       const { isNewUser, ...result } = await upsertResidentTemporaryAccess({
@@ -2872,6 +2878,8 @@ export const notifyBillingBatch = onCall<{ tenantId: string; period: string; uni
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
     await assertFinanceManagementEnabled(tenantId);
+    // Durante la prueba, Cartera es solo vista previa: se ve, no se opera.
+    await assertModuleAllowed(tenantId, "billing");
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_batch"),
@@ -2898,6 +2906,8 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
     }
     await assertTenantAdminOrSuper({ tenantId, uid: request.auth?.uid, role: request.auth?.token?.role });
     await assertFinanceManagementEnabled(tenantId);
+    // Durante la prueba, Cartera es solo vista previa: se ve, no se opera.
+    await assertModuleAllowed(tenantId, "billing");
 
     const [override, conjunto] = await Promise.all([
       getTenantNotificationOverride(tenantId, "billing_reminder"),
@@ -3723,3 +3733,211 @@ export const notifyPendingVisitorExits = onSchedule("0 8 * * *", async () => {
 
   console.log(`[visitor-exits] notificadas ${byTenant.size} comunidad(es), ${pendingCount} pase(s).`);
 });
+
+// ── Self-service: provisión del ambiente de prueba (Fase 1) ──────────────────
+// Pública a propósito: la llama el registro del landing. La contención del
+// abuso es rate limiting + verificación de correo del lado del llamador, y el
+// "un correo = un trial" que valida provisionTrialWorkspace.
+export const createTrialWorkspace = onCall<CreateTrialInput>(
+  { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },
+  async (request) => {
+    const d = request.data;
+    if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
+      throw new HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
+    }
+
+    const result = await provisionTrialWorkspace(d);
+
+    // Enlace de activación: es también la verificación del correo — sin acceso
+    // al buzón no se entra al ambiente. Reutiliza el flujo probado de
+    // accountInvites + /activar, sin tocarlo.
+    await sendOnboardingInvite(
+      result.adminUid,
+      d.email.trim().toLowerCase(),
+      d.nombre.trim(),
+      result.tenantId,
+      "tenant_admin",
+    );
+
+    await writeAuditLog(result.tenantId, undefined, "create_trial_workspace", {
+      email: d.email.trim().toLowerCase(),
+      conjunto: d.conjunto.trim(),
+      trialEndsAt: result.trialEndsAt,
+      seeded: result.seeded,
+    });
+
+    // Las credenciales de prueba NO se devuelven al cliente en claro por esta
+    // vía: el admin las ve dentro del portal, ya autenticado.
+    return {
+      tenantId: result.tenantId,
+      trialEndsAt: result.trialEndsAt,
+      seeded: result.seeded,
+    };
+  },
+);
+
+// ── Ciclo de vida de los ambientes de prueba (Fase 4 del self-service) ───────
+// Diario a las 10:00 UTC. Avisa en los días 7/3/1, pasa a `expired` al vencer
+// (SIN borrar nada) y reporta los vencidos que superaron la retención.
+export const trialLifecycleDaily = onSchedule(
+  { schedule: "0 10 * * *", secrets: [resendApiKey], timeoutSeconds: 540 },
+  async () => {
+    const report = await runTrialLifecycle();
+    console.log("[trial-lifecycle]", JSON.stringify(report));
+    if (report.purgaPendiente.length > 0) {
+      // La purga automática está apagada a propósito (ver AUTO_PURGE_ENABLED):
+      // borrar datos de un prospecto es irreversible y se decide con la vista
+      // puesta en datos reales, no por defecto.
+      console.warn(
+        `[trial-lifecycle] ${report.purgaPendiente.length} ambiente(s) superaron la retención y NO se purgaron:`,
+        report.purgaPendiente.join(", "),
+      );
+    }
+  },
+);
+
+// ── Alta de cliente desde un lead (self-service, ajuste 1) ──────────────────
+// Cuando ya se acordó la suscripción, el superadmin convierte el lead en un
+// ambiente REAL: nace `active`, sin vencimiento y con los módulos
+// desbloqueados. Para un lead que YA tiene ambiente de prueba, la acción
+// correcta es "Convertir a cliente" en la consola de ambientes (no crea nada).
+export const createTenantFromLead = onCall<{
+  leadId: string;
+  planId?: string;
+  seedExamples?: boolean;
+}>(
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  async (request) => {
+    assertSuperadmin(request.auth);
+
+    const leadId = request.data?.leadId?.trim();
+    if (!leadId) throw new HttpsError("invalid-argument", "leadId es requerido.");
+
+    const leadSnap = await db.collection("leads").doc(leadId).get();
+    if (!leadSnap.exists) throw new HttpsError("not-found", "No se encontró el lead.");
+
+    const lead = leadSnap.data() as {
+      nombre?: string; email?: string; telefono?: string; empresa?: string;
+      ciudad?: string; pais?: string; unidadesEstimadas?: string | number; tenantId?: string;
+    };
+
+    if (lead.tenantId) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Este lead ya tiene un ambiente. Conviértelo a cliente desde la consola de ambientes.",
+      );
+    }
+    if (!lead.email || !lead.nombre) {
+      throw new HttpsError("failed-precondition", "El lead no tiene nombre o correo para crear el ambiente.");
+    }
+
+    const unidades = Number(lead.unidadesEstimadas);
+    const result = await provisionTrialWorkspace({
+      nombre: lead.nombre,
+      email: lead.email,
+      telefono: lead.telefono,
+      conjunto: lead.empresa?.trim() || lead.nombre,
+      ciudad: lead.ciudad?.trim() || "-",
+      pais: lead.pais,
+      unidadesEstimadas: Number.isFinite(unidades) ? unidades : undefined,
+      leadId,
+      asCustomer: true,
+      planId: request.data?.planId,
+      seedExamples: request.data?.seedExamples,
+    });
+
+    // El admin define su contraseña por el enlace de siempre.
+    await sendOnboardingInvite(
+      result.adminUid,
+      lead.email.trim().toLowerCase(),
+      lead.nombre,
+      result.tenantId,
+      "tenant_admin",
+    );
+
+    await writeAuditLog(result.tenantId, request.auth?.uid, "create_tenant_from_lead", {
+      leadId,
+      planId: request.data?.planId ?? "starter",
+    });
+
+    return { tenantId: result.tenantId };
+  },
+);
+
+// ── Solicitud de contacto comercial desde el portal (ajuste 2) ──────────────
+// Reemplaza el mailto: recoge el mensaje y los datos de contacto, avisa al
+// equipo con el contexto del ambiente y marca el lead como CALIFICADO — que
+// es el evento más valioso del funnel.
+export const requestAdvisorContact = onCall<{
+  tenantId: string;
+  motivo: string;
+  mensaje?: string;
+  telefono?: string;
+  horarioPreferido?: string;
+}>(
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  async (request) => {
+    const tenantId = request.data?.tenantId;
+    const uid = request.auth?.uid;
+    if (!tenantId || !uid) {
+      throw new HttpsError("unauthenticated", "Debes iniciar sesión para solicitar contacto.");
+    }
+    await assertTenantMember(tenantId, uid);
+
+    const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+    const tenant = tenantSnap.data() as
+      | { name?: string; city?: string; status?: string; trialEndsAt?: string; leadId?: string }
+      | undefined;
+    const userSnap = await db.collection("users").doc(uid).get();
+    const solicitante = userSnap.data() as { fullName?: string; email?: string } | undefined;
+
+    const motivo = request.data?.motivo?.trim() || "Quiere contratar Vivaru";
+    const mensaje = request.data?.mensaje?.trim() || "";
+    const telefono = request.data?.telefono?.trim() || "";
+    const horario = request.data?.horarioPreferido?.trim() || "";
+
+    // El lead pasa a CALIFICADO: pidió hablar tras probar el producto.
+    if (tenant?.leadId) {
+      await db.collection("leads").doc(tenant.leadId).set(
+        {
+          status: "calificado",
+          solicitudAsesor: { motivo, mensaje, telefono, horario, solicitadoAt: new Date().toISOString() },
+          updatedAt: Timestamp.now(),
+        },
+        { merge: true },
+      );
+    }
+
+    const isProd = (process.env.GCLOUD_PROJECT ?? "") === "hogaru-1";
+    const cuerpo = [
+      `${solicitante?.fullName ?? "Un administrador"} solicitó hablar con un asesor.`,
+      "",
+      `Motivo:    ${motivo}`,
+      mensaje ? `Mensaje:   ${mensaje}` : "",
+      "",
+      `Conjunto:  ${tenant?.name ?? tenantId} (${tenant?.city ?? "-"})`,
+      `Estado:    ${tenant?.status ?? "-"}${tenant?.trialEndsAt ? ` · vence ${tenant.trialEndsAt.slice(0, 10)}` : ""}`,
+      `Ambiente:  ${tenantId}`,
+      "",
+      `Contacto:  ${solicitante?.email ?? "-"}`,
+      telefono ? `Teléfono:  ${telefono}` : "",
+      horario ? `Prefiere:  ${horario}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      await sendNotificationEmail({
+        to: isProd ? "comercial@qintilab.com" : "dev@qintilab.com",
+        subject: `${isProd ? "" : "[STAGING] "}🔥 [Quiere contratar] ${tenant?.name ?? tenantId}`,
+        body: cuerpo,
+        link: "/superadmin/leads",
+      });
+    } catch (error) {
+      console.error("[advisor-request] correo falló", { tenantId, error });
+    }
+
+    await writeAuditLog(tenantId, uid, "request_advisor_contact", { motivo });
+    return { ok: true };
+  },
+);

@@ -69,9 +69,11 @@ env:
     availability:
       - RUNTIME
 
-  # Cambiar a "Vivaru <noreply@grupovivaru.com>" cuando el dominio
-  # esté verificado en resend.com/domains
+  # Remitente verificado, el mismo que usan las Cloud Functions
+  # (functions/src/email.ts). El anterior, `onboarding@resend.dev`, es el
+  # dominio de PRUEBAS de Resend: solo entrega al dueño de la cuenta, así que
+  # los avisos de lead a comercial@qintilab.com se perdían en silencio.
   - variable: LEAD_NOTIFICATION_FROM
-    value: Vivaru <onboarding@resend.dev>
+    value: Vivaru <noreply@notificaciones.grupovivaru.com>
     availability:
       - RUNTIME
