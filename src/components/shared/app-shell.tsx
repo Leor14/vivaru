@@ -14,6 +14,7 @@ import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-varia
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { TrialBanner } from "@/components/shared/trial-banner";
 import { GuidedStepBanner } from "@/components/shared/guided-step-banner";
+import { RouteTransitionVeil } from "@/components/shared/route-transition-veil";
 import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { DemoEnvironmentNotice } from "@/components/shared/demo-environment-notice";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
@@ -444,6 +445,10 @@ export function AppShell({
       <footer className={cn("mx-auto hidden px-8 pb-8 text-xs text-[var(--slate-500)] md:block", isAdminRole ? "max-w-none" : "max-w-7xl")}>
         <p>Tenant: {branding?.tenantName ?? user.tenantName ?? "HOGARU"}</p>
       </footer>
+
+      {/* Velo de marca entre un paso de la guía y su pantalla. Va al final del
+          árbol y en position:fixed para cubrir sidebar y encabezado. */}
+      <RouteTransitionVeil />
 
       {/* Bottom nav — portal residente y guardia, solo mobile */}
       {shellRole === "resident" && <ResidentBottomNav />}

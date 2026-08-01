@@ -1,4 +1,23 @@
+import {
+  Building2,
+  CalendarCheck,
+  ClipboardList,
+  DoorOpen,
+  FileText,
+  Home,
+  MessageSquare,
+  Package,
+  ScrollText,
+  Shield,
+  Smartphone,
+  Store,
+  UserPlus,
+  Wallet,
+} from "lucide-react";
+import type { ComponentType, SVGProps } from "react";
+
 import type { TrialModuleKey } from "@/lib/config/trial-modules";
+import type { IconToneName } from "@/lib/ui/icon-tones";
 
 /**
  * El recorrido guiado del administrador que acaba de entrar a su ambiente.
@@ -87,12 +106,18 @@ export type OnboardingStep = {
   signal: OnboardingSignal;
   /** Módulo al que pertenece, para saber si está en vista previa. */
   module?: TrialModuleKey;
+  /** Icono del paso. Da identidad visual a la fila y ayuda a reencontrarla. */
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  /** Tono del chip, del sistema pastel del producto (`--icon-*`). */
+  tone: IconToneName;
 };
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   // ── Bloque 1: la estructura ────────────────────────────────────────────────
   {
     key: "agrupaciones",
+    icon: Building2,
+    tone: "sky",
     block: "configura",
     title: "Define tus torres o agrupaciones",
     why: "Es la base: cada unidad pertenece a una.",
@@ -108,6 +133,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "unidades",
+    icon: Home,
+    tone: "sky",
     block: "configura",
     title: "Crea tu primera unidad",
     why: "Es la pieza sobre la que gira todo el sistema.",
@@ -123,6 +150,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "residentes",
+    icon: UserPlus,
+    tone: "sky",
     block: "configura",
     title: "Registra al residente titular",
     why: "Sin persona vinculada no hay a quién cobrarle ni a quién avisarle.",
@@ -137,6 +166,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "porteria",
+    icon: Shield,
+    tone: "peach",
     block: "configura",
     title: "Da de alta a tu portería",
     why: "Es el segundo par de manos, y el que más usa Vivaru a diario.",
@@ -153,6 +184,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   // ── Bloque 2: una visita atravesando los tres portales ─────────────────────
   {
     key: "visita",
+    icon: DoorOpen,
+    tone: "peach",
     block: "prueba",
     title: "Registra una visita",
     why: "Es el arranque de la historia que vas a seguir en los dos pasos siguientes.",
@@ -167,6 +200,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "portal-porteria",
+    icon: Shield,
+    tone: "peach",
     block: "prueba",
     title: "Míralo como portería",
     why: "Ver la pantalla del portero es entender la mitad del producto.",
@@ -182,6 +217,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "portal-residente",
+    icon: Smartphone,
+    tone: "mint",
     block: "prueba",
     title: "Míralo como residente",
     why: "Es exactamente lo que verá tu comunidad en el celular.",
@@ -199,6 +236,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   // ── Bloque 3: el recorrido por el resto ────────────────────────────────────
   {
     key: "comunicados",
+    icon: MessageSquare,
+    tone: "sky",
     block: "descubre",
     title: "Comunicaciones",
     why: "Avisos que llegan de verdad, con constancia de quién los leyó.",
@@ -214,6 +253,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "reservas",
+    icon: CalendarCheck,
+    tone: "mint",
     block: "descubre",
     title: "Reservas",
     why: "Se acaban las peleas por el salón comunal.",
@@ -229,6 +270,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "pqrs",
+    icon: FileText,
+    tone: "sand",
     block: "descubre",
     title: "PQRS",
     why: "Cada solicitud con responsable, fecha y rastro.",
@@ -242,6 +285,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "paqueteria",
+    icon: Package,
+    tone: "sand",
     block: "descubre",
     title: "Paquetería",
     why: "Se sabe quién recibió, quién entregó y cuándo.",
@@ -255,6 +300,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "encuestas",
+    icon: ClipboardList,
+    tone: "mint",
     block: "descubre",
     title: "Encuestas",
     why: "Consulta a la comunidad sin llenar el chat de mensajes.",
@@ -269,6 +316,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "servicios",
+    icon: Store,
+    tone: "peach",
     block: "descubre",
     title: "Servicios",
     why: "El directorio de proveedores, en un solo lugar confiable.",
@@ -283,6 +332,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "documentos",
+    icon: ScrollText,
+    tone: "sand",
     block: "descubre",
     title: "Documentos",
     why: "Actas y reglamentos donde todos los encuentran.",
@@ -296,6 +347,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "financiero",
+    icon: Wallet,
+    tone: "lavender",
     block: "descubre",
     title: "Cartera, finanzas y reportes",
     why: "Es el corazón del servicio. Míralo con datos de ejemplo.",
