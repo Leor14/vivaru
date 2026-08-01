@@ -304,7 +304,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     purpose:
       "La parte que más tiempo te ahorra: emitir cuotas, registrar pagos, controlar la mora, llevar el libro de ingresos y egresos, conciliar contra el banco y sacar el informe del comité.",
     how:
-      "Durante la prueba estos módulos están en vista previa: los recorres poblados con datos de ejemplo para ver cómo se verían con tu conjunto, pero no se opera sobre ellos. Se habilitan al contratar el servicio. Recórrelos con calma —es lo que vas a presentarle al comité.",
+      "Durante la prueba estos módulos —y también Reglamento con firmas— están en vista previa: los recorres poblados con datos de ejemplo para ver cómo se verían con tu conjunto, pero no se opera sobre ellos. Se habilitan al contratar el servicio. Recórrelos con calma: es lo que vas a presentarle al comité.",
     signal: { kind: "seen" },
   },
 ];
