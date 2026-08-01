@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -52,6 +52,7 @@ const sri_ecuador_1 = require("./sri-ecuador");
 const data_retention_1 = require("./data-retention");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
+const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
@@ -3013,4 +3014,28 @@ exports.notifyPendingVisitorExits = (0, scheduler_1.onSchedule)("0 8 * * *", asy
         })));
     }
     console.log(`[visitor-exits] notificadas ${byTenant.size} comunidad(es), ${pendingCount} pase(s).`);
+});
+// ── Self-service: provisión del ambiente de prueba (Fase 1) ──────────────────
+// Pública a propósito: la llama el registro del landing. La contención del
+// abuso es rate limiting + verificación de correo del lado del llamador, y el
+// "un correo = un trial" que valida provisionTrialWorkspace.
+exports.createTrialWorkspace = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public" }, async (request) => {
+    const d = request.data;
+    if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
+        throw new https_1.HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
+    }
+    const result = await (0, trial_workspace_1.provisionTrialWorkspace)(d);
+    await writeAuditLog(result.tenantId, undefined, "create_trial_workspace", {
+        email: d.email.trim().toLowerCase(),
+        conjunto: d.conjunto.trim(),
+        trialEndsAt: result.trialEndsAt,
+        seeded: result.seeded,
+    });
+    // Las credenciales de prueba NO se devuelven al cliente en claro por esta
+    // vía: el admin las ve dentro del portal, ya autenticado.
+    return {
+        tenantId: result.tenantId,
+        trialEndsAt: result.trialEndsAt,
+        seeded: result.seeded,
+    };
 });

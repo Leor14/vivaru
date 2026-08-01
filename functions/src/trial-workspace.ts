@@ -1,0 +1,205 @@
+import { randomUUID } from "node:crypto";
+
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
+
+import { seedTrialWorkspace } from "./trial-seed";
+
+/**
+ * Provisión del ambiente de prueba (Fase 1 del self-service).
+ *
+ * Hace en UNA operación lo que hoy son dos pasos manuales de superadmin
+ * (`createTenantWorkspace` + `createTenantAdmin`), y además crea las cuentas de
+ * prueba del administrador y siembra el ambiente.
+ *
+ * Ver `docs/plan-self-service-trial.md`. Decisiones que este archivo
+ * materializa y que NO deben cambiarse sin revisar el plan:
+ * - El trial es un tenant REAL con `status:"trial"` — convertirlo a cliente es
+ *   cambiar un flag, sin migrar datos.
+ * - Se crean 2 cuentas de prueba (residente y portería) como cuentas TÉCNICAS
+ *   del propio admin, para que vea ambos portales sin escribirle a terceros.
+ */
+
+/** Perezoso: `initializeApp()` corre en index.ts y los imports se evalúan antes. */
+function getDb() {
+  return getFirestore();
+}
+
+export const TRIAL_DAYS = 15;
+export const TRIAL_PLAN_ID = "trial";
+
+/** Dominio de las cuentas de prueba: no son correos reales de nadie. */
+const DEMO_ACCOUNT_DOMAIN = "ejemplo.vivaru.app";
+
+export type CreateTrialInput = {
+  nombre: string;
+  email: string;
+  telefono?: string;
+  conjunto: string;
+  ciudad: string;
+  pais?: string;
+  unidadesEstimadas?: number;
+  leadId?: string;
+};
+
+export type CreateTrialResult = {
+  tenantId: string;
+  adminUid: string;
+  trialEndsAt: string;
+  demoAccounts: Array<{ role: string; email: string; password: string }>;
+  seeded: Record<string, number>;
+};
+
+/** Slug legible y único a partir del nombre del conjunto. */
+function buildTenantId(conjunto: string): string {
+  const base = conjunto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita diacríticos
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "conjunto";
+  // Sufijo aleatorio: dos prospectos con el mismo nombre no deben colisionar.
+  return `${base}-${randomUUID().slice(0, 6)}`;
+}
+
+/** Contraseña legible para mostrarla al admin en "Mis cuentas de prueba". */
+function demoPassword(): string {
+  return `Demo${randomUUID().slice(0, 4).toUpperCase()}*`;
+}
+
+/**
+ * Crea el ambiente de prueba completo. El llamador es responsable de haber
+ * verificado el correo del prospecto y de aplicar rate limiting.
+ */
+export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<CreateTrialResult> {
+  const db = getDb();
+  const email = input.email.trim().toLowerCase();
+  const authApi = getAuth();
+
+  // Un correo = un trial. Evita que alguien levante ambientes en serie.
+  const existing = await authApi.getUserByEmail(email).catch(() => null);
+  if (existing) {
+    throw new HttpsError(
+      "already-exists",
+      "Ya existe una cuenta con ese correo. Inicia sesión o contacta a un asesor.",
+    );
+  }
+
+  const tenantId = buildTenantId(input.conjunto);
+  const now = Timestamp.now();
+  const startedAt = new Date();
+  const endsAt = new Date(startedAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+
+  // ── 1. Tenant en estado trial ─────────────────────────────────────────────
+  await db.collection("tenants").doc(tenantId).set(
+    {
+      name: input.conjunto.trim(),
+      city: input.ciudad.trim(),
+      country: input.pais ?? "MX",
+      currency: input.pais === "CO" ? "COP" : "MXN",
+      status: "trial",
+      planId: TRIAL_PLAN_ID,
+      onboardingStatus: "not_started",
+      trialStartedAt: startedAt.toISOString(),
+      trialEndsAt: endsAt.toISOString(),
+      ...(input.leadId ? { leadId: input.leadId } : {}),
+      branding: { primaryColor: "#0B3C5D", accentColor: "#1A7A45" },
+      createdAt: now,
+      updatedAt: now,
+    },
+    { merge: true },
+  );
+
+  await db.collection("tenantSettings").doc(tenantId).set(
+    { tenantId, tenantName: input.conjunto.trim(), brandColor: "#0B3C5D", updatedAt: now },
+    { merge: true },
+  );
+
+  // ── 2. Administrador (el prospecto) ───────────────────────────────────────
+  const adminUser = await authApi.createUser({
+    email,
+    displayName: input.nombre.trim(),
+    emailVerified: true,
+    password: randomUUID(), // se reemplaza al activar por enlace
+  });
+
+  const batch = db.batch();
+  const adminProfile = {
+    uid: adminUser.uid,
+    email,
+    fullName: input.nombre.trim(),
+    role: "tenant_admin",
+    tenantId,
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+  };
+  batch.set(db.collection("users").doc(adminUser.uid), adminProfile, { merge: true });
+  batch.set(db.collection("tenantUsers").doc(`${tenantId}_${adminUser.uid}`), adminProfile, { merge: true });
+
+  // ── 3. Cuentas de prueba del admin (residente y portería) ─────────────────
+  // Son cuentas técnicas, no correos de personas reales: así el admin recorre
+  // ambos portales sin invitar a nadie ni compartir su contraseña.
+  const demoAccounts: CreateTrialResult["demoAccounts"] = [];
+  const demoSpecs = [
+    { role: "resident", label: "Residente de prueba", local: "residente" },
+    { role: "security_guard", label: "Portería de prueba", local: "porteria" },
+  ];
+
+  for (const spec of demoSpecs) {
+    const demoEmail = `${spec.local}.${tenantId}@${DEMO_ACCOUNT_DOMAIN}`;
+    const password = demoPassword();
+    const demoUser = await authApi.createUser({
+      email: demoEmail,
+      displayName: spec.label,
+      emailVerified: true,
+      password,
+    });
+
+    const demoProfile: Record<string, unknown> = {
+      uid: demoUser.uid,
+      email: demoEmail,
+      fullName: spec.label,
+      role: spec.role,
+      tenantId,
+      status: "active",
+      isDemoAccount: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    // El residente necesita unidad para ver su portal con datos.
+    if (spec.role === "resident") {
+      demoProfile.unitId = `${tenantId}--t1-101`;
+      demoProfile.unitLabel = "T1-101";
+    }
+
+    batch.set(db.collection("users").doc(demoUser.uid), demoProfile, { merge: true });
+    batch.set(db.collection("tenantUsers").doc(`${tenantId}_${demoUser.uid}`), demoProfile, { merge: true });
+
+    await authApi.setCustomUserClaims(demoUser.uid, { role: spec.role, tenantId });
+    demoAccounts.push({ role: spec.role, email: demoEmail, password });
+  }
+
+  await batch.commit();
+  await authApi.setCustomUserClaims(adminUser.uid, { role: "tenant_admin", tenantId });
+
+  // ── 4. Siembra (IDs prefijados por tenant) ────────────────────────────────
+  const seeded = await seedTrialWorkspace(tenantId, input.pais === "CO" ? "COP" : "MXN");
+
+  // Las credenciales de prueba se guardan para mostrarlas en "Mis cuentas de
+  // prueba"; solo las lee el admin del tenant y el superadmin (ver reglas).
+  await db.collection("tenantSettings").doc(tenantId).set(
+    { demoAccounts, updatedAt: now },
+    { merge: true },
+  );
+
+  return {
+    tenantId,
+    adminUid: adminUser.uid,
+    trialEndsAt: endsAt.toISOString(),
+    demoAccounts,
+    seeded,
+  };
+}

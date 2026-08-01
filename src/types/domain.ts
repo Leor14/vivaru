@@ -1,7 +1,23 @@
 import type { AppRole } from "@/lib/constants/roles";
 import type { AppCurrency } from "@/lib/currency";
 
-export type TenantStatus = "trial" | "active" | "suspended";
+/**
+ * Estado del ambiente habitacional.
+ * - `trial`: prueba de 15 días, opera con módulos acotados.
+ * - `active`: cliente. - `suspended`: dejó de pagar. - `expired`: prueba vencida.
+ *
+ * `suspended` y `expired` quedan en SOLO LECTURA (ver `assertTenantOperable` en
+ * functions y `tenantOperable()` en firestore.rules).
+ */
+export type TenantStatus = "trial" | "active" | "suspended" | "expired";
+
+/** Estados en los que el ambiente puede escribir. */
+export const WRITABLE_TENANT_STATUSES: readonly TenantStatus[] = ["trial", "active"];
+
+export function isTenantWritable(status: TenantStatus | undefined | null): boolean {
+  if (!status) return true; // datos previos al campo
+  return WRITABLE_TENANT_STATUSES.includes(status);
+}
 
 export interface Tenant {
   id: string;
@@ -17,6 +33,16 @@ export interface Tenant {
     primaryColor: string;
     accentColor: string;
   };
+  // ── Ciclo de vida del trial (ver docs/plan-self-service-trial.md) ──────────
+  /** Inicio de la prueba (ISO). */
+  trialStartedAt?: string;
+  /** Fin de la prueba (ISO). La fecha que gobierna vencimiento y avisos. */
+  trialEndsAt?: string;
+  /** Lead que originó el ambiente, para atribuir el origen comercial. */
+  leadId?: string;
+  /** Sello de conversión a cliente: se llenan al pasar de trial/expired a active. */
+  convertedAt?: string;
+  convertedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

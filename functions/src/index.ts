@@ -13,6 +13,7 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
+import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
   resolveNotificationCopy,
   type NotificationKey,
@@ -3724,3 +3725,34 @@ export const notifyPendingVisitorExits = onSchedule("0 8 * * *", async () => {
 
   console.log(`[visitor-exits] notificadas ${byTenant.size} comunidad(es), ${pendingCount} pase(s).`);
 });
+
+// ── Self-service: provisión del ambiente de prueba (Fase 1) ──────────────────
+// Pública a propósito: la llama el registro del landing. La contención del
+// abuso es rate limiting + verificación de correo del lado del llamador, y el
+// "un correo = un trial" que valida provisionTrialWorkspace.
+export const createTrialWorkspace = onCall<CreateTrialInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const d = request.data;
+    if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
+      throw new HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
+    }
+
+    const result = await provisionTrialWorkspace(d);
+
+    await writeAuditLog(result.tenantId, undefined, "create_trial_workspace", {
+      email: d.email.trim().toLowerCase(),
+      conjunto: d.conjunto.trim(),
+      trialEndsAt: result.trialEndsAt,
+      seeded: result.seeded,
+    });
+
+    // Las credenciales de prueba NO se devuelven al cliente en claro por esta
+    // vía: el admin las ve dentro del portal, ya autenticado.
+    return {
+      tenantId: result.tenantId,
+      trialEndsAt: result.trialEndsAt,
+      seeded: result.seeded,
+    };
+  },
+);
