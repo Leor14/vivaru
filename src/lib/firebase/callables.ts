@@ -160,6 +160,8 @@ export async function requestAdvisorContactCallable(input: {
   mensaje?: string;
   telefono?: string;
   horarioPreferido?: string;
+  /** Cargo de quien pide: lo único que no se sabe ya del registro. */
+  cargo?: string;
 }) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
