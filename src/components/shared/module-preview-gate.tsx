@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Lock } from "lucide-react";
 
+import { AdvisorRequestDialog } from "@/components/shared/advisor-request-dialog";
 import { useAuth } from "@/features/auth/auth-context";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import { isModuleLocked, PREVIEW_COPY, type TrialModuleKey } from "@/lib/config/trial-modules";
@@ -27,6 +29,7 @@ export function ModulePreviewGate({
 }) {
   const { user } = useAuth();
   const trial = useTenantTrial(user?.tenantId);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   if (trial.loading || !isModuleLocked(trial.status, module)) {
     return <>{children}</>;
@@ -55,14 +58,17 @@ export function ModulePreviewGate({
               </p>
             </div>
           </div>
-          <a
-            href={`mailto:comercial@qintilab.com?subject=${encodeURIComponent("Quiero activar " + (copy?.title ?? "un módulo") + " en Vivaru")}`}
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
             className="inline-flex shrink-0 items-center rounded-xl bg-[#0C447C] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
           >
-            Hablar con un asesor
-          </a>
+            Activar este módulo
+          </button>
         </div>
       </div>
+
+      <AdvisorRequestDialog open={dialogOpen} onClose={() => setDialogOpen(false)} motivoInicial="modulo" />
 
       {/* El contenido queda visible pero inerte: se explora, no se opera. */}
       <div aria-hidden className="pointer-events-none select-none opacity-95">

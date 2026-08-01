@@ -13,6 +13,7 @@ import { buildAdminSidebarGroups, buildRoleSidebarGroups, profileHrefForRole } f
 import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-variants";
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { TrialBanner } from "@/components/shared/trial-banner";
+import { DemoEnvironmentNotice } from "@/components/shared/demo-environment-notice";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import { isModuleLocked, moduleForPath } from "@/lib/config/trial-modules";
 import { useAuth } from "@/features/auth/auth-context";
@@ -370,7 +371,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
-                  groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
+                  groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES, trial.isTrial || trial.isExpired)}
                   profileHref={profileHrefForRole(shellRole)}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -407,7 +408,7 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
-              groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES)}
+              groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES, trial.isTrial || trial.isExpired)}
               profileHref={profileHrefForRole(shellRole)}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}
@@ -415,7 +416,9 @@ export function AppShell({
           )}
         </aside>
         <main className="min-w-0">
-          <TrialBanner trial={trial} tenantName={branding?.tenantName ?? user.tenantName} />
+          {/* El CTA comercial es solo para el admin (es quien decide y compra);
+              residentes y portería ven una nota informativa, sin venta. */}
+          {isAdminRole ? <TrialBanner trial={trial} /> : <DemoEnvironmentNotice />}
           {children}
         </main>
       </div>

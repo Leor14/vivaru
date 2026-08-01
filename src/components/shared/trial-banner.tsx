@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Clock } from "lucide-react";
 
+import { AdvisorRequestDialog } from "@/components/shared/advisor-request-dialog";
 import type { TenantTrialState } from "@/features/tenant/use-tenant-trial";
 
 /**
@@ -13,17 +15,8 @@ import type { TenantTrialState } from "@/features/tenant/use-tenant-trial";
  * hay catálogo de precios, la conversión siempre pasa por una persona.
  */
 
-const ADVISOR_SUBJECT = "Quiero contratar Vivaru";
-const ADVISOR_EMAIL = "comercial@qintilab.com";
-
-function advisorHref(tenantName?: string): string {
-  const body = tenantName
-    ? `Hola, estoy probando Vivaru en el conjunto ${tenantName} y quiero contratar el servicio.`
-    : "Hola, estoy probando Vivaru y quiero contratar el servicio.";
-  return `mailto:${ADVISOR_EMAIL}?subject=${encodeURIComponent(ADVISOR_SUBJECT)}&body=${encodeURIComponent(body)}`;
-}
-
-export function TrialBanner({ trial, tenantName }: { trial: TenantTrialState; tenantName?: string }) {
+export function TrialBanner({ trial }: { trial: TenantTrialState }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
   if (trial.loading) return null;
   if (!trial.isTrial && !trial.isExpired) return null;
 
@@ -55,13 +48,19 @@ export function TrialBanner({ trial, tenantName }: { trial: TenantTrialState; te
         <Clock className="h-4 w-4 flex-shrink-0" aria-hidden />
         <span>{message}</span>
       </span>
-      <a
-        href={advisorHref(tenantName)}
+      <button
+        type="button"
+        onClick={() => setDialogOpen(true)}
         className="inline-flex shrink-0 items-center rounded-lg border px-3 py-1 text-xs font-semibold hover:opacity-80"
         style={{ borderColor: tone.text, color: tone.text }}
       >
         Hablar con un asesor
-      </a>
+      </button>
+      <AdvisorRequestDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        motivoInicial={expired ? "contratar" : "contratar"}
+      />
     </div>
   );
 }

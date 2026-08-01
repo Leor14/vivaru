@@ -12,6 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase/client";
+import { createTenantFromLeadCallable } from "@/lib/firebase/callables";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/shared/modal";
+import { toast } from "sonner";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 /**
  * Bandeja de leads del landing y de los ambientes de prueba.
@@ -65,6 +70,29 @@ export default function SuperadminLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [originFilter, setOriginFilter] = useState<"all" | "trial" | "demo" | "diagnostico">("all");
   const [search, setSearch] = useState("");
+  // Alta de cliente desde un lead sin ambiente (se acordó la suscripción).
+  const [altaTarget, setAltaTarget] = useState<Lead | null>(null);
+  const [altaPlan, setAltaPlan] = useState("starter");
+  const [altaSeed, setAltaSeed] = useState(false);
+  const [creando, setCreando] = useState(false);
+
+  async function handleAlta() {
+    if (!altaTarget) return;
+    setCreando(true);
+    try {
+      const res = await createTenantFromLeadCallable({
+        leadId: altaTarget.id,
+        planId: altaPlan.trim() || "starter",
+        seedExamples: altaSeed,
+      });
+      toast.success(`Ambiente creado: ${res.tenantId}. Se envió el acceso al administrador.`);
+      setAltaTarget(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setCreando(false);
+    }
+  }
 
   useEffect(() => {
     if (!db) {
@@ -155,6 +183,7 @@ export default function SuperadminLeadsPage() {
                 <th className="px-3 py-2 font-medium">Origen</th>
                 <th className="px-3 py-2 font-medium">Interés</th>
                 <th className="px-3 py-2 font-medium">Fecha</th>
+                <th className="px-3 py-2 text-right font-medium">Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -205,6 +234,23 @@ export default function SuperadminLeadsPage() {
                       ) : null}
                     </td>
                     <td className="px-3 py-2 text-[var(--slate-600)]">{formatDate(lead.createdAt)}</td>
+                    <td className="px-3 py-2 text-right">
+                      {lead.tenantId ? (
+                        <span className="text-[11px] text-[var(--slate-500)]">Ya tiene ambiente</span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setAltaPlan("starter");
+                            setAltaSeed(false);
+                            setAltaTarget(lead);
+                          }}
+                        >
+                          Dar de alta
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -212,6 +258,45 @@ export default function SuperadminLeadsPage() {
           </table>
         </div>
       )}
+
+      {/* Alta de cliente: el lead pasa a ser un ambiente REAL, ya suscrito.
+          No es una prueba — nace activo, sin vencimiento y sin candados. */}
+      <Modal
+        open={altaTarget !== null}
+        title="Dar de alta como cliente"
+        onClose={() => (creando ? undefined : setAltaTarget(null))}
+      >
+        {altaTarget ? (
+          <div className="space-y-3 text-sm text-[var(--slate-700)]">
+            <p>
+              Vas a crear el ambiente de <strong>{altaTarget.empresa ?? altaTarget.nombre}</strong> para{" "}
+              <strong>{altaTarget.nombre}</strong> ({altaTarget.email}).
+            </p>
+            <label className="block text-sm">
+              Plan acordado
+              <Input className="mt-1" value={altaPlan} onChange={(e) => setAltaPlan(e.target.value)} placeholder="starter" />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={altaSeed} onChange={(e) => setAltaSeed(e.target.checked)} />
+              Sembrar datos de ejemplo
+              <span className="text-xs text-[var(--slate-500)]">(normalmente no: cargará los suyos)</span>
+            </label>
+            <ul className="list-disc space-y-1 rounded-xl bg-[var(--surface-soft)] p-3 pl-7 text-xs text-[var(--slate-600)]">
+              <li>El ambiente nace <strong>activo</strong>, sin vencimiento y con todos los módulos desbloqueados.</li>
+              <li>Al administrador le llega el correo para definir su contraseña.</li>
+              <li>El lead queda marcado como <strong>convertido</strong>.</li>
+            </ul>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setAltaTarget(null)} disabled={creando}>
+                Cancelar
+              </Button>
+              <Button onClick={() => void handleAlta()} disabled={creando}>
+                {creando ? "Creando…" : "Crear ambiente"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
 
       {pager.hasPagination ? (
         <TablePager

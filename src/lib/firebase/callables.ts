@@ -135,6 +135,40 @@ export async function createTrialWorkspaceCallable(input: {
   }
 }
 
+/**
+ * Alta de cliente a partir de un lead sin ambiente (solo superadmin).
+ * Para leads que ya tienen ambiente de prueba, se usa "Convertir a cliente"
+ * en la consola de ambientes, que no crea nada nuevo.
+ */
+export async function createTenantFromLeadCallable(input: {
+  leadId: string;
+  planId?: string;
+  seedExamples?: boolean;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { tenantId: string }>(functions, "createTenantFromLead");
+  return executeCallable(callable, input, "No fue posible crear el ambiente para este lead.");
+}
+
+/** Solicitud de contacto comercial desde el portal (reemplaza el mailto:). */
+export async function requestAdvisorContactCallable(input: {
+  tenantId: string;
+  motivo: string;
+  mensaje?: string;
+  telefono?: string;
+  horarioPreferido?: string;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "requestAdvisorContact");
+  return executeCallable(callable, input, "No fue posible enviar tu solicitud. Intenta de nuevo.");
+}
+
 export async function remindPackagePickupCallable(input: { tenantId: string; packageId: string }) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");

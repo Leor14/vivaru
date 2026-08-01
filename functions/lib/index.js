@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.trialLifecycleDaily = void 0;
+exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -1651,6 +1651,8 @@ exports.provisionResidentTemporaryAccess = (0, https_1.onCall)({
         uid: request.auth?.uid,
         role: request.auth?.token?.role,
     });
+    // Regla B: en prueba no se invita a personas reales.
+    await (0, trial_modules_1.assertCanInviteRealPeople)(tenantId);
     try {
         const { isNewUser, ...result } = await upsertResidentTemporaryAccess({
             tenantId,
@@ -3062,4 +3064,104 @@ exports.trialLifecycleDaily = (0, scheduler_1.onSchedule)({ schedule: "0 10 * * 
         // puesta en datos reales, no por defecto.
         console.warn(`[trial-lifecycle] ${report.purgaPendiente.length} ambiente(s) superaron la retención y NO se purgaron:`, report.purgaPendiente.join(", "));
     }
+});
+// ── Alta de cliente desde un lead (self-service, ajuste 1) ──────────────────
+// Cuando ya se acordó la suscripción, el superadmin convierte el lead en un
+// ambiente REAL: nace `active`, sin vencimiento y con los módulos
+// desbloqueados. Para un lead que YA tiene ambiente de prueba, la acción
+// correcta es "Convertir a cliente" en la consola de ambientes (no crea nada).
+exports.createTenantFromLead = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+    assertSuperadmin(request.auth);
+    const leadId = request.data?.leadId?.trim();
+    if (!leadId)
+        throw new https_1.HttpsError("invalid-argument", "leadId es requerido.");
+    const leadSnap = await db.collection("leads").doc(leadId).get();
+    if (!leadSnap.exists)
+        throw new https_1.HttpsError("not-found", "No se encontró el lead.");
+    const lead = leadSnap.data();
+    if (lead.tenantId) {
+        throw new https_1.HttpsError("failed-precondition", "Este lead ya tiene un ambiente. Conviértelo a cliente desde la consola de ambientes.");
+    }
+    if (!lead.email || !lead.nombre) {
+        throw new https_1.HttpsError("failed-precondition", "El lead no tiene nombre o correo para crear el ambiente.");
+    }
+    const unidades = Number(lead.unidadesEstimadas);
+    const result = await (0, trial_workspace_1.provisionTrialWorkspace)({
+        nombre: lead.nombre,
+        email: lead.email,
+        telefono: lead.telefono,
+        conjunto: lead.empresa?.trim() || lead.nombre,
+        ciudad: lead.ciudad?.trim() || "-",
+        pais: lead.pais,
+        unidadesEstimadas: Number.isFinite(unidades) ? unidades : undefined,
+        leadId,
+        asCustomer: true,
+        planId: request.data?.planId,
+        seedExamples: request.data?.seedExamples,
+    });
+    // El admin define su contraseña por el enlace de siempre.
+    await sendOnboardingInvite(result.adminUid, lead.email.trim().toLowerCase(), lead.nombre, result.tenantId, "tenant_admin");
+    await writeAuditLog(result.tenantId, request.auth?.uid, "create_tenant_from_lead", {
+        leadId,
+        planId: request.data?.planId ?? "starter",
+    });
+    return { tenantId: result.tenantId };
+});
+// ── Solicitud de contacto comercial desde el portal (ajuste 2) ──────────────
+// Reemplaza el mailto: recoge el mensaje y los datos de contacto, avisa al
+// equipo con el contexto del ambiente y marca el lead como CALIFICADO — que
+// es el evento más valioso del funnel.
+exports.requestAdvisorContact = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+    const tenantId = request.data?.tenantId;
+    const uid = request.auth?.uid;
+    if (!tenantId || !uid) {
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión para solicitar contacto.");
+    }
+    await assertTenantMember(tenantId, uid);
+    const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+    const tenant = tenantSnap.data();
+    const userSnap = await db.collection("users").doc(uid).get();
+    const solicitante = userSnap.data();
+    const motivo = request.data?.motivo?.trim() || "Quiere contratar Vivaru";
+    const mensaje = request.data?.mensaje?.trim() || "";
+    const telefono = request.data?.telefono?.trim() || "";
+    const horario = request.data?.horarioPreferido?.trim() || "";
+    // El lead pasa a CALIFICADO: pidió hablar tras probar el producto.
+    if (tenant?.leadId) {
+        await db.collection("leads").doc(tenant.leadId).set({
+            status: "calificado",
+            solicitudAsesor: { motivo, mensaje, telefono, horario, solicitadoAt: new Date().toISOString() },
+            updatedAt: firestore_1.Timestamp.now(),
+        }, { merge: true });
+    }
+    const isProd = (process.env.GCLOUD_PROJECT ?? "") === "hogaru-1";
+    const cuerpo = [
+        `${solicitante?.fullName ?? "Un administrador"} solicitó hablar con un asesor.`,
+        "",
+        `Motivo:    ${motivo}`,
+        mensaje ? `Mensaje:   ${mensaje}` : "",
+        "",
+        `Conjunto:  ${tenant?.name ?? tenantId} (${tenant?.city ?? "-"})`,
+        `Estado:    ${tenant?.status ?? "-"}${tenant?.trialEndsAt ? ` · vence ${tenant.trialEndsAt.slice(0, 10)}` : ""}`,
+        `Ambiente:  ${tenantId}`,
+        "",
+        `Contacto:  ${solicitante?.email ?? "-"}`,
+        telefono ? `Teléfono:  ${telefono}` : "",
+        horario ? `Prefiere:  ${horario}` : "",
+    ]
+        .filter(Boolean)
+        .join("\n");
+    try {
+        await (0, email_1.sendNotificationEmail)({
+            to: isProd ? "comercial@qintilab.com" : "dev@qintilab.com",
+            subject: `${isProd ? "" : "[STAGING] "}🔥 [Quiere contratar] ${tenant?.name ?? tenantId}`,
+            body: cuerpo,
+            link: "/superadmin/leads",
+        });
+    }
+    catch (error) {
+        console.error("[advisor-request] correo falló", { tenantId, error });
+    }
+    await writeAuditLog(tenantId, uid, "request_advisor_contact", { motivo });
+    return { ok: true };
 });

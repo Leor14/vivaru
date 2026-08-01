@@ -85,11 +85,13 @@ async function provisionTrialWorkspace(input) {
         city: input.ciudad.trim(),
         country: input.pais ?? "MX",
         currency: input.pais === "CO" ? "COP" : "MXN",
-        status: "trial",
-        planId: exports.TRIAL_PLAN_ID,
+        status: input.asCustomer ? "active" : "trial",
+        planId: input.asCustomer ? (input.planId?.trim() || "starter") : exports.TRIAL_PLAN_ID,
         onboardingStatus: "not_started",
-        trialStartedAt: startedAt.toISOString(),
-        trialEndsAt: endsAt.toISOString(),
+        // Un cliente no lleva vigencia de prueba.
+        ...(input.asCustomer
+            ? { convertedAt: startedAt.toISOString(), convertedBy: "superadmin" }
+            : { trialStartedAt: startedAt.toISOString(), trialEndsAt: endsAt.toISOString() }),
         ...(input.leadId ? { leadId: input.leadId } : {}),
         branding: { primaryColor: "#0B3C5D", accentColor: "#1A7A45" },
         createdAt: now,
@@ -157,7 +159,12 @@ async function provisionTrialWorkspace(input) {
     await batch.commit();
     await authApi.setCustomUserClaims(adminUser.uid, { role: "tenant_admin", tenantId });
     // ── 4. Siembra (IDs prefijados por tenant) ────────────────────────────────
-    const seeded = await (0, trial_seed_1.seedTrialWorkspace)(tenantId, input.pais === "CO" ? "COP" : "MXN");
+    // Por defecto se siembra en las pruebas (los módulos en vista previa deben
+    // verse llenos) y NO en un alta de cliente, que carga sus datos reales.
+    const shouldSeed = input.seedExamples ?? !input.asCustomer;
+    const seeded = shouldSeed
+        ? await (0, trial_seed_1.seedTrialWorkspace)(tenantId, input.pais === "CO" ? "COP" : "MXN")
+        : {};
     // Las credenciales de prueba van en su PROPIA colección, no en tenantSettings:
     // ese doc lo puede leer cualquier miembro del tenant (incluidos residentes) y
     // aquí hay contraseñas en claro. `tenantDemoAccounts` solo lo lee el admin.
@@ -175,7 +182,7 @@ async function provisionTrialWorkspace(input) {
         pais: input.pais ?? "MX",
         unidadesEstimadas: input.unidadesEstimadas ?? null,
         tenantId,
-        status: "nuevo",
+        status: input.asCustomer ? "convertido" : "nuevo",
         appEnv: isProductionProject() ? "production" : "staging",
         createdAt: now,
         updatedAt: now,

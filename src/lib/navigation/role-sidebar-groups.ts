@@ -91,9 +91,19 @@ const RESIDENT_MODULE_HREFS: Record<keyof ResidentModules, string> = {
  * For the "resident" role, pass `residentModules` to hide disabled modules.
  * Omitting `residentModules` defaults to all modules enabled.
  */
+/**
+ * Módulos de FIRMA que se ocultan al residente mientras el conjunto está en
+ * prueba: una firma de reglamento o de acuerdo sin valor legal es una promesa
+ * falsa, y ese es el único riesgo real del portal del residente en un trial.
+ * El resto sigue visible — el administrador necesita evaluar la experiencia
+ * completa, y en prueba no se invita a residentes reales (Regla B).
+ */
+const SIGNATURE_HREFS_HIDDEN_IN_TRIAL = ["/resident/regulations", "/resident/agreements"];
+
 export function buildRoleSidebarGroups(
   role: AppRole,
   residentModules?: ResidentModules,
+  isTrialTenant = false,
 ): AdminSidebarGroup[] {
   const items = roleNavigation[role] ?? [];
   if (items.length === 0) return [];
@@ -107,6 +117,10 @@ export function buildRoleSidebarGroups(
         hiddenHrefs.add(href);
       }
     }
+  }
+
+  if (role === "resident" && isTrialTenant) {
+    for (const href of SIGNATURE_HREFS_HIDDEN_IN_TRIAL) hiddenHrefs.add(href);
   }
 
   const filteredItems = items.filter((item) => !hiddenHrefs.has(item.href));

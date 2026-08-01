@@ -62,6 +62,16 @@ export type CreateTrialInput = {
   pais?: string;
   unidadesEstimadas?: number;
   leadId?: string;
+  /**
+   * Alta directa como CLIENTE (no prueba). La usa el superadmin cuando ya se
+   * acordó la suscripción: el ambiente nace `active`, sin vencimiento y con
+   * todos los módulos desbloqueados.
+   */
+  asCustomer?: boolean;
+  /** Plan negociado. Solo aplica con `asCustomer`. */
+  planId?: string;
+  /** Sembrar datos de ejemplo. Un cliente real suele preferir arrancar limpio. */
+  seedExamples?: boolean;
 };
 
 export type CreateTrialResult = {
@@ -120,11 +130,13 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
       city: input.ciudad.trim(),
       country: input.pais ?? "MX",
       currency: input.pais === "CO" ? "COP" : "MXN",
-      status: "trial",
-      planId: TRIAL_PLAN_ID,
+      status: input.asCustomer ? "active" : "trial",
+      planId: input.asCustomer ? (input.planId?.trim() || "starter") : TRIAL_PLAN_ID,
       onboardingStatus: "not_started",
-      trialStartedAt: startedAt.toISOString(),
-      trialEndsAt: endsAt.toISOString(),
+      // Un cliente no lleva vigencia de prueba.
+      ...(input.asCustomer
+        ? { convertedAt: startedAt.toISOString(), convertedBy: "superadmin" }
+        : { trialStartedAt: startedAt.toISOString(), trialEndsAt: endsAt.toISOString() }),
       ...(input.leadId ? { leadId: input.leadId } : {}),
       branding: { primaryColor: "#0B3C5D", accentColor: "#1A7A45" },
       createdAt: now,
@@ -207,7 +219,12 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
   await authApi.setCustomUserClaims(adminUser.uid, { role: "tenant_admin", tenantId });
 
   // ── 4. Siembra (IDs prefijados por tenant) ────────────────────────────────
-  const seeded = await seedTrialWorkspace(tenantId, input.pais === "CO" ? "COP" : "MXN");
+  // Por defecto se siembra en las pruebas (los módulos en vista previa deben
+  // verse llenos) y NO en un alta de cliente, que carga sus datos reales.
+  const shouldSeed = input.seedExamples ?? !input.asCustomer;
+  const seeded = shouldSeed
+    ? await seedTrialWorkspace(tenantId, input.pais === "CO" ? "COP" : "MXN")
+    : {};
 
   // Las credenciales de prueba van en su PROPIA colección, no en tenantSettings:
   // ese doc lo puede leer cualquier miembro del tenant (incluidos residentes) y
@@ -231,7 +248,7 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
       pais: input.pais ?? "MX",
       unidadesEstimadas: input.unidadesEstimadas ?? null,
       tenantId,
-      status: "nuevo",
+      status: input.asCustomer ? "convertido" : "nuevo",
       appEnv: isProductionProject() ? "production" : "staging",
       createdAt: now,
       updatedAt: now,

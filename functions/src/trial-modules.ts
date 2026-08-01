@@ -49,3 +49,23 @@ export async function assertModuleAllowed(tenantId: string, moduleKey: TrialModu
     "Este módulo está disponible con tu plan. Habla con un asesor de Vivaru para activarlo.",
   );
 }
+
+/**
+ * Bloquea la invitación de PERSONAS REALES durante la prueba (Regla B del plan).
+ *
+ * Tres razones: protege la reputación de `noreply@notificaciones.grupovivaru.com`
+ * —el remitente de los clientes que sí pagan— de listas frías; evita meter datos
+ * personales de terceros en un ambiente que expira; y no hace falta para vender,
+ * porque el admin recorre los otros portales con sus cuentas de prueba.
+ */
+export async function assertCanInviteRealPeople(tenantId: string): Promise<void> {
+  const snap = await getFirestore().collection("tenants").doc(tenantId).get();
+  if (!snap.exists) return;
+  const status = (snap.data() as { status?: string } | undefined)?.status ?? "active";
+  if (!RESTRICTED_STATUSES.has(status)) return;
+
+  throw new HttpsError(
+    "failed-precondition",
+    "Durante la prueba no se envían invitaciones a residentes reales. Usa tus cuentas de prueba (Configuración → Mis cuentas de prueba) para recorrer el portal del residente y el de portería.",
+  );
+}
