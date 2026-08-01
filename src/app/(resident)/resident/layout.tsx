@@ -15,7 +15,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
       <section className="flex flex-col items-center justify-center min-h-screen">
         <Card className="max-w-md">
           <CardTitle>Problema de configuración</CardTitle>
-          <CardDescription className="mt-2 text-[var(--red-700)]">
+          <CardDescription className="mt-2 text-[var(--danger-700)]">
             No pudimos cargar tu perfil. Si el problema persiste,
             contacta a la administración de tu conjunto.
           </CardDescription>
