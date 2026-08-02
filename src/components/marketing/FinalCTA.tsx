@@ -88,7 +88,7 @@ export function FinalCTA() {
         </div>
 
         <p className="mt-lg text-xs text-slate-200/70">
-          Respuesta del equipo comercial en menos de 24 horas hábiles.
+          El equipo comercial te contactará a la brevedad.
         </p>
       </div>
     </section>

@@ -417,9 +417,8 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
               </Dialog.Title>
 
               <p className="max-w-xs text-sm text-slate-600">
-                Nuestro equipo revisará tu solicitud y te contactará a la
-                brevedad, normalmente en{" "}
-                <strong>menos de 24 horas hábiles</strong>.
+                Nuestro equipo revisará tu solicitud y{" "}
+                <strong>te contactará a la brevedad</strong>.
               </p>
 
               <p className="text-xs text-slate-400">

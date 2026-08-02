@@ -292,7 +292,7 @@ function buildConfirmationEmail(d: DemoData): EmailContent {
         Nuestro equipo comercial revisará tu solicitud y te contactará a la brevedad.
       </p>
       <p style="font-size:14px;color:#475569;margin:0 0 32px;">
-        Normalmente respondemos en <strong>menos de 24 horas hábiles</strong>.
+        Te contactaremos <strong>a la brevedad</strong>.
       </p>
       <a href="https://grupovivaru.com/mx" style="display:inline-block;background:#4B5FD4;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
         Ver Vivaru →
@@ -310,7 +310,7 @@ function buildConfirmationEmail(d: DemoData): EmailContent {
   const text = [
     `¡Recibimos tu solicitud, ${firstName}!`,
     "",
-    "Nuestro equipo comercial te contactará a la brevedad (menos de 24 horas hábiles).",
+    "Nuestro equipo comercial te contactará a la brevedad.",
     "",
     "Si tienes preguntas, responde a este correo.",
     "Vivaru · Una solución de Qintilab S.A.S.",
