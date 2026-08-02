@@ -4,34 +4,39 @@ runConfig:
   cpu: 1
   memoryMiB: 512
 
+# NOTA (rama develop = STAGING): la config de Firebase apunta a vivaru-staging-02 a
+# propósito. El backend de staging (vivaru-staging-web) construye de develop y lee este
+# apphosting.yaml (no tiene "Environment name = staging", por lo que apphosting.staging.yaml
+# es inerte). En master estos valores son los de prod (hogaru-1). Al fusionar master ->
+# develop, resolver el conflicto de este archivo MANTENIENDO los valores de staging.
 env:
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    value: AIzaSyDRvUIFC9SiODRNaBJkN5rNXRm3bYu4JxA
+    value: AIzaSyChPlJL3WESeNggGXBPMiHzIAAicEH8J6c
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    value: hogaru-1.firebaseapp.com
+    value: vivaru-staging-02.firebaseapp.com
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    value: hogaru-1
+    value: vivaru-staging-02
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-    value: hogaru-1.firebasestorage.app
+    value: vivaru-staging-02.firebasestorage.app
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-    value: "1047056648517"
+    value: "765613061037"
     availability:
       - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_APP_ID
-    value: 1:1047056648517:web:a76ad8d0cb2138c3d9d62c
+    value: 1:765613061037:web:37c450d7c1a20b4812a724
     availability:
       - BUILD
       - RUNTIME
@@ -42,15 +47,13 @@ env:
       - RUNTIME
 
   # ── Ambiente ──────────────────────────────────────────────────────────────
-  # ESTA RAMA (master) DESPLIEGA A PRODUCCIÓN → siempre "production".
-  # En develop este valor debe ser "staging". Gobierna: noindex/robots.txt,
+  # ESTA RAMA (develop) DESPLIEGA A STAGING → siempre "staging".
+  # En master este valor debe ser "production". Gobierna: noindex/robots.txt,
   # banda "AMBIENTE DE PRUEBAS", desvío del correo comercial y analítica
   # (ver docs/plan-self-service-trial.md §13). Necesita BUILD porque el bundle
   # del cliente lo inlinea.
-  # ⚠️ Al mergear desde develop, CONSERVAR "production" — ponerlo en "staging"
-  # desindexaría el sitio real de Google.
   - variable: NEXT_PUBLIC_APP_ENV
-    value: production
+    value: staging
     availability:
       - BUILD
       - RUNTIME
@@ -59,21 +62,21 @@ env:
   # RESEND_API_KEY se configura desde la consola de Firebase App Hosting
   # (App Hosting → tu backend → Variables de entorno) para no exponerla en git.
 
+  # En staging NO se listan buzones comerciales: resolveNotifyTo() los filtraría
+  # de todos modos, pero se dejan fuera para que la configuración sea explícita.
   - variable: LEAD_NOTIFICATION_TO
-    value: dev@qintilab.com,comercial@qintilab.com
+    value: dev@qintilab.com
     availability:
       - RUNTIME
 
   - variable: DEMO_NOTIFICATION_TO
-    value: dev@qintilab.com,comercial@qintilab.com
+    value: dev@qintilab.com
     availability:
       - RUNTIME
 
-  # Remitente verificado, el mismo que usan las Cloud Functions
-  # (functions/src/email.ts). El anterior, `onboarding@resend.dev`, es el
-  # dominio de PRUEBAS de Resend: solo entrega al dueño de la cuenta, así que
-  # los avisos de lead a comercial@qintilab.com se perdían en silencio.
+  # Cambiar a "Vivaru <noreply@grupovivaru.com>" cuando el dominio
+  # esté verificado en resend.com/domains
   - variable: LEAD_NOTIFICATION_FROM
-    value: Vivaru <noreply@notificaciones.grupovivaru.com>
+    value: Vivaru <onboarding@resend.dev>
     availability:
       - RUNTIME
