@@ -7,6 +7,7 @@ const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const email_1 = require("./email");
+const country_currency_1 = require("./country-currency");
 const trial_seed_1 = require("./trial-seed");
 /**
  * Provisión del ambiente de prueba (Fase 1 del self-service).
@@ -90,7 +91,7 @@ async function provisionTrialWorkspace(input) {
         name: input.conjunto.trim(),
         city: input.ciudad.trim(),
         country: input.pais ?? "MX",
-        currency: input.pais === "CO" ? "COP" : "MXN",
+        currency: (0, country_currency_1.currencyForCountry)(input.pais),
         status: input.asCustomer ? "active" : "trial",
         planId: input.asCustomer ? (input.planId?.trim() || exports.FULL_SERVICE_PLAN_ID) : exports.TRIAL_PLAN_ID,
         onboardingStatus: "not_started",
@@ -187,7 +188,7 @@ async function provisionTrialWorkspace(input) {
     // verse llenos) y NO en un alta de cliente, que carga sus datos reales.
     const shouldSeed = input.seedExamples ?? !input.asCustomer;
     const seeded = shouldSeed
-        ? await (0, trial_seed_1.seedTrialWorkspace)(tenantId, input.pais === "CO" ? "COP" : "MXN")
+        ? await (0, trial_seed_1.seedTrialWorkspace)(tenantId, (0, country_currency_1.currencyForCountry)(input.pais))
         : {};
     // Las credenciales de prueba van en su PROPIA colección, no en tenantSettings:
     // ese doc lo puede leer cualquier miembro del tenant (incluidos residentes) y
