@@ -504,3 +504,53 @@ async function waitForAuthenticatedUser(timeoutMs = 4000): Promise<User | null> 
     });
   });
 }
+
+
+// ── Soporte al cliente (PRD-V-FEAT-001) ──────────────────────────────────────
+// Toda escritura de tickets pasa por callable: las reglas no dejan escribir a
+// nadie desde el cliente, ni siquiera al superadmin.
+
+export async function createSupportTicketCallable(input: {
+  tenantId: string;
+  category: string;
+  subject: string;
+  description: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ticketId: string }>(functions, "createSupportTicket");
+  return executeCallable(callable, input, "No fue posible abrir el ticket. Intenta de nuevo.");
+}
+
+export async function replyToSupportTicketCallable(input: { ticketId: string; message: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true; status: string }>(functions, "replyToSupportTicket");
+  return executeCallable(callable, input, "No fue posible enviar tu mensaje. Intenta de nuevo.");
+}
+
+export async function updateSupportTicketStatusCallable(input: {
+  ticketId: string;
+  status?: string;
+  priority?: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true }>(functions, "updateSupportTicketStatus");
+  return executeCallable(callable, input, "No fue posible actualizar el ticket.");
+}
+
+export async function reopenSupportTicketCallable(input: { ticketId: string; message: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true }>(functions, "reopenSupportTicketCallable");
+  return executeCallable(callable, input, "No fue posible reabrir el ticket.");
+}
+
+export async function closeSupportTicketCallable(input: { ticketId: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true }>(functions, "closeSupportTicketCallable");
+  return executeCallable(callable, input, "No fue posible cerrar el ticket.");
+}
+
+export async function addSupportNoteCallable(input: { ticketId: string; note: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true }>(functions, "addSupportNote");
+  return executeCallable(callable, input, "No fue posible guardar la nota.");
+}

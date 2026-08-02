@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -53,6 +53,7 @@ const sri_ecuador_1 = require("./sri-ecuador");
 const data_retention_1 = require("./data-retention");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
+const support_1 = require("./support");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
@@ -3199,4 +3200,44 @@ exports.requestAdvisorContact = (0, https_1.onCall)({ cors: callableCorsOrigins,
     }
     await writeAuditLog(tenantId, uid, "request_advisor_contact", { motivo, cargo });
     return { ok: true };
+});
+// ── Soporte al cliente (PRD-V-FEAT-001) ──────────────────────────────────────
+// Toda escritura de tickets pasa por aquí y ninguna por el cliente: mandan
+// correo, sellan campos que el cliente no debe poder falsificar, el hilo es
+// append-only y hay límites por conjunto que exigen contar antes de escribir.
+// La lógica vive en `support.ts`; aquí solo se expone y se valida la sesión.
+function supportAuth(auth) {
+    const uid = auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    return { uid, role: auth?.token?.role };
+}
+exports.createSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    const result = await (0, support_1.createSupportTicket)(request.data, uid, role);
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "create_support_ticket", {
+        ticketId: result.ticketId,
+        category: request.data?.category,
+    });
+    return result;
+});
+exports.replyToSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return (0, support_1.replySupportTicket)(request.data, uid, role);
+});
+exports.updateSupportTicketStatus = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return (0, support_1.updateSupportTicket)(request.data, uid, role);
+});
+exports.reopenSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return (0, support_1.reopenSupportTicket)(request.data, uid, role);
+});
+exports.closeSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return (0, support_1.closeSupportTicket)(request.data, uid, role);
+});
+exports.addSupportNote = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return (0, support_1.addSupportInternalNote)(request.data, uid, role);
 });

@@ -13,6 +13,14 @@ import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
+import {
+  addSupportInternalNote,
+  closeSupportTicket,
+  createSupportTicket as createSupportTicketImpl,
+  reopenSupportTicket,
+  replySupportTicket,
+  updateSupportTicket as updateSupportTicketImpl,
+} from "./support";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -3982,5 +3990,74 @@ export const requestAdvisorContact = onCall<{
 
     await writeAuditLog(tenantId, uid, "request_advisor_contact", { motivo, cargo });
     return { ok: true };
+  },
+);
+
+
+// ── Soporte al cliente (PRD-V-FEAT-001) ──────────────────────────────────────
+// Toda escritura de tickets pasa por aquí y ninguna por el cliente: mandan
+// correo, sellan campos que el cliente no debe poder falsificar, el hilo es
+// append-only y hay límites por conjunto que exigen contar antes de escribir.
+// La lógica vive en `support.ts`; aquí solo se expone y se valida la sesión.
+
+function supportAuth(auth: { uid?: string; token?: Record<string, unknown> } | undefined) {
+  const uid = auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+  return { uid, role: auth?.token?.role };
+}
+
+export const createSupportTicket = onCall<{
+  tenantId: string;
+  category: string;
+  subject: string;
+  description: string;
+}>({ cors: callableCorsOrigins, secrets: [resendApiKey] }, async (request) => {
+  const { uid, role } = supportAuth(request.auth);
+  const result = await createSupportTicketImpl(request.data, uid, role);
+  await writeAuditLog(request.data?.tenantId ?? "", uid, "create_support_ticket", {
+    ticketId: result.ticketId,
+    category: request.data?.category,
+  });
+  return result;
+});
+
+export const replyToSupportTicket = onCall<{ ticketId: string; message: string }>(
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return replySupportTicket(request.data, uid, role);
+  },
+);
+
+export const updateSupportTicketStatus = onCall<{
+  ticketId: string;
+  status?: string;
+  priority?: string;
+}>({ cors: callableCorsOrigins, secrets: [resendApiKey] }, async (request) => {
+  const { uid, role } = supportAuth(request.auth);
+  return updateSupportTicketImpl(request.data, uid, role);
+});
+
+export const reopenSupportTicketCallable = onCall<{ ticketId: string; message: string }>(
+  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return reopenSupportTicket(request.data, uid, role);
+  },
+);
+
+export const closeSupportTicketCallable = onCall<{ ticketId: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return closeSupportTicket(request.data, uid, role);
+  },
+);
+
+export const addSupportNote = onCall<{ ticketId: string; note: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    const { uid, role } = supportAuth(request.auth);
+    return addSupportInternalNote(request.data, uid, role);
   },
 );
