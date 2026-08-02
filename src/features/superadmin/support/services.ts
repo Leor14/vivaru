@@ -1,18 +1,19 @@
 import {
-  addDoc,
   collection,
   onSnapshot,
   orderBy,
   query,
-  serverTimestamp,
-  updateDoc,
-  doc,
   where,
   type Query,
   type QueryConstraint,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import {
+  addSupportNoteCallable,
+  replyToSupportTicketCallable,
+  updateSupportTicketStatusCallable,
+} from "@/lib/firebase/callables";
 import type { SupportTicket } from "./types";
 
 function assertDb() {
@@ -20,34 +21,31 @@ function assertDb() {
   return db;
 }
 
-export async function createSupportTicket(
-  data: Omit<SupportTicket, "id" | "createdAt" | "updatedAt" | "status">,
-  createdByUid: string,
-): Promise<string> {
-  const firestore = assertDb();
-  const ref = await addDoc(collection(firestore, "supportTickets"), {
-    ...data,
-    createdBy: createdByUid,
-    status: "open",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
-  return ref.id;
-}
-
+/**
+ * Cambia estado y prioridad. Va por callable: las reglas prohíben escribir en
+ * `supportTickets` desde el cliente —también al superadmin— porque estas
+ * operaciones mandan correo y sellan marcas de tiempo.
+ *
+ * El alta manual desapareció con PRD-V-FEAT-001: los tickets los abre el
+ * administrador del conjunto desde su portal. Que el superadmin tecleara a
+ * mano quién había reportado convertía la herramienta en una bitácora, no en
+ * un canal.
+ */
 export async function updateSupportTicket(
   ticketId: string,
-  updates: Partial<Pick<SupportTicket, "status" | "priority" | "notes">>,
+  updates: { status?: string; priority?: string },
 ): Promise<void> {
-  const firestore = assertDb();
-  const payload: Record<string, unknown> = {
-    ...updates,
-    updatedAt: serverTimestamp(),
-  };
-  if (updates.status === "resolved") {
-    payload.resolvedAt = serverTimestamp();
-  }
-  await updateDoc(doc(firestore, "supportTickets", ticketId), payload);
+  await updateSupportTicketStatusCallable({ ticketId, ...updates });
+}
+
+/** Responde en el hilo como Vivaru. Deja el ticket esperando al cliente. */
+export async function replyAsVivaru(ticketId: string, message: string): Promise<void> {
+  await replyToSupportTicketCallable({ ticketId, message });
+}
+
+/** Nota interna. Va a la subcolección que el cliente no puede leer. */
+export async function addInternalNote(ticketId: string, note: string): Promise<void> {
+  await addSupportNoteCallable({ ticketId, note });
 }
 
 export function getSupportTicketsQuery(filters: {

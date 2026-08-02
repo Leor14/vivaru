@@ -18,34 +18,43 @@ import {
   SUPPORT_CATEGORIES,
   SUPPORT_PRIORITIES,
   SUPPORT_STATUSES,
+  normalizeSupportCategory,
+  normalizeSupportPriority,
+  normalizeSupportStatus,
   type SupportTicket,
 } from "../src/features/superadmin/support/types";
 
 describe("BLOQUE 1 — types.ts: constantes", () => {
+  // El catálogo pasó del inglés de la etapa bitácora al contrato compartido
+  // con el portal del administrador (PRD-V-FEAT-001). Soporte es UNA cola
+  // vista desde dos lados: dos catálogos serían dos colas.
+
   describe("SUPPORT_CATEGORIES", () => {
     it("tiene exactamente 4 keys", () => {
       expect(Object.keys(SUPPORT_CATEGORIES)).toHaveLength(4);
     });
 
     it.each([
-      ["technical", "Técnico"],
-      ["billing", "Facturación"],
-      ["operational", "Operativo"],
-      ["other", "Otro"],
+      ["tecnico", "Técnico"],
+      ["facturacion", "Facturación"],
+      ["operativo", "Operativo"],
+      ["otro", "Otro"],
     ] as const)('key "%s" → "%s"', (key, label) => {
       expect(SUPPORT_CATEGORIES[key]).toBe(label);
     });
   });
 
   describe("SUPPORT_STATUSES", () => {
-    it("tiene exactamente 3 keys", () => {
-      expect(Object.keys(SUPPORT_STATUSES)).toHaveLength(3);
+    it("tiene los cinco estados del ciclo de vida", () => {
+      expect(Object.keys(SUPPORT_STATUSES)).toHaveLength(5);
     });
 
     it.each([
-      ["open", "Abierto"],
-      ["in_progress", "En progreso"],
-      ["resolved", "Resuelto"],
+      ["abierto", "Abierto"],
+      ["en_proceso", "En proceso"],
+      ["esperando_respuesta", "Esperando tu respuesta"],
+      ["resuelto", "Resuelto"],
+      ["cerrado", "Cerrado"],
     ] as const)('key "%s" → "%s"', (key, label) => {
       expect(SUPPORT_STATUSES[key]).toBe(label);
     });
@@ -57,11 +66,38 @@ describe("BLOQUE 1 — types.ts: constantes", () => {
     });
 
     it.each([
-      ["high", "Alta"],
-      ["medium", "Media"],
-      ["low", "Baja"],
+      ["alta", "Alta"],
+      ["media", "Media"],
+      ["baja", "Baja"],
     ] as const)('key "%s" → "%s"', (key, label) => {
       expect(SUPPORT_PRIORITIES[key]).toBe(label);
+    });
+  });
+
+  describe("compatibilidad con la etapa bitácora", () => {
+    // Hoy no hay ningún ticket con estos valores ni en staging ni en
+    // producción —comprobado—, pero tolerarlos cuesta cero y romperse
+    // delante de un cliente no.
+    it("traduce los estados en inglés", () => {
+      expect(normalizeSupportStatus("open")).toBe("abierto");
+      expect(normalizeSupportStatus("in_progress")).toBe("en_proceso");
+      expect(normalizeSupportStatus("resolved")).toBe("resuelto");
+    });
+
+    it("traduce categorías y prioridades en inglés", () => {
+      expect(normalizeSupportCategory("technical")).toBe("tecnico");
+      expect(normalizeSupportPriority("high")).toBe("alta");
+    });
+
+    it("un estado desconocido cae en abierto, no desaparece", () => {
+      // Es mejor que un ticket raro salga en la cola a que se pierda.
+      expect(normalizeSupportStatus("marciano")).toBe("abierto");
+      expect(normalizeSupportStatus(undefined)).toBe("abierto");
+    });
+
+    it("respeta los valores ya normalizados", () => {
+      expect(normalizeSupportStatus("esperando_respuesta")).toBe("esperando_respuesta");
+      expect(normalizeSupportCategory("otro")).toBe("otro");
     });
   });
 
@@ -289,8 +325,23 @@ vi.mock("firebase/firestore", () => ({
 
 vi.mock("@/lib/firebase/client", () => ({ db: { _isMock: true } }));
 
+// Las escrituras dejaron de ser directas: van por callable, porque mandan
+// correo y sellan campos que el cliente no debe poder falsificar. Los mocks
+// de addDoc/updateDoc siguen arriba porque `watchSupportTickets` aun usa
+// query/where/orderBy.
+const mockUpdateStatus = vi.fn();
+const mockReply = vi.fn();
+const mockAddNote = vi.fn();
+
+vi.mock("@/lib/firebase/callables", () => ({
+  updateSupportTicketStatusCallable: (...a: unknown[]) => mockUpdateStatus(...a),
+  replyToSupportTicketCallable: (...a: unknown[]) => mockReply(...a),
+  addSupportNoteCallable: (...a: unknown[]) => mockAddNote(...a),
+}));
+
 const {
-  createSupportTicket,
+  addInternalNote,
+  replyAsVivaru,
   updateSupportTicket,
   watchSupportTickets,
 } = await import("../src/features/superadmin/support/services");
@@ -306,70 +357,41 @@ describe("BLOQUE 3 — services.ts", () => {
     vi.clearAllMocks();
   });
 
-  describe("createSupportTicket()", () => {
-    const baseData = {
-      tenantId: "t1",
-      tenantName: "El Nogal",
-      reportedBy: "admin@elnogal.co",
-      category: "technical" as const,
-      subject: "Falla login",
-      description: "No puede entrar desde ayer.",
-      priority: "high" as const,
-      createdBy: "uid-super-1",
-    };
+  describe("escritura — delega en las callables", () => {
+    // Ninguna de estas operaciones puede ser una escritura directa: las reglas
+    // prohiben escribir en `supportTickets` desde el cliente, tambien al
+    // superadmin. Lo que se comprueba aqui es justamente que no lo intenta.
 
-    it("llama addDoc con status:'open'", async () => {
-      await createSupportTicket(baseData, "uid-super-1");
-      expect(mockAddDoc).toHaveBeenCalledOnce();
-      const payload = mockAddDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload.status).toBe("open");
+    it("cambiar estado y prioridad va por callable, no por updateDoc", async () => {
+      await updateSupportTicket("ticket-1", { status: "resuelto", priority: "alta" });
+      expect(mockUpdateStatus).toHaveBeenCalledWith({
+        ticketId: "ticket-1",
+        status: "resuelto",
+        priority: "alta",
+      });
+      expect(mockUpdateDoc).not.toHaveBeenCalled();
     });
 
-    it("incluye createdAt y updatedAt como serverTimestamp()", async () => {
-      await createSupportTicket(baseData, "uid-super-1");
-      const payload = mockAddDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload.createdAt).toBe("SERVER_TS");
-      expect(payload.updatedAt).toBe("SERVER_TS");
+    it("responder como Vivaru va por callable", async () => {
+      await replyAsVivaru("ticket-1", "Ya lo revisamos.");
+      expect(mockReply).toHaveBeenCalledWith({ ticketId: "ticket-1", message: "Ya lo revisamos." });
+      expect(mockUpdateDoc).not.toHaveBeenCalled();
     });
 
-    it("retorna el ID del documento creado", async () => {
-      const id = await createSupportTicket(baseData, "uid-super-1");
-      expect(id).toBe("new-ticket-id");
+    it("la nota interna va por callable — nunca al documento del ticket", async () => {
+      // Si se escribiera en el propio documento, el administrador la recibiria
+      // entera al leerlo: las reglas de Firestore no filtran campos.
+      await addInternalNote("ticket-1", "Revisar el limit(30).");
+      expect(mockAddNote).toHaveBeenCalledWith({ ticketId: "ticket-1", note: "Revisar el limit(30)." });
+      expect(mockAddDoc).not.toHaveBeenCalled();
+      expect(mockUpdateDoc).not.toHaveBeenCalled();
     });
 
-    it("NO incluye resolvedAt en la creación", async () => {
-      await createSupportTicket(baseData, "uid-super-1");
-      const payload = mockAddDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload).not.toHaveProperty("resolvedAt");
-    });
-  });
-
-  describe("updateSupportTicket() — status:'in_progress'", () => {
-    it("llama updateDoc con updatedAt serverTimestamp()", async () => {
-      await updateSupportTicket("ticket-1", { status: "in_progress" });
-      expect(mockUpdateDoc).toHaveBeenCalledOnce();
-      const payload = mockUpdateDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload.updatedAt).toBe("SERVER_TS");
-    });
-
-    it("NO incluye resolvedAt cuando status es 'in_progress'", async () => {
-      await updateSupportTicket("ticket-1", { status: "in_progress" });
-      const payload = mockUpdateDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload).not.toHaveProperty("resolvedAt");
-    });
-  });
-
-  describe("updateSupportTicket() — status:'resolved'", () => {
-    it("incluye resolvedAt: serverTimestamp() al resolver", async () => {
-      await updateSupportTicket("ticket-1", { status: "resolved" });
-      const payload = mockUpdateDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload.resolvedAt).toBe("SERVER_TS");
-    });
-
-    it("también incluye updatedAt al resolver", async () => {
-      await updateSupportTicket("ticket-1", { status: "resolved" });
-      const payload = mockUpdateDoc.mock.calls[0][1] as Record<string, unknown>;
-      expect(payload.updatedAt).toBe("SERVER_TS");
+    it("ya no existe alta manual de tickets", async () => {
+      // El superadmin tecleando a mano quien reporto convertia la herramienta
+      // en una bitacora en vez de un canal (PRD-V-FEAT-001).
+      const services = await import("../src/features/superadmin/support/services");
+      expect("createSupportTicket" in services).toBe(false);
     });
   });
 
@@ -380,22 +402,22 @@ describe("BLOQUE 3 — services.ts", () => {
       return call.slice(1) as Array<{ type: string; args: unknown[] }>;
     }
 
-    it("{ status:'open' } → aplica where status=='open' y orderBy createdAt desc", () => {
-      watchSupportTickets({ status: "open" }, vi.fn(), vi.fn());
+    it("{ status:'abierto' } → aplica where status y orderBy", () => {
+      watchSupportTickets({ status: "abierto" }, vi.fn(), vi.fn());
 
-      expect(mockWhere).toHaveBeenCalledWith("status", "==", "open");
+      expect(mockWhere).toHaveBeenCalledWith("status", "==", "abierto");
       expect(mockOrderBy).toHaveBeenCalledWith("createdAt", "desc");
 
       const constraints = getCapturedConstraints();
       expect(constraints).toHaveLength(2); // 1 where + 1 orderBy
     });
 
-    it("{ tenantId:'t1', priority:'high' } → aplica where tenantId y where priority", () => {
-      watchSupportTickets({ tenantId: "t1", priority: "high" }, vi.fn(), vi.fn());
+    it("{ tenantId:'t1', priority:'alta' } → aplica where tenantId y where priority", () => {
+      watchSupportTickets({ tenantId: "t1", priority: "alta" }, vi.fn(), vi.fn());
 
       const whereCalls = mockWhere.mock.calls;
       expect(whereCalls).toContainEqual(["tenantId", "==", "t1"]);
-      expect(whereCalls).toContainEqual(["priority", "==", "high"]);
+      expect(whereCalls).toContainEqual(["priority", "==", "alta"]);
       expect(mockOrderBy).toHaveBeenCalledWith("createdAt", "desc");
     });
 
@@ -469,7 +491,7 @@ describe("BLOQUE 4 — watchSupportTickets (backing de useSupportTickets)", () =
 
   it("inicia suscripción onSnapshot al llamarse", () => {
     mockOnSnapshot.mockReturnValue(vi.fn());
-    watchSupportTickets({ status: "open" }, vi.fn(), vi.fn());
+    watchSupportTickets({ status: "abierto" }, vi.fn(), vi.fn());
     expect(mockOnSnapshot).toHaveBeenCalledOnce();
   });
 
@@ -485,7 +507,7 @@ describe("BLOQUE 4 — watchSupportTickets (backing de useSupportTickets)", () =
     const mockUnsub = vi.fn();
     mockOnSnapshot.mockReturnValue(mockUnsub);
 
-    const unsub = watchSupportTickets({ status: "open" }, vi.fn(), vi.fn());
+    const unsub = watchSupportTickets({ status: "abierto" }, vi.fn(), vi.fn());
     unsub(); // simula desmontaje del hook
     expect(mockUnsub).toHaveBeenCalledOnce();
   });
@@ -496,7 +518,7 @@ describe("BLOQUE 4 — watchSupportTickets (backing de useSupportTickets)", () =
     mockOnSnapshot.mockReturnValueOnce(mockUnsub1).mockReturnValueOnce(mockUnsub2);
 
     // Primera suscripción (status: open)
-    const unsub1 = watchSupportTickets({ status: "open" }, vi.fn(), vi.fn());
+    const unsub1 = watchSupportTickets({ status: "abierto" }, vi.fn(), vi.fn());
     expect(mockOnSnapshot).toHaveBeenCalledTimes(1);
 
     // Simular cambio de filtros: cancelar primera → crear nueva
@@ -511,8 +533,8 @@ describe("BLOQUE 4 — watchSupportTickets (backing de useSupportTickets)", () =
 
   it("usa where('status') al filtrar por status", () => {
     mockOnSnapshot.mockReturnValue(vi.fn());
-    watchSupportTickets({ status: "open" }, vi.fn(), vi.fn());
-    expect(mockWhere).toHaveBeenCalledWith("status", "==", "open");
+    watchSupportTickets({ status: "abierto" }, vi.fn(), vi.fn());
+    expect(mockWhere).toHaveBeenCalledWith("status", "==", "abierto");
   });
 });
 
