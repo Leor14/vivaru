@@ -96,7 +96,9 @@ export function CountrySelect({
         aria-expanded={open}
         aria-label={ariaLabel}
         className={cn(
-          "flex h-10 w-full items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]",
+          // h-11 para igualar a `Input`: este control casi siempre va al lado de
+          // uno (el teléfono lo pone pegado) y 40 contra 44 se nota.
+          "flex h-11 w-full items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]",
           "[transition:border-color_150ms_var(--ease-out)] hover:border-[var(--slate-400)]",
           variant === "dial" && "w-auto min-w-[104px] justify-between",
         )}

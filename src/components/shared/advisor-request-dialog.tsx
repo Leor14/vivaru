@@ -274,7 +274,10 @@ export function AdvisorRequestDialog({
                   del número sin nombre accesible. */}
               <label
                 htmlFor="advisor-tel"
-                className="block text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]"
+                // leading-5 iguala la caja de línea de las etiquetas vecinas,
+                // que son <span> en línea dentro de un <label> de 20px. Sin
+                // esto la fila del teléfono queda 4px más alta que la de al lado.
+                className="block text-xs font-semibold uppercase leading-5 tracking-wide text-[var(--brand-700)]"
               >
                 Teléfono <span className="normal-case text-[var(--slate-500)]">(si prefieres otro)</span>
               </label>

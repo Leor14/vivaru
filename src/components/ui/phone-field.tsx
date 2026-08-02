@@ -31,7 +31,7 @@ export function PhoneField({
   id?: string;
 }) {
   return (
-    <div className="mt-1 flex gap-2">
+    <div className="mt-1.5 flex gap-2">
       <CountrySelect
         value={country}
         onChange={onCountryChange}
