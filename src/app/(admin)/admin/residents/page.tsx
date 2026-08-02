@@ -452,9 +452,18 @@ export default function AdminResidentsPage() {
    * de ayuda que aparece al llegar con `?guia=` no conoce el DOM de esta
    * pantalla, así que aquí se declara qué hace su botón.
    */
-  useGuidedAction("unidades", () => openCreateUnit());
-  useGuidedAction("residentes", () => {
-    // Se agrega el titular a la primera unidad propia del conjunto; si aún no
+  useGuidedAction("unidades", (track) => {
+    // Un conjunto real tiene 180 unidades: crearlas a mano no es una opción,
+    // así que al cliente se le abre la carga masiva y no el alta individual.
+    if (track === "cliente") setBulkImportOpen(true);
+    else openCreateUnit();
+  });
+  useGuidedAction("residentes", (track) => {
+    if (track === "cliente") {
+      setResidentImportOpen(true);
+      return;
+    }
+    // En la prueba se agrega el titular a la primera unidad propia; si aún no
     // hay ninguna, se abre el alta —que ya crea unidad y titulares juntos.
     const own = units.find((unit) => !(unit as { isExample?: boolean }).isExample);
     if (own) openAddPersonToUnit(own);

@@ -48,6 +48,7 @@ import { Input } from "@/components/ui/input";
 import { RangePicker, type RangePickerValue } from "@/components/ui/range-picker";
 import { UI_TEXT } from "@/constants/uiText";
 import { useAuth } from "@/features/auth/auth-context";
+import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
@@ -266,6 +267,18 @@ function AdminBillingPageContent() {
   const [statusFilter, setStatusFilter] = useState<BillingStatusFilter>("all");
   const [unitFilter, setUnitFilter] = useState("all");
   const [isBulkDrawerOpen, setIsBulkDrawerOpen] = useState(false);
+
+  /**
+   * Enganche del recorrido guiado. El cobro se crea en una tarjeta de esta
+   * misma página, no en un modal, así que la acción lleva la vista hasta ella:
+   * en una pantalla con cartera, campañas y tableros, "está en Cartera" no
+   * basta como indicación. Ver `src/lib/onboarding/steps.ts`.
+   */
+  useGuidedAction("primer-cobro", () => {
+    requestAnimationFrame(() => {
+      document.getElementById("guia-crear-cobro")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [selectedBulkUnitIds, setSelectedBulkUnitIds] = useState<string[]>([]);
   const [bulkMessage, setBulkMessage] = useState("Recordatorio: tienes cartera en mora. Por favor realiza tu abono para evitar recargos.");
@@ -1295,7 +1308,7 @@ function AdminBillingPageContent() {
       </WidgetErrorBoundary>
 
       {!soloConsulta && (
-      <Card className="soft-panel">
+      <Card id="guia-crear-cobro" className="soft-panel scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <CardTitle>Crear nuevo cobro</CardTitle>

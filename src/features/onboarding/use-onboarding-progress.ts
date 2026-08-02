@@ -5,10 +5,11 @@ import { collection, doc, limit, onSnapshot, query, where } from "firebase/fires
 
 import { db } from "@/lib/firebase/client";
 import {
-  ACTIVATION_STEPS,
-  DISCOVERY_STEPS,
-  ONBOARDING_STEPS,
+  activationStepsFor,
+  discoveryStepsFor,
+  stepsForTrack,
   type OnboardingStep,
+  type OnboardingTrack,
 } from "@/lib/onboarding/steps";
 
 /**
@@ -41,23 +42,34 @@ export type OnboardingProgress = {
 };
 
 /** Colecciones a vigilar, deducidas de las señales de los pasos. */
-type Watch = { collection: string; filterExamples: boolean };
+type Watch = { collection: string; filterExamples: boolean; positiveFields: string[] };
 
 function collectWatches(steps: OnboardingStep[]): Watch[] {
   const byCollection = new Map<string, Watch>();
   for (const step of steps) {
     if (step.signal.kind !== "docs") continue;
-    const filterExamples = step.signal.filterExamples === true;
-    const current = byCollection.get(step.signal.collection);
-    // Si dos pasos miran la misma colección, gana el criterio más estricto.
-    if (!current || (filterExamples && !current.filterExamples)) {
-      byCollection.set(step.signal.collection, { collection: step.signal.collection, filterExamples });
+    const { collection, filterExamples, positiveField } = step.signal;
+    const current = byCollection.get(collection) ?? {
+      collection,
+      filterExamples: false,
+      positiveFields: [],
+    };
+    // Si dos pasos miran la misma colección, gana el criterio más estricto y se
+    // acumulan los campos: cartera la miran «emite un cobro» y «registra el
+    // pago», que son el mismo documento en dos momentos distintos.
+    current.filterExamples = current.filterExamples || filterExamples === true;
+    if (positiveField && !current.positiveFields.includes(positiveField)) {
+      current.positiveFields.push(positiveField);
     }
+    byCollection.set(collection, current);
   }
   return [...byCollection.values()];
 }
 
-const WATCHES = collectWatches(ONBOARDING_STEPS);
+/** Clave del contador para «documentos con este campo en positivo». */
+function positiveKey(collection: string, field: string) {
+  return `${collection}:${field}`;
+}
 
 /**
  * Cuántos documentos traer para decidir si hay alguno "real".
@@ -67,15 +79,27 @@ const WATCHES = collectWatches(ONBOARDING_STEPS);
  * imposible que los 30 devueltos sean todos de ejemplo habiendo alguno real.
  */
 function pageSizeFor(watch: Watch) {
+  // Con campos numéricos hace falta mirar varios documentos: el primero puede
+  // ser un cobro sin abono y el pagado venir después.
+  if (watch.positiveFields.length > 0) return 30;
   return watch.filterExamples ? 30 : 1;
+}
+
+function numberField(doc: Record<string, unknown>, field: string): number {
+  const value = doc[field];
+  return typeof value === "number" ? value : 0;
 }
 
 const EMPTY_SEEN: Record<string, string> = {};
 
-export function useOnboardingProgress(tenantId: string | undefined): OnboardingProgress {
+export function useOnboardingProgress(
+  tenantId: string | undefined,
+  track: OnboardingTrack = "trial",
+): OnboardingProgress {
   const [agrupaciones, setAgrupaciones] = useState<number | null>(null);
   const [seen, setSeen] = useState<Record<string, string>>(EMPTY_SEEN);
   const [hasGuard, setHasGuard] = useState<boolean | null>(null);
+  const [hasResident, setHasResident] = useState<boolean | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [ready, setReady] = useState(false);
 
@@ -87,7 +111,8 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
     const firestore = db;
     setReady(false);
 
-    const pending = new Set<string>(["settings", "onboarding", "guard", ...WATCHES.map((w) => w.collection)]);
+    const watches = collectWatches(stepsForTrack(track));
+    const pending = new Set<string>(["settings", "onboarding", "guard", ...watches.map((w) => w.collection)]);
     const settle = (key: string) => {
       pending.delete(key);
       if (pending.size === 0) setReady(true);
@@ -138,22 +163,24 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
       onSnapshot(
         query(collection(firestore, "users"), where("tenantId", "==", tenantId)),
         (snap) => {
-          setHasGuard(
+          const real = (role: string) =>
             snap.docs.some((item) => {
               const data = item.data() as { role?: string; isDemoAccount?: boolean };
-              return data.role === "security_guard" && data.isDemoAccount !== true;
-            }),
-          );
+              return data.role === role && data.isDemoAccount !== true;
+            });
+          setHasGuard(real("security_guard"));
+          setHasResident(real("resident"));
           settle("guard");
         },
         () => {
           setHasGuard(false);
+          setHasResident(false);
           settle("guard");
         },
       ),
     );
 
-    for (const watch of WATCHES) {
+    for (const watch of watches) {
       unsubs.push(
         onSnapshot(
           query(
@@ -162,10 +189,19 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
             limit(pageSizeFor(watch)),
           ),
           (snap) => {
-            const real = watch.filterExamples
-              ? snap.docs.filter((item) => (item.data() as { isExample?: boolean }).isExample !== true).length
-              : snap.size;
-            setCounts((prev) => (prev[watch.collection] === real ? prev : { ...prev, [watch.collection]: real }));
+            const docs = watch.filterExamples
+              ? snap.docs.filter((item) => (item.data() as { isExample?: boolean }).isExample !== true)
+              : snap.docs;
+            const next: Record<string, number> = { [watch.collection]: docs.length };
+            for (const field of watch.positiveFields) {
+              next[positiveKey(watch.collection, field)] = docs.filter(
+                (item) => numberField(item.data() as Record<string, unknown>, field) > 0,
+              ).length;
+            }
+            setCounts((prev) => {
+              const changed = Object.entries(next).some(([key, value]) => prev[key] !== value);
+              return changed ? { ...prev, ...next } : prev;
+            });
             settle(watch.collection);
           },
           // Una colección sin permiso o sin índice no debe romper el checklist:
@@ -181,21 +217,28 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
     return () => {
       for (const unsub of unsubs) unsub();
     };
-  }, [tenantId]);
+  }, [tenantId, track]);
 
   const done = useMemo(() => {
     const result: Record<string, boolean> = {};
-    for (const step of ONBOARDING_STEPS) {
+    for (const step of stepsForTrack(track)) {
       let complete = false;
       switch (step.signal.kind) {
         case "agrupaciones":
           complete = (agrupaciones ?? 0) > 0;
           break;
-        case "docs":
-          complete = (counts[step.signal.collection] ?? 0) > 0;
+        case "docs": {
+          const key = step.signal.positiveField
+            ? positiveKey(step.signal.collection, step.signal.positiveField)
+            : step.signal.collection;
+          complete = (counts[key] ?? 0) > 0;
           break;
+        }
         case "guardUser":
           complete = hasGuard === true;
+          break;
+        case "residentUser":
+          complete = hasResident === true;
           break;
         case "seen":
           complete = Boolean(seen[step.key]);
@@ -208,7 +251,7 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
       result[step.key] = complete;
     }
     return result;
-  }, [agrupaciones, counts, hasGuard, seen]);
+  }, [agrupaciones, counts, hasGuard, hasResident, seen, track]);
 
   const isDone = useCallback((key: string) => done[key] === true, [done]);
 
@@ -216,8 +259,8 @@ export function useOnboardingProgress(tenantId: string | undefined): OnboardingP
     loading: !ready,
     done,
     seen,
-    activationDone: ACTIVATION_STEPS.filter((step) => done[step.key]).length,
-    discoveryDone: DISCOVERY_STEPS.filter((step) => done[step.key]).length,
+    activationDone: activationStepsFor(track).filter((step) => done[step.key]).length,
+    discoveryDone: discoveryStepsFor(track).filter((step) => done[step.key]).length,
     isDone,
   };
 }

@@ -7,8 +7,10 @@ import {
   Home,
   MessageSquare,
   Package,
+  Receipt,
   ScrollText,
   Shield,
+  Send,
   Smartphone,
   Store,
   UserPlus,
@@ -40,31 +42,75 @@ import type { IconToneName } from "@/lib/ui/icon-tones";
  * QR en el celular del residente. Ese es el momento en que entiende qué compró.
  */
 
-export type OnboardingBlockKey = "configura" | "prueba" | "descubre";
+/**
+ * Dos recorridos sobre la misma maquinaria.
+ *
+ * El del trial termina en "ya viste lo que compras"; el del cliente tiene que
+ * terminar en "tu conjunto ya opera con Vivaru". Por eso el cliente lleva dos
+ * pasos que en la prueba son imposibles —invitar residentes reales choca con
+ * la Regla B, y emitir un cobro con el candado de módulos— y que además son
+ * los que de verdad predicen que se quede: un cliente que cargó todo y nunca
+ * emitió un cobro es un cliente que va a cancelar, y sin esto no lo veríamos.
+ */
+export type OnboardingTrack = "trial" | "cliente";
+
+export type OnboardingBlockKey = "configura" | "prueba" | "cobrar" | "descubre";
 
 export type OnboardingBlock = {
   key: OnboardingBlockKey;
   title: string;
   description: string;
+  /** Recorridos en los que aparece el bloque. */
+  tracks: OnboardingTrack[];
+  /** Título y bajada distintos según el recorrido. */
+  byTrack?: Partial<Record<OnboardingTrack, { title?: string; description?: string }>>;
 };
 
-export const ONBOARDING_BLOCKS: OnboardingBlock[] = [
+const BLOCKS: OnboardingBlock[] = [
   {
     key: "configura",
+    tracks: ["trial", "cliente"],
     title: "Pon a punto tu conjunto",
     description: "La estructura mínima para que todo lo demás tenga dónde apoyarse.",
+    byTrack: {
+      cliente: {
+        title: "Carga tu conjunto",
+        description: "Tus unidades y tu gente dentro de Vivaru.",
+      },
+    },
   },
   {
     key: "prueba",
+    tracks: ["trial", "cliente"],
     title: "Pruébalo de punta a punta",
     description: "Una visita recorriendo los tres portales: administración, portería y residente.",
+    byTrack: {
+      cliente: {
+        title: "Ponlo en manos de tu comunidad",
+        description: "Recorre los tres portales y después entrégaselo a tus residentes.",
+      },
+    },
+  },
+  {
+    key: "cobrar",
+    tracks: ["cliente"],
+    title: "Empieza a cobrar",
+    description: "El momento en que Vivaru empieza a producirte tiempo y dinero.",
   },
   {
     key: "descubre",
+    tracks: ["trial", "cliente"],
     title: "Descubre qué más hace Vivaru",
     description: "Un vistazo a cada módulo. Basta con entrar y leer; crear algo es opcional.",
   },
 ];
+
+export function blocksForTrack(track: OnboardingTrack): OnboardingBlock[] {
+  return BLOCKS.filter((block) => block.tracks.includes(track)).map((block) => ({
+    ...block,
+    ...(block.byTrack?.[track] ?? {}),
+  }));
+}
 
 /**
  * Cómo se detecta que un paso quedó hecho.
@@ -79,8 +125,19 @@ export const ONBOARDING_BLOCKS: OnboardingBlock[] = [
  */
 export type OnboardingSignal =
   | { kind: "agrupaciones" }
-  | { kind: "docs"; collection: string; filterExamples?: boolean }
+  | {
+      kind: "docs";
+      collection: string;
+      filterExamples?: boolean;
+      /**
+       * Además de existir, el documento debe traer este campo numérico en
+       * positivo. Sirve para distinguir «hay un cobro» de «hay un cobro
+       * pagado», que viven en la misma colección.
+       */
+      positiveField?: string;
+    }
   | { kind: "guardUser" }
+  | { kind: "residentUser" }
   | { kind: "seen" };
 
 export type OnboardingStep = {
@@ -110,12 +167,32 @@ export type OnboardingStep = {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   /** Tono del chip, del sistema pastel del producto (`--icon-*`). */
   tone: IconToneName;
+  /** Recorridos en los que aparece este paso. */
+  tracks: OnboardingTrack[];
+  /**
+   * Texto distinto según el recorrido. Se usa para no duplicar quince pasos en
+   * dos versiones cuando lo único que cambia es una frase — «crea una para
+   * probar» contra «importa las tuyas», que para un conjunto de 180 unidades
+   * no es un matiz sino una instrucción equivocada.
+   */
+  byTrack?: Partial<Record<OnboardingTrack, Partial<OnboardingStepCopy>>>;
+};
+
+/** Los campos de un paso que pueden cambiar de un recorrido a otro. */
+export type OnboardingStepCopy = {
+  title: string;
+  why: string;
+  purpose: string;
+  how: string;
+  tip: string | null;
+  action: { label: string } | null;
 };
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
   // ── Bloque 1: la estructura ────────────────────────────────────────────────
   {
     key: "agrupaciones",
+    tracks: ["trial", "cliente"],
     icon: Building2,
     tone: "sky",
     block: "configura",
@@ -133,6 +210,16 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "unidades",
+    tracks: ["trial", "cliente"],
+    byTrack: {
+      cliente: {
+        title: "Importa tus unidades",
+        why: "Es la pieza sobre la que gira todo el sistema.",
+        how: "Usa «Importar» y súbelas todas de una vez desde un archivo: un conjunto real tiene decenas o cientos, y crearlas a mano es tiempo perdido. Descarga la plantilla, complétala con el identificador tal como lo conoce la comunidad —101, A-302, Casa 14— y su agrupación.",
+        tip: "Revisa el archivo antes de subirlo: corregir 180 unidades después cuesta más que revisarlas ahora.",
+        action: { label: "Importar unidades" },
+      },
+    },
     icon: Home,
     tone: "sky",
     block: "configura",
@@ -150,6 +237,15 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "residentes",
+    tracks: ["trial", "cliente"],
+    byTrack: {
+      cliente: {
+        title: "Importa tus residentes",
+        how: "Con las unidades cargadas, importa a las personas y quedan vinculadas a la suya. Indica de cada una si es propietario, arrendatario o ambos: eso define qué ve y qué puede hacer. Todavía no se les avisa nada — las invitaciones son un paso aparte, más adelante.",
+        tip: "Con que tengas nombre, correo y unidad basta para arrancar; el resto se completa después.",
+        action: { label: "Importar residentes" },
+      },
+    },
     icon: UserPlus,
     tone: "sky",
     block: "configura",
@@ -166,6 +262,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "porteria",
+    tracks: ["trial", "cliente"],
     icon: Shield,
     tone: "peach",
     block: "configura",
@@ -184,6 +281,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   // ── Bloque 2: una visita atravesando los tres portales ─────────────────────
   {
     key: "visita",
+    tracks: ["trial", "cliente"],
     icon: DoorOpen,
     tone: "peach",
     block: "prueba",
@@ -200,6 +298,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "portal-porteria",
+    tracks: ["trial", "cliente"],
     icon: Shield,
     tone: "peach",
     block: "prueba",
@@ -217,6 +316,13 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "portal-residente",
+    tracks: ["trial", "cliente"],
+    byTrack: {
+      cliente: {
+        why: "Míralo antes de entregárselo a toda tu comunidad.",
+        tip: "Este es el portal que van a recibir tus residentes. Vale la pena verlo antes que ellos.",
+      },
+    },
     icon: Smartphone,
     tone: "mint",
     block: "prueba",
@@ -233,9 +339,72 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     signal: { kind: "seen" },
   },
 
-  // ── Bloque 3: el recorrido por el resto ────────────────────────────────────
+  {
+    key: "invitaciones",
+    tracks: ["cliente"],
+    block: "prueba",
+    icon: Send,
+    tone: "mint",
+    title: "Invita a tus residentes",
+    why: "Es el momento en que Vivaru deja de ser cosa tuya.",
+    route: "/admin/residents",
+    module: "residents",
+    purpose:
+      "Darle acceso a la gente que vive en el conjunto. Hasta aquí Vivaru es una herramienta tuya; a partir de aquí es el canal de la comunidad.",
+    how:
+      "En Residentes selecciona a quienes ya cargaste y envía el acceso. A cada uno le llega un enlace para crear su contraseña —sin cédulas ni claves temporales que se comparten por WhatsApp. Puedes hacerlo por tandas: empieza por una torre y confirma que todo fluye antes de abrir el resto.",
+    tip: "Acompaña el envío con un comunicado explicando qué es y para qué sirve: la adopción sube mucho cuando el aviso no llega en frío.",
+    signal: { kind: "residentUser" },
+  },
+
+  // ── Bloque 3 (solo cliente): donde Vivaru empieza a producir ──────────────
+  {
+    key: "primer-cobro",
+    tracks: ["cliente"],
+    block: "cobrar",
+    icon: Wallet,
+    tone: "lavender",
+    title: "Emite tu primer cobro",
+    why: "Es donde Vivaru empieza a ahorrarte trabajo de verdad.",
+    route: "/admin/billing",
+    module: "billing",
+    purpose:
+      "Cobrar la administración a todas las unidades de una vez, en lugar de armar recibos uno por uno. Cada residente ve su estado de cuenta en su portal y recibe el aviso.",
+    how:
+      "Usa el cobro en lote: eliges a quién cobrar —todo el conjunto o una agrupación—, el concepto y el valor, y si quieres programas la fecha en que se publica y se notifica. Vivaru genera un cobro por unidad y lleva el control de quién pagó.",
+    tip: "Arranca con el período en curso. La cartera vieja se puede cargar después con la importación.",
+    action: { label: "Crear cobro en lote" },
+    signal: { kind: "docs", collection: "billingStatements", filterExamples: true },
+  },
+  {
+    key: "primer-pago",
+    tracks: ["cliente"],
+    block: "cobrar",
+    icon: Receipt,
+    tone: "lavender",
+    title: "Registra el primer pago",
+    why: "Cierra el ciclo: cobrar, recibir y saber quién debe.",
+    route: "/admin/billing",
+    module: "billing",
+    purpose:
+      "Dejar constancia de lo que entra. Al registrar el pago, el saldo de esa unidad baja solo y la mora del conjunto se recalcula sin que nadie sume a mano.",
+    how:
+      "Desde la cartera, abre el cobro que emitiste y anota el abono: el saldo de esa unidad baja solo y el estado pasa a «Al día». Si el residente sube su comprobante desde el portal, te llega para confirmarlo y queda vinculado al cobro. Conforme registres, el tablero de cartera y el reporte del comité se llenan solos.",
+    /**
+     * El pago NO crea un documento propio: `paymentReceipts` solo lo escribe el
+     * RESIDENTE al subir su comprobante (ver firestore.rules) — el administrador
+     * ni siquiera tiene permiso de crearlo. Él registra el pago actualizando el
+     * cobro, así que la señal es un cobro con abono. Detectado al recorrer el
+     * paso: con la señal anterior el cliente se habría quedado en 9 de 10 para
+     * siempre, sin nada que explicara por qué.
+     */
+    signal: { kind: "docs", collection: "billingStatements", filterExamples: true, positiveField: "paymentAmount" },
+  },
+
+  // ── Bloque 4: el recorrido por el resto ────────────────────────────────────
   {
     key: "comunicados",
+    tracks: ["trial", "cliente"],
     icon: MessageSquare,
     tone: "sky",
     block: "descubre",
@@ -253,6 +422,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "reservas",
+    tracks: ["trial", "cliente"],
     icon: CalendarCheck,
     tone: "mint",
     block: "descubre",
@@ -270,6 +440,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "pqrs",
+    tracks: ["trial", "cliente"],
     icon: FileText,
     tone: "sand",
     block: "descubre",
@@ -285,6 +456,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "paqueteria",
+    tracks: ["trial", "cliente"],
     icon: Package,
     tone: "sand",
     block: "descubre",
@@ -300,6 +472,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "encuestas",
+    tracks: ["trial", "cliente"],
     icon: ClipboardList,
     tone: "mint",
     block: "descubre",
@@ -316,6 +489,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "servicios",
+    tracks: ["trial", "cliente"],
     icon: Store,
     tone: "peach",
     block: "descubre",
@@ -332,6 +506,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "documentos",
+    tracks: ["trial", "cliente"],
     icon: ScrollText,
     tone: "sand",
     block: "descubre",
@@ -347,6 +522,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     key: "financiero",
+    tracks: ["trial"],
     icon: Wallet,
     tone: "lavender",
     block: "descubre",
@@ -362,23 +538,38 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   },
 ];
 
-/** Los 7 pasos que miden puesta en marcha real. */
-export const ACTIVATION_STEPS = ONBOARDING_STEPS.filter(
-  (step) => step.block === "configura" || step.block === "prueba",
-);
+/** Pasos del recorrido, con el texto del recorrido ya aplicado. */
+export function stepsForTrack(track: OnboardingTrack): OnboardingStep[] {
+  return ONBOARDING_STEPS.filter((step) => step.tracks.includes(track)).map((step) => {
+    const override = step.byTrack?.[track];
+    if (!override) return step;
+    // `null` en el override significa "quítalo en este recorrido", no "vacío".
+    const merged = { ...step, ...override };
+    if (override.tip === null) delete (merged as { tip?: unknown }).tip;
+    if (override.action === null) delete (merged as { action?: unknown }).action;
+    return merged as OnboardingStep;
+  });
+}
+
+/** Los pasos que miden puesta en marcha real: 7 en la prueba, 10 en un cliente. */
+export function activationStepsFor(track: OnboardingTrack): OnboardingStep[] {
+  return stepsForTrack(track).filter((step) => step.block !== "descubre");
+}
 
 /** El recorrido por el resto del producto: señal secundaria, no obligatoria. */
-export const DISCOVERY_STEPS = ONBOARDING_STEPS.filter((step) => step.block === "descubre");
-
-export const ACTIVATION_TOTAL = ACTIVATION_STEPS.length;
-export const DISCOVERY_TOTAL = DISCOVERY_STEPS.length;
+export function discoveryStepsFor(track: OnboardingTrack): OnboardingStep[] {
+  return stepsForTrack(track).filter((step) => step.block === "descubre");
+}
 
 /** Nombre del parámetro que activa la ayuda en la pantalla destino. */
 export const GUIDE_PARAM = "guia";
 
-export function stepByKey(key: string | null | undefined): OnboardingStep | undefined {
+export function stepByKey(
+  key: string | null | undefined,
+  track: OnboardingTrack = "trial",
+): OnboardingStep | undefined {
   if (!key) return undefined;
-  return ONBOARDING_STEPS.find((step) => step.key === key);
+  return stepsForTrack(track).find((step) => step.key === key);
 }
 
 /** Enlace del checklist: la ruta más el parámetro que abre la ayuda al llegar. */
@@ -387,14 +578,19 @@ export function hrefFor(step: OnboardingStep): string {
 }
 
 /** Posición 1-based dentro de su bloque, para el "Paso 2 de 4" de la banda. */
-export function positionInBlock(step: OnboardingStep): { index: number; total: number } {
-  const siblings = ONBOARDING_STEPS.filter((item) => item.block === step.block);
+export function positionInBlock(step: OnboardingStep, track: OnboardingTrack = "trial") {
+  const siblings = stepsForTrack(track).filter((item) => item.block === step.block);
   return { index: siblings.findIndex((item) => item.key === step.key) + 1, total: siblings.length };
 }
 
 /** El paso siguiente del recorrido, saltando los que ya están hechos. */
-export function nextStepAfter(step: OnboardingStep, isDone: (key: string) => boolean) {
-  const from = ONBOARDING_STEPS.findIndex((item) => item.key === step.key);
+export function nextStepAfter(
+  step: OnboardingStep,
+  isDone: (key: string) => boolean,
+  track: OnboardingTrack = "trial",
+) {
+  const all = stepsForTrack(track);
+  const from = all.findIndex((item) => item.key === step.key);
   if (from < 0) return undefined;
-  return ONBOARDING_STEPS.slice(from + 1).find((item) => !isDone(item.key));
+  return all.slice(from + 1).find((item) => !isDone(item.key));
 }
