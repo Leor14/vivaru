@@ -150,9 +150,11 @@ Referencia: Cleanmeter. Rejilla de dos columnas, ítems sueltos con borde de 1px
 
 **Assets:** 3 SVG a medida. **Archivos:** `ImpactBand.tsx`.
 
-### Inc 4 · TrustOnboarding con miniatura
+### Inc 4 · TrustOnboarding con miniatura — hecho
 
-Referencia: Cohere «latest news». Miniatura 16:9 arriba, etiqueta de categoría, título, cuerpo y pie con flecha. Sin caja contenedora.
+Referencia: Cohere «latest news». Miniatura 16:9 arriba, etiqueta de categoría, título y cuerpo. Sin caja contenedora, sin icono.
+
+**Sin el pie con flecha que llevaba el original.** Las tarjetas de Cohere son artículos y el pie lleva a leerlos; estas son garantías, y tres de las cuatro no tienen a dónde llevar. Un «Ver cómo →» que no va a ninguna parte es una promesa falsa de navegación.
 
 **Assets:** 4 miniaturas 16:9. **Archivos:** `TrustOnboarding.tsx`.
 
