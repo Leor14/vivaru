@@ -171,6 +171,21 @@ Un cliente recién activado sigue viendo la interfaz de prueba —días restante
 
 El paso de pago de [[onboarding-guiado]] apuntaba a `paymentReceipts`, colección que solo crea el residente y que el administrador no puede leer: devolvía 403 en silencio. Con esa señal, todo cliente se habría quedado a un paso del final para siempre. Antes de elegir una colección como señal, comprobar que el rol que ve el indicador tiene permiso de lectura.
 
+## El landing NO hereda de `DESIGN.md`
+
+Hay **dos sistemas de color** en el repositorio y se parecen lo suficiente como para confundirlos:
+
+- `DESIGN.md` describe la **aplicación**: fondo `#f4f7fb`, tintes sky/mint/peach/sand/lavender, brand navy `#0b3c5d`.
+- El **landing** tiene su propio bloque `.marketing-theme` en `globals.css`: fondo **`#FFFFFF`**, texto `#0F172A`, borde `#E2E8F0`, primario `#4B5FD4`, acentos ámbar `#D97706`, teal `#0891B2`, verde `#16A34A` y morado `#7C3AED`.
+
+Verificado en producción: las secciones del landing se pintan sobre `rgb(255,255,255)`. El `#f4f7fb` que se ve al inspeccionar el `<body>` está **debajo** del landing y no llega a verse.
+
+Diseñar el landing con los tokens de la aplicación costó dos iteraciones completas de un boceto en agosto de 2026. Antes de tocar `src/components/marketing/`, leer el bloque `.marketing-theme`, no `DESIGN.md`. Ver [[tokens-color]] y [[landing-marketing]].
+
+## El landing no tiene modo oscuro
+
+`DESIGN.md` lo dice explícitamente: *«No dark mode tokens defined»*. Ni el landing ni la aplicación lo tienen. Añadir `prefers-color-scheme` o variantes `dark:` a un componente de marketing hace que la página se oscurezca en navegadores configurados en oscuro y represente algo que el producto no hace. `tests/landing-contract.test.ts` lo comprueba.
+
 ## Relaciones
 
 - Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]], [[triaje-auditoria-ux]], [[kpis-formula-unica]], [[soporte]], [[ciclo-de-vida-tenant]], [[pruebas-reglas-emulador]]

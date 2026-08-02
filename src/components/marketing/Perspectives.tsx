@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { AssetSlot, type AssetDef } from "@/components/marketing/ui/asset-slot";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { track } from "@/lib/marketing/analytics";
 import { useReducedMotion } from "@/lib/marketing/hooks";
@@ -16,21 +16,16 @@ import { cn } from "@/lib/utils/cn";
  *   - ResidenteComposite — 3 phones staggered (left/right lower, center taller)
  *   - PorteriaComposite  — tablet primary + tablet secondary (bottom-right overlay)
  *
- * Shots with `src: undefined` render as styled placeholders matching the
- * correct aspect ratio — they flip to real images once PNGs are dropped in
- * /public/product/ (Phase 2 of the screenshot capture sprint).
+ * Los huecos sin `src` los pinta `AssetSlot` respetando la proporción final,
+ * y se convierten en imagen al soltar el PNG en /public/product/. Ese helper
+ * nació aquí y ahora lo comparten las 8 secciones del rediseño del landing
+ * (docs/plan-rediseno-landing.md).
  */
 
 type TabKey = "admin" | "residente" | "porteria" | "comite";
 
-type ShotDef = {
-  /** Undefined while screenshot is pending. */
-  src?: string;
-  alt: string;
-  /** Intrinsic pixel dimensions for next/image (also used for placeholder aspect ratio). */
-  width: number;
-  height: number;
-};
+/** El contrato vive en `AssetSlot`: mismo hueco en las 8 secciones del rediseño. */
+type ShotDef = AssetDef;
 
 type TabDef = {
   key: TabKey;
@@ -191,56 +186,6 @@ const HEADLINE_COLOR: Record<TabKey, string> = {
   comite: "text-brand-blue",
 };
 
-// ─── Shot helper ─────────────────────────────────────────────────────────────
-
-/**
- * Renders a next/image when src is present, or a styled placeholder that
- * preserves the correct aspect ratio while screenshots are pending.
- */
-function Shot({
-  shot,
-  className,
-  sizes = "(max-width: 1024px) 100vw, 50vw",
-}: {
-  shot: ShotDef;
-  className?: string;
-  sizes?: string;
-}) {
-  if (shot.src) {
-    return (
-      <Image
-        src={shot.src}
-        alt={shot.alt}
-        width={shot.width}
-        height={shot.height}
-        sizes={sizes}
-        className={cn("h-auto", className)}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-center bg-slate-100 text-center",
-        className,
-      )}
-      style={{ aspectRatio: `${shot.width} / ${shot.height}` }}
-      role="img"
-      aria-label={shot.alt}
-    >
-      <div className="p-3">
-        <p className="text-[11px] font-medium leading-snug text-slate-500">
-          {shot.alt}
-        </p>
-        <p className="mt-1 text-[9px] uppercase tracking-widest text-slate-400">
-          Pendiente
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ─── Composite layouts ───────────────────────────────────────────────────────
 
 /**
@@ -250,14 +195,14 @@ function Shot({
 function AdminComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div className="relative w-full max-w-lg pb-8 pr-7">
-      <Shot
-        shot={shots[0]}
+      <AssetSlot
+        asset={shots[0]}
         sizes="(max-width: 1024px) 100vw, 45vw"
         className="w-full rounded-xl border border-slate-200 shadow-brand-md"
       />
       {shots[1] && (
-        <Shot
-          shot={shots[1]}
+        <AssetSlot
+          asset={shots[1]}
           sizes="(max-width: 1024px) 55vw, 25vw"
           className="absolute bottom-0 right-0 z-10 w-[56%] rounded-xl border border-slate-200 shadow-brand-lg"
         />
@@ -290,8 +235,8 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
           className="absolute bottom-0 left-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
           style={{ width: 126 }}
         >
-          <Shot
-            shot={shots[0]}
+          <AssetSlot
+            asset={shots[0]}
             sizes="126px"
             className="block w-full"
           />
@@ -304,8 +249,8 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
           className="absolute top-0 left-1/2 z-10 overflow-hidden rounded-[30px] border border-slate-200 shadow-brand-lg"
           style={{ width: 148, transform: "translateX(-50%)" }}
         >
-          <Shot
-            shot={shots[1]}
+          <AssetSlot
+            asset={shots[1]}
             sizes="148px"
             className="block w-full"
           />
@@ -318,8 +263,8 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
           className="absolute bottom-0 right-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
           style={{ width: 126 }}
         >
-          <Shot
-            shot={shots[2]}
+          <AssetSlot
+            asset={shots[2]}
             sizes="126px"
             className="block w-full"
           />
@@ -336,14 +281,14 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
 function PorteriaComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div className="relative w-full max-w-lg pb-7 pr-6">
-      <Shot
-        shot={shots[0]}
+      <AssetSlot
+        asset={shots[0]}
         sizes="(max-width: 1024px) 100vw, 45vw"
         className="w-full rounded-xl border border-slate-200 shadow-brand-md"
       />
       {shots[1] && (
-        <Shot
-          shot={shots[1]}
+        <AssetSlot
+          asset={shots[1]}
           sizes="(max-width: 1024px) 55vw, 25vw"
           className="absolute bottom-0 right-0 z-10 w-[52%] rounded-xl border border-slate-200 shadow-brand-lg"
         />
