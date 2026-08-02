@@ -398,10 +398,9 @@ basura que nadie limpiaría.
 
 ## Decisiones pendientes
 
-Todas las de diseño están cerradas, y las dos pantallas ya se recorrieron. Queda:
+**El MVP está cerrado y verificado de punta a punta**, incluida la entrega del correo a DevQintilab, que era el último eslabón sin comprobar.
 
-1. **Confirmar la entrega del correo** a `dev@qintilab.com` con un ticket real. Es lo único del MVP sin verificar: el destinatario está cableado y la función se ejecuta, pero eso no prueba que el mensaje llegue. Solo se puede comprobar en producción — staging nunca tuvo `RESEND_API_KEY`.
-2. **Cuándo construir la Fase 2.** El cierre automático no corre prisa con cero clientes, pero es lo primero que hará falta cuando la cola tenga volumen.
+Queda una sola decisión abierta: **cuándo construir la Fase 2**. El cierre automático por inactividad no corre prisa con cero clientes, pero es lo primero que hará falta cuando la cola tenga volumen — sin él, un ticket que nadie responde se queda contando como pendiente para siempre y el indicador deja de servir para priorizar.
 
 ## Historial
 
@@ -412,4 +411,5 @@ Todas las de diseño están cerradas, y las dos pantallas ya se recorrieron. Que
 | 2026-08-01 | Implementada en 5 incrementos. Verificada en staging: 20 criterios ejecutables + 71 pruebas de emulador |
 | 2026-08-01 | Adjuntos adelantados de Fase 2 al MVP y verificados |
 | 2026-08-01 | Recorrido visual de las dos pantallas: conforme |
-| 2026-08-01 | **A producción.** Reglas, 4 índices y 6 callables desplegados; front en el rollout de las 23:15. Invoker público verificado por respuesta de la función, no por `gcloud` (no autenticado). Pendiente: entrega del correo |
+| 2026-08-01 | **A producción.** Reglas, 4 índices y 6 callables desplegados; front en el rollout de las 23:15. Invoker público verificado por respuesta de la función, no por `gcloud` (no autenticado) |
+| 2026-08-01 | Entrega de correo a DevQintilab confirmada con tráfico real. **MVP cerrado** |

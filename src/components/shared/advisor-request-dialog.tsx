@@ -7,9 +7,10 @@ import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PhoneField, composePhone } from "@/components/ui/phone-field";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
+import { countryByCode } from "@/lib/countries";
 import { requestAdvisorContactCallable } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils/cn";
@@ -84,6 +85,9 @@ export function AdvisorRequestDialog({
   const [motivo, setMotivo] = useState(motivoInicial);
   const [mensaje, setMensaje] = useState("");
   const [telefono, setTelefono] = useState("");
+  // El indicativo arranca en el país del conjunto (se ajusta al leerlo abajo).
+  // «MX» es el respaldo, no la suposición: si el tenant trae país válido, gana.
+  const [paisTel, setPaisTel] = useState("MX");
   const [horario, setHorario] = useState(HORARIOS[3]);
   const [cargo, setCargo] = useState(CARGOS[0]);
   const [ubicacion, setUbicacion] = useState<string | null>(null);
@@ -99,6 +103,11 @@ export function AdvisorRequestDialog({
       if (!vivo) return;
       const d = snap.data() as { city?: string; country?: string } | undefined;
       setUbicacion([d?.city, d?.country].filter(Boolean).join(", ") || null);
+      // Solo se adopta si es un código que el catálogo reconoce: algunos
+      // tenants guardan el país como nombre («México») y no como ISO, y un
+      // indicativo equivocado es peor que el de por defecto.
+      const iso = d?.country?.trim().toUpperCase();
+      if (iso && countryByCode(iso)) setPaisTel(iso);
     }).catch(() => setUbicacion(null));
     return () => {
       vivo = false;
@@ -113,7 +122,9 @@ export function AdvisorRequestDialog({
         tenantId: user.tenantId,
         motivo: MOTIVOS.find((m) => m.value === motivo)?.label ?? motivo,
         mensaje: mensaje.trim() || undefined,
-        telefono: telefono.trim() || undefined,
+        // Sale en E.164 («+525500000000»). Antes iba tal cual lo escribieran,
+        // así que el asesor recibía números sin indicativo que no podía marcar.
+        telefono: composePhone(paisTel, telefono),
         horarioPreferido: horario,
         cargo,
       });
@@ -255,18 +266,26 @@ export function AdvisorRequestDialog({
             </select>
           </label>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+            <div>
+              {/* La etiqueta apunta al número, no envuelve al grupo: un <label>
+                  que contiene dos controles se asocia al primero —el botón del
+                  indicativo, que ya trae su propio aria-label— y deja el campo
+                  del número sin nombre accesible. */}
+              <label
+                htmlFor="advisor-tel"
+                className="block text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]"
+              >
                 Teléfono <span className="normal-case text-[var(--slate-500)]">(si prefieres otro)</span>
-              </span>
-              <Input
-                className="mt-1.5"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                placeholder="+52 55 0000 0000"
+              </label>
+              <PhoneField
+                id="advisor-tel"
+                country={paisTel}
+                number={telefono}
+                onCountryChange={setPaisTel}
+                onNumberChange={setTelefono}
               />
-            </label>
+            </div>
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]">
                 ¿Cuándo te llamamos?

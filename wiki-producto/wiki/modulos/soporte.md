@@ -50,8 +50,6 @@ Los avisos salen por [[correos-mensajeria]] hacia `dev@qintilab.com`, donde el e
 
 ## Estado
 
-**Productivo desde el 1 de agosto de 2026.** Desplegado en el orden de siempre —reglas, cuatro índices, seis callables, front— tras recorrer las dos pantallas.
-
-Queda una cosa sin verificar: **que el correo llegue**. La función se ejecuta y el destinatario está cableado, pero ejecutarse no es entregar, y staging nunca tuvo el secret de Resend para comprobarlo antes. Se confirma con el primer ticket real.
+**Productivo y verificado de punta a punta desde el 1 de agosto de 2026**, incluida la llegada del correo a DevQintilab. Desplegado en el orden de siempre: reglas, cuatro índices, seis callables, front.
 
 Cierre automático por inactividad, SLA y base de conocimiento quedaron para fases posteriores, tal como registra [[estado-modulos]].

@@ -74,7 +74,7 @@ Estado del sitio público (`grupovivaru.com`). Ver [[landing-marketing]] para de
 | Recorrido para clientes nuevos | ✅ en producción | `onboardingTrack: cliente` |
 | `tenantOperable()` en reglas | ✅ en producción | 25 colecciones, 52 statements |
 | Wizard «Inicia tu suscripción» | ✅ en producción | Sin promesa de plazo de respuesta |
-| Tickets de soporte | ✅ en producción | Falta confirmar entrega de correo. Ver [[soporte]] y [[portafolio-prd]] |
+| Tickets de soporte | ✅ en producción | Verificado de punta a punta. Ver [[soporte]] y [[portafolio-prd]] |
 | Barrido de tokens CSS | ✅ cerrado | 20 variables declaradas. Ver [[transiciones-navegacion]] |
 
 ## Programa de IA
