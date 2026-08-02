@@ -532,24 +532,31 @@ describe("BLOQUE 5 — firestore.rules: bloque supportTickets", () => {
     expect(rulesContent).toContain("match /supportTickets/{docId}");
   });
 
-  it("allow read requiere superadmin()", () => {
+  // Estas tres afirmaciones fijaban el diseño ANTERIOR, cuando soporte era una
+  // bitácora que solo el superadmin escribía. PRD-V-FEAT-001 lo endureció: el
+  // administrador del conjunto LEE los suyos, y no escribe NADIE desde el
+  // cliente —ni el superadmin—, porque toda escritura manda correo y sella
+  // campos que no deben poder falsificarse.
+
+  it("allow read deja leer al superadmin y al admin de su propio conjunto", () => {
     const block = extractBlock(rulesContent, "supportTickets");
-    expect(block).toMatch(/allow\s+read\s*:\s*if\s+superadmin\(\)/);
+    expect(block).toMatch(/allow\s+read\s*:/);
+    expect(block).toContain("superadmin()");
+    expect(block).toContain("tenantRole(resource.data.tenantId, 'tenant_admin')");
   });
 
-  it("allow create requiere superadmin()", () => {
+  it("no permite escritura desde el cliente en ningún rol", () => {
     const block = extractBlock(rulesContent, "supportTickets");
-    expect(block).toMatch(/allow\s+create\s*:\s*if\s+superadmin\(\)/);
+    expect(block).toMatch(/allow\s+create,\s*update\s*:\s*if\s+false/);
   });
 
-  it("allow create requiere createdBy == request.auth.uid", () => {
+  it("las notas internas viven en subcolección y solo las lee el superadmin", () => {
+    // Es la única información asimétrica del modelo. En el mismo documento, el
+    // administrador con permiso de lectura la recibiría entera: las reglas de
+    // Firestore NO filtran campos.
     const block = extractBlock(rulesContent, "supportTickets");
-    expect(block).toContain("request.resource.data.createdBy == request.auth.uid");
-  });
-
-  it("allow update requiere superadmin()", () => {
-    const block = extractBlock(rulesContent, "supportTickets");
-    expect(block).toMatch(/allow\s+update\s*:\s*if\s+superadmin\(\)/);
+    expect(block).toContain("match /internal/{noteId}");
+    expect(block).toMatch(/allow\s+write\s*:\s*if\s+false/);
   });
 
   it("allow delete es false (explícito)", () => {
