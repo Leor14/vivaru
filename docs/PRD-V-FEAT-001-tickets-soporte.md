@@ -65,12 +65,13 @@ La decisión que permanece humana es toda: aquí no se automatiza nada, se orden
 - Bandeja del superadmin, reaprovechando `/superadmin/support`: filtros, prioridad, notas internas y **antigüedad visible**.
 - Correo a `dev@qintilab.com` al abrirse un ticket y cuando el cliente responde.
 - Correo al administrador cuando Vivaru responde o marca resuelto.
+- **Evidencia adjunta**: hasta 3 archivos por mensaje, imágenes o PDF, 5 MB cada uno.
 
 **No entra, y por qué**
 
 | Excluido | Razón |
 |---|---|
-| **Adjuntos** | Añade reglas de Storage, límites y retención. Es lo primero que añadiría después: en un problema técnico una captura ahorra tres mensajes. |
+| ~~Adjuntos~~ | **Incluidos tras la implementación** (ver abajo). Resultó que Storage ya cubría la ruta y el patrón de subida existía dos veces en el producto. |
 | **SLA y alertas de incumplimiento** | Sin baseline no sabemos qué plazo es realista. Primero medir. |
 | **Base de conocimiento / autoservicio** | Requiere saber qué se pregunta. Los primeros meses de tickets son justamente esa investigación. |
 | **Notificación in-app** | El correo basta para el volumen esperado. |
@@ -338,6 +339,35 @@ producción, igual que pasó con el canario del trial.
 
 **Sin recorrer con ojos:** la interfaz. La lógica y los permisos están
 verificados por API; nadie ha visto todavía las dos pantallas renderizadas.
+
+## Evidencia adjunta — y por qué el límite no está donde parecía
+
+Se incluyó en el MVP tras comprobar que la infraestructura ya existía: las
+reglas de Storage cubren `tenants/{tenantId}/**` con lectura para los miembros
+del conjunto **y para el superadmin**, y el patrón de subida está implementado
+dos veces en el producto (documentos y comprobantes de pago).
+
+**El límite de 5 MB NO puede vivir en las reglas de Storage.** Las reglas *suman*
+permisos, no los restan: una regla más estricta para `tenants/{id}/support/**`
+sería una concesión adicional, no un límite, porque la general de
+`tenants/{id}/**` ya concede hasta 25 MB. **No existe forma de hacer un
+subcamino más restrictivo que su padre.**
+
+Así que la validación vive en la callable, y resulta mejor sitio: lee el tamaño
+y el tipo **reales** del archivo ya subido con el Admin SDK, en lugar de fiarse
+de lo que declare el cliente — que es de quien desconfiamos. Lo que no pasa el
+filtro **se borra**, porque un archivo subido que nunca llega a un ticket es
+basura que nadie limpiaría.
+
+**Verificado en staging (2026-08-01):**
+
+| Caso | Resultado |
+|---|---|
+| Abrir ticket con evidencia válida | aceptado, guardado con tamaño y tipo reales |
+| Ruta apuntando a **otro conjunto** | `PERMISSION_DENIED` |
+| Ruta fuera de `support/` (p. ej. `documents/`) | `PERMISSION_DENIED` |
+| Más de 3 adjuntos | `INVALID_ARGUMENT` |
+| Tipo no permitido en la ruta correcta | rechazado **y el huérfano borrado (404)** |
 
 ## Operación — y su fecha de caducidad
 
