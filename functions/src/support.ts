@@ -1,4 +1,5 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { HttpsError } from "firebase-functions/v2/https";
 import { randomUUID } from "node:crypto";
 
@@ -53,6 +54,79 @@ export const SUPPORT_LIMITS = {
   descriptionMaxLength: 4000,
   messageMaxLength: 4000,
 } as const;
+
+const ATTACHMENT_TYPES = new Set([
+  "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf",
+]);
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
+export type AttachmentInput = { name: string; path: string; url: string };
+
+/**
+ * Valida la evidencia adjunta leyendo su metadato REAL de Storage.
+ *
+ * Dos cosas que no se pueden delegar al cliente:
+ *
+ * 1. **La ruta.** El archivo se sube directo desde el navegador y solo después
+ *    se le pasa la ruta a esta función. Sin comprobar que está bajo
+ *    `tenants/{tenantId}/support/`, cualquiera podría inyectar en el hilo un
+ *    enlace a otro conjunto —o externo— que el equipo va a abrir.
+ * 2. **El tamaño y el tipo.** No se pueden imponer en las reglas de Storage,
+ *    porque las reglas SUMAN permisos: una regla más estricta para esta ruta
+ *    sería una concesión extra, no un límite, ya que la general de
+ *    `tenants/{id}/**` concede hasta 25 MB. Y aunque se pudieran, fiarse de lo
+ *    que declare el cliente sería fiarse de quien queremos validar.
+ *
+ * Lo que no pasa el filtro se BORRA: un archivo subido que nunca llega a un
+ * ticket es basura que nadie va a limpiar después.
+ */
+async function validateAttachments(
+  entrada: unknown,
+  tenantId: string,
+): Promise<Array<{ name: string; path: string; url: string; size: number; contentType: string }>> {
+  if (!Array.isArray(entrada) || entrada.length === 0) return [];
+  if (entrada.length > MAX_ATTACHMENTS) {
+    throw new HttpsError("invalid-argument", `Máximo ${MAX_ATTACHMENTS} archivos por mensaje.`);
+  }
+
+  const bucket = getStorage().bucket();
+  const prefijo = `tenants/${tenantId}/support/`;
+  const salida: Array<{ name: string; path: string; url: string; size: number; contentType: string }> = [];
+
+  for (const raw of entrada as AttachmentInput[]) {
+    const path = typeof raw?.path === "string" ? raw.path : "";
+    if (!path.startsWith(prefijo)) {
+      throw new HttpsError("permission-denied", "El archivo no pertenece a este conjunto.");
+    }
+
+    const file = bucket.file(path);
+    const [existe] = await file.exists();
+    if (!existe) throw new HttpsError("not-found", "El archivo adjunto no se encontró.");
+
+    const [meta] = await file.getMetadata();
+    const size = Number(meta.size ?? 0);
+    const contentType = String(meta.contentType ?? "");
+
+    if (!ATTACHMENT_TYPES.has(contentType)) {
+      await file.delete().catch(() => undefined);
+      throw new HttpsError("invalid-argument", "Solo se aceptan imágenes o PDF.");
+    }
+    if (size > MAX_ATTACHMENT_BYTES) {
+      await file.delete().catch(() => undefined);
+      throw new HttpsError("invalid-argument", "Cada archivo debe pesar menos de 5 MB.");
+    }
+
+    salida.push({
+      name: typeof raw?.name === "string" ? raw.name.slice(0, 160) : "archivo",
+      path,
+      url: typeof raw?.url === "string" ? raw.url : "",
+      size,
+      contentType,
+    });
+  }
+  return salida;
+}
 
 const CATEGORIES = new Set(["tecnico", "facturacion", "operativo", "otro"]);
 const PRIORITIES = new Set(["alta", "media", "baja"]);
@@ -123,6 +197,7 @@ export type CreateSupportTicketInput = {
   category: string;
   subject: string;
   description: string;
+  attachments?: AttachmentInput[];
 };
 
 export async function createSupportTicket(
@@ -167,6 +242,10 @@ export async function createSupportTicket(
     throw new HttpsError("resource-exhausted", "Alcanzaste el máximo de tickets por día. Intenta mañana.");
   }
 
+  // Se validan ANTES de crear el ticket: si la evidencia no sirve, es mejor
+  // que el administrador lo sepa al enviar y no con el ticket ya abierto.
+  const adjuntos = await validateAttachments(input.attachments, tenantId);
+
   const tenantSnap = await db.collection("tenants").doc(tenantId).get();
   const tenant = tenantSnap.data() as { name?: string; status?: string; planId?: string } | undefined;
   const userSnap = await db.collection("users").doc(uid).get();
@@ -184,7 +263,17 @@ export async function createSupportTicket(
     description,
     priority: "media",
     status: "abierto",
-    thread: [],
+    thread: adjuntos.length
+      ? [{
+          id: randomUUID(),
+          role: "cliente",
+          authorUid: uid,
+          authorName: user?.fullName ?? solicitante.fullName ?? "Administración",
+          message: "Evidencia adjunta.",
+          attachments: adjuntos,
+          createdAt: nowIso,
+        }]
+      : [],
     // ISO además del Timestamp: el filtro por rango del límite diario necesita
     // un campo comparable sin índice compuesto extra.
     createdAtIso: nowIso,
@@ -206,6 +295,7 @@ export async function createSupportTicket(
       "— QUÉ PIDE —",
       `Categoría: ${category}`,
       `Asunto:    ${subject}`,
+      adjuntos.length ? `Adjuntos:  ${adjuntos.length} archivo(s)` : "",
       "",
       description,
       "",
@@ -219,7 +309,7 @@ export async function createSupportTicket(
 // ── Respuestas ──────────────────────────────────────────────────────────────
 
 export async function replySupportTicket(
-  input: { ticketId: string; message: string },
+  input: { ticketId: string; message: string; attachments?: AttachmentInput[] },
   uid: string,
   role: unknown,
 ): Promise<{ ok: true; status: string }> {
@@ -246,6 +336,8 @@ export async function replySupportTicket(
     }
   }
 
+  const adjuntos = await validateAttachments(input.attachments, data.tenantId);
+
   const nowIso = new Date().toISOString();
   // Vivaru responde ⇒ la pelota pasa al cliente. El cliente responde ⇒ vuelve
   // a nuestra cola. Es lo que hace que «pendiente» sea un número accionable.
@@ -259,6 +351,7 @@ export async function replySupportTicket(
       authorUid: uid,
       authorName: autorNombre,
       message,
+      ...(adjuntos.length ? { attachments: adjuntos } : {}),
       createdAt: nowIso,
     }),
     status: nuevoEstado,

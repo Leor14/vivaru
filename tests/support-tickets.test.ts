@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLIENT_WRITABLE_STATUSES,
+  SUPPORT_ATTACHMENT_TYPES,
+  isAllowedAttachment,
   PENDING_SUPPORT_STATUSES,
   SUPPORT_CATEGORIES,
   SUPPORT_LIMITS,
@@ -108,5 +110,47 @@ describe("límites", () => {
   it("el mensaje cabe holgadamente para describir un problema", () => {
     expect(SUPPORT_LIMITS.descriptionMaxLength).toBeGreaterThanOrEqual(2000);
     expect(SUPPORT_LIMITS.subjectMaxLength).toBeLessThanOrEqual(200);
+  });
+});
+
+
+describe("adjuntos", () => {
+  it("acepta imágenes y PDF", () => {
+    expect(isAllowedAttachment({ type: "image/png", size: 1000 })).toBeNull();
+    expect(isAllowedAttachment({ type: "image/jpeg", size: 1000 })).toBeNull();
+    expect(isAllowedAttachment({ type: "application/pdf", size: 1000 })).toBeNull();
+  });
+
+  it("rechaza vídeo, ejecutables y ofimática", () => {
+    // Un tope alto y tipos abiertos solo invitan a subir un vídeo de pantalla
+    // de 20 MB que nadie va a ver.
+    expect(isAllowedAttachment({ type: "video/mp4", size: 1000 })).not.toBeNull();
+    expect(isAllowedAttachment({ type: "application/x-msdownload", size: 1000 })).not.toBeNull();
+    expect(isAllowedAttachment({ type: "application/vnd.ms-excel", size: 1000 })).not.toBeNull();
+  });
+
+  it("rechaza lo que pase de 5 MB", () => {
+    const limite = SUPPORT_LIMITS.maxAttachmentBytes;
+    expect(isAllowedAttachment({ type: "image/png", size: limite })).toBeNull();
+    expect(isAllowedAttachment({ type: "image/png", size: limite + 1 })).not.toBeNull();
+  });
+
+  it("el tope de soporte es MUY inferior al global de Storage", () => {
+    // Storage permite 25 MB para todo el conjunto; soporte se queda en 5.
+    // Esto NO se puede imponer en las reglas de Storage —suman permisos, no
+    // los restan— asi que el limite vive en la callable.
+    expect(SUPPORT_LIMITS.maxAttachmentBytes).toBeLessThan(25 * 1024 * 1024);
+    expect(SUPPORT_LIMITS.maxAttachmentsPerMessage).toBe(3);
+  });
+
+  it("los tipos permitidos no incluyen nada ejecutable ni ofimático", () => {
+    for (const t of SUPPORT_ATTACHMENT_TYPES) {
+      expect(t === "application/pdf" || t.startsWith("image/")).toBe(true);
+    }
+  });
+
+  it("da un mensaje entendible, no un código", () => {
+    const msg = isAllowedAttachment({ type: "video/mp4", size: 10 });
+    expect(msg).toMatch(/imágenes|PDF/i);
   });
 });

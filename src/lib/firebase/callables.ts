@@ -515,13 +515,18 @@ export async function createSupportTicketCallable(input: {
   category: string;
   subject: string;
   description: string;
+  attachments?: Array<{ name: string; path: string; url: string }>;
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { ticketId: string }>(functions, "createSupportTicket");
   return executeCallable(callable, input, "No fue posible abrir el ticket. Intenta de nuevo.");
 }
 
-export async function replyToSupportTicketCallable(input: { ticketId: string; message: string }) {
+export async function replyToSupportTicketCallable(input: {
+  ticketId: string;
+  message: string;
+  attachments?: Array<{ name: string; path: string; url: string }>;
+}) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { ok: true; status: string }>(functions, "replyToSupportTicket");
   return executeCallable(callable, input, "No fue posible enviar tu mensaje. Intenta de nuevo.");

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
+import { AttachmentList, AttachmentPicker } from "@/components/shared/support-attachments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
   type SupportStatus,
   type SupportTicket,
 } from "@/features/superadmin/support";
+import { uploadSupportAttachments } from "@/features/support/upload";
 import { useSupportTickets } from "@/features/superadmin/support/use-support";
 import { db } from "@/lib/firebase/client";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -129,6 +131,7 @@ export default function SuperadminSupportPage() {
   const [saving, setSaving] = useState(false);
   const [reply, setReply] = useState("");
   const [note, setNote] = useState("");
+  const [adjuntos, setAdjuntos] = useState<File[]>([]);
 
   const selected = useMemo(
     () => filtrados.find((t) => t.id === selectedId) ?? null,
@@ -140,6 +143,7 @@ export default function SuperadminSupportPage() {
     setSelectedId(ticket.id);
     setReply("");
     setNote("");
+    setAdjuntos([]);
     setDrawerOpen(true);
   }
 
@@ -172,9 +176,13 @@ export default function SuperadminSupportPage() {
     if (!selected || reply.trim().length < 2) return;
     setSaving(true);
     try {
-      await replyAsVivaru(selected.id, reply.trim());
+      // La evidencia del equipo va al Storage del conjunto del ticket: es donde
+      // la callable la espera y donde el cliente puede leerla.
+      const files = await uploadSupportAttachments(selected.tenantId, adjuntos);
+      await replyAsVivaru(selected.id, reply.trim(), files);
       toast.success("Respuesta enviada al cliente.");
       setReply("");
+      setAdjuntos([]);
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -401,6 +409,12 @@ export default function SuperadminSupportPage() {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
               />
+              <AttachmentPicker
+                files={adjuntos}
+                onChange={setAdjuntos}
+                disabled={saving}
+                onError={(m) => toast.error(m)}
+              />
               <div className="flex justify-end">
                 <Button size="sm" disabled={saving || reply.trim().length < 2} onClick={() => void responder()}>
                   {saving ? "Enviando…" : "Responder al cliente"}
@@ -439,6 +453,7 @@ export default function SuperadminSupportPage() {
                       <span className="ml-2 font-normal text-[var(--slate-500)]">{fecha(m.createdAt)}</span>
                     </p>
                     <p className="mt-1 whitespace-pre-wrap">{m.message}</p>
+                    <AttachmentList attachments={m.attachments} />
                   </li>
                 ))}
               </ul>

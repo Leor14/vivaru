@@ -8,6 +8,7 @@ exports.reopenSupportTicket = reopenSupportTicket;
 exports.closeSupportTicket = closeSupportTicket;
 exports.addSupportInternalNote = addSupportInternalNote;
 const firestore_1 = require("firebase-admin/firestore");
+const storage_1 = require("firebase-admin/storage");
 const https_1 = require("firebase-functions/v2/https");
 const node_crypto_1 = require("node:crypto");
 const email_1 = require("./email");
@@ -54,6 +55,68 @@ exports.SUPPORT_LIMITS = {
     descriptionMaxLength: 4000,
     messageMaxLength: 4000,
 };
+const ATTACHMENT_TYPES = new Set([
+    "image/png", "image/jpeg", "image/webp", "image/gif", "application/pdf",
+]);
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+/**
+ * Valida la evidencia adjunta leyendo su metadato REAL de Storage.
+ *
+ * Dos cosas que no se pueden delegar al cliente:
+ *
+ * 1. **La ruta.** El archivo se sube directo desde el navegador y solo después
+ *    se le pasa la ruta a esta función. Sin comprobar que está bajo
+ *    `tenants/{tenantId}/support/`, cualquiera podría inyectar en el hilo un
+ *    enlace a otro conjunto —o externo— que el equipo va a abrir.
+ * 2. **El tamaño y el tipo.** No se pueden imponer en las reglas de Storage,
+ *    porque las reglas SUMAN permisos: una regla más estricta para esta ruta
+ *    sería una concesión extra, no un límite, ya que la general de
+ *    `tenants/{id}/**` concede hasta 25 MB. Y aunque se pudieran, fiarse de lo
+ *    que declare el cliente sería fiarse de quien queremos validar.
+ *
+ * Lo que no pasa el filtro se BORRA: un archivo subido que nunca llega a un
+ * ticket es basura que nadie va a limpiar después.
+ */
+async function validateAttachments(entrada, tenantId) {
+    if (!Array.isArray(entrada) || entrada.length === 0)
+        return [];
+    if (entrada.length > MAX_ATTACHMENTS) {
+        throw new https_1.HttpsError("invalid-argument", `Máximo ${MAX_ATTACHMENTS} archivos por mensaje.`);
+    }
+    const bucket = (0, storage_1.getStorage)().bucket();
+    const prefijo = `tenants/${tenantId}/support/`;
+    const salida = [];
+    for (const raw of entrada) {
+        const path = typeof raw?.path === "string" ? raw.path : "";
+        if (!path.startsWith(prefijo)) {
+            throw new https_1.HttpsError("permission-denied", "El archivo no pertenece a este conjunto.");
+        }
+        const file = bucket.file(path);
+        const [existe] = await file.exists();
+        if (!existe)
+            throw new https_1.HttpsError("not-found", "El archivo adjunto no se encontró.");
+        const [meta] = await file.getMetadata();
+        const size = Number(meta.size ?? 0);
+        const contentType = String(meta.contentType ?? "");
+        if (!ATTACHMENT_TYPES.has(contentType)) {
+            await file.delete().catch(() => undefined);
+            throw new https_1.HttpsError("invalid-argument", "Solo se aceptan imágenes o PDF.");
+        }
+        if (size > MAX_ATTACHMENT_BYTES) {
+            await file.delete().catch(() => undefined);
+            throw new https_1.HttpsError("invalid-argument", "Cada archivo debe pesar menos de 5 MB.");
+        }
+        salida.push({
+            name: typeof raw?.name === "string" ? raw.name.slice(0, 160) : "archivo",
+            path,
+            url: typeof raw?.url === "string" ? raw.url : "",
+            size,
+            contentType,
+        });
+    }
+    return salida;
+}
 const CATEGORIES = new Set(["tecnico", "facturacion", "operativo", "otro"]);
 const PRIORITIES = new Set(["alta", "media", "baja"]);
 const CLIENT_WRITABLE = new Set(["abierto", "en_proceso", "esperando_respuesta"]);
@@ -134,6 +197,9 @@ async function createSupportTicket(input, uid, role) {
     if (hoy.size >= exports.SUPPORT_LIMITS.maxPerDay) {
         throw new https_1.HttpsError("resource-exhausted", "Alcanzaste el máximo de tickets por día. Intenta mañana.");
     }
+    // Se validan ANTES de crear el ticket: si la evidencia no sirve, es mejor
+    // que el administrador lo sepa al enviar y no con el ticket ya abierto.
+    const adjuntos = await validateAttachments(input.attachments, tenantId);
     const tenantSnap = await db.collection("tenants").doc(tenantId).get();
     const tenant = tenantSnap.data();
     const userSnap = await db.collection("users").doc(uid).get();
@@ -150,7 +216,17 @@ async function createSupportTicket(input, uid, role) {
         description,
         priority: "media",
         status: "abierto",
-        thread: [],
+        thread: adjuntos.length
+            ? [{
+                    id: (0, node_crypto_1.randomUUID)(),
+                    role: "cliente",
+                    authorUid: uid,
+                    authorName: user?.fullName ?? solicitante.fullName ?? "Administración",
+                    message: "Evidencia adjunta.",
+                    attachments: adjuntos,
+                    createdAt: nowIso,
+                }]
+            : [],
         // ISO además del Timestamp: el filtro por rango del límite diario necesita
         // un campo comparable sin índice compuesto extra.
         createdAtIso: nowIso,
@@ -171,6 +247,7 @@ async function createSupportTicket(input, uid, role) {
             "— QUÉ PIDE —",
             `Categoría: ${category}`,
             `Asunto:    ${subject}`,
+            adjuntos.length ? `Adjuntos:  ${adjuntos.length} archivo(s)` : "",
             "",
             description,
             "",
@@ -200,6 +277,7 @@ async function replySupportTicket(input, uid, role) {
             throw new https_1.HttpsError("failed-precondition", "Este ticket ya no admite respuestas.");
         }
     }
+    const adjuntos = await validateAttachments(input.attachments, data.tenantId);
     const nowIso = new Date().toISOString();
     // Vivaru responde ⇒ la pelota pasa al cliente. El cliente responde ⇒ vuelve
     // a nuestra cola. Es lo que hace que «pendiente» sea un número accionable.
@@ -212,6 +290,7 @@ async function replySupportTicket(input, uid, role) {
             authorUid: uid,
             authorName: autorNombre,
             message,
+            ...(adjuntos.length ? { attachments: adjuntos } : {}),
             createdAt: nowIso,
         }),
         status: nuevoEstado,

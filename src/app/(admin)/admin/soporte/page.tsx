@@ -5,6 +5,7 @@ import { LifeBuoy, Loader2, MessageSquare, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/shared/empty-state";
+import { AttachmentList, AttachmentPicker } from "@/components/shared/support-attachments";
 import { Modal } from "@/components/shared/modal";
 import { SectionIntro } from "@/components/shared/section-intro";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import {
   type SupportStatus,
   type SupportTicket,
 } from "@/features/support/types";
+import { uploadSupportAttachments } from "@/features/support/upload";
 import { useSupportTickets } from "@/features/support/use-support-tickets";
 import {
   closeSupportTicketCallable,
@@ -68,6 +70,8 @@ export default function AdminSoportePage() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [reply, setReply] = useState("");
+  const [nuevoAdjunto, setNuevoAdjunto] = useState<File[]>([]);
+  const [respuestaAdjunto, setRespuestaAdjunto] = useState<File[]>([]);
 
   const selected = useMemo(
     () => items.find((t) => t.id === selectedId) ?? null,
@@ -83,16 +87,21 @@ export default function AdminSoportePage() {
     if (description.trim().length < 10) return toast.error("Cuéntanos un poco más para poder ayudarte.");
     setSending(true);
     try {
+      // La subida va antes: si un archivo no pasa, mejor saberlo sin haber
+      // creado el ticket.
+      const attachments = await uploadSupportAttachments(user.tenantId, nuevoAdjunto);
       const { ticketId } = await createSupportTicketCallable({
         tenantId: user.tenantId,
         category,
         subject: subject.trim(),
         description: description.trim(),
+        attachments,
       });
       toast.success("Recibimos tu solicitud. Te avisaremos por correo cuando haya respuesta.");
       setCreateOpen(false);
       setSubject("");
       setDescription("");
+      setNuevoAdjunto([]);
       setSelectedId(ticketId);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No fue posible abrir el ticket.");
@@ -105,16 +114,20 @@ export default function AdminSoportePage() {
     if (reply.trim().length < 2) return;
     setSending(true);
     try {
+      const attachments = user?.tenantId
+        ? await uploadSupportAttachments(user.tenantId, respuestaAdjunto)
+        : [];
       // Reabrir y responder son operaciones distintas: la primera tiene su
       // propia ventana y su propia validación en el servidor.
       if (ticket.status === "resuelto") {
         await reopenSupportTicketCallable({ ticketId: ticket.id, message: reply.trim() });
         toast.success("Reabrimos tu ticket.");
       } else {
-        await replyToSupportTicketCallable({ ticketId: ticket.id, message: reply.trim() });
+        await replyToSupportTicketCallable({ ticketId: ticket.id, message: reply.trim(), attachments });
         toast.success("Mensaje enviado.");
       }
       setReply("");
+      setRespuestaAdjunto([]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "No fue posible enviar tu mensaje.");
     } finally {
@@ -265,6 +278,7 @@ export default function AdminSoportePage() {
                       <span className="ml-2 font-normal text-[var(--slate-500)]">{fecha(m.createdAt)}</span>
                     </p>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--slate-800)]">{m.message}</p>
+                    <AttachmentList attachments={m.attachments} />
                   </li>
                 ))}
               </ul>
@@ -280,6 +294,12 @@ export default function AdminSoportePage() {
                     value={reply}
                     onChange={(e) => setReply(e.target.value)}
                     placeholder={puedeReabrir ? "Cuéntanos por qué sigue sin resolverse…" : "Escribe tu mensaje…"}
+                  />
+                  <AttachmentPicker
+                    files={respuestaAdjunto}
+                    onChange={setRespuestaAdjunto}
+                    disabled={sending}
+                    onError={(m) => toast.error(m)}
                   />
                   <div className="flex flex-wrap justify-end gap-2">
                     {selected.status === "resuelto" || selected.status === "esperando_respuesta" ? (
@@ -350,6 +370,13 @@ export default function AdminSoportePage() {
               placeholder="Qué intentabas hacer, qué esperabas y qué pasó. Cuanto más concreto, más rápido lo resolvemos."
             />
           </label>
+
+          <AttachmentPicker
+            files={nuevoAdjunto}
+            onChange={setNuevoAdjunto}
+            disabled={sending}
+            onError={(m) => toast.error(m)}
+          />
 
           <p className="rounded-xl bg-[var(--surface-soft)] p-3 text-xs leading-relaxed text-[var(--slate-600)]">
             Te responderemos por aquí y te avisaremos a <strong>{user?.email ?? "tu correo"}</strong>. Tu

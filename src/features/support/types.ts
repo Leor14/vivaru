@@ -74,12 +74,27 @@ export const CLIENT_WRITABLE_STATUSES: ReadonlyArray<SupportStatus> = [
 
 export type SupportAuthorRole = "cliente" | "vivaru";
 
+/**
+ * Evidencia adjunta a un mensaje. Se guarda la ruta de Storage además de la
+ * URL: la ruta es lo que el servidor valida —que pertenezca al conjunto que
+ * dice— y la URL es solo para mostrarla.
+ */
+export type SupportAttachment = {
+  name: string;
+  /** `tenants/{tenantId}/support/...` */
+  path: string;
+  url: string;
+  size: number;
+  contentType: string;
+};
+
 export type SupportMessage = {
   id: string;
   role: SupportAuthorRole;
   authorUid: string;
   authorName: string;
   message: string;
+  attachments?: SupportAttachment[];
   /** ISO. Se sella en el servidor: el cliente no decide cuándo escribió. */
   createdAt: string;
 };
@@ -119,12 +134,45 @@ export const SUPPORT_LIMITS = {
   maxPerDay: 10,
   /** Días para reabrir un ticket resuelto. Pasados, se abre uno nuevo. */
   reopenWindowDays: 7,
+  /**
+   * Adjuntos. El tope global de Storage son 25 MB, pero para soporte se baja a
+   * 5: una captura pesa cientos de kilobytes, y un tope alto solo invita a
+   * subir un vídeo de pantalla que nadie va a ver.
+   *
+   * OJO: esto NO se puede imponer en las reglas de Storage. Las reglas suman
+   * permisos, no los restan: una regla más estricta para la ruta de soporte
+   * sería una concesión adicional, no un límite, porque la general de
+   * `tenants/{id}/**` ya concede hasta 25 MB. El límite vive en la callable,
+   * que además lee el tamaño y el tipo REALES del archivo — así el cliente no
+   * puede mentir sobre ellos.
+   */
+  maxAttachmentsPerMessage: 3,
+  maxAttachmentBytes: 5 * 1024 * 1024,
   subjectMaxLength: 120,
   descriptionMaxLength: 4000,
   messageMaxLength: 4000,
 } as const;
 
 /** Antigüedad en días desde la última actividad. Null si no hay dato. */
+/** Tipos que se aceptan como evidencia. Una captura o un PDF, nada más. */
+export const SUPPORT_ATTACHMENT_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+] as const;
+
+export function isAllowedAttachment(file: { type: string; size: number }): string | null {
+  if (!(SUPPORT_ATTACHMENT_TYPES as readonly string[]).includes(file.type)) {
+    return "Solo se aceptan imágenes (PNG, JPG, WEBP, GIF) o PDF.";
+  }
+  if (file.size > SUPPORT_LIMITS.maxAttachmentBytes) {
+    return `Cada archivo debe pesar menos de ${SUPPORT_LIMITS.maxAttachmentBytes / (1024 * 1024)} MB.`;
+  }
+  return null;
+}
+
 export function daysSinceActivity(ticket: Pick<SupportTicket, "lastActivityAt">): number | null {
   if (!ticket.lastActivityAt) return null;
   const then = new Date(ticket.lastActivityAt).getTime();

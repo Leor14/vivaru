@@ -39,8 +39,12 @@ export async function updateSupportTicket(
 }
 
 /** Responde en el hilo como Vivaru. Deja el ticket esperando al cliente. */
-export async function replyAsVivaru(ticketId: string, message: string): Promise<void> {
-  await replyToSupportTicketCallable({ ticketId, message });
+export async function replyAsVivaru(
+  ticketId: string,
+  message: string,
+  attachments?: Array<{ name: string; path: string; url: string }>,
+): Promise<void> {
+  await replyToSupportTicketCallable({ ticketId, message, attachments });
 }
 
 /** Nota interna. Va a la subcolección que el cliente no puede leer. */
