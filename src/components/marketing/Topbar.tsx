@@ -78,12 +78,32 @@ function VivaruLogo({ className }: { className?: string }) {
   );
 }
 
-function LoginAction({ portalUrl }: { portalUrl?: string }) {
+/**
+ * Acceso al portal para quien ya es cliente.
+ *
+ * Tamaño y variante se reciben porque los dos sitios donde vive piden cosas
+ * distintas: en la barra de escritorio tiene que igualar la altura y la
+ * tipografía de los otros dos CTA, y en el menú móvil el ancho completo de la
+ * lista apilada. Estaba fijo en `size="default"` (h-10, texto de 14 normal)
+ * junto a botones `xl` (h-12, 16 semibold) y `lg`, y se leía como un descuido.
+ */
+function LoginAction({
+  portalUrl,
+  size = "xl",
+  variant = "ghost",
+  className,
+}: {
+  portalUrl?: string;
+  size?: "default" | "lg" | "xl";
+  variant?: "ghost" | "outline";
+  className?: string;
+}) {
   if (portalUrl) {
     return (
       <Button
-        variant="outline"
-        size="default"
+        variant={variant}
+        size={size}
+        className={className}
         render={
           <a
             href={portalUrl}
@@ -100,8 +120,9 @@ function LoginAction({ portalUrl }: { portalUrl?: string }) {
   return (
     <Tooltip label={PORTAL_LOGIN_TOOLTIP}>
       <Button
-        variant="outline"
-        size="default"
+        variant={variant}
+        size={size}
+        className={className}
         type="button"
         onClick={() => track("cta_login_click", { state: "portal_pending" })}
       >
@@ -265,7 +286,12 @@ export function Topbar() {
                         Agenda una demo
                       </Button>
                     </DemoDialog>
-                    <LoginAction portalUrl={portalUrl} />
+                    <LoginAction
+                      portalUrl={portalUrl}
+                      size="lg"
+                      variant="outline"
+                      className="w-full"
+                    />
                   </div>
                 </div>
               </SheetContent>
