@@ -52,9 +52,11 @@ La exit animation del Drawer está faltante (registrado en [[design-md]]). Al ce
 
 ## Relaciones
 
-- Véase también: [[design-md]], [[componentes]], [[drawer-pattern]]
+- Véase también: [[design-md]], [[componentes]], [[drawer-pattern]], [[transiciones-navegacion]]
 - Depende de: [[absolute-bans]]
-- Se conecta con: [[tokens-color]], [[billing]], [[layout-patterns]], [[mobile-first-ios]]
+- Se conecta con: [[tokens-color]], [[billing]], [[layout-patterns]], [[mobile-first-ios]], [[onboarding-guiado]]
+
+El velo de navegación con el logo —dónde se aplica, dónde deliberadamente no, y por qué la frecuencia de uso decide si algo debe animarse— vive en [[transiciones-navegacion]].
 
 ## Fuentes
 

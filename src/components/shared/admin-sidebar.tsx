@@ -10,6 +10,7 @@ import {
   CalendarCheck,
   ClipboardList,
   FileText,
+  LifeBuoy,
   Grid3X3,
   Home,
   Lock,
@@ -88,6 +89,10 @@ export const ADMIN_SIDEBAR_GROUPS: AdminSidebarGroup[] = [
       { href: "/admin/users", label: "Usuarios", icon: Users },
       { href: "/admin/documents", label: "Documentos", icon: FileText },
       { href: "/admin/settings", label: "Perfil del edificio", icon: Building2 },
+      // Entrada propia y no una pestaña dentro de Configuración: quien busca
+      // ayuda está frustrado y con prisa, y un tercer nivel no se encuentra
+      // en ese estado (PRD-V-FEAT-001).
+      { href: "/admin/soporte", label: "Soporte", icon: LifeBuoy },
     ],
   },
 ];

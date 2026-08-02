@@ -1,161 +1,158 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { toast } from "sonner";
-import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
-import { Modal } from "@/components/shared/modal";
+import { AttachmentList, AttachmentPicker } from "@/components/shared/support-attachments";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/features/auth/auth-context";
-import {
-  supportTicketCreateSchema,
-  type SupportTicketCreateInput,
-} from "@/features/superadmin/support/schemas";
-import {
-  createSupportTicket,
-  updateSupportTicket,
-} from "@/features/superadmin/support/services";
 import {
   SUPPORT_CATEGORIES,
   SUPPORT_PRIORITIES,
   SUPPORT_STATUSES,
+  addInternalNote,
+  daysSinceActivity,
+  isSupportPending,
+  normalizeSupportCategory,
+  normalizeSupportPriority,
+  normalizeSupportStatus,
+  replyAsVivaru,
+  updateSupportTicket,
+  type SupportPriority,
+  type SupportStatus,
   type SupportTicket,
-} from "@/features/superadmin/support/types";
+} from "@/features/superadmin/support";
+import { uploadSupportAttachments } from "@/features/support/upload";
 import { useSupportTickets } from "@/features/superadmin/support/use-support";
-import {
-  watchTenants,
-  type TenantWorkspaceItem,
-} from "@/features/superadmin/services";
+import { db } from "@/lib/firebase/client";
+import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { cn } from "@/lib/utils/cn";
 
-function priorityClassName(priority: SupportTicket["priority"]) {
-  if (priority === "high") return "bg-red-100 text-red-800";
-  if (priority === "medium") return "bg-amber-100 text-amber-800";
-  return "bg-slate-100 text-slate-700";
+/**
+ * Bandeja de soporte al cliente (PRD-V-FEAT-001).
+ *
+ * Dejó de ser una bitácora. Antes el superadmin daba de alta la incidencia
+ * eligiendo el conjunto y tecleando a mano quién había reportado; ahora los
+ * tickets nacen en el portal del administrador y aquí se atienden. Por eso
+ * **no hay botón de alta**: si el equipo pudiera crear tickets a nombre de un
+ * cliente, volveríamos a tener un registro interno en vez de un canal.
+ *
+ * Toda escritura va por callable: las reglas prohíben escribir en
+ * `supportTickets` desde el cliente, también al superadmin.
+ */
+
+const STATUS_TONE: Record<SupportStatus, string> = {
+  abierto: "bg-sky-100 text-sky-800",
+  en_proceso: "bg-amber-100 text-amber-900",
+  esperando_respuesta: "bg-[var(--brand-100)] text-[var(--brand-900)]",
+  resuelto: "bg-emerald-100 text-emerald-800",
+  cerrado: "bg-[var(--slate-200)] text-[var(--slate-700)]",
+};
+
+const PRIORITY_TONE: Record<SupportPriority, string> = {
+  alta: "bg-[#FCEBEB] text-[#791F1F]",
+  media: "bg-[#FAEEDA] text-[#633806]",
+  baja: "bg-[var(--slate-100)] text-[var(--slate-700)]",
+};
+
+function fecha(value: unknown) {
+  if (!value) return "—";
+  const d =
+    typeof value === "string"
+      ? new Date(value)
+      : typeof value === "object" && value !== null && "toDate" in value
+        ? (value as { toDate: () => Date }).toDate()
+        : null;
+  if (!d || Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-function statusClassName(status: SupportTicket["status"]) {
-  if (status === "open") return "bg-blue-100 text-blue-800";
-  if (status === "in_progress") return "bg-orange-100 text-orange-800";
-  return "bg-emerald-100 text-emerald-800";
-}
-
-function formatDate(ts: SupportTicket["createdAt"] | undefined) {
-  if (!ts) return "-";
-  const date = typeof ts === "object" && "toDate" in ts ? (ts as { toDate: () => Date }).toDate() : new Date(ts as unknown as string);
-  return date.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+/** Notas internas del ticket abierto. Subcolección: el cliente no la ve. */
+function useInternalNotes(ticketId: string | undefined) {
+  const [notes, setNotes] = useState<Array<{ id: string; note: string; createdBy?: string }>>([]);
+  useEffect(() => {
+    if (!ticketId || !db) {
+      setNotes([]);
+      return;
+    }
+    const unsub = onSnapshot(
+      query(collection(db, "supportTickets", ticketId, "internal"), orderBy("createdAt", "asc")),
+      (snap) => setNotes(snap.docs.map((d) => ({ id: d.id, ...(d.data() as { note: string; createdBy?: string }) }))),
+      () => setNotes([]),
+    );
+    return () => unsub();
+  }, [ticketId]);
+  return notes;
 }
 
 export default function SuperadminSupportPage() {
-  const { user } = useAuth();
-
-  // Tenant list for create form
-  const [tenants, setTenants] = useState<TenantWorkspaceItem[]>([]);
-  useEffect(() => {
-    const unsub = watchTenants(
-      (items) => setTenants(items),
-      (msg) => toast.error(msg),
-    );
-    return () => unsub();
-  }, []);
-
-  // Filters
   const [tenantSearch, setTenantSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
 
-  // Debounce tenant search to avoid unnecessary Firestore queries
-  const [debouncedTenantId, setDebouncedTenantId] = useState("");
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const match = tenants.find(
-        (t) =>
-          t.name.toLowerCase().includes(tenantSearch.toLowerCase()) ||
-          t.id.toLowerCase().includes(tenantSearch.toLowerCase()),
-      );
-      setDebouncedTenantId(match?.id ?? (tenantSearch.trim() ? "__no_match__" : ""));
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [tenantSearch, tenants]);
-
   const filters = useMemo(
-    () => ({
-      tenantId: debouncedTenantId || undefined,
-      status: statusFilter || undefined,
-      priority: priorityFilter || undefined,
-    }),
-    [debouncedTenantId, statusFilter, priorityFilter],
+    () => ({ status: statusFilter || undefined, priority: priorityFilter || undefined }),
+    [statusFilter, priorityFilter],
   );
-
   const { tickets, loading } = useSupportTickets(filters);
 
-  // Client-side tenant name search (supplements Firestore filter)
-  const filteredTickets = useMemo(() => {
-    if (!tenantSearch.trim()) return tickets;
+  // Los tickets viejos pueden traer valores de la etapa bitácora; se traducen
+  // al leer en vez de migrarlos.
+  const normalizados = useMemo(
+    () =>
+      tickets.map((t) => ({
+        ...t,
+        status: normalizeSupportStatus(t.status),
+        category: normalizeSupportCategory(t.category),
+        priority: normalizeSupportPriority(t.priority),
+      })),
+    [tickets],
+  );
+
+  const filtrados = useMemo(() => {
+    if (!tenantSearch.trim()) return normalizados;
     const q = tenantSearch.trim().toLowerCase();
-    return tickets.filter(
-      (t) =>
-        t.tenantName.toLowerCase().includes(q) ||
-        t.tenantId.toLowerCase().includes(q),
+    return normalizados.filter(
+      (t) => (t.tenantName ?? "").toLowerCase().includes(q) || t.tenantId.toLowerCase().includes(q),
     );
-  }, [tickets, tenantSearch]);
+  }, [normalizados, tenantSearch]);
 
-  // Create modal
-  const [createOpen, setCreateOpen] = useState(false);
+  const pendientes = normalizados.filter((t) => isSupportPending(t.status)).length;
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [reply, setReply] = useState("");
+  const [note, setNote] = useState("");
+  const [adjuntos, setAdjuntos] = useState<File[]>([]);
 
-  const createForm = useForm<SupportTicketCreateInput>({
-    resolver: zodResolver(supportTicketCreateSchema),
-    defaultValues: {
-      tenantId: "",
-      tenantName: "",
-      reportedBy: "",
-      reportedByName: "",
-      category: "technical",
-      subject: "",
-      description: "",
-      priority: "medium",
-      notes: "",
-    },
-  });
+  const selected = useMemo(
+    () => filtrados.find((t) => t.id === selectedId) ?? null,
+    [filtrados, selectedId],
+  );
+  const notes = useInternalNotes(selected?.id);
 
-  // Auto-fill tenantName when tenantId changes
-  const watchedTenantId = createForm.watch("tenantId");
-  useEffect(() => {
-    const match = tenants.find((t) => t.id === watchedTenantId);
-    if (match) createForm.setValue("tenantName", match.name);
-  }, [watchedTenantId, tenants, createForm]);
+  function openDrawer(ticket: SupportTicket) {
+    setSelectedId(ticket.id);
+    setReply("");
+    setNote("");
+    setAdjuntos([]);
+    setDrawerOpen(true);
+  }
 
-  async function handleCreate(values: SupportTicketCreateInput) {
-    if (!user?.uid) return;
+  async function cambiarEstado(status: SupportStatus) {
+    if (!selected) return;
     setSaving(true);
     try {
-      await createSupportTicket(
-        {
-          tenantId: values.tenantId,
-          tenantName: values.tenantName,
-          reportedBy: values.reportedBy,
-          reportedByName: values.reportedByName,
-          category: values.category,
-          subject: values.subject,
-          description: values.description,
-          priority: values.priority,
-          notes: values.notes,
-          createdBy: user.uid,
-        },
-        user.uid,
-      );
-      toast.success("Incidencia registrada.");
-      setCreateOpen(false);
-      createForm.reset();
+      await updateSupportTicket(selected.id, { status });
+      toast.success("Ticket actualizado.");
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -163,55 +160,58 @@ export default function SuperadminSupportPage() {
     }
   }
 
-  // Detail drawer
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<SupportTicket["status"]>("open");
-  const [updateNotes, setUpdateNotes] = useState("");
-  const [savingUpdate, setSavingUpdate] = useState(false);
-
-  function openDrawer(ticket: SupportTicket) {
-    setSelectedTicket(ticket);
-    setUpdateStatus(ticket.status);
-    setUpdateNotes(ticket.notes ?? "");
-    setDrawerOpen(true);
-  }
-
-  async function handleUpdate() {
-    if (!selectedTicket) return;
-    setSavingUpdate(true);
+  async function cambiarPrioridad(priority: SupportPriority) {
+    if (!selected) return;
+    setSaving(true);
     try {
-      await updateSupportTicket(selectedTicket.id, {
-        status: updateStatus,
-        notes: updateNotes || undefined,
-      });
-      toast.success("Ticket actualizado.");
-      setDrawerOpen(false);
+      await updateSupportTicket(selected.id, { priority });
     } catch (error) {
       toastFirebaseError(error);
     } finally {
-      setSavingUpdate(false);
+      setSaving(false);
+    }
+  }
+
+  async function responder() {
+    if (!selected || reply.trim().length < 2) return;
+    setSaving(true);
+    try {
+      // La evidencia del equipo va al Storage del conjunto del ticket: es donde
+      // la callable la espera y donde el cliente puede leerla.
+      const files = await uploadSupportAttachments(selected.tenantId, adjuntos);
+      await replyAsVivaru(selected.id, reply.trim(), files);
+      toast.success("Respuesta enviada al cliente.");
+      setReply("");
+      setAdjuntos([]);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function guardarNota() {
+    if (!selected || note.trim().length < 2) return;
+    setSaving(true);
+    try {
+      await addInternalNote(selected.id, note.trim());
+      toast.success("Nota guardada. El cliente no la ve.");
+      setNote("");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSaving(false);
     }
   }
 
   const columns: DataTableColumn<SupportTicket>[] = [
     {
       key: "tenantName",
-      header: "Tenant",
+      header: "Conjunto",
       render: (t) => (
         <div>
           <p className="font-medium text-[var(--slate-900)]">{t.tenantName}</p>
-          <p className="text-xs text-[var(--slate-500)]">{t.tenantId}</p>
-        </div>
-      ),
-    },
-    {
-      key: "reportedBy",
-      header: "Reportado por",
-      render: (t) => (
-        <div>
-          <p className="text-[var(--slate-900)]">{t.reportedByName ?? t.reportedBy}</p>
-          {t.reportedByName ? <p className="text-xs text-[var(--slate-500)]">{t.reportedBy}</p> : null}
+          <p className="text-xs text-[var(--slate-500)]">{t.createdByName ?? t.reportedByName ?? "—"}</p>
         </div>
       ),
     },
@@ -219,9 +219,7 @@ export default function SuperadminSupportPage() {
       key: "subject",
       header: "Asunto",
       render: (t) => (
-        <span title={t.subject}>
-          {t.subject.length > 50 ? `${t.subject.slice(0, 50)}…` : t.subject}
-        </span>
+        <span title={t.subject}>{t.subject.length > 48 ? `${t.subject.slice(0, 48)}…` : t.subject}</span>
       ),
     },
     {
@@ -233,36 +231,58 @@ export default function SuperadminSupportPage() {
     {
       key: "priority",
       header: "Prioridad",
-      render: (t) => (
-        <Badge className={priorityClassName(t.priority)}>{SUPPORT_PRIORITIES[t.priority]}</Badge>
-      ),
+      render: (t) => <Badge className={PRIORITY_TONE[t.priority]}>{SUPPORT_PRIORITIES[t.priority]}</Badge>,
     },
     {
       key: "status",
       header: "Estado",
-      render: (t) => (
-        <Badge className={statusClassName(t.status)}>{SUPPORT_STATUSES[t.status]}</Badge>
-      ),
+      render: (t) => <Badge className={STATUS_TONE[t.status]}>{SUPPORT_STATUSES[t.status]}</Badge>,
     },
     {
-      key: "createdAt",
-      header: "Creado",
-      render: (t) => formatDate(t.createdAt),
-      mobileHidden: true,
+      key: "antiguedad",
+      header: "Sin moverse",
+      // La antigüedad es la señal que evita que un ticket se pudra en la cola.
+      // Roja a partir de dos días: con revisión diaria, eso ya es un olvido.
+      render: (t) => {
+        const dias = daysSinceActivity(t);
+        if (dias === null) return <span className="text-xs text-[var(--slate-500)]">—</span>;
+        const urgente = isSupportPending(t.status) && dias >= 2;
+        return (
+          <span
+            className={cn(
+              "text-xs font-medium",
+              urgente ? "text-[var(--danger-700)]" : "text-[var(--slate-600)]",
+            )}
+          >
+            {dias === 0 ? "hoy" : `${dias} día${dias === 1 ? "" : "s"}`}
+          </span>
+        );
+      },
     },
   ];
 
   return (
     <section className="space-y-4">
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle>Centro de soporte operacional</CardTitle>
-            <CardDescription className="mt-1">Registro de incidencias reportadas por tenants. Solo visible para el equipo Hogaru.</CardDescription>
+            <CardTitle>Soporte al cliente</CardTitle>
+            <CardDescription className="mt-1">
+              Solicitudes abiertas por los administradores desde su portal. Responder aquí les llega
+              por correo y aparece en su pantalla de soporte.
+            </CardDescription>
           </div>
-          <Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
-            Registrar incidencia
-          </Button>
+          <div className="rounded-xl border border-[var(--slate-200)] px-4 py-2 text-center">
+            <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Pendientes</p>
+            <p
+              className={cn(
+                "text-xl font-semibold",
+                pendientes > 0 ? "text-[var(--danger-700)]" : "text-[var(--slate-900)]",
+              )}
+            >
+              {pendientes}
+            </p>
+          </div>
         </div>
 
         <div className="mt-3">
@@ -284,10 +304,10 @@ export default function SuperadminSupportPage() {
             }
           >
             <label className="text-sm text-[var(--slate-700)]">
-              Tenant
+              Conjunto
               <Input
                 className="mt-1"
-                placeholder="Nombre o ID del tenant"
+                placeholder="Nombre o ID"
                 value={tenantSearch}
                 onChange={(e) => setTenantSearch(e.target.value)}
               />
@@ -325,200 +345,155 @@ export default function SuperadminSupportPage() {
       <Card>
         <DataTable
           columns={columns}
-          rows={filteredTickets}
+          rows={filtrados}
           getRowKey={(t) => t.id}
           loading={loading}
-          loadingText="Cargando incidencias..."
-          emptyText="No hay incidencias con los filtros actuales."
+          loadingText="Cargando solicitudes..."
+          emptyText="No hay solicitudes con los filtros actuales."
           actionsHeader="Acciones"
-          tableMinWidthClassName="min-w-[800px] sm:min-w-[980px]"
+          tableMinWidthClassName="min-w-[860px]"
           renderActions={(t) => (
             <Button size="sm" variant="outline" onClick={() => openDrawer(t)}>
-              Ver detalle
+              Atender
             </Button>
           )}
         />
       </Card>
 
-      {/* Create modal */}
-      <Modal open={createOpen} title="Registrar incidencia" onClose={() => { setCreateOpen(false); createForm.reset(); }}>
-        <form className="space-y-3" onSubmit={createForm.handleSubmit((v) => void handleCreate(v))}>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Tenant</label>
-            <select
-              className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-              {...createForm.register("tenantId")}
-            >
-              <option value="">Selecciona un tenant…</option>
-              {tenants.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-            {createForm.formState.errors.tenantId ? (
-              <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.tenantId.message}</p>
-            ) : null}
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Email del admin</label>
-              <Input type="email" {...createForm.register("reportedBy")} />
-              {createForm.formState.errors.reportedBy ? (
-                <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.reportedBy.message}</p>
-              ) : null}
-            </div>
-            <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Nombre (opcional)</label>
-              <Input {...createForm.register("reportedByName")} />
-            </div>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Categoría</label>
-              <select
-                className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-                {...createForm.register("category")}
-              >
-                {Object.entries(SUPPORT_CATEGORIES).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm text-[var(--slate-700)]">Prioridad</label>
-              <select
-                className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-                {...createForm.register("priority")}
-              >
-                {Object.entries(SUPPORT_PRIORITIES).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Asunto</label>
-            <Input {...createForm.register("subject")} />
-            {createForm.formState.errors.subject ? (
-              <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.subject.message}</p>
-            ) : null}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Descripción</label>
-            <Textarea rows={4} {...createForm.register("description")} />
-            {createForm.formState.errors.description ? (
-              <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.description.message}</p>
-            ) : null}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Notas internas (opcional)</label>
-            <Textarea rows={2} {...createForm.register("notes")} />
-          </div>
-          <div className="mobile-action-group">
-            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => { setCreateOpen(false); createForm.reset(); }}>
-              Cancelar
-            </Button>
-            <Button className="w-full sm:w-auto" type="submit" disabled={saving}>
-              {saving ? "Guardando..." : "Guardar incidencia"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Detail drawer */}
       <Drawer
-        open={drawerOpen && Boolean(selectedTicket)}
+        open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title={selectedTicket?.subject ?? "Detalle de incidencia"}
+        title={selected?.subject ?? "Solicitud de soporte"}
         headerExtra={
-          selectedTicket ? (
+          selected ? (
             <>
-              <Badge className={statusClassName(selectedTicket.status)}>
-                {SUPPORT_STATUSES[selectedTicket.status]}
-              </Badge>
-              <Badge className={priorityClassName(selectedTicket.priority)}>
-                {SUPPORT_PRIORITIES[selectedTicket.priority]}
-              </Badge>
+              <Badge className={STATUS_TONE[selected.status]}>{SUPPORT_STATUSES[selected.status]}</Badge>
+              <Badge className={PRIORITY_TONE[selected.priority]}>{SUPPORT_PRIORITIES[selected.priority]}</Badge>
             </>
           ) : null
         }
         footer={
-          selectedTicket ? (
+          selected && selected.status !== "cerrado" ? (
             <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs text-[var(--slate-700)]">
                   Estado
                   <select
                     className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
-                    value={updateStatus}
-                    onChange={(e) => setUpdateStatus(e.target.value as SupportTicket["status"])}
+                    value={selected.status}
+                    onChange={(e) => void cambiarEstado(e.target.value as SupportStatus)}
+                    disabled={saving}
                   >
                     {Object.entries(SUPPORT_STATUSES).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
                     ))}
                   </select>
                 </label>
+                <label className="text-xs text-[var(--slate-700)]">
+                  Prioridad
+                  <select
+                    className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                    value={selected.priority}
+                    onChange={(e) => void cambiarPrioridad(e.target.value as SupportPriority)}
+                    disabled={saving}
+                  >
+                    {Object.entries(SUPPORT_PRIORITIES).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
               <Textarea
-                rows={2}
-                placeholder="Notas internas (opcional)"
-                value={updateNotes}
-                onChange={(e) => setUpdateNotes(e.target.value)}
+                rows={3}
+                placeholder="Escribe la respuesta que verá el cliente…"
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
               />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setDrawerOpen(false)}>
-                  Cerrar
-                </Button>
-                <Button type="button" size="sm" disabled={savingUpdate} onClick={() => void handleUpdate()}>
-                  {savingUpdate ? "Guardando..." : "Guardar cambios"}
+              <AttachmentPicker
+                files={adjuntos}
+                onChange={setAdjuntos}
+                disabled={saving}
+                onError={(m) => toast.error(m)}
+              />
+              <div className="flex justify-end">
+                <Button size="sm" disabled={saving || reply.trim().length < 2} onClick={() => void responder()}>
+                  {saving ? "Enviando…" : "Responder al cliente"}
                 </Button>
               </div>
             </div>
           ) : null
         }
       >
-        {selectedTicket ? (
+        {selected ? (
           <div className="space-y-4 text-sm text-[var(--slate-800)]">
-            <dl className="grid grid-cols-2 gap-3">
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Tenant</dt>
-                <dd className="mt-0.5 font-medium text-[var(--slate-900)]">{selectedTicket.tenantName}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Tenant ID</dt>
-                <dd className="mt-0.5 text-[var(--slate-500)]">{selectedTicket.tenantId}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Reportado por</dt>
-                <dd className="mt-0.5 text-[var(--slate-900)]">{selectedTicket.reportedByName ?? selectedTicket.reportedBy}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Email</dt>
-                <dd className="mt-0.5 text-[var(--slate-600)]">{selectedTicket.reportedBy}</dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Categoría</dt>
-                <dd className="mt-0.5"><Badge>{SUPPORT_CATEGORIES[selectedTicket.category]}</Badge></dd>
-              </div>
-              <div>
-                <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Creado</dt>
-                <dd className="mt-0.5 text-[var(--slate-600)]">{formatDate(selectedTicket.createdAt)}</dd>
-              </div>
-              {selectedTicket.resolvedAt ? (
-                <div className="col-span-2">
-                  <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Resuelto el</dt>
-                  <dd className="mt-0.5 text-[var(--slate-600)]">{formatDate(selectedTicket.resolvedAt)}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <div className="border-t border-[var(--slate-200)] pt-3">
-              <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Descripción</p>
-              <p className="mt-1 whitespace-pre-wrap text-[var(--slate-700)]">{selectedTicket.description}</p>
+            <div className="rounded-xl border border-[var(--slate-200)] p-3">
+              <p className="text-xs text-[var(--slate-500)]">
+                {selected.tenantName} · {selected.createdByName ?? "—"} ·{" "}
+                {selected.createdByEmail ?? "sin correo"}
+              </p>
+              <p className="mt-2 whitespace-pre-wrap">{selected.description}</p>
+              <p className="mt-2 text-xs text-[var(--slate-500)]">Abierta el {fecha(selected.createdAt)}</p>
             </div>
-            {selectedTicket.notes ? (
-              <div className="border-t border-[var(--slate-200)] pt-3">
-                <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Notas internas</p>
-                <p className="mt-1 whitespace-pre-wrap text-[var(--slate-700)]">{selectedTicket.notes}</p>
+
+            {/* Hilo. Append-only: nada se edita ni se borra. */}
+            {(selected.thread ?? []).length > 0 ? (
+              <ul className="space-y-2">
+                {(selected.thread ?? []).map((m) => (
+                  <li
+                    key={m.id}
+                    className={cn(
+                      "rounded-xl border p-3",
+                      m.role === "vivaru"
+                        ? "border-[var(--brand-200)] bg-[var(--brand-50)]"
+                        : "border-[var(--slate-200)] bg-white",
+                    )}
+                  >
+                    <p className="text-xs font-semibold text-[var(--slate-600)]">
+                      {m.role === "vivaru" ? "Vivaru" : m.authorName}
+                      <span className="ml-2 font-normal text-[var(--slate-500)]">{fecha(m.createdAt)}</span>
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap">{m.message}</p>
+                    <AttachmentList attachments={m.attachments} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-[var(--slate-500)]">Sin mensajes todavía.</p>
+            )}
+
+            {/* Notas internas: subcolección, invisibles para el cliente. */}
+            <div className="rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-soft)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-600)]">
+                Notas internas · el cliente no las ve
+              </p>
+              {notes.length > 0 ? (
+                <ul className="mt-2 space-y-1.5">
+                  {notes.map((n) => (
+                    <li key={n.id} className="text-xs text-[var(--slate-700)]">
+                      · {n.note}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-xs text-[var(--slate-500)]">Ninguna.</p>
+              )}
+              <div className="mt-2 flex gap-2">
+                <Input
+                  className="h-9 text-xs"
+                  placeholder="Añadir nota interna…"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+                <Button size="sm" variant="outline" disabled={saving || note.trim().length < 2} onClick={() => void guardarNota()}>
+                  Guardar
+                </Button>
               </div>
+            </div>
+
+            {selected.status === "cerrado" ? (
+              <p className="rounded-xl bg-[var(--slate-100)] p-3 text-xs text-[var(--slate-600)]">
+                Esta solicitud está cerrada y no admite cambios.
+              </p>
             ) : null}
           </div>
         ) : null}

@@ -117,9 +117,49 @@ El fallback `${tower}-${unitId}` de `activateResidency` contaminó reservas, paq
 
 Un custom domain de App Hosting puede quedar `HOST_ACTIVE/CERT_ACTIVE` y aun así devolver 403 en el edge (enrutamiento interno roto tras rollout). No es DNS ni cert: el fix es recrear el dominio (delete+create+TXT nuevo). La URL directa `*.hosted.app` es el acceso de contingencia. Runbook completo en [[dominios-app-hosting]].
 
+## Las reglas de Storage SUMAN permisos, nunca los restan
+
+Una regla más estricta sobre un subcamino no limita nada: es un permiso **adicional**. No hay forma de hacer que `tenants/{id}/support/**` sea más restrictivo que `tenants/{id}/**`. Por eso el tope de 5 MB de los adjuntos de [[soporte]] vive en la callable, no en las reglas — y ahí resultó mejor, porque el servidor lee tamaño y tipo **reales** del archivo ya subido en vez de creerle al cliente. Distinto de Firestore, donde las reglas sí deniegan.
+
+## Las reglas de Firestore tampoco filtran campos
+
+Un permiso de lectura sobre un documento expone **todos** sus campos. No existe «leer el documento menos este campo». Por eso las notas internas de [[soporte]] son una subcolección y no un campo: como campo, el cliente las vería. Regla general: si un dato no es para todos los que pueden leer el documento, no va en el documento.
+
+## Callables v2 nuevas nacen sin invoker público
+
+En este proyecto, una callable v2 recién creada no obtiene invocación pública por defecto: Cloud Run devuelve **401 antes de ejecutar una línea**, y los logs de la función no muestran nada porque nunca llegó a correr. Hay que declarar `invoker: "public"` en la definición, como el resto de callables. Se perdió una ronda entera de diagnóstico buscando el fallo en el código.
+
+## `getFirestore()` en el top level de un módulo de functions
+
+Se evalúa al cargar el módulo, antes de que la app de Firebase esté inicializada, y tumba el despliegue entero de functions. Hacerlo perezoso (`getDb()` que llama `getFirestore()` dentro). Ver [[firebase-firestore]].
+
+## Endurecer reglas rompe consolas internas sin avisar
+
+Al prohibir la escritura directa en `supportTickets`, la bandeja del [[superadmin]] —que escribía así— quedó inoperante. Ninguna prueba lo detectó y la interfaz no daba error visible. Al cerrar permisos de una colección, **buscar todos los escritores**, incluidas las herramientas internas, no solo el portal del cliente.
+
+## `PATCH` de la REST de Firestore sin `updateMask` reemplaza el documento
+
+Borra todo campo no incluido en el cuerpo. Además, las rutas de campo con guiones necesitan comillas invertidas: `seen.\`portal-porteria\``. Afecta a los scripts de verificación, no a la app.
+
+## `apphosting.yaml` en develop es configuración de staging
+
+La versión de `develop` apunta entera a staging. Al mergear a `master` hay que conservar la de `master` completa, no fusionar. Un merge descuidado arrastra staging a producción. Ver [[dominios-app-hosting]].
+
+## Una prueba que no se ejecuta es peor que ninguna
+
+`tests/firestore.rules.test.ts` pasó meses sin correr porque el emulador no arrancaba sin Java, y sus fallos se archivaban como «preexistentes». Ocupaba el lugar mental de la verificación sin hacerla. Al encenderlo apareció una prueba de [[reservaciones]] rota desde hacía meses. Cómo correrlo y sus dos trampas: [[pruebas-reglas-emulador]].
+
+## Cambiar `tenants.status` no actualiza la sesión abierta
+
+Un cliente recién activado sigue viendo la interfaz de prueba —días restantes, botón de suscripción, módulos bloqueados— hasta que su sesión se renueve. El cambio estaba bien aplicado; lo que fallaba era suponer que se propagaba solo. Verificar contra Firestore, no contra la pantalla. Ver [[ciclo-de-vida-tenant]].
+
+## Una señal de progreso debe ser legible por el rol que la dispara
+
+El paso de pago de [[onboarding-guiado]] apuntaba a `paymentReceipts`, colección que solo crea el residente y que el administrador no puede leer: devolvía 403 en silencio. Con esa señal, todo cliente se habría quedado a un paso del final para siempre. Antes de elegir una colección como señal, comprobar que el rol que ve el indicador tiene permiso de lectura.
+
 ## Relaciones
 
-- Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]], [[triaje-auditoria-ux]], [[kpis-formula-unica]]
+- Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]], [[triaje-auditoria-ux]], [[kpis-formula-unica]], [[soporte]], [[ciclo-de-vida-tenant]], [[pruebas-reglas-emulador]]
 - Depende de: —
 - Se conecta con: [[animaciones]], [[domain-types]], [[firebase-firestore]], [[stack-tecnico]], [[tokens-color]]
 

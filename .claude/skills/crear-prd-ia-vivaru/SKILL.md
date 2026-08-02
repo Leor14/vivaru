@@ -96,6 +96,12 @@ Ejemplos: `PRD-VAI-DOC-001 — Lectura de comprobantes`, `PRD-VAI-AGT-001 — Co
 
 El número es tentativo hasta validarlo contra el índice maestro. No reutilizar identificadores retirados.
 
+**Dónde vive el archivo:** `docs/prd/ia/PRD-VAI-[TIPO]-NNN-[resultado].md`, en kebab-case sin tildes. Registrar la PRD en la tabla de estado de `docs/prd/README.md` al crearla.
+
+Antes de escribir, leer los dos documentos que gobiernan el programa —`Estrategia_IA_Minima_Viable_Vivaru.md` y `Plan_General_Implementacion_IA_Vivaru.md`, hoy en `/Users/david/Claude Coworker/Hogaru/GPT/`— porque fijan restricciones que ninguna PRD individual puede contradecir: un solo proveedor generativo, techo de costo de 2–3% del ingreso del conjunto, confirmación humana obligatoria antes de toda mutación, y aislamiento por `tenantId` en cada ejecución, contexto, archivo y métrica.
+
+Existen cinco PRD de IA ya redactadas en Google Drive (`PLAT-001` gateway, `FEAT-001` onboarding, `DOC-001` comprobantes, `FEAT-002` PQRS, `FEAT-003` comunicaciones). **Antes de crear una nueva, comprobar si ya existe allí** — el trabajo pendiente es migrarlas a `docs/prd/ia/`, no duplicarlas.
+
 ### Paso 6 · Encabezado
 
 ID y nombre · tipo y track · módulo · usuario principal y secundarios · responsable · estado · dependencias · riesgo · estado de los datos · fase o plan comercial aplicable.

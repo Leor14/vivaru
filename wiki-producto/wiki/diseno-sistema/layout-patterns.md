@@ -59,9 +59,9 @@ Para widgets del [[dashboard-admin]]:
 
 ## Relaciones
 
-- Véase también: [[design-md]], [[componentes]], [[tipografia]]
+- Véase también: [[design-md]], [[componentes]], [[tipografia]], [[transiciones-navegacion]]
 - Depende de: [[tokens-color]], [[animaciones]]
-- Se conecta con: [[dashboard-admin]], [[portal-residente]], [[data-table-pattern]], [[drawer-pattern]]
+- Se conecta con: [[dashboard-admin]], [[portal-residente]], [[data-table-pattern]], [[drawer-pattern]], [[onboarding-guiado]]
 
 ## Fuentes
 

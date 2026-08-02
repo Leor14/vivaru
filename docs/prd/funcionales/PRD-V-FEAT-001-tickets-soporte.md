@@ -8,7 +8,7 @@
 | **Usuario principal** | `tenant_admin` — el administrador del conjunto |
 | **Usuarios secundarios** | `superadmin` — quien atiende desde Vivaru |
 | **Responsable** | David (producto) · equipo comercial (operación) |
-| **Estado** | Lista para desarrollo |
+| **Estado** | En staging · verificada |
 | **Dependencias** | `functions/src/email.ts` (remitente verificado) · secret `RESEND_API_KEY` |
 | **Riesgo** | Medio — datos personales en texto libre, y una cola que si nadie atiende deteriora la relación con el cliente |
 | **Reversibilidad** | **Alta.** Es funcionalidad aditiva: se apaga ocultando la entrada del menú, sin migrar ni perder datos |
@@ -65,12 +65,13 @@ La decisión que permanece humana es toda: aquí no se automatiza nada, se orden
 - Bandeja del superadmin, reaprovechando `/superadmin/support`: filtros, prioridad, notas internas y **antigüedad visible**.
 - Correo a `dev@qintilab.com` al abrirse un ticket y cuando el cliente responde.
 - Correo al administrador cuando Vivaru responde o marca resuelto.
+- **Evidencia adjunta**: hasta 3 archivos por mensaje, imágenes o PDF, 5 MB cada uno.
 
 **No entra, y por qué**
 
 | Excluido | Razón |
 |---|---|
-| **Adjuntos** | Añade reglas de Storage, límites y retención. Es lo primero que añadiría después: en un problema técnico una captura ahorra tres mensajes. |
+| ~~Adjuntos~~ | **Incluidos tras la implementación** (ver abajo). Resultó que Storage ya cubría la ruta y el patrón de subida existía dos veces en el producto. |
 | **SLA y alertas de incumplimiento** | Sin baseline no sabemos qué plazo es realista. Primero medir. |
 | **Base de conocimiento / autoservicio** | Requiere saber qué se pregunta. Los primeros meses de tickets son justamente esa investigación. |
 | **Notificación in-app** | El correo basta para el volumen esperado. |
@@ -122,8 +123,8 @@ flowchart TD
 **Reglas del ciclo de vida**
 
 - **Pendiente de Vivaru** = `abierto` + `en_proceso`. Es la cifra que mide la cola, y sigue el mismo criterio que ya usa PQRS (`PENDING_TICKET_STATUSES`): lo que espera al cliente no cuenta como pendiente nuestro.
-- **Reapertura**: desde `resuelto`, dentro de una ventana de **`TBD` días** (recomendado: 7). Fuera de la ventana, ticket nuevo.
-- **Cierre automático**: `esperando_respuesta` y `resuelto` pasan a `cerrado` tras **`TBD` días** sin actividad (recomendado: 14), con un recordatorio antes. Sin esto la cola se llena de tickets que nadie va a tocar.
+- **Reapertura**: desde `resuelto`, dentro de una ventana de **7 días**. Fuera de la ventana, ticket nuevo. *Implementado y probado.*
+- **Cierre automático**: **NO implementado — queda en Fase 2.** La intención es que `esperando_respuesta` y `resuelto` pasen a `cerrado` tras 14 días sin actividad, con recordatorio antes. Mientras no exista, un ticket puede quedarse indefinidamente esperando al cliente: con cero clientes no molesta, pero es lo primero que hará falta cuando haya volumen.
 - **`cerrado` es terminal y no se reabre.** Es lo que permite que el número de pendientes signifique algo.
 
 ## 7 · Contrato de datos y multi-tenancy
@@ -141,15 +142,16 @@ Se **reutiliza y extiende** la colección `supportTickets`, que ya existe con mo
 | `description` | string | Sí | cliente | Máx. 4000 |
 | `priority` | enum | Sí | servidor (`media`) / superadmin | `alta` · `media` · `baja` |
 | `status` | enum | Sí | servidor | §6 |
-| `thread[]` | array | Sí | servidor | **Append-only.** `{id, autor, rol, mensaje, createdAt}` |
-| `internalNotes` | string | No | superadmin | **Nunca visible al cliente** |
+| `thread[]` | array | Sí | servidor | **Append-only** vía `arrayUnion`. `{id, role, authorUid, authorName, message, attachments?, createdAt}` |
+| ~~`internalNotes`~~ | — | — | — | **Sustituido por la subcolección `internal`** (§11) |
+| `createdAtIso` | string | Sí | servidor | ISO además del Timestamp: el límite diario filtra por rango y necesita un campo comparable |
 | `createdAt`, `updatedAt`, `lastActivityAt` | timestamp | Sí | servidor | `lastActivityAt` alimenta antigüedad y cierre automático |
 | `resolvedAt`, `closedAt` | timestamp | No | servidor | |
 
 **Cambios sobre lo que existe hoy**
 
 - `reportedBy` / `reportedByName` (texto libre, tecleado por el superadmin) quedan **obsoletos** para tickets nuevos: los sustituyen `createdBy` y `createdByName`, tomados del perfil. Los documentos antiguos se conservan tal cual; la bandeja muestra el que exista.
-- `notes` pasa a llamarse `internalNotes` para que el nombre diga que no se comparte. `TBD`: renombrar con migración, o mantener `notes` y documentarlo. **Recomendación: mantener `notes` y documentar**, porque una migración por un nombre no se paga.
+- **Resuelto de otra forma, y mejor**: las notas internas no son un campo renombrado sino una **subcolección** `supportTickets/{id}/internal`. El campo `notes` heredado se conserva sin uso. La razón es de seguridad, no de nombres — ver §11.
 - `responseHistory` está declarado en el tipo y **nunca se ha escrito ni leído**. Se sustituye por `thread`, que sí se implementa.
 
 **Comportamiento por estado del conjunto**
@@ -163,7 +165,7 @@ Se **reutiliza y extiende** la colección `supportTickets`, que ya existe con mo
 
 > `supportTickets` está **excluido a propósito** de la guarda `tenantOperable()` que dejó en solo lectura a suspendidos y vencidos. Es la única excepción del sistema y hay que conservarla.
 
-**Retención y borrado.** No hay borrado — ni para el cliente ni para el superadmin. Un ticket cerrado es historial de la relación comercial. `TBD`: política de retención a largo plazo, alineada con la de datos personales.
+**Retención y borrado.** No hay borrado — ni de tickets ni de adjuntos, para ningún rol. Un ticket cerrado es historial de la relación comercial. **Decidido: sin caducidad.** Con una captura por ticket y decenas de tickets al mes el coste es irrelevante. Queda anotado que son datos personales potenciales: si algún día hay una política de retención general, esto entra en ella.
 
 ## 8 · Reglas de negocio
 
@@ -173,8 +175,9 @@ Se **reutiliza y extiende** la colección `supportTickets`, que ya existe con mo
 4. El cliente **no** puede fijar la prioridad; la asigna Vivaru.
 5. El cliente **nunca** recibe el contenido de `internalNotes`, por ninguna vía —ni interfaz, ni correo, ni consulta directa.
 6. El hilo es **append-only**: ningún mensaje se edita ni se borra.
-7. Un conjunto no puede tener más de **`TBD` tickets sin cerrar** a la vez (recomendado: 5). Evita el ruido y obliga a cerrar.
-8. Un conjunto no puede abrir más de **`TBD` tickets al día** (recomendado: 10). Freno de abuso, no de uso.
+7. Un conjunto no puede tener más de **5 tickets sin cerrar** a la vez. *Implementado: se cuenta antes de escribir.*
+8. Un conjunto no puede abrir más de **10 tickets al día**. *Implementado.*
+11. Un mensaje admite hasta **3 adjuntos**, de 5 MB cada uno, imágenes o PDF. *Implementado y validado en el servidor.*
 9. `lastActivityAt` se actualiza con **cualquier** mensaje o cambio de estado.
 10. Un conjunto suspendido o vencido conserva la capacidad de abrir y responder.
 
@@ -254,11 +257,11 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 | Correo | Existe (`email.ts`) | Plantillas nuevas |
 | Cierre automático | **No existe** | Job diario, o al leer |
 
-**Dónde entra el administrador — decisión pendiente.** Pediste que estuviera *dentro de su perfil*. Mi recomendación es distinta y la dejo argumentada: **una entrada «Soporte» en el grupo CONFIGURACIÓN del menú lateral**, no una pestaña dentro de Configuración. Quien busca ayuda está frustrado y con prisa, y una pestaña de tercer nivel no se encuentra en ese estado. Si prefieres la pestaña, el resto de la PRD no cambia.
+**Dónde entra el administrador — decidido.** Entrada **«Soporte» en el grupo CONFIGURACIÓN del menú lateral**, en `/admin/soporte`. Se descartó la pestaña dentro de Configuración: quien busca ayuda está frustrado y con prisa, y un tercer nivel no se encuentra en ese estado.
 
-**Cierre automático — `TBD`.** Un job programado (como `trialLifecycleDaily`) es lo limpio. Evaluarlo al leer es más barato y evita un cron, pero deja tickets sin cerrar si nadie abre la bandeja. **Recomendación: job diario**, reutilizando el patrón que ya existe.
+**Cierre automático — pendiente para Fase 2.** Un job diario, reutilizando el patrón de `trialLifecycleDaily`. Evaluarlo al leer sería más barato pero deja tickets sin cerrar si nadie abre la bandeja.
 
-**Índices.** La bandeja filtra por estado y ordena por actividad; el portal filtra por `tenantId` y ordena por actividad. Ambos requieren índice compuesto — declararlos en `firestore.indexes.json` antes de desplegar.
+**Índices — declarados.** Cuatro en `firestore.indexes.json`: `tenantId+createdAtIso` (límite diario), `tenantId+status` (conteo de abiertos), `tenantId+lastActivityAt` (lista del administrador) y `status+lastActivityAt` (bandeja). Los dos primeros no eran obvios y se descubrieron en ejecución: la callable fallaba con `INTERNAL`, que en el log era *«the query requires an index»*.
 
 ## 12 · Riesgos y mitigaciones
 
@@ -269,7 +272,7 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 | **Datos personales** en texto libre | Sin adjuntos en MVP; retención declarada; sin borrado, pero con acceso acotado | Revisión al definir retención |
 | **Abuso o bucle** que inunde el buzón | Límites por conjunto y por día | Pico de tickets de un mismo conjunto |
 | **Se convierte en canal para residentes** vía el administrador | El canal del residente es PQRS; la categoría lo hace visible | Tickets `operativo` que en realidad son PQRS |
-| **Convive con el correo** y la conversación se parte en dos | Al responder por correo, devolver al ticket. `TBD`: ¿respuesta por correo entra al hilo? **Recomendación: no en MVP** | Hilos que se cortan sin resolución |
+| **Convive con el correo** y la conversación se parte en dos | Al responder por correo, devolver al ticket. **Decidido: la respuesta por correo NO entra al hilo** en el MVP | Hilos que se cortan sin resolución |
 
 ## 13 · Despliegue, rollback y Story Map
 
@@ -281,30 +284,45 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 
 ### Story Map
 
-**MVP**
-1. Reglas de `supportTickets` reescritas + subcolección interna.
-2. Callables: crear, responder (cliente), responder (Vivaru), cambiar estado.
-3. Pantalla de soporte del administrador: lista, detalle, hilo, alta.
-4. Bandeja del superadmin: hilo, antigüedad, quitar alta manual.
-5. Correos, con `SUPPORT_NOTIFICATION_TO`.
-6. Pruebas de emulador de los 9 casos que deben fallar.
+**MVP — completo y en staging**
+
+1. ✅ Reglas de `supportTickets` reescritas + subcolección interna.
+2. ✅ Seis callables: crear, responder, cambiar estado, reabrir, cerrar, nota interna.
+3. ✅ Pantalla del administrador en `/admin/soporte`.
+4. ✅ Bandeja del superadmin: hilo, antigüedad, notas internas, sin alta manual.
+5. ✅ Correos con `SUPPORT_NOTIFICATION_TO`. *Envío implementado; entrega sin confirmar.*
+6. ✅ Pruebas de emulador y verificación en staging.
+7. ✅ **Adjuntos** — adelantados de Fase 2 al MVP: la infraestructura ya existía.
 
 **Fase 2**
-7. **Adjuntos** — lo primero que añadiría.
-8. Cierre automático por inactividad.
-9. Contexto enriquecido en el correo al equipo.
+
+8. Cierre automático por inactividad (job diario).
+9. Contexto enriquecido en el correo al equipo: plan, días de prueba, avance de activación.
 
 **Fase 3**
-10. SLA y alertas, ya con baseline real.
+
+10. SLA y alertas, ya con volumen real.
 11. Base de conocimiento con las preguntas más repetidas.
 
----
+## Lo que solo se supo construyendo
 
-## Puertas
+Cinco cosas que la PRD no podía anticipar y que conviene no volver a descubrir:
+
+**Las reglas de Storage no pueden restringir un subcamino.** Suman permisos, no los restan. El límite de 5 MB para adjuntos tuvo que irse a la callable — donde además resultó mejor, porque lee el tamaño y el tipo reales en vez de fiarse del cliente.
+
+**Las callables v2 recién creadas no nacen invocables públicamente** en este proyecto. Cloud Run devolvía 401 antes de ejecutar una línea. Hay que declarar `invoker: "public"`, como el resto de callables del producto.
+
+**Endurecer las reglas rompió la consola sin que nadie lo notara.** Al prohibir la escritura directa en `supportTickets`, la bandeja del superadmin —que escribía así— quedó inoperante. No había forma de detectarlo salvo tocándola.
+
+**Dos catálogos de lo mismo se separan.** El módulo del superadmin tenía sus propios estados en inglés. Ahora reexporta el contrato compartido: soporte es una cola vista desde dos lados.
+
+**Las pruebas viejas defienden el diseño viejo.** `imp07-support-module` falló tres veces, y las tres con razón: fijaba el catálogo en inglés, la escritura directa y el alta manual. Reescribirlas —no borrarlas— dejó comprobado lo que de verdad importa ahora.
+
+## Puertas## Puertas
 
 | Puerta | Estado |
 |---|---|
-| `G0 Necesidad` | ✅ El problema existe. La medición es `TBD` (§2) |
+| `G0 Necesidad` | ✅ El problema existe; la medición es cero porque aún no hay clientes (§2) |
 | `G1 Valor` | ✅ Baseline cerrado: **cero**, no hay clientes. Métrica inicial **operativa**: el primer ticket del primer cliente recibe respuesta y queda registrado. Las de volumen —mediana hasta primera respuesta, % resuelto sin salir del canal— se activan a partir de unas decenas de tickets |
 | `G2 Datos y permisos` | ✅ Modelo y roles definidos y consistentes |
 | `G3 Riesgo` | ✅ Auditable, reversible, con pruebas de los casos que deben fallar |
@@ -313,6 +331,60 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 | `G6 Escala` | ✅ Decenas al mes; el diseño soporta un orden de magnitud más |
 
 **Las siete puertas están superadas. Lista para desarrollo y para producción**, en cuanto se decida construirla.
+
+## Verificación en staging (2026-08-01)
+
+Ejecutada contra staging real con **cuatro sesiones distintas** —administrador,
+residente, portería y un superadmin sintético—, pasando por las reglas y los
+callables de verdad.
+
+**20 de 20 criterios ejecutables en verde.** Ciclo completo: alta → respuesta de
+Vivaru → respuesta del cliente → resuelto → reapertura → nota interna → cierre.
+Y los que deben fallar, fallando: residente y portería no leen; el administrador
+no accede a tickets de otro conjunto ni a las notas internas; nadie escribe el
+documento directamente —tampoco el superadmin—; nadie borra; no se responde a un
+cerrado; y una consulta de lista sin filtro de conjunto se deniega entera.
+
+**La excepción de los suspendidos, probada en vivo:** un conjunto suspendido
+abre un ticket (200) y sigue sin poder crear una unidad (403). Funciona sin
+haber aflojado el candado de alrededor, que era el riesgo real de introducirla.
+
+**Lo que NO se pudo verificar:** la entrega del correo. Staging no tiene
+`RESEND_API_KEY`. El código lo envía y falla en silencio a propósito, para que un
+problema de correo nunca deshaga una solicitud de ayuda. Solo se confirma en
+producción, igual que pasó con el canario del trial.
+
+**Sin recorrer con ojos:** la interfaz. La lógica y los permisos están
+verificados por API; nadie ha visto todavía las dos pantallas renderizadas.
+
+## Evidencia adjunta — y por qué el límite no está donde parecía
+
+Se incluyó en el MVP tras comprobar que la infraestructura ya existía: las
+reglas de Storage cubren `tenants/{tenantId}/**` con lectura para los miembros
+del conjunto **y para el superadmin**, y el patrón de subida está implementado
+dos veces en el producto (documentos y comprobantes de pago).
+
+**El límite de 5 MB NO puede vivir en las reglas de Storage.** Las reglas *suman*
+permisos, no los restan: una regla más estricta para `tenants/{id}/support/**`
+sería una concesión adicional, no un límite, porque la general de
+`tenants/{id}/**` ya concede hasta 25 MB. **No existe forma de hacer un
+subcamino más restrictivo que su padre.**
+
+Así que la validación vive en la callable, y resulta mejor sitio: lee el tamaño
+y el tipo **reales** del archivo ya subido con el Admin SDK, en lugar de fiarse
+de lo que declare el cliente — que es de quien desconfiamos. Lo que no pasa el
+filtro **se borra**, porque un archivo subido que nunca llega a un ticket es
+basura que nadie limpiaría.
+
+**Verificado en staging (2026-08-01):**
+
+| Caso | Resultado |
+|---|---|
+| Abrir ticket con evidencia válida | aceptado, guardado con tamaño y tipo reales |
+| Ruta apuntando a **otro conjunto** | `PERMISSION_DENIED` |
+| Ruta fuera de `support/` (p. ej. `documents/`) | `PERMISSION_DENIED` |
+| Más de 3 adjuntos | `INVALID_ARGUMENT` |
+| Tipo no permitido en la ruta correcta | rechazado **y el huérfano borrado (404)** |
 
 ## Operación — y su fecha de caducidad
 
@@ -326,7 +398,17 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 
 ## Decisiones pendientes
 
-1. **Entrada en el menú lateral o pestaña en Configuración** — recomiendo lo primero (§11).
-2. **Ventanas**: reapertura 7 días, cierre automático 14, máximo 5 abiertos y 10 al día. Son recomendaciones, no hechos.
-3. **`internalNotes`**: confirmar la subcolección (§11).
-4. **Cuándo construirla.** Con cero clientes, la PRD puede esperar sin costo. Es decisión de secuencia.
+Todas las de diseño están cerradas. Queda lo operativo:
+
+1. **Recorrer las dos pantallas.** La lógica y los permisos están verificados por API; **nadie ha visto la interfaz**. Es lo único que bloquea la promoción a producción.
+2. **Confirmar la entrega del correo**, que solo se puede hacer en producción — staging no tiene `RESEND_API_KEY`.
+3. **Cuándo construir la Fase 2.** El cierre automático no corre prisa con cero clientes, pero es lo primero que hará falta cuando la cola tenga volumen.
+
+## Historial
+
+| Fecha | Cambio |
+|---|---|
+| 2026-08-01 | PRD escrita con la skill `crear-prd-vivaru`. G1 y G5 abiertas |
+| 2026-08-01 | G1 cerrada (baseline = cero, no hay clientes) y G5 (equipo comercial, revisión diaria). Justificación reformulada: es infraestructura para el primer cliente, no un dolor actual |
+| 2026-08-01 | Implementada en 5 incrementos. Verificada en staging: 20 criterios ejecutables + 71 pruebas de emulador |
+| 2026-08-01 | Adjuntos adelantados de Fase 2 al MVP y verificados |

@@ -3,10 +3,44 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-06-23
+fecha_actualizacion: 2026-08-01
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-08-01] ingest | Trial, onboarding, soporte, PRD y programa de IA
+
+Fuentes: 56 commits desde el 29 de julio, los dos documentos de IA de `/Users/david/Claude Coworker/Hogaru/GPT/`, y verificación directa contra `src/`, `functions/src/` y `firestore.rules`.
+
+- **Páginas creadas: 9** → [[soporte]], [[ciclo-de-vida-tenant]], [[onboarding-guiado]], [[programa-ia]], [[estrategia-ia-minima-viable]], [[plan-general-ia]], [[portafolio-prd]], [[pruebas-reglas-emulador]], [[transiciones-navegacion]].
+- **Páginas actualizadas: 5** → [[index]], [[trampas-conocidas]], [[estado-modulos]], [[multi-tenancy]], [[log|log]].
+- **Entidades extraídas**: `tenantOperable()` (25 colecciones, 52 statements), `TenantStatus` (`trial`/`active`/`expired`/`suspended`), `moduleAccessFor`, matriz de módulos duplicada en `functions/src/trial-modules.ts`, `OnboardingTrack`, `ONBOARDING_STEPS` (18 pasos en 4 bloques: configura/prueba/cobrar/descubre), `OnboardingSignal`, filtro `isExample`, `SUPPORT_LIMITS`, `PENDING_SUPPORT_STATUSES`, subcolección `supportTickets/{id}/internal`, seis callables de soporte, `AttachmentPicker`/`AttachmentList`, velo de navegación, 20 tokens CSS declarados.
+- **Trampas nuevas: 10** → reglas de Storage suman permisos; reglas de Firestore no filtran campos; callables v2 sin `invoker: "public"`; `getFirestore()` en top level; endurecer reglas rompe consolas internas; `PATCH` sin `updateMask`; `apphosting.yaml` de develop es staging; una prueba parada engaña; `tenants.status` no refresca la sesión; una señal de progreso debe ser legible por su rol.
+
+### Verificado contra código, no asumido
+
+Los dos documentos de IA describen el estado del repositorio. Se comprobó cada afirmación relevante:
+
+- **App Check**: existe en cliente (`src/lib/firebase/app-check/index.ts`), **sin enforcement en servidor**. La brecha que declara el plan es real.
+- **IA**: cero. No hay `aiUsage`, ni gateway, ni Gemini, ni Document AI en `src/` ni en `functions/src/`. El programa está al 0%.
+- `auditLogs` y `featureFlags` existen en `firestore.rules`. 59 funciones exportadas en `functions/src/index.ts`.
+- Los pasos de onboarding son **18**, no 15: el bloque `descubre` se añadió después.
+
+### Deuda que la wiki no resuelve
+
+Los dos documentos de IA y las cinco PRD de IA viven fuera de git —carpeta local y Google Drive— y por tanto **sin historial de versiones**. Registrado en [[portafolio-prd]].
+
+## [2026-08-01] lint | post-ingest agosto 2026
+
+- **Fantasmas introducidos: 0.** Preexistentes ajenos, no tocados: `consolidacion-landing-2026` (7 páginas), `globals-css` (3), `analytics`, `pain-section`, `wikilinks` en index.
+- **Densidad** (mín. 8): todas entre 8 y 14. onboarding-guiado 14, plan-general-ia 11, programa-ia 10.
+- **Entrantes** (mín. 5): todas entre 5 y 14. soporte 14, ciclo-de-vida-tenant 12, onboarding-guiado 12.
+- **Frontmatter**: 9/9 páginas con los 5 campos exactos y en orden. Idioma es-CO: OK.
+- **Huérfanas en toda la wiki: 0.**
+- Tres páginas necesitaron enlaces entrantes adicionales tras el primer lint; se añadieron desde [[roadmap-tecnico]], [[animaciones]] y [[layout-patterns]], que además ganaron contenido propio en vez de una lista de enlaces suelta.
+- **66 páginas** en total (57 antes).
 
 ---
 

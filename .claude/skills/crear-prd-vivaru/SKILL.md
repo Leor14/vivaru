@@ -81,6 +81,8 @@ Ejemplos: `PRD-V-FEAT-001 — Tickets de soporte al cliente`, `PRD-V-PLAT-002 �
 
 Se nombra por **resultado**, no por pantalla: «Tickets de soporte», no «Pantalla de tickets». El número es tentativo hasta validarlo contra el índice.
 
+**Dónde vive el archivo:** `docs/prd/funcionales/PRD-V-[TIPO]-NNN-[resultado].md`, en kebab-case sin tildes. Versionada junto al código que especifica: cuando la PRD y la constante discrepan, la discrepancia se ve en el diff. Registrar la PRD en la tabla de estado de `docs/prd/README.md` al crearla, y actualizar esa fila cuando cambie de estado. Las PRD de capacidades con IA no van aquí — van a `docs/prd/ia/` con la skill `crear-prd-ia-vivaru`.
+
 ## Paso 4 · Encabezado
 
 ID y nombre · tipo · portales · módulo · usuario principal y secundarios · responsable · estado · dependencias · riesgo · reversibilidad · fase o plan comercial aplicable.
