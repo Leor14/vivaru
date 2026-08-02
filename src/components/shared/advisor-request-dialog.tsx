@@ -170,9 +170,8 @@ export function AdvisorRequestDialog({
             Recibimos tu solicitud
           </h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--slate-600)]">
-            Un asesor de Vivaru te contacta en menos de <strong>24 horas hábiles</strong> para
-            definir contigo la contratación. Mientras tanto puedes seguir usando tu ambiente con
-            normalidad.
+            Un asesor de Vivaru <strong>te contactará</strong> para definir contigo la
+            contratación. Mientras tanto puedes seguir usando tu ambiente con normalidad.
           </p>
           <Button className="mt-5" onClick={handleClose}>
             Entendido
