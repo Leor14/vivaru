@@ -309,7 +309,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     purpose:
       "Recorrer el portal de portería con tus propias credenciales de prueba, sin invitar a nadie ni compartir tu contraseña de administrador.",
     how:
-      "En la pestaña «Conjunto» está la tarjeta Mis cuentas de prueba. Copia el correo y la contraseña de «Portería de prueba» y ábrela en una ventana de incógnito —así no cierras tu sesión de administrador. Vas a encontrar la visita que registraste esperando en la entrada, lista para validar con el QR.",
+      "En la pestaña «Conjunto» está la tarjeta con tus cuentas de recorrido. Copia el correo y la contraseña de «Portería de prueba» y ábrela en una ventana de incógnito —así no cierras tu sesión de administrador. Vas a encontrar la visita que registraste esperando en la entrada, lista para validar con el QR.",
     tip: "Ventana de incógnito: Cmd+Shift+N en Chrome, Cmd+Shift+P en Firefox y Safari.",
     action: { label: "Ver mis cuentas de prueba" },
     signal: { kind: "seen" },
@@ -333,7 +333,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     purpose:
       "Ver el producto desde el lado de quien vive en el conjunto: el portal del residente, pensado para el celular.",
     how:
-      "En la misma tarjeta Mis cuentas de prueba, usa ahora «Residente de prueba». Ahí está el QR de la visita que registraste, sus comunicados, sus reservas, sus PQRS y su estado de cuenta. Si puedes, ábrelo en tu teléfono: está diseñado para esa pantalla.",
+      "En esa misma tarjeta, usa ahora «Residente de prueba». Ahí está el QR de la visita que registraste, sus comunicados, sus reservas, sus PQRS y su estado de cuenta. Si puedes, ábrelo en tu teléfono: está diseñado para esa pantalla.",
     tip: "Este es el portal que vas a mostrarle al comité. Vale la pena verlo antes que ellos.",
     action: { label: "Ver mis cuentas de prueba" },
     signal: { kind: "seen" },

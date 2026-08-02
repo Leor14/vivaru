@@ -55,3 +55,24 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
 **C) Módulo financiero / SRI Ecuador — congelado.** F1 completo; F2 parcial con transporte **stub**. **G3 (transporte SRI real) BLOQUEADO** por el dato del experto SAP↔SRI que gestiona David Almeida (firma electrónica .p12 por conjunto, endpoint, formato — 6 preguntas en `Vivaru_F2_Plan_Ejecucion_SRI_Ecuador.md`). Implementar `realSriTransport` en `functions/src/sri-ecuador.ts` cuando llegue el dato, sin tocar el resto.
 
 **Verificar siempre `git status` al inicio:** parte del último lote (logo + fixes residentes + A6 + wiki) puede estar pendiente de commit/push/deploy.
+
+## Pruebas de reglas de Firestore (emulador)
+
+Java está instalado **local al usuario**, sin sudo, en `~/.local/java/`. El
+emulador no arranca sin él, y por eso `tests/firestore.rules.test.ts` estuvo
+meses sin ejecutarse — sus fallos pasaban por "preexistentes".
+
+```bash
+export JAVA_HOME="$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+firebase emulators:start --only firestore --project hogaru-1-test   # en otra terminal
+npx vitest run --dir tests tests/firestore.rules.test.ts
+```
+
+Dos trampas:
+- `firebase emulators:exec "npx vitest ..."` NO sirve: la CLI corre el script con
+  su Node empaquetado, que no puede cargar el ESM de vitest. Hay que levantar el
+  emulador aparte.
+- `--dir tests` no es opcional si hay worktrees en `.claude/worktrees/`: vitest
+  recoge también sus copias del archivo, que comparten emulador y chocan entre sí
+  con los mismos IDs de documento. Provocaba fallos fantasma en otras suites.

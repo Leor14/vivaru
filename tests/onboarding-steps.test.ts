@@ -104,6 +104,19 @@ describe("diferencias entre recorridos", () => {
     expect((cobro?.signal as { positiveField?: string }).positiveField).toBeUndefined();
   });
 
+  it("los pasos de portales no nombran una tarjeta que el cliente no ve", () => {
+    // La tarjeta se llama «Mis cuentas de prueba» solo en el trial; para un
+    // cliente tiene otro título. Si el paso la nombrara así, lo mandaría a
+    // buscar algo que no existe — el mismo fallo que tuvo el paso del pago.
+    for (const track of TRACKS) {
+      for (const key of ["portal-porteria", "portal-residente"]) {
+        const paso = stepByKey(key, track);
+        expect(paso, `${track}/${key}`).toBeDefined();
+        expect(paso!.how, `${track}/${key}`).not.toContain("Mis cuentas de prueba");
+      }
+    }
+  });
+
   it("el bloque de cobro no existe en la prueba", () => {
     expect(blocksForTrack("trial").map((b) => b.key)).not.toContain("cobrar");
     expect(blocksForTrack("cliente").map((b) => b.key)).toContain("cobrar");

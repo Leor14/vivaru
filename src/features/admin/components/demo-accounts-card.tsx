@@ -52,17 +52,25 @@ export function DemoAccountsCard() {
     return () => unsub();
   }, [user?.tenantId]);
 
-  // Solo tiene sentido durante la prueba: al convertir, el conjunto opera con
-  // usuarios reales.
-  if (!trial.isTrial && !trial.isExpired) return null;
+  // Se muestra también a los clientes nuevos, no solo en la prueba: su recorrido
+  // de puesta en marcha incluye «míralo como portería» y «míralo como residente»,
+  // y esas cuentas son la única forma de hacerlo sin invitar a nadie ni compartir
+  // la contraseña de administrador. Ocultarla les dejaba dos pasos imposibles de
+  // completar tal como se los explica la guía.
+  //
+  // Deja de mostrarse cuando ya hay comunidad dentro: para entonces el conjunto
+  // opera con usuarios reales y estas cuentas sobran.
   if (accounts.length === 0) return null;
+  const enPrueba = trial.isTrial || trial.isExpired;
+  if (!enPrueba && trial.onboardingTrack !== "cliente") return null;
 
   return (
     <Card className="p-5">
-      <CardTitle>Mis cuentas de prueba</CardTitle>
+      <CardTitle>{enPrueba ? "Mis cuentas de prueba" : "Recorre los otros portales"}</CardTitle>
       <CardDescription className="mt-1">
-        Entra con estas cuentas para ver cómo se vive Vivaru desde el otro lado. Son tuyas y no
-        pertenecen a ninguna persona real, así que no necesitas invitar a nadie todavía.
+        {enPrueba
+          ? "Entra con estas cuentas para ver cómo se vive Vivaru desde el otro lado. Son tuyas y no pertenecen a ninguna persona real, así que no necesitas invitar a nadie todavía."
+          : "Entra con estas cuentas para ver el portal del residente y el de portería tal como los recibirán. Son tuyas y no pertenecen a nadie real: puedes recorrerlas antes de invitar a tu comunidad."}
       </CardDescription>
 
       <ul className="mt-4 space-y-3">
