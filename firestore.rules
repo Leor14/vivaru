@@ -501,12 +501,34 @@ service cloud.firestore {
       ));
     }
 
+    // ── Soporte al cliente (PRD-V-FEAT-001) ──────────────────────────────────
+    // El administrador del conjunto LEE los suyos; escribir es siempre por
+    // callable. Cuatro razones para no dejar escritura directa: manda correo,
+    // hay campos que el cliente no debe poder falsificar (status, priority,
+    // createdBy), el hilo es append-only, y hay límites por conjunto que
+    // exigen contar antes de escribir.
+    //
+    // OJO: `supportTickets` está EXCLUIDO a propósito de tenantOperable(). Un
+    // conjunto suspendido o vencido tiene que poder abrir un ticket: es el
+    // canal por el que deja de estarlo. Es la única excepción del sistema.
     match /supportTickets/{docId} {
-      allow read: if superadmin();
-      allow create: if superadmin() &&
-        request.resource.data.createdBy == request.auth.uid;
-      allow update: if superadmin();
+      allow read: if signedIn() && (
+        superadmin() ||
+        (resource.data.tenantId is string && tenantRole(resource.data.tenantId, 'tenant_admin'))
+      );
+      // Sin escritura desde el cliente, en ningún rol. Solo el Admin SDK.
+      allow create, update: if false;
+      // Un ticket cerrado es historial de la relación comercial: no se borra.
       allow delete: if false;
+
+      // Notas internas del equipo. Viven en subcolección y no en el documento
+      // porque las reglas de Firestore NO filtran campos: en el mismo doc, el
+      // administrador con permiso de lectura las recibiría enteras por mucho
+      // que la interfaz no las pinte. Ocultar no es proteger.
+      match /internal/{noteId} {
+        allow read: if superadmin();
+        allow write: if false;  // solo el Admin SDK
+      }
     }
 
     match /reservations/{docId} {

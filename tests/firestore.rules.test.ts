@@ -211,6 +211,42 @@ beforeAll(async () => {
       createdBy: "admin-1",
     });
 
+    // Soporte al cliente (PRD-V-FEAT-001). Se siembra ya creado porque el alta
+    // real va por callable: las reglas solo tienen que gobernar la lectura.
+    await setDoc(doc(db, "supportTickets", "sup-1"), {
+      tenantId: "tenant-a",
+      tenantName: "Hogaru A",
+      createdBy: "admin-1",
+      createdByName: "Admin Uno",
+      createdByEmail: "admin-1@hogaru.test",
+      category: "tecnico",
+      subject: "No cargan los cobros",
+      description: "Al abrir cartera queda girando.",
+      priority: "media",
+      status: "abierto",
+      thread: [],
+      lastActivityAt: "2026-08-01T10:00:00.000Z",
+    });
+    await setDoc(doc(db, "supportTickets", "sup-1", "internal", "n-1"), {
+      note: "El conjunto tiene 400 unidades; puede ser paginación.",
+      createdBy: "super-1",
+    });
+    // Un ticket de OTRO conjunto, para probar el aislamiento.
+    await setDoc(doc(db, "supportTickets", "sup-b"), {
+      tenantId: "tenant-b",
+      tenantName: "Hogaru B",
+      createdBy: "admin-b",
+      createdByName: "Admin B",
+      createdByEmail: "admin-b@hogaru.test",
+      category: "otro",
+      subject: "Consulta",
+      description: "Texto",
+      priority: "media",
+      status: "abierto",
+      thread: [],
+      lastActivityAt: "2026-08-01T10:00:00.000Z",
+    });
+
     await setDoc(doc(db, "tickets", "tic-1"), {
       tenantId: "tenant-a",
       unitId: "unit-t2-503",
@@ -523,6 +559,111 @@ describe("Firestore Rules - HOGARU", () => {
         activationDone: 7,
       }),
     );
+  });
+
+  // ── Soporte al cliente (PRD-V-FEAT-001) ───────────────────────────────────
+  // La escritura va SIEMPRE por callable, así que aquí solo se gobierna quién
+  // puede leer. Los casos que deben fallar son el contrato de seguridad.
+
+  it("permite al admin del conjunto leer los tickets de soporte de SU conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "supportTickets", "sup-1")));
+  });
+
+  it("permite al superadmin leer cualquier ticket de soporte", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "supportTickets", "sup-b")));
+  });
+
+  it("bloquea al admin leer un ticket de soporte de OTRO conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "supportTickets", "sup-b")));
+  });
+
+  it("bloquea al RESIDENTE leer tickets de soporte", async () => {
+    // Su canal es PQRS, con su administración. Si pudiera escribir a Vivaru,
+    // Vivaru sería primera línea de los problemas del conjunto.
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(resident.firestore(), "supportTickets", "sup-1")));
+  });
+
+  it("bloquea a PORTERÍA leer tickets de soporte", async () => {
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(guard.firestore(), "supportTickets", "sup-1")));
+  });
+
+  it("bloquea al admin CREAR un ticket directamente — el alta es por callable", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "supportTickets", "sup-falso"), {
+        tenantId: "tenant-a",
+        tenantName: "Hogaru A",
+        createdBy: "admin-1",
+        category: "tecnico",
+        subject: "Directo",
+        description: "Sin pasar por la callable",
+        priority: "alta",
+        status: "abierto",
+        thread: [],
+      }),
+    );
+  });
+
+  it("bloquea al admin cambiar el estado o la prioridad de su ticket", async () => {
+    // La prioridad la asigna Vivaru; el estado lo mueve el flujo, no el cliente.
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "supportTickets", "sup-1"), { status: "resuelto", priority: "alta" }),
+    );
+  });
+
+  it("bloquea al SUPERADMIN escribir directamente — también él pasa por callable", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(updateDoc(doc(sa.firestore(), "supportTickets", "sup-1"), { status: "en_proceso" }));
+  });
+
+  it("bloquea el borrado de un ticket a cualquier rol", async () => {
+    // Un ticket cerrado es historial de la relación comercial.
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(sa.firestore(), "supportTickets", "sup-1")));
+    await assertFails(deleteDoc(doc(admin.firestore(), "supportTickets", "sup-1")));
+  });
+
+  it("bloquea al admin leer las NOTAS INTERNAS de su propio ticket", async () => {
+    // Es la única información asimétrica del modelo. Vive en subcolección
+    // justamente porque las reglas no filtran campos: en el mismo documento,
+    // el admin la recibiría entera al leer el ticket.
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "supportTickets", "sup-1", "internal", "n-1")));
+  });
+
+  it("permite al superadmin leer las notas internas", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "supportTickets", "sup-1", "internal", "n-1")));
+  });
+
+  it("un conjunto SUSPENDIDO conserva la lectura de soporte", async () => {
+    // Excepción deliberada a tenantOperable: es el canal por el que un cliente
+    // suspendido deja de estarlo. Bloquearlo sería encerrarlo fuera.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "supportTickets", "sup-susp"), {
+        tenantId: "tenant-susp",
+        tenantName: "Suspendido",
+        createdBy: "admin-susp",
+        createdByName: "Admin Susp",
+        createdByEmail: "admin-susp@hogaru.test",
+        category: "facturacion",
+        subject: "Quiero reactivar",
+        description: "Texto",
+        priority: "alta",
+        status: "abierto",
+        thread: [],
+        lastActivityAt: "2026-08-01T10:00:00.000Z",
+      });
+    });
+    const admin = testEnv.authenticatedContext("admin-susp", { role: "tenant_admin", tenantId: "tenant-susp" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "supportTickets", "sup-susp")));
   });
 
   // ── Ambientes en solo lectura (tenantOperable) ────────────────────────────
