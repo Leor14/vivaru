@@ -139,20 +139,38 @@ export function FAQ() {
         demo.
       </p>
 
-      <div className="mt-xl mx-auto max-w-3xl rounded-2xl border border-border bg-background p-md sm:p-lg shadow-brand-sm">
-        <Accordion value={open} onValueChange={handleValueChange}>
-          {QUESTIONS.map((q) => (
-            <AccordionItem key={q.id} value={String(q.id)}>
-              <AccordionTrigger className="text-base font-medium text-navy py-4">
-                {q.question}
-              </AccordionTrigger>
-              <AccordionContent className="text-slate-600 leading-relaxed">
-                {q.answer}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </div>
+      {/*
+        Dos columnas de tarjetas sueltas, sin la caja que las envolvía. Ocho
+        preguntas en una sola columna obligaban a bajar mucho para ver la
+        última; repartidas, la sección entra casi de una vez.
+
+        `items-start` es lo que evita que abrir una pregunta estire la tarjeta
+        de al lado: en una rejilla, las celdas de una misma fila igualan altura
+        por defecto, y el acordeón cambia de alto al abrirse.
+
+        La raíz del acordeón trae `flex flex-col`; `twMerge` deja ganar a
+        `grid`, así que el componente compartido no necesita tocarse.
+      */}
+      <Accordion
+        value={open}
+        onValueChange={handleValueChange}
+        className="mt-xl grid items-start gap-3 md:grid-cols-2"
+      >
+        {QUESTIONS.map((q) => (
+          <AccordionItem
+            key={q.id}
+            value={String(q.id)}
+            className="rounded-xl border border-border bg-background px-4"
+          >
+            <AccordionTrigger className="py-4 text-base font-medium text-navy">
+              {q.question}
+            </AccordionTrigger>
+            <AccordionContent className="pb-4 leading-relaxed text-slate-600">
+              {q.answer}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </section>
   );
 }
