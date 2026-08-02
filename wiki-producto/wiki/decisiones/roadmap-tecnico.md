@@ -63,11 +63,17 @@ La transición al modelo Nivel 2 ocurre cuando hay 5–10 clientes estables. Imp
 - Entidad legal en México
 - Pagos embebidos en la plataforma
 
+## Frente paralelo: IA
+
+Desde agosto de 2026 existe un programa de IA con su propio marco de fases y puertas, independiente de las fases GTM de esta página. Está **decidido y no construido**: no hay código de IA en el repositorio. Resumen en [[programa-ia]]; la decisión ejecutiva y el techo de costo en [[estrategia-ia-minima-viable]]; las fases, puertas G0–G7 y decisiones pendientes en [[plan-general-ia]].
+
+No debe fusionarse con este roadmap. La IA se habilita por solución y con evidencia propia, no por fase de plataforma.
+
 ## Relaciones
 
-- Véase también: [[gtm-tecnico]], [[multi-tenancy]], [[firebase-firestore]]
+- Véase también: [[gtm-tecnico]], [[multi-tenancy]], [[firebase-firestore]], [[programa-ia]]
 - Depende de: —
-- Se conecta con: [[superadmin]], [[usuarios]], [[configuracion]], [[reportes]]
+- Se conecta con: [[superadmin]], [[usuarios]], [[configuracion]], [[reportes]], [[ciclo-de-vida-tenant]], [[estrategia-ia-minima-viable]], [[plan-general-ia]]
 
 ## Fuentes
 

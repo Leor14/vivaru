@@ -27,6 +27,7 @@ Tabla de estado actual de todos los módulos del producto. Se actualiza después
 | Encuestas | `/admin/surveys` | 🔲 pendiente critique | Ver [[encuestas]] |
 | Reglamento | `/admin/regulations` | 🔲 pendiente critique | Ver [[reglamento]] |
 | Reportes | `/admin/reports` | 🔲 pendiente critique | Ver [[reportes]] |
+| Soporte | `/admin/soporte` | 🆕 en staging | Falta recorrido visual. Ver [[soporte]] |
 
 ## Portal Residente (`/resident`)
 
@@ -63,6 +64,22 @@ Estado del sitio público (`grupovivaru.com`). Ver [[landing-marketing]] para de
 | Diagnóstico `/diagnostico` | ✅ cuestionario funcional | H11: PDF pendiente |
 | Legales `/legal/*` | ✅ funcional | Privacidad, Términos, Datos |
 | **Bug max-w-* fix** | ⚠️ commit `dcac2ce` pendiente push | `git push origin master` requerido |
+
+## Adquisición y activación (jul–ago 2026)
+
+| Capacidad | Estado | Notas |
+|---|---|---|
+| Trial self-service de 15 días | ✅ en producción | Fases 0–4. Ver [[ciclo-de-vida-tenant]] |
+| Guía de puesta en marcha | ✅ en producción | 18 pasos, 4 bloques. Ver [[onboarding-guiado]] |
+| Recorrido para clientes nuevos | ✅ en producción | `onboardingTrack: cliente` |
+| `tenantOperable()` en reglas | ✅ en producción | 25 colecciones, 52 statements |
+| Wizard «Inicia tu suscripción» | ✅ en producción | Sin promesa de plazo de respuesta |
+| Tickets de soporte | 🆕 staging | Ver [[soporte]] y [[portafolio-prd]] |
+| Barrido de tokens CSS | ✅ cerrado | 20 variables declaradas. Ver [[transiciones-navegacion]] |
+
+## Programa de IA
+
+**0% construido.** No existe código de IA en el repositorio. El marco de decisión está completo y documentado en [[programa-ia]]; las cinco PRD viven en Google Drive sin versionar. Fase 0 bloqueada por ocho decisiones sin responsable asignado.
 
 ## Flujo de critique
 

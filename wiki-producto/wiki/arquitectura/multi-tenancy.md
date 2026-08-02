@@ -18,6 +18,14 @@ No hay bases de datos separadas por tenant. Todo comparte el mismo Firestore, pe
 
 Las `firestore.rules` (700+ líneas) verifican en cada operación que `request.auth.token.tenantId == resource.data.tenantId`. Esto garantiza que un admin del edificio A nunca pueda leer ni escribir datos del edificio B, aunque use la misma aplicación. Ver [[firebase-firestore]].
 
+Dos límites que conviene tener presentes, ambos registrados en [[trampas-conocidas]]: las reglas **no filtran** —una consulta de lista sin `where("tenantId","==",...)` se deniega entera, no se recorta— y **no filtran campos** —un permiso de lectura sobre un documento expone todos sus campos—. Lo segundo obliga a sacar a subcolecciones cualquier dato que no sea para todos los lectores del documento, como hacen las notas internas de [[soporte]].
+
+## Aislamiento en el tiempo: `tenantOperable()`
+
+El `tenantId` aísla *quién*; `tenantOperable()` aísla *cuándo*. Un conjunto `suspended` o `expired` queda en solo lectura a nivel de reglas, no solo de interfaz: 25 colecciones operativas, 52 statements. Antes de agosto de 2026 el estado era decorativo y un cliente vencido con la sesión abierta podía seguir escribiendo indefinidamente. Detalle en [[ciclo-de-vida-tenant]].
+
+La única excepción operativa es [[soporte]], porque es el canal por el que un cliente suspendido deja de estarlo.
+
 ## Colecciones clave del modelo
 
 | Colección | Descripción |
@@ -42,9 +50,9 @@ La creación de tenants y usuarios se realiza exclusivamente via Cloud Functions
 
 ## Relaciones
 
-- Véase también: [[autenticacion-roles]], [[firebase-firestore]]
+- Véase también: [[autenticacion-roles]], [[firebase-firestore]], [[ciclo-de-vida-tenant]]
 - Depende de: [[domain-types]]
-- Se conecta con: [[configuracion]], [[usuarios]], [[stack-tecnico]], [[roadmap-tecnico]]
+- Se conecta con: [[configuracion]], [[usuarios]], [[stack-tecnico]], [[roadmap-tecnico]], [[soporte]], [[programa-ia]], [[pruebas-reglas-emulador]]
 
 ## Fuentes
 
