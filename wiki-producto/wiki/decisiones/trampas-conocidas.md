@@ -141,9 +141,23 @@ Al prohibir la escritura directa en `supportTickets`, la bandeja del [[superadmi
 
 Borra todo campo no incluido en el cuerpo. Además, las rutas de campo con guiones necesitan comillas invertidas: `seen.\`portal-porteria\``. Afecta a los scripts de verificación, no a la app.
 
-## `apphosting.yaml` en develop es configuración de staging
+## `apphosting.yaml` va en las DOS direcciones
 
-La versión de `develop` apunta entera a staging. Al mergear a `master` hay que conservar la de `master` completa, no fusionar. Un merge descuidado arrastra staging a producción. Ver [[dominios-app-hosting]].
+Cada rama tiene su propio `apphosting.yaml` y ninguna debe adoptar el de la otra: `develop` apunta entero a `vivaru-staging-02`/`staging`, `master` a `hogaru-1`/`production`. El archivo **nunca se fusiona**; se conserva el de la rama destino.
+
+Las dos direcciones muerden, y la segunda es la que se olvida:
+
+- **`develop` → `master`**: arrastraría staging a producción. Es la conocida.
+- **`master` → `develop`**: arrastra producción a staging. Ocurrió el 2026-08-01 al sincronizar ramas tras un despliegue. El merge fue **fast-forward**, así que no hubo conflicto ni aviso: `develop` quedó apuntando a `hogaru-1` en silencio, y el siguiente build de staging habría escrito en producción. Se detectó al verificar el archivo después del merge, no durante.
+
+La lección es que «Automatic merge went well» **no es una verificación**. Tras cualquier merge entre estas dos ramas, comprobar el archivo:
+
+```bash
+grep -A1 NEXT_PUBLIC_FIREBASE_PROJECT_ID apphosting.yaml
+grep -n "value: staging\|value: production" apphosting.yaml
+```
+
+Ver [[dominios-app-hosting]] y [[ciclo-de-vida-tenant]].
 
 ## Una prueba que no se ejecuta es peor que ninguna
 

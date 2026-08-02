@@ -38,7 +38,7 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 
 | PRD | Estado | Nota |
 |---|---|---|
-| [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | En staging | Verificada por API. Falta recorrido visual y confirmar entrega de correo en producción |
+| [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | **Productiva** | Desplegada y verificada de punta a punta el 2026-08-01, correo incluido |
 
 ### IA
 
