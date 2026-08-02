@@ -87,6 +87,9 @@ describe("composición de la página", () => {
   const SECCIONES = [
     "Topbar",
     "Hero",
+    // Va entre Hero e ImpactBand a propósito: primero se ve qué es el
+    // producto, después por qué hace falta.
+    "ProductGlimpse",
     "ImpactBand",
     "Pain",
     "Solution",
@@ -125,6 +128,7 @@ describe("aislamiento de los tokens del landing", () => {
     const archivos = [
       "Topbar.tsx", "FAQ.tsx", "ImpactBand.tsx", "FinalCTA.tsx",
       "Perspectives.tsx", "Differentiators.tsx", "TrustOnboarding.tsx",
+      "ProductGlimpse.tsx",
     ];
     for (const a of archivos) {
       expect(marketing(a)).not.toMatch(/prefers-color-scheme|dark:/);
