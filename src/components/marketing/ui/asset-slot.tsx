@@ -42,11 +42,18 @@ export function AssetSlot({
   className,
   sizes = "(max-width: 1024px) 100vw, 50vw",
   priority,
+  compact,
 }: {
   asset: AssetDef;
   className?: string;
   sizes?: string;
   priority?: boolean;
+  /**
+   * Para huecos pequeños (un icono de 100×100). El marcador completo lleva
+   * tres líneas de texto que ahí no caben y salen apelotonadas; en compacto
+   * se queda solo la descripción.
+   */
+  compact?: boolean;
 }) {
   const { src, alt, width, height, kind = "image", file, poster } = asset;
 
@@ -95,14 +102,25 @@ export function AssetSlot({
       role="img"
       aria-label={alt}
     >
-      <div className="p-3">
-        <p className="text-[11px] font-medium leading-snug text-slate-500">{alt}</p>
-        <p className="mt-1 text-[9px] uppercase tracking-widest text-slate-400">
-          {kind === "video" ? "Vídeo pendiente" : "Pendiente"} · {width}×{height}
+      <div className={compact ? "p-1.5" : "p-3"}>
+        <p
+          className={cn(
+            "font-medium leading-snug text-slate-500",
+            compact ? "text-[10px]" : "text-[11px]",
+          )}
+        >
+          {alt}
         </p>
-        {file ? (
-          <p className="mt-0.5 font-mono text-[9px] text-slate-400">{file}</p>
-        ) : null}
+        {compact ? null : (
+          <>
+            <p className="mt-1 text-[9px] uppercase tracking-widest text-slate-400">
+              {kind === "video" ? "Vídeo pendiente" : "Pendiente"} · {width}×{height}
+            </p>
+            {file ? (
+              <p className="mt-0.5 font-mono text-[9px] text-slate-400">{file}</p>
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   );
