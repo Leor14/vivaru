@@ -193,8 +193,12 @@ const HEADLINE_COLOR: Record<TabKey, string> = {
  * pb/pr on the container create room for the overlay to extend outside.
  */
 function AdminComposite({ shots }: { shots: ShotDef[] }) {
+  // Sin `max-w-*`: globals.css tiene overrides `.marketing-theme .max-w-lg`
+  // con más especificidad que cualquier variante responsive, así que un
+  // `lg:max-w-none` encima no gana nunca (ver tailwind-v4-spacing-fix).
+  // El ancho lo pone la columna de la rejilla, que es donde debe estar.
   return (
-    <div className="relative w-full max-w-lg pb-8 pr-7">
+    <div className="relative w-full pb-8 pr-7">
       <AssetSlot
         asset={shots[0]}
         sizes="(max-width: 1024px) 100vw, 45vw"
@@ -280,7 +284,7 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
  */
 function PorteriaComposite({ shots }: { shots: ShotDef[] }) {
   return (
-    <div className="relative w-full max-w-lg pb-7 pr-6">
+    <div className="relative w-full pb-7 pr-6">
       <AssetSlot
         asset={shots[0]}
         sizes="(max-width: 1024px) 100vw, 45vw"
@@ -344,7 +348,7 @@ export function Perspectives() {
       <section
         id="perspectivas"
         aria-labelledby="perspectivas-heading"
-        className="bg-slate-50 scroll-mt-24"
+        className="overflow-x-clip bg-slate-50 scroll-mt-24"
       >
         <div className="container py-xxl">
           <h2
@@ -415,7 +419,7 @@ export function Perspectives() {
                 animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                 exit={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
                 transition={{ duration: reduced ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
-                className="grid items-center gap-xl lg:grid-cols-2 lg:gap-xxl"
+                className="grid items-center gap-xl lg:grid-cols-[minmax(0,42%)_minmax(0,58%)] lg:gap-xxl"
               >
                 {/* Copy — 3 capas: problema → solución → en la práctica */}
                 <div>
@@ -470,8 +474,18 @@ export function Perspectives() {
                   </div>
                 </div>
 
-                {/* Composite */}
-                <div className="flex justify-center lg:justify-end">
+                {/*
+                  Composite. Se ensancha y se sale por el borde derecho, como
+                  en la sección de North de Cohere: da sensación de producto
+                  grande sin pedir más alto a la sección.
+
+                  El sangrado se hace con margen negativo y NO con `scale`.
+                  Escalar agranda también en vertical, y `overflow-x-clip`
+                  recorta solo en horizontal: el excedente de alto se habría
+                  montado sobre la sección siguiente. Con margen negativo el
+                  layout sigue siendo honesto y solo sobra lo que se recorta.
+                */}
+                <div className="flex justify-center lg:-mr-16 lg:justify-start xl:-mr-32">
                   <TabComposite tab={active} />
                 </div>
               </m.div>

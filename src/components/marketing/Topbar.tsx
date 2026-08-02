@@ -307,11 +307,31 @@ export function Topbar() {
         role="region"
         aria-label="Acción principal"
       >
-        <DemoDialog section="mobile_bottom">
-          <Button size="lg" variant="default" className="w-full">
-            Agenda una demo
-          </Button>
-        </DemoDialog>
+        {/* El mismo primario que en escritorio. Era "Agenda una demo", que
+            dejaba al móvil ofreciendo como acción siempre visible una distinta
+            de la que la barra ancha considera principal. La demo sigue a un
+            toque, dentro del menú. */}
+        <Button
+          size="lg"
+          variant="default"
+          className="w-full"
+          render={
+            <Link
+              href="/registro"
+              onClick={() =>
+                track("cta_primary_click", {
+                  section: "mobile_bottom",
+                  cta: "trial",
+                })
+              }
+            />
+          }
+        >
+          Prueba gratis 15 días{" "}
+          <span aria-hidden="true" className="ml-0.5">
+            →
+          </span>
+        </Button>
       </div>
       ) : null}
     </>

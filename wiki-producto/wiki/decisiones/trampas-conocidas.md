@@ -196,6 +196,22 @@ Diseñar el landing con los tokens de la aplicación costó dos iteraciones comp
 
 `DESIGN.md` lo dice explícitamente: *«No dark mode tokens defined»*. Ni el landing ni la aplicación lo tienen. Añadir `prefers-color-scheme` o variantes `dark:` a un componente de marketing hace que la página se oscurezca en navegadores configurados en oscuro y represente algo que el producto no hace. `tests/landing-contract.test.ts` lo comprueba.
 
+## `.marketing-theme .max-w-*` gana a cualquier variante responsive
+
+`globals.css` corrige el bug de `--spacing-*` redeclarando las anchuras dentro del scope del landing:
+
+```css
+.marketing-theme .max-w-lg { max-width: 32rem; }
+```
+
+Esa regla tiene especificidad `0,2,0`. Una utilidad responsive como `lg:max-w-none` o `lg:max-w-3xl` tiene `0,1,0`, **así que no gana nunca**: la clase aparece en el marcado, se ve en el DOM y no hace nada. Solo afecta a `max-w-xs`, `sm`, `md` y `lg`, que son las redeclaradas; `max-w-3xl` suelto sí funciona, lo que hace el fallo más desconcertante.
+
+Costó una ronda de diagnóstico en el rediseño de Perspectivas: la captura seguía clavada en 512px con `lg:max-w-none` puesto. La salida es no usar `max-w-*` ahí y dejar que el ancho lo ponga la columna de la rejilla. Ver [[tailwind-v4-spacing-fix]].
+
+## Tailwind v4 escribe `scale-*` en la propiedad `scale`, no en `transform`
+
+`getComputedStyle(el).transform` devuelve `none` con `scale-110` aplicado, porque v4 usa la propiedad independiente `scale`. Medir `transform` para comprobar si una escala se aplicó da un falso negativo. Leer `.scale`.
+
 ## Relaciones
 
 - Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]], [[triaje-auditoria-ux]], [[kpis-formula-unica]], [[soporte]], [[ciclo-de-vida-tenant]], [[pruebas-reglas-emulador]]
