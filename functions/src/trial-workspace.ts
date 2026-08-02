@@ -5,6 +5,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { sendNotificationEmail } from "./email";
+import { currencyForCountry } from "./country-currency";
 import { seedTrialWorkspace } from "./trial-seed";
 
 /**
@@ -135,7 +136,7 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
       name: input.conjunto.trim(),
       city: input.ciudad.trim(),
       country: input.pais ?? "MX",
-      currency: input.pais === "CO" ? "COP" : "MXN",
+      currency: currencyForCountry(input.pais),
       status: input.asCustomer ? "active" : "trial",
       planId: input.asCustomer ? (input.planId?.trim() || FULL_SERVICE_PLAN_ID) : TRIAL_PLAN_ID,
       onboardingStatus: "not_started",
@@ -254,7 +255,7 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
   // verse llenos) y NO en un alta de cliente, que carga sus datos reales.
   const shouldSeed = input.seedExamples ?? !input.asCustomer;
   const seeded = shouldSeed
-    ? await seedTrialWorkspace(tenantId, input.pais === "CO" ? "COP" : "MXN")
+    ? await seedTrialWorkspace(tenantId, currencyForCountry(input.pais))
     : {};
 
   // Las credenciales de prueba van en su PROPIA colección, no en tenantSettings:

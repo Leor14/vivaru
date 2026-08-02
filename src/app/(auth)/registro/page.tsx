@@ -7,7 +7,9 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { CountrySelect } from "@/components/ui/country-select";
 import { Input } from "@/components/ui/input";
+import { PhoneField, composePhone } from "@/components/ui/phone-field";
 import { createTrialWorkspaceCallable } from "@/lib/firebase/callables";
 
 /**
@@ -21,12 +23,6 @@ import { createTrialWorkspaceCallable } from "@/lib/firebase/callables";
 
 type Step = "contacto" | "conjunto" | "listo";
 
-const PAISES = [
-  { value: "MX", label: "México" },
-  { value: "CO", label: "Colombia" },
-  { value: "EC", label: "Ecuador" },
-];
-
 export default function RegistroPage() {
   const [step, setStep] = useState<Step>("contacto");
   const [submitting, setSubmitting] = useState(false);
@@ -34,9 +30,16 @@ export default function RegistroPage() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [telefonoPais, setTelefonoPais] = useState("MX");
+  const [telefonoPaisTocado, setTelefonoPaisTocado] = useState(false);
   const [conjunto, setConjunto] = useState("");
   const [ciudad, setCiudad] = useState("");
   const [pais, setPais] = useState("MX");
+
+  function cambiarPais(code: string) {
+    setPais(code);
+    if (!telefonoPaisTocado) setTelefonoPais(code);
+  }
   const [unidades, setUnidades] = useState("");
 
   function goToConjunto() {
@@ -54,7 +57,7 @@ export default function RegistroPage() {
       await createTrialWorkspaceCallable({
         nombre: nombre.trim(),
         email: email.trim().toLowerCase(),
-        telefono: telefono.trim() || undefined,
+        telefono: composePhone(telefonoPais, telefono),
         conjunto: conjunto.trim(),
         ciudad: ciudad.trim(),
         pais,
@@ -141,7 +144,15 @@ export default function RegistroPage() {
                   </label>
                   <label className="block text-sm text-[var(--slate-700)]">
                     Teléfono <span className="text-[var(--slate-400)]">(opcional)</span>
-                    <Input className="mt-1" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="+52 55 0000 0000" />
+                    <PhoneField
+                      country={telefonoPais}
+                      number={telefono}
+                      onCountryChange={(code) => {
+                        setTelefonoPais(code);
+                        setTelefonoPaisTocado(true);
+                      }}
+                      onNumberChange={setTelefono}
+                    />
                   </label>
                   <Button className="w-full" onClick={goToConjunto}>
                     Continuar
@@ -160,15 +171,7 @@ export default function RegistroPage() {
                     </label>
                     <label className="block text-sm text-[var(--slate-700)]">
                       País
-                      <select
-                        className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
-                        value={pais}
-                        onChange={(e) => setPais(e.target.value)}
-                      >
-                        {PAISES.map((p) => (
-                          <option key={p.value} value={p.value}>{p.label}</option>
-                        ))}
-                      </select>
+                      <CountrySelect className="mt-1" value={pais} onChange={cambiarPais} />
                     </label>
                   </div>
                   <label className="block text-sm text-[var(--slate-700)]">
