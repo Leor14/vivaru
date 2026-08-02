@@ -10,11 +10,33 @@
  *   portería  → guardia@elnogal.co       / Demo1234*  (tenant: El Nogal — sin guardia en Santa María)
  *
  * Output → /public/product/
+ *
+ * ⚠️  ENTORNO. `playwright.config.ts` levanta `npm run dev`, y este repo NO
+ * tiene las variables de Firebase en `.env.local`: el fallback de
+ * `src/lib/firebase/config.ts` es **hogaru-1, producción**. Correrlo sin más
+ * significa hacer login automatizado contra datos reales.
+ *
+ * Para apuntar a staging, exportar antes:
+ *
+ *   NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyChPlJL3WESeNggGXBPMiHzIAAicEH8J6c \
+ *   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=vivaru-staging-02.firebaseapp.com \
+ *   NEXT_PUBLIC_FIREBASE_PROJECT_ID=vivaru-staging-02 \
+ *   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=vivaru-staging-02.firebasestorage.app \
+ *   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=765613061037 \
+ *   NEXT_PUBLIC_FIREBASE_APP_ID=1:765613061037:web:37c450d7c1a20b4812a724 \
+ *   npx playwright test tests/capture-product-screenshots.spec.ts
+ *
+ * Las capturas salen a @2x (deviceScaleFactor: 2) para el rediseño del
+ * landing: la sección de Perspectivas las muestra al doble de tamaño y a 1x
+ * se veían blandas. Ver docs/plan-rediseno-landing.md.
  */
 
 import * as fs from "fs";
 import * as path from "path";
 import { expect, test, type Page } from "@playwright/test";
+
+// @2x en todo: el rediseño muestra estas capturas al doble de tamaño.
+test.use({ deviceScaleFactor: 2 });
 
 const OUT = path.resolve(__dirname, "../public/product");
 
@@ -99,4 +121,62 @@ test.describe("Product screenshots — Perspectivas", () => {
     await loginAs(page, "guardia@elnogal.co", "Demo1234*");
     await capture(page, "/guard/packages", "perspectives-porteria-packages.png");
   });
+});
+
+// ─── Capturas del rediseño del landing ───────────────────────────────────────
+
+test.describe("Product screenshots — rediseño landing", () => {
+  test.setTimeout(180_000);
+
+  // Multi-conjunto: el selector desplegado. Es la prueba de que se pasa de un
+  // conjunto a otro sin cerrar sesión; una etiqueta «AISLADO» no demuestra eso.
+  test("selector de conjunto", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await capture(page, "/admin", "multiconjunto-selector.png", async () => {
+      // Abre el conmutador de conjunto si existe en la barra lateral.
+      const sw = page.getByRole("button", { name: /Santa María|Cambiar conjunto/i }).first();
+      if (await sw.count()) {
+        await sw.click();
+        await page.waitForTimeout(700);
+      }
+    });
+  });
+
+  // Las dos marcas: MISMO encuadre, distinto conjunto. Si cambia la pantalla
+  // entre una y otra se pierde la demostración.
+  test("tablero con marca A", async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await capture(page, "/admin", "multiconjunto-marca-a.png");
+  });
+
+  test("tablero con marca B", async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 900 });
+    await loginAs(page, "guardia@elnogal.co", "Demo1234*");
+    await capture(page, "/guard", "multiconjunto-marca-b.png");
+  });
+
+  // Confianza: cuatro pantallas 16:9.
+  test("importación desde Excel", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await capture(page, "/admin/residents", "trust-migracion.png");
+  });
+
+  test("registro de auditoría", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await capture(page, "/admin/settings", "trust-respaldos.png");
+  });
+
+  test("soporte dentro del producto", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await capture(page, "/admin/soporte", "trust-soporte.png");
+  });
+
+  // `trust-acceso.png` (activación por enlace) NO se automatiza: la pantalla
+  // vive detrás de un enlace de un solo uso que caduca, así que reproducirla
+  // pide generar una invitación real. Se captura a mano.
 });
