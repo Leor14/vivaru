@@ -4011,7 +4011,7 @@ export const createSupportTicket = onCall<{
   category: string;
   subject: string;
   description: string;
-}>({ cors: callableCorsOrigins, secrets: [resendApiKey] }, async (request) => {
+}>({ cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] }, async (request) => {
   const { uid, role } = supportAuth(request.auth);
   const result = await createSupportTicketImpl(request.data, uid, role);
   await writeAuditLog(request.data?.tenantId ?? "", uid, "create_support_ticket", {
@@ -4022,7 +4022,7 @@ export const createSupportTicket = onCall<{
 });
 
 export const replyToSupportTicket = onCall<{ ticketId: string; message: string }>(
-  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },
   async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return replySupportTicket(request.data, uid, role);
@@ -4033,13 +4033,13 @@ export const updateSupportTicketStatus = onCall<{
   ticketId: string;
   status?: string;
   priority?: string;
-}>({ cors: callableCorsOrigins, secrets: [resendApiKey] }, async (request) => {
+}>({ cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] }, async (request) => {
   const { uid, role } = supportAuth(request.auth);
   return updateSupportTicketImpl(request.data, uid, role);
 });
 
 export const reopenSupportTicketCallable = onCall<{ ticketId: string; message: string }>(
-  { cors: callableCorsOrigins, secrets: [resendApiKey] },
+  { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },
   async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return reopenSupportTicket(request.data, uid, role);
@@ -4047,7 +4047,7 @@ export const reopenSupportTicketCallable = onCall<{ ticketId: string; message: s
 );
 
 export const closeSupportTicketCallable = onCall<{ ticketId: string }>(
-  { cors: callableCorsOrigins },
+  { cors: callableCorsOrigins, invoker: "public" },
   async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return closeSupportTicket(request.data, uid, role);
@@ -4055,7 +4055,7 @@ export const closeSupportTicketCallable = onCall<{ ticketId: string }>(
 );
 
 export const addSupportNote = onCall<{ ticketId: string; note: string }>(
-  { cors: callableCorsOrigins },
+  { cors: callableCorsOrigins, invoker: "public" },
   async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return addSupportInternalNote(request.data, uid, role);

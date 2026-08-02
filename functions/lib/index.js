@@ -3212,7 +3212,7 @@ function supportAuth(auth) {
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
     return { uid, role: auth?.token?.role };
 }
-exports.createSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.createSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     const result = await (0, support_1.createSupportTicket)(request.data, uid, role);
     await writeAuditLog(request.data?.tenantId ?? "", uid, "create_support_ticket", {
@@ -3221,23 +3221,23 @@ exports.createSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, s
     });
     return result;
 });
-exports.replyToSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.replyToSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.replySupportTicket)(request.data, uid, role);
 });
-exports.updateSupportTicketStatus = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.updateSupportTicketStatus = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.updateSupportTicket)(request.data, uid, role);
 });
-exports.reopenSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.reopenSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.reopenSupportTicket)(request.data, uid, role);
 });
-exports.closeSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.closeSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public" }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.closeSupportTicket)(request.data, uid, role);
 });
-exports.addSupportNote = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.addSupportNote = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public" }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.addSupportInternalNote)(request.data, uid, role);
 });
