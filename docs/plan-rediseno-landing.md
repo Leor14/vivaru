@@ -204,14 +204,23 @@ Referencia: Synthesia. Copy y botones a la izquierda, vídeo 16:9 en bucle a la 
 
 19 piezas. No bloquean la maquetación gracias al `AssetSlot` del incremento 0.
 
-| Inc | Tipo | Proporción | Piezas |
-|---|---|---|---:|
-| 7 | Foto | 1:1 · 900×900 | 1 |
-| 3 | SVG a medida | 1:1 · 100×100 | 3 |
-| 6 | Captura @2x | 2:1 · 2400×1200 | 4 |
-| 5 | Foto | 1:1 y una 2:2 | 6 |
-| 4 | Miniatura | 16:9 · 1280×720 | 4 |
-| 8 | Vídeo + marco | 16:9 · 1920×1080 | 2 |
+| Inc | Tipo | Estado |
+|---|---|---|
+| 7 | 1 foto 1:1 | **Hecho** |
+| 3 | 3 SVG 100×100 | **Hecho**, dibujados a mano |
+| 5 | 6 fotos | **Hecho** |
+| 4 | 4 capturas 16:9 | Pendiente · necesita siembra en staging |
+| 6 | 4 recapturas @2x | Pendiente · necesita siembra en staging |
+| — | 3 de multi-conjunto | Pendiente · **una no existe**, ver abajo |
+| 8 | 1 vídeo + póster | Pendiente |
+
+Las 10 hechas pesan 2,7 MB tras optimizar, desde los 10,4 MB originales.
+
+**Aviso sobre `multiconjunto-selector`:** esa captura no se puede tomar porque
+el conmutador de conjunto **no existe en el producto**. El claim de sesión lleva
+un solo `tenantId` y `auth-context` resuelve la membresía con `limit(1)`. El
+bullet del landing que promete llevar varios conjuntos desde una cuenta no es
+cierto hoy: o se ajusta el texto, o se construye la pantalla.
 
 Las 4 capturas del incremento 6 las podemos generar nosotros desde staging. Las 11 fotos y los 3 SVG son producción externa. El vídeo es lo único con coste real de guion y edición.
 
