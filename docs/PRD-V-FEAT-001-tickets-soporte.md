@@ -8,7 +8,7 @@
 | **Usuario principal** | `tenant_admin` — el administrador del conjunto |
 | **Usuarios secundarios** | `superadmin` — quien atiende desde Vivaru |
 | **Responsable** | David (producto) · equipo comercial (operación) |
-| **Estado** | Lista para desarrollo |
+| **Estado** | En staging · verificada |
 | **Dependencias** | `functions/src/email.ts` (remitente verificado) · secret `RESEND_API_KEY` |
 | **Riesgo** | Medio — datos personales en texto libre, y una cola que si nadie atiende deteriora la relación con el cliente |
 | **Reversibilidad** | **Alta.** Es funcionalidad aditiva: se apaga ocultando la entrada del menú, sin migrar ni perder datos |
@@ -313,6 +313,31 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 | `G6 Escala` | ✅ Decenas al mes; el diseño soporta un orden de magnitud más |
 
 **Las siete puertas están superadas. Lista para desarrollo y para producción**, en cuanto se decida construirla.
+
+## Verificación en staging (2026-08-01)
+
+Ejecutada contra staging real con **cuatro sesiones distintas** —administrador,
+residente, portería y un superadmin sintético—, pasando por las reglas y los
+callables de verdad.
+
+**20 de 20 criterios ejecutables en verde.** Ciclo completo: alta → respuesta de
+Vivaru → respuesta del cliente → resuelto → reapertura → nota interna → cierre.
+Y los que deben fallar, fallando: residente y portería no leen; el administrador
+no accede a tickets de otro conjunto ni a las notas internas; nadie escribe el
+documento directamente —tampoco el superadmin—; nadie borra; no se responde a un
+cerrado; y una consulta de lista sin filtro de conjunto se deniega entera.
+
+**La excepción de los suspendidos, probada en vivo:** un conjunto suspendido
+abre un ticket (200) y sigue sin poder crear una unidad (403). Funciona sin
+haber aflojado el candado de alrededor, que era el riesgo real de introducirla.
+
+**Lo que NO se pudo verificar:** la entrega del correo. Staging no tiene
+`RESEND_API_KEY`. El código lo envía y falla en silencio a propósito, para que un
+problema de correo nunca deshaga una solicitud de ayuda. Solo se confirma en
+producción, igual que pasó con el canario del trial.
+
+**Sin recorrer con ojos:** la interfaz. La lógica y los permisos están
+verificados por API; nadie ha visto todavía las dos pantallas renderizadas.
 
 ## Operación — y su fecha de caducidad
 
