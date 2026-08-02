@@ -50,6 +50,16 @@ Al operar desde el sandbox del agente, si se intenta hacer push directamente se 
 
 Usar `overflow-x: hidden` en `<html>` o en contenedores ancestros crea un nuevo scroll container que rompe `position: sticky` en todos los descendientes. Usar `overflow-x: clip` en su lugar. Ver [[mobile-first-ios]].
 
+**Arreglarlo en un solo elemento no basta, y así estuvo meses.** `html` tenía `clip` con un comentario explicando exactamente por qué, pero `body` conservaba `hidden`: con que uno de los dos cree el scroll container, el arreglo queda anulado. Consecuencia medida en producción en agosto de 2026: el header del landing, declarado `sticky top-0`, se iba con el scroll. Nadie lo había notado porque no rompe nada visible, solo deja de hacer algo.
+
+Al tocar esto, comprobar **los dos**:
+
+```bash
+grep -n -A5 "^body {\|^html {" src/app/globals.css | grep overflow-x
+```
+
+Y verificarlo midiendo, no mirando: `getBoundingClientRect().top` del header tras hacer scroll. Si vale el negativo del scroll, no está fijo. Cuidado además con la caché del navegador en desarrollo: el chunk de CSS conserva el nombre aunque cambie el contenido, así que puede seguir sirviendo la versión anterior mucho después de recompilar.
+
 ## Transiciones con 'all'
 
 El uso de `transition: all` está prohibido per [[absolute-bans]], pero algunos componentes viejos todavía lo tienen. Al tocar un componente existente, verificar y reemplazar por propiedades específicas. Ver [[animaciones]].

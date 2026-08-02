@@ -132,7 +132,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-manrope), sans-serif;
-  overflow-x: hidden;
+  /* `clip` y no `hidden`, por la misma razón que en `html` (ver abajo).
+     Estuvo en `hidden` hasta agosto de 2026: el arreglo se había aplicado
+     solo a `html`, y bastaba con que `body` siguiera creando un scroll
+     container para anularlo. Efecto medido en producción: el header del
+     landing, declarado `sticky top-0`, se iba con el scroll. */
+  overflow-x: clip;
 }
 
 html {
