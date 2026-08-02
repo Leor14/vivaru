@@ -778,11 +778,17 @@ h3 {
   --shadow-brand-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-brand-lg: 0 10px 30px rgba(15, 23, 42, 0.12);
 
-  /* Z-index */
-  --z-dropdown: 10;
-  --z-sticky: 20;
-  --z-modal: 50;
-  --z-toast: 60;
+  /* Z-index
+     El prefijo `--z-index-*` NO es cosmético: Tailwind v4 genera las utilidades
+     `z-*` desde ese espacio de nombres. Estuvieron como `--z-*`, que declara la
+     variable pero no crea la clase, así que `z-sticky` y `z-modal` se escribían
+     en el marcado y computaban `z-index: auto`. Consecuencias medidas en
+     staging: el header del landing pasaba por DETRÁS de las secciones al hacer
+     scroll, y el banner de cookies quedaba sin capa propia. */
+  --z-index-dropdown: 10;
+  --z-index-sticky: 20;
+  --z-index-modal: 50;
+  --z-index-toast: 60;
 
   /* Transition durations */
   --duration-fast: 150ms;

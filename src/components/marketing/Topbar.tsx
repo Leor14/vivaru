@@ -184,16 +184,38 @@ export function Topbar() {
               <LoginAction portalUrl={portalUrl} />
             </div>
 
-            {/* Desktop primary CTA */}
+            {/* Desktop CTAs.
+                La flecha se la queda el trial porque es el camino principal
+                del self-service; la demo es la vía asistida (ver
+                docs/plan-self-service-trial.md §4). El Button ya centra su
+                contenido, así que al quitarle la flecha el texto queda
+                centrado solo. */}
             <div className="hidden md:block">
               <DemoDialog section="topbar">
-                <Button size="xl" variant="default">
-                  Agenda una demo{" "}
-                  <span aria-hidden="true" className="ml-0.5">
-                    →
-                  </span>
+                <Button size="xl" variant="outline">
+                  Agenda una demo
                 </Button>
               </DemoDialog>
+            </div>
+
+            <div className="hidden md:block">
+              <Button
+                size="xl"
+                variant="default"
+                render={
+                  <Link
+                    href="/registro"
+                    onClick={() =>
+                      track("cta_primary_click", { section: "topbar", cta: "trial" })
+                    }
+                  />
+                }
+              >
+                Prueba gratis 15 días{" "}
+                <span aria-hidden="true" className="ml-0.5">
+                  →
+                </span>
+              </Button>
             </div>
 
             {/* Mobile hamburger */}
