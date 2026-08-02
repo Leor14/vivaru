@@ -112,7 +112,7 @@ Las tres son comprobables señalando el producto. No avanzar el incremento 3 sin
 
 Cada uno se despliega solo a staging, se revisa y se promueve. Ninguno depende del siguiente.
 
-### Inc 0 · Cimientos
+### Inc 0 · Cimientos — hecho
 
 Sin cambio visible. Prepara el terreno para los siete restantes.
 
@@ -122,7 +122,7 @@ Sin cambio visible. Prepara el terreno para los siete restantes.
 
 **Archivos:** `src/components/marketing/ui/asset-slot.tsx` (nuevo), `Perspectives.tsx`, `tests/landing-smoke.test.ts` (nuevo), wiki.
 
-### Inc 1 · Topbar en píldora
+### Inc 1 · Topbar en píldora — hecho
 
 Referencia: Cleanmeter. `max-width` que se contrae al bajar, `420ms cubic-bezier(0.77,0,0.175,1)`, píldora **blanca** con borde y sombra, no la barra oscura del original.
 
@@ -132,7 +132,7 @@ Referencia: Cleanmeter. `max-width` que se contrae al bajar, `420ms cubic-bezier
 
 **Assets:** ninguno. **Archivos:** `Topbar.tsx`.
 
-### Inc 2 · FAQ en dos columnas
+### Inc 2 · FAQ en dos columnas — hecho
 
 Referencia: Cleanmeter. Rejilla de dos columnas, ítems sueltos con borde de 1px y radio 12px, fuera la caja contenedora.
 
@@ -141,9 +141,9 @@ Referencia: Cleanmeter. Rejilla de dos columnas, ítems sueltos con borde de 1px
 
 **Assets:** ninguno. **Archivos:** `FAQ.tsx`.
 
-### Inc 3 · ImpactBand → tres afirmaciones
+### Inc 3 · ImpactBand → tres afirmaciones — hecho
 
-**Bloqueado por D1.** Referencia: Cohere. Icono SVG de 100×100, título, párrafo y enlace.
+D1 aprobada. Referencia: Cohere. Icono SVG de 100×100, título, párrafo y enlace.
 
 - Sale del navy: la sección pasa a fondo claro. Deja de ser una de las superficies oscuras.
 - El `h2` es hoy `sr-only` («Impacto medible»). Al pasar a título visible, revisar que no rompa la jerarquía de encabezados de la página.
@@ -158,7 +158,7 @@ Referencia: Cohere «latest news». Miniatura 16:9 arriba, etiqueta de categorí
 
 **Assets:** 4 miniaturas 16:9. **Archivos:** `TrustOnboarding.tsx`.
 
-### Inc 5 · Differentiators con revelado
+### Inc 5 · Differentiators con revelado — hecho
 
 Referencia: Cohere «industries», con el revelado que **no** hace el original: el texto aparece al pasar el cursor y al tocar.
 
@@ -168,7 +168,7 @@ Referencia: Cohere «industries», con el revelado que **no** hace el original: 
 
 **Assets:** 6 fotos. **Archivos:** `Differentiators.tsx`.
 
-### Inc 6 · Perspectives a pantalla amplia
+### Inc 6 · Perspectives a pantalla amplia — hecho
 
 Referencia: Cohere «sovereign workplace». Las cuatro pestañas se quedan; cambia el envoltorio: captura al doble de tamaño recortada por el borde derecho.
 
@@ -177,7 +177,7 @@ Referencia: Cohere «sovereign workplace». Las cuatro pestañas se quedan; camb
 
 **Assets:** 4 recapturas @2x. **Archivos:** `Perspectives.tsx`, `PerspectivesLazy.tsx`.
 
-### Inc 7 · Sección nueva tras el Hero
+### Inc 7 · Sección nueva tras el Hero — hecho
 
 Referencia: Cohere. Panel partido con una consola de producto y texto que se escribe solo, más una foto.
 
@@ -187,7 +187,7 @@ Referencia: Cohere. Panel partido con una consola de producto y texto que se esc
 
 **Assets:** 1 foto 1:1. **Archivos:** nuevo componente, `mx/page.tsx`.
 
-### Inc 8 · FinalCTA partido
+### Inc 8 · FinalCTA partido — hecho
 
 Referencia: Synthesia. Copy y botones a la izquierda, vídeo 16:9 en bucle a la derecha desbordando el borde.
 
@@ -266,3 +266,26 @@ Los cimientos primero porque desbloquean todo. Luego los dos que no necesitan ni
 | Fecha | Cambio |
 |---|---|
 | 2026-08-02 | Plan escrito tras validar el boceto de dirección. R1 y R2 descubiertas durante el boceto, a costa de dos iteraciones |
+
+---
+
+## Estado al cerrar los nueve incrementos
+
+Los ocho cambios visuales están construidos y verificados sobre build de producción. **Ninguno está en `master`**: todo vive en `develop`, que es lo que construye staging.
+
+Lo que falta no es código:
+
+1. **Las 19 piezas de imagen y vídeo.** Todas las secciones se maquetaron con `AssetSlot`, así que llegan sin tocar layout.
+2. **Recorrido tuyo en staging**, incluido el `body { overflow-x: clip }` del inc 1, que toca los cuatro portales.
+3. **Presupuesto de peso del vídeo** antes de producirlo. Es el primero del landing y entra con `preload="none"` y póster, pero conviene medir Lighthouse antes y después.
+
+### Hallazgos que costaron tiempo y quedan documentados
+
+| Hallazgo | Dónde |
+|---|---|
+| El landing no hereda de `DESIGN.md`, tiene su propio bloque de tokens | R1 · wiki |
+| `body { overflow-x: hidden }` anulaba el `sticky` del header, y nunca funcionó | inc 1 · wiki |
+| Los tokens de capa eran `--z-*` y no `--z-index-*`: `z-sticky` y `z-modal` no existían | inc 1 · wiki |
+| `.marketing-theme .max-w-lg` gana a cualquier variante responsive | inc 6 · wiki |
+| Tailwind v4 escribe `scale-*` en la propiedad `scale`, no en `transform` | inc 6 · wiki |
+| La caché del panel de vista previa sirve bundles viejos: verificar sobre build de producción | inc 4 |
