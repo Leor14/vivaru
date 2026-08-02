@@ -8,7 +8,7 @@
 | **Usuario principal** | `tenant_admin` — el administrador del conjunto |
 | **Usuarios secundarios** | `superadmin` — quien atiende desde Vivaru |
 | **Responsable** | David (producto) · equipo comercial (operación) |
-| **Estado** | Lista para PRD |
+| **Estado** | Lista para desarrollo |
 | **Dependencias** | `functions/src/email.ts` (remitente verificado) · secret `RESEND_API_KEY` |
 | **Riesgo** | Medio — datos personales en texto libre, y una cola que si nadie atiende deteriora la relación con el cliente |
 | **Reversibilidad** | **Alta.** Es funcionalidad aditiva: se apaga ocultando la entrada del menú, sin migrar ni perder datos |
@@ -30,11 +30,14 @@ La decisión que permanece humana es toda: aquí no se automatiza nada, se orden
 
 **Lo que eso cuesta.** No hay estado ni dueño, así que una solicitud puede quedarse sin respuesta sin que nadie lo note. No hay historial por conjunto: quien atiende no sabe si es la tercera vez que preguntan lo mismo. Y no hay ningún número: no sabemos cuántas llegan, de qué tratan ni cuánto tardamos.
 
-**Baseline — `TBD`, y hay que levantarlo antes de construir.** El dato existe y es fácil: **contar los correos recibidos en `dev@qintilab.com` en los últimos 90 días** que sean solicitudes de administradores, clasificados a ojo por tema. Sin ese número no podremos afirmar que esto funcionó.
+**Baseline: CERO.** No hay clientes todavía, así que hoy no llega ninguna solicitud de soporte (confirmado 2026-08-01).
 
-> **Pregunta mínima para cerrar el baseline:** ¿cuántos correos de soporte llegaron el último trimestre y cuáles fueron los tres temas más repetidos?
+**Eso obliga a reformular la justificación, y conviene decirlo claro:** esto **no arregla un dolor actual** — no se está perdiendo ninguna solicitud, porque no hay ninguna. Es **infraestructura para el primer cliente**: que cuando llegue, exista un canal en lugar de improvisar un buzón. Es una razón legítima, pero es distinta de la que suele justificar un módulo de soporte, y tiene dos consecuencias:
 
-**Volumen esperado.** Bajo. Con la base de clientes actual, decenas al mes, no miles. Eso condiciona el diseño: **no hace falta una herramienta de helpdesk, hace falta una bandeja honesta.**
+1. **La prioridad es discutible frente a cualquier cosa que sirva para *conseguir* clientes.** Con cero clientes, el trabajo comercial rinde más que el operativo. Esta PRD queda lista y bien definida; **cuándo se construye es una decisión de secuencia, no de diseño.**
+2. **La métrica de éxito no puede ser de volumen** durante meses. La primera es operativa, no estadística: *cuando el primer cliente abra su primer ticket, recibe respuesta y el hilo queda registrado*. Las métricas de mediana y porcentaje solo tienen sentido a partir de unas decenas de tickets.
+
+**Volumen esperado.** Cero al arrancar; decenas al mes cuando haya base instalada. Eso condiciona el diseño: **no hace falta una herramienta de helpdesk, hace falta una bandeja honesta.**
 
 ## 3 · Usuarios, roles y permisos
 
@@ -302,19 +305,28 @@ Toda **escritura** —crear, responder, cambiar estado— pasa por callables. Cu
 | Puerta | Estado |
 |---|---|
 | `G0 Necesidad` | ✅ El problema existe. La medición es `TBD` (§2) |
-| `G1 Valor` | ⚠️ **Bloqueada por el baseline.** Métrica propuesta: % de solicitudes que entran por el producto, mediana hasta la primera respuesta, y tickets resueltos sin salir del canal |
+| `G1 Valor` | ✅ Baseline cerrado: **cero**, no hay clientes. Métrica inicial **operativa**: el primer ticket del primer cliente recibe respuesta y queda registrado. Las de volumen —mediana hasta primera respuesta, % resuelto sin salir del canal— se activan a partir de unas decenas de tickets |
 | `G2 Datos y permisos` | ✅ Modelo y roles definidos y consistentes |
 | `G3 Riesgo` | ✅ Auditable, reversible, con pruebas de los casos que deben fallar |
 | `G4 Aceptación` | ✅ 19 criterios verificables |
-| `G5 Operación` | ⚠️ **Requiere decisión.** El equipo comercial atiende vía el contacto de dev. Falta nombrar quién revisa la bandeja y con qué frecuencia |
+| `G5 Operación` | ✅ **Cerrada.** Atiende el equipo comercial dentro de DevQintilab. Revisión **una vez al día**, cadencia calibrada a cero clientes. Ver la nota de caducidad abajo |
 | `G6 Escala` | ✅ Decenas al mes; el diseño soporta un orden de magnitud más |
 
-**Lista para desarrollo** (G0–G3 superadas). **No lista para producción** hasta cerrar `G1` y `G5`.
+**Las siete puertas están superadas. Lista para desarrollo y para producción**, en cuanto se decida construirla.
+
+## Operación — y su fecha de caducidad
+
+| | |
+|---|---|
+| **Quién atiende** | Equipo comercial, dentro de DevQintilab |
+| **Cadencia** | Una revisión al día |
+| **Vía** | Correo a `dev@qintilab.com` + bandeja en `/superadmin/support` |
+
+**Esta cadencia está calibrada a cero clientes y caduca sola.** Con una decena de conjuntos, una revisión diaria sigue bastando; a partir de ahí un ticket puede esperar hasta 24 horas antes de que alguien lo mire, y eso deja de ser aceptable. **Señal para revisarla:** el primer ticket que espere más de un día hábil sin primera respuesta, o el primer día con más de tres tickets nuevos. Ahí toca decidir entre subir la frecuencia, repartir por turnos, o dar el salto a una herramienta con SLA.
 
 ## Decisiones pendientes
 
-1. **Baseline** — correos de soporte del último trimestre y sus tres temas principales.
-2. **Quién revisa la bandeja y cada cuánto.** Es `G5`, y sin ella el canal se pudre.
-3. **Entrada en el menú lateral o pestaña en Configuración** — recomiendo lo primero (§11).
-4. **Ventanas**: reapertura 7 días, cierre automático 14, máximo 5 abiertos y 10 al día. Son recomendaciones, no hechos.
-5. **`internalNotes`**: confirmar la subcolección (§11).
+1. **Entrada en el menú lateral o pestaña en Configuración** — recomiendo lo primero (§11).
+2. **Ventanas**: reapertura 7 días, cierre automático 14, máximo 5 abiertos y 10 al día. Son recomendaciones, no hechos.
+3. **`internalNotes`**: confirmar la subcolección (§11).
+4. **Cuándo construirla.** Con cero clientes, la PRD puede esperar sin costo. Es decisión de secuencia.
