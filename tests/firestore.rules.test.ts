@@ -7,7 +7,14 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
+
+/**
+ * Fecha futura para las reservas. La regla exige `startAt` treinta minutos por
+ * delante, así que una fecha fija se pudre: este test llevaba meses sin poder
+ * pasar, y no se veía porque el emulador no corría.
+ */
+const manana = () => Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000);
 import { afterAll, beforeAll, describe, it } from "vitest";
 
 let testEnv: RulesTestEnvironment;
@@ -156,6 +163,34 @@ beforeAll(async () => {
       name: "Hogaru A",
       status: "active",
     });
+
+    // Conjuntos que NO deben poder operar: un cliente que dejó de pagar y una
+    // prueba vencida. Conservan sus datos y pueden consultarlos; no escribir.
+    await setDoc(doc(db, "tenants", "tenant-susp"), { name: "Suspendido", status: "suspended" });
+    await setDoc(doc(db, "tenants", "tenant-venc"), { name: "Vencido", status: "expired" });
+
+    for (const [tenantId, uid] of [
+      ["tenant-susp", "admin-susp"],
+      ["tenant-venc", "admin-venc"],
+    ]) {
+      await setDoc(doc(db, "tenantUsers", `${tenantId}_${uid}`), {
+        uid,
+        tenantId,
+        role: "tenant_admin",
+        status: "active",
+        email: `${uid}@hogaru.test`,
+        unitId: "unit-admin",
+        unitLabel: "ADMIN",
+      });
+      await setDoc(doc(db, "units", `unit-${tenantId}`), {
+        tenantId,
+        unitId: `u-${tenantId}`,
+        displayName: "101",
+        tower: "Principal",
+        type: "apartment",
+        status: "active",
+      });
+    }
 
     await setDoc(doc(db, "communications", "com-1"), {
       tenantId: "tenant-a",
@@ -490,6 +525,87 @@ describe("Firestore Rules - HOGARU", () => {
     );
   });
 
+  // ── Ambientes en solo lectura (tenantOperable) ────────────────────────────
+  // `suspended` (cliente que dejó de pagar) y `expired` (prueba vencida)
+  // conservan sus datos y pueden consultarlos, pero no operar. Antes esto solo
+  // lo hacían las Cloud Functions; lo que la app escribe DIRECTO a Firestore
+  // —crear una unidad, registrar una persona— se colaba por las reglas.
+
+  for (const [etiqueta, tenantId, uid] of [
+    ["suspendido", "tenant-susp", "admin-susp"],
+    ["vencido", "tenant-venc", "admin-venc"],
+  ] as const) {
+    it(`permite a un conjunto ${etiqueta} LEER sus unidades`, async () => {
+      const admin = testEnv.authenticatedContext(uid, { role: "tenant_admin", tenantId });
+      await assertSucceeds(getDoc(doc(admin.firestore(), "units", `unit-${tenantId}`)));
+    });
+
+    it(`bloquea a un conjunto ${etiqueta} crear unidades`, async () => {
+      const admin = testEnv.authenticatedContext(uid, { role: "tenant_admin", tenantId });
+      await assertFails(
+        setDoc(doc(admin.firestore(), "units", `unit-nueva-${tenantId}`), {
+          tenantId,
+          unitId: "u-nueva",
+          displayName: "202",
+          tower: "Principal",
+          type: "apartment",
+          status: "active",
+        }),
+      );
+    });
+
+    it(`bloquea a un conjunto ${etiqueta} registrar personas`, async () => {
+      const admin = testEnv.authenticatedContext(uid, { role: "tenant_admin", tenantId });
+      await assertFails(
+        setDoc(doc(admin.firestore(), "people", `p-${tenantId}`), {
+          tenantId,
+          fullName: "Alguien",
+          email: "alguien@hogaru.test",
+          roleType: "owner_occupant",
+          occupancyType: "owner_occupant",
+          unitId: `unit-${tenantId}`,
+          status: "active",
+        }),
+      );
+    });
+
+    it(`bloquea a un conjunto ${etiqueta} borrar sus unidades`, async () => {
+      const admin = testEnv.authenticatedContext(uid, { role: "tenant_admin", tenantId });
+      await assertFails(deleteDoc(doc(admin.firestore(), "units", `unit-${tenantId}`)));
+    });
+
+    it(`bloquea a un conjunto ${etiqueta} emitir cobros`, async () => {
+      const admin = testEnv.authenticatedContext(uid, { role: "tenant_admin", tenantId });
+      await assertFails(
+        setDoc(doc(admin.firestore(), "billingStatements", `bs-${tenantId}`), {
+          tenantId,
+          unitId: `unit-${tenantId}`,
+          unitLabel: "101",
+          period: "2026-08",
+          concept: "administracion",
+          amount: 100000,
+          balance: 100000,
+          status: "pending",
+        }),
+      );
+    });
+  }
+
+  it("un conjunto ACTIVO sigue pudiendo crear unidades", async () => {
+    // La contraparte imprescindible: la guarda no puede haber roto lo normal.
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "units", "unit-activa-nueva"), {
+        tenantId: "tenant-a",
+        unitId: "u-activa",
+        displayName: "303",
+        tower: "Principal",
+        type: "apartment",
+        status: "active",
+      }),
+    );
+  });
+
   it("permite a tenant_admin crear amenidades de su tenant", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(
@@ -616,6 +732,9 @@ describe("Firestore Rules - HOGARU", () => {
         exclusiveUse: false,
         status: "pending",
         createdBy: "resident-1",
+        // La regla exige `startAt` con 30 minutos de margen. La app sí lo manda
+        // (`use-reservations.ts`); al test se le había quedado sin actualizar.
+        startAt: manana(),
       }),
     );
   });

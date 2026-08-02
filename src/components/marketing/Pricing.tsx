@@ -88,7 +88,7 @@ export function Pricing() {
       </h2>
       <p className="mt-md max-w-2xl text-base text-slate-600">
         El precio se ajusta al número de unidades y módulos activos. Solicita
-        una cotización y recibe propuesta en 24 horas.
+        una cotización y te preparamos una propuesta a tu medida.
       </p>
 
       <ul

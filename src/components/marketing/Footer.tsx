@@ -116,7 +116,7 @@ export function Footer() {
           >
             hola@grupovivaru.com
           </a>{" "}
-          · Respuesta en menos de 24 horas hábiles.
+          · Te respondemos a la brevedad.
         </p>
       </div>
     </footer>

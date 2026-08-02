@@ -200,7 +200,7 @@ export function buildLeadConfirmationEmail(
       </div>
 
       <div style="margin-top:32px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:12px;color:#94A3B8;text-align:center;">
-        Si tienes preguntas, responde a este correo. Te respondemos en menos de 24 horas hábiles.
+        Si tienes preguntas, responde a este correo.
         <br><br>
         Vivaru · Una solución de Qintilab S.A.S.
       </div>
