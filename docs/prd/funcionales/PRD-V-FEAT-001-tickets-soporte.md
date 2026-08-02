@@ -8,7 +8,7 @@
 | **Usuario principal** | `tenant_admin` — el administrador del conjunto |
 | **Usuarios secundarios** | `superadmin` — quien atiende desde Vivaru |
 | **Responsable** | David (producto) · equipo comercial (operación) |
-| **Estado** | En staging · verificada |
+| **Estado** | **Productiva** desde 2026-08-01 |
 | **Dependencias** | `functions/src/email.ts` (remitente verificado) · secret `RESEND_API_KEY` |
 | **Riesgo** | Medio — datos personales en texto libre, y una cola que si nadie atiende deteriora la relación con el cliente |
 | **Reversibilidad** | **Alta.** Es funcionalidad aditiva: se apaga ocultando la entrada del menú, sin migrar ni perder datos |
@@ -398,11 +398,10 @@ basura que nadie limpiaría.
 
 ## Decisiones pendientes
 
-Todas las de diseño están cerradas. Queda lo operativo:
+Todas las de diseño están cerradas, y las dos pantallas ya se recorrieron. Queda:
 
-1. **Recorrer las dos pantallas.** La lógica y los permisos están verificados por API; **nadie ha visto la interfaz**. Es lo único que bloquea la promoción a producción.
-2. **Confirmar la entrega del correo**, que solo se puede hacer en producción — staging no tiene `RESEND_API_KEY`.
-3. **Cuándo construir la Fase 2.** El cierre automático no corre prisa con cero clientes, pero es lo primero que hará falta cuando la cola tenga volumen.
+1. **Confirmar la entrega del correo** a `dev@qintilab.com` con un ticket real. Es lo único del MVP sin verificar: el destinatario está cableado y la función se ejecuta, pero eso no prueba que el mensaje llegue. Solo se puede comprobar en producción — staging nunca tuvo `RESEND_API_KEY`.
+2. **Cuándo construir la Fase 2.** El cierre automático no corre prisa con cero clientes, pero es lo primero que hará falta cuando la cola tenga volumen.
 
 ## Historial
 
@@ -412,3 +411,5 @@ Todas las de diseño están cerradas. Queda lo operativo:
 | 2026-08-01 | G1 cerrada (baseline = cero, no hay clientes) y G5 (equipo comercial, revisión diaria). Justificación reformulada: es infraestructura para el primer cliente, no un dolor actual |
 | 2026-08-01 | Implementada en 5 incrementos. Verificada en staging: 20 criterios ejecutables + 71 pruebas de emulador |
 | 2026-08-01 | Adjuntos adelantados de Fase 2 al MVP y verificados |
+| 2026-08-01 | Recorrido visual de las dos pantallas: conforme |
+| 2026-08-01 | **A producción.** Reglas, 4 índices y 6 callables desplegados; front en el rollout de las 23:15. Invoker público verificado por respuesta de la función, no por `gcloud` (no autenticado). Pendiente: entrega del correo |

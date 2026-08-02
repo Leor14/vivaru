@@ -48,6 +48,10 @@ Las notas internas viven en una **subcolección** `supportTickets/{id}/internal/
 
 Los avisos salen por [[correos-mensajeria]] hacia `dev@qintilab.com`, donde el equipo comercial de DevQintilab los revisa una vez al día. Las respuestas por correo **no** entran al hilo: quien atiende responde dentro del producto. La entrega solo puede confirmarse en producción, porque staging no tiene el secret de Resend.
 
-## Pendiente
+## Estado
 
-Nadie ha recorrido visualmente las dos pantallas — la lógica está verificada por API, la interfaz no. Cierre automático por inactividad, SLA y base de conocimiento quedaron para fases posteriores, tal como registra [[estado-modulos]].
+**Productivo desde el 1 de agosto de 2026.** Desplegado en el orden de siempre —reglas, cuatro índices, seis callables, front— tras recorrer las dos pantallas.
+
+Queda una cosa sin verificar: **que el correo llegue**. La función se ejecuta y el destinatario está cableado, pero ejecutarse no es entregar, y staging nunca tuvo el secret de Resend para comprobarlo antes. Se confirma con el primer ticket real.
+
+Cierre automático por inactividad, SLA y base de conocimiento quedaron para fases posteriores, tal como registra [[estado-modulos]].

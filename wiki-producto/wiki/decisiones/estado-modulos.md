@@ -27,7 +27,7 @@ Tabla de estado actual de todos los módulos del producto. Se actualiza después
 | Encuestas | `/admin/surveys` | 🔲 pendiente critique | Ver [[encuestas]] |
 | Reglamento | `/admin/regulations` | 🔲 pendiente critique | Ver [[reglamento]] |
 | Reportes | `/admin/reports` | 🔲 pendiente critique | Ver [[reportes]] |
-| Soporte | `/admin/soporte` | 🆕 en staging | Falta recorrido visual. Ver [[soporte]] |
+| Soporte | `/admin/soporte` | ✅ productivo (ago 2026) | Ver [[soporte]] |
 
 ## Portal Residente (`/resident`)
 
@@ -74,7 +74,7 @@ Estado del sitio público (`grupovivaru.com`). Ver [[landing-marketing]] para de
 | Recorrido para clientes nuevos | ✅ en producción | `onboardingTrack: cliente` |
 | `tenantOperable()` en reglas | ✅ en producción | 25 colecciones, 52 statements |
 | Wizard «Inicia tu suscripción» | ✅ en producción | Sin promesa de plazo de respuesta |
-| Tickets de soporte | 🆕 staging | Ver [[soporte]] y [[portafolio-prd]] |
+| Tickets de soporte | ✅ en producción | Falta confirmar entrega de correo. Ver [[soporte]] y [[portafolio-prd]] |
 | Barrido de tokens CSS | ✅ cerrado | 20 variables declaradas. Ver [[transiciones-navegacion]] |
 
 ## Programa de IA
