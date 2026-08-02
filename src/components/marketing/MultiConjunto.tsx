@@ -1,50 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { Building2 } from "lucide-react";
-import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { AssetSlot } from "@/components/marketing/ui/asset-slot";
+import { useInView } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
 
 /**
  * Multi-conjunto — plan §5.7 / slide 6 corregido.
  *
- * Split layout: copy + bullets on the left, three "demo conjunto" cards
- * stacked over a navy gradient on the right. Each card slides in from the
- * right when the section enters the viewport; stagger 100 ms, skipped on
- * `prefers-reduced-motion`.
+ * Copy a la izquierda, prueba visual a la derecha.
+ *
+ * La prueba era un dibujo: tres tarjetas con la etiqueta «AISLADO». Ilustraba
+ * el concepto sin enseñar nada, y una etiqueta no se puede comprobar. Ahora
+ * son capturas del producto: el selector de conjunto, y el MISMO tablero con
+ * la marca de dos conjuntos distintos — que es lo que `tenantSettings` hace
+ * de verdad.
  */
 
-type Conjunto = {
-  name: string;
-  units: string;
-  accent: string;
-  ring: string;
-};
-
-const CONJUNTOS: Conjunto[] = [
-  {
-    name: "Santa María",
-    units: "120 unidades",
-    accent: "text-brand-blue",
-    ring: "ring-brand-blue/40",
-  },
-  {
-    name: "Las Bromelias",
-    units: "85 unidades",
-    accent: "text-brand-purple",
-    ring: "ring-brand-purple/40",
-  },
-  {
-    name: "Los Pinos",
-    units: "210 unidades",
-    accent: "text-brand-teal",
-    ring: "ring-brand-teal/40",
-  },
-];
-
 const BULLETS = [
-  "Cada conjunto funciona aislado: sus datos, residentes y configuración no se mezclan.",
-  "Un administrador puede gestionar varios conjuntos desde una sola cuenta.",
+  "Casas o departamentos: cada conjunto funciona aislado y sus datos, residentes y configuración no se mezclan.",
+  "Un administrador puede llevar varios conjuntos desde una sola cuenta, sin cerrar sesión.",
   "Identidad propia por conjunto: nombre, logo y colores personalizados.",
   "Único en el mercado mexicano con este nivel de aislamiento.",
 ];
@@ -86,58 +61,64 @@ export function MultiConjunto() {
   );
 }
 
+/**
+ * Prueba visual del aislamiento: el selector de conjunto del producto, y dos
+ * capturas del MISMO tablero con la marca de dos conjuntos distintos.
+ *
+ * Antes había aquí tres tarjetas dibujadas con la etiqueta «AISLADO». Ilustraba
+ * el concepto sin enseñar nada: el prospecto no puede comprobar una etiqueta.
+ * Que la misma pantalla aparezca con dos logos y dos colores sí se comprueba,
+ * y además es lo que `tenantSettings` hace de verdad (branding por conjunto).
+ */
 function ConjuntoStack() {
-  const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLDivElement>(0.25);
 
   return (
     <div
       ref={ref}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy to-navy-dark p-lg shadow-brand-lg sm:p-xl"
+      className={cn(
+        "relative",
+        "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
+        inView
+          ? "opacity-100 translate-y-0"
+          : "opacity-0 translate-y-4 motion-reduce:translate-y-0",
+      )}
     >
-      <ul role="list" className="space-y-md">
-        {CONJUNTOS.map((c, i) => {
-          const delayMs = reduced ? 0 : i * 100;
-          return (
-            <li
-              key={c.name}
-              className={cn(
-                "flex items-center gap-md rounded-xl bg-white/95 p-md shadow-brand-sm ring-1",
-                c.ring,
-                "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
-                inView
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-0 translate-x-6 motion-reduce:translate-x-0",
-              )}
-              style={{ transitionDelay: `${delayMs}ms` }}
-            >
-              <div
-                className={cn(
-                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100",
-                  c.accent,
-                )}
-                aria-hidden="true"
-              >
-                <Building2 className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-base font-semibold text-slate-900">
-                  {c.name}
-                </p>
-                <p className="text-sm text-slate-600">{c.units}</p>
-              </div>
-              <span
-                className={cn(
-                  "rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
-                  c.accent,
-                )}
-              >
-                Aislado
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      <AssetSlot
+        asset={{
+          alt: "Selector de conjunto: pasar de Santa María a Las Bromelias sin cerrar sesión",
+          width: 1440,
+          height: 900,
+          file: "/product/multiconjunto-selector.png",
+        }}
+        sizes="(max-width: 1024px) 100vw, 45vw"
+        className="w-full rounded-2xl border border-slate-200 shadow-brand-md"
+      />
+
+      {/* Las dos marcas, una sobre otra, para que la diferencia se lea de un
+          vistazo sin tener que comparar dos imágenes separadas. */}
+      <div className="mt-md grid grid-cols-2 gap-md">
+        <AssetSlot
+          asset={{
+            alt: "El tablero con la marca de Santa María",
+            width: 800,
+            height: 600,
+            file: "/product/multiconjunto-marca-a.png",
+          }}
+          sizes="(max-width: 1024px) 50vw, 22vw"
+          className="w-full rounded-xl border border-slate-200 shadow-brand-sm"
+        />
+        <AssetSlot
+          asset={{
+            alt: "El mismo tablero con la marca de Las Bromelias",
+            width: 800,
+            height: 600,
+            file: "/product/multiconjunto-marca-b.png",
+          }}
+          sizes="(max-width: 1024px) 50vw, 22vw"
+          className="w-full rounded-xl border border-slate-200 shadow-brand-sm"
+        />
+      </div>
     </div>
   );
 }

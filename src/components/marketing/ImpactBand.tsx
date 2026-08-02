@@ -19,6 +19,11 @@ import { cn } from "@/lib/utils/cn";
  * Lo que las reemplaza sí se puede comprobar señalando el producto, y cada una
  * enlaza a la sección donde se ve. Ver `docs/plan-rediseno-landing.md`, D1.
  *
+ * Segunda pasada de redacción: la primera versión estaba escrita desde dentro
+ * del sistema —«aislamiento por conjunto», «trazabilidad auditable»—, que es
+ * cierto y no le dice nada a quien lee. Ahora cada una arranca por el momento
+ * en que la administradora la echa de menos, que es cuando la reconoce.
+ *
  * También sale del navy: la banda oscura pasa a ser una banda suave
  * (`bg-slate-50`, el tono que ya usan Perspectivas y Piloto).
  */
@@ -36,39 +41,39 @@ const CLAIMS: Claim[] = [
   {
     key: "aislamiento",
     icon: {
-      alt: "Aislamiento",
+      alt: "Varios conjuntos",
       width: 100,
       height: 100,
-      file: "/landing/claim-aislamiento.svg",
+      file: "/landing/claim-conjuntos.svg",
     },
-    title: "Aislamiento por conjunto",
-    body: "Cada conjunto opera como un sistema independiente. Ningún dato cruza de un edificio a otro, y lo impiden las reglas del servidor, no la interfaz.",
+    title: "Cuando llevas más de un conjunto",
+    body: "Cada uno vive aparte: sus residentes, sus cuentas y sus documentos. No hay manera de que un dato se te pase de un conjunto a otro, porque el sistema no lo permite.",
     href: "#multi-conjunto",
-    linkLabel: "Cómo funciona",
+    linkLabel: "Ver cómo funciona",
   },
   {
     key: "trazabilidad",
     icon: {
-      alt: "Trazabilidad",
+      alt: "Historial",
       width: 100,
       height: 100,
-      file: "/landing/claim-trazabilidad.svg",
+      file: "/landing/claim-historial.svg",
     },
-    title: "Trazabilidad auditable",
-    body: "Las operaciones sensibles quedan registradas con autor y fecha. Un cobro se reversa, nunca se borra, así que la asamblea puede revisar qué pasó.",
+    title: "Cuando te piden cuentas",
+    body: "Cada movimiento queda con nombre y fecha. Un cobro se corrige, nunca se borra. En la asamblea enseñas qué pasó en vez de explicarlo de memoria.",
     href: "#diferenciadores",
-    linkLabel: "Ver la gobernanza",
+    linkLabel: "Ver el historial",
   },
   {
     key: "portales",
     icon: {
-      alt: "Portales",
+      alt: "Autoservicio",
       width: 100,
       height: 100,
-      file: "/landing/claim-portales.svg",
+      file: "/landing/claim-autoservicio.svg",
     },
-    title: "Cuatro portales, un dato",
-    body: "Administración, residente, portería y comité ven la misma información con permisos distintos. Sin hojas de cálculo en paralelo que se contradicen.",
+    title: "Cuando preguntan lo de siempre",
+    body: "Su saldo, su recibo y sus reservas están en el teléfono del residente. Deja de escribirte para preguntar lo que ya puede ver.",
     href: "#perspectivas",
     linkLabel: "Ver los portales",
   },
@@ -88,11 +93,11 @@ export function ImpactBand() {
           id="impacto-heading"
           className="max-w-3xl font-display text-h2 text-navy text-balance"
         >
-          Tres cosas que puedes comprobar
+          Tres momentos en los que no vas a quedar mal
         </h2>
         <p className="mt-sm max-w-2xl text-base leading-relaxed text-slate-600">
-          No son promesas de ahorro: son propiedades del sistema, y cada una se
-          ve en su sección.
+          Ninguna de las tres es una promesa de ahorro. Son cosas que puedes
+          comprobar tú mismo durante la prueba.
         </p>
 
         <ul

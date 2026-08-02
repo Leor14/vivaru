@@ -37,10 +37,10 @@ type Differentiator = {
 const ITEMS: Differentiator[] = [
   {
     key: "aislados",
-    title: "Edificios aislados",
-    desc: "Cada conjunto funciona como un sistema independiente. Único en el mercado mexicano.",
+    title: "Cada conjunto, aislado",
+    desc: "Casas o departamentos, cada conjunto funciona como un sistema independiente. Único en el mercado mexicano.",
     photo: {
-      alt: "Conjunto residencial visto desde el acceso",
+      alt: "Conjunto de casas y torre de departamentos",
       width: 1200,
       height: 1200,
       file: "/landing/razon-aislados.jpg",

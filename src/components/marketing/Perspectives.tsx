@@ -33,9 +33,10 @@ type TabDef = {
   /** Capa 1: el problema en la voz del perfil. */
   problem: string;
   headline: string;
-  bullets: string[];
-  /** Capa 3: un caso de uso concreto en una línea. */
-  inPractice: string;
+  /** Tres pasos EN ORDEN. Sustituyen a la lista de features y a la caja de
+      «en la práctica», que decían lo mismo dos veces. El orden importa: es la
+      secuencia real del mes, no una enumeración. */
+  steps: string[];
   shots: ShotDef[];
   textActive: string;
   bgActive: string;
@@ -48,16 +49,13 @@ const TABS: TabDef[] = [
     label: "Admin",
     problem:
       "Llevo la cartera en Excel, persigo los pagos por WhatsApp y armo el reporte a mano. Nunca sé con certeza quién pagó.",
-    headline: "Centro de control completo",
-    bullets: [
-      "Cobra en lote y recuerda a morosos automáticamente",
-      "Aprueba comprobantes y concilia en un clic",
-      "Comunicados oficiales con lectura confirmada",
-      "Cierra el mes y archiva el reporte",
+    headline: "Tu mes, de principio a fin",
+    steps: [
+      "Lanzas la cuota del mes a las 120 unidades de una sola vez.",
+      "El sistema le recuerda a quien no ha pagado; tú solo apruebas los comprobantes que van llegando.",
+      "Cierras el período y el reporte queda archivado, listo para la asamblea.",
     ],
-    inPractice:
-      "Lanzas la cuota de junio a 120 unidades, el sistema notifica, apruebas los comprobantes en un clic y cierras el mes con el reporte listo.",
-    shots: [
+        shots: [
       {
         src: "/product/perspectives-admin-cartera.png",
         alt: "Cartera e historial en Vivaru Admin",
@@ -80,16 +78,13 @@ const TABS: TabDef[] = [
     label: "Residente",
     problem:
       "No sé cuánto debo, pago y nadie me confirma, y me entero tarde de lo del conjunto. Para una visita tengo que llamar a portería.",
-    headline: "Autoservicio 24/7",
-    bullets: [
-      "Estado de cuenta y saldo en su teléfono",
-      "QR pre-autorizado para visitas",
-      "Comprobantes de pago desde el celular",
-      "PQRS con código y semáforo",
+    headline: "Todo desde su teléfono",
+    steps: [
+      "Entra y ve cuánto debe y cuándo vence, sin preguntarle a nadie.",
+      "Sube el comprobante y recibe la confirmación cuando lo apruebas.",
+      "Genera un QR para su visita y en portería la dejan entrar.",
     ],
-    inPractice:
-      "Ves tu saldo, subes el comprobante y recibes la confirmación; generas un QR y tu invitado entra sin llamadas.",
-    shots: [
+        shots: [
       {
         src: "/product/perspectives-resident-account.png",
         alt: "Estado de cuenta en Portal del Residente",
@@ -118,16 +113,13 @@ const TABS: TabDef[] = [
     label: "Portería",
     problem:
       "Autorizo visitas por llamada, anoto los paquetes en un cuaderno y del turno no queda registro.",
-    headline: "Tu portería, ordenada",
-    bullets: [
-      "Validación instantánea con QR",
-      "Recepción de paquetes con foto y firma",
-      "Calendario de reservas en lectura",
-      "Bitácora digital del turno",
+    headline: "El turno, ordenado",
+    steps: [
+      "Escanea el QR del visitante y la entrada queda autorizada y registrada.",
+      "Recibe el paquete con foto y firma de quien lo entrega.",
+      "Cierra el turno y la bitácora le llega al administrador.",
     ],
-    inPractice:
-      "Escaneas el QR y la visita entra autorizada, registras el paquete con foto y firma, y dejas una nota con evidencia que el admin ve al instante.",
-    shots: [
+        shots: [
       {
         src: "/product/perspectives-porteria-scanner.png",
         alt: "Validación QR en Panel de Portería",
@@ -150,16 +142,13 @@ const TABS: TabDef[] = [
     label: "Comité",
     problem:
       "Llego a la asamblea sin datos duros, las decisiones no quedan documentadas y no sé si las finanzas del conjunto están sanas.",
-    headline: "Gobierna con evidencia",
-    bullets: [
-      "Reporte de comité: tablero ejecutivo y comparativo",
-      "Antigüedad de cartera (aging) y alertas tempranas",
-      "Acuerdos con aprobación y firma",
-      "Informe exportable a PDF y Excel",
+    headline: "Llegas a la asamblea con evidencia",
+    steps: [
+      "Abres el reporte del trimestre con la cartera y su antigüedad.",
+      "Registras los acuerdos de la junta y quedan firmados.",
+      "Exportas el informe a PDF y lo repartes.",
     ],
-    inPractice:
-      "Generas el reporte del trimestre, registras los acuerdos firmados en la junta y exportas el informe a PDF para la asamblea.",
-    shots: [
+        shots: [
       {
         src: "/product/perspectives-comite-tablero.png",
         alt: "Reporte de comité — tablero ejecutivo en Vivaru",
@@ -421,17 +410,24 @@ export function Perspectives() {
                 transition={{ duration: reduced ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
                 className="grid items-center gap-xl lg:grid-cols-[minmax(0,42%)_minmax(0,58%)] lg:gap-xxl"
               >
-                {/* Copy — 3 capas: problema → solución → en la práctica */}
+                {/*
+                  Antes eran tres capas: el problema, una lista de features y
+                  una caja de «en la práctica» que repetía la lista en prosa.
+                  Dos de ellas decían lo mismo.
+
+                  Ahora son dos movimientos: cómo es hoy, en la voz del perfil,
+                  y qué pasa con Vivaru en tres pasos EN ORDEN. Es un `<ol>` a
+                  propósito: la numeración no decora, es la secuencia real del
+                  mes y el lector la sigue como tal.
+                */}
                 <div>
-                  {/* Capa 1 — el problema, en la voz del perfil */}
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    El problema
+                    Hoy
                   </p>
                   <p className="mt-1 text-lg italic leading-snug text-slate-500 text-balance">
                     “{active.problem}”
                   </p>
 
-                  {/* Capa 2 — la solución */}
                   <h3
                     className={cn(
                       "mt-lg font-display text-h2 text-balance",
@@ -440,38 +436,26 @@ export function Perspectives() {
                   >
                     {active.headline}
                   </h3>
-                  <ul role="list" className="mt-md space-y-3">
-                    {active.bullets.map((b) => (
-                      <li
-                        key={b}
-                        className="flex gap-2 text-base leading-relaxed text-slate-600"
-                      >
+
+                  <ol className="mt-md space-y-4">
+                    {active.steps.map((paso, i) => (
+                      <li key={paso} className="flex gap-3">
                         <span
                           aria-hidden="true"
                           className={cn(
-                            "mt-2.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full",
+                            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
                             active.bgActive,
+                            active.textActive,
                           )}
-                        />
-                        <span>{b}</span>
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="text-base leading-relaxed text-slate-600">
+                          {paso}
+                        </span>
                       </li>
                     ))}
-                  </ul>
-
-                  {/* Capa 3 — en la práctica (caso de uso) */}
-                  <div className="mt-lg rounded-xl bg-white p-4 shadow-brand-sm ring-1 ring-border">
-                    <p
-                      className={cn(
-                        "text-xs font-semibold uppercase tracking-[0.14em]",
-                        HEADLINE_COLOR[active.key],
-                      )}
-                    >
-                      En la práctica
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                      {active.inPractice}
-                    </p>
-                  </div>
+                  </ol>
                 </div>
 
                 {/*
