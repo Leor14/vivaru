@@ -125,7 +125,17 @@ export function blocksForTrack(track: OnboardingTrack): OnboardingBlock[] {
  */
 export type OnboardingSignal =
   | { kind: "agrupaciones" }
-  | { kind: "docs"; collection: string; filterExamples?: boolean }
+  | {
+      kind: "docs";
+      collection: string;
+      filterExamples?: boolean;
+      /**
+       * Además de existir, el documento debe traer este campo numérico en
+       * positivo. Sirve para distinguir «hay un cobro» de «hay un cobro
+       * pagado», que viven en la misma colección.
+       */
+      positiveField?: string;
+    }
   | { kind: "guardUser" }
   | { kind: "residentUser" }
   | { kind: "seen" };
@@ -379,8 +389,16 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
     purpose:
       "Dejar constancia de lo que entra. Al registrar el pago, el saldo de esa unidad baja solo y la mora del conjunto se recalcula sin que nadie sume a mano.",
     how:
-      "Desde la cartera, abre el cobro y registra el pago con su fecha y su medio. Si el residente sube el comprobante desde su portal, te llega para confirmarlo y queda vinculado. Conforme registres, el tablero de cartera y el reporte del comité se llenan solos.",
-    signal: { kind: "docs", collection: "paymentReceipts" },
+      "Desde la cartera, abre el cobro que emitiste y anota el abono: el saldo de esa unidad baja solo y el estado pasa a «Al día». Si el residente sube su comprobante desde el portal, te llega para confirmarlo y queda vinculado al cobro. Conforme registres, el tablero de cartera y el reporte del comité se llenan solos.",
+    /**
+     * El pago NO crea un documento propio: `paymentReceipts` solo lo escribe el
+     * RESIDENTE al subir su comprobante (ver firestore.rules) — el administrador
+     * ni siquiera tiene permiso de crearlo. Él registra el pago actualizando el
+     * cobro, así que la señal es un cobro con abono. Detectado al recorrer el
+     * paso: con la señal anterior el cliente se habría quedado en 9 de 10 para
+     * siempre, sin nada que explicara por qué.
+     */
+    signal: { kind: "docs", collection: "billingStatements", filterExamples: true, positiveField: "paymentAmount" },
   },
 
   // ── Bloque 4: el recorrido por el resto ────────────────────────────────────

@@ -42,23 +42,34 @@ export type OnboardingProgress = {
 };
 
 /** Colecciones a vigilar, deducidas de las señales de los pasos. */
-type Watch = { collection: string; filterExamples: boolean };
+type Watch = { collection: string; filterExamples: boolean; positiveFields: string[] };
 
 function collectWatches(steps: OnboardingStep[]): Watch[] {
   const byCollection = new Map<string, Watch>();
   for (const step of steps) {
     if (step.signal.kind !== "docs") continue;
-    const filterExamples = step.signal.filterExamples === true;
-    const current = byCollection.get(step.signal.collection);
-    // Si dos pasos miran la misma colección, gana el criterio más estricto.
-    if (!current || (filterExamples && !current.filterExamples)) {
-      byCollection.set(step.signal.collection, { collection: step.signal.collection, filterExamples });
+    const { collection, filterExamples, positiveField } = step.signal;
+    const current = byCollection.get(collection) ?? {
+      collection,
+      filterExamples: false,
+      positiveFields: [],
+    };
+    // Si dos pasos miran la misma colección, gana el criterio más estricto y se
+    // acumulan los campos: cartera la miran «emite un cobro» y «registra el
+    // pago», que son el mismo documento en dos momentos distintos.
+    current.filterExamples = current.filterExamples || filterExamples === true;
+    if (positiveField && !current.positiveFields.includes(positiveField)) {
+      current.positiveFields.push(positiveField);
     }
+    byCollection.set(collection, current);
   }
   return [...byCollection.values()];
 }
 
-
+/** Clave del contador para «documentos con este campo en positivo». */
+function positiveKey(collection: string, field: string) {
+  return `${collection}:${field}`;
+}
 
 /**
  * Cuántos documentos traer para decidir si hay alguno "real".
@@ -68,7 +79,15 @@ function collectWatches(steps: OnboardingStep[]): Watch[] {
  * imposible que los 30 devueltos sean todos de ejemplo habiendo alguno real.
  */
 function pageSizeFor(watch: Watch) {
+  // Con campos numéricos hace falta mirar varios documentos: el primero puede
+  // ser un cobro sin abono y el pagado venir después.
+  if (watch.positiveFields.length > 0) return 30;
   return watch.filterExamples ? 30 : 1;
+}
+
+function numberField(doc: Record<string, unknown>, field: string): number {
+  const value = doc[field];
+  return typeof value === "number" ? value : 0;
 }
 
 const EMPTY_SEEN: Record<string, string> = {};
@@ -170,10 +189,19 @@ export function useOnboardingProgress(
             limit(pageSizeFor(watch)),
           ),
           (snap) => {
-            const real = watch.filterExamples
-              ? snap.docs.filter((item) => (item.data() as { isExample?: boolean }).isExample !== true).length
-              : snap.size;
-            setCounts((prev) => (prev[watch.collection] === real ? prev : { ...prev, [watch.collection]: real }));
+            const docs = watch.filterExamples
+              ? snap.docs.filter((item) => (item.data() as { isExample?: boolean }).isExample !== true)
+              : snap.docs;
+            const next: Record<string, number> = { [watch.collection]: docs.length };
+            for (const field of watch.positiveFields) {
+              next[positiveKey(watch.collection, field)] = docs.filter(
+                (item) => numberField(item.data() as Record<string, unknown>, field) > 0,
+              ).length;
+            }
+            setCounts((prev) => {
+              const changed = Object.entries(next).some(([key, value]) => prev[key] !== value);
+              return changed ? { ...prev, ...next } : prev;
+            });
             settle(watch.collection);
           },
           // Una colección sin permiso o sin índice no debe romper el checklist:
@@ -199,9 +227,13 @@ export function useOnboardingProgress(
         case "agrupaciones":
           complete = (agrupaciones ?? 0) > 0;
           break;
-        case "docs":
-          complete = (counts[step.signal.collection] ?? 0) > 0;
+        case "docs": {
+          const key = step.signal.positiveField
+            ? positiveKey(step.signal.collection, step.signal.positiveField)
+            : step.signal.collection;
+          complete = (counts[key] ?? 0) > 0;
           break;
+        }
         case "guardUser":
           complete = hasGuard === true;
           break;

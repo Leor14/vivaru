@@ -82,6 +82,28 @@ describe("diferencias entre recorridos", () => {
     expect(soloCliente.sort()).toEqual(["invitaciones", "primer-cobro", "primer-pago"]);
   });
 
+  it("el pago se detecta en el cobro, no en un recibo del residente", () => {
+    // `paymentReceipts` solo lo CREA el residente (ver firestore.rules): el
+    // administrador ni siquiera tiene permiso. Si la señal apuntara ahí, el
+    // paso jamás se completaría y el cliente se quedaría en 9 de 10.
+    const paso = stepByKey("primer-pago", "cliente");
+    expect(paso?.signal).toEqual({
+      kind: "docs",
+      collection: "billingStatements",
+      filterExamples: true,
+      positiveField: "paymentAmount",
+    });
+  });
+
+  it("emitir y pagar son el mismo documento en dos momentos", () => {
+    const cobro = stepByKey("primer-cobro", "cliente");
+    const pago = stepByKey("primer-pago", "cliente");
+    expect(cobro?.signal).toMatchObject({ collection: "billingStatements" });
+    expect(pago?.signal).toMatchObject({ collection: "billingStatements" });
+    // Lo que los distingue es el abono, no la colección.
+    expect((cobro?.signal as { positiveField?: string }).positiveField).toBeUndefined();
+  });
+
   it("el bloque de cobro no existe en la prueba", () => {
     expect(blocksForTrack("trial").map((b) => b.key)).not.toContain("cobrar");
     expect(blocksForTrack("cliente").map((b) => b.key)).toContain("cobrar");
