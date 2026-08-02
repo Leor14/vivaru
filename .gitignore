@@ -34,6 +34,9 @@ firestore-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# La plantilla SÍ se versiona: es lo que evita que alguien arranque sin
+# configurar y acabe en el proyecto equivocado.
+!.env.example
 
 # vercel
 .vercel
