@@ -66,6 +66,13 @@ async function capture(
   await page.waitForLoadState("load");
   // Espera breve para renderizado post-load (lazy images, Firebase data)
   await page.waitForTimeout(2500);
+  // La banda «AMBIENTE DE PRUEBAS» no puede aparecer en material de marketing.
+  // Se oculta desde aquí y NO con un parámetro de URL: una URL capaz de
+  // esconder el aviso de «los datos aquí no son reales» es justo lo que no
+  // debe existir en el producto.
+  await page.addStyleTag({
+    content: '[data-env-banner]{display:none !important}',
+  });
   if (extraWait) await extraWait();
   const buffer = await page.screenshot({ fullPage: false });
   const dest = path.join(OUT, filename);
@@ -128,19 +135,15 @@ test.describe("Product screenshots — Perspectivas", () => {
 test.describe("Product screenshots — rediseño landing", () => {
   test.setTimeout(180_000);
 
-  // Multi-conjunto: el selector desplegado. Es la prueba de que se pasa de un
-  // conjunto a otro sin cerrar sesión; una etiqueta «AISLADO» no demuestra eso.
-  test("selector de conjunto", async ({ page }) => {
+  // NO se captura: **el conmutador de conjunto no existe en el producto**.
+  // Verificado en agosto de 2026: el claim de sesión lleva un único `tenantId`
+  // (functions/src/index.ts, setCustomUserClaims) y `auth-context.tsx` resuelve
+  // la membresía con `limit(1)`, es decir, toma la primera que encuentra. No hay
+  // enumeración ni selección. Reactivar cuando exista la pantalla.
+  test.skip("selector de conjunto", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginAs(page, "admin@santamaria.co", "Demo1234*");
-    await capture(page, "/admin", "multiconjunto-selector.png", async () => {
-      // Abre el conmutador de conjunto si existe en la barra lateral.
-      const sw = page.getByRole("button", { name: /Santa María|Cambiar conjunto/i }).first();
-      if (await sw.count()) {
-        await sw.click();
-        await page.waitForTimeout(700);
-      }
-    });
+    await capture(page, "/admin", "multiconjunto-selector.png");
   });
 
   // Las dos marcas: MISMO encuadre, distinto conjunto. Si cambia la pantalla

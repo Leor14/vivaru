@@ -17,6 +17,7 @@ export function EnvironmentBanner() {
   return (
     <div
       role="status"
+      data-env-banner=""
       className="flex items-center justify-center gap-2 bg-[#7c2d12] px-3 py-1 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-white"
     >
       <span aria-hidden>⚠</span>
