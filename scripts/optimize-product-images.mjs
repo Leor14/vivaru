@@ -76,6 +76,14 @@ const ANCHO_MAXIMO = [
   // Trío de móviles: ranuras del 30 % y 35,4 % de un bloque de 672 px
   // → 202 y 238 CSS px. 780 da @3x sobrado.
   ["perspectives-resident", 780],
+  // Fondos por perfil: banda a ancho completo, pero se ven bajo un velo del
+  // 86–93 % en la mitad izquierda. El detalle fino ahí es invisible por
+  // definición, así que 1920 y calidad baja no cuestan nada de calidad
+  // percibida y sí mucho peso. Van con `blur(0.7)` desde el origen por lo
+  // mismo. IMPORTANTE: esta regla va ANTES que la de `perspectives-resident`
+  // solo si el prefijo pudiera colisionar; aquí no, pero conviene no renombrar
+  // los archivos a algo que empiece por «perspectives-resident».
+  ["perspectives-fondo", 1920],
   // Dos tarjetas de marca en subrejilla: ~512 CSS px como mucho.
   ["multiconjunto", 1200],
   // Rejilla de 4 columnas: 304 CSS px en desktop, 592 en móvil a 640px.

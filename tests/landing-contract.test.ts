@@ -1,7 +1,7 @@
 // tests/landing-contract.test.ts
 // Red mínima del landing durante el rediseño (docs/plan-rediseno-landing.md).
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -133,5 +133,39 @@ describe("aislamiento de los tokens del landing", () => {
     for (const a of archivos) {
       expect(marketing(a)).not.toMatch(/prefers-color-scheme|dark:/);
     }
+  });
+});
+
+describe("fondos por perfil de «Una plataforma, cuatro experiencias»", () => {
+  const fuente = marketing("Perspectives.tsx");
+
+  it("la meseta del degradado llega al 48 % del ancho", () => {
+    // Es LA invariante de la sección, y se rompe sin querer al «afinar» el
+    // degradado. El texto ocupa el 42 % del `container`, centrado a 1280 px:
+    // en un viewport de 1920 eso cae entre el 17 % y el 45 % de la pantalla.
+    // Si la meseta se acorta, el final de las líneas largas queda sobre la
+    // zona clara y el contraste se cae por debajo de AA sin que nadie lo note,
+    // porque la foto sigue viéndose bien.
+    expect(fuente).toMatch(/0\.86\)\}\s*48%/);
+  });
+
+  it("cada perfil declara un color base sólido bajo la foto", () => {
+    // Sin `base`, si la imagen tarda o falla queda texto blanco sobre blanco.
+    const bases = fuente.match(/base:\s*"#[0-9A-Fa-f]{6}"/g) ?? [];
+    expect(bases).toHaveLength(4);
+  });
+
+  it("los cuatro fondos existen en disco", () => {
+    for (const k of ["admin", "residente", "porteria", "comite"]) {
+      expect(existsSync(join(RAIZ, `public/product/perspectives-fondo-${k}.webp`))).toBe(true);
+    }
+  });
+
+  it("el acento del perfil usa las variantes CLARAS, no las de marca", () => {
+    // Sobre el fondo oscuro, #1A7A45 o #3D1460 no se leen. El titular pasó a
+    // blanco y el color del perfil vive ahora en el ambiente y los números.
+    const acentos = fuente.match(/acento:\s*"([^"]+)"/g) ?? [];
+    expect(acentos).toHaveLength(4);
+    for (const a of acentos) expect(a).toMatch(/light/);
   });
 });

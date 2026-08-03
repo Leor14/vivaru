@@ -168,12 +168,165 @@ const TABS: TabDef[] = [
   },
 ];
 
+/** Tinta oscura del perfil. Sobre el fondo oscuro solo sirve encima de blanco. */
 const HEADLINE_COLOR: Record<TabKey, string> = {
   admin: "text-navy",
   residente: "text-brand-green-resident",
   porteria: "text-brand-plum-dark",
   comite: "text-brand-blue",
 };
+
+/**
+ * Fondo fotográfico por perfil.
+ *
+ * `opacidad` y `velo` NO son iguales para los cuatro, y ahí está el trabajo.
+ * Con valores uniformes, la luminancia media del lado de la imagen iba de
+ * 0,0065 en portería a 0,0142 en residente —más del doble—, y al cambiar de
+ * pestaña se sentía como si subieran y bajaran las luces de la sala. Estos
+ * salen de resolver esa igualdad con `scripts/simular-capa-perspectivas.mjs`,
+ * que compone las capas exactas y mide; dejan la dispersión en 1,12×.
+ *
+ * `scripts/verificar-fondos-perspectivas.mjs` lo comprueba después sobre el
+ * render del navegador, que es lo que cuenta.
+ *
+ * `base` es un color sólido bajo la foto, y no es decorativo: si la imagen
+ * tarda o falla, el texto blanco sigue siendo legible. Sin él, un fallo de red
+ * deja texto blanco sobre blanco.
+ */
+type FondoDef = {
+  src: string;
+  base: string;
+  tinte: string;
+  opacidad: number;
+  /** Alfa del degradado en el extremo derecho. */
+  velo: number;
+  /** Acento legible SOBRE el fondo compuesto; el de marca es demasiado oscuro. */
+  acento: string;
+};
+
+const FONDOS: Record<TabKey, FondoDef> = {
+  admin: {
+    src: "/product/perspectives-fondo-admin.webp",
+    base: "#04121C",
+    tinte: "#0B3C5D",
+    opacidad: 0.5,
+    velo: 0.14,
+    acento: "text-brand-blue-light",
+  },
+  residente: {
+    src: "/product/perspectives-fondo-residente.webp",
+    base: "#04160D",
+    tinte: "#1A7A45",
+    opacidad: 0.2,
+    velo: 0.45,
+    acento: "text-brand-green-resident-light",
+  },
+  porteria: {
+    src: "/product/perspectives-fondo-porteria.webp",
+    // Base aclarada a propósito. Con el ciruela original (#12061D) esta banda
+    // quedaba en 0,0085 de luminancia contra 0,0130 del resto, y ni con la foto
+    // al 100 % subía: la imagen es oscura de origen. Subir la base es el único
+    // mando que quedaba.
+    base: "#2A1344",
+    tinte: "#3D1460",
+    opacidad: 1,
+    velo: 0.04,
+    acento: "text-brand-plum-light",
+  },
+  comite: {
+    src: "/product/perspectives-fondo-comite.webp",
+    base: "#0A0D22",
+    tinte: "#4B5FD4",
+    opacidad: 0.7,
+    velo: 0.6,
+    acento: "text-brand-blue-accent-light",
+  },
+};
+
+function rgba(hex: string, alpha: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/**
+ * El degradado direccional: la garantía de contraste.
+ *
+ * No se puede confiar en que una foto sea oscura justo donde cae el texto —de
+ * las cuatro, solo una respetó el encargo—, así que lo garantiza el degradado
+ * con independencia de la imagen. **La meseta alta llega al 48 %** porque ahí
+ * termina la columna de texto: ocupa el 42 % del `container`, que está centrado
+ * a 1280 px, o sea del 17 % al 45 % de la pantalla en un viewport de 1920.
+ * Acortarla deja el final de las líneas largas en la zona clara.
+ *
+ * Medido sobre las cuatro imágenes compuestas: 17,0:1 el peor caso. AAA.
+ */
+function degradadoAncho(f: FondoDef) {
+  return `linear-gradient(100deg, ${rgba(f.base, 0.93)} 0%, ${rgba(f.base, 0.86)} 48%, ${rgba(f.base, f.velo + 0.22)} 70%, ${rgba(f.base, f.velo)} 100%)`;
+}
+
+/** En móvil la rejilla se apila y el texto cruza todo el ancho: el velo gira. */
+function degradadoAlto(f: FondoDef) {
+  return `linear-gradient(to bottom, ${rgba(f.base, 0.91)} 0%, ${rgba(f.base, 0.82)} 55%, ${rgba(f.base, 0.62)} 100%)`;
+}
+
+/**
+ * Las cuatro capas apiladas; solo cambia la opacidad.
+ *
+ * No se montan y desmontan a propósito: eso parpadearía y volvería a
+ * decodificar la imagen en cada cambio de pestaña.
+ *
+ * Cruzan en 450 ms, más lento que los 200 ms del panel. Si van a la vez, la
+ * sección entera pestañea; desfasados, el texto cambia y el ambiente lo
+ * alcanza después.
+ */
+function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> }) {
+  return (
+    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+      {(Object.keys(FONDOS) as TabKey[]).map((k) => {
+        const f = FONDOS[k];
+        const visible = k === activo;
+        return (
+          <div
+            key={k}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-[450ms] ease-out",
+              "motion-reduce:transition-none",
+              visible ? "opacity-100" : "opacity-0",
+            )}
+            style={{ backgroundColor: f.base }}
+          >
+            {/* Solo se descarga la del perfil que se ha visitado. Las cuatro
+                están dentro del viewport cuando la sección entra, así que
+                `loading="lazy"` no bastaría: las pediría todas igual. */}
+            {cargados.has(k) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={f.src}
+                alt=""
+                className="h-full w-full object-cover"
+                style={{ opacity: f.opacidad }}
+                decoding="async"
+                fetchPriority={visible ? "auto" : "low"}
+              />
+            ) : null}
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: f.tinte, opacity: 0.34 }}
+            />
+            <div
+              className="absolute inset-0 lg:hidden"
+              style={{ backgroundImage: degradadoAlto(f) }}
+            />
+            <div
+              className="absolute inset-0 hidden lg:block"
+              style={{ backgroundImage: degradadoAncho(f) }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 // ─── Composite layouts ───────────────────────────────────────────────────────
 
@@ -286,8 +439,22 @@ export function Perspectives() {
   const reduced = useReducedMotion();
   const triggersRef = React.useRef<Array<HTMLButtonElement | null>>([]);
 
+  /**
+   * Qué fondos se han pedido ya. Arranca solo con el activo.
+   *
+   * Los cuatro suman 268 KB, sobre una página que ya carga 1,3 MB de vídeo. Sin
+   * esto, entrar en la sección los descarga todos aunque nadie toque una
+   * pestaña. `precalentar` los pide al pasar el ratón o el foco, así que para
+   * cuando el clic llega la imagen suele estar.
+   */
+  const [cargados, setCargados] = React.useState<Set<TabKey>>(() => new Set<TabKey>(["admin"]));
+  const precalentar = React.useCallback((k: TabKey) => {
+    setCargados((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  }, []);
+
   const changeTab = React.useCallback(
     (next: TabKey) => {
+      precalentar(next);
       setTab((prev) => {
         if (prev !== next) {
           track("perspective_tab_change", { tab: next, from_tab: prev });
@@ -295,7 +462,7 @@ export function Perspectives() {
         return next;
       });
     },
-    [],
+    [precalentar],
   );
 
   const onKeyDown = (e: React.KeyboardEvent, currentIndex: number) => {
@@ -319,12 +486,13 @@ export function Perspectives() {
       <section
         id="perspectivas"
         aria-labelledby="perspectivas-heading"
-        className="overflow-x-clip bg-slate-50 scroll-mt-24"
+        className="relative isolate overflow-x-clip scroll-mt-24"
       >
+        <Fondos activo={tab} cargados={cargados} />
         <div className="container py-xxl">
           <h2
             id="perspectivas-heading"
-            className="max-w-3xl font-display text-h2 text-navy text-balance"
+            className="max-w-3xl font-display text-h2 text-white text-balance"
           >
             Una plataforma, cuatro experiencias
           </h2>
@@ -333,7 +501,7 @@ export function Perspectives() {
           <div
             role="tablist"
             aria-label="Perspectivas por rol"
-            className="mt-lg inline-flex flex-wrap gap-1 rounded-full bg-white p-1 shadow-brand-sm ring-1 ring-border"
+            className="mt-lg inline-flex flex-wrap gap-1 rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-sm"
           >
             {TABS.map((t, i) => {
               const isActive = t.key === tab;
@@ -351,20 +519,21 @@ export function Perspectives() {
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => changeTab(t.key)}
                   onKeyDown={(e) => onKeyDown(e, i)}
+                  onMouseEnter={() => precalentar(t.key)}
+                  onFocus={() => precalentar(t.key)}
                   className={cn(
                     "relative isolate inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors duration-fast",
                     "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                    isActive ? t.textActive : "text-slate-600 hover:text-slate-900",
+                    isActive
+                      ? HEADLINE_COLOR[t.key]
+                      : "text-white/70 hover:text-white",
                   )}
                 >
                   {isActive && (
                     <m.span
                       layoutId="tabHighlight"
                       aria-hidden="true"
-                      className={cn(
-                        "absolute inset-0 -z-10 rounded-full",
-                        t.bgActive,
-                      )}
+                      className="absolute inset-0 -z-10 rounded-full bg-white"
                       transition={
                         reduced
                           ? { duration: 0 }
@@ -403,17 +572,23 @@ export function Perspectives() {
                   mes y el lector la sigue como tal.
                 */}
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                  {/* El color del perfil se muda aquí y a los números: sobre el
+                      fondo oscuro ya no puede vivir en el titular. */}
+                  <p
+                    className={cn(
+                      "text-xs font-semibold uppercase tracking-[0.14em]",
+                      FONDOS[active.key].acento,
+                    )}
+                  >
                     Hoy
                   </p>
-                  <p className="mt-1 text-lg italic leading-snug text-slate-500 text-balance">
+                  <p className="mt-1 text-lg italic leading-snug text-white/75 text-balance">
                     “{active.problem}”
                   </p>
 
                   <h3
                     className={cn(
-                      "mt-lg font-display text-h2 text-balance",
-                      HEADLINE_COLOR[active.key],
+                      "mt-lg font-display text-h2 text-balance text-white",
                     )}
                   >
                     {active.headline}
@@ -426,13 +601,13 @@ export function Perspectives() {
                           aria-hidden="true"
                           className={cn(
                             "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
-                            active.bgActive,
-                            active.textActive,
+                            "bg-white/10 ring-1 ring-white/20",
+                            FONDOS[active.key].acento,
                           )}
                         >
                           {i + 1}
                         </span>
-                        <span className="text-base leading-relaxed text-slate-600">
+                        <span className="text-base leading-relaxed text-white/80">
                           {paso}
                         </span>
                       </li>

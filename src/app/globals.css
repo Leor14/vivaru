@@ -757,6 +757,20 @@ h3 {
   --color-brand-red: #DC2626;
   --color-brand-plum-dark: #3D1460;
 
+  /* Variantes claras para usar SOBRE fondo oscuro.
+   *
+   * Las de arriba son colores de marca pensados para tinta sobre blanco:
+   * #1A7A45 o #3D1460 sobre un fondo oscuro no se leen. Los fondos por perfil
+   * de «Una plataforma, cuatro experiencias» invierten el terreno, y ahí el
+   * acento tiene que subir de luminosidad sin cambiar de tono.
+   *
+   * Cada uno pasa 7:1 contra el fondo compuesto de su perfil (medido con
+   * `scripts/simular-capa-perspectivas.mjs`, no estimado). Azul no aparece
+   * porque ya existía como `--color-brand-blue-light`. */
+  --color-brand-green-resident-light: #6FD79B;
+  --color-brand-plum-light: #C4A0F0;
+  --color-brand-blue-accent-light: #A8B4F5;
+
   /* Typography scale (line-heights via companion CSS rules below) */
   --text-hero: 72px;
   --text-hero-mobile: 56px;

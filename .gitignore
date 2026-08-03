@@ -47,3 +47,7 @@ next-env.d.ts
 
 # Salida de Playwright
 test-results/
+
+# Salida de los guiones de medicion del landing
+.simulacion-perspectivas/
+.verificacion-perspectivas/
