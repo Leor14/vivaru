@@ -80,9 +80,21 @@ async function capture(
   // Se oculta desde aquí y NO con un parámetro de URL: una URL capaz de
   // esconder el aviso de «los datos aquí no son reales» es justo lo que no
   // debe existir en el producto.
+  //
+  // `nextjs-portal` es el indicador de desarrollo de Next (la chapa negra de
+  // abajo a la izquierda, «N · 3 Issues»). Solo sale cuando el servidor acumula
+  // avisos, así que aparece o no según el día: eso es peor que si saliera
+  // siempre, porque una recaptura cualquiera puede hornearlo en una imagen del
+  // landing sin que nadie lo note. Se tapa aquí y no con `devIndicators: false`
+  // en `next.config.ts`, que se lo quitaría a quien programa.
   await page.addStyleTag({
-    content: '[data-env-banner]{display:none !important}',
+    content:
+      "[data-env-banner],nextjs-portal{display:none !important}",
   });
+  // El ratón se queda donde lo dejó la navegación y abre tooltips de recharts
+  // al pasar por encima de una barra. Aparcarlo fuera antes de disparar.
+  await page.mouse.move(0, 0);
+  await page.waitForTimeout(400);
   if (extraWait) await extraWait();
   const buffer = await page.screenshot({ fullPage: false });
   const dest = path.join(OUT, filename);
@@ -190,6 +202,24 @@ test.describe("Product screenshots — rediseño landing", () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginAs(page, "admin@elnogal.co", "Demo1234*");
     await capture(page, "/admin/soporte", "trust-soporte.png");
+  });
+
+  // Cierre de la página: la cartera del mes, ancha, para que sangre por el
+  // borde derecho. Aquí había declarado un vídeo de tres portales que nunca se
+  // grabó —el slot llevaba tiempo rindiendo el placeholder de rayas—, y grabarlo
+  // pedía tres sesiones: en Firebase cada login sustituye al anterior, así que
+  // las tres pasadas salen en grabaciones distintas y unirlas pide ffmpeg, que
+  // no está instalado. Una foto quieta hace el mismo trabajo de ambientación sin
+  // poner un segundo vídeo a reproducirse solo en la misma página.
+  // Va el panel de control y NO `/admin/billing`, que era lo primero que probé:
+  // con los datos de siembra, cartera enseña «Recaudado $0», «% recaudo 0.0 %»
+  // y una brecha igual a todo lo cobrado. Es fiel al ambiente y pésimo como
+  // material de venta —un conjunto que no ha cobrado nada—. El panel sale sano
+  // con los mismos datos: cartera total, alertas y paquetes pendientes.
+  test("panel de control, ancho", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await loginAs(page, "admin@elnogal.co", "Demo1234*");
+    await capture(page, "/admin", "pre-footer-panel.png");
   });
 
   // Acceso por enlace. La pantalla de **activación** vive detrás de un enlace de

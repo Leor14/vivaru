@@ -118,21 +118,25 @@ export function FinalCTA() {
           </div>
 
           {/*
-            El vídeo se sale por el borde derecho, como en el pre-footer de
-            Synthesia. Es el PRIMER vídeo del landing, así que llega con freno:
-            `preload="none"` para no descargarlo hasta que haga falta, póster
-            para que el hueco no parpadee, y sin controles porque es
-            ambientación, no algo que nadie vaya a pausar.
+            Se sale por el borde derecho, como en el pre-footer de Synthesia.
+
+            Aquí había declarado un vídeo de tres portales que nunca llegó a
+            grabarse: el slot llevaba semanas rindiendo el placeholder de rayas
+            al cierre de la página. Grabarlo tampoco era barato —en Firebase
+            cada login sustituye al anterior, así que los tres portales caen en
+            tres grabaciones distintas y unirlas pide ffmpeg—, y sobre todo ya
+            no hacía falta: el recorrido en movimiento vive en «Cada conjunto,
+            su propio sistema», ocho secciones más arriba. Un segundo vídeo
+            reproduciéndose solo en la misma página compite con aquel y pesa
+            más que el argumento que aporta.
           */}
           <div className="lg:-mr-16 xl:-mr-32">
             <AssetSlot
               asset={{
-                alt: "Vivaru en uso: cartera del mes, portal del residente y validación en portería",
-                width: 1920,
-                height: 1080,
-                kind: "video",
-                file: "/landing/pre-footer-es.webm",
-                poster: "/landing/pre-footer-es-poster.jpg",
+                alt: "Panel de control de un conjunto: cartera total, alertas operativas y paquetes pendientes",
+                width: 1440,
+                height: 810,
+                src: "/product/pre-footer-panel.webp",
               }}
               className="w-full rounded-2xl border border-white/60 shadow-brand-lg"
               sizes="(max-width: 1024px) 100vw, 54vw"
