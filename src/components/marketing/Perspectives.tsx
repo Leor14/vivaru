@@ -205,62 +205,44 @@ function AdminComposite({ shots }: { shots: ShotDef[] }) {
 }
 
 /**
- * Residente — 3 phones in staggered composition.
- * Center phone is taller (top-aligned); left and right phones are
- * bottom-aligned and slightly narrower, flanking the center.
+ * Residente — tres teléfonos escalonados: el del centro más alto y alineado
+ * arriba, los laterales más estrechos y alineados abajo.
  *
- * Container is 420 × 360 px (explicit) so absolute children don't collapse it.
- * Phone dimensions (390 × 844 aspect ~9:19.4):
- *   center: 148 px wide → ~320 px tall
- *   sides:  126 px wide → ~273 px tall
- * Stagger: center top at 0, sides top at 360 - 273 = 87 px → 87 px lower.
+ * Medidas en PORCENTAJE, no en píxeles. Estaban fijas en 420×360 con teléfonos
+ * de 126 y 148 px, lo que daba dos problemas: en la columna ancha del rediseño
+ * se veían diminutos, y 420 px ya no cabían en un móvil de 375. Con
+ * `aspect-ratio` y anchos relativos, la composición se conserva exacta a
+ * cualquier tamaño y el contenedor manda.
+ *
+ * Proporciones (teléfono 390×844, ~9:19.4):
+ *   centro    35,4 % del ancho, alineado arriba
+ *   laterales 30 % del ancho, alineados abajo
  */
 function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div
-      className="relative mx-auto"
-      style={{ width: 420, height: 360 }}
+      className="relative mx-auto w-full max-w-[42rem]"
+      style={{ aspectRatio: "700 / 600" }}
       aria-label="Portal del Residente en tres pantallas"
     >
-      {/* Left phone — cuenta/estado */}
+      {/* Izquierda — estado de cuenta */}
       {shots[0] && (
-        <div
-          className="absolute bottom-0 left-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
-          style={{ width: 126 }}
-        >
-          <AssetSlot
-            asset={shots[0]}
-            sizes="126px"
-            className="block w-full"
-          />
+        <div className="absolute bottom-0 left-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+          <AssetSlot asset={shots[0]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
         </div>
       )}
 
-      {/* Center phone — reservas (protagonist) */}
+      {/* Centro — reservas (protagonista) */}
       {shots[1] && (
-        <div
-          className="absolute top-0 left-1/2 z-10 overflow-hidden rounded-[30px] border border-slate-200 shadow-brand-lg"
-          style={{ width: 148, transform: "translateX(-50%)" }}
-        >
-          <AssetSlot
-            asset={shots[1]}
-            sizes="148px"
-            className="block w-full"
-          />
+        <div className="absolute left-1/2 top-0 z-10 w-[35.4%] -translate-x-1/2 overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-lg">
+          <AssetSlot asset={shots[1]} sizes="(max-width: 1024px) 36vw, 18vw" className="block w-full" />
         </div>
       )}
 
-      {/* Right phone — QR visita */}
+      {/* Derecha — QR de visita */}
       {shots[2] && (
-        <div
-          className="absolute bottom-0 right-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
-          style={{ width: 126 }}
-        >
-          <AssetSlot
-            asset={shots[2]}
-            sizes="126px"
-            className="block w-full"
-          />
+        <div className="absolute bottom-0 right-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+          <AssetSlot asset={shots[2]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
         </div>
       )}
     </div>

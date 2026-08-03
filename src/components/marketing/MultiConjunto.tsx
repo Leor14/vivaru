@@ -84,36 +84,27 @@ function ConjuntoStack() {
           : "opacity-0 translate-y-4 motion-reduce:translate-y-0",
       )}
     >
-      <AssetSlot
-        asset={{
-          alt: "Selector de conjunto: pasar de Santa María a Las Bromelias sin cerrar sesión",
-          width: 1440,
-          height: 900,
-          file: "/product/multiconjunto-selector.png",
-        }}
-        sizes="(max-width: 1024px) 100vw, 45vw"
-        className="w-full rounded-2xl border border-slate-200 shadow-brand-md"
-      />
-
-      {/* Las dos marcas, una sobre otra, para que la diferencia se lea de un
-          vistazo sin tener que comparar dos imágenes separadas. */}
-      <div className="mt-md grid grid-cols-2 gap-md">
+      {/* Dos conjuntos, la MISMA pantalla. Aquí iba una captura del selector
+          de conjunto, pero esa pantalla no existe: el claim de sesión lleva un
+          solo `tenantId` y la membresía se resuelve con `limit(1)`. Enseñar dos
+          tableros con su propia marca sí demuestra el aislamiento, y es cierto. */}
+      <div className="grid gap-md sm:grid-cols-2">
         <AssetSlot
           asset={{
-            alt: "El tablero con la marca de Santa María",
-            width: 800,
-            height: 600,
-            file: "/product/multiconjunto-marca-a.png",
+            alt: "Panel de Conjunto Residencial Santa María",
+            width: 1200,
+            height: 900,
+            src: "/product/multiconjunto-marca-a.png",
           }}
           sizes="(max-width: 1024px) 50vw, 22vw"
           className="w-full rounded-xl border border-slate-200 shadow-brand-sm"
         />
         <AssetSlot
           asset={{
-            alt: "El mismo tablero con la marca de Las Bromelias",
-            width: 800,
-            height: 600,
-            file: "/product/multiconjunto-marca-b.png",
+            alt: "El mismo panel, en Conjunto Residencial El Nogal",
+            width: 1200,
+            height: 900,
+            src: "/product/multiconjunto-marca-b.png",
           }}
           sizes="(max-width: 1024px) 50vw, 22vw"
           className="w-full rounded-xl border border-slate-200 shadow-brand-sm"

@@ -43,7 +43,7 @@ const ITEMS: Item[] = [
       alt: "Importación de unidades y residentes desde Excel",
       width: 1280,
       height: 720,
-      file: "/landing/trust-migracion.png",
+      src: "/product/trust-migracion.png",
     },
   },
   {
@@ -69,7 +69,7 @@ const ITEMS: Item[] = [
       alt: "Registro de auditoría con autor y fecha por operación",
       width: 1280,
       height: 720,
-      file: "/landing/trust-respaldos.png",
+      src: "/product/trust-respaldos.png",
     },
   },
   {
@@ -82,7 +82,7 @@ const ITEMS: Item[] = [
       alt: "Conversación de soporte dentro del producto",
       width: 1280,
       height: 720,
-      file: "/landing/trust-soporte.png",
+      src: "/product/trust-soporte.png",
     },
   },
 ];

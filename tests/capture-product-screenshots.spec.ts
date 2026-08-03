@@ -155,31 +155,64 @@ test.describe("Product screenshots — rediseño landing", () => {
   });
 
   test("tablero con marca B", async ({ page }) => {
+    // MISMA pantalla que la marca A, otro conjunto. Estuvo apuntando a /guard
+    // con la cuenta de portería: eso comparaba dos portales distintos, no dos
+    // marcas, y la demostración se perdía.
     await page.setViewportSize({ width: 1200, height: 900 });
-    await loginAs(page, "guardia@elnogal.co", "Demo1234*");
-    await capture(page, "/guard", "multiconjunto-marca-b.png");
+    await loginAs(page, "admin@elnogal.co", "Demo1234*");
+    await capture(page, "/admin", "multiconjunto-marca-b.png");
   });
 
   // Confianza: cuatro pantallas 16:9.
   test("importación desde Excel", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await loginAs(page, "admin@elnogal.co", "Demo1234*");
     await capture(page, "/admin/residents", "trust-migracion.png");
   });
 
   test("registro de auditoría", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await loginAs(page, "admin@elnogal.co", "Demo1234*");
     await capture(page, "/admin/settings", "trust-respaldos.png");
   });
 
   test("soporte dentro del producto", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await loginAs(page, "admin@elnogal.co", "Demo1234*");
     await capture(page, "/admin/soporte", "trust-soporte.png");
   });
 
   // `trust-acceso.png` (activación por enlace) NO se automatiza: la pantalla
   // vive detrás de un enlace de un solo uso que caduca, así que reproducirla
   // pide generar una invitación real. Se captura a mano.
+});
+
+// ─── Siembra, bajo demanda ───────────────────────────────────────────────────
+//
+// Las capturas de un producto vacío no sirven: el conjunto demo salía con
+// «Sin unidades», cartera 0 y personas 0. Este paso llena el conjunto usando
+// el botón «Cargar seed», que el propio producto solo muestra en desarrollo.
+//
+// NO corre con el resto: escribe datos en un ambiente compartido. Lanzarlo a
+// propósito con:
+//   npx playwright test tests/capture-product-screenshots.spec.ts --grep "sembrar"
+//
+// Es aditivo, no destructivo, y va contra staging: comprobar antes que
+// `.env.local` no apunte a producción.
+test.describe("Siembra", () => {
+  test.setTimeout(180_000);
+
+  test("sembrar datos demo del conjunto", async ({ page }) => {
+    await loginAs(page, "admin@santamaria.co", "Demo1234*");
+    await page.goto("/admin/residents");
+    await page.waitForLoadState("load");
+    const boton = page.getByRole("button", { name: /Cargar seed/i });
+    await expect(boton).toBeVisible({ timeout: 20_000 });
+    await boton.click();
+    await expect(page.getByRole("button", { name: /Cargar seed/i })).toBeEnabled({
+      timeout: 120_000,
+    });
+    await page.waitForTimeout(3000);
+    console.log("✓  seed operativo aplicado");
+  });
 });
