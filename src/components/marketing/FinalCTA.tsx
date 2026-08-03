@@ -129,14 +129,21 @@ export function FinalCTA() {
             su propio sistema», ocho secciones más arriba. Un segundo vídeo
             reproduciéndose solo en la misma página compite con aquel y pesa
             más que el argumento que aporta.
+
+            La foto es el comportamiento histórico de cartera de un conjunto
+            REAL, no del ambiente de siembra: 87,3 % de recaudo, con la brecha
+            a la vista. Es el argumento que cierra la página —esto es lo que
+            vas a poder ver de tu conjunto— y con datos sembrados no existía:
+            el ambiente de pruebas enseña «Recaudado $0» en todas partes.
+            Recortada a la tarjeta; no hay ningún nombre de residente.
           */}
           <div className="lg:-mr-16 xl:-mr-32">
             <AssetSlot
               asset={{
-                alt: "Panel de control de un conjunto: cartera total, alertas operativas y paquetes pendientes",
+                alt: "Comportamiento histórico de cartera: cobrado, recaudado, brecha y 87,3 % de recaudo",
                 width: 1440,
-                height: 810,
-                src: "/product/pre-footer-panel.webp",
+                height: 550,
+                src: "/product/pre-footer-cartera.webp",
               }}
               className="w-full rounded-2xl border border-white/60 shadow-brand-lg"
               sizes="(max-width: 1024px) 100vw, 54vw"

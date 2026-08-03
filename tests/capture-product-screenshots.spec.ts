@@ -211,12 +211,18 @@ test.describe("Product screenshots — rediseño landing", () => {
   // las tres pasadas salen en grabaciones distintas y unirlas pide ffmpeg, que
   // no está instalado. Una foto quieta hace el mismo trabajo de ambientación sin
   // poner un segundo vídeo a reproducirse solo en la misma página.
-  // Va el panel de control y NO `/admin/billing`, que era lo primero que probé:
-  // con los datos de siembra, cartera enseña «Recaudado $0», «% recaudo 0.0 %»
-  // y una brecha igual a todo lo cobrado. Es fiel al ambiente y pésimo como
-  // material de venta —un conjunto que no ha cobrado nada—. El panel sale sano
-  // con los mismos datos: cartera total, alertas y paquetes pendientes.
-  test("panel de control, ancho", async ({ page }) => {
+  // El pre-footer ya NO sale de aquí: la imagen que se publica es la gráfica de
+  // cartera de un conjunto real, sacada de producción con
+  // `scripts/capturar-produccion.mjs`.
+  //
+  // El motivo es de fondo y vale para cualquier captura futura: contra staging,
+  // cartera enseña «Recaudado $0», «% recaudo 0.0 %» y una brecha igual a todo
+  // lo cobrado, porque la siembra emite cobros pero no registra pagos. Fiel al
+  // ambiente y pésimo como material de venta. Probé el panel de control como
+  // sustituto y sale sano, pero no dice nada del recaudo, que es el argumento
+  // que cierra la página. Se queda saltado por si algún día la siembra registra
+  // pagos.
+  test.skip("panel de control, ancho", async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await loginAs(page, "admin@elnogal.co", "Demo1234*");
     await capture(page, "/admin", "pre-footer-panel.png");
