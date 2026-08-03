@@ -21,6 +21,19 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 - Secret de Resend (lo hace el USUARIO, no el agente): `firebase functions:secrets:set RESEND_API_KEY`
 - Tests: `npm test` (vitest)
 
+## Ambientes desplegados
+
+**El nombre del backend NO es el del proyecto.** Construir la URL a partir del
+project ID da un host que no existe y responde 404 en TODO, lo que se lee como
+«el despliegue va lento» cuando en realidad se está sondeando la nada.
+
+| Ambiente | URL | Rama |
+|---|---|---|
+| Producción | `https://www.grupovivaru.com` · `https://vivaru--hogaru-1.us-central1.hosted.app` | `master` |
+| Staging | `https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app` | `develop` |
+
+El landing vive en `/mx`; `/` solo redirige allí.
+
 ## Metodología
 
 critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/`. Mensajes de commit semánticos. Despliegue del front por push a `master`; functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
