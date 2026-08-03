@@ -192,9 +192,62 @@ test.describe("Product screenshots — rediseño landing", () => {
     await capture(page, "/admin/soporte", "trust-soporte.png");
   });
 
-  // `trust-acceso.png` (activación por enlace) NO se automatiza: la pantalla
-  // vive detrás de un enlace de un solo uso que caduca, así que reproducirla
-  // pide generar una invitación real. Se captura a mano.
+  // Acceso por enlace. La pantalla de **activación** vive detrás de un enlace de
+  // un solo uso que caduca, así que no se puede reproducir sin generar una
+  // invitación real. Pero la promesa de la tarjeta —«activa su cuenta y
+  // restablece su contraseña desde un enlace seguro»— también la demuestra el
+  // acuse de `/forgot-password`, que además dice en pantalla que el enlace
+  // caduca. Esa sí es reproducible, y no hace falta iniciar sesión.
+  //
+  // **No se envía el formulario de verdad.** Se corta la llamada a Firebase con
+  // `route.abort()`: la página captura el error y muestra igual el acuse (es
+  // deliberado, por anti-enumeración — ver el `catch` de la página). Así no se
+  // dispara ningún correo ni sale un dato del navegador para hacer una foto.
+  test("acuse de enlace de acceso", async ({ page }) => {
+    await page.setViewportSize({ width: 960, height: 540 });
+
+    await page.route(/identitytoolkit\.googleapis\.com/, (route) =>
+      route.abort()
+    );
+
+    await page.goto("/forgot-password");
+    await page.waitForLoadState("load");
+    await page.fill('input[type="email"]', "ana.moreno@elnogal.co");
+    await page
+      .getByRole("button", { name: /Enviar enlace de recuperación/i })
+      .click();
+
+    // Sin esto la foto sale del formulario, no del acuse.
+    await expect(page.getByText(/Revisa tu correo/i)).toBeVisible({
+      timeout: 15_000,
+    });
+
+    await page.addStyleTag({
+      content: "[data-env-banner]{display:none !important}",
+    });
+
+    // Recorte al 16:9 alrededor de la tarjeta. A pantalla completa la tarjeta
+    // sale diminuta en mitad del fondo, y en el landing esto se ve a un cuarto
+    // de columna: quedaría gris con letra ilegible. El 16:9 no es capricho, es
+    // que las otras tres tarjetas de la sección se declaran 1280×720 y una
+    // proporción distinta descuadra la fila.
+    const caja = await page.locator("main >> css=div").first().boundingBox();
+    if (!caja) throw new Error("No se pudo medir la tarjeta");
+    const ancho = caja.width + 80;
+    const alto = (ancho / 16) * 9;
+    fs.writeFileSync(
+      path.join(OUT, "trust-acceso.png"),
+      await page.screenshot({
+        clip: {
+          x: caja.x - 40,
+          y: caja.y - (alto - caja.height) / 2,
+          width: ancho,
+          height: alto,
+        },
+      })
+    );
+    console.log("✓  trust-acceso.png");
+  });
 });
 
 // ─── Siembra, bajo demanda ───────────────────────────────────────────────────

@@ -53,10 +53,14 @@ const ITEMS: Item[] = [
     title: "Acceso seguro por enlace",
     body: "Cada usuario activa su cuenta y restablece su contraseña desde un enlace seguro. Sin claves compartidas.",
     shot: {
-      alt: "Activación de cuenta desde un enlace de un solo uso",
-      width: 1280,
-      height: 720,
-      file: "/landing/trust-acceso.png",
+      // La pantalla de activación vive detrás de un enlace de un solo uso y no
+      // se puede fotografiar sin generar una invitación real; esta es la de
+      // recuperación, que demuestra lo mismo y dice en pantalla que el enlace
+      // caduca. Ver el test «acuse de enlace de acceso».
+      alt: "Acuse del envío del enlace de acceso: el enlace caduca por seguridad",
+      width: 1056,
+      height: 594,
+      src: "/product/trust-acceso.webp",
     },
   },
   {
