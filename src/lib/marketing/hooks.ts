@@ -53,38 +53,3 @@ export function useInView<T extends Element = HTMLElement>(
 
   return [ref, seen];
 }
-
-/**
- * Linear ease-out tween from 0 → `target` over `durationMs`, returned as
- * the current frame value. When `active` is false the hook returns 0 and
- * does no work. When `reduce` is true the hook snaps to `target`
- * immediately (no animation), respecting `prefers-reduced-motion`.
- */
-export function useCountUp(
-  target: number,
-  active: boolean,
-  { durationMs = 800, reduce = false }: { durationMs?: number; reduce?: boolean } = {},
-): number {
-  const [value, setValue] = React.useState(0);
-
-  React.useEffect(() => {
-    if (!active) return;
-    if (reduce || durationMs <= 0) {
-      setValue(target);
-      return;
-    }
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValue(target * eased);
-      if (t < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active, durationMs, reduce, target]);
-
-  return value;
-}
