@@ -73,17 +73,24 @@ export function MultiConjunto() {
 }
 
 /**
- * Prueba visual: un recorrido grabado de 15 s por seis módulos —panel,
- * residentes y unidades, cartera, reservas, PQRS y comunicaciones—, con datos
- * reales de un conjunto de staging.
+ * Prueba visual: un recorrido grabado de 20 s por cinco módulos —panel,
+ * residentes y unidades, cartera, reservas y comunicaciones— con los datos de
+ * un conjunto de producción.
  *
- * Se graba con Playwright, no a mano: ver el bloque `Recorrido` en
- * `tests/capture-product-screenshots.spec.ts`, que además documenta por qué
- * hacen falta dos páginas del mismo contexto (la sesión de Firebase vive en
- * IndexedDB y `storageState()` no la hereda).
+ * Se graba con `scripts/capturar-produccion-admin.mjs`, que documenta las
+ * trampas: dos páginas del mismo contexto (la sesión de Firebase vive en
+ * IndexedDB), `video.saveAs()` y no copiar el archivo a mano, y la espera a que
+ * no queden esqueletos en pantalla.
+ *
+ * **Se navega pulsando el menú, no recargando por URL.** Con `goto` cada salto
+ * era un recargue completo y el vídeo llevaba fotogramas en blanco entre módulo
+ * y módulo; pulsando el menú la navegación es del lado del cliente y el paso es
+ * continuo, que es lo único que esta sección tiene que demostrar.
+ *
+ * PQRS queda fuera: su listado son ocho filas con la etiqueta roja «Vencido».
  *
  * Arranca solo, en bucle y sin sonido, con `preload="none"` para no cobrarle
- * 1,1 MB a quien nunca baja hasta aquí; el póster es el tablero con la marca
+ * 1,3 MB a quien nunca baja hasta aquí; el póster es el tablero con la marca
  * del conjunto, que es lo que sostiene el titular mientras el vídeo carga.
  */
 function ConjuntoStack() {
@@ -102,7 +109,7 @@ function ConjuntoStack() {
     >
       <AssetSlot
         asset={{
-          alt: "Recorrido por Vivaru: panel de control, residentes y unidades, cartera, reservas, PQRS y comunicaciones",
+          alt: "Recorrido por Vivaru: panel de control, residentes y unidades, cartera, reservas y comunicaciones",
           width: 1280,
           height: 800,
           kind: "video",

@@ -70,7 +70,11 @@ const ITEMS: Item[] = [
     title: "Respaldos diarios y auditoría",
     body: "Copias de seguridad automáticas cada día y registro auditable de las operaciones sensibles. Tu información, protegida.",
     shot: {
-      alt: "Registro de auditoría con autor y fecha por operación",
+      // La pantalla es «Libro y fondos». Antes esto apuntaba a Ajustes, que
+      // enseñaba selectores de color: nada que ver con auditar. El libro sí,
+      // porque sus asientos no se borran —anular crea un asiento inverso y el
+      // original queda visible— y cada línea dice de dónde salió.
+      alt: "Libro de ingresos y egresos: cada movimiento con su fecha, concepto, monto y origen",
       width: 1280,
       height: 720,
       src: "/product/trust-respaldos.webp",
@@ -83,7 +87,10 @@ const ITEMS: Item[] = [
     title: "Soporte en español",
     body: "Acompañamiento en tu idioma durante la activación y en el día a día.",
     shot: {
-      alt: "Conversación de soporte dentro del producto",
+      // Es el formulario, no una conversación: la lista de solicitudes enseñaba
+      // una titulada «Problema con el login de residentes», y eso en una página
+      // que promete acceso seguro juega en contra.
+      alt: "Formulario para abrir una solicitud de soporte sin salir del producto",
       width: 1280,
       height: 720,
       src: "/product/trust-soporte.webp",
