@@ -22,7 +22,15 @@ import { cn } from "@/lib/utils/cn";
 
 const BULLETS = [
   "Casas o departamentos: cada conjunto funciona aislado y sus datos, residentes y configuración no se mezclan.",
-  "Un administrador puede llevar varios conjuntos desde una sola cuenta, sin cerrar sesión.",
+  // OJO: aquí decía «un administrador puede llevar varios conjuntos desde una
+  // sola cuenta, sin cerrar sesión». Es falso. Los custom claims llevan UN
+  // `tenantId` (todas las llamadas a `setCustomUserClaims` en
+  // `functions/src/index.ts`), `auth-context.tsx` resuelve la membresía con
+  // `limit(1)` y no existe ningún selector de conjunto en el producto. Hoy cada
+  // conjunto es un acceso propio. Si algún día se construye el selector, es una
+  // PRD de plataforma —toca claims, refresco de token y reglas—, no un cambio
+  // de copy.
+  "Si llevas varios conjuntos, cada uno tiene su propio espacio de trabajo y su propio acceso.",
   "Identidad propia por conjunto: nombre, logo y colores personalizados.",
   "Único en el mercado mexicano con este nivel de aislamiento.",
 ];
@@ -65,13 +73,18 @@ export function MultiConjunto() {
 }
 
 /**
- * Prueba visual del aislamiento: el selector de conjunto del producto, y dos
- * capturas del MISMO tablero con la marca de dos conjuntos distintos.
+ * Prueba visual: un recorrido grabado de 15 s por seis módulos —panel,
+ * residentes y unidades, cartera, reservas, PQRS y comunicaciones—, con datos
+ * reales de un conjunto de staging.
  *
- * Antes había aquí tres tarjetas dibujadas con la etiqueta «AISLADO». Ilustraba
- * el concepto sin enseñar nada: el prospecto no puede comprobar una etiqueta.
- * Que la misma pantalla aparezca con dos logos y dos colores sí se comprueba,
- * y además es lo que `tenantSettings` hace de verdad (branding por conjunto).
+ * Se graba con Playwright, no a mano: ver el bloque `Recorrido` en
+ * `tests/capture-product-screenshots.spec.ts`, que además documenta por qué
+ * hacen falta dos páginas del mismo contexto (la sesión de Firebase vive en
+ * IndexedDB y `storageState()` no la hereda).
+ *
+ * Arranca solo, en bucle y sin sonido, con `preload="none"` para no cobrarle
+ * 1,1 MB a quien nunca baja hasta aquí; el póster es el tablero con la marca
+ * del conjunto, que es lo que sostiene el titular mientras el vídeo carga.
  */
 function ConjuntoStack() {
   const [ref, inView] = useInView<HTMLDivElement>(0.25);
