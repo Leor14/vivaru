@@ -9,8 +9,19 @@
  *   residente → residente@santamaria.co  / Demo1234*  (tenant: Santa María)
  *   portería  → guardia@elnogal.co       / Demo1234*  (tenant: El Nogal — sin guardia en Santa María)
  *
- * Output → /public/product/
+ * Output → /public/product/ (PNG @2x)
  *
+ * ⚠️  PASO OBLIGATORIO DESPUÉS DE CAPTURAR:
+ *
+ *     npm run images:optimize
+ *
+ * Convierte esos PNG a WebP redimensionado y borra el PNG. El landing importa
+ * `.webp`, así que hasta que no se corra este paso las capturas nuevas NO se
+ * ven. No es cosmético: en App Hosting el optimizador de Next está apagado
+ * (ver `next.config.ts`), así que estos PNG @2x —hasta 2880px de ancho, 7,6 MB
+ * en total— llegarían crudos al navegador para pintarse a 300-770 px.
+ *
+
  * ⚠️  ENTORNO. `playwright.config.ts` levanta `npm run dev`, y este repo NO
  * tiene las variables de Firebase en `.env.local`: el fallback de
  * `src/lib/firebase/config.ts` es **hogaru-1, producción**. Correrlo sin más
@@ -214,5 +225,85 @@ test.describe("Siembra", () => {
     });
     await page.waitForTimeout(3000);
     console.log("✓  seed operativo aplicado");
+  });
+});
+
+// ─── Recorrido grabado ───────────────────────────────────────────────────────
+//
+// Un paseo por varios módulos, para que la sección de multi-conjunto enseñe un
+// sistema en marcha y no dos pantallas quietas.
+//
+// **WebM y no GIF.** Un GIF de interfaz a 1280 px pesa varios megas y sus 256
+// colores ensucian el texto pequeño. El WebM pesa una fracción y se ve nítido.
+//
+// La sesión se abre en un contexto aparte y se guarda su estado, para que la
+// grabación empiece YA dentro del producto: si se grabara el login, el vídeo
+// abriría con un formulario y una contraseña escribiéndose.
+test.describe("Recorrido", () => {
+  test.setTimeout(240_000);
+
+  test("grabar paseo por los modulos", async ({ browser }) => {
+    const ANCHO = 1280;
+    const ALTO = 800;
+
+    // UN solo contexto, DOS páginas. La sesión se abre en la primera y el
+    // recorrido se graba en la segunda.
+    //
+    // No sirve `storageState`: Firebase Auth persiste en **IndexedDB**
+    // (`indexedDBLocalPersistence`, ver src/lib/firebase/client.ts) y
+    // `storageState()` solo captura cookies y localStorage. Con él, el
+    // contexto que grababa nacía sin sesión y los 15 segundos de vídeo eran
+    // la pantalla de login.
+    //
+    // Playwright graba un vídeo POR PÁGINA, así que el de la segunda arranca
+    // limpio y el de la primera se descarta.
+    const ctx = await browser.newContext({
+      viewport: { width: ANCHO, height: ALTO },
+      recordVideo: { dir: OUT, size: { width: ANCHO, height: ALTO } },
+    });
+
+    const sesion = await ctx.newPage();
+    await loginAs(sesion, "admin@elnogal.co", "Demo1234*");
+    await sesion.waitForTimeout(1500);
+    // La segunda página se abre ANTES de cerrar la primera: al quedarse sin
+    // páginas, un contexto que graba se da por terminado y todo lo posterior
+    // falla con «Target page, context or browser has been closed».
+    const videoDescartable = sesion.video();
+    const page = await ctx.newPage();
+    await sesion.close();
+
+    const visitar = async (ruta: string, espera = 2200) => {
+      await page.goto(ruta);
+      await page.waitForLoadState("load");
+      await page.addStyleTag({ content: "[data-env-banner]{display:none !important}" });
+      await page.waitForTimeout(espera);
+    };
+
+    // Arranque en frío: se entra al panel y se espera a que quede quieto antes
+    // de empezar el paseo, para que el vídeo no abra con un esqueleto de carga.
+    await page.goto("/admin");
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await page.waitForTimeout(2500);
+    await page.addStyleTag({ content: "[data-env-banner]{display:none !important}" });
+    await page.waitForTimeout(1800);
+
+    // El orden cuenta una historia: dónde estoy, a quién le cobro, qué debe,
+    // qué pidió, qué le dije. No es un listado de pantallas.
+    await visitar("/admin/residents");
+    await visitar("/admin/billing", 2600);
+    await visitar("/admin/reservations");
+    await visitar("/admin/pqrs");
+    await visitar("/admin/communications", 2400);
+
+    const video = page.video();
+    await ctx.close();
+
+    if (video) {
+      fs.renameSync(await video.path(), path.join(OUT, "multiconjunto-recorrido.webm"));
+      console.log("✓  multiconjunto-recorrido.webm");
+    }
+    if (videoDescartable) {
+      try { fs.unlinkSync(await videoDescartable.path()); } catch { /* ya no está */ }
+    }
   });
 });
