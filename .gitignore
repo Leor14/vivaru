@@ -34,6 +34,9 @@ firestore-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# La plantilla SÍ se versiona: es lo que evita que alguien arranque sin
+# configurar y acabe en el proyecto equivocado.
+!.env.example
 
 # vercel
 .vercel
@@ -41,3 +44,10 @@ firestore-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Salida de Playwright
+test-results/
+
+# Salida de los guiones de medicion del landing
+.simulacion-perspectivas/
+.verificacion-perspectivas/

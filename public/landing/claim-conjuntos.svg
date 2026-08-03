@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"
+     fill="none" stroke="#0B3C5D" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Varios conjuntos">
+  <!-- Tres unidades idénticas: ninguna toca a la otra. Verticales para que la
+       pieza llene la caja igual que sus hermanas y las tres pesen lo mismo. -->
+  <rect x="8"  y="30" width="22" height="40" rx="4"/>
+  <rect x="39" y="30" width="22" height="40" rx="4"/>
+  <rect x="70" y="30" width="22" height="40" rx="4"/>
+  <path d="M14 42 H24 M14 52 H24" />
+  <path d="M45 42 H55 M45 52 H55" />
+  <path d="M76 42 H86 M76 52 H86" />
+  <!-- Las separaciones, marcadas: es lo que la sección afirma. -->
+  <path d="M34.5 18 V82" stroke-dasharray="4 5"/>
+  <path d="M65.5 18 V82" stroke-dasharray="4 5"/>
+</svg>

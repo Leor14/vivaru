@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-07-03
+fecha_actualizacion: 2026-08-02
 ---
 
 # Trampas Conocidas
@@ -49,6 +49,16 @@ Al operar desde el sandbox del agente, si se intenta hacer push directamente se 
 ## overflow-x: hidden rompe sticky
 
 Usar `overflow-x: hidden` en `<html>` o en contenedores ancestros crea un nuevo scroll container que rompe `position: sticky` en todos los descendientes. Usar `overflow-x: clip` en su lugar. Ver [[mobile-first-ios]].
+
+**Arreglarlo en un solo elemento no basta, y así estuvo meses.** `html` tenía `clip` con un comentario explicando exactamente por qué, pero `body` conservaba `hidden`: con que uno de los dos cree el scroll container, el arreglo queda anulado. Consecuencia medida en producción en agosto de 2026: el header del landing, declarado `sticky top-0`, se iba con el scroll. Nadie lo había notado porque no rompe nada visible, solo deja de hacer algo.
+
+Al tocar esto, comprobar **los dos**:
+
+```bash
+grep -n -A5 "^body {\|^html {" src/app/globals.css | grep overflow-x
+```
+
+Y verificarlo midiendo, no mirando: `getBoundingClientRect().top` del header tras hacer scroll. Si vale el negativo del scroll, no está fijo. Cuidado además con la caché del navegador en desarrollo: el chunk de CSS conserva el nombre aunque cambie el contenido, así que puede seguir sirviendo la versión anterior mucho después de recompilar.
 
 ## Transiciones con 'all'
 
@@ -171,6 +181,37 @@ Un cliente recién activado sigue viendo la interfaz de prueba —días restante
 
 El paso de pago de [[onboarding-guiado]] apuntaba a `paymentReceipts`, colección que solo crea el residente y que el administrador no puede leer: devolvía 403 en silencio. Con esa señal, todo cliente se habría quedado a un paso del final para siempre. Antes de elegir una colección como señal, comprobar que el rol que ve el indicador tiene permiso de lectura.
 
+## El landing NO hereda de `DESIGN.md`
+
+Hay **dos sistemas de color** en el repositorio y se parecen lo suficiente como para confundirlos:
+
+- `DESIGN.md` describe la **aplicación**: fondo `#f4f7fb`, tintes sky/mint/peach/sand/lavender, brand navy `#0b3c5d`.
+- El **landing** tiene su propio bloque `.marketing-theme` en `globals.css`: fondo **`#FFFFFF`**, texto `#0F172A`, borde `#E2E8F0`, primario `#4B5FD4`, acentos ámbar `#D97706`, teal `#0891B2`, verde `#16A34A` y morado `#7C3AED`.
+
+Verificado en producción: las secciones del landing se pintan sobre `rgb(255,255,255)`. El `#f4f7fb` que se ve al inspeccionar el `<body>` está **debajo** del landing y no llega a verse.
+
+Diseñar el landing con los tokens de la aplicación costó dos iteraciones completas de un boceto en agosto de 2026. Antes de tocar `src/components/marketing/`, leer el bloque `.marketing-theme`, no `DESIGN.md`. Ver [[tokens-color]] y [[landing-marketing]].
+
+## El landing no tiene modo oscuro
+
+`DESIGN.md` lo dice explícitamente: *«No dark mode tokens defined»*. Ni el landing ni la aplicación lo tienen. Añadir `prefers-color-scheme` o variantes `dark:` a un componente de marketing hace que la página se oscurezca en navegadores configurados en oscuro y represente algo que el producto no hace. `tests/landing-contract.test.ts` lo comprueba.
+
+## `.marketing-theme .max-w-*` gana a cualquier variante responsive
+
+`globals.css` corrige el bug de `--spacing-*` redeclarando las anchuras dentro del scope del landing:
+
+```css
+.marketing-theme .max-w-lg { max-width: 32rem; }
+```
+
+Esa regla tiene especificidad `0,2,0`. Una utilidad responsive como `lg:max-w-none` o `lg:max-w-3xl` tiene `0,1,0`, **así que no gana nunca**: la clase aparece en el marcado, se ve en el DOM y no hace nada. Solo afecta a `max-w-xs`, `sm`, `md` y `lg`, que son las redeclaradas; `max-w-3xl` suelto sí funciona, lo que hace el fallo más desconcertante.
+
+Costó una ronda de diagnóstico en el rediseño de Perspectivas: la captura seguía clavada en 512px con `lg:max-w-none` puesto. La salida es no usar `max-w-*` ahí y dejar que el ancho lo ponga la columna de la rejilla. Ver [[tailwind-v4-spacing-fix]].
+
+## Tailwind v4 escribe `scale-*` en la propiedad `scale`, no en `transform`
+
+`getComputedStyle(el).transform` devuelve `none` con `scale-110` aplicado, porque v4 usa la propiedad independiente `scale`. Medir `transform` para comprobar si una escala se aplicó da un falso negativo. Leer `.scale`.
+
 ## Relaciones
 
 - Véase también: [[absolute-bans]], [[mobile-first-ios]], [[form-validation]], [[tailwind-v4-spacing-fix]], [[autenticacion-roles]], [[correos-mensajeria]], [[cartera-campanas]], [[fusion-unidades]], [[triaje-auditoria-ux]], [[kpis-formula-unica]], [[soporte]], [[ciclo-de-vida-tenant]], [[pruebas-reglas-emulador]]
@@ -180,3 +221,20 @@ El paso de pago de [[onboarding-guiado]] apuntaba a `paymentReceipts`, colecció
 ## Fuentes
 
 - [[design-md]], [[product-md]], [[consolidacion-landing-2026]]
+
+## App Hosting apaga el optimizador de imágenes de Next
+
+`/_next/image` responde **404** en staging y en producción, y el HTML sale con `src="/product/x.webp"` a pelo, sin `srcset`. No es un fallo del código: `@apphosting/adapter-nextjs` **reescribe `next.config.ts` durante el build en la nube** (guarda el original como `next.config.original.ts`) e inyecta `images.unoptimized = true`. Con `unoptimized` la ruta `/_next/image` ni siquiera se genera, de ahí el 404.
+
+El adaptador solo respeta la configuración propia si el archivo declara **explícitamente** `images.unoptimized` o `images.loader`; cualquier otra clave —`formats`, `minimumCacheTTL`, `deviceSizes`— la ignora al decidir. Declarar `formats: ["image/avif","image/webp"]` no protege de nada.
+
+La trampa de diagnóstico: **en local no se reproduce**. `next build` en la máquina sí emite el `srcset` completo con URLs `/_next/image?url=...&w=...&q=75`. La divergencia solo existe desplegado, así que hay que comprobarlo contra el dominio:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  "https://www.grupovivaru.com/_next/image?url=%2Fproduct%2Fperspectives-admin-cartera.png&w=1200&q=75"
+```
+
+Consecuencia práctica: **no hay red de seguridad en runtime**. El byte que está en `public/` es el byte que descarga el visitante, al tamaño que esté. Por eso `public/product/` se sirve ya redimensionado y en WebP (`npm run images:optimize`, ver [[landing-marketing]]); antes eran PNG @2x de hasta 2880px —7,6 MB— para tarjetas que se pintan a 300-770 px.
+
+Las dos salidas si algún día se quiere optimización de verdad: declarar `images.unoptimized: false` (el servidor de Cloud Run haría el trabajo con sharp — ojo al `memoryMiB: 512` de `apphosting.yaml` frente a capturas de 2880px), o un `images.loader` propio apuntando a la extensión Image Processing de Firebase, que es lo que Google recomienda hoy. Ninguna de las dos hace falta mientras los assets salgan ya optimizados. Ver [[landing-marketing]] y [[dominios-app-hosting]].

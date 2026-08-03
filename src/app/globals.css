@@ -132,7 +132,12 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-manrope), sans-serif;
-  overflow-x: hidden;
+  /* `clip` y no `hidden`, por la misma razón que en `html` (ver abajo).
+     Estuvo en `hidden` hasta agosto de 2026: el arreglo se había aplicado
+     solo a `html`, y bastaba con que `body` siguiera creando un scroll
+     container para anularlo. Efecto medido en producción: el header del
+     landing, declarado `sticky top-0`, se iba con el scroll. */
+  overflow-x: clip;
 }
 
 html {
@@ -752,6 +757,20 @@ h3 {
   --color-brand-red: #DC2626;
   --color-brand-plum-dark: #3D1460;
 
+  /* Variantes claras para usar SOBRE fondo oscuro.
+   *
+   * Las de arriba son colores de marca pensados para tinta sobre blanco:
+   * #1A7A45 o #3D1460 sobre un fondo oscuro no se leen. Los fondos por perfil
+   * de «Una plataforma, cuatro experiencias» invierten el terreno, y ahí el
+   * acento tiene que subir de luminosidad sin cambiar de tono.
+   *
+   * Cada uno pasa 7:1 contra el fondo compuesto de su perfil (medido con
+   * `scripts/simular-capa-perspectivas.mjs`, no estimado). Azul no aparece
+   * porque ya existía como `--color-brand-blue-light`. */
+  --color-brand-green-resident-light: #6FD79B;
+  --color-brand-plum-light: #C4A0F0;
+  --color-brand-blue-accent-light: #A8B4F5;
+
   /* Typography scale (line-heights via companion CSS rules below) */
   --text-hero: 72px;
   --text-hero-mobile: 56px;
@@ -773,11 +792,17 @@ h3 {
   --shadow-brand-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-brand-lg: 0 10px 30px rgba(15, 23, 42, 0.12);
 
-  /* Z-index */
-  --z-dropdown: 10;
-  --z-sticky: 20;
-  --z-modal: 50;
-  --z-toast: 60;
+  /* Z-index
+     El prefijo `--z-index-*` NO es cosmético: Tailwind v4 genera las utilidades
+     `z-*` desde ese espacio de nombres. Estuvieron como `--z-*`, que declara la
+     variable pero no crea la clase, así que `z-sticky` y `z-modal` se escribían
+     en el marcado y computaban `z-index: auto`. Consecuencias medidas en
+     staging: el header del landing pasaba por DETRÁS de las secciones al hacer
+     scroll, y el banner de cookies quedaba sin capa propia. */
+  --z-index-dropdown: 10;
+  --z-index-sticky: 20;
+  --z-index-modal: 50;
+  --z-index-toast: 60;
 
   /* Transition durations */
   --duration-fast: 150ms;

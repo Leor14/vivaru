@@ -23,6 +23,7 @@ import { useReservations } from "@/features/reservations/use-reservations";
 import { useResidentDirectory } from "@/features/security-guard/use-resident-directory";
 import type { Reservation } from "@/types/domain";
 import { getStatusLabel } from "@/utils/statusMapper";
+import { reservationMatchesAmenity } from "@/features/reservations/amenity-match";
 
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
@@ -297,11 +298,7 @@ export function GuardReservations({ tenantId }: { tenantId?: string }) {
 
     return items.filter((reservation) => {
       if (reservation.status === "cancelled" || reservation.status === "rejected") return false;
-      if (reservation.amenityId) {
-        return reservation.amenityId === selectedAmenity.id;
-      }
-      if (!reservation.amenity) return false;
-      return reservation.amenity.trim().toLowerCase() === selectedAmenity.name.trim().toLowerCase();
+      return reservationMatchesAmenity(reservation, selectedAmenity);
     });
   }, [items, selectedAmenity]);
 

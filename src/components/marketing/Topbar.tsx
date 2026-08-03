@@ -78,12 +78,32 @@ function VivaruLogo({ className }: { className?: string }) {
   );
 }
 
-function LoginAction({ portalUrl }: { portalUrl?: string }) {
+/**
+ * Acceso al portal para quien ya es cliente.
+ *
+ * Tamaño y variante se reciben porque los dos sitios donde vive piden cosas
+ * distintas: en la barra de escritorio tiene que igualar la altura y la
+ * tipografía de los otros dos CTA, y en el menú móvil el ancho completo de la
+ * lista apilada. Estaba fijo en `size="default"` (h-10, texto de 14 normal)
+ * junto a botones `xl` (h-12, 16 semibold) y `lg`, y se leía como un descuido.
+ */
+function LoginAction({
+  portalUrl,
+  size = "xl",
+  variant = "ghost",
+  className,
+}: {
+  portalUrl?: string;
+  size?: "default" | "lg" | "xl";
+  variant?: "ghost" | "outline";
+  className?: string;
+}) {
   if (portalUrl) {
     return (
       <Button
-        variant="outline"
-        size="default"
+        variant={variant}
+        size={size}
+        className={className}
         render={
           <a
             href={portalUrl}
@@ -100,8 +120,9 @@ function LoginAction({ portalUrl }: { portalUrl?: string }) {
   return (
     <Tooltip label={PORTAL_LOGIN_TOOLTIP}>
       <Button
-        variant="outline"
-        size="default"
+        variant={variant}
+        size={size}
+        className={className}
         type="button"
         onClick={() => track("cta_login_click", { state: "portal_pending" })}
       >
@@ -124,15 +145,43 @@ export function Topbar() {
 
   return (
     <>
+      {/*
+        Dos tratamientos que NO se solapan, a propósito.
+
+        Móvil (`max-md:`): barra sólida a ancho completo, igual que antes. Ahí
+        no cabe una píldora sin apretar el logo contra el menú, y además ya hay
+        un CTA fijo abajo: dos elementos flotantes compiten.
+
+        Escritorio (`md:`): píldora que se contrae al bajar. El ancho vive en el
+        contenedor interno, no en el header, para que el fondo del móvil y el
+        de la píldora nunca peleen en la cascada.
+
+        Se dejó de usar la utilidad `container` aquí: define `max-width: 1280px`
+        con la misma especificidad que `md:max-w-*`, así que cuál gana dependía
+        del orden de generación del CSS. El padding va explícito.
+      */}
       <header
         className={cn(
-          "sticky top-0 z-sticky w-full border-b border-transparent transition-[box-shadow,background-color] duration-[200ms] ease-out-brand",
+          "sticky top-0 z-sticky w-full md:pt-3",
+          "max-md:border-b max-md:transition-[box-shadow,background-color] max-md:duration-[200ms] max-md:ease-out-brand",
           scrolled
-            ? "border-border/60 shadow-sm bg-white/95 supports-[backdrop-filter]:bg-white/80 supports-[backdrop-filter]:backdrop-blur-sm"
-            : "bg-background/95 supports-[backdrop-filter]:bg-background/80 supports-[backdrop-filter]:backdrop-blur-md"
+            ? "max-md:border-border/60 max-md:bg-white/95 max-md:shadow-sm max-md:supports-[backdrop-filter]:bg-white/80 max-md:supports-[backdrop-filter]:backdrop-blur-sm"
+            : "max-md:border-transparent max-md:bg-background/95 max-md:supports-[backdrop-filter]:bg-background/80 max-md:supports-[backdrop-filter]:backdrop-blur-md",
         )}
       >
-        <div className="container flex h-16 items-center justify-between gap-4 md:h-[72px]">
+        <div
+          className={cn(
+            "mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 md:h-[68px] lg:px-8",
+            "md:rounded-full md:border md:border-border/70 md:bg-white/90 md:px-6",
+            "md:supports-[backdrop-filter]:bg-white/75 md:supports-[backdrop-filter]:backdrop-blur-md",
+            // Solo `max-width` y `box-shadow`: ninguna propiedad de layout.
+            "md:transition-[max-width,box-shadow] md:duration-[420ms] md:[transition-timing-function:var(--ease-in-out)]",
+            "motion-reduce:transition-none",
+            scrolled
+              ? "md:max-w-[62rem] md:shadow-brand-lg"
+              : "md:max-w-[80rem] md:shadow-brand-sm",
+          )}
+        >
           <VivaruLogo />
 
           {/* Desktop nav — hidden until content exists for each anchor */}
@@ -156,16 +205,38 @@ export function Topbar() {
               <LoginAction portalUrl={portalUrl} />
             </div>
 
-            {/* Desktop primary CTA */}
+            {/* Desktop CTAs.
+                La flecha se la queda el trial porque es el camino principal
+                del self-service; la demo es la vía asistida (ver
+                docs/plan-self-service-trial.md §4). El Button ya centra su
+                contenido, así que al quitarle la flecha el texto queda
+                centrado solo. */}
             <div className="hidden md:block">
               <DemoDialog section="topbar">
-                <Button size="xl" variant="default">
-                  Agenda una demo{" "}
-                  <span aria-hidden="true" className="ml-0.5">
-                    →
-                  </span>
+                <Button size="xl" variant="outline">
+                  Agenda una demo
                 </Button>
               </DemoDialog>
+            </div>
+
+            <div className="hidden md:block">
+              <Button
+                size="xl"
+                variant="default"
+                render={
+                  <Link
+                    href="/registro"
+                    onClick={() =>
+                      track("cta_primary_click", { section: "topbar", cta: "trial" })
+                    }
+                  />
+                }
+              >
+                Prueba gratis 15 días{" "}
+                <span aria-hidden="true" className="ml-0.5">
+                  →
+                </span>
+              </Button>
             </div>
 
             {/* Mobile hamburger */}
@@ -215,7 +286,12 @@ export function Topbar() {
                         Agenda una demo
                       </Button>
                     </DemoDialog>
-                    <LoginAction portalUrl={portalUrl} />
+                    <LoginAction
+                      portalUrl={portalUrl}
+                      size="lg"
+                      variant="outline"
+                      className="w-full"
+                    />
                   </div>
                 </div>
               </SheetContent>
@@ -231,11 +307,31 @@ export function Topbar() {
         role="region"
         aria-label="Acción principal"
       >
-        <DemoDialog section="mobile_bottom">
-          <Button size="lg" variant="default" className="w-full">
-            Agenda una demo
-          </Button>
-        </DemoDialog>
+        {/* El mismo primario que en escritorio. Era "Agenda una demo", que
+            dejaba al móvil ofreciendo como acción siempre visible una distinta
+            de la que la barra ancha considera principal. La demo sigue a un
+            toque, dentro del menú. */}
+        <Button
+          size="lg"
+          variant="default"
+          className="w-full"
+          render={
+            <Link
+              href="/registro"
+              onClick={() =>
+                track("cta_primary_click", {
+                  section: "mobile_bottom",
+                  cta: "trial",
+                })
+              }
+            />
+          }
+        >
+          Prueba gratis 15 días{" "}
+          <span aria-hidden="true" className="ml-0.5">
+            →
+          </span>
+        </Button>
       </div>
       ) : null}
     </>

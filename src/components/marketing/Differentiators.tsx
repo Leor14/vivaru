@@ -1,15 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Boxes,
-  CircleDollarSign,
-  Clock,
-  FileCheck,
-  Shield,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { AssetSlot, type AssetDef } from "@/components/marketing/ui/asset-slot";
 import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,75 +13,99 @@ import { cn } from "@/lib/utils/cn";
  * are *competitive reasons* — how we sell vs Residentify / Conjunto Feliz /
  * Excel. Tone is comparative, not descriptive.
  *
- * Hover: subtle scale 1.02 (no lift). Stagger fade-in on viewport entry,
- * 80ms per card, gated by prefers-reduced-motion.
+ * Tarjetas con foto y rejilla desigual, tomadas del carrusel de industrias de
+ * Cohere. Con una diferencia: **allí las tarjetas solo enlazan, aquí revelan
+ * el texto**. Sus etiquetas son nombres de sector y no hay nada que explicar;
+ * las nuestras son argumentos y el argumento es el contenido.
+ *
+ * El título se ve siempre. La descripción aparece al pasar el cursor, al
+ * enfocar con teclado o al tocar. **Nunca se quita del DOM**: se atenúa con
+ * `opacity`, así que un lector de pantalla la anuncia aunque visualmente no
+ * esté. Esconder texto de verdad detrás de un hover lo haría inaccesible en
+ * cualquier dispositivo sin puntero.
  */
 
 type Differentiator = {
   key: string;
-  Icon: LucideIcon;
   title: string;
   desc: string;
-  /** Tailwind classes. Kept literal so the JIT picks them up. */
-  iconBg: string;
-  iconRing: string;
-  iconFg: string;
+  photo: AssetDef;
+  /** Colocación en la rejilla. Literal para que el JIT la recoja. */
+  span: string;
 };
 
 const ITEMS: Differentiator[] = [
   {
     key: "aislados",
-    Icon: Boxes,
-    title: "Edificios aislados",
-    desc: "Cada conjunto funciona como un sistema independiente. Único en el mercado mexicano.",
-    iconBg: "bg-brand-blue/10",
-    iconRing: "ring-brand-blue/20",
-    iconFg: "text-brand-blue",
+    title: "Cada conjunto, aislado",
+    desc: "Casas o departamentos, cada conjunto funciona como un sistema independiente. Único en el mercado mexicano.",
+    photo: {
+      alt: "Conjunto de casas y torre de departamentos",
+      width: 1200,
+      height: 1200,
+      src: "/landing/razon-aislados.jpg",
+    },
+    span: "lg:col-span-2 lg:row-span-2",
   },
   {
     key: "perfiles",
-    Icon: Users,
     title: "3 perfiles de acceso",
     desc: "Permisos granulares por rol. Cada quien ve solo lo que le corresponde.",
-    iconBg: "bg-brand-purple-deep/10",
-    iconRing: "ring-brand-purple-deep/20",
-    iconFg: "text-brand-purple-deep",
+    photo: {
+      alt: "Tres personas usando la plataforma en dispositivos distintos",
+      width: 1200,
+      height: 600,
+      src: "/landing/razon-perfiles.jpg",
+    },
+    span: "lg:col-span-2",
   },
   {
     key: "ciclo",
-    Icon: CircleDollarSign,
     title: "Ciclo financiero completo",
     desc: "De la cuota a la conciliación: campañas de cobro, recordatorios automáticos, comprobantes en un clic y cierre de períodos.",
-    iconBg: "bg-brand-teal/10",
-    iconRing: "ring-brand-teal/20",
-    iconFg: "text-brand-teal",
+    photo: {
+      alt: "Administradora revisando la cartera del mes",
+      width: 800,
+      height: 800,
+      src: "/landing/razon-ciclo.jpg",
+    },
+    span: "",
   },
   {
     key: "pqrs",
-    Icon: Clock,
     title: "PQRS con compromiso de tiempo",
     desc: "Código único, semáforo de 15 días y auditoría completa.",
-    iconBg: "bg-brand-green-succ/10",
-    iconRing: "ring-brand-green-succ/20",
-    iconFg: "text-brand-green-succ",
+    photo: {
+      alt: "Residente levantando una solicitud desde el móvil",
+      width: 800,
+      height: 800,
+      src: "/landing/razon-pqrs.jpg",
+    },
+    span: "",
   },
   {
     key: "porteria",
-    Icon: Shield,
     title: "Portería digital",
     desc: "Un panel propio para el portero: valida visitas con QR, recibe paquetes y registra el turno. Fácil de usar.",
-    iconBg: "bg-brand-amber/10",
-    iconRing: "ring-brand-amber/20",
-    iconFg: "text-brand-amber",
+    photo: {
+      alt: "Portero validando una visita con el escáner",
+      width: 1200,
+      height: 600,
+      src: "/landing/razon-porteria.jpg",
+    },
+    span: "lg:col-span-2",
   },
   {
     key: "gobernanza",
-    Icon: FileCheck,
     title: "Gobernanza total",
     desc: "Reporte de comité para asambleas, acuerdos firmados y auditoría de operaciones sensibles.",
-    iconBg: "bg-brand-red/10",
-    iconRing: "ring-brand-red/20",
-    iconFg: "text-brand-red",
+    photo: {
+      alt: "Reunión de comité revisando el reporte",
+      width: 1200,
+      height: 600,
+      src: "/landing/razon-gobernanza.jpg",
+    },
+    span: "lg:col-span-2",
   },
 ];
 
@@ -106,10 +122,19 @@ export function Differentiators() {
       >
         6 razones para elegir Vivaru
       </h2>
+      <p className="mt-sm max-w-2xl text-base leading-relaxed text-slate-600">
+        Pasa el cursor o toca cada una para ver el detalle.
+      </p>
 
+      {/*
+        Rejilla desigual: seis cuadros iguales es justo lo que hace que una
+        sección se lea como plantilla. En `lg` son cuatro columnas de 190px de
+        alto, y los `span` de cada tarjeta las llenan sin dejar huecos:
+        fila 1 → 2+2, fila 2 → (la grande continúa) 1+1, fila 3 → 2+2.
+      */}
       <ul
         role="list"
-        className="mt-xl grid gap-md sm:grid-cols-2 lg:grid-cols-3"
+        className="mt-xl grid gap-md sm:grid-cols-2 lg:grid-cols-4 lg:auto-rows-[190px]"
       >
         {ITEMS.map((item, i) => (
           <DiffCard key={item.key} item={item} index={i} />
@@ -122,35 +147,69 @@ export function Differentiators() {
 function DiffCard({ item, index }: { item: Differentiator; index: number }) {
   const reduced = useReducedMotion();
   const [ref, inView] = useInView<HTMLLIElement>(0.2);
-  const { Icon } = item;
+  const [abierta, setAbierta] = React.useState(false);
   const delayMs = reduced ? 0 : index * 80;
 
   return (
     <li
       ref={ref}
       className={cn(
-        "rounded-2xl border border-border bg-background p-lg shadow-brand-sm",
-        "transition-[opacity,transform,box-shadow] duration-base ease-out-brand motion-reduce:transition-none",
-        "hover:scale-[1.02] hover:shadow-brand-md motion-reduce:hover:scale-100",
-        inView
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-2 motion-reduce:translate-y-0",
+        "relative overflow-hidden rounded-2xl",
+        // Sin `lg`, todas iguales: el alto fijo de fila solo aplica en la
+        // rejilla ancha, así que en móvil y tablet mandan las proporciones.
+        "aspect-[4/3] sm:aspect-square lg:aspect-auto",
+        item.span,
+        "transition-opacity duration-base ease-out-brand motion-reduce:transition-none",
+        inView ? "opacity-100" : "opacity-0",
       )}
       style={{ transitionDelay: `${delayMs}ms` }}
     >
-      <div
+      <button
+        type="button"
+        // El toque abre y cierra; en escritorio el hover ya lo hace solo.
+        onClick={() => setAbierta((v) => !v)}
+        aria-expanded={abierta}
         className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-full ring-4",
-          item.iconBg,
-          item.iconRing,
+          "group absolute inset-0 block h-full w-full text-left",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         )}
       >
-        <Icon className={cn("h-6 w-6", item.iconFg)} aria-hidden="true" />
-      </div>
-      <h3 className="mt-md font-display text-h4 text-navy">{item.title}</h3>
-      <p className="mt-sm text-sm leading-relaxed text-slate-600">
-        {item.desc}
-      </p>
+        <AssetSlot
+          asset={item.photo}
+          className="absolute inset-0 h-full w-full rounded-none border-0 object-cover"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        />
+
+        {/* Velo: sube al revelar para que el texto largo siga legible. */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 bg-gradient-to-t from-navy-dark/85 via-navy-dark/35 to-transparent",
+            "transition-opacity duration-base ease-out-brand motion-reduce:transition-none",
+            "group-hover:opacity-100 group-focus-visible:opacity-100",
+            abierta ? "opacity-100" : "opacity-90",
+          )}
+        />
+
+        <span className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-lg">
+          <span className="font-display text-h4 text-white">{item.title}</span>
+          <span
+            className={cn(
+              "text-sm leading-relaxed text-white/85",
+              "transition-opacity duration-base ease-out-brand motion-reduce:transition-none",
+              // Oculta de partida y revelada por cursor, foco de teclado o
+              // toque. Los tres caminos escriben la MISMA clase sin variante:
+              // un `opacity-100` dentro de un `@media` no puede ganarle a otro
+              // fuera de él, así que el toque no hacía nada donde hay cursor.
+              "opacity-0",
+              "group-hover:opacity-100 group-focus-visible:opacity-100",
+              abierta && "opacity-100",
+            )}
+          >
+            {item.desc}
+          </span>
+        </span>
+      </button>
     </li>
   );
 }

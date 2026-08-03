@@ -149,11 +149,11 @@ export function LeadMagnetPromo({ className }: { className?: string }) {
           id="lead-magnet-title"
           className="font-display text-h3 text-slate-900"
         >
-          Diagnóstico de Caos Operativo
+          Radiografía de tu conjunto
         </h3>
         <p className="mt-sm text-sm leading-relaxed text-slate-600">
-          5 minutos. 12 preguntas. Reporte personalizado de la madurez digital
-          de tu conjunto.
+          12 preguntas, 5 minutos y un reporte con lo que ya te funciona y lo
+          que te está costando tiempo.
         </p>
       </div>
       <Button

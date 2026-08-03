@@ -1,6 +1,7 @@
 import { Topbar } from '@/components/marketing/Topbar';
 import { Footer } from '@/components/marketing/Footer';
 import { Hero } from '@/components/marketing/Hero';
+import { ProductGlimpse } from '@/components/marketing/ProductGlimpse';
 import { ImpactBand } from '@/components/marketing/ImpactBand';
 import { Pain } from '@/components/marketing/Pain';
 import { Solution } from '@/components/marketing/Solution';
@@ -34,6 +35,7 @@ export default function Home() {
       <Topbar />
       <main className="bg-background text-foreground">
         <Hero />
+        <ProductGlimpse />
         <ImpactBand />
         <Pain />
         <Solution />

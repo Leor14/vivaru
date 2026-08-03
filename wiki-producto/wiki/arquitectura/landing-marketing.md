@@ -3,7 +3,7 @@ tags: [arquitectura, marketing, landing, nextjs, rutas]
 tipo: tecnica
 fuentes: ["consolidacion-landing-2026", "globals-css"]
 fecha_creacion: 2026-05-31
-fecha_actualizacion: 2026-05-31
+fecha_actualizacion: 2026-08-02
 ---
 
 # Landing Marketing — Route Group (marketing)
@@ -94,18 +94,36 @@ Viven en `src/components/marketing/ui/` — copias aisladas de shadcn para no co
 
 ## Assets de producto
 
-`public/product/` contiene los screenshots reales del SaaS usados en el landing:
+`public/product/` contiene los screenshots reales del SaaS usados en el landing. Se sirven en **WebP ya redimensionado**, no en PNG.
 
-| Archivo | Uso | Tenant |
-|---|---|---|
-| `hero-admin-dashboard.png` | Hero — screenshot admin | Santa María ✓ |
-| `hero-resident-home.png` | Hero — screenshot residente | Santa María ✓ |
-| `alt-admin-reservations.png` | Hero — screenshot alternativo | Santa María ✓ |
-| `alt-resident-account.png` | Hero — screenshot alternativo | Santa María ✓ |
-| `perspectives-admin-cartera.png` | Perspectives tab Admin | Santa María ✓ |
-| `perspectives-resident-visitor.png` | Perspectives tab Residente | Santa María ✓ |
+| Archivo | Uso | Ancho | Tenant |
+|---|---|---|---|
+| `hero-admin-dashboard.webp` | Hero — panel del admin | 1200 | Santa María ✓ |
+| `hero-resident-reservations.webp` | Hero — móvil superpuesto | 390 | Santa María ✓ |
+| `perspectives-admin-*.webp` | Perspectives, pestaña Admin | 1440 | Santa María ✓ |
+| `perspectives-resident-*.webp` | Perspectives, pestaña Residente | 390-780 | Santa María ✓ |
+| `perspectives-porteria-*.webp` | Perspectives, pestaña Portería | 1024 | El Nogal (no hay guardia en Santa María) |
+| `perspectives-comite-*.webp` | Perspectives, pestaña Comité | 1440 | Santa María ✓ |
+| `multiconjunto-marca-{a,b}.webp` | [[multi-tenancy\|Multiconjunto]] — dos marcas | 1200 | Santa María ✓ |
+| `trust-{migracion,respaldos,soporte}.webp` | Confianza y onboarding | 1280 | Santa María ✓ |
 
-⚠️ **Regla de screenshots:** Solo usar tenant "Santa María". Nunca "Las Palmas" u otros tenants.
+⚠️ **Regla de screenshots:** Solo usar tenant "Santa María", salvo Portería. Nunca "Las Palmas" u otros tenants.
+
+### Pipeline: capturar → optimizar
+
+`tests/capture-product-screenshots.spec.ts` (Playwright, `deviceScaleFactor: 2`) genera los PNG contra staging. Después hay que correr **siempre**:
+
+```bash
+npm run images:optimize
+```
+
+`scripts/optimize-product-images.mjs` redimensiona al ancho de la tabla de arriba (con `withoutEnlargement`, porque varias capturas ya nacen más pequeñas que su tope), convierte a WebP q90 y borra el PNG. El landing importa `.webp`: sin este paso las capturas nuevas no se ven.
+
+El paso no es opcional ni cosmético. En App Hosting el optimizador de Next está apagado (ver [[trampas-conocidas]] y [[dominios-app-hosting]]), así que `public/` llega crudo al navegador. Los PNG @2x originales pesaban **7,6 MB** —hasta 2880 px de ancho para tarjetas que se pintan a 300-770 px—; en WebP redimensionado son **1,0 MB** (−86 %).
+
+Por qué WebP y no otra cosa, medido sobre estas mismas capturas: JPEG **aumenta** el peso (son interfaces con mucho color plano y bordes duros); el PNG cuantizado se queda en −79 % y tiene una trampa —redimensionar antes de cuantizar puede subir el peso, porque la interpolación inventa colores y rompe la paleta—; AVIF baja algo más pero emborrona el texto pequeño, que es justo lo que estas capturas venden.
+
+Los anchos de destino salen de medir la maqueta, no de una regla general: el contenedor del landing es `max-width: 1280px` con `padding-inline: 2rem` (ver [[layout-patterns]] y [[tailwind-v4-spacing-fix]]), así que el ancho útil tope es 1216 px y ninguna captura necesita más de 1440 px ni siquiera en pantallas @2x. `sharp` hace la conversión y viene ya instalado como dependencia de Next ([[stack-tecnico]]).
 
 ## Proveedores
 

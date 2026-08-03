@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+import { AssetSlot, type AssetDef } from "@/components/marketing/ui/asset-slot";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "framer-motion";
 import { track } from "@/lib/marketing/analytics";
 import { useReducedMotion } from "@/lib/marketing/hooks";
@@ -16,21 +16,16 @@ import { cn } from "@/lib/utils/cn";
  *   - ResidenteComposite — 3 phones staggered (left/right lower, center taller)
  *   - PorteriaComposite  — tablet primary + tablet secondary (bottom-right overlay)
  *
- * Shots with `src: undefined` render as styled placeholders matching the
- * correct aspect ratio — they flip to real images once PNGs are dropped in
- * /public/product/ (Phase 2 of the screenshot capture sprint).
+ * Los huecos sin `src` los pinta `AssetSlot` respetando la proporción final,
+ * y se convierten en imagen al soltar el PNG en /public/product/. Ese helper
+ * nació aquí y ahora lo comparten las 8 secciones del rediseño del landing
+ * (docs/plan-rediseno-landing.md).
  */
 
 type TabKey = "admin" | "residente" | "porteria" | "comite";
 
-type ShotDef = {
-  /** Undefined while screenshot is pending. */
-  src?: string;
-  alt: string;
-  /** Intrinsic pixel dimensions for next/image (also used for placeholder aspect ratio). */
-  width: number;
-  height: number;
-};
+/** El contrato vive en `AssetSlot`: mismo hueco en las 8 secciones del rediseño. */
+type ShotDef = AssetDef;
 
 type TabDef = {
   key: TabKey;
@@ -38,9 +33,10 @@ type TabDef = {
   /** Capa 1: el problema en la voz del perfil. */
   problem: string;
   headline: string;
-  bullets: string[];
-  /** Capa 3: un caso de uso concreto en una línea. */
-  inPractice: string;
+  /** Tres pasos EN ORDEN. Sustituyen a la lista de features y a la caja de
+      «en la práctica», que decían lo mismo dos veces. El orden importa: es la
+      secuencia real del mes, no una enumeración. */
+  steps: string[];
   shots: ShotDef[];
   textActive: string;
   bgActive: string;
@@ -53,24 +49,21 @@ const TABS: TabDef[] = [
     label: "Admin",
     problem:
       "Llevo la cartera en Excel, persigo los pagos por WhatsApp y armo el reporte a mano. Nunca sé con certeza quién pagó.",
-    headline: "Centro de control completo",
-    bullets: [
-      "Cobra en lote y recuerda a morosos automáticamente",
-      "Aprueba comprobantes y concilia en un clic",
-      "Comunicados oficiales con lectura confirmada",
-      "Cierra el mes y archiva el reporte",
+    headline: "Tu mes, de principio a fin",
+    steps: [
+      "Lanzas la cuota del mes a las 120 unidades de una sola vez.",
+      "El sistema le recuerda a quien no ha pagado; tú solo apruebas los comprobantes que van llegando.",
+      "Cierras el período y el reporte queda archivado, listo para la asamblea.",
     ],
-    inPractice:
-      "Lanzas la cuota de junio a 120 unidades, el sistema notifica, apruebas los comprobantes en un clic y cierras el mes con el reporte listo.",
-    shots: [
+        shots: [
       {
-        src: "/product/perspectives-admin-cartera.png",
+        src: "/product/perspectives-admin-cartera.webp",
         alt: "Cartera e historial en Vivaru Admin",
         width: 1440,
         height: 900,
       },
       {
-        src: "/product/perspectives-admin-reservations.png",
+        src: "/product/perspectives-admin-reservations.webp",
         alt: "Calendario de reservas en Vivaru Admin",
         width: 1440,
         height: 900,
@@ -85,30 +78,27 @@ const TABS: TabDef[] = [
     label: "Residente",
     problem:
       "No sé cuánto debo, pago y nadie me confirma, y me entero tarde de lo del conjunto. Para una visita tengo que llamar a portería.",
-    headline: "Autoservicio 24/7",
-    bullets: [
-      "Estado de cuenta y saldo en su teléfono",
-      "QR pre-autorizado para visitas",
-      "Comprobantes de pago desde el celular",
-      "PQRS con código y semáforo",
+    headline: "Todo desde su teléfono",
+    steps: [
+      "Entra y ve cuánto debe y cuándo vence, sin preguntarle a nadie.",
+      "Sube el comprobante y recibe la confirmación cuando lo apruebas.",
+      "Genera un QR para su visita y en portería la dejan entrar.",
     ],
-    inPractice:
-      "Ves tu saldo, subes el comprobante y recibes la confirmación; generas un QR y tu invitado entra sin llamadas.",
-    shots: [
+        shots: [
       {
-        src: "/product/perspectives-resident-account.png",
+        src: "/product/perspectives-resident-account.webp",
         alt: "Estado de cuenta en Portal del Residente",
         width: 390,
         height: 844,
       },
       {
-        src: "/product/perspectives-resident-reservations.png",
+        src: "/product/perspectives-resident-reservations.webp",
         alt: "Reservas con calendario en Portal del Residente",
         width: 390,
         height: 844,
       },
       {
-        src: "/product/perspectives-resident-visitor.png",
+        src: "/product/perspectives-resident-visitor.webp",
         alt: "Crear invitación de visita en Portal del Residente",
         width: 390,
         height: 844,
@@ -123,24 +113,21 @@ const TABS: TabDef[] = [
     label: "Portería",
     problem:
       "Autorizo visitas por llamada, anoto los paquetes en un cuaderno y del turno no queda registro.",
-    headline: "Tu portería, ordenada",
-    bullets: [
-      "Validación instantánea con QR",
-      "Recepción de paquetes con foto y firma",
-      "Calendario de reservas en lectura",
-      "Bitácora digital del turno",
+    headline: "El turno, ordenado",
+    steps: [
+      "Escanea el QR del visitante y la entrada queda autorizada y registrada.",
+      "Recibe el paquete con foto y firma de quien lo entrega.",
+      "Cierra el turno y la bitácora le llega al administrador.",
     ],
-    inPractice:
-      "Escaneas el QR y la visita entra autorizada, registras el paquete con foto y firma, y dejas una nota con evidencia que el admin ve al instante.",
-    shots: [
+        shots: [
       {
-        src: "/product/perspectives-porteria-scanner.png",
+        src: "/product/perspectives-porteria-scanner.webp",
         alt: "Validación QR en Panel de Portería",
         width: 1024,
         height: 768,
       },
       {
-        src: "/product/perspectives-porteria-packages.png",
+        src: "/product/perspectives-porteria-packages.webp",
         alt: "Recepción de paquetes en Panel de Portería",
         width: 1024,
         height: 768,
@@ -155,24 +142,21 @@ const TABS: TabDef[] = [
     label: "Comité",
     problem:
       "Llego a la asamblea sin datos duros, las decisiones no quedan documentadas y no sé si las finanzas del conjunto están sanas.",
-    headline: "Gobierna con evidencia",
-    bullets: [
-      "Reporte de comité: tablero ejecutivo y comparativo",
-      "Antigüedad de cartera (aging) y alertas tempranas",
-      "Acuerdos con aprobación y firma",
-      "Informe exportable a PDF y Excel",
+    headline: "Llegas a la asamblea con evidencia",
+    steps: [
+      "Abres el reporte del trimestre con la cartera y su antigüedad.",
+      "Registras los acuerdos de la junta y quedan firmados.",
+      "Exportas el informe a PDF y lo repartes.",
     ],
-    inPractice:
-      "Generas el reporte del trimestre, registras los acuerdos firmados en la junta y exportas el informe a PDF para la asamblea.",
-    shots: [
+        shots: [
       {
-        src: "/product/perspectives-comite-tablero.png",
+        src: "/product/perspectives-comite-tablero.webp",
         alt: "Reporte de comité — tablero ejecutivo en Vivaru",
         width: 1996,
         height: 1512,
       },
       {
-        src: "/product/perspectives-comite-cartera.png",
+        src: "/product/perspectives-comite-cartera.webp",
         alt: "Antigüedad de cartera y mayores deudores en Vivaru",
         width: 1984,
         height: 1520,
@@ -184,6 +168,7 @@ const TABS: TabDef[] = [
   },
 ];
 
+/** Tinta oscura del perfil. Sobre el fondo oscuro solo sirve encima de blanco. */
 const HEADLINE_COLOR: Record<TabKey, string> = {
   admin: "text-navy",
   residente: "text-brand-green-resident",
@@ -191,52 +176,154 @@ const HEADLINE_COLOR: Record<TabKey, string> = {
   comite: "text-brand-blue",
 };
 
-// ─── Shot helper ─────────────────────────────────────────────────────────────
+/**
+ * Fondo fotográfico por perfil.
+ *
+ * `opacidad` y `velo` NO son iguales para los cuatro, y ahí está el trabajo.
+ * Con valores uniformes, la luminancia media del lado de la imagen iba de
+ * 0,0065 en portería a 0,0142 en residente —más del doble—, y al cambiar de
+ * pestaña se sentía como si subieran y bajaran las luces de la sala. Estos
+ * salen de resolver esa igualdad con `scripts/simular-capa-perspectivas.mjs`,
+ * que compone las capas exactas y mide; dejan la dispersión en 1,12×.
+ *
+ * `scripts/verificar-fondos-perspectivas.mjs` lo comprueba después sobre el
+ * render del navegador, que es lo que cuenta.
+ *
+ * `base` es un color sólido bajo la foto, y no es decorativo: si la imagen
+ * tarda o falla, el texto blanco sigue siendo legible. Sin él, un fallo de red
+ * deja texto blanco sobre blanco.
+ */
+type FondoDef = {
+  src: string;
+  base: string;
+  tinte: string;
+  opacidad: number;
+  /** Alfa del degradado en el extremo derecho. */
+  velo: number;
+  /** Acento legible SOBRE el fondo compuesto; el de marca es demasiado oscuro. */
+  acento: string;
+};
+
+const FONDOS: Record<TabKey, FondoDef> = {
+  admin: {
+    src: "/product/perspectives-fondo-admin.webp",
+    base: "#04121C",
+    tinte: "#0B3C5D",
+    opacidad: 0.5,
+    velo: 0.14,
+    acento: "text-brand-blue-light",
+  },
+  residente: {
+    src: "/product/perspectives-fondo-residente.webp",
+    base: "#04160D",
+    tinte: "#1A7A45",
+    opacidad: 0.2,
+    velo: 0.45,
+    acento: "text-brand-green-resident-light",
+  },
+  porteria: {
+    src: "/product/perspectives-fondo-porteria.webp",
+    // Base aclarada a propósito. Con el ciruela original (#12061D) esta banda
+    // quedaba en 0,0085 de luminancia contra 0,0130 del resto, y ni con la foto
+    // al 100 % subía: la imagen es oscura de origen. Subir la base es el único
+    // mando que quedaba.
+    base: "#2A1344",
+    tinte: "#3D1460",
+    opacidad: 1,
+    velo: 0.04,
+    acento: "text-brand-plum-light",
+  },
+  comite: {
+    src: "/product/perspectives-fondo-comite.webp",
+    base: "#0A0D22",
+    tinte: "#4B5FD4",
+    opacidad: 0.7,
+    velo: 0.6,
+    acento: "text-brand-blue-accent-light",
+  },
+};
+
+function rgba(hex: string, alpha: number) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 /**
- * Renders a next/image when src is present, or a styled placeholder that
- * preserves the correct aspect ratio while screenshots are pending.
+ * El degradado direccional: la garantía de contraste.
+ *
+ * No se puede confiar en que una foto sea oscura justo donde cae el texto —de
+ * las cuatro, solo una respetó el encargo—, así que lo garantiza el degradado
+ * con independencia de la imagen. **La meseta alta llega al 48 %** porque ahí
+ * termina la columna de texto: ocupa el 42 % del `container`, que está centrado
+ * a 1280 px, o sea del 17 % al 45 % de la pantalla en un viewport de 1920.
+ * Acortarla deja el final de las líneas largas en la zona clara.
+ *
+ * Medido sobre las cuatro imágenes compuestas: 17,0:1 el peor caso. AAA.
  */
-function Shot({
-  shot,
-  className,
-  sizes = "(max-width: 1024px) 100vw, 50vw",
-}: {
-  shot: ShotDef;
-  className?: string;
-  sizes?: string;
-}) {
-  if (shot.src) {
-    return (
-      <Image
-        src={shot.src}
-        alt={shot.alt}
-        width={shot.width}
-        height={shot.height}
-        sizes={sizes}
-        className={cn("h-auto", className)}
-      />
-    );
-  }
+function degradadoAncho(f: FondoDef) {
+  return `linear-gradient(100deg, ${rgba(f.base, 0.93)} 0%, ${rgba(f.base, 0.86)} 48%, ${rgba(f.base, f.velo + 0.22)} 70%, ${rgba(f.base, f.velo)} 100%)`;
+}
 
+/** En móvil la rejilla se apila y el texto cruza todo el ancho: el velo gira. */
+function degradadoAlto(f: FondoDef) {
+  return `linear-gradient(to bottom, ${rgba(f.base, 0.91)} 0%, ${rgba(f.base, 0.82)} 55%, ${rgba(f.base, 0.62)} 100%)`;
+}
+
+/**
+ * Las cuatro capas apiladas; solo cambia la opacidad.
+ *
+ * No se montan y desmontan a propósito: eso parpadearía y volvería a
+ * decodificar la imagen en cada cambio de pestaña.
+ *
+ * Cruzan en 450 ms, más lento que los 200 ms del panel. Si van a la vez, la
+ * sección entera pestañea; desfasados, el texto cambia y el ambiente lo
+ * alcanza después.
+ */
+function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> }) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-center bg-slate-100 text-center",
-        className,
-      )}
-      style={{ aspectRatio: `${shot.width} / ${shot.height}` }}
-      role="img"
-      aria-label={shot.alt}
-    >
-      <div className="p-3">
-        <p className="text-[11px] font-medium leading-snug text-slate-500">
-          {shot.alt}
-        </p>
-        <p className="mt-1 text-[9px] uppercase tracking-widest text-slate-400">
-          Pendiente
-        </p>
-      </div>
+    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+      {(Object.keys(FONDOS) as TabKey[]).map((k) => {
+        const f = FONDOS[k];
+        const visible = k === activo;
+        return (
+          <div
+            key={k}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-[450ms] ease-out",
+              "motion-reduce:transition-none",
+              visible ? "opacity-100" : "opacity-0",
+            )}
+            style={{ backgroundColor: f.base }}
+          >
+            {/* Solo se descarga la del perfil que se ha visitado. Las cuatro
+                están dentro del viewport cuando la sección entra, así que
+                `loading="lazy"` no bastaría: las pediría todas igual. */}
+            {cargados.has(k) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={f.src}
+                alt=""
+                className="h-full w-full object-cover"
+                style={{ opacity: f.opacidad }}
+                decoding="async"
+                fetchPriority={visible ? "auto" : "low"}
+              />
+            ) : null}
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: f.tinte, opacity: 0.34 }}
+            />
+            <div
+              className="absolute inset-0 lg:hidden"
+              style={{ backgroundImage: degradadoAlto(f) }}
+            />
+            <div
+              className="absolute inset-0 hidden lg:block"
+              style={{ backgroundImage: degradadoAncho(f) }}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -248,16 +335,20 @@ function Shot({
  * pb/pr on the container create room for the overlay to extend outside.
  */
 function AdminComposite({ shots }: { shots: ShotDef[] }) {
+  // Sin `max-w-*`: globals.css tiene overrides `.marketing-theme .max-w-lg`
+  // con más especificidad que cualquier variante responsive, así que un
+  // `lg:max-w-none` encima no gana nunca (ver tailwind-v4-spacing-fix).
+  // El ancho lo pone la columna de la rejilla, que es donde debe estar.
   return (
-    <div className="relative w-full max-w-lg pb-8 pr-7">
-      <Shot
-        shot={shots[0]}
+    <div className="relative w-full pb-8 pr-7">
+      <AssetSlot
+        asset={shots[0]}
         sizes="(max-width: 1024px) 100vw, 45vw"
         className="w-full rounded-xl border border-slate-200 shadow-brand-md"
       />
       {shots[1] && (
-        <Shot
-          shot={shots[1]}
+        <AssetSlot
+          asset={shots[1]}
           sizes="(max-width: 1024px) 55vw, 25vw"
           className="absolute bottom-0 right-0 z-10 w-[56%] rounded-xl border border-slate-200 shadow-brand-lg"
         />
@@ -267,62 +358,44 @@ function AdminComposite({ shots }: { shots: ShotDef[] }) {
 }
 
 /**
- * Residente — 3 phones in staggered composition.
- * Center phone is taller (top-aligned); left and right phones are
- * bottom-aligned and slightly narrower, flanking the center.
+ * Residente — tres teléfonos escalonados: el del centro más alto y alineado
+ * arriba, los laterales más estrechos y alineados abajo.
  *
- * Container is 420 × 360 px (explicit) so absolute children don't collapse it.
- * Phone dimensions (390 × 844 aspect ~9:19.4):
- *   center: 148 px wide → ~320 px tall
- *   sides:  126 px wide → ~273 px tall
- * Stagger: center top at 0, sides top at 360 - 273 = 87 px → 87 px lower.
+ * Medidas en PORCENTAJE, no en píxeles. Estaban fijas en 420×360 con teléfonos
+ * de 126 y 148 px, lo que daba dos problemas: en la columna ancha del rediseño
+ * se veían diminutos, y 420 px ya no cabían en un móvil de 375. Con
+ * `aspect-ratio` y anchos relativos, la composición se conserva exacta a
+ * cualquier tamaño y el contenedor manda.
+ *
+ * Proporciones (teléfono 390×844, ~9:19.4):
+ *   centro    35,4 % del ancho, alineado arriba
+ *   laterales 30 % del ancho, alineados abajo
  */
 function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div
-      className="relative mx-auto"
-      style={{ width: 420, height: 360 }}
+      className="relative mx-auto w-full max-w-[42rem]"
+      style={{ aspectRatio: "700 / 600" }}
       aria-label="Portal del Residente en tres pantallas"
     >
-      {/* Left phone — cuenta/estado */}
+      {/* Izquierda — estado de cuenta */}
       {shots[0] && (
-        <div
-          className="absolute bottom-0 left-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
-          style={{ width: 126 }}
-        >
-          <Shot
-            shot={shots[0]}
-            sizes="126px"
-            className="block w-full"
-          />
+        <div className="absolute bottom-0 left-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+          <AssetSlot asset={shots[0]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
         </div>
       )}
 
-      {/* Center phone — reservas (protagonist) */}
+      {/* Centro — reservas (protagonista) */}
       {shots[1] && (
-        <div
-          className="absolute top-0 left-1/2 z-10 overflow-hidden rounded-[30px] border border-slate-200 shadow-brand-lg"
-          style={{ width: 148, transform: "translateX(-50%)" }}
-        >
-          <Shot
-            shot={shots[1]}
-            sizes="148px"
-            className="block w-full"
-          />
+        <div className="absolute left-1/2 top-0 z-10 w-[35.4%] -translate-x-1/2 overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-lg">
+          <AssetSlot asset={shots[1]} sizes="(max-width: 1024px) 36vw, 18vw" className="block w-full" />
         </div>
       )}
 
-      {/* Right phone — QR visita */}
+      {/* Derecha — QR de visita */}
       {shots[2] && (
-        <div
-          className="absolute bottom-0 right-0 overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-md"
-          style={{ width: 126 }}
-        >
-          <Shot
-            shot={shots[2]}
-            sizes="126px"
-            className="block w-full"
-          />
+        <div className="absolute bottom-0 right-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+          <AssetSlot asset={shots[2]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
         </div>
       )}
     </div>
@@ -335,15 +408,15 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
  */
 function PorteriaComposite({ shots }: { shots: ShotDef[] }) {
   return (
-    <div className="relative w-full max-w-lg pb-7 pr-6">
-      <Shot
-        shot={shots[0]}
+    <div className="relative w-full pb-7 pr-6">
+      <AssetSlot
+        asset={shots[0]}
         sizes="(max-width: 1024px) 100vw, 45vw"
         className="w-full rounded-xl border border-slate-200 shadow-brand-md"
       />
       {shots[1] && (
-        <Shot
-          shot={shots[1]}
+        <AssetSlot
+          asset={shots[1]}
           sizes="(max-width: 1024px) 55vw, 25vw"
           className="absolute bottom-0 right-0 z-10 w-[52%] rounded-xl border border-slate-200 shadow-brand-lg"
         />
@@ -366,8 +439,22 @@ export function Perspectives() {
   const reduced = useReducedMotion();
   const triggersRef = React.useRef<Array<HTMLButtonElement | null>>([]);
 
+  /**
+   * Qué fondos se han pedido ya. Arranca solo con el activo.
+   *
+   * Los cuatro suman 268 KB, sobre una página que ya carga 1,3 MB de vídeo. Sin
+   * esto, entrar en la sección los descarga todos aunque nadie toque una
+   * pestaña. `precalentar` los pide al pasar el ratón o el foco, así que para
+   * cuando el clic llega la imagen suele estar.
+   */
+  const [cargados, setCargados] = React.useState<Set<TabKey>>(() => new Set<TabKey>(["admin"]));
+  const precalentar = React.useCallback((k: TabKey) => {
+    setCargados((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
+  }, []);
+
   const changeTab = React.useCallback(
     (next: TabKey) => {
+      precalentar(next);
       setTab((prev) => {
         if (prev !== next) {
           track("perspective_tab_change", { tab: next, from_tab: prev });
@@ -375,7 +462,7 @@ export function Perspectives() {
         return next;
       });
     },
-    [],
+    [precalentar],
   );
 
   const onKeyDown = (e: React.KeyboardEvent, currentIndex: number) => {
@@ -399,12 +486,13 @@ export function Perspectives() {
       <section
         id="perspectivas"
         aria-labelledby="perspectivas-heading"
-        className="bg-slate-50 scroll-mt-24"
+        className="relative isolate overflow-x-clip scroll-mt-24"
       >
+        <Fondos activo={tab} cargados={cargados} />
         <div className="container py-xxl">
           <h2
             id="perspectivas-heading"
-            className="max-w-3xl font-display text-h2 text-navy text-balance"
+            className="max-w-3xl font-display text-h2 text-white text-balance"
           >
             Una plataforma, cuatro experiencias
           </h2>
@@ -413,7 +501,7 @@ export function Perspectives() {
           <div
             role="tablist"
             aria-label="Perspectivas por rol"
-            className="mt-lg inline-flex flex-wrap gap-1 rounded-full bg-white p-1 shadow-brand-sm ring-1 ring-border"
+            className="mt-lg inline-flex flex-wrap gap-1 rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-sm"
           >
             {TABS.map((t, i) => {
               const isActive = t.key === tab;
@@ -431,20 +519,21 @@ export function Perspectives() {
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => changeTab(t.key)}
                   onKeyDown={(e) => onKeyDown(e, i)}
+                  onMouseEnter={() => precalentar(t.key)}
+                  onFocus={() => precalentar(t.key)}
                   className={cn(
                     "relative isolate inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors duration-fast",
                     "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                    isActive ? t.textActive : "text-slate-600 hover:text-slate-900",
+                    isActive
+                      ? HEADLINE_COLOR[t.key]
+                      : "text-white/70 hover:text-white",
                   )}
                 >
                   {isActive && (
                     <m.span
                       layoutId="tabHighlight"
                       aria-hidden="true"
-                      className={cn(
-                        "absolute inset-0 -z-10 rounded-full",
-                        t.bgActive,
-                      )}
+                      className="absolute inset-0 -z-10 rounded-full bg-white"
                       transition={
                         reduced
                           ? { duration: 0 }
@@ -470,63 +559,74 @@ export function Perspectives() {
                 animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                 exit={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
                 transition={{ duration: reduced ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
-                className="grid items-center gap-xl lg:grid-cols-2 lg:gap-xxl"
+                className="grid items-center gap-xl lg:grid-cols-[minmax(0,42%)_minmax(0,58%)] lg:gap-xxl"
               >
-                {/* Copy — 3 capas: problema → solución → en la práctica */}
+                {/*
+                  Antes eran tres capas: el problema, una lista de features y
+                  una caja de «en la práctica» que repetía la lista en prosa.
+                  Dos de ellas decían lo mismo.
+
+                  Ahora son dos movimientos: cómo es hoy, en la voz del perfil,
+                  y qué pasa con Vivaru en tres pasos EN ORDEN. Es un `<ol>` a
+                  propósito: la numeración no decora, es la secuencia real del
+                  mes y el lector la sigue como tal.
+                */}
                 <div>
-                  {/* Capa 1 — el problema, en la voz del perfil */}
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                    El problema
+                  {/* El color del perfil se muda aquí y a los números: sobre el
+                      fondo oscuro ya no puede vivir en el titular. */}
+                  <p
+                    className={cn(
+                      "text-xs font-semibold uppercase tracking-[0.14em]",
+                      FONDOS[active.key].acento,
+                    )}
+                  >
+                    Hoy
                   </p>
-                  <p className="mt-1 text-lg italic leading-snug text-slate-500 text-balance">
+                  <p className="mt-1 text-lg italic leading-snug text-white/75 text-balance">
                     “{active.problem}”
                   </p>
 
-                  {/* Capa 2 — la solución */}
                   <h3
                     className={cn(
-                      "mt-lg font-display text-h2 text-balance",
-                      HEADLINE_COLOR[active.key],
+                      "mt-lg font-display text-h2 text-balance text-white",
                     )}
                   >
                     {active.headline}
                   </h3>
-                  <ul role="list" className="mt-md space-y-3">
-                    {active.bullets.map((b) => (
-                      <li
-                        key={b}
-                        className="flex gap-2 text-base leading-relaxed text-slate-600"
-                      >
+
+                  <ol className="mt-md space-y-4">
+                    {active.steps.map((paso, i) => (
+                      <li key={paso} className="flex gap-3">
                         <span
                           aria-hidden="true"
                           className={cn(
-                            "mt-2.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full",
-                            active.bgActive,
+                            "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
+                            "bg-white/10 ring-1 ring-white/20",
+                            FONDOS[active.key].acento,
                           )}
-                        />
-                        <span>{b}</span>
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="text-base leading-relaxed text-white/80">
+                          {paso}
+                        </span>
                       </li>
                     ))}
-                  </ul>
-
-                  {/* Capa 3 — en la práctica (caso de uso) */}
-                  <div className="mt-lg rounded-xl bg-white p-4 shadow-brand-sm ring-1 ring-border">
-                    <p
-                      className={cn(
-                        "text-xs font-semibold uppercase tracking-[0.14em]",
-                        HEADLINE_COLOR[active.key],
-                      )}
-                    >
-                      En la práctica
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                      {active.inPractice}
-                    </p>
-                  </div>
+                  </ol>
                 </div>
 
-                {/* Composite */}
-                <div className="flex justify-center lg:justify-end">
+                {/*
+                  Composite. Se ensancha y se sale por el borde derecho, como
+                  en la sección de North de Cohere: da sensación de producto
+                  grande sin pedir más alto a la sección.
+
+                  El sangrado se hace con margen negativo y NO con `scale`.
+                  Escalar agranda también en vertical, y `overflow-x-clip`
+                  recorta solo en horizontal: el excedente de alto se habría
+                  montado sobre la sección siguiente. Con margen negativo el
+                  layout sigue siendo honesto y solo sobra lo que se recorta.
+                */}
+                <div className="flex justify-center lg:-mr-16 lg:justify-start xl:-mr-32">
                   <TabComposite tab={active} />
                 </div>
               </m.div>
