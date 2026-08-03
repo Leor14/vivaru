@@ -11,10 +11,13 @@ import { cn } from "@/lib/utils/cn";
  * Copy a la izquierda, prueba visual a la derecha.
  *
  * La prueba era un dibujo: tres tarjetas con la etiqueta «AISLADO». Ilustraba
- * el concepto sin enseñar nada, y una etiqueta no se puede comprobar. Ahora
- * son capturas del producto: el selector de conjunto, y el MISMO tablero con
- * la marca de dos conjuntos distintos — que es lo que `tenantSettings` hace
- * de verdad.
+ * el concepto sin enseñar nada, y una etiqueta no se puede comprobar.
+ *
+ * Ahora es un recorrido grabado por seis módulos del producto. Dos capturas
+ * quietas demostraban la marca por conjunto, pero no que esto sea un sistema
+ * en marcha; el paseo sí, y el póster del vídeo sigue siendo el tablero con su
+ * marca. En WebM y no GIF: un GIF de interfaz a este tamaño pesa varios megas
+ * y sus 256 colores ensucian el texto pequeño.
  */
 
 const BULLETS = [
@@ -77,39 +80,25 @@ function ConjuntoStack() {
     <div
       ref={ref}
       className={cn(
-        "relative",
+        "overflow-hidden rounded-2xl border border-slate-200 shadow-brand-lg",
         "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
         inView
-          ? "opacity-100 translate-y-0"
-          : "opacity-0 translate-y-4 motion-reduce:translate-y-0",
+          ? "translate-y-0 opacity-100"
+          : "translate-y-4 opacity-0 motion-reduce:translate-y-0",
       )}
     >
-      {/* Dos conjuntos, la MISMA pantalla. Aquí iba una captura del selector
-          de conjunto, pero esa pantalla no existe: el claim de sesión lleva un
-          solo `tenantId` y la membresía se resuelve con `limit(1)`. Enseñar dos
-          tableros con su propia marca sí demuestra el aislamiento, y es cierto. */}
-      <div className="grid gap-md sm:grid-cols-2">
-        <AssetSlot
-          asset={{
-            alt: "Panel de Conjunto Residencial Santa María",
-            width: 1200,
-            height: 900,
-            src: "/product/multiconjunto-marca-a.webp",
-          }}
-          sizes="(max-width: 1024px) 50vw, 22vw"
-          className="w-full rounded-xl border border-slate-200 shadow-brand-sm"
-        />
-        <AssetSlot
-          asset={{
-            alt: "El mismo panel, en Conjunto Residencial El Nogal",
-            width: 1200,
-            height: 900,
-            src: "/product/multiconjunto-marca-b.webp",
-          }}
-          sizes="(max-width: 1024px) 50vw, 22vw"
-          className="w-full rounded-xl border border-slate-200 shadow-brand-sm"
-        />
-      </div>
+      <AssetSlot
+        asset={{
+          alt: "Recorrido por Vivaru: panel de control, residentes y unidades, cartera, reservas, PQRS y comunicaciones",
+          width: 1280,
+          height: 800,
+          kind: "video",
+          src: "/product/multiconjunto-recorrido.webm",
+          poster: "/product/multiconjunto-marca-b.webp",
+        }}
+        sizes="(max-width: 1024px) 100vw, 45vw"
+        className="block w-full"
+      />
     </div>
   );
 }

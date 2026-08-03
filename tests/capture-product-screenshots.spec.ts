@@ -264,27 +264,37 @@ test.describe("Recorrido", () => {
     const sesion = await ctx.newPage();
     await loginAs(sesion, "admin@elnogal.co", "Demo1234*");
     await sesion.waitForTimeout(1500);
-    // La segunda página se abre ANTES de cerrar la primera: al quedarse sin
-    // páginas, un contexto que graba se da por terminado y todo lo posterior
-    // falla con «Target page, context or browser has been closed».
+    // La primera página NO se cierra: hacerlo dejaba el contexto en un estado
+    // en el que todo lo siguiente fallaba con «Target page, context or browser
+    // has been closed». Se queda abierta y en segundo plano; su vídeo se borra
+    // al final, cuando el contexto ya se cerró y los archivos están escritos.
     const videoDescartable = sesion.video();
     const page = await ctx.newPage();
-    await sesion.close();
+    await page.bringToFront();
+
+    // La banda de ambiente se oculta con `addInitScript`, que corre ANTES de
+    // que la página pinte. Con `addStyleTag` tras cada `goto` alcanzaba a
+    // asomar unos fotogramas en cada cambio de pantalla.
+    await page.addInitScript(() => {
+      const st = document.createElement("style");
+      st.textContent = "[data-env-banner]{display:none !important}";
+      document.documentElement.appendChild(st);
+    });
 
     const visitar = async (ruta: string, espera = 2200) => {
       await page.goto(ruta);
       await page.waitForLoadState("load");
-      await page.addStyleTag({ content: "[data-env-banner]{display:none !important}" });
       await page.waitForTimeout(espera);
     };
 
     // Arranque en frío: se entra al panel y se espera a que quede quieto antes
     // de empezar el paseo, para que el vídeo no abra con un esqueleto de carga.
     await page.goto("/admin");
-    await page.waitForLoadState("networkidle").catch(() => {});
-    await page.waitForTimeout(2500);
-    await page.addStyleTag({ content: "[data-env-banner]{display:none !important}" });
-    await page.waitForTimeout(1800);
+    // `networkidle` NO sirve en este producto: los escuchas en tiempo real de
+    // Firestore mantienen la red ocupada y nunca se cumple, así que el test se
+    // comía sus 240 s de límite. Con `load` y una espera fija basta.
+    await page.waitForLoadState("load");
+    await page.waitForTimeout(3200);
 
     // El orden cuenta una historia: dónde estoy, a quién le cobro, qué debe,
     // qué pidió, qué le dije. No es un listado de pantallas.
@@ -303,6 +313,13 @@ test.describe("Recorrido", () => {
     }
     if (videoDescartable) {
       try { fs.unlinkSync(await videoDescartable.path()); } catch { /* ya no está */ }
+    }
+    // Barrido: cualquier .webm con nombre de hash que quede es de la página de
+    // sesión o de un intento anterior.
+    for (const f of fs.readdirSync(OUT)) {
+      if (f.endsWith(".webm") && f !== "multiconjunto-recorrido.webm") {
+        fs.unlinkSync(path.join(OUT, f));
+      }
     }
   });
 });

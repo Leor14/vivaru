@@ -44,3 +44,6 @@ firestore-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Salida de Playwright
+test-results/
