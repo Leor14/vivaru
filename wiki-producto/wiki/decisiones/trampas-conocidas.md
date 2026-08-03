@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-07-03
+fecha_actualizacion: 2026-08-02
 ---
 
 # Trampas Conocidas
@@ -221,3 +221,20 @@ Costó una ronda de diagnóstico en el rediseño de Perspectivas: la captura seg
 ## Fuentes
 
 - [[design-md]], [[product-md]], [[consolidacion-landing-2026]]
+
+## App Hosting apaga el optimizador de imágenes de Next
+
+`/_next/image` responde **404** en staging y en producción, y el HTML sale con `src="/product/x.webp"` a pelo, sin `srcset`. No es un fallo del código: `@apphosting/adapter-nextjs` **reescribe `next.config.ts` durante el build en la nube** (guarda el original como `next.config.original.ts`) e inyecta `images.unoptimized = true`. Con `unoptimized` la ruta `/_next/image` ni siquiera se genera, de ahí el 404.
+
+El adaptador solo respeta la configuración propia si el archivo declara **explícitamente** `images.unoptimized` o `images.loader`; cualquier otra clave —`formats`, `minimumCacheTTL`, `deviceSizes`— la ignora al decidir. Declarar `formats: ["image/avif","image/webp"]` no protege de nada.
+
+La trampa de diagnóstico: **en local no se reproduce**. `next build` en la máquina sí emite el `srcset` completo con URLs `/_next/image?url=...&w=...&q=75`. La divergencia solo existe desplegado, así que hay que comprobarlo contra el dominio:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  "https://www.grupovivaru.com/_next/image?url=%2Fproduct%2Fperspectives-admin-cartera.png&w=1200&q=75"
+```
+
+Consecuencia práctica: **no hay red de seguridad en runtime**. El byte que está en `public/` es el byte que descarga el visitante, al tamaño que esté. Por eso `public/product/` se sirve ya redimensionado y en WebP (`npm run images:optimize`, ver [[landing-marketing]]); antes eran PNG @2x de hasta 2880px —7,6 MB— para tarjetas que se pintan a 300-770 px.
+
+Las dos salidas si algún día se quiere optimización de verdad: declarar `images.unoptimized: false` (el servidor de Cloud Run haría el trabajo con sharp — ojo al `memoryMiB: 512` de `apphosting.yaml` frente a capturas de 2880px), o un `images.loader` propio apuntando a la extensión Image Processing de Firebase, que es lo que Google recomienda hoy. Ninguna de las dos hace falta mientras los assets salgan ya optimizados. Ver [[landing-marketing]] y [[dominios-app-hosting]].

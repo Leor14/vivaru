@@ -94,7 +94,7 @@ function ConjuntoStack() {
             alt: "Panel de Conjunto Residencial Santa María",
             width: 1200,
             height: 900,
-            src: "/product/multiconjunto-marca-a.png",
+            src: "/product/multiconjunto-marca-a.webp",
           }}
           sizes="(max-width: 1024px) 50vw, 22vw"
           className="w-full rounded-xl border border-slate-200 shadow-brand-sm"
@@ -104,7 +104,7 @@ function ConjuntoStack() {
             alt: "El mismo panel, en Conjunto Residencial El Nogal",
             width: 1200,
             height: 900,
-            src: "/product/multiconjunto-marca-b.png",
+            src: "/product/multiconjunto-marca-b.webp",
           }}
           sizes="(max-width: 1024px) 50vw, 22vw"
           className="w-full rounded-xl border border-slate-200 shadow-brand-sm"

@@ -21,7 +21,6 @@
  * (ver `next.config.ts`), así que estos PNG @2x —hasta 2880px de ancho, 7,6 MB
  * en total— llegarían crudos al navegador para pintarse a 300-770 px.
  *
-
  * ⚠️  ENTORNO. `playwright.config.ts` levanta `npm run dev`, y este repo NO
  * tiene las variables de Firebase en `.env.local`: el fallback de
  * `src/lib/firebase/config.ts` es **hogaru-1, producción**. Correrlo sin más

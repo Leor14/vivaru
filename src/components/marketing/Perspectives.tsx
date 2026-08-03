@@ -57,13 +57,13 @@ const TABS: TabDef[] = [
     ],
         shots: [
       {
-        src: "/product/perspectives-admin-cartera.png",
+        src: "/product/perspectives-admin-cartera.webp",
         alt: "Cartera e historial en Vivaru Admin",
         width: 1440,
         height: 900,
       },
       {
-        src: "/product/perspectives-admin-reservations.png",
+        src: "/product/perspectives-admin-reservations.webp",
         alt: "Calendario de reservas en Vivaru Admin",
         width: 1440,
         height: 900,
@@ -86,19 +86,19 @@ const TABS: TabDef[] = [
     ],
         shots: [
       {
-        src: "/product/perspectives-resident-account.png",
+        src: "/product/perspectives-resident-account.webp",
         alt: "Estado de cuenta en Portal del Residente",
         width: 390,
         height: 844,
       },
       {
-        src: "/product/perspectives-resident-reservations.png",
+        src: "/product/perspectives-resident-reservations.webp",
         alt: "Reservas con calendario en Portal del Residente",
         width: 390,
         height: 844,
       },
       {
-        src: "/product/perspectives-resident-visitor.png",
+        src: "/product/perspectives-resident-visitor.webp",
         alt: "Crear invitación de visita en Portal del Residente",
         width: 390,
         height: 844,
@@ -121,13 +121,13 @@ const TABS: TabDef[] = [
     ],
         shots: [
       {
-        src: "/product/perspectives-porteria-scanner.png",
+        src: "/product/perspectives-porteria-scanner.webp",
         alt: "Validación QR en Panel de Portería",
         width: 1024,
         height: 768,
       },
       {
-        src: "/product/perspectives-porteria-packages.png",
+        src: "/product/perspectives-porteria-packages.webp",
         alt: "Recepción de paquetes en Panel de Portería",
         width: 1024,
         height: 768,
@@ -150,13 +150,13 @@ const TABS: TabDef[] = [
     ],
         shots: [
       {
-        src: "/product/perspectives-comite-tablero.png",
+        src: "/product/perspectives-comite-tablero.webp",
         alt: "Reporte de comité — tablero ejecutivo en Vivaru",
         width: 1996,
         height: 1512,
       },
       {
-        src: "/product/perspectives-comite-cartera.png",
+        src: "/product/perspectives-comite-cartera.webp",
         alt: "Antigüedad de cartera y mayores deudores en Vivaru",
         width: 1984,
         height: 1520,

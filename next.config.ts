@@ -11,6 +11,29 @@ const nextConfig: NextConfig = {
   },
   poweredByHeader: false,
   compress: true,
+  // ⚠️ EN APP HOSTING ESTO NO SE APLICA: el optimizador de Next está apagado.
+  //
+  // `@apphosting/adapter-nextjs` reescribe este archivo durante el build en la
+  // nube (guarda el original como `next.config.original.ts`) y le inyecta:
+  //
+  //     images: { ...config.images,
+  //       ...(config.images?.unoptimized === undefined &&
+  //           config.images?.loader     === undefined
+  //             ? { unoptimized: true } : {}) }
+  //
+  // Es decir: fuerza `unoptimized: true` SALVO que aquí se declare
+  // explícitamente `unoptimized` o un `loader`. Declarar `formats` no basta —
+  // el adaptador no lo mira.
+  //
+  // Síntoma: `/_next/image?...` responde 404 (con `unoptimized` la ruta ni
+  // siquiera se genera) y el HTML sale con `src="/product/x.webp"` a pelo, sin
+  // `srcset`. En un build local `next build` sí emite el `srcset` completo, así
+  // que la diferencia solo aparece desplegado.
+  //
+  // Por eso `public/product/` se sirve ya redimensionado y en WebP: sin
+  // optimizador, el byte que está en disco es el byte que descarga el visitante.
+  // Ver `scripts/optimize-product-images.mjs` y
+  // `wiki-producto/wiki/decisiones/trampas-conocidas.md`.
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 7,

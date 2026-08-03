@@ -158,7 +158,7 @@ function ProductComposite() {
     <div className="relative mx-auto w-full max-w-xl lg:max-w-none">
       {/* Dashboard Admin screenshot (1440×900 @2x). */}
       <Image
-        src="/product/hero-admin-dashboard.png"
+        src="/product/hero-admin-dashboard.webp"
         alt="Centro de control del administrador en Vivaru"
         width={1440}
         height={900}
@@ -170,7 +170,7 @@ function ProductComposite() {
       {/* Portal Residente mobile overlay (390×844 @3x). */}
       <div className="absolute -bottom-6 right-2 hidden w-[24%] min-w-[140px] max-w-[180px] overflow-hidden rounded-[28px] border border-slate-200 shadow-brand-lg sm:block lg:-bottom-8 lg:right-4 lg:w-[28%]">
         <Image
-          src="/product/hero-resident-reservations.png"
+          src="/product/hero-resident-reservations.webp"
           alt="Portal del residente en Vivaru"
           width={390}
           height={844}

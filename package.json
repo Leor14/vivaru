@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
+    "images:optimize": "node scripts/optimize-product-images.mjs",
     "test": "vitest run tests/**/*.test.ts",
     "test:guard-visitors": "vitest run tests/guard-qr-validation.test.ts",
     "test:rules": "vitest run tests/firestore.rules.test.ts",
