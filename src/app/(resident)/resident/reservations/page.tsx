@@ -31,6 +31,7 @@ import {
   useReservations,
 } from "@/features/reservations/use-reservations";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { reservationMatchesAmenity } from "@/features/reservations/amenity-match";
 import { checkReservationEligibility } from "@/features/reservations/eligibility";
 import {
   buildTimeMarks,
@@ -280,10 +281,7 @@ export default function ResidentReservationsPage() {
 
     return items.filter((reservation) => {
       if (reservation.status === "cancelled" || reservation.status === "rejected") return false;
-      if (reservation.amenityId) {
-        return reservation.amenityId === selectedAmenity.id;
-      }
-      return reservation.amenity.trim().toLowerCase() === selectedAmenity.name.trim().toLowerCase();
+      return reservationMatchesAmenity(reservation, selectedAmenity);
     });
   }, [items, selectedAmenity]);
 
