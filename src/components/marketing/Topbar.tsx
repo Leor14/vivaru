@@ -19,6 +19,7 @@ import {
 } from "@/components/marketing/ui/sheet";
 import { DemoDialog } from "@/components/marketing/DemoDialog";
 import { track } from "@/lib/marketing/analytics";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Topbar — Sprint 1.
@@ -66,12 +67,46 @@ function VivaruLogo({ className }: { className?: string }) {
         className
       )}
     >
+      {/*
+        Por qué el logo cambió de fichero, y por qué lleva `unoptimized`.
+
+        `vivaru-logo.png` es un lienzo de 2048×2048 SIN canal alfa: pinta un
+        cuadrado blanco opaco allá donde se ponga. No se veía mientras la barra
+        era blanca de borde a borde, pero la píldora es translúcida y el fondo del
+        hero es gris azulado, así que el recuadro se leía. En escritorio ya salía
+        así en producción.
+
+        El SVG que hay al lado NO sirve de reemplazo: es una silueta trazada a un
+        solo color (`fill="#000000"`), no el logo a color. Vale para el pie, que
+        es donde se usa.
+
+        El alfa se sacó calando el blanco CONECTADO AL BORDE con un relleno por
+        inundación, no por umbral: el icono lleva blancos interiores —los detalles
+        de la casa, un 0,22 % del lienzo— que un umbral plano habría perforado. Se
+        conserva el lienzo cuadrado a propósito: recortarlo al contenido real
+        (1758×1154) haría el logo casi el doble de alto en pantalla, que es un
+        cambio de diseño y no un arreglo.
+
+        `unoptimized` es obligatorio, y esta es la parte que cuesta encontrar. Con
+        un PNG/WebP con alfa, el optimizador de Next recodifica a AVIF —Chrome lo
+        negocia por `Accept`— y el alfa sale destrozado: el logo se pinta como un
+        fantasma gris casi invisible. El fichero en disco está bien; lo que rompe
+        es la recodificación. Solo pasa en `next dev`: como documenta
+        `next.config.ts`, App Hosting fuerza `unoptimized: true` en todo el sitio,
+        así que desplegado se sirve el byte de disco y se ve correcto. Sin este
+        prop, desarrollo y producción muestran cosas distintas y el fallo local
+        parece del asset.
+
+        Por eso el WebP va ya a su tamaño final —256 px, el máximo real es 64 px
+        CSS a 4x—, igual que `public/product/`. 1,1 MB → 15 KB.
+      */}
       <Image
-        src="/brand/vivaru-logo.png"
+        src="/brand/vivaru-logo.webp"
         alt=""
-        width={120}
-        height={120}
+        width={256}
+        height={256}
         priority
+        unoptimized
         className="h-14 w-auto md:h-16"
       />
     </Link>
@@ -146,40 +181,56 @@ export function Topbar() {
   return (
     <>
       {/*
-        Dos tratamientos que NO se solapan, a propósito.
+        Un solo tratamiento en todos los anchos: píldora flotante que se contrae
+        al bajar y pasa por encima del contenido.
 
-        Móvil (`max-md:`): barra sólida a ancho completo, igual que antes. Ahí
-        no cabe una píldora sin apretar el logo contra el menú, y además ya hay
-        un CTA fijo abajo: dos elementos flotantes compiten.
+        Antes eran dos. Móvil llevaba una barra sólida de borde a borde y solo
+        escritorio tenía la píldora. El argumento era que en 390 px la píldora
+        aprieta el logo contra el menú y que un segundo elemento flotante compite
+        con el CTA fijo de abajo. Ninguna de las dos cosas resultó cierta al
+        medirla: dentro de la píldora solo viven el logo y la hamburguesa, y el
+        CTA de abajo está anclado al lado opuesto de la pantalla.
 
-        Escritorio (`md:`): píldora que se contrae al bajar. El ancho vive en el
-        contenedor interno, no en el header, para que el fondo del móvil y el
-        de la píldora nunca peleen en la cascada.
+        Lo que sí costaba el tratamiento doble era la coherencia — el gesto que
+        define la barra en escritorio, deslizarse por todo el sitio y compactarse,
+        simplemente no existía en el móvil.
+
+        El gesto se adapta, no se copia: en escritorio la píldora contrae su
+        `max-width` de 80rem a 62rem, que en 390 px no significa nada. Aquí lo que
+        se contrae es el margen lateral, de 1rem a 1,5rem, más el mismo salto de
+        sombra. La proporción es equivalente y la propiedad animada, la misma.
+
+        El ancho vive en el contenedor interno, no en el header, para que el fondo
+        y el de la píldora nunca peleen en la cascada.
 
         Se dejó de usar la utilidad `container` aquí: define `max-width: 1280px`
         con la misma especificidad que `md:max-w-*`, así que cuál gana dependía
         del orden de generación del CSS. El padding va explícito.
       */}
-      <header
-        className={cn(
-          "sticky top-0 z-sticky w-full md:pt-3",
-          "max-md:border-b max-md:transition-[box-shadow,background-color] max-md:duration-[200ms] max-md:ease-out-brand",
-          scrolled
-            ? "max-md:border-border/60 max-md:bg-white/95 max-md:shadow-sm max-md:supports-[backdrop-filter]:bg-white/80 max-md:supports-[backdrop-filter]:backdrop-blur-sm"
-            : "max-md:border-transparent max-md:bg-background/95 max-md:supports-[backdrop-filter]:bg-background/80 max-md:supports-[backdrop-filter]:backdrop-blur-md",
-        )}
-      >
+      <header className="sticky top-0 z-sticky w-full pt-2 md:pt-3">
         <div
           className={cn(
             "mx-auto flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-6 md:h-[68px] lg:px-8",
-            "md:rounded-full md:border md:border-border/70 md:bg-white/90 md:px-6",
-            "md:supports-[backdrop-filter]:bg-white/75 md:supports-[backdrop-filter]:backdrop-blur-md",
+            "rounded-full border border-border/70 bg-white/90 md:px-6",
+            "supports-[backdrop-filter]:bg-white/75 supports-[backdrop-filter]:backdrop-blur-md",
             // Solo `max-width` y `box-shadow`: ninguna propiedad de layout.
-            "md:transition-[max-width,box-shadow] md:duration-[420ms] md:[transition-timing-function:var(--ease-in-out)]",
+            "transition-[max-width,box-shadow] duration-[420ms] [transition-timing-function:var(--ease-in-out)]",
             "motion-reduce:transition-none",
+            // Un solo `min()` en vez de base + variante `md:`. El primer término
+            // manda el margen lateral (1rem → 1,5rem) y el segundo el tope de
+            // ancho (80rem → 62rem); gana el que sea menor, así que la regla es
+            // continua y no hay ningún ancho donde el gesto desaparezca.
+            //
+            // Con `md:max-w-[80rem]` a secas, entre 768 y 1280 px ganaba el ancho
+            // de la ventana: la píldora iba de borde a borde, con las esquinas
+            // redondeadas pegadas al filo de la pantalla, y entre 768 y 992 px
+            // encima no se contraía nada. Ya pasaba antes de tocar el móvil.
+            //
+            // De 1312 px en adelante manda el tope y el comportamiento de
+            // escritorio es idéntico al de siempre: 1280 → 992 px.
             scrolled
-              ? "md:max-w-[62rem] md:shadow-brand-lg"
-              : "md:max-w-[80rem] md:shadow-brand-sm",
+              ? "max-w-[min(calc(100%-3rem),62rem)] shadow-brand-lg"
+              : "max-w-[min(calc(100%-2rem),80rem)] shadow-brand-sm",
           )}
         >
           <VivaruLogo />
@@ -233,9 +284,7 @@ export function Topbar() {
                 }
               >
                 Prueba gratis 15 días{" "}
-                <span aria-hidden="true" className="ml-0.5">
-                  →
-                </span>
+                <Flecha />
               </Button>
             </div>
 
@@ -298,6 +347,7 @@ export function Topbar() {
             </Sheet>
           </div>
         </div>
+
       </header>
 
       {/* Mobile-only fixed bottom CTA — always reachable. */}
@@ -328,9 +378,7 @@ export function Topbar() {
           }
         >
           Prueba gratis 15 días{" "}
-          <span aria-hidden="true" className="ml-0.5">
-            →
-          </span>
+          <Flecha />
         </Button>
       </div>
       ) : null}

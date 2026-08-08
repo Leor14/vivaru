@@ -8,6 +8,7 @@ import { DemoDialog } from "@/components/marketing/DemoDialog";
 import { track } from "@/lib/marketing/analytics";
 import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Final CTA — plan §5.12 / journey.md §B step 10.
@@ -92,9 +93,7 @@ export function FinalCTA() {
                 }
               >
                 Prueba gratis 15 días{" "}
-                <span aria-hidden="true" className="ml-0.5">
-                  →
-                </span>
+                <Flecha />
               </Button>
 
               <DemoDialog section="final">
@@ -137,7 +136,7 @@ export function FinalCTA() {
             el ambiente de pruebas enseña «Recaudado $0» en todas partes.
             Recortada a la tarjeta; no hay ningún nombre de residente.
           */}
-          <div className="lg:-mr-16 xl:-mr-32">
+          <div className="desvelar overflow-clip lg:-mr-16 xl:-mr-32">
             <AssetSlot
               asset={{
                 alt: "Comportamiento histórico de cartera: cobrado, recaudado, brecha y 87,3 % de recaudo",

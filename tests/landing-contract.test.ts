@@ -169,3 +169,75 @@ describe("fondos por perfil de «Una plataforma, cuatro experiencias»", () => {
     for (const a of acentos) expect(a).toMatch(/light/);
   });
 });
+
+describe("animaciones del landing", () => {
+  it("ningún componente de marketing anima propiedades de layout", () => {
+    // `height`, `width`, `margin` y `padding` pasan por layout y pintado en
+    // CADA fotograma. Es la regla que más se rompe sin querer —basta un
+    // `transition-all` de más— y no la detecta el typecheck ni se nota en una
+    // máquina rápida.
+    const prohibidas = /transition-\[[^\]]*(height|width|margin|padding)/;
+    for (const a of [
+      "Hero.tsx", "Pain.tsx", "Solution.tsx", "CasosDeUso.tsx",
+      "MultiConjunto.tsx", "Differentiators.tsx", "TrustOnboarding.tsx",
+      "ImpactBand.tsx", "FinalCTA.tsx", "Perspectives.tsx",
+    ]) {
+      expect(marketing(a)).not.toMatch(prohibidas);
+    }
+  });
+
+  it("el revelado vive en un solo sitio, no copiado por sección", () => {
+    // Antes el mismo gesto tenía cuatro duraciones (250, 400, 280 ms y sueltos)
+    // y tres desplazamientos (16, 12 y 4 px), porque se fue copiando de sección
+    // en sección. Las que ya migraron no deben volver a declararlo a mano.
+    for (const a of [
+      "Solution.tsx", "CasosDeUso.tsx", "TrustOnboarding.tsx",
+      "Pain.tsx", "ImpactBand.tsx", "Differentiators.tsx", "MultiConjunto.tsx",
+    ]) {
+      expect(marketing(a)).toMatch(/useRevelado/);
+      expect(marketing(a)).not.toMatch(/transitionDelay:.*inView\s*\?/);
+    }
+  });
+});
+
+describe("la flecha de los CTA", () => {
+  it("no vuelve a repetirse suelta en cada componente", () => {
+    // Estaba copiada siete veces en cinco archivos, y en el hero iba suelta
+    // dentro del texto —donde no se puede animar sin envolverla—.
+    for (const a of ["Hero.tsx", "Topbar.tsx", "FinalCTA.tsx", "ImpactBand.tsx", "DemoDialog.tsx"]) {
+      expect(marketing(a)).not.toMatch(/aria-hidden="true"\s+className="ml-0\.5"/);
+    }
+  });
+
+  it("declara las DOS variantes de grupo", () => {
+    // `group/button` no coincide con el selector de `group-hover:`, que busca la
+    // clase `group` a secas. Sin las dos, la flecha funciona dentro del botón
+    // compartido pero no en los enlaces que no lo usan.
+    const flecha = leer("src/components/marketing/ui/flecha.tsx");
+    expect(flecha).toMatch(/group-hover\/button:translate-x-1/);
+    expect(flecha).toMatch(/group-hover:translate-x-1/);
+  });
+});
+
+describe("la marquesina de módulos", () => {
+  const fuente = marketing("MarquesinaModulos.tsx");
+
+  it("se detiene al pasar el puntero", () => {
+    // Una cinta que sigue moviéndose mientras alguien intenta leerla es
+    // exactamente lo que hace desviar la vista.
+    expect(fuente).toMatch(/group-hover:\[animation-play-state:paused\]/);
+  });
+
+  it("con movimiento reducido no hay cinta, hay rejilla", () => {
+    // No basta con pausar: una cinta detenida a mitad de recorrido deja
+    // nombres cortados contra el borde.
+    expect(fuente).toMatch(/useReducedMotion/);
+    expect(fuente).toMatch(/flex-wrap/);
+  });
+
+  it("duplica el contenido, que es lo que quita la costura del bucle", () => {
+    // Sin la copia, al llegar al -50 % habría un salto visible por vuelta.
+    expect(fuente).toMatch(/<Tira \/>/);
+    expect(fuente).toMatch(/<Tira oculta \/>/);
+  });
+});

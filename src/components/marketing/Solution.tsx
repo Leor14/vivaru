@@ -8,7 +8,7 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react";
-import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { useRevelado } from "@/lib/marketing/revelado";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -139,28 +139,23 @@ export function Solution() {
 }
 
 function PillarCard({ pillar, index }: { pillar: Pillar; index: number }) {
-  const reduced = useReducedMotion();
-  const [ref, inView] = useInView<HTMLLIElement>(0.05);
+  const { ref, revelado } = useRevelado<HTMLLIElement>(index, 0.05);
   const { Icon } = pillar;
-  const delayMs = reduced ? 0 : index * 60;
 
   return (
-    <li
-      ref={ref}
+    // Dos capas: el `<li>` revela, el `<article>` reacciona al hover. Antes era
+    // uno solo y ambos gestos competían por el mismo `transition-delay`: para
+    // que el hover no llegara con 240 ms de retardo se ponía el retraso a cero
+    // al entrar en vista, y eso anulaba el escalonado.
+    <li ref={ref} className={cn("flex", revelado.className)} style={revelado.style}>
+    <article
       className={cn(
-        "group/pillar flex flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-brand-sm",
-        // Scroll reveal
-        "transition-[opacity,transform,box-shadow] duration-[280ms] ease-out motion-reduce:transition-none",
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
-        // Hover lift — gated to pointer:fine devices; no sticky-hover on touch
+        "group/pillar flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-brand-sm",
+        "transition-[transform,box-shadow] duration-fast ease-out-brand motion-reduce:transition-none",
+        // Solo en dispositivos con puntero fino: en táctil el hover se queda pegado.
         "[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1",
         "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-brand-lg",
       )}
-      style={{
-        // Delay only during the scroll-reveal phase; reset to 0ms once visible
-        // so hover interactions are always instant.
-        transitionDelay: (reduced || inView) ? "0ms" : `${delayMs}ms`,
-      }}
     >
       <div className="flex flex-1 flex-col p-lg">
         <div
@@ -207,6 +202,7 @@ function PillarCard({ pillar, index }: { pillar: Pillar; index: number }) {
         </p>
         <p className="mt-1 text-sm leading-snug">{pillar.problem}</p>
       </div>
+    </article>
     </li>
   );
 }

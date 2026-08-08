@@ -158,7 +158,7 @@ export function ProductGlimpse() {
             height: 900,
             src: "/landing/post-hero-admin.jpg",
           }}
-          className="h-full w-full rounded-2xl object-cover"
+          className="desvelar h-full w-full rounded-2xl object-cover"
           sizes="(max-width: 1024px) 100vw, 45vw"
         />
       </div>

@@ -243,6 +243,20 @@ const FONDOS: Record<TabKey, FondoDef> = {
   },
 };
 
+/**
+ * Un paso del escalonado del panel.
+ *
+ * 10 px y no un porcentaje, a diferencia del revelado por scroll: aquí los
+ * elementos son líneas de texto de altura muy distinta —un ambiente de 12 px y
+ * un titular de 40—, y un porcentaje haría que el titular recorriera cuatro
+ * veces más que la etiqueta. En una entrada por scroll eso es deseable; dentro
+ * de un panel que se sustituye, no: se lee como que cada línea va a su aire.
+ */
+const PASO = {
+  oculto: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.23, 1, 0.32, 1] as const } },
+};
+
 function rgba(hex: string, alpha: number) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
@@ -281,7 +295,12 @@ function degradadoAlto(f: FondoDef) {
  */
 function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> }) {
   return (
-    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+    // `overflow-clip` y NO `overflow-hidden`. `hidden` crea un contenedor de
+    // desplazamiento, y `animation-timeline: view()` resuelve contra el
+    // scrollport MÁS CERCANO: con `hidden` el progreso se queda clavado porque
+    // ese contenedor nunca se desplaza. `clip` recorta igual sin crearlo.
+    // Es la misma trampa que tuvo el sticky del header con `body`.
+    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-clip">
       {(Object.keys(FONDOS) as TabKey[]).map((k) => {
         const f = FONDOS[k];
         const visible = k === activo;
@@ -303,7 +322,9 @@ function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> })
               <img
                 src={f.src}
                 alt=""
-                className="h-full w-full object-cover"
+                // 130 % de alto y desplazada hacia arriba: el paralaje mueve la
+                // imagen dentro de ese margen, y sin él asomaría el borde.
+                className="paralaje absolute -top-[15%] left-0 h-[130%] w-full object-cover"
                 style={{ opacity: f.opacidad }}
                 decoding="async"
                 fetchPriority={visible ? "auto" : "low"}
@@ -334,6 +355,63 @@ function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> })
  * Admin — desktop primary + desktop secondary overlaid bottom-right.
  * pb/pr on the container create room for the overlay to extend outside.
  */
+/**
+ * Entrada de una captura al cambiar de pestaña.
+ *
+ * El escalonado del panel arreglaba la COLUMNA DE TEXTO; las capturas seguían
+ * entrando de golpe con el panel, y son lo que más ocupa la pantalla: por eso
+ * el cambio se seguía leyendo como un pantallazo aunque ya no hubiera hueco
+ * en blanco.
+ *
+ * Tres cosas a la vez, y ninguna sobra:
+ *
+ *  - `opacity`, para que aparezca.
+ *  - `scale` desde 0,96 —nunca desde 0: nada en el mundo real aparece de la
+ *    nada, y arrancar de cero se lee como un salto.
+ *  - `y` de 14 px, que es lo que convierte «apareció» en «llegó».
+ *
+ * Y un `blur` de salida de 4 px: durante el cruce se ven DOS composiciones
+ * superpuestas, y sin desenfoque el ojo las distingue como dos objetos
+ * distintos en vez de leerlo como una transformación.
+ */
+const PASO_CAPTURA = {
+  oculto: { opacity: 0, scale: 0.96, y: 14, filter: "blur(4px)" },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.45, ease: [0.23, 1, 0.32, 1] as const },
+  },
+};
+
+/**
+ * Envoltorio que reparte la entrada de las capturas.
+ *
+ * `delayChildren` de 0,1 s: las capturas entran DESPUÉS del texto, no a la vez.
+ * El orden importa — primero se lee de quién va la pestaña y luego llegan sus
+ * pantallas.
+ */
+function Capturas({ children, reducido }: { children: React.ReactNode; reducido: boolean }) {
+  return (
+    <m.div
+      initial={reducido ? false : "oculto"}
+      animate="visible"
+      variants={{
+        visible: {
+          transition: {
+            staggerChildren: reducido ? 0 : 0.09,
+            delayChildren: reducido ? 0 : 0.1,
+          },
+        },
+      }}
+      className="contents"
+    >
+      {children}
+    </m.div>
+  );
+}
+
 function AdminComposite({ shots }: { shots: ShotDef[] }) {
   // Sin `max-w-*`: globals.css tiene overrides `.marketing-theme .max-w-lg`
   // con más especificidad que cualquier variante responsive, así que un
@@ -341,17 +419,24 @@ function AdminComposite({ shots }: { shots: ShotDef[] }) {
   // El ancho lo pone la columna de la rejilla, que es donde debe estar.
   return (
     <div className="relative w-full pb-8 pr-7">
-      <AssetSlot
-        asset={shots[0]}
-        sizes="(max-width: 1024px) 100vw, 45vw"
-        className="w-full rounded-xl border border-slate-200 shadow-brand-md"
-      />
-      {shots[1] && (
+      <m.div variants={PASO_CAPTURA}>
         <AssetSlot
-          asset={shots[1]}
-          sizes="(max-width: 1024px) 55vw, 25vw"
-          className="absolute bottom-0 right-0 z-10 w-[56%] rounded-xl border border-slate-200 shadow-brand-lg"
+          asset={shots[0]}
+          sizes="(max-width: 1024px) 100vw, 45vw"
+          className="w-full rounded-xl border border-slate-200 shadow-brand-md"
         />
+      </m.div>
+      {shots[1] && (
+        <m.div
+          variants={PASO_CAPTURA}
+          className="absolute bottom-0 right-0 z-10 w-[56%]"
+        >
+          <AssetSlot
+            asset={shots[1]}
+            sizes="(max-width: 1024px) 55vw, 25vw"
+            className="w-full rounded-xl border border-slate-200 shadow-brand-lg"
+          />
+        </m.div>
       )}
     </div>
   );
@@ -380,23 +465,23 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
     >
       {/* Izquierda — estado de cuenta */}
       {shots[0] && (
-        <div className="absolute bottom-0 left-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+        <m.div variants={PASO_CAPTURA} className="absolute bottom-0 left-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
           <AssetSlot asset={shots[0]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
-        </div>
+        </m.div>
       )}
 
       {/* Centro — reservas (protagonista) */}
       {shots[1] && (
-        <div className="absolute left-1/2 top-0 z-10 w-[35.4%] -translate-x-1/2 overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-lg">
+        <m.div variants={PASO_CAPTURA} className="absolute left-1/2 top-0 z-10 w-[35.4%] -translate-x-1/2 overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-lg">
           <AssetSlot asset={shots[1]} sizes="(max-width: 1024px) 36vw, 18vw" className="block w-full" />
-        </div>
+        </m.div>
       )}
 
       {/* Derecha — QR de visita */}
       {shots[2] && (
-        <div className="absolute bottom-0 right-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+        <m.div variants={PASO_CAPTURA} className="absolute bottom-0 right-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
           <AssetSlot asset={shots[2]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
-        </div>
+        </m.div>
       )}
     </div>
   );
@@ -409,27 +494,41 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
 function PorteriaComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div className="relative w-full pb-7 pr-6">
-      <AssetSlot
-        asset={shots[0]}
-        sizes="(max-width: 1024px) 100vw, 45vw"
-        className="w-full rounded-xl border border-slate-200 shadow-brand-md"
-      />
-      {shots[1] && (
+      <m.div variants={PASO_CAPTURA}>
         <AssetSlot
-          asset={shots[1]}
-          sizes="(max-width: 1024px) 55vw, 25vw"
-          className="absolute bottom-0 right-0 z-10 w-[52%] rounded-xl border border-slate-200 shadow-brand-lg"
+          asset={shots[0]}
+          sizes="(max-width: 1024px) 100vw, 45vw"
+          className="w-full rounded-xl border border-slate-200 shadow-brand-md"
         />
+      </m.div>
+      {shots[1] && (
+        <m.div
+          variants={PASO_CAPTURA}
+          className="absolute bottom-0 right-0 z-10 w-[52%]"
+        >
+          <AssetSlot
+            asset={shots[1]}
+            sizes="(max-width: 1024px) 55vw, 25vw"
+            className="w-full rounded-xl border border-slate-200 shadow-brand-lg"
+          />
+        </m.div>
       )}
     </div>
   );
 }
 
-function TabComposite({ tab }: { tab: TabDef }) {
+function TabComposite({ tab, reducido }: { tab: TabDef; reducido: boolean }) {
   // Comité reusa el layout desktop del Admin (primario + secundario).
-  if (tab.key === "admin" || tab.key === "comite") return <AdminComposite shots={tab.shots} />;
-  if (tab.key === "residente") return <ResidenteComposite shots={tab.shots} />;
-  return <PorteriaComposite shots={tab.shots} />;
+  const composite =
+    tab.key === "admin" || tab.key === "comite" ? (
+      <AdminComposite shots={tab.shots} />
+    ) : tab.key === "residente" ? (
+      <ResidenteComposite shots={tab.shots} />
+    ) : (
+      <PorteriaComposite shots={tab.shots} />
+    );
+
+  return <Capturas reducido={reducido}>{composite}</Capturas>;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -522,7 +621,12 @@ export function Perspectives() {
                   onMouseEnter={() => precalentar(t.key)}
                   onFocus={() => precalentar(t.key)}
                   className={cn(
-                    "relative isolate inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors duration-fast",
+                    // `transition-colors` no incluye transform, asi que la pastilla no acusaba
+                    // la pulsacion. El 0.97 y los 150 ms salen de la referencia: alli el
+                    // transform vive en 150 ms y solo se usa para responder, nunca para revelar.
+                    "relative isolate inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium",
+                    "transition-[color,background-color,transform] duration-fast ease-out-brand",
+                    "active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100",
                     "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                     isActive
                       ? HEADLINE_COLOR[t.key]
@@ -548,17 +652,37 @@ export function Perspectives() {
           </div>
 
           {/* Panel */}
-          <div className="relative mt-xl">
-            <AnimatePresence mode="wait" initial={false}>
+          {/* Rejilla de UNA celda: los dos paneles ocupan la misma y se apilan,
+              que es lo que permite el fundido sin que el layout salte. */}
+          <div className="relative mt-xl grid">
+            {/*
+              FUNDIDO CRUZADO, no `mode="wait"`.
+
+              Con `mode="wait"` AnimatePresence espera a que el panel saliente
+              termine su animación ANTES de montar el entrante: 0,2 s de salida
+              más 0,2 s de entrada, y a mitad de camino **no hay nada en
+              pantalla**. Ese hueco vacío es el «pantallazo» que se notaba al
+              cambiar de pestaña. No era que la transición fuese fea; era un
+              parpadeo en blanco en medio.
+
+              Sin `mode`, los dos paneles conviven durante la transición. El
+              saliente se saca del flujo con `position:absolute` para que no
+              empuje el layout mientras se va.
+
+              El desenfoque por fin sirve para algo: fundir dos estados que se
+              solapan. Con `wait` no había nada con lo que fundirse.
+            */}
+            <AnimatePresence initial={false}>
               <m.div
                 key={active.key}
                 id={`perspectives-panel-${active.key}`}
                 role="tabpanel"
                 aria-labelledby={`perspectives-tab-${active.key}`}
-                initial={reduced ? false : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
-                transition={{ duration: reduced ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
+                initial={reduced ? false : { opacity: 0, filter: "blur(3px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                exit={reduced ? { opacity: 0 } : { opacity: 0, filter: "blur(3px)" }}
+                transition={{ duration: reduced ? 0 : 0.28, ease: [0.23, 1, 0.32, 1] }}
+                style={{ gridArea: "1 / 1" }}
                 className="grid items-center gap-xl lg:grid-cols-[minmax(0,42%)_minmax(0,58%)] lg:gap-xxl"
               >
                 {/*
@@ -571,30 +695,46 @@ export function Perspectives() {
                   propósito: la numeración no decora, es la secuencia real del
                   mes y el lector la sigue como tal.
                 */}
-                <div>
+                {/*
+                  El contenido entra ESCALONADO, no en bloque.
+
+                  Antes el panel era una losa: los cuatro bloques aparecían a la
+                  vez. Con 45 ms entre uno y otro se lee como que la información
+                  llega, no como que la pantalla se sustituye. Es el mismo
+                  escalonado que usa el resto de la página (`revelado.ts`), así
+                  que no introduce un gesto nuevo.
+                */}
+                <m.div
+                  initial={reduced ? false : "oculto"}
+                  animate="visible"
+                  variants={{ visible: { transition: { staggerChildren: reduced ? 0 : 0.045, delayChildren: reduced ? 0 : 0.06 } } }}
+                >
                   {/* El color del perfil se muda aquí y a los números: sobre el
                       fondo oscuro ya no puede vivir en el titular. */}
-                  <p
+                  <m.p
+                    variants={PASO}
                     className={cn(
                       "text-xs font-semibold uppercase tracking-[0.14em]",
                       FONDOS[active.key].acento,
                     )}
                   >
                     Hoy
-                  </p>
-                  <p className="mt-1 text-lg italic leading-snug text-white/75 text-balance">
+                  </m.p>
+                  <m.p
+                    variants={PASO}
+                    className="mt-1 text-lg italic leading-snug text-white/75 text-balance"
+                  >
                     “{active.problem}”
-                  </p>
+                  </m.p>
 
-                  <h3
-                    className={cn(
-                      "mt-lg font-display text-h2 text-balance text-white",
-                    )}
+                  <m.h3
+                    variants={PASO}
+                    className="mt-lg font-display text-h2 text-balance text-white"
                   >
                     {active.headline}
-                  </h3>
+                  </m.h3>
 
-                  <ol className="mt-md space-y-4">
+                  <m.ol variants={PASO} className="mt-md space-y-4">
                     {active.steps.map((paso, i) => (
                       <li key={paso} className="flex gap-3">
                         <span
@@ -612,8 +752,8 @@ export function Perspectives() {
                         </span>
                       </li>
                     ))}
-                  </ol>
-                </div>
+                  </m.ol>
+                </m.div>
 
                 {/*
                   Composite. Se ensancha y se sale por el borde derecho, como
@@ -627,7 +767,7 @@ export function Perspectives() {
                   layout sigue siendo honesto y solo sobra lo que se recorta.
                 */}
                 <div className="flex justify-center lg:-mr-16 lg:justify-start xl:-mr-32">
-                  <TabComposite tab={active} />
+                  <TabComposite tab={active} reducido={reduced} />
                 </div>
               </m.div>
             </AnimatePresence>

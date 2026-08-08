@@ -7,6 +7,7 @@ import { Button } from "@/components/marketing/ui/button";
 import { Input } from "@/components/marketing/ui/input";
 import { Label } from "@/components/marketing/ui/label";
 import { track } from "@/lib/marketing/analytics";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Demo lead-capture wizard.
@@ -152,9 +153,18 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
         {/* Backdrop */}
         <Dialog.Backdrop className="fixed inset-0 z-[100] bg-black/60 duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
 
-        {/* Popup — sizing via inline style to bypass base-ui style overrides */}
+        {/* Popup — sizing via inline style to bypass base-ui style overrides.
+            `marketing-theme` no es decorativo: este popup se monta en un PORTAL,
+            colgando de <body>, FUERA del <div class="marketing-theme"> que
+            envuelve la página, y los tokens de shadcn están declarados solo
+            dentro de ese ámbito. El panel se salvaba por usar `bg-white`
+            literal, pero sus hijos no: `border-input` se quedaba sin valor y los
+            campos salían con borde NEGRO —el `currentColor` de reserva— en vez
+            de gris claro, y el primario «Continuar» perdía `bg-primary` y se
+            veía como un contorno en lugar del azul de marca.
+            Mismo fallo que tenían `ui/sheet.tsx` y `ui/dialog.tsx`. */}
         <Dialog.Popup
-          className="fixed z-[100] rounded-xl bg-white shadow-2xl outline-none duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          className="marketing-theme fixed z-[100] rounded-xl bg-white shadow-2xl outline-none duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
           style={{
             top: "50%",
             left: "50%",
@@ -248,7 +258,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
 
                 <Button type="submit" size="lg" className="mt-2 w-full">
                   Continuar{" "}
-                  <span aria-hidden="true" className="ml-0.5">→</span>
+                  <Flecha />
                 </Button>
               </form>
             </>
@@ -384,7 +394,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
                   >
                     {loading ? "Enviando…" : "Enviar"}
                     {!loading && (
-                      <span aria-hidden="true" className="ml-0.5">→</span>
+                      <Flecha />
                     )}
                   </Button>
                 </div>

@@ -14,6 +14,7 @@ import { TrustOnboarding } from '@/components/marketing/TrustOnboarding';
 // import { Pilot } from '@/components/marketing/Pilot';
 import { FAQ } from '@/components/marketing/FAQ';
 import { FinalCTA } from '@/components/marketing/FinalCTA';
+import { MarquesinaModulos } from '@/components/marketing/MarquesinaModulos';
 
 /**
  * Marketing home — grupovivaru.com /
@@ -39,6 +40,7 @@ export default function Home() {
         <ImpactBand />
         <Pain />
         <Solution />
+        <MarquesinaModulos />
         <PerspectivesLazy />
         <CasosDeUso />
         <MultiConjunto />
