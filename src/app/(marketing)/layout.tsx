@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PostHogProvider } from '@/components/marketing/providers/PostHogProvider';
+import { AnalyticsProvider } from '@/components/marketing/providers/AnalyticsProvider';
 import { CookieBannerLoader } from '@/components/marketing/CookieBannerLoader';
 
 export const metadata: Metadata = {
@@ -33,11 +33,11 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <PostHogProvider>
+    <AnalyticsProvider>
       <div className="marketing-theme">
         {children}
         <CookieBannerLoader />
       </div>
-    </PostHogProvider>
+    </AnalyticsProvider>
   );
 }
