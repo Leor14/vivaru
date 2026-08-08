@@ -190,7 +190,10 @@ describe("animaciones del landing", () => {
     // Antes el mismo gesto tenía cuatro duraciones (250, 400, 280 ms y sueltos)
     // y tres desplazamientos (16, 12 y 4 px), porque se fue copiando de sección
     // en sección. Las que ya migraron no deben volver a declararlo a mano.
-    for (const a of ["Solution.tsx", "CasosDeUso.tsx", "TrustOnboarding.tsx"]) {
+    for (const a of [
+      "Solution.tsx", "CasosDeUso.tsx", "TrustOnboarding.tsx",
+      "Pain.tsx", "ImpactBand.tsx", "Differentiators.tsx", "MultiConjunto.tsx",
+    ]) {
       expect(marketing(a)).toMatch(/useRevelado/);
       expect(marketing(a)).not.toMatch(/transitionDelay:.*inView\s*\?/);
     }

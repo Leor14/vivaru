@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AssetSlot } from "@/components/marketing/ui/asset-slot";
-import { useInView } from "@/lib/marketing/hooks";
+import { useRevelado } from "@/lib/marketing/revelado";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -94,18 +94,16 @@ export function MultiConjunto() {
  * del conjunto, que es lo que sostiene el titular mientras el vídeo carga.
  */
 function ConjuntoStack() {
-  const [ref, inView] = useInView<HTMLDivElement>(0.25);
+  const { ref, revelado } = useRevelado<HTMLDivElement>(0, 0.25);
 
   return (
     <div
       ref={ref}
       className={cn(
         "overflow-hidden rounded-2xl border border-slate-200 shadow-brand-lg",
-        "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
-        inView
-          ? "translate-y-0 opacity-100"
-          : "translate-y-4 opacity-0 motion-reduce:translate-y-0",
+        revelado.className,
       )}
+      style={revelado.style}
     >
       <AssetSlot
         asset={{

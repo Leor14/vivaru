@@ -228,12 +228,41 @@ Medido:
     por defecto              se mueve · para al hover (paused) · no desborda
     movimiento reducido      sin cinta · rejilla estática de 16 módulos
 
-### F · Contadores del `ImpactBand`
+### F · Contadores  ·  **descartado — no hay cifras que contar**
 
-Que las cifras suban desde 0 al entrar en pantalla, 600 ms, `ease-out`. Se
-anima con `requestAnimationFrame` sobre el texto, no con transición CSS.
+Este incremento se propuso desde un recuerdo desactualizado de la sección.
+`ImpactBand` **ya no tiene cifras**: la banda de porcentajes se retiró durante el
+rediseño y el propio componente explica por qué — no tenían fuente, y «una cifra
+que no se puede defender resta más credibilidad de la que suma».
 
-**Con `prefers-reduced-motion` la cifra final aparece directamente**, nunca en 0.
+Revisado el landing entero, **no queda ninguna cifra mostrada como dato**. Todos
+los números viven dentro de una frase («Lanzas la cuota del mes a las 120
+unidades…»), y animar un número dentro de un párrafo recompone el texto: se lee
+como un fallo, no como un efecto.
+
+Inventarle un sitio a un contador habría sido añadir movimiento porque tocaba.
+
+**En su lugar se terminó lo que faltaba de A.** Quedaban cinco secciones con su
+propio revelado, que era precisamente lo que A venía a resolver:
+
+| Sección | Tenía | Ahora |
+|---|---|---|
+| `Pain` | 400 ms, y revelaba **creciendo** desde `scale-[0.95]` | helper |
+| `ImpactBand` | 250 ms, solo opacidad | helper |
+| `Differentiators` | 250 ms, solo opacidad | helper |
+| `MultiConjunto` | 400 ms, `translate-y-4`, sin escalonado | helper |
+
+`Pain` era el caso más llamativo: **era el único gesto de entrada distinto de
+toda la página** — las demás suben y esa crecía.
+
+`FinalCTA`, `ProductGlimpse` y `Pricing` se dejan como están: usan `useInView`
+para disparar analítica o activar el tecleo, no para revelar.
+
+Medido en las siete secciones que revelan:
+
+    todas          dur 0.42s · delays 0s · 0,06s · 0,12s · 0,18s
+
+Antes: cuatro duraciones distintas, tres desplazamientos y dos gestos.
 
 ---
 
@@ -279,4 +308,4 @@ El contraste del rediseño se midió, no se miró. Aquí igual:
 | C | Pastilla de hover | **hecho** (solo TrustOnboarding) |
 | D | Flecha que empuja | **hecho** |
 | E | Marquesina de módulos | **hecho** |
-| F | Contadores | pendiente |
+| F | Contadores | **descartado** — no hay cifras; se cerró A en su lugar |

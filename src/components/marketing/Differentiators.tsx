@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AssetSlot, type AssetDef } from "@/components/marketing/ui/asset-slot";
-import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { useRevelado } from "@/lib/marketing/revelado";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -145,10 +145,8 @@ export function Differentiators() {
 }
 
 function DiffCard({ item, index }: { item: Differentiator; index: number }) {
-  const reduced = useReducedMotion();
-  const [ref, inView] = useInView<HTMLLIElement>(0.2);
+  const { ref, revelado } = useRevelado<HTMLLIElement>(index, 0.2);
   const [abierta, setAbierta] = React.useState(false);
-  const delayMs = reduced ? 0 : index * 80;
 
   return (
     <li
@@ -159,10 +157,9 @@ function DiffCard({ item, index }: { item: Differentiator; index: number }) {
         // rejilla ancha, así que en móvil y tablet mandan las proporciones.
         "aspect-[4/3] sm:aspect-square lg:aspect-auto",
         item.span,
-        "transition-opacity duration-base ease-out-brand motion-reduce:transition-none",
-        inView ? "opacity-100" : "opacity-0",
+        revelado.className,
       )}
-      style={{ transitionDelay: `${delayMs}ms` }}
+      style={revelado.style}
     >
       <button
         type="button"

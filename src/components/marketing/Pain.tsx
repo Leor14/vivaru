@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/marketing/ui/button";
 import { track } from "@/lib/marketing/analytics";
-import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { useRevelado } from "@/lib/marketing/revelado";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -94,22 +94,20 @@ export function Pain() {
 }
 
 function PainCard({ pain, index }: { pain: Pain; index: number }) {
-  const reduced = useReducedMotion();
-  const [ref, inView] = useInView<HTMLLIElement>(0.25);
-  const delayMs = reduced ? 0 : index * 80;
+  const { ref, revelado } = useRevelado<HTMLLIElement>(index, 0.25);
   const { Icon } = pain;
 
   return (
     <li
       ref={ref}
+      // Revelaba creciendo desde `scale-[0.95]`, no subiendo. Era el único gesto
+      // de entrada distinto de la página, y unificarlo es el objeto del helper:
+      // unas secciones que suben y otras que crecen se leen inconsistentes.
       className={cn(
         "flex gap-md rounded-xl border border-border bg-background p-lg shadow-brand-sm",
-        "transition-[opacity,transform] duration-slow ease-out-brand motion-reduce:transition-none",
-        inView
-          ? "opacity-100 scale-100"
-          : "opacity-0 scale-[0.95] motion-reduce:scale-100",
+        revelado.className,
       )}
-      style={{ transitionDelay: `${delayMs}ms` }}
+      style={revelado.style}
     >
       <div
         className={cn(
