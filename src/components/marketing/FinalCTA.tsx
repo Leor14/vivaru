@@ -136,7 +136,7 @@ export function FinalCTA() {
             el ambiente de pruebas enseña «Recaudado $0» en todas partes.
             Recortada a la tarjeta; no hay ningún nombre de residente.
           */}
-          <div className="lg:-mr-16 xl:-mr-32">
+          <div className="desvelar overflow-clip lg:-mr-16 xl:-mr-32">
             <AssetSlot
               asset={{
                 alt: "Comportamiento histórico de cartera: cobrado, recaudado, brecha y 87,3 % de recaudo",

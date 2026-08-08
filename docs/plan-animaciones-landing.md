@@ -309,3 +309,114 @@ El contraste del rediseño se midió, no se miró. Aquí igual:
 | D | Flecha que empuja | **hecho** |
 | E | Marquesina de módulos | **hecho** |
 | F | Contadores | **descartado** — no hay cifras; se cerró A en su lugar |
+
+---
+
+## 7 · Movimiento ligado al scroll (bloque G)
+
+### El diagnóstico, medido
+
+**Lo único ligado al scroll en todo el landing es el `Topbar`**: `scrollY > 20`
+encoge la píldora. Nada más.
+
+Los siete revelados y las cinco micro-interacciones de A–E son **binarios**:
+entran en vista, animan una vez, y se acabó. Nada se mueve en función de *dónde
+está* el lector. Por eso la página puede sentirse quieta aunque tenga doce
+animaciones: falta continuidad, no cantidad.
+
+Y las secciones se tocan con **cantos duros** — blanco, `slate-50`, la banda
+oscura de Perspectivas, el degradado del cierre—, sin nada que las cosa.
+
+### La herramienta
+
+`emil-design-eng` cubre gestos y micro-interacciones, y de ahí salieron A–E.
+Para esto aporta dos cosas y no la tercera:
+
+| De la skill | Sirve para |
+|---|---|
+| Revelado con `clip-path: inset(0 0 100% 0) → inset(0 0 0 0)` | desvelar una imagen en vez de deslizarla |
+| «CSS gana a JS bajo carga» — las animaciones CSS corren fuera del hilo principal | cualquier cosa ligada al scroll |
+| — | no cubre movimiento continuo ligado a la posición |
+
+Eso último lo resuelve CSS nativo: **`animation-timeline: view()`**. Sin
+librería, fuera del hilo principal, y con `@supports` degrada sola — donde no
+exista, la página queda exactamente como hoy.
+
+Comprobado en el Chromium del proyecto: `animation-timeline: view()`,
+`scroll()` y `animation-range` los soporta.
+
+### Los candidatos
+
+**G1 · Paralaje del fondo de Perspectivas.** Las cuatro fotos se mueven más
+despacio que la página. Convierte la banda oscura en una capa con profundidad en
+vez de un bloque pegado. Es el más visible y el más barato: son cuatro líneas de
+CSS sobre un elemento que ya existe.
+
+**G2 · Revelado por `clip-path` en las imágenes grandes.** Cambiar el
+fade+subida por un desvelado de abajo arriba en el vídeo del recorrido, la
+gráfica del cierre y las fotos de Diferenciadores. Es un gesto **distinto** al
+de las tarjetas, y esa diferencia es la que separa «una imagen que aparece» de
+«una imagen que se descubre».
+
+**G3 · Barra de progreso de lectura** en el `Topbar`, ligada a `scroll()`. Es
+literalmente movimiento continuo, cuesta cuatro líneas y además informa.
+
+**G4 · Titular fijo mientras pasan las tarjetas** en `CasosDeUso` o
+`Differentiators`. El efecto «entre secciones» más fuerte, y el más caro: cambia
+la estructura de la sección y hay que rehacer el comportamiento en móvil.
+
+**G5 · Coser los cantos entre secciones.** Que el fondo de la siguiente sección
+suba al entrar. Suena bien y suele salir mal: en cuanto hay dos secciones
+seguidas del mismo color, el efecto no se lee y solo queda el coste.
+
+### Estado del bloque G
+
+| Inc | Qué | Estado |
+|---|---|---|
+| G1 | Paralaje del fondo de Perspectivas | **hecho** — de −28 px a +73 px, continuo |
+| G2 | Desvelado por `clip-path` | **hecho** — vídeo, gráfica del cierre y foto del vistazo |
+| G3 | Barra de progreso de lectura | **hecho** — 0 → 720 → 1440 px, exacto |
+| G4 | Titular fijo en `CasosDeUso` | **hecho** — solo desde `lg` |
+| G5 | Coser los cantos entre secciones | **probado y revertido** |
+
+**G5 se construyó y se tiró.** El difuminado del canto superior de la banda
+oscura se lee como un borrón, no como una decisión: parece que la imagen no
+cargó bien arriba. El canto duro era limpio y deliberado — y es lo que hace la
+referencia. Queda la captura como prueba de que se intentó.
+
+### Tres trampas que costaron tiempo
+
+**1. `overflow-hidden` mata `view()`.** El paralaje no se movía: el envoltorio
+de los fondos llevaba `overflow-hidden`, que crea un contenedor de
+desplazamiento, y `animation-timeline: view()` resuelve contra el scrollport más
+cercano — que nunca se desplaza. `overflow-clip` recorta igual sin crearlo. Es
+la misma trampa que tuvo el sticky del header con `body`.
+
+**2. `scale-x-0` multiplica al keyframe.** La barra de progreso medía
+perfectamente en el `transform` —0 → 0,5 → 1— y era **invisible**: la utilidad
+de Tailwind escribe la propiedad independiente `scale`, que se compone con el
+`transform` de la animación. `scale: 0 1` por `scaleX(0,5)` sigue siendo cero.
+Ancho real medido: 0 px en todas las posiciones.
+
+**3. Una regla en `globals.css` cae dentro de un `@layer`.** El segundo intento
+—declarar el reposo como `.progreso-lectura { transform: scaleX(0) }`— lo perdía
+el orden de capas de Tailwind. El reposo acabó en estilo **en línea**, que no
+depende del orden: por especificación las animaciones CSS mandan sobre él.
+
+### Recomendación original
+
+**G1 y G3 primero** — juntos son media hora y cambian la sensación de la página,
+porque introducen lo único que hoy no existe: movimiento continuo. **G2 después**,
+que es el que más sube el nivel percibido. **G4 solo si G1–G3 se quedan cortos**,
+y **G5 no**, salvo que aparezca un motivo mejor que «queda bonito».
+
+### Las reglas, que aquí importan más
+
+1. **Nada de mover el contenido que se está leyendo.** El paralaje va en fondos
+   y en imágenes, nunca en párrafos.
+2. **`@supports (animation-timeline: view())`** obligatorio. Sin soporte, sin
+   animación — no hay estado intermedio roto.
+3. **`prefers-reduced-motion` desactiva todo el bloque G.** El movimiento ligado
+   al scroll es justo el que provoca mareo.
+4. **Se mide con la traza de rendimiento.** Cualquier cosa que baje de 55 fps al
+   desplazar se revierte, sin discusión.

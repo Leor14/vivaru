@@ -917,6 +917,88 @@ h3 {
 /* La cinta lleva el contenido DUPLICADO, así que recorrer el -50% deja la
    segunda copia exactamente donde estaba la primera y el bucle no tiene
    costura. Con un contenido sin duplicar habría un salto visible por vuelta. */
+/* ── Paralaje ligado al scroll ──────────────────────────────────────────────
+ *
+ * El fondo recorre menos que la página, así que se lee como una capa detrás y
+ * no como un bloque pegado. Es lo único del landing que se mueve en función de
+ * DÓNDE está el lector; todo lo demás entra en vista, anima una vez y se acaba.
+ *
+ * Dos puertas, y ninguna es opcional:
+ *
+ *  - `@supports`: donde no exista `animation-timeline` no pasa nada. No hay
+ *    estado intermedio roto, la página queda como estaba.
+ *  - `prefers-reduced-motion`: el movimiento ligado al scroll es justo el que
+ *    provoca mareo. Aquí no se atenúa, se apaga.
+ *
+ * La imagen tiene que ser MÁS ALTA que su contenedor (130 %) o al desplazarse
+ * asomaría el borde. Con ±8 % de su propia altura recorre un 10,4 % del
+ * contenedor, dentro del 30 % de margen. */
+/* ── Desvelado por recorte ──────────────────────────────────────────────────
+ *
+ * Gesto DISTINTO al de las tarjetas, y ahí está la gracia: las tarjetas suben y
+ * aparecen; una imagen grande se descubre de abajo arriba, como si se levantara
+ * una cortina. Usar el mismo gesto para las dos aplana la página.
+ *
+ * `clip-path` no pasa por layout: recorta en composición, igual que `opacity`.
+ * Animar `height` para conseguir esto sería el error clásico.
+ *
+ * Va con `view()` y no con un observador: así el desvelado sigue al scroll en
+ * vez de dispararse una vez. `entry 10% cover 45%` lo completa antes de que la
+ * imagen llegue al centro — si terminara al final, el lector la vería a medio
+ * descubrir todo el rato y se leería como un fallo de carga. */
+@keyframes desvelar {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .desvelar {
+      animation: desvelar linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 45%;
+    }
+  }
+}
+
+@keyframes paralaje {
+  from { transform: translateY(-8%); }
+  to   { transform: translateY(8%); }
+}
+
+/* ── Progreso de lectura ────────────────────────────────────────────────────
+ *
+ * Ligado a `scroll()`, o sea al desplazamiento del documento entero, no a la
+ * visibilidad de un elemento como el paralaje.
+ *
+ * Se anima `scale-x` y NO `width`: el ancho pasa por layout en cada fotograma
+ * y en una barra que se actualiza con el scroll eso se nota. La escala es
+ * composición pura. `transform-origin: left` para que crezca desde la
+ * izquierda y no desde el centro. */
+@keyframes progreso-lectura {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .progreso-lectura {
+      animation: progreso-lectura linear both;
+      animation-timeline: scroll();
+    }
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .paralaje {
+      animation: paralaje linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+}
+
 @keyframes marquesina {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }

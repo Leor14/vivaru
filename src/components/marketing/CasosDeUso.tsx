@@ -123,21 +123,35 @@ export function CasosDeUso() {
       aria-labelledby="casos-heading"
       className="container scroll-mt-24 py-xxl"
     >
-      <h2
-        id="casos-heading"
-        className="max-w-3xl font-display text-h2 text-navy text-balance"
-      >
-        Así se ve un mes con Vivaru
-      </h2>
-      <p className="mt-md max-w-2xl text-base leading-relaxed text-slate-600">
-        De la promesa al día a día: un caso real por perfil.
-      </p>
+      {/*
+        Titular fijo mientras pasan los casos — plan de animaciones, inc G4.
 
-      <ul role="list" className="mt-xl grid gap-lg sm:grid-cols-2">
-        {CASOS.map((c, i) => (
-          <CasoCard key={c.key} caso={c} index={i} />
-        ))}
-      </ul>
+        Solo desde `lg`. En pantallas estrechas el titular ocuparía media
+        pantalla mientras se lee, que es peor que no fijarlo: `sticky` sin
+        espacio de sobra estorba en vez de orientar.
+
+        `top-28` deja hueco al header, que también es `sticky`. Con `top-0` se
+        montarían uno sobre otro.
+      */}
+      <div className="grid gap-xl lg:grid-cols-[minmax(0,30%)_minmax(0,70%)] lg:gap-xxl">
+        <div className="lg:sticky lg:top-28 lg:self-start">
+          <h2
+            id="casos-heading"
+            className="font-display text-h2 text-navy text-balance"
+          >
+            Así se ve un mes con Vivaru
+          </h2>
+          <p className="mt-md text-base leading-relaxed text-slate-600">
+            De la promesa al día a día: un caso real por perfil.
+          </p>
+        </div>
+
+        <ul role="list" className="grid gap-lg sm:grid-cols-2">
+          {CASOS.map((c, i) => (
+            <CasoCard key={c.key} caso={c} index={i} />
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

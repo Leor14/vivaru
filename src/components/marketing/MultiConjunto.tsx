@@ -100,7 +100,10 @@ function ConjuntoStack() {
     <div
       ref={ref}
       className={cn(
-        "overflow-hidden rounded-2xl border border-slate-200 shadow-brand-lg",
+        // `overflow-clip` y no `hidden`: `hidden` crea un contenedor de
+        // desplazamiento y `animation-timeline: view()` resolvería contra él,
+        // que nunca se desplaza. Misma trampa que el sticky del header.
+        "desvelar overflow-clip rounded-2xl border border-slate-200 shadow-brand-lg",
         revelado.className,
       )}
       style={revelado.style}

@@ -281,7 +281,12 @@ function degradadoAlto(f: FondoDef) {
  */
 function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> }) {
   return (
-    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden">
+    // `overflow-clip` y NO `overflow-hidden`. `hidden` crea un contenedor de
+    // desplazamiento, y `animation-timeline: view()` resuelve contra el
+    // scrollport MÁS CERCANO: con `hidden` el progreso se queda clavado porque
+    // ese contenedor nunca se desplaza. `clip` recorta igual sin crearlo.
+    // Es la misma trampa que tuvo el sticky del header con `body`.
+    <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-clip">
       {(Object.keys(FONDOS) as TabKey[]).map((k) => {
         const f = FONDOS[k];
         const visible = k === activo;
@@ -303,7 +308,9 @@ function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> })
               <img
                 src={f.src}
                 alt=""
-                className="h-full w-full object-cover"
+                // 130 % de alto y desplazada hacia arriba: el paralaje mueve la
+                // imagen dentro de ese margen, y sin él asomaría el borde.
+                className="paralaje absolute -top-[15%] left-0 h-[130%] w-full object-cover"
                 style={{ opacity: f.opacidad }}
                 decoding="async"
                 fetchPriority={visible ? "auto" : "low"}
