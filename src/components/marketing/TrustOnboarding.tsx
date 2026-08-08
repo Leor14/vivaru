@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AssetSlot, type AssetDef } from "@/components/marketing/ui/asset-slot";
-import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { useRevelado } from "@/lib/marketing/revelado";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -99,19 +99,13 @@ const ITEMS: Item[] = [
 ];
 
 function TrustCard({ item, index }: { item: Item; index: number }) {
-  const reduced = useReducedMotion();
-  const [ref, inView] = useInView<HTMLLIElement>(0.05);
-  const delayMs = reduced ? 0 : index * 60;
+  const { ref, revelado } = useRevelado<HTMLLIElement>(index, 0.05);
 
   return (
     <li
       ref={ref}
-      className={cn(
-        "flex flex-col gap-sm",
-        "transition-[opacity,transform] duration-[280ms] ease-out motion-reduce:transition-none",
-        inView ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
-      )}
-      style={{ transitionDelay: reduced || inView ? "0ms" : `${delayMs}ms` }}
+      className={cn("flex flex-col gap-sm", revelado.className)}
+      style={revelado.style}
     >
       <AssetSlot
         asset={item.shot}

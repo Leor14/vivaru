@@ -169,3 +169,30 @@ describe("fondos por perfil de «Una plataforma, cuatro experiencias»", () => {
     for (const a of acentos) expect(a).toMatch(/light/);
   });
 });
+
+describe("animaciones del landing", () => {
+  it("ningún componente de marketing anima propiedades de layout", () => {
+    // `height`, `width`, `margin` y `padding` pasan por layout y pintado en
+    // CADA fotograma. Es la regla que más se rompe sin querer —basta un
+    // `transition-all` de más— y no la detecta el typecheck ni se nota en una
+    // máquina rápida.
+    const prohibidas = /transition-\[[^\]]*(height|width|margin|padding)/;
+    for (const a of [
+      "Hero.tsx", "Pain.tsx", "Solution.tsx", "CasosDeUso.tsx",
+      "MultiConjunto.tsx", "Differentiators.tsx", "TrustOnboarding.tsx",
+      "ImpactBand.tsx", "FinalCTA.tsx", "Perspectives.tsx",
+    ]) {
+      expect(marketing(a)).not.toMatch(prohibidas);
+    }
+  });
+
+  it("el revelado vive en un solo sitio, no copiado por sección", () => {
+    // Antes el mismo gesto tenía cuatro duraciones (250, 400, 280 ms y sueltos)
+    // y tres desplazamientos (16, 12 y 4 px), porque se fue copiando de sección
+    // en sección. Las que ya migraron no deben volver a declararlo a mano.
+    for (const a of ["Solution.tsx", "CasosDeUso.tsx", "TrustOnboarding.tsx"]) {
+      expect(marketing(a)).toMatch(/useRevelado/);
+      expect(marketing(a)).not.toMatch(/transitionDelay:.*inView\s*\?/);
+    }
+  });
+});

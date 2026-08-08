@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
+import { useRevelado } from "@/lib/marketing/revelado";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -83,22 +83,27 @@ function StepBlock({ label, text, dot }: { label: string; text: string; dot: str
   );
 }
 
+/**
+ * Dos capas a propósito: el `<li>` revela y el `<article>` reacciona al hover.
+ *
+ * Antes era un solo elemento, y ahí el escalonado y el hover se peleaban por el
+ * mismo `transition-delay`: con 240 ms de retraso el hover llegaba tarde, así
+ * que se ponía a cero al entrar en vista —y eso mataba el escalonado, porque la
+ * transición usa los parámetros vigentes DESPUÉS del cambio—. Separadas, cada
+ * una tiene su propio retraso y las dos funcionan.
+ */
 function CasoCard({ caso, index }: { caso: Caso; index: number }) {
-  const reduced = useReducedMotion();
-  const [ref, inView] = useInView<HTMLLIElement>(0.05);
-  const delayMs = reduced ? 0 : index * 60;
+  const { ref, revelado } = useRevelado<HTMLLIElement>(index, 0.05);
 
   return (
-    <li
-      ref={ref}
+    <li ref={ref} className={cn("flex", revelado.className)} style={revelado.style}>
+    <article
       className={cn(
-        "flex flex-col gap-4 rounded-2xl border border-border bg-background p-lg shadow-brand-sm",
-        "transition-[opacity,transform,box-shadow] duration-[280ms] ease-out motion-reduce:transition-none",
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
+        "flex w-full flex-col gap-4 rounded-2xl border border-border bg-background p-lg shadow-brand-sm",
+        "transition-[transform,box-shadow] duration-fast ease-out-brand motion-reduce:transition-none",
         "[@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-1",
         "[@media(hover:hover)_and_(pointer:fine)]:hover:shadow-brand-lg",
       )}
-      style={{ transitionDelay: reduced || inView ? "0ms" : `${delayMs}ms` }}
     >
       <p className={`text-sm font-semibold uppercase tracking-[0.12em] ${caso.labelColor}`}>
         {caso.label}
@@ -106,6 +111,7 @@ function CasoCard({ caso, index }: { caso: Caso; index: number }) {
       <StepBlock label="Situación" text={caso.situation} dot={caso.dot} />
       <StepBlock label="Con Vivaru" text={caso.withVivaru} dot={caso.dot} />
       <StepBlock label="Resultado" text={caso.result} dot={caso.dot} />
+    </article>
     </li>
   );
 }
