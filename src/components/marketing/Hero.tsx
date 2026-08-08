@@ -99,7 +99,13 @@ export function Hero({ variant = "inst" }: HeroProps) {
 
           <p
             className={cn(
-              "mt-lg max-w-xl text-lg leading-relaxed text-slate-600",
+              // slate-700 y no slate-600. El fondo animado del hero obliga: el suelo de
+              // luminancia que puede alcanzar el fondo bajo el texto depende del color
+              // del subtitulo, y a 4,5:1 slate-600 lo deja en 0,574 mientras slate-700
+              // lo baja a 0,406. Esos 0,17 son la diferencia entre un fondo que se ve
+              // moverse y uno que se lee quieto. A 18 px sobre casi blanco, slate-600
+              // ademas iba justo de peso. Ver la nota de FondoHero.tsx.
+              "mt-lg max-w-xl text-lg leading-relaxed text-slate-700",
               fadeBase,
               shown ? fadeIn : fadeIdle,
             )}

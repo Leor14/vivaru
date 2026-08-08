@@ -53,45 +53,56 @@ export function FondoHero({ className }: { className?: string }) {
 
         /* ---- Base = móvil (<1024 px). Al no haber hueco libre entre texto
                 (8–65 %) y dashboard (69–96 %), el color entra DENTRO del texto. ---- */
-        /* ── Por qué el color vive en los BORDES ──────────────────────────────
-           Tres rondas de diseño produjeron un fondo que se leía quieto y sin
-           color. El diagnóstico, medido:
+        /* ── Por qué el color vive en los BORDES, y de qué depende ───────────
+           Cuatro rondas produjeron un fondo que se leía quieto y sin color. El
+           diagnóstico final, medido:
 
-           1. Los ciclos eran de 19–33 s con alternate, o sea hasta 66 s de ida
-              y vuelta: unos 5 px/s. Imperceptible. Y la velocidad NO cuesta
-              contraste, así que no había razón para ser conservador ahí.
+           1. VELOCIDAD. Los ciclos eran de 19–33 s con alternate: hasta 66 s de
+              ida y vuelta, unos 5 px/s. Imperceptible. Ahora 8–15 s. La
+              velocidad NO cuesta contraste, así que no había razón para ser
+              conservador ahí.
 
-           2. Los picos de los lóbulos nacían casi blancos. #A8B4F5 al 24 %
-              sobre #F4F7FB da #E2E7FA, que apenas se distingue de la base.
+           2. PERCEPCIÓN. Un degradado difuso que se desplaza no tiene bordes
+              que seguir: la vista necesita un rasgo al que agarrarse. Por eso
+              cada lóbulo lleva una meseta (parada intermedia al 26 %) y luego
+              cae rápido, en vez de desvanecerse de forma uniforme. Eso le da
+              una forma reconocible sin producir un canto duro.
 
-           La referencia (stacker.ai) resuelve esto poniendo el color saturado
-           en los CUATRO BORDES y dejando el centro brillante. Los bordes no
-           tienen restricción de contraste —el texto empieza en el 8 %—, así que
-           ahí la saturación puede subir sin tocar la legibilidad. Lo que cruza
-           la zona del texto es solo la cola desvanecida de cada lóbulo.
+           3. PALETA. Se estaban usando las variantes CLARAS —#A8B4F5, #C4A0F0,
+              #6FD79B—, que aunque vayan al 100 % siguen siendo pasteles. Ahora
+              son los colores de marca: #4B5FD4, #9B59B6, #059669, #0891B2.
 
-           TRAMPA, y costó encontrarla: colocar los picos fuera del área útil no
+           EL MURO, y por qué esto depende de un color de texto. En escritorio
+           el texto ocupa x 8–48 % y y 12–87 %: solo hay un 8 % de margen, así
+           que el borde izquierdo ES la zona del texto. «Color en los bordes» y
+           «contraste bajo el texto» son la misma superficie, y por eso cada
+           subida de uno tumbaba al otro.
+
+           Lo desbloqueó bajar el subtítulo de slate-600 a slate-700, que mueve
+           el suelo de luminancia de 0,574 a 0,406. Con slate-600 esta misma
+           composición da 3,96:1 y NO pasa; con slate-700 da 5,41:1.
+
+           >>> Si alguien devuelve el subtítulo a slate-600 en Hero.tsx, este
+           >>> fondo deja de cumplir AA y hay que bajarle el color a la mitad.
+           >>> Van juntos.
+
+           TRAMPA que costó encontrar: colocar los picos fuera del área útil no
            basta, porque LA ANIMACIÓN LOS ARRASTRA DE VUELTA. Con recorridos del
            30–42 %, fh-blue acababa con su núcleo justo encima de los botones
-           —el punto más oscuro de la sección estaba en x 45 %, y 87 %, a un 2 %
-           de su centro—. Por eso cada lóbulo se mueve TANGENTE a su borde: los
-           anclados arriba y abajo derivan en horizontal, el del borde derecho
-           se desliza en vertical. Si alguien vuelve a poner recorridos
-           diagonales grandes, el contraste se cae otra vez y no es evidente por
-           qué.
+           —el punto más oscuro estaba en x 45 %, y 87 %, a un 2 % de su centro—.
+           Por eso cada lóbulo se mueve TANGENTE a su borde: los de arriba y
+           abajo derivan en horizontal, el del borde derecho en vertical. Si
+           alguien vuelve a poner recorridos diagonales grandes, el contraste se
+           cae y no es evidente por qué.
 
-           Estado medido, con el contraste tomado a lo largo de 40 s de ciclo y
-           no en un solo fotograma:
+           Estado medido, con el contraste tomado a lo largo del ciclo y no en
+           un solo fotograma:
 
-             ancho        saturacion   movimiento   subtitulo   titular
-             390             29,2         7,0        4,81 ✓     7,33 ✓
-             768             22,9         5,6        5,69 ✓     8,67 ✓
-             1440            37,8        12,2        4,77 ✓     7,27 ✓
-             1920            37,8        14,1        4,75 ✓     7,24 ✓
-
-           El suelo lo pone el SUBTÍTULO, 18 px a 4,5:1 → luminancia 0,574. El
-           titular mide 72 px, que en WCAG es texto grande (AA 3:1, AAA 4,5:1),
-           así que sobra por mucho: no es él quien limita.
+             ancho    saturacion   movimiento   subtitulo   titular
+             390         29,9         7,7        5,84 ✓     6,51 ✓
+             768         23,4         6,6        7,18 ✓     8,01 ✓
+             1440        42,5        14,6        5,41 ✓     6,03 ✓
+             1920        42,5        16,8        5,41 ✓     6,03 ✓
 
            (Nada de comillas invertidas aquí: es un comentario CSS dentro de una
            plantilla literal de JS y una sola la cerraría en seco. Ya pasó.)
@@ -105,38 +116,38 @@ export function FondoHero({ className }: { className?: string }) {
         .fh-corn {
           top: -26%; left: -22%; width: 78%; height: 46%;
           background: radial-gradient(ellipse closest-side,
-            rgba(168,180,245,0.62) 0%, rgba(168,180,245,0) 100%);
+            rgba(75,95,212,0.50) 0%, rgba(75,95,212,0.44) 26%, rgba(75,95,212,0) 86%);
           animation: fondoHero-e 10s ease-in-out infinite alternate;
         }
         .fh-plum {
           top: -22%; right: -26%; width: 72%; height: 44%;
           background: radial-gradient(ellipse closest-side,
-            rgba(196,160,240,0.58) 0%, rgba(196,160,240,0) 100%);
+            rgba(155,89,182,0.44) 0%, rgba(155,89,182,0.38) 26%, rgba(155,89,182,0) 86%);
           animation: fondoHero-d 12s ease-in-out infinite alternate;
         }
         .fh-mint {
           bottom: -20%; left: -24%; width: 74%; height: 42%;
           background: radial-gradient(ellipse closest-side,
-            rgba(111,215,155,0.55) 0%, rgba(111,215,155,0) 100%);
+            rgba(5,150,105,0.34) 0%, rgba(5,150,105,0.29) 26%, rgba(5,150,105,0) 86%);
           animation: fondoHero-c 13s ease-in-out infinite alternate;
         }
         .fh-blue {
           bottom: -34%; right: -26%; width: 78%; height: 46%;
           background: radial-gradient(ellipse closest-side,
-            rgba(75,95,212,0.50) 0%, rgba(75,95,212,0) 100%);
+            rgba(75,95,212,0.56) 0%, rgba(75,95,212,0.48) 26%, rgba(75,95,212,0) 86%);
           animation: fondoHero-a 14s ease-in-out infinite alternate;
         }
         .fh-turq {
           top: 34%; right: -34%; width: 56%; height: 44%;
           background: radial-gradient(ellipse closest-side,
-            rgba(8,145,178,0.46) 0%, rgba(8,145,178,0) 100%);
+            rgba(8,145,178,0.52) 0%, rgba(8,145,178,0.45) 26%, rgba(8,145,178,0) 86%);
           animation: fondoHero-b 15s ease-in-out infinite alternate;
         }
         /* Respiro cálido permitido: rosa muy desaturado, borde inferior-derecho. */
         .fh-warm {
           right: -18%; bottom: -18%; width: 46%; height: 40%;
           background: radial-gradient(ellipse closest-side,
-            rgba(232,178,205,0.10) 0%, rgba(232,178,205,0) 100%);
+            rgba(232,178,205,0.12) 0%, rgba(232,178,205,0) 86%);
           animation: fondoHero-f 8s ease-in-out infinite alternate;
         }
 
