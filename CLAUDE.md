@@ -23,6 +23,20 @@ Lo mínimo, si no se lee nada más:
    (`git rev-parse origin/<rama>`): un push sin cambios responde «success».
 4. **Cerrar en estado limpio**, no por reloj.
 
+**Avisar del punto de corte.** Cuando se cumplan las TRES a la vez —árbol
+limpio y empujado con el remoto verificado, objetivo de la sesión cumplido, y el
+siguiente trabajo toca **otra superficie**— decirlo en una línea y seguir:
+
+> Punto de corte limpio. Si lo siguiente es <otra superficie>, conviene cerrar
+> aquí y abrir sesión nueva; te dejo el índice de traspaso.
+
+Las tres condiciones son necesarias. Estar limpio a mitad del mismo frente es un
+punto de guardado, no un motivo para cerrar: el trabajo relacionado debe seguir
+junto —cambiar el titular por SEO tumbó el contraste del hero, y se detectó solo
+porque iban en la misma sesión—. **No repetirlo en cada commit**: si se avisa
+siempre, se deja de leer. Y no usarlo para soltar trabajo a medias: si el
+objetivo no está cumplido, no es punto de corte.
+
 ## Stack
 
 Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@theme {}` en globals.css, NO `tailwind.config.ts`), Firebase (Auth, Firestore, Cloud Functions v2, App Hosting), Zod + React Hook Form. Deploy del front por **App Hosting** (push a `master`).
