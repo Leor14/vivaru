@@ -111,13 +111,42 @@ Medido después, en las cuatro secciones:
     opacidad t0   0,78  0,44  0,00  0,00
     hover         delay 0s / duración 0,15s
 
-### B · Respuesta al pulsar  ·  *el más barato*
+### B · Respuesta al pulsar  ·  **hecho**
 
-`transform: scale(0.97)` en `:active` sobre botones y tarjetas pulsables, 150 ms
-`ease-out`. Es la diferencia entre una interfaz que escucha y una que no.
+Corrección de lo que decía este plan: **los CTA ya respondían.** El botón
+compartido de marketing lleva `active:scale-[0.97]` con 160 ms y
+`ease-out-brand` desde antes. Afirmar que «ningún botón del landing responde»
+fue dar por hecho sin mirar.
 
-Aplica a: los tres CTA del `Topbar`, el CTA del `Hero`, las pestañas de
-`Perspectives`, las preguntas del `FAQ`.
+Los que de verdad no respondían eran dos, y ninguno usa ese botón compartido:
+
+| Elemento | Transicionaba | Ahora |
+|---|---|---|
+| Pestañas de `Perspectives` | solo colores | `scale-[0.97]`, 150 ms |
+| Pregunta del `FAQ` | fondo, borde, sombra | `scale-[0.99]`, 150 ms |
+
+El 0,99 del FAQ no es un descuido: una fila a todo el ancho encogiéndose un 3 %
+se lee como un salto, no como una respuesta. Cuanto mayor es la superficie,
+menor tiene que ser la escala.
+
+Los dos llevan `motion-reduce:active:scale-100`: con movimiento reducido no
+basta con quitar la transición, porque el salto de escala seguiría ocurriendo.
+
+Medido con el ratón mantenido pulsado:
+
+    pestaña Residente   reposo none · pulsado 0.97 · vuelve none
+    pregunta del FAQ    reposo none · pulsado 0.99 · vuelve none
+    CTA del topbar      reposo none · pulsado 0.97 · vuelve none
+
+**Cómo se mide, que tiene truco:** hay que leer la propiedad `scale`, no
+`transform`. Las utilidades `scale-*` de Tailwind v4 escriben la propiedad
+independiente, así que mirar `transform` devuelve `none` aunque el efecto esté
+funcionando perfectamente.
+
+Lo que quedó fuera: el pulsable de `Differentiators` es una capa invisible que
+cubre la tarjeta entera, y escalar algo invisible no se ve. Necesitaría llevar
+el gesto a la tarjeta con `has-[button:active]`, y no está claro que una foto
+grande deba encogerse al tocarla.
 
 ### C · La pastilla de hover de las tarjetas
 
@@ -186,7 +215,7 @@ El contraste del rediseño se midió, no se miró. Aquí igual:
 | Inc | Qué | Estado |
 |---|---|---|
 | A | Escalonado y desplazamiento proporcional | **hecho** |
-| B | Respuesta al pulsar | pendiente |
+| B | Respuesta al pulsar | **hecho** |
 | C | Pastilla de hover | pendiente |
 | D | Flecha que empuja | pendiente |
 | E | Marquesina de módulos | pendiente |

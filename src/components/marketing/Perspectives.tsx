@@ -522,7 +522,12 @@ export function Perspectives() {
                   onMouseEnter={() => precalentar(t.key)}
                   onFocus={() => precalentar(t.key)}
                   className={cn(
-                    "relative isolate inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium transition-colors duration-fast",
+                    // `transition-colors` no incluye transform, asi que la pastilla no acusaba
+                    // la pulsacion. El 0.97 y los 150 ms salen de la referencia: alli el
+                    // transform vive en 150 ms y solo se usa para responder, nunca para revelar.
+                    "relative isolate inline-flex h-10 items-center justify-center rounded-full px-5 text-sm font-medium",
+                    "transition-[color,background-color,transform] duration-fast ease-out-brand",
+                    "active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100",
                     "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                     isActive
                       ? HEADLINE_COLOR[t.key]
