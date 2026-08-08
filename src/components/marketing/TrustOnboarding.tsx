@@ -23,6 +23,15 @@ import { cn } from "@/lib/utils/cn";
 
 type Item = {
   key: string;
+  /**
+   * Lo que va en la muesca del pie.
+   *
+   * En la referencia ahí hay un «Read more →» porque cada tarjeta es un
+   * artículo. Tres de estas cuatro NO llevan a ninguna parte —está decidido y
+   * documentado arriba—, y una flecha que no va a ningún sitio es peor que no
+   * ponerla. Va un dato, que llena la muesca y además aporta.
+   */
+  pie: string;
   /** Categoría, para poder escanear las cuatro sin leerlas enteras. */
   meta: string;
   /** Clase del tinte. Literal para que el JIT la recoja. */
@@ -35,6 +44,7 @@ type Item = {
 const ITEMS: Item[] = [
   {
     key: "migracion",
+    pie: "Día 1",
     meta: "Activación",
     metaColor: "text-brand-teal",
     title: "Migra tu cartera en pocas horas",
@@ -48,6 +58,7 @@ const ITEMS: Item[] = [
   },
   {
     key: "acceso",
+    pie: "Enlace de un solo uso",
     meta: "Seguridad",
     metaColor: "text-brand-green-succ",
     title: "Acceso seguro por enlace",
@@ -65,6 +76,7 @@ const ITEMS: Item[] = [
   },
   {
     key: "respaldos",
+    pie: "Cada 24 horas",
     meta: "Resguardo",
     metaColor: "text-brand-amber",
     title: "Respaldos diarios y auditoría",
@@ -82,6 +94,7 @@ const ITEMS: Item[] = [
   },
   {
     key: "soporte",
+    pie: "En español",
     meta: "Acompañamiento",
     metaColor: "text-brand-purple-deep",
     title: "Soporte en español",
@@ -98,52 +111,88 @@ const ITEMS: Item[] = [
   },
 ];
 
+/**
+ * La muesca del pie, calcada de las tarjetas de «The latest news».
+ *
+ * NO es `clip-path` ni una máscara —eso es lo que parece desde fuera—: en el
+ * original es un `<svg>` con un `<path>` pintado del color de la tarjeta, que
+ * recorta la esquina inferior derecha en diagonal. En ese hueco se aloja el
+ * dato del pie.
+ *
+ * El trazado es el suyo, medido en el sitio y no reconstruido a ojo:
+ * `viewBox="0 0 670 111"`. Se escala con `preserveAspectRatio="none"` porque
+ * nuestras tarjetas son más estrechas que las suyas.
+ */
+function Muesca({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 670 111"
+      preserveAspectRatio="none"
+      className={className}
+    >
+      <path
+        fill="currentColor"
+        d="M670 0H0V91C0 102.046 8.9543 111 20 111H518.641C526.216 111 533.14 106.721 536.529 99.9469L570.988 31.0531C574.377 24.2789 581.301 20 588.875 20H650C661.046 20 670 11.0457 670 0Z"
+      />
+    </svg>
+  );
+}
+
 function TrustCard({ item, index }: { item: Item; index: number }) {
   const { ref, revelado } = useRevelado<HTMLLIElement>(index, 0.05);
 
   return (
-    <li
-      ref={ref}
-      className={cn("group relative flex flex-col gap-sm", revelado.className)}
-      style={revelado.style}
-    >
+    <li ref={ref} className={cn("flex", revelado.className)} style={revelado.style}>
       {/*
-        La pastilla de hover, tomada de las tarjetas de noticias de Cohere: un
-        rectángulo redondeado un poco MAYOR que la tarjeta que aparece detrás.
+        Anatomía de «The latest news»: la tarjeta tiene fondo propio, la imagen
+        va DENTRO con su propio redondeo, y el pie lleva la muesca.
 
-        Por qué aquí y no en las otras tres secciones: estas tarjetas no tienen
-        borde ni fondo ni hover de ningún tipo, así que hoy no acusan el puntero.
-        `CasosDeUso` y `Solution` ya se elevan y ganan sombra —una pastilla
-        encima diría lo mismo dos veces— y las de `Differentiators` son fotos a
-        sangre, donde un rectángulo detrás no se vería.
-
-        Solo `opacity`: la tarjeta no se mueve. Y solo con puntero fino, porque
-        en táctil el hover se queda pegado después de tocar.
+        Antes estas tarjetas no tenían ni fondo ni borde: la imagen flotaba
+        sobre el blanco de la página y el texto colgaba debajo. Con fondo, las
+        cuatro se leen como objetos y no como cuatro columnas de texto.
       */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute -inset-x-2 -inset-y-3 -z-10 rounded-2xl bg-slate-100",
-          "opacity-0 transition-opacity duration-[200ms] ease-out-brand",
-          "[@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100",
-          "motion-reduce:transition-none",
-        )}
-      />
-      <AssetSlot
-        asset={item.shot}
-        className="w-full rounded-2xl"
-        sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 25vw"
-      />
-      <p
-        className={cn(
-          "mt-1 text-[11px] font-semibold uppercase tracking-widest",
-          item.metaColor,
-        )}
-      >
-        {item.meta}
-      </p>
-      <p className="font-display text-lg leading-snug text-navy">{item.title}</p>
-      <p className="text-sm leading-relaxed text-slate-600">{item.body}</p>
+      {/*
+        El fondo NO va en el <article> sino en el bloque de contenido, y el pie
+        lo dibuja el propio SVG.
+
+        Con el fondo en el contenedor, el recorte de la muesca dejaba ver ese
+        mismo fondo y la muesca era invisible: se veía una tarjeta con la
+        esquina normal. La gracia del patrón es que la zona recortada deje ver
+        LA PÁGINA, y para eso el pie tiene que ser el svg y nada más.
+      */}
+      <article className="group/tarjeta relative flex w-full flex-col">
+        <div className="flex flex-1 flex-col rounded-t-2xl bg-slate-50 p-4 pb-0 text-navy">
+          <div className="overflow-clip rounded-xl">
+            <AssetSlot
+              asset={item.shot}
+              className={cn(
+                "w-full",
+                // La imagen crece un punto al pasar el puntero. La tarjeta no se
+                // mueve: `overflow-clip` la contiene y el gesto queda dentro.
+                "transition-transform duration-[400ms] ease-out-brand",
+                "[@media(hover:hover)_and_(pointer:fine)]:group-hover/tarjeta:scale-[1.03]",
+                "motion-reduce:transition-none",
+              )}
+              sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 25vw"
+            />
+          </div>
+
+          <p className={cn("mt-4 text-[11px] font-semibold uppercase tracking-widest", item.metaColor)}>
+            {item.meta}
+          </p>
+          <p className="mt-1 font-display text-lg leading-snug text-navy">{item.title}</p>
+          <p className="mt-1 pb-6 text-sm leading-relaxed text-slate-600">{item.body}</p>
+        </div>
+
+        {/* El pie: la muesca dibuja el fondo y el dato se apoya encima. */}
+        <div className="relative mt-auto h-[52px] shrink-0">
+          <Muesca className="absolute inset-0 h-full w-full text-slate-50" />
+          <p className="absolute inset-x-4 bottom-3 text-xs font-semibold text-slate-500">
+            {item.pie}
+          </p>
+        </div>
+      </article>
     </li>
   );
 }
@@ -167,7 +216,7 @@ export function TrustOnboarding() {
 
       <ul
         role="list"
-        className="mt-xl grid items-start gap-lg sm:grid-cols-2 lg:grid-cols-4"
+        className="mt-xl grid gap-lg sm:grid-cols-2 lg:grid-cols-4"
       >
         {ITEMS.map((item, i) => (
           <TrustCard key={item.key} item={item} index={i} />
