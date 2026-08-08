@@ -355,6 +355,63 @@ function Fondos({ activo, cargados }: { activo: TabKey; cargados: Set<TabKey> })
  * Admin — desktop primary + desktop secondary overlaid bottom-right.
  * pb/pr on the container create room for the overlay to extend outside.
  */
+/**
+ * Entrada de una captura al cambiar de pestaña.
+ *
+ * El escalonado del panel arreglaba la COLUMNA DE TEXTO; las capturas seguían
+ * entrando de golpe con el panel, y son lo que más ocupa la pantalla: por eso
+ * el cambio se seguía leyendo como un pantallazo aunque ya no hubiera hueco
+ * en blanco.
+ *
+ * Tres cosas a la vez, y ninguna sobra:
+ *
+ *  - `opacity`, para que aparezca.
+ *  - `scale` desde 0,96 —nunca desde 0: nada en el mundo real aparece de la
+ *    nada, y arrancar de cero se lee como un salto.
+ *  - `y` de 14 px, que es lo que convierte «apareció» en «llegó».
+ *
+ * Y un `blur` de salida de 4 px: durante el cruce se ven DOS composiciones
+ * superpuestas, y sin desenfoque el ojo las distingue como dos objetos
+ * distintos en vez de leerlo como una transformación.
+ */
+const PASO_CAPTURA = {
+  oculto: { opacity: 0, scale: 0.96, y: 14, filter: "blur(4px)" },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: { duration: 0.45, ease: [0.23, 1, 0.32, 1] as const },
+  },
+};
+
+/**
+ * Envoltorio que reparte la entrada de las capturas.
+ *
+ * `delayChildren` de 0,1 s: las capturas entran DESPUÉS del texto, no a la vez.
+ * El orden importa — primero se lee de quién va la pestaña y luego llegan sus
+ * pantallas.
+ */
+function Capturas({ children, reducido }: { children: React.ReactNode; reducido: boolean }) {
+  return (
+    <m.div
+      initial={reducido ? false : "oculto"}
+      animate="visible"
+      variants={{
+        visible: {
+          transition: {
+            staggerChildren: reducido ? 0 : 0.09,
+            delayChildren: reducido ? 0 : 0.1,
+          },
+        },
+      }}
+      className="contents"
+    >
+      {children}
+    </m.div>
+  );
+}
+
 function AdminComposite({ shots }: { shots: ShotDef[] }) {
   // Sin `max-w-*`: globals.css tiene overrides `.marketing-theme .max-w-lg`
   // con más especificidad que cualquier variante responsive, así que un
@@ -362,17 +419,24 @@ function AdminComposite({ shots }: { shots: ShotDef[] }) {
   // El ancho lo pone la columna de la rejilla, que es donde debe estar.
   return (
     <div className="relative w-full pb-8 pr-7">
-      <AssetSlot
-        asset={shots[0]}
-        sizes="(max-width: 1024px) 100vw, 45vw"
-        className="w-full rounded-xl border border-slate-200 shadow-brand-md"
-      />
-      {shots[1] && (
+      <m.div variants={PASO_CAPTURA}>
         <AssetSlot
-          asset={shots[1]}
-          sizes="(max-width: 1024px) 55vw, 25vw"
-          className="absolute bottom-0 right-0 z-10 w-[56%] rounded-xl border border-slate-200 shadow-brand-lg"
+          asset={shots[0]}
+          sizes="(max-width: 1024px) 100vw, 45vw"
+          className="w-full rounded-xl border border-slate-200 shadow-brand-md"
         />
+      </m.div>
+      {shots[1] && (
+        <m.div
+          variants={PASO_CAPTURA}
+          className="absolute bottom-0 right-0 z-10 w-[56%]"
+        >
+          <AssetSlot
+            asset={shots[1]}
+            sizes="(max-width: 1024px) 55vw, 25vw"
+            className="w-full rounded-xl border border-slate-200 shadow-brand-lg"
+          />
+        </m.div>
       )}
     </div>
   );
@@ -401,23 +465,23 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
     >
       {/* Izquierda — estado de cuenta */}
       {shots[0] && (
-        <div className="absolute bottom-0 left-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+        <m.div variants={PASO_CAPTURA} className="absolute bottom-0 left-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
           <AssetSlot asset={shots[0]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
-        </div>
+        </m.div>
       )}
 
       {/* Centro — reservas (protagonista) */}
       {shots[1] && (
-        <div className="absolute left-1/2 top-0 z-10 w-[35.4%] -translate-x-1/2 overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-lg">
+        <m.div variants={PASO_CAPTURA} className="absolute left-1/2 top-0 z-10 w-[35.4%] -translate-x-1/2 overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-lg">
           <AssetSlot asset={shots[1]} sizes="(max-width: 1024px) 36vw, 18vw" className="block w-full" />
-        </div>
+        </m.div>
       )}
 
       {/* Derecha — QR de visita */}
       {shots[2] && (
-        <div className="absolute bottom-0 right-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
+        <m.div variants={PASO_CAPTURA} className="absolute bottom-0 right-0 w-[30%] overflow-hidden rounded-[8%] border border-slate-200 shadow-brand-md">
           <AssetSlot asset={shots[2]} sizes="(max-width: 1024px) 30vw, 15vw" className="block w-full" />
-        </div>
+        </m.div>
       )}
     </div>
   );
@@ -430,27 +494,41 @@ function ResidenteComposite({ shots }: { shots: ShotDef[] }) {
 function PorteriaComposite({ shots }: { shots: ShotDef[] }) {
   return (
     <div className="relative w-full pb-7 pr-6">
-      <AssetSlot
-        asset={shots[0]}
-        sizes="(max-width: 1024px) 100vw, 45vw"
-        className="w-full rounded-xl border border-slate-200 shadow-brand-md"
-      />
-      {shots[1] && (
+      <m.div variants={PASO_CAPTURA}>
         <AssetSlot
-          asset={shots[1]}
-          sizes="(max-width: 1024px) 55vw, 25vw"
-          className="absolute bottom-0 right-0 z-10 w-[52%] rounded-xl border border-slate-200 shadow-brand-lg"
+          asset={shots[0]}
+          sizes="(max-width: 1024px) 100vw, 45vw"
+          className="w-full rounded-xl border border-slate-200 shadow-brand-md"
         />
+      </m.div>
+      {shots[1] && (
+        <m.div
+          variants={PASO_CAPTURA}
+          className="absolute bottom-0 right-0 z-10 w-[52%]"
+        >
+          <AssetSlot
+            asset={shots[1]}
+            sizes="(max-width: 1024px) 55vw, 25vw"
+            className="w-full rounded-xl border border-slate-200 shadow-brand-lg"
+          />
+        </m.div>
       )}
     </div>
   );
 }
 
-function TabComposite({ tab }: { tab: TabDef }) {
+function TabComposite({ tab, reducido }: { tab: TabDef; reducido: boolean }) {
   // Comité reusa el layout desktop del Admin (primario + secundario).
-  if (tab.key === "admin" || tab.key === "comite") return <AdminComposite shots={tab.shots} />;
-  if (tab.key === "residente") return <ResidenteComposite shots={tab.shots} />;
-  return <PorteriaComposite shots={tab.shots} />;
+  const composite =
+    tab.key === "admin" || tab.key === "comite" ? (
+      <AdminComposite shots={tab.shots} />
+    ) : tab.key === "residente" ? (
+      <ResidenteComposite shots={tab.shots} />
+    ) : (
+      <PorteriaComposite shots={tab.shots} />
+    );
+
+  return <Capturas reducido={reducido}>{composite}</Capturas>;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -689,7 +767,7 @@ export function Perspectives() {
                   layout sigue siendo honesto y solo sobra lo que se recorta.
                 */}
                 <div className="flex justify-center lg:-mr-16 lg:justify-start xl:-mr-32">
-                  <TabComposite tab={active} />
+                  <TabComposite tab={active} reducido={reduced} />
                 </div>
               </m.div>
             </AnimatePresence>
