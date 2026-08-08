@@ -9,6 +9,7 @@ import { track } from "@/lib/marketing/analytics";
 import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
 import { Flecha } from "@/components/marketing/ui/flecha";
+import { FondoHero } from "@/components/marketing/FondoHero";
 
 /**
  * Hero — above-the-fold first surface (journey.md §B step 1, plan §5.2).
@@ -66,10 +67,23 @@ export function Hero({ variant = "inst" }: HeroProps) {
   return (
     <section
       id="hero"
-      className="container scroll-mt-24 pt-xxl pb-xl lg:pb-xxl"
+      className="relative scroll-mt-24"
       aria-labelledby="hero-h1"
     >
-      <div className="grid items-center gap-xl lg:grid-cols-12 lg:gap-xxl">
+      {/*
+        Fondo a sangre completa, y por eso la sección dejó de llevar `container`:
+        ahora lo lleva el div del contenido. Si el ancho lo fijara la sección, el
+        fondo se cortaría en 1280 px y dejaría dos franjas del color de la página
+        a los lados. A sangre, además, la barra de navegación —que flota y es de
+        cristal— tiene por debajo algo que mirar.
+
+        El recorte vive DENTRO de FondoHero, nunca aquí. La captura del móvil
+        cuelga a propósito por debajo del borde inferior de la sección
+        (`-bottom-8`); un `overflow` en la sección la decapitaría.
+      */}
+      <FondoHero />
+
+      <div className="container relative z-10 grid items-center gap-xl pt-xxl pb-xl lg:grid-cols-12 lg:gap-xxl lg:pb-xxl">
         <div className="lg:col-span-6">
           <h1
             id="hero-h1"
