@@ -215,3 +215,26 @@ describe("la flecha de los CTA", () => {
     expect(flecha).toMatch(/group-hover:translate-x-1/);
   });
 });
+
+describe("la marquesina de módulos", () => {
+  const fuente = marketing("MarquesinaModulos.tsx");
+
+  it("se detiene al pasar el puntero", () => {
+    // Una cinta que sigue moviéndose mientras alguien intenta leerla es
+    // exactamente lo que hace desviar la vista.
+    expect(fuente).toMatch(/group-hover:\[animation-play-state:paused\]/);
+  });
+
+  it("con movimiento reducido no hay cinta, hay rejilla", () => {
+    // No basta con pausar: una cinta detenida a mitad de recorrido deja
+    // nombres cortados contra el borde.
+    expect(fuente).toMatch(/useReducedMotion/);
+    expect(fuente).toMatch(/flex-wrap/);
+  });
+
+  it("duplica el contenido, que es lo que quita la costura del bucle", () => {
+    // Sin la copia, al llegar al -50 % habría un salto visible por vuelta.
+    expect(fuente).toMatch(/<Tira \/>/);
+    expect(fuente).toMatch(/<Tira oculta \/>/);
+  });
+});

@@ -198,14 +198,35 @@ Y un artefacto de método que conviene recordar: hay que **apartar el puntero
 antes de leer el reposo**. Tras desplazar la página, el ratón puede quedar
 justo encima del elemento y el «reposo» sale ya empujado.
 
-### E · Marquesina de módulos
+### E · Marquesina de módulos  ·  **hecho**
 
-Una cinta infinita —`translateX(0 → -50%)` con el contenido duplicado— con los
-nombres de los módulos. Es lo que Cohere usa para logos de clientes; Vivaru
-todavía no tiene logos que enseñar, pero sí módulos.
+`MarquesinaModulos.tsx`, debajo de `Solution`: los cuatro pilares explican las
+áreas y la cinta enseña los dieciséis módulos que hay dentro. Al revés serían
+dieciséis nombres sin marco.
 
-**Ojo:** una marquesina que no se detiene al pasar por encima es una molestia.
-Debe parar en `:hover` y en `prefers-reduced-motion`.
+**El contenido no es equivalente al de la referencia y conviene decirlo:** un
+logo se reconoce de un vistazo, un nombre hay que leerlo. Una marquesina de
+texto solo se sostiene si el mensaje es *amplitud* — y una lista estática de
+dieciséis sería un muro que nadie lee.
+
+Tres condiciones, sin las cuales la cinta es una molestia:
+
+1. **Se detiene al pasar el puntero.** Algo que se mueve mientras intentas
+   leerlo es justo lo que hace desviar la vista.
+2. **Con `prefers-reduced-motion` no hay cinta**, sino una rejilla que envuelve.
+   No basta con pausar la animación: una cinta detenida a mitad de recorrido
+   deja nombres cortados contra el borde.
+3. **Los bordes se difuminan** con `mask-image`, que es composición y no pasa
+   por layout. Sin la máscara los nombres aparecen de golpe y se lee como fallo.
+
+El bucle no tiene costura porque el contenido va **duplicado**: al recorrer el
+−50 % la segunda copia queda exactamente donde empezó la primera. La copia va
+`aria-hidden`, o el lector de pantalla leería los dieciséis módulos dos veces.
+
+Medido:
+
+    por defecto              se mueve · para al hover (paused) · no desborda
+    movimiento reducido      sin cinta · rejilla estática de 16 módulos
 
 ### F · Contadores del `ImpactBand`
 
@@ -257,5 +278,5 @@ El contraste del rediseño se midió, no se miró. Aquí igual:
 | B | Respuesta al pulsar | **hecho** |
 | C | Pastilla de hover | **hecho** (solo TrustOnboarding) |
 | D | Flecha que empuja | **hecho** |
-| E | Marquesina de módulos | pendiente |
+| E | Marquesina de módulos | **hecho** |
 | F | Contadores | pendiente |

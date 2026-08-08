@@ -819,6 +819,10 @@ h3 {
   --animate-accordion-up: accordion-up 150ms cubic-bezier(0.55, 0, 1, 0.45);
   --animate-float: float 3s ease-in-out infinite;
   --animate-drift-mesh: drift-mesh 18s linear infinite;
+  /* Marquesina de módulos. `linear` y no una curva: una cinta continua con
+     aceleración se lee como un tirón cada vuelta. 48s es lento a propósito —
+     lo bastante para leer un nombre al pasar, no tanto como para parecer rota. */
+  --animate-marquesina: marquesina 48s linear infinite;
 }
 
 /* ── Companion line-heights para font-size tokens (v4 no los bundlea) ─────── */
@@ -910,6 +914,14 @@ h3 {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-3px); }
 }
+/* La cinta lleva el contenido DUPLICADO, así que recorrer el -50% deja la
+   segunda copia exactamente donde estaba la primera y el bucle no tiene
+   costura. Con un contenido sin duplicar habría un salto visible por vuelta. */
+@keyframes marquesina {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 @keyframes drift-mesh {
   0%   { background-position: 0% 0%, 100% 100%; }
   50%  { background-position: 100% 50%, 0% 50%; }
