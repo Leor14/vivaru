@@ -9,6 +9,9 @@ SaaS multi-tenant de administración de propiedad horizontal para LATAM (México
 
 ## Cómo se trabaja aquí (leer antes de tocar nada)
 
+**`docs/pendientes.md`** — qué quedó a medias y dónde está el detalle. Leerlo
+al abrir sesión.
+
 **`docs/flujo-de-trabajo-con-claude.md`.** Cuántas ventanas abrir y cómo
 repartirlas, cuándo commitear, cuándo cerrar una sesión y cómo dejar el
 traspaso. Sale de una sesión de ocho frentes en la que se perdieron cosas por no
