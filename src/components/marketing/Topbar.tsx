@@ -163,7 +163,7 @@ export function Topbar() {
       */}
       <header
         className={cn(
-          "sticky top-0 z-sticky w-full md:pt-3 relative",
+          "sticky top-0 z-sticky w-full md:pt-3",
           "max-md:border-b max-md:transition-[box-shadow,background-color] max-md:duration-[200ms] max-md:ease-out-brand",
           scrolled
             ? "max-md:border-border/60 max-md:bg-white/95 max-md:shadow-sm max-md:supports-[backdrop-filter]:bg-white/80 max-md:supports-[backdrop-filter]:backdrop-blur-sm"
@@ -298,41 +298,6 @@ export function Topbar() {
           </div>
         </div>
 
-        {/*
-          Progreso de lectura. Va al final del header y a todo el ancho, pegada
-          al borde inferior: es información periférica y no debe competir con la
-          navegación.
-
-          Sin soporte de `animation-timeline` la barra se queda en `scaleX(0)`,
-          o sea invisible — que es exactamente lo que debe pasar: nada roto, solo
-          ausente. Lo mismo con movimiento reducido.
-        */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 overflow-clip"
-        >
-          {/*
-            El reposo va en estilo EN LÍNEA, no como utilidad ni como regla en
-            `globals.css`. Dos intentos fallidos antes de este:
-
-              1. `scale-x-0` de Tailwind escribe la propiedad independiente
-                 `scale`, que se COMPONE con el `transform` del keyframe:
-                 `scale: 0 1` por `scaleX(0,5)` sigue siendo cero. La barra
-                 medía 0 px en todas las posiciones y parecía funcionar, porque
-                 el `transform` sí recorría de 0 a 1.
-              2. Una regla `.progreso-lectura` en `globals.css` acaba dentro de
-                 un `@layer` de Tailwind y la perdía el orden de capas.
-
-            En línea no depende del orden, y la animación lo sustituye igual:
-            por especificación las animaciones CSS mandan sobre el estilo en
-            línea. Sin soporte o con movimiento reducido queda en `scaleX(0)`,
-            o sea invisible — que es lo correcto: nada roto, solo ausente.
-          */}
-          <div
-            className="progreso-lectura h-full w-full bg-brand-blue/70"
-            style={{ transform: "scaleX(0)", transformOrigin: "left center" }}
-          />
-        </div>
       </header>
 
       {/* Mobile-only fixed bottom CTA — always reachable. */}

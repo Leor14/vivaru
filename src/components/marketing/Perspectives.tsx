@@ -243,6 +243,20 @@ const FONDOS: Record<TabKey, FondoDef> = {
   },
 };
 
+/**
+ * Un paso del escalonado del panel.
+ *
+ * 10 px y no un porcentaje, a diferencia del revelado por scroll: aquí los
+ * elementos son líneas de texto de altura muy distinta —un ambiente de 12 px y
+ * un titular de 40—, y un porcentaje haría que el titular recorriera cuatro
+ * veces más que la etiqueta. En una entrada por scroll eso es deseable; dentro
+ * de un panel que se sustituye, no: se lee como que cada línea va a su aire.
+ */
+const PASO = {
+  oculto: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.23, 1, 0.32, 1] as const } },
+};
+
 function rgba(hex: string, alpha: number) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
@@ -560,17 +574,37 @@ export function Perspectives() {
           </div>
 
           {/* Panel */}
-          <div className="relative mt-xl">
-            <AnimatePresence mode="wait" initial={false}>
+          {/* Rejilla de UNA celda: los dos paneles ocupan la misma y se apilan,
+              que es lo que permite el fundido sin que el layout salte. */}
+          <div className="relative mt-xl grid">
+            {/*
+              FUNDIDO CRUZADO, no `mode="wait"`.
+
+              Con `mode="wait"` AnimatePresence espera a que el panel saliente
+              termine su animación ANTES de montar el entrante: 0,2 s de salida
+              más 0,2 s de entrada, y a mitad de camino **no hay nada en
+              pantalla**. Ese hueco vacío es el «pantallazo» que se notaba al
+              cambiar de pestaña. No era que la transición fuese fea; era un
+              parpadeo en blanco en medio.
+
+              Sin `mode`, los dos paneles conviven durante la transición. El
+              saliente se saca del flujo con `position:absolute` para que no
+              empuje el layout mientras se va.
+
+              El desenfoque por fin sirve para algo: fundir dos estados que se
+              solapan. Con `wait` no había nada con lo que fundirse.
+            */}
+            <AnimatePresence initial={false}>
               <m.div
                 key={active.key}
                 id={`perspectives-panel-${active.key}`}
                 role="tabpanel"
                 aria-labelledby={`perspectives-tab-${active.key}`}
-                initial={reduced ? false : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                exit={reduced ? { opacity: 1 } : { opacity: 0, scale: 0.99, filter: "blur(2px)" }}
-                transition={{ duration: reduced ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
+                initial={reduced ? false : { opacity: 0, filter: "blur(3px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                exit={reduced ? { opacity: 0 } : { opacity: 0, filter: "blur(3px)" }}
+                transition={{ duration: reduced ? 0 : 0.28, ease: [0.23, 1, 0.32, 1] }}
+                style={{ gridArea: "1 / 1" }}
                 className="grid items-center gap-xl lg:grid-cols-[minmax(0,42%)_minmax(0,58%)] lg:gap-xxl"
               >
                 {/*
@@ -583,30 +617,46 @@ export function Perspectives() {
                   propósito: la numeración no decora, es la secuencia real del
                   mes y el lector la sigue como tal.
                 */}
-                <div>
+                {/*
+                  El contenido entra ESCALONADO, no en bloque.
+
+                  Antes el panel era una losa: los cuatro bloques aparecían a la
+                  vez. Con 45 ms entre uno y otro se lee como que la información
+                  llega, no como que la pantalla se sustituye. Es el mismo
+                  escalonado que usa el resto de la página (`revelado.ts`), así
+                  que no introduce un gesto nuevo.
+                */}
+                <m.div
+                  initial={reduced ? false : "oculto"}
+                  animate="visible"
+                  variants={{ visible: { transition: { staggerChildren: reduced ? 0 : 0.045, delayChildren: reduced ? 0 : 0.06 } } }}
+                >
                   {/* El color del perfil se muda aquí y a los números: sobre el
                       fondo oscuro ya no puede vivir en el titular. */}
-                  <p
+                  <m.p
+                    variants={PASO}
                     className={cn(
                       "text-xs font-semibold uppercase tracking-[0.14em]",
                       FONDOS[active.key].acento,
                     )}
                   >
                     Hoy
-                  </p>
-                  <p className="mt-1 text-lg italic leading-snug text-white/75 text-balance">
+                  </m.p>
+                  <m.p
+                    variants={PASO}
+                    className="mt-1 text-lg italic leading-snug text-white/75 text-balance"
+                  >
                     “{active.problem}”
-                  </p>
+                  </m.p>
 
-                  <h3
-                    className={cn(
-                      "mt-lg font-display text-h2 text-balance text-white",
-                    )}
+                  <m.h3
+                    variants={PASO}
+                    className="mt-lg font-display text-h2 text-balance text-white"
                   >
                     {active.headline}
-                  </h3>
+                  </m.h3>
 
-                  <ol className="mt-md space-y-4">
+                  <m.ol variants={PASO} className="mt-md space-y-4">
                     {active.steps.map((paso, i) => (
                       <li key={paso} className="flex gap-3">
                         <span
@@ -624,8 +674,8 @@ export function Perspectives() {
                         </span>
                       </li>
                     ))}
-                  </ol>
-                </div>
+                  </m.ol>
+                </m.div>
 
                 {/*
                   Composite. Se ensancha y se sale por el borde derecho, como

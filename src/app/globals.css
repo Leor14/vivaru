@@ -966,29 +966,6 @@ h3 {
   to   { transform: translateY(8%); }
 }
 
-/* ── Progreso de lectura ────────────────────────────────────────────────────
- *
- * Ligado a `scroll()`, o sea al desplazamiento del documento entero, no a la
- * visibilidad de un elemento como el paralaje.
- *
- * Se anima `scale-x` y NO `width`: el ancho pasa por layout en cada fotograma
- * y en una barra que se actualiza con el scroll eso se nota. La escala es
- * composición pura. `transform-origin: left` para que crezca desde la
- * izquierda y no desde el centro. */
-@keyframes progreso-lectura {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
-@supports (animation-timeline: scroll()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .progreso-lectura {
-      animation: progreso-lectura linear both;
-      animation-timeline: scroll();
-    }
-  }
-}
-
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .paralaje {
