@@ -128,26 +128,52 @@ export function iniciarGoogleAnalytics(): Promise<void> {
   return arranque;
 }
 
-/** No hace nada mientras no haya consentimiento: `analytics` sigue a `null`. */
+/**
+ * Encola contra el arranque en vez de comprobar `analytics` directamente.
+ *
+ * La primera version hacia `if (!analytics) return;`. Parecia razonable y
+ * descartaba en silencio justo lo que mas importa: `iniciarGoogleAnalytics()`
+ * es asincrona —dos `import()` dinamicos y `isSupported()`—, y el contador de
+ * vistas dispara su efecto en cuanto hay consentimiento, o sea varios cientos
+ * de milisegundos ANTES de que `analytics` exista. Resultado medido: cero
+ * `page_view`. Los eventos posteriores si pasaban, porque para entonces ya
+ * habia resuelto, y por eso el fallo no saltaba a la vista.
+ *
+ * Si `arranque` es `null` no hay consentimiento todavia y NO se encola nada:
+ * medir antes de que acepten es exactamente lo que el banner impide.
+ */
+function conAnalytics(registrar: (a: Analytics) => void): void {
+  if (!arranque) return;
+  void arranque.then(() => {
+    if (analytics) registrar(analytics);
+  });
+}
+
 export function eventoGoogleAnalytics(
   evento: string,
   props: Record<string, unknown> = {},
 ): void {
-  if (!analytics) return;
-  void import("firebase/analytics").then(({ logEvent }) => {
-    if (analytics) logEvent(analytics, evento, sanear(props));
+  const parametros = sanear(props);
+  conAnalytics((a) => {
+    void import("firebase/analytics").then(({ logEvent }) => {
+      logEvent(a, evento, parametros);
+    });
   });
 }
 
 export function vistaGoogleAnalytics(url: string): void {
-  if (!analytics) return;
-  void import("firebase/analytics").then(({ logEvent }) => {
-    if (!analytics) return;
-    logEvent(analytics, "page_view", {
-      page_location: window.location.origin + url,
-      page_path: url,
-      page_title: document.title.slice(0, 100),
-      entorno: entorno(),
+  // Se leen AHORA, no dentro de la promesa: para cuando esta resuelva, la
+  // navegacion puede haber cambiado `location` y `title`, y la vista se
+  // atribuiria a la pagina siguiente.
+  const parametros = {
+    page_location: window.location.origin + url,
+    page_path: url,
+    page_title: document.title.slice(0, 100),
+    entorno: entorno(),
+  };
+  conAnalytics((a) => {
+    void import("firebase/analytics").then(({ logEvent }) => {
+      logEvent(a, "page_view", parametros);
     });
   });
 }
