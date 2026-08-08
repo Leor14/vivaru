@@ -104,9 +104,31 @@ function TrustCard({ item, index }: { item: Item; index: number }) {
   return (
     <li
       ref={ref}
-      className={cn("flex flex-col gap-sm", revelado.className)}
+      className={cn("group relative flex flex-col gap-sm", revelado.className)}
       style={revelado.style}
     >
+      {/*
+        La pastilla de hover, tomada de las tarjetas de noticias de Cohere: un
+        rectángulo redondeado un poco MAYOR que la tarjeta que aparece detrás.
+
+        Por qué aquí y no en las otras tres secciones: estas tarjetas no tienen
+        borde ni fondo ni hover de ningún tipo, así que hoy no acusan el puntero.
+        `CasosDeUso` y `Solution` ya se elevan y ganan sombra —una pastilla
+        encima diría lo mismo dos veces— y las de `Differentiators` son fotos a
+        sangre, donde un rectángulo detrás no se vería.
+
+        Solo `opacity`: la tarjeta no se mueve. Y solo con puntero fino, porque
+        en táctil el hover se queda pegado después de tocar.
+      */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -inset-x-2 -inset-y-3 -z-10 rounded-2xl bg-slate-100",
+          "opacity-0 transition-opacity duration-[200ms] ease-out-brand",
+          "[@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100",
+          "motion-reduce:transition-none",
+        )}
+      />
       <AssetSlot
         asset={item.shot}
         className="w-full rounded-2xl"

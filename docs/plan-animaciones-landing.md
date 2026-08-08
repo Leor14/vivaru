@@ -148,11 +148,31 @@ cubre la tarjeta entera, y escalar algo invisible no se ve. Necesitaría llevar
 el gesto a la tarjeta con `has-[button:active]`, y no está claro que una foto
 grande deba encogerse al tocarla.
 
-### C · La pastilla de hover de las tarjetas
+### C · La pastilla de hover de las tarjetas  ·  **hecho, pero en una sección, no en tres**
 
-El patrón de Cohere en `TrustOnboarding`, `CasosDeUso` y `Differentiators`: un
-rectángulo redondeado detrás, un poco mayor que la tarjeta, que aparece con
-`opacity` en 200 ms. **Sin mover la tarjeta y sin sombra nueva.**
+El plan decía `TrustOnboarding`, `CasosDeUso` y `Differentiators`. Al mirar qué
+hace hoy cada tarjeta, solo una lo necesitaba:
+
+| Sección | Hover actual | Decisión |
+|---|---|---|
+| `TrustOnboarding` | **ninguno** | pastilla ✅ |
+| `CasosDeUso` | se eleva y gana sombra | ya responde; sumarle una pastilla sería decir lo mismo dos veces |
+| `Solution` | se eleva y gana sombra | igual |
+| `Differentiators` | velo de opacidad | son fotos a sangre: un rectángulo detrás no se vería |
+
+`TrustOnboarding` es además el caso exacto de la referencia: tarjetas sin borde
+ni fondo, con miniatura arriba y texto debajo. Un `<span>` detrás,
+`-inset-x-2 -inset-y-3`, `bg-slate-100`, `opacity 0 → 1` en 200 ms, y solo con
+puntero fino — en táctil el hover se queda pegado tras el toque.
+
+Medido:
+
+    en reposo                    [0, 0, 0, 0]
+    con el puntero encima        [1, 0, 0, 0]
+    separación entre pastillas   8 px  (no se tocan)
+    la tarjeta se mueve          no — transform identidad, sin escala
+
+Ese último dato es el punto del patrón: **relieve sin mover nada.**
 
 ### D · La flecha que empuja
 
@@ -216,7 +236,7 @@ El contraste del rediseño se midió, no se miró. Aquí igual:
 |---|---|---|
 | A | Escalonado y desplazamiento proporcional | **hecho** |
 | B | Respuesta al pulsar | **hecho** |
-| C | Pastilla de hover | pendiente |
+| C | Pastilla de hover | **hecho** (solo TrustOnboarding) |
 | D | Flecha que empuja | pendiente |
 | E | Marquesina de módulos | pendiente |
 | F | Contadores | pendiente |
