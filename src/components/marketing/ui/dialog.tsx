@@ -4,6 +4,23 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils/cn"
+
+/**
+ * OJO con `marketing-theme` repetido en los `cn()` de este archivo.
+ *
+ * Estas superficies se montan en un PORTAL, o sea colgando de <body>, FUERA
+ * del `<div class="marketing-theme">` que envuelve la página. Los tokens de
+ * shadcn —`--popover`, `--border`, `--muted`…— están declarados únicamente
+ * dentro de ese ámbito en `globals.css`, así que aquí no resolvían.
+ *
+ * Síntoma real, encontrado en agosto de 2026: `bg-popover` se quedaba sin
+ * valor y el panel salía TRANSPARENTE. En móvil se leía el hero a través del
+ * menú de hamburguesa. El diálogo de «Agenda una demo» tenía el mismo fallo,
+ * porque también usa portal.
+ *
+ * Poniendo la clase en el propio elemento, las variables resuelven sobre él y
+ * sobre sus hijos. No basta con ponerla en el layout.
+ */
 import { Button } from "@/components/marketing/ui/button"
 import { XIcon } from "lucide-react"
 
@@ -53,6 +70,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
+          "marketing-theme",
           "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-open:duration-[200ms] data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-closed:duration-[150ms]",
           className
         )}
@@ -102,6 +120,7 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
+        "marketing-theme",
         "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
         className
       )}
