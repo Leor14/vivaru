@@ -8,6 +8,7 @@ import { DemoDialog } from "@/components/marketing/DemoDialog";
 import { track } from "@/lib/marketing/analytics";
 import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Final CTA — plan §5.12 / journey.md §B step 10.
@@ -92,9 +93,7 @@ export function FinalCTA() {
                 }
               >
                 Prueba gratis 15 días{" "}
-                <span aria-hidden="true" className="ml-0.5">
-                  →
-                </span>
+                <Flecha />
               </Button>
 
               <DemoDialog section="final">

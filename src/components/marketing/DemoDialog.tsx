@@ -7,6 +7,7 @@ import { Button } from "@/components/marketing/ui/button";
 import { Input } from "@/components/marketing/ui/input";
 import { Label } from "@/components/marketing/ui/label";
 import { track } from "@/lib/marketing/analytics";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Demo lead-capture wizard.
@@ -248,7 +249,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
 
                 <Button type="submit" size="lg" className="mt-2 w-full">
                   Continuar{" "}
-                  <span aria-hidden="true" className="ml-0.5">→</span>
+                  <Flecha />
                 </Button>
               </form>
             </>
@@ -384,7 +385,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
                   >
                     {loading ? "Enviando…" : "Enviar"}
                     {!loading && (
-                      <span aria-hidden="true" className="ml-0.5">→</span>
+                      <Flecha />
                     )}
                   </Button>
                 </div>

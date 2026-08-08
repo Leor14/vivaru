@@ -19,6 +19,7 @@ import {
 } from "@/components/marketing/ui/sheet";
 import { DemoDialog } from "@/components/marketing/DemoDialog";
 import { track } from "@/lib/marketing/analytics";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Topbar — Sprint 1.
@@ -233,9 +234,7 @@ export function Topbar() {
                 }
               >
                 Prueba gratis 15 días{" "}
-                <span aria-hidden="true" className="ml-0.5">
-                  →
-                </span>
+                <Flecha />
               </Button>
             </div>
 
@@ -328,9 +327,7 @@ export function Topbar() {
           }
         >
           Prueba gratis 15 días{" "}
-          <span aria-hidden="true" className="ml-0.5">
-            →
-          </span>
+          <Flecha />
         </Button>
       </div>
       ) : null}

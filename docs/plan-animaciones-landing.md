@@ -174,10 +174,29 @@ Medido:
 
 Ese último dato es el punto del patrón: **relieve sin mover nada.**
 
-### D · La flecha que empuja
+### D · La flecha que empuja  ·  **hecho**
 
-`translateX` de 4 px en las flechas de los CTA al pasar por encima, 150 ms. Ya
-hay flechas en «Prueba gratis 15 días» y en el cierre.
+Siete flechas repetidas como `<span aria-hidden className="ml-0.5">→</span>` en
+cinco archivos —y en el hero ni eso: iba suelta dentro del texto, donde no se
+puede animar sin envolverla—. Ahora es un componente,
+`marketing/ui/flecha.tsx`: 4 px, 150 ms, `ease-out-brand`.
+
+**Lleva dos variantes de grupo a propósito.** El botón compartido se marca como
+`group/button`, que en Tailwind NO coincide con el selector de `group-hover:`
+—ese busca la clase `group` a secas—. Los enlaces que no usan ese botón, como el
+de `ImpactBand`, llevan `group` normal. Declarar las dos hace que la flecha
+funcione en ambos contextos sin que quien la use tenga que saberlo.
+
+Medido en los cuatro sitios: `reposo none · encima 4px · vuelve none`.
+
+**La trampa, por segunda vez:** en Tailwind v4 `translate-x-*` escribe la
+propiedad **`translate`**, no `transform` — igual que `scale-*` escribe `scale`.
+La primera medición dio «no empuja» en los cuatro porque estaba leyendo
+`transform`, que valía `none` con el efecto funcionando perfectamente.
+
+Y un artefacto de método que conviene recordar: hay que **apartar el puntero
+antes de leer el reposo**. Tras desplazar la página, el ratón puede quedar
+justo encima del elemento y el «reposo» sale ya empujado.
 
 ### E · Marquesina de módulos
 
@@ -237,6 +256,6 @@ El contraste del rediseño se midió, no se miró. Aquí igual:
 | A | Escalonado y desplazamiento proporcional | **hecho** |
 | B | Respuesta al pulsar | **hecho** |
 | C | Pastilla de hover | **hecho** (solo TrustOnboarding) |
-| D | Flecha que empuja | pendiente |
+| D | Flecha que empuja | **hecho** |
 | E | Marquesina de módulos | pendiente |
 | F | Contadores | pendiente |

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AssetSlot, type AssetDef } from "@/components/marketing/ui/asset-slot";
 import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Tres propiedades del sistema, con su explicación y a dónde ir a verlas.
@@ -139,12 +140,10 @@ function ClaimCard({ claim, index }: { claim: Claim; index: number }) {
       <p className="text-base leading-relaxed text-slate-600">{claim.body}</p>
       <Link
         href={claim.href}
-        className="text-sm font-semibold text-brand-blue underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="group text-sm font-semibold text-brand-blue underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {claim.linkLabel}{" "}
-        <span aria-hidden="true" className="ml-0.5">
-          →
-        </span>
+        <Flecha />
       </Link>
     </li>
   );

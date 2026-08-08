@@ -196,3 +196,22 @@ describe("animaciones del landing", () => {
     }
   });
 });
+
+describe("la flecha de los CTA", () => {
+  it("no vuelve a repetirse suelta en cada componente", () => {
+    // Estaba copiada siete veces en cinco archivos, y en el hero iba suelta
+    // dentro del texto —donde no se puede animar sin envolverla—.
+    for (const a of ["Hero.tsx", "Topbar.tsx", "FinalCTA.tsx", "ImpactBand.tsx", "DemoDialog.tsx"]) {
+      expect(marketing(a)).not.toMatch(/aria-hidden="true"\s+className="ml-0\.5"/);
+    }
+  });
+
+  it("declara las DOS variantes de grupo", () => {
+    // `group/button` no coincide con el selector de `group-hover:`, que busca la
+    // clase `group` a secas. Sin las dos, la flecha funciona dentro del botón
+    // compartido pero no en los enlaces que no lo usan.
+    const flecha = leer("src/components/marketing/ui/flecha.tsx");
+    expect(flecha).toMatch(/group-hover\/button:translate-x-1/);
+    expect(flecha).toMatch(/group-hover:translate-x-1/);
+  });
+});

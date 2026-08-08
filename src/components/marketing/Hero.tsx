@@ -8,6 +8,7 @@ import { DemoDialog } from "@/components/marketing/DemoDialog";
 import { track } from "@/lib/marketing/analytics";
 import { useInView, useReducedMotion } from "@/lib/marketing/hooks";
 import { cn } from "@/lib/utils/cn";
+import { Flecha } from "@/components/marketing/ui/flecha";
 
 /**
  * Hero — above-the-fold first surface (journey.md §B step 1, plan §5.2).
@@ -115,7 +116,7 @@ export function Hero({ variant = "inst" }: HeroProps) {
                   />
                 }
               >
-                Prueba gratis 15 días →
+                Prueba gratis 15 días <Flecha />
               </Button>
             </div>
 
