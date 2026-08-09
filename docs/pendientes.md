@@ -1,7 +1,7 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 8 de agosto de 2026, al cerrar la sesión de posicionamiento.
+Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
 
 ## Lo que se cerró y no hay que rehacer
 
@@ -30,6 +30,32 @@ Actualizado el 8 de agosto de 2026, al cerrar la sesión de posicionamiento.
   SOLO en `PAISES`. **Abrir un mercado es editar esa línea.**
 - **Primero se diferencia el contenido, después se parten las URL.** El día que
   el copy de un país sea distinto, su ruta se justifica sola. Antes no.
+
+## Frente de IA — auditado, sin construir
+
+- **Las cinco PRD de IA están cotejadas contra el código y son sólidas.** No hay
+  que rehacerlas: todo lo que declaran como baseline existe con el nombre exacto.
+  El portafolio entero está atascado en la misma puerta —G1, nadie ha medido
+  nada— y **el siguiente paso es contar volúmenes, no nombrar responsables.**
+  Los cuatro hallazgos que sí mueven el plan, la corrección de las puertas
+  G0–G7 y el margen económico real, en `docs/auditoria-prd-ia-ago2026.md`.
+- **`FEAT-001` no necesita IA para su primera mitad.** Su Fase 2 es «parser,
+  reglas y preview sin IA» sobre `papaparse` y `xlsx`, que ya están instalados.
+  Sacarla del programa de IA y tratarla como producto normal genera el baseline
+  de activación que la propia PRD necesita para cerrar G1. **Es el único
+  hallazgo que cambia el orden del programa.**
+- **Las cinco dependen de un feature flag que no tiene lector.** `featureFlags`
+  son diez líneas en `firestore.rules:636` sin un solo consumidor en el código.
+  Requisito no negociable para las cinco, y ninguna lo presupuesta.
+- **Ecuador no está en ningún dataset de evaluación** de `DOC-001` ni
+  `FEAT-001`: piden Colombia y México, y Ecuador está en `PAISES`. Mismo punto
+  ciego que `docs/brief-legal-ecuador.md`, pero aquí aprobaría una capacidad
+  que falla con el primer conjunto ecuatoriano — opera en USD.
+- **La wiki de negocio canónica es `Hogaru/Vivaru business - WIKI/`** (90
+  archivos). `Hogaru/vivaru-wiki-negocio/` (32) es un subconjunto viejo; no
+  citarla.
+- **No se tocó ninguna fuente.** Drive, wikis y los dos Markdown de Hogaru
+  quedaron como estaban.
 
 ## Necesita asesoría legal, no redacción
 
