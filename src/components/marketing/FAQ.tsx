@@ -25,20 +25,20 @@ type Q = { id: number; question: string; answer: React.ReactNode };
 const QUESTIONS: Q[] = [
   {
     id: 1,
-    question: "¿Funciona para conjuntos de casas o solo edificios?",
+    question: "¿Funciona para fraccionamientos de casas o solo edificios?",
     answer: (
       <p>
         Sí. Vivaru opera sobre cualquier régimen de propiedad horizontal:
         condominios verticales (edificios), conjuntos cerrados,
         fraccionamientos, privadas y comunidades residenciales en general.
-        Cada conjunto se configura como un sistema independiente, sea de 50
+        Cada condominio se configura como un sistema independiente, sea de 50
         casas o 300 departamentos.
       </p>
     ),
   },
   {
     id: 2,
-    question: "¿Qué tan rápido entra en operación mi conjunto?",
+    question: "¿Qué tan rápido entra en operación mi condominio?",
     answer: (
       <p>
         Activación promedio: 72 horas hábiles desde la firma del contrato.
@@ -132,7 +132,7 @@ export function FAQ() {
         id="faq-heading"
         className="max-w-3xl font-display text-h2 text-navy text-balance"
       >
-        Preguntas frecuentes
+        Preguntas frecuentes sobre la administración de condominios
       </h2>
       <p className="mt-sm max-w-2xl text-sm leading-relaxed text-slate-600">
         Lo que normalmente preguntan los administradores antes de agendar

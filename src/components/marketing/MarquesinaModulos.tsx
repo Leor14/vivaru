@@ -117,7 +117,7 @@ export function MarquesinaModulos() {
       className="overflow-x-clip border-y border-border bg-slate-50 py-lg"
     >
       <h2 id="modulos-heading" className="sr-only">
-        Módulos incluidos
+        Módulos incluidos en el software de administración
       </h2>
 
       {reducido ? (

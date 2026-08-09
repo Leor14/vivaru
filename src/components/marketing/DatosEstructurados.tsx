@@ -56,11 +56,11 @@ const APLICACION = {
   applicationCategory: "BusinessApplication",
   applicationSubCategory: "Software de administración de propiedad horizontal",
   operatingSystem: "Web, iOS, Android",
-  url: `${URL_SITIO}/mx`,
+  url: `${URL_SITIO}`,
   publisher: { "@id": `${URL_SITIO}/#organizacion` },
   inLanguage: "es",
   description:
-    "Plataforma para administrar condominios, conjuntos residenciales y fraccionamientos: cartera y cuotas de mantenimiento, reservas de amenidades, control de visitantes con código QR, paquetería, PQRS y comunicaciones. Cada conjunto opera aislado, con sus propios datos y accesos.",
+    "Plataforma para administrar condominios, conjuntos residenciales y fraccionamientos: cartera y cuotas de mantenimiento, reservas de amenidades, control de visitantes con código QR, paquetería, quejas y solicitudes (PQRS) y comunicaciones. Cada condominio opera aislado, con sus propios datos y accesos.",
   featureList: MODULOS,
   audience: {
     "@type": "Audience",
@@ -71,7 +71,7 @@ const APLICACION = {
 
 const PREGUNTAS = {
   "@type": "FAQPage",
-  "@id": `${URL_SITIO}/mx#preguntas`,
+  "@id": `${URL_SITIO}/#preguntas`,
   mainEntity: PREGUNTAS_FRECUENTES.map(({ pregunta, respuesta }) => ({
     "@type": "Question",
     name: pregunta,

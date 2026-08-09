@@ -96,7 +96,7 @@ export function FondoHero({ className }: { className?: string }) {
            cae y no es evidente por qué.
 
            El nucleo subio de 0,86 a 0,92 en agosto de 2026, cuando el titular
-           se alargo por SEO («Control de tu conjunto residencial…») y la seccion
+           se alargo por SEO («Control de tu condominio residencial…») y la seccion
            paso de 517 a 593 px de alto. Al ser todo porcentual, el nucleo pasaba
            a cubrir proporcionalmente menos zona de texto y el contraste bajo de
            4,93 a 4,59. Si el titular vuelve a cambiar de longitud, hay que

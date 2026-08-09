@@ -123,7 +123,7 @@ export function Solution() {
         id="solucion-heading"
         className="max-w-3xl font-display text-h2 text-navy text-balance"
       >
-        La plataforma completa, en cuatro dimensiones
+        La administración de tu condominio, en cuatro dimensiones
       </h2>
 
       <ul

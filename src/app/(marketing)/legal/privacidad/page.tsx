@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import { markdownToHtml } from "@/lib/marketing/markdown";
 
 export const metadata: Metadata = {
+  // Propia, no heredada: el layout ya no declara canonica (heredaba la de /mx).
+  alternates: { canonical: "/legal/privacidad" },
   title: "Política de Privacidad — Vivaru",
   description:
     "Conoce cómo Vivaru SAS trata los datos personales de acuerdo con la LFPDPPP.",

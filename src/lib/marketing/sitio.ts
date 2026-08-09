@@ -21,7 +21,7 @@ export const URL_SITIO = "https://www.grupovivaru.com";
 
 /** Rutas públicas indexables. Si se añade una página, va aquí. */
 export const RUTAS_PUBLICAS = [
-  { ruta: "/mx", prioridad: 1.0, frecuencia: "weekly" as const },
+  { ruta: "/", prioridad: 1.0, frecuencia: "weekly" as const },
   { ruta: "/diagnostico", prioridad: 0.8, frecuencia: "monthly" as const },
   { ruta: "/legal/privacidad", prioridad: 0.3, frecuencia: "yearly" as const },
   { ruta: "/legal/terminos", prioridad: 0.3, frecuencia: "yearly" as const },
@@ -42,12 +42,12 @@ export const RUTAS_PUBLICAS = [
  */
 export const PREGUNTAS_FRECUENTES: Array<{ pregunta: string; respuesta: string }> = [
   {
-    pregunta: "¿Funciona para conjuntos de casas o solo edificios?",
+    pregunta: "¿Funciona para fraccionamientos de casas o solo edificios?",
     respuesta:
-      "Sí. Vivaru opera sobre cualquier régimen de propiedad horizontal: condominios verticales (edificios), conjuntos cerrados, fraccionamientos, privadas y comunidades residenciales en general. Cada conjunto se configura como un sistema independiente, sea de 50 casas o 300 departamentos.",
+      "Sí. Vivaru opera sobre cualquier régimen de propiedad horizontal: condominios verticales (edificios), conjuntos cerrados, fraccionamientos, privadas y comunidades residenciales en general. Cada condominio se configura como un sistema independiente, sea de 50 casas o 300 departamentos.",
   },
   {
-    pregunta: "¿Qué tan rápido entra en operación mi conjunto?",
+    pregunta: "¿Qué tan rápido entra en operación mi condominio?",
     respuesta:
       "Activación promedio de 72 horas hábiles desde la firma del contrato. El proceso de implementación tiene cuatro etapas: diagnóstico, configuración, piloto y go-live.",
   },
@@ -81,7 +81,7 @@ export const MODULOS = [
   "Reservas de amenidades",
   "Visitantes con código QR",
   "Paquetería",
-  "PQRS",
+  "Quejas y solicitudes (PQRS)",
   "Comunicaciones",
   "Encuestas",
   "Egresos",

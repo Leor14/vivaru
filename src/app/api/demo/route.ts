@@ -294,7 +294,7 @@ function buildConfirmationEmail(d: DemoData): EmailContent {
       <p style="font-size:14px;color:#475569;margin:0 0 32px;">
         Te contactaremos <strong>a la brevedad</strong>.
       </p>
-      <a href="https://grupovivaru.com/mx" style="display:inline-block;background:#4B5FD4;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
+      <a href="https://www.grupovivaru.com/" style="display:inline-block;background:#4B5FD4;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">
         Ver Vivaru →
       </a>
       <div style="margin-top:32px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:12px;color:#94A3B8;">
@@ -314,7 +314,7 @@ function buildConfirmationEmail(d: DemoData): EmailContent {
     "",
     "Si tienes preguntas, responde a este correo.",
     "Vivaru · Una solución de Qintilab S.A.S.",
-    "Ver Vivaru: https://grupovivaru.com/mx",
+    "Ver Vivaru: https://www.grupovivaru.com/",
   ].join("\n");
 
   return { subject, html, text };

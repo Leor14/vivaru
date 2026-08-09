@@ -79,7 +79,7 @@ describe("composición de la página", () => {
   // Los comentarios del archivo nombran secciones desactivadas («reactivar
   // descomentando <Pricing /> debajo de <TrustOnboarding />»), así que buscar
   // en crudo encuentra la mención antes que el montaje real. Se quitan primero.
-  const pagina = leer("src/app/(marketing)/mx/page.tsx")
+  const pagina = leer("src/app/(marketing)/page.tsx")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
     .replace(/^\s*\/\/.*$/gm, "");

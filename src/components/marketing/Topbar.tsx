@@ -38,9 +38,9 @@ import { Flecha } from "@/components/marketing/ui/flecha";
  */
 
 const NAV_LINKS = [
-  { label: "Producto", href: "/mx#solucion" },
-  { label: "Soluciones", href: "/mx#perspectivas" },
-  { label: "Recursos", href: "/mx#faq" },
+  { label: "Producto", href: "/#solucion" },
+  { label: "Soluciones", href: "/#perspectivas" },
+  { label: "Recursos", href: "/#faq" },
 ] as const;
 
 const PORTAL_LOGIN_TOOLTIP =
@@ -60,7 +60,7 @@ function useScrolled(threshold = 8) {
 function VivaruLogo({ className }: { className?: string }) {
   return (
     <Link
-      href="/mx"
+      href="/"
       aria-label="Vivaru — Inicio"
       className={cn(
         "inline-flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

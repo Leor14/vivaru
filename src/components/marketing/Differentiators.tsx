@@ -120,7 +120,7 @@ export function Differentiators() {
         id="diferenciadores-heading"
         className="max-w-3xl font-display text-h2 text-navy text-balance"
       >
-        6 razones para elegir Vivaru
+        6 razones para elegir Vivaru frente a Excel y WhatsApp
       </h2>
       <p className="mt-sm max-w-2xl text-base leading-relaxed text-slate-600">
         Pasa el cursor o toca cada una para ver el detalle.

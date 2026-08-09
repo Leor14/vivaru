@@ -19,22 +19,31 @@ import { URL_SITIO } from '@/lib/marketing/sitio';
  * recorta mejor y el que responde a la consulta.
  */
 export const metadata: Metadata = {
-  title: 'Software de administración de condominios en México | Vivaru',
+  title: 'Software de administración de condominios y conjuntos | Vivaru',
   description:
-    'Software para administrar condominios, conjuntos residenciales y fraccionamientos: cartera, cuotas, reservas, visitantes y PQRS en un solo lugar.',
+    'Software para administrar condominios y conjuntos residenciales en México, Colombia y Ecuador: cartera, cuotas, reservas, visitantes y solicitudes.',
   // Con `www`. El apex `grupovivaru.com` devuelve 404 —App Hosting solo tiene
   // configurado el subdominio—, así que apuntar aquí al dominio raíz hacía que
   // todas las URL absolutas de Open Graph y canónicas señalaran a un 404.
   metadataBase: new URL(URL_SITIO),
-  alternates: { canonical: '/mx' },
+  /*
+   * OJO: aquí NO va `alternates.canonical`, y no es un olvido.
+   *
+   * Next HEREDA la metadata del layout a todas las rutas hijas, así que un
+   * `canonical: '/mx'` puesto aquí se lo comía `/diagnostico` y las tres
+   * legales: cuatro páginas declarando ser un duplicado de `/mx`, que es la
+   * instrucción de no indexarlas por separado. Verificado en staging antes de
+   * promover, con la canónica ya desplegada ahí y todavía no en producción.
+   *
+   * Cada página declara la suya. Lo mismo vale para `openGraph.url`.
+   */
   openGraph: {
     title: 'Software de administración de condominios y conjuntos | Vivaru',
     description:
-      'Cartera, cuotas de mantenimiento, reservas, visitantes con QR y PQRS. Cada conjunto opera aislado, con sus propios datos y accesos.',
+      'Cartera, cuotas de mantenimiento, reservas, visitantes con QR, quejas y solicitudes (PQRS). Cada condominio opera aislado, con sus propios datos y accesos.',
     type: 'website',
     locale: 'es_MX',
     siteName: 'Vivaru',
-    url: '/mx',
     images: [
       {
         url: '/og-vivaru.jpg',
@@ -48,7 +57,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Software de administración de condominios y conjuntos | Vivaru',
     description:
-      'Cartera, cuotas de mantenimiento, reservas, visitantes con QR y PQRS, en un solo lugar.',
+      'Cartera, cuotas de mantenimiento, reservas, visitantes con QR, quejas y solicitudes, en un solo lugar.',
     images: ['/og-vivaru.jpg'],
   },
 };

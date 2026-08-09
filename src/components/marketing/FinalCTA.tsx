@@ -69,10 +69,10 @@ export function FinalCTA() {
               id="final-cta-heading"
               className="font-display text-hero-mobile md:text-hero text-navy text-balance"
             >
-              ¿Listo para transformar tu conjunto?
+              ¿Listo para transformar tu condominio?
             </h2>
             <p className="mt-md max-w-xl text-base leading-relaxed text-slate-600 md:text-lg">
-              15 días con tu conjunto cargado y datos de ejemplo listos. Sin
+              15 días con tu condominio cargado y datos de ejemplo listos. Sin
               tarjeta y sin instalar nada.
             </p>
 

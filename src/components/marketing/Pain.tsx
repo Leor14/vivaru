@@ -76,7 +76,7 @@ export function Pain() {
         id="dolor-heading"
         className="font-display text-h2 text-navy text-balance"
       >
-        ¿Cómo opera tu conjunto hoy?
+        ¿Cómo administras tu condominio hoy?
       </h2>
 
       <ul
