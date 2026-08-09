@@ -240,10 +240,14 @@ riesgo vivo**. El riesgo vivo es el contrario: construir y pagar capacidad que
 nadie usa. La aritmética de arriba sigue siendo válida como crítica interna de la
 estrategia; deja de ser válida como preocupación inmediata.
 
-Detalle a verificar antes de G5: la estrategia cita «Gemini 3.5 Flash-Lite» a
-USD 0.30 / 2.50 por millón de tokens. Esos son precios de la línea Flash, no de
-Flash-Lite. El error va a favor —sobreestima—, pero el número no debe citarse
-como verificado hasta cotejar el catálogo vigente de Vertex.
+**Sobre el modelo, corrección de esta misma auditoría.** Escribí primero que la
+estrategia citaba mal el precio de «Gemini 3.5 Flash-Lite». No lo citaba mal:
+verificado el 8 de agosto contra el tarifario oficial de Vertex, ese modelo
+existe y cuesta exactamente USD 0.30 / 2.50 por millón. Lo confundí con el precio
+de Gemini 2.5 Flash, que coincide. Lo que sí aporta la verificación es que hay
+una opción mejor en la misma familia: **Gemini 3.1 Flash-Lite, a USD 0.25 / 1.50**
+— más barata justo en la salida, que es donde pesa la redacción. Ver el registro
+de decisiones del Paso 0 en `docs/hoja-de-ruta-ia.md`.
 
 ## Lo que NO hay que revisar
 

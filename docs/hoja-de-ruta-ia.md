@@ -135,10 +135,9 @@ las puertas, y tienes que poder decir que no.**
 ya lo razona —un solo LLM económico en Vertex AI, más Document AI para OCR
 cuando toque— y el argumento es bueno: ya estás en Google Cloud, un proveedor
 único evita triplicar pruebas y contratos. Lo que hay que hacer es **ratificarlo
-o rechazarlo, y quitarlo de la lista de pendientes.** Antes de fijarlo hay que
-verificar el catálogo y los precios vigentes de Vertex: el documento cita
-«Gemini 3.5 Flash-Lite» a precios que son de la línea Flash, así que uno de los
-dos datos está viejo.
+o rechazarlo, y quitarlo de la lista de pendientes.** El catálogo y los precios
+quedaron verificados el 8 de agosto; el registro de la decisión está al final de
+este documento.
 
 **0.3 Presupuesto de experimentación.** Un número al mes y un tope duro. Para el
 canario, algo entre 20 y 50 dólares sobra de largo. El propósito no es controlar
