@@ -64,13 +64,25 @@ export function openGraphDe(ruta: string) {
   };
 }
 
-/** Rutas públicas indexables. Si se añade una página, va aquí. */
+/**
+ * Rutas públicas indexables. Si se añade una página, va aquí.
+ *
+ * El `titulo` no es decorativo: el `llms.txt` los emite como enlaces markdown
+ * `[titulo](url)`, que es el formato que su convención espera. Con las URL en
+ * texto plano el fichero existe pero no valida —lo detectó la auditoría con
+ * «Found llms.txt but missing links»— y se pierden los 10 puntos enteros.
+ *
+ * `/registro` entra aquí porque ya es indexable: vive en `(auth)`, cuyo layout
+ * pone `noindex` por defecto, y lo anula en su propio layout. Es la página de
+ * conversión de la prueba.
+ */
 export const RUTAS_PUBLICAS = [
-  { ruta: "/", prioridad: 1.0, frecuencia: "weekly" as const },
-  { ruta: "/diagnostico", prioridad: 0.8, frecuencia: "monthly" as const },
-  { ruta: "/legal/privacidad", prioridad: 0.3, frecuencia: "yearly" as const },
-  { ruta: "/legal/terminos", prioridad: 0.3, frecuencia: "yearly" as const },
-  { ruta: "/legal/datos", prioridad: 0.3, frecuencia: "yearly" as const },
+  { ruta: "/", titulo: "Inicio", prioridad: 1.0, frecuencia: "weekly" as const },
+  { ruta: "/registro", titulo: "Prueba gratis 15 días", prioridad: 0.9, frecuencia: "monthly" as const },
+  { ruta: "/diagnostico", titulo: "Diagnóstico de madurez digital", prioridad: 0.8, frecuencia: "monthly" as const },
+  { ruta: "/legal/privacidad", titulo: "Política de privacidad", prioridad: 0.3, frecuencia: "yearly" as const },
+  { ruta: "/legal/terminos", titulo: "Términos y condiciones", prioridad: 0.3, frecuencia: "yearly" as const },
+  { ruta: "/legal/datos", titulo: "Anexo de tratamiento de datos", prioridad: 0.3, frecuencia: "yearly" as const },
 ];
 
 /**

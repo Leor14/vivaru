@@ -90,7 +90,7 @@ ${PREGUNTAS_FRECUENTES.map(({ pregunta, respuesta }) => `### ${pregunta}\n${resp
 
 ## Páginas
 
-${RUTAS_PUBLICAS.map(({ ruta }) => `- ${URL_SITIO}${ruta}`).join("\n")}
+${RUTAS_PUBLICAS.map(({ ruta, titulo }) => `- [${titulo}](${URL_SITIO}${ruta})`).join("\n")}
 `;
 
   return new Response(cuerpo, {
