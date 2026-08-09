@@ -1,19 +1,51 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 8 de agosto de 2026.
+Actualizado el 8 de agosto de 2026, al cerrar la sesión de posicionamiento.
 
-## Listo para promocionar
+## Lo que se cerró y no hay que rehacer
 
-- **SEO técnico y datos estructurados** — en `develop` (`875db2e`), verificado
-  en un build de producción, **sin promocionar**. Producción sigue con el título
-  viejo y `/sitemap.xml` en 404. Detalle en `docs/auditoria-seo-y-llm.md`.
+- **El SEO técnico se promocionó.** Llevaba un mes parado en `develop`.
+  Producción sirve el landing en la raíz, `/mx` redirige con 308, y hay canónica
+  por página, sitemap, `llms.txt` válido y JSON-LD.
+- **Auditoría AEO: 44/100 (D) → 67/100 (C+)**, fundamentos de 34 a 76. El antes,
+  el después y **por qué no se persiguen los cuatro fallos restantes** están en
+  `docs/auditoria-aeo-base-ago2026.md`. Ojo con `image-alt`: es un falso positivo
+  del auditor sobre un patrón de accesibilidad correcto. **No lo «arregles».**
+- **Los Términos publicaban `[X días]`, `[Y días]` y `[Z días]`** en la cláusula
+  de mora, y el Anexo un placeholder del DPA de Google. Rellenados: 10/15/30.
+- **El copy dejó de hablar colombiano y dejó de nombrar países.** Vocabulario y
+  reglas en `docs/glosario-mercados.md`; qué cadena cambió y por qué, en
+  `docs/propuesta-copy-neutro.md`.
+- **Los correos de demo y de lead apuntaban al apex**, que devuelve 404. Cada
+  prospecto que pulsaba «Agenda una demo» desde el correo caía en una página
+  rota. Corregidos al `www`.
+
+## Decisiones cerradas, no reabrir sin que las pidan
+
+- **Panamá NO se anuncia.** Coincide con la precedencia técnica: el país fiscal
+  es `z.enum(["EC","CO","MX"])`, así que un conjunto panameño no se puede dar de
+  alta. Anotado en `PAISES` de `src/lib/marketing/sitio.ts`.
+- **Copy en español neutro.** La geografía sale de la prosa; los países viven
+  SOLO en `PAISES`. **Abrir un mercado es editar esa línea.**
+- **Primero se diferencia el contenido, después se parten las URL.** El día que
+  el copy de un país sea distinto, su ruta se justifica sola. Antes no.
+
+## Necesita asesoría legal, no redacción
+
+- **Ecuador no está cubierto.** Los tres documentos legales citan Colombia y
+  México; Ecuador está en `PAISES` y en el `areaServed` y no aparece en ninguno.
+  El brief, con el hueco localizado cláusula por cláusula, en
+  `docs/brief-legal-ecuador.md`. **No hay ningún conjunto ecuatoriano firmado**,
+  así que es riesgo medio y no urgente — pero el disparador es observable: el
+  registro del trial guarda `pais` en el lead y en el tenant.
 
 ## Necesitan consola, no código
 
-- **El apex `grupovivaru.com` devuelve 404.** Registro A y certificado
-  correctos; falla solo la verificación de propiedad, porque el TXT tiene un
-  token viejo. **Estos dos valores no están escritos en ningún otro sitio:**
+- **El apex `grupovivaru.com` devuelve 404.** El registro A es correcto
+  (`35.219.200.1`, el mismo que el `www`); falla solo la verificación de
+  propiedad porque el TXT tiene un token viejo. **Estos dos valores no están
+  escritos en ningún otro sitio:**
 
   ```
   quitar:  fah-claim=002-02-30634e11-5bdb-4497-8f2b-bfbac3583c19
@@ -21,9 +53,15 @@ Actualizado el 8 de agosto de 2026.
   ```
 
   No tocar el registro A. **No borrar y volver a añadir el dominio en App
-  Hosting:** cada alta genera un token nuevo y reproduce el fallo. La zona DNS
-  no está en ninguno de los siete proyectos accesibles con `dev@qintilab.com`;
-  probablemente esté bajo `luisEOteroR@gmail.com`. Estado consultable con
+  Hosting:** cada alta genera un token nuevo y reproduce el fallo.
+
+  Dato nuevo del 8-ago: los nameservers son `ns-cloud-d1..d4.googledomains.com`,
+  o sea que **la zona vive en Google Cloud DNS**, no en un registrador.
+  Reconfirmado que no es visible desde `dev@qintilab.com`. **Y la misma cuenta
+  Owner que hace falta aquí es la que lleva meses bloqueando la URL de acción de
+  Firebase Auth: dos pendientes de largo plazo, un solo inicio de sesión.**
+  Conviene pedir `roles/dns.admin` sobre ese proyecto en vez de un arreglo
+  puntual. Estado consultable con
   `GET firebaseapphosting.googleapis.com/v1beta/…/backends/vivaru/domains`.
 
 - **Dimensiones personalizadas de GA4** sin registrar: `entorno`, `section` y
@@ -39,8 +77,34 @@ Actualizado el 8 de agosto de 2026.
   (admin, portería y tres residentes del conjunto Las Playas, dominio
   `david.macar.18+*@hotmail.com`).
 
-## Deuda menor, del app autenticado
+## En parking lot
 
+- **Cobranza de la suscripción.** La cláusula 5.5 de los Términos compromete una
+  escalera de mora 10/15/30 que **no ejecuta ningún proceso**: hay que suspender
+  a mano desde la consola. PRD completa en Drive,
+  `PRD-V-OPS-001 — Cobranza de la suscripción`. Dos puertas la bloquean y
+  ninguna es técnica: **G1** no hay baseline (contar conjuntos `active` contra
+  cobros recibidos) y **G5** nadie tiene asignada la cobranza. Al salir del
+  parking lot su sitio es
+  `docs/prd/funcionales/PRD-V-OPS-001-cobranza-suscripcion.md`.
+
+## Deuda conocida, con su porqué
+
+- **Las respuestas del FAQ no llegan al DOM.** El acordeón arranca cerrado y no
+  monta el contenido: solo existen en el JSON-LD y en el payload RSC. Eso hace
+  que **el marcado `FAQPage` sea la única copia citable**, y convierte la
+  duplicación entre `FAQ.tsx` y `sitio.ts` en algo que hay que proteger, no
+  limpiar. `landing-contract.test.ts` solo compara las PREGUNTAS; las respuestas
+  se sostienen a mano.
+- **El comentario de `FondoHero` viaja al navegador.** Es un comentario CSS
+  dentro del `<style>`, no JSX, así que el compilador no lo borra: 3,5 KB de los
+  4,5 KB de comentarios que se sirven en cada visita. Documenta cómo se calibró
+  el contraste del fondo animado y **tiene valor**; lo correcto es moverlo a un
+  comentario de TypeScript encima del componente, no borrarlo.
+- **El contrato y el sistema no dicen lo mismo sobre la suspensión.**
+  `terminos.md` §5.5 promete que «inhabilita el acceso»; `tenantOperable()` deja
+  solo lectura. El cliente recibe más de lo prometido. Recomendación en la PRD:
+  cambiar el texto, no el código.
 - `src/lib/firebase/client.ts:20` incrusta el `measurementId` de producción como
   respaldo, contradiciendo la política que documenta `config.ts`. Al lado, un
   `projectNumber` de producción que también se aplica corriendo contra staging.
@@ -54,9 +118,17 @@ Actualizado el 8 de agosto de 2026.
 
 ## Decisiones de negocio, no técnicas
 
-- Puntos 6 a 8 de `docs/auditoria-seo-y-llm.md`: reescribir tres o cuatro `H2`,
-  publicar precios y crear páginas por intención. El punto 8 exige validar
-  volúmenes de búsqueda antes de construir nada.
+- **Publicar precios** (punto 7 de `docs/auditoria-seo-y-llm.md`). `Pricing.tsx`
+  existe y está comentado en la página. Es una de las consultas con más
+  intención de compra de la categoría.
+- **Páginas por intención** (punto 8). Exige validar volúmenes de búsqueda antes
+  de construir nada. Las skills de investigación están en `~/.claude/skills/`;
+  `research-keywords` necesita una key de SerpAPI de pago.
+- **`/registro` y `/diagnostico` fallan profundidad de contenido.** Son
+  formularios. Se arregla con contenido de verdad, y eso es decisión de
+  conversión, no de SEO. **No rellenar con paja.**
+- **Feed RSS.** Vale 8 puntos en la auditoría, pero presupone publicar contenido
+  con regularidad. Un feed vacío no sirve.
 - El fondo del hero se mueve 23,3 en escritorio y 9,1 en móvil. No es un fallo
   —la sección vertical deja menos superficie libre—, pero si molesta se trata
   aparte con su propia consulta de medios.
