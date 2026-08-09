@@ -42,6 +42,18 @@ Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
   —solo lectura— y mirar si la columna «Real» se movió; los gold sets piden
   150–250 tickets y 100–200 comprobantes. Medición y lectura completa en
   `docs/auditoria-prd-ia-ago2026.md`.
+- **La hoja de ruta para habilitarlo está escrita**, con el orden confirmado
+  —Plataforma → Comunicaciones → PQRS → Onboarding → Comprobantes—, la lógica
+  explicada para primer proyecto de IA y el reparto de quién hace qué:
+  `docs/hoja-de-ruta-ia.md`. **El canario sí es ejecutable hoy**: comunicaciones
+  es la única capacidad cuya entrada la escribe el administrador, no la base de
+  datos, así que su conjunto de evaluación se construye y el muro de datos no la
+  toca. El muro aparece en el paso 3, PQRS.
+- **Lo que hay que empezar a acumular ya**, aunque la IA no exista: tiempos de
+  redacción a mano, clasificación en sombra de cada ticket, el archivo de
+  importación de cada conjunto nuevo, y comprobantes anonimizados. Es la
+  diferencia entre que cada paso tarde una semana o tres meses. Tabla en la
+  Parte IV de la hoja de ruta.
 - **Las cinco PRD de IA están cotejadas contra el código y son sólidas.** No hay
   que rehacerlas: todo lo que declaran como baseline existe con el nombre
   exacto. Quedan válidas y en espera. Los cuatro hallazgos que mueven el plan y
