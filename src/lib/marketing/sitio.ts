@@ -104,7 +104,7 @@ export const PREGUNTAS_FRECUENTES: Array<{ pregunta: string; respuesta: string }
   {
     pregunta: "¿Cómo se manejan los datos personales de mis residentes?",
     respuesta:
-      "Vivaru cumple con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP). El detalle está en la Política de Privacidad y en el Anexo de Tratamiento de Datos.",
+      "Los datos son del condominio, no de Vivaru: el administrador es el responsable del tratamiento y Vivaru los trata por encargo suyo, solo para prestar el servicio. Vivaru no vende ni cede datos a terceros, y si cancelas tienes 90 días para exportarlo todo antes del borrado definitivo. Esa relación se firma en el Anexo de Tratamiento de Datos, que forma parte del contrato. El detalle está en la Política de Privacidad y en el Anexo de Tratamiento de Datos.",
   },
   {
     pregunta: "¿Qué pasa si quiero cancelar?",
@@ -149,13 +149,19 @@ export const MODULOS = [
  *
  * **Abrir un país es editar esta línea.** Ese es el objetivo del arreglo.
  *
- * PENDIENTE — Panamá. Decisión comercial abierta, y hay una precedencia
+ * PANAMÁ QUEDA FUERA — decidido el 8 de agosto de 2026, no volver a
+ * proponerlo sin que lo pida el usuario. Coincide con la precedencia
  * técnica: el selector de país fiscal es un enum cerrado de tres valores
  * (`src/features/finanzas/schemas.ts`, `country: z.enum(["EC","CO","MX"])`) y
  * `PRIMARY_COUNTRIES` en `src/lib/countries.ts` tampoco lo incluye, así que un
  * conjunto panameño NO se puede dar de alta hoy. La moneda sí está cubierta:
  * Panamá usa dólar y `AppCurrency` ya acepta USD. Anunciarlo antes de abrir el
- * enum manda prospectos a un alta que se rompe. Ya estaba anotado como VIV-1801
- * en el triaje de la auditoría UX.
+ * enum mandaría prospectos a un alta que se rompe. Ya estaba anotado como
+ * VIV-1801 en el triaje de la auditoría UX.
+ *
+ * ECUADOR está en la lista pero NO aparece en ninguno de los tres documentos
+ * legales, que citan Colombia y México. Es un hueco de asesoría legal, no de
+ * redacción: o los documentos lo cubren, o Ecuador sale de aquí igual que
+ * Panamá. Mientras tanto el FAQ ya no afirma cumplimiento por país.
  */
 export const PAISES = ["México", "Colombia", "Ecuador"];
