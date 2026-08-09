@@ -26,14 +26,29 @@ import { FondoHero } from "@/components/marketing/FondoHero";
  */
 export type HeroVariant = "inst" | "aggr" | "exec";
 
+/**
+ * OJO al titular: lleva «conjunto residencial» a propósito.
+ *
+ * La auditoría de agosto de 2026 (`docs/auditoria-seo-y-llm.md`) encontró que
+ * el cuerpo del landing tenía 1.264 palabras y esa frase exacta aparecía CERO
+ * veces, igual que «software», «propiedad horizontal» y «México». El titular
+ * era «Control residencial, vida más simple.»: buena frase de marca y una
+ * consulta que nadie escribe. El H1 es la segunda señal más fuerte de una
+ * página sobre de qué trata, después del title.
+ *
+ * La edición es deliberadamente mínima —se conserva el ritmo y el remate— para
+ * no perder la voz por ganar una palabra clave.
+ */
 const H1_BY_VARIANT: Record<HeroVariant, string> = {
-  inst: "Control residencial, vida más simple.",
+  inst: "Control de tu condominio residencial, vida más simple.",
   aggr: "Deja de administrar tu conjunto entre WhatsApp, Excel y cuadernos de portería.",
   exec: "La plataforma para operar comunidades residenciales con control, trazabilidad y orden.",
 };
 
+// Mismo motivo que el titular: aquí entran «software», «administrar» y
+// «México», las tres con cero apariciones en toda la página antes de esto.
 const SUB =
-  "La plataforma para operar conjuntos, condominios y fraccionamientos con orden, trazabilidad y autoservicio.";
+  "El software para administrar condominios y conjuntos residenciales en Latinoamérica, con orden, trazabilidad y autoservicio.";
 const TRUST =
   "Demo y Activación en menos de 72 horas · Soporte en español";
 

@@ -7,6 +7,39 @@ SaaS multi-tenant de administración de propiedad horizontal para LATAM (México
 - **Código (este repo):** `/Users/david/Vivaru_Rep/vivaru/`
 - **Documentos del proyecto:** `/Users/david/Claude Coworker/Hogaru/Hogaru/` — agrégala con `claude --add-dir "/Users/david/Claude Coworker/Hogaru/Hogaru"`.
 
+## Cómo se trabaja aquí (leer antes de tocar nada)
+
+**`docs/pendientes.md`** — qué quedó a medias y dónde está el detalle. Leerlo
+al abrir sesión.
+
+**`docs/flujo-de-trabajo-con-claude.md`.** Cuántas ventanas abrir y cómo
+repartirlas, cuándo commitear, cuándo cerrar una sesión y cómo dejar el
+traspaso. Sale de una sesión de ocho frentes en la que se perdieron cosas por no
+tenerlo escrito.
+
+Lo mínimo, si no se lee nada más:
+
+1. **Antes de tocar nada:** `git status`, rama actual, y qué hay desplegado en
+   cada ambiente. Una vez se trabajó siete mensajes sobre la rama equivocada.
+2. **Una sola sesión que escriba a la vez.** El estado de git es global.
+3. **Medir, no mirar.** Y después de cada push, comprobar que el remoto se movió
+   (`git rev-parse origin/<rama>`): un push sin cambios responde «success».
+4. **Cerrar en estado limpio**, no por reloj.
+
+**Avisar del punto de corte.** Cuando se cumplan las TRES a la vez —árbol
+limpio y empujado con el remoto verificado, objetivo de la sesión cumplido, y el
+siguiente trabajo toca **otra superficie**— decirlo en una línea y seguir:
+
+> Punto de corte limpio. Si lo siguiente es <otra superficie>, conviene cerrar
+> aquí y abrir sesión nueva; te dejo el índice de traspaso.
+
+Las tres condiciones son necesarias. Estar limpio a mitad del mismo frente es un
+punto de guardado, no un motivo para cerrar: el trabajo relacionado debe seguir
+junto —cambiar el titular por SEO tumbó el contraste del hero, y se detectó solo
+porque iban en la misma sesión—. **No repetirlo en cada commit**: si se avisa
+siempre, se deja de leer. Y no usarlo para soltar trabajo a medias: si el
+objetivo no está cumplido, no es punto de corte.
+
 ## Stack
 
 Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@theme {}` en globals.css, NO `tailwind.config.ts`), Firebase (Auth, Firestore, Cloud Functions v2, App Hosting), Zod + React Hook Form. Deploy del front por **App Hosting** (push a `master`).

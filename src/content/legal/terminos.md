@@ -93,7 +93,7 @@ Al vencimiento de cada período contratado, la suscripción se renovará automá
 
 **5.5 Mora y suspensión por falta de pago**
 
-Si el Administrador no efectúa el pago de la suscripción dentro de los **[X días]** calendario siguientes a la fecha de vencimiento, Vivaru enviará una notificación de mora al correo registrado. Si el pago no se acredita dentro de los **[Y días]** calendario siguientes a dicha notificación, Vivaru podrá **suspender** el acceso al servicio (*estado suspended*). Durante la suspensión, los datos del conjunto permanecen almacenados pero el acceso a la plataforma queda inhabilitado. Si el pago no se regulariza dentro de los **[Z días]** calendario siguientes a la suspensión, Vivaru podrá proceder a la **cancelación definitiva** del servicio conforme a la cláusula 12 de este contrato.
+Si el Administrador no efectúa el pago de la suscripción dentro de los **10 días** calendario siguientes a la fecha de vencimiento, Vivaru enviará una notificación de mora al correo registrado. Si el pago no se acredita dentro de los **15 días** calendario siguientes a dicha notificación, Vivaru podrá **suspender** el acceso al servicio (*estado suspended*). Durante la suspensión, los datos del conjunto permanecen almacenados pero el acceso a la plataforma queda inhabilitado. Si el pago no se regulariza dentro de los **30 días** calendario siguientes a la suspensión, Vivaru podrá proceder a la **cancelación definitiva** del servicio conforme a la cláusula 12 de este contrato.
 
 **5.6 Precios**
 
@@ -272,9 +272,6 @@ Los siguientes campos requieren información definitiva del equipo Vivaru antes 
 - `902060869-1` — Número de Identificación Tributaria de Qintilab S.A.S.
 - `Calle 110 #15-36` — Domicilio social registrado
 - `Bogotá D.C.` — Ciudad para efectos de jurisdicción
-- `[X días]` — Días de mora antes de la notificación formal
-- `[Y días]` — Días adicionales antes de la suspensión del servicio
-- `[Z días]` — Días en estado suspendido antes de la cancelación definitiva
 
 ---
 

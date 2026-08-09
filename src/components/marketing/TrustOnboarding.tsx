@@ -48,7 +48,7 @@ const ITEMS: Item[] = [
     meta: "Activación",
     metaColor: "text-brand-teal",
     title: "Migra tu cartera en pocas horas",
-    body: "Importa unidades, residentes y la cartera con la que llega tu conjunto desde Excel. Operas el día 1 con tu realidad, no desde cero.",
+    body: "Importa unidades, residentes y la cartera con la que llega tu condominio desde Excel. Operas el día 1 con tu realidad, no desde cero.",
     shot: {
       alt: "Importación de unidades y residentes desde Excel",
       width: 1280,
@@ -208,10 +208,10 @@ export function TrustOnboarding() {
         id="trust-heading"
         className="max-w-3xl font-display text-h2 text-navy text-balance"
       >
-        Empieza sin fricción, opera con confianza
+        Migra desde Excel y opera con confianza
       </h2>
       <p className="mt-md max-w-2xl text-base leading-relaxed text-slate-600">
-        Migra tu conjunto de forma fácil y sin fricciones.
+        Migra tu condominio de forma fácil y sin fricciones.
       </p>
 
       <ul

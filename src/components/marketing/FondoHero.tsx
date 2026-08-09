@@ -95,6 +95,13 @@ export function FondoHero({ className }: { className?: string }) {
            alguien vuelve a poner recorridos diagonales grandes, el contraste se
            cae y no es evidente por qué.
 
+           El nucleo subio de 0,86 a 0,92 en agosto de 2026, cuando el titular
+           se alargo por SEO («Control de tu condominio residencial…») y la seccion
+           paso de 517 a 593 px de alto. Al ser todo porcentual, el nucleo pasaba
+           a cubrir proporcionalmente menos zona de texto y el contraste bajo de
+           4,93 a 4,59. Si el titular vuelve a cambiar de longitud, hay que
+           volver a medir esto.
+
            Estado medido, con el contraste tomado a lo largo del ciclo y no en
            un solo fotograma:
 
@@ -110,7 +117,7 @@ export function FondoHero({ className }: { className?: string }) {
         .fh-core {
           top: 2%; left: -6%; width: 92%; height: 68%;
           background: radial-gradient(ellipse closest-side,
-            rgba(255,255,255,0.86) 0%, rgba(255,255,255,0) 100%);
+            rgba(255,255,255,0.92) 0%, rgba(255,255,255,0) 100%);
           animation: fondoHero-core 9s ease-in-out infinite alternate;
         }
         .fh-corn {

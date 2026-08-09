@@ -2,9 +2,13 @@ import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { openGraphDe } from "@/lib/marketing/sitio";
 import { markdownToHtml } from "@/lib/marketing/markdown";
 
 export const metadata: Metadata = {
+  openGraph: openGraphDe("/legal/terminos"),
+  // Propia, no heredada: el layout ya no declara canonica (heredaba la de /mx).
+  alternates: { canonical: "/legal/terminos" },
   title: "Términos y Condiciones — Vivaru",
   description:
     "Términos y condiciones del servicio SaaS de Vivaru SAS para administradoras y conjuntos residenciales.",

@@ -2,9 +2,13 @@ import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { openGraphDe } from "@/lib/marketing/sitio";
 import { markdownToHtml } from "@/lib/marketing/markdown";
 
 export const metadata: Metadata = {
+  openGraph: openGraphDe("/legal/privacidad"),
+  // Propia, no heredada: el layout ya no declara canonica (heredaba la de /mx).
+  alternates: { canonical: "/legal/privacidad" },
   title: "Política de Privacidad — Vivaru",
   description:
     "Conoce cómo Vivaru SAS trata los datos personales de acuerdo con la LFPDPPP.",

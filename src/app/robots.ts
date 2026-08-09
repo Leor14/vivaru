@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { isProduction } from "@/lib/env";
+import { URL_SITIO } from "@/lib/marketing/sitio";
 
 /**
  * `robots.txt` dependiente del ambiente.
@@ -27,5 +28,8 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/admin", "/resident", "/guard", "/superadmin", "/api/"],
       },
     ],
+    // Declararlo aquí es lo que hace que el sitemap sirva de algo: sin esta
+    // línea, `/sitemap.xml` existe y nadie lo va a buscar.
+    sitemap: `${URL_SITIO}/sitemap.xml`,
   };
 }

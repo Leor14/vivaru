@@ -32,7 +32,13 @@ const BULLETS = [
   // de copy.
   "Si llevas varios conjuntos, cada uno tiene su propio espacio de trabajo y su propio acceso.",
   "Identidad propia por conjunto: nombre, logo y colores personalizados.",
-  "Único en el mercado mexicano con este nivel de aislamiento.",
+  // Aquí decía «Único en el mercado mexicano con este nivel de aislamiento».
+  // Dos problemas en una frase: acotaba el diferenciador a un país en una
+  // página que vende a toda la región, y «único en el mercado» es un
+  // superlativo sin estudio detrás — la misma razón por la que se retiraron
+  // los porcentajes del ImpactBand. Lo sustituye algo que sí se puede
+  // enseñar señalando el producto.
+  "El aislamiento lo imponen las reglas del sistema, no una configuración que se pueda cambiar por error.",
 ];
 
 export function MultiConjunto() {
@@ -48,7 +54,7 @@ export function MultiConjunto() {
             id="multi-heading"
             className="font-display text-h2 text-navy text-balance"
           >
-            Cada conjunto, su propio sistema
+            Varios condominios, cada uno con su propio sistema
           </h2>
           <ul role="list" className="mt-lg space-y-3">
             {BULLETS.map((b) => (

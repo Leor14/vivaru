@@ -1,62 +1,22 @@
-import { Topbar } from '@/components/marketing/Topbar';
-import { Footer } from '@/components/marketing/Footer';
-import { Hero } from '@/components/marketing/Hero';
-import { ProductGlimpse } from '@/components/marketing/ProductGlimpse';
-import { ImpactBand } from '@/components/marketing/ImpactBand';
-import { Pain } from '@/components/marketing/Pain';
-import { Solution } from '@/components/marketing/Solution';
-import { MultiConjunto } from '@/components/marketing/MultiConjunto';
-import { PerspectivesLazy } from '@/components/marketing/PerspectivesLazy';
-import { CasosDeUso } from '@/components/marketing/CasosDeUso';
-import { Differentiators } from '@/components/marketing/Differentiators';
-import { TrustOnboarding } from '@/components/marketing/TrustOnboarding';
-// import { Pricing } from '@/components/marketing/Pricing';
-// import { Pilot } from '@/components/marketing/Pilot';
-import { FAQ } from '@/components/marketing/FAQ';
-import { FinalCTA } from '@/components/marketing/FinalCTA';
-import { MarquesinaModulos } from '@/components/marketing/MarquesinaModulos';
+import { permanentRedirect } from 'next/navigation';
 
 /**
- * Marketing home — grupovivaru.com /
+ * `/mx` ya no sirve el landing: lo sirve la raíz.
  *
- * Section order: Topbar → Hero → ImpactBand → Pain → Solution →
- * Perspectives → CasosDeUso → MultiConjunto → Differentiators →
- * TrustOnboarding → FAQ → FinalCTA → Footer. CookieBanner lives
- * in (marketing)/layout.tsx so it also appears on /diagnostico and /legal/*.
+ * Se invirtió la redirección en agosto de 2026, cuando la estrategia pasó de
+ * México solo a México, Colombia y Ecuador con un copy neutro. El porqué está
+ * en `(marketing)/page.tsx`.
  *
- * HIDDEN: Pricing ocultada a pedido (segmentos/datos de unidades por revisar).
- * Reactivar descomentando el import y <Pricing /> debajo de <TrustOnboarding />.
+ * **Esta ruta no se borra, y no es un detalle.** `/mx` es la única URL con
+ * contenido que ha existido del sitio: es la que está enlazada desde fuera, la
+ * que la gente compartió y la que Google conoce. Borrarla convertiría todo eso
+ * en 404 y tiraría la poca autoridad acumulada. Con 308 se transfiere.
  *
- * HIDDEN: Pilot removed — decisión comercial pendiente HITL H4 + fee.
- * Reactivar descomentando el import y añadiendo <Pilot /> debajo de <Pricing />.
+ * `permanentRedirect` y no `redirect`: el segundo emite 307 (temporal), que le
+ * dice a Google que NO consolide autoridad en el destino, que es justo lo
+ * contrario de lo que se busca al mover una página. Mismo motivo por el que la
+ * raíz ya usaba 308 cuando redirigía hacia aquí.
  */
-export default function Home() {
-  return (
-    <>
-      <Topbar />
-      <main className="bg-background text-foreground">
-        <Hero />
-        <ProductGlimpse />
-        <ImpactBand />
-        <Pain />
-        <Solution />
-        <MarquesinaModulos />
-        <PerspectivesLazy />
-        <CasosDeUso />
-        <MultiConjunto />
-        <Differentiators />
-        <TrustOnboarding />
-        {/* HIDDEN — sección de planes ocultada a pedido (datos de unidades por revisar) */}
-        {/* <Pricing /> */}
-        {/* HIDDEN — HITL H4 + fee pendiente */}
-        {/* <Pilot /> */}
-        <FAQ />
-        <FinalCTA />
-
-        {/* Spacer so the fixed mobile bottom CTA doesn't clip the last section. */}
-        <div className="h-24 md:hidden" aria-hidden="true" />
-      </main>
-      <Footer />
-    </>
-  );
+export default function MxPage() {
+  permanentRedirect('/');
 }

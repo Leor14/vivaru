@@ -139,7 +139,7 @@ export function CasosDeUso() {
             id="casos-heading"
             className="font-display text-h2 text-navy text-balance"
           >
-            Así se ve un mes con Vivaru
+            Así se administra un condominio, mes a mes
           </h2>
           <p className="mt-md text-base leading-relaxed text-slate-600">
             De la promesa al día a día: un caso real por perfil.

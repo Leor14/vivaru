@@ -196,7 +196,7 @@ export function buildLeadConfirmationEmail(
       </div>
 
       <div style="text-align:center;margin:32px 0;">
-        <a href="https://grupovivaru.com/mx" style="display:inline-block;background:#4B5FD4;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Agenda una demo de 20 min →</a>
+        <a href="https://www.grupovivaru.com/" style="display:inline-block;background:#4B5FD4;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Agenda una demo de 20 min →</a>
       </div>
 
       <div style="margin-top:32px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:12px;color:#94A3B8;text-align:center;">
@@ -223,7 +223,7 @@ export function buildLeadConfirmationEmail(
     ``,
     `Lo que esto significa: ${recommendation.roiHook}`,
     ``,
-    `Agenda una demo: https://grupovivaru.com/mx`,
+    `Agenda una demo: https://www.grupovivaru.com/`,
     ``,
     `Si tienes preguntas, responde a este correo.`,
     `Vivaru · Una solución de Qintilab S.A.S.`,

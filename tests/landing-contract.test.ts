@@ -79,7 +79,7 @@ describe("composición de la página", () => {
   // Los comentarios del archivo nombran secciones desactivadas («reactivar
   // descomentando <Pricing /> debajo de <TrustOnboarding />»), así que buscar
   // en crudo encuentra la mención antes que el montaje real. Se quitan primero.
-  const pagina = leer("src/app/(marketing)/mx/page.tsx")
+  const pagina = leer("src/app/(marketing)/page.tsx")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, "")
     .replace(/^\s*\/\/.*$/gm, "");
@@ -239,5 +239,33 @@ describe("la marquesina de módulos", () => {
     // Sin la copia, al llegar al -50 % habría un salto visible por vuelta.
     expect(fuente).toMatch(/<Tira \/>/);
     expect(fuente).toMatch(/<Tira oculta \/>/);
+  });
+});
+
+describe("datos estructurados", () => {
+  /**
+   * Las preguntas viven duplicadas: `FAQ.tsx` las renderiza con enlaces (JSX) y
+   * `lib/marketing/sitio.ts` las repite en texto plano para el marcado
+   * `FAQPage`. No se pueden unificar sin arrastrar JSX al módulo de datos.
+   *
+   * El riesgo real es que alguien edite una pregunta en la pantalla y el
+   * marcado siga declarando la vieja: Google y los motores de respuesta
+   * citarían algo que la página ya no dice, y no falla nada visible.
+   */
+  const enunciados = (fuente: string) =>
+    [...fuente.matchAll(/(?:question|pregunta):\s*\n?\s*"([^"]+)"/g)].map((m) => m[1]);
+
+  it("el marcado FAQPage declara las mismas preguntas que la pantalla", () => {
+    const enPantalla = enunciados(marketing("FAQ.tsx"));
+    const enMarcado = enunciados(leer("src/lib/marketing/sitio.ts"));
+    expect(enPantalla.length).toBeGreaterThan(0);
+    expect(enMarcado).toEqual(enPantalla);
+  });
+
+  it("el landing emite JSON-LD con las tres entidades", () => {
+    const fuente = marketing("DatosEstructurados.tsx");
+    for (const tipo of ["Organization", "SoftwareApplication", "FAQPage"]) {
+      expect(fuente).toContain(`"@type": "${tipo}"`);
+    }
   });
 });

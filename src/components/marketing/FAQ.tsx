@@ -25,20 +25,20 @@ type Q = { id: number; question: string; answer: React.ReactNode };
 const QUESTIONS: Q[] = [
   {
     id: 1,
-    question: "¿Funciona para conjuntos de casas o solo edificios?",
+    question: "¿Funciona para fraccionamientos de casas o solo edificios?",
     answer: (
       <p>
         Sí. Vivaru opera sobre cualquier régimen de propiedad horizontal:
         condominios verticales (edificios), conjuntos cerrados,
         fraccionamientos, privadas y comunidades residenciales en general.
-        Cada conjunto se configura como un sistema independiente, sea de 50
+        Cada condominio se configura como un sistema independiente, sea de 50
         casas o 300 departamentos.
       </p>
     ),
   },
   {
     id: 2,
-    question: "¿Qué tan rápido entra en operación mi conjunto?",
+    question: "¿Qué tan rápido entra en operación mi condominio?",
     answer: (
       <p>
         Activación promedio: 72 horas hábiles desde la firma del contrato.
@@ -62,11 +62,36 @@ const QUESTIONS: Q[] = [
   {
     id: 5,
     question: "¿Cómo se manejan los datos personales de mis residentes?",
+    /*
+     * Aquí decía «Cumplimos con la LFPDPPP», y tenía tres problemas.
+     *
+     * Uno, nombraba SOLO la ley mexicana, mientras los propios documentos
+     * legales llevan como marco principal el colombiano (Ley 1581 de 2012,
+     * Decreto 1377 de 2013) porque Qintilab S.A.S. está domiciliada en Bogotá.
+     * Dos, Ecuador es un mercado declarado en `PAISES` y no aparece en ninguno
+     * de los tres documentos. Y tres, «cumplimos con <ley>» es una afirmación
+     * de cumplimiento por jurisdicción: la clase de frase que hay que poder
+     * defender ante un cliente y ante un regulador, y que no debe fijar un
+     * agente ni un redactor.
+     *
+     * Lo que la sustituye NO afirma cumplimiento: dice qué hace Vivaru, y cada
+     * pieza está respaldada por el contrato — responsable/encargado
+     * (`datos.md` §1), propiedad de los datos y no cesión a terceros
+     * (`terminos.md` §9.1 y §9.3), 90 días de exportación y borrado definitivo
+     * (`datos.md` §10.2). Los documentos siguen siendo la fuente autorizada y
+     * son los que nombran cada marco normativo.
+     *
+     * PENDIENTE de asesoría legal, no de redacción: que los documentos cubran
+     * Ecuador, o que se decida sacarlo de `PAISES` hasta que lo cubran.
+     */
     answer: (
       <p>
-        Cumplimos con la Ley Federal de Protección de Datos Personales en
-        Posesión de los Particulares (LFPDPPP). Puedes ver el detalle en
-        nuestra{" "}
+        Los datos son del condominio, no de Vivaru: el administrador es el
+        responsable del tratamiento y Vivaru los trata por encargo suyo, solo
+        para prestar el servicio. Vivaru no vende ni cede datos a terceros, y si
+        cancelas tienes 90 días para exportarlo todo antes del borrado
+        definitivo. Esa relación se firma en el Anexo de Tratamiento de Datos,
+        que forma parte del contrato. El detalle está en nuestra{" "}
         <a
           href="/legal/privacidad"
           className="text-brand-blue underline underline-offset-4 hover:text-navy"
@@ -132,7 +157,7 @@ export function FAQ() {
         id="faq-heading"
         className="max-w-3xl font-display text-h2 text-navy text-balance"
       >
-        Preguntas frecuentes
+        Preguntas frecuentes sobre la administración de condominios
       </h2>
       <p className="mt-sm max-w-2xl text-sm leading-relaxed text-slate-600">
         Lo que normalmente preguntan los administradores antes de agendar

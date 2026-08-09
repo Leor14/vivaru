@@ -184,7 +184,7 @@ El Responsable, mediante la firma de este Anexo, autoriza expresamente a Vivaru 
 | Servicios utilizados | Firebase (Firestore, Authentication, Storage, App Hosting), Google Cloud Functions, Google Cloud Platform |
 | Región de almacenamiento | us-central1 (Iowa, Estados Unidos) |
 | Certificaciones | ISO/IEC 27001, SOC 2 Tipo II, ISO/IEC 27017, ISO/IEC 27018 |
-| Términos de procesamiento de datos | [URL de DPA de Google — insertar enlace al Data Processing Amendment de Google Cloud] |
+| Términos de procesamiento de datos | https://cloud.google.com/terms/data-processing-addendum |
 
 Google LLC accede a los datos únicamente para operar la infraestructura técnica de la plataforma, conforme a sus propios términos de procesamiento de datos, y no los utiliza para fines propios.
 
@@ -357,7 +357,6 @@ Los siguientes campos requieren información definitiva antes de la suscripción
 - `902060869-1` — Número de Identificación Tributaria de Qintilab S.A.S.
 - `Calle 110 #15-36` — Domicilio social registrado
 - `Bogotá D.C.` — Ciudad para efectos de jurisdicción y notificaciones
-- `[URL de DPA de Google]` — Enlace al Data Processing Amendment vigente de Google Cloud Platform (disponible en cloud.google.com/terms/data-processing-addendum o equivalente actualizado)
 - Datos del Responsable (Administrador) en la tabla de la cláusula 1.1 — se completan en cada Orden de Servicio individual
 
 ---
