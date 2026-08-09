@@ -31,14 +31,22 @@ Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
 - **Primero se diferencia el contenido, después se parten las URL.** El día que
   el copy de un país sea distinto, su ruta se justifica sola. Antes no.
 
-## Frente de IA — auditado, sin construir
+## Frente de IA — congelado por falta de datos, no por gobierno
 
+- **Medido el 8 de agosto: producción tiene 0 tickets reales, 0 comprobantes y
+  2 comunicaciones** en toda su historia. Todo lo demás que se cuenta pertenece
+  a los tenants sembrados. **No falta owner, ni presupuesto, ni proveedor:
+  falta operación.** No tiene sentido cotizar ni nombrar a nadie para evaluar
+  capacidades sobre procesos que se ejecutan cero veces al mes. Para reabrir
+  basta volver a correr `functions/scripts/audit-volumen-ia.mjs <projectId>`
+  —solo lectura— y mirar si la columna «Real» se movió; los gold sets piden
+  150–250 tickets y 100–200 comprobantes. Medición y lectura completa en
+  `docs/auditoria-prd-ia-ago2026.md`.
 - **Las cinco PRD de IA están cotejadas contra el código y son sólidas.** No hay
-  que rehacerlas: todo lo que declaran como baseline existe con el nombre exacto.
-  El portafolio entero está atascado en la misma puerta —G1, nadie ha medido
-  nada— y **el siguiente paso es contar volúmenes, no nombrar responsables.**
-  Los cuatro hallazgos que sí mueven el plan, la corrección de las puertas
-  G0–G7 y el margen económico real, en `docs/auditoria-prd-ia-ago2026.md`.
+  que rehacerlas: todo lo que declaran como baseline existe con el nombre
+  exacto. Quedan válidas y en espera. Los cuatro hallazgos que mueven el plan y
+  la corrección de las puertas G0–G7 —que el documento de transferencia numera
+  mal— están en el mismo documento.
 - **`FEAT-001` no necesita IA para su primera mitad.** Su Fase 2 es «parser,
   reglas y preview sin IA» sobre `papaparse` y `xlsx`, que ya están instalados.
   Sacarla del programa de IA y tratarla como producto normal genera el baseline
@@ -115,6 +123,17 @@ Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
   `docs/prd/funcionales/PRD-V-OPS-001-cobranza-suscripcion.md`.
 
 ## Deuda conocida, con su porqué
+
+- **Los seeds de demo no escriben `isExample`, y sus datos viven en
+  producción.** Solo `functions/src/trial-seed.ts` pone el marcador, y solo
+  sobre unidades, personas y cobros. `seed-data-playas.mjs`, `seed-data-co.mjs`
+  y `seed-data-mx.mjs` no lo ponen nunca. Consecuencia: **cualquier métrica que
+  alguien saque de producción sale inflada**, y los datos de demo solo se
+  pueden separar por `tenantId` sabiéndose de memoria cuáles son
+  (`conjunto-las-playas`, `tenant-demo`, `tenant-nogal`, `tenant-palmas`,
+  `tenant-santa`). Ya mordió una vez: la volumetría de IA daba 20 tickets hasta
+  que se separó por tenant y quedaron 0. El checklist de onboarding sí filtra
+  bien, porque mira las colecciones que el trial sí marca.
 
 - **Las respuestas del FAQ no llegan al DOM.** El acordeón arranca cerrado y no
   monta el contenido: solo existen en el JSON-LD y en el payload RSC. Eso hace
