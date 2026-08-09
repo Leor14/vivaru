@@ -38,7 +38,7 @@ const ITEMS: Differentiator[] = [
   {
     key: "aislados",
     title: "Cada conjunto, aislado",
-    desc: "Casas o departamentos, cada conjunto funciona como un sistema independiente. Único en el mercado mexicano.",
+    desc: "Casas o departamentos, cada condominio funciona como un sistema independiente, con sus propios datos, accesos y marca.",
     photo: {
       alt: "Conjunto de casas y torre de departamentos",
       width: 1200,

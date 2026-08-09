@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { openGraphDe } from "@/lib/marketing/sitio";
 
 import { Topbar } from "@/components/marketing/Topbar";
 import { DiagnosticFlowLoader } from "@/components/diagnostico/DiagnosticFlowLoader";
 
 export const metadata: Metadata = {
+  openGraph: openGraphDe("/diagnostico"),
   // Propia, no heredada: el layout ya no declara canonica (heredaba la de /mx).
   alternates: { canonical: "/diagnostico" },
   title: "Diagnóstico de Madurez Digital — Vivaru",

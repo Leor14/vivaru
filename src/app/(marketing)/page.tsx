@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { openGraphDe } from "@/lib/marketing/sitio";
 import { Topbar } from '@/components/marketing/Topbar';
 import { Footer } from '@/components/marketing/Footer';
 import { Hero } from '@/components/marketing/Hero';
@@ -54,7 +55,7 @@ import { MarquesinaModulos } from '@/components/marketing/MarquesinaModulos';
  */
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
-  openGraph: { url: '/' },
+  openGraph: openGraphDe("/"),
 };
 
 export default function Home() {

@@ -19,6 +19,51 @@
  */
 export const URL_SITIO = "https://www.grupovivaru.com";
 
+/**
+ * El bloque Open Graph de una ruta.
+ *
+ * Existe por una trampa de Next que cuesta cara y no avisa: **`openGraph` NO se
+ * fusiona en profundidad.** Si el layout declara el bloque completo y una página
+ * hija declara `openGraph: { url: "/" }` para corregir su URL, el objeto de la
+ * página REEMPLAZA al del layout entero — y esa página se queda sin `og:image`,
+ * sin `og:locale`, sin `og:site_name` y con una `og:description` inventada a
+ * partir de la descripción normal.
+ *
+ * Pasó exactamente eso, y la víctima fue la home: la página que más se comparte
+ * se quedó sin imagen de vista previa. Se detectó leyendo el HTML del build, no
+ * el código — no lo marca ni el typecheck ni ningún test.
+ *
+ * Por eso el bloque se construye aquí y cada página declara el suyo entero con
+ * su ruta. El layout ya NO lo declara: una página nueva que se olvide se queda
+ * sin Open Graph, que es un fallo visible, en vez de heredar la URL de otra, que
+ * es un fallo silencioso.
+ */
+export function openGraphDe(ruta: string) {
+  return {
+    title: "Software de administración de condominios y conjuntos | Vivaru",
+    description:
+      "Cartera, cuotas de mantenimiento, reservas, visitantes con QR, quejas y solicitudes (PQRS). Cada condominio opera aislado, con sus propios datos y accesos.",
+    type: "website" as const,
+    /*
+     * `es_LA` (español de Latinoamérica) y no `es_MX`: la prosa del sitio ya no
+     * apunta a un país, y este campo es una señal geográfica más. Es opcional en
+     * Open Graph, así que si algún consumidor lo rechaza se puede quitar entero
+     * sin perder nada. La lista exacta de países vive en `PAISES`.
+     */
+    locale: "es_LA",
+    siteName: "Vivaru",
+    url: ruta,
+    images: [
+      {
+        url: "/og-vivaru.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Centro de control de Vivaru: cartera, recaudo y alertas de un condominio",
+      },
+    ],
+  };
+}
+
 /** Rutas públicas indexables. Si se añade una página, va aquí. */
 export const RUTAS_PUBLICAS = [
   { ruta: "/", prioridad: 1.0, frecuencia: "weekly" as const },
@@ -92,5 +137,25 @@ export const MODULOS = [
   "Reglamento",
 ];
 
-/** Países donde se comercializa. No aparecía en ninguna parte del sitio. */
+/**
+ * Países donde se comercializa. **La única fuente**, y por eso importa.
+ *
+ * La prosa del sitio NO los enumera: dice «Latinoamérica» y punto. La lista
+ * exacta vive solo aquí y de aquí sale el `areaServed` de los datos
+ * estructurados y el `llms.txt` — que es justo lo que leen Google y los motores
+ * de respuesta, donde la precisión sí paga. Enumerarlos también en prosa
+ * obligaba a reescribir el subtítulo del hero, la descripción y el FAQ cada vez
+ * que se abre un mercado, y a partir de cuatro países la frase deja de leerse.
+ *
+ * **Abrir un país es editar esta línea.** Ese es el objetivo del arreglo.
+ *
+ * PENDIENTE — Panamá. Decisión comercial abierta, y hay una precedencia
+ * técnica: el selector de país fiscal es un enum cerrado de tres valores
+ * (`src/features/finanzas/schemas.ts`, `country: z.enum(["EC","CO","MX"])`) y
+ * `PRIMARY_COUNTRIES` en `src/lib/countries.ts` tampoco lo incluye, así que un
+ * conjunto panameño NO se puede dar de alta hoy. La moneda sí está cubierta:
+ * Panamá usa dólar y `AppCurrency` ya acepta USD. Anunciarlo antes de abrir el
+ * enum manda prospectos a un alta que se rompe. Ya estaba anotado como VIV-1801
+ * en el triaje de la auditoría UX.
+ */
 export const PAISES = ["México", "Colombia", "Ecuador"];

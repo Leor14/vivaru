@@ -48,7 +48,7 @@ const H1_BY_VARIANT: Record<HeroVariant, string> = {
 // Mismo motivo que el titular: aquí entran «software», «administrar» y
 // «México», las tres con cero apariciones en toda la página antes de esto.
 const SUB =
-  "El software para administrar condominios y conjuntos residenciales en México, Colombia y Ecuador, con orden, trazabilidad y autoservicio.";
+  "El software para administrar condominios y conjuntos residenciales en Latinoamérica, con orden, trazabilidad y autoservicio.";
 const TRUST =
   "Demo y Activación en menos de 72 horas · Soporte en español";
 

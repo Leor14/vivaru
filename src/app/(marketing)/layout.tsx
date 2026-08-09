@@ -21,7 +21,7 @@ import { URL_SITIO } from '@/lib/marketing/sitio';
 export const metadata: Metadata = {
   title: 'Software de administración de condominios y conjuntos | Vivaru',
   description:
-    'Software para administrar condominios y conjuntos residenciales en México, Colombia y Ecuador: cartera, cuotas, reservas, visitantes y solicitudes.',
+    'Software para administrar condominios y conjuntos residenciales en Latinoamérica: cartera, cuotas, reservas, visitantes y solicitudes.',
   // Con `www`. El apex `grupovivaru.com` devuelve 404 —App Hosting solo tiene
   // configurado el subdominio—, así que apuntar aquí al dominio raíz hacía que
   // todas las URL absolutas de Open Graph y canónicas señalaran a un 404.
@@ -37,22 +37,13 @@ export const metadata: Metadata = {
    *
    * Cada página declara la suya. Lo mismo vale para `openGraph.url`.
    */
-  openGraph: {
-    title: 'Software de administración de condominios y conjuntos | Vivaru',
-    description:
-      'Cartera, cuotas de mantenimiento, reservas, visitantes con QR, quejas y solicitudes (PQRS). Cada condominio opera aislado, con sus propios datos y accesos.',
-    type: 'website',
-    locale: 'es_MX',
-    siteName: 'Vivaru',
-    images: [
-      {
-        url: '/og-vivaru.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Centro de control de Vivaru: cartera, recaudo y alertas de un conjunto residencial',
-      },
-    ],
-  },
+  /*
+   * `openGraph` tampoco va aquí, y por la misma familia de motivo que la
+   * canónica pero con una trampa peor: no se fusiona en profundidad. Una página
+   * hija que declare `openGraph: { url: "…" }` REEMPLAZA este bloque entero y se
+   * queda sin imagen ni locale, sin que lo avise nada. Cada página construye el
+   * suyo con `openGraphDe(ruta)` de `lib/marketing/sitio.ts`.
+   */
   twitter: {
     card: 'summary_large_image',
     title: 'Software de administración de condominios y conjuntos | Vivaru',
