@@ -216,12 +216,12 @@ evade repitiendo la llamada rápido.
 flujo manual sigue funcionando. **Cumplido**, con la atomicidad demostrada
 lanzando peticiones simultáneas contra el emulador, no dada por buena.
 
-**1.7 Las pruebas que importan.**
+**1.7 Las pruebas que importan. — HECHO (10 de agosto de 2026).**
 Aislamiento entre tenants, cuota bajo concurrencia, kill switch, y qué pasa
 cuando el proveedor no responde.
 
 > **Puertas que cierras aquí:** G3 (riesgo) para toda la plataforma, y la parte
-> técnica de G5.
+> técnica de G5. **Respondidas más abajo, en el registro de ejecución.**
 
 ---
 
@@ -885,22 +885,107 @@ cuando no hay emulador levantado. Lo necesita también el Paso 1.7.
 
 ---
 
+## Registro de ejecución — Paso 1.7
+
+**Cerrado el 10 de agosto de 2026.**
+
+**1 · Primero hubo que hacer probable lo que importaba.** De los cuatro frentes
+del paso, dos ya estaban cubiertos —cuota bajo concurrencia (1.6) y proveedor
+que no responde (1.4)—. Los otros dos no, y por un motivo incómodo: **el cobro
+de cuota, la llamada al proveedor y la telemetría vivían dentro del callable**,
+donde ninguna prueba llega. Cada pieza estaba probada y la costura entre ellas
+no — que es exactamente donde sobreviven los fallos cuando todo está en verde.
+
+Así que el paso empezó moviendo esa lógica a `runGateway`, con el proveedor
+inyectable. `aiInvoke` quedó como cáscara que traduce el resultado a
+`HttpsError` y nada más.
+
+**2 · Las pruebas son de integración, contra Firestore real (emulador).** No
+comprueban piezas, comprueban el circuito: 16 casos organizados por las
+preguntas de la puerta, no por la estructura del código.
+
+**3 · Lo que se descubrió al escribirlas.** Que nadie había comprobado que el
+kill switch **estuviera conectado**. Había pruebas de precedencia de las
+banderas (puras) y pruebas de decisión de la puerta (puras), y ninguna que
+uniera Firestore con el rechazo. Estaba bien, pero por suerte, no por prueba.
+
+---
+
+### Puerta G3 — Riesgo · APROBADA
+
+> *Cuando falle —va a fallar— ¿qué se rompe y cómo lo apagamos?*
+
+**¿Puede un conjunto ejecutar como otro?** No. Una petición con `tenantId` ajeno
+se rechaza antes de tocar nada —ni contador ni telemetría—, y lo que se
+contabiliza lleva siempre el conjunto de la sesión. Un usuario cuyos claims
+sobrevivieron a una baja no pasa: manda el documento de membresía. Agotar la
+cuota de un conjunto no afecta al vecino.
+
+**¿El kill switch cierra de verdad?** Sí, y **en la siguiente llamada**, sin
+reiniciar ni desplegar: hay una prueba que apaga, comprueba que cierra,
+enciende y comprueba que abre. El kill switch de una bandera gana a un override
+que la encendía. Apagar una capacidad no apaga la plataforma, y se puede apagar
+para un conjunto dejándosela al vecino. Con la puerta apagada **no se cobra
+cuota**.
+
+**¿Qué pasa cuando el proveedor no responde?** El administrador ve un mensaje
+que le manda al flujo manual, la cuota **se devuelve** y el fallo **queda
+registrado**. Si en cambio el proveedor respondió y su salida incumplió el
+contrato, la cuota **no** se devuelve —los tokens se gastaron— y tampoco se
+devuelve una salida a medias.
+
+**¿Se filtra contenido?** No. Hay una prueba que serializa la fila de
+telemetría y verifica que no aparece nada de lo que escribió el administrador.
+La regla del Paso 0 deja de depender de la buena intención del tipo.
+
+**Lo que queda fuera de esta puerta, y hay que decirlo:** todo esto se prueba
+contra un proveedor simulado. Cuando entre Vertex habrá que repetir la pregunta
+del proveedor caído contra el real, que falla de formas que un simulador no
+imita — cortes a mitad de respuesta, límites de tasa, respuestas lentas pero no
+lo bastante como para saltar el corte.
+
+### Puerta G5 — Economía · parte técnica APROBADA
+
+> *¿Cuánto cuesta servir esto a un cliente al mes?*
+
+**Mecánicamente se puede responder**: la telemetría registra costo por llamada
+con precios versionados, la consola lo agrega por conjunto y por operación, y
+hay cuatro capas de tope. **El número real no existe todavía** y no puede
+existir: no hay uso. Esa mitad de G5 se cierra con el piloto del Paso 2.6.
+
+---
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Camino completo, probable e inyectable | `functions/src/ai/gateway.ts` → `runGateway` |
+| Pruebas G3 de integración (16) | `functions/tests/ai-gateway.emulator.test.ts` |
+| Cuota bajo concurrencia (11) | `functions/tests/ai-quota.emulator.test.ts` |
+
+Total del programa: **88 pruebas rápidas** en `functions/`, **27 con emulador**,
+y **86 de reglas** en la raíz.
+
+---
+
 ## Por dónde seguimos
 
-Quedan dos, y ninguno bloqueado.
+**El Paso 1 está completo salvo el adaptador real.** La plataforma está en pie:
+banderas y kill switch, puerta única, catálogo, validación, telemetría, cuotas
+y las pruebas que cierran G3.
 
-**1.4-real: el adaptador de Vertex AI.** Ya están las cuatro capas de tope, así
-que encender el proveedor real dejó de ser una apuesta. Hace falta añadir la
-dependencia de Vertex, confirmar el identificador exacto del modelo y escribir
-una implementación de `AiProvider`. Nada más del código cambia.
+**1.4-real: el adaptador de Vertex AI.** Lo único que queda de la plataforma.
+Añadir la dependencia, confirmar el identificador exacto del modelo y escribir
+una implementación de `AiProvider`. Nada más del código cambia. Y al hacerlo,
+repetir la pregunta del proveedor caído contra el real.
 
-**1.7: las pruebas que importan.** Aislamiento entre conjuntos, cuota bajo
-concurrencia —ya hecha en el 1.6—, kill switch, y qué pasa cuando el proveedor
-no responde. Es donde se cierra la puerta **G3** para toda la plataforma.
+**Y después el canario, Paso 2 — pero ojo con el orden.** Su primer incremento,
+el **2.1, no es código**: es cronometrar a mano de diez a quince comunicaciones
+reales, tal y como se escriben hoy. Eso lo tiene que hacer David o un
+administrador. **Sin esa línea base no hay forma de demostrar que la IA mejoró
+nada**, y es la clase de medición que ya no se puede tomar una vez la
+herramienta está encima.
 
-Después de eso, el Paso 1 está completo y empieza el canario: **Paso 2,
-comunicaciones**. Y su primer incremento, el 2.1, **no es código** — es
-cronometrar a mano de diez a quince comunicaciones reales. Sin esa línea base no
-hay forma de demostrar que la IA mejoró nada.
+Conviene empezar a cronometrar **ya**, en paralelo al adaptador.
 
-Y en paralelo, desde ya, la tabla de la Parte IV.
+Y en paralelo también, la tabla de la Parte IV.

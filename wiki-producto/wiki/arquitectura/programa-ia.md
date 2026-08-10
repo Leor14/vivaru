@@ -56,6 +56,7 @@ Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento p
 - **1.4, a medias a propósito** — el validador de salida está terminado y rechaza entero lo que incumpla el contrato; el proveedor sigue siendo simulado, con la misma costura que usa el transporte del SRI en [[billing]].
 - **1.5** — telemetría en `aiUsage` y consola de consumo en [[superadmin]], que es lo que permite responder cuánto gastó cada conjunto sin estimar.
 - **1.6** — cuotas por conjunto, usuario y operación, con consumo transaccional demostrado bajo peticiones simultáneas.
+- **1.7** — las pruebas que importan: **puerta G3 aprobada** para toda la plataforma, y la parte técnica de G5. Ver [[puerta-ia]].
 - **Los topes de gasto**, en cuatro capas: límite de inversión de Google acotado a Vertex AI, cuota de tokens por minuto, cuota por conjunto, y el kill switch de las banderas.
 
 Brechas que siguen abiertas:

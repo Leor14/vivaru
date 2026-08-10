@@ -263,3 +263,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 2 — [[puerta-ia]] (sección nueva de cuotas), [[programa-ia]] (deja de figurar como brecha)
 - **Entidades extraídas**: colección `aiQuotaCounters`, tres topes por operación, consumo transaccional, devolución solo si el proveedor no respondió, reinicio del día en UTC, banco de pruebas con emulador en `functions/`
 - **Nota**: la razón del paso no es el costo sino el aislamiento — el tope de gasto de Google es de la cuenta entera, no por conjunto
+
+---
+
+## [2026-08-10] ingest | Paso 1.7 del programa de IA — las pruebas que cierran G3
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 2 — [[puerta-ia]] (qué se probó y qué hueco apareció), [[programa-ia]] (G3 aprobada)
+- **Entidades extraídas**: `runGateway` como camino completo probable, inyección de proveedor, pruebas de integración contra emulador, respuestas escritas de las puertas G3 y G5
+- **Nota**: el hallazgo del paso fue que nadie había comprobado que el kill switch estuviera conectado — cada pieza probada, la costura no

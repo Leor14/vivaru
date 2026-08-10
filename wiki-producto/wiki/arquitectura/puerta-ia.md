@@ -92,6 +92,16 @@ El consumo va en una **transacción**, y no por ceremonia: sin ella dos peticion
 
 Si el proveedor no llegó a responder, la cuota **se devuelve**. Si respondió y su salida incumplió el contrato, se queda consumida: los tokens se gastaron, y devolverla sería mentir sobre el costo igual que descontar esa llamada de la telemetría.
 
+## Qué se probó para cerrar G3
+
+La puerta G3 pregunta: cuando falle —va a fallar— ¿qué se rompe y cómo lo apagamos? Se respondió con pruebas de integración contra Firestore, no con pruebas de piezas sueltas: **cada parte ya estaba probada y la costura entre ellas no**, que es donde sobreviven los fallos cuando todo está en verde.
+
+Al escribirlas apareció el hueco esperado: nadie había comprobado que el **kill switch estuviera conectado**. Había pruebas de precedencia de las [[banderas-funcionalidad]] y pruebas de decisión de la puerta, ninguna que uniera el documento de Firestore con el rechazo real. Funcionaba por suerte, no por prueba.
+
+Lo que quedó demostrado: un conjunto no puede ejecutar como otro **ni en los contadores ni en la telemetría**; el kill switch cierra **en la siguiente llamada**, sin reiniciar ni desplegar; con la puerta apagada no se cobra cuota; un proveedor caído devuelve la cuota pero deja registrado el fallo; y la fila de telemetría **no contiene nada de lo que escribió el administrador** — la regla de datos deja de depender de la buena intención de quien escribió el tipo.
+
+Para poder probar todo eso hubo que mover el cobro de cuota, la llamada al proveedor y la telemetría desde dentro del callable a `runGateway`. El callable quedó como cáscara.
+
 ## Lo que todavía no hace
 
-No llama a ningún modelo real. Es lo único que queda del Paso 1, junto con la tanda de pruebas que cierra la puerta G3. El primer consumidor será el borrador de [[comunicaciones]], canario por ser el de error más barato — un borrador malo se borra.
+No llama a ningún modelo real: es lo único que queda del Paso 1. Y cuando entre Vertex habrá que repetir la pregunta del proveedor caído contra el real, que falla de formas que un simulador no imita. El primer consumidor será el borrador de [[comunicaciones]], canario por ser el de error más barato — un borrador malo se borra.
