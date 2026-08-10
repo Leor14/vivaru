@@ -58,6 +58,6 @@ El catálogo se siembra con `functions/scripts/seed-feature-flags.mjs`, que es i
 
 ## Qué hay en el catálogo hoy
 
-Seis banderas, todas del área de IA y todas apagadas, una por cada capacidad prevista en el [[portafolio-prd]]: la puerta de entrada de la plataforma, el borrador asistido de [[comunicaciones]], la clasificación en sombra y la sugerencia visible de [[pqrs]], el mapeo de columnas del [[onboarding-guiado]] y la extracción de comprobantes de [[billing]].
+Seis del área de IA, todas apagadas, una por cada capacidad prevista en el [[portafolio-prd]]: la puerta de entrada de la plataforma, el borrador asistido de [[comunicaciones]], la clasificación en sombra y la sugerencia visible de [[pqrs]], el mapeo de columnas del [[onboarding-guiado]] y la extracción de comprobantes de [[billing]].
 
-Ninguna tiene consumidor todavía, y eso es correcto: el orden del programa pone la plataforma antes que la función.
+Y una del área de operación, `operacion-app-check-monitor`, que es la que demuestra que el mecanismo es genérico de verdad: no es de IA, **nace encendida** —porque describe lo que ya pasa hoy— y está redactada en positivo a propósito. Gobierna si la [[puerta-ia]] rechaza o solo registra las llamadas sin App Check; si dijera «exigir App Check», bajar el kill switch maestro relajaría una comprobación de seguridad en vez de endurecerla.

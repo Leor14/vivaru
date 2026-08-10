@@ -47,12 +47,15 @@ Ocho puertas, G0 a G7, contra las siete de una PRD funcional: la de IA añade **
 
 Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento por `tenantId`, reglas de Firestore y Storage, Cloud Functions, `auditLogs` y validación con Zod.
 
-**Construido el 9 de agosto de 2026 (Paso 1.1):** las [[banderas-funcionalidad]] con lector real en cliente y servidor, kill switch por bandera y maestro, y overrides por conjunto. Era la primera brecha de esta lista y la daban por resuelta las cinco PRD sin estarlo. Se construyó como mecanismo genérico de plataforma, no como pieza del programa de IA.
+**Construido el 9 de agosto de 2026:**
+
+- **Paso 1.1** — las [[banderas-funcionalidad]] con lector real en cliente y servidor, kill switch por bandera y maestro, y overrides por conjunto. Era la primera brecha de esta lista y la daban por resuelta las cinco PRD sin estarlo. Se construyó como mecanismo genérico de plataforma, no como pieza del programa de IA.
+- **Paso 1.2** — la [[puerta-ia]]: un callable único que resuelve el conjunto desde la sesión y rechaza cualquier petición que traiga `tenantId`. Todavía no llama a ningún modelo.
 
 Brechas verificadas en el código:
 
-- No existe gateway, adaptador ni catálogo de operaciones.
-- **App Check está inicializado en cliente** (`src/lib/firebase/app-check/index.ts`) **pero sin enforcement en servidor**. Para endpoints que cuestan dinero por llamada, eso es una puerta abierta.
+- No existe adaptador de proveedor ni catálogo de operaciones. La puerta ya existe y responde `unimplemented` a todo.
+- **App Check estaba dormido de punta a punta**, no a medias como decía esta página hasta el 9 de agosto: `setupAppCheck()` existía sin que lo llamara nadie, no había clave de reCAPTCHA en el entorno y el servidor no exigía nada. El Paso 1.2 despertó el cliente y dejó el rechazo gobernado por bandera; **falta el trabajo de consola** para exigirlo de verdad.
 - No hay cuotas ni medición de costo por conjunto.
 - No hay líneas base de tiempo, error ni volumen de los procesos que la IA pretende mejorar. Sin baseline no hay forma de saber si funcionó.
 - No hay datasets ni criterios de evaluación offline.

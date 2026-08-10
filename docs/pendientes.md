@@ -94,6 +94,19 @@ Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
 
 ## Necesitan consola, no código
 
+- **App Check está dormido de punta a punta** (verificado el 9 ago 2026, no es
+  lo que decía la auditoría). El cliente ya llama a `setupAppCheck()` desde el
+  Paso 1.2, pero sin clave no hace nada. Tres cosas, en orden:
+  1. Crear una clave de **reCAPTCHA Enterprise** en Google Cloud.
+  2. Registrar la app en **Firebase Console → App Check** con esa clave.
+  3. Poner `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY` en `apphosting.yaml` (y en
+     `apphosting.staging.yaml`) y desplegar.
+
+  Y solo después, mirando en los logs de `aiInvoke` que el tráfico legítimo trae
+  token, apagar la bandera `operacion-app-check-monitor` en `/superadmin/flags`.
+  **Apagarla antes cierra la puerta para todos.** Mientras tanto no hay riesgo:
+  detrás de la puerta no hay nada que cueste dinero todavía.
+
 - **El apex `grupovivaru.com` devuelve 404.** El registro A es correcto
   (`35.219.200.1`, el mismo que el `www`); falla solo la verificación de
   propiedad porque el TXT tiene un token viejo. **Estos dos valores no están

@@ -171,11 +171,14 @@ concreto desde Firestore, sin desplegar, y se nota en la aplicación.
 Se construyó **genérico**: nada bajo `src/lib/feature-flags/` sabe qué es una
 operación de IA, y el programa de IA es su primer cliente, no su dueño.
 
-**1.2 El punto de entrada único.**
+**1.2 El punto de entrada único. — HECHO (9 de agosto de 2026).**
 Un callable de servidor que autentica, resuelve el tenant **desde la sesión y
 nunca desde lo que mande el cliente**, comprueba el rol y exige App Check. Sin
 llamar todavía a ningún modelo.
 *Terminado cuando:* una prueba que intenta pasar un `tenantId` ajeno falla.
+*Cómo quedó:* el detalle, en el registro de ejecución al final de este documento.
+Con una corrección: App Check no estaba «inicializado en cliente sin enforcement
+en servidor» como decía la auditoría — estaba **dormido de punta a punta**.
 
 **1.3 Catálogo de operaciones.**
 Cada cosa que la IA puede hacer es una `operationKey` con versión, esquema de
@@ -472,12 +475,84 @@ que es exactamente lo que debe hacer.
 
 ---
 
+## Registro de ejecución — Paso 1.2
+
+**Cerrado el 9 de agosto de 2026.** La puerta existe; detrás no hay nada todavía,
+y eso es lo correcto.
+
+**1 · El conjunto sale de la sesión, y la petición que lo traiga se rechaza.**
+No es que no le creamos al cliente: es que no le preguntamos. La puerta rechaza
+cualquier llamada que traiga `tenantId` en el cuerpo **aunque coincida** con el
+de la sesión — aceptarlo «porque acertó» es la costumbre que abre el agujero el
+día que una comprobación se olvide.
+
+El resto del repo hace lo contrario: el cliente manda `tenantId` y el servidor
+comprueba la pertenencia. Hoy eso **no tiene fuga** —la comprobación está—, pero
+son 41 callables y cada una tiene que acordarse. La puerta de IA invierte la
+carga: una sola, en un sitio, y probada.
+
+**2 · Los claims proponen; la membresía dispone.** El conjunto y el rol salen de
+los custom claims del token, y acto seguido se contrastan con
+`tenantUsers/{tenantId}_{uid}`. Los claims viajan en el token y sobreviven a una
+baja o a una degradación hasta que caduca; el documento manda. Un token que dice
+`tenant_admin` sobre una membresía que dice `resident` no pasa.
+
+**3 · El superadmin no puede invocar, y no es un olvido.** No tiene conjunto en
+su sesión, así que dejarle operar exigiría aceptar un `tenantId` del cliente —
+justo lo que este paso existe para impedir. Para operar sobre un conjunto, se
+entra al conjunto.
+
+**4 · Orden de las comprobaciones**, porque decide qué error ve la persona:
+App Check → sesión → «no mandes el conjunto» → claims → membresía viva →
+**bandera** → rol → operación. La bandera va antes que el rol a propósito:
+cuando la capacidad está apagada para todos, decirle a alguien que le falta
+permiso es mandarlo a pedir un permiso que no existe.
+
+**5 · App Check estaba peor de lo documentado.** La auditoría y la wiki decían
+«inicializado en cliente pero sin enforcement en servidor». Comprobado: la
+función `setupAppCheck()` existía y **no la llamaba nadie**, no hay clave de
+reCAPTCHA en `apphosting.yaml`, y en el servidor no había ni un `enforceAppCheck`.
+Dormido de punta a punta. Corregido en la wiki.
+
+La salida elegida fue **cablear ahora y exigir después**: el cliente ya llama a
+`setupAppCheck()` —inocuo sin clave— y la puerta decide si rechaza según la
+bandera `operacion-app-check-monitor`. Encendida (el default) deja pasar y
+registra en los logs; apagada, rechaza. Así, pasar de observar a exigir es
+apagar una bandera en `/superadmin/flags`, no desplegar.
+
+**6 · La bandera de App Check está en positivo por el kill switch.** Dice «modo
+monitor encendido» y no «exigir App Check». Si dijera lo segundo, bajar el kill
+switch maestro —que apaga todas las banderas— **relajaría** una comprobación de
+seguridad. Así, apagarlo todo la endurece. Es también la primera bandera del
+catálogo que no es de IA y que nace encendida: la prueba de que el mecanismo del
+1.1 es genérico de verdad.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Decisión de autorización (pura) | `functions/src/ai/authorize.ts` |
+| El callable | `functions/src/ai/gateway.ts` → `aiInvoke` |
+| Orígenes CORS compartidos | `functions/src/http-config.ts` (salió de `index.ts`) |
+| App Check en el cliente | `src/app/providers.tsx` |
+| Pruebas | `functions/tests/ai-gateway.test.ts` (21) |
+
+**Se montó banco de pruebas en `functions/`**, que no tenía ninguno: vitest con
+su propia configuración. El Paso 1.7 pide aislamiento entre conjuntos, cuota
+bajo concurrencia y proveedor caído — nada de eso se podía probar sin esto.
+
+**Lo que falta y es de consola:** crear la clave de reCAPTCHA Enterprise,
+registrar la app en Firebase App Check, poner la clave en `apphosting.yaml`, y
+solo entonces apagar `operacion-app-check-monitor` mirando antes los logs.
+
+---
+
 ## Por dónde seguimos
 
-Cerrados el Paso 0 y el 1.1, lo siguiente es **Paso 1.2: el punto de entrada
-único** — un callable que autentica, resuelve el tenant desde la sesión y nunca
-desde lo que mande el cliente, comprueba el rol y exige App Check. Sin llamar
-todavía a ningún modelo. Termina cuando una prueba que intenta pasar un
-`tenantId` ajeno falla.
+Cerrados el Paso 0, el 1.1 y el 1.2, lo siguiente es **Paso 1.3: el catálogo de
+operaciones.** Cada cosa que la IA puede hacer pasa a ser una `operationKey` con
+versión, esquema de entrada, esquema de salida, permisos y límites. Nada se
+invoca si no está en el catálogo — hoy la puerta responde `unimplemented` a todo
+porque el catálogo está vacío, y ese hueco es exactamente lo que llena el 1.3.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

@@ -29,7 +29,8 @@ export type FeatureFlagKey =
   | "ai-pqrs-shadow"
   | "ai-pqrs-suggestions"
   | "ai-onboarding-column-mapping"
-  | "ai-receipts-extraction";
+  | "ai-receipts-extraction"
+  | "operacion-app-check-monitor";
 
 /**
  * Valor sin documento en Firestore. La regla: capacidad nueva nace en `false`;
@@ -43,6 +44,9 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "ai-pqrs-suggestions": false,
   "ai-onboarding-column-mapping": false,
   "ai-receipts-extraction": false,
+  // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
+  // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
+  "operacion-app-check-monitor": true,
 };
 
 export type FeatureFlagSource =

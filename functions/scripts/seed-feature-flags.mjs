@@ -75,6 +75,15 @@ const CATALOGO = [
     origen: "DOC-001",
     enabled: false,
   },
+  {
+    key: "operacion-app-check-monitor",
+    area: "operacion",
+    label: "App Check en modo monitor",
+    origen: "Paso 1.2",
+    // Nace ENCENDIDA: describe lo que ya pasa hoy. Apagarla hace que la puerta
+    // de IA rechace las llamadas sin App Check.
+    enabled: true,
+  },
 ];
 
 initializeApp({ credential: applicationDefault(), projectId });

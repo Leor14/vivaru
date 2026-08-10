@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
 
@@ -7,8 +8,16 @@ import { AuthProvider } from "@/features/auth/auth-context";
 import { ErrorTracker } from "@/components/observability/ErrorTracker";
 import { RouteTransitionVeil } from "@/components/shared/route-transition-veil";
 import { FeatureFlagsProvider } from "@/lib/feature-flags/provider";
+import { setupAppCheck } from "@/lib/firebase/app-check";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // App Check estaba escrito y no lo llamaba nadie: la función existía desde
+  // hacía meses sin un solo invocador, así que no protegía nada. Sin la clave
+  // de reCAPTCHA en el entorno esto no hace nada — ver .env.example.
+  useEffect(() => {
+    setupAppCheck();
+  }, []);
+
   const pathname = usePathname();
   const safePathname = typeof pathname === "string" ? pathname : "";
   const isResilientPublicRoute =

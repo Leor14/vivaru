@@ -30,19 +30,12 @@ import {
   type NotificationOverride,
   type NotificationType,
 } from "./notification-catalog";
+import { callableCorsOrigins } from "./http-config";
 
 initializeApp();
 
 const db = getFirestore();
 
-const callableCorsOrigins = [
-  "https://www.grupovivaru.com",
-  "https://grupovivaru.com",
-  "https://vivaru--hogaru-1.us-central1.hosted.app",
-  "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
-  "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app", // staging
-  "http://localhost:3000",
-];
 
 // NotificationType vive en ./notification-catalog (fuente única).
 
@@ -4061,3 +4054,10 @@ export const addSupportNote = onCall<{ ticketId: string; note: string }>(
     return addSupportInternalNote(request.data, uid, role);
   },
 );
+
+// ─── Plataforma de IA ────────────────────────────────────────────────────────
+// Punto de entrada único de las operaciones asistidas (Paso 1.2 de
+// docs/hoja-de-ruta-ia.md). Todavía no llama a ningún modelo: autentica,
+// resuelve el conjunto desde la sesión, comprueba rol y bandera, y responde
+// `unimplemented` porque el catálogo de operaciones llega en el Paso 1.3.
+export { aiInvoke } from "./ai/gateway";

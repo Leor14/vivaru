@@ -38,6 +38,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "ai-pqrs-suggestions": false,
     "ai-onboarding-column-mapping": false,
     "ai-receipts-extraction": false,
+    // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
+    // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
+    "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */
 function asStrictBoolean(value) {

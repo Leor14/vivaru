@@ -209,3 +209,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 2 — `index.md`, [[programa-ia]] (la brecha «`featureFlags` sin lector» pasa a resuelta)
 - **Entidades extraídas**: colecciones `featureFlags` y `featureFlagOverrides`, documento `_global`, precedencia de cinco niveles, kill switch maestro y por bandera, `assertFeatureEnabled` en Cloud Functions, consola `/superadmin/flags`, script de siembra idempotente
 - **Nota**: el mecanismo se construyó genérico. No pertenece al programa de IA — este es solo su primer cliente
+
+---
+
+## [2026-08-09] ingest | Paso 1.2 del programa de IA — puerta de entrada única
+
+- **Páginas creadas**: 1 — [[puerta-ia]]
+- **Páginas actualizadas**: 3 — `index.md`, [[programa-ia]] (corrección: App Check estaba dormido de punta a punta, no «sin enforcement en servidor»), [[banderas-funcionalidad]] (primera bandera no-IA en el catálogo)
+- **Entidades extraídas**: callable `aiInvoke`, decisión pura de autorización, rechazo de `tenantId` en la petición, orden de comprobaciones, bandera `operacion-app-check-monitor`, banco de pruebas de `functions/`
+- **Nota**: el superadmin no puede invocar operaciones asistidas — no tiene conjunto en sesión, y aceptarlo del cliente es justo lo que el paso impide

@@ -47,7 +47,8 @@ export type FeatureFlagKey =
   | "ai-pqrs-shadow"
   | "ai-pqrs-suggestions"
   | "ai-onboarding-column-mapping"
-  | "ai-receipts-extraction";
+  | "ai-receipts-extraction"
+  | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
   key: FeatureFlagKey;
@@ -130,6 +131,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     defaultEnabled: false,
     origen: "DOC-001 — Paso 5",
     alApagar: "El comprobante se captura a mano. `approveReceiptAndRegisterPayment` no cambia.",
+  },
+  "operacion-app-check-monitor": {
+    key: "operacion-app-check-monitor",
+    area: "operacion",
+    label: "App Check en modo monitor",
+    description:
+      "Mientras está encendida, la puerta de IA deja pasar llamadas sin token de App Check y las registra en los logs. Es el estado de observación previo a exigirlo.",
+    // Nace ENCENDIDA porque describe lo que ya pasa hoy: no se exige App Check
+    // en ningún sitio. Si naciera apagada, activaría un rechazo que nadie ha
+    // podido comprobar todavía.
+    defaultEnabled: true,
+    origen: "Paso 1.2 — punto de entrada único",
+    alApagar:
+      "La puerta empieza a RECHAZAR las llamadas sin App Check. Apagarla solo después de ver en los logs que el tráfico legítimo trae token.",
   },
 };
 

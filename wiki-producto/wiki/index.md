@@ -3,7 +3,7 @@ tags: [indice, navegacion]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06", "estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-08-09
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -44,6 +44,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[ciclo-de-vida-tenant]] | 🆕 `tenants.status`: prueba → cliente, `tenantOperable()` y el candado de módulos en tres capas |
 | [[programa-ia]] | 🆕 IA decidida y no construida: dos capacidades, principios, orden de fases y brechas verificadas |
 | [[banderas-funcionalidad]] | 🆕 Encender y apagar capacidades sin desplegar: precedencia, kill switch maestro y aislamiento de overrides |
+| [[puerta-ia]] | 🆕 `aiInvoke`: el conjunto sale de la sesión, App Check cableado y el orden de las comprobaciones |
 
 ---
 
