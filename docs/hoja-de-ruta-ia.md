@@ -358,10 +358,55 @@ sistemáticamente falsas en un proceso crítico.
 
 ---
 
-## Por dónde empezamos
+---
 
-Paso 0 es una conversación de una sesión y no requiere nada previo. Paso 1.1
-—las banderas y el kill switch— es la primera línea de código y es útil aunque
-el programa de IA se retrase, porque hoy no existe forma de apagar nada.
+## Registro de decisiones — Paso 0
+
+**Cerrado el 8 de agosto de 2026.** Ninguna de estas es irreversible: el modelo es
+un valor de configuración y el tope es un número. Cambiarlas es barato; no
+tenerlas escritas no lo era.
+
+**1 · Responsable.** David, en los tres papeles. Con la obligación explícita de
+poder rechazar una puerta propia.
+
+**2 · Proveedor y modelo.** Vertex AI, proveedor único.
+
+- Modelo por defecto: **Gemini 3.1 Flash-Lite** (USD 0,25 entrada / 1,50 salida
+  por millón). Se eligió sobre el 2.5 Flash Lite, más barato, porque hay reportes
+  de que se retira el 16 de octubre de 2026 — heredar una fecha de caducidad no
+  compensa unos centavos. Y sobre el 3.5 Flash-Lite porque cuesta 67% más en
+  salida sin aportar nada a una tarea de redacción acotada contra esquema cerrado.
+- Escalamiento: **Gemini 3.6 Flash**, controlado, nunca seleccionable por el
+  usuario.
+- Versión fijada. Evaluación obligatoria antes de cambiarla.
+- **Región: abierta.** Es el único pendiente del Paso 0. Hay que verificar qué
+  regiones sirven estos modelos y qué implica cada una para la política de
+  privacidad, dado que ya existe un hueco legal con Ecuador.
+
+**3 · Presupuesto.** USD 20 al mes, tope duro, alerta al 50%. Es más de diez
+veces la necesidad real y la desproporción es intencional: **el tope no controla
+el gasto, obliga a que el mecanismo de corte exista y esté probado.**
+
+**4 · Política de datos.** Las cinco reglas aprobadas: solo se envía lo que el
+administrador escribe; se registran metadatos y no contenido; las muestras de
+evaluación requieren autorización y anonimización; retención de 12 meses para
+telemetría y 30 días para borradores descartados; y los datos de Vivaru no se
+usan para entrenar modelos del proveedor, lo que hay que confirmar contra los
+términos del nivel de pago.
+
+**Cerrado también, aunque no era una de las cuatro:** el costo de la IA no es una
+variable de decisión de este programa. Cotejado contra el pricing real de las
+cuatro geografías, pesa entre 0,18% y 0,68% del ingreso por unidad contra una
+meta de 3%, y eso incluye el peor caso documentado (Ecuador Nivel 2). Los precios
+se mantienen o suben. El detalle, en `docs/auditoria-prd-ia-ago2026.md`.
+
+---
+
+## Por dónde seguimos
+
+Con el Paso 0 cerrado, lo siguiente es **Paso 1.1: banderas de funcionalidad con
+lector real y kill switch.** Es la primera línea de código del programa, y es
+útil aunque todo lo demás se retrase: hoy no existe forma de apagar ninguna
+funcionalidad sin desplegar.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

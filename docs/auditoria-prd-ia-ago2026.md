@@ -224,13 +224,37 @@ programa**. La transferencia adopta el plan y no señala la diferencia:
   Document AI Enterprise OCR. **Hay que decidir si eso es una decisión o una
   recomendación**, y quitarlo de pendientes si es lo primero.
 
-## El margen económico es más estrecho de lo que parece
+## El costo de la IA no es un problema — cerrado con precios reales
 
-La regla de la estrategia es `min(USD 3, 5% del ingreso del conjunto)`. Para casi
-cualquier conjunto el que ata es **USD 3**. Su propio escenario «conservador» da
-**USD 1.94–2.94/mes**: entre el 65% y el 98% del techo duro, en el mejor caso.
+**Esta sección decía lo contrario y estaba equivocada.** Escribí que el margen era
+estrecho, razonando sobre la regla `min(USD 3, 5% del ingreso)` sin conocer el
+ingreso real. Cotejado contra `Vivaru_Pricing_v3` y el abstract comercial de
+México, el resultado se da vuelta.
 
-No hay holgura, y ese escenario asume 300 páginas de OCR al mes por conjunto.
+Con todas las capacidades encendidas, la IA cuesta entre **medio centavo y
+centavo y medio de dólar por unidad al mes**. Contra la lista base —lo que recibe
+Vivaru, no lo que paga el cliente— en segmento Core trimestral:
+
+| Lista | Ingreso por unidad | Peso de la IA |
+|---|---:|---:|
+| México (canal) | USD 4,38 | 0,18% |
+| Panamá Nivel 1 | USD 2,25 | 0,36% |
+| Ecuador Nivel 1 | USD 1,90 | 0,43% |
+| Colombia | USD 1,48 | 0,55% |
+| **Ecuador Nivel 2** | **USD 1,20** | **0,68%** |
+
+La última fila es el ingreso por unidad más bajo de todo el pricing: Ecuador
+cuando se disuelva el recargo país destino. Incluso ahí la IA pesa **0,68%**
+contra una meta de 3%.
+
+Consecuencias, para no volver sobre esto: no hay que subir ningún precio en
+ninguna geografía; no tiene sentido cobrar la IA como complemento aparte —el
+soporte y la facturación costarían más que lo recaudado—; y no toca el piso de
+margen del 65%, que lo amenazan las retenciones, no los tokens. El costo deja de
+ser una variable de decisión del programa.
+
+Lo que sí sobrevive del capítulo económico es el tope de gasto como **mecanismo**,
+no como control: obliga a construir el corte antes de necesitarlo.
 
 **Corregido por la medición.** Escribí primero que el caso económico lo decidiría
 el volumen de comprobantes. Medido, ese volumen es cero: el escenario
