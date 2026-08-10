@@ -44,6 +44,19 @@ Esa bandera está **en positivo** —«modo monitor encendido», no «exigir App
 
 Falta el trabajo de consola —clave de reCAPTCHA Enterprise, registro de la app, variable de entorno— antes de poder apagar el modo monitor. Está anotado en los pendientes junto al resto de lo que no se resuelve con código, como el caso de [[dominios-app-hosting]].
 
+## El catálogo de operaciones
+
+Detrás de la puerta hay una lista, y **nada se invoca si no está en ella**. No es burocracia: es lo que impide que dentro de seis meses haya once llamadas distintas que nadie sabe de dónde salieron, cuánto cuestan ni quién puede pedirlas.
+
+Cada entrada declara clave, versión, esquema de entrada, esquema de salida, roles que pueden pedirla, su propia bandera y sus límites. Los roles y la bandera vivían escritos a mano dentro de la puerta hasta el Paso 1.3; ahora los declara la operación, así que se puede apagar una capacidad sin apagar la plataforma.
+
+Hoy hay **una sola operación registrada**: el borrador de [[comunicaciones]], el canario del programa. Se registra una operación cuando se va a construir, no antes — declarar las cinco capacidades del [[portafolio-prd]] por adelantado sería inventar contratos para cosas que no se tocan en meses.
+
+Dos detalles del contrato que valen más que el resto:
+
+- **Lo que no recibe.** La entrada son tres campos que escribe el administrador: propósito, hechos y tono. Audiencia, torres, unidades, vigencia, estado y publicación no están, y no es un olvido — si no entran, no pueden salir.
+- **`assumptions` debe venir vacío**, declarado en el esquema con longitud máxima cero. Si el modelo asumió un dato que nadie le dio, la respuesta entera se rechaza. Es la traducción técnica del principio de que la IA propone y Vivaru decide, el mismo que sostiene [[integridad-financiera]].
+
 ## Lo que todavía no hace
 
-No llama a ningún modelo, no valida esquemas de salida, no mide costo y no lleva cuota. Eso es el resto del Paso 1, y llega en este orden: catálogo de operaciones, adaptador del proveedor con validación, telemetría y cuotas. El primer consumidor real será el borrador asistido de [[comunicaciones]], que es el canario del programa por ser el de error más barato — un borrador malo se borra, a diferencia de lo que se juega en [[billing]].
+No llama a ningún modelo, no valida la salida en caliente, no mide costo y no lleva cuota. Eso es el resto del Paso 1: adaptador del proveedor con validación, telemetría y cuotas. El primer consumidor real será el borrador de comunicaciones, canario por ser el de error más barato — un borrador malo se borra, a diferencia de lo que se juega en [[billing]].

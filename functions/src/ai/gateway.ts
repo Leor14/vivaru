@@ -9,26 +9,21 @@ import {
   type GatewayDecision,
   type GatewayMembership,
 } from "./authorize";
+import { findOperation, validateOperationInput, type InputValidation } from "./catalog";
 
 /**
  * Punto de entrada único de las operaciones asistidas (Paso 1.2 de
- * `docs/hoja-de-ruta-ia.md`).
+ * `docs/hoja-de-ruta-ia.md`, ampliado con el catálogo en el 1.3).
  *
  * Una sola puerta, y todo lo asistido pasa por ella. Hoy Vivaru tiene cuarenta
  * y una callables y cada una se acuerda por su cuenta de comprobar quién llama
  * y de qué conjunto es: funciona, pero la seguridad depende de que cada una se
  * acuerde. Aquí las comprobaciones ocurren una vez, en un sitio, y se prueban.
  *
- * **Todavía no llama a ningún modelo.** Al terminar el paso hay una puerta que
- * abre y rechaza bien, sin nada detrás. Lo de detrás es el Paso 1.3.
+ * **Todavía no llama a ningún modelo.** La puerta abre, valida la entrada
+ * contra el esquema del catálogo, y se detiene ahí: el adaptador del proveedor
+ * es el Paso 1.4.
  */
-
-/**
- * Operaciones que existen. Vacío hasta el Paso 1.3, que trae el catálogo con su
- * versión, esquemas, permisos y límites. Mientras esté vacío la puerta abre y
- * responde `unimplemented`, que es la verdad.
- */
-export const KNOWN_OPERATIONS: ReadonlySet<string> = new Set<string>();
 
 /** Bandera que apaga la puerta entera sin desplegar. */
 const GATEWAY_FLAG = "ai-gateway" as const;
@@ -49,25 +44,37 @@ interface GatewayPayload {
   input?: unknown;
 }
 
+export interface GatewayOutcome {
+  decision: GatewayDecision;
+  /** Solo cuando la decisión concedió. La entrada ya parseada por Zod. */
+  validation?: InputValidation;
+}
+
 export async function runGateway(request: {
   app?: unknown;
   auth?: { uid?: string; token?: Record<string, unknown> };
   data?: unknown;
-}): Promise<{ decision: GatewayDecision }> {
+}): Promise<GatewayOutcome> {
   const db = getFirestore();
 
   const uid = typeof request.auth?.uid === "string" ? request.auth.uid : undefined;
   const claims = request.auth?.token;
   const claimTenantId = typeof claims?.tenantId === "string" ? claims.tenantId : undefined;
 
-  // Todo lo que necesita la decisión, pedido a la vez. El conjunto para leer la
-  // membresía y los overrides sale de los claims, nunca de `request.data`.
-  const [membershipSnap, gateway, appCheckMonitor] = await Promise.all([
+  // Buscar la operación en el catálogo NO es confiar en el cliente: la clave es
+  // una etiqueta para consultar una tabla estática, no una autoridad. Todo lo
+  // que decide permisos —conjunto, rol— sigue saliendo de la sesión.
+  const payload = (request.data ?? {}) as GatewayPayload;
+  const operation = findOperation(payload.operationKey);
+
+  // Todo lo que necesita la decisión, pedido a la vez.
+  const [membershipSnap, gateway, appCheckMonitor, operationFlag] = await Promise.all([
     uid && claimTenantId
       ? db.collection("tenantUsers").doc(`${claimTenantId}_${uid}`).get()
       : Promise.resolve(null),
     resolveFeatureFlag(GATEWAY_FLAG, claimTenantId),
     resolveFeatureFlag(APP_CHECK_MONITOR_FLAG, claimTenantId),
+    operation ? resolveFeatureFlag(operation.flag, claimTenantId) : Promise.resolve(null),
   ]);
 
   const membership: GatewayMembership | null =
@@ -81,7 +88,8 @@ export async function runGateway(request: {
       membership,
       gatewayEnabled: gateway.enabled,
       appCheckMonitor: appCheckMonitor.enabled,
-      knownOperations: KNOWN_OPERATIONS,
+      operation,
+      operationFlagEnabled: operationFlag?.enabled ?? false,
     },
   );
 
@@ -96,7 +104,11 @@ export async function runGateway(request: {
     });
   }
 
-  return { decision };
+  if (!decision.ok) return { decision };
+
+  // La entrada se valida DESPUÉS de autorizar, nunca antes: a quien no tiene
+  // permiso no se le dice si su carga útil era válida.
+  return { decision, validation: validateOperationInput(decision.operation, payload.input) };
 }
 
 export const aiInvoke = onCall<GatewayPayload>(
@@ -108,7 +120,7 @@ export const aiInvoke = onCall<GatewayPayload>(
     enforceAppCheck: false,
   },
   async (request) => {
-    const { decision } = await runGateway({
+    const { decision, validation } = await runGateway({
       app: request.app,
       auth: request.auth ? { uid: request.auth.uid, token: request.auth.token as Record<string, unknown> } : undefined,
       data: request.data,
@@ -119,8 +131,26 @@ export const aiInvoke = onCall<GatewayPayload>(
       throw new HttpsError(decision.code, decision.message);
     }
 
-    // Inalcanzable mientras KNOWN_OPERATIONS esté vacío. El Paso 1.3 pone aquí
-    // la búsqueda en el catálogo y la validación de entrada.
-    throw new HttpsError("unimplemented", "Esa operación no existe.");
+    if (validation && !validation.ok) {
+      logger.warn("ai-gateway: entrada rechazada", {
+        reason: validation.reason,
+        operationKey: decision.operation.key,
+        tenantId: decision.tenantId,
+      });
+      throw new HttpsError("invalid-argument", validation.detail);
+    }
+
+    // Hasta aquí llega el Paso 1.3: la puerta abrió, la operación existe y la
+    // entrada cumple su contrato. Lo que falta es el adaptador del proveedor y
+    // la validación de la salida — Paso 1.4.
+    logger.info("ai-gateway: operación admitida sin proveedor", {
+      operationKey: decision.operation.key,
+      version: decision.operation.version,
+      tenantId: decision.tenantId,
+    });
+    throw new HttpsError(
+      "unimplemented",
+      "Esta función todavía no está conectada. Puedes continuar con el proceso manual.",
+    );
   },
 );

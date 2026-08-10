@@ -218,3 +218,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 3 — `index.md`, [[programa-ia]] (corrección: App Check estaba dormido de punta a punta, no «sin enforcement en servidor»), [[banderas-funcionalidad]] (primera bandera no-IA en el catálogo)
 - **Entidades extraídas**: callable `aiInvoke`, decisión pura de autorización, rechazo de `tenantId` en la petición, orden de comprobaciones, bandera `operacion-app-check-monitor`, banco de pruebas de `functions/`
 - **Nota**: el superadmin no puede invocar operaciones asistidas — no tiene conjunto en sesión, y aceptarlo del cliente es justo lo que el paso impide
+
+---
+
+## [2026-08-09] ingest | Paso 1.3 del programa de IA — catálogo de operaciones
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: el catálogo, el contrato de `comunicaciones-redactar` y la regla de `assumptions`)
+- **Entidades extraídas**: `OperationDefinition` (clave, versión, módulo, bandera, roles, esquemas, límites), operación `comunicaciones-redactar` v1, validación de entrada con Zod, tope de tamaño previo al esquema
+- **Nota**: los roles y la bandera dejaron de estar escritos a mano en la puerta; los declara cada operación

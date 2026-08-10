@@ -180,11 +180,16 @@ llamar todavía a ningún modelo.
 Con una corrección: App Check no estaba «inicializado en cliente sin enforcement
 en servidor» como decía la auditoría — estaba **dormido de punta a punta**.
 
-**1.3 Catálogo de operaciones.**
+**1.3 Catálogo de operaciones. — HECHO (9 de agosto de 2026).**
 Cada cosa que la IA puede hacer es una `operationKey` con versión, esquema de
 entrada, esquema de salida, permisos y límites. Nada se invoca si no está en el
 catálogo. Esto es lo que impide que dentro de seis meses haya once llamadas
 distintas que nadie sabe de dónde salen.
+*Terminado cuando* (el criterio no venía en el plan, se fijó al ejecutar): la
+puerta abre para una clave del catálogo y sigue negando las que no están; una
+entrada que no cumple el esquema se rechaza antes de gastar nada; un rol no
+autorizado *para esa operación* se rechaza; y apagar la bandera de la operación
+la cierra sin tocar el resto.
 
 **1.4 Adaptador del proveedor y validación de salida.**
 La llamada real, y un validador con Zod que **rechaza** lo que no cumpla el
@@ -547,12 +552,73 @@ solo entonces apagar `operacion-app-check-monitor` mirando antes los logs.
 
 ---
 
+## Registro de ejecución — Paso 1.3
+
+**Cerrado el 9 de agosto de 2026.** La puerta ya tiene detrás una lista de lo que
+se puede pedir. Sigue sin haber una llamada a ningún modelo.
+
+**1 · Una sola operación registrada, no cinco.** `comunicaciones-redactar` v1,
+la del canario. Registrar ahora las cinco capacidades del portafolio sería
+inventar esquemas para cosas que no se tocan en meses —la misma trampa que
+ajustar un prompt hasta que pasen tus tres ejemplos, en otra forma— y un
+catálogo sin una sola entrada no se puede probar. **El prompt no entra aquí:**
+eso es el Paso 2.3. Lo que se fija es el contrato.
+
+**2 · Lo que la operación NO recibe es tan importante como lo que recibe.**
+La entrada son tres campos y todos los escribe el administrador: propósito,
+hechos y tono. No están —y no es un olvido— audiencia, torres, unidades,
+vigencia, estado ni publicación. Si no entran al esquema de entrada, no hay
+forma de que salgan por el de salida. La regla del Paso 2.5 empieza a existir
+aquí, no en la interfaz.
+
+**3 · La regla dura de `assumptions` ya está en el esquema.** La salida declara
+`assumptions` con longitud máxima cero: si el modelo asumió un dato que nadie le
+dio, la respuesta entera se rechaza. Los dos esquemas son `.strict()` — una
+clave de más es señal de que el modelo se salió del contrato, y eso no se
+ignora. Quien lo hará cumplir en caliente es el validador del Paso 1.4; el
+contrato ya está escrito y probado.
+
+**4 · Los permisos se mudaron del código al catálogo.** La puerta tenía «solo
+administrador» escrito a mano; ahora cada operación declara sus roles. El
+superadmin no está en ninguna, por lo mismo del 1.2.
+
+**5 · Cada operación declara su propia bandera**, además de `ai-gateway`. Se
+puede apagar el borrador de comunicaciones sin apagar la plataforma. El orden de
+rechazos quedó: plataforma apagada → operación desconocida → capacidad apagada →
+rol. Los tres «apagado» van antes que el rol a propósito: decir «no tienes
+permiso» cuando no lo tiene nadie manda a la persona a pedir un permiso que no
+existe.
+
+**6 · Los límites son números puestos para que existan.** 4.000 caracteres de
+entrada, 20 segundos de corte, 1.500 tokens de salida. Son la previsión de costo
+por acción antes de tener una sola medición, y se revisan con la evaluación
+offline del Paso 2.4, que es cuando habrá con qué corregirlos.
+
+**Dependencia nueva:** `zod` en `functions/`. Ya estaba en la app; es la que el
+propio plan nombra en el 1.4. Primera dependencia que añade el programa de IA.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Catálogo, esquemas y validación de entrada | `functions/src/ai/catalog.ts` |
+| Autorización (roles y bandera ya salen del catálogo) | `functions/src/ai/authorize.ts` |
+| La puerta | `functions/src/ai/gateway.ts` |
+| Pruebas | `functions/tests/ai-catalog.test.ts` (23), `ai-gateway.test.ts` (21) |
+
+---
+
 ## Por dónde seguimos
 
-Cerrados el Paso 0, el 1.1 y el 1.2, lo siguiente es **Paso 1.3: el catálogo de
-operaciones.** Cada cosa que la IA puede hacer pasa a ser una `operationKey` con
-versión, esquema de entrada, esquema de salida, permisos y límites. Nada se
-invoca si no está en el catálogo — hoy la puerta responde `unimplemented` a todo
-porque el catálogo está vacío, y ese hueco es exactamente lo que llena el 1.3.
+Cerrados el Paso 0 y los 1.1, 1.2 y 1.3, lo siguiente es **Paso 1.4: el
+adaptador del proveedor y la validación de salida.** Es la primera llamada real
+a Vertex AI, y el validador con Zod que **rechaza** lo que no cumpla el esquema
+—empezando por una respuesta con `assumptions` llena—. Termina cuando una
+respuesta deliberadamente malformada se rechaza y no llega al módulo.
+
+Es también el primer paso que **gasta dinero**, así que arrastra dos cosas del
+Paso 0 que siguen abiertas: elegir la **región** de Vertex AI —el único pendiente
+del Paso 0, con implicación de privacidad por el hueco legal de Ecuador— y tener
+el tope de gasto puesto de verdad.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

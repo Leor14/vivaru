@@ -1,3 +1,5 @@
+import type { OperationDefinition } from "./catalog";
+
 /**
  * Decisión de autorización de la puerta de entrada de IA — función pura, sin
  * Firestore y sin `firebase-functions` (Paso 1.2 de `docs/hoja-de-ruta-ia.md`).
@@ -31,6 +33,7 @@ export type GatewayDenialReason =
   | "membresia_de_otro_conjunto"
   | "rol_no_autorizado"
   | "puerta_apagada"
+  | "capacidad_apagada"
   | "operacion_ausente"
   | "operacion_desconocida";
 
@@ -48,7 +51,8 @@ export interface GatewayGrant {
   /** Resuelto desde la sesión. Único `tenantId` que puede usar el resto del sistema. */
   tenantId: string;
   role: string;
-  operationKey: string;
+  /** La entrada del catálogo, ya resuelta: nadie vuelve a buscarla por clave. */
+  operation: OperationDefinition;
 }
 
 export type GatewayDecision = GatewayGrant | GatewayDenial;
@@ -80,21 +84,22 @@ export interface GatewayEnvironment {
    * se registra. Apagada, se rechaza.
    */
   appCheckMonitor: boolean;
-  /** Operaciones que existen hoy. Vacío hasta el Paso 1.3. */
-  knownOperations: ReadonlySet<string>;
+  /** La operación pedida, ya buscada en el catálogo. `null` si no existe. */
+  operation: OperationDefinition | null;
+  /** Bandera propia de esa operación. Permite apagar una capacidad sin apagar el resto. */
+  operationFlagEnabled: boolean;
 }
 
 /**
- * Roles que pueden pedir una operación asistida mientras no exista el catálogo
- * de operaciones (Paso 1.3), que es quien fijará los permisos por operación.
+ * Los roles autorizados los declara cada operación en el catálogo (Paso 1.3).
+ * Antes vivían aquí, escritos a mano, que era lo aceptable mientras no existía
+ * el catálogo.
  *
- * El superadmin **no** está y no es un olvido: no tiene conjunto en su sesión,
- * así que dejarle invocar exigiría aceptar un `tenantId` del cliente — justo lo
- * que este paso existe para impedir. Para operar sobre un conjunto, se entra
- * al conjunto.
+ * El superadmin no aparece en ninguno y no es un olvido: no tiene conjunto en
+ * su sesión, así que dejarle invocar exigiría aceptar un `tenantId` del cliente
+ * — justo lo que la puerta existe para impedir. Para operar sobre un conjunto,
+ * se entra al conjunto.
  */
-const ROLES_AUTORIZADOS = new Set(["tenant_admin", "admin_tenant"]);
-
 function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
@@ -110,10 +115,14 @@ function asString(value: unknown): string | undefined {
  *     para que el error diga la verdad: el contrato es no mandarlo.
  *  4. **Claims** → conjunto y rol salen de aquí, de ningún otro sitio.
  *  5. **Membresía viva** — los claims pueden quedar viejos; el documento manda.
- *  6. **Puerta encendida** — antes que el rol, porque «está apagado» es una
- *     respuesta más honesta que «no tienes permiso» cuando no lo tiene nadie.
- *  7. **Rol.**
- *  8. **Operación** — última, y hoy siempre falla: el catálogo llega en 1.3.
+ *  6. **Puerta encendida** — antes que nada de la operación: si la plataforma
+ *     está apagada, da igual qué pidieras.
+ *  7. **La operación existe** en el catálogo.
+ *  8. **Capacidad encendida** — la bandera propia de esa operación.
+ *  9. **Rol**, según lo que declare la operación. Va el último de los
+ *     rechazos porque «está apagado» es una respuesta más honesta que «no
+ *     tienes permiso» cuando no lo tiene nadie: lo segundo manda a la persona
+ *     a pedir un permiso que no existe.
  */
 export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironment): GatewayDecision {
   if (!caller.appCheckPresent && !env.appCheckMonitor) {
@@ -198,17 +207,6 @@ export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironm
     };
   }
 
-  // El rol efectivo es el de la membresía, no el del token, por lo mismo.
-  const role = asString(membership.role) ?? claimRole;
-  if (!ROLES_AUTORIZADOS.has(role)) {
-    return {
-      ok: false,
-      code: "permission-denied",
-      reason: "rol_no_autorizado",
-      message: "Tu rol no puede usar esta función.",
-    };
-  }
-
   const operationKey = asString((data as { operationKey?: unknown } | undefined)?.operationKey);
   if (!operationKey) {
     return {
@@ -219,7 +217,8 @@ export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironm
     };
   }
 
-  if (!env.knownOperations.has(operationKey)) {
+  const operation = env.operation;
+  if (!operation || operation.key !== operationKey) {
     return {
       ok: false,
       code: "unimplemented",
@@ -228,5 +227,26 @@ export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironm
     };
   }
 
-  return { ok: true, uid, tenantId: claimTenantId, role, operationKey };
+  if (!env.operationFlagEnabled) {
+    return {
+      ok: false,
+      code: "failed-precondition",
+      reason: "capacidad_apagada",
+      message: "Esta función asistida no está disponible en este momento.",
+    };
+  }
+
+  // El rol efectivo es el de la membresía, no el del token, por lo mismo de
+  // arriba. Los roles permitidos los declara la operación, no esta función.
+  const role = asString(membership.role) ?? claimRole;
+  if (!operation.allowedRoles.includes(role)) {
+    return {
+      ok: false,
+      code: "permission-denied",
+      reason: "rol_no_autorizado",
+      message: "Tu rol no puede usar esta función.",
+    };
+  }
+
+  return { ok: true, uid, tenantId: claimTenantId, role, operation };
 }

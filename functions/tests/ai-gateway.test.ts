@@ -5,30 +5,33 @@ import {
   type GatewayCaller,
   type GatewayEnvironment,
 } from "../src/ai/authorize";
+import { findOperation } from "../src/ai/catalog";
 
 /**
- * Puerta de entrada única de IA — Paso 1.2 de docs/hoja-de-ruta-ia.md.
+ * Puerta de entrada única de IA — Pasos 1.2 y 1.3 de docs/hoja-de-ruta-ia.md.
  *
- * El criterio del plan es literalmente una prueba: «una prueba que intenta
- * pasar un `tenantId` ajeno falla». Está aquí, y con ella el resto del orden de
+ * El criterio del 1.2 es literalmente una prueba: «una prueba que intenta pasar
+ * un `tenantId` ajeno falla». Está aquí, y con ella el resto del orden de
  * comprobaciones, que es lo que decide si un fallo se cuenta como «apagado» o
  * como «no tienes permiso».
  *
- * Son las primeras pruebas de `functions/`: hasta ahora no había banco, y el
- * Paso 1.7 va a pedir bastante más (cuota bajo concurrencia, proveedor caído).
+ * Los casos usan la operación REAL del catálogo, no una inventada: si mañana
+ * cambian sus roles o su bandera, estas pruebas lo acusan.
  */
 
 const CONJUNTO = "conjunto-a";
 const AJENO = "conjunto-b";
 const UID = "admin-1";
-const OPERACION = "comunicaciones.redactar";
+
+const OPERACION = findOperation("comunicaciones-redactar");
+if (!OPERACION) throw new Error("El catálogo perdió comunicaciones-redactar.");
 
 function caller(overrides: Partial<GatewayCaller> = {}): GatewayCaller {
   return {
     appCheckPresent: true,
     uid: UID,
     claims: { tenantId: CONJUNTO, role: "tenant_admin" },
-    data: { operationKey: OPERACION },
+    data: { operationKey: OPERACION!.key },
     ...overrides,
   };
 }
@@ -38,7 +41,8 @@ function env(overrides: Partial<GatewayEnvironment> = {}): GatewayEnvironment {
     membership: { tenantId: CONJUNTO, role: "tenant_admin", status: "active" },
     gatewayEnabled: true,
     appCheckMonitor: true,
-    knownOperations: new Set([OPERACION]),
+    operation: OPERACION,
+    operationFlagEnabled: true,
     ...overrides,
   };
 }
@@ -47,7 +51,7 @@ describe("el conjunto sale de la sesión, nunca de la petición", () => {
   it("rechaza un tenantId ajeno en el cuerpo de la petición", () => {
     // LA prueba del Paso 1.2.
     const decision = authorizeGatewayCall(
-      caller({ data: { operationKey: OPERACION, tenantId: AJENO } }),
+      caller({ data: { operationKey: OPERACION!.key, tenantId: AJENO } }),
       env(),
     );
 
@@ -59,23 +63,23 @@ describe("el conjunto sale de la sesión, nunca de la petición", () => {
     // Aceptarlo «porque acertó» es la costumbre que abre la puerta: el día que
     // una comprobación se olvide, el cliente ya estaba mandando el conjunto.
     const decision = authorizeGatewayCall(
-      caller({ data: { operationKey: OPERACION, tenantId: CONJUNTO } }),
+      caller({ data: { operationKey: OPERACION!.key, tenantId: CONJUNTO } }),
       env(),
     );
 
     expect(decision).toMatchObject({ ok: false, reason: "tenant_en_la_peticion" });
   });
 
-  it("concede usando el conjunto de los claims", () => {
+  it("concede usando el conjunto de los claims y devuelve la operación resuelta", () => {
     const decision = authorizeGatewayCall(caller(), env());
 
-    expect(decision).toEqual({
+    expect(decision).toMatchObject({
       ok: true,
       uid: UID,
       tenantId: CONJUNTO,
       role: "tenant_admin",
-      operationKey: OPERACION,
     });
+    expect(decision.ok && decision.operation.key).toBe("comunicaciones-redactar");
   });
 });
 
@@ -122,7 +126,7 @@ describe("sesión y membresía", () => {
   });
 });
 
-describe("rol", () => {
+describe("rol, según lo que declare la operación", () => {
   it("rechaza a un residente", () => {
     expect(
       authorizeGatewayCall(
@@ -150,6 +154,13 @@ describe("rol", () => {
       ),
     ).toMatchObject({ reason: "rol_no_autorizado" });
   });
+
+  it("los roles salen de la operación: si ella los cambia, la puerta cambia", () => {
+    const soloGuardas = { ...OPERACION!, allowedRoles: ["security_guard"] as const };
+    expect(authorizeGatewayCall(caller(), env({ operation: soloGuardas }))).toMatchObject({
+      reason: "rol_no_autorizado",
+    });
+  });
 });
 
 describe("App Check", () => {
@@ -172,11 +183,18 @@ describe("App Check", () => {
   });
 });
 
-describe("bandera y operación", () => {
+describe("banderas y operación", () => {
   it("con la puerta apagada no abre para nadie", () => {
     expect(authorizeGatewayCall(caller(), env({ gatewayEnabled: false }))).toMatchObject({
       code: "failed-precondition",
       reason: "puerta_apagada",
+    });
+  });
+
+  it("con la capacidad apagada se cierra solo esa operación", () => {
+    expect(authorizeGatewayCall(caller(), env({ operationFlagEnabled: false }))).toMatchObject({
+      code: "failed-precondition",
+      reason: "capacidad_apagada",
     });
   });
 
@@ -187,13 +205,18 @@ describe("bandera y operación", () => {
     });
   });
 
-  it("responde unimplemented mientras el catálogo esté vacío", () => {
-    // Es el estado real al cerrar el Paso 1.2: la puerta abre y no hay nada
-    // detrás. El catálogo llega en el 1.3.
-    expect(authorizeGatewayCall(caller(), env({ knownOperations: new Set() }))).toMatchObject({
-      code: "unimplemented",
-      reason: "operacion_desconocida",
-    });
+  it("responde unimplemented para una clave que no está en el catálogo", () => {
+    expect(
+      authorizeGatewayCall(caller({ data: { operationKey: "inventada" } }), env({ operation: null })),
+    ).toMatchObject({ code: "unimplemented", reason: "operacion_desconocida" });
+  });
+
+  it("no acepta una operación resuelta que no sea la pedida", () => {
+    // Defensa contra un fallo del llamador: si la búsqueda y la clave se
+    // desincronizan, la puerta no abre con la operación equivocada.
+    expect(
+      authorizeGatewayCall(caller({ data: { operationKey: "otra-cosa" } }), env()),
+    ).toMatchObject({ reason: "operacion_desconocida" });
   });
 });
 
@@ -207,21 +230,30 @@ describe("orden de las comprobaciones", () => {
     ).toMatchObject({ reason: "app_check_ausente" });
   });
 
+  it('"la plataforma está apagada" gana sobre "esta capacidad está apagada"', () => {
+    expect(
+      authorizeGatewayCall(caller(), env({ gatewayEnabled: false, operationFlagEnabled: false })),
+    ).toMatchObject({ reason: "puerta_apagada" });
+  });
+
   it('"está apagado" gana sobre "no tienes permiso"', () => {
     // Cuando no lo tiene nadie, decir que le falta permiso al usuario es
     // mandarlo a pedir un permiso que no existe.
     expect(
       authorizeGatewayCall(
         caller({ claims: { tenantId: CONJUNTO, role: "resident" } }),
-        env({ gatewayEnabled: false, membership: { tenantId: CONJUNTO, role: "resident", status: "active" } }),
+        env({
+          operationFlagEnabled: false,
+          membership: { tenantId: CONJUNTO, role: "resident", status: "active" },
+        }),
       ),
-    ).toMatchObject({ reason: "puerta_apagada" });
+    ).toMatchObject({ reason: "capacidad_apagada" });
   });
 
   it("el conjunto en la petición se rechaza antes de mirar la membresía", () => {
     expect(
       authorizeGatewayCall(
-        caller({ data: { operationKey: OPERACION, tenantId: AJENO } }),
+        caller({ data: { operationKey: OPERACION!.key, tenantId: AJENO } }),
         env({ membership: null }),
       ),
     ).toMatchObject({ reason: "tenant_en_la_peticion" });

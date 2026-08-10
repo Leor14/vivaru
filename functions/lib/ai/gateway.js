@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.aiInvoke = exports.KNOWN_OPERATIONS = void 0;
+exports.aiInvoke = void 0;
 exports.runGateway = runGateway;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
@@ -41,24 +41,20 @@ const logger = __importStar(require("firebase-functions/logger"));
 const http_config_1 = require("../http-config");
 const feature_flags_1 = require("../feature-flags");
 const authorize_1 = require("./authorize");
+const catalog_1 = require("./catalog");
 /**
  * Punto de entrada único de las operaciones asistidas (Paso 1.2 de
- * `docs/hoja-de-ruta-ia.md`).
+ * `docs/hoja-de-ruta-ia.md`, ampliado con el catálogo en el 1.3).
  *
  * Una sola puerta, y todo lo asistido pasa por ella. Hoy Vivaru tiene cuarenta
  * y una callables y cada una se acuerda por su cuenta de comprobar quién llama
  * y de qué conjunto es: funciona, pero la seguridad depende de que cada una se
  * acuerde. Aquí las comprobaciones ocurren una vez, en un sitio, y se prueban.
  *
- * **Todavía no llama a ningún modelo.** Al terminar el paso hay una puerta que
- * abre y rechaza bien, sin nada detrás. Lo de detrás es el Paso 1.3.
+ * **Todavía no llama a ningún modelo.** La puerta abre, valida la entrada
+ * contra el esquema del catálogo, y se detiene ahí: el adaptador del proveedor
+ * es el Paso 1.4.
  */
-/**
- * Operaciones que existen. Vacío hasta el Paso 1.3, que trae el catálogo con su
- * versión, esquemas, permisos y límites. Mientras esté vacío la puerta abre y
- * responde `unimplemented`, que es la verdad.
- */
-exports.KNOWN_OPERATIONS = new Set();
 /** Bandera que apaga la puerta entera sin desplegar. */
 const GATEWAY_FLAG = "ai-gateway";
 /**
@@ -76,14 +72,19 @@ async function runGateway(request) {
     const uid = typeof request.auth?.uid === "string" ? request.auth.uid : undefined;
     const claims = request.auth?.token;
     const claimTenantId = typeof claims?.tenantId === "string" ? claims.tenantId : undefined;
-    // Todo lo que necesita la decisión, pedido a la vez. El conjunto para leer la
-    // membresía y los overrides sale de los claims, nunca de `request.data`.
-    const [membershipSnap, gateway, appCheckMonitor] = await Promise.all([
+    // Buscar la operación en el catálogo NO es confiar en el cliente: la clave es
+    // una etiqueta para consultar una tabla estática, no una autoridad. Todo lo
+    // que decide permisos —conjunto, rol— sigue saliendo de la sesión.
+    const payload = (request.data ?? {});
+    const operation = (0, catalog_1.findOperation)(payload.operationKey);
+    // Todo lo que necesita la decisión, pedido a la vez.
+    const [membershipSnap, gateway, appCheckMonitor, operationFlag] = await Promise.all([
         uid && claimTenantId
             ? db.collection("tenantUsers").doc(`${claimTenantId}_${uid}`).get()
             : Promise.resolve(null),
         (0, feature_flags_1.resolveFeatureFlag)(GATEWAY_FLAG, claimTenantId),
         (0, feature_flags_1.resolveFeatureFlag)(APP_CHECK_MONITOR_FLAG, claimTenantId),
+        operation ? (0, feature_flags_1.resolveFeatureFlag)(operation.flag, claimTenantId) : Promise.resolve(null),
     ]);
     const membership = membershipSnap && membershipSnap.exists ? membershipSnap.data() : null;
     const appCheckPresent = request.app != null;
@@ -91,7 +92,8 @@ async function runGateway(request) {
         membership,
         gatewayEnabled: gateway.enabled,
         appCheckMonitor: appCheckMonitor.enabled,
-        knownOperations: exports.KNOWN_OPERATIONS,
+        operation,
+        operationFlagEnabled: operationFlag?.enabled ?? false,
     });
     // Modo monitor: la llamada pasa, pero queda el rastro. Es lo que hay que
     // mirar antes de apagar el modo monitor — si el tráfico legítimo no trae
@@ -103,7 +105,11 @@ async function runGateway(request) {
             permitida: decision.ok,
         });
     }
-    return { decision };
+    if (!decision.ok)
+        return { decision };
+    // La entrada se valida DESPUÉS de autorizar, nunca antes: a quien no tiene
+    // permiso no se le dice si su carga útil era válida.
+    return { decision, validation: (0, catalog_1.validateOperationInput)(decision.operation, payload.input) };
 }
 exports.aiInvoke = (0, https_1.onCall)({
     cors: http_config_1.callableCorsOrigins,
@@ -112,7 +118,7 @@ exports.aiInvoke = (0, https_1.onCall)({
     // exigir requeriría desplegar — justo lo que el Paso 1.1 vino a evitar.
     enforceAppCheck: false,
 }, async (request) => {
-    const { decision } = await runGateway({
+    const { decision, validation } = await runGateway({
         app: request.app,
         auth: request.auth ? { uid: request.auth.uid, token: request.auth.token } : undefined,
         data: request.data,
@@ -121,7 +127,21 @@ exports.aiInvoke = (0, https_1.onCall)({
         logger.warn("ai-gateway: rechazada", { reason: decision.reason, uid: request.auth?.uid });
         throw new https_1.HttpsError(decision.code, decision.message);
     }
-    // Inalcanzable mientras KNOWN_OPERATIONS esté vacío. El Paso 1.3 pone aquí
-    // la búsqueda en el catálogo y la validación de entrada.
-    throw new https_1.HttpsError("unimplemented", "Esa operación no existe.");
+    if (validation && !validation.ok) {
+        logger.warn("ai-gateway: entrada rechazada", {
+            reason: validation.reason,
+            operationKey: decision.operation.key,
+            tenantId: decision.tenantId,
+        });
+        throw new https_1.HttpsError("invalid-argument", validation.detail);
+    }
+    // Hasta aquí llega el Paso 1.3: la puerta abrió, la operación existe y la
+    // entrada cumple su contrato. Lo que falta es el adaptador del proveedor y
+    // la validación de la salida — Paso 1.4.
+    logger.info("ai-gateway: operación admitida sin proveedor", {
+        operationKey: decision.operation.key,
+        version: decision.operation.version,
+        tenantId: decision.tenantId,
+    });
+    throw new https_1.HttpsError("unimplemented", "Esta función todavía no está conectada. Puedes continuar con el proceso manual.");
 });
