@@ -94,6 +94,14 @@ Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
 
 ## Necesitan consola, no código
 
+- **Presupuesto del proyecto completo, con SOLO ALERTAS.** El de IA ya está
+  puesto (80.000 COP, con límite de inversión sobre Vertex AI). Falta el del
+  proyecto entero, que es la red que atrapa lo que no viene de la IA. **Nunca
+  con «Aplicación del límite de inversión»**: suspender los servicios del
+  proyecto tumbaría Firestore, Auth y App Hosting. El importe sale de
+  Facturación → Informes, **en pesos** — la cuenta `01E210-7D2C3B-4EB5BE` está
+  en COP, no en USD, y ese detalle ya casi cuesta un incidente.
+
 - **App Check está dormido de punta a punta** (verificado el 9 ago 2026, no es
   lo que decía la auditoría). El cliente ya llama a `setupAppCheck()` desde el
   Paso 1.2, pero sin clave no hace nada. Tres cosas, en orden:

@@ -245,3 +245,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: qué se registra y por qué el costo se congela al escribir)
 - **Entidades extraídas**: colección `aiUsage`, tabla de precios versionada, `estimateCostUsd`, resumen por conjunto y por operación, purga a 12 meses, consola `/superadmin/ia`
 - **Nota**: se registran también los fallos — una llamada fallida ya consumió tokens, y la tasa de fallo es la métrica que dice si la capacidad sirve
+
+---
+
+## [2026-08-10] update | Cierre de los pendientes de consola del programa de IA
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[programa-ia]] (el modelo elegido solo existe en el endpoint global; la alineación con `us-central1` quedó descartada)
+- **Entidades extraídas**: endpoint global, `gemini-3.1-flash-lite`, límite de inversión por servicio, cuota de tokens por minuto, moneda COP de la cuenta de facturación
+- **Nota**: dos correcciones de datos que estaban mal. Vertex AI se renombró a Gemini Enterprise Agent Platform (el ID `aiplatform.googleapis.com` no cambió), y sí existe un tope de gasto que suspende servicios concretos sin tocar el resto del proyecto

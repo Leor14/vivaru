@@ -198,9 +198,10 @@ esquema. Si el modelo devuelve algo raro, el usuario ve un error limpio, no un
 objeto a medias.
 *Terminado cuando:* una respuesta deliberadamente malformada se rechaza y no
 llega al módulo. **Cumplido.**
-*Lo que falta:* la llamada real a Vertex AI, que espera la región y el tope de
-gasto. El proveedor es simulado detrás de la misma costura que usa
-`SriTransport`. El validador, que es la mitad que importa, es definitivo.
+*Lo que falta:* la llamada real a Vertex AI. El proveedor es simulado detrás de
+la misma costura que usa `SriTransport`. El validador, que es la mitad que
+importa, es definitivo. **Ya no está bloqueado**: el endpoint y el tope se
+cerraron el 10 de agosto (ver el registro de cierre). Solo falta escribirlo.
 
 **1.5 Telemetría de uso y costo. — HECHO (9 de agosto de 2026).**
 Por cada llamada: tenant, usuario, operación, versión de prompt y modelo, tokens,
@@ -394,13 +395,13 @@ poder rechazar una puerta propia.
 - Escalamiento: **Gemini 3.6 Flash**, controlado, nunca seleccionable por el
   usuario.
 - Versión fijada. Evaluación obligatoria antes de cambiarla.
-- **Región: abierta.** Es el único pendiente del Paso 0. Hay que verificar qué
-  regiones sirven estos modelos y qué implica cada una para la política de
-  privacidad, dado que ya existe un hueco legal con Ecuador.
+- **Endpoint: global. Cerrado el 10 de agosto de 2026**, y no fue la respuesta
+  que esperábamos. Ver el registro de cierre más abajo.
 
 **3 · Presupuesto.** USD 20 al mes, tope duro, alerta al 50%. Es más de diez
 veces la necesidad real y la desproporción es intencional: **el tope no controla
 el gasto, obliga a que el mecanismo de corte exista y esté probado.**
+Configurado el 10 de agosto de 2026 — ver el registro de cierre más abajo.
 
 **4 · Política de datos.** Las cinco reglas aprobadas: solo se envía lo que el
 administrador escribe; se registran metadatos y no contenido; las muestras de
@@ -414,6 +415,102 @@ variable de decisión de este programa. Cotejado contra el pricing real de las
 cuatro geografías, pesa entre 0,18% y 0,68% del ingreso por unidad contra una
 meta de 3%, y eso incluye el peor caso documentado (Ecuador Nivel 2). Los precios
 se mantienen o suben. El detalle, en `docs/auditoria-prd-ia-ago2026.md`.
+
+---
+
+## Registro de cierre — los dos pendientes de consola
+
+**10 de agosto de 2026.** Con esto el Paso 0 queda cerrado del todo y el 1.4 deja
+de estar a medias por falta de decisiones.
+
+### El endpoint: global, y el porqué no es el que se razonó
+
+Se verificó contra el proyecto real, no contra la documentación. La cuota
+`GenerateContentInputTokensPerMinutePerRegionPerBaseModel` solo conoce **tres
+modelos en las 38 regiones**, todos de generación anterior:
+
+| Ámbito | Modelos con cuota |
+|---|---|
+| `us-central1` y otras 37 regiones | `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-experimental` |
+| **Endpoint global** | `gemini-3.0-flash`, **`gemini-3.1-flash-lite`**, `gemini-3.5-flash-lite`, **`gemini-3.6-flash`**, `gemini-2.5-*`, y modelos Grok |
+
+**Corrección de un argumento propio.** Al abrir el tema se razonó que, estando
+Firestore (`nam5`), App Hosting y las Functions en `us-central1`, la IA debía ir
+ahí por coherencia de residencia de datos. El razonamiento era correcto y
+**partía de una premisa falsa**: que existiera un `us-central1` capaz de servir
+el modelo elegido. No existe. La elección real era *endpoint global con el
+modelo decidido* o *`us-central1` con un modelo de dos generaciones atrás*.
+
+Se eligió **global**, con tres cosas escritas para no olvidarlas:
+
+1. **El modelo del Paso 0 se sostiene.** `gemini-3.1-flash-lite` existe, y
+   `gemini-3.6-flash` —el de escalamiento— también. No hubo que reabrir nada.
+2. **El riesgo de residencia es bajo para el canario, y por diseño.** La entrada
+   de `comunicaciones-redactar` son tres campos —propósito, hechos, tono— y el
+   esquema del Paso 1.3 deja fuera audiencia, torres y unidades. Lo que viaja es
+   texto de cartelera, sin datos de personas.
+3. **Deja de serlo en los pasos 3 y 5.** PQRS son textos que escriben residentes
+   y los comprobantes llevan nombres y datos bancarios. **La pregunta del
+   endpoint hay que volver a hacerla ahí**, y el catálogo ya admite
+   configuración por operación, así que será barato hacerlo entonces.
+
+Pendiente de política de privacidad: hay que declarar que el procesamiento con
+IA ocurre con Google sin región fija. Es trabajo legal, no de consola, y se suma
+al hueco de Ecuador de `docs/brief-legal-ecuador.md`.
+
+### El tope de gasto: existe de verdad, y son cuatro capas
+
+**Corrección de otro dato.** Se dio por sentado que un presupuesto de Google solo
+avisa y que la única forma de cortar era desactivar la facturación del proyecto
+—inaceptable, porque tumbaría Firestore, Auth y App Hosting—. **Ya no es así:**
+la consola ofrece *«Aplicación del límite de inversión»*, que suspende
+únicamente los servicios indicados. Vertex AI está entre los soportados.
+
+| | Capa | Qué protege | Estado |
+|---|---|---|---|
+| 1 | Límite de inversión, 80.000 COP/mes, solo Vertex AI | El techo mensual real | ✅ |
+| 2 | Cuota `GlobalGenerateContentInputTokensPerMinutePerBaseModel` = 2.000 | La velocidad a la que un bucle puede quemar | ✅ |
+| 3 | Cuota por conjunto y usuario | Corta en el momento, sin esperar a Google | Paso 1.6 |
+| 4 | Kill switch | Un clic, sin desplegar | ✅ Paso 1.1 |
+
+Detalles que importan:
+
+- **La moneda de la cuenta es COP**, no USD. El campo del importe muestra `$` a
+  secas: poner «20» habría fijado el tope en veinte pesos y la primera llamada
+  habría suspendido el servicio. Quedó en **80.000 COP**.
+- **La cuota bajó de 25.000.000 a 2.000 tokens de entrada por minuto** para
+  `gemini-3.1-flash-lite`. El valor por defecto equivalía a unos 60 USD por
+  minuto de exposición; ahora son unos 7 al día.
+- **El corte no es instantáneo.** Google avisa de que los costos reales tardan
+  horas en consolidarse y que el límite se activa con estimaciones brutas. Puede
+  haber sobrepaso — por eso las capas 2 y 3 siguen haciendo falta.
+- **Que el corte duro sea seguro no es suerte:** «proveedor caído» es una de las
+  cuatro formas de fallo probadas en el Paso 1.4. Si Google suspende el
+  servicio, el administrador ve «puedes continuar con el proceso manual» y
+  sigue trabajando.
+- Los umbrales de aviso los fija Google en **50 / 80 / 100%** y no son
+  editables. Van a administradores de facturación y propietarios del proyecto.
+- **No se conectó ninguna automatización que desactive la facturación**, y no
+  hay que conectarla nunca en `hogaru-1`.
+
+### Datos verificados de paso
+
+- `aiplatform.googleapis.com` **habilitada**. Su nombre comercial ahora es
+  «Agent Platform API» — Vertex AI se renombró a Gemini Enterprise Agent
+  Platform. El identificador del servicio no cambió.
+- El proyecto `vivaru` de la consola **es** `hogaru-1`.
+- Cuenta de facturación `01E210-7D2C3B-4EB5BE` («Pago de Firebase»), en COP.
+- Consumo de IA a día de hoy: **cero**. Es la línea base de gasto.
+
+### Lo que sigue abierto
+
+- **Presupuesto del proyecto completo**, solo alertas —nunca límite de
+  inversión, que tumbaría Vivaru entero—. Sacar el gasto mensual real en pesos
+  de Facturación → Informes.
+- **App Check**, que sigue como estaba (ver `docs/pendientes.md`).
+- **El identificador exacto del modelo** al llamarlo: la dimensión de cuota lo
+  nombra `gemini-3.1-flash-lite-qcd`, y el `-qcd` es casi seguro un sufijo de
+  clasificación de cuota. Se confirma al escribir el adaptador real.
 
 ---
 
@@ -727,18 +824,22 @@ que la consulta por período funcione en un proyecto real.
 
 ## Por dónde seguimos
 
-**Lo tuyo, y ahora sí bloquea de verdad.** El Paso 1.6 son las cuotas, y una
-cuota sin un tope de gasto detrás es media red de seguridad. Las dos cosas
-siguen abiertas: **la región de Vertex AI** —único pendiente del Paso 0, con
-implicación de privacidad por el hueco de Ecuador— y **el tope configurado** en
-Google Cloud. El propósito del tope nunca fue controlar el gasto, que va a ser
-ridículo, sino que el mecanismo de corte exista y esté probado antes de que haga
-falta. Ahora ya hay con qué comprobarlo: la consola de consumo.
+**No queda nada bloqueado por decisiones.** El Paso 0 está cerrado del todo y
+las capas de tope están puestas.
 
-**Lo que se puede hacer sin eso — Paso 1.6, cuotas.** Por conjunto, usuario y
-operación, con actualización atómica: si no es atómica, se evade repitiendo la
-llamada rápido. Termina cuando al agotarse la cuota la acción asistida se
-deshabilita y el flujo manual sigue funcionando. Y después el 1.7, las pruebas
-que importan, que es donde se cierra la puerta G3 del programa.
+**Siguiente: Paso 1.6, cuotas.** Por conjunto, usuario y operación, con
+actualización atómica: si no es atómica, se evade repitiendo la llamada rápido.
+Termina cuando al agotarse la cuota la acción asistida se deshabilita y el flujo
+manual sigue funcionando.
+
+**Y va antes que la llamada real, a propósito.** El 1.4 quedó a medias solo por
+escribir el adaptador, y la tentación es rematarlo ya. Pero el tope de Google
+tarda horas en morder —lo dice su propia letra pequeña— y la cuota por conjunto
+es justamente la que corta en el momento. Encender el proveedor real teniendo
+las cuatro capas cuesta un incremento más de espera; encenderlo con tres es
+apostar a que nada se desboque en las horas de retraso.
+
+Después: **1.4-real** (el adaptador de Vertex, ya desbloqueado) y **1.7**, las
+pruebas que importan, donde se cierra la puerta G3 del programa.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

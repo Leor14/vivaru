@@ -3,18 +3,20 @@ tags: [arquitectura, ia, roadmap]
 tipo: concepto
 fuentes: ["estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-09
+fecha_actualizacion: 2026-08-10
 ---
 
-# Programa de IA — decidido, no construido
+# Programa de IA — la plataforma en pie, sin llamar a ningún modelo
 
-**Estado verificado contra el código a 1 de agosto de 2026: no existe ni una línea de IA en Vivaru.** No hay colección `aiUsage`, ni gateway, ni adaptador de proveedor, ni llamada a ningún modelo. Lo que existe es un marco de decisión completo, documentado en [[estrategia-ia-minima-viable]] y [[plan-general-ia]].
+**Hasta el 1 de agosto de 2026 no existía ni una línea de IA en Vivaru.** Entre el 9 y el 10 de agosto se construyó la plataforma entera menos la llamada real: banderas, puerta de entrada, catálogo de operaciones, validación de salida y telemetría de costo. El marco de decisión que la gobierna está en [[estrategia-ia-minima-viable]] y [[plan-general-ia]].
 
-Esta página resume ese marco. La distancia entre lo decidido y lo construido es el dato más importante que contiene.
+Lo que sigue sin existir, y a propósito, es el consumo: ningún módulo del producto invoca todavía una capacidad asistida. Esta página resume el marco; el detalle de ejecución paso a paso vive en `docs/hoja-de-ruta-ia.md`.
 
 ## La decisión ejecutiva
 
 Durante los primeros 12 meses, **dos capacidades externas y nada más**: un modelo generativo económico vía API (Gemini Flash-Lite como predeterminado) y OCR documental (Google Document AI). Sin agentes autónomos, sin chat abierto para residentes, sin modelos propios, sin base vectorial, sin un segundo proveedor.
+
+Verificado contra el proyecto real el 10 de agosto de 2026: el modelo elegido —`gemini-3.1-flash-lite`— **solo se sirve por el endpoint global**, no por ninguna de las 38 regiones, que se quedaron en Gemini 1.5. Eso descartó la opción de alinear la IA con `us-central1`, donde viven Firestore y el resto de la plataforma según [[dominios-app-hosting]]. Para el canario el riesgo es bajo porque la entrada de la operación no lleva datos de personas (ver [[puerta-ia]]), pero la pregunta hay que rehacerla en [[pqrs]] y en los comprobantes de [[billing]], que sí los llevan.
 
 El principio financiero manda sobre el técnico:
 
@@ -47,18 +49,21 @@ Ocho puertas, G0 a G7, contra las siete de una PRD funcional: la de IA añade **
 
 Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento por `tenantId`, reglas de Firestore y Storage, Cloud Functions, `auditLogs` y validación con Zod.
 
-**Construido el 9 de agosto de 2026:**
+**Construido entre el 9 y el 10 de agosto de 2026:**
 
-- **Paso 1.1** — las [[banderas-funcionalidad]] con lector real en cliente y servidor, kill switch por bandera y maestro, y overrides por conjunto. Era la primera brecha de esta lista y la daban por resuelta las cinco PRD sin estarlo. Se construyó como mecanismo genérico de plataforma, no como pieza del programa de IA.
-- **Paso 1.2** — la [[puerta-ia]]: un callable único que resuelve el conjunto desde la sesión y rechaza cualquier petición que traiga `tenantId`. Todavía no llama a ningún modelo.
+- **1.1** — las [[banderas-funcionalidad]]: lector real en cliente y servidor, kill switch por bandera y maestro, overrides por conjunto. Era la primera brecha y las cinco PRD la daban por resuelta sin estarlo. Se hizo como mecanismo genérico de plataforma, no como pieza del programa de IA.
+- **1.2 y 1.3** — la [[puerta-ia]] y su catálogo: un callable único que resuelve el conjunto desde la sesión, rechaza cualquier petición que traiga `tenantId`, y solo admite operaciones declaradas con su versión, esquemas, roles y límites.
+- **1.4, a medias a propósito** — el validador de salida está terminado y rechaza entero lo que incumpla el contrato; el proveedor sigue siendo simulado, con la misma costura que usa el transporte del SRI en [[billing]].
+- **1.5** — telemetría en `aiUsage` y consola de consumo en [[superadmin]], que es lo que permite responder cuánto gastó cada conjunto sin estimar.
+- **Los topes de gasto**, en cuatro capas: límite de inversión de Google acotado a Vertex AI, cuota de tokens por minuto, kill switch, y —pendiente— la cuota por conjunto.
 
-Brechas verificadas en el código:
+Brechas que siguen abiertas:
 
-- No existe adaptador de proveedor ni catálogo de operaciones. La puerta ya existe y responde `unimplemented` a todo.
-- **App Check estaba dormido de punta a punta**, no a medias como decía esta página hasta el 9 de agosto: `setupAppCheck()` existía sin que lo llamara nadie, no había clave de reCAPTCHA en el entorno y el servidor no exigía nada. El Paso 1.2 despertó el cliente y dejó el rechazo gobernado por bandera; **falta el trabajo de consola** para exigirlo de verdad.
-- No hay cuotas ni medición de costo por conjunto.
+- **No hay cuota por conjunto ni usuario.** Es la única capa de tope que corta en el momento; la de Google tarda horas en consolidar costos.
+- **App Check está cableado pero no se exige.** Hasta el 9 de agosto esta página decía que estaba «inicializado en cliente sin enforcement en servidor»; la verdad era peor — `setupAppCheck()` existía sin que lo llamara nadie. Ahora el cliente lo llama y el rechazo lo gobierna una bandera; **falta el trabajo de consola** para poder exigirlo.
 - No hay líneas base de tiempo, error ni volumen de los procesos que la IA pretende mejorar. Sin baseline no hay forma de saber si funcionó.
 - No hay datasets ni criterios de evaluación offline.
+- **Ningún módulo del producto invoca nada todavía**, y eso es correcto: el orden del programa pone la plataforma antes que la función.
 
 ## Dónde viven las PRD
 
