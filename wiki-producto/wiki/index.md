@@ -43,6 +43,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[dominios-app-hosting]] | Topología prod/staging, dominios custom y runbook del incidente 403 |
 | [[ciclo-de-vida-tenant]] | 🆕 `tenants.status`: prueba → cliente, `tenantOperable()` y el candado de módulos en tres capas |
 | [[programa-ia]] | 🆕 IA decidida y no construida: dos capacidades, principios, orden de fases y brechas verificadas |
+| [[banderas-funcionalidad]] | 🆕 Encender y apagar capacidades sin desplegar: precedencia, kill switch maestro y aislamiento de overrides |
 
 ---
 

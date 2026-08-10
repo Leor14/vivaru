@@ -1104,3 +1104,77 @@ describe("Firestore Rules - HOGARU", () => {
     await assertFails(getDoc(doc(guard.firestore(), "amenities", "am-b-1")));
   });
 });
+
+/**
+ * Banderas de funcionalidad y kill switch (Paso 1.1 de docs/hoja-de-ruta-ia.md).
+ *
+ * Lo que se prueba aquí no es que las banderas funcionen —eso es el resolutor
+ * puro, en tests/feature-flags.test.ts— sino las dos cosas que solo las reglas
+ * pueden garantizar: que nadie se encienda una capacidad a sí mismo, y que los
+ * overrides de un conjunto no se lean desde otro.
+ */
+describe("Firestore Rules - banderas de funcionalidad", () => {
+  const sa = () => testEnv.authenticatedContext("super-1", { role: "superadmin" });
+  const adminA = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+  const residentA = () => testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+  const residentB = () => testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-b" });
+
+  it("superadmin crea una bandera con booleanos", async () => {
+    await assertSucceeds(
+      setDoc(doc(sa().firestore(), "featureFlags", "ai-communications-draft"), {
+        enabled: false,
+        killSwitch: false,
+      }),
+    );
+  });
+
+  it("rechaza una bandera con enabled en texto", async () => {
+    // "true" escrito a mano es el error típico de consola. El lector lo ignora
+    // y falla apagado; la regla además impide que llegue a escribirse.
+    await assertFails(
+      setDoc(doc(sa().firestore(), "featureFlags", "ai-gateway"), { enabled: "true" }),
+    );
+  });
+
+  it("cualquier sesión puede leer las banderas", async () => {
+    await assertSucceeds(getDoc(doc(residentA().firestore(), "featureFlags", "ai-communications-draft")));
+  });
+
+  it("un admin de conjunto no puede encenderse una bandera", async () => {
+    await assertFails(
+      setDoc(doc(adminA().firestore(), "featureFlags", "ai-communications-draft"), { enabled: true }),
+    );
+  });
+
+  it("superadmin escribe los overrides de un conjunto", async () => {
+    await assertSucceeds(
+      setDoc(doc(sa().firestore(), "featureFlagOverrides", "tenant-a"), {
+        flags: { "ai-communications-draft": true },
+      }),
+    );
+  });
+
+  it("rechaza overrides cuyo campo flags no es un mapa", async () => {
+    await assertFails(
+      setDoc(doc(sa().firestore(), "featureFlagOverrides", "tenant-b"), { flags: "todo" }),
+    );
+  });
+
+  it("un miembro lee los overrides de su propio conjunto", async () => {
+    await assertSucceeds(getDoc(doc(residentA().firestore(), "featureFlagOverrides", "tenant-a")));
+  });
+
+  it("bloquea leer los overrides de otro conjunto", async () => {
+    // El motivo de que los overrides no vivan dentro del documento de la
+    // bandera: ahí cualquier residente firmado podría enumerar los conjuntos.
+    await assertFails(getDoc(doc(residentB().firestore(), "featureFlagOverrides", "tenant-a")));
+  });
+
+  it("un admin no puede escribir los overrides de su propio conjunto", async () => {
+    await assertFails(
+      setDoc(doc(adminA().firestore(), "featureFlagOverrides", "tenant-a"), {
+        flags: { "ai-communications-draft": true },
+      }),
+    );
+  });
+});

@@ -3,7 +3,7 @@ tags: [arquitectura, ia, roadmap]
 tipo: concepto
 fuentes: ["estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-08-09
 ---
 
 # Programa de IA — decidido, no construido
@@ -45,7 +45,9 @@ Ocho puertas, G0 a G7, contra las siete de una PRD funcional: la de IA añade **
 
 ## Lo que ya tenemos y lo que falta
 
-Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento por `tenantId`, reglas de Firestore y Storage, Cloud Functions, `auditLogs`, `featureFlags` y validación con Zod.
+Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento por `tenantId`, reglas de Firestore y Storage, Cloud Functions, `auditLogs` y validación con Zod.
+
+**Construido el 9 de agosto de 2026 (Paso 1.1):** las [[banderas-funcionalidad]] con lector real en cliente y servidor, kill switch por bandera y maestro, y overrides por conjunto. Era la primera brecha de esta lista y la daban por resuelta las cinco PRD sin estarlo. Se construyó como mecanismo genérico de plataforma, no como pieza del programa de IA.
 
 Brechas verificadas en el código:
 

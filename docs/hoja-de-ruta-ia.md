@@ -160,13 +160,16 @@ Aguántalo: todo lo demás se apoya aquí.
 
 Va en este orden porque cada pieza necesita la anterior.
 
-**1.1 Banderas de verdad, y kill switch.**
-Hoy existe la colección `featureFlags` en `firestore.rules:636` **y no la lee
-nadie**. Son diez líneas de reglas sin consumidor. Esto es lo primero porque es
-la red de seguridad de todo lo que viene después, y porque las otras cuatro PRD
-lo dan por hecho cuando no lo está.
+**1.1 Banderas de verdad, y kill switch. — HECHO (9 de agosto de 2026).**
+Existía la colección `featureFlags` en `firestore.rules` **y no la leía nadie**:
+diez líneas de reglas sin consumidor. Era lo primero porque es la red de
+seguridad de todo lo que viene después, y porque las otras cuatro PRD lo dan por
+hecho.
 *Terminado cuando:* puedes encender y apagar una capacidad para un tenant
 concreto desde Firestore, sin desplegar, y se nota en la aplicación.
+*Cómo quedó:* el detalle, en el registro de ejecución al final de este documento.
+Se construyó **genérico**: nada bajo `src/lib/feature-flags/` sabe qué es una
+operación de IA, y el programa de IA es su primer cliente, no su dueño.
 
 **1.2 El punto de entrada único.**
 Un callable de servidor que autentica, resuelve el tenant **desde la sesión y
@@ -402,11 +405,79 @@ se mantienen o suben. El detalle, en `docs/auditoria-prd-ia-ago2026.md`.
 
 ---
 
+## Registro de ejecución — Paso 1.1
+
+**Cerrado el 9 de agosto de 2026.** Primera línea de código del programa.
+
+**Qué se construyó, y por qué así.**
+
+**1 · Es un mecanismo genérico de plataforma, no una pieza del programa de IA.**
+Nada bajo `src/lib/feature-flags/` sabe qué es una operación de IA. Sirve para
+cualquier capacidad que tenga que poder apagarse sin desplegar: un módulo nuevo,
+un experimento, una integración con un tercero que se cae. El catálogo hoy solo
+tiene banderas de IA porque son las que hacen falta ahora; el área es un campo
+(`ia` | `producto` | `operacion`), no una suposición del código.
+
+**2 · Precedencia, de arriba abajo.** La primera que aplica gana:
+
+| | Nivel | Qué hace |
+|---|---|---|
+| 1 | `featureFlags/_global.killSwitch` | Apaga **todo**, sin excepción. |
+| 2 | `featureFlags/{clave}.killSwitch` | Apaga esa capacidad en todos los conjuntos. |
+| 3 | `featureFlagOverrides/{tenantId}.flags[clave]` | Enciende o apaga solo ahí. |
+| 4 | `featureFlags/{clave}.enabled` | Valor global. |
+| 5 | Default del catálogo | Capacidad nueva → apagada. |
+
+Los dos kill switches van **arriba** de los overrides y esa es toda su razón de
+ser: si `enabled: false` bastara, una capacidad encendida a mano en cinco
+conjuntos seguiría encendida en los cinco justo cuando hay que apagarla.
+
+**3 · Dos colecciones, y la separación es de seguridad.** Los overrides por
+conjunto viven en `featureFlagOverrides/{tenantId}` y no dentro del documento de
+la bandera. Si vivieran dentro, cualquier residente firmado podría enumerar los
+conjuntos de la plataforma leyendo el mapa. Las reglas dejan leer los overrides
+solo a los miembros de ese conjunto, y escribir solo a superadmin.
+
+**4 · El lector del cliente es en tiempo real.** Cambias el documento en la
+consola de Firestore y la aplicación abierta lo acusa sin recargar. Un lector
+que solo mira al montar no es un kill switch, es una configuración de arranque.
+
+**5 · El candado real está en el servidor.** `assertFeatureEnabled` en
+`functions/src/feature-flags.ts`. El gate del cliente oculta la interfaz; lo que
+impide ejecutar la operación es el servidor — misma lección que el gate de
+módulos del trial. Sin caché a propósito: un TTL de treinta segundos convierte
+«apagado inmediato» en «apagado casi siempre».
+
+**6 · Falla apagado, siempre.** Si no se pueden leer las banderas, todo queda
+apagado y el flujo manual sigue. Y solo cuentan booleanos estrictos: un `"true"`
+escrito a mano en la consola no enciende nada, y la consola de superadmin
+muestra de qué nivel salió el valor para que el error se vea.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Catálogo y precedencia | `src/lib/feature-flags/catalog.ts`, `resolve.ts` |
+| Lector del cliente | `src/lib/feature-flags/provider.tsx`, `src/components/shared/feature-gate.tsx` |
+| Lector y candado del servidor | `functions/src/feature-flags.ts` |
+| Reglas | `firestore.rules` (`featureFlags`, `featureFlagOverrides`) |
+| Consola de operación | `/superadmin/flags` |
+| Siembra del catálogo | `functions/scripts/seed-feature-flags.mjs` |
+| Pruebas | `tests/feature-flags.test.ts` (17), `tests/firestore.rules.test.ts` (9 nuevas) |
+
+**Lo que falta para que esto sirva de algo:** sembrar el catálogo en cada
+proyecto (`node functions/scripts/seed-feature-flags.mjs <projectId>`) y
+desplegar reglas. Hasta entonces el lector funciona y devuelve los defaults —
+que es exactamente lo que debe hacer.
+
+---
+
 ## Por dónde seguimos
 
-Con el Paso 0 cerrado, lo siguiente es **Paso 1.1: banderas de funcionalidad con
-lector real y kill switch.** Es la primera línea de código del programa, y es
-útil aunque todo lo demás se retrase: hoy no existe forma de apagar ninguna
-funcionalidad sin desplegar.
+Cerrados el Paso 0 y el 1.1, lo siguiente es **Paso 1.2: el punto de entrada
+único** — un callable que autentica, resuelve el tenant desde la sesión y nunca
+desde lo que mande el cliente, comprueba el rol y exige App Check. Sin llamar
+todavía a ningún modelo. Termina cuando una prueba que intenta pasar un
+`tenantId` ajeno falla.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

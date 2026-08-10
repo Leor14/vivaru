@@ -91,6 +91,7 @@ Modelo base preparado para colecciones:
 - auditLogs
 - plans
 - featureFlags
+- featureFlagOverrides
 
 ## Proyecto Firebase
 Proyecto existente configurado:

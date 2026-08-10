@@ -200,3 +200,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Densidad**: todas las nuevas ≥8 wikilinks (rango 8–17) ✅
 - **Entrantes**: mínimo 4 por página nueva tras añadir backlinks desde `stack-tecnico`, `estructura-app-router`, `componentes` y `data-table-pattern`
 - **Total wiki**: 57 páginas
+
+---
+
+## [2026-08-09] ingest | Paso 1.1 del programa de IA — banderas de funcionalidad
+
+- **Páginas creadas**: 1 — [[banderas-funcionalidad]]
+- **Páginas actualizadas**: 2 — `index.md`, [[programa-ia]] (la brecha «`featureFlags` sin lector» pasa a resuelta)
+- **Entidades extraídas**: colecciones `featureFlags` y `featureFlagOverrides`, documento `_global`, precedencia de cinco niveles, kill switch maestro y por bandera, `assertFeatureEnabled` en Cloud Functions, consola `/superadmin/flags`, script de siembra idempotente
+- **Nota**: el mecanismo se construyó genérico. No pertenece al programa de IA — este es solo su primer cliente

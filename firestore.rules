@@ -633,9 +633,35 @@ service cloud.firestore {
       allow write: if superadmin();
     }
 
+    // ─── Banderas de funcionalidad y kill switch (Paso 1.1 del programa de IA) ─
+    //
+    // Dos colecciones, y la separación es de seguridad, no de estilo:
+    //
+    //  · featureFlags/{flagKey} → default global + kill switch de esa bandera.
+    //    Lo lee cualquier sesión porque NO contiene ningún dato de conjunto.
+    //  · featureFlags/_global   → kill switch maestro: apaga todas de golpe.
+    //  · featureFlagOverrides/{tenantId} → `{ flags: { clave: bool } }`.
+    //    Lo lee solo ese conjunto. Si los overrides vivieran dentro del
+    //    documento de la bandera, cualquier residente firmado podría enumerar
+    //    los conjuntos de la plataforma leyendo el mapa.
+    //
+    // Escribe solo superadmin. Los tipos se validan aquí para que un valor mal
+    // puesto se rechace en el momento y no se descubra el día que hay que
+    // apagar algo: el lector ignora lo que no sea booleano estricto.
+    // Espejo del lector: src/lib/feature-flags/ y functions/src/feature-flags.ts.
     match /featureFlags/{flagId} {
       allow read: if signedIn();
-      allow write: if superadmin();
+      allow create, update: if superadmin() &&
+        (!('enabled' in request.resource.data) || request.resource.data.enabled is bool) &&
+        (!('killSwitch' in request.resource.data) || request.resource.data.killSwitch is bool);
+      allow delete: if superadmin();
+    }
+
+    match /featureFlagOverrides/{tenantId} {
+      allow read: if superadmin() || tenantMember(tenantId);
+      allow create, update: if superadmin() &&
+        (!('flags' in request.resource.data) || request.resource.data.flags is map);
+      allow delete: if superadmin();
     }
 
     // Solicitudes de cambio de unidad

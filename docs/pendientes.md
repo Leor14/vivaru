@@ -64,9 +64,15 @@ Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
   Sacarla del programa de IA y tratarla como producto normal genera el baseline
   de activación que la propia PRD necesita para cerrar G1. **Es el único
   hallazgo que cambia el orden del programa.**
-- **Las cinco dependen de un feature flag que no tiene lector.** `featureFlags`
-  son diez líneas en `firestore.rules:636` sin un solo consumidor en el código.
-  Requisito no negociable para las cinco, y ninguna lo presupuesta.
+- **~~Las cinco dependen de un feature flag que no tiene lector.~~ RESUELTO
+  (9 ago 2026, Paso 1.1).** Las banderas tienen lector real en cliente y
+  servidor, kill switch por bandera y maestro, overrides por conjunto aislados
+  en `featureFlagOverrides`, y consola en `/superadmin/flags`. Se construyó
+  genérico: no es una pieza del programa de IA, sirve para cualquier capacidad
+  que deba poder apagarse sin desplegar. Detalle en el registro de ejecución de
+  `docs/hoja-de-ruta-ia.md`. **Queda por hacer en consola:** sembrar el catálogo
+  (`node functions/scripts/seed-feature-flags.mjs <projectId>`) y desplegar
+  reglas en cada ambiente.
 - **Ecuador no está en ningún dataset de evaluación** de `DOC-001` ni
   `FEAT-001`: piden Colombia y México, y Ecuador está en `PAISES`. Mismo punto
   ciego que `docs/brief-legal-ecuador.md`, pero aquí aprobaría una capacidad
