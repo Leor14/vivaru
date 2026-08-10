@@ -236,3 +236,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: adaptador simulado y validador definitivo)
 - **Entidades extraídas**: interfaz `AiProvider`, `stubAiProvider`, corte por tiempo, taxonomía de cuatro fallos, desenvoltura de bloques de código, metadatos de uso en tránsito hacia el Paso 1.5
 - **Nota**: el paso queda cerrado a medias a propósito — la llamada real a Vertex espera región y tope de gasto; el validador ya es definitivo
+
+---
+
+## [2026-08-09] ingest | Paso 1.5 del programa de IA — telemetría de uso y costo
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: qué se registra y por qué el costo se congela al escribir)
+- **Entidades extraídas**: colección `aiUsage`, tabla de precios versionada, `estimateCostUsd`, resumen por conjunto y por operación, purga a 12 meses, consola `/superadmin/ia`
+- **Nota**: se registran también los fallos — una llamada fallida ya consumió tokens, y la tasa de fallo es la métrica que dice si la capacidad sirve

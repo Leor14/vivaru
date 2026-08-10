@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
-import { anonymizeExpiredVouchers } from "./data-retention";
+import { anonymizeExpiredVouchers, purgeExpiredAiUsage } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import {
@@ -31,6 +31,7 @@ import {
   type NotificationType,
 } from "./notification-catalog";
 import { callableCorsOrigins } from "./http-config";
+import { getAiUsageSummary, inicioDelMes } from "./ai/usage-report";
 
 initializeApp();
 
@@ -3562,6 +3563,11 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
 export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async () => {
   const count = await anonymizeExpiredVouchers(db);
   console.log(`[data-retention] Anonimizados ${count} comprobante(s).`);
+
+  // Telemetría de IA vencida (12 meses, regla del Paso 0). Va en el mismo cron
+  // porque es la misma tarea: cumplir las retenciones que están declaradas.
+  const purgadas = await purgeExpiredAiUsage(db);
+  console.log(`[data-retention] Purgadas ${purgadas} fila(s) de aiUsage.`);
 });
 
 // ── G4 · Observabilidad: captura de errores no controlados del cliente ────────
@@ -4056,8 +4062,37 @@ export const addSupportNote = onCall<{ ticketId: string; note: string }>(
 );
 
 // ─── Plataforma de IA ────────────────────────────────────────────────────────
-// Punto de entrada único de las operaciones asistidas (Paso 1.2 de
-// docs/hoja-de-ruta-ia.md). Todavía no llama a ningún modelo: autentica,
-// resuelve el conjunto desde la sesión, comprueba rol y bandera, y responde
-// `unimplemented` porque el catálogo de operaciones llega en el Paso 1.3.
+// Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.4 de
+// docs/hoja-de-ruta-ia.md): autentica, resuelve el conjunto desde la sesión,
+// comprueba rol y banderas, valida entrada y salida contra el catálogo, y deja
+// rastro en `aiUsage`. El proveedor es simulado hasta que se cierren la región
+// y el tope de gasto.
 export { aiInvoke } from "./ai/gateway";
+
+/**
+ * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
+ * cuánto gastó cada conjunto en el período, cuántas llamadas y cuántas
+ * fallaron. Solo superadmin: son datos de todos los conjuntos a la vez.
+ */
+export const getAiUsage = onCall<{ from?: string; to?: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    assertSuperadmin(request.auth);
+
+    const desde = request.data?.from ? new Date(request.data.from) : inicioDelMes();
+    const hasta = request.data?.to ? new Date(request.data.to) : new Date();
+
+    if (Number.isNaN(desde.getTime()) || Number.isNaN(hasta.getTime())) {
+      throw new HttpsError("invalid-argument", "Las fechas del período no son válidas.");
+    }
+    if (desde >= hasta) {
+      throw new HttpsError("invalid-argument", "La fecha inicial debe ser anterior a la final.");
+    }
+
+    return {
+      from: desde.toISOString(),
+      to: hasta.toISOString(),
+      ...(await getAiUsageSummary(desde, hasta)),
+    };
+  },
+);

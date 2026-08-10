@@ -44,6 +44,7 @@ const authorize_1 = require("./authorize");
 const catalog_1 = require("./catalog");
 const execute_1 = require("./execute");
 const provider_1 = require("./provider");
+const usage_1 = require("./usage");
 /**
  * Punto de entrada único de las operaciones asistidas (Paso 1.2 de
  * `docs/hoja-de-ruta-ia.md`, ampliado con el catálogo en el 1.3).
@@ -145,18 +146,32 @@ exports.aiInvoke = (0, https_1.onCall)({
         throw new https_1.HttpsError("invalid-argument", validation?.detail ?? "La información enviada no es válida.");
     }
     const operation = decision.operation;
-    const resultado = await (0, execute_1.executeOperation)(operation, validation.input, (0, provider_1.resolveProvider)(operation));
-    // Los metadatos se registran aquí de momento. El Paso 1.5 los lleva a una
-    // colección para poder responder «cuánto gastó este conjunto este mes»
-    // mirando datos en vez de estimando.
-    logger.info("ai-gateway: operación ejecutada", {
-        operationKey: operation.key,
-        version: operation.version,
+    const provider = (0, provider_1.resolveProvider)(operation);
+    const resultado = await (0, execute_1.executeOperation)(operation, validation.input, provider);
+    // Se registra pase lo que pase. Un fallo ya consumió tokens, y la tasa de
+    // fallo es la métrica que dice si esto sirve. Nunca lanza: si la telemetría
+    // no se puede escribir, el administrador se queda igual con su borrador.
+    await (0, usage_1.recordAiUsage)({
         tenantId: decision.tenantId,
-        ok: resultado.ok,
+        uid: decision.uid,
+        operationKey: operation.key,
+        operationVersion: operation.version,
+        provider: provider.name,
+        model: resultado.ok ? resultado.usage.model : provider.name,
+        promptVersion: resultado.ok ? resultado.usage.promptVersion : "n/a",
+        inputTokens: resultado.ok ? resultado.usage.inputTokens : 0,
+        outputTokens: resultado.ok ? resultado.usage.outputTokens : 0,
         latencyMs: resultado.latencyMs,
-        ...(resultado.ok ? { usage: resultado.usage } : { reason: resultado.reason, detail: resultado.detail }),
+        outcome: resultado.ok ? "ok" : resultado.reason,
     });
+    if (!resultado.ok) {
+        logger.warn("ai-gateway: operación fallida", {
+            operationKey: operation.key,
+            tenantId: decision.tenantId,
+            reason: resultado.reason,
+            detail: resultado.detail,
+        });
+    }
     if (!resultado.ok) {
         throw new https_1.HttpsError(CODIGO_POR_FALLO[resultado.reason], resultado.message);
     }

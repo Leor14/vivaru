@@ -559,3 +559,34 @@ export async function addSupportNoteCallable(input: { ticketId: string; note: st
   const callable = httpsCallable<typeof input, { ok: true }>(functions, "addSupportNote");
   return executeCallable(callable, input, "No fue posible guardar la nota.");
 }
+
+/**
+ * Resumen de consumo de IA (Paso 1.5 de docs/hoja-de-ruta-ia.md). Solo
+ * superadmin: agrega datos de todos los conjuntos a la vez.
+ */
+export interface AiUsageBucket {
+  llamadas: number;
+  fallos: number;
+  inputTokens: number;
+  outputTokens: number;
+  costoUsd: number;
+  latenciaMediaMs: number;
+}
+
+export interface AiUsageSummaryResponse {
+  from: string;
+  to: string;
+  total: AiUsageBucket;
+  porConjunto: Array<{ tenantId: string } & AiUsageBucket>;
+  porOperacion: Array<{ operationKey: string } & AiUsageBucket>;
+  fallosPorMotivo: Array<{ outcome: string; veces: number }>;
+  filas: number;
+  truncado: boolean;
+  priceTableVersion: string;
+}
+
+export async function getAiUsageCallable(input: { from?: string; to?: string } = {}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, AiUsageSummaryResponse>(functions, "getAiUsage");
+  return executeCallable(callable, input, "No fue posible leer el consumo de IA.");
+}

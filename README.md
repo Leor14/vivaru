@@ -92,6 +92,7 @@ Modelo base preparado para colecciones:
 - plans
 - featureFlags
 - featureFlagOverrides
+- aiUsage
 
 ## Proyecto Firebase
 Proyecto existente configurado:

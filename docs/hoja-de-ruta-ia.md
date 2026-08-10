@@ -202,11 +202,11 @@ llega al módulo. **Cumplido.**
 gasto. El proveedor es simulado detrás de la misma costura que usa
 `SriTransport`. El validador, que es la mitad que importa, es definitivo.
 
-**1.5 Telemetría de uso y costo.**
+**1.5 Telemetría de uso y costo. — HECHO (9 de agosto de 2026).**
 Por cada llamada: tenant, usuario, operación, versión de prompt y modelo, tokens,
 costo estimado, latencia, resultado. Sin contenido sensible.
 *Terminado cuando:* puedes responder «cuánto gastó este conjunto este mes»
-mirando datos, no estimando.
+mirando datos, no estimando. **Cumplido:** `/superadmin/ia`.
 
 **1.6 Cuotas.**
 Por tenant, usuario y operación. Con actualización atómica: si no es atómica, se
@@ -667,22 +667,78 @@ decidido en el Paso 0), el tope de gasto configurado, y una implementación de
 
 ---
 
+## Registro de ejecución — Paso 1.5
+
+**Cerrado el 9 de agosto de 2026.** La colección `aiUsage` y la consola en
+`/superadmin/ia` contestan la pregunta del criterio.
+
+**1 · Se registran los fallos, y no por completitud.** Una llamada que falla ya
+consumió tokens —el modelo respondió, lo que no pasó fue el validador—, así que
+descontarla del gasto sería mentir sobre la factura. Pero la razón de fondo es
+otra: **la tasa de fallo es la métrica que dice si esto sirve.** Un registro solo
+de éxitos es un tablero precioso que siempre da buenas noticias.
+
+**2 · El costo se calcula al escribir, con la tabla de precios versionada.**
+Guardar solo los tokens y multiplicar después por el precio de hoy **falsifica el
+pasado**: si el proveedor sube el precio en noviembre, agosto se recalcula caro.
+Se guarda el costo ya calculado junto a `priceTableVersion`. Al cambiar precios
+se sube la versión; nunca se edita la tabla en sitio.
+
+**3 · Seis decimales, no dos.** Una comunicación cuesta millonésimas de dólar.
+Redondear a centavos convierte todo el tablero en ceros y hace parecer que la IA
+es gratis — que es cierto hoy y dejará de serlo.
+
+**4 · Metadatos sí, contenido no.** Ni el propósito, ni los hechos, ni el
+borrador, ni el prompt. La garantía no es una promesa en un comentario: el tipo
+`AiUsageEntry` **no tiene ningún campo de texto libre** donde pudiera colarse.
+
+**5 · Si falla el registro, la operación no se cae.** `recordAiUsage` nunca
+lanza. Perder una fila de medición es molesto; perder el trabajo de la persona
+por no poder medirlo es absurdo.
+
+**6 · Un modelo sin precio en la tabla registra cero y avisa**, en vez de
+inventar un número. Un valor plausible y falso no se cuestiona; un cero raro sí.
+
+**7 · Purga a 12 meses**, que es la retención del Paso 0. No estaba en el
+criterio: se añadió porque escribir datos con una retención declarada y sin
+mecanismo que la cumpla es la forma habitual de incumplirla. Va en el cron
+diario que ya existía para los comprobantes.
+
+**8 · El resumen avisa cuando se corta.** Lee hasta 5.000 filas del período y
+marca `truncado` si hay más. Un resumen truncado que no lo dice se lee como el
+total.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Precios versionados, cálculo y escritura | `functions/src/ai/usage.ts` |
+| Agregación del período | `functions/src/ai/usage-report.ts` |
+| Callable `getAiUsage` (solo superadmin) | `functions/src/index.ts` |
+| Purga a 12 meses | `functions/src/data-retention.ts` |
+| Reglas e índices | `firestore.rules`, `firestore.indexes.json` |
+| Consola | `/superadmin/ia` |
+| Pruebas | `functions/tests/ai-usage.test.ts` (16), reglas (3) |
+
+**Falta desplegar los índices** (`firebase deploy --only firestore:indexes`) para
+que la consulta por período funcione en un proyecto real.
+
+---
+
 ## Por dónde seguimos
 
-Hay dos caminos y no compiten: uno lo desbloqueas tú, el otro se puede hacer ya.
+**Lo tuyo, y ahora sí bloquea de verdad.** El Paso 1.6 son las cuotas, y una
+cuota sin un tope de gasto detrás es media red de seguridad. Las dos cosas
+siguen abiertas: **la región de Vertex AI** —único pendiente del Paso 0, con
+implicación de privacidad por el hueco de Ecuador— y **el tope configurado** en
+Google Cloud. El propósito del tope nunca fue controlar el gasto, que va a ser
+ridículo, sino que el mecanismo de corte exista y esté probado antes de que haga
+falta. Ahora ya hay con qué comprobarlo: la consola de consumo.
 
-**Lo tuyo — cerrar el 1.4.** Dos cosas de consola, y la primera es la que lleva
-más tiempo porque no es técnica: **la región de Vertex AI** —único pendiente
-abierto del Paso 0, con implicación de privacidad por el hueco legal de
-Ecuador— y **el tope de gasto configurado de verdad** en Google Cloud. El
-propósito del tope nunca fue controlar el gasto, que va a ser ridículo, sino que
-el mecanismo de corte exista y esté probado antes de que haga falta.
-
-**Lo que sigue sin eso — Paso 1.5, telemetría de uso y costo.** Por cada
-llamada: conjunto, usuario, operación, versión de prompt y modelo, tokens, costo
-estimado, latencia y resultado. Sin contenido sensible. Termina cuando puedas
-responder «cuánto gastó este conjunto este mes» mirando datos y no estimando —y
-se puede construir y probar entero contra el proveedor simulado, porque lo que
-se registra no depende de quién respondió.
+**Lo que se puede hacer sin eso — Paso 1.6, cuotas.** Por conjunto, usuario y
+operación, con actualización atómica: si no es atómica, se evade repitiendo la
+llamada rápido. Termina cuando al agotarse la cuota la acción asistida se
+deshabilita y el flujo manual sigue funcionando. Y después el 1.7, las pruebas
+que importan, que es donde se cierra la puerta G3 del programa.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

@@ -1178,3 +1178,34 @@ describe("Firestore Rules - banderas de funcionalidad", () => {
     );
   });
 });
+
+/**
+ * Telemetría de IA (Paso 1.5 de docs/hoja-de-ruta-ia.md).
+ *
+ * Solo la escribe el servidor, igual que auditLogs: una fila que pudiera
+ * escribir el cliente no serviría para medir nada — ni el gasto ni la tasa de
+ * fallo, que es la métrica que dice si la capacidad sirve.
+ */
+describe("Firestore Rules - telemetría de IA", () => {
+  it("superadmin puede leer el consumo", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "aiUsage", "cualquiera")));
+  });
+
+  it("bloquea la lectura a un admin de conjunto", async () => {
+    // Son datos de todos los conjuntos a la vez.
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "aiUsage", "cualquiera")));
+  });
+
+  it("nadie escribe telemetría desde el cliente, ni el superadmin", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "aiUsage", "inventada"), {
+        tenantId: "tenant-a",
+        operationKey: "comunicaciones-redactar",
+        estimatedCostUsd: 0,
+      }),
+    );
+  });
+});

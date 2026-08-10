@@ -628,6 +628,16 @@ service cloud.firestore {
       allow write: if false; // Audit logs must be written via Cloud Functions.
     }
 
+    // Telemetría de uso y costo de IA (Paso 1.5 del programa de IA).
+    // Solo la escribe el servidor, igual que auditLogs: una fila que pudiera
+    // escribir el cliente no serviría para medir nada — ni el gasto ni la tasa
+    // de fallo, que es la métrica que dice si la capacidad sirve.
+    // Contiene metadatos y NUNCA contenido del conjunto (regla del Paso 0).
+    match /aiUsage/{docId} {
+      allow read: if superadmin();
+      allow write: if false;
+    }
+
     match /plans/{planId} {
       allow read: if signedIn();
       allow write: if superadmin();

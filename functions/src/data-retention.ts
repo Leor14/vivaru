@@ -67,3 +67,51 @@ export async function anonymizeExpiredVouchers(db: Firestore, now: Date = new Da
 
   return anonymizedTotal;
 }
+
+/**
+ * Retención de la telemetría de IA: 12 meses (regla del Paso 0 del programa de
+ * IA, ver docs/hoja-de-ruta-ia.md).
+ *
+ * `aiUsage` no guarda contenido del conjunto —solo metadatos y métricas—, así
+ * que la purga no es por privacidad sino por higiene: una colección que crece
+ * sin fin acaba costando más de lo que mide. Se borra, no se anonimiza: no hay
+ * nada que preservar sin identificar.
+ *
+ * Escribir datos con una retención declarada y sin mecanismo que la cumpla es
+ * la forma habitual de incumplirla.
+ */
+export const AI_USAGE_RETENTION_MONTHS = 12;
+
+/** Corte por fecha para la telemetría. Devuelve la fecha límite como Date. */
+export function aiUsageCutoff(now: Date = new Date(), months = AI_USAGE_RETENTION_MONTHS): Date {
+  const d = new Date(now);
+  d.setMonth(d.getMonth() - months);
+  return d;
+}
+
+/** Borra la telemetría de IA vencida. Devuelve cuántas filas se eliminaron. */
+export async function purgeExpiredAiUsage(db: Firestore, now: Date = new Date()): Promise<number> {
+  const cutoff = Timestamp.fromDate(aiUsageCutoff(now));
+  let borradas = 0;
+
+  // Por lotes: una colección de telemetría puede tener muchas filas y un
+  // borrado de golpe no cabe en una sola operación.
+  for (;;) {
+    const vencidas = await db
+      .collection("aiUsage")
+      .where("createdAt", "<", cutoff)
+      .limit(400)
+      .get();
+
+    if (vencidas.empty) break;
+
+    const batch = db.batch();
+    for (const doc of vencidas.docs) batch.delete(doc.ref);
+    await batch.commit();
+    borradas += vencidas.size;
+
+    if (vencidas.size < 400) break;
+  }
+
+  return borradas;
+}

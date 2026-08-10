@@ -70,6 +70,18 @@ Lo que sí es definitivo es el validador, que es la mitad que importa:
 - **El detalle técnico va a los logs, nunca al usuario.**
 - Si el modelo envuelve el JSON en un bloque de código se desenvuelve antes de parsear. Eso es limpieza de transporte, no indulgencia con el contrato.
 
+## Qué se registra de cada llamada
+
+Cada invocación deja una fila en `aiUsage`: conjunto, usuario, operación, modelo, versión de prompt, tokens, costo, latencia y cómo terminó. La consola de [[superadmin]] lo agrega por conjunto y por operación en `/superadmin/ia`, que es lo que permite responder «cuánto gastó este conjunto este mes» con datos en vez de estimando. Sin línea base no hay proyecto, hay opinión.
+
+Tres cosas que no son obvias:
+
+- **Se registran también los fallos.** Una llamada fallida ya consumió tokens —el modelo respondió, lo que no pasó fue el validador—, y sobre todo la tasa de fallo es la métrica que dice si la capacidad sirve. Un registro solo de éxitos es un tablero que siempre da buenas noticias.
+- **El costo se congela al escribir.** Se guarda ya calculado junto a la versión de la tabla de precios. Guardar solo tokens y multiplicar después por el precio de hoy falsificaría el pasado cada vez que el proveedor cambie tarifas.
+- **Metadatos, nunca contenido.** Es la regla del Paso 0, y la garantía no es un comentario: el tipo que se escribe no tiene ningún campo de texto libre donde pudiera colarse. La retención es de 12 meses y la purga vive en el mismo cron diario que la anonimización de comprobantes de [[billing]].
+
+Solo superadmin puede leerla, igual que los `auditLogs` descritos en [[firebase-firestore]], porque agrega datos de todos los conjuntos a la vez y eso rompería el aislamiento de [[multi-tenancy]] si lo viera un administrador.
+
 ## Lo que todavía no hace
 
-No llama a ningún modelo real, no mide costo por conjunto y no lleva cuota. Eso es lo que queda del Paso 1: telemetría y cuotas. El primer consumidor será el borrador de comunicaciones, canario por ser el de error más barato — un borrador malo se borra.
+No llama a ningún modelo real y no lleva cuota. Eso es lo que queda del Paso 1. El primer consumidor será el borrador de comunicaciones, canario por ser el de error más barato — un borrador malo se borra.

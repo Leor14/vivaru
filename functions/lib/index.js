@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -59,6 +59,7 @@ const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
 const http_config_1 = require("./http-config");
+const usage_report_1 = require("./ai/usage-report");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 // Defaults = comportamiento actual. Si el alta no envia variantes (o faltan claves), se aplican
@@ -2884,6 +2885,10 @@ exports.monthlyFinancialArchive = (0, scheduler_1.onSchedule)({ schedule: "0 6 1
 exports.anonymizeExpiredVouchersDaily = (0, scheduler_1.onSchedule)("every day 03:00", async () => {
     const count = await (0, data_retention_1.anonymizeExpiredVouchers)(db);
     console.log(`[data-retention] Anonimizados ${count} comprobante(s).`);
+    // Telemetría de IA vencida (12 meses, regla del Paso 0). Va en el mismo cron
+    // porque es la misma tarea: cumplir las retenciones que están declaradas.
+    const purgadas = await (0, data_retention_1.purgeExpiredAiUsage)(db);
+    console.log(`[data-retention] Purgadas ${purgadas} fila(s) de aiUsage.`);
 });
 exports.logClientError = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const message = normalizeText(request.data?.message).slice(0, 2000);
@@ -3235,9 +3240,31 @@ exports.addSupportNote = (0, https_1.onCall)({ cors: http_config_1.callableCorsO
     return (0, support_1.addSupportInternalNote)(request.data, uid, role);
 });
 // ─── Plataforma de IA ────────────────────────────────────────────────────────
-// Punto de entrada único de las operaciones asistidas (Paso 1.2 de
-// docs/hoja-de-ruta-ia.md). Todavía no llama a ningún modelo: autentica,
-// resuelve el conjunto desde la sesión, comprueba rol y bandera, y responde
-// `unimplemented` porque el catálogo de operaciones llega en el Paso 1.3.
+// Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.4 de
+// docs/hoja-de-ruta-ia.md): autentica, resuelve el conjunto desde la sesión,
+// comprueba rol y banderas, valida entrada y salida contra el catálogo, y deja
+// rastro en `aiUsage`. El proveedor es simulado hasta que se cierren la región
+// y el tope de gasto.
 var gateway_1 = require("./ai/gateway");
 Object.defineProperty(exports, "aiInvoke", { enumerable: true, get: function () { return gateway_1.aiInvoke; } });
+/**
+ * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
+ * cuánto gastó cada conjunto en el período, cuántas llamadas y cuántas
+ * fallaron. Solo superadmin: son datos de todos los conjuntos a la vez.
+ */
+exports.getAiUsage = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    assertSuperadmin(request.auth);
+    const desde = request.data?.from ? new Date(request.data.from) : (0, usage_report_1.inicioDelMes)();
+    const hasta = request.data?.to ? new Date(request.data.to) : new Date();
+    if (Number.isNaN(desde.getTime()) || Number.isNaN(hasta.getTime())) {
+        throw new https_1.HttpsError("invalid-argument", "Las fechas del período no son válidas.");
+    }
+    if (desde >= hasta) {
+        throw new https_1.HttpsError("invalid-argument", "La fecha inicial debe ser anterior a la final.");
+    }
+    return {
+        from: desde.toISOString(),
+        to: hasta.toISOString(),
+        ...(await (0, usage_report_1.getAiUsageSummary)(desde, hasta)),
+    };
+});
