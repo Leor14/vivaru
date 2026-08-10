@@ -57,6 +57,19 @@ Dos detalles del contrato que valen más que el resto:
 - **Lo que no recibe.** La entrada son tres campos que escribe el administrador: propósito, hechos y tono. Audiencia, torres, unidades, vigencia, estado y publicación no están, y no es un olvido — si no entran, no pueden salir.
 - **`assumptions` debe venir vacío**, declarado en el esquema con longitud máxima cero. Si el modelo asumió un dato que nadie le dio, la respuesta entera se rechaza. Es la traducción técnica del principio de que la IA propone y Vivaru decide, el mismo que sostiene [[integridad-financiera]].
 
+## El adaptador y el validador
+
+La única parte que sabe hablar con el proveedor es el adaptador; todo lo demás pide «genera esto». Hoy el proveedor es **simulado**: la llamada real a Vertex AI espera la región y el tope de gasto, que son decisiones del Paso 0 con implicación de privacidad y de costo.
+
+Es el mismo patrón que el transporte del SRI en el módulo de [[billing]] —una interfaz con implementación simulada, esperando un dato externo para meter la real sin tocar el resto—, y por el mismo motivo. Tampoco es un atajo para probar: el criterio del paso es que una respuesta malformada se rechace, y **al modelo real no se le puede pedir que se equivoque cuando conviene**.
+
+Lo que sí es definitivo es el validador, que es la mitad que importa:
+
+- **Se rechaza entero.** Media propuesta con la mitad inventada es peor que ninguna, porque parece revisada.
+- **Cuatro formas de fallar** —proveedor caído, tiempo agotado, respuesta ilegible, contrato incumplido— y las cuatro terminan diciendo que se puede seguir a mano. Es el fallback determinista que exige el [[programa-ia]], y hay una prueba que falla si algún mensaje deja de decirlo.
+- **El detalle técnico va a los logs, nunca al usuario.**
+- Si el modelo envuelve el JSON en un bloque de código se desenvuelve antes de parsear. Eso es limpieza de transporte, no indulgencia con el contrato.
+
 ## Lo que todavía no hace
 
-No llama a ningún modelo, no valida la salida en caliente, no mide costo y no lleva cuota. Eso es el resto del Paso 1: adaptador del proveedor con validación, telemetría y cuotas. El primer consumidor real será el borrador de comunicaciones, canario por ser el de error más barato — un borrador malo se borra, a diferencia de lo que se juega en [[billing]].
+No llama a ningún modelo real, no mide costo por conjunto y no lleva cuota. Eso es lo que queda del Paso 1: telemetría y cuotas. El primer consumidor será el borrador de comunicaciones, canario por ser el de error más barato — un borrador malo se borra.

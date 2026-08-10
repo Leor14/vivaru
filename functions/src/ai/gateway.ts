@@ -10,6 +10,8 @@ import {
   type GatewayMembership,
 } from "./authorize";
 import { findOperation, validateOperationInput, type InputValidation } from "./catalog";
+import { executeOperation, type ExecutionFailureReason } from "./execute";
+import { resolveProvider } from "./provider";
 
 /**
  * Punto de entrada único de las operaciones asistidas (Paso 1.2 de
@@ -20,10 +22,18 @@ import { findOperation, validateOperationInput, type InputValidation } from "./c
  * y de qué conjunto es: funciona, pero la seguridad depende de que cada una se
  * acuerde. Aquí las comprobaciones ocurren una vez, en un sitio, y se prueban.
  *
- * **Todavía no llama a ningún modelo.** La puerta abre, valida la entrada
- * contra el esquema del catálogo, y se detiene ahí: el adaptador del proveedor
- * es el Paso 1.4.
+ * **El proveedor es simulado todavía** (`stubAiProvider`): la llamada real a
+ * Vertex AI espera la región y el tope de gasto, que son decisiones del Paso 0.
+ * Lo que sí es real y definitivo es el validador de salida — ver `execute.ts`.
  */
+
+/** Cada forma de fallar tiene su código; las cuatro llevan al camino manual. */
+const CODIGO_POR_FALLO: Record<ExecutionFailureReason, "deadline-exceeded" | "unavailable" | "internal"> = {
+  proveedor_no_responde: "deadline-exceeded",
+  proveedor_error: "unavailable",
+  salida_ilegible: "internal",
+  salida_incumple_contrato: "internal",
+};
 
 /** Bandera que apaga la puerta entera sin desplegar. */
 const GATEWAY_FLAG = "ai-gateway" as const;
@@ -131,26 +141,38 @@ export const aiInvoke = onCall<GatewayPayload>(
       throw new HttpsError(decision.code, decision.message);
     }
 
-    if (validation && !validation.ok) {
+    if (!validation || !validation.ok) {
       logger.warn("ai-gateway: entrada rechazada", {
-        reason: validation.reason,
+        reason: validation?.reason ?? "sin_validacion",
         operationKey: decision.operation.key,
         tenantId: decision.tenantId,
       });
-      throw new HttpsError("invalid-argument", validation.detail);
+      throw new HttpsError("invalid-argument", validation?.detail ?? "La información enviada no es válida.");
     }
 
-    // Hasta aquí llega el Paso 1.3: la puerta abrió, la operación existe y la
-    // entrada cumple su contrato. Lo que falta es el adaptador del proveedor y
-    // la validación de la salida — Paso 1.4.
-    logger.info("ai-gateway: operación admitida sin proveedor", {
-      operationKey: decision.operation.key,
-      version: decision.operation.version,
+    const operation = decision.operation;
+    const resultado = await executeOperation(operation, validation.input, resolveProvider(operation));
+
+    // Los metadatos se registran aquí de momento. El Paso 1.5 los lleva a una
+    // colección para poder responder «cuánto gastó este conjunto este mes»
+    // mirando datos en vez de estimando.
+    logger.info("ai-gateway: operación ejecutada", {
+      operationKey: operation.key,
+      version: operation.version,
       tenantId: decision.tenantId,
+      ok: resultado.ok,
+      latencyMs: resultado.latencyMs,
+      ...(resultado.ok ? { usage: resultado.usage } : { reason: resultado.reason, detail: resultado.detail }),
     });
-    throw new HttpsError(
-      "unimplemented",
-      "Esta función todavía no está conectada. Puedes continuar con el proceso manual.",
-    );
+
+    if (!resultado.ok) {
+      throw new HttpsError(CODIGO_POR_FALLO[resultado.reason], resultado.message);
+    }
+
+    return {
+      operationKey: operation.key,
+      version: operation.version,
+      output: resultado.output,
+    };
   },
 );

@@ -191,12 +191,16 @@ entrada que no cumple el esquema se rechaza antes de gastar nada; un rol no
 autorizado *para esa operación* se rechaza; y apagar la bandera de la operación
 la cierra sin tocar el resto.
 
-**1.4 Adaptador del proveedor y validación de salida.**
+**1.4 Adaptador del proveedor y validación de salida. — HECHO A MEDIAS, a
+propósito (9 de agosto de 2026).**
 La llamada real, y un validador con Zod que **rechaza** lo que no cumpla el
 esquema. Si el modelo devuelve algo raro, el usuario ve un error limpio, no un
 objeto a medias.
 *Terminado cuando:* una respuesta deliberadamente malformada se rechaza y no
-llega al módulo.
+llega al módulo. **Cumplido.**
+*Lo que falta:* la llamada real a Vertex AI, que espera la región y el tope de
+gasto. El proveedor es simulado detrás de la misma costura que usa
+`SriTransport`. El validador, que es la mitad que importa, es definitivo.
 
 **1.5 Telemetría de uso y costo.**
 Por cada llamada: tenant, usuario, operación, versión de prompt y modelo, tokens,
@@ -608,17 +612,77 @@ propio plan nombra en el 1.4. Primera dependencia que añade el programa de IA.
 
 ---
 
+## Registro de ejecución — Paso 1.4
+
+**Cerrado a medias el 9 de agosto de 2026, y el corte es deliberado.** La mitad
+que valida está hecha y es definitiva; la que gasta dinero espera dos decisiones.
+
+**1 · Por qué contra un proveedor simulado, y por qué no es un atajo.** El
+criterio del paso —«una respuesta deliberadamente malformada se rechaza»— se
+prueba **mejor** con un simulador: al modelo real no se le puede pedir que se
+equivoque cuando a uno le conviene. Las cuatro formas de salir mal se provocan a
+voluntad y están las cuatro probadas.
+
+Y el repo ya construye así cuando algo externo no está disponible: `SriTransport`
+con `stubSriTransport` en `functions/src/sri-ecuador.ts`, esperando el dato del
+experto SAP↔SRI para meter el transporte real «sin tocar el resto del flujo». Es
+la misma forma y por el mismo motivo.
+
+**2 · Se rechaza entero, nunca a medias.** Media propuesta con la mitad
+inventada es peor que ninguna, porque parece revisada. No se salva la parte
+buena de una respuesta que incumple.
+
+**3 · Las cuatro formas de fallar, y las cuatro terminan igual.** Proveedor
+caído, tiempo agotado, respuesta ilegible y contrato incumplido. Los cuatro
+mensajes acaban en «puedes continuar con el proceso manual» — es el fallback
+determinista del plan, y hay una prueba que falla si algún mensaje deja de
+decirlo. El detalle técnico va a los logs y nunca al usuario.
+
+**4 · La regla dura de `assumptions` ya mata respuestas.** En el 1.3 estaba
+escrita en el esquema; ahora hay una prueba que confirma que una respuesta con
+un supuesto se descarta entera.
+
+**5 · Una concesión, y dónde está la línea.** Si el modelo envuelve el JSON en
+un bloque de código —cosa que hacen todos— se desenvuelve antes de parsear. Eso
+es limpieza de transporte, no indulgencia: lo de dentro se valida estricto y una
+clave de más se rechaza igual.
+
+**6 · Los metadatos ya viajan.** El adaptador devuelve modelo, versión de prompt
+y tokens. Hoy solo se escriben en los logs; el Paso 1.5 los lleva a una
+colección. La costura está puesta para no tener que tocar el adaptador después.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Interfaz del proveedor, simulador y falso para pruebas | `functions/src/ai/provider.ts` |
+| Corte por tiempo, parseo y validación de salida | `functions/src/ai/execute.ts` |
+| Conexión y mapeo de errores | `functions/src/ai/gateway.ts` |
+| Pruebas | `functions/tests/ai-execute.test.ts` (15) |
+
+**Para meter el proveedor real** hace falta: la región elegida, la dependencia
+`@google-cloud/vertexai`, el id de modelo fijado (Gemini 3.1 Flash-Lite, ya
+decidido en el Paso 0), el tope de gasto configurado, y una implementación de
+`AiProvider`. Nada más cambia.
+
+---
+
 ## Por dónde seguimos
 
-Cerrados el Paso 0 y los 1.1, 1.2 y 1.3, lo siguiente es **Paso 1.4: el
-adaptador del proveedor y la validación de salida.** Es la primera llamada real
-a Vertex AI, y el validador con Zod que **rechaza** lo que no cumpla el esquema
-—empezando por una respuesta con `assumptions` llena—. Termina cuando una
-respuesta deliberadamente malformada se rechaza y no llega al módulo.
+Hay dos caminos y no compiten: uno lo desbloqueas tú, el otro se puede hacer ya.
 
-Es también el primer paso que **gasta dinero**, así que arrastra dos cosas del
-Paso 0 que siguen abiertas: elegir la **región** de Vertex AI —el único pendiente
-del Paso 0, con implicación de privacidad por el hueco legal de Ecuador— y tener
-el tope de gasto puesto de verdad.
+**Lo tuyo — cerrar el 1.4.** Dos cosas de consola, y la primera es la que lleva
+más tiempo porque no es técnica: **la región de Vertex AI** —único pendiente
+abierto del Paso 0, con implicación de privacidad por el hueco legal de
+Ecuador— y **el tope de gasto configurado de verdad** en Google Cloud. El
+propósito del tope nunca fue controlar el gasto, que va a ser ridículo, sino que
+el mecanismo de corte exista y esté probado antes de que haga falta.
+
+**Lo que sigue sin eso — Paso 1.5, telemetría de uso y costo.** Por cada
+llamada: conjunto, usuario, operación, versión de prompt y modelo, tokens, costo
+estimado, latencia y resultado. Sin contenido sensible. Termina cuando puedas
+responder «cuánto gastó este conjunto este mes» mirando datos y no estimando —y
+se puede construir y probar entero contra el proveedor simulado, porque lo que
+se registra no depende de quién respondió.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

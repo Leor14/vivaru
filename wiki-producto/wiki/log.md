@@ -227,3 +227,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: el catálogo, el contrato de `comunicaciones-redactar` y la regla de `assumptions`)
 - **Entidades extraídas**: `OperationDefinition` (clave, versión, módulo, bandera, roles, esquemas, límites), operación `comunicaciones-redactar` v1, validación de entrada con Zod, tope de tamaño previo al esquema
 - **Nota**: los roles y la bandera dejaron de estar escritos a mano en la puerta; los declara cada operación
+
+---
+
+## [2026-08-09] ingest | Paso 1.4 del programa de IA — adaptador y validación de salida
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: adaptador simulado y validador definitivo)
+- **Entidades extraídas**: interfaz `AiProvider`, `stubAiProvider`, corte por tiempo, taxonomía de cuatro fallos, desenvoltura de bloques de código, metadatos de uso en tránsito hacia el Paso 1.5
+- **Nota**: el paso queda cerrado a medias a propósito — la llamada real a Vertex espera región y tope de gasto; el validador ya es definitivo
