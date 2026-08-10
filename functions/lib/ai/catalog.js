@@ -59,6 +59,13 @@ const OPERATIONS = {
         // acción antes de tener una sola medición. Se revisan con la evaluación
         // offline del Paso 2.4, que es cuando habrá con qué corregirlos.
         limits: { maxInputChars: 4000, timeoutMs: 20_000, maxOutputTokens: 1500 },
+        // Atados al presupuesto real, no puestos a ojo: en el peor caso una llamada
+        // cuesta USD 0,0025, así que 300 al mes son USD 0,75 por conjunto. Con el
+        // tope de 80.000 COP (~USD 20) caben unos 25 conjuntos antes de rozarlo.
+        // La línea base del Paso 2 son 10-15 comunicaciones en total, así que las
+        // 50 diarias no las va a tocar nadie: están para atrapar un bucle, no para
+        // molestar a un administrador.
+        quota: { perTenantDay: 50, perTenantMonth: 300, perUserDay: 20 },
     },
 };
 exports.OPERATION_KEYS = Object.keys(OPERATIONS);

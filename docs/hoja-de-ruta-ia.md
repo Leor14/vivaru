@@ -209,11 +209,12 @@ costo estimado, latencia, resultado. Sin contenido sensible.
 *Terminado cuando:* puedes responder «cuánto gastó este conjunto este mes»
 mirando datos, no estimando. **Cumplido:** `/superadmin/ia`.
 
-**1.6 Cuotas.**
+**1.6 Cuotas. — HECHO (10 de agosto de 2026).**
 Por tenant, usuario y operación. Con actualización atómica: si no es atómica, se
 evade repitiendo la llamada rápido.
 *Terminado cuando:* al agotarse la cuota la acción asistida se deshabilita y el
-flujo manual sigue funcionando.
+flujo manual sigue funcionando. **Cumplido**, con la atomicidad demostrada
+lanzando peticiones simultáneas contra el emulador, no dada por buena.
 
 **1.7 Las pruebas que importan.**
 Aislamiento entre tenants, cuota bajo concurrencia, kill switch, y qué pasa
@@ -822,24 +823,84 @@ que la consulta por período funcione en un proyecto real.
 
 ---
 
+## Registro de ejecución — Paso 1.6
+
+**Cerrado el 10 de agosto de 2026.** Con esto están las cuatro capas de tope.
+
+**1 · La razón de fondo no es el costo, es el aislamiento.** El límite de
+inversión de Google es **de la cuenta entera**. Sin cuota por conjunto, el
+primero que se desboque —un bucle, un abuso, un administrador insistente— se
+come el presupuesto y deja sin capacidad asistida a todos los demás. Es el mismo
+principio que sostiene el resto de Vivaru, aplicado al gasto. Y es además la
+única capa que corta **en el momento**: la de Google tarda horas en consolidar.
+
+**2 · Tres topes por operación:** 50 al día y 300 al mes por conjunto, 20 al día
+por usuario. **Salen del presupuesto, no de la intuición**: en el peor caso una
+llamada cuesta USD 0,0025, así que 300 al mes son USD 0,75 por conjunto y en los
+80.000 COP caben unos 25 conjuntos. La línea base del Paso 2 son 10–15
+comunicaciones en total, de modo que las 50 diarias están para atrapar un bucle,
+no para molestar a nadie.
+
+**3 · Atómico, y demostrado.** El plan lo advierte en una línea: «si no es
+atómica, se evade repitiendo la llamada rápido». Sin transacción, dos peticiones
+casi simultáneas leen «llevas 49 de 50», las dos concluyen que hay sitio y las
+dos escriben 50. El consumo va en una transacción de Firestore —no vale
+`FieldValue.increment`, que es atómico pero incrementa a ciegas cuando aquí hay
+que *decidir* con el valor.
+
+**Y no se dio por bueno porque el código diga `runTransaction`:** hay una prueba
+que lanza 20 peticiones a la vez contra un tope de 5 y comprueba que pasan
+exactamente 5, otra que verifica que el contador queda cuadrado, y otra con dos
+usuarios distintos del mismo conjunto en paralelo.
+
+**4 · Cuándo se devuelve la cuota.** Misma lógica que la telemetría: si el
+modelo respondió y su salida incumplió el contrato, **los tokens se gastaron y
+la cuota se queda consumida** — devolverla sería mentir sobre el costo. Si el
+proveedor no llegó a responder (caído o tiempo agotado), **se devuelve**: un
+proveedor caído no puede dejar a un conjunto sin cuota sin haber producido nada.
+
+**5 · El día reinicia en UTC**, o sea a las 19:00 en Colombia. Es deliberado:
+estos topes atrapan bucles, no racionan trabajo, y cuadrarlos con la medianoche
+local exigiría saber la zona de cada conjunto, que hoy no se guarda.
+
+**6 · La respuesta ya dice cuánto queda.** No hay pantalla que lo pinte porque
+no hay consumidor, pero el dato viaja para que la interfaz del Paso 2 solo tenga
+que deshabilitar el botón — antes de que alguien choque contra el tope, no
+después.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Decisión pura y consumo transaccional | `functions/src/ai/quota.ts` |
+| Topes por operación | `functions/src/ai/catalog.ts` |
+| Cobro y devolución | `functions/src/ai/gateway.ts` |
+| Reglas | `firestore.rules` (`aiQuotaCounters`) |
+| Pruebas puras (13) | `functions/tests/ai-quota.test.ts` |
+| Pruebas con emulador (11) | `functions/tests/ai-quota.emulator.test.ts` |
+
+**Banco de pruebas con emulador**, que no existía: `npm --prefix functions run
+test:emulator`, con su propia configuración para que la suite normal no falle
+cuando no hay emulador levantado. Lo necesita también el Paso 1.7.
+
+---
+
 ## Por dónde seguimos
 
-**No queda nada bloqueado por decisiones.** El Paso 0 está cerrado del todo y
-las capas de tope están puestas.
+Quedan dos, y ninguno bloqueado.
 
-**Siguiente: Paso 1.6, cuotas.** Por conjunto, usuario y operación, con
-actualización atómica: si no es atómica, se evade repitiendo la llamada rápido.
-Termina cuando al agotarse la cuota la acción asistida se deshabilita y el flujo
-manual sigue funcionando.
+**1.4-real: el adaptador de Vertex AI.** Ya están las cuatro capas de tope, así
+que encender el proveedor real dejó de ser una apuesta. Hace falta añadir la
+dependencia de Vertex, confirmar el identificador exacto del modelo y escribir
+una implementación de `AiProvider`. Nada más del código cambia.
 
-**Y va antes que la llamada real, a propósito.** El 1.4 quedó a medias solo por
-escribir el adaptador, y la tentación es rematarlo ya. Pero el tope de Google
-tarda horas en morder —lo dice su propia letra pequeña— y la cuota por conjunto
-es justamente la que corta en el momento. Encender el proveedor real teniendo
-las cuatro capas cuesta un incremento más de espera; encenderlo con tres es
-apostar a que nada se desboque en las horas de retraso.
+**1.7: las pruebas que importan.** Aislamiento entre conjuntos, cuota bajo
+concurrencia —ya hecha en el 1.6—, kill switch, y qué pasa cuando el proveedor
+no responde. Es donde se cierra la puerta **G3** para toda la plataforma.
 
-Después: **1.4-real** (el adaptador de Vertex, ya desbloqueado) y **1.7**, las
-pruebas que importan, donde se cierra la puerta G3 del programa.
+Después de eso, el Paso 1 está completo y empieza el canario: **Paso 2,
+comunicaciones**. Y su primer incremento, el 2.1, **no es código** — es
+cronometrar a mano de diez a quince comunicaciones reales. Sin esa línea base no
+hay forma de demostrar que la IA mejoró nada.
 
 Y en paralelo, desde ya, la tabla de la Parte IV.

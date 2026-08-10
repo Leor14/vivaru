@@ -12,6 +12,7 @@ import {
 import { findOperation, validateOperationInput, type InputValidation } from "./catalog";
 import { executeOperation, type ExecutionFailureReason } from "./execute";
 import { resolveProvider } from "./provider";
+import { consumeQuota, refundQuota } from "./quota";
 import { recordAiUsage } from "./usage";
 
 /**
@@ -152,8 +153,28 @@ export const aiInvoke = onCall<GatewayPayload>(
     }
 
     const operation = decision.operation;
+
+    // La cuota se cobra ANTES de llamar al proveedor. Cobrarla después dejaría
+    // una ventana en la que dos peticiones simultáneas pasan las dos.
+    const cuota = await consumeQuota(operation, decision.tenantId, decision.uid);
+    if (!cuota.ok) {
+      logger.info("ai-gateway: cuota agotada", {
+        operationKey: operation.key,
+        tenantId: decision.tenantId,
+        excedida: cuota.excedida,
+      });
+      throw new HttpsError("resource-exhausted", cuota.message);
+    }
+
     const provider = resolveProvider(operation);
     const resultado = await executeOperation(operation, validation.input, provider);
+
+    // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
+    // salida incumplió el contrato, los tokens se gastaron y la cuota se queda
+    // consumida — devolverla sería mentir sobre el costo.
+    if (!resultado.ok && (resultado.reason === "proveedor_error" || resultado.reason === "proveedor_no_responde")) {
+      await refundQuota(operation, decision.tenantId, decision.uid);
+    }
 
     // Se registra pase lo que pase. Un fallo ya consumió tokens, y la tasa de
     // fallo es la métrica que dice si esto sirve. Nunca lanza: si la telemetría
@@ -189,6 +210,10 @@ export const aiInvoke = onCall<GatewayPayload>(
       operationKey: operation.key,
       version: operation.version,
       output: resultado.output,
+      // Lo que le queda al conjunto y al usuario. Es lo que necesita la
+      // pantalla del Paso 2 para deshabilitar el botón antes de que alguien
+      // choque contra el tope, en vez de después.
+      cuotaRestante: cuota.restante,
     };
   },
 );

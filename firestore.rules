@@ -638,6 +638,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Contadores de cuota de IA (Paso 1.6). Los escribe solo el servidor, y en
+    // transacción: un contador que el cliente pudiera tocar no es una cuota.
+    // Lo que un conjunto necesita saber —cuánto le queda— se lo devuelve la
+    // puerta en la respuesta, no leyendo esto.
+    match /aiQuotaCounters/{docId} {
+      allow read: if superadmin();
+      allow write: if false;
+    }
+
     match /plans/{planId} {
       allow read: if signedIn();
       allow write: if superadmin();

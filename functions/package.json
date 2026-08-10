@@ -11,7 +11,8 @@
     "backfill:names:write": "node scripts/backfill-readable-names.mjs --write",
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:emulator": "vitest run --config vitest.emulator.config.mts"
   },
   "dependencies": {
     "firebase-admin": "^13.6.0",

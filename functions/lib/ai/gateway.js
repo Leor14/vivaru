@@ -44,6 +44,7 @@ const authorize_1 = require("./authorize");
 const catalog_1 = require("./catalog");
 const execute_1 = require("./execute");
 const provider_1 = require("./provider");
+const quota_1 = require("./quota");
 const usage_1 = require("./usage");
 /**
  * Punto de entrada único de las operaciones asistidas (Paso 1.2 de
@@ -146,8 +147,25 @@ exports.aiInvoke = (0, https_1.onCall)({
         throw new https_1.HttpsError("invalid-argument", validation?.detail ?? "La información enviada no es válida.");
     }
     const operation = decision.operation;
+    // La cuota se cobra ANTES de llamar al proveedor. Cobrarla después dejaría
+    // una ventana en la que dos peticiones simultáneas pasan las dos.
+    const cuota = await (0, quota_1.consumeQuota)(operation, decision.tenantId, decision.uid);
+    if (!cuota.ok) {
+        logger.info("ai-gateway: cuota agotada", {
+            operationKey: operation.key,
+            tenantId: decision.tenantId,
+            excedida: cuota.excedida,
+        });
+        throw new https_1.HttpsError("resource-exhausted", cuota.message);
+    }
     const provider = (0, provider_1.resolveProvider)(operation);
     const resultado = await (0, execute_1.executeOperation)(operation, validation.input, provider);
+    // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
+    // salida incumplió el contrato, los tokens se gastaron y la cuota se queda
+    // consumida — devolverla sería mentir sobre el costo.
+    if (!resultado.ok && (resultado.reason === "proveedor_error" || resultado.reason === "proveedor_no_responde")) {
+        await (0, quota_1.refundQuota)(operation, decision.tenantId, decision.uid);
+    }
     // Se registra pase lo que pase. Un fallo ya consumió tokens, y la tasa de
     // fallo es la métrica que dice si esto sirve. Nunca lanza: si la telemetría
     // no se puede escribir, el administrador se queda igual con su borrador.
@@ -179,5 +197,9 @@ exports.aiInvoke = (0, https_1.onCall)({
         operationKey: operation.key,
         version: operation.version,
         output: resultado.output,
+        // Lo que le queda al conjunto y al usuario. Es lo que necesita la
+        // pantalla del Paso 2 para deshabilitar el botón antes de que alguien
+        // choque contra el tope, en vez de después.
+        cuotaRestante: cuota.restante,
     };
 });

@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Las que necesitan emulador van en su propia config (vitest.emulator.config.mts).
+    exclude: ["**/node_modules/**", "tests/**/*.emulator.test.ts"],
   },
 });

@@ -3,7 +3,7 @@ tags: [arquitectura, ia, plataforma, seguridad]
 tipo: concepto
 fuentes: ["plan-general-ia", "estrategia-ia-minima-viable"]
 fecha_creacion: 2026-08-09
-fecha_actualizacion: 2026-08-09
+fecha_actualizacion: 2026-08-10
 ---
 
 # Puerta de entrada de IA
@@ -59,7 +59,7 @@ Dos detalles del contrato que valen más que el resto:
 
 ## El adaptador y el validador
 
-La única parte que sabe hablar con el proveedor es el adaptador; todo lo demás pide «genera esto». Hoy el proveedor es **simulado**: la llamada real a Vertex AI espera la región y el tope de gasto, que son decisiones del Paso 0 con implicación de privacidad y de costo.
+La única parte que sabe hablar con el proveedor es el adaptador; todo lo demás pide «genera esto». Hoy el proveedor es **simulado**, y ya no por falta de decisiones —el endpoint y los topes se cerraron el 10 de agosto—: simplemente falta escribir la implementación real.
 
 Es el mismo patrón que el transporte del SRI en el módulo de [[billing]] —una interfaz con implementación simulada, esperando un dato externo para meter la real sin tocar el resto—, y por el mismo motivo. Tampoco es un atajo para probar: el criterio del paso es que una respuesta malformada se rechace, y **al modelo real no se le puede pedir que se equivoque cuando conviene**.
 
@@ -82,6 +82,16 @@ Tres cosas que no son obvias:
 
 Solo superadmin puede leerla, igual que los `auditLogs` descritos en [[firebase-firestore]], porque agrega datos de todos los conjuntos a la vez y eso rompería el aislamiento de [[multi-tenancy]] si lo viera un administrador.
 
+## Cuotas por conjunto
+
+Antes de llamar al proveedor, la puerta cobra una unidad de cuota en `aiQuotaCounters`. Son tres topes por operación: día y mes por conjunto, y día por usuario.
+
+**La razón de fondo no es el costo, es el aislamiento.** El límite de inversión de Google es de la cuenta entera, así que sin esto el primer conjunto que se desboque dejaría sin capacidad asistida a todos los demás — lo contrario de lo que promete [[multi-tenancy]]. Es además la única capa que corta en el momento: la de Google tarda horas en consolidar costos.
+
+El consumo va en una **transacción**, y no por ceremonia: sin ella dos peticiones casi simultáneas leen «llevas 49 de 50», las dos concluyen que hay sitio y las dos escriben 50. Hay pruebas que lanzan veinte peticiones a la vez contra un tope de cinco y comprueban que pasan exactamente cinco — la afirmación no se da por buena porque el código diga `runTransaction`. Corren con el emulador, siguiendo el criterio de [[pruebas-reglas-emulador]].
+
+Si el proveedor no llegó a responder, la cuota **se devuelve**. Si respondió y su salida incumplió el contrato, se queda consumida: los tokens se gastaron, y devolverla sería mentir sobre el costo igual que descontar esa llamada de la telemetría.
+
 ## Lo que todavía no hace
 
-No llama a ningún modelo real y no lleva cuota. Eso es lo que queda del Paso 1. El primer consumidor será el borrador de comunicaciones, canario por ser el de error más barato — un borrador malo se borra.
+No llama a ningún modelo real. Es lo único que queda del Paso 1, junto con la tanda de pruebas que cierra la puerta G3. El primer consumidor será el borrador de [[comunicaciones]], canario por ser el de error más barato — un borrador malo se borra.

@@ -55,11 +55,11 @@ Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento p
 - **1.2 y 1.3** — la [[puerta-ia]] y su catálogo: un callable único que resuelve el conjunto desde la sesión, rechaza cualquier petición que traiga `tenantId`, y solo admite operaciones declaradas con su versión, esquemas, roles y límites.
 - **1.4, a medias a propósito** — el validador de salida está terminado y rechaza entero lo que incumpla el contrato; el proveedor sigue siendo simulado, con la misma costura que usa el transporte del SRI en [[billing]].
 - **1.5** — telemetría en `aiUsage` y consola de consumo en [[superadmin]], que es lo que permite responder cuánto gastó cada conjunto sin estimar.
-- **Los topes de gasto**, en cuatro capas: límite de inversión de Google acotado a Vertex AI, cuota de tokens por minuto, kill switch, y —pendiente— la cuota por conjunto.
+- **1.6** — cuotas por conjunto, usuario y operación, con consumo transaccional demostrado bajo peticiones simultáneas.
+- **Los topes de gasto**, en cuatro capas: límite de inversión de Google acotado a Vertex AI, cuota de tokens por minuto, cuota por conjunto, y el kill switch de las banderas.
 
 Brechas que siguen abiertas:
 
-- **No hay cuota por conjunto ni usuario.** Es la única capa de tope que corta en el momento; la de Google tarda horas en consolidar costos.
 - **App Check está cableado pero no se exige.** Hasta el 9 de agosto esta página decía que estaba «inicializado en cliente sin enforcement en servidor»; la verdad era peor — `setupAppCheck()` existía sin que lo llamara nadie. Ahora el cliente lo llama y el rechazo lo gobierna una bandera; **falta el trabajo de consola** para poder exigirlo.
 - No hay líneas base de tiempo, error ni volumen de los procesos que la IA pretende mejorar. Sin baseline no hay forma de saber si funcionó.
 - No hay datasets ni criterios de evaluación offline.

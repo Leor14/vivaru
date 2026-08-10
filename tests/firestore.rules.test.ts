@@ -1209,3 +1209,26 @@ describe("Firestore Rules - telemetría de IA", () => {
     );
   });
 });
+
+/**
+ * Contadores de cuota de IA (Paso 1.6). Un contador que el cliente pudiera
+ * tocar no es una cuota: se escriben solo desde el servidor y en transacción.
+ */
+describe("Firestore Rules - contadores de cuota de IA", () => {
+  it("superadmin puede leer los contadores", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10")));
+  });
+
+  it("bloquea que un admin lea los contadores", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10")));
+  });
+
+  it("nadie puede bajarse el contador desde el cliente, ni el superadmin", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10"), { count: 0 }),
+    );
+  });
+});

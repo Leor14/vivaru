@@ -35,6 +35,25 @@ export interface OperationLimits {
   maxOutputTokens: number;
 }
 
+/**
+ * Cuotas de la operación (Paso 1.6).
+ *
+ * No son solo control de costo: **el límite de inversión de Google es de la
+ * cuenta entera, no por conjunto.** Sin esto, un conjunto que se desboque se
+ * come el presupuesto y deja sin capacidad asistida a todos los demás. Es
+ * aislamiento entre conjuntos antes que ahorro.
+ *
+ * Dos ventanas por conjunto —día y mes— porque resuelven cosas distintas: la
+ * mensual ata el gasto al presupuesto, la diaria impide que se consuma el mes
+ * entero en una tarde.
+ */
+export interface OperationQuota {
+  perTenantDay: number;
+  perTenantMonth: number;
+  /** Impide que un solo usuario agote lo del conjunto. */
+  perUserDay: number;
+}
+
 export interface OperationDefinition {
   key: OperationKey;
   /**
@@ -55,6 +74,7 @@ export interface OperationDefinition {
   input: z.ZodType;
   output: z.ZodType;
   limits: OperationLimits;
+  quota: OperationQuota;
 }
 
 const ADMIN_ROLES = ["tenant_admin", "admin_tenant"] as const;
@@ -116,6 +136,13 @@ const OPERATIONS: Record<OperationKey, OperationDefinition> = {
     // acción antes de tener una sola medición. Se revisan con la evaluación
     // offline del Paso 2.4, que es cuando habrá con qué corregirlos.
     limits: { maxInputChars: 4000, timeoutMs: 20_000, maxOutputTokens: 1500 },
+    // Atados al presupuesto real, no puestos a ojo: en el peor caso una llamada
+    // cuesta USD 0,0025, así que 300 al mes son USD 0,75 por conjunto. Con el
+    // tope de 80.000 COP (~USD 20) caben unos 25 conjuntos antes de rozarlo.
+    // La línea base del Paso 2 son 10-15 comunicaciones en total, así que las
+    // 50 diarias no las va a tocar nadie: están para atrapar un bucle, no para
+    // molestar a un administrador.
+    quota: { perTenantDay: 50, perTenantMonth: 300, perUserDay: 20 },
   },
 };
 

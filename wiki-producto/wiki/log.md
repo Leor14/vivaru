@@ -254,3 +254,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 1 — [[programa-ia]] (el modelo elegido solo existe en el endpoint global; la alineación con `us-central1` quedó descartada)
 - **Entidades extraídas**: endpoint global, `gemini-3.1-flash-lite`, límite de inversión por servicio, cuota de tokens por minuto, moneda COP de la cuenta de facturación
 - **Nota**: dos correcciones de datos que estaban mal. Vertex AI se renombró a Gemini Enterprise Agent Platform (el ID `aiplatform.googleapis.com` no cambió), y sí existe un tope de gasto que suspende servicios concretos sin tocar el resto del proyecto
+
+---
+
+## [2026-08-10] ingest | Paso 1.6 del programa de IA — cuotas por conjunto
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 2 — [[puerta-ia]] (sección nueva de cuotas), [[programa-ia]] (deja de figurar como brecha)
+- **Entidades extraídas**: colección `aiQuotaCounters`, tres topes por operación, consumo transaccional, devolución solo si el proveedor no respondió, reinicio del día en UTC, banco de pruebas con emulador en `functions/`
+- **Nota**: la razón del paso no es el costo sino el aislamiento — el tope de gasto de Google es de la cuenta entera, no por conjunto
