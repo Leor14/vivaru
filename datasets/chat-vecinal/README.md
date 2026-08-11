@@ -37,11 +37,10 @@ Lo que hizo la segunda pasada, verificado antes y después:
 
 | | Antes | Después |
 |---|---|---|
-| Identificadores de departamento | 1.169 | 0 |
-| Remitentes con departamento en el nombre | 6 | 0 |
+| Identificadores de departamento (todas las formas) | 1.432 | 0 |
 | Correos | 27 | 0 |
 | Teléfonos | 10 | 0 |
-| Menciones al edificio y a la administradora | 49 | 0 |
+| Edificio, administradora, torre y dirección | 241 | 0 |
 | Rutas de URL (se conserva el dominio) | 14 | 0 |
 
 Los departamentos se mapearon a códigos falsos **consistentes entre el cuerpo y
@@ -51,6 +50,40 @@ que tenga el listado del edificio— y **cambiando el formato** (`H402` → `T2-
 para que la estructura del original no se trasluzca.
 
 **El mapeo no se guardó.** Sin él, este archivo no se puede revertir.
+
+## Nueve clases de fuga, y cómo aparecieron
+
+La primera versión del script daba «todo limpio» y **estaba mal**. Vale la pena
+dejar la lista porque es la misma trampa de siempre: la verificación compartía
+los puntos ciegos del código, así que confirmaba lo que el código creía.
+
+1. **Orden.** Sustituir el dominio de la administradora antes que los correos
+   rompía el patrón del correo; diez sobrevivían con usuario real.
+2. **Departamentos sin letra** en los nombres: «Carlos Licona 803».
+3. **Números de emergencia.** «al 911» y «al 071» no son departamentos: mapearlos
+   dejaba un aviso de seguridad apuntando a un número inventado.
+4. **Minúsculas.** 176 códigos como `h102`. Y peor: `H203` quedaba mapeado y
+   `h203` no, así que el mismo departamento aparecía de las dos formas.
+5. **Guion.** «H-301», más de cuarenta veces.
+6. **Doble mapeo — corrupción de datos.** Encadenar el reemplazo de códigos con
+   el de números sueltos re-mapeaba los dígitos recién insertados:
+   «Wilheim H-403» acababa en «Wilheim H-T2-14».
+7. **Carácter invisible.** WhatsApp antepone `U+200E` a las líneas con adjunto.
+   El detector de línea no lo contemplaba, esas líneas pasaban por
+   «continuación» y su remitente no se limpiaba nunca.
+8. **Enumeraciones.** «vecinos del C-501, 601 o 701»: la regla por palabra clave
+   solo alcanzaba al primero. Se resolvió reconociendo cualquier número ya visto
+   con letra en el corpus — más fiable que adivinar por contexto.
+9. **La dirección del edificio**, que no la escribía nadie: venía en el nombre de
+   los PDF que manda el proveedor de mantenimiento.
+
+## Qué queda, dicho claro
+
+Nada que identifique a una persona o al edificio, pero el corpus **sigue siendo
+un edificio real**: la secuencia de hechos, las fechas y los importes son los
+que fueron. Alguien que viviera ahí reconocería episodios. Para el uso previsto
+—descubrir categorías y registro— eso no estorba; para publicarlo fuera, sí
+habría que volver a pensarlo.
 
 ## Qué se conservó, a propósito
 
