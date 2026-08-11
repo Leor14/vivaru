@@ -85,9 +85,15 @@ que fueron. Alguien que viviera ahí reconocería episodios. Para el uso previst
 —descubrir categorías y registro— eso no estorba; para publicarlo fuera, sí
 habría que volver a pensarlo.
 
+## El análisis
+
+Los hallazgos están en **[`analisis.md`](analisis.md)**: taxonomía con
+frecuencias reales, cómo escribe la gente, los casos difíciles contados, y dos
+hallazgos de producto que no son de IA.
+
 ## Qué se conservó, a propósito
 
-Los 5.158 mensajes, los 103 importes, las fechas y las horas. Son el contenido
+Los 7.319 mensajes, los 103 importes, las fechas y las horas. Son el contenido
 que hace útil el corpus y no identifican a nadie.
 
 Y los números de emergencia: «llama al 911» sigue diciendo 911. Mapearlos habría
