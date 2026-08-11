@@ -30,6 +30,7 @@ export type FeatureFlagKey =
   | "ai-pqrs-suggestions"
   | "ai-onboarding-column-mapping"
   | "ai-receipts-extraction"
+  | "ia-proveedor-real"
   | "operacion-app-check-monitor";
 
 /**
@@ -44,6 +45,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "ai-pqrs-suggestions": false,
   "ai-onboarding-column-mapping": false,
   "ai-receipts-extraction": false,
+  // Apagada = proveedor simulado. Encenderla es lo que empieza a gastar dinero.
+  "ia-proveedor-real": false,
   // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
   "operacion-app-check-monitor": true,

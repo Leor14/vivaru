@@ -1,4 +1,5 @@
 import type { OperationDefinition } from "./catalog";
+import { buildProviderPrompt } from "./prompt";
 import type { AiProvider, AiUsage } from "./provider";
 
 /**
@@ -97,8 +98,9 @@ export async function executeOperation(
       provider.generate({
         operationKey: operation.key,
         operationVersion: operation.version,
-        // Vacío hasta el Paso 2.3, que trae los prompts versionados.
-        prompt: "",
+        // Instrucción de FORMATO derivada del esquema del catálogo. El prompt
+        // de tarea —cómo se redacta bien— es el Paso 2.3.
+        prompt: buildProviderPrompt(operation, input),
         input,
         maxOutputTokens: operation.limits.maxOutputTokens,
       }),

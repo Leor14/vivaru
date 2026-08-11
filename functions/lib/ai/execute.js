@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeOperation = executeOperation;
+const prompt_1 = require("./prompt");
 /**
  * Los cuatro mensajes terminan igual a propósito: pase lo que pase, el flujo
  * tradicional sigue abierto. Es el principio de fallback determinista del plan
@@ -48,8 +49,9 @@ async function executeOperation(operation, input, provider) {
         resultado = await conCorteDeTiempo(provider.generate({
             operationKey: operation.key,
             operationVersion: operation.version,
-            // Vacío hasta el Paso 2.3, que trae los prompts versionados.
-            prompt: "",
+            // Instrucción de FORMATO derivada del esquema del catálogo. El prompt
+            // de tarea —cómo se redacta bien— es el Paso 2.3.
+            prompt: (0, prompt_1.buildProviderPrompt)(operation, input),
             input,
             maxOutputTokens: operation.limits.maxOutputTokens,
         }), operation.limits.timeoutMs);

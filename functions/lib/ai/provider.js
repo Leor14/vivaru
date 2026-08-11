@@ -1,8 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stubAiProvider = void 0;
 exports.fakeAiProvider = fakeAiProvider;
 exports.resolveProvider = resolveProvider;
+const feature_flags_1 = require("../feature-flags");
 /**
  * Respuesta simulada por operación. Es válida contra el esquema del catálogo a
  * propósito: el camino feliz tiene que poder recorrerse entero antes de que
@@ -66,12 +100,23 @@ function fakeAiProvider(options) {
     };
 }
 /**
- * Proveedor que se usa en tiempo de ejecución.
+ * Proveedor que se usa en tiempo de ejecución, elegido por bandera.
  *
- * Hoy siempre el simulado. Cuando exista el real, aquí va la elección — y lo
- * natural es gobernarla con una bandera, para poder volver al simulado sin
- * desplegar si el proveedor se cae.
+ * `ia-proveedor-real` apagada (el default) → simulado. Encendida → Vertex AI.
+ * Se gobierna desde `/superadmin/flags`, así que **volver al simulado si el
+ * proveedor se cae o se desmadra el gasto no requiere desplegar** — que es para
+ * lo que se construyó el mecanismo del Paso 1.1.
+ *
+ * Y falla al lado seguro: el kill switch maestro apaga todas las banderas, así
+ * que bajarlo devuelve al simulado además de cerrar la puerta.
+ *
+ * El SDK se carga solo si hace falta. Importarlo arriba lo metería en el
+ * arranque en frío de la función aunque la bandera esté apagada.
  */
-function resolveProvider(_operation) {
-    return exports.stubAiProvider;
+async function resolveProvider(_operation, tenantId) {
+    const real = await (0, feature_flags_1.resolveFeatureFlag)("ia-proveedor-real", tenantId);
+    if (!real.enabled)
+        return exports.stubAiProvider;
+    const { createVertexProvider } = await Promise.resolve().then(() => __importStar(require("./provider-vertex")));
+    return createVertexProvider();
 }

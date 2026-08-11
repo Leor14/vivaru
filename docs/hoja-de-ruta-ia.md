@@ -198,10 +198,8 @@ esquema. Si el modelo devuelve algo raro, el usuario ve un error limpio, no un
 objeto a medias.
 *Terminado cuando:* una respuesta deliberadamente malformada se rechaza y no
 llega al módulo. **Cumplido.**
-*Lo que falta:* la llamada real a Vertex AI. El proveedor es simulado detrás de
-la misma costura que usa `SriTransport`. El validador, que es la mitad que
-importa, es definitivo. **Ya no está bloqueado**: el endpoint y el tope se
-cerraron el 10 de agosto (ver el registro de cierre). Solo falta escribirlo.
+*Lo que faltaba —la llamada real— está escrito desde el 11 de agosto de 2026*, y
+apagado tras la bandera `ia-proveedor-real`. Ver el registro del 1.4-real.
 
 **1.5 Telemetría de uso y costo. — HECHO (9 de agosto de 2026).**
 Por cada llamada: tenant, usuario, operación, versión de prompt y modelo, tokens,
@@ -968,16 +966,72 @@ y **86 de reglas** en la raíz.
 
 ---
 
+## Registro de ejecución — Paso 1.4-real
+
+**11 de agosto de 2026.** Escrito y apagado. Con esto la plataforma está
+completa: no queda una sola pieza del Paso 1 por construir.
+
+**1 · SDK: `@google/genai`, no `@google-cloud/vertexai`.** Comprobado en npm en
+vez de asumido: el unificado va por la 2.16 y el antiguo se quedó en la 1.12.
+
+**2 · Se enciende por bandera, y esa es la parte importante.**
+`ia-proveedor-real` nace **apagada**: mientras no se encienda, todo responde con
+el simulador y no cuesta nada. Encenderla —y volver al simulador si el proveedor
+se cae o el gasto se dispara— **no requiere desplegar**. Es la primera vez que
+el mecanismo del Paso 1.1 sirve para lo que se construyó.
+
+Y falla al lado seguro: el kill switch maestro apaga todas las banderas, así que
+bajarlo devuelve al simulador además de cerrar la puerta.
+
+El SDK se carga con `import()` perezoso dentro de la rama. Importarlo arriba lo
+metería en el arranque en frío de la función aunque la bandera esté apagada.
+
+**3 · El identificador del modelo no se pudo verificar, y da igual.** La cuenta
+no tiene permiso de lectura de metadatos de modelos —403 en todos los endpoints
+que se probaron—. Queda `gemini-3.1-flash-lite` en un solo sitio. Si estuviera
+mal, la primera llamada devuelve `proveedor_error`, el usuario ve «puedes
+continuar con el proceso manual» y el detalle queda en los logs. **Degrada bien
+a propósito: por eso se puede dejar sin verificar sin correr riesgo.**
+
+**4 · La instrucción de formato se deriva del esquema, y no es un prompt.** La
+plataforma le dice al modelo *qué forma* debe tener la respuesta, sacándola del
+propio esquema Zod con `z.toJSONSchema`. Así **no puede desincronizarse del
+validador**: si cambia el contrato, cambia lo que se pide, sin tocar nada.
+
+El prompt de *tarea* —cómo se redacta bien una comunicación, el que se compara
+entre versiones en la evaluación offline— sigue siendo el Paso 2.3. Hay una
+prueba que falla si alguien empieza a meter ahí «actúa como un asistente».
+
+**5 · Se pide JSON por configuración además de por instrucción**
+(`responseMimeType`), lo que quita de encima el caso más común de salida
+ilegible. El validador sigue siendo quien decide.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Adaptador real | `functions/src/ai/provider-vertex.ts` |
+| Instrucción de formato | `functions/src/ai/prompt.ts` |
+| Elección por bandera | `functions/src/ai/provider.ts` → `resolveProvider` |
+| Prueba de humo (una llamada, a mano) | `functions/scripts/probar-vertex.mjs` |
+
+**Lo que falta para encenderlo, en orden:**
+
+1. Correr `node functions/scripts/probar-vertex.mjs hogaru-1`. Una sola llamada,
+   del orden de 0,0025 USD. No toca Firestore ni enciende ninguna bandera:
+   responde si el identificador del modelo es correcto, si la cuenta puede
+   invocar el endpoint global, y si lo que devuelve pasa el contrato.
+2. Sembrar el catálogo de banderas y desplegar reglas, índices y functions.
+3. Encender `ai-gateway` y `ai-communications-draft` para **un** conjunto.
+4. Encender `ia-proveedor-real` mirando `/superadmin/ia`.
+
+---
+
 ## Por dónde seguimos
 
-**El Paso 1 está completo salvo el adaptador real.** La plataforma está en pie:
+**El Paso 1 está completo.** La plataforma está en pie:
 banderas y kill switch, puerta única, catálogo, validación, telemetría, cuotas
 y las pruebas que cierran G3.
-
-**1.4-real: el adaptador de Vertex AI.** Lo único que queda de la plataforma.
-Añadir la dependencia, confirmar el identificador exacto del modelo y escribir
-una implementación de `AiProvider`. Nada más del código cambia. Y al hacerlo,
-repetir la pregunta del proveedor caído contra el real.
 
 **Y después el canario, Paso 2 — pero ojo con el orden.** Su primer incremento,
 el **2.1, no es código**: es cronometrar a mano de diez a quince comunicaciones

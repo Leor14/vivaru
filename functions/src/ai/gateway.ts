@@ -175,7 +175,7 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
     return { ok: false, code: "resource-exhausted", message: cuota.message, reason: cuota.excedida };
   }
 
-  const provider = deps.provider ?? resolveProvider(op);
+  const provider = deps.provider ?? (await resolveProvider(op, tenantId));
   const resultado = await executeOperation(op, validation.input, provider);
 
   // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su

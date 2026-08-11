@@ -48,6 +48,7 @@ export type FeatureFlagKey =
   | "ai-pqrs-suggestions"
   | "ai-onboarding-column-mapping"
   | "ai-receipts-extraction"
+  | "ia-proveedor-real"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -131,6 +132,19 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     defaultEnabled: false,
     origen: "DOC-001 — Paso 5",
     alApagar: "El comprobante se captura a mano. `approveReceiptAndRegisterPayment` no cambia.",
+  },
+  "ia-proveedor-real": {
+    key: "ia-proveedor-real",
+    area: "ia",
+    label: "Llamar al proveedor real",
+    description:
+      "Apagada, las operaciones asistidas responden con un simulador y no cuestan nada. Encendida, se llama a Vertex AI de verdad.",
+    // Es la bandera que empieza a gastar dinero. Nace apagada, y encenderla
+    // debería ser un acto consciente y mirando la consola de consumo.
+    defaultEnabled: false,
+    origen: "Paso 1.4 — adaptador del proveedor",
+    alApagar:
+      "Se vuelve al simulador al instante, sin desplegar. Es el freno de mano si el proveedor se cae o el gasto se dispara.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

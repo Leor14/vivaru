@@ -76,6 +76,14 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "ia-proveedor-real",
+    area: "ia",
+    label: "Llamar al proveedor real",
+    origen: "Paso 1.4",
+    // Nace apagada: es la bandera que empieza a gastar dinero.
+    enabled: false,
+  },
+  {
     key: "operacion-app-check-monitor",
     area: "operacion",
     label: "App Check en modo monitor",

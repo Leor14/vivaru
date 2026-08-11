@@ -143,7 +143,7 @@ async function runGateway(request, deps = {}) {
         logger.info("ai-gateway: cuota agotada", { operationKey: op.key, tenantId, excedida: cuota.excedida });
         return { ok: false, code: "resource-exhausted", message: cuota.message, reason: cuota.excedida };
     }
-    const provider = deps.provider ?? (0, provider_1.resolveProvider)(op);
+    const provider = deps.provider ?? (await (0, provider_1.resolveProvider)(op, tenantId));
     const resultado = await (0, execute_1.executeOperation)(op, validation.input, provider);
     // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
     // salida incumplió el contrato, los tokens se gastaron y la cuota se queda

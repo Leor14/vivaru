@@ -1,3 +1,4 @@
+import { resolveFeatureFlag } from "../feature-flags";
 import type { OperationDefinition } from "./catalog";
 
 /**
@@ -7,20 +8,17 @@ import type { OperationDefinition } from "./catalog";
  * demás pide «genera esto» y no sabe si detrás hay Vertex AI, otro proveedor o
  * nada. Es lo que permite que cambiar de modelo sea un cambio de un archivo.
  *
- * Hoy solo existe `stubAiProvider`. **Es el mismo patrón que `SriTransport` en
- * `functions/src/sri-ecuador.ts`**, y por el mismo motivo: allí el transporte
- * real espera el dato del experto SAP↔SRI, aquí la llamada real espera dos
- * decisiones del Paso 0 que cuestan dinero — la región de Vertex AI y el tope
- * de gasto configurado de verdad.
+ * Hay tres implementaciones, y las tres importan:
  *
- * No es un atajo. El criterio de este paso —«una respuesta deliberadamente
- * malformada se rechaza»— se prueba mejor con un simulador: al modelo real no
- * se le puede pedir que se equivoque cuando a uno le conviene.
+ *  · `stubAiProvider` — simulado, determinista y gratis. Sigue siendo el
+ *    DEFAULT: el proveedor real se enciende por bandera.
+ *  · `fakeAiProvider` — para provocar a voluntad las cuatro formas de fallar.
+ *    Al modelo real no se le puede pedir que se equivoque cuando conviene, así
+ *    que aquí el simulador no es un sustituto pobre, es la herramienta correcta.
+ *  · `createVertexProvider` en `provider-vertex.ts` — la llamada de verdad.
  *
- * **Para meter el proveedor real** hace falta: región elegida, `@google-cloud/
- * vertexai` como dependencia, el id de modelo fijado (Gemini 3.1 Flash-Lite,
- * decisión del Paso 0), el tope de gasto puesto, y una implementación de
- * `AiProvider` que devuelva el texto crudo. Nada más de este archivo cambia.
+ * Es el mismo patrón que `SriTransport` en `functions/src/sri-ecuador.ts`:
+ * interfaz estable, implementación intercambiable.
  */
 
 export interface AiGenerationRequest {
@@ -130,12 +128,26 @@ export function fakeAiProvider(options: {
 }
 
 /**
- * Proveedor que se usa en tiempo de ejecución.
+ * Proveedor que se usa en tiempo de ejecución, elegido por bandera.
  *
- * Hoy siempre el simulado. Cuando exista el real, aquí va la elección — y lo
- * natural es gobernarla con una bandera, para poder volver al simulado sin
- * desplegar si el proveedor se cae.
+ * `ia-proveedor-real` apagada (el default) → simulado. Encendida → Vertex AI.
+ * Se gobierna desde `/superadmin/flags`, así que **volver al simulado si el
+ * proveedor se cae o se desmadra el gasto no requiere desplegar** — que es para
+ * lo que se construyó el mecanismo del Paso 1.1.
+ *
+ * Y falla al lado seguro: el kill switch maestro apaga todas las banderas, así
+ * que bajarlo devuelve al simulado además de cerrar la puerta.
+ *
+ * El SDK se carga solo si hace falta. Importarlo arriba lo metería en el
+ * arranque en frío de la función aunque la bandera esté apagada.
  */
-export function resolveProvider(_operation: OperationDefinition): AiProvider {
-  return stubAiProvider;
+export async function resolveProvider(
+  _operation: OperationDefinition,
+  tenantId: string,
+): Promise<AiProvider> {
+  const real = await resolveFeatureFlag("ia-proveedor-real", tenantId);
+  if (!real.enabled) return stubAiProvider;
+
+  const { createVertexProvider } = await import("./provider-vertex");
+  return createVertexProvider();
 }
