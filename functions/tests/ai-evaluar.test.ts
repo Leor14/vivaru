@@ -200,8 +200,16 @@ describe("las tres versiones de prompt", () => {
     }
   });
 
-  it("la activa arranca en la mínima: es la que hay que batir", () => {
-    expect(PROMPT_ACTIVO).toBe("v1-minima");
+  it("la activa es la que ganó la evaluación, no la que parecía mejor", () => {
+    // Arrancó en `v1-minima` porque era la que había que batir. El 12 de agosto
+    // de 2026 `v2-estructura` la batió en las CINCO corridas reales (80, 80, 86,
+    // 88, 95%) y además fue la única estable — v1 y v3 oscilan casi diez puntos
+    // entre corridas idénticas.
+    //
+    // Esta prueba existe para que cambiar el prompt de producción cueste
+    // justificarlo: si alguien la toca, tiene que venir con corridas.
+    expect(PROMPT_ACTIVO).toBe("v2-estructura");
+    expect(PROMPT_VERSIONS).toContain(PROMPT_ACTIVO);
   });
 
   it("v3 contiene a v2: la única diferencia es el ejemplo", () => {

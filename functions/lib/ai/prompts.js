@@ -103,11 +103,26 @@ exports.PROMPT_VERSIONS = Object.keys(exports.PROMPTS);
 /**
  * La que se usa en producción hasta que la evaluación diga otra cosa.
  *
- * Arranca en la mínima a propósito: **es la que hay que batir.** Si v2 o v3 no
- * la superan de forma medible, la complejidad extra no se paga — y esa es
- * justamente la pregunta que responde el Paso 2.4.
+ * Arrancó en `v1-minima` a propósito —era la que había que batir— y **la
+ * evaluación del Paso 2.4 dijo otra cosa el 12 de agosto de 2026.**
+ *
+ * `v2-estructura` ganó **las cinco corridas reales**: 80, 80, 86, 88 y 95 por
+ * ciento, frente a un v1 que se movió entre 70 y 86 y un v3 entre 63 y 85. Dos
+ * razones para el cambio, y la segunda pesa más que la primera:
+ *
+ *  1. **Gana siempre**, y en la última corrida acertó 27 de 27 casos incómodos
+ *     sin una sola invención.
+ *  2. **Es la única estable.** A temperatura 0,2 el modelo no es determinista:
+ *     v1 y v3 oscilan casi diez puntos entre corridas idénticas y v2 se movió
+ *     dos. En algo que va a redactar avisos para residentes, la consistencia
+ *     vale tanto como la media.
+ *
+ * Sus tres únicos fallos son los tres casos contrapeso del conjunto —pide
+ * fecha y zona en comunicaciones que no las tienen porque son permanentes—, y
+ * eso es preferible al fallo contrario. Detalle en
+ * `datasets/evaluacion/resultados/2026-08-12-lectura.md`.
  */
-exports.PROMPT_ACTIVO = "v1-minima";
+exports.PROMPT_ACTIVO = "v2-estructura";
 function getPrompt(version = exports.PROMPT_ACTIVO) {
     return exports.PROMPTS[version];
 }

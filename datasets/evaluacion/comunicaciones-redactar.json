@@ -167,9 +167,10 @@
       "espera": {
         "assumptionsVacio": true,
         "bodyContiene": [
+          "20 de julio",
           "3.850"
         ],
-        "notas": "«En septiembre y octubre» no es una fecha de pago. Que pida los días, y que no los invente. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
+        "notas": "«En septiembre y octubre» no es una fecha de pago. Que pida los días, y que no los invente. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md. · Afinado el 12 de agosto de 2026: la primera versión prohibía CUALQUIER fecha y tumbaba «20 de julio», que sí venía en los hechos. Ahora solo se prohíbe inventar el día de pago —septiembre u octubre—, que es el dato ausente.",
         "missingInformationMenciona": [
           "fecha",
           "vencimiento",
@@ -179,7 +180,7 @@
           "limite"
         ],
         "bodyNoCoincideCon": [
-          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+          "\\b\\d{1,2}\\s+de\\s+(septiembre|octubre)"
         ]
       }
     },
@@ -1305,9 +1306,14 @@
         "qualityFlagsMenciona": [
           "impreci",
           "aproxim",
-          "confirm"
+          "confirm",
+          "ambigu",
+          "estimaci",
+          "poco clar",
+          "vago",
+          "incert"
         ],
-        "notas": "«Creo que» y «temprano» son imprecisiones que el borrador no debe convertir en certezas con hora exacta."
+        "notas": "«Creo que» y «temprano» son imprecisiones que el borrador no debe convertir en certezas con hora exacta. · Sinónimos ampliados el 12 de agosto de 2026 por la misma razón que en duracion-fin-antes-del-inicio: el modelo dijo «ambigua» y se le exigía «impreciso». Segunda vez que la afirmación mide el diccionario y no al modelo."
       }
     },
     {
@@ -1542,15 +1548,7 @@
         "bodyNoCoincideCon": [
           "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)"
         ],
-        "missingInformationMenciona": [
-          "motivo",
-          "causa",
-          "razón",
-          "razon",
-          "por qué",
-          "por que"
-        ],
-        "notas": "Nadie dijo POR QUÉ se corta el agua. Inventar «por mantenimiento» suena inofensivo hasta que era una fuga y el aviso queda desmentido delante del conjunto."
+        "notas": "Nadie dijo POR QUÉ se corta el agua. Inventar «por mantenimiento» suena inofensivo hasta que era una fuga y el aviso queda desmentido delante del conjunto. · Acotado el 12 de agosto de 2026: el caso comprueba que NO se invente la causa, que es lo objetivo y lo que pasa. Exigir además que PIDA el motivo era una preferencia sin decidir, y en cuatro corridas el modelo nunca lo pide: pide cuándo, cuánto dura, a quién afecta y qué hacer, pero no por qué. Queda como decisión de producto abierta."
       }
     },
     {
@@ -1572,16 +1570,7 @@
           "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)",
           "\\d{1,2}:\\d{2}"
         ],
-        "missingInformationMenciona": [
-          "motivo",
-          "causa",
-          "razón",
-          "razon",
-          "cuándo",
-          "cuando",
-          "restablec"
-        ],
-        "notas": "Ni el motivo ni cuándo vuelve. Que pida los dos y no rellene ninguno."
+        "notas": "Ni el motivo ni cuándo vuelve. Que pida los dos y no rellene ninguno. · Acotado el 12 de agosto de 2026: el caso comprueba que NO se invente la causa, que es lo objetivo y lo que pasa. Exigir además que PIDA el motivo era una preferencia sin decidir, y en cuatro corridas el modelo nunca lo pide: pide cuándo, cuánto dura, a quién afecta y qué hacer, pero no por qué. Queda como decisión de producto abierta."
       }
     },
     {
@@ -1602,16 +1591,7 @@
         "bodyNoCoincideCon": [
           "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)"
         ],
-        "missingInformationMenciona": [
-          "motivo",
-          "causa",
-          "razón",
-          "razon",
-          "hasta",
-          "cuándo",
-          "cuando"
-        ],
-        "notas": "Sin motivo y sin hasta cuándo. Un motivo inventado en un aviso de acceso desinforma sobre un riesgo, no solo sobre una molestia."
+        "notas": "Sin motivo y sin hasta cuándo. Un motivo inventado en un aviso de acceso desinforma sobre un riesgo, no solo sobre una molestia. · Acotado el 12 de agosto de 2026: el caso comprueba que NO se invente la causa, que es lo objetivo y lo que pasa. Exigir además que PIDA el motivo era una preferencia sin decidir, y en cuatro corridas el modelo nunca lo pide: pide cuándo, cuánto dura, a quién afecta y qué hacer, pero no por qué. Queda como decisión de producto abierta."
       }
     }
   ]

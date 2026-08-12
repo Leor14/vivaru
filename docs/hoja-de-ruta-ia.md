@@ -326,12 +326,16 @@ calificador discrimina —90% en rutinarios, 30% en incómodos, 0% donde falta u
 dato— que es justo lo que tenía que pasar. Si hubiera pasado los 50, estaría
 roto.
 
-**CORRIDO DE VERDAD (12 de agosto de 2026).** 168 llamadas × 2 corridas, unos 5
-centavos de dólar cada una. **Gana `v2-estructura` con 80% en las dos**, y no
-por los puntos: es la única que nunca deja pasar un hueco real ni un problema
-sin marcar. **`v3-ejemplo` se movió 10 puntos entre corridas idénticas** — a
-temperatura 0,2 no hay determinismo, así que diferencias menores de 10 puntos en
-una sola corrida no significan nada.
+**CORRIDO DE VERDAD (12 de agosto de 2026) — CINCO corridas, ~870 llamadas, unos
+30 centavos de dólar en total.** `v2-estructura` **ganó las cinco**: 80, 80, 86,
+88 y 95 por ciento, frente a un v1 entre 70 y 86 y un v3 entre 63 y 85.
+**`PROMPT_ACTIVO` pasó de `v1-minima` a `v2-estructura`.**
+
+No se cambió por los puntos, sino porque **es la única estable**: v1 y v3
+oscilan casi diez puntos entre corridas idénticas —a temperatura 0,2 no hay
+determinismo— y v2 se movió dos. En la última corrida acertó **27 de 27 casos
+incómodos** sin una invención ni una repetición, y sus tres únicos fallos son
+los tres casos contrapeso a propósito.
 
 **El 80% no es de fiar, y falla hacia abajo:** de los 11 fallos de v2, ocho son
 el modelo pidiendo un dato que de verdad faltaba y el conjunto dando el caso por
@@ -570,7 +574,7 @@ la consola ofrece *«Aplicación del límite de inversión»*, que suspende
 
 | | Capa | Qué protege | Estado |
 |---|---|---|---|
-| 1 | Límite de inversión, 80.000 COP/mes, solo Vertex AI | El techo mensual real | ✅ |
+| 1 | Límite de inversión, 80.000 COP/mes, solo Vertex AI | El techo mensual real | ✅ **verificado en pantalla el 12 ago 2026** — estuvo en 80 COP dos días |
 | 2 | Cuota `GlobalGenerateContentInputTokensPerMinutePerBaseModel` = 2.000 | La velocidad a la que un bucle puede quemar | ✅ |
 | 3 | Cuota por conjunto y usuario | Corta en el momento, sin esperar a Google | Paso 1.6 |
 | 4 | Kill switch | Un clic, sin desplegar | ✅ Paso 1.1 |
@@ -580,6 +584,26 @@ Detalles que importan:
 - **La moneda de la cuenta es COP**, no USD. El campo del importe muestra `$` a
   secas: poner «20» habría fijado el tope en veinte pesos y la primera llamada
   habría suspendido el servicio. Quedó en **80.000 COP**.
+
+  **Y aun así pasó (12 de agosto de 2026).** El tope había quedado en **COP
+  80,00** —ochenta pesos, unos dos centavos de dólar—, no en 80.000. Saltó en la
+  llamada 341 de la primera evaluación real, con un `403 PERMISSION_DENIED ·
+  Spend cap breached`. Corregido el mismo día a 80.000.
+
+  **La lección no es la moneda, es la verificación.** Esta línea decía «quedó en
+  80.000 COP» y la tabla de arriba tenía un ✅. Las dos cosas eran falsas por un
+  factor de mil, durante dos días, porque **se anotó la intención y no lo
+  configurado**. Es el mismo error que el resto del documento persigue en otros
+  sitios —«medir, no mirar»— cometido aquí mismo. Cuando un dato de consola
+  entre en un documento, debe entrar leído de la pantalla, no de lo que se quiso
+  teclear; y el único chequeo que vale es que el **resumen** diga
+  `COP80,000.00`, porque el campo de edición muestra `$ 80000` sin moneda.
+
+- **Quitar el límite bloquea el formulario entero mientras se procesa.** Sale
+  «Revocación iniciada…» y todos los campos quedan en gris hasta que termina —
+  incluido el importe. No es un fallo de la consola: hay que esperar. Si lo que
+  se quiere es subir el tope, es más rápido editar el importe que revocar y
+  volver a crearlo.
 - **La cuota bajó de 25.000.000 a 2.000 tokens de entrada por minuto** para
   `gemini-3.1-flash-lite`. El valor por defecto equivalía a unos 60 USD por
   minuto de exposición; ahora son unos 7 al día.
