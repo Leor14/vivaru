@@ -92,10 +92,7 @@ export function createVertexProvider(): AiProvider {
         text: texto,
         usage: {
           model: MODELO,
-          // Vacío hasta el Paso 2.3, que trae los prompts versionados. Lo que
-          // se manda hoy es solo la instrucción de formato derivada del
-          // esquema, no un prompt de tarea.
-          promptVersion: "sin-prompt",
+          promptVersion: request.promptVersion,
           inputTokens: numero(uso?.promptTokenCount),
           outputTokens: numero(uso?.candidatesTokenCount),
         },

@@ -24,11 +24,10 @@ import type { OperationDefinition } from "./catalog";
 export interface AiGenerationRequest {
   operationKey: string;
   operationVersion: number;
-  /**
-   * Instrucciones para el modelo. Vacío hasta el Paso 2.3, que trae los prompts
-   * versionados. El simulador no lo usa; el proveedor real sí.
-   */
+  /** Instrucciones completas para el modelo: tarea + formato + datos. */
   prompt: string;
+  /** Qué versión de prompt se usó. Va a la telemetría para poder comparar. */
+  promptVersion: string;
   /** Entrada ya validada contra el esquema del catálogo. */
   input: unknown;
   maxOutputTokens: number;
@@ -94,7 +93,7 @@ export const stubAiProvider: AiProvider = {
       text,
       usage: {
         model: "stub",
-        promptVersion: "stub",
+        promptVersion: request.promptVersion,
         // Aproximación grosera y suficiente: nadie decide nada con esto
         // mientras el proveedor sea simulado.
         inputTokens: Math.ceil(JSON.stringify(request.input ?? "").length / 4),

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeOperation = executeOperation;
 const prompt_1 = require("./prompt");
+const prompts_1 = require("./prompts");
 /**
  * Los cuatro mensajes terminan igual a propósito: pase lo que pase, el flujo
  * tradicional sigue abierto. Es el principio de fallback determinista del plan
@@ -41,7 +42,10 @@ async function conCorteDeTiempo(promise, timeoutMs) {
             clearTimeout(timer);
     }
 }
-async function executeOperation(operation, input, provider) {
+async function executeOperation(operation, input, provider, 
+// La evaluación offline del Paso 2.4 corre el mismo camino con versiones
+// distintas; producción usa siempre la activa.
+promptVersion = prompts_1.PROMPT_ACTIVO) {
     const inicio = Date.now();
     const transcurrido = () => Date.now() - inicio;
     let resultado;
@@ -49,9 +53,8 @@ async function executeOperation(operation, input, provider) {
         resultado = await conCorteDeTiempo(provider.generate({
             operationKey: operation.key,
             operationVersion: operation.version,
-            // Instrucción de FORMATO derivada del esquema del catálogo. El prompt
-            // de tarea —cómo se redacta bien— es el Paso 2.3.
-            prompt: (0, prompt_1.buildProviderPrompt)(operation, input),
+            prompt: (0, prompt_1.buildProviderPrompt)(operation, input, promptVersion),
+            promptVersion,
             input,
             maxOutputTokens: operation.limits.maxOutputTokens,
         }), operation.limits.timeoutMs);

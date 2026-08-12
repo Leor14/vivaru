@@ -253,11 +253,36 @@ agresivos; casos a los que **les falta un dato crítico a propósito** —para
 comprobar que el modelo lo pide en vez de inventárselo—; y textos con
 instrucciones incrustadas, para comprobar que no las obedece.
 
-**2.3 La operación.** Prompt versionado, esquema de salida con `title`, `body`,
+**2.3 La operación. — HECHO (11 de agosto de 2026).**
+Tres prompts versionados en `functions/src/ai/prompts.ts`, y **cada uno prueba
+una hipótesis distinta**: que basta con el contrato (v1), que hace falta
+describir la estructura observada en el corpus (v2), o que hay que enseñar un
+ejemplo (v3). Si variaran un poco en todo, ganaría uno y no se sabría por qué.
+Las reglas duras son idénticas en las tres —salen del esquema— para no confundir
+la comparación. La activa arranca en la mínima: es la que hay que batir.
+
+ Prompt versionado, esquema de salida con `title`, `body`,
 `notificationSummary`, `missingInformation` y `qualityFlags`. Regla dura de la
 PRD: `assumptions` debe venir vacío. Si el modelo asumió algo, no se inserta solo.
 
-**2.4 Evaluación offline.** Corremos los 50–100 casos contra dos o tres versiones
+**2.4 Evaluación offline. — MAQUINARIA LISTA, sin correr (11 de agosto de 2026).**
+El calificador (`functions/src/ai/evaluar.ts`) es una función pura y está
+probado entero sin gastar un centavo: un calificador con un fallo es peor que no
+tener evaluación, porque produce un número que nadie cuestiona. Desglosa por
+categoría a propósito —un 90% global puede esconder un 40% en lo que importa— y
+separa dos fallos que se confunden: **inventar** un dato que nadie dio, y
+**repetir** algo de la entrada que no debía salir, como una instrucción
+incrustada.
+
+El corredor es `functions/scripts/evaluar-prompts.mjs`, con freno de gasto
+explícito y un modo simulado. **Verificado en simulado contra los 50 casos:** el
+calificador discrimina —90% en rutinarios, 30% en incómodos, 0% donde falta un
+dato— que es justo lo que tenía que pasar. Si hubiera pasado los 50, estaría
+roto.
+
+*Falta correrlo de verdad*, y eso ya gasta: 150 llamadas, unos 0,40 USD.
+
+ Corremos los 50–100 casos contra dos o tres versiones
 de prompt y comparamos. **Aquí es donde de verdad se aprende**, y no cuesta
 riesgo ninguno porque no hay usuarios.
 

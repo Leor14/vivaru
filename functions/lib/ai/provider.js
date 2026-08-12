@@ -71,7 +71,7 @@ exports.stubAiProvider = {
             text,
             usage: {
                 model: "stub",
-                promptVersion: "stub",
+                promptVersion: request.promptVersion,
                 // Aproximación grosera y suficiente: nadie decide nada con esto
                 // mientras el proveedor sea simulado.
                 inputTokens: Math.ceil(JSON.stringify(request.input ?? "").length / 4),

@@ -1,5 +1,6 @@
 import type { OperationDefinition } from "./catalog";
 import { buildProviderPrompt } from "./prompt";
+import { PROMPT_ACTIVO, type PromptVersion } from "./prompts";
 import type { AiProvider, AiUsage } from "./provider";
 
 /**
@@ -88,6 +89,9 @@ export async function executeOperation(
   operation: OperationDefinition,
   input: unknown,
   provider: AiProvider,
+  // La evaluación offline del Paso 2.4 corre el mismo camino con versiones
+  // distintas; producción usa siempre la activa.
+  promptVersion: PromptVersion = PROMPT_ACTIVO,
 ): Promise<ExecutionResult> {
   const inicio = Date.now();
   const transcurrido = () => Date.now() - inicio;
@@ -98,9 +102,8 @@ export async function executeOperation(
       provider.generate({
         operationKey: operation.key,
         operationVersion: operation.version,
-        // Instrucción de FORMATO derivada del esquema del catálogo. El prompt
-        // de tarea —cómo se redacta bien— es el Paso 2.3.
-        prompt: buildProviderPrompt(operation, input),
+        prompt: buildProviderPrompt(operation, input, promptVersion),
+        promptVersion,
         input,
         maxOutputTokens: operation.limits.maxOutputTokens,
       }),

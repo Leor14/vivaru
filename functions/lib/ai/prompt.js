@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildFormatInstruction = buildFormatInstruction;
 exports.buildProviderPrompt = buildProviderPrompt;
 const zod_1 = require("zod");
+const prompts_1 = require("./prompts");
 /**
  * Instrucción de FORMATO para el proveedor (Paso 1.4-real).
  *
@@ -47,9 +48,19 @@ function buildFormatInstruction(operation) {
     ].join("\n");
 }
 /**
- * Mensaje completo que se manda al proveedor: formato + los datos que escribió
- * la persona. La entrada ya viene validada contra el esquema del catálogo.
+ * Mensaje completo: instrucción de TAREA (versionada, Paso 2.3) + instrucción de
+ * FORMATO (derivada del esquema) + los datos que escribió la persona.
+ *
+ * El orden importa poco para el modelo y mucho para quien lee esto: primero qué
+ * hacer, luego con qué forma, y al final los datos.
  */
-function buildProviderPrompt(operation, input) {
-    return `${buildFormatInstruction(operation)}\n\nDatos proporcionados:\n${JSON.stringify(input, null, 2)}`;
+function buildProviderPrompt(operation, input, version = prompts_1.PROMPT_ACTIVO) {
+    return [
+        (0, prompts_1.getPrompt)(version).instruccion,
+        "",
+        buildFormatInstruction(operation),
+        "",
+        "Datos proporcionados:",
+        JSON.stringify(input, null, 2),
+    ].join("\n");
 }
