@@ -15,6 +15,14 @@ export interface CasoEspera {
   missingInformationVacio?: boolean;
   missingInformationMenciona?: string[];
   bodyContiene?: string[];
+  /**
+   * Basta con que UNA aparezca. Sirve para comprobar que el cuerpo **dice algo**
+   * —que reconoce que aún no hay hora de restablecimiento, por ejemplo— sin
+   * obligarle a decirlo con unas palabras concretas. `bodyContiene` exige todas
+   * y para eso no vale: convertiría una comprobación de contenido en una de
+   * redacción.
+   */
+  bodyContieneAlguna?: string[];
   bodyNoContiene?: string[];
   bodyNoCoincideCon?: string[];
   titleContiene?: string[];
@@ -94,6 +102,10 @@ export function evaluarCaso(caso: CasoEvaluacion, salida: SalidaBorrador): Calif
 
   for (const aguja of e.bodyContiene ?? []) {
     if (!contiene(salida.body, aguja)) fallos.push(`el cuerpo no menciona «${aguja}»`);
+  }
+
+  if (e.bodyContieneAlguna?.length && !e.bodyContieneAlguna.some((a) => contiene(salida.body, a))) {
+    fallos.push(`el cuerpo se lo calla (esperaba alguna de: ${e.bodyContieneAlguna.join(", ")})`);
   }
 
   for (const aguja of e.titleContiene ?? []) {

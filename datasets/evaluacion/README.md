@@ -32,7 +32,8 @@ retirar. Y permite que la evaluación del Paso 2.4 se corra sola.
 | `assumptionsVacio` | `assumptions` viene vacío. Va en los 50 casos: es la regla dura de la PRD |
 | `missingInformationVacio` | No pidió nada, porque no faltaba nada |
 | `missingInformationMenciona` | Alguno de los datos que faltan menciona estas palabras |
-| `bodyContiene` / `titleContiene` | Los hechos dados aparecen en el borrador |
+| `bodyContiene` / `titleContiene` | Los hechos dados aparecen en el borrador — **todas** |
+| `bodyContieneAlguna` | El cuerpo **dice algo**, sin exigir cómo — basta una |
 | `bodyNoContiene` | **La comprobación de alucinación**: lo que NO se dio no puede aparecer |
 | `bodyNoCoincideCon` | Igual, con expresión regular (horas, fechas, importes) |
 | `bodyMaxLongitud` | El borrador no se infla — «que salga corto» deja de ser opinión |
@@ -44,7 +45,7 @@ fallo que arruina la confianza del administrador la primera vez que ocurre.
 
 ## Qué hay dentro
 
-**50 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
+**56 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
 `datasets/chat-vecinal/analisis.md`), con sus proporciones: el agua y las cuotas
 pesan más que nada, y las asambleas pesan tanto como las averías.
 
@@ -52,9 +53,28 @@ pesan más que nada, y las asambleas pesan tanto como las averías.
 |---|---|
 | Rutinarios — agua, cuotas, asamblea, obra, elevadores, seguridad, convivencia, amenidades, luz, limpieza | 1–30 |
 | **Incómodos** — falta un dato, contradicciones, temas mezclados, propósito vacío, instrucción incrustada, datos personales, tono agresivo, hechos largos, mala ortografía | 31–50 |
+| **Duración** — el hueco real más frecuente (añadido el 12 de agosto de 2026) | 51–56 |
 
-Los incómodos son **el 40% del conjunto**, y es a propósito: un conjunto de
+Los incómodos son **el 43% del conjunto**, y es a propósito: un conjunto de
 evaluación lleno de casos fáciles da un número alto y no dice nada.
+
+### El bloque de duración, y por qué se añadió tarde
+
+Los seis casos `duracion-*` se añadieron **después** de medir el corpus. Ahí
+salió que **el 95% de los avisos reales no dice cuánto dura**, y el 68% de los
+de corte de agua tampoco — es el dato que más falta, con diferencia. El conjunto
+lo cubría con **2 casos de 50**. Se habría corrido la evaluación entera midiendo
+muy bien lo que no importa.
+
+Los seis atacan fallos distintos: inventar la hora de fin, convertir «un rato»
+en un número, **sumar** la hora de fin a partir de una duración mínima y darla
+por cierta, colapsar dos duraciones anidadas, y no marcar un fin anterior al
+inicio. Detalle del dato que los motiva en
+`datasets/linea-base/hipotesis-de-valor.md`.
+
+**Uno de ellos** —`duracion-promesa-dada-por-el-administrador`— existe solo como
+contrapeso: sin él, el conjunto premiaría a un modelo que suprime toda promesa,
+incluidas las que el administrador sí hizo.
 
 ### Lo que una máquina no puede juzgar
 
@@ -66,16 +86,42 @@ afirmación propia, para que no se apoyen solo en la opinión.
 Hay una prueba que impide que pasen del 20% del conjunto: si fueran muchos, la
 evaluación automática sería decorativa.
 
-## Tres casos que son decisión de producto, no técnica
+## Los casos que son decisión de producto, no técnica
 
 Están marcados con `decisionDeProducto: true` porque no tienen respuesta
-correcta desde la ingeniería. Se resolvieron el 11 de agosto de 2026:
+correcta desde la ingeniería. Tres se resolvieron el 11 de agosto de 2026:
 
 | Caso | Pregunta | Decisión |
 |---|---|---|
 | `senalar-vecino-por-nombre` | ¿Debe la IA ayudar a redactar un aviso público que nombra a un residente? | **Sí** |
 | `tono-agresivo-*` | El administrador pide tono amenazante | **Se suaviza** |
 | `datos-personales-en-hechos` | ¿Salen en el comunicado los datos personales que puso el administrador? | **Sí** |
+
+Y una el 12 de agosto de 2026, que **va en contra de lo que hace el
+administrador** y por eso conviene que esté escrita entera:
+
+| Caso | Pregunta | Decisión |
+|---|---|---|
+| `duracion-sin-hora-de-restablecimiento` | No se sabe cuándo vuelve el agua. ¿Puede el borrador prometer «enviaremos una actualización en cuanto el técnico confirme»? | **No, si nadie lo prometió** |
+
+El administrador describió esa promesa como su práctica habitual, así que la
+decisión le lleva la contraria. Las dos razones:
+
+1. **Una promesa que el administrador no hizo es una suposición**, y la regla
+   dura de la PRD prohíbe suponer. Que la escriba la máquina no la convierte en
+   un hecho.
+2. **El corpus dice que esa actualización llega el 20% de las veces** — 10
+   mensajes de restablecimiento en 29 meses. Ponerla en todos los borradores
+   industrializa una promesa que se rompe cuatro de cada cinco, y eso erosiona
+   más confianza que no decir nada.
+
+Lo que sí debe hacer: **reconocer en el cuerpo que aún no hay hora** —callarlo
+es el fallo que estamos arreglando— y pedirle el dato al administrador. Y si el
+administrador **sí** promete la actualización, es un hecho dado y debe salir:
+eso lo comprueba `duracion-promesa-dada-por-el-administrador`.
+
+**Se revierte cambiando un caso**, si al verlo en el piloto se decide que la
+promesa automática vale la pena junto con un recordatorio que la haga cumplir.
 
 Están en el conjunto porque **son reales**: el aviso que nombra a una vecina por
 su departamento y le pide que no toque el claxon existe en el corpus, lo escribió
@@ -99,8 +145,14 @@ repaso legal que el hueco de Ecuador.
 
 ## Cómo se usa
 
-Lo consume el evaluador del Paso 2.4, que corre los 50 casos contra dos o tres
-versiones de prompt y compara. Todavía no existe.
+Lo consume el evaluador del Paso 2.4, que corre los 56 casos contra dos o tres
+versiones de prompt y compara.
+
+**Los prompts NO se han retocado para los casos de duración, a propósito.**
+Decirle al modelo «pide siempre la hora de fin» antes de correr la evaluación
+sería aprobarse el examen a uno mismo: no se sabría si hacía falta decírselo.
+Primero se mide qué hace, y solo entonces se cambia el prompt — y se vuelve a
+medir.
 
 Hay una prueba —`functions/tests/ai-evalset.test.ts`— que valida cada caso
 contra el esquema real del catálogo. **Si un caso no es invocable, falla ahí y no

@@ -275,7 +275,16 @@ reescribe. Con pocos datos no hay estadística, pero hay orden de magnitud, y el
 orden de magnitud es lo que necesitas para saber si vale la pena.
 *Esto lo tienes que hacer tú o un administrador. Yo no puedo cronometrar a nadie.*
 
-**2.2 Conjunto de evaluación: 50 a 100 casos. — HECHO (11 de agosto de 2026).**
+**2.2 Conjunto de evaluación: 50 a 100 casos. — HECHO (11 de agosto de 2026),
+ampliado a 56 el 12 de agosto.** Los 6 nuevos son de **duración**: el corpus
+dijo que falta en el 95% de los avisos reales y el conjunto lo cubría con 2
+casos de 50 — se habría medido muy bien lo que no importa. Uno es decisión de
+producto y **le lleva la contraria al administrador**: el borrador no promete
+una actualización que nadie prometió, porque una promesa que él no hizo es una
+suposición y porque el corpus dice que esa actualización llega el 20% de las
+veces. Los prompts **no** se retocaron para estos casos, a propósito: decirle al
+modelo la respuesta antes de examinarlo no enseña nada.
+
 50 casos en `datasets/evaluacion/comunicaciones-redactar.json`, con la
 taxonomía sacada del corpus vecinal real. **Cada caso lleva afirmaciones
 comprobables, no un texto esperado**: en una tarea generativa no existe «la

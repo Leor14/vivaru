@@ -2,7 +2,7 @@
   "operationKey": "comunicaciones-redactar",
   "version": 1,
   "creado": "2026-08-11",
-  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado.",
+  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50.",
   "casos": [
     {
       "id": "agua-corte-programado-completo",
@@ -1243,6 +1243,211 @@
           "confirm"
         ],
         "notas": "«Creo que» y «temprano» son imprecisiones que el borrador no debe convertir en certezas con hora exacta."
+      }
+    },
+    {
+      "id": "duracion-sin-hora-de-restablecimiento",
+      "categoria": "duracion",
+      "dificultad": "incomodo",
+      "decisionDeProducto": true,
+      "porQue": "El hueco más frecuente del corpus real: el 95% de los avisos no dice cuánto dura, y el 68% de los de agua tampoco. Este es el caso exacto que el administrador describió el 12 de agosto de 2026.",
+      "input": {
+        "proposito": "Avisar del corte de agua por una fuga en la tubería principal",
+        "hechos": [
+          "El corte empezó hoy a las 9:00",
+          "Afecta a todas las torres",
+          "El técnico todavía no confirma a qué hora se restablece"
+        ],
+        "tono": "urgente"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyContiene": [
+          "9:00"
+        ],
+        "bodyContieneAlguna": [
+          "no se ha confirmado",
+          "aún no",
+          "aun no",
+          "sin confirmar",
+          "por confirmar",
+          "no se tiene",
+          "todavía no",
+          "todavia no",
+          "desconoce"
+        ],
+        "bodyNoCoincideCon": [
+          "hasta las?\\s*\\d",
+          "(se\\s+)?restablec\\w*\\s+(a|hacia)\\s+las\\s*\\d",
+          "(enviar|mandar|dar|habr)\\w*\\s+(una\\s+)?(actualizaci[óo]n|aviso|informaci[óo]n)"
+        ],
+        "missingInformationMenciona": [
+          "restablec",
+          "hora",
+          "hasta"
+        ],
+        "notas": "DECISIÓN DE PRODUCTO (12 de agosto de 2026): el cuerpo debe RECONOCER que no se sabe la hora de fin, y NO debe prometer una actualización que el administrador no prometió. Una promesa que nadie hizo es una suposición, y la regla dura las prohíbe. Además el corpus dice que ese aviso de restablecimiento llega el 20% de las veces: escribirlo solo industrializa una promesa que se rompe cuatro de cada cinco."
+      }
+    },
+    {
+      "id": "duracion-promesa-dada-por-el-administrador",
+      "categoria": "duracion",
+      "dificultad": "rutinario",
+      "porQue": "El par del anterior. Si el administrador SÍ promete la actualización, es un hecho dado y debe salir. Sin este caso, el conjunto enseñaría a suprimir información que se dio.",
+      "input": {
+        "proposito": "Avisar del corte de agua por reparación de la bomba",
+        "hechos": [
+          "El corte empezó a las 10:00",
+          "Afecta a la torre central",
+          "No hay hora de restablecimiento todavía",
+          "Les avisaré en cuanto el técnico me confirme"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyContiene": [
+          "10:00"
+        ],
+        "bodyContieneAlguna": [
+          "avisar",
+          "aviso",
+          "avisaré",
+          "avisare",
+          "informar",
+          "informaré",
+          "informare",
+          "en cuanto",
+          "actualiz"
+        ],
+        "bodyNoCoincideCon": [
+          "hasta las?\\s*\\d"
+        ],
+        "notas": "La promesa la hizo el administrador, así que es un hecho y debe aparecer. Lo que sigue prohibido es cerrar el intervalo con una hora que nadie dio."
+      }
+    },
+    {
+      "id": "duracion-vaga",
+      "categoria": "duracion",
+      "dificultad": "incomodo",
+      "porQue": "«Un rato» es como se dice en el corpus. Comprueba que no convierte una vaguedad en un número, que es la alucinación más fácil de colar porque suena razonable.",
+      "input": {
+        "proposito": "Avisar del corte de agua para cambiar una llave de paso",
+        "hechos": [
+          "El agua se corta mañana por la mañana",
+          "Será un rato",
+          "Afecta solo a la torre B"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyContiene": [
+          "torre b"
+        ],
+        "bodyNoCoincideCon": [
+          "\\d{1,2}:\\d{2}",
+          "\\b\\d+\\s*(hora|minuto)"
+        ],
+        "missingInformationMenciona": [
+          "hora",
+          "cuánto",
+          "cuanto",
+          "duración",
+          "duracion"
+        ],
+        "notas": "Ni «un rato» son dos horas ni la mañana son las 9:00. Debe pedir la hora y la duración en vez de ponerles número."
+      }
+    },
+    {
+      "id": "duracion-fin-antes-del-inicio",
+      "categoria": "duracion",
+      "dificultad": "incomodo",
+      "porQue": "Los hechos se contradicen en el dato que más falta. Comprueba que lo marca en vez de elegir en silencio cuál de los dos era el bueno.",
+      "input": {
+        "proposito": "Avisar del cierre del estacionamiento por mantenimiento del portón",
+        "hechos": [
+          "El cierre empieza el jueves a las 14:00",
+          "Termina el jueves a las 11:00",
+          "No habrá entrada ni salida de vehículos"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "qualityFlagsMenciona": [
+          "contradic",
+          "incoheren",
+          "inconsist",
+          "imposib"
+        ],
+        "notas": "Termina tres horas antes de empezar. Corregirlo por su cuenta sería suponer, y suponer está prohibido: que lo marque y que lo pregunte."
+      }
+    },
+    {
+      "id": "duracion-ventana-minima",
+      "categoria": "duracion",
+      "dificultad": "incomodo",
+      "porQue": "Es la buena práctica que el administrador describió cuando no tiene hora exacta. Comprueba que conserva el matiz en vez de endurecerlo en una hora de fin falsa.",
+      "input": {
+        "proposito": "Avisar del corte de agua por sustitución de un tramo de tubería",
+        "hechos": [
+          "El corte empieza el martes a las 11:00",
+          "Durará al menos 3 horas",
+          "Puede extenderse si la pieza de repuesto no llega a tiempo",
+          "Afecta a las torres A y B"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyContiene": [
+          "11:00"
+        ],
+        "bodyContieneAlguna": [
+          "al menos",
+          "mínimo",
+          "minimo",
+          "puede extenderse",
+          "podría extenderse",
+          "podria extenderse",
+          "o más",
+          "o mas"
+        ],
+        "bodyNoCoincideCon": [
+          "hasta las?\\s*14",
+          "de\\s+11:00\\s+a\\s+14"
+        ],
+        "notas": "«Al menos 3 horas» no son «hasta las 14:00». Sumar la hora de fin y darla por cierta es la alucinación aritmética: parece un cálculo, es una suposición."
+      }
+    },
+    {
+      "id": "duracion-varios-dias",
+      "categoria": "duracion",
+      "dificultad": "rutinario",
+      "porQue": "Hay dos duraciones anidadas —el rango de días y la ventana diaria— y el corpus muestra que se colapsan en una. Comprueba que sobreviven las dos.",
+      "input": {
+        "proposito": "Avisar de los trabajos de impermeabilización de la azotea",
+        "hechos": [
+          "Los trabajos van del lunes 18 al viernes 22 de agosto",
+          "Cada día de 9:00 a 17:00",
+          "La azotea permanece cerrada mientras duren",
+          "El tendedero no se podrá usar esos días"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyContiene": [
+          "lunes",
+          "viernes",
+          "9:00",
+          "17:00"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b(s[áa]bado|domingo)\\b"
+        ],
+        "notas": "Cinco días de 9:00 a 17:00 no son cinco días seguidos sin parar. Y el fin de semana no entra: si aparece, se lo inventó."
       }
     }
   ]

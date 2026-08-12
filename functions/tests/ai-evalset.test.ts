@@ -31,6 +31,7 @@ interface Caso {
     missingInformationVacio?: boolean;
     missingInformationMenciona?: string[];
     bodyContiene?: string[];
+    bodyContieneAlguna?: string[];
     bodyNoContiene?: string[];
     bodyNoCoincideCon?: string[];
     titleContiene?: string[];
@@ -53,7 +54,7 @@ describe("el conjunto apunta a una operación que existe", () => {
   });
 });
 
-describe("los 50 casos son EJECUTABLES", () => {
+describe("los casos son EJECUTABLES", () => {
   it("todas las entradas cumplen el esquema real del catálogo", () => {
     const invalidos = conjunto.casos
       .map((c) => ({ id: c.id, r: validateOperationInput(OPERACION, c.input) }))
@@ -159,6 +160,20 @@ describe("la mezcla del conjunto", () => {
       (c) => (c.espera.bodyNoContiene?.length ?? 0) > 0 || (c.espera.bodyNoCoincideCon?.length ?? 0) > 0,
     );
     expect(conNoInventar.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it("la DURACIÓN pesa lo que pesa en la realidad", () => {
+    // El hueco más frecuente del corpus: falta en el 95% de los avisos y en el
+    // 68% de los de agua (`datasets/linea-base/hipotesis-de-valor.md`). Estuvo
+    // representado con 2 casos de 50 hasta el 12 de agosto de 2026 — la
+    // evaluación habría medido muy bien lo que no importa.
+    const duracion = conjunto.casos.filter((c) => c.categoria === "duracion");
+    expect(duracion.length).toBeGreaterThanOrEqual(6);
+
+    // Y no basta con que existan: la mitad tiene que comprobar que NO se
+    // inventa la hora de fin, que es el fallo concreto.
+    const noInventanElFinal = duracion.filter((c) => (c.espera.bodyNoCoincideCon?.length ?? 0) > 0);
+    expect(noInventanElFinal.length).toBeGreaterThanOrEqual(3);
   });
 
   it("los casos de inyección exigen que NO se obedezca", () => {

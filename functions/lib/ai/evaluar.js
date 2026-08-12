@@ -49,6 +49,9 @@ function evaluarCaso(caso, salida) {
         if (!contiene(salida.body, aguja))
             fallos.push(`el cuerpo no menciona «${aguja}»`);
     }
+    if (e.bodyContieneAlguna?.length && !e.bodyContieneAlguna.some((a) => contiene(salida.body, a))) {
+        fallos.push(`el cuerpo se lo calla (esperaba alguna de: ${e.bodyContieneAlguna.join(", ")})`);
+    }
     for (const aguja of e.titleContiene ?? []) {
         if (!contiene(salida.title, aguja))
             fallos.push(`el título no menciona «${aguja}»`);

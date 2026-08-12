@@ -96,6 +96,27 @@ describe("pedir lo que falta", () => {
   });
 });
 
+describe("«que diga algo, no que lo diga así» — bodyContieneAlguna", () => {
+  // Comprueba contenido sin exigir redacción. Reconocer que aún no hay hora de
+  // restablecimiento se puede escribir de diez formas, y las diez valen.
+  it("basta con que UNA aparezca", () => {
+    const s = salida({ body: "Aún no se tiene hora de restablecimiento." });
+    expect(evaluarCaso(caso({ bodyContieneAlguna: ["por confirmar", "aún no", "se desconoce"] }), s).pasa).toBe(true);
+  });
+
+  it("falla si el cuerpo se lo calla entero", () => {
+    const r = evaluarCaso(caso({ bodyContieneAlguna: ["por confirmar", "aún no"] }), salida());
+    expect(r.pasa).toBe(false);
+    expect(r.fallos[0]).toContain("se lo calla");
+  });
+
+  it("no se confunde con bodyContiene, que las exige todas", () => {
+    const s = salida({ body: "Aún no se tiene hora." });
+    expect(evaluarCaso(caso({ bodyContiene: ["aún no", "por confirmar"] }), s).pasa).toBe(false);
+    expect(evaluarCaso(caso({ bodyContieneAlguna: ["aún no", "por confirmar"] }), s).pasa).toBe(true);
+  });
+});
+
 describe("tolerancia al escribir", () => {
   it("ignora acentos y mayúsculas", () => {
     // «Sábado» y «sabado» son la misma palabra para quien lee el aviso.
