@@ -232,7 +232,16 @@ evaluación se *construye* en vez de extraerse, y por eso el hecho de que
 producción tenga dos comunicaciones en toda su historia no lo bloquea. Además el
 error es visible y barato: un borrador malo se borra.
 
-**2.1 Línea base.** Cronometra la redacción de diez a quince comunicaciones
+**2.1 Línea base. — MEDIDA a medias (12 de agosto de 2026).**
+8 casos reconstruidos, un administrador: **mediana 9,5 minutos**, repartidos en
+37% reunir hechos / 45% redactar / 19% revisar. El techo del ahorro de la IA es
+el 45% y lo realista es 25–35% — que sobre 3,7 comunicaciones al mes son **9 a
+12 minutos por conjunto al mes**. Sobre ahorro de tiempo, los números no
+justifican la funcionalidad, y eso hay que decidirlo antes del piloto. Faltan
+3–4 en vivo, que son las únicas que miden bien la fase 1. Detalle y hallazgos en
+`datasets/linea-base/comunicaciones.md`.
+
+ Cronometra la redacción de diez a quince comunicaciones
 reales, a mano, tal y como se hace hoy. Apunta minutos y cuántas veces se
 reescribe. Con pocos datos no hay estadística, pero hay orden de magnitud, y el
 orden de magnitud es lo que necesitas para saber si vale la pena.
