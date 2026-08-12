@@ -9,10 +9,11 @@
 //   Probar la maquinaria sin gastar nada:
 //     node functions/scripts/evaluar-prompts.mjs --simulado
 //
-//   Evaluar de verdad (gasta dinero, pide confirmación explícita):
-//     node functions/scripts/evaluar-prompts.mjs --real --confirmar
-//     node functions/scripts/evaluar-prompts.mjs --real --confirmar --version v2-estructura
-//     node functions/scripts/evaluar-prompts.mjs --real --confirmar --casos 5
+//   Evaluar de verdad (gasta dinero, pide confirmación explícita). El proyecto
+//   hay que pasarlo por entorno: dentro de Cloud Functions viene puesto, aquí no.
+//     GOOGLE_CLOUD_PROJECT=hogaru-1 node functions/scripts/evaluar-prompts.mjs --real --confirmar
+//     GOOGLE_CLOUD_PROJECT=hogaru-1 node functions/scripts/evaluar-prompts.mjs --real --confirmar --version v2-estructura
+//     GOOGLE_CLOUD_PROJECT=hogaru-1 node functions/scripts/evaluar-prompts.mjs --real --confirmar --casos 5
 //
 // NO enciende ninguna bandera ni toca Firestore: construye el proveedor a mano.
 // La bandera `ia-proveedor-real` sigue como estaba después de correr esto.
@@ -72,6 +73,17 @@ if (real) {
 
 let proveedor = stubAiProvider;
 if (real) {
+  // El adaptador saca el proyecto del entorno porque dentro de Cloud Functions
+  // viene puesto. Aquí no, y sin esto se obtienen 168 fallos idénticos sin una
+  // sola pista. Comprobarlo ANTES es la diferencia entre un mensaje de una
+  // línea y una tarde de depuración.
+  if (!process.env.GCLOUD_PROJECT && !process.env.GOOGLE_CLOUD_PROJECT) {
+    console.error(
+      "Falta el proyecto de Google Cloud. Vuelve a lanzarlo así:\n" +
+        "  GOOGLE_CLOUD_PROJECT=hogaru-1 node functions/scripts/evaluar-prompts.mjs --real --confirmar",
+    );
+    process.exit(1);
+  }
   const { createVertexProvider } = await import(join(AQUI, "../lib/ai/provider-vertex.js"));
   proveedor = createVertexProvider();
 }
@@ -86,21 +98,42 @@ for (const version of versiones) {
 
   const calificaciones = [];
   let errores = 0;
+  let seguidos = 0;
 
   for (const caso of casos) {
     const r = await executeOperation(operacion, caso.input, proveedor, version);
 
     if (!r.ok) {
       // Un fallo de ejecución no es un fallo del prompt: el modelo no llegó a
-      // responder o su salida no pasó el validador. Se cuenta aparte.
+      // responder o su salida no pasó el validador. Se cuenta aparte — y se
+      // guarda el DETALLE, porque `proveedor_error` a secas no dice nada y es
+      // justo cuando más falta hace saber qué pasó.
       errores++;
-      calificaciones.push({ id: caso.id, pasa: false, fallos: [`ejecución: ${r.reason}`], requiereJuicioHumano: false });
+      seguidos++;
+      calificaciones.push({
+        id: caso.id,
+        pasa: false,
+        fallos: [`ejecución: ${r.reason} — ${r.detail}`],
+        requiereJuicioHumano: false,
+      });
       process.stdout.write("E");
+
+      // Freno: si falla todo seguido, no es este caso, es la conexión. Seguir
+      // son 160 llamadas más para aprender lo mismo.
+      if (seguidos >= 5) {
+        console.error(`\n\nABORTADO: ${seguidos} fallos de ejecución seguidos. No es el prompt, es la conexión.`);
+        console.error(`   Último motivo: ${r.reason} — ${r.detail}`);
+        process.exit(1);
+      }
       continue;
     }
+    seguidos = 0;
 
     const cal = evaluarCaso(caso, r.output);
-    calificaciones.push(cal);
+    // **Se guarda el borrador entero.** Sin esto, una corrida pagada deja solo
+    // un porcentaje: no se puede revisar a mano lo que la máquina no juzga, ni
+    // comprobar una sospecha nueva sin volver a pagar las 168 llamadas.
+    calificaciones.push({ ...cal, salida: r.output });
     process.stdout.write(cal.pasa ? "." : "x");
   }
 
@@ -108,7 +141,12 @@ for (const version of versiones) {
   resultados[version] = { resumen, calificaciones, erroresDeEjecucion: errores };
 
   console.log(`\n\n   ${resumen.pasan}/${resumen.total} pasan  (${resumen.tasa}%)`);
-  if (errores) console.log(`   ${errores} no llegaron a evaluarse por fallo de ejecución`);
+  if (errores) {
+    console.log(`   ${errores} no llegaron a evaluarse por fallo de ejecución:`);
+    for (const f of [...new Set(calificaciones.flatMap((c) => c.fallos.filter((x) => x.startsWith("ejecución"))))].slice(0, 4)) {
+      console.log(`     ${f}`);
+    }
+  }
   if (resumen.porRevisar) console.log(`   ${resumen.porRevisar} pasaron pero hay que leerlos a mano`);
 
   console.log(`\n   Por dificultad:`);

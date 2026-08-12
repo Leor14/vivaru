@@ -326,7 +326,31 @@ calificador discrimina —90% en rutinarios, 30% en incómodos, 0% donde falta u
 dato— que es justo lo que tenía que pasar. Si hubiera pasado los 50, estaría
 roto.
 
-*Falta correrlo de verdad*, y eso ya gasta: 150 llamadas, unos 0,40 USD.
+**CORRIDO DE VERDAD (12 de agosto de 2026).** 168 llamadas × 2 corridas, unos 5
+centavos de dólar cada una. **Gana `v2-estructura` con 80% en las dos**, y no
+por los puntos: es la única que nunca deja pasar un hueco real ni un problema
+sin marcar. **`v3-ejemplo` se movió 10 puntos entre corridas idénticas** — a
+temperatura 0,2 no hay determinismo, así que diferencias menores de 10 puntos en
+una sola corrida no significan nada.
+
+**El 80% no es de fiar, y falla hacia abajo:** de los 11 fallos de v2, ocho son
+el modelo pidiendo un dato que de verdad faltaba y el conjunto dando el caso por
+completo, y uno es una afirmación demasiado literal —el modelo dijo «ilógico» y
+se le exigía «contradicción»—. **Los casos de prueba se escribieron incompletos
+igual que los escriben los administradores**, un día antes del análisis que lo
+destapó.
+
+**Cero invenciones en 168 borradores, comprobado a mano** y no supuesto: se
+buscaron motivos causales y datos duros sin respaldo en la entrada, y los cuatro
+candidatos eran falsos positivos. **Y nadie programó esto:** ningún prompt
+menciona fecha, duración, zona ni qué hacer, y el modelo pide los cuatro por su
+cuenta — la señal más fuerte a favor de H2′.
+
+**La trampa a evitar:** el fallo dominante es «preguntó de más», así que
+optimizar la tasa global premia al prompt que menos pregunta, que es lo
+contrario del valor del producto. Lectura completa, defectos del corredor
+arreglados y qué hacer a continuación en
+`datasets/evaluacion/resultados/2026-08-12-lectura.md`.
 
  Corremos los 50–100 casos contra dos o tres versiones
 de prompt y comparamos. **Aquí es donde de verdad se aprende**, y no cuesta

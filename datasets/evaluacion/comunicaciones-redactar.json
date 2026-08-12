@@ -1379,9 +1379,14 @@
           "contradic",
           "incoheren",
           "inconsist",
-          "imposib"
+          "imposib",
+          "ilógic",
+          "ilogic",
+          "anterior al",
+          "no coincid",
+          "absurd"
         ],
-        "notas": "Termina tres horas antes de empezar. Corregirlo por su cuenta sería suponer, y suponer está prohibido: que lo marque y que lo pregunte."
+        "notas": "Termina tres horas antes de empezar. Corregirlo por su cuenta sería suponer, y suponer está prohibido: que lo marque y que lo pregunte. · La lista de sinónimos se amplió el 12 de agosto de 2026: el modelo marcó «el horario de finalización es anterior al de inicio, lo cual es ilógico» —que es exactamente lo que se le pedía— y la afirmación lo contó como fallo por no usar la palabra «contradicción». Una afirmación demasiado literal no mide al modelo, mide el diccionario de quien la escribió."
       }
     },
     {
