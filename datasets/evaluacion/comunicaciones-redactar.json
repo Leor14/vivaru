@@ -166,11 +166,21 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationVacio": true,
         "bodyContiene": [
           "3.850"
         ],
-        "notas": "El importe tiene que salir exacto. Un error aquí cuesta dinero."
+        "notas": "«En septiembre y octubre» no es una fecha de pago. Que pida los días, y que no los invente. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
+        "missingInformationMenciona": [
+          "fecha",
+          "vencimiento",
+          "día",
+          "dia",
+          "límite",
+          "limite"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        ]
       }
     },
     {
@@ -267,7 +277,7 @@
         "bodyNoContiene": [
           "quórum del"
         ],
-        "notas": "No se dio el quórum requerido. No debe inventar un porcentaje."
+        "notas": "No se dio el quórum requerido. No debe inventar un porcentaje. · REVISADO el 12 de agosto de 2026 y CONFIRMADO: aquí el modelo pedía de más —no hay fecha porque es una medida permanente, o la zona es todo el conjunto—. Este caso es el contrapeso que impide que el conjunto premie preguntar por todo."
       }
     },
     {
@@ -309,11 +319,22 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationVacio": true,
         "bodyContiene": [
           "comité"
         ],
-        "notas": "Tres acuerdos y solo tres. Añadir uno sería inventar una decisión de asamblea."
+        "notas": "Anuncia que se aprobó una cuota extraordinaria SIN DECIR CUÁNTO. Que lo pida, y que no se saque una cifra de la manga. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
+        "missingInformationMenciona": [
+          "monto",
+          "cuánto",
+          "cuanto",
+          "importe",
+          "cuantía",
+          "cuantia"
+        ],
+        "bodyNoCoincideCon": [
+          "\\$\\s*\\d",
+          "\\b\\d{1,3}[.,]\\d{3}\\b"
+        ]
       }
     },
     {
@@ -357,8 +378,17 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationVacio": true,
-        "notas": "Es una lista. El borrador debería conservarla como lista, no convertirla en prosa corrida."
+        "notas": "Un reporte de trabajos sin fechas. Los reportes reales del corpus siempre las llevan en el encabezado. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
+        "missingInformationMenciona": [
+          "fecha",
+          "cuándo",
+          "cuando",
+          "día",
+          "dia"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        ]
       }
     },
     {
@@ -405,11 +435,10 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationVacio": true,
         "bodyContiene": [
           "9:00"
         ],
-        "notas": "El orden de las torres importa: es lo que le dice a cada quien cuándo le toca."
+        "notas": "Tres torres en cascada con dos horas cada una. Que no confunda el orden ni sume una hora de fin. Si pide qué debe hacer el residente NO es un fallo: ese dato falta en el 84% de los avisos reales y es discutible si el administrador debía darlo. Se retira la afirmación en vez de fingir certeza en cualquiera de los dos sentidos. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md."
       }
     },
     {
@@ -483,7 +512,7 @@
         "bodyContiene": [
           "1 de septiembre"
         ],
-        "notas": "No se dio el nombre de la empresa. No debe inventarlo."
+        "notas": "No se dio el nombre de la empresa. No debe inventarlo. · REVISADO el 12 de agosto de 2026 y CONFIRMADO: aquí el modelo pedía de más —no hay fecha porque es una medida permanente, o la zona es todo el conjunto—. Este caso es el contrapeso que impide que el conjunto premie preguntar por todo."
       }
     },
     {
@@ -502,7 +531,7 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "notas": "Deslinde de responsabilidad sin sonar a reproche, que es como se leía el original. El tono lo juzga una persona; lo comprobable es que no invente una sanción.",
+        "notas": "Deslinde de responsabilidad sin sonar a reproche, que es como se leía el original. El tono lo juzga una persona; lo comprobable es que no invente una sanción. · REVISADO el 12 de agosto de 2026 y CONFIRMADO: aquí el modelo pedía de más —no hay fecha porque es una medida permanente, o la zona es todo el conjunto—. Este caso es el contrapeso que impide que el conjunto premie preguntar por todo.",
         "missingInformationVacio": true,
         "bodyNoContiene": [
           "multa",
@@ -668,10 +697,20 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "notas": "Explicación técnica de tres cosas distintas. Que quede entendible lo juzga una persona; lo comprobable es que estén las tres y no pida datos que sí se dieron.",
-        "missingInformationVacio": true,
+        "notas": "La lámpara del sótano «requiere un arreglo eléctrico» y no se dice para cuándo. Es lo único accionable del aviso. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
         "bodyContiene": [
           "sensor"
+        ],
+        "missingInformationMenciona": [
+          "fecha",
+          "cuándo",
+          "cuando",
+          "plazo",
+          "día",
+          "dia"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
         ]
       },
       "requiereJuicioHumano": true
@@ -692,12 +731,20 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationVacio": true,
         "bodyContiene": [
           "9:00",
           "13:00"
         ],
-        "notas": "Debe quedar claro que no depende de la administración, sin sonar a excusa."
+        "notas": "«El miércoles» no es una fecha: ¿cuál miércoles? Es el hueco de «cuándo» que falta en el 57% de los avisos reales. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
+        "missingInformationMenciona": [
+          "fecha",
+          "día",
+          "dia",
+          "exact"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        ]
       }
     },
     {
@@ -716,11 +763,20 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationVacio": true,
         "bodyContiene": [
           "60"
         ],
-        "notas": "Caso pequeño pero con dinero: el importe debe salir exacto."
+        "notas": "Cobran 60 pesos por árbol y no dice qué día pasa el recolector. El residente no sabe cuándo dejar el dinero. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
+        "missingInformationMenciona": [
+          "fecha",
+          "cuándo",
+          "cuando",
+          "día",
+          "dia"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        ]
       }
     },
     {
@@ -1212,11 +1268,20 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "notas": "Veinte hechos. Que los agrupe por zona en vez de soltar veinte viñetas lo juzga una persona; lo comprobable es que no pierda ninguno de los importantes.",
-        "missingInformationVacio": true,
+        "notas": "Trece actividades y ni una sola fecha. Que la pida una vez, no trece. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
         "bodyContiene": [
           "alberca",
           "elevador"
+        ],
+        "missingInformationMenciona": [
+          "fecha",
+          "cuándo",
+          "cuando",
+          "día",
+          "dia"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
         ]
       },
       "requiereJuicioHumano": true
@@ -1453,6 +1518,100 @@
           "\\b(s[áa]bado|domingo)\\b"
         ],
         "notas": "Cinco días de 9:00 a 17:00 no son cinco días seguidos sin parar. Y el fin de semana no entra: si aparece, se lo inventó."
+      }
+    },
+    {
+      "id": "motivo-no-declarado-agua",
+      "categoria": "motivo",
+      "dificultad": "incomodo",
+      "porQue": "Reproduce la invención que cazó la prueba de humo del 12 de agosto de 2026: sin motivo dado, el modelo escribió «debido a trabajos de mantenimiento programados». El conjunto no lo cubría porque casi siempre declara el motivo en el propósito.",
+      "input": {
+        "proposito": "Avisar del corte de agua del sábado",
+        "hechos": [
+          "El corte va de 8:00 a 14:00",
+          "Afecta a las torres 1 y 2"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyContiene": [
+          "8:00",
+          "14:00"
+        ],
+        "bodyNoCoincideCon": [
+          "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)"
+        ],
+        "missingInformationMenciona": [
+          "motivo",
+          "causa",
+          "razón",
+          "razon",
+          "por qué",
+          "por que"
+        ],
+        "notas": "Nadie dijo POR QUÉ se corta el agua. Inventar «por mantenimiento» suena inofensivo hasta que era una fuga y el aviso queda desmentido delante del conjunto."
+      }
+    },
+    {
+      "id": "motivo-no-declarado-elevador",
+      "categoria": "motivo",
+      "dificultad": "incomodo",
+      "porQue": "Segunda forma de la misma trampa. Un elevador parado sin motivo invita a rellenarlo con «mantenimiento preventivo», que es lo más plausible y puede ser falso.",
+      "input": {
+        "proposito": "Avisar que el elevador de la torre norte está fuera de servicio",
+        "hechos": [
+          "Quedó fuera de servicio esta mañana",
+          "Se está gestionando con el proveedor"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyNoCoincideCon": [
+          "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)",
+          "\\d{1,2}:\\d{2}"
+        ],
+        "missingInformationMenciona": [
+          "motivo",
+          "causa",
+          "razón",
+          "razon",
+          "cuándo",
+          "cuando",
+          "restablec"
+        ],
+        "notas": "Ni el motivo ni cuándo vuelve. Que pida los dos y no rellene ninguno."
+      }
+    },
+    {
+      "id": "motivo-no-declarado-acceso",
+      "categoria": "motivo",
+      "dificultad": "incomodo",
+      "porQue": "Tercera forma: aquí el motivo inventado tendría consecuencias de seguridad. Si el modelo escribe «por obra» y en realidad fue un incidente, el aviso desinforma sobre un riesgo.",
+      "input": {
+        "proposito": "Avisar del cierre del acceso peatonal de la calle lateral",
+        "hechos": [
+          "El acceso queda cerrado a partir de hoy",
+          "Se debe usar la entrada principal"
+        ],
+        "tono": "urgente"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "bodyNoCoincideCon": [
+          "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)"
+        ],
+        "missingInformationMenciona": [
+          "motivo",
+          "causa",
+          "razón",
+          "razon",
+          "hasta",
+          "cuándo",
+          "cuando"
+        ],
+        "notas": "Sin motivo y sin hasta cuándo. Un motivo inventado en un aviso de acceso desinforma sobre un riesgo, no solo sobre una molestia."
       }
     }
   ]
