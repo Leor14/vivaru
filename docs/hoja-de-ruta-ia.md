@@ -241,6 +241,19 @@ justifican la funcionalidad, y eso hay que decidirlo antes del piloto. Faltan
 3–4 en vivo, que son las únicas que miden bien la fase 1. Detalle y hallazgos en
 `datasets/linea-base/comunicaciones.md`.
 
+**2.1-bis Hipótesis de valor, puesta a prueba con el corpus (12 de agosto de 2026).**
+Descartado el ahorro de tiempo, la candidata era «el valor es evitar avisos
+incompletos, porque generan preguntas de vuelta». El corpus **refuta la segunda
+mitad y confirma la primera con creces**: solo el 4% de los avisos incompletos
+recibe siquiera una pregunta sobre su tema —no hay relación entre completitud y
+preguntas—, pero **el 58% de los avisos trae uno o ninguno de los cuatro datos y
+solo el 5% dice cuánto dura el corte**. Además los escriben **12 personas
+distintas**, y el administrador no es el que mejor escribe. Queda **H2′** (el
+valor es que el aviso salga completo, medido directamente) y se abre **H3** (que
+cualquiera pueda escribir como un profesional), que cambia a quién se le entrega
+el piloto del 2.6. Detalle, límites y cómo reproducirlo en
+`datasets/linea-base/hipotesis-de-valor.md`.
+
  Cronometra la redacción de diez a quince comunicaciones
 reales, a mano, tal y como se hace hoy. Apunta minutos y cuántas veces se
 reescribe. Con pocos datos no hay estadística, pero hay orden de magnitud, y el

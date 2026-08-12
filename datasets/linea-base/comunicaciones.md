@@ -67,6 +67,12 @@ descarta:
 Ninguna de las tres se demuestra con un cronómetro. Requieren otro piloto y
 otras métricas.
 
+> **Las tres se pusieron a prueba con el corpus el mismo día.** La primera
+> —calidad y consistencia— sobrevive; la versión que decía «porque genera
+> preguntas de vuelta» quedó refutada. La segunda se confirmó y resultó ser más
+> grande de lo que parecía: **12 personas distintas escriben avisos, y el
+> administrador no es el que mejor escribe.** Ver `hipotesis-de-valor.md`.
+
 ## Lo que este dato NO dice
 
 **La fase 1 está subestimada, y bastante.** Cuatro de los ocho casos empezaron
