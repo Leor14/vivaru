@@ -238,7 +238,15 @@ reescribe. Con pocos datos no hay estadística, pero hay orden de magnitud, y el
 orden de magnitud es lo que necesitas para saber si vale la pena.
 *Esto lo tienes que hacer tú o un administrador. Yo no puedo cronometrar a nadie.*
 
-**2.2 Conjunto de evaluación: 50 a 100 casos.** Los construimos juntos. Tienen
+**2.2 Conjunto de evaluación: 50 a 100 casos. — HECHO (11 de agosto de 2026).**
+50 casos en `datasets/evaluacion/comunicaciones-redactar.json`, con la
+taxonomía sacada del corpus vecinal real. **Cada caso lleva afirmaciones
+comprobables, no un texto esperado**: en una tarea generativa no existe «la
+respuesta correcta», y comparar contra un borrador ideal mide parecido, no
+calidad. El 40% son casos incómodos, y tres son decisiones de producto que David
+resolvió el 11 de agosto: se ayuda a redactar un aviso que nombra a un
+residente, el tono agresivo se suaviza, y los datos personales que puso el
+administrador salen. Detalle en el README del conjunto. Los construimos juntos. Tienen
 que incluir lo incómodo, no solo lo bonito: avisos de mantenimiento, cortes de
 agua, asambleas, seguridad, convivencia; borradores largos, ambiguos y
 agresivos; casos a los que **les falta un dato crítico a propósito** —para
