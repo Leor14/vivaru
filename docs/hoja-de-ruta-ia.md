@@ -251,7 +251,22 @@ solo el 5% dice cuánto dura el corte**. Además los escriben **12 personas
 distintas**, y el administrador no es el que mejor escribe. Queda **H2′** (el
 valor es que el aviso salga completo, medido directamente) y se abre **H3** (que
 cualquiera pueda escribir como un profesional), que cambia a quién se le entrega
-el piloto del 2.6. Detalle, límites y cómo reproducirlo en
+el piloto del 2.6.
+
+**El administrador contestó el mismo día y resolvió la ambigüedad: el costo es
+real y se paga fuera del grupo** —mensaje privado, llamada, gente bajando a
+caseta—. El chat del grupo era el único canal donde ese costo NO se ve. Y al
+mirar los 25 avisos de corte de agua salió lo que decide la hipótesis: **él
+recita la buena práctica sin fallo, y solo el 40% de sus avisos la cumple.** El
+hueco no es de conocimiento, es de ejecución con prisa — que es justo lo que
+cierra una lista de lo que falta.
+
+Tres consecuencias accionables: falta un caso de evaluación para «no sé la hora
+de fin, da ventana y promete actualizar»; **el conjunto subpondera la duración**
+(2 de 50 casos, cuando falta en el 95% de los avisos reales) y hay que
+reequilibrarlo **antes** de correr el 2.4 de verdad; y el aviso de
+restablecimiento —10 en 29 meses— se arregla con un recordatorio, sin IA.
+Detalle, límites y cómo reproducirlo en
 `datasets/linea-base/hipotesis-de-valor.md`.
 
  Cronometra la redacción de diez a quince comunicaciones

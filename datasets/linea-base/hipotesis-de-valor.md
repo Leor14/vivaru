@@ -97,6 +97,68 @@ que alguien lo asuma:
 No se puede resolver con este corpus. Se resuelve preguntándole al
 administrador, y es una pregunta de cinco minutos.
 
+## Se le preguntó, y contestó (12 de agosto de 2026)
+
+> «Sí. Si no digo hasta cuándo durará, **casi siempre me escriben o llaman** para
+> preguntar a qué hora regresa el agua. Algunos vecinos también **bajan a
+> caseta**, sobre todo quienes no vieron el aviso completo o necesitan organizar
+> baños, comida o la salida de casa.
+>
+> Por eso intento incluir una hora estimada de restablecimiento. Si no la tengo,
+> comunico una duración mínima o una ventana aproximada y aclaro que enviaré una
+> actualización en cuanto el técnico confirme.»
+
+**Gana la segunda explicación: el costo es real y se paga fuera del grupo.**
+Mensaje privado, llamada, y gente bajando a caseta. Nada de eso aparece en un
+export de WhatsApp del grupo.
+
+Eso obliga a corregir cómo se lee el análisis de arriba. El resultado no era
+«los avisos incompletos no cuestan nada»; era **«el chat del grupo es el único
+sitio donde ese costo no se paga»**. Se midió el único canal disponible y salió
+vacío justamente porque el tráfico va por otro lado. Conviene recordarlo la
+próxima vez que un dato salga plano.
+
+### Y aparece una grieta más útil que todo lo anterior
+
+El administrador **describe la buena práctica con precisión**: hora estimada; si
+no la tiene, ventana mínima más promesa de actualizar. Es una política correcta,
+dicha en dos frases, sin ayuda de nadie.
+
+Se fue a mirar si eso es lo que sale. Sobre los **25 avisos de corte de agua**
+del corpus —el asunto exacto que él nombró:
+
+| | Avisos |
+|---|---|
+| Dicen hasta qué hora / cuánto dura | 8/25 · **32%** |
+| Dan una ventana aproximada | 4/25 · 16% |
+| Prometen actualizar después | 2/25 · **8%** |
+| **Alguna de las tres** | **10/25 · 40%** |
+| Llega después el «ya volvió el agua» | 5/25 · **20%** |
+
+*(La detección de restablecido se amplió a propósito a formas coloquiales —«ya
+hay agua», «ya regresó»—. En los 29 meses del corpus hay **10** mensajes de
+restablecido en total.)*
+
+En agua lo hace mejor que en general —32% contra 5%—, así que la práctica
+existe. Pero **tres de cada cinco avisos de corte de agua no le dan al residente
+nada con qué planear**, que es exactamente cuando él dice que suena el teléfono.
+Y la actualización que promete llega una de cada cinco veces.
+
+Por autor, otra vez:
+
+| Quién | Avisos de agua | Con duración, ventana o promesa |
+|---|---|---|
+| Antonio Ayala | 8 | **6** |
+| Rodrigo Administración | 6 | 3 |
+| D e l | 3 | 1 |
+| Jazz Carrillo | 3 | 0 |
+
+**Esto es lo que decide la hipótesis.** El problema no es que no sepan qué poner
+—el administrador lo recita perfectamente—; es que **no sale así cuando escriben
+con prisa**. Ese hueco no lo cierra una capacitación ni una plantilla en un
+documento: se cierra en el momento de escribir. Que es literalmente lo que hace
+una lista de lo que falta.
+
 Con eso, la hipótesis que sí aguanta el dato:
 
 > **H2′ — el valor es que el aviso salga completo, medido directamente y no por
@@ -128,6 +190,23 @@ Sobrevive intacta, aunque el razonamiento que llevó a ella era el equivocado:
 pantalla útil no es un botón de «escríbemelo», es una lista de lo que falta —
 con «cuánto dura» arriba del todo, porque es el dato que se olvida el 95% de las
 veces.
+
+Y tres cosas concretas que salen de la respuesta del administrador:
+
+1. **Cuando no se sabe la hora de fin, la salida correcta no es callar.** Es la
+   fórmula que él mismo describió: duración mínima o ventana aproximada, más el
+   compromiso de actualizar. Eso debe estar en el prompt y debe haber un caso de
+   evaluación que lo compruebe. **Hoy no lo hay.**
+2. **El conjunto de evaluación subpondera el hueco real.** De 50 casos, solo
+   **2** tienen la duración como dato faltante (`falta-duracion`,
+   `obra-herrero-sotano`) — un 4%, cuando en la realidad falta en el 68% de los
+   avisos de agua y en el 95% del total. Hay que reequilibrarlo antes de correr
+   el 2.4 de verdad, o la evaluación medirá bien lo que no importa.
+3. **El aviso de restablecimiento casi no existe, y arreglarlo no necesita IA.**
+   10 mensajes en 29 meses. Si al publicar un aviso con hora de fin el sistema
+   recordara publicar el cierre, se cubriría un hueco mayor que el del borrador
+   —y sale más barato—. Conviene decirlo aunque juegue en contra de la
+   funcionalidad que se está construyendo.
 
 ## Cómo reproducirlo
 
