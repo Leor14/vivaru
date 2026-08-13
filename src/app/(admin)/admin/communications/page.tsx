@@ -22,6 +22,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { communicationSchema, type CommunicationInput } from "@/features/admin/schemas";
 import { AsistenteBorrador } from "@/features/communications/asistente-borrador";
+import { useFeedbackBorrador } from "@/features/communications/use-feedback-borrador";
 import {
   createCommunication,
   createDocumentRecord,
@@ -144,6 +145,19 @@ export default function AdminCommunicationsPage() {
    */
   const [previoAsistente, setPrevioAsistente] = useState<{ title: string; message: string } | null>(null);
 
+  /**
+   * Qué se hizo con el borrador asistido. Vive aquí y no en el panel porque
+   * dos de los tres datos que el piloto necesita —si se guardó y cuánto se
+   * editó— solo los conoce el formulario.
+   */
+  const feedbackIa = useFeedbackBorrador();
+
+  /** Cierra el modal enviando lo anotado. Todo cierre pasa por aquí. */
+  function cerrarModal() {
+    feedbackIa.enviar();
+    setCreateOpen(false);
+  }
+
   function aplicarBorradorIa(borrador: { title: string; body: string }) {
     setPrevioAsistente({ title: form.getValues("title"), message: form.getValues("message") });
     // `shouldDirty` para que el formulario sepa que hay cambios sin guardar; la
@@ -157,6 +171,8 @@ export default function AdminCommunicationsPage() {
     form.setValue("title", previoAsistente.title, { shouldDirty: true });
     form.setValue("message", previoAsistente.message, { shouldDirty: true });
     setPrevioAsistente(null);
+    // NO se reinicia el feedback: que se arrepintiera es precisamente lo que
+    // hay que anotar. Lo anota el panel con `anotarDeshecha`.
   }
 
   function openCreate() {
@@ -166,6 +182,7 @@ export default function AdminCommunicationsPage() {
     setAudienceType("all");
     setSelectedTowers([]);
     setPrevioAsistente(null);
+    feedbackIa.reiniciar();
     form.reset({ title: "", message: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
     setCreateOpen(true);
   }
@@ -180,6 +197,7 @@ export default function AdminCommunicationsPage() {
     setEditingItem(item);
     setAttachmentFiles([]);
     setPrevioAsistente(null);
+    feedbackIa.reiniciar();
     setExistingAttachments(attachmentsOf(item));
     setAudienceType(item.audience === "towers" ? "towers" : "all");
     setSelectedTowers(item.audienceTowers ?? []);
@@ -296,7 +314,10 @@ export default function AdminCommunicationsPage() {
       }
       const refreshed = await listCommunicationsOnce(user.tenantId);
       setItems(refreshed);
-      setCreateOpen(false);
+      // Se anota DESPUÉS de guardar bien: un guardado que falló no es un
+      // borrador aceptado, y contarlo inflaría la métrica del piloto.
+      feedbackIa.anotarGuardado(values.message);
+      cerrarModal();
     } catch (createError) {
       setErrorMessage(createError instanceof Error ? createError.message : "No fue posible guardar comunicado.");
       toastFirebaseError(createError);
@@ -514,7 +535,7 @@ export default function AdminCommunicationsPage() {
         />
       </div>
 
-      <Modal open={createOpen} title={editingItem ? "Editar comunicado" : "Crear comunicado"} onClose={() => setCreateOpen(false)}>
+      <Modal open={createOpen} title={editingItem ? "Editar comunicado" : "Crear comunicado"} onClose={cerrarModal}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
           {/*
             El panel va arriba y detrás de su bandera. `FeatureGate` solo oculta
@@ -523,7 +544,7 @@ export default function AdminCommunicationsPage() {
             formulario es exactamente el de siempre.
           */}
           <FeatureGate flag="ai-communications-draft">
-            <AsistenteBorrador onAplicar={aplicarBorradorIa} onDeshacer={deshacerBorradorIa} />
+            <AsistenteBorrador onAplicar={aplicarBorradorIa} onDeshacer={deshacerBorradorIa} feedback={feedbackIa} />
           </FeatureGate>
           <div>
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Titulo</label>
@@ -650,7 +671,7 @@ export default function AdminCommunicationsPage() {
             )}
           </div>
           <div className="mobile-action-group">
-            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={cerrarModal}>Cancelar</Button>
             <Button className="w-full sm:w-auto" type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
           </div>
         </form>

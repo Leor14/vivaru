@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authorizeGatewayCall = authorizeGatewayCall;
+exports.authorizeFeedbackCall = authorizeFeedbackCall;
 /**
  * Los roles autorizados los declara cada operación en el catálogo (Paso 1.3).
  * Antes vivían aquí, escritos a mano, que era lo aceptable mientras no existía
@@ -147,4 +148,91 @@ function authorizeGatewayCall(caller, env) {
         };
     }
     return { ok: true, uid, tenantId: claimTenantId, role, operation };
+}
+/**
+ * Autoriza el registro de feedback del borrador asistido (Paso 2.5).
+ *
+ * **Mismas reglas de sesión que la puerta, y a propósito NINGUNA bandera.** El
+ * feedback describe algo que ya ocurrió: si alguien apaga la capacidad entre
+ * que el administrador pide el borrador y que guarda el comunicado, lo que
+ * queremos es enterarnos de qué hizo, no perder la medición. Apagar una
+ * capacidad tiene que dejar de gastar dinero, no dejar de saber.
+ *
+ * **No comparte código con `authorizeGatewayCall` por decisión, no por
+ * descuido.** Se podría extraer la parte común de sesión y membresía, y eso
+ * pondría el camino que decide si se gasta dinero a merced de un cambio hecho
+ * pensando en una métrica. Dos funciones que se parecen son más baratas de
+ * revisar que una abstracción compartida que se desvía. Las dos están probadas
+ * por separado.
+ */
+function authorizeFeedbackCall(caller, env) {
+    if (!caller.appCheckPresent && !env.appCheckMonitor) {
+        return {
+            ok: false,
+            code: "permission-denied",
+            reason: "app_check_ausente",
+            message: "No pudimos verificar que esta solicitud venga de la aplicación de Vivaru.",
+        };
+    }
+    const uid = asString(caller.uid);
+    if (!uid) {
+        return { ok: false, code: "unauthenticated", reason: "sin_sesion", message: "Debes iniciar sesión." };
+    }
+    // El conjunto sale de la sesión también aquí. Aceptarlo del cliente en el
+    // endpoint «de métricas» sería la grieta obvia: escribir filas en el conjunto
+    // del vecino es contaminar la evidencia con la que se decide el producto.
+    const data = caller.data;
+    if (data && typeof data === "object" && !Array.isArray(data) && "tenantId" in data) {
+        return {
+            ok: false,
+            code: "invalid-argument",
+            reason: "tenant_en_la_peticion",
+            message: "Esta operación no recibe el conjunto: se toma de tu sesión.",
+        };
+    }
+    const claimTenantId = asString(caller.claims?.tenantId);
+    const claimRole = asString(caller.claims?.role);
+    if (!claimTenantId || !claimRole) {
+        return {
+            ok: false,
+            code: "permission-denied",
+            reason: "claims_incompletos",
+            message: "Tu sesión no tiene un conjunto asignado.",
+        };
+    }
+    const membership = env.membership;
+    if (!membership) {
+        return {
+            ok: false,
+            code: "permission-denied",
+            reason: "sin_membresia",
+            message: "Tu usuario ya no pertenece a este conjunto.",
+        };
+    }
+    if (asString(membership.tenantId) !== claimTenantId) {
+        return {
+            ok: false,
+            code: "permission-denied",
+            reason: "membresia_de_otro_conjunto",
+            message: "Tu usuario ya no pertenece a este conjunto.",
+        };
+    }
+    if ((asString(membership.status) ?? "active") !== "active") {
+        return {
+            ok: false,
+            code: "permission-denied",
+            reason: "membresia_inactiva",
+            message: "Tu usuario está inactivo en este conjunto.",
+        };
+    }
+    const role = asString(membership.role) ?? claimRole;
+    if (!env.allowedRoles.includes(role)) {
+        return {
+            ok: false,
+            code: "permission-denied",
+            reason: "rol_no_autorizado",
+            message: "Tu rol no puede usar esta función.",
+        };
+    }
+    return { ok: true, uid, tenantId: claimTenantId, role };
 }

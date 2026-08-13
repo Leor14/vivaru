@@ -5,6 +5,7 @@ exports.cutoffDateISO = cutoffDateISO;
 exports.anonymizeExpiredVouchers = anonymizeExpiredVouchers;
 exports.aiUsageCutoff = aiUsageCutoff;
 exports.purgeExpiredAiUsage = purgeExpiredAiUsage;
+exports.purgeExpiredAiFeedback = purgeExpiredAiFeedback;
 const firestore_1 = require("firebase-admin/firestore");
 /**
  * Retención / anonimización de datos sensibles de comprobantes (F2/G4).
@@ -85,18 +86,13 @@ function aiUsageCutoff(now = new Date(), months = exports.AI_USAGE_RETENTION_MON
     d.setMonth(d.getMonth() - months);
     return d;
 }
-/** Borra la telemetría de IA vencida. Devuelve cuántas filas se eliminaron. */
-async function purgeExpiredAiUsage(db, now = new Date()) {
-    const cutoff = firestore_1.Timestamp.fromDate(aiUsageCutoff(now));
+/** Borra por lotes lo vencido de una colección con `createdAt`. */
+async function purgarPorFecha(db, coleccion, cutoff) {
     let borradas = 0;
     // Por lotes: una colección de telemetría puede tener muchas filas y un
     // borrado de golpe no cabe en una sola operación.
     for (;;) {
-        const vencidas = await db
-            .collection("aiUsage")
-            .where("createdAt", "<", cutoff)
-            .limit(400)
-            .get();
+        const vencidas = await db.collection(coleccion).where("createdAt", "<", cutoff).limit(400).get();
         if (vencidas.empty)
             break;
         const batch = db.batch();
@@ -108,4 +104,20 @@ async function purgeExpiredAiUsage(db, now = new Date()) {
             break;
     }
     return borradas;
+}
+/** Borra la telemetría de IA vencida. Devuelve cuántas filas se eliminaron. */
+async function purgeExpiredAiUsage(db, now = new Date()) {
+    return purgarPorFecha(db, "aiUsage", firestore_1.Timestamp.fromDate(aiUsageCutoff(now)));
+}
+/**
+ * Borra el feedback del borrador asistido vencido (Paso 2.5).
+ *
+ * **Misma retención que la telemetría, y por el mismo motivo:** tampoco guarda
+ * contenido del conjunto —solo categorías y números—, así que se borra por
+ * higiene y no por privacidad. Nace con purga el mismo día que nace la
+ * colección, porque declarar una retención y no implementarla es la forma
+ * habitual de incumplirla.
+ */
+async function purgeExpiredAiFeedback(db, now = new Date()) {
+    return purgarPorFecha(db, "aiFeedback", firestore_1.Timestamp.fromDate(aiUsageCutoff(now)));
 }

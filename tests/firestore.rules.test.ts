@@ -1211,6 +1211,34 @@ describe("Firestore Rules - telemetría de IA", () => {
 });
 
 /**
+ * Feedback del borrador asistido (Paso 2.5). El dato nace en el navegador, y
+ * aun así el cliente no escribe aquí: si pudiera, cualquiera podría fabricar la
+ * evidencia con la que se decide si la funcionalidad sigue o se retira.
+ */
+describe("Firestore Rules - feedback del borrador asistido", () => {
+  it("superadmin puede leerlo", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "aiFeedback", "cualquiera")));
+  });
+
+  it("bloquea la lectura a un admin de conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "aiFeedback", "cualquiera")));
+  });
+
+  it("el admin que genera el dato NO puede escribirlo: pasa por el callable", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "aiFeedback", "inventada"), {
+        tenantId: "tenant-a",
+        operationKey: "comunicaciones-redactar",
+        aplicada: true,
+      }),
+    );
+  });
+});
+
+/**
  * Contadores de cuota de IA (Paso 1.6). Un contador que el cliente pudiera
  * tocar no es una cuota: se escriben solo desde el servidor y en transacción.
  */

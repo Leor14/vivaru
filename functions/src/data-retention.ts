@@ -89,19 +89,14 @@ export function aiUsageCutoff(now: Date = new Date(), months = AI_USAGE_RETENTIO
   return d;
 }
 
-/** Borra la telemetría de IA vencida. Devuelve cuántas filas se eliminaron. */
-export async function purgeExpiredAiUsage(db: Firestore, now: Date = new Date()): Promise<number> {
-  const cutoff = Timestamp.fromDate(aiUsageCutoff(now));
+/** Borra por lotes lo vencido de una colección con `createdAt`. */
+async function purgarPorFecha(db: Firestore, coleccion: string, cutoff: Timestamp): Promise<number> {
   let borradas = 0;
 
   // Por lotes: una colección de telemetría puede tener muchas filas y un
   // borrado de golpe no cabe en una sola operación.
   for (;;) {
-    const vencidas = await db
-      .collection("aiUsage")
-      .where("createdAt", "<", cutoff)
-      .limit(400)
-      .get();
+    const vencidas = await db.collection(coleccion).where("createdAt", "<", cutoff).limit(400).get();
 
     if (vencidas.empty) break;
 
@@ -114,4 +109,22 @@ export async function purgeExpiredAiUsage(db: Firestore, now: Date = new Date())
   }
 
   return borradas;
+}
+
+/** Borra la telemetría de IA vencida. Devuelve cuántas filas se eliminaron. */
+export async function purgeExpiredAiUsage(db: Firestore, now: Date = new Date()): Promise<number> {
+  return purgarPorFecha(db, "aiUsage", Timestamp.fromDate(aiUsageCutoff(now)));
+}
+
+/**
+ * Borra el feedback del borrador asistido vencido (Paso 2.5).
+ *
+ * **Misma retención que la telemetría, y por el mismo motivo:** tampoco guarda
+ * contenido del conjunto —solo categorías y números—, así que se borra por
+ * higiene y no por privacidad. Nace con purga el mismo día que nace la
+ * colección, porque declarar una retención y no implementarla es la forma
+ * habitual de incumplirla.
+ */
+export async function purgeExpiredAiFeedback(db: Firestore, now: Date = new Date()): Promise<number> {
+  return purgarPorFecha(db, "aiFeedback", Timestamp.fromDate(aiUsageCutoff(now)));
 }

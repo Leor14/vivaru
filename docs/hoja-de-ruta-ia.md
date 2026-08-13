@@ -1233,15 +1233,56 @@ la pantalla sin poder construirse ni verse sin pagar.
 | El panel | `src/features/communications/asistente-borrador.tsx` |
 | Envoltorio del callable | `src/lib/firebase/callables.ts` → `redactarComunicacionCallable` |
 | Conexión al formulario | `src/app/(admin)/admin/communications/page.tsx` |
+| Qué se envía del feedback (puro) | `src/lib/ai/feedback-borrador.ts` |
+| Acumulador en el navegador | `src/features/communications/use-feedback-borrador.ts` |
+| Esquema y escritura | `functions/src/ai/feedback.ts` |
+| Callable y autorización | `functions/src/ai/feedback-gateway.ts`, `ai/authorize.ts` |
+| Purga a 12 meses | `functions/src/data-retention.ts` |
 | Pruebas del orden (9) | `tests/ai-datos-faltantes.test.ts` |
+| Pruebas de lo que se envía (13) | `tests/ai-feedback-borrador.test.ts` |
+| Pruebas de autorización y esquema (17) | `functions/tests/ai-feedback.test.ts` |
+| Reglas (3) | `tests/firestore.rules.test.ts` |
+
+**9 · El feedback se registra — HECHO (12 de agosto de 2026), y era la
+precondición del piloto.** `aiUsage` responde «cuánto costó»; esto responde
+**«sirvió»**, que es la pregunta que decide si la funcionalidad sigue, se
+corrige o se retira. Colección `aiFeedback`, una fila **por sesión de borrador**
+y no por clic.
+
+Qué se guarda: cuántas veces pidió, si la aplicó, si la deshizo, si acabó
+guardando, qué categorías se le mostraron, cuáles descartó, y **cuánto editó**
+la propuesta.
+
+Y qué NO: ni el propósito, ni los hechos, ni el borrador, ni el texto de las
+peticiones descartadas. **De un dato descartado viaja su categoría, nunca la
+frase** — «¿hasta qué hora estará cerrada la alberca de la torre 3?» habla del
+conjunto, y eso es contenido. La garantía es la misma que en el 1.5: el tipo no
+tiene dónde meterlo, el esquema es `.strict()`, y hay una prueba que serializa
+lo que se enviaría y comprueba que solo hay categorías y números.
+
+La edición se mide **en el navegador** —distancia de edición sobre palabras, no
+sobre caracteres— justo para que al servidor solo viaje un número y no los dos
+textos.
+
+Tres decisiones que no son obvias:
+
+- **Ninguna bandera cierra esta puerta.** El feedback describe algo que ya
+  ocurrió: si alguien apaga la capacidad entre que el administrador pide el
+  borrador y que guarda, queremos enterarnos de qué hizo. **Apagar tiene que
+  dejar de gastar dinero, no dejar de saber.**
+- **No comparte código con `authorizeGatewayCall`**, aunque se parezcan. Extraer
+  la parte común pondría el camino que decide si se gasta dinero a merced de un
+  cambio hecho pensando en una métrica. Dos funciones parecidas son más baratas
+  de revisar que una abstracción que se desvía.
+- **El cliente no escribe en `aiFeedback`**, aunque el dato nazca en su
+  navegador. Si pudiera, cualquiera podría fabricar la evidencia con la que se
+  decide el futuro de la funcionalidad.
+
+Es best-effort de punta a punta: si falla, el comunicado ya se guardó bien y
+enseñar un error sería mentirle a la persona.
 
 **Lo que NO se construyó, y hay que decirlo:**
 
-- **El registro del «No aplica».** Se decidió que descartar dejara rastro,
-  porque el piloto del 2.6 lo necesita como métrica. Hoy solo vive en el estado
-  del componente. Guardarlo es una colección nueva con sus reglas y su
-  retención: **su propio incremento**, y sin él el 2.6 no puede medir «magnitud
-  de la edición» ni «propuestas aceptadas».
 - **`notificationSummary` no tiene destino.** Se muestra en la propuesta y no se
   guarda. Hoy la notificación que le llega al residente dice «La administracion
   publico un nuevo comunicado» para todos los comunicados, siempre

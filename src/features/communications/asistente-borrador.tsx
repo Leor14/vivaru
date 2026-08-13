@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { FeedbackBorrador } from "@/features/communications/use-feedback-borrador";
 import { claveDatoFaltante, etiquetaDe, ordenarDatosFaltantes } from "@/lib/ai/datos-faltantes";
 import {
   redactarComunicacionCallable,
@@ -55,9 +56,14 @@ export interface AsistenteBorradorProps {
   onAplicar: (borrador: BorradorComunicacion) => void;
   /** Devuelve el formulario a lo que había antes de aplicar. */
   onDeshacer: () => void;
+  /**
+   * Anota qué se hizo con la propuesta. Sin esto el piloto del 2.6 no puede
+   * medir si la funcionalidad sirve — solo si costó.
+   */
+  feedback: FeedbackBorrador;
 }
 
-export function AsistenteBorrador({ onAplicar, onDeshacer }: AsistenteBorradorProps) {
+export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: AsistenteBorradorProps) {
   const [proposito, setProposito] = useState("");
   const [hechos, setHechos] = useState<string[]>([""]);
   const [tono, setTono] = useState<RedactarComunicacionInput["tono"]>("informativo");
@@ -114,6 +120,10 @@ export function AsistenteBorrador({ onAplicar, onDeshacer }: AsistenteBorradorPr
       // peticiones nuevas que el administrador nunca vio.
       setDescartados([]);
       setAplicado(false);
+      feedback.anotarPropuesta(
+        resultado.output.missingInformation.map((d) => d.categoria),
+        resultado.output.body,
+      );
     } catch (e) {
       // El mensaje ya viene escrito para la persona y termina mandándola al
       // proceso manual. El detalle técnico se queda en los logs del servidor.
@@ -128,11 +138,13 @@ export function AsistenteBorrador({ onAplicar, onDeshacer }: AsistenteBorradorPr
     if (!borrador) return;
     onAplicar(borrador);
     setAplicado(true);
+    feedback.anotarAplicada();
   }
 
   function deshacer() {
     onDeshacer();
     setAplicado(false);
+    feedback.anotarDeshecha();
   }
 
   return (
@@ -263,7 +275,13 @@ export function AsistenteBorrador({ onAplicar, onDeshacer }: AsistenteBorradorPr
                   type="button"
                   variant="outline"
                   size="xs"
-                  onClick={() => setDescartados((prev) => [...prev, claveDatoFaltante(dato)])}
+                  onClick={() => {
+                    setDescartados((prev) => [...prev, claveDatoFaltante(dato)]);
+                    // Solo la categoría. La frase habla del conjunto —«¿hasta
+                    // qué hora cierra la alberca de la torre 3?»— y eso es
+                    // contenido, no métrica.
+                    feedback.anotarDescarte(dato.categoria);
+                  }}
                 >
                   No aplica
                 </Button>

@@ -647,3 +647,36 @@ export async function redactarComunicacionCallable(input: RedactarComunicacionIn
     "No pudimos preparar el borrador. Puedes continuar con el proceso manual.",
   );
 }
+
+/**
+ * Registra qué hizo el administrador con el borrador asistido (Paso 2.5).
+ *
+ * **Best-effort a propósito, como `logClientErrorCallable`.** No usa
+ * `executeCallable` porque no debe propagar: si esto falla, el comunicado ya se
+ * guardó bien y enseñarle un error a la persona sería mentirle. Se pierde una
+ * fila de medición, que es molesto y no es su problema.
+ *
+ * No manda `tenantId` — sale de la sesión, igual que en la puerta.
+ */
+export async function registrarFeedbackIaCallable(input: {
+  operationKey: "comunicaciones-redactar";
+  propuestas: number;
+  aplicada: boolean;
+  deshecha: boolean;
+  guardada: boolean;
+  mostrados: string[];
+  descartados: string[];
+  distanciaEdicion: number | null;
+}): Promise<{ ok: boolean }> {
+  if (!functions) return { ok: false };
+  try {
+    const callable = httpsCallable<typeof input, { ok: true }>(functions, "registrarFeedbackIa");
+    const result = await callable(input);
+    return result.data;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[feedback-ia] no se pudo registrar", error);
+    }
+    return { ok: false };
+  }
+}

@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
-import { anonymizeExpiredVouchers, purgeExpiredAiUsage } from "./data-retention";
+import { anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import {
@@ -3568,6 +3568,9 @@ export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async
   // porque es la misma tarea: cumplir las retenciones que están declaradas.
   const purgadas = await purgeExpiredAiUsage(db);
   console.log(`[data-retention] Purgadas ${purgadas} fila(s) de aiUsage.`);
+
+  const feedback = await purgeExpiredAiFeedback(db);
+  console.log(`[data-retention] Purgadas ${feedback} fila(s) de aiFeedback.`);
 });
 
 // ── G4 · Observabilidad: captura de errores no controlados del cliente ────────
@@ -4068,6 +4071,7 @@ export const addSupportNote = onCall<{ ticketId: string; note: string }>(
 // rastro en `aiUsage`. El proveedor es simulado hasta que se cierren la región
 // y el tope de gasto.
 export { aiInvoke } from "./ai/gateway";
+export { registrarFeedbackIa } from "./ai/feedback-gateway";
 
 /**
  * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
