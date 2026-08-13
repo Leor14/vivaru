@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { ChevronUp, Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,15 @@ export interface AsistenteBorradorProps {
 }
 
 export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: AsistenteBorradorProps) {
+  /**
+   * Nace cerrado. El formulario de comunicados es de todos; la ayuda de IA es
+   * opcional y no debe ocupar la mitad de la pantalla de quien no la pidió.
+   *
+   * Al cerrarlo NO se pierde lo escrito: si alguien lo pliega para ver el
+   * formulario y lo vuelve a abrir, sus hechos siguen ahí.
+   */
+  const [abierto, setAbierto] = useState(false);
+
   const [proposito, setProposito] = useState("");
   const [hechos, setHechos] = useState<string[]>([""]);
   const [tono, setTono] = useState<RedactarComunicacionInput["tono"]>("informativo");
@@ -167,19 +176,43 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
 
   return (
     <section
-      className="space-y-3 rounded-xl border border-[var(--ia-borde)] bg-[var(--ia-fondo)] p-4"
+      className={
+        abierto
+          ? "space-y-3 rounded-xl border border-[var(--ia-borde)] bg-[var(--ia-fondo)] p-4"
+          : undefined
+      }
       style={IA_TOKENS}
       aria-label="Redactar con IA"
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ia-tinta)]">
+        {/*
+          Cerrado por defecto, y el botón es la única puerta. Quien no quiera
+          ayuda ve el formulario de siempre con una línea más; el panel no se le
+          impone. Abierto, el mismo botón sirve para volver a cerrarlo — con dos
+          controles distintos habría que explicar cuál hace qué.
+        */}
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          aria-expanded={abierto}
+          aria-controls="asistente-ia"
+          className={
+            abierto
+              ? "inline-flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[var(--ia-tinta)]"
+              : "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--ia-borde)] bg-[var(--ia-fondo)] px-4 py-2.5 text-sm font-semibold text-[var(--ia-tinta)] hover:bg-[color-mix(in_srgb,var(--color-brand-purple-deep)_10%,white)]"
+          }
+        >
           <Sparkles className="h-4 w-4" aria-hidden="true" />
           Redactar con IA
-        </h3>
-        {cuota ? (
+          {abierto ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : null}
+        </button>
+        {abierto && cuota ? (
           <span className="text-xs text-[var(--slate-500)]">Te quedan {cuota.usuarioDia} hoy</span>
         ) : null}
       </div>
+
+      {!abierto ? null : (
+      <div id="asistente-ia" className="space-y-3">
 
       <div>
         <label htmlFor="ia-proposito" className="mb-1 block text-sm text-[var(--slate-700)]">
@@ -355,6 +388,9 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
           ) : null}
         </div>
       ) : null}
+
+      </div>
+      )}
     </section>
   );
 }
