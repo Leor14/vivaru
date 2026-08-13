@@ -45,8 +45,18 @@ describe("instrucción de formato", () => {
   it("no contiene un prompt de tarea: eso es el Paso 2.3", () => {
     // Si alguien empieza a meter aquí «escribe en tono cordial y breve», el
     // prompt deja de ser versionable y la evaluación offline pierde sentido.
+    //
+    // El tope subió de 2.000 a 3.000 al categorizar `missingInformation`
+    // (contrato v2): el esquema creció con cinco categorías y sus
+    // descripciones, que viajan al modelo A PROPÓSITO. Es crecimiento del
+    // contrato, no guía de redacción colada por la puerta de atrás.
+    //
+    // **El tope no es lo que protege de eso, y conviene no confundirse:** un
+    // número redondo solo avisa de que alguien escribió mucho. Quien de verdad
+    // guarda la puerta es la expresión de abajo, y por eso el número se puede
+    // subir cuando el esquema crece, pero la expresión no se toca.
     const texto = buildFormatInstruction(OP);
-    expect(texto.length).toBeLessThan(2000);
+    expect(texto.length).toBeLessThan(3000);
     expect(texto).not.toMatch(/eres un asistente|act[úu]a como|redacta de forma/i);
   });
 });

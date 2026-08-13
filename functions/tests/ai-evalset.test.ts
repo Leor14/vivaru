@@ -30,6 +30,7 @@ interface Caso {
     assumptionsVacio?: boolean;
     missingInformationVacio?: boolean;
     missingInformationMenciona?: string[];
+    missingInformationCategorias?: string[];
     bodyContiene?: string[];
     bodyContieneAlguna?: string[];
     bodyNoContiene?: string[];

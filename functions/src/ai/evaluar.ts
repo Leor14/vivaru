@@ -14,6 +14,22 @@ export interface CasoEspera {
   assumptionsVacio?: boolean;
   missingInformationVacio?: boolean;
   missingInformationMenciona?: string[];
+  /**
+   * Comprueba la CATEGORÍA del dato que falta, no cómo se llamó.
+   *
+   * Es el remedio al defecto que la corrida del 12 de agosto destapó dos veces
+   * en un día: `missingInformationMenciona` busca palabras dentro de texto
+   * libre, y cuando el modelo dijo «ilógico» donde se esperaba «contradicción»
+   * la afirmación midió el diccionario de quien la escribió, no al modelo.
+   * Con la categoría eso ya no puede pasar.
+   *
+   * **Ningún caso lo usa todavía, y es a propósito.** Cambiar la forma de la
+   * salida y endurecer las afirmaciones en la misma corrida haría imposible
+   * saber a cuál de las dos cosas se debe un número distinto. Primero se
+   * comprueba que la forma nueva no mueve el resultado; después se migran las
+   * afirmaciones frágiles, una a una.
+   */
+  missingInformationCategorias?: string[];
   bodyContiene?: string[];
   /**
    * Basta con que UNA aparezca. Sirve para comprobar que el cuerpo **dice algo**
@@ -41,12 +57,25 @@ export interface CasoEvaluacion {
   espera: CasoEspera;
 }
 
+/**
+ * Un dato que falta, con su categoría (contrato v2 de la operación).
+ *
+ * `detalle` es la misma frase libre en español que antes viajaba suelta, así
+ * que las afirmaciones escritas contra la forma anterior siguen midiendo
+ * exactamente lo mismo. Esa continuidad es lo que permite comparar la corrida
+ * nueva con las cinco anteriores.
+ */
+export interface DatoFaltante {
+  categoria: string;
+  detalle: string;
+}
+
 /** Lo que devolvió el modelo, ya parseado y validado por el catálogo. */
 export interface SalidaBorrador {
   title: string;
   body: string;
   notificationSummary: string;
-  missingInformation: string[];
+  missingInformation: DatoFaltante[];
   qualityFlags: string[];
   assumptions: string[];
 }
@@ -81,8 +110,13 @@ export function evaluarCaso(caso: CasoEvaluacion, salida: SalidaBorrador): Calif
     fallos.push(`assumptions no está vacío: ${JSON.stringify(salida.assumptions)}`);
   }
 
+  // Lo que pidió el modelo, legible. Se usa en las afirmaciones y en los
+  // mensajes de fallo, que es donde alguien tiene que entender qué pasó.
+  const pedido = salida.missingInformation.map((d) => `${d.categoria}: ${d.detalle}`).join(" · ");
+  const detalles = salida.missingInformation.map((d) => d.detalle).join(" · ");
+
   if (e.missingInformationVacio === true && salida.missingInformation.length > 0) {
-    fallos.push(`pidió datos que sí se dieron: ${JSON.stringify(salida.missingInformation)}`);
+    fallos.push(`pidió datos que sí se dieron: ${pedido}`);
   }
 
   if (e.missingInformationVacio === false && salida.missingInformation.length === 0) {
@@ -91,11 +125,26 @@ export function evaluarCaso(caso: CasoEvaluacion, salida: SalidaBorrador): Calif
 
   // Basta con que UNA de las palabras aparezca en ALGUNO de los ítems: se está
   // comprobando que pidió el dato, no cómo lo redactó.
+  //
+  // Busca solo en `detalle`, nunca en `categoria`. Si buscara en las dos, la
+  // palabra «duracion» de la categoría haría pasar sola una afirmación que
+  // espera «duración» — la afirmación dejaría de medir al modelo y pasaría a
+  // medir el nombre que le pusimos a la etiqueta.
   if (e.missingInformationMenciona?.length) {
-    const todo = salida.missingInformation.join(" · ");
-    if (!e.missingInformationMenciona.some((p) => contiene(todo, p))) {
+    if (!e.missingInformationMenciona.some((p) => contiene(detalles, p))) {
       fallos.push(
-        `no pidió el dato que falta (esperaba alguna de: ${e.missingInformationMenciona.join(", ")}) — pidió: ${todo || "nada"}`,
+        `no pidió el dato que falta (esperaba alguna de: ${e.missingInformationMenciona.join(", ")}) — pidió: ${pedido || "nada"}`,
+      );
+    }
+  }
+
+  // La versión que no depende del vocabulario. Basta con que UNA categoría de
+  // las esperadas aparezca.
+  if (e.missingInformationCategorias?.length) {
+    const categorias = new Set(salida.missingInformation.map((d) => d.categoria));
+    if (!e.missingInformationCategorias.some((c) => categorias.has(c))) {
+      fallos.push(
+        `no pidió el dato que falta (esperaba categoría: ${e.missingInformationCategorias.join(", ")}) — pidió: ${pedido || "nada"}`,
       );
     }
   }

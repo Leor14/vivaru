@@ -81,14 +81,45 @@ describe("pedir lo que falta", () => {
 
   it("basta con que UNA de las palabras aparezca en ALGUNO de los ítems", () => {
     // Se comprueba que pidió el dato, no cómo redactó la pregunta.
-    const s = salida({ missingInformation: ["¿A qué hora comienza?"] });
+    const s = salida({ missingInformation: [{ categoria: "fecha", detalle: "¿A qué hora comienza?" }] });
     expect(evaluarCaso(caso({ missingInformationMenciona: ["fecha", "hora"] }), s).pasa).toBe(true);
   });
 
-  it("falla si pidió datos que sí se le dieron", () => {
-    const s = salida({ missingInformation: ["¿Qué día es?"] });
+  it("busca en el detalle y NUNCA en la categoría", () => {
+    // Si buscara en la categoría, la etiqueta «duracion» haría pasar sola una
+    // afirmación que espera «duración» — y la afirmación pasaría a medir el
+    // nombre que le pusimos nosotros a la etiqueta, no lo que hizo el modelo.
+    const s = salida({ missingInformation: [{ categoria: "duracion", detalle: "¿Hasta qué hora?" }] });
+    expect(evaluarCaso(caso({ missingInformationMenciona: ["duración"] }), s).pasa).toBe(false);
+    expect(evaluarCaso(caso({ missingInformationMenciona: ["hasta"] }), s).pasa).toBe(true);
+  });
+
+  it("la categoría no depende del vocabulario, que es para lo que existe", () => {
+    // El modelo dijo «ilógico» donde se esperaba «contradicción» y se contó
+    // como fallo suyo. Con la categoría eso ya no puede pasar.
+    const s = salida({ missingInformation: [{ categoria: "duracion", detalle: "¿Hasta cuándo se alarga?" }] });
+    expect(evaluarCaso(caso({ missingInformationCategorias: ["duracion"] }), s).pasa).toBe(true);
+    expect(evaluarCaso(caso({ missingInformationCategorias: ["fecha"] }), s).pasa).toBe(false);
+  });
+
+  it("basta con que UNA de las categorías esperadas aparezca", () => {
+    const s = salida({
+      missingInformation: [
+        { categoria: "alcance", detalle: "¿Qué torres?" },
+        { categoria: "duracion", detalle: "¿Cuánto dura?" },
+      ],
+    });
+    expect(evaluarCaso(caso({ missingInformationCategorias: ["duracion", "accion"] }), s).pasa).toBe(true);
+  });
+
+  it("falla si pidió datos que sí se le dieron, y dice cuál", () => {
+    const s = salida({ missingInformation: [{ categoria: "fecha", detalle: "¿Qué día es?" }] });
     const r = evaluarCaso(caso({ missingInformationVacio: true }), s);
     expect(r.fallos[0]).toContain("pidió datos que sí se dieron");
+    // El mensaje tiene que ser legible: quien lo lee está decidiendo si el
+    // fallo es del modelo o del caso, y con un `[object Object]` no puede.
+    expect(r.fallos[0]).toContain("¿Qué día es?");
+    expect(r.fallos[0]).toContain("fecha");
   });
 
   it("falla si no pidió nada y faltaban datos", () => {

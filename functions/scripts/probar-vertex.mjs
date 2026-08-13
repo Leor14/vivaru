@@ -37,7 +37,8 @@ const PROMPT = `Tarea: A partir del propósito, los hechos y el tono que escribe
 
 Responde ÚNICAMENTE con un objeto JSON válido con estas claves exactas:
 title (texto), body (texto), notificationSummary (texto),
-missingInformation (lista de textos), qualityFlags (lista de textos),
+missingInformation (lista de objetos con categoria y detalle, donde categoria es
+una de: duracion, fecha, alcance, accion, otro), qualityFlags (lista de textos),
 assumptions (lista de textos, SIEMPRE vacía).
 
 Sin texto antes ni después y sin bloque de código.
@@ -106,5 +107,14 @@ console.log(
 console.log("\nPropuesta devuelta:");
 console.log(`   título: ${parsed.title}`);
 console.log(`   resumen: ${parsed.notificationSummary}`);
-console.log(`   falta por preguntar: ${JSON.stringify(parsed.missingInformation)}`);
+// Se imprime con la categoría delante porque es lo nuevo del contrato v2 y es
+// justo lo que esta prueba tiene que dejar ver: si el modelo la respeta.
+const faltantes = Array.isArray(parsed.missingInformation) ? parsed.missingInformation : [];
+console.log(
+  `   falta por preguntar: ${
+    faltantes.length
+      ? faltantes.map((d) => `[${d?.categoria ?? "?"}] ${d?.detalle ?? JSON.stringify(d)}`).join(" · ")
+      : "nada"
+  }`,
+);
 console.log(`\n   cuerpo:\n${String(parsed.body).split("\n").map((l) => "   " + l).join("\n")}\n`);

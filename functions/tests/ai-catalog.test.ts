@@ -164,8 +164,27 @@ describe("esquema de salida de comunicaciones-redactar", () => {
     expect(OPERACION.output.safeParse(conExtra).success).toBe(false);
   });
 
-  it("acepta que pida los datos que faltan", () => {
-    const pidiendo = { ...salidaValida(), missingInformation: ["¿Qué torres se ven afectadas?"] };
+  it("acepta que pida los datos que faltan, con su categoría", () => {
+    const pidiendo = {
+      ...salidaValida(),
+      missingInformation: [{ categoria: "alcance", detalle: "¿Qué torres se ven afectadas?" }],
+    };
     expect(OPERACION.output.safeParse(pidiendo).success).toBe(true);
+  });
+
+  it("RECHAZA una categoría que no está en la lista", () => {
+    // El valor de categorizar es poder ordenar sin adivinar. Una categoría
+    // libre lo destruye: la interfaz volvería a buscar palabras, que es
+    // justo el defecto que este contrato v2 vino a cerrar.
+    const inventada = {
+      ...salidaValida(),
+      missingInformation: [{ categoria: "presupuesto", detalle: "¿Cuánto cuesta?" }],
+    };
+    expect(OPERACION.output.safeParse(inventada).success).toBe(false);
+  });
+
+  it("RECHAZA un dato que falta sin categoría", () => {
+    const suelto = { ...salidaValida(), missingInformation: ["¿Qué torres se ven afectadas?"] };
+    expect(OPERACION.output.safeParse(suelto).success).toBe(false);
   });
 });

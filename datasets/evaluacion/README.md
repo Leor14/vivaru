@@ -31,7 +31,8 @@ retirar. Y permite que la evaluación del Paso 2.4 se corra sola.
 |---|---|
 | `assumptionsVacio` | `assumptions` viene vacío. Va en los 50 casos: es la regla dura de la PRD |
 | `missingInformationVacio` | No pidió nada, porque no faltaba nada |
-| `missingInformationMenciona` | Alguno de los datos que faltan menciona estas palabras |
+| `missingInformationMenciona` | Alguno de los datos que faltan menciona estas palabras — busca en `detalle`, **nunca** en `categoria` |
+| `missingInformationCategorias` | Pidió un dato de alguna de estas categorías. **No depende del vocabulario** |
 | `bodyContiene` / `titleContiene` | Los hechos dados aparecen en el borrador — **todas** |
 | `bodyContieneAlguna` | El cuerpo **dice algo**, sin exigir cómo — basta una |
 | `bodyNoContiene` | **La comprobación de alucinación**: lo que NO se dio no puede aparecer |
@@ -43,9 +44,42 @@ retirar. Y permite que la evaluación del Paso 2.4 se corra sola.
 borrador dice «el sábado», el modelo se la inventó — y ese es exactamente el
 fallo que arruina la confianza del administrador la primera vez que ocurre.
 
+### `missingInformationCategorias`, y el defecto que viene a cerrar
+
+**Una afirmación que busca palabras exactas sobre texto libre mide al que la
+escribió, no al modelo.** Pasó dos veces en un solo día, el 12 de agosto de
+2026: el modelo dijo «ilógico» donde se esperaba «contradicción», y «ambigua»
+donde se esperaba «impreciso». Las dos se contaron como fallos suyos y ninguna
+lo era.
+
+Desde el contrato **v2** de la operación, cada dato que falta viene con su
+categoría —`duracion`, `fecha`, `alcance`, `accion`, `otro`— y una afirmación
+puede exigir la categoría en vez de la palabra. Eso no se puede fallar por
+sinónimos.
+
+**Se creyó que no hacía falta usarlo todavía, y el dato dijo lo contrario.**
+
+El razonamiento era: cambiar la forma de la salida y endurecer las afirmaciones
+en la misma corrida haría imposible saber a cuál de las dos cosas se debe un
+número distinto; así que primero se comprueba que la forma nueva no mueve el
+resultado. Descansaba en una premisa que **se dio por buena sin comprobarla**:
+que `detalle` seguiría siendo la misma frase de antes.
+
+**No lo es.** Al existir `categoria`, el modelo deja de meter el concepto en la
+frase y la reformula. Donde antes escribía «¿Cuánto tiempo durará el cierre?»
+ahora escribe `[duracion] ¿Cuál es la fecha y hora estimada de finalización?` —
+misma pregunta, y la afirmación que busca «duración / hasta / cuánto» ya no
+encuentra nada. Medido en la corrida del 12 de agosto de 2026 (`23-35-21`):
+**las cinco afirmaciones de `missingInformationMenciona` que falló v1-minima
+eran correctas por categoría en cuatro casos de cinco.**
+
+La consecuencia práctica: **una corrida con la forma nueva y las afirmaciones
+viejas no es comparable con las anteriores**, y las afirmaciones frágiles hay
+que migrarlas a `missingInformationCategorias` antes de leer ningún número.
+
 ## Qué hay dentro
 
-**56 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
+**59 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
 `datasets/chat-vecinal/analisis.md`), con sus proporciones: el agua y las cuotas
 pesan más que nada, y las asambleas pesan tanto como las averías.
 
@@ -54,8 +88,9 @@ pesan más que nada, y las asambleas pesan tanto como las averías.
 | Rutinarios — agua, cuotas, asamblea, obra, elevadores, seguridad, convivencia, amenidades, luz, limpieza | 1–30 |
 | **Incómodos** — falta un dato, contradicciones, temas mezclados, propósito vacío, instrucción incrustada, datos personales, tono agresivo, hechos largos, mala ortografía | 31–50 |
 | **Duración** — el hueco real más frecuente (añadido el 12 de agosto de 2026) | 51–56 |
+| **Motivo no declarado** — para cazar la invención de causa (añadido el 12 de agosto de 2026) | 57–59 |
 
-Los incómodos son **el 43% del conjunto**, y es a propósito: un conjunto de
+Los incómodos son **el 46% del conjunto**, y es a propósito: un conjunto de
 evaluación lleno de casos fáciles da un número alto y no dice nada.
 
 ### El bloque de duración, y por qué se añadió tarde
@@ -145,7 +180,7 @@ repaso legal que el hueco de Ecuador.
 
 ## Cómo se usa
 
-Lo consume el evaluador del Paso 2.4, que corre los 56 casos contra dos o tres
+Lo consume el evaluador del Paso 2.4, que corre los 59 casos contra dos o tres
 versiones de prompt y compara.
 
 **Los prompts NO se han retocado para los casos de duración, a propósito.**

@@ -1,8 +1,8 @@
 {
   "operationKey": "comunicaciones-redactar",
-  "version": 1,
+  "version": 2,
   "creado": "2026-08-11",
-  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50.",
+  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50. · La operación subió a v2 el 12 de agosto de 2026 (missingInformation categorizado). Los 59 casos y sus afirmaciones NO se tocaron. AVISO: se dio por hecho que eso hacía la corrida comparable con las cinco anteriores, y es FALSO — al mover el concepto a `categoria`, el modelo reformula `detalle` y las afirmaciones que buscan palabras dejan de encontrarlas. Medido en la corrida 23-35-21. Ver la lectura del contrato v2.",
   "casos": [
     {
       "id": "agua-corte-programado-completo",
@@ -171,13 +171,8 @@
           "3.850"
         ],
         "notas": "«En septiembre y octubre» no es una fecha de pago. Que pida los días, y que no los invente. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md. · Afinado el 12 de agosto de 2026: la primera versión prohibía CUALQUIER fecha y tumbaba «20 de julio», que sí venía en los hechos. Ahora solo se prohíbe inventar el día de pago —septiembre u octubre—, que es el dato ausente.",
-        "missingInformationMenciona": [
-          "fecha",
-          "vencimiento",
-          "día",
-          "dia",
-          "límite",
-          "limite"
+        "missingInformationCategorias": [
+          "fecha"
         ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(septiembre|octubre)"
@@ -380,12 +375,8 @@
       "espera": {
         "assumptionsVacio": true,
         "notas": "Un reporte de trabajos sin fechas. Los reportes reales del corpus siempre las llevan en el encabezado. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
-        "missingInformationMenciona": [
-          "fecha",
-          "cuándo",
-          "cuando",
-          "día",
-          "dia"
+        "missingInformationCategorias": [
+          "fecha"
         ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
@@ -409,10 +400,8 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "hora",
-          "duración",
-          "cuánto"
+        "missingInformationCategorias": [
+          "duracion"
         ],
         "bodyNoCoincideCon": [
           "\\d{1,2}:\\d{2}"
@@ -458,10 +447,9 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "cuándo",
+        "missingInformationCategorias": [
           "fecha",
-          "plazo"
+          "duracion"
         ],
         "bodyNoContiene": [
           "mañana",
@@ -651,10 +639,9 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "reapertura",
-          "cuándo",
-          "fecha"
+        "missingInformationCategorias": [
+          "fecha",
+          "duracion"
         ],
         "notas": "Falta la fecha de reapertura, que es lo primero que la gente va a preguntar."
       }
@@ -702,13 +689,9 @@
         "bodyContiene": [
           "sensor"
         ],
-        "missingInformationMenciona": [
+        "missingInformationCategorias": [
           "fecha",
-          "cuándo",
-          "cuando",
-          "plazo",
-          "día",
-          "dia"
+          "duracion"
         ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
@@ -737,11 +720,8 @@
           "13:00"
         ],
         "notas": "«El miércoles» no es una fecha: ¿cuál miércoles? Es el hueco de «cuándo» que falta en el 57% de los avisos reales. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
-        "missingInformationMenciona": [
-          "fecha",
-          "día",
-          "dia",
-          "exact"
+        "missingInformationCategorias": [
+          "fecha"
         ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
@@ -768,12 +748,8 @@
           "60"
         ],
         "notas": "Cobran 60 pesos por árbol y no dice qué día pasa el recolector. El residente no sabe cuándo dejar el dinero. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md.",
-        "missingInformationMenciona": [
-          "fecha",
-          "cuándo",
-          "cuando",
-          "día",
-          "dia"
+        "missingInformationCategorias": [
+          "fecha"
         ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
@@ -796,10 +772,8 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "fecha",
-          "día",
-          "cuándo"
+        "missingInformationCategorias": [
+          "fecha"
         ],
         "bodyNoContiene": [
           "lunes",
@@ -831,15 +805,14 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "hora",
-          "cuándo",
-          "horario"
+        "missingInformationCategorias": [
+          "fecha",
+          "duracion"
         ],
         "bodyNoCoincideCon": [
           "\\d{1,2}:\\d{2}"
         ],
-        "notas": "Ninguna hora es correcta porque no se dio ninguna."
+        "notas": "Ninguna hora es correcta porque no se dio ninguna. · Acepta fecha o duracion desde el 12 de agosto de 2026: el modelo etiquetó «¿Cuál es el horario de inicio y finalización?» como duracion y la afirmación exigía fecha. Las dos son defendibles para una hora de inicio ausente; exigir una sola vuelve a medir la etiqueta en vez del modelo — el mismo defecto un piso más arriba."
       }
     },
     {
@@ -857,11 +830,8 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "torre",
-          "zona",
-          "quiénes",
-          "afecta"
+        "missingInformationCategorias": [
+          "alcance"
         ],
         "notas": "Se dijo el piso pero no la torre. Sin eso, nadie sabe si le toca."
       }
@@ -910,10 +880,8 @@
       },
       "espera": {
         "assumptionsVacio": true,
-        "missingInformationMenciona": [
-          "hasta",
-          "duración",
-          "cuánto"
+        "missingInformationCategorias": [
+          "duracion"
         ],
         "notas": "Tiene el inicio, no el final. No puede escribir «de 8:00 a 14:00»."
       }
@@ -1274,12 +1242,8 @@
           "alberca",
           "elevador"
         ],
-        "missingInformationMenciona": [
-          "fecha",
-          "cuándo",
-          "cuando",
-          "día",
-          "dia"
+        "missingInformationCategorias": [
+          "fecha"
         ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
@@ -1352,10 +1316,9 @@
           "(se\\s+)?restablec\\w*\\s+(a|hacia)\\s+las\\s*\\d",
           "(enviar|mandar|dar|habr)\\w*\\s+(una\\s+)?(actualizaci[óo]n|aviso|informaci[óo]n)"
         ],
-        "missingInformationMenciona": [
-          "restablec",
-          "hora",
-          "hasta"
+        "missingInformationCategorias": [
+          "duracion",
+          "fecha"
         ],
         "notas": "DECISIÓN DE PRODUCTO (12 de agosto de 2026): el cuerpo debe RECONOCER que no se sabe la hora de fin, y NO debe prometer una actualización que el administrador no prometió. Una promesa que nadie hizo es una suposición, y la regla dura las prohíbe. Además el corpus dice que ese aviso de restablecimiento llega el 20% de las veces: escribirlo solo industrializa una promesa que se rompe cuatro de cada cinco."
       }
@@ -1420,11 +1383,7 @@
           "\\d{1,2}:\\d{2}",
           "\\b\\d+\\s*(hora|minuto)"
         ],
-        "missingInformationMenciona": [
-          "hora",
-          "cuánto",
-          "cuanto",
-          "duración",
+        "missingInformationCategorias": [
           "duracion"
         ],
         "notas": "Ni «un rato» son dos horas ni la mañana son las 9:00. Debe pedir la hora y la duración en vez de ponerles número."

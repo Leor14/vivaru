@@ -31,18 +31,34 @@ function evaluarCaso(caso, salida) {
     if (e.assumptionsVacio && salida.assumptions.length > 0) {
         fallos.push(`assumptions no está vacío: ${JSON.stringify(salida.assumptions)}`);
     }
+    // Lo que pidió el modelo, legible. Se usa en las afirmaciones y en los
+    // mensajes de fallo, que es donde alguien tiene que entender qué pasó.
+    const pedido = salida.missingInformation.map((d) => `${d.categoria}: ${d.detalle}`).join(" · ");
+    const detalles = salida.missingInformation.map((d) => d.detalle).join(" · ");
     if (e.missingInformationVacio === true && salida.missingInformation.length > 0) {
-        fallos.push(`pidió datos que sí se dieron: ${JSON.stringify(salida.missingInformation)}`);
+        fallos.push(`pidió datos que sí se dieron: ${pedido}`);
     }
     if (e.missingInformationVacio === false && salida.missingInformation.length === 0) {
         fallos.push("no pidió nada, y faltaban datos");
     }
     // Basta con que UNA de las palabras aparezca en ALGUNO de los ítems: se está
     // comprobando que pidió el dato, no cómo lo redactó.
+    //
+    // Busca solo en `detalle`, nunca en `categoria`. Si buscara en las dos, la
+    // palabra «duracion» de la categoría haría pasar sola una afirmación que
+    // espera «duración» — la afirmación dejaría de medir al modelo y pasaría a
+    // medir el nombre que le pusimos a la etiqueta.
     if (e.missingInformationMenciona?.length) {
-        const todo = salida.missingInformation.join(" · ");
-        if (!e.missingInformationMenciona.some((p) => contiene(todo, p))) {
-            fallos.push(`no pidió el dato que falta (esperaba alguna de: ${e.missingInformationMenciona.join(", ")}) — pidió: ${todo || "nada"}`);
+        if (!e.missingInformationMenciona.some((p) => contiene(detalles, p))) {
+            fallos.push(`no pidió el dato que falta (esperaba alguna de: ${e.missingInformationMenciona.join(", ")}) — pidió: ${pedido || "nada"}`);
+        }
+    }
+    // La versión que no depende del vocabulario. Basta con que UNA categoría de
+    // las esperadas aparezca.
+    if (e.missingInformationCategorias?.length) {
+        const categorias = new Set(salida.missingInformation.map((d) => d.categoria));
+        if (!e.missingInformationCategorias.some((c) => categorias.has(c))) {
+            fallos.push(`no pidió el dato que falta (esperaba categoría: ${e.missingInformationCategorias.join(", ")}) — pidió: ${pedido || "nada"}`);
         }
     }
     for (const aguja of e.bodyContiene ?? []) {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OPERATION_KEYS = void 0;
+exports.OPERATION_KEYS = exports.CATEGORIAS_DATO_FALTANTE = void 0;
 exports.findOperation = findOperation;
 exports.validateOperationInput = validateOperationInput;
 const zod_1 = require("zod");
@@ -24,6 +24,22 @@ const redactarComunicacionInput = zod_1.z
 })
     .strict();
 /**
+ * Los cuatro datos que un residente busca en un aviso, más una salida para todo
+ * lo demás.
+ *
+ * **No es una taxonomía inventada:** sale de medir los 71 avisos operativos del
+ * corpus vecinal. Faltan, respectivamente, en el 57%, el 95%, el 48% y el 84%
+ * de los avisos reales (`datasets/linea-base/hipotesis-de-valor.md`). Y el
+ * modelo converge solo a esta misma lista sin que ningún prompt se la enseñe,
+ * que es el hallazgo más fuerte del Paso 2.4.
+ *
+ * `otro` no es pereza: sin escape, el modelo tendría que forzar dentro de una
+ * de las cuatro cosas que no lo son —un monto, un teléfono— y una categoría
+ * mal puesta es peor que ninguna. En la corrida del 12 de agosto pidió montos
+ * y fechas de vencimiento, así que el caso existe de verdad.
+ */
+exports.CATEGORIAS_DATO_FALTANTE = ["duracion", "fecha", "alcance", "accion", "otro"];
+/**
  * Salida del borrador, tal y como la fija la PRD (Paso 2.3).
  *
  * `assumptions` **debe venir vacío** y es una regla dura, no una advertencia:
@@ -38,8 +54,35 @@ const redactarComunicacionOutput = zod_1.z
     title: zod_1.z.string().trim().min(1).max(160),
     body: zod_1.z.string().trim().min(1),
     notificationSummary: zod_1.z.string().trim().min(1).max(280),
-    /** Datos críticos que faltan. Que los pida es mejor que que los invente. */
-    missingInformation: zod_1.z.array(zod_1.z.string()),
+    /**
+     * Datos críticos que faltan. Que los pida es mejor que que los invente.
+     *
+     * **Va categorizado, y esa es la razón de que la operación sea v2.** La
+     * interfaz del Paso 2.5 tiene que poner «cuánto dura» arriba del todo —es
+     * el dato que falta el 95% de las veces— y con una lista de frases sueltas
+     * eso solo se puede hacer buscando palabras. La lectura del 2.4 documenta
+     * dos veces lo que cuesta: «cuando una afirmación busca palabras exactas
+     * sobre texto libre, mide al que la escribió». El calificador cayó en ello
+     * dos veces en un día; la interfaz caería igual.
+     *
+     * La descripción de `categoria` no está de adorno: viaja al modelo dentro
+     * del esquema vía `z.toJSONSchema` (Paso 1.4-real), así que las categorías
+     * se explican **sin tocar ningún prompt de tarea** — que es lo que permite
+     * que la comparación entre v1, v2 y v3 siga midiendo lo mismo.
+     */
+    missingInformation: zod_1.z.array(zod_1.z
+        .object({
+        categoria: zod_1.z
+            .enum(exports.CATEGORIAS_DATO_FALTANTE)
+            .describe("duracion = cuánto dura o hasta cuándo; fecha = cuándo ocurre; alcance = a qué torres, zonas o unidades afecta; accion = qué debe hacer el residente; otro = cualquier otro dato que falte. Estas categorías NO son la lista de lo que hay que preguntar: si falta un dato importante que no encaja en ninguna de las cuatro primeras, pídelo igualmente con la categoría `otro`."),
+        detalle: zod_1.z
+            .string()
+            .trim()
+            .min(1)
+            .max(200)
+            .describe("La pregunta concreta, en español, tal y como se le mostraría al administrador."),
+    })
+        .strict()),
     qualityFlags: zod_1.z.array(zod_1.z.string()),
     assumptions: zod_1.z.array(zod_1.z.string()).max(0),
 })
@@ -47,7 +90,12 @@ const redactarComunicacionOutput = zod_1.z
 const OPERATIONS = {
     "comunicaciones-redactar": {
         key: "comunicaciones-redactar",
-        version: 1,
+        // v2 (12 de agosto de 2026): `missingInformation` pasó de lista de frases a
+        // lista categorizada. La ENTRADA no cambió, y eso es deliberado: los 59
+        // casos del conjunto de evaluación siguen valiendo enteros, así que el
+        // cambio de forma se puede medir contra las corridas anteriores en vez de
+        // empezar de cero.
+        version: 2,
         modulo: "comunicaciones",
         label: "Redactar borrador de comunicación",
         description: "A partir del propósito, los hechos y el tono que escribe el administrador, propone título, cuerpo y resumen para notificación. No decide audiencia ni publica.",

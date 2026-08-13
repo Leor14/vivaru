@@ -87,7 +87,12 @@ const V3 = {
         '{"title":"Mantenimiento del portón vehicular este jueves",',
         ' "body":"Estimados residentes:\\n\\nEl jueves se realizará el mantenimiento del portón vehicular. Mientras duren los trabajos, el portón se abrirá de forma manual con apoyo del personal.\\n\\nAgradecemos su comprensión.",',
         ' "notificationSummary":"Mantenimiento del portón este jueves; apertura manual",',
-        ' "missingInformation":["¿A qué hora comienzan los trabajos?","¿Cuánto tiempo durarán aproximadamente?"],',
+        // Traducido a la forma categorizada del contrato v2. Es el MISMO ejemplo
+        // —mismas dos preguntas, mismo orden— reescrito con la forma nueva. Dejarlo
+        // con la vieja enseñaría al modelo algo que el esquema prohíbe, y eso no
+        // sería «no tocar el prompt», sería sabotear a v3 en la comparación.
+        ' "missingInformation":[{"categoria":"fecha","detalle":"¿A qué hora comienzan los trabajos?"},',
+        '                       {"categoria":"duracion","detalle":"¿Cuánto tiempo durarán aproximadamente?"}],',
         ' "qualityFlags":[],',
         ' "assumptions":[]}',
         "",

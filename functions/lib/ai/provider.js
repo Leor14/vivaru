@@ -53,7 +53,16 @@ function respuestaSimulada(request) {
             title: "[SIMULADO] Borrador de comunicación",
             body: `[SIMULADO] ${input?.proposito ?? ""}\n\n${hechos.map((h) => `- ${h}`).join("\n")}`,
             notificationSummary: "[SIMULADO] Resumen para notificación",
-            missingInformation: [],
+            // Devuelve datos faltantes a propósito, y no por realismo: la lista de lo
+            // que falta ES la funcionalidad del Paso 2.5, y con el proveedor real
+            // apagado —que es como nace— una lista siempre vacía dejaría la parte
+            // principal de la pantalla sin poder construirse ni verse sin pagar.
+            // Van dos y de categorías distintas para que se note el orden: la
+            // interfaz debe subir `duracion` por encima de `fecha`.
+            missingInformation: [
+                { categoria: "duracion", detalle: "[SIMULADO] ¿Cuánto tiempo durará?" },
+                { categoria: "fecha", detalle: "[SIMULADO] ¿Qué día exactamente?" },
+            ],
             qualityFlags: ["respuesta_simulada"],
             // Vacío siempre: la regla dura de la PRD. Un simulador que la incumpliera
             // enseñaría a ignorar el validador.
