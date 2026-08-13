@@ -1,7 +1,80 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 8 de agosto de 2026, al auditar el portafolio de IA.
+Actualizado el 12 de agosto de 2026, al cerrar el Paso 2.5.
+
+## El canario está construido y probado con manos humanas (12 ago 2026)
+
+**El Paso 2.5 está cerrado.** Existe una pantalla: el panel «Redactar con IA»
+dentro del formulario de crear comunicado, plegado detrás de un botón, con la
+lista de lo que falta ordenada y el feedback registrándose. Detalle completo en
+el registro de ejecución de `docs/hoja-de-ruta-ia.md`.
+
+**Probado en staging con el modelo real el 12 de agosto:** 4 llamadas, 3.805
+tokens, **USD 0,0018**. El borrador salió correcto y David lo aplicó. La
+bandera `ia-proveedor-real` quedó **apagada** al terminar.
+
+**Lo que bloquea el piloto (Paso 2.6), en orden:**
+
+1. **Nada de esto está en producción.** Reglas, índices, functions y banderas
+   viven solo en `vivaru-staging-02`. Los administradores reales están en
+   `hogaru-1`.
+2. **A quién se le entrega el piloto — decisión de producto, no código.**
+   ¿Al administrador (hipótesis H2′: que sus avisos salgan completos) o al
+   comité (H3: que cualquiera escriba como un profesional)? Se mide distinto y
+   se habla con gente distinta. Las dos hipótesis, medidas, en
+   `datasets/linea-base/hipotesis-de-valor.md`.
+
+**Decisiones de producto abiertas, las tres pequeñas:**
+
+- ¿El borrador debe pedir el motivo? Hoy no lo pide **nunca** y tampoco se lo
+  inventa nunca — comprobado en cinco corridas.
+- Las dos inferencias que aparecieron en la primera prueba real: escribió «por
+  24 horas» (aritmética sobre 7am–7am) y «recomendamos almacenar agua»
+  (deducido de que no hay pipas). La segunda la pide el conjunto de evaluación
+  a propósito; la primera no la pidió nadie.
+- **`notificationSummary` se genera y se tira.** Hoy la notificación al
+  residente dice «La administracion publico un nuevo comunicado» para todos los
+  comunicados, siempre (`functions/src/index.ts`, `onCommunicationCreated`).
+
+**Deuda menor, sin prisa:**
+
+- **`qualityFlags` sigue sin cerrar, y no es olvido:** la lista de cinco
+  valores de la PRD no tiene dónde meter «hechos contradictorios» ni
+  «instrucción incrustada», que son 2 de los 5 problemas que el conjunto
+  comprueba hoy. Cerrarlo exige inventar dos valores y reescribir cinco
+  afirmaciones — su propio incremento, con su propia corrida.
+- Leer a mano los 3 casos de `requiereJuicioHumano`.
+- El campo `length` y el tono `formal` de la PRD, **aplazados a propósito**:
+  ninguno de los 59 casos los cubre.
+- **Revisar en el piloto el costo del contrato v2.** Categorizar lo que falta
+  hizo que el modelo pregunte menos (de 2,32 a 1,93 datos por borrador). Se
+  aceptó con los números delante; la salida, si molesta, es hacer `categoria`
+  opcional. Lectura completa en
+  `datasets/evaluacion/resultados/2026-08-12-contrato-v2.md`.
+
+## Dos trampas de infraestructura que costaron una tarde (12 ago 2026)
+
+Las dos estaban ahí desde antes y no las provocó el trabajo de IA. Se
+documentan porque **el mensaje de error no dice cuál es la causa** y volver a
+diagnosticarlas cuesta lo mismo la segunda vez.
+
+- **`npm error Invalid Version:` en Cloud Build, sin decir qué paquete.** Era
+  una entrada fantasma en `functions/package-lock.json`
+  —`lightningcss-darwin-x64` sin `version` ni `resolved`—, que viene de
+  `vitest → vite → lightningcss`. En macOS no salta nunca; en Linux tumba
+  **todos** los despliegues de functions. Reparada con los datos reales del
+  registro. **Su origen sigue vivo:** la caché de npm de la máquina de David
+  tiene archivos que su usuario no puede escribir (`EACCES` en
+  `~/.npm/_cacache`), npm no pudo cachear el paquete y dejó el hueco. Al
+  regenerar el lockfile desde esa máquina, la entrada rota vuelve. Se cierra
+  con `sudo chown -R $(whoami) ~/.npm`, que necesita al usuario.
+- **Las funciones nuevas nacen sin permiso de invocación.** `aiInvoke` y
+  `registrarFeedbackIa` se crearon sin `allUsers` / `roles/run.invoker` en
+  Cloud Run, que es lo que tienen las otras sesenta callables. Sin él la
+  petición muere antes de tocar el código y el navegador ve «error interno».
+  Se arregla con `gcloud run services add-iam-policy-binding`. **Comprobarlo
+  cada vez que se despliegue una callable nueva.**
 
 ## Lo que se cerró y no hay que rehacer
 
