@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,23 @@ const TONOS = [
  * Poner una nota en los cinco convertiría la lista en un muro de texto.
  */
 const NOTA_DURACION = "Es el dato que más se olvida: falta en 95 de cada 100 avisos.";
+
+/**
+ * El morado de marca, reservado aquí para lo asistido por IA.
+ *
+ * **No es decoración.** El resto del formulario es azul marino, y la hoja de
+ * ruta pide «separar visualmente lo que dio el administrador de lo que propuso
+ * la IA». Un color propio hace ese trabajo antes de que nadie lea una etiqueta:
+ * lo morado lo escribió una máquina y hay que revisarlo.
+ *
+ * Se derivan con `color-mix` del token de marca en vez de fijar hexadecimales
+ * nuevos, para que un cambio de paleta arrastre también a esta pantalla.
+ */
+const IA_TOKENS = {
+  "--ia-tinta": "var(--color-brand-purple-deep)",
+  "--ia-borde": "color-mix(in srgb, var(--color-brand-purple-deep) 22%, white)",
+  "--ia-fondo": "color-mix(in srgb, var(--color-brand-purple-deep) 5%, white)",
+} as React.CSSProperties;
 
 export interface AsistenteBorradorProps {
   /** Inserta la propuesta en el formulario. El padre guarda lo que había. */
@@ -149,11 +167,15 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
 
   return (
     <section
-      className="space-y-3 rounded-xl border border-[var(--brand-200)] bg-[var(--brand-50)] p-4"
-      aria-label="Redactar con ayuda"
+      className="space-y-3 rounded-xl border border-[var(--ia-borde)] bg-[var(--ia-fondo)] p-4"
+      style={IA_TOKENS}
+      aria-label="Redactar con IA"
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-[var(--brand-700)]">Redactar con ayuda</h3>
+        <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ia-tinta)]">
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
+          Redactar con IA
+        </h3>
         {cuota ? (
           <span className="text-xs text-[var(--slate-500)]">Te quedan {cuota.usuarioDia} hoy</span>
         ) : null}
@@ -222,7 +244,17 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" onClick={() => void pedirBorrador()} disabled={!listoParaPedir || cargando || sinCuota}>
+        {/*
+          El botón de IA va en morado y el de «Guardar» sigue azul marino. No es
+          un capricho: son acciones de naturaleza distinta —una propone, la otra
+          publica— y conviene que no se confundan de un vistazo.
+        */}
+        <Button
+          type="button"
+          onClick={() => void pedirBorrador()}
+          disabled={!listoParaPedir || cargando || sinCuota}
+          className="bg-[var(--ia-tinta)] hover:bg-[var(--color-brand-plum-dark)]"
+        >
           {cargando ? "Preparando…" : borrador ? "Pedir otra versión" : "Proponer borrador"}
         </Button>
         {!propositoValido && proposito.length > 0 ? (
@@ -292,8 +324,9 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
       ) : null}
 
       {borrador ? (
-        <div className="rounded-xl border border-[var(--brand-200)] border-l-4 border-l-[var(--brand-700)] bg-white p-3">
-          <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[var(--brand-700)]">
+        <div className="rounded-xl border border-[var(--ia-borde)] border-l-4 border-l-[var(--ia-tinta)] bg-white p-3">
+          <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--ia-tinta)]">
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             Propuesta de la IA
           </span>
           <p className="mb-1 text-sm font-semibold text-[var(--slate-900)]">{borrador.title}</p>
