@@ -659,6 +659,8 @@ export async function redactarComunicacionCallable(input: RedactarComunicacionIn
  * No manda `tenantId` — sale de la sesión, igual que en la puerta.
  */
 export async function registrarFeedbackIaCallable(input: {
+  /** Une los varios envíos de una misma sesión de borrador en una sola fila. */
+  sesionId: string;
   operationKey: "comunicaciones-redactar";
   propuestas: number;
   aplicada: boolean;

@@ -37,6 +37,28 @@ const MAX_CATEGORIAS = 40;
 
 export const feedbackSchema = z
   .object({
+    /**
+     * Identificador de la sesión de borrador, generado en el navegador.
+     *
+     * **Existe para poder mandar la misma fila varias veces.** El navegador
+     * envía cuando puede —al cerrar el modal, y también al ocultarse la
+     * pestaña, que es lo único que se dispara de forma fiable cuando alguien
+     * recarga o se va—. Sin identificador, cada envío crearía una fila nueva y
+     * un mismo borrador contaría dos o tres veces; con él, el último envío
+     * pisa al anterior y la fila queda con el estado más completo.
+     *
+     * No identifica a una persona ni a un comunicado: nace y muere con el
+     * panel abierto.
+     */
+    // Alfabeto acotado a propósito: este valor forma parte de la RUTA del
+    // documento. Una barra convertiría la fila en una subcolección, y un `..`
+    // en algo peor. Un UUID cumple de sobra.
+    sesionId: z
+      .string()
+      .trim()
+      .min(8)
+      .max(64)
+      .regex(/^[A-Za-z0-9_-]+$/, "el identificador de sesión solo admite letras, dígitos, guion y guion bajo"),
     operationKey: z.literal("comunicaciones-redactar"),
     propuestas: z.number().int().min(1).max(100),
     aplicada: z.boolean(),
@@ -74,9 +96,16 @@ export interface AiFeedbackEntry extends FeedbackBorrador {
  */
 export async function recordAiFeedback(entry: AiFeedbackEntry): Promise<void> {
   try {
+    // El id lo compone el SERVIDOR con el conjunto que resolvió de la sesión,
+    // no el cliente. Así dos conjuntos no pueden pisarse la fila ni aunque
+    // alguien reutilice un `sesionId` ajeno a propósito.
+    const id = `${entry.tenantId}_${entry.sesionId}`;
     await getFirestore()
       .collection(AI_FEEDBACK_COLLECTION)
-      .add({ ...entry, createdAt: Timestamp.now() });
+      .doc(id)
+      // `merge` para que el envío tardío —el que trae si se guardó y cuánto se
+      // editó— complete la fila que dejó el envío temprano en vez de duplicarla.
+      .set({ ...entry, createdAt: Timestamp.now() }, { merge: true });
   } catch (error) {
     logger.error("aiFeedback: no se pudo registrar", {
       tenantId: entry.tenantId,

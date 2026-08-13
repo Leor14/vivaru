@@ -101,6 +101,7 @@ describe("las banderas NO cierran esta puerta", () => {
 
 describe("el esquema no tiene dónde meter contenido", () => {
   const valido = {
+    sesionId: "3f2a9c1e-7b4d-4a1f-9e2c-8d5b6a0f1c33",
     operationKey: "comunicaciones-redactar" as const,
     propuestas: 1,
     aplicada: true,
@@ -144,6 +145,25 @@ describe("el esquema no tiene dónde meter contenido", () => {
 
   it("RECHAZA cero propuestas — no habría nada que contar", () => {
     expect(feedbackSchema.safeParse({ ...valido, propuestas: 0 }).success).toBe(false);
+  });
+
+  it("RECHAZA una sesión sin identificador — sin él, cada envío duplicaría la fila", () => {
+    expect(feedbackSchema.safeParse({ ...valido, sesionId: "" }).success).toBe(false);
+    const { sesionId: _omitido, ...sinSesion } = valido;
+    expect(feedbackSchema.safeParse(sinSesion).success).toBe(false);
+  });
+
+  it("RECHAZA un identificador que pueda torcer la ruta del documento", () => {
+    // El id compone la ruta en Firestore: una barra lo convertiría en
+    // subcolección y un `..` en algo peor.
+    expect(feedbackSchema.safeParse({ ...valido, sesionId: "abc/../otro" }).success).toBe(false);
+    expect(feedbackSchema.safeParse({ ...valido, sesionId: "conjunto/ajeno" }).success).toBe(false);
+  });
+
+  it("RECHAZA un identificador absurdamente largo", () => {
+    // El id compone la ruta del documento en Firestore. Un valor libre de
+    // longitud arbitraria es una invitación a fabricar rutas raras.
+    expect(feedbackSchema.safeParse({ ...valido, sesionId: "x".repeat(65) }).success).toBe(false);
   });
 
   it("acepta no haber guardado, que es un resultado válido y frecuente", () => {
