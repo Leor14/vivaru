@@ -392,9 +392,32 @@ para el MVP y se revisa en el piloto. Lectura completa, los dos errores propios
 que aparecieron por el camino y la salida si molesta, en
 `datasets/evaluacion/resultados/2026-08-12-contrato-v2.md`.
 
-**2.6 Piloto.** Un tenant, bandera encendida, tú mirando. Métricas: propuestas
+**2.6 Piloto. — GUION ESCRITO (12 de agosto de 2026), falta la persona.**
+Un tenant, bandera encendida, tú mirando. Métricas: propuestas
 aceptadas, magnitud de la edición, tiempo contra la línea base, hechos inventados
 —objetivo cero—, y costo por comunicación.
+
+**Se pone a prueba H2′ y se le entrega al administrador.** Decidido el 12 de
+agosto: es para quien se está comercializando Vivaru. No exige tocar código —el
+catálogo ya autoriza solo a los roles de administrador—. **H3 queda aparcada con
+su argumento intacto** para cuando haya una administradora con varios conjuntos:
+ahí «que cualquiera escriba como un profesional» es consistencia de cartera, y
+el rol `committee` ya existe.
+
+**Y es una sesión supervisada, no una bandera encendida esperando tráfico.**
+Producción tiene 26 comunicaciones en cinco meses y **cero en los últimos
+treinta días** — no porque el módulo falle, sino porque Vivaru aún no se vende
+para ese uso. Una hora con un administrador de verdad da más señal que tres
+meses de espera.
+
+**La línea base se mide en la propia sesión**, con los dos primeros avisos
+escritos a mano y sin explicarle antes cuáles son los cuatro datos. Es lo que
+permite decir «el mismo administrador, el mismo día, el mismo canal» en vez de
+comparar contra el corpus de WhatsApp de otro conjunto.
+
+Guion completo —preparación, partes, qué se anota a mano, cómo se cuentan los
+cuatro datos, criterios de seguir/corregir/retirar y las trampas— en
+`docs/guion-piloto-comunicaciones.md`.
 
 **2.7 La decisión.** Seguir, corregir o retirar.
 

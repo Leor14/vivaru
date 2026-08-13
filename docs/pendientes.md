@@ -19,11 +19,25 @@ bandera `ia-proveedor-real` quedó **apagada** al terminar.
 1. **Nada de esto está en producción.** Reglas, índices, functions y banderas
    viven solo en `vivaru-staging-02`. Los administradores reales están en
    `hogaru-1`.
-2. **A quién se le entrega el piloto — decisión de producto, no código.**
-   ¿Al administrador (hipótesis H2′: que sus avisos salgan completos) o al
-   comité (H3: que cualquiera escriba como un profesional)? Se mide distinto y
-   se habla con gente distinta. Las dos hipótesis, medidas, en
-   `datasets/linea-base/hipotesis-de-valor.md`.
+2. ~~**A quién se le entrega el piloto.**~~ **DECIDIDO el 12 de agosto de 2026:
+   al administrador, hipótesis H2′.** Es para quien se está comercializando
+   Vivaru. **No exige tocar código**: el catálogo ya autoriza solo a
+   `tenant_admin` y `admin_tenant`. **H3 queda aparcada, no descartada** —para
+   una administradora con varios conjuntos, «que cualquiera escriba como un
+   profesional» es consistencia de cartera, y el rol `committee` ya existe, así
+   que habilitarlo sería una línea.
+3. **Conseguir al administrador.** El guion de la sesión está escrito y listo
+   para ejecutar: `docs/guion-piloto-comunicaciones.md`. Falta la persona.
+
+**Por qué el piloto es una sesión y no una bandera encendida:** producción tiene
+**26 comunicaciones en cinco meses y cero en los últimos treinta días** (medido
+el 13 de agosto con `functions/scripts/audit-volumen-ia.mjs`). No es rechazo del
+módulo: **Vivaru todavía no se comercializa para ese uso.** Esperar tráfico
+orgánico es esperar sentado.
+
+*(Ojo: el 8 de agosto esta misma nota decía 2 comunicaciones reales y hoy salen
+26. O cambió la clasificación de conjuntos sembrados, o entraron clientes.
+Merece una mirada, no bloquea nada.)*
 
 **Decisiones de producto abiertas, las tres pequeñas:**
 
