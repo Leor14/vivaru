@@ -9,6 +9,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Modal } from "@/components/shared/modal";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -20,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { communicationSchema, type CommunicationInput } from "@/features/admin/schemas";
+import { AsistenteBorrador } from "@/features/communications/asistente-borrador";
 import {
   createCommunication,
   createDocumentRecord,
@@ -130,12 +132,40 @@ export default function AdminCommunicationsPage() {
     }
   }
 
+  /**
+   * Lo que había en el formulario antes de insertar una propuesta de IA.
+   *
+   * **Deshacer siempre**, dice la hoja de ruta, y la PRD lo repite: «conservar
+   * el contenido anterior al regenerar y permitir deshacer». Vive aquí y no en
+   * el panel porque quien es dueño de los campos es el formulario.
+   *
+   * Solo guarda título y mensaje: son los dos únicos campos que la IA puede
+   * llegar a tocar.
+   */
+  const [previoAsistente, setPrevioAsistente] = useState<{ title: string; message: string } | null>(null);
+
+  function aplicarBorradorIa(borrador: { title: string; body: string }) {
+    setPrevioAsistente({ title: form.getValues("title"), message: form.getValues("message") });
+    // `shouldDirty` para que el formulario sepa que hay cambios sin guardar; la
+    // validación se dispara sola al enviar, como con cualquier otra edición.
+    form.setValue("title", borrador.title, { shouldDirty: true });
+    form.setValue("message", borrador.body, { shouldDirty: true });
+  }
+
+  function deshacerBorradorIa() {
+    if (!previoAsistente) return;
+    form.setValue("title", previoAsistente.title, { shouldDirty: true });
+    form.setValue("message", previoAsistente.message, { shouldDirty: true });
+    setPrevioAsistente(null);
+  }
+
   function openCreate() {
     setEditingItem(null);
     setAttachmentFiles([]);
     setExistingAttachments([]);
     setAudienceType("all");
     setSelectedTowers([]);
+    setPrevioAsistente(null);
     form.reset({ title: "", message: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
     setCreateOpen(true);
   }
@@ -149,6 +179,7 @@ export default function AdminCommunicationsPage() {
   function openEdit(item: CommunicationItem) {
     setEditingItem(item);
     setAttachmentFiles([]);
+    setPrevioAsistente(null);
     setExistingAttachments(attachmentsOf(item));
     setAudienceType(item.audience === "towers" ? "towers" : "all");
     setSelectedTowers(item.audienceTowers ?? []);
@@ -485,6 +516,15 @@ export default function AdminCommunicationsPage() {
 
       <Modal open={createOpen} title={editingItem ? "Editar comunicado" : "Crear comunicado"} onClose={() => setCreateOpen(false)}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
+          {/*
+            El panel va arriba y detrás de su bandera. `FeatureGate` solo oculta
+            la interfaz — el candado de verdad es el servidor, que comprueba la
+            misma bandera antes de gastar un token. Con la bandera apagada este
+            formulario es exactamente el de siempre.
+          */}
+          <FeatureGate flag="ai-communications-draft">
+            <AsistenteBorrador onAplicar={aplicarBorradorIa} onDeshacer={deshacerBorradorIa} />
+          </FeatureGate>
           <div>
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Titulo</label>
             <Input {...form.register("title")} placeholder="Corte programado de agua" />

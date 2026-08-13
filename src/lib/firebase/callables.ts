@@ -4,6 +4,9 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, functions } from "@/lib/firebase/client";
+// Solo el tipo: `import type` se borra al compilar, así que el módulo puro de
+// datos faltantes no arrastra Firebase a quien lo pruebe.
+import type { DatoFaltante } from "@/lib/ai/datos-faltantes";
 
 type CreateVisitorPassInput = {
   tenantId: string;
@@ -589,4 +592,58 @@ export async function getAiUsageCallable(input: { from?: string; to?: string } =
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, AiUsageSummaryResponse>(functions, "getAiUsage");
   return executeCallable(callable, input, "No fue posible leer el consumo de IA.");
+}
+
+export interface BorradorComunicacion {
+  title: string;
+  body: string;
+  notificationSummary: string;
+  missingInformation: DatoFaltante[];
+  qualityFlags: string[];
+  /** Vacío siempre: si el modelo asumió algo, el servidor ya rechazó la respuesta entera. */
+  assumptions: string[];
+}
+
+export interface CuotaRestante {
+  conjuntoDia: number;
+  conjuntoMes: number;
+  usuarioDia: number;
+}
+
+export interface RedactarComunicacionResult {
+  output: BorradorComunicacion;
+  cuotaRestante: CuotaRestante;
+}
+
+export interface RedactarComunicacionInput {
+  proposito: string;
+  hechos: string[];
+  tono: "informativo" | "urgente" | "cordial";
+}
+
+/**
+ * Pide un borrador asistido de comunicación (Paso 2.5).
+ *
+ * **No manda `tenantId`, y no es un olvido.** La puerta rechaza cualquier
+ * llamada que lo traiga en el cuerpo *aunque coincida* con el de la sesión: el
+ * conjunto sale del token y de la membresía, nunca del cliente (Paso 1.2).
+ *
+ * Tampoco manda audiencia, torres, unidades, vigencia ni estado. No están en el
+ * esquema de entrada del catálogo, así que no hay forma de que la IA los toque.
+ *
+ * Cuando falla, el mensaje que llega ya está escrito para la persona y termina
+ * en «puedes continuar con el proceso manual». Quien llama solo tiene que
+ * mostrarlo: el detalle técnico se queda en los logs del servidor.
+ */
+export async function redactarComunicacionCallable(input: RedactarComunicacionInput) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    { operationKey: string; input: RedactarComunicacionInput },
+    RedactarComunicacionResult
+  >(functions, "aiInvoke");
+  return executeCallable(
+    callable,
+    { operationKey: "comunicaciones-redactar", input },
+    "No pudimos preparar el borrador. Puedes continuar con el proceso manual.",
+  );
 }

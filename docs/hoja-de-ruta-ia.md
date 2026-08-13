@@ -360,10 +360,37 @@ arreglados y qué hacer a continuación en
 de prompt y comparamos. **Aquí es donde de verdad se aprende**, y no cuesta
 riesgo ninguno porque no hay usuarios.
 
-**2.5 La interfaz.** Panel de hechos dentro del formulario que ya existe.
+**2.5 La interfaz. — CONTRATO PREPARADO (12 de agosto de 2026), panel pendiente.**
+Panel de hechos dentro del formulario que ya existe.
 Separar visualmente lo que dio el administrador de lo que propuso la IA. Deshacer
 siempre. Y lo que la IA no toca jamás: audiencia, torres, unidades, vigencia,
 estado y publicación.
+
+**La PRD `PRD-VAI-FEAT-003` se leyó entera el 12 de agosto de 2026** y confirma
+la forma: §11 pide «panel ligero dentro del formulario actual». Resuelve tres
+cosas que estaban abiertas —la entrada asistida **no se guarda** con el
+comunicado (§7), la lista de lo que falta va **antes** del borrador y no se
+rellena sola (§5), y el motivo no se pide en el MVP—. Y sitúa el modo «pega un
+borrador y te lo reescribo» en su **Fase 4**, después de la beta, así que no
+entra aquí.
+
+**Tres desviaciones deliberadas de la PRD**, escritas para que nadie las
+descubra como olvidos:
+
+| La PRD pide | Qué se hizo | Por qué |
+|---|---|---|
+| Entrada con `length` | No se añade | Ninguno de los 59 casos lo cubre |
+| Cuatro tonos, con `formal` | Se quedan tres | Un tono sin examen es un tono sin medir |
+| `qualityFlags` cerrado a cinco valores | Sigue libre | La lista de la PRD no tiene dónde meter «hechos contradictorios» ni «instrucción incrustada», que son 2 de los 5 problemas que el conjunto comprueba |
+
+**Antes del panel se cambió el contrato, y costó algo.** `missingInformation`
+pasó a llevar categoría, porque «cuánto dura arriba del todo» no se puede
+resolver buscando palabras sin repetir el defecto que la lectura del 2.4
+documentó dos veces. El precio, medido: **el modelo pregunta menos** —de 2,32 a
+1,93 datos por borrador en v2— y v2 bajó de la banda 86–95 a **80**. Se acepta
+para el MVP y se revisa en el piloto. Lectura completa, los dos errores propios
+que aparecieron por el camino y la salida si molesta, en
+`datasets/evaluacion/resultados/2026-08-12-contrato-v2.md`.
 
 **2.6 Piloto.** Un tenant, bandera encendida, tú mirando. Métricas: propuestas
 aceptadas, magnitud de la edición, tiempo contra la línea base, hechos inventados
@@ -1151,6 +1178,79 @@ ilegible. El validador sigue siendo quien decide.
 2. Sembrar el catálogo de banderas y desplegar reglas, índices y functions.
 3. Encender `ai-gateway` y `ai-communications-draft` para **un** conjunto.
 4. Encender `ia-proveedor-real` mirando `/superadmin/ia`.
+
+---
+
+## Registro de ejecución — Paso 2.5
+
+**12 de agosto de 2026.** La primera pantalla del programa de IA. Hasta hoy no
+había nada que un administrador pudiera ver.
+
+**1 · Se decidió mirando, no leyendo.** Antes de escribir una línea se maquetaron
+las dos formas posibles —panel dentro del formulario, o un paso previo— con un
+caso real del conjunto y la salida real de `v2-estructura`. David eligió el
+panel dentro del formulario. La PRD, leída después, decía lo mismo en su §11.
+**Coincidir no es lo importante; que la decisión se tomara sobre algo visible,
+sí.**
+
+**2 · La lista de lo que falta va antes del borrador, y es el producto.**
+No es orden de lectura casual: la PRD lo escribe como requisito —«mostrar
+información faltante antes del borrador, no rellenarla»— y la hipótesis de valor
+lo justifica. Un botón de «escríbemelo» no era la pantalla útil.
+
+**3 · `duracion` va arriba del todo, siempre.** Falta en el 95% de los avisos
+reales. Ordenar por eso es lo que obligó al contrato v2, y por eso la lógica de
+orden vive en un módulo puro —`src/lib/ai/datos-faltantes.ts`— y no dentro del
+componente: **qué dato ve primero el administrador es la decisión de producto de
+toda la pantalla**, y tiene que poder probarse sin montar un navegador.
+
+**4 · Descartar cuesta un clic, y no se le enseña al modelo a callarse.** El
+fallo que le queda a v2 es pedir de más en avisos permanentes. Abaratar el
+rechazo es la salida correcta; enseñarle a preguntar menos destruiría el valor
+del producto — es la trampa de la métrica, dicha en la lectura del 2.4.
+
+**5 · Deshacer vive en el formulario, no en el panel.** Quien es dueño de los
+campos es el formulario, así que es él quien guarda lo que había. Solo guarda
+título y mensaje: son los dos únicos campos que la IA puede llegar a tocar.
+
+**6 · Lo asistido no se guarda.** Propósito, hechos y tono viven en el estado
+local y mueren al cerrar. Lo pide la PRD §7 y encaja con la política de datos
+del Paso 0: metadatos sí, contenido no.
+
+**7 · Con la bandera apagada, el formulario es exactamente el de siempre.**
+`FeatureGate` oculta la interfaz; el candado real sigue siendo el servidor, que
+comprueba la misma bandera antes de gastar un token.
+
+**8 · El simulador ahora devuelve datos faltantes.** Con `ia-proveedor-real`
+apagada —que es como nace— una lista siempre vacía dejaría la parte principal de
+la pantalla sin poder construirse ni verse sin pagar.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Orden, etiquetas y claves (puro) | `src/lib/ai/datos-faltantes.ts` |
+| El panel | `src/features/communications/asistente-borrador.tsx` |
+| Envoltorio del callable | `src/lib/firebase/callables.ts` → `redactarComunicacionCallable` |
+| Conexión al formulario | `src/app/(admin)/admin/communications/page.tsx` |
+| Pruebas del orden (9) | `tests/ai-datos-faltantes.test.ts` |
+
+**Lo que NO se construyó, y hay que decirlo:**
+
+- **El registro del «No aplica».** Se decidió que descartar dejara rastro,
+  porque el piloto del 2.6 lo necesita como métrica. Hoy solo vive en el estado
+  del componente. Guardarlo es una colección nueva con sus reglas y su
+  retención: **su propio incremento**, y sin él el 2.6 no puede medir «magnitud
+  de la edición» ni «propuestas aceptadas».
+- **`notificationSummary` no tiene destino.** Se muestra en la propuesta y no se
+  guarda. Hoy la notificación que le llega al residente dice «La administracion
+  publico un nuevo comunicado» para todos los comunicados, siempre
+  (`functions/src/index.ts`). Aprovecharlo exige un campo nuevo en el formulario
+  y tocar `onCommunicationCreated`.
+- **Ver la pantalla con datos de verdad.** Requiere sembrar el catálogo de
+  banderas, desplegar, y encender `ai-gateway` y `ai-communications-draft` en un
+  conjunto. Con el simulador se recorre entera; con el proveedor real cuesta
+  0,0025 USD por borrador.
 
 ---
 
