@@ -1,6 +1,7 @@
 {
   "name": "hogaru-functions",
   "private": true,
+  "version": "1.0.0",
   "main": "lib/index.js",
   "engines": {
     "node": "22"
