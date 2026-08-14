@@ -75,15 +75,28 @@ conjunto al mes. Si sale el tema, se anota, pero no es la métrica.
 - [ ] **Pedirle que traiga entre 4 y 6 avisos que tenga que escribir de todas
       formas.** No sirven casos inventados: un aviso de mentira se escribe
       distinto. Es la pieza que hace que la sesión valga.
-- [ ] **Crearle un conjunto en staging** y una cuenta de administrador. No toca
+- [x] **Crearle un conjunto en staging** y una cuenta de administrador. No toca
       producción, y así puede escribir sin miedo a publicarle algo a nadie.
+      **Hecho el 14 de agosto de 2026:** `tenant-palmas-cdmx` («Privada Las
+      Palmas», 24 unidades), con `admin@privadapalmas.mx`. Se eligió ese porque
+      es el único sembrador que da un **edificio único**, que es donde se ve el
+      contexto del conjunto. Sus tres avisos sembrados están borrados
+      (`functions/scripts/vaciar-avisos-sembrados.mjs`) para que el módulo le
+      aparezca vacío: tres avisos bien redactados en pantalla son la explicación
+      del formato que esta lista prohíbe darle antes.
 - [ ] **Avisarle de que nada de lo que escriba se le publica a ningún
       residente.** Si cree que sí, va a escribir distinto.
-- [ ] **Banderas:** `ai-gateway` y `ai-communications-draft` encendidas,
-      `ia-proveedor-real` **encendida** — el piloto necesita el modelo real, no
-      el simulador.
-- [ ] **Comprobar el permiso de invocación** de `aiInvoke` en Cloud Run si es un
-      ambiente donde no se ha usado nunca (ver `docs/pendientes.md`).
+- [x] **Banderas:** `ai-gateway` y `ai-communications-draft` **encendidas
+      globalmente en staging** desde el 14 de agosto de 2026, sin overrides por
+      conjunto y con el kill switch maestro en `false`.
+- [ ] **Encender `ia-proveedor-real`** en `/superadmin/flags` **el día de la
+      sesión** — el piloto necesita el modelo real, no el simulador. Se dejó
+      apagada a propósito para que nada gaste dinero esperando, así que **este
+      es el interruptor que hay que acordarse de dar.**
+- [x] **Comprobar el permiso de invocación** de `aiInvoke` en Cloud Run (ver
+      `docs/pendientes.md`). **Comprobado el 14 de agosto de 2026** en staging,
+      antes y después de desplegar: `allUsers → roles/run.invoker` en `aiInvoke`
+      y en `registrarFeedbackIa`.
 - [ ] **Cronómetro y esta tabla impresa o en pantalla aparte.**
 
 > **Lo que NO hay que hacer antes: explicarle los cuatro datos.** Si le dices

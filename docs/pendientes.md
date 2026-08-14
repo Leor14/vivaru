@@ -1,8 +1,57 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 14 de agosto de 2026, tras meter el contexto del conjunto y
-arreglar el marcador de datos sembrados.
+Actualizado el 14 de agosto de 2026, tras desplegar el contexto del conjunto en
+staging y dejar el conjunto del piloto preparado.
+
+## El canario está desplegado en staging y esperando a la persona (14 ago 2026)
+
+**Desplegadas `aiInvoke` y `registrarFeedbackIa`** en `vivaru-staging-02`, a las
+12:25 hora de México. Solo esas dos: el cambio del contexto vive entero en
+`functions/src/ai/`, y un despliegue completo habría mezclado sesenta funciones
+que nadie revisó hoy con la única que cambió. **Producción sigue sin nada.**
+
+**Lo que NO hizo falta tocar, comprobado y no supuesto** —los documentos decían
+que faltaba y era mentira—: las reglas desplegadas son **idénticas** a
+`firestore.rules` byte a byte, los **50 índices** declarados están desplegados y
+en `READY`, las **9 banderas** del catálogo están sembradas, y `aiInvoke` y
+`registrarFeedbackIa` ya tenían `allUsers → roles/run.invoker` en Cloud Run. La
+trampa de la callable nueva sin permiso **no aplicaba**, porque no se creó
+ninguna callable nueva; y el permiso sobrevivió al despliegue, verificado
+después.
+
+**Banderas en staging, ahora mismo:** `_global.killSwitch` en `false`,
+`ai-gateway` y `ai-communications-draft` **encendidas globalmente**, y
+`ia-proveedor-real` **apagada**. No hay ni un override por conjunto y no hace
+falta ninguno. **El día de la sesión es un solo interruptor:** encender
+`ia-proveedor-real` en `/superadmin/flags`. Se dejó apagada a propósito — el
+canario funciona entero con el simulador y así nada gasta dinero esperando.
+
+**El conjunto del piloto está sembrado y vacío de avisos.**
+`tenant-palmas-cdmx` («Privada Las Palmas», 24 unidades, 6 personas) es el único
+sembrador que produce un **edificio único**, que es el caso donde se ve el
+cambio del contexto. Verificado contra los datos reales con
+`resolverContextoConjunto`: da `{tieneAgrupaciones: false}`, y
+`conjunto-las-playas` —el de la sesión del 13— da `true`. Sus tres avisos
+sembrados se borraron con `functions/scripts/vaciar-avisos-sembrados.mjs`, para
+que la línea base se pueda tomar a ciegas: tres avisos bien redactados en
+pantalla le enseñan el formato igual que se lo explicaría yo. Cuenta de
+administrador: `admin@privadapalmas.mx`, clave en el seed.
+
+**Dos comprobaciones más, para no fiarse del «Deploy complete!»:** la prueba de
+humo del proveedor real **desde staging** respondió en 5,2 s por **USD
+0,000338** con el contrato válido, y la suite de emulador —31 casos, la que la
+suite normal no corre— pasa entera, incluida la que sigue el contexto desde las
+unidades de Firestore hasta el mensaje del modelo.
+
+**Lo único que falta es la persona.** El guion está escrito
+(`docs/guion-piloto-comunicaciones.md`) y su lista de preparación está tildada
+hasta donde se puede sin saber quién viene.
+
+**Una trampa nueva, que casi cuesta cara:** `seed-tenant.mjs` apunta a
+**producción por defecto** (`FIREBASE_PROJECT_ID || "hogaru-1"`). Olvidar la
+variable siembra en `hogaru-1`. Siempre
+`FIREBASE_PROJECT_ID=vivaru-staging-02 node functions/scripts/seed-tenant.mjs …`.
 
 ## La volumetría real de producción, por primera vez sin inflar (14 ago 2026)
 
@@ -61,10 +110,9 @@ guardados con `functions/scripts/recalificar.mjs`, sin volver a llamar al modelo
 Lectura completa en
 `datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
 
-**Lo siguiente, y es tuyo:** nada está desplegado. Para verlo funcionando hace
-falta `firebase deploy --only functions` en staging —recordando el permiso de
-invocación en Cloud Run, que las funciones nuevas nacen sin él— y encender las
-banderas en un conjunto. **Sigue sin haber nada en producción.**
+~~**Lo siguiente, y es tuyo:** nada está desplegado.~~ **DESPLEGADO en staging
+el 14 de agosto de 2026** — ver la sección de arriba. **Sigue sin haber nada en
+producción.**
 
 ## El canario, tras la primera sesión con un administrador (13 ago 2026)
 
