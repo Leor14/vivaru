@@ -2,7 +2,43 @@
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
 Actualizado el 14 de agosto de 2026, tras desplegar el contexto del conjunto en
-staging y dejar el conjunto del piloto preparado.
+staging y correr la segunda sesión con un administrador.
+
+## Segunda sesión con administrador: el canario acertó, y la línea base volvió a quedarse sin tomar (14 ago 2026)
+
+**Se hizo la sesión** sobre `tenant-palmas-cdmx`, con el modelo real y el
+contexto desplegado. Dos avisos, cuatro llamadas, **USD 0,00262**, cero fallos.
+Lectura completa en
+`datasets/evaluacion/resultados/2026-08-14-sesion-administrador-2.md`.
+
+**H2′ SIGUE SIN MEDIR, y van tres sesiones.** Los dos avisos escritos a mano no
+se hicieron —las filas están borradas de la hoja, y el conjunto solo tiene los
+dos comunicados asistidos—. Sin la mitad de a mano no hay comparación, y esta
+persona ya no sirve para tomarla porque ya vio la herramienta. **Hace falta un
+tercer administrador, y para la línea base bastan veinte minutos.**
+
+**El hallazgo que sí vale, y contradice la lectura optimista del 13 de agosto:**
+descartó **2 de 2** preguntas de dato faltante y contestó **0**
+—`respondidos: []`—. El 13 eso se leyó como fallo de pantalla y se arregló; con
+la pantalla arreglada, el siguiente administrador hizo lo mismo. **Ya no se
+explica con la pantalla.** Y en los dos avisos el dato que falta es exactamente
+el que el modelo señaló y él descartó: el modelo acertó las dos veces.
+
+**Segundo patrón, igual de incómodo: edición 0% otra vez —dos administradores
+seguidos— pero pidió dos propuestas por aviso.** La palanca que usan es
+**regenerar, no corregir**, y el producto está construido para que corrijan.
+
+**Lo que esto abre para el Paso 2.7:** si dos administradores de dos conjuntos
+distintos descartan el 100% de las preguntas y editan el 0% del texto, «la lista
+de lo que falta es el producto» —escrito el 12 de agosto— lleva dos sesiones sin
+usarse. Es decisión de producto, no ajuste de prompt. **No tocar el contrato con
+esta evidencia:** dos sesiones no son una muestra.
+
+**El contexto del conjunto quedó comprobado fuera del banco:** las cuatro
+llamadas en `operationVersion 3` y **ni una «torre», «bloque» o «manzana»** en
+los dos textos publicados. Con su límite dicho: el contenido de los borradores no
+se guarda, así que se comprueba sobre lo publicado, no sobre los cuatro
+borradores.
 
 ## El canario está desplegado en staging y esperando a la persona (14 ago 2026)
 
@@ -44,9 +80,11 @@ humo del proveedor real **desde staging** respondió en 5,2 s por **USD
 suite normal no corre— pasa entera, incluida la que sigue el contexto desde las
 unidades de Firestore hasta el mensaje del modelo.
 
-**Lo único que falta es la persona.** El guion está escrito
-(`docs/guion-piloto-comunicaciones.md`) y su lista de preparación está tildada
-hasta donde se puede sin saber quién viene.
+~~**Lo único que falta es la persona.**~~ **La sesión se corrió el mismo 14 de
+agosto** — ver la sección de arriba. `ia-proveedor-real` quedó **encendida** con
+un override en `featureFlagOverrides/tenant-palmas-cdmx`; el resto de conjuntos
+de staging siguen en simulador. **Apagarla si va a pasar tiempo hasta la
+siguiente sesión.**
 
 **Una trampa nueva, que casi cuesta cara:** `seed-tenant.mjs` apunta a
 **producción por defecto** (`FIREBASE_PROJECT_ID || "hogaru-1"`). Olvidar la
