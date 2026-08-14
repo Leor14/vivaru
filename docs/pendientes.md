@@ -87,9 +87,10 @@ Merece una mirada, no bloquea nada.)*
   24 horas» (aritmética sobre 7am–7am) y «recomendamos almacenar agua»
   (deducido de que no hay pipas). La segunda la pide el conjunto de evaluación
   a propósito; la primera no la pidió nadie.
-- **`notificationSummary` se genera y se tira.** Hoy la notificación al
-  residente dice «La administracion publico un nuevo comunicado» para todos los
-  comunicados, siempre (`functions/src/index.ts`, `onCommunicationCreated`).
+- ~~**`notificationSummary` se genera y se tira.**~~ **RESUELTO el 13 de agosto
+  de 2026**, después de que el administrador confirmara que ese resumen es lo
+  que debería llegarle al residente. Campo opcional en el formulario; cuando
+  falta, la notificación cae a la frase de siempre.
 
 **Deuda menor, sin prisa:**
 
@@ -121,8 +122,9 @@ diagnosticarlas cuesta lo mismo la segunda vez.
   registro. **Su origen sigue vivo:** la caché de npm de la máquina de David
   tiene archivos que su usuario no puede escribir (`EACCES` en
   `~/.npm/_cacache`), npm no pudo cachear el paquete y dejó el hueco. Al
-  regenerar el lockfile desde esa máquina, la entrada rota vuelve. Se cierra
-  con `sudo chown -R $(whoami) ~/.npm`, que necesita al usuario.
+  regenerar el lockfile desde esa máquina, la entrada rota vuelve. **RESUELTO el
+  13 de agosto de 2026**: se corrigió el permiso de la caché y se comprobó
+  regenerando el lockfile en una copia — ya no reaparece la entrada rota.
 - **Las funciones nuevas nacen sin permiso de invocación.** `aiInvoke` y
   `registrarFeedbackIa` se crearon sin `allUsers` / `roles/run.invoker` en
   Cloud Run, que es lo que tienen las otras sesenta callables. Sin él la
