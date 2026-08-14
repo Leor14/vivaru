@@ -3,12 +3,12 @@ tags: [arquitectura, ia, plataforma, seguridad]
 tipo: concepto
 fuentes: ["plan-general-ia", "estrategia-ia-minima-viable"]
 fecha_creacion: 2026-08-09
-fecha_actualizacion: 2026-08-10
+fecha_actualizacion: 2026-08-13
 ---
 
 # Puerta de entrada de IA
 
-**Un solo callable por el que pasa toda operación asistida.** Es `aiInvoke`, y al cerrar el Paso 1.2 del [[programa-ia]] hace las cuatro comprobaciones —quién llama, de qué conjunto, con qué rol y desde dónde— sin llamar todavía a ningún modelo. Detrás no hay nada: el catálogo de operaciones llega después.
+**Un solo callable por el que pasa toda operación asistida.** Es `aiInvoke`, y hace las cuatro comprobaciones —quién llama, de qué conjunto, con qué rol y desde dónde— antes de gastar un token. Desde el 11 de agosto de 2026 **detrás hay un modelo de verdad**, y desde el 13 hay una segunda puerta hermana, `registrarFeedbackIa`, para medir qué hizo la persona con lo que se le propuso. Ver [[programa-ia]].
 
 ## Por qué una sola puerta
 
@@ -101,6 +101,35 @@ Al escribirlas apareció el hueco esperado: nadie había comprobado que el **kil
 Lo que quedó demostrado: un conjunto no puede ejecutar como otro **ni en los contadores ni en la telemetría**; el kill switch cierra **en la siguiente llamada**, sin reiniciar ni desplegar; con la puerta apagada no se cobra cuota; un proveedor caído devuelve la cuota pero deja registrado el fallo; y la fila de telemetría **no contiene nada de lo que escribió el administrador** — la regla de datos deja de depender de la buena intención de quien escribió el tipo.
 
 Para poder probar todo eso hubo que mover el cobro de cuota, la llamada al proveedor y la telemetría desde dentro del callable a `runGateway`. El callable quedó como cáscara.
+
+## El contrato v2, y por qué categorizar cuesta
+
+La operación `comunicaciones-redactar` subió a **v2** el 12 de agosto de 2026: `missingInformation` dejó de ser una lista de frases y pasó a llevar **categoría** —`duracion`, `fecha`, `alcance`, `accion`, `otro`—.
+
+El motivo es de producto: la pantalla tiene que poner «cuánto dura» arriba del todo, y con frases sueltas eso solo se puede hacer buscando palabras — que es el defecto que la evaluación ya había documentado dos veces. **La entrada no cambió**, así que los 60 casos del conjunto siguieron valiendo.
+
+El precio, medido en dos corridas: **el modelo pregunta menos** (de 2,32 a 1,93 datos por borrador). Las categorías no son una etiqueta neutra, son un prompt. Se aceptó para el MVP con los números delante, y la salida si molesta es hacer `categoria` opcional.
+
+## Las dos reglas duras, y dónde viven
+
+Van en la **instrucción de formato**, que se deriva del esquema, y **no en los prompts de tarea**: son fidelidad a los hechos, no estilo. Metidas en una sola versión, esa saldría con ventaja y la comparación entre las tres dejaría de medir lo que dice medir.
+
+1. Si dos hechos se contradicen, **no elijas**: dilo y pide la aclaración. *Elegir por la persona es peor que preguntarle, aunque aciertes.*
+2. **Copia los datos con las mismas palabras.** Si crees que uno está mal, dilo; no lo cambies.
+
+Las dos salieron de ver a un administrador real, no de razonar: escribió «2500 por residente» en un hecho y «por unidad» en otro, y el borrador publicó el segundo sin avisar.
+
+## La puerta hermana: registrar qué se hizo con la propuesta
+
+`registrarFeedbackIa` escribe en `aiFeedback` **una fila por sesión de borrador**, no por clic. Responde la pregunta que `aiUsage` no puede: no cuánto costó, sino **si sirvió**.
+
+Tres decisiones que la separan de la puerta principal:
+
+- **Ninguna bandera la cierra.** El feedback describe algo que ya ocurrió; apagar una capacidad tiene que dejar de gastar dinero, no dejar de saber qué pasó.
+- **No comparte código con `authorizeGatewayCall`**, aunque se parezcan. Extraer la parte común pondría el camino que decide si se gasta dinero a merced de un cambio hecho pensando en una métrica.
+- **El cliente no escribe en `aiFeedback`**, aunque el dato nazca en su navegador. Si pudiera, cualquiera podría fabricar la evidencia con la que se decide el futuro de la funcionalidad.
+
+Lo que viaja son **categorías y números**, nunca frases: la garantía es que el esquema es `.strict()` y no tiene dónde meter texto libre — el mismo criterio que sostiene [[multi-tenancy]] en el plano de los datos.
 
 ## Lo que todavía no hace
 

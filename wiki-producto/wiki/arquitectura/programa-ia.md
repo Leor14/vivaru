@@ -3,14 +3,14 @@ tags: [arquitectura, ia, roadmap]
 tipo: concepto
 fuentes: ["estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-10
+fecha_actualizacion: 2026-08-13
 ---
 
-# Programa de IA — la plataforma en pie, sin llamar a ningún modelo
+# Programa de IA — el canario ya escribe, y un administrador lo usó
 
-**Hasta el 1 de agosto de 2026 no existía ni una línea de IA en Vivaru.** Entre el 9 y el 10 de agosto se construyó la plataforma entera menos la llamada real: banderas, puerta de entrada, catálogo de operaciones, validación de salida y telemetría de costo. El marco de decisión que la gobierna está en [[estrategia-ia-minima-viable]] y [[plan-general-ia]].
+**Hasta el 1 de agosto de 2026 no existía ni una línea de IA en Vivaru.** Entre el 9 y el 10 de agosto se construyó la plataforma entera menos la llamada real; entre el 11 y el 13 se conectó el modelo, se midió contra un conjunto de evaluación y **un administrador de verdad escribió cuatro avisos con la herramienta**. El marco de decisión está en [[estrategia-ia-minima-viable]] y [[plan-general-ia]].
 
-Lo que sigue sin existir, y a propósito, es el consumo: ningún módulo del producto invoca todavía una capacidad asistida. Esta página resume el marco; el detalle de ejecución paso a paso vive en `docs/hoja-de-ruta-ia.md`.
+Hoy hay **una capacidad asistida en producción de código**: el borrador de comunicaciones, detrás de bandera y solo desplegado en staging. Esta página resume el marco; el detalle paso a paso vive en `docs/hoja-de-ruta-ia.md`.
 
 ## La decisión ejecutiva
 
@@ -58,6 +58,39 @@ Aprovechable hoy: Firebase Auth y roles ([[autenticacion-roles]]), aislamiento p
 - **1.6** — cuotas por conjunto, usuario y operación, con consumo transaccional demostrado bajo peticiones simultáneas.
 - **1.7** — las pruebas que importan: **puerta G3 aprobada** para toda la plataforma, y la parte técnica de G5. Ver [[puerta-ia]].
 - **Los topes de gasto**, en cuatro capas: límite de inversión de Google acotado a Vertex AI, cuota de tokens por minuto, cuota por conjunto, y el kill switch de las banderas.
+
+## El canario, del 11 al 13 de agosto de 2026
+
+**1.4-real — el proveedor de verdad.** Adaptador de Vertex AI con `@google/genai`, encendido por la bandera `ia-proveedor-real`, que **nace apagada**: mientras no se encienda responde el simulador y no cuesta nada. Ver [[puerta-ia]] y [[banderas-funcionalidad]].
+
+**2.1 y 2.1-bis — la línea base mató la hipótesis fácil.** Cronometrar la redacción dio 9–12 minutos por conjunto al mes: **sobre ahorro de tiempo, los números no justifican la funcionalidad**. Lo que sobrevivió, medido sobre 7.352 mensajes de un chat vecinal real, es **H2′: el valor es que el aviso salga completo**. Los avisos reales traen 1,2 de los 4 datos que un residente busca —cuándo, cuánto dura, a quién afecta y qué hacer— y **la duración falta en el 95%**.
+
+**2.2 a 2.4 — el examen antes que el prompt.** 60 casos con afirmaciones comprobables, no textos esperados, y tres versiones de prompt que varían en un solo eje cada una. Siete corridas reales contra el modelo, unos 30 centavos en total. Gana `v2-estructura`, y no por puntos: por ser la única estable entre corridas idénticas.
+
+**2.5 — la primera pantalla.** El panel «Redactar con IA» dentro del formulario de crear comunicado, plegado tras un botón. Lo que lo hace distinto de un botón de «escríbemelo» es que **la lista de lo que falta va antes del borrador**, con «cuánto dura» arriba del todo. Ver [[comunicaciones]].
+
+**Contrato v2, y lo que costó.** Para poder ordenar esa lista, cada dato que falta lleva categoría —`duracion`, `fecha`, `alcance`, `accion`, `otro`—. El precio, medido: el modelo **pregunta menos** (de 2,32 a 1,93 datos por borrador). Se aceptó con los números delante y se revisa en el piloto.
+
+## Lo que enseñó un administrador de verdad
+
+El 13 de agosto, sesión de una hora en staging con el modelo real: **7 llamadas, USD 0,003**, y **guardó dos avisos sin cambiar una palabra**. A la pregunta de si pedirle datos era útil o pesado contestó «útil» — era el riesgo de diseño que más preocupaba.
+
+Dos hallazgos que ningún examen había cazado:
+
+- **No sabía dónde contestar** las preguntas de qué faltaba, y usó «No aplica» para salir del paso, contaminando esa métrica desde su primer uso. Ahora cada pregunta tiene su campo debajo, y **contestar se cuenta aparte de descartar**.
+- **El modelo alteró un dato en un aviso de dinero.** Él escribió «2500 por residente» y el borrador publicó «por unidad» —reproducido 3 de 3—. No inventó nada y las dos expresiones estaban en la entrada: hacía falta **una tercera clase de fallo**, `ALTERADO`, que el evaluador no tenía. De ahí salieron las dos únicas reglas duras que se han tocado en todo el programa, y `v2-estructura` pasó de 80% a 87% con cuatro casos arreglados y ninguno roto.
+
+**Lo que la sesión NO midió:** H2′ sigue sin línea base propia — los avisos escritos a mano no se hicieron, y con esa persona ya no se pueden tomar porque al final se le enseñaron los cuatro datos.
+
+## Los cuatro datos generalizan
+
+Todo lo anterior salía de **un edificio de un país**. Un segundo corpus —un edificio de Quito, seis años y nueve meses— lo contrasta con el mismo tamiz: **1,07 de 4 datos en Ecuador contra 1,22 en México**, y **«cuánto dura» es el peor dato en los dos**. La decisión de producto más visible de la pantalla se sostiene ahora en dos países.
+
+De paso reinterpretó un fallo: el modelo pide «a quién afecta» donde no aplica, y eso **no es defecto del modelo sino del diseño** — el conjunto mexicano tiene torres y el ecuatoriano es un edificio único. Vivaru ya sabe cuál es cuál por [[torres-canonicas]], así que la mejora está identificada y pendiente de decisión.
+
+## Lo aplazado, con motivo escrito
+
+**Dictar los hechos por voz** lo pidió el administrador y queda en fase 2, por un motivo que no es técnico: una grabación de voz es, en la mayoría de las lecturas, un **dato biométrico**, y hoy la política de privacidad declara por escrito que Vivaru no los trata. Esa línea es la que sostiene la base de legitimación del módulo de visitantes. Encender un micrófono sería un cambio de régimen jurídico para toda la plataforma, no una funcionalidad más.
 
 Brechas que siguen abiertas:
 
