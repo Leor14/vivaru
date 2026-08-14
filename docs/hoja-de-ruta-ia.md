@@ -424,65 +424,6 @@ cuatro datos, criterios de seguir/corregir/retirar y las trampas— en
 > **Puertas que cierras aquí:** G1, G2, G4, G5 y G6 para `FEAT-003`. Y de paso
 > validas la plataforma entera con algo real.
 
-### Aplazado a Fase 2 — dictar los hechos por voz
-
-**Lo pidió el administrador en la sesión del 13 de agosto de 2026**, y lo pidió
-dos veces: dudó al empezar si podía «grabar audio redactando una estructura
-previa», y al final lo apuntó como *«ver **a futuro** la incorporación de tirar
-las ideas por nota de audio y que estructure la IA el mensaje»*. **El futuro lo
-puso él.**
-
-La idea es buena y la decisión es aplazarla. Tres motivos, en orden de peso:
-
-**1 · Podría cambiar el régimen jurídico de toda la plataforma.** Una grabación
-de voz es, en la mayoría de las lecturas, un **dato biométrico**. Y el activo
-jurídico más valioso que tiene Vivaru hoy está escrito en
-`src/content/legal/privacidad.md` §109: *«Vivaru no recopila ni trata datos
-considerados sensibles […] ni datos biométricos»*.
-
-Esa línea es la que sostiene el interés legítimo del módulo de visitantes, y la
-que —verificado el 13 de agosto en
-`docs/verificacion-flujo-alta-ecuador.md`— evita la prohibición del Art. 26
-LOPDP, la calificación automática de gran escala y, probablemente, un Delegado
-de Protección de Datos propio para Qintilab.
-
-Encender un micrófono no es una funcionalidad más: **es tocar el eslabón del que
-cuelga todo eso**. Hay matices que lo suavizan —si el audio se transcribe y se
-descarta sin persistirse nunca, el argumento se debilita— pero **eso se le
-pregunta al abogado antes de construir, no después**. Encaja con la consulta a
-la SPDP que la especificación de Ecuador ya tiene pendiente.
-
-**2 · Ataca la hipótesis que los datos mataron.** Dictar reduce la fricción de
-escribir, y el ahorro de tiempo son 9–12 minutos por conjunto al mes: *«sobre
-ahorro de tiempo los números no justifican la funcionalidad»*
-(`datasets/linea-base/comunicaciones.md`). Lo que sobrevivió fue **H2′: que el
-aviso salga completo.** Escribir más rápido no lo hace más completo. Y `/admin`
-es **desktop-first**: la nota de voz es un comportamiento de móvil, y aquí hay
-alguien sentado frente a un teclado.
-
-**3 · No bloqueó a nadie.** Cuando dudó, siguió escribiendo y terminó sus cuatro
-avisos sin problema.
-
-**El argumento a favor, que no es despreciable y conviene no perder:** el corpus
-dice que el problema es la prisa —«no sale así cuando escriben con prisa»—, y
-hablar produce más contenido que teclear. Es posible que dictando suelte cuatro
-hechos donde teclea dos, **y eso sí sería H2′**. Es una hipótesis razonable sin
-nada que la respalde todavía.
-
-**Qué tendría que pasar para reabrirlo, en este orden:**
-
-1. Que el abogado confirme si **transcribir sin persistir el audio** evita el
-   régimen de dato biométrico. Es una pregunta, no un proyecto.
-2. Que **un segundo administrador lo pida sin que se lo sugieran**. Uno es una
-   idea; dos es una señal.
-3. Que el piloto muestre que la queja real es **la fricción de escribir** y no
-   la completitud. Hoy apunta al revés.
-
-**Y si se construye, no es un campo más:** sería una operación nueva del catálogo
-—entrada de audio, no de texto— con su propio esquema, su cuota, su conjunto de
-evaluación y su corrida. El Paso 1.3 existe precisamente para que eso no se cuele
-por la puerta de atrás.
-
 ### Aplazado a fase 2 — dictar los hechos por voz
 
 **Pedido por el administrador en la sesión del 13 de agosto de 2026**, dos veces:
@@ -530,6 +471,11 @@ respalde.
    idea; dos es una señal.
 3. Que el piloto muestre que la queja real es **la fricción de escribir** y no la
    completitud. Hoy la evidencia apunta al revés.
+
+**Y si se construye, no es un campo más:** sería una operación nueva del
+catálogo —entrada de audio, no de texto— con su propio esquema, su cuota, su
+conjunto de evaluación y su corrida. El Paso 1.3 existe precisamente para que
+eso no se cuele por la puerta de atrás.
 
 ---
 
