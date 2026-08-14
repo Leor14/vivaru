@@ -1,7 +1,47 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 12 de agosto de 2026, al cerrar el Paso 2.5.
+Actualizado el 13 de agosto de 2026, tras la primera sesión con un administrador real.
+
+## El canario, tras la primera sesión con un administrador (13 ago 2026)
+
+**Se hizo la sesión.** Un administrador real escribió cuatro avisos con la
+herramienta, en staging y con el modelo de verdad. Costó **USD 0,003** y **guardó
+dos avisos sin cambiar una palabra** —edición 0%—. A la pregunta de si pedirle
+datos era útil o pesado contestó **«útil»**, que era el riesgo de diseño que más
+preocupaba.
+
+**Cuatro decisiones de producto quedaron cerradas por él:** no pedir el motivo,
+las inferencias las firma, el resumen de la app es lo que debería llegarle al
+residente, y los cuatro datos son los correctos.
+
+**Lo que salió y ya está corregido:**
+
+- **No sabía dónde contestar las preguntas** de qué faltaba, y usó «No aplica»
+  para salir del paso — contaminando la métrica desde su primer uso. Ahora cada
+  pregunta tiene su campo debajo, y **contestar se cuenta aparte de descartar**.
+- **El modelo alteró un dato en un aviso de dinero**: él escribió «2500 por
+  residente» y el borrador publicó «por unidad», reproducido 3 de 3. De ahí
+  salieron **dos reglas duras** y una tercera clase de fallo en el evaluador
+  (`ALTERADO`). v2-estructura pasó de **80% a 87%**, cuatro casos arreglados y
+  ninguno roto.
+- **`notificationSummary` ya llega al residente.** Antes la notificación decía
+  la misma frase genérica para todos los comunicados.
+
+**Lo que la sesión NO midió, y hay que decirlo:** **H2′ sigue sin medir.** Los
+dos avisos escritos a mano —la línea base— no se hicieron, y **con este
+administrador ya no se pueden tomar**: al final se le enseñaron los cuatro
+datos. Lectura completa en
+`datasets/evaluacion/resultados/2026-08-13-sesion-administrador.md`.
+
+**Y hay un segundo corpus.** `datasets/chat-vecinal-ecuador/` — un edificio de
+Quito, seis años y nueve meses. Contesta la limitación que arrastraban los tres
+documentos del canario: **los cuatro datos generalizan** (1,07 de 4 en Ecuador
+contra 1,22 en México) y **«cuánto dura» es el peor dato en los dos países**, que
+es lo que sostiene la decisión más visible de la pantalla. De paso reinterpreta
+la mitad de los fallos que le quedan al modelo: pedir «a quién afecta» donde no
+aplica no es defecto del modelo, es del diseño — el conjunto mexicano tiene
+torres y el ecuatoriano no. Detalle en su `analisis.md`.
 
 ## El canario está construido y probado con manos humanas (12 ago 2026)
 
