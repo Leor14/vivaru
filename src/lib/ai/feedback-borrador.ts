@@ -37,8 +37,24 @@ export interface EstadoFeedback {
   guardada: boolean;
   /** Categorías que se le enseñaron en la última propuesta. El denominador de los descartes. */
   mostrados: CategoriaDatoFaltante[];
-  /** Categorías que marcó «no aplica». Con repetición: descartar dos fechas son dos señales. */
+  /**
+   * Categorías que marcó «no aplica». Con repetición: descartar dos fechas son
+   * dos señales.
+   *
+   * **Ojo al leer esto:** en la primera sesión real (13 de agosto de 2026) el
+   * único descarte fue `duracion`, y no porque el dato sobrara — el
+   * administrador no sabía dónde responder la pregunta y usó «No aplica» como
+   * salida. Un descarte alto no significa «preguntó de más» si la pantalla no
+   * ofrece dónde contestar. Por eso existe `respondidos`.
+   */
   descartados: CategoriaDatoFaltante[];
+  /**
+   * Categorías cuya pregunta **contestó**, añadiendo el dato a los hechos.
+   *
+   * Es la señal limpia de que preguntar sirve: descartar puede ser confusión,
+   * contestar no puede serlo.
+   */
+  respondidos: CategoriaDatoFaltante[];
   /** 0–100: qué proporción del borrador cambió antes de guardar. `null` si no guardó. */
   distanciaEdicion: number | null;
 }
@@ -50,12 +66,14 @@ export const FEEDBACK_INICIAL: EstadoFeedback = {
   guardada: false,
   mostrados: [],
   descartados: [],
+  respondidos: [],
   distanciaEdicion: null,
 };
 
 export type EventoFeedback =
   | { tipo: "propuesta"; mostrados: CategoriaDatoFaltante[] }
   | { tipo: "descarte"; categoria: CategoriaDatoFaltante }
+  | { tipo: "respuesta"; categoria: CategoriaDatoFaltante }
   | { tipo: "aplicada" }
   | { tipo: "deshecha" }
   | { tipo: "guardada"; distanciaEdicion: number };
@@ -71,9 +89,14 @@ export function aplicarEvento(estado: EstadoFeedback, evento: EventoFeedback): E
         // peticiones que el administrador ya resolvió pidiendo otra versión.
         mostrados: [...evento.mostrados],
         descartados: [],
+        // Las respuestas también son de la propuesta anterior: los datos que
+        // añadió ya viajaron en los hechos de esta petición.
+        respondidos: [],
       };
     case "descarte":
       return { ...estado, descartados: [...estado.descartados, evento.categoria] };
+    case "respuesta":
+      return { ...estado, respondidos: [...estado.respondidos, evento.categoria] };
     case "aplicada":
       // `deshecha` se limpia: volver a aplicar después de deshacer no deja al
       // administrador marcado como alguien que se arrepintió.

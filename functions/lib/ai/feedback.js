@@ -98,6 +98,14 @@ exports.feedbackSchema = zod_1.z
     guardada: zod_1.z.boolean(),
     mostrados: zod_1.z.array(zod_1.z.enum(catalog_1.CATEGORIAS_DATO_FALTANTE)).max(MAX_CATEGORIAS),
     descartados: zod_1.z.array(zod_1.z.enum(catalog_1.CATEGORIAS_DATO_FALTANTE)).max(MAX_CATEGORIAS),
+    /**
+     * Preguntas que el administrador CONTESTÓ, añadiendo el dato a los hechos.
+     *
+     * Se separa de `descartados` porque miden cosas distintas y la primera
+     * sesión real lo demostró: el único descarte fue confusión —no sabía dónde
+     * responder—, no irrelevancia. Contestar no se puede confundir con nada.
+     */
+    respondidos: zod_1.z.array(zod_1.z.enum(catalog_1.CATEGORIAS_DATO_FALTANTE)).max(MAX_CATEGORIAS),
     distanciaEdicion: zod_1.z.number().int().min(0).max(100).nullable(),
 })
     .strict()

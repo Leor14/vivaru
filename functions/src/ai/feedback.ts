@@ -66,6 +66,14 @@ export const feedbackSchema = z
     guardada: z.boolean(),
     mostrados: z.array(z.enum(CATEGORIAS_DATO_FALTANTE)).max(MAX_CATEGORIAS),
     descartados: z.array(z.enum(CATEGORIAS_DATO_FALTANTE)).max(MAX_CATEGORIAS),
+    /**
+     * Preguntas que el administrador CONTESTÓ, añadiendo el dato a los hechos.
+     *
+     * Se separa de `descartados` porque miden cosas distintas y la primera
+     * sesión real lo demostró: el único descarte fue confusión —no sabía dónde
+     * responder—, no irrelevancia. Contestar no se puede confundir con nada.
+     */
+    respondidos: z.array(z.enum(CATEGORIAS_DATO_FALTANTE)).max(MAX_CATEGORIAS),
     distanciaEdicion: z.number().int().min(0).max(100).nullable(),
   })
   .strict()

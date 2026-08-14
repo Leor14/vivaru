@@ -32,6 +32,8 @@ export interface FeedbackBorrador {
   /** El modelo propuso algo. `cuerpo` se queda en memoria; nunca se envía. */
   anotarPropuesta: (mostrados: CategoriaDatoFaltante[], cuerpo: string) => void;
   anotarDescarte: (categoria: CategoriaDatoFaltante) => void;
+  /** Contestó la pregunta y añadió el dato a los hechos. */
+  anotarRespuesta: (categoria: CategoriaDatoFaltante) => void;
   anotarAplicada: () => void;
   anotarDeshecha: () => void;
   /** Compara aquí, en el navegador, para que al servidor solo viaje un número. */
@@ -89,6 +91,7 @@ export function useFeedbackBorrador(): FeedbackBorrador {
       guardada: carga.guardada,
       mostrados: carga.mostrados,
       descartados: carga.descartados,
+      respondidos: carga.respondidos,
       distanciaEdicion: carga.distanciaEdicion,
     });
     // Sin dependencias: solo lee refs, que no se recrean. Antes dependía de
@@ -131,6 +134,9 @@ export function useFeedbackBorrador(): FeedbackBorrador {
       },
       anotarDescarte: (categoria) => {
         estado.current = aplicarEvento(estado.current, { tipo: "descarte", categoria });
+      },
+      anotarRespuesta: (categoria) => {
+        estado.current = aplicarEvento(estado.current, { tipo: "respuesta", categoria });
       },
       anotarAplicada: () => {
         estado.current = aplicarEvento(estado.current, { tipo: "aplicada" });

@@ -668,6 +668,7 @@ export async function registrarFeedbackIaCallable(input: {
   guardada: boolean;
   mostrados: string[];
   descartados: string[];
+  respondidos: string[];
   distanciaEdicion: number | null;
 }): Promise<{ ok: boolean }> {
   if (!functions) return { ok: false };

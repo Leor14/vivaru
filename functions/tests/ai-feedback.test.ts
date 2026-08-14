@@ -109,6 +109,7 @@ describe("el esquema no tiene dónde meter contenido", () => {
     guardada: true,
     mostrados: ["duracion", "fecha"],
     descartados: ["fecha"],
+    respondidos: ["duracion"],
     distanciaEdicion: 12,
   };
 

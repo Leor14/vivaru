@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { FeedbackBorrador } from "@/features/communications/use-feedback-borrador";
-import { claveDatoFaltante, etiquetaDe, ordenarDatosFaltantes } from "@/lib/ai/datos-faltantes";
+import {
+  claveDatoFaltante,
+  etiquetaDe,
+  ordenarDatosFaltantes,
+  type DatoFaltante,
+} from "@/lib/ai/datos-faltantes";
 import {
   redactarComunicacionCallable,
   type BorradorComunicacion,
@@ -100,6 +105,10 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
   const [borrador, setBorrador] = useState<BorradorComunicacion | null>(null);
   const [cuota, setCuota] = useState<CuotaRestante | null>(null);
   const [descartados, setDescartados] = useState<string[]>([]);
+  /** Lo que va escribiendo en cada pregunta, antes de añadirlo a los hechos. */
+  const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+  /** Preguntas ya contestadas: salen de la lista porque el dato ya está arriba. */
+  const [respondidos, setRespondidos] = useState<string[]>([]);
   const [aplicado, setAplicado] = useState(false);
 
   const ultimoHechoRef = useRef<HTMLInputElement | null>(null);
@@ -116,7 +125,42 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
   // sin llamar, así que hasta entonces el botón está disponible.
   const sinCuota = cuota !== null && (cuota.conjuntoDia <= 0 || cuota.conjuntoMes <= 0 || cuota.usuarioDia <= 0);
 
-  const faltantes = borrador ? ordenarDatosFaltantes(borrador.missingInformation).filter((d) => !descartados.includes(claveDatoFaltante(d))) : [];
+  const faltantes = borrador
+    ? ordenarDatosFaltantes(borrador.missingInformation).filter((d) => {
+        const clave = claveDatoFaltante(d);
+        return !descartados.includes(clave) && !respondidos.includes(clave);
+      })
+    : [];
+
+  /**
+   * Contesta una pregunta: el dato se convierte en un hecho más.
+   *
+   * Se antepone la etiqueta de la categoría —«Cuánto dura: 4 horas»— porque una
+   * respuesta suelta pierde el contexto en el que se pidió, y el modelo recibe
+   * los hechos sin las preguntas. Para `otro` no se antepone nada: «Otro dato:»
+   * no aclara, estorba.
+   *
+   * El hecho aparece en la lista de arriba, editable, para que se vea exactamente
+   * qué se va a mandar. La IA no escribe hechos: los escribe la persona, aquí
+   * con menos teclas.
+   */
+  function responder(dato: DatoFaltante) {
+    const clave = claveDatoFaltante(dato);
+    const valor = (respuestas[clave] ?? "").trim();
+    if (!valor) return;
+
+    const hecho = dato.categoria === "otro" ? valor : `${etiquetaDe(dato.categoria)}: ${valor}`;
+    // Reemplaza el primer hueco vacío si lo hay, para no dejar campos en blanco
+    // por el camino; si no, se añade al final.
+    setHechos((prev) => {
+      const vacio = prev.findIndex((h) => !h.trim());
+      if (vacio === -1) return [...prev, hecho];
+      return prev.map((h, i) => (i === vacio ? hecho : h));
+    });
+    setRespondidos((prev) => [...prev, clave]);
+    setRespuestas((prev) => ({ ...prev, [clave]: "" }));
+    feedback.anotarRespuesta(dato.categoria);
+  }
 
   function cambiarHecho(indice: number, valor: string) {
     setHechos((prev) => prev.map((h, i) => (i === indice ? valor : h)));
@@ -146,6 +190,10 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
       // Lo descartado pertenecía a la propuesta anterior. Arrastrarlo ocultaría
       // peticiones nuevas que el administrador nunca vio.
       setDescartados([]);
+      // Las respuestas de la propuesta anterior ya viajaron dentro de los
+      // hechos de esta petición: si se arrastraran, ocultarían preguntas nuevas.
+      setRespondidos([]);
+      setRespuestas({});
       setAplicado(false);
       feedback.anotarPropuesta(
         resultado.output.missingInformation.map((d) => d.categoria),
@@ -319,15 +367,13 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
             {faltantes.length === 1 ? "Falta 1 dato" : `Faltan ${faltantes.length} datos`}
           </h4>
           <p className="mb-2 text-xs text-[var(--slate-700)]">
-            Añádelos arriba y pide otra versión, o descarta los que no apliquen.
+            Contéstalas aquí mismo y pide otra versión, o descarta las que no apliquen.
           </p>
           <ul className="space-y-2">
-            {faltantes.map((dato) => (
-              <li
-                key={claveDatoFaltante(dato)}
-                className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-[var(--amber-300)] bg-white p-2.5"
-              >
-                <div className="min-w-0 flex-1">
+            {faltantes.map((dato) => {
+              const clave = claveDatoFaltante(dato);
+              return (
+                <li key={clave} className="rounded-lg border border-[var(--amber-300)] bg-white p-2.5">
                   <span className="block text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
                     {etiquetaDe(dato.categoria)}
                   </span>
@@ -335,24 +381,62 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
                   {dato.categoria === "duracion" ? (
                     <span className="mt-0.5 block text-xs text-[var(--slate-500)]">{NOTA_DURACION}</span>
                   ) : null}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={() => {
-                    setDescartados((prev) => [...prev, claveDatoFaltante(dato)]);
-                    // Solo la categoría. La frase habla del conjunto —«¿hasta
-                    // qué hora cierra la alberca de la torre 3?»— y eso es
-                    // contenido, no métrica.
-                    feedback.anotarDescarte(dato.categoria);
-                  }}
-                >
-                  No aplica
-                </Button>
-              </li>
-            ))}
+                  {/*
+                    El campo va DEBAJO de su pregunta, no en otro sitio.
+                    En la primera sesión real el administrador vio las preguntas,
+                    no supo dónde contestarlas —«¿aquí o en los hechos?»— y
+                    acabó descartando una para salir del paso. La pregunta y su
+                    respuesta tienen que estar a un centímetro la una de la otra.
+                  */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <Input
+                      value={respuestas[clave] ?? ""}
+                      onChange={(event) => setRespuestas((prev) => ({ ...prev, [clave]: event.target.value }))}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          responder(dato);
+                        }
+                      }}
+                      placeholder="Escribe aquí el dato…"
+                      maxLength={500}
+                      className="min-w-40 flex-1"
+                      aria-label={`Responder: ${dato.detalle}`}
+                    />
+                    <Button
+                      type="button"
+                      size="xs"
+                      className="bg-[var(--ia-tinta)] hover:bg-[var(--color-brand-plum-dark)]"
+                      disabled={!(respuestas[clave] ?? "").trim()}
+                      onClick={() => responder(dato)}
+                    >
+                      Añadir
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      onClick={() => {
+                        setDescartados((prev) => [...prev, clave]);
+                        // Solo la categoría. La frase habla del conjunto —«¿hasta
+                        // qué hora cierra la alberca de la torre 3?»— y eso es
+                        // contenido, no métrica.
+                        feedback.anotarDescarte(dato.categoria);
+                      }}
+                    >
+                      No aplica
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
+          {respondidos.length > 0 ? (
+            <p className="mt-2 text-xs text-[var(--slate-700)]">
+              {respondidos.length === 1 ? "Añadiste 1 dato a los hechos." : `Añadiste ${respondidos.length} datos a los hechos.`}{" "}
+              Pide otra versión para que entren en el borrador.
+            </p>
+          ) : null}
         </div>
       ) : null}
 

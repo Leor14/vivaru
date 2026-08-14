@@ -23,6 +23,7 @@ describe("lo que sale del navegador", () => {
     const estado = encadenar(
       { tipo: "propuesta", mostrados: ["duracion", "fecha"] },
       { tipo: "descarte", categoria: "fecha" },
+      { tipo: "respuesta", categoria: "duracion" },
       { tipo: "aplicada" },
       { tipo: "guardada", distanciaEdicion: 12 },
     );
@@ -62,6 +63,31 @@ describe("lo que cuenta la métrica", () => {
     );
     expect(estado.descartados).toEqual([]);
     expect(estado.mostrados).toEqual(["alcance"]);
+  });
+
+  it("separa contestar de descartar, que es lo que la primera sesión rompió", () => {
+    // El 13 de agosto de 2026 el único descarte de la sesión fue `duracion`, y
+    // no porque sobrara: el administrador no sabía dónde responder la pregunta.
+    // Si las dos señales se sumaran, «preguntó de más» y «no supo contestar»
+    // serían indistinguibles, y son lo contrario.
+    const estado = encadenar(
+      { tipo: "propuesta", mostrados: ["duracion", "fecha"] },
+      { tipo: "respuesta", categoria: "duracion" },
+      { tipo: "descarte", categoria: "fecha" },
+    );
+    expect(estado.respondidos).toEqual(["duracion"]);
+    expect(estado.descartados).toEqual(["fecha"]);
+  });
+
+  it("al pedir otra versión olvida también las respuestas", () => {
+    // El dato que contestó ya viajó dentro de los hechos de esa petición.
+    // Arrastrarlo ocultaría preguntas nuevas que nunca vio.
+    const estado = encadenar(
+      { tipo: "propuesta", mostrados: ["duracion"] },
+      { tipo: "respuesta", categoria: "duracion" },
+      { tipo: "propuesta", mostrados: ["alcance"] },
+    );
+    expect(estado.respondidos).toEqual([]);
   });
 
   it("descartar dos veces la misma categoría son dos señales", () => {
