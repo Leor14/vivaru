@@ -424,6 +424,54 @@ cuatro datos, criterios de seguir/corregir/retirar y las trampas— en
 > **Puertas que cierras aquí:** G1, G2, G4, G5 y G6 para `FEAT-003`. Y de paso
 > validas la plataforma entera con algo real.
 
+### Aplazado a fase 2 — dictar los hechos por voz
+
+**Pedido por el administrador en la sesión del 13 de agosto de 2026**, dos veces:
+poder soltar el propósito y los hechos hablando, como se manda una nota de voz,
+y que la IA los estructure. Él mismo lo puso en futuro —«ver a futuro la
+incorporación de tirar las ideas por nota de audio»— y en la sesión, al dudar si
+podía grabar, siguió escribiendo y terminó sus cuatro avisos sin bloquearse.
+
+**Aplazado, y el motivo principal es jurídico, no técnico.**
+
+**1 · La voz puede ser dato biométrico.** La LOPDP ecuatoriana define el dato
+biométrico como característica física que permita identificar de forma única a
+una persona, y la voz entra en esa categoría en la mayoría de las lecturas. Hoy
+`src/content/legal/privacidad.md` §109 declara por escrito que **Vivaru no trata
+datos biométricos**, y esa línea es el activo que sostiene la base de
+legitimación del módulo de visitantes.
+
+Encender el micrófono podría arrastrar la prohibición del interés legítimo
+(Art. 26), el consentimiento explícito obligatorio, la calificación automática
+de gran escala y, con ella, **un Delegado de Protección de Datos propio para
+Qintilab**. No es una funcionalidad más: es un cambio de régimen jurídico para
+toda la plataforma. Ver `docs/verificacion-flujo-alta-ecuador.md`, hallazgo
+N-03.
+
+**2 · Ataca la hipótesis que los datos mataron.** El audio reduce la fricción de
+escribir, y el ahorro de tiempo son 9–12 minutos por conjunto al mes: sobre eso
+«los números no justifican la funcionalidad». Lo que sobrevivió fue **H2′, que
+el aviso salga completo**, y escribir más rápido no lo hace más completo.
+
+**3 · `/admin` es desktop-first.** La nota de voz es un comportamiento de móvil.
+Se le estaría dando a alguien sentado frente a un teclado.
+
+**El argumento a favor, que no es despreciable:** el corpus dice que el problema
+es la prisa —«no sale así cuando escriben con prisa»— y hablar produce más
+contenido que teclear. Es posible que dictando suelte cuatro hechos donde teclea
+dos, **y eso sí sería H2′**. Es una hipótesis razonable y hoy no hay nada que la
+respalde.
+
+**Qué tendría que pasar para reabrirlo, en este orden:**
+
+1. Que el abogado diga si **transcribir sin persistir el audio** evita el régimen
+   de dato biométrico. Es una pregunta, no un proyecto, y encaja con la consulta
+   a la SPDP que ya está pendiente.
+2. Que **un segundo administrador lo pida sin que se lo sugieran**. Uno es una
+   idea; dos es una señal.
+3. Que el piloto muestre que la queja real es **la fricción de escribir** y no la
+   completitud. Hoy la evidencia apunta al revés.
+
 ---
 
 ### Paso 3 — PQRS, y el muro
