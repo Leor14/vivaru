@@ -86,6 +86,12 @@ son pedir el alcance donde no aplica**: `seguridad-cambio-de-empresa`,
 `luz-corte-programado-cfe`, `cuota-extraordinaria` y `falta-monto`. El modelo
 pregunta «¿a qué torres afecta?» en avisos que afectan a todo el mundo.
 
+> **Corregido al alza el 14 de agosto de 2026.** Ese recuento salía de la corrida
+> anterior. Contados uno a uno sobre la del 14 a las 02:47 —la de 87%— son **seis
+> de ocho, no cuatro**, y en cuatro de los seis la pregunta de alcance aparece
+> *en lugar de* la que se esperaba. En `falta-monto` el modelo preguntó por las
+> torres y se dejó la cifra de dinero.
+
 Se venía leyendo como un defecto del modelo. **Este corpus dice que es un
 defecto del diseño**: el cuarto dato no es igual de relevante en todos los
 conjuntos, y nosotros lo tratamos como si lo fuera.
@@ -99,6 +105,13 @@ tocar nada de lo demás.
 Es un cambio del contrato de entrada, así que necesita su propia decisión y su
 propia corrida. **No se hace ahora**, pero por primera vez hay evidencia de dos
 países para justificarlo.
+
+> **Hecho el 14 de agosto de 2026, con sus tres decisiones y sus tres corridas.**
+> La operación recibe el dato del servidor y subió a v3. Lo que midió: la palabra
+> «torre» pasa de 24 preguntas a **cero**, el modelo **no** preguntó menos —2,09
+> → 2,14 por caso—, y donde sí hay torres el resultado no se movió. Registro en
+> `docs/hoja-de-ruta-ia.md` (Paso 2.5-bis), lectura en
+> `datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
 
 ## Los límites, dichos aquí para que nadie los descubra tarde
 

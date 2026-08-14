@@ -1371,6 +1371,101 @@ enseñar un error sería mentirle a la persona.
 
 ---
 
+## Registro de ejecución — Paso 2.5-bis · el contexto del conjunto
+
+**14 de agosto de 2026.** El primer cambio del canario que sale de comparar dos
+países en vez de mirar uno.
+
+**El problema, y por qué no era del modelo.** El borrador preguntaba «¿a qué
+torres afecta?» en edificios que no tienen torres. En la corrida del 14 a las
+02:47, **seis de los ocho fallos que le quedaban a `v2-estructura` incluían una
+pregunta de alcance**, y en cuatro aparecía en lugar de la que se esperaba — en
+`falta-monto` el modelo preguntó por las torres y se dejó la cifra de dinero. El
+corpus de Quito dice «torre» **cero veces** en seis años y nueve meses, contra
+274 en el de Ciudad de México. El cuarto dato no es igual de relevante en todos
+los conjuntos y lo tratábamos como si lo fuera.
+
+**Tres decisiones, tomadas antes de construir y sobre algo visible.**
+
+| Decisión | Lo elegido | Lo descartado, y por qué |
+|---|---|---|
+| Qué se le dice | Un **hecho** neutro: «es un edificio único, no tiene torres ni bloques; sí tiene pisos y zonas comunes» | Una prohibición mataría «¿qué zonas comunes afecta?», buena en un edificio de once pisos. Y filtrar la pregunta después no evita que el modelo gaste su atención en ella |
+| Quién lo manda | **El servidor**, del conjunto de la sesión | Que lo mande el navegador abre la costumbre de que el cliente afirme cosas del conjunto — justo lo que la puerta del 1.2 vino a cerrar |
+| Cuánto se mide | Diagnóstico **y** medición: tres corridas y ocho casos nuevos | Solo el diagnóstico mediría sobre un conjunto escrito desde un corpus que sí tiene torres |
+
+**1 · Sale de `units.tower`, no de la lista de ajustes.** `tenantSettings.agrupaciones`
+es lo que se *ofrece* al crear una unidad, y su propia tarjeta advierte de que
+borrar una entrada **no** modifica las unidades existentes. Un conjunto de tres
+torres al que le vaciaron la lista habría pasado por edificio único y se le
+habría callado una pregunta legítima. Las unidades son el dato; la lista es una
+preferencia de formulario.
+
+**2 · La clave que cuenta agrupaciones es tosca a propósito.** No se puede
+importar `normalizeTower` desde `functions/` —App Hosting hace `npm ci` solo en
+la raíz—, y duplicar la canonización real crearía dos reglas que mantener
+iguales para siempre. La clave de aquí solo se equivoca **hacia arriba**: `T1` y
+`Torre 1` cuentan como dos, y sobrestimar dice «tiene torres» y el modelo
+pregunta, que es la conducta de hoy. La dirección peligrosa —fundir dos torres
+reales y callar la pregunta— no puede ocurrir.
+
+**3 · «No se sabe» es un tercer valor, no un `false`.** Un conjunto sin unidades
+cargadas no es un edificio único: es uno del que no sabemos nada, y ahí no viaja
+contexto. Y si Firestore falla, tampoco. Ante la duda se pregunta de más.
+
+**4 · Sin contexto, el mensaje es byte a byte el de antes.** Hay una prueba que
+lo sostiene, y no es cosmética: es lo único que permitía volver a medir el suelo
+y comparar con las seis corridas anteriores. El error que documentó el contrato
+v2 el 12 de agosto —dar por comparable lo que no lo era— aquí estaba dicho antes
+de correr.
+
+**5 · La operación sube a v3 sin que cambie ningún esquema.** El cliente manda
+los mismos tres campos. Lo que cambió es lo que llega al modelo, y la versión es
+lo que permite que la telemetría y el conjunto distingan una corrida de otra.
+
+**Lo que dio la medición — 204 llamadas, USD 0,065.**
+
+- **La referencia se reprodujo exacta:** 52/60, 87%, los mismos ocho fallos que
+  la corrida de las 02:47.
+- **La palabra «torre» desaparece:** de 24 casos que la usaban en una pregunta a
+  **cero**.
+- **El modelo no aprendió a callarse:** 2,09 → 2,14 preguntas por caso. Dejó de
+  preguntar *eso*, no dejó de preguntar. Era el riesgo real del cambio.
+- **Ningún daño donde sí hay torres:** 87% antes y 87% después, con dos casos
+  moviéndose en direcciones opuestas dentro del ruido conocido de dos puntos.
+- **La pregunta desplazada era real.** En `unico-alicuota-sin-monto`, sin
+  contexto el modelo gastó sus dos preguntas en las torres y un trámite y **no
+  preguntó el monto**; con contexto, lo primero que pregunta es el monto.
+- **El contrapeso aguantó:** `unico-zonas-comunes-sin-alcance` sigue pidiendo qué
+  áreas se intervienen. Su caída habría significado retirar el cambio.
+- Cero invenciones, cero alteraciones y cero repeticiones en los 204 borradores.
+
+**Lo que queda abierto, y es decisión de producto.** Tres de los ocho casos de
+edificio único siguen fallando **por una afirmación mía mal escrita**:
+`missingInformationSinCategorias: ["alcance"]` prohíbe cualquier pregunta de
+alcance, y la decisión que implementa dice lo contrario. Ninguna de las tres
+preguntas que les cuesta el fallo dice «torre»: preguntan por pisos y unidades,
+que es lo que un edificio único sí tiene. **No se toca sin decidir** si esa
+pregunta es útil o es ruido. Lectura completa, con las frases textuales, en
+`datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
+
+**Dónde está.**
+
+| Pieza | Archivo |
+|---|---|
+| Deducción del contexto (pura) y lectura de unidades | `functions/src/ai/tenant-context.ts` |
+| La frase que recibe el modelo | `functions/src/ai/prompt.ts` |
+| Declaración de la operación y versión | `functions/src/ai/catalog.ts` |
+| Resolución en la puerta | `functions/src/ai/gateway.ts` → `runGateway` |
+| Afirmación «no debía pedir esto» | `functions/src/ai/evaluar.ts` |
+| Contexto por caso y las tres variantes | `datasets/evaluacion/comunicaciones-redactar.json`, `functions/scripts/evaluar-prompts.mjs` |
+| Pruebas puras (10) | `functions/tests/ai-tenant-context.test.ts` |
+| Pruebas del mensaje (4) y del conjunto (5) | `functions/tests/ai-prompt.test.ts`, `ai-evalset.test.ts` |
+| Costura Firestore → puerta → prompt (4, emulador) | `functions/tests/ai-gateway.emulator.test.ts` |
+
+**El cliente no cambió una línea.** Sigue mandando propósito, hechos y tono.
+
+---
+
 ## Por dónde seguimos
 
 **El Paso 1 está completo.** La plataforma está en pie:

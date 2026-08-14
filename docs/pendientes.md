@@ -1,7 +1,29 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 13 de agosto de 2026, tras la primera sesión con un administrador real.
+Actualizado el 14 de agosto de 2026, tras meter el contexto del conjunto.
+
+## El contexto del conjunto, construido y medido (14 ago 2026)
+
+**El borrador ya no pregunta por torres donde no hay torres.** La operación
+recibe del servidor si el conjunto tiene agrupaciones, sacado de `units.tower`, y
+subió a **v3**. El cliente no cambió una línea.
+
+Medido con tres corridas reales, 204 llamadas, **USD 0,065**: la palabra «torre»
+pasa de aparecer en 24 preguntas a **cero**; el modelo **no aprendió a callarse**
+—2,09 → 2,14 preguntas por caso—; y donde sí hay torres el número no se movió
+(87% antes, 87% después). Se confirmó además la sospecha del 13 de agosto: sin
+contexto, en un aviso de cobro el modelo gastaba sus preguntas en las torres y
+**no preguntaba el monto**.
+
+**Decisión de producto abierta, pequeña y concreta.** Tres de los ocho casos
+nuevos fallan por una afirmación mal escrita —prohíbe *cualquier* pregunta de
+alcance, y la decisión que implementa dice lo contrario—. Las tres preguntas que
+les cuestan el fallo no dicen «torre»: preguntan por pisos y unidades. Hay que
+decidir si eso es útil o es ruido antes de tocarlas. Lectura completa en
+`datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
+
+**Sigue sin haber nada en producción.**
 
 ## El canario, tras la primera sesión con un administrador (13 ago 2026)
 
