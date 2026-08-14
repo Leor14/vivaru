@@ -257,3 +257,47 @@ describe("las tres versiones de prompt", () => {
     }
   });
 });
+
+describe("ALTERADO — el dato dado que el borrador reformula", () => {
+  const reglaCuota = { dado: "por residente", noPor: ["por unidad", "por departamento"] };
+
+  it("caza la sustitución que apareció con un administrador real", () => {
+    // Él escribió «$2500 por residente»; el borrador publicó «por unidad».
+    const s = salida({ body: "El pago de 2500 pesos por unidad debe realizarse del 15 al 20." });
+    const r = evaluarCaso(caso({ preservaDato: [reglaCuota] }), s);
+    expect(r.pasa).toBe(false);
+    expect(r.fallos[0]).toContain("ALTERADO");
+    expect(r.fallos[0]).toContain("por unidad");
+    expect(r.fallos[0]).toContain("por residente");
+  });
+
+  it("pasa si conserva el dato tal como se lo dieron", () => {
+    const s = salida({ body: "El pago de 2500 pesos por residente debe realizarse del 15 al 20." });
+    expect(evaluarCaso(caso({ preservaDato: [reglaCuota] }), s).pasa).toBe(true);
+  });
+
+  it("no falla si conserva el dato aunque la otra palabra aparezca por otro motivo", () => {
+    // «por unidad» puede salir hablando del depósito sin que haya sustitución.
+    const s = salida({
+      body: "El pago de 2500 pesos por residente. El depósito se concilia por unidad.",
+    });
+    expect(evaluarCaso(caso({ preservaDato: [reglaCuota] }), s).pasa).toBe(true);
+  });
+
+  it("no confunde callarse el dato con alterarlo", () => {
+    // Si no aparece ninguna de las dos, el fallo es otro y lo cazan
+    // `bodyContiene` o `missingInformation`. Aquí no se inventa un ALTERADO.
+    const s = salida({ body: "El pago debe realizarse del 15 al 20." });
+    const r = evaluarCaso(caso({ preservaDato: [reglaCuota] }), s);
+    expect(r.fallos.filter((f) => f.startsWith("ALTERADO"))).toHaveLength(0);
+  });
+
+  it("las alteraciones se cuentan aparte de las invenciones", () => {
+    // Son distintas de ver: una añade algo, la otra solo cambia una palabra.
+    const c = caso({ preservaDato: [reglaCuota] });
+    const s = salida({ body: "El pago de 2500 pesos por unidad." });
+    const resumen = resumirEvaluacion([c], [evaluarCaso(c, s)]);
+    expect(resumen.alteraciones).toHaveLength(1);
+    expect(resumen.inventos).toHaveLength(0);
+  });
+});

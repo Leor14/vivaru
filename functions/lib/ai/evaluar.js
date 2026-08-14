@@ -99,6 +99,18 @@ function evaluarCaso(caso, salida) {
         if (m)
             fallos.push(etiquetar(m[0], m[0]));
     }
+    // ALTERADO: el dato dado desapareció Y en su lugar hay otro. Se exigen las
+    // dos condiciones a propósito. Si el dato sigue estando, no hubo sustitución
+    // aunque también aparezca la otra palabra por otro motivo; y si no aparece
+    // ninguna de las dos, el fallo es que se lo calló, que es otra cosa y la
+    // cazan `bodyContiene` o `missingInformation`.
+    for (const regla of e.preservaDato ?? []) {
+        const conserva = contiene(salida.body, regla.dado);
+        const sustituto = regla.noPor.find((alternativa) => contiene(salida.body, alternativa));
+        if (!conserva && sustituto) {
+            fallos.push(`ALTERADO: el cuerpo dice «${sustituto}» donde el administrador escribió «${regla.dado}»`);
+        }
+    }
     if (e.bodyMaxLongitud !== undefined && salida.body.length > e.bodyMaxLongitud) {
         fallos.push(`el cuerpo se infló: ${salida.body.length} caracteres, máximo ${e.bodyMaxLongitud}`);
     }
@@ -161,5 +173,6 @@ function resumirEvaluacion(casos, calificaciones) {
         })),
         inventos: calificaciones.flatMap((c) => c.fallos.filter((f) => f.startsWith("INVENTADO")).map((fallo) => ({ id: c.id, fallo }))),
         repeticiones: calificaciones.flatMap((c) => c.fallos.filter((f) => f.startsWith("REPETIDO")).map((fallo) => ({ id: c.id, fallo }))),
+        alteraciones: calificaciones.flatMap((c) => c.fallos.filter((f) => f.startsWith("ALTERADO")).map((fallo) => ({ id: c.id, fallo }))),
     };
 }

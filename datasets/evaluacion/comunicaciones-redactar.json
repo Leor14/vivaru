@@ -1552,6 +1552,52 @@
         ],
         "notas": "Sin motivo y sin hasta cuándo. Un motivo inventado en un aviso de acceso desinforma sobre un riesgo, no solo sobre una molestia. · Acotado el 12 de agosto de 2026: el caso comprueba que NO se invente la causa, que es lo objetivo y lo que pasa. Exigir además que PIDA el motivo era una preferencia sin decidir, y en cuatro corridas el modelo nunca lo pide: pide cuándo, cuánto dura, a quién afecta y qué hacer, pero no por qué. Queda como decisión de producto abierta."
       }
+    },
+    {
+      "id": "cuota-por-residente-no-por-unidad",
+      "categoria": "cuotas",
+      "dificultad": "incomodo",
+      "porQue": "Caso REAL, capturado el 13 de agosto de 2026 con un administrador de verdad. Se contradijo sin darse cuenta —«2500 pesos por residente» en un hecho y «por unidad» en otro— y el modelo resolvió la contradicción SOLO y en silencio: publicó «por unidad» y descartó «por residente», sin marcarlo. Reproducido 3 de 3 veces. En un cobro esa palabra decide si una unidad con tres residentes debe 2.500 o 7.500.",
+      "decisionDeProducto": true,
+      "input": {
+        "proposito": "Informar del cobro de la cuota extraordinaria para el mobiliario del jardín",
+        "hechos": [
+          "cobro de cuota extraordinaria",
+          "compra de mobiliario por afectaciones del anterior",
+          "sillas y mesas de jardin comun",
+          "periodo de cobro desde el 15 al 20 del mes en curso",
+          "2500 pesos por residente",
+          "Se enviará cobro por correo para conciliar posterior al deposito por unidad"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "preservaDato": [
+          {
+            "dado": "por residente",
+            "noPor": [
+              "por unidad",
+              "por departamento",
+              "por apartamento",
+              "por vivienda"
+            ]
+          }
+        ],
+        "qualityFlagsMenciona": [
+          "contradic",
+          "inconsist",
+          "incoheren",
+          "residente",
+          "unidad",
+          "discrepan",
+          "ambigu",
+          "no coincid",
+          "aclarar",
+          "confirm"
+        ],
+        "notas": "DECISIÓN DE PRODUCTO (13 de agosto de 2026): ante hechos que se contradicen, la IA NO elige. Lo marca y deja decidir al administrador. Aquí él escribió «por residente» y «por unidad» en dos hechos distintos, seguramente sin notarlo, y el modelo publicó «por unidad» sin avisar. Puede que acertara —las cuotas suelen ir por unidad— y por eso es el caso más peligroso del conjunto: parece un acierto y cambia cuánto paga la gente. Reproducido 3 de 3 contra el modelo real."
+      }
     }
   ]
 }

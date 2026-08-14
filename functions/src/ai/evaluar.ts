@@ -41,6 +41,28 @@ export interface CasoEspera {
   bodyContieneAlguna?: string[];
   bodyNoContiene?: string[];
   bodyNoCoincideCon?: string[];
+  /**
+   * Un dato que el administrador dio y que el borrador no puede reformular a
+   * otra cosa.
+   *
+   * **Es la tercera forma de fallar, y no se descubrió pensando.** El 13 de
+   * agosto de 2026, en la primera sesión con un administrador real, él escribió
+   * «2500 pesos por residente» en un hecho y «por unidad» en otro —contradicción
+   * que no notó— y el borrador publicó «por unidad» descartando lo otro, sin
+   * avisar. Reproducido 3 de 3 contra el modelo real.
+   *
+   * No inventó nada —así que INVENTADO no lo caza— y las dos expresiones
+   * estaban en la entrada, así que REPETIDO lo habría etiquetado mal. Hacía
+   * falta una tercera clase.
+   *
+   * Lo grave no es que eligiera mal: puede que eligiera bien, porque las cuotas
+   * suelen ir por unidad. **Lo grave es que eligiera.** Ante hechos que se
+   * contradicen la salida correcta es marcarlo y dejar decidir a la persona; en
+   * un cobro esa palabra decide si una unidad con tres residentes debe 2.500 o
+   * 7.500. Es el caso más peligroso del conjunto justamente porque parece un
+   * acierto.
+   */
+  preservaDato?: Array<{ dado: string; noPor: string[] }>;
   titleContiene?: string[];
   bodyMaxLongitud?: number;
   qualityFlagsMenciona?: string[];
@@ -189,6 +211,19 @@ export function evaluarCaso(caso: CasoEvaluacion, salida: SalidaBorrador): Calif
     if (m) fallos.push(etiquetar(m[0], m[0]));
   }
 
+  // ALTERADO: el dato dado desapareció Y en su lugar hay otro. Se exigen las
+  // dos condiciones a propósito. Si el dato sigue estando, no hubo sustitución
+  // aunque también aparezca la otra palabra por otro motivo; y si no aparece
+  // ninguna de las dos, el fallo es que se lo calló, que es otra cosa y la
+  // cazan `bodyContiene` o `missingInformation`.
+  for (const regla of e.preservaDato ?? []) {
+    const conserva = contiene(salida.body, regla.dado);
+    const sustituto = regla.noPor.find((alternativa) => contiene(salida.body, alternativa));
+    if (!conserva && sustituto) {
+      fallos.push(`ALTERADO: el cuerpo dice «${sustituto}» donde el administrador escribió «${regla.dado}»`);
+    }
+  }
+
   if (e.bodyMaxLongitud !== undefined && salida.body.length > e.bodyMaxLongitud) {
     fallos.push(`el cuerpo se infló: ${salida.body.length} caracteres, máximo ${e.bodyMaxLongitud}`);
   }
@@ -224,6 +259,12 @@ export interface ResumenEvaluacion {
   inventos: Array<{ id: string; fallo: string }>;
   /** Texto de la entrada que no debía salir: instrucciones incrustadas, insultos. */
   repeticiones: Array<{ id: string; fallo: string }>;
+  /**
+   * Datos dados que el borrador reformuló a otra cosa. Se cuenta aparte de las
+   * invenciones porque **es más difícil de ver**: no aparece nada nuevo, solo
+   * cambia una palabra, y encima suele parecer una corrección acertada.
+   */
+  alteraciones: Array<{ id: string; fallo: string }>;
 }
 
 function agrupar(
@@ -279,6 +320,9 @@ export function resumirEvaluacion(casos: CasoEvaluacion[], calificaciones: Calif
     ),
     repeticiones: calificaciones.flatMap((c) =>
       c.fallos.filter((f) => f.startsWith("REPETIDO")).map((fallo) => ({ id: c.id, fallo })),
+    ),
+    alteraciones: calificaciones.flatMap((c) =>
+      c.fallos.filter((f) => f.startsWith("ALTERADO")).map((fallo) => ({ id: c.id, fallo })),
     ),
   };
 }

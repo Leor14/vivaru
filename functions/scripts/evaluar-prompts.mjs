@@ -162,6 +162,14 @@ for (const version of versiones) {
     for (const i of resumen.inventos.slice(0, 6)) console.log(`     ${i.id}: ${i.fallo}`);
   }
 
+  // Las alteraciones van ANTES que las repeticiones a propósito: son las más
+  // difíciles de ver —no aparece nada nuevo, solo cambia una palabra— y encima
+  // suelen parecer una corrección acertada.
+  if (resumen.alteraciones?.length) {
+    console.log(`\n   ⚠️  ${resumen.alteraciones.length} ALTERACIONES — cambió un dato que sí le dieron:`);
+    for (const i of resumen.alteraciones.slice(0, 6)) console.log(`     ${i.id}: ${i.fallo}`);
+  }
+
   if (resumen.repeticiones.length) {
     console.log(`\n   ⚠️  ${resumen.repeticiones.length} REPETICIONES — obedeció algo que no debía:`);
     for (const i of resumen.repeticiones.slice(0, 6)) console.log(`     ${i.id}: ${i.fallo}`);
@@ -179,7 +187,7 @@ if (versiones.length > 1) {
 
   for (const r of orden) {
     console.log(
-      `   ${r.v.padEnd(18)} ${String(r.tasa).padStart(3)}%   invenciones: ${r.inventos.length}   repeticiones: ${r.repeticiones.length}`,
+      `   ${r.v.padEnd(18)} ${String(r.tasa).padStart(3)}%   invenciones: ${r.inventos.length}   alteraciones: ${r.alteraciones?.length ?? 0}   repeticiones: ${r.repeticiones.length}`,
     );
   }
   console.log(
