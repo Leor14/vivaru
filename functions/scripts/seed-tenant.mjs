@@ -173,6 +173,19 @@ async function seedTenant(tenantData, users, units, people, amenities, billing,
     status: tenantData.status,
     onboardingStatus: tenantData.onboardingStatus,
     branding: tenantData.branding,
+    // ESTE conjunto entero es de demostración, y el marcador va aquí y no en
+    // cada documento a propósito: este script escribe en 28 colecciones, y
+    // ponerlo en las 28 deja el mismo agujero para la 29 que alguien añada.
+    // Marcado el conjunto, todo lo que cuelgue de él se descuenta solo.
+    //
+    // Costó dos mediciones equivocadas: la volumetría de IA daba 20 tickets
+    // hasta que se separó por tenant y quedaron 0, y el 14 de agosto de 2026
+    // las comunicaciones daban 26 cuando las reales eran 2.
+    //
+    // NO confundir con el marcador por documento de `functions/src/trial-seed.ts`:
+    // ese hace falta igual, porque un trial es un conjunto REAL con algunas
+    // filas sembradas dentro, y el checklist de puesta en marcha las distingue.
+    isExample: true,
     createdAt: now,
     updatedAt: now,
   }, { merge: true });

@@ -6,8 +6,16 @@
 //  FEAT-003: 50-100 comunicaciones · FEAT-001: 15-25 archivos).
 //
 // NO imprime contenido de ningún documento: solo conteos, fechas y tenantId.
-// El dato sembrado (`isExample: true`) se descuenta — sin eso el baseline nace
-// inflado por los conjuntos de demo y no sirve para nada.
+//
+// Lo sembrado se descuenta por DOS caminos, y hacen falta los dos:
+//   · `isExample: true` en el propio documento — lo pone `trial-seed.ts`, y
+//     sirve para un conjunto REAL con algunas filas de ejemplo dentro.
+//   · `isExample: true` en el CONJUNTO — lo ponen los seeds de demo, y
+//     descuenta todo lo suyo sin que cada colección tenga que acordarse.
+//
+// Sin el segundo el baseline nace inflado y ya mintió dos veces: la volumetría
+// daba 20 tickets hasta que se separó a mano por tenant y quedaron 0, y el 14
+// de agosto de 2026 daba 26 comunicaciones cuando las reales eran 2.
 //
 // Uso: node functions/scripts/audit-volumen-ia.mjs <projectId>
 //      node functions/scripts/audit-volumen-ia.mjs hogaru-1
@@ -40,26 +48,49 @@ function toMs(value) {
   return null;
 }
 
+/**
+ * Conjuntos marcados como de demostración. Se resuelve UNA vez y se usa en
+ * todas las colecciones: es lo que evita tener que saberse de memoria cuáles
+ * son los de demo, que es como se leía esto hasta el 14 de agosto de 2026.
+ */
+async function conjuntosDeEjemplo() {
+  const snap = await db.collection("tenants").where("isExample", "==", true).select().get();
+  return new Set(snap.docs.map((d) => d.id));
+}
+
 async function countOf(query) {
   const snap = await query.count().get();
   return snap.data().count;
 }
 
-/** Total y sembrados de una colección, sin leer un solo documento. */
-async function totals(name) {
+/**
+ * Total y sembrados de una colección.
+ *
+ * Cuando hay conjuntos de demo hay que leer los `tenantId`, porque el marcador
+ * está en el conjunto y no en cada fila. Se piden SOLO ese campo y el marcador:
+ * ni títulos, ni montos, ni nada de nadie.
+ */
+async function totals(name, ejemplos) {
   const col = db.collection(name);
-  const [total, examples] = await Promise.all([
-    countOf(col),
-    countOf(col.where("isExample", "==", true)),
-  ]);
-  return { total, examples, real: total - examples };
+  if (ejemplos.size === 0) {
+    const [total, examples] = await Promise.all([countOf(col), countOf(col.where("isExample", "==", true))]);
+    return { total, examples, real: total - examples };
+  }
+
+  const snap = await col.select("tenantId", "isExample").get();
+  let examples = 0;
+  for (const doc of snap.docs) {
+    const raw = doc.data();
+    if (raw.isExample === true || ejemplos.has(raw.tenantId)) examples += 1;
+  }
+  return { total: snap.size, examples, real: snap.size - examples };
 }
 
 /**
  * Reparte por tenant y por ventana temporal. Trae SOLO los campos pedidos —
  * ni títulos, ni cuerpos, ni montos, ni nada que identifique a una persona.
  */
-async function breakdown(name, dateFields, extraFields = []) {
+async function breakdown(name, dateFields, extraFields = [], ejemplos = new Set()) {
   const fields = [...dateFields, ...extraFields, "tenantId", "isExample"];
   const snap = await db.collection(name).select(...fields).get();
 
@@ -75,7 +106,8 @@ async function breakdown(name, dateFields, extraFields = []) {
 
   for (const doc of snap.docs) {
     const raw = doc.data();
-    if (raw.isExample === true) continue;
+    // Las dos formas de estar sembrado: la fila, o el conjunto entero.
+    if (raw.isExample === true || ejemplos.has(raw.tenantId)) continue;
     real += 1;
 
     const tenantId = raw.tenantId ?? "(sin tenantId)";
@@ -117,10 +149,24 @@ function tabla(perTenant) {
 
 async function main() {
   console.log(`\nVolumetría de IA — proyecto ${projectId} — ${new Date().toISOString().slice(0, 10)}`);
-  console.log("Solo conteos. Los documentos con isExample:true están descontados.\n");
+  console.log("Solo conteos. Se descuenta lo sembrado: por documento y por conjunto.\n");
 
   // --- Conjuntos -----------------------------------------------------------
-  const tenants = await totals("tenants");
+  const ejemplos = await conjuntosDeEjemplo();
+
+  // Se dicen por su nombre, y no es adorno: un descuento que no se ve se lee
+  // como que no hubo descuento, y el número queda sin auditar. Si esta lista
+  // sale vacía cuando debería tener conjuntos, el resto del informe miente.
+  if (ejemplos.size) {
+    console.log(`   descontados por ser de demostración: ${[...ejemplos].join(", ")}`);
+  } else {
+    console.log("   ⚠️  ningún conjunto marcado como de demostración.");
+    console.log("      Si este proyecto tiene datos sembrados, los números de abajo salen INFLADOS.");
+    console.log("      Se arregla con: node functions/scripts/marcar-conjuntos-de-ejemplo.mjs <projectId>");
+  }
+  console.log();
+
+  const tenants = await totals("tenants", ejemplos);
   const estados = {};
   for (const estado of ["active", "trial", "suspended"]) {
     estados[estado] = await countOf(db.collection("tenants").where("status", "==", estado));
@@ -132,7 +178,7 @@ async function main() {
   // --- Escala --------------------------------------------------------------
   console.log("## Escala instalada");
   for (const nombre of ["units", "people", "billingStatements"]) {
-    const t = await totals(nombre);
+    const t = await totals(nombre, ejemplos);
     console.log(`   ${nombre.padEnd(20)} ${String(t.real).padStart(6)} reales  (${t.examples} sembrados)`);
   }
   console.log();
@@ -148,7 +194,7 @@ async function main() {
   for (const { col, fechas, extra, prd, goldSet } of procesos) {
     let b;
     try {
-      b = await breakdown(col, fechas, extra);
+      b = await breakdown(col, fechas, extra, ejemplos);
     } catch (error) {
       console.log(`   ${col}: no se pudo leer — ${error.message}\n`);
       continue;

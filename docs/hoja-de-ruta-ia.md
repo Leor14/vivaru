@@ -405,10 +405,14 @@ ahí «que cualquiera escriba como un profesional» es consistencia de cartera, 
 el rol `committee` ya existe.
 
 **Y es una sesión supervisada, no una bandera encendida esperando tráfico.**
-Producción tiene 26 comunicaciones en cinco meses y **cero en los últimos
-treinta días** — no porque el módulo falle, sino porque Vivaru aún no se vende
-para ese uso. Una hora con un administrador de verdad da más señal que tres
-meses de espera.
+Producción tiene **una sola comunicación real en toda su historia** —16 de marzo
+de 2026— y cero en los últimos treinta días. No porque el módulo falle, sino
+porque Vivaru aún no se vende para ese uso. Una hora con un administrador de
+verdad da más señal que tres meses de espera.
+
+*(Ese número era «26 en cinco meses» hasta el 14 de agosto de 2026. Las otras 25
+eran conjuntos de demostración contándose como reales, porque los seeds no
+marcaban nada. Arreglado — ver `docs/pendientes.md`.)*
 
 **La línea base se mide en la propia sesión**, con los dos primeros avisos
 escritos a mano y sin explicarle antes cuáles son los cuatro datos. Es lo que
@@ -484,7 +488,9 @@ eso no se cuele por la puerta de atrás.
 Aquí está el problema, y conviene verlo venir en vez de chocarse.
 
 `FEAT-002` necesita **150 a 250 tickets reales etiquetados**. Producción tiene
-cero: los veinte que se cuentan son de tenants sembrados. Y no se resuelve con
+cero, y desde el 14 de agosto de 2026 el script lo dice solo: los veinte que se
+contaban eran de conjuntos sembrados, y ahora se descuentan por el marcador del
+conjunto en vez de a mano. Y no se resuelve con
 tickets sintéticos: un ticket que escribe un modelo sale demasiado limpio y
 demasiado bien redactado, así que un clasificador que acierta con ellos no
 acierta con lo que escribe un residente enfadado a las once de la noche.
@@ -530,7 +536,7 @@ todo el portafolio.
 El último, y con distancia. Riesgo financiero alto y **el único dataset que no se
 puede fabricar**: hacen falta comprobantes bancarios reales de Colombia, México y
 Ecuador, con sus formatos, sus fotos torcidas y sus duplicados. Producción tiene
-cinco documentos, todos de un tenant sembrado, ninguno en dos meses.
+**cero**: los cinco que se contaban eran de un conjunto sembrado.
 
 **Desde hoy:** empieza a acumular, con autorización. Cien a doscientos, variados,
 incluyendo los malos. Es un trabajo de recolección que tarda meses en dar fruto,
@@ -555,6 +561,12 @@ Si de toda esta hoja de ruta solo haces una cosa esta semana, que sea esta.
 
 Ninguna de estas cuatro cosas requiere que la IA exista. Las cuatro son la
 diferencia entre que el paso siguiente tarde una semana o tres meses.
+
+**Y una quinta, que es el instrumento y no el dato:** que lo sembrado esté
+marcado. Sin eso las cuatro filas de arriba se cuentan solas y mal — el 14 de
+agosto de 2026 la volumetría daba 20 tickets, 5 comprobantes y 26 comunicaciones
+cuando las cifras reales eran 0, 0 y 1. Un baseline inflado no retrasa el
+proyecto: lo manda en la dirección equivocada con la confianza de tener datos.
 
 ---
 

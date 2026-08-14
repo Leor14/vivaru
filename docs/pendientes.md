@@ -1,7 +1,41 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 14 de agosto de 2026, tras meter el contexto del conjunto.
+Actualizado el 14 de agosto de 2026, tras meter el contexto del conjunto y
+arreglar el marcador de datos sembrados.
+
+## La volumetría real de producción, por primera vez sin inflar (14 ago 2026)
+
+**Se arregló el instrumento y el número quedó desnudo.** Los seeds de demo no
+marcaban nada, así que toda métrica de producción salía inflada. Ahora el
+marcador va en el CONJUNTO —una línea, en vez de recordarlo en 28 colecciones— y
+`audit-volumen-ia.mjs` descuenta por los dos caminos: por documento (para los
+trials, que son conjuntos reales con filas de ejemplo dentro) y por conjunto.
+
+Marcados 7 de los 9 conjuntos de producción: los cuatro sembrados por script y
+tres internos que confirmó David —la prueba E2E, el de Qintilab y
+`pXHEn5iWKWgX` (suspendido, y era el que aportaba la única comunicación «real»
+que se contaba)—. La lista vive en
+`functions/scripts/marcar-conjuntos-de-ejemplo.mjs`, con el origen de cada uno.
+
+**Quedan dos conjuntos reales, y esto es todo lo que hay:**
+
+| | Conjunto Bromelias (activo) | Queretarock 229 (trial) |
+|---|---|---|
+| Unidades propias | 1 | **0** (6 sembradas por el trial) |
+| Personas propias | 1 | **0** (6 sembradas) |
+| Cobros propios | 0 | **0** (24 sembrados) |
+| Tickets | 0 | 0 |
+| Comprobantes | 0 | 0 |
+| Comunicaciones | 1 (16 mar 2026) | 0 |
+
+**Queretarock nunca cargó datos suyos**: todo lo que tiene se lo puso el trial.
+Y en los últimos 30 días no hay ni un ticket, ni un comprobante, ni una
+comunicación en toda la plataforma.
+
+Las cifras que este documento y la hoja de ruta traían —26 comunicaciones, 20
+tickets, 5 comprobantes— eran los conjuntos de demo contándose como reales. El
+muro del programa de IA no se movió: **se hizo más alto de lo que se creía.**
 
 ## El contexto del conjunto, construido y medido (14 ago 2026)
 
@@ -99,14 +133,15 @@ bandera `ia-proveedor-real` quedó **apagada** al terminar.
    para ejecutar: `docs/guion-piloto-comunicaciones.md`. Falta la persona.
 
 **Por qué el piloto es una sesión y no una bandera encendida:** producción tiene
-**26 comunicaciones en cinco meses y cero en los últimos treinta días** (medido
-el 13 de agosto con `functions/scripts/audit-volumen-ia.mjs`). No es rechazo del
+**una sola comunicación real en toda su historia**, del 16 de marzo de 2026
+(medido el 14 de agosto, ya sin conjuntos de demo contándose). No es rechazo del
 módulo: **Vivaru todavía no se comercializa para ese uso.** Esperar tráfico
 orgánico es esperar sentado.
 
-*(Ojo: el 8 de agosto esta misma nota decía 2 comunicaciones reales y hoy salen
-26. O cambió la clasificación de conjuntos sembrados, o entraron clientes.
-Merece una mirada, no bloquea nada.)*
+*(La duda quedó resuelta el 14 de agosto: ni una cosa ni la otra. Las 26 eran
+los cuatro conjuntos de demo contándose como reales. **No entraron clientes.**
+Con el marcador puesto, las comunicaciones reales de toda la historia de
+producción son **1**.)*
 
 **Decisiones de producto abiertas, las tres pequeñas:**
 
@@ -321,16 +356,19 @@ diagnosticarlas cuesta lo mismo la segunda vez.
 
 ## Deuda conocida, con su porqué
 
-- **Los seeds de demo no escriben `isExample`, y sus datos viven en
-  producción.** Solo `functions/src/trial-seed.ts` pone el marcador, y solo
-  sobre unidades, personas y cobros. `seed-data-playas.mjs`, `seed-data-co.mjs`
-  y `seed-data-mx.mjs` no lo ponen nunca. Consecuencia: **cualquier métrica que
-  alguien saque de producción sale inflada**, y los datos de demo solo se
-  pueden separar por `tenantId` sabiéndose de memoria cuáles son
-  (`conjunto-las-playas`, `tenant-demo`, `tenant-nogal`, `tenant-palmas`,
-  `tenant-santa`). Ya mordió una vez: la volumetría de IA daba 20 tickets hasta
-  que se separó por tenant y quedaron 0. El checklist de onboarding sí filtra
-  bien, porque mira las colecciones que el trial sí marca.
+- **~~Los seeds de demo no escriben `isExample`.~~ RESUELTO el 14 de agosto de
+  2026.** El marcador va ahora en el documento del CONJUNTO —`seed-tenant.mjs` y
+  `seed-demo-users.mjs`—, no en cada fila: ese script escribe en 28 colecciones y
+  marcarlas todas dejaba el mismo agujero para la 29. `audit-volumen-ia.mjs`
+  resuelve primero qué conjuntos son de ejemplo y descuenta todo lo suyo, además
+  del filtro por documento que sigue haciendo falta para los trials. Lo ya
+  sembrado se marcó con `functions/scripts/marcar-conjuntos-de-ejemplo.mjs`
+  (en seco por defecto). **Había mordido dos veces**: los 20 tickets que eran 0,
+  y las 26 comunicaciones que eran 1.
+
+  Lo que **no** se hizo y conviene saber: las métricas de `/superadmin` no
+  descuentan conjuntos de ejemplo. Ahora tienen con qué —el campo existe—, pero
+  es una decisión de qué debe ver el superadmin, no una corrección.
 
 - **Las respuestas del FAQ no llegan al DOM.** El acordeón arranca cerrado y no
   monta el contenido: solo existen en el JSON-LD y en el payload RSC. Eso hace
