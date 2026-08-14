@@ -16,14 +16,21 @@ pasa de aparecer en 24 preguntas a **cero**; el modelo **no aprendió a callarse
 contexto, en un aviso de cobro el modelo gastaba sus preguntas en las torres y
 **no preguntaba el monto**.
 
-**Decisión de producto abierta, pequeña y concreta.** Tres de los ocho casos
-nuevos fallan por una afirmación mal escrita —prohíbe *cualquier* pregunta de
-alcance, y la decisión que implementa dice lo contrario—. Las tres preguntas que
-les cuestan el fallo no dicen «torre»: preguntan por pisos y unidades. Hay que
-decidir si eso es útil o es ruido antes de tocarlas. Lectura completa en
+En los ocho casos escritos para un edificio único, de **3 de 8 a 7 u 8 de 8**.
+
+**Decidido el 14 de agosto:** en un edificio de once pisos, «¿afecta a todo el
+edificio o a pisos específicos?» **sí** es una pregunta útil. Tres casos fallaban
+por una afirmación mía que prohibía *cualquier* pregunta de alcance, cuando la
+decisión que implementaba decía lo contrario. Ahora se prohíbe la **palabra**
+—torre, bloque, manzana—, no la categoría. Se recalificó sobre los borradores ya
+guardados con `functions/scripts/recalificar.mjs`, sin volver a llamar al modelo.
+Lectura completa en
 `datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
 
-**Sigue sin haber nada en producción.**
+**Lo siguiente, y es tuyo:** nada está desplegado. Para verlo funcionando hace
+falta `firebase deploy --only functions` en staging —recordando el permiso de
+invocación en Cloud Run, que las funciones nuevas nacen sin él— y encender las
+banderas en un conjunto. **Sigue sin haber nada en producción.**
 
 ## El canario, tras la primera sesión con un administrador (13 ago 2026)
 

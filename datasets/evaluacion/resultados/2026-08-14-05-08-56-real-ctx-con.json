@@ -8,9 +8,9 @@
     "v2-estructura": {
       "resumen": {
         "total": 68,
-        "pasan": 57,
-        "fallan": 11,
-        "tasa": 84,
+        "pasan": 59,
+        "fallan": 9,
+        "tasa": 87,
         "porRevisar": 2,
         "porCategoria": [
           {
@@ -32,12 +32,6 @@
             "tasa": 50
           },
           {
-            "categoria": "edificio-unico",
-            "total": 8,
-            "pasan": 5,
-            "tasa": 63
-          },
-          {
             "categoria": "cuotas",
             "total": 5,
             "pasan": 4,
@@ -54,6 +48,12 @@
             "total": 6,
             "pasan": 5,
             "tasa": 83
+          },
+          {
+            "categoria": "edificio-unico",
+            "total": 8,
+            "pasan": 7,
+            "tasa": 88
           },
           {
             "categoria": "obra",
@@ -138,14 +138,14 @@
           {
             "dificultad": "rutinario",
             "total": 37,
-            "pasan": 29,
-            "tasa": 78
+            "pasan": 30,
+            "tasa": 81
           },
           {
             "dificultad": "incomodo",
             "total": 31,
-            "pasan": 28,
-            "tasa": 90
+            "pasan": 29,
+            "tasa": 94
           }
         ],
         "inventos": [],
@@ -1683,10 +1683,8 @@
         },
         {
           "id": "unico-agua-sin-duracion",
-          "pasa": false,
-          "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: duracion: ¿Cuál es la hora estimada de finalización de la limpieza? · alcance: ¿La suspensión afecta a todo el edificio o a pisos específicos?"
-          ],
+          "pasa": true,
+          "fallos": [],
           "requiereJuicioHumano": false,
           "salida": {
             "title": "Suspensión del servicio de agua - 19 de agosto",
@@ -1713,8 +1711,7 @@
           "id": "unico-alicuota-sin-monto",
           "pasa": false,
           "fallos": [
-            "no pidió el dato que falta (esperaba alguna de: monto, cuánto, cuanto, valor, importe) — pidió: fecha: ¿Cuál es la fecha límite o el plazo específico para realizar el pago de las dos partes de la alícuota? · alcance: ¿A qué unidades o pisos afecta este cobro, considerando que es un edificio único?",
-            "pidió una categoría que aquí no aplica (alcance) — pidió: fecha: ¿Cuál es la fecha límite o el plazo específico para realizar el pago de las dos partes de la alícuota? · alcance: ¿A qué unidades o pisos afecta este cobro, considerando que es un edificio único?"
+            "no pidió el dato que falta (esperaba alguna de: monto, cuánto, cuanto, valor, importe) — pidió: fecha: ¿Cuál es la fecha límite o el plazo específico para realizar el pago de las dos partes de la alícuota? · alcance: ¿A qué unidades o pisos afecta este cobro, considerando que es un edificio único?"
           ],
           "requiereJuicioHumano": false,
           "salida": {
@@ -1842,10 +1839,8 @@
         },
         {
           "id": "unico-tanquero-datos-vagos",
-          "pasa": false,
-          "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: duracion: ¿Cuánto tiempo estará disponible el tanquero o hasta qué hora permanecerá en el conjunto? · fecha: ¿Qué día específico se realizará el reparto de agua? · alcance: ¿En qué zona específica del conjunto se ubicará el tanquero?"
-          ],
+          "pasa": true,
+          "fallos": [],
           "requiereJuicioHumano": false,
           "salida": {
             "title": "Urgente: Reparto de agua por tanquero",
@@ -1874,5 +1869,12 @@
       ],
       "erroresDeEjecucion": 0
     }
-  }
+  },
+  "recalificaciones": [
+    {
+      "conjuntoVersion": 3,
+      "casos": 68,
+      "motivo": "recalificado sin volver a llamar al modelo"
+    }
+  ]
 }

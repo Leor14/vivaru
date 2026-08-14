@@ -33,7 +33,8 @@ retirar. Y permite que la evaluación del Paso 2.4 se corra sola.
 | `missingInformationVacio` | No pidió nada, porque no faltaba nada |
 | `missingInformationMenciona` | Alguno de los datos que faltan menciona estas palabras — busca en `detalle`, **nunca** en `categoria` |
 | `missingInformationCategorias` | Pidió un dato de alguna de estas categorías. **No depende del vocabulario** |
-| `missingInformationSinCategorias` | **NO** pidió ninguna de estas. Nace con el contexto del conjunto — ver más abajo |
+| `missingInformationSinCategorias` | **NO** pidió ninguna de estas categorías. Para cuando el dato ya se dio |
+| `missingInformationNoMenciona` | Ninguna pregunta usa estas palabras. Busca en `detalle`, **nunca** en `categoria` |
 | `bodyContiene` / `titleContiene` | Los hechos dados aparecen en el borrador — **todas** |
 | `bodyContieneAlguna` | El cuerpo **dice algo**, sin exigir cómo — basta una |
 | `bodyNoContiene` | **La comprobación de alucinación**: lo que NO se dio no puede aparecer |
@@ -123,16 +124,27 @@ impide. Los que no lo declaran toman el de la corrida (`--contexto` del
 corredor), y por eso los mismos casos pueden pasarse por las tres variantes sin
 duplicarlos.
 
-**2 · `missingInformationSinCategorias` es una afirmación que hay que vigilar.**
+**2 · Se prohíbe la palabra, no la categoría — y esa distinción costó una
+corrección el mismo día.**
 
-Es la única forma de medir que el modelo **dejó** de preguntar por las torres. Y
-es peligrosa: premiar el silencio es la trampa que la lectura del 2.4 nombró por
-su nombre —si el conjunto solo castigara preguntar, ganaría el prompt más
-callado, que es lo contrario del valor del producto—. Por eso **nunca va sola**:
-`unico-zonas-comunes-sin-alcance` exige preguntar por el alcance en un edificio
-sin torres, porque «áreas comunes» no dice cuáles y un edificio único sí tiene
-zonas de las que hablar. Si el modelo aprende a callarse, ese caso cae. Hay una
-prueba que exige que los dos tipos de caso existan.
+La primera versión usaba `missingInformationSinCategorias: ["alcance"]`, que
+prohíbe **cualquier** pregunta de alcance. Contradecía la decisión que
+implementaba: un edificio sin torres sí tiene pisos y zonas, y preguntar por
+ellos es legítimo. Tres casos fallaron por preguntas como «¿afecta a todo el
+edificio o a pisos específicos?», que son buenas.
+
+Desde el 14 de agosto de 2026 se usa `missingInformationNoMenciona:
+["torre","bloque","manzana"]`: prohíbe nombrar lo que el conjunto no tiene y deja
+viva la pregunta por lo que sí tiene. La categoría entera solo se prohíbe donde
+el alcance **ya se dio** —`unico-fuga-en-un-piso`, el piso 7—, porque ahí
+preguntar sobra diga lo que diga.
+
+**Y sigue habiendo contrapeso, porque premiar el silencio es la trampa que la
+lectura del 2.4 nombró por su nombre.** `unico-zonas-comunes-sin-alcance` **exige**
+preguntar por el alcance y **prohíbe** que la pregunta nombre torres: preguntar
+sí, preguntar por lo que no existe no. Hay pruebas que exigen que los dos tipos
+de caso existan y que ningún caso de edificio único se quede sin comprobar
+ninguna de las dos cosas.
 
 ## Qué hay dentro
 

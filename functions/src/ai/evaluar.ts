@@ -46,6 +46,25 @@ export interface CasoEspera {
    * edificio sin torres. Si el modelo aprende a callarse, ese cae.
    */
   missingInformationSinCategorias?: string[];
+  /**
+   * Palabras que **ninguna** pregunta puede usar. Busca en `detalle`, nunca en
+   * `categoria`, por la misma razón que su gemela positiva.
+   *
+   * Nace el 14 de agosto de 2026 corrigiendo una afirmación mal escrita el mismo
+   * día. `missingInformationSinCategorias: ["alcance"]` prohibía *cualquier*
+   * pregunta de alcance en un edificio único, y la decisión que implementaba
+   * decía lo contrario: un edificio sin torres sí tiene pisos y zonas, y
+   * preguntar por ellos es legítimo —el corpus de Quito no dice «torre» ni una
+   * vez y dice «piso» 109—. Lo que no puede hacer es preguntar por lo que no
+   * existe.
+   *
+   * **La distinción que salva esto de ser un listón movido para aprobar:** el
+   * criterio se escribió antes de correr —está en la frase que recibe el modelo
+   * y en una prueba llamada «NO le prohíbe preguntar por el alcance»— y la
+   * afirmación nunca lo reflejó. No se relaja el examen: se corrige una pregunta
+   * del examen que medía otra cosa.
+   */
+  missingInformationNoMenciona?: string[];
   bodyContiene?: string[];
   /**
    * Basta con que UNA aparezca. Sirve para comprobar que el cuerpo **dice algo**
@@ -205,6 +224,15 @@ export function evaluarCaso(caso: CasoEvaluacion, salida: SalidaBorrador): Calif
     const sobran = [...new Set(salida.missingInformation.map((d) => d.categoria))].filter((c) => prohibidas.has(c));
     if (sobran.length > 0) {
       fallos.push(`pidió una categoría que aquí no aplica (${sobran.join(", ")}) — pidió: ${pedido}`);
+    }
+  }
+
+  // Palabras que ninguna pregunta puede usar. Se nombra la que apareció y en
+  // qué pregunta: «preguntó por torres» sin la frase obliga a abrir el JSON.
+  for (const aguja of e.missingInformationNoMenciona ?? []) {
+    const culpable = salida.missingInformation.find((d) => contiene(d.detalle, aguja));
+    if (culpable) {
+      fallos.push(`preguntó por «${aguja}», que este conjunto no tiene: ${culpable.categoria}: ${culpable.detalle}`);
     }
   }
 

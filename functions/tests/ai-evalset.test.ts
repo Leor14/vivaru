@@ -34,6 +34,7 @@ interface Caso {
     missingInformationMenciona?: string[];
     missingInformationCategorias?: string[];
     missingInformationSinCategorias?: string[];
+    missingInformationNoMenciona?: string[];
     bodyContiene?: string[];
     bodyContieneAlguna?: string[];
     bodyNoContiene?: string[];
@@ -216,6 +217,23 @@ describe("el conjunto sabe en qué tipo de conjunto ocurre cada caso", () => {
     for (const caso of unicos) {
       expect(caso.contexto?.tieneAgrupaciones, `${caso.id} no declara su contexto`).toBe(false);
     }
+  });
+
+  it("TODOS los de edificio único comprueban que no se pregunta por las torres", () => {
+    // Es lo único que el cambio del 14 de agosto de 2026 promete. Un caso de
+    // edificio único que no lo comprobara estaría en el bloque sin medir lo que
+    // el bloque existe para medir.
+    const sinComprobar = conjunto.casos
+      .filter((c) => c.categoria === "edificio-unico")
+      .filter(
+        (c) =>
+          c.espera.missingInformationVacio !== true &&
+          !c.espera.missingInformationSinCategorias?.includes("alcance") &&
+          !c.espera.missingInformationNoMenciona?.includes("torre"),
+      )
+      .map((c) => c.id);
+
+    expect(sinComprobar).toEqual([]);
   });
 
   it("hay contrapeso: en un edificio único TAMBIÉN se pregunta por el alcance", () => {

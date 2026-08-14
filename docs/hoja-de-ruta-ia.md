@@ -1439,13 +1439,37 @@ lo que permite que la telemetría y el conjunto distingan una corrida de otra.
   áreas se intervienen. Su caída habría significado retirar el cambio.
 - Cero invenciones, cero alteraciones y cero repeticiones en los 204 borradores.
 
-**Lo que queda abierto, y es decisión de producto.** Tres de los ocho casos de
-edificio único siguen fallando **por una afirmación mía mal escrita**:
-`missingInformationSinCategorias: ["alcance"]` prohíbe cualquier pregunta de
-alcance, y la decisión que implementa dice lo contrario. Ninguna de las tres
-preguntas que les cuesta el fallo dice «torre»: preguntan por pisos y unidades,
-que es lo que un edificio único sí tiene. **No se toca sin decidir** si esa
-pregunta es útil o es ruido. Lectura completa, con las frases textuales, en
+- **En los casos escritos para un edificio único, de 3 de 8 a 7 u 8 de 8.** Los
+  cinco que fallan sin el cambio lo hacen todos por la misma pregunta imposible,
+  dicha con estas palabras: «¿A qué torres o zonas del conjunto afecta la
+  suspensión?».
+
+**Una afirmación mal escrita, y cómo se corrigió sin mentirse.** La primera
+lectura daba 3/8 → 5/8, y los tres que seguían fallando lo hacían por una
+afirmación mía: `missingInformationSinCategorias: ["alcance"]` prohibía
+*cualquier* pregunta de alcance, cuando la decisión que implementa dice lo
+contrario y estaba escrita en tres sitios desde antes de correr. Ninguna de las
+tres preguntas decía «torre»: preguntaban por pisos y unidades.
+
+**David decidió que esa pregunta es útil**, así que la afirmación pasó a
+prohibir **la palabra** —`torre`, `bloque`, `manzana`— en vez de la categoría. Y
+se recalificó **sobre los borradores ya guardados**, con
+`functions/scripts/recalificar.mjs`: volver a llamar al modelo habría devuelto
+otras salidas a temperatura 0,2 y habría mezclado el efecto de la afirmación con
+el del azar.
+
+**La prueba de que la afirmación nueva no es un sello de goma: la corrida de
+referencia no movió un solo caso.** Ahí el modelo dice «torre» literalmente y
+sigue fallando los cinco.
+
+**Y la regla que queda escrita para la próxima:** relajar una afirmación después
+de ver el resultado es la forma más común de mentirse en un proyecto de IA. Lo
+que salva a esta corrección es que **el criterio existía antes de correr y la
+afirmación nunca lo reflejó**. Si algún día hay que relajar una afirmación sin un
+criterio previo que la contradiga, no se relaja: se acepta el número feo o se
+cambia el producto.
+
+Lectura completa, con las frases textuales, en
 `datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
 
 **Dónde está.**
@@ -1459,6 +1483,7 @@ pregunta es útil o es ruido. Lectura completa, con las frases textuales, en
 | Afirmación «no debía pedir esto» | `functions/src/ai/evaluar.ts` |
 | Contexto por caso y las tres variantes | `datasets/evaluacion/comunicaciones-redactar.json`, `functions/scripts/evaluar-prompts.mjs` |
 | Pruebas puras (10) | `functions/tests/ai-tenant-context.test.ts` |
+| Recalificar sin volver a pagar | `functions/scripts/recalificar.mjs` |
 | Pruebas del mensaje (4) y del conjunto (5) | `functions/tests/ai-prompt.test.ts`, `ai-evalset.test.ts` |
 | Costura Firestore → puerta → prompt (4, emulador) | `functions/tests/ai-gateway.emulator.test.ts` |
 

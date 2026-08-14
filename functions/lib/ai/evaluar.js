@@ -71,6 +71,14 @@ function evaluarCaso(caso, salida) {
             fallos.push(`pidió una categoría que aquí no aplica (${sobran.join(", ")}) — pidió: ${pedido}`);
         }
     }
+    // Palabras que ninguna pregunta puede usar. Se nombra la que apareció y en
+    // qué pregunta: «preguntó por torres» sin la frase obliga a abrir el JSON.
+    for (const aguja of e.missingInformationNoMenciona ?? []) {
+        const culpable = salida.missingInformation.find((d) => contiene(d.detalle, aguja));
+        if (culpable) {
+            fallos.push(`preguntó por «${aguja}», que este conjunto no tiene: ${culpable.categoria}: ${culpable.detalle}`);
+        }
+    }
     for (const aguja of e.bodyContiene ?? []) {
         if (!contiene(salida.body, aguja))
             fallos.push(`el cuerpo no menciona «${aguja}»`);

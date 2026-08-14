@@ -1678,7 +1678,7 @@
           "id": "unico-agua-sin-duracion",
           "pasa": false,
           "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: duracion: ¿Cuál es la hora estimada de finalización de la limpieza? · alcance: ¿A qué torres o zonas del conjunto afecta la suspensión del servicio?"
+            "preguntó por «torre», que este conjunto no tiene: alcance: ¿A qué torres o zonas del conjunto afecta la suspensión del servicio?"
           ],
           "requiereJuicioHumano": false,
           "salida": {
@@ -1707,7 +1707,7 @@
           "pasa": false,
           "fallos": [
             "no pidió el dato que falta (esperaba alguna de: monto, cuánto, cuanto, valor, importe) — pidió: alcance: ¿A qué torres, zonas o unidades afecta este cobro? · accion: ¿Deben los residentes realizar algún trámite o notificación para optar por el pago en dos partes?",
-            "pidió una categoría que aquí no aplica (alcance) — pidió: alcance: ¿A qué torres, zonas o unidades afecta este cobro? · accion: ¿Deben los residentes realizar algún trámite o notificación para optar por el pago en dos partes?"
+            "preguntó por «torre», que este conjunto no tiene: alcance: ¿A qué torres, zonas o unidades afecta este cobro?"
           ],
           "requiereJuicioHumano": false,
           "salida": {
@@ -1736,7 +1736,7 @@
           "pasa": false,
           "fallos": [
             "no pidió el dato que falta (esperaba categoría: fecha) — pidió: alcance: ¿A qué torres, zonas o unidades específicas del conjunto afecta este corte de energía?",
-            "pidió una categoría que aquí no aplica (alcance) — pidió: alcance: ¿A qué torres, zonas o unidades específicas del conjunto afecta este corte de energía?"
+            "preguntó por «torre», que este conjunto no tiene: alcance: ¿A qué torres, zonas o unidades específicas del conjunto afecta este corte de energía?"
           ],
           "requiereJuicioHumano": false,
           "salida": {
@@ -1815,7 +1815,7 @@
           "id": "unico-ascensor-sin-duracion",
           "pasa": false,
           "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: duracion: ¿Cuánto tiempo durará el mantenimiento del ascensor? · alcance: ¿A qué torre o zona del conjunto afecta este mantenimiento?"
+            "preguntó por «torre», que este conjunto no tiene: alcance: ¿A qué torre o zona del conjunto afecta este mantenimiento?"
           ],
           "requiereJuicioHumano": false,
           "salida": {
@@ -1843,7 +1843,7 @@
           "id": "unico-tanquero-datos-vagos",
           "pasa": false,
           "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: fecha: ¿Qué día específico se realizará el reparto de agua? · alcance: ¿A qué torres o zonas del conjunto afecta el corte y el reparto de agua? · duracion: ¿Cuánto tiempo durará el corte de agua anunciado por el municipio?"
+            "preguntó por «torre», que este conjunto no tiene: alcance: ¿A qué torres o zonas del conjunto afecta el corte y el reparto de agua?"
           ],
           "requiereJuicioHumano": false,
           "salida": {
@@ -1875,5 +1875,12 @@
       ],
       "erroresDeEjecucion": 0
     }
-  }
+  },
+  "recalificaciones": [
+    {
+      "conjuntoVersion": 3,
+      "casos": 68,
+      "motivo": "recalificado sin volver a llamar al modelo"
+    }
+  ]
 }

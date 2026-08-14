@@ -2,7 +2,7 @@
   "operationKey": "comunicaciones-redactar",
   "version": 3,
   "creado": "2026-08-11",
-  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50. · La operación subió a v2 el 12 de agosto de 2026 (missingInformation categorizado). Los 59 casos y sus afirmaciones NO se tocaron. AVISO: se dio por hecho que eso hacía la corrida comparable con las cinco anteriores, y es FALSO — al mover el concepto a `categoria`, el modelo reformula `detalle` y las afirmaciones que buscan palabras dejan de encontrarlas. Medido en la corrida 23-35-21. Ver la lectura del contrato v2. · La operación subió a v3 el 14 de agosto de 2026: recibe contexto del conjunto (si tiene torres o es un edificio único). Ningún esquema cambió; lo que cambió es el mensaje que llega al modelo, y por eso las corridas nuevas NO son comparables con las seis anteriores hasta volver a medir el suelo con --contexto omitido. Los casos que presuponen torres lo declaran en `contexto`; los ocho `unico-*` declaran lo contrario; el resto toma el de la corrida.",
+  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50. · La operación subió a v2 el 12 de agosto de 2026 (missingInformation categorizado). Los 59 casos y sus afirmaciones NO se tocaron. AVISO: se dio por hecho que eso hacía la corrida comparable con las cinco anteriores, y es FALSO — al mover el concepto a `categoria`, el modelo reformula `detalle` y las afirmaciones que buscan palabras dejan de encontrarlas. Medido en la corrida 23-35-21. Ver la lectura del contrato v2. · La operación subió a v3 el 14 de agosto de 2026: recibe contexto del conjunto (si tiene torres o es un edificio único). Ningún esquema cambió; lo que cambió es el mensaje que llega al modelo, y por eso las corridas nuevas NO son comparables con las seis anteriores hasta volver a medir el suelo con --contexto omitido. Los casos que presuponen torres lo declaran en `contexto`; los ocho `unico-*` declaran lo contrario; el resto toma el de la corrida. · El 14 de agosto de 2026, cinco casos `unico-*` pasaron de prohibir la categoría `alcance` a prohibir las palabras torre/bloque/manzana: la primera versión contradecía la decisión que implementaba.",
   "casos": [
     {
       "id": "agua-corte-programado-completo",
@@ -1660,14 +1660,16 @@
         "missingInformationCategorias": [
           "duracion"
         ],
-        "missingInformationSinCategorias": [
-          "alcance"
-        ],
         "bodyContiene": [
           "martes",
           "8:00"
         ],
-        "notas": "Falta cuánto dura, que es el dato que se olvida en el 95% de los avisos reales. NO debe pedir el alcance: en un edificio único afecta a todos."
+        "notas": "Falta cuánto dura, que es el dato que se olvida en el 95% de los avisos reales. NO debe pedir el alcance: en un edificio único afecta a todos. · CORREGIDO el 14 de agosto de 2026: la afirmación prohibía CUALQUIER pregunta de alcance y la decisión que implementa dice lo contrario — un edificio sin torres sí tiene pisos y zonas. Ahora prohíbe la palabra, no la categoría. Recalificado sobre los borradores ya guardados, sin volver a llamar al modelo.",
+        "missingInformationNoMenciona": [
+          "torre",
+          "bloque",
+          "manzana"
+        ]
       }
     },
     {
@@ -1696,14 +1698,16 @@
           "valor",
           "importe"
         ],
-        "missingInformationSinCategorias": [
-          "alcance"
-        ],
         "bodyNoCoincideCon": [
           "\\$\\s?\\d",
           "\\b\\d{2,}\\s*(d[oó]lares|usd)"
         ],
-        "notas": "Ninguna cifra puede aparecer, y la pregunta tiene que ser por el monto. Si vuelve a preguntar por las torres —que aquí no existen— en lugar de por el dinero, el contexto no sirvió."
+        "notas": "Ninguna cifra puede aparecer, y la pregunta tiene que ser por el monto. Si vuelve a preguntar por las torres —que aquí no existen— en lugar de por el dinero, el contexto no sirvió. · CORREGIDO el 14 de agosto de 2026: la afirmación prohibía CUALQUIER pregunta de alcance y la decisión que implementa dice lo contrario — un edificio sin torres sí tiene pisos y zonas. Ahora prohíbe la palabra, no la categoría. Recalificado sobre los borradores ya guardados, sin volver a llamar al modelo.",
+        "missingInformationNoMenciona": [
+          "torre",
+          "bloque",
+          "manzana"
+        ]
       }
     },
     {
@@ -1728,9 +1732,6 @@
         "missingInformationCategorias": [
           "fecha"
         ],
-        "missingInformationSinCategorias": [
-          "alcance"
-        ],
         "bodyContiene": [
           "9:00",
           "13:00"
@@ -1738,7 +1739,12 @@
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
         ],
-        "notas": "«El miércoles» no es una fecha. Que la pida y que no la invente, y que no gaste la pregunta en un alcance que no aplica."
+        "notas": "«El miércoles» no es una fecha. Que la pida y que no la invente, y que no gaste la pregunta en un alcance que no aplica. · CORREGIDO el 14 de agosto de 2026: la afirmación prohibía CUALQUIER pregunta de alcance y la decisión que implementa dice lo contrario — un edificio sin torres sí tiene pisos y zonas. Ahora prohíbe la palabra, no la categoría. Recalificado sobre los borradores ya guardados, sin volver a llamar al modelo.",
+        "missingInformationNoMenciona": [
+          "torre",
+          "bloque",
+          "manzana"
+        ]
       }
     },
     {
@@ -1768,7 +1774,7 @@
           "piso 7",
           "jueves"
         ],
-        "notas": "El alcance está dado y es un piso, no una torre. No debe pedirlo. Si preguntara «¿a qué torres afecta?» estaríamos igual que antes del contexto."
+        "notas": "El alcance está dado y es un piso, no una torre. No debe pedirlo. Si preguntara «¿a qué torres afecta?» estaríamos igual que antes del contexto. · Se mantiene estricto el 14 de agosto de 2026 mientras los otros se relajan: aquí el alcance YA se dio —el piso 7—, así que preguntar por él sobra, hable de torres o de pisos."
       }
     },
     {
@@ -1797,7 +1803,12 @@
           "sábado",
           "7:00"
         ],
-        "notas": "Un edificio único sí tiene zonas de las que hablar. La pregunta correcta aquí es qué áreas se intervienen, y tiene que seguir haciéndola. Este caso es el que impide que el conjunto premie el silencio."
+        "notas": "Un edificio único sí tiene zonas de las que hablar. La pregunta correcta aquí es qué áreas se intervienen, y tiene que seguir haciéndola. Este caso es el que impide que el conjunto premie el silencio. · Y la pregunta tiene que ser por las áreas, no por las torres: este caso exige preguntar por el alcance Y prohíbe nombrar lo que el edificio no tiene. Es el contrapeso completo.",
+        "missingInformationNoMenciona": [
+          "torre",
+          "bloque",
+          "manzana"
+        ]
       }
     },
     {
@@ -1850,16 +1861,18 @@
         "missingInformationCategorias": [
           "duracion"
         ],
-        "missingInformationSinCategorias": [
-          "alcance"
-        ],
         "bodyContiene": [
           "viernes"
         ],
         "bodyNoCoincideCon": [
           "hasta las\\s+\\d{1,2}:\\d{2}"
         ],
-        "notas": "No se dijo hasta qué hora. Que lo pida y que no se invente una hora de fin."
+        "notas": "No se dijo hasta qué hora. Que lo pida y que no se invente una hora de fin. · CORREGIDO el 14 de agosto de 2026: la afirmación prohibía CUALQUIER pregunta de alcance y la decisión que implementa dice lo contrario — un edificio sin torres sí tiene pisos y zonas. Ahora prohíbe la palabra, no la categoría. Recalificado sobre los borradores ya guardados, sin volver a llamar al modelo.",
+        "missingInformationNoMenciona": [
+          "torre",
+          "bloque",
+          "manzana"
+        ]
       }
     },
     {
@@ -1885,13 +1898,15 @@
           "fecha",
           "duracion"
         ],
-        "missingInformationSinCategorias": [
-          "alcance"
-        ],
         "bodyNoCoincideCon": [
           "\\b\\d{1,2}:\\d{2}"
         ],
-        "notas": "«En la mañana» no es una hora y no se dijo qué día ni cuánto dura el corte. Nada de inventar horas. El alcance no falta: es todo el edificio."
+        "notas": "«En la mañana» no es una hora y no se dijo qué día ni cuánto dura el corte. Nada de inventar horas. El alcance no falta: es todo el edificio. · CORREGIDO el 14 de agosto de 2026: la afirmación prohibía CUALQUIER pregunta de alcance y la decisión que implementa dice lo contrario — un edificio sin torres sí tiene pisos y zonas. Ahora prohíbe la palabra, no la categoría. Recalificado sobre los borradores ya guardados, sin volver a llamar al modelo.",
+        "missingInformationNoMenciona": [
+          "torre",
+          "bloque",
+          "manzana"
+        ]
       }
     }
   ]

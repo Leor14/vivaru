@@ -155,6 +155,27 @@ describe("categorías que no debía pedir", () => {
     expect(evaluarCaso(caso({ missingInformationSinCategorias: ["alcance"] }), salida()).pasa).toBe(true);
   });
 
+  it("prohibir la PALABRA no prohíbe la categoría, y esa es la diferencia", () => {
+    // La corrección del 14 de agosto de 2026. Preguntar por el alcance en un
+    // edificio único es legítimo —tiene pisos y zonas—; preguntar por sus
+    // torres no, porque no las tiene. La misma categoría pasa o falla según lo
+    // que diga la frase.
+    const porTorres = salida({ missingInformation: [{ categoria: "alcance", detalle: "¿A qué torres afecta?" }] });
+    const porPisos = salida({
+      missingInformation: [{ categoria: "alcance", detalle: "¿Afecta a todo el edificio o a pisos específicos?" }],
+    });
+    const c = caso({ missingInformationNoMenciona: ["torre", "bloque", "manzana"] });
+
+    expect(evaluarCaso(c, porTorres).pasa).toBe(false);
+    expect(evaluarCaso(c, porTorres).fallos[0]).toContain("que este conjunto no tiene");
+    expect(evaluarCaso(c, porPisos).pasa).toBe(true);
+  });
+
+  it("la palabra se busca en el detalle, tolerando plural y acentos", () => {
+    const s = salida({ missingInformation: [{ categoria: "alcance", detalle: "¿A qué TORRES o zonas?" }] });
+    expect(evaluarCaso(caso({ missingInformationNoMenciona: ["torre"] }), s).pasa).toBe(false);
+  });
+
   it("nombra TODAS las sobrantes, no solo la primera", () => {
     // Con una sola haría falta otra corrida —y otro gasto— para enterarse de
     // la segunda.

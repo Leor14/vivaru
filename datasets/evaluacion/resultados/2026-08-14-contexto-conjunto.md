@@ -81,55 +81,83 @@ puntos entre corridas idénticas. **No hay regresión.**
 **Cero invenciones, cero alteraciones y cero repeticiones** en los 204
 borradores, como en las corridas anteriores.
 
-## Lo que NO salió como se esperaba, y es mi error, no del modelo
+## El resultado en los ocho casos de edificio único
 
-Los 8 casos de edificio único pasan de **3/8 a 5/8**. Los tres que siguen
-fallando lo hacen **por la misma afirmación**, y la afirmación la escribí yo mal.
+| Corrida | 60 originales | 8 de edificio único |
+|---|---|---|
+| `omitido` (sin el cambio) | 52/60 · 87% | **3/8 · 38%** |
+| `con` | 52/60 · 87% | 7/8 · 88% |
+| `sin` (el cambio) | 53/60 · 88% | **8/8 · 100%** |
 
-`missingInformationSinCategorias: ["alcance"]` prohíbe **cualquier** pregunta de
-alcance. Pero la decisión que tomamos antes de construir decía lo contrario, y
-está escrita en tres sitios —en la frase que recibe el modelo («Sí tiene pisos y
-zonas comunes»), en el comentario del módulo y en una prueba llamada *«NO le
-prohíbe preguntar por el alcance»*—. Mis tres casos contradicen la decisión que
-implementan.
+Los cinco que fallan en `omitido` lo hacen todos por lo mismo, y se lee en las
+frases: *«¿A qué torres o zonas del conjunto afecta la suspensión?»*, *«¿A qué
+torre o zona afecta este mantenimiento?»*, *«¿A qué torres, zonas o unidades
+afecta este cobro?»*. Cinco veces la misma pregunta imposible.
 
-Esto es lo que preguntan en realidad los tres que fallan:
+**Ojo con el 8/8: es una muestra, no una garantía.** Los ocho casos van anclados
+a «edificio único», así que reciben el mismo contexto en las corridas `con` y
+`sin`; que una diera 7 y la otra 8 es el ruido de siempre. Lo honesto es decir
+**siete u ocho de ocho, contra tres sin el cambio**.
 
-| Caso | La pregunta que le cuesta el fallo |
+### Cómo se llegó a esos números, porque importa el método
+
+**Las tres corridas se calificaron dos veces, y la segunda no costó nada.** La
+primera lectura daba 3/8 → 5/8, y los tres casos que seguían fallando lo hacían
+por una afirmación que escribí mal.
+
+`missingInformationSinCategorias: ["alcance"]` prohibía **cualquier** pregunta de
+alcance. Pero la decisión que implementa dice lo contrario, y está escrita en
+tres sitios desde antes de correr —en la frase que recibe el modelo («Sí tiene
+pisos y zonas comunes»), en el comentario del módulo y en una prueba llamada
+*«NO le prohíbe preguntar por el alcance»*—. Mis casos contradecían la decisión
+que implementaban.
+
+Estas eran las tres preguntas que les costaban el fallo:
+
+| Caso | La pregunta |
 |---|---|
 | `unico-agua-sin-duracion` | ¿La suspensión afecta a todo el edificio o a pisos específicos? |
 | `unico-alicuota-sin-monto` | ¿Aplica a todas las unidades del edificio o hay alguna excepción? |
-| `unico-tanquero-datos-vagos` | ¿El reparto de agua es para todo el edificio o hay alguna restricción por pisos o zonas? |
+| `unico-tanquero-datos-vagos` | ¿El reparto es para todo el edificio o hay restricción por pisos o zonas? |
 
-Ninguna dice «torre». Las tres preguntan por pisos o unidades, que es lo que un
-edificio único **sí** tiene y lo que el corpus de Quito menciona 109 veces. El
-modelo hizo lo que se le pidió; la afirmación mide otra cosa.
+Ninguna dice «torre». **David decidió el 14 de agosto que esa pregunta es útil**
+—un edificio de once pisos sí tiene zonas de las que hablar, y el corpus de Quito
+menciona «piso» 109 veces—, así que la afirmación pasó a prohibir **la palabra**
+(`torre`, `bloque`, `manzana`) en vez de la categoría.
 
-**Y el contrapeso aguantó.** `unico-zonas-comunes-sin-alcance` sigue preguntando
-«¿Qué áreas comunes específicas serán intervenidas?» en las dos corridas. Ese era
-el caso cuya caída habría significado retirar el cambio: no cayó.
+**Y no se volvió a pagar por saberlo.** El corredor guarda el borrador entero de
+cada caso justamente para esto: `functions/scripts/recalificar.mjs` vuelve a
+calificar las mismas salidas con el conjunto corregido. Repetir las llamadas
+habría devuelto salidas distintas —temperatura 0,2— y habría mezclado el efecto
+de la afirmación con el del azar.
 
-### Por qué esto no se arregla solo, y qué NO hay que hacer
+**La prueba de que la afirmación corregida no es un sello de goma: la corrida
+`omitido` no movió un solo caso.** Ahí el modelo dice «torre» literalmente y
+sigue fallando los cinco. La afirmación discrimina exactamente sobre lo que el
+cambio ataca, que es lo que tenía que pasar.
+
+### Lo que se mantuvo estricto, y por qué
+
+`unico-fuga-en-un-piso` conserva la prohibición de la categoría entera: ahí el
+alcance **ya se dio** —el piso 7—, así que preguntar por él sobra, hable de
+torres o de pisos.
+
+**Y el contrapeso, además de aguantar, se endureció.**
+`unico-zonas-comunes-sin-alcance` siguió preguntando «¿Qué áreas comunes
+específicas serán intervenidas?» en las dos corridas —su caída habría
+significado retirar el cambio— y ahora **exige** esa pregunta **y** prohíbe que
+nombre torres. Preguntar sí; preguntar por lo que no existe, no.
+
+### La regla que queda escrita
 
 Relajar una afirmación después de ver el resultado es la forma más común de
 mentirse en un proyecto de IA — «ajustar el prompt hasta que pasen tus tres
-ejemplos», en otra forma. La distinción que salva este caso concreto es que **el
-criterio se escribió antes de la corrida y la afirmación nunca lo reflejó**: no
-se está moviendo el listón para aprobar, se está corrigiendo una afirmación que
-nunca midió lo que decía medir.
+ejemplos», en otra forma. **Lo que salva a esta corrección de serlo es que el
+criterio existía antes de correr y la afirmación nunca lo reflejó.** No se movió
+el listón para aprobar: se corrigió una pregunta del examen que medía otra cosa.
 
-Aun así **no se toca sin decisión**, porque debajo hay una pregunta de producto
-que no es técnica: en un edificio único, ¿«¿afecta a todo el edificio o a pisos
-específicos?» es una pregunta útil o es ruido que el administrador va a descartar?
-
-Queda abierta. Las dos salidas, con su consecuencia:
-
-- **Medir la palabra, no la categoría.** La afirmación pasa a prohibir que la
-  pregunta diga «torre», que es literalmente lo que el conjunto no tiene. Mide lo
-  que la decisión dice. Los tres casos pasarían.
-- **Dejarla estricta.** Se acepta 5/8 y se trata la pregunta por pisos como el
-  siguiente hueco a cerrar. Es más exigente y deja el número feo a la vista, que
-  no es lo peor que le puede pasar a un conjunto de evaluación.
+Si algún día hay que relajar una afirmación **sin** un criterio previo que la
+contradiga, no se relaja: se acepta el número feo o se cambia el producto.
 
 ## Qué se puede afirmar hoy
 
@@ -139,4 +167,6 @@ Queda abierta. Las dos salidas, con su consecuencia:
 3. **No hace daño donde sí hay torres**: 87% antes, 87% después.
 4. **Destapa la pregunta desplazada** al menos en el caso del dinero, que era la
    sospecha del 13 de agosto.
-5. Sigue **sin haber nada en producción**. Esto vive donde vive el canario.
+5. En los casos escritos para un edificio único, pasa de **3 de 8 a 7 u 8 de 8**.
+6. Sigue **sin haber nada desplegado**, ni en producción ni en staging. El código
+   está en `develop` con las pruebas en verde.

@@ -8,9 +8,9 @@
     "v2-estructura": {
       "resumen": {
         "total": 68,
-        "pasan": 58,
-        "fallan": 10,
-        "tasa": 85,
+        "pasan": 61,
+        "fallan": 7,
+        "tasa": 90,
         "porRevisar": 2,
         "porCategoria": [
           {
@@ -24,12 +24,6 @@
             "total": 3,
             "pasan": 1,
             "tasa": 33
-          },
-          {
-            "categoria": "edificio-unico",
-            "total": 8,
-            "pasan": 5,
-            "tasa": 63
           },
           {
             "categoria": "cuotas",
@@ -132,20 +126,26 @@
             "total": 3,
             "pasan": 3,
             "tasa": 100
+          },
+          {
+            "categoria": "edificio-unico",
+            "total": 8,
+            "pasan": 8,
+            "tasa": 100
           }
         ],
         "porDificultad": [
           {
             "dificultad": "rutinario",
             "total": 37,
-            "pasan": 30,
-            "tasa": 81
+            "pasan": 31,
+            "tasa": 84
           },
           {
             "dificultad": "incomodo",
             "total": 31,
-            "pasan": 28,
-            "tasa": 90
+            "pasan": 30,
+            "tasa": 97
           }
         ],
         "inventos": [],
@@ -1679,10 +1679,8 @@
         },
         {
           "id": "unico-agua-sin-duracion",
-          "pasa": false,
-          "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: duracion: ¿A qué hora se restablecerá el servicio de agua? · alcance: ¿La suspensión afecta a todo el edificio o a pisos específicos?"
-          ],
+          "pasa": true,
+          "fallos": [],
           "requiereJuicioHumano": false,
           "salida": {
             "title": "Suspensión del servicio de agua - 19 de agosto",
@@ -1707,10 +1705,8 @@
         },
         {
           "id": "unico-alicuota-sin-monto",
-          "pasa": false,
-          "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: otro: ¿Cuál es el monto exacto de la alícuota extraordinaria aprobada? · alcance: ¿Aplica a todas las unidades del edificio o hay alguna excepción?"
-          ],
+          "pasa": true,
+          "fallos": [],
           "requiereJuicioHumano": false,
           "salida": {
             "title": "Cobro de alícuota extraordinaria para reparación de bomba de agua",
@@ -1837,10 +1833,8 @@
         },
         {
           "id": "unico-tanquero-datos-vagos",
-          "pasa": false,
-          "fallos": [
-            "pidió una categoría que aquí no aplica (alcance) — pidió: duracion: ¿Cuánto tiempo estará disponible el tanquero o hasta qué hora permanecerá en el conjunto? · fecha: ¿Qué día específico se realizará el reparto de agua? · alcance: ¿El reparto de agua es para todo el edificio o hay alguna restricción por pisos o zonas?"
-          ],
+          "pasa": true,
+          "fallos": [],
           "requiereJuicioHumano": false,
           "salida": {
             "title": "Aviso urgente: Reparto de agua por tanquero",
@@ -1871,5 +1865,12 @@
       ],
       "erroresDeEjecucion": 0
     }
-  }
+  },
+  "recalificaciones": [
+    {
+      "conjuntoVersion": 3,
+      "casos": 68,
+      "motivo": "recalificado sin volver a llamar al modelo"
+    }
+  ]
 }
