@@ -43,6 +43,14 @@ export const primaryHolderSchema = z.object({
 export const communicationSchema = z.object({
   title: requiredText("Titulo", 4),
   message: requiredText("Mensaje", 8),
+  /**
+   * Lo que el residente ve en la notificación, en una línea.
+   *
+   * Opcional: si se deja vacío, la notificación dice lo de siempre. 280
+   * caracteres, el mismo tope que el esquema de salida de la IA — no por
+   * simetría, sino porque es lo que cabe en una notificación sin cortarse.
+   */
+  notificationSummary: z.string().trim().max(280, "Máximo 280 caracteres").optional(),
   status: z.enum(["published", "draft", "archived", "scheduled", "expired"]),
   startsAt: z.string().trim().optional(),
   endsAt: z.string().trim().optional(),

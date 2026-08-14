@@ -77,6 +77,7 @@ export default function AdminCommunicationsPage() {
     defaultValues: {
       title: "",
       message: "",
+      notificationSummary: "",
       status: "published",
       startsAt: "",
       endsAt: "",
@@ -140,10 +141,16 @@ export default function AdminCommunicationsPage() {
    * el contenido anterior al regenerar y permitir deshacer». Vive aquí y no en
    * el panel porque quien es dueño de los campos es el formulario.
    *
-   * Solo guarda título y mensaje: son los dos únicos campos que la IA puede
-   * llegar a tocar.
+   * Guarda los TRES campos que la IA puede llegar a tocar: título, mensaje y
+   * el resumen de la notificación. Ni uno más — audiencia, vigencia y estado no
+   * están en el esquema de salida de la operación, así que no hay forma de que
+   * los toque.
    */
-  const [previoAsistente, setPrevioAsistente] = useState<{ title: string; message: string } | null>(null);
+  const [previoAsistente, setPrevioAsistente] = useState<{
+    title: string;
+    message: string;
+    notificationSummary: string;
+  } | null>(null);
 
   /**
    * Qué se hizo con el borrador asistido. Vive aquí y no en el panel porque
@@ -158,18 +165,24 @@ export default function AdminCommunicationsPage() {
     setCreateOpen(false);
   }
 
-  function aplicarBorradorIa(borrador: { title: string; body: string }) {
-    setPrevioAsistente({ title: form.getValues("title"), message: form.getValues("message") });
+  function aplicarBorradorIa(borrador: { title: string; body: string; notificationSummary: string }) {
+    setPrevioAsistente({
+      title: form.getValues("title"),
+      message: form.getValues("message"),
+      notificationSummary: form.getValues("notificationSummary") ?? "",
+    });
     // `shouldDirty` para que el formulario sepa que hay cambios sin guardar; la
     // validación se dispara sola al enviar, como con cualquier otra edición.
     form.setValue("title", borrador.title, { shouldDirty: true });
     form.setValue("message", borrador.body, { shouldDirty: true });
+    form.setValue("notificationSummary", borrador.notificationSummary, { shouldDirty: true });
   }
 
   function deshacerBorradorIa() {
     if (!previoAsistente) return;
     form.setValue("title", previoAsistente.title, { shouldDirty: true });
     form.setValue("message", previoAsistente.message, { shouldDirty: true });
+    form.setValue("notificationSummary", previoAsistente.notificationSummary, { shouldDirty: true });
     setPrevioAsistente(null);
     // NO se reinicia el feedback: que se arrepintiera es precisamente lo que
     // hay que anotar. Lo anota el panel con `anotarDeshecha`.
@@ -183,7 +196,7 @@ export default function AdminCommunicationsPage() {
     setSelectedTowers([]);
     setPrevioAsistente(null);
     feedbackIa.reiniciar();
-    form.reset({ title: "", message: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
+    form.reset({ title: "", message: "", notificationSummary: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
     setCreateOpen(true);
   }
 
@@ -204,6 +217,7 @@ export default function AdminCommunicationsPage() {
     form.reset({
       title: item.title,
       message: item.message,
+      notificationSummary: item.notificationSummary ?? "",
       status: item.status,
       startsAt: item.startsAt ?? "",
       endsAt: item.endsAt ?? "",
@@ -555,6 +569,19 @@ export default function AdminCommunicationsPage() {
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Mensaje</label>
             <Textarea {...form.register("message")} placeholder="Detalle para residentes" />
             {form.formState.errors.message ? <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.message.message}</p> : null}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">
+              Resumen para la notificación <span className="text-[var(--slate-500)]">(opcional)</span>
+            </label>
+            <Input {...form.register("notificationSummary")} placeholder="Corte de agua el sábado de 8:00 a 14:00 en las torres 1 y 2" maxLength={280} />
+            <p className="mt-1 text-xs text-[var(--slate-500)]">
+              Es lo que el residente lee en el aviso de la app, sin abrir el comunicado. Si lo dejas
+              vacío, verá el mensaje genérico de siempre.
+            </p>
+            {form.formState.errors.notificationSummary ? (
+              <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.notificationSummary.message}</p>
+            ) : null}
           </div>
           {/* Audiencia (VIV-401): todos o segmentado por torre. */}
           <div>

@@ -91,6 +91,14 @@ export type CommunicationItem = {
   title: string;
   message: string;
   status: "published" | "draft" | "archived" | "scheduled" | "expired";
+  /**
+   * Lo que le llega al residente en la notificación, en una línea.
+   *
+   * Opcional a propósito: los comunicados anteriores a agosto de 2026 no lo
+   * tienen y no se les inventa nada — `onCommunicationCreated` cae a la frase
+   * genérica de siempre cuando falta.
+   */
+  notificationSummary?: string;
   startsAt?: string;
   endsAt?: string;
   /** Audiencia (VIV-401): "all" (default) o "towers" (segmentado por torre). */
@@ -775,7 +783,21 @@ export async function listCommunicationsOnce(tenantId: string) {
 export async function createCommunication(
   tenantId: string,
   userId: string,
-  payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName" | "attachments" | "audience" | "audienceTowers" | "audienceUnitIds">,
+  payload: Pick<
+    CommunicationItem,
+    | "title"
+    | "message"
+    | "notificationSummary"
+    | "status"
+    | "startsAt"
+    | "endsAt"
+    | "attachmentUrl"
+    | "attachmentName"
+    | "attachments"
+    | "audience"
+    | "audienceTowers"
+    | "audienceUnitIds"
+  >,
 ) {
   const firestore = assertDb();
   const ref = await addDoc(collection(firestore, "communications"), {

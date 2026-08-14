@@ -2023,13 +2023,22 @@ exports.onCommunicationCreated = (0, firestore_2.onDocumentCreated)("communicati
     const data = event.data?.data();
     if (!data?.tenantId)
         return;
+    // Hasta agosto de 2026 esto decía «La administracion publico un nuevo
+    // comunicado» para TODOS los comunicados, siempre. El residente recibía un
+    // aviso que no le decía nada y tenía que entrar para saber si le afectaba.
+    //
+    // `notificationSummary` es opcional a propósito: los comunicados escritos a
+    // mano pueden no traerlo, y los anteriores a esa fecha no lo traen. Cuando
+    // falta se cae a la frase de siempre — nunca se inventa un resumen ni se
+    // recorta el mensaje por su cuenta, que sería adivinar qué es lo importante.
+    const resumen = data.notificationSummary?.trim();
     const residentUids = await listTenantUidsByRoles(data.tenantId, ["resident"]);
     await createNotifications(residentUids.map((uid) => ({
         userId: uid,
         tenantId: data.tenantId,
         type: "communication",
         title: data.title?.trim() || "Nuevo comunicado",
-        description: "La administracion publico un nuevo comunicado.",
+        description: resumen || "La administracion publico un nuevo comunicado.",
         link: "/resident/communications",
     })));
 });
