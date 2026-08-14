@@ -81,10 +81,17 @@ suite normal no corre— pasa entera, incluida la que sigue el contexto desde la
 unidades de Firestore hasta el mensaje del modelo.
 
 ~~**Lo único que falta es la persona.**~~ **La sesión se corrió el mismo 14 de
-agosto** — ver la sección de arriba. `ia-proveedor-real` quedó **encendida** con
-un override en `featureFlagOverrides/tenant-palmas-cdmx`; el resto de conjuntos
-de staging siguen en simulador. **Apagarla si va a pasar tiempo hasta la
-siguiente sesión.**
+agosto** — ver la sección de arriba. `ia-proveedor-real` se encendió con un
+override para el conjunto del piloto y **David lo retiró desde
+`/superadmin/flags` a las 16:29**, en cuanto terminó. Staging vuelve a estar
+entero en simulador (`valor_global`), con el panel «Redactar con IA» encendido.
+**Para la tercera sesión hay que volver a encenderlo**, y ahí está el interruptor
+que se olvida.
+
+Queda un `featureFlagOverrides/tenant-palmas-cdmx` con el mapa de banderas vacío.
+Es el rastro normal de «Quitar override» —distinto de «Invertir», que dejaría un
+`false` explícito y pintaría el conjunto como apartado a propósito— y **no hay
+que limpiarlo**.
 
 **Una trampa nueva, que casi cuesta cara:** `seed-tenant.mjs` apunta a
 **producción por defecto** (`FIREBASE_PROJECT_ID || "hogaru-1"`). Olvidar la
