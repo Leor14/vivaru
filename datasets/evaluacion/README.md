@@ -39,6 +39,27 @@ retirar. Y permite que la evaluación del Paso 2.4 se corra sola.
 | `bodyNoCoincideCon` | Igual, con expresión regular (horas, fechas, importes) |
 | `bodyMaxLongitud` | El borrador no se infla — «que salga corto» deja de ser opinión |
 | `qualityFlagsMenciona` | Marcó el problema en vez de tragárselo |
+| `preservaDato` | **ALTERADO**: un dato dado que el borrador no puede reformular a otra cosa |
+
+### `preservaDato`, y la tercera forma de fallar
+
+Hasta el 13 de agosto de 2026 el conjunto comprobaba dos: **inventar** un dato
+que nadie dio, y **repetir** algo de la entrada que no debía salir. Faltaba una
+tercera, y la encontró un administrador de verdad, no un razonamiento.
+
+Escribió `2500 pesos por residente` en un hecho y `por unidad` en otro. El
+borrador publicó «2500 pesos **por unidad**» y descartó lo otro, sin avisar — y
+él lo guardó con edición 0%, o sea que no lo vio. No inventó nada, así que
+INVENTADO no lo cazaba; y las dos expresiones estaban en la entrada, así que
+REPETIDO lo habría etiquetado mal.
+
+**Lo grave no es que eligiera mal** —puede que acertara, las cuotas suelen ir
+por unidad—. **Lo grave es que eligiera**, y en un cobro esa palabra decide si
+una unidad con tres residentes debe 2.500 o 7.500.
+
+`preservaDato` exige las dos condiciones —el dato dado desapareció **y** hay
+otro en su lugar— para no confundir alterar con callarse, que son fallos
+distintos y se cazan con afirmaciones distintas.
 
 `bodyNoContiene` es la más importante del conjunto. Si no se dio la fecha y el
 borrador dice «el sábado», el modelo se la inventó — y ese es exactamente el
@@ -79,7 +100,7 @@ que migrarlas a `missingInformationCategorias` antes de leer ningún número.
 
 ## Qué hay dentro
 
-**59 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
+**60 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
 `datasets/chat-vecinal/analisis.md`), con sus proporciones: el agua y las cuotas
 pesan más que nada, y las asambleas pesan tanto como las averías.
 
@@ -89,6 +110,7 @@ pesan más que nada, y las asambleas pesan tanto como las averías.
 | **Incómodos** — falta un dato, contradicciones, temas mezclados, propósito vacío, instrucción incrustada, datos personales, tono agresivo, hechos largos, mala ortografía | 31–50 |
 | **Duración** — el hueco real más frecuente (añadido el 12 de agosto de 2026) | 51–56 |
 | **Motivo no declarado** — para cazar la invención de causa (añadido el 12 de agosto de 2026) | 57–59 |
+| **Alteración de un dato** — el primer caso que salió de ver a un administrador real (13 de agosto de 2026) | 60 |
 
 Los incómodos son **el 46% del conjunto**, y es a propósito: un conjunto de
 evaluación lleno de casos fáciles da un número alto y no dice nada.
@@ -180,7 +202,7 @@ repaso legal que el hueco de Ecuador.
 
 ## Cómo se usa
 
-Lo consume el evaluador del Paso 2.4, que corre los 59 casos contra dos o tres
+Lo consume el evaluador del Paso 2.4, que corre los 60 casos contra dos o tres
 versiones de prompt y compara.
 
 **Los prompts NO se han retocado para los casos de duración, a propósito.**
