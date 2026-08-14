@@ -45,6 +45,7 @@ const catalog_1 = require("./catalog");
 const execute_1 = require("./execute");
 const provider_1 = require("./provider");
 const quota_1 = require("./quota");
+const tenant_context_1 = require("./tenant-context");
 const usage_1 = require("./usage");
 /**
  * Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.7 de
@@ -143,8 +144,19 @@ async function runGateway(request, deps = {}) {
         logger.info("ai-gateway: cuota agotada", { operationKey: op.key, tenantId, excedida: cuota.excedida });
         return { ok: false, code: "resource-exhausted", message: cuota.message, reason: cuota.excedida };
     }
-    const provider = deps.provider ?? (await (0, provider_1.resolveProvider)(op, tenantId));
-    const resultado = await (0, execute_1.executeOperation)(op, validation.input, provider);
+    // El contexto se resuelve DESPUÉS de cobrar la cuota: a quien ya no le quedan
+    // borradores no se le lee la colección de unidades. Y va en paralelo con el
+    // proveedor porque no dependen el uno del otro.
+    //
+    // `resolverContextoConjunto` nunca lanza: si Firestore falla, devuelve «no se
+    // sabe» y el borrador sale igual, preguntando como hoy.
+    const [provider, contexto] = await Promise.all([
+        deps.provider ? Promise.resolve(deps.provider) : (0, provider_1.resolveProvider)(op, tenantId),
+        op.contextoDelConjunto ? (0, tenant_context_1.resolverContextoConjunto)(db, tenantId) : Promise.resolve({}),
+    ]);
+    // El `undefined` es la versión de prompt: producción usa siempre la activa del
+    // catálogo. Solo la evaluación offline pasa otra.
+    const resultado = await (0, execute_1.executeOperation)(op, validation.input, provider, undefined, contexto);
     // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
     // salida incumplió el contrato, los tokens se gastaron y la cuota se queda
     // consumida — devolverla sería mentir sobre el costo.

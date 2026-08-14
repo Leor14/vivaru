@@ -45,7 +45,11 @@ async function conCorteDeTiempo(promise, timeoutMs) {
 async function executeOperation(operation, input, provider, 
 // La evaluación offline del Paso 2.4 corre el mismo camino con versiones
 // distintas; producción usa siempre la activa.
-promptVersion = prompts_1.PROMPT_ACTIVO) {
+promptVersion = prompts_1.PROMPT_ACTIVO, 
+// Lo que Vivaru sabe del conjunto y el administrador no tiene que escribir.
+// Lo resuelve la puerta; aquí solo se transporta hasta el prompt. Ausente, el
+// mensaje sale idéntico al de siempre.
+contexto) {
     const inicio = Date.now();
     const transcurrido = () => Date.now() - inicio;
     let resultado;
@@ -53,7 +57,7 @@ promptVersion = prompts_1.PROMPT_ACTIVO) {
         resultado = await conCorteDeTiempo(provider.generate({
             operationKey: operation.key,
             operationVersion: operation.version,
-            prompt: (0, prompt_1.buildProviderPrompt)(operation, input, promptVersion),
+            prompt: (0, prompt_1.buildProviderPrompt)(operation, input, promptVersion, contexto),
             promptVersion,
             input,
             maxOutputTokens: operation.limits.maxOutputTokens,

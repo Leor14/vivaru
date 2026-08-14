@@ -30,6 +30,22 @@ export interface CasoEspera {
    * afirmaciones frágiles, una a una.
    */
   missingInformationCategorias?: string[];
+  /**
+   * Categorías que el modelo **no** debía pedir. Ninguna puede aparecer.
+   *
+   * Nace el 14 de agosto de 2026 con el contexto del conjunto: sin esto no hay
+   * forma de medir lo único que ese cambio persigue —que en un edificio único
+   * deje de preguntar por las torres—, porque «pidió de menos» y «pidió lo
+   * correcto» se cuentan igual en las demás afirmaciones.
+   *
+   * **Es una afirmación peligrosa y por eso llega acompañada.** Premiar el
+   * silencio es la trampa que la lectura del 2.4 nombró por su nombre: si el
+   * conjunto solo castigara preguntar, ganaría el prompt más callado, que es lo
+   * contrario del valor del producto. Por cada caso que exige no pedir el
+   * alcance hay otro —`unico-zonas-comunes-sin-alcance`— que exige pedirlo en un
+   * edificio sin torres. Si el modelo aprende a callarse, ese cae.
+   */
+  missingInformationSinCategorias?: string[];
   bodyContiene?: string[];
   /**
    * Basta con que UNA aparezca. Sirve para comprobar que el cuerpo **dice algo**
@@ -76,6 +92,16 @@ export interface CasoEvaluacion {
   requiereJuicioHumano?: boolean;
   decisionDeProducto?: boolean;
   input: unknown;
+  /**
+   * Cómo es el conjunto en el que ocurre este caso. Si el caso no lo declara,
+   * manda el que fije la corrida (`--contexto` del corredor), y eso es lo que
+   * permite pasar los mismos 60 casos por «con torres», «sin torres» y «sin
+   * decir nada» sin duplicarlos.
+   *
+   * Los casos que sí lo declaran son los que solo tienen sentido en un tipo de
+   * conjunto: un aviso de edificio único no se mide con torres.
+   */
+  contexto?: { tieneAgrupaciones?: boolean };
   espera: CasoEspera;
 }
 
@@ -168,6 +194,17 @@ export function evaluarCaso(caso: CasoEvaluacion, salida: SalidaBorrador): Calif
       fallos.push(
         `no pidió el dato que falta (esperaba categoría: ${e.missingInformationCategorias.join(", ")}) — pidió: ${pedido || "nada"}`,
       );
+    }
+  }
+
+  // Lo que NO debía pedir. Se nombran todas las sobrantes, no solo la primera:
+  // si el modelo pide dos categorías prohibidas, saber solo una obligaría a
+  // otra corrida para enterarse de la segunda.
+  if (e.missingInformationSinCategorias?.length) {
+    const prohibidas = new Set(e.missingInformationSinCategorias);
+    const sobran = [...new Set(salida.missingInformation.map((d) => d.categoria))].filter((c) => prohibidas.has(c));
+    if (sobran.length > 0) {
+      fallos.push(`pidió una categoría que aquí no aplica (${sobran.join(", ")}) — pidió: ${pedido}`);
     }
   }
 

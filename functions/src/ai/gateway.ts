@@ -9,6 +9,7 @@ import { findOperation, validateOperationInput } from "./catalog";
 import { executeOperation } from "./execute";
 import { resolveProvider, type AiProvider } from "./provider";
 import { consumeQuota, refundQuota, type QuotaRemaining } from "./quota";
+import { resolverContextoConjunto } from "./tenant-context";
 import { recordAiUsage } from "./usage";
 
 /**
@@ -175,8 +176,20 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
     return { ok: false, code: "resource-exhausted", message: cuota.message, reason: cuota.excedida };
   }
 
-  const provider = deps.provider ?? (await resolveProvider(op, tenantId));
-  const resultado = await executeOperation(op, validation.input, provider);
+  // El contexto se resuelve DESPUÉS de cobrar la cuota: a quien ya no le quedan
+  // borradores no se le lee la colección de unidades. Y va en paralelo con el
+  // proveedor porque no dependen el uno del otro.
+  //
+  // `resolverContextoConjunto` nunca lanza: si Firestore falla, devuelve «no se
+  // sabe» y el borrador sale igual, preguntando como hoy.
+  const [provider, contexto] = await Promise.all([
+    deps.provider ? Promise.resolve(deps.provider) : resolveProvider(op, tenantId),
+    op.contextoDelConjunto ? resolverContextoConjunto(db, tenantId) : Promise.resolve({}),
+  ]);
+
+  // El `undefined` es la versión de prompt: producción usa siempre la activa del
+  // catálogo. Solo la evaluación offline pasa otra.
+  const resultado = await executeOperation(op, validation.input, provider, undefined, contexto);
 
   // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
   // salida incumplió el contrato, los tokens se gastaron y la cuota se queda

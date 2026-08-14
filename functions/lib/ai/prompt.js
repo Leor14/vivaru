@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.CONTEXTO_EDIFICIO_UNICO = exports.CONTEXTO_CON_AGRUPACIONES = void 0;
 exports.buildFormatInstruction = buildFormatInstruction;
 exports.buildProviderPrompt = buildProviderPrompt;
 const zod_1 = require("zod");
@@ -69,18 +70,48 @@ function buildFormatInstruction(operation) {
     ].join("\n");
 }
 /**
+ * Cómo se le cuenta al modelo qué forma tiene el conjunto.
+ *
+ * **Son hechos, no instrucciones, y esa fue la decisión.** No dicen «no
+ * preguntes por el alcance»: dicen cómo es el edificio y dejan que el modelo
+ * saque la consecuencia. Prohibírselo mataría también «¿qué zonas comunes
+ * afecta?», que en un edificio de once pisos es una pregunta buena — el corpus
+ * de Quito, sin una sola «torre», tiene 109 menciones de «piso». Por eso la
+ * frase del edificio único dice en voz alta lo que **sí** tiene.
+ *
+ * Se exportan para que la corrida y los documentos citen la frase exacta que se
+ * evaluó, en vez de una paráfrasis.
+ */
+exports.CONTEXTO_CON_AGRUPACIONES = "El conjunto está dividido en varias agrupaciones (torres, bloques o manzanas).";
+exports.CONTEXTO_EDIFICIO_UNICO = "El conjunto es un edificio único: no tiene torres ni bloques. Sí tiene pisos y zonas comunes.";
+/**
  * Mensaje completo: instrucción de TAREA (versionada, Paso 2.3) + instrucción de
- * FORMATO (derivada del esquema) + los datos que escribió la persona.
+ * FORMATO (derivada del esquema) + el contexto del conjunto + los datos que
+ * escribió la persona.
  *
  * El orden importa poco para el modelo y mucho para quien lee esto: primero qué
  * hacer, luego con qué forma, y al final los datos.
+ *
+ * **Sin contexto —o con un contexto que no sabe nada— el mensaje sale idéntico
+ * al de antes del 14 de agosto de 2026, byte a byte.** No es una casualidad de
+ * la implementación: es lo que permite volver a medir el suelo y comparar la
+ * corrida nueva con las seis anteriores. Hay una prueba que lo sostiene.
  */
-function buildProviderPrompt(operation, input, version = prompts_1.PROMPT_ACTIVO) {
+function buildProviderPrompt(operation, input, version = prompts_1.PROMPT_ACTIVO, contexto) {
+    const hecho = contexto?.tieneAgrupaciones === undefined
+        ? null
+        : contexto.tieneAgrupaciones
+            ? exports.CONTEXTO_CON_AGRUPACIONES
+            : exports.CONTEXTO_EDIFICIO_UNICO;
     return [
         (0, prompts_1.getPrompt)(version).instruccion,
         "",
         buildFormatInstruction(operation),
         "",
+        // Va ANTES de los datos del administrador y separado de ellos: es lo que
+        // Vivaru sabe, no lo que él escribió. Mezclarlo con los hechos invitaría al
+        // modelo a devolverlo como si se lo hubieran dictado.
+        ...(hecho ? ["Contexto del conjunto (lo sabe Vivaru, no lo escribió el administrador):", hecho, ""] : []),
         "Datos proporcionados:",
         JSON.stringify(input, null, 2),
     ].join("\n");

@@ -127,6 +127,49 @@ describe("pedir lo que falta", () => {
   });
 });
 
+/**
+ * Lo que NO debía pedir — 14 de agosto de 2026.
+ *
+ * Nace con el contexto del conjunto: sin esta afirmación no hay forma de medir
+ * si el modelo dejó de preguntar por las torres en un edificio que no las
+ * tiene, que es lo único que ese cambio persigue.
+ */
+describe("categorías que no debía pedir", () => {
+  it("falla si pidió una categoría prohibida, y dice cuál", () => {
+    const s = salida({ missingInformation: [{ categoria: "alcance", detalle: "¿A qué torres afecta?" }] });
+    const r = evaluarCaso(caso({ missingInformationSinCategorias: ["alcance"] }), s);
+    expect(r.pasa).toBe(false);
+    expect(r.fallos[0]).toContain("alcance");
+    expect(r.fallos[0]).toContain("no aplica");
+  });
+
+  it("pasa si pidió otras cosas y no la prohibida", () => {
+    const s = salida({ missingInformation: [{ categoria: "duracion", detalle: "¿Cuánto dura?" }] });
+    expect(evaluarCaso(caso({ missingInformationSinCategorias: ["alcance"] }), s).pasa).toBe(true);
+  });
+
+  it("no pedir NADA nunca incumple esta afirmación", () => {
+    // Y por eso sola no basta: un modelo mudo la cumple siempre. Lo que impide
+    // que el conjunto premie el silencio son los casos que exigen preguntar,
+    // no esta comprobación.
+    expect(evaluarCaso(caso({ missingInformationSinCategorias: ["alcance"] }), salida()).pasa).toBe(true);
+  });
+
+  it("nombra TODAS las sobrantes, no solo la primera", () => {
+    // Con una sola haría falta otra corrida —y otro gasto— para enterarse de
+    // la segunda.
+    const s = salida({
+      missingInformation: [
+        { categoria: "alcance", detalle: "¿Qué torres?" },
+        { categoria: "otro", detalle: "¿Quién es el proveedor?" },
+      ],
+    });
+    const r = evaluarCaso(caso({ missingInformationSinCategorias: ["alcance", "otro"] }), s);
+    expect(r.fallos[0]).toContain("alcance");
+    expect(r.fallos[0]).toContain("otro");
+  });
+});
+
 describe("«que diga algo, no que lo diga así» — bodyContieneAlguna", () => {
   // Comprueba contenido sin exigir redacción. Reconocer que aún no hay hora de
   // restablecimiento se puede escribir de diez formas, y las diez valen.

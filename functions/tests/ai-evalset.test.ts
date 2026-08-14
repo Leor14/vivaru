@@ -26,11 +26,14 @@ interface Caso {
   /** El criterio principal lo tiene que juzgar una persona: tono, claridad, estructura. */
   requiereJuicioHumano?: boolean;
   input: unknown;
+  /** Cómo es el conjunto del caso. Ausente = lo fija la corrida. */
+  contexto?: { tieneAgrupaciones?: boolean };
   espera: {
     assumptionsVacio?: boolean;
     missingInformationVacio?: boolean;
     missingInformationMenciona?: string[];
     missingInformationCategorias?: string[];
+    missingInformationSinCategorias?: string[];
     bodyContiene?: string[];
     bodyContieneAlguna?: string[];
     bodyNoContiene?: string[];
@@ -182,6 +185,72 @@ describe("la mezcla del conjunto", () => {
     expect(inyecciones.length).toBeGreaterThanOrEqual(3);
     for (const caso of inyecciones) {
       expect(caso.espera.bodyNoContiene?.length ?? 0).toBeGreaterThan(0);
+    }
+  });
+});
+
+/**
+ * Contexto del conjunto — 14 de agosto de 2026.
+ *
+ * Los casos se pasan por tres corridas: sin contexto (la referencia), con torres
+ * y sin torres. Lo que se protege aquí es que ese barrido no produzca casos
+ * incoherentes ni un conjunto que premie el silencio.
+ */
+describe("el conjunto sabe en qué tipo de conjunto ocurre cada caso", () => {
+  it("todo caso que nombre una torre declara que su conjunto las tiene", () => {
+    // Si no lo declarara, la corrida «sin torres» le diría al modelo que el
+    // edificio no tiene torres mientras los hechos le hablan de la torre 2. El
+    // resultado no mediría el contexto, mediría una contradicción que nosotros
+    // metimos.
+    const incoherentes = conjunto.casos
+      .filter((c) => JSON.stringify(c.input).toLowerCase().includes("torre"))
+      .filter((c) => c.contexto?.tieneAgrupaciones !== true)
+      .map((c) => c.id);
+
+    expect(incoherentes).toEqual([]);
+  });
+
+  it("los casos de edificio único están y declaran lo suyo", () => {
+    const unicos = conjunto.casos.filter((c) => c.categoria === "edificio-unico");
+    expect(unicos.length).toBeGreaterThanOrEqual(6);
+    for (const caso of unicos) {
+      expect(caso.contexto?.tieneAgrupaciones, `${caso.id} no declara su contexto`).toBe(false);
+    }
+  });
+
+  it("hay contrapeso: en un edificio único TAMBIÉN se pregunta por el alcance", () => {
+    // La prueba que impide que este cambio degenere. Si el conjunto solo
+    // castigara preguntar por el alcance, el mejor prompt sería el más callado
+    // —«la trampa de la métrica», dicha en la lectura del 2.4— y estaríamos
+    // destruyendo el valor del producto mientras el número sube.
+    const unicos = conjunto.casos.filter((c) => c.categoria === "edificio-unico");
+    const exigenAlcance = unicos.filter((c) => c.espera.missingInformationCategorias?.includes("alcance"));
+    const prohibenAlcance = unicos.filter((c) => c.espera.missingInformationSinCategorias?.includes("alcance"));
+
+    expect(exigenAlcance.length).toBeGreaterThanOrEqual(1);
+    expect(prohibenAlcance.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ninguna afirmación nombra una categoría que no existe", () => {
+    // Una categoría mal escrita en «lo que no debe pedir» no falla nunca: el
+    // caso pasaría siempre y nadie se enteraría de que no comprueba nada.
+    const validas = new Set(["duracion", "fecha", "alcance", "accion", "otro"]);
+    for (const caso of conjunto.casos) {
+      for (const c of [
+        ...(caso.espera.missingInformationCategorias ?? []),
+        ...(caso.espera.missingInformationSinCategorias ?? []),
+      ]) {
+        expect(validas, `${caso.id} nombra la categoría «${c}»`).toContain(c);
+      }
+    }
+  });
+
+  it("ningún caso exige y prohíbe la misma categoría", () => {
+    for (const caso of conjunto.casos) {
+      const exige = new Set(caso.espera.missingInformationCategorias ?? []);
+      for (const c of caso.espera.missingInformationSinCategorias ?? []) {
+        expect(exige.has(c), `${caso.id} exige y prohíbe «${c}»`).toBe(false);
+      }
     }
   });
 });

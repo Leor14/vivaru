@@ -33,6 +33,7 @@ retirar. Y permite que la evaluación del Paso 2.4 se corra sola.
 | `missingInformationVacio` | No pidió nada, porque no faltaba nada |
 | `missingInformationMenciona` | Alguno de los datos que faltan menciona estas palabras — busca en `detalle`, **nunca** en `categoria` |
 | `missingInformationCategorias` | Pidió un dato de alguna de estas categorías. **No depende del vocabulario** |
+| `missingInformationSinCategorias` | **NO** pidió ninguna de estas. Nace con el contexto del conjunto — ver más abajo |
 | `bodyContiene` / `titleContiene` | Los hechos dados aparecen en el borrador — **todas** |
 | `bodyContieneAlguna` | El cuerpo **dice algo**, sin exigir cómo — basta una |
 | `bodyNoContiene` | **La comprobación de alucinación**: lo que NO se dio no puede aparecer |
@@ -98,9 +99,44 @@ La consecuencia práctica: **una corrida con la forma nueva y las afirmaciones
 viejas no es comparable con las anteriores**, y las afirmaciones frágiles hay
 que migrarlas a `missingInformationCategorias` antes de leer ningún número.
 
+### El contexto del conjunto, y la afirmación peligrosa que trae
+
+**14 de agosto de 2026, operación v3.** La operación recibe si el conjunto tiene
+torres o es un edificio único, porque el corpus de Quito no dice «torre» ni una
+vez en seis años y nueve meses —contra 274 veces en el de Ciudad de México— y el
+modelo preguntaba por las torres igual. Seis de los ocho fallos que le quedaban a
+`v2-estructura` incluían esa pregunta.
+
+Eso obliga a dos cosas en el conjunto.
+
+**1 · Cada caso puede declarar en qué tipo de conjunto ocurre.**
+
+```json
+"contexto": { "tieneAgrupaciones": false }
+```
+
+Los casos que **nombran una torre** en sus hechos lo declaran en `true` — si no,
+la corrida «sin torres» le diría al modelo que el edificio no tiene torres
+mientras los hechos le hablan de la torre 2, y el resultado no mediría el
+contexto sino una contradicción que metimos nosotros. Hay una prueba que lo
+impide. Los que no lo declaran toman el de la corrida (`--contexto` del
+corredor), y por eso los mismos casos pueden pasarse por las tres variantes sin
+duplicarlos.
+
+**2 · `missingInformationSinCategorias` es una afirmación que hay que vigilar.**
+
+Es la única forma de medir que el modelo **dejó** de preguntar por las torres. Y
+es peligrosa: premiar el silencio es la trampa que la lectura del 2.4 nombró por
+su nombre —si el conjunto solo castigara preguntar, ganaría el prompt más
+callado, que es lo contrario del valor del producto—. Por eso **nunca va sola**:
+`unico-zonas-comunes-sin-alcance` exige preguntar por el alcance en un edificio
+sin torres, porque «áreas comunes» no dice cuáles y un edificio único sí tiene
+zonas de las que hablar. Si el modelo aprende a callarse, ese caso cae. Hay una
+prueba que exige que los dos tipos de caso existan.
+
 ## Qué hay dentro
 
-**60 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
+**68 casos.** Los rutinarios salen de la taxonomía real del corpus vecinal (ver
 `datasets/chat-vecinal/analisis.md`), con sus proporciones: el agua y las cuotas
 pesan más que nada, y las asambleas pesan tanto como las averías.
 
@@ -111,6 +147,7 @@ pesan más que nada, y las asambleas pesan tanto como las averías.
 | **Duración** — el hueco real más frecuente (añadido el 12 de agosto de 2026) | 51–56 |
 | **Motivo no declarado** — para cazar la invención de causa (añadido el 12 de agosto de 2026) | 57–59 |
 | **Alteración de un dato** — el primer caso que salió de ver a un administrador real (13 de agosto de 2026) | 60 |
+| **Edificio único** — el segundo país, sin torres (añadido el 14 de agosto de 2026) | 61–68 |
 
 Los incómodos son **el 46% del conjunto**, y es a propósito: un conjunto de
 evaluación lleno de casos fáciles da un número alto y no dice nada.
@@ -132,6 +169,26 @@ inicio. Detalle del dato que los motiva en
 **Uno de ellos** —`duracion-promesa-dada-por-el-administrador`— existe solo como
 contrapeso: sin él, el conjunto premiaría a un modelo que suprime toda promesa,
 incluidas las que el administrador sí hizo.
+
+### El bloque de edificio único, y por qué es el segundo país
+
+Los ocho casos `unico-*` se añadieron **después** de comparar los dos corpus. El
+conjunto entero se había escrito desde un edificio de Ciudad de México **con
+torres**, así que medía muy bien un tipo de conjunto y no medía el otro — el
+mismo error que el bloque de duración, cometido en otro eje.
+
+Tres de ellos son gemelos deliberados de casos que ya fallaban:
+`unico-alicuota-sin-monto` de `falta-monto` y `unico-luz-sin-fecha` de
+`luz-corte-programado-cfe`, donde el modelo gastó su pregunta en las torres y se
+dejó, respectivamente, la cifra de dinero y la fecha. Y dos existen solo para
+que el cambio no degenere: `unico-fuga-en-un-piso` comprueba que el alcance dado
+como **piso** se respeta —el corpus de Quito dice «piso» 109 veces—, y
+`unico-zonas-comunes-sin-alcance` que se sigue preguntando por el alcance cuando
+de verdad falta.
+
+Llevan vocabulario ecuatoriano real —alícuota, tanquero, gradas, guardianía—
+porque el conjunto no tenía ninguno y el segundo país es justo lo que vienen a
+representar.
 
 ### Lo que una máquina no puede juzgar
 
@@ -196,14 +253,30 @@ repaso legal que el hueco de Ecuador.
   inventa, que pide lo que falta y que respeta el contrato. La calidad de la
   redacción la juzga una persona en el piloto.
 - **Si sirve.** Eso es la línea base del Paso 2.1 y el piloto del 2.6.
-- **Un solo edificio.** Las proporciones vienen de un corpus de Ciudad de
-  México. Sirven para descubrir qué casos existen, no para afirmar que así se
-  reparten en el mercado.
+- **Dos edificios, no dos mercados.** Las proporciones de los 60 primeros vienen
+  de un corpus de Ciudad de México y los ocho `unico-*` de uno de Quito. Sirven
+  para descubrir qué casos existen y si algo generaliza, no para afirmar cómo se
+  reparte el mercado. **Colombia sigue sin corpus**, y está en `PAISES` igual que
+  los otros dos.
 
 ## Cómo se usa
 
-Lo consume el evaluador del Paso 2.4, que corre los 60 casos contra dos o tres
+Lo consume el evaluador del Paso 2.4, que corre los casos contra una o varias
 versiones de prompt y compara.
+
+**Desde la v3 hay que elegir contexto**, y el default no es inocente:
+
+```bash
+node functions/scripts/evaluar-prompts.mjs --real --confirmar --contexto omitido
+```
+
+`omitido` no le da contexto a nadie —ni siquiera a los casos que lo declaran— y
+produce el mensaje **idéntico** al de antes del 14 de agosto de 2026. Es la
+corrida que vuelve a medir el suelo y la única comparable con las seis
+anteriores. `con` y `sin` respetan lo que cada caso declare. El modo elegido va
+en el nombre del archivo de resultados y dentro de él: dos corridas del mismo día
+con contextos distintos dan números distintos, y sin ese campo la segunda se lee
+como una regresión de la primera.
 
 **Los prompts NO se han retocado para los casos de duración, a propósito.**
 Decirle al modelo «pide siempre la hora de fin» antes de correr la evaluación

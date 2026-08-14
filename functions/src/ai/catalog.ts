@@ -71,6 +71,17 @@ export interface OperationDefinition {
   flag: FeatureFlagKey;
   /** Roles que pueden pedirla. Antes estaba escrito a mano en la puerta. */
   allowedRoles: readonly string[];
+  /**
+   * La operación quiere saber cómo es el conjunto —hoy, si tiene torres— y la
+   * plataforma lo resuelve del servidor antes de llamar al modelo. Ver
+   * `tenant-context.ts`.
+   *
+   * **Va aquí y no en el esquema de entrada porque no lo escribe nadie.** La
+   * entrada sigue siendo lo que teclea el administrador; esto es lo que Vivaru
+   * ya sabe y no debería volver a preguntarle. Separarlos es lo que permite
+   * seguir diciendo que el cliente no afirma nada sobre su conjunto.
+   */
+  contextoDelConjunto?: boolean;
   input: z.ZodType;
   output: z.ZodType;
   limits: OperationLimits;
@@ -178,13 +189,22 @@ const OPERATIONS: Record<OperationKey, OperationDefinition> = {
     // casos del conjunto de evaluación siguen valiendo enteros, así que el
     // cambio de forma se puede medir contra las corridas anteriores en vez de
     // empezar de cero.
-    version: 2,
+    //
+    // v3 (14 de agosto de 2026): la operación recibe contexto del conjunto.
+    // **Ningún esquema cambió** —el cliente manda exactamente los mismos tres
+    // campos—, y aun así sube de versión: lo que llega al modelo YA NO ES LO
+    // MISMO, y la versión es lo que permite que la telemetría y el conjunto de
+    // evaluación distingan una corrida de otra. Dejarla en 2 haría que dos
+    // números incomparables se leyeran como la misma serie, que es exactamente
+    // el error que el contrato v2 documentó el 12 de agosto.
+    version: 3,
     modulo: "comunicaciones",
     label: "Redactar borrador de comunicación",
     description:
       "A partir del propósito, los hechos y el tono que escribe el administrador, propone título, cuerpo y resumen para notificación. No decide audiencia ni publica.",
     flag: "ai-communications-draft",
     allowedRoles: ADMIN_ROLES,
+    contextoDelConjunto: true,
     input: redactarComunicacionInput,
     output: redactarComunicacionOutput,
     // Primeros números, puestos para que existan: son la previsión de costo por

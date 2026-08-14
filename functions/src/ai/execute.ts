@@ -2,6 +2,7 @@ import type { OperationDefinition } from "./catalog";
 import { buildProviderPrompt } from "./prompt";
 import { PROMPT_ACTIVO, type PromptVersion } from "./prompts";
 import type { AiProvider, AiUsage } from "./provider";
+import type { ContextoConjunto } from "./tenant-context";
 
 /**
  * Ejecución de una operación: llamar al proveedor y **validar lo que vuelve**
@@ -92,6 +93,10 @@ export async function executeOperation(
   // La evaluación offline del Paso 2.4 corre el mismo camino con versiones
   // distintas; producción usa siempre la activa.
   promptVersion: PromptVersion = PROMPT_ACTIVO,
+  // Lo que Vivaru sabe del conjunto y el administrador no tiene que escribir.
+  // Lo resuelve la puerta; aquí solo se transporta hasta el prompt. Ausente, el
+  // mensaje sale idéntico al de siempre.
+  contexto?: ContextoConjunto,
 ): Promise<ExecutionResult> {
   const inicio = Date.now();
   const transcurrido = () => Date.now() - inicio;
@@ -102,7 +107,7 @@ export async function executeOperation(
       provider.generate({
         operationKey: operation.key,
         operationVersion: operation.version,
-        prompt: buildProviderPrompt(operation, input, promptVersion),
+        prompt: buildProviderPrompt(operation, input, promptVersion, contexto),
         promptVersion,
         input,
         maxOutputTokens: operation.limits.maxOutputTokens,

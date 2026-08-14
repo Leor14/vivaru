@@ -1,8 +1,8 @@
 {
   "operationKey": "comunicaciones-redactar",
-  "version": 2,
+  "version": 3,
   "creado": "2026-08-11",
-  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50. · La operación subió a v2 el 12 de agosto de 2026 (missingInformation categorizado). Los 59 casos y sus afirmaciones NO se tocaron. AVISO: se dio por hecho que eso hacía la corrida comparable con las cinco anteriores, y es FALSO — al mover el concepto a `categoria`, el modelo reformula `detalle` y las afirmaciones que buscan palabras dejan de encontrarlas. Medido en la corrida 23-35-21. Ver la lectura del contrato v2.",
+  "nota": "Ver README.md. Cada caso lleva afirmaciones comprobables, no un texto esperado. · Ampliado el 12 de agosto de 2026 con 6 casos de duración: era el hueco real más frecuente (falta en el 95% de los avisos del corpus) y estaba representado con 2 casos de 50. · La operación subió a v2 el 12 de agosto de 2026 (missingInformation categorizado). Los 59 casos y sus afirmaciones NO se tocaron. AVISO: se dio por hecho que eso hacía la corrida comparable con las cinco anteriores, y es FALSO — al mover el concepto a `categoria`, el modelo reformula `detalle` y las afirmaciones que buscan palabras dejan de encontrarlas. Medido en la corrida 23-35-21. Ver la lectura del contrato v2. · La operación subió a v3 el 14 de agosto de 2026: recibe contexto del conjunto (si tiene torres o es un edificio único). Ningún esquema cambió; lo que cambió es el mensaje que llega al modelo, y por eso las corridas nuevas NO son comparables con las seis anteriores hasta volver a medir el suelo con --contexto omitido. Los casos que presuponen torres lo declaran en `contexto`; los ocho `unico-*` declaran lo contrario; el resto toma el de la corrida.",
   "casos": [
     {
       "id": "agua-corte-programado-completo",
@@ -28,6 +28,9 @@
           "14:00"
         ],
         "notas": "Todos los datos están. No debe pedir nada ni añadir nada."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -98,6 +101,9 @@
         ],
         "notas": "Mensaje simple. Que salga corto.",
         "bodyMaxLongitud": 500
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -147,6 +153,9 @@
           "14:00"
         ],
         "notas": "Dos duraciones distintas para dos grupos. No debe confundirlas."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -429,6 +438,9 @@
           "9:00"
         ],
         "notas": "Tres torres en cascada con dos horas cada una. Que no confunda el orden ni sume una hora de fin. Si pide qué debe hacer el residente NO es un fallo: ese dato falta en el 84% de los avisos reales y es discutible si el administrador debía darlo. Se retira la afirmación en vez de fingir certeza en cualquiera de los dos sentidos. · Corregido el 12 de agosto de 2026: el caso se daba por completo y NO lo estaba. El modelo pidió el dato que falta y la evaluación lo contó como fallo suyo. Ver datasets/evaluacion/resultados/2026-08-12-lectura.md."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -457,6 +469,9 @@
           "en 24 horas"
         ],
         "notas": "No hay fecha estimada. Debe pedirla y NO inventar un plazo, que es lo que la gente va a preguntar."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -787,6 +802,9 @@
           "próxima semana"
         ],
         "notas": "No se dio ningún día. Cualquier día que aparezca en el cuerpo es inventado."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -834,6 +852,9 @@
           "alcance"
         ],
         "notas": "Se dijo el piso pero no la torre. Sin eso, nadie sabe si le toca."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -930,6 +951,9 @@
           "inconsist"
         ],
         "notas": "«Solo la torre norte» y «todo el conjunto» no pueden ser ciertos a la vez."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1098,6 +1122,9 @@
           "lo marqué"
         ],
         "notas": "La IA no publica ni decide audiencia. No puede afirmar haberlo hecho."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1249,7 +1276,10 @@
           "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
         ]
       },
-      "requiereJuicioHumano": true
+      "requiereJuicioHumano": true,
+      "contexto": {
+        "tieneAgrupaciones": true
+      }
     },
     {
       "id": "hechos-mal-escritos",
@@ -1278,6 +1308,9 @@
           "incert"
         ],
         "notas": "«Creo que» y «temprano» son imprecisiones que el borrador no debe convertir en certezas con hora exacta. · Sinónimos ampliados el 12 de agosto de 2026 por la misma razón que en duracion-fin-antes-del-inicio: el modelo dijo «ambigua» y se le exigía «impreciso». Segunda vez que la afirmación mide el diccionario y no al modelo."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1321,6 +1354,9 @@
           "fecha"
         ],
         "notas": "DECISIÓN DE PRODUCTO (12 de agosto de 2026): el cuerpo debe RECONOCER que no se sabe la hora de fin, y NO debe prometer una actualización que el administrador no prometió. Una promesa que nadie hizo es una suposición, y la regla dura las prohíbe. Además el corpus dice que ese aviso de restablecimiento llega el 20% de las veces: escribirlo solo industrializa una promesa que se rompe cuatro de cada cinco."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1358,6 +1394,9 @@
           "hasta las?\\s*\\d"
         ],
         "notas": "La promesa la hizo el administrador, así que es un hecho y debe aparecer. Lo que sigue prohibido es cerrar el intervalo con una hora que nadie dio."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1387,6 +1426,9 @@
           "duracion"
         ],
         "notas": "Ni «un rato» son dos horas ni la mañana son las 9:00. Debe pedir la hora y la duración en vez de ponerles número."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1454,6 +1496,9 @@
           "de\\s+11:00\\s+a\\s+14"
         ],
         "notas": "«Al menos 3 horas» no son «hasta las 14:00». Sumar la hora de fin y darla por cierta es la alucinación aritmética: parece un cálculo, es una suposición."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1508,6 +1553,9 @@
           "(debido a|por motivos? de|a causa de|derivado de|con motivo de|producto de)\\s+\\w*\\s*(trabajo|mantenimiento|reparaci|obra|fuga|falla|aver|limpieza|remodelaci)"
         ],
         "notas": "Nadie dijo POR QUÉ se corta el agua. Inventar «por mantenimiento» suena inofensivo hasta que era una fuga y el aviso queda desmentido delante del conjunto. · Acotado el 12 de agosto de 2026: el caso comprueba que NO se invente la causa, que es lo objetivo y lo que pasa. Exigir además que PIDA el motivo era una preferencia sin decidir, y en cuatro corridas el modelo nunca lo pide: pide cuándo, cuánto dura, a quién afecta y qué hacer, pero no por qué. Queda como decisión de producto abierta."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1530,6 +1578,9 @@
           "\\d{1,2}:\\d{2}"
         ],
         "notas": "Ni el motivo ni cuándo vuelve. Que pida los dos y no rellene ninguno. · Acotado el 12 de agosto de 2026: el caso comprueba que NO se invente la causa, que es lo objetivo y lo que pasa. Exigir además que PIDA el motivo era una preferencia sin decidir, y en cuatro corridas el modelo nunca lo pide: pide cuándo, cuánto dura, a quién afecta y qué hacer, pero no por qué. Queda como decisión de producto abierta."
+      },
+      "contexto": {
+        "tieneAgrupaciones": true
       }
     },
     {
@@ -1585,6 +1636,262 @@
           }
         ],
         "notas": "DECISIÓN DE PRODUCTO (13 de agosto de 2026): la IA copia los datos con las palabras del administrador. Si cree que uno está mal, lo dice; no lo cambia. Se probó primero con una regla sobre contradicciones y NO bastó —el modelo no ve conflicto entre estos dos hechos, y puede que tenga razón—; lo que lo arregló fue la regla de conservar las mismas palabras. No se le exige marcar nada aquí: exigirlo sería pedirle que vea un conflicto que quizá no existe."
+      }
+    },
+    {
+      "id": "unico-agua-sin-duracion",
+      "categoria": "edificio-unico",
+      "dificultad": "rutinario",
+      "porQue": "El caso más frecuente del corpus, en un edificio sin torres. Falta la duración, que es el hueco real; el alcance no falta porque afecta a todo el edificio.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Avisar de la suspensión del agua por limpieza de la cisterna",
+        "hechos": [
+          "La limpieza es el martes 19 de agosto",
+          "Empieza a las 8:00",
+          "Conviene almacenar agua la noche anterior"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationCategorias": [
+          "duracion"
+        ],
+        "missingInformationSinCategorias": [
+          "alcance"
+        ],
+        "bodyContiene": [
+          "martes",
+          "8:00"
+        ],
+        "notas": "Falta cuánto dura, que es el dato que se olvida en el 95% de los avisos reales. NO debe pedir el alcance: en un edificio único afecta a todos."
+      }
+    },
+    {
+      "id": "unico-alicuota-sin-monto",
+      "categoria": "edificio-unico",
+      "dificultad": "incomodo",
+      "porQue": "Gemelo exacto de `falta-monto` en un edificio sin torres. Allí el modelo gastó su única pregunta en «¿a qué torres afecta?» y se dejó la cifra de dinero, que es el peor fallo posible de esta operación.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Informar de la alícuota extraordinaria aprobada para reparar la bomba de agua",
+        "hechos": [
+          "Se aprobó en la asamblea del 5 de agosto",
+          "Se cobrará junto con la alícuota de septiembre",
+          "Se puede pagar en dos partes"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationMenciona": [
+          "monto",
+          "cuánto",
+          "cuanto",
+          "valor",
+          "importe"
+        ],
+        "missingInformationSinCategorias": [
+          "alcance"
+        ],
+        "bodyNoCoincideCon": [
+          "\\$\\s?\\d",
+          "\\b\\d{2,}\\s*(d[oó]lares|usd)"
+        ],
+        "notas": "Ninguna cifra puede aparecer, y la pregunta tiene que ser por el monto. Si vuelve a preguntar por las torres —que aquí no existen— en lugar de por el dinero, el contexto no sirvió."
+      }
+    },
+    {
+      "id": "unico-luz-sin-fecha",
+      "categoria": "edificio-unico",
+      "dificultad": "rutinario",
+      "porQue": "Gemelo de `luz-corte-programado-cfe`, donde el modelo preguntó por las torres en vez de por cuál miércoles. Aquí no hay torres por las que preguntar.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Avisar del corte de energía programado por la empresa eléctrica",
+        "hechos": [
+          "El corte es el miércoles de 9:00 a 13:00",
+          "Lo programó la empresa eléctrica, no el edificio",
+          "El ascensor y la bomba quedarán fuera de servicio"
+        ],
+        "tono": "urgente"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationCategorias": [
+          "fecha"
+        ],
+        "missingInformationSinCategorias": [
+          "alcance"
+        ],
+        "bodyContiene": [
+          "9:00",
+          "13:00"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}\\s+de\\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+        ],
+        "notas": "«El miércoles» no es una fecha. Que la pida y que no la invente, y que no gaste la pregunta en un alcance que no aplica."
+      }
+    },
+    {
+      "id": "unico-fuga-en-un-piso",
+      "categoria": "edificio-unico",
+      "dificultad": "rutinario",
+      "porQue": "La prueba de que el contexto no mató el concepto de alcance: aquí el alcance SÍ se dio, y es un piso. Un edificio único tiene pisos y zonas aunque no tenga torres — el corpus de Quito no dice «torre» ni una vez y dice «piso» 109 veces.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Informar de la fuga detectada en el piso 7 y del corte parcial mientras se repara",
+        "hechos": [
+          "La fuga es en el baño de un departamento del piso 7",
+          "Está afectando al departamento de abajo",
+          "El plomero llega el jueves a las 9:00",
+          "El agua se corta solo en esos dos departamentos mientras dure la reparación"
+        ],
+        "tono": "cordial"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationSinCategorias": [
+          "alcance"
+        ],
+        "bodyContiene": [
+          "piso 7",
+          "jueves"
+        ],
+        "notas": "El alcance está dado y es un piso, no una torre. No debe pedirlo. Si preguntara «¿a qué torres afecta?» estaríamos igual que antes del contexto."
+      }
+    },
+    {
+      "id": "unico-zonas-comunes-sin-alcance",
+      "categoria": "edificio-unico",
+      "dificultad": "incomodo",
+      "porQue": "EL CONTRAPESO del cambio. No hay torres, pero «áreas comunes» no dice cuáles, así que preguntar por el alcance sigue siendo correcto. Si este caso cae, el contexto enseñó a callarse y el cambio hay que retirarlo.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Avisar del mantenimiento de las áreas comunes del edificio",
+        "hechos": [
+          "El mantenimiento es el sábado 23 de agosto",
+          "De 7:00 a 15:00",
+          "Durante esas horas no se podrá usar lo que se esté interviniendo"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationCategorias": [
+          "alcance"
+        ],
+        "bodyContiene": [
+          "sábado",
+          "7:00"
+        ],
+        "notas": "Un edificio único sí tiene zonas de las que hablar. La pregunta correcta aquí es qué áreas se intervienen, y tiene que seguir haciéndola. Este caso es el que impide que el conjunto premie el silencio."
+      }
+    },
+    {
+      "id": "unico-completo",
+      "categoria": "edificio-unico",
+      "dificultad": "rutinario",
+      "porQue": "Control del cambio: con los cuatro datos dados, saber que el edificio no tiene torres no puede hacer que aparezcan preguntas nuevas. Si el contexto añade ruido, se ve aquí.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Informar del cambio de horario de la guardianía nocturna",
+        "hechos": [
+          "El nuevo horario empieza el 1 de septiembre",
+          "La guardianía nocturna pasa a cubrir de 19:00 a 7:00",
+          "Aplica a todo el edificio de forma permanente",
+          "El procedimiento de ingreso de visitas no cambia"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationVacio": true,
+        "bodyContiene": [
+          "1 de septiembre",
+          "19:00"
+        ],
+        "notas": "Los cuatro datos están: cuándo empieza, que es permanente, que aplica a todo el edificio y que no hay que hacer nada. No debe pedir nada."
+      }
+    },
+    {
+      "id": "unico-ascensor-sin-duracion",
+      "categoria": "edificio-unico",
+      "dificultad": "rutinario",
+      "porQue": "El ascensor es el segundo tema más repetido del corpus ecuatoriano y el edificio tiene uno solo. Falta cuánto dura, que es lo que decide si alguien baja por las gradas o espera.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Avisar de que el ascensor estará fuera de servicio por mantenimiento",
+        "hechos": [
+          "El técnico viene el viernes 22 de agosto a las 8:00",
+          "Es el mantenimiento preventivo semestral",
+          "Las gradas quedan habilitadas"
+        ],
+        "tono": "informativo"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationCategorias": [
+          "duracion"
+        ],
+        "missingInformationSinCategorias": [
+          "alcance"
+        ],
+        "bodyContiene": [
+          "viernes"
+        ],
+        "bodyNoCoincideCon": [
+          "hasta las\\s+\\d{1,2}:\\d{2}"
+        ],
+        "notas": "No se dijo hasta qué hora. Que lo pida y que no se invente una hora de fin."
+      }
+    },
+    {
+      "id": "unico-tanquero-datos-vagos",
+      "categoria": "edificio-unico",
+      "dificultad": "incomodo",
+      "porQue": "Vocabulario ecuatoriano real —tanquero, municipio— y tres hechos vagos. Faltan dos de los cuatro datos y el alcance no es uno de ellos.",
+      "contexto": {
+        "tieneAgrupaciones": false
+      },
+      "input": {
+        "proposito": "Avisar de que habrá reparto de agua por tanquero mientras dura el corte del municipio",
+        "hechos": [
+          "El corte lo anunció el municipio",
+          "El tanquero llega en la mañana",
+          "Hay que bajar con recipientes"
+        ],
+        "tono": "urgente"
+      },
+      "espera": {
+        "assumptionsVacio": true,
+        "missingInformationCategorias": [
+          "fecha",
+          "duracion"
+        ],
+        "missingInformationSinCategorias": [
+          "alcance"
+        ],
+        "bodyNoCoincideCon": [
+          "\\b\\d{1,2}:\\d{2}"
+        ],
+        "notas": "«En la mañana» no es una hora y no se dijo qué día ni cuánto dura el corte. Nada de inventar horas. El alcance no falta: es todo el edificio."
       }
     }
   ]

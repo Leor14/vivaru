@@ -339,3 +339,80 @@ describe("G3 · la cuota corta y el flujo manual sigue", () => {
     expect(llamado).toBe(false);
   });
 });
+
+/**
+ * El contexto del conjunto llega hasta el modelo — 14 de agosto de 2026.
+ *
+ * Cada pieza está probada por su cuenta: el módulo que deduce el dato (puro) y
+ * el que lo escribe en el mensaje (puro). **Lo que aquí se prueba es la costura**
+ * —Firestore → puerta → prompt—, que es donde el Paso 1.7 descubrió que el kill
+ * switch estaba bien «por suerte, no por prueba».
+ */
+describe("el contexto del conjunto sale de la base de datos y llega al prompt", () => {
+  /** Provoca una llamada y devuelve el mensaje exacto que recibió el proveedor. */
+  async function promptDe(tenantId: string): Promise<string> {
+    let capturado = "";
+    const base = fakeAiProvider({ text: SALIDA_VALIDA });
+    const espia = {
+      name: base.name,
+      generate: async (r: Parameters<typeof base.generate>[0]) => {
+        capturado = r.prompt;
+        return base.generate(r);
+      },
+    };
+    const outcome = await runGateway(peticion(tenantId), { provider: espia });
+    expect(outcome.ok).toBe(true);
+    return capturado;
+  }
+
+  async function sembrarUnidades(tenantId: string, torres: string[]) {
+    await Promise.all(
+      torres.map((tower, i) =>
+        db.collection("units").doc(`${tenantId}-u${i}`).set({ tenantId, tower, displayName: `${tower} ${i}` }),
+      ),
+    );
+  }
+
+  it("un conjunto con varias torres recibe que las tiene", async () => {
+    const tenantId = nuevoConjunto();
+    await sembrarAdmin(tenantId);
+    await sembrarUnidades(tenantId, ["Torre 1", "Torre 2", "Torre 1"]);
+
+    expect(await promptDe(tenantId)).toContain("dividido en varias agrupaciones");
+  });
+
+  it("un edificio de un solo bloque recibe que no las tiene", async () => {
+    const tenantId = nuevoConjunto();
+    await sembrarAdmin(tenantId);
+    await sembrarUnidades(tenantId, ["Principal", "Principal"]);
+
+    const prompt = await promptDe(tenantId);
+    expect(prompt).toContain("edificio único");
+    expect(prompt).toContain("pisos y zonas comunes");
+  });
+
+  it("un conjunto sin unidades no recibe nada, y el borrador sale igual", async () => {
+    // Un conjunto recién dado de alta no es un edificio único: no se sabe. Y no
+    // saberlo no puede impedir que alguien redacte un aviso.
+    const tenantId = nuevoConjunto();
+    await sembrarAdmin(tenantId);
+
+    const prompt = await promptDe(tenantId);
+    expect(prompt).not.toContain("edificio único");
+    expect(prompt).not.toContain("dividido en varias agrupaciones");
+  });
+
+  it("las unidades del vecino no cuentan", async () => {
+    // Misma garantía de aislamiento que el resto de la puerta, aplicada al dato
+    // nuevo: el conjunto de la sesión es el único que se lee.
+    const conTorres = nuevoConjunto();
+    const unico = nuevoConjunto();
+    await sembrarAdmin(conTorres);
+    await sembrarAdmin(unico);
+    await sembrarUnidades(conTorres, ["Torre 1", "Torre 2"]);
+    await sembrarUnidades(unico, ["Principal"]);
+
+    expect(await promptDe(unico)).toContain("edificio único");
+    expect(await promptDe(conTorres)).toContain("dividido en varias agrupaciones");
+  });
+});

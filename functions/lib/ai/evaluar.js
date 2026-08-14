@@ -61,6 +61,16 @@ function evaluarCaso(caso, salida) {
             fallos.push(`no pidió el dato que falta (esperaba categoría: ${e.missingInformationCategorias.join(", ")}) — pidió: ${pedido || "nada"}`);
         }
     }
+    // Lo que NO debía pedir. Se nombran todas las sobrantes, no solo la primera:
+    // si el modelo pide dos categorías prohibidas, saber solo una obligaría a
+    // otra corrida para enterarse de la segunda.
+    if (e.missingInformationSinCategorias?.length) {
+        const prohibidas = new Set(e.missingInformationSinCategorias);
+        const sobran = [...new Set(salida.missingInformation.map((d) => d.categoria))].filter((c) => prohibidas.has(c));
+        if (sobran.length > 0) {
+            fallos.push(`pidió una categoría que aquí no aplica (${sobran.join(", ")}) — pidió: ${pedido}`);
+        }
+    }
     for (const aguja of e.bodyContiene ?? []) {
         if (!contiene(salida.body, aguja))
             fallos.push(`el cuerpo no menciona «${aguja}»`);

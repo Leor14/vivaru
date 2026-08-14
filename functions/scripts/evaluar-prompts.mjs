@@ -15,6 +15,21 @@
 //     GOOGLE_CLOUD_PROJECT=hogaru-1 node functions/scripts/evaluar-prompts.mjs --real --confirmar --version v2-estructura
 //     GOOGLE_CLOUD_PROJECT=hogaru-1 node functions/scripts/evaluar-prompts.mjs --real --confirmar --casos 5
 //
+//   CONTEXTO DEL CONJUNTO (desde el 14 de agosto de 2026, operación v3).
+//   La operación recibe si el conjunto tiene torres o es un edificio único, y
+//   eso cambia el mensaje que llega al modelo. Tres modos:
+//
+//     --contexto omitido   (el default) nadie recibe contexto, NI SIQUIERA los
+//                          casos que lo declaran. El mensaje sale idéntico al de
+//                          antes del cambio, así que esta es la corrida que
+//                          vuelve a medir el suelo y la única comparable con las
+//                          seis anteriores.
+//     --contexto con       los casos que declaran el suyo mandan; el resto
+//                          recibe «tiene torres». Es lo que ve un conjunto
+//                          multitorre en producción.
+//     --contexto sin       igual, pero el resto recibe «edificio único». Es el
+//                          diagnóstico: ¿deja de preguntar por las torres?
+//
 // NO enciende ninguna bandera ni toca Firestore: construye el proveedor a mano.
 // La bandera `ia-proveedor-real` sigue como estaba después de correr esto.
 
@@ -53,6 +68,39 @@ const conjunto = JSON.parse(readFileSync(join(RAIZ, "datasets/evaluacion/comunic
 const versiones = valor("--version") ? [valor("--version")] : PROMPT_VERSIONS;
 const limite = Number(valor("--casos") ?? conjunto.casos.length);
 const casos = conjunto.casos.slice(0, limite);
+
+// ── Contexto del conjunto ───────────────────────────────────────────────────
+const MODOS_CONTEXTO = { omitido: undefined, con: true, sin: false };
+const modoContexto = valor("--contexto") ?? "omitido";
+
+if (!(modoContexto in MODOS_CONTEXTO)) {
+  console.error(`--contexto solo acepta: ${Object.keys(MODOS_CONTEXTO).join(", ")}. Ver la cabecera del script.`);
+  process.exit(1);
+}
+
+/**
+ * Qué contexto recibe cada caso.
+ *
+ * En `omitido` no lo recibe nadie, **ni siquiera los casos que declaran el
+ * suyo**: esa corrida existe para reproducir exactamente el mensaje anterior al
+ * cambio, y respetar un ancla ahí la haría dejar de ser una referencia.
+ */
+const contextoDe = (caso) => {
+  if (modoContexto === "omitido") return undefined;
+  if (caso.contexto) return caso.contexto;
+  return { tieneAgrupaciones: MODOS_CONTEXTO[modoContexto] };
+};
+
+// Se dice en voz alta cuántos casos siguen a la corrida y cuántos van por su
+// cuenta: un conjunto donde la mitad ignora el modo elegido se lee como si todo
+// hubiera corrido con el mismo contexto, y no es verdad.
+const anclados = casos.filter((c) => c.contexto).length;
+console.log(
+  `\nContexto del conjunto: ${modoContexto}` +
+    (modoContexto === "omitido"
+      ? "  —  nadie recibe contexto; es la corrida de referencia."
+      : `  —  ${casos.length - anclados} casos lo toman de la corrida, ${anclados} traen el suyo declarado.`),
+);
 
 // ── Freno de gasto ──────────────────────────────────────────────────────────
 // El costo se dice ANTES y en voz alta. Que sea poco no es motivo para que
@@ -101,7 +149,7 @@ for (const version of versiones) {
   let seguidos = 0;
 
   for (const caso of casos) {
-    const r = await executeOperation(operacion, caso.input, proveedor, version);
+    const r = await executeOperation(operacion, caso.input, proveedor, version, contextoDe(caso));
 
     if (!r.ok) {
       // Un fallo de ejecución no es un fallo del prompt: el modelo no llegó a
@@ -199,11 +247,29 @@ if (versiones.length > 1) {
 
 // ── Registro ────────────────────────────────────────────────────────────────
 const sello = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-const destino = join(RAIZ, "datasets/evaluacion/resultados", `${sello}-${real ? "real" : "simulado"}.json`);
+const destino = join(
+  RAIZ,
+  "datasets/evaluacion/resultados",
+  `${sello}-${real ? "real" : "simulado"}-ctx-${modoContexto}.json`,
+);
 mkdirSync(dirname(destino), { recursive: true });
 writeFileSync(
   destino,
-  JSON.stringify({ fecha: new Date().toISOString(), modo: real ? "real" : "simulado", proveedor: proveedor.name, resultados }, null, 2),
+  JSON.stringify(
+    {
+      fecha: new Date().toISOString(),
+      modo: real ? "real" : "simulado",
+      proveedor: proveedor.name,
+      // Va en el archivo y en el nombre del archivo. Dos corridas del mismo día
+      // con contextos distintos dan números distintos, y sin este campo la
+      // segunda se lee como una regresión de la primera.
+      contexto: modoContexto,
+      operationVersion: operacion.version,
+      resultados,
+    },
+    null,
+    2,
+  ),
 );
 console.log(`\nResultado guardado en ${destino.replace(RAIZ + "/", "")}`);
 
