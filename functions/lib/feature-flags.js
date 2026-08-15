@@ -40,6 +40,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "ai-receipts-extraction": false,
     // Apagada = proveedor simulado. Encenderla es lo que empieza a gastar dinero.
     "ia-proveedor-real": false,
+    // Encendida porque los dos asistentes de importación ya estaban vivos antes
+    // que la bandera. Ver el catálogo en `src/`.
+    "producto-importacion-masiva": true,
     // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
     // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
     "operacion-app-check-monitor": true,
