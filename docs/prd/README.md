@@ -39,7 +39,7 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 | PRD | Estado | Nota |
 |---|---|---|
 | [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | **Productiva** | Desplegada y verificada de punta a punta el 2026-08-01, correo incluido |
-| [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **Lista para PRD** | Mapeo de columnas, catálogo único de campos y XLSX. El importador ya existe; lo que falta es el paso de mapeo — que es el hueco donde después entra `PRD-VAI-FEAT-001`. Un `TBD` abierto: cliente directo o callable para personas |
+| [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **En staging** | Mapeo de columnas por nombre, contenido y variedad; catálogo único de campos; XLSX con selección de la hoja que mejor encaja; orden entre las dos cargas; y telemetría por pista. Construye el hueco donde entra `PRD-VAI-FEAT-001`. Sin decisiones abiertas |
 
 ### IA
 

@@ -8,7 +8,7 @@
 | **Módulo** | Residentes · puesta en marcha del conjunto |
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Responsable** | David |
-| **Estado** | Lista para PRD |
+| **Estado** | **En staging** — MVP construido y desplegado el 14 de agosto de 2026. Producción, pendiente |
 | **Dependencias** | **Ninguna.** No depende del programa de IA, ni del proveedor, ni del presupuesto |
 | **Habilita** | `PRD-VAI-FEAT-001` — Onboarding asistido. Esta PRD construye el hueco donde aquella entra |
 | **Riesgo** | **Medio.** Crear personas en masa es crear accesos en masa |
@@ -305,14 +305,28 @@ personas.**
   proteger por completo: `tenantId` correcto y rol de administración. No hay
   lógica de negocio, ni correo, ni escritura cruzada. Moverlo a callable añadiría
   latencia y un límite de payload sin comprar nada.
-- **Personas — `TBD`, y hay que decidirlo antes de construir.** Crear una persona
-  es el primer eslabón de crear un acceso. Si en algún momento la importación
-  llega a tocar `tenantUsers` o a disparar invitaciones, **deja de ser un CRUD** y
-  pasa a ser una operación que el navegador no debe poder falsificar. Hoy no las
-  toca. **La pregunta mínima para cerrar el `TBD`: ¿se prevé que la importación
-  cree o prepare accesos en los próximos dos incrementos?** Si sí, callable desde
-  el principio; si no, cliente directo y que la invitación siga siendo su propio
-  paso.
+- **Personas — CERRADO el 14 de agosto de 2026: cliente directo.** Se preguntaba
+  si la importación iba a crear o preparar accesos, porque entonces dejaría de
+  ser un CRUD y el navegador no debería poder falsificarla. **La decisión de
+  producto del mismo día lo respondió: importar nunca invita**, y la invitación
+  —que sí crea cuentas y manda correo— ya vive en una callable del servidor.
+
+  Y se comprobó lo que sostenía el argumento, en vez de suponerlo. `units` y
+  `people` exigen `tenantOperable(request.resource.data.tenantId)` **y**
+  `tenantAdminOrSuper(request.resource.data.tenantId)`:
+
+  - El rol se comprueba **contra el conjunto que declara el documento que se
+    escribe**, así que un navegador no puede escribir en otro conjunto.
+  - Un `resident` o `security_guard` no pasa; el alias `admin_tenant` sí está
+    contemplado en `tenantRole`.
+  - Un conjunto `suspended` o `expired` queda bloqueado **en las reglas**, no
+    solo en la pantalla.
+  - El `arrayUnion` sobre `units` que hace la carga masiva cae bajo la regla de
+    `units`, que ese mismo administrador ya puede escribir: no abre un privilegio
+    nuevo.
+
+  **Si algún día la importación llega a tocar `tenantUsers` o a disparar
+  invitaciones, esto se reabre** — y ese es el disparador, no una fecha.
 
 ### Otras decisiones
 
@@ -389,6 +403,10 @@ entidades del recorrido `cliente` · deshacer una importación · mapeo asistido
 | `G5` Operación | ✅ | Lo opera la administración del conjunto, con la pantalla que ya usa. No requiere operación interna de Vivaru |
 | `G6` Escala | ✅ | Tope de 5.000 filas (`RN-08`), lotes de 450, y sin llamadas a servicios externos |
 
-**No presentar como lista para desarrollo hasta cerrar el `TBD` de §11**
-—cliente directo contra callable para personas—, que es la única decisión que
-cambiaría la forma de la implementación.
+**El `TBD` de §11 quedó cerrado el 14 de agosto de 2026** —cliente directo para
+personas, con las reglas de Firestore leídas y no supuestas—. No queda ninguna
+decisión abierta que cambie la forma de la implementación.
+
+**Lo que falta para producción, y no es código:** mirar el paso de columnas con
+un archivo de un cliente de verdad, y decidir si sube. `G1` cierra sola en
+cuanto `importRuns` tenga datos de uso real.
