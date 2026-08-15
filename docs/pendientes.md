@@ -1,8 +1,65 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 14 de agosto de 2026, tras desplegar el contexto del conjunto en
-staging y correr la segunda sesión con un administrador.
+Actualizado el 15 de agosto de 2026, tras promocionar todo el lote a producción.
+
+## Todo el lote está en producción, verificado contra el ambiente (15 ago 2026)
+
+**`master` quedó en `512ba38`: 75 commits promocionados**, los primeros desde el
+8 de agosto. El orden fue el seguro —reglas → índices → functions → front— y
+cada paso se comprobó contra el ambiente, no contra el «Deploy complete!»:
+
+- **Reglas:** antes de desplegar se bajó el ruleset vivo y era idéntico a
+  `master` byte a byte — nadie había tocado la consola. Las nuevas (849 líneas)
+  quedaron idénticas a `develop`, comprobado igual.
+- **Índices:** 50, los dos nuevos de `aiUsage` en `READY`.
+- **Functions: 64** (eran 60). `aiInvoke`, `registrarFeedbackIa`,
+  `registrarImportacion` y `getAiUsage` nacieron **con** `allUsers →
+  run.invoker` — la trampa no mordió, comprobado servicio por servicio.
+  `onCommunicationCreated` ya lee `notificationSummary`, y el cron de retención
+  purga la telemetría de IA vencida.
+- **Front:** `vivaru-build-2026-08-15-001` sirviendo; landing 200 en la raíz.
+  El rollout lo dispara la conexión de App Hosting con el repo al empujar
+  `master` — tarda unos diez minutos, verificado mirando la revisión de Cloud
+  Run, no el reloj.
+
+**La IA está desplegada e INERTE:** `featureFlags` y `featureFlagOverrides`
+están **vacías** en producción, así que todo resuelve por el default del
+catálogo — las de IA apagadas. Y eso corrigió un pendiente viejo: **sembrar el
+catálogo ya no hace falta.** La consola `/superadmin/flags` se pinta desde el
+código y escribe el documento al primer toque; la colección vacía es un estado
+completo, no un hueco.
+
+**Lo único que un administrador ve distinto:** el importador con paso de mapeo.
+Va detrás de una bandera nueva, `producto-importacion-masiva`, que **nace
+encendida** porque los asistentes ya estaban vivos —una bandera apagada por
+defecto los habría retirado—. Apagarla oculta la carga masiva entera, y el corte
+cubre las tres entradas: botones, recorrido guiado (`?guia=`) y los modales.
+Test propio en `tests/import-feature-flag.test.ts`, mutado para comprobar que
+atrapa.
+
+**Tres cosas que aparecieron por el camino:**
+
+- **La `RESEND_API_KEY` del backend de App Hosting está en texto plano** en su
+  `overrideEnv` — visible con una llamada a la API para cualquiera con lectura
+  sobre el proyecto — y además quedó impresa en la sesión del 15 de agosto.
+  **Rotarla**, y al rotarla guardarla como secreto referenciado, no como
+  variable en claro. Está también en la sección de Seguridad.
+- **El gate de CI falla por tres causas y el job de deploy nunca corre.** Los
+  40 errores de typecheck viven en `tests/`; `npm test` usa un glob (`tests/**`)
+  que el `sh` de npm no expande — corre **cero tests y sale en 1**, por eso el
+  gate está rojo hasta con la suite en verde—; y hay errores de lint
+  preexistentes (4 en `UnitBulkImportWizard` vienen de `master`). Como
+  `deploy-production` depende del gate, nunca ha corrido: el despliegue real lo
+  hace App Hosting por su cuenta. Y si algún día se arregla el workflow, ojo:
+  `firebase.json` declara `backendId: "hogaru-web"`, **que no existe** — el
+  backend de producción se llama `vivaru`.
+- **El CLI de Firebase (15.4.0) puede inventarse un «Changing from an HTTPS
+  function to a background triggered function»** al desplegar
+  `onCommunicationCreated` en lote con otras cinco. El ambiente decía lo
+  contrario (`GEN_2`, trigger de Firestore, verificado con `gcloud`). Sola, se
+  desplegó sin queja. Si reaparece: desplegarla aparte antes de creerle al
+  error.
 
 ## Segunda sesión con administrador: el canario acertó, y la línea base volvió a quedarse sin tomar (14 ago 2026)
 
@@ -45,7 +102,9 @@ borradores.
 **Desplegadas `aiInvoke` y `registrarFeedbackIa`** en `vivaru-staging-02`, a las
 12:25 hora de México. Solo esas dos: el cambio del contexto vive entero en
 `functions/src/ai/`, y un despliegue completo habría mezclado sesenta funciones
-que nadie revisó hoy con la única que cambió. **Producción sigue sin nada.**
+que nadie revisó hoy con la única que cambió. ~~**Producción sigue sin
+nada.**~~ **En producción desde el 15 de agosto de 2026** — ver la sección de
+arriba.
 
 **Lo que NO hizo falta tocar, comprobado y no supuesto** —los documentos decían
 que faltaba y era mentira—: las reglas desplegadas son **idénticas** a
@@ -156,8 +215,9 @@ Lectura completa en
 `datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
 
 ~~**Lo siguiente, y es tuyo:** nada está desplegado.~~ **DESPLEGADO en staging
-el 14 de agosto de 2026** — ver la sección de arriba. **Sigue sin haber nada en
-producción.**
+el 14 de agosto de 2026** — ver la sección de arriba. ~~**Sigue sin haber nada
+en producción.**~~ **En producción desde el 15 de agosto de 2026, con las
+banderas de IA apagadas.**
 
 ## El canario, tras la primera sesión con un administrador (13 ago 2026)
 
@@ -213,9 +273,11 @@ bandera `ia-proveedor-real` quedó **apagada** al terminar.
 
 **Lo que bloquea el piloto (Paso 2.6), en orden:**
 
-1. **Nada de esto está en producción.** Reglas, índices, functions y banderas
+1. ~~**Nada de esto está en producción.** Reglas, índices, functions y banderas
    viven solo en `vivaru-staging-02`. Los administradores reales están en
-   `hogaru-1`.
+   `hogaru-1`.~~ **RESUELTO el 15 de agosto de 2026:** todo está en producción,
+   con las banderas de IA apagadas. Encender el canario para un conjunto real
+   ya no exige desplegar nada — es la consola de banderas.
 2. ~~**A quién se le entrega el piloto.**~~ **DECIDIDO el 12 de agosto de 2026:
    al administrador, hipótesis H2′.** Es para quien se está comercializando
    Vivaru. **No exige tocar código**: el catálogo ya autoriza solo a
@@ -362,9 +424,11 @@ diagnosticarlas cuesta lo mismo la segunda vez.
   en `featureFlagOverrides`, y consola en `/superadmin/flags`. Se construyó
   genérico: no es una pieza del programa de IA, sirve para cualquier capacidad
   que deba poder apagarse sin desplegar. Detalle en el registro de ejecución de
-  `docs/hoja-de-ruta-ia.md`. **Queda por hacer en consola:** sembrar el catálogo
-  (`node functions/scripts/seed-feature-flags.mjs <projectId>`) y desplegar
-  reglas en cada ambiente.
+  `docs/hoja-de-ruta-ia.md`. ~~**Queda por hacer en consola:** sembrar el
+  catálogo (`node functions/scripts/seed-feature-flags.mjs <projectId>`) y
+  desplegar reglas en cada ambiente.~~ **Ya no (15 ago 2026):** las reglas
+  están desplegadas en los dos ambientes, y sembrar no hace falta — la consola
+  se pinta desde el catálogo del código y escribe el documento al primer toque.
 - **Ecuador no está en ningún dataset de evaluación** de `DOC-001` ni
   `FEAT-001`: piden Colombia y México, y Ecuador está en `PAISES`. Mismo punto
   ciego que `docs/brief-legal-ecuador.md`, pero aquí aprobaría una capacidad
@@ -438,6 +502,12 @@ diagnosticarlas cuesta lo mismo la segunda vez.
 
 ## Seguridad
 
+- **Rotar la `RESEND_API_KEY` del backend de App Hosting de producción.** Está
+  en texto plano en el `overrideEnv` del backend `vivaru` —la ve cualquiera con
+  lectura sobre `hogaru-1` con una llamada a la API— y quedó impresa en la
+  sesión del 15 de agosto. Al rotarla, referenciarla como secreto desde App
+  Hosting en lugar de variable en claro; las Cloud Functions ya usan ese
+  mecanismo con la suya.
 - **Rotar cinco credenciales de producción** pegadas en el chat el 8 de agosto
   (admin, portería y tres residentes del conjunto Las Playas, dominio
   `david.macar.18+*@hotmail.com`).
