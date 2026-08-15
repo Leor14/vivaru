@@ -13,6 +13,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Papa from "papaparse";
+
+import { normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -83,9 +85,11 @@ const ROLE_LABELS: Record<Role, string> = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
+/**
+ * Lectura cruda de una celda para ENSEÑAR lo que escribió la persona cuando el
+ * valor no es válido («Rol inválido: "dueño"»). La resolución real de columnas
+ * la hace ahora el catálogo compartido (`src/lib/import/field-catalog.ts`).
+ */
 function getField(raw: Record<string, string>, ...keys: string[]): string {
   for (const key of keys) {
     const found = Object.keys(raw).find((k) => normalizeHeader(k) === key);
@@ -168,14 +172,19 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           const existingEmails = new Set(existingPeople.map((p) => (p.email || "").toLowerCase()).filter(Boolean));
           const existingDocs = new Set(existingPeople.map((p) => p.documentNumber || "").filter(Boolean));
 
+          // Igual que en el asistente de unidades: el mapeo columna → campo
+          // destino se resuelve una vez con el catálogo compartido. Hoy es solo
+          // la sugerencia automática y hace lo mismo que hacía `getField`.
+          const mapping = suggestMapping(result.meta.fields ?? [], "person");
+
           const parsed: ParsedRow[] = result.data.map((raw, idx) => {
             const errors: string[] = [];
-            const fullName = getField(raw, "nombre", "name", "fullname");
-            const email = getField(raw, "email", "correo", "e-mail");
-            const phone = getField(raw, "telefono", "celular", "phone", "tel");
-            const documentNumber = getField(raw, "documento", "cedula", "documentnumber", "id");
-            const unitLabel = getField(raw, "unidad", "unit", "apartamento");
-            const roleRaw = normName(getField(raw, "rol", "role", "tipo"));
+            const fullName = valueFor(raw, mapping, "person.fullName");
+            const email = valueFor(raw, mapping, "person.email");
+            const phone = valueFor(raw, mapping, "person.phone");
+            const documentNumber = valueFor(raw, mapping, "person.documentNumber");
+            const unitLabel = valueFor(raw, mapping, "person.unitLabel");
+            const roleRaw = normName(valueFor(raw, mapping, "person.role"));
 
             if (!fullName) errors.push("Nombre vacío");
             if (!email) errors.push("Email vacío");

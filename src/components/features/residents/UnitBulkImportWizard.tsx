@@ -22,6 +22,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Papa from "papaparse";
+
+import { normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -90,12 +92,13 @@ const TYPE_LABELS: Record<UnitType, string> = {
   other: "Otro",
 };
 
-/** Normaliza un header de columna para comparación flexible. */
-function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
-
-/** Extrae el valor de una fila buscando variantes del header. */
+/**
+ * Lectura cruda de una celda para ENSEÑAR lo que escribió la persona cuando el
+ * valor no es válido («Tipo inválido: "casa grande"»). La resolución real de
+ * columnas ya no vive aquí: la hace el catálogo compartido
+ * (`src/lib/import/field-catalog.ts`). Esto queda porque en el momento de
+ * pintar la tabla no hay mapeo a mano, solo la fila.
+ */
 function getField(raw: Record<string, string>, ...keys: string[]): string {
   for (const key of keys) {
     const found = Object.keys(raw).find((k) => normalizeHeader(k) === key);
@@ -224,13 +227,20 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
             ]),
           );
 
+          // El mapeo columna → campo destino se resuelve UNA vez, con el
+          // catálogo compartido, en vez de buscar alias en cada fila. De
+          // momento es solo la sugerencia automática y hace exactamente lo que
+          // hacía `getField`; el paso donde la persona lo corrige llega en el
+          // siguiente incremento de `PRD-V-FEAT-002`.
+          const mapping = suggestMapping(result.meta.fields ?? [], "unit");
+
           const parsed: ParsedRow[] = result.data.map((raw, idx) => {
             const errors: string[] = [];
 
-            const displayName = getField(raw, "nombre", "name", "unidad", "unit", "displayname");
-            const tower = getField(raw, "torre", "tower");
-            const typeRaw = getField(raw, "tipo", "type").toLowerCase();
-            const statusRaw = getField(raw, "estado", "status", "estado").toLowerCase();
+            const displayName = valueFor(raw, mapping, "unit.displayName");
+            const tower = valueFor(raw, mapping, "unit.tower");
+            const typeRaw = valueFor(raw, mapping, "unit.type").toLowerCase();
+            const statusRaw = valueFor(raw, mapping, "unit.status").toLowerCase();
 
             if (!displayName) errors.push("Nombre vacío");
             if (!tower) errors.push("Torre vacía");
