@@ -283,7 +283,12 @@ diagnosticarlas cuesta lo mismo la segunda vez.
   regenerar el lockfile desde esa máquina, la entrada rota vuelve. **RESUELTO el
   13 de agosto de 2026**: se corrigió el permiso de la caché y se comprobó
   regenerando el lockfile en una copia — ya no reaparece la entrada rota.
-- **Las funciones nuevas nacen sin permiso de invocación.** `aiInvoke` y
+- **Las funciones nuevas nacen sin permiso de invocación.** *(Matiz del 14 de
+  agosto de 2026: la callable nueva `registrarImportacion` **sí** nació con
+  `allUsers` en staging. Así que el fallo no es universal —depende de la versión
+  de la CLI o de la política del proyecto— pero **comprobarlo sigue siendo
+  obligatorio**: cuesta diez segundos y el síntoma cuando falta es un «error
+  interno» sin ninguna pista.)* `aiInvoke` y
   `registrarFeedbackIa` se crearon sin `allUsers` / `roles/run.invoker` en
   Cloud Run, que es lo que tienen las otras sesenta callables. Sin él la
   petición muere antes de tocar el código y el navegador ve «error interno».
