@@ -17,6 +17,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  hayBloqueantes,
+  mappingIssues,
   missingRequired,
   normalizeHeader,
   suggestMapping,
@@ -133,6 +135,16 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Lo que cada campo acepta, sacado de las tablas de alias de ESTE archivo.
+ * Sirve para dos cosas en el paso de columnas: reconocer una columna por su
+ * contenido aunque su encabezado no diga nada, y avisar cuando la elegida es
+ * inequívocamente otra cosa.
+ */
+const ACEPTADOS = {
+  "person.role": Object.keys(ROLE_ALIASES),
+};
+
 function StepIndicator({ step }: { step: WizardStep }) {
   const steps: { key: WizardStep; label: string }[] = [
     { key: "upload", label: "Archivo" },
@@ -240,7 +252,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
     setSheetName(nombre);
     setHeaders(hoja.headers);
     setRawRows(hoja.rows);
-    setMapping(suggestMapping(hoja.headers, "person"));
+    setMapping(suggestMapping(hoja.headers, "person", { rows: hoja.rows, accepted: ACEPTADOS }));
   }, []);
 
   const parseFile = useCallback(
@@ -266,7 +278,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
           hojas: archivo.sheetNames.length,
           filas: hoja.rows.length,
-          ...summarizeMapping(hoja.headers, "person", suggestMapping(hoja.headers, "person")),
+          ...summarizeMapping(hoja.headers, "person", suggestMapping(hoja.headers, "person", { rows: hoja.rows, accepted: ACEPTADOS })),
         });
       } catch (err) {
         // El lector ya trae el mensaje escrito para la persona; cualquier otra
@@ -443,6 +455,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             rows={rawRows}
             mapping={mapping}
             onChange={setMapping}
+            accepted={ACEPTADOS}
             sheetNames={libro?.sheetNames ?? []}
             sheetName={sheetName}
             onSheetChange={(n) => libro && usarHoja(libro, n)}
@@ -461,7 +474,10 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             >
               ← Cambiar archivo
             </Button>
-            <Button onClick={applyMapping} disabled={missingRequired(mapping, "person").length > 0}>
+            <Button onClick={applyMapping} disabled={
+                missingRequired(mapping, "person").length > 0 ||
+                hayBloqueantes(mappingIssues(rawRows, "person", mapping, ACEPTADOS))
+              }>
               Continuar
             </Button>
           </div>

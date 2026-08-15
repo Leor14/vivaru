@@ -26,6 +26,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  hayBloqueantes,
+  mappingIssues,
   missingRequired,
   normalizeHeader,
   suggestMapping,
@@ -144,6 +146,17 @@ function downloadTemplate() {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Lo que cada campo acepta, sacado de las tablas de alias de ESTE archivo.
+ * Sirve para dos cosas en el paso de columnas: reconocer una columna por su
+ * contenido aunque su encabezado no diga nada, y avisar cuando la elegida es
+ * inequívocamente otra cosa.
+ */
+const ACEPTADOS = {
+  "unit.type": Object.keys(TYPE_ALIASES),
+  "unit.status": Object.keys(STATUS_ALIASES),
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -287,7 +300,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
     setSheetName(nombre);
     setHeaders(hoja.headers);
     setRawRows(hoja.rows);
-    setMapping(suggestMapping(hoja.headers, "unit"));
+    setMapping(suggestMapping(hoja.headers, "unit", { rows: hoja.rows, accepted: ACEPTADOS }));
   }, []);
 
   const parseFile = useCallback(
@@ -313,7 +326,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
           formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
           hojas: archivo.sheetNames.length,
           filas: hoja.rows.length,
-          ...summarizeMapping(hoja.headers, "unit", suggestMapping(hoja.headers, "unit")),
+          ...summarizeMapping(hoja.headers, "unit", suggestMapping(hoja.headers, "unit", { rows: hoja.rows, accepted: ACEPTADOS })),
         });
       } catch (err) {
         // El lector ya trae el mensaje escrito para la persona; cualquier otra
@@ -522,6 +535,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             rows={rawRows}
             mapping={mapping}
             onChange={setMapping}
+            accepted={ACEPTADOS}
             sheetNames={libro?.sheetNames ?? []}
             sheetName={sheetName}
             onSheetChange={(n) => libro && usarHoja(libro, n)}
@@ -541,7 +555,10 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             >
               Cambiar archivo
             </Button>
-            <Button onClick={applyMapping} disabled={missingRequired(mapping, "unit").length > 0}>
+            <Button onClick={applyMapping} disabled={
+                missingRequired(mapping, "unit").length > 0 ||
+                hayBloqueantes(mappingIssues(rawRows, "unit", mapping, ACEPTADOS))
+              }>
               Continuar
             </Button>
           </div>

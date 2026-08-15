@@ -96,10 +96,19 @@ describe("los alias de siempre siguen resolviendo igual", () => {
 });
 
 describe("lo que antes no tenía salida", () => {
-  it("un encabezado desconocido deja el campo sin mapear, no lo inventa", () => {
-    const mapa = suggestMapping(["Depto", "Nombre del propietario"], "person");
+  it("un encabezado que no se parece a nada deja el campo sin mapear, no lo inventa", () => {
+    // Desde el 14 de agosto la coincidencia es por contención, así que «Depto» y
+    // «Nombre del propietario» SÍ se reconocen — es el arreglo. Aquí se usan
+    // encabezados que de verdad no dicen nada.
+    const mapa = suggestMapping(["Columna 1", "Zzz"], "person");
     expect(mapa["person.fullName"]).toBeNull();
     expect(mapa["person.unitLabel"]).toBeNull();
+  });
+
+  it("y por contención sí reconoce los encabezados largos de un archivo real", () => {
+    const mapa = suggestMapping(["Depto", "Nombre del propietario"], "person");
+    expect(mapa["person.unitLabel"]).toBe("Depto");
+    expect(mapa["person.fullName"]).toBe("Nombre del propietario");
   });
 
   it("y el mapeo hecho a mano sí lo resuelve", () => {
@@ -108,7 +117,7 @@ describe("lo que antes no tenía salida", () => {
   });
 
   it("dice qué obligatorios faltan, que es lo que bloquea avanzar", () => {
-    const mapa = suggestMapping(["Depto"], "person");
+    const mapa = suggestMapping(["Columna 1"], "person");
     const faltan = missingRequired(mapa, "person").map((f) => f.key);
     expect(faltan).toContain("person.fullName");
     expect(faltan).toContain("person.email");
@@ -150,11 +159,11 @@ describe("requiredFieldsFor", () => {
 describe("summarizeMapping · lo que alimenta la telemetría", () => {
   it("separa lo que resolvió el alias de lo que puso la persona", async () => {
     const { summarizeMapping } = await import("@/lib/import/field-catalog");
-    const headers = ["nombre", "Depto", "Saldo"];
-    // «nombre» lo resuelve el alias; «Depto» lo asigna la persona; «Saldo» sobra.
+    const headers = ["nombre", "Columna X", "Saldo"];
+    // «nombre» lo resuelve el alias; «Columna X» la asigna la persona; «Saldo» sobra.
     const mapping = {
       ...suggestMapping(headers, "person"),
-      "person.unitLabel": "Depto",
+      "person.unitLabel": "Columna X",
     };
     const r = summarizeMapping(headers, "person", mapping);
     expect(r.camposPorAlias).toBe(1);
@@ -164,8 +173,101 @@ describe("summarizeMapping · lo que alimenta la telemetría", () => {
 
   it("una columna que nadie usa queda listada — es el trabajo del mapeo asistido", async () => {
     const { summarizeMapping } = await import("@/lib/import/field-catalog");
-    const r = summarizeMapping(["Depto", "RFC", "Régimen"], "person", suggestMapping(["Depto"], "person"));
-    expect(r.encabezadosSinUsar).toEqual(["Depto", "RFC", "Régimen"]);
+    const sinNada = ["Columna 1", "RFC", "Zzz"];
+    const r = summarizeMapping(sinNada, "person", suggestMapping(sinNada, "person"));
+    expect(r.encabezadosSinUsar).toEqual(sinNada);
     expect(r.camposPorAlias + r.camposAMano).toBe(0);
+  });
+});
+
+/**
+ * Los dos archivos reales del 14 de agosto de 2026, con los que se descubrió
+ * que el paso de columnas era un examen y no una revisión: de seis campos solo
+ * se reconocía «Celular», y un mapeo cruzado pasaba sin aviso.
+ */
+describe("los archivos que rompieron el paso de columnas", () => {
+  const ACEPTADOS_UNIDAD = {
+    "unit.type": ["apartment", "apartamento", "apto", "house", "casa", "office", "oficina", "local", "other", "otro", "otra"],
+    "unit.status": ["active", "activo", "activa", "inactive", "inactivo", "inactiva"],
+  };
+  const ACEPTADOS_PERSONA = {
+    "person.role": ["owner_occupant", "propietario", "dueno", "owner", "tenant", "inquilino", "arrendatario", "residente", "investor", "inversionista", "other", "otro", "otra"],
+  };
+
+  const unidades = {
+    headers: ["Identificador", "Edificio", "Clase", "Situación"],
+    rows: [
+      { Identificador: "EB-201", Edificio: "Edificio A", Clase: "apartamento", "Situación": "activo" },
+      { Identificador: "EB-202", Edificio: "Edificio A", Clase: "apartamento", "Situación": "activo" },
+      { Identificador: "EB-203", Edificio: "Edificio A", Clase: "casa", "Situación": "activo" },
+    ],
+  };
+
+  const personas = {
+    headers: ["No. Depto", "NOMBRE DEL PROPIETARIO", "Correo electrónico", "Celular", "RFC", "Régimen"],
+    rows: [
+      { "No. Depto": "EA-101", "NOMBRE DEL PROPIETARIO": "Ana Pérez Ruiz", "Correo electrónico": "ana@correo.com", Celular: "5544332211", RFC: "PEAN850312AB1", "Régimen": "propietario" },
+      { "No. Depto": "EA-102", "NOMBRE DEL PROPIETARIO": "Luis Gómez Salas", "Correo electrónico": "luis@correo.com", Celular: "5544332212", RFC: "GOSL900211CD2", "Régimen": "inquilino" },
+    ],
+  };
+
+  it("el contenido reconoce tipo y estado aunque las columnas se llamen «Clase» y «Situación»", async () => {
+    const { suggestMapping } = await import("@/lib/import/field-catalog");
+    const m = suggestMapping(unidades.headers, "unit", {
+      rows: unidades.rows,
+      accepted: ACEPTADOS_UNIDAD,
+    });
+    // Son justo los dos que el 14 de agosto salieron cruzados.
+    expect(m["unit.type"]).toBe("Clase");
+    expect(m["unit.status"]).toBe("Situación");
+  });
+
+  it("el CSV de residentes pasa de reconocer 1 de 6 a reconocer 5", async () => {
+    const { suggestMapping } = await import("@/lib/import/field-catalog");
+    const m = suggestMapping(personas.headers, "person", {
+      rows: personas.rows,
+      accepted: ACEPTADOS_PERSONA,
+    });
+    expect(m["person.unitLabel"]).toBe("No. Depto");
+    expect(m["person.fullName"]).toBe("NOMBRE DEL PROPIETARIO");
+    expect(m["person.email"]).toBe("Correo electrónico");
+    expect(m["person.phone"]).toBe("Celular");
+    expect(m["person.role"]).toBe("Régimen");
+    // «RFC» no se reconoce y está bien: documento es opcional, así que no bloquea.
+    expect(m["person.documentNumber"]).toBeNull();
+  });
+
+  it("y con eso ya no falta ningún obligatorio: se puede continuar", async () => {
+    const { suggestMapping, missingRequired } = await import("@/lib/import/field-catalog");
+    const m = suggestMapping(personas.headers, "person", {
+      rows: personas.rows,
+      accepted: ACEPTADOS_PERSONA,
+    });
+    expect(missingRequired(m, "person")).toHaveLength(0);
+  });
+
+  it("el mapeo cruzado que pasó sin aviso ahora BLOQUEA", async () => {
+    const { mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
+    // Exactamente lo de la captura: Estado ← Clase, Tipo ← Situación.
+    const cruzado = {
+      "unit.displayName": "Edificio",
+      "unit.tower": "Identificador",
+      "unit.type": "Situación",
+      "unit.status": "Clase",
+    };
+    const avisos = mappingIssues(unidades.rows, "unit", cruzado, ACEPTADOS_UNIDAD);
+    expect(avisos["unit.status"]?.nivel).toBe("bloquea");
+    expect(avisos["unit.status"]?.mensaje).toContain("apartamento");
+    expect(hayBloqueantes(avisos)).toBe(true);
+  });
+
+  it("un mapeo correcto no molesta con avisos", async () => {
+    const { suggestMapping, mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
+    const m = {
+      ...suggestMapping(unidades.headers, "unit", { rows: unidades.rows, accepted: ACEPTADOS_UNIDAD }),
+      "unit.displayName": "Identificador",
+      "unit.tower": "Edificio",
+    };
+    expect(hayBloqueantes(mappingIssues(unidades.rows, "unit", m, ACEPTADOS_UNIDAD))).toBe(false);
   });
 });

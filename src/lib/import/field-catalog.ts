@@ -128,7 +128,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     entity: "person",
     label: "Unidad",
     required: true,
-    aliases: ["unidad", "unit", "apartamento"],
+    aliases: ["unidad", "unit", "apartamento", "depto", "dpto", "departamento"],
     example: "T1-101",
   },
   {
@@ -179,21 +179,183 @@ export function requiredFieldsFor(entity: ImportEntity): readonly ImportField[] 
  * destino es ambigüedad, y aquí se resuelve por orden de declaración del
  * catálogo, que es estable. La persona puede corregirlo después.
  */
+/**
+ * Valores que un campo acepta, ya normalizados. Los ponen los asistentes desde
+ * sus propias tablas de alias (`TYPE_ALIASES`, `ROLE_ALIASES`…), **no se
+ * declaran aquí**: duplicar esa lista sería crear el segundo espejo que este
+ * archivo existe para evitar.
+ */
+export type AcceptedValues = Record<string, readonly string[]>;
+
+const MUESTRA = 8;
+
+function muestraDe(rows: readonly Record<string, string>[], header: string): string[] {
+  const out: string[] = [];
+  for (const row of rows) {
+    const v = (row[header] ?? "").trim();
+    if (v) out.push(normalizeHeader(v));
+    if (out.length === MUESTRA) break;
+  }
+  return out;
+}
+
+/** Proporción de la muestra que el campo acepta. Sin muestra, `null`. */
+function encaje(
+  rows: readonly Record<string, string>[],
+  header: string,
+  aceptados: readonly string[],
+): number | null {
+  const muestra = muestraDe(rows, header);
+  if (muestra.length === 0) return null;
+  return muestra.filter((v) => aceptados.includes(v)).length / muestra.length;
+}
+
+/**
+ * Mapeo sugerido: para cada campo destino, qué encabezado del archivo lo
+ * alimenta. `null` significa «no se supo, decídelo tú».
+ *
+ * **Tres pasadas, de más fiable a menos, y ese orden es el diseño:**
+ *
+ * 1. **Nombre exacto.** «torre» es la torre y no hay más que hablar.
+ * 2. **Contenido**, solo en campos de valores cerrados. Una columna cuyos
+ *    valores son `activo, activo` **es** el estado, se llame «Situación» o como
+ *    se llame. Es la pasada que rescata los archivos de verdad, donde los
+ *    encabezados no se parecen a los nuestros.
+ * 3. **Nombre por contención.** «Correo electrónico» contiene «correo»;
+ *    «NOMBRE DEL PROPIETARIO» contiene «nombre». Va la última porque es la que
+ *    más se puede equivocar, y gana el alias más largo que encaje.
+ *
+ * **Por qué existen las pasadas 2 y 3:** con solo la primera, un archivo real
+ * llegaba al paso de columnas con seis desplegables vacíos, y eso no es revisar
+ * un mapeo: es un examen. Medido con dos archivos reales el 14 de agosto de
+ * 2026, donde solo se reconoció «Celular».
+ *
+ * **Un encabezado no se asigna dos veces** (`RN-02`).
+ */
 export function suggestMapping(
   headers: readonly string[],
   entity: ImportEntity,
+  opts?: { rows?: readonly Record<string, string>[]; accepted?: AcceptedValues },
 ): Record<string, string | null> {
-  const normalized = headers.map((h) => ({ original: h, key: normalizeHeader(h) }));
+  const normalizados = headers.map((h) => ({ original: h, key: normalizeHeader(h) }));
   const taken = new Set<string>();
   const mapping: Record<string, string | null> = {};
+  const campos = fieldsFor(entity);
+  for (const field of campos) mapping[field.key] = null;
 
-  for (const field of fieldsFor(entity)) {
-    const hit = normalized.find((h) => !taken.has(h.original) && field.aliases.includes(h.key));
-    mapping[field.key] = hit?.original ?? null;
-    if (hit) taken.add(hit.original);
+  // 1 · nombre exacto
+  for (const field of campos) {
+    const hit = normalizados.find((h) => !taken.has(h.original) && field.aliases.includes(h.key));
+    if (hit) {
+      mapping[field.key] = hit.original;
+      taken.add(hit.original);
+    }
+  }
+
+  // 2 · contenido, solo donde el campo tiene un vocabulario cerrado
+  const rows = opts?.rows ?? [];
+  const accepted = opts?.accepted ?? {};
+  if (rows.length > 0) {
+    for (const field of campos) {
+      if (mapping[field.key]) continue;
+      const aceptados = accepted[field.key];
+      if (!aceptados || aceptados.length === 0) continue;
+
+      let mejor: { original: string; ratio: number } | null = null;
+      for (const h of normalizados) {
+        if (taken.has(h.original)) continue;
+        const ratio = encaje(rows, h.original, aceptados);
+        // Se exige mayoría clara: media columna que encaja es una casualidad.
+        if (ratio !== null && ratio >= 0.8 && (!mejor || ratio > mejor.ratio)) {
+          mejor = { original: h.original, ratio };
+        }
+      }
+      if (mejor) {
+        mapping[field.key] = mejor.original;
+        taken.add(mejor.original);
+      }
+    }
+  }
+
+  // 3 · contención, con el alias más largo ganando
+  for (const field of campos) {
+    if (mapping[field.key]) continue;
+    let mejor: { original: string; largo: number } | null = null;
+    for (const h of normalizados) {
+      if (taken.has(h.original)) continue;
+      for (const alias of field.aliases) {
+        // Se exige un alias de 4+ para no casar «id» dentro de «unidad».
+        if (alias.length >= 4 && h.key.includes(alias) && (!mejor || alias.length > mejor.largo)) {
+          mejor = { original: h.original, largo: alias.length };
+        }
+      }
+    }
+    if (mejor) {
+      mapping[field.key] = mejor.original;
+      taken.add(mejor.original);
+    }
   }
 
   return mapping;
+}
+
+export type NivelAviso = "bloquea" | "duda";
+
+export interface AvisoMapeo {
+  nivel: NivelAviso;
+  mensaje: string;
+}
+
+/**
+ * Avisos sobre un mapeo, **antes** de continuar.
+ *
+ * **Por qué existe.** El 14 de agosto un archivo real pasó el paso de columnas
+ * con «Estado» apuntando a una columna que decía `apartamento, apartamento,
+ * casa` — con la muestra a la vista— y el error solo apareció tres pantallas
+ * después, como «Estado inválido». El sistema lo sabía desde el principio y lo
+ * dijo tarde, culpando al archivo.
+ *
+ * **Bloquea solo cuando NINGÚN valor encaja**, que es cuando la columna es
+ * inequívocamente otra cosa. Si encaja parte, se avisa y se deja seguir: un
+ * archivo con algunas filas malas es un problema de filas, no de mapeo, y para
+ * eso ya está el paso de revisión.
+ */
+export function mappingIssues(
+  rows: readonly Record<string, string>[],
+  entity: ImportEntity,
+  mapping: Record<string, string | null>,
+  accepted: AcceptedValues,
+): Record<string, AvisoMapeo | undefined> {
+  const avisos: Record<string, AvisoMapeo | undefined> = {};
+  if (rows.length === 0) return avisos;
+
+  for (const field of fieldsFor(entity)) {
+    const header = mapping[field.key];
+    const aceptados = accepted[field.key];
+    if (!header || !aceptados || aceptados.length === 0) continue;
+
+    const ratio = encaje(rows, header, aceptados);
+    if (ratio === null) continue;
+
+    if (ratio === 0) {
+      const ejemplo = muestraDe(rows, header)[0] ?? "";
+      avisos[field.key] = {
+        nivel: "bloquea",
+        mensaje: `«${header}» no parece este dato: dice «${ejemplo}», que no es un valor válido aquí.`,
+      };
+    } else if (ratio < 0.8) {
+      avisos[field.key] = {
+        nivel: "duda",
+        mensaje: `Algunos valores de «${header}» no son válidos aquí; las filas afectadas saldrán marcadas en la revisión.`,
+      };
+    }
+  }
+
+  return avisos;
+}
+
+export function hayBloqueantes(avisos: Record<string, AvisoMapeo | undefined>): boolean {
+  return Object.values(avisos).some((a) => a?.nivel === "bloquea");
 }
 
 /**

@@ -26,7 +26,9 @@ import { useMemo } from "react";
 
 import {
   fieldsFor,
+  mappingIssues,
   missingRequired,
+  type AcceptedValues,
   type ImportEntity,
 } from "@/lib/import/field-catalog";
 
@@ -45,6 +47,12 @@ type Props = {
   sheetNames?: readonly string[];
   sheetName?: string;
   onSheetChange?: (name: string) => void;
+  /**
+   * Valores que acepta cada campo, para avisar cuando la columna elegida es
+   * inequívocamente otra cosa. Los pone el asistente desde sus propias tablas
+   * de alias; aquí no se declara ninguna lista.
+   */
+  accepted?: AcceptedValues;
 };
 
 /**
@@ -71,9 +79,11 @@ export function ColumnMappingStep({
   sheetNames = [],
   sheetName,
   onSheetChange,
+  accepted = {},
 }: Props) {
   const fields = fieldsFor(entity);
   const missing = missingRequired(mapping, entity);
+  const avisos = mappingIssues(rows, entity, mapping, accepted);
   const varias = sheetNames.length > 1 && Boolean(onSheetChange);
 
   // Una columna no puede alimentar dos campos (`RN-02`). En vez de vigilarlo
@@ -162,6 +172,16 @@ export function ColumnMappingStep({
                 {muestra && (
                   <p className="mt-1 truncate text-xs text-[var(--slate-500)]" title={muestra}>
                     {muestra}
+                  </p>
+                )}
+
+                {avisos[field.key] && (
+                  <p
+                    className={`mt-1 text-xs ${
+                      avisos[field.key]!.nivel === "bloquea" ? "text-rose-600" : "text-amber-700"
+                    }`}
+                  >
+                    {avisos[field.key]!.mensaje}
                   </p>
                 )}
               </div>
