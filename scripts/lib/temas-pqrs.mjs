@@ -34,6 +34,25 @@ export const TEMAS = {
 export const SIN_TEXTO = /\b(imagen omitida|video omitido|documento omitido|audio omitido|sticker omitido|gif omitido|multimedia omitido|tarjeta de contacto omitida|se elimino este mensaje|eliminaste este mensaje)\b/;
 
 /**
+ * Mensajes que escribe WhatsApp, no una persona.
+ *
+ * POR QUÉ APARECIÓ TARDE, y es la lección de siempre: se descubrió muestreando
+ * para etiquetar, no contando. **«Cambió tu código de seguridad con X» lleva la
+ * palabra «seguridad»**, así que el detector de `seguridad_porteria` lo contaba
+ * como si un vecino hubiera escrito sobre la portería. Son **89 en México y 141
+ * en Ecuador** — y el tema entero en Ecuador tenía 132 mensajes, o sea que el
+ * ruido era mayor que la señal.
+ *
+ * Es exactamente el fallo que los dos scripts de anonimización dejaron escrito:
+ * una comprobación que comparte el punto ciego de lo que comprueba no comprueba
+ * nada. El contador se creía las cifras porque el ruido pasaba su propio tamiz.
+ *
+ * NO incluye «se editó este mensaje»: eso es un marcador al final de un mensaje
+ * real, y filtrarlo tiraría el mensaje entero.
+ */
+export const SISTEMA = /(cambio tu codigo de seguridad|se unio usando el enlace|te uniste usando el enlace|anadio a |creo el grupo|cambio el asunto|cambio la descripcion|cambio la imagen del grupo|salio del grupo|elimino a |cambio su numero de telefono|los mensajes y las llamadas estan cifrados|ahora es admin|estableciste este grupo)/;
+
+/**
  * La administración se reconoce por el nombre del remitente en los dos corpus
  * («Rodrigo Administración», «Paola Salazar Administradora»). El nombre del
  * grupo mexicano también contiene «administración» y captura las líneas de

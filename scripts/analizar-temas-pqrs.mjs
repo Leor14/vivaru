@@ -23,7 +23,7 @@ import { parsear, norm } from "./lib/whatsapp.mjs";
 // El vocabulario vive en lib/ para que el muestreador que extrae los casos del
 // gold set use exactamente los mismos patrones que este contador. Si no, la
 // taxonomía citaría como ejemplo un mensaje que sus propias cifras no contaron.
-import { TEMAS, SIN_TEXTO, esAdmin } from "./lib/temas-pqrs.mjs";
+import { TEMAS, SIN_TEXTO, SISTEMA, esAdmin } from "./lib/temas-pqrs.mjs";
 
 function analizar(ruta, etiqueta) {
   const mensajes = parsear(readFileSync(ruta, "utf8"));
@@ -31,7 +31,7 @@ function analizar(ruta, etiqueta) {
   const residentes = mensajes.filter((m) => !esAdmin(m.autor, norm));
   const conTexto = residentes.filter((m) => {
     const t = norm(m.texto);
-    return t.trim().length > 0 && !SIN_TEXTO.test(t);
+    return t.trim().length > 0 && !SIN_TEXTO.test(t) && !SISTEMA.test(t);
   });
 
   const esPregunta = (t) => /[?¿]/.test(t);

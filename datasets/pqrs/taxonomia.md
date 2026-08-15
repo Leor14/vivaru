@@ -144,26 +144,40 @@ Etiqueta principal obligatoria; secundarias opcionales, porque el corpus mezcla
 —119 mensajes mexicanos tocan tres temas o más.
 
 Frecuencias medidas con `scripts/analizar-temas-pqrs.mjs`, el mismo tamiz para
-los dos corpus, sobre mensajes de residentes con texto (4.218 MX / 2.637 EC):
+los dos corpus, sobre mensajes de residentes con texto (4.117 MX / 2.580 EC):
 
 | Tema | México | Ecuador |
 |---|---|---|
-| `asamblea_administracion` | 9,7% | 6,7% |
-| `cuotas_pagos` | 9,6% | **1,3%** |
-| `seguridad_porteria` | 7,2% | 5,0% |
-| `agua` | 7,0% | 3,7% |
-| `obra_mantenimiento` | 6,6% | 2,3% |
-| `elevadores` | 5,3% | 3,7% |
-| `luz_electricidad` | 2,8% | **5,5%** |
-| `amenidades` | 2,2% | 0,6% |
+| `asamblea_administracion` | 9,9% | 6,5% |
+| `cuotas_pagos` | 9,8% | **1,3%** |
+| `agua` | 7,2% | 3,7% |
+| `obra_mantenimiento` | 6,7% | 2,3% |
+| `elevadores` | 5,4% | 3,8% |
+| `seguridad_porteria` | 5,4% | 3,6% |
+| `luz_electricidad` | 2,8% | **5,6%** |
+| `amenidades` | 2,3% | 0,6% |
 | `accesos_estacionamiento` | 2,1% | 1,7% |
 | `convivencia_ruido` | 2,0% | 2,0% |
-| `limpieza_basura` | 1,6% | 0,9% |
+| `limpieza_basura` | 1,7% | 0,9% |
+
+> **Estas cifras se corrigieron el mismo 15 de agosto de 2026, y el fallo vale
+> más que la corrección.** La primera versión daba `seguridad_porteria` en 7,2%
+> (México) y 5,0% (Ecuador), tercer tema de los dos corpus. Era ruido:
+> **«Cambió tu código de seguridad con X» es un mensaje que escribe WhatsApp**,
+> no una persona, y lleva la palabra «seguridad». Son **89 en México y 141 en
+> Ecuador**, y el tema entero en Ecuador tenía 132 mensajes — o sea que el ruido
+> era mayor que la señal. Con el filtro puesto, `seguridad_porteria` baja al
+> sexto puesto en México; los demás temas se mueven ±0,2%, lo que confirma que
+> el ruido era específico de esa palabra.
+>
+> **No se vio contando, se vio muestreando para etiquetar.** El contador se
+> creía sus cifras porque el ruido pasaba su propio tamiz — la misma lección que
+> dejaron escrita los dos scripts de anonimización, cumplida por tercera vez.
 
 **Lo que generaliza:** «asamblea y administración» es el tema número uno en los
-dos países. La observación del análisis mexicano —que un producto que solo
-clasifica averías se pierde un tercio de lo que la gente plantea— no era una
-peculiaridad de un edificio.
+dos países, y sobrevive a la corrección del ruido. La observación del análisis
+mexicano —que un producto que solo clasifica averías se pierde un tercio de lo
+que la gente plantea— no era una peculiaridad de un edificio.
 
 **Lo que no:** las cuotas se desploman en Ecuador. Se comprobó que **no es un
 hueco del detector** —una búsqueda independiente da 67 líneas con
@@ -203,8 +217,8 @@ la razón es que el ataque tampoco es espontáneo.
 
 ## Las preguntas cortas, que son el caso dominante
 
-**237 preguntas en México y 82 en Ecuador**, y en México 245 de las 498
-preguntas totales bajan de 80 caracteres. Solas son inclasificables:
+En México, **245 de las 498 preguntas** bajan de 80 caracteres; en Ecuador, 126
+de 217. Solas son inclasificables:
 
 > «La fuga es de área común?» — `MX#4450`
 
@@ -275,10 +289,15 @@ un caso mal formado falle ahí y no el día de la evaluación.
 
 ## Ruido conocido
 
-- **Líneas de sistema pegadas.** En el corpus ecuatoriano, los avisos de
-  «X añadió a Y» no llevan `autor:` y el parser los adjunta al mensaje anterior
-  como continuación (visible en `EC#8`). Afecta a pocos mensajes y se descarta al
-  revisar a mano, pero **no elegir un caso a ciegas por su identificador**.
+- **Mensajes que escribe WhatsApp.** «Cambió tu código de seguridad», «X añadió
+  a Y», «se unió usando el enlace». Los filtra `SISTEMA` en
+  `scripts/lib/temas-pqrs.mjs` desde que se descubrió que inflaban
+  `seguridad_porteria` — ver el aviso de la tabla de temas.
+- **Líneas de sistema pegadas.** En el corpus ecuatoriano, algunas no llevan
+  `autor:` y el parser las adjunta al mensaje anterior como continuación
+  (visible en `EC#8`), así que sobreviven al filtro. Afecta a pocos mensajes y se
+  descarta al revisar a mano, pero **no elegir un caso a ciegas por su
+  identificador**.
 - **Transcripción de un bot.** El análisis mexicano detectó al menos un mensaje
   pegado desde un bot de atención telefónica. Si entra, se estaría evaluando
   contra la salida de otra máquina.
@@ -302,10 +321,10 @@ Los dos comparten `scripts/lib/temas-pqrs.mjs`, y eso es deliberado: si el
 muestreador usara una copia de los patrones, esta taxonomía podría citar como
 evidencia un mensaje que sus propias cifras no contaron.
 
-**Material disponible**, tras descartar adjuntos, mensajes de la administración y
-avisos: **1.382 candidatos en México y 613 en Ecuador**. Para los ~200 casos
-previstos (120 MX / 80 EC) sobra, y eso permite elegir por calidad en vez de por
-cuota.
+**Material disponible**, tras descartar adjuntos, mensajes de sistema, mensajes
+de la administración y avisos: **1.295 candidatos en México y 566 en Ecuador**.
+Para los ~200 casos previstos (120 MX / 80 EC) sobra, y eso permite elegir por
+calidad en vez de por cuota.
 
 ## Lo que este gold set NO va a medir
 

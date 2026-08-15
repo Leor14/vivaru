@@ -21,7 +21,7 @@
 
 import { readFileSync } from "node:fs";
 import { parsear, norm } from "./lib/whatsapp.mjs";
-import { TEMAS, SIN_TEXTO, esAdmin, ANUNCIA } from "./lib/temas-pqrs.mjs";
+import { TEMAS, SIN_TEXTO, SISTEMA, esAdmin, ANUNCIA } from "./lib/temas-pqrs.mjs";
 
 function arg(nombre, porDefecto) {
   const i = process.argv.indexOf(`--${nombre}`);
@@ -72,7 +72,7 @@ for (const ruta of rutas) {
 
     if (esAdmin(m.autor, norm)) return;
     const t = norm(m.texto);
-    if (!t.trim() || SIN_TEXTO.test(t)) return;
+    if (!t.trim() || SIN_TEXTO.test(t) || SISTEMA.test(t)) return;
     if (m.texto.length < min || m.texto.length > max) return;
     if (soloPreguntas && !/[?¿]/.test(m.texto)) return;
     // Un aviso del comité es la salida del administrador, no la entrada de un
