@@ -647,6 +647,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Telemetría de la importación tabular (PRD-V-FEAT-002, CA-13): cuántos
+    // intentos empiezan y cuántos terminan. Mismo criterio que aiFeedback y por
+    // el mismo motivo: es la evidencia con la que se decidirá si el paso de
+    // mapeo sirvió, y una evidencia que el cliente puede escribir no es
+    // evidencia. La escribe la callable `registrarImportacion`.
+    match /importRuns/{docId} {
+      allow read: if superadmin();
+      allow write: if false;
+    }
+
     // Contadores de cuota de IA (Paso 1.6). Los escribe solo el servidor, y en
     // transacción: un contador que el cliente pudiera tocar no es una cuota.
     // Lo que un conjunto necesita saber —cuánto le queda— se lo devuelve la

@@ -146,3 +146,26 @@ describe("requiredFieldsFor", () => {
     expect(claves).toEqual(["unit.displayName", "unit.type", "unit.status"]);
   });
 });
+
+describe("summarizeMapping · lo que alimenta la telemetría", () => {
+  it("separa lo que resolvió el alias de lo que puso la persona", async () => {
+    const { summarizeMapping } = await import("@/lib/import/field-catalog");
+    const headers = ["nombre", "Depto", "Saldo"];
+    // «nombre» lo resuelve el alias; «Depto» lo asigna la persona; «Saldo» sobra.
+    const mapping = {
+      ...suggestMapping(headers, "person"),
+      "person.unitLabel": "Depto",
+    };
+    const r = summarizeMapping(headers, "person", mapping);
+    expect(r.camposPorAlias).toBe(1);
+    expect(r.camposAMano).toBe(1);
+    expect(r.encabezadosSinUsar).toEqual(["Saldo"]);
+  });
+
+  it("una columna que nadie usa queda listada — es el trabajo del mapeo asistido", async () => {
+    const { summarizeMapping } = await import("@/lib/import/field-catalog");
+    const r = summarizeMapping(["Depto", "RFC", "Régimen"], "person", suggestMapping(["Depto"], "person"));
+    expect(r.encabezadosSinUsar).toEqual(["Depto", "RFC", "Régimen"]);
+    expect(r.camposPorAlias + r.camposAMano).toBe(0);
+  });
+});

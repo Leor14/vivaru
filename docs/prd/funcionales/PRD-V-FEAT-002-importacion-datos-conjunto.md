@@ -325,7 +325,12 @@ personas.**
   distintas y sus alias no compiten.
 - **XLSX se lee con `xlsx`**, ya instalado. Se lee en el navegador; el archivo no
   viaja a ningún servidor.
-- **Sin colección nueva, sin índice nuevo, sin job programado.**
+- **Una colección nueva: `importRuns`**, y una callable `registrarImportacion`
+  que la escribe. Esta PRD decía «sin colección nueva» antes de pensar `CA-13`;
+  la corrección es esta línea. **El cliente no escribe la telemetría**, por la
+  regla que ya está en `firestore.rules` para `aiFeedback`: la evidencia con la
+  que se decide si algo sigue no puede ser fabricable por quien la produce.
+  **Sin índice nuevo y sin job programado.**
 - **Sin feature flag.** Es una mejora de una pantalla existente que no gasta
   dinero ni llama a servicios externos; el mecanismo de banderas existe para lo
   que hay que poder apagar sin desplegar, y esto no lo es.
@@ -377,7 +382,7 @@ entidades del recorrido `cliente` · deshacer una importación · mapeo asistido
 | Puerta | Estado | Nota |
 |---|---|---|
 | `G0` Necesidad | ✅ | El importador exige que el archivo coincida con la plantilla, y un encabezado desconocido no tiene salida. Verificado en el código |
-| `G1` Valor | ⚠️ | La métrica está definida —importaciones iniciadas contra terminadas, por pista— pero **el baseline no está capturado**. `CA-13` lo instrumenta. **No se puede cerrar antes de construir** |
+| `G1` Valor | ⚠️ | **Instrumentado el 14 de agosto** (`importRuns`, callable `registrarImportacion`). El baseline se captura solo desde el primer uso real; la puerta cierra cuando haya datos, no antes |
 | `G2` Datos y permisos | ✅ | Sin colecciones nuevas; roles declarados con lo prohibido; invariantes de `tenantId` y `unitId` explícitos |
 | `G3` Riesgo | ⚠️ | Validación y revisión previa, sí. **Rollback solo parcial** y declarado en primera línea |
 | `G4` Aceptación | ✅ | Quince criterios, cinco de ellos casos que deben fallar |

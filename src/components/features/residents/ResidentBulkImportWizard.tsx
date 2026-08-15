@@ -16,9 +16,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { missingRequired, normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+import {
+  missingRequired,
+  normalizeHeader,
+  suggestMapping,
+  summarizeMapping,
+  valueFor,
+} from "@/lib/import/field-catalog";
 
 import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+
+import { registrarImportacionCallable } from "@/lib/firebase/callables";
 
 import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
@@ -62,6 +70,8 @@ type Props = {
   existingPeople: PersonItem[];
   onImport: (rows: ImportRow[]) => Promise<void>;
   onClose: () => void;
+  /** Pista de puesta en marcha, solo para la telemetría. */
+  track?: string;
 };
 
 const ROLE_ALIASES: Record<string, Role> = {
@@ -153,7 +163,7 @@ function StatusBadge({ row }: { row: ParsedRow }) {
   return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"><CheckCircle2 className="h-3 w-3" /> OK</span>;
 }
 
-export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImport, onClose }: Props) {
+export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImport, onClose, track }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<WizardStep>("upload");
   const [fileName, setFileName] = useState("");
@@ -167,6 +177,8 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
   const [libro, setLibro] = useState<TabularFile | null>(null);
   const [sheetName, setSheetName] = useState<string>("");
+  /** Une el inicio y el fin de un mismo intento en la telemetría. */
+  const [runId, setRunId] = useState<string>("");
 
   /**
    * Construye las filas validadas a partir del mapeo. Separado del parseo
@@ -240,6 +252,22 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
         setLibro(archivo);
         usarHoja(archivo, archivo.sheetNames[0]);
         setStep("map");
+
+        // Telemetría del intento (PRD-V-FEAT-002, CA-13). Best-effort: si falla,
+        // la persona no se entera y su importación sigue igual.
+        const id = crypto.randomUUID();
+        setRunId(id);
+        const hoja = archivo.sheets[archivo.sheetNames[0]];
+        void registrarImportacionCallable({
+          runId: id,
+          fase: "inicio",
+          entidad: "person",
+          ...(track ? { pista: track } : {}),
+          formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
+          hojas: archivo.sheetNames.length,
+          filas: hoja.rows.length,
+          ...summarizeMapping(hoja.headers, "person", suggestMapping(hoja.headers, "person")),
+        });
       } catch (err) {
         // El lector ya trae el mensaje escrito para la persona; cualquier otra
         // cosa sería un error técnico en pantalla, que no ayuda a nadie.
@@ -250,7 +278,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
         );
       }
     },
-    [usarHoja],
+    [usarHoja, track],
   );
 
   /** Aplica el mapeo vigente y pasa a revisión. */
@@ -307,6 +335,21 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
       );
       setImportedCount(toImport.length);
       setStep("done");
+
+      // Cierre del intento. El par inicio/fin es la métrica: los que empiezan y
+      // nunca llegan aquí son exactamente los que se quiere contar.
+      void registrarImportacionCallable({
+        runId,
+        fase: "fin",
+        entidad: "person",
+        ...(track ? { pista: track } : {}),
+        formato: /\.xlsx?$/i.test(fileName) ? "xlsx" : "csv",
+        hojas: libro?.sheetNames.length ?? 1,
+        filas: rows.length,
+        ...summarizeMapping(headers, "person", mapping),
+        importadas: toImport.length,
+        omitidas: rows.length - toImport.length,
+      });
     } finally {
       setImporting(false);
     }

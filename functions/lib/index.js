@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.registrarImportacion = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -3260,6 +3260,8 @@ var gateway_1 = require("./ai/gateway");
 Object.defineProperty(exports, "aiInvoke", { enumerable: true, get: function () { return gateway_1.aiInvoke; } });
 var feedback_gateway_1 = require("./ai/feedback-gateway");
 Object.defineProperty(exports, "registrarFeedbackIa", { enumerable: true, get: function () { return feedback_gateway_1.registrarFeedbackIa; } });
+var gateway_2 = require("./import/gateway");
+Object.defineProperty(exports, "registrarImportacion", { enumerable: true, get: function () { return gateway_2.registrarImportacion; } });
 /**
  * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
  * cuánto gastó cada conjunto en el período, cuántas llamadas y cuántas

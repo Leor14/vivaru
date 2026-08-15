@@ -25,9 +25,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { missingRequired, normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+import {
+  missingRequired,
+  normalizeHeader,
+  suggestMapping,
+  summarizeMapping,
+  valueFor,
+} from "@/lib/import/field-catalog";
 
 import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+
+import { registrarImportacionCallable } from "@/lib/firebase/callables";
 
 import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
@@ -64,6 +72,8 @@ type Props = {
     rows: Array<{ displayName: string; tower: string; type: UnitType; status: UnitStatus }>,
   ) => Promise<void>;
   onClose: () => void;
+  /** Pista de puesta en marcha, solo para la telemetría. */
+  track?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -200,7 +210,7 @@ function StatusBadge({ row }: { row: ParsedRow }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props) {
+export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<WizardStep>("upload");
   const [fileName, setFileName] = useState<string>("");
@@ -214,6 +224,8 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
   const [libro, setLibro] = useState<TabularFile | null>(null);
   const [sheetName, setSheetName] = useState<string>("");
+  /** Une el inicio y el fin de un mismo intento en la telemetría. */
+  const [runId, setRunId] = useState<string>("");
 
   // ── Parse CSV ──────────────────────────────────────────────────────────────
 
@@ -287,6 +299,22 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
         setLibro(archivo);
         usarHoja(archivo, archivo.sheetNames[0]);
         setStep("map");
+
+        // Telemetría del intento (PRD-V-FEAT-002, CA-13). Best-effort: si falla,
+        // la persona no se entera y su importación sigue igual.
+        const id = crypto.randomUUID();
+        setRunId(id);
+        const hoja = archivo.sheets[archivo.sheetNames[0]];
+        void registrarImportacionCallable({
+          runId: id,
+          fase: "inicio",
+          entidad: "unit",
+          ...(track ? { pista: track } : {}),
+          formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
+          hojas: archivo.sheetNames.length,
+          filas: hoja.rows.length,
+          ...summarizeMapping(hoja.headers, "unit", suggestMapping(hoja.headers, "unit")),
+        });
       } catch (err) {
         // El lector ya trae el mensaje escrito para la persona; cualquier otra
         // cosa sería un error técnico en pantalla, que no ayuda a nadie.
@@ -297,7 +325,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
         );
       }
     },
-    [usarHoja],
+    [usarHoja, track],
   );
 
   /** Aplica el mapeo vigente y pasa a revisión. */
@@ -374,6 +402,21 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
       );
       setImportedCount(toImport.length);
       setStep("done");
+
+      // Cierre del intento. El par inicio/fin es la métrica: los que empiezan y
+      // nunca llegan aquí son exactamente los que se quiere contar.
+      void registrarImportacionCallable({
+        runId,
+        fase: "fin",
+        entidad: "unit",
+        ...(track ? { pista: track } : {}),
+        formato: /\.xlsx?$/i.test(fileName) ? "xlsx" : "csv",
+        hojas: libro?.sheetNames.length ?? 1,
+        filas: rows.length,
+        ...summarizeMapping(headers, "unit", mapping),
+        importadas: toImport.length,
+        omitidas: rows.length - toImport.length,
+      });
     } finally {
       setImporting(false);
     }

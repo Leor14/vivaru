@@ -26,6 +26,7 @@ import { useDebounce } from "@/lib/utils/use-debounce";
 import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { provisionResidentTemporaryAccessCallable } from "@/lib/firebase/callables";
+import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import {
   personSchema,
   primaryHolderSchema,
@@ -69,6 +70,9 @@ export default function AdminResidentsPage() {
    * no se sabe.
    */
   const sinUnidades = !loadingUnits && units.length === 0;
+  // Solo para la telemetría de la importación: separa el baseline por pista,
+  // que es lo que la PRD de IA daba por bueno con un solo número.
+  const { onboardingTrack } = useTenantTrial(user?.tenantId);
   /**
    * Personas que están en el padrón pero **no pueden entrar**: sin `authUid`
    * no hay cuenta. Importar no la crea a propósito —un archivo puede traer
@@ -1694,6 +1698,7 @@ export default function AdminResidentsPage() {
         onClose={() => setBulkImportOpen(false)}
       >
         <UnitBulkImportWizard
+          track={onboardingTrack ?? undefined}
           existingUnits={units}
           onImport={handleBulkImport}
           onClose={() => setBulkImportOpen(false)}
@@ -1706,6 +1711,7 @@ export default function AdminResidentsPage() {
         onClose={() => setResidentImportOpen(false)}
       >
         <ResidentBulkImportWizard
+          track={onboardingTrack ?? undefined}
           existingUnits={units}
           existingPeople={people}
           onImport={handleBulkImportPeople}

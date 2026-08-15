@@ -4084,6 +4084,7 @@ export const addSupportNote = onCall<{ ticketId: string; note: string }>(
 // y el tope de gasto.
 export { aiInvoke } from "./ai/gateway";
 export { registrarFeedbackIa } from "./ai/feedback-gateway";
+export { registrarImportacion } from "./import/gateway";
 
 /**
  * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:

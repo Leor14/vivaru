@@ -220,3 +220,39 @@ export function missingRequired(
 ): readonly ImportField[] {
   return requiredFieldsFor(entity).filter((field) => !mapping[field.key]);
 }
+
+/**
+ * Resumen de un mapeo, para la telemetría de `PRD-V-FEAT-002` (`CA-13`).
+ *
+ * Se calcula aquí y no en cada asistente porque los dos necesitan lo mismo y
+ * porque **`encabezadosSinUsar` es el dato que después alimenta el mapeo
+ * asistido**: la lista de columnas que el catálogo no supo reconocer es,
+ * literalmente, su trabajo pendiente.
+ *
+ * `camposAMano` sale de comparar el mapeo final con el que se sugirió solo: es
+ * la medida de cuánto trabajo le costó a la persona lo que el catálogo no
+ * resolvió.
+ */
+export function summarizeMapping(
+  headers: readonly string[],
+  entity: ImportEntity,
+  mapping: Record<string, string | null>,
+): { camposPorAlias: number; camposAMano: number; encabezadosSinUsar: string[] } {
+  const sugerido = suggestMapping(headers, entity);
+  let camposPorAlias = 0;
+  let camposAMano = 0;
+
+  for (const field of fieldsFor(entity)) {
+    const elegido = mapping[field.key];
+    if (!elegido) continue;
+    if (sugerido[field.key] === elegido) camposPorAlias += 1;
+    else camposAMano += 1;
+  }
+
+  const usados = new Set(Object.values(mapping).filter((h): h is string => Boolean(h)));
+  return {
+    camposPorAlias,
+    camposAMano,
+    encabezadosSinUsar: headers.filter((h) => !usados.has(h)),
+  };
+}

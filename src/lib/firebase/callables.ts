@@ -683,3 +683,37 @@ export async function registrarFeedbackIaCallable(input: {
     return { ok: false };
   }
 }
+
+/**
+ * Registra un intento de importación tabular (`PRD-V-FEAT-002`, `CA-13`).
+ *
+ * **Best-effort, como el registro de feedback del canario**: si falla, la
+ * importación ya ocurrió y enseñar un error sería mentirle a la persona sobre
+ * lo que pasó con sus datos. Devuelve `ok: false` y sigue.
+ *
+ * No manda `tenantId`: sale de la sesión en el servidor.
+ */
+export async function registrarImportacionCallable(input: {
+  /** Une el inicio y el fin de un mismo intento. */
+  runId: string;
+  fase: "inicio" | "fin";
+  entidad: "unit" | "person";
+  pista?: string;
+  formato: "csv" | "xlsx";
+  hojas: number;
+  filas: number;
+  camposPorAlias: number;
+  camposAMano: number;
+  encabezadosSinUsar: string[];
+  importadas?: number;
+  omitidas?: number;
+}): Promise<{ ok: boolean }> {
+  if (!functions) return { ok: false };
+  try {
+    const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "registrarImportacion");
+    const result = await callable(input);
+    return { ok: Boolean(result.data?.ok) };
+  } catch {
+    return { ok: false };
+  }
+}
