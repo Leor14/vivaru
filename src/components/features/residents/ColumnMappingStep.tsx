@@ -38,6 +38,13 @@ type Props = {
   rows: readonly Record<string, string>[];
   mapping: Record<string, string | null>;
   onChange: (mapping: Record<string, string | null>) => void;
+  /**
+   * Hojas del libro. Un CSV trae una sola y entonces el selector no se enseña:
+   * ofrecer «elige hoja» con una única opción es ruido.
+   */
+  sheetNames?: readonly string[];
+  sheetName?: string;
+  onSheetChange?: (name: string) => void;
 };
 
 /**
@@ -55,9 +62,19 @@ function sampleOf(rows: readonly Record<string, string>[], header: string): stri
   return values.join(", ");
 }
 
-export function ColumnMappingStep({ entity, headers, rows, mapping, onChange }: Props) {
+export function ColumnMappingStep({
+  entity,
+  headers,
+  rows,
+  mapping,
+  onChange,
+  sheetNames = [],
+  sheetName,
+  onSheetChange,
+}: Props) {
   const fields = fieldsFor(entity);
   const missing = missingRequired(mapping, entity);
+  const varias = sheetNames.length > 1 && Boolean(onSheetChange);
 
   // Una columna no puede alimentar dos campos (`RN-02`). En vez de vigilarlo
   // después, se quita de los desplegables de los demás: el estado inválido no
@@ -78,6 +95,32 @@ export function ColumnMappingStep({ entity, headers, rows, mapping, onChange }: 
           ayudan a identificarla.
         </p>
       </div>
+
+      {varias && (
+        <div className="rounded-lg border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+          <label
+            htmlFor="map-sheet"
+            className="block text-xs font-medium text-[var(--slate-700)]"
+          >
+            Hoja del libro
+          </label>
+          <select
+            id="map-sheet"
+            value={sheetName}
+            onChange={(e) => onSheetChange?.(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-800)]"
+          >
+            {sheetNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-[var(--slate-500)]">
+            Cambiar de hoja vuelve a proponer el mapeo con sus columnas.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         {fields.map((field) => {

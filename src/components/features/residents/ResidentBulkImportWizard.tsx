@@ -3,7 +3,7 @@
 /**
  * ResidentBulkImportWizard
  * ────────────────────────
- * Wizard de 5 pasos para importación masiva de residentes/propietarios desde CSV.
+ * Wizard de 5 pasos para importación masiva de residentes/propietarios desde CSV o XLSX.
  * El paso de columnas permite usar archivos que NO traen los encabezados de la
  * plantilla; el catálogo vive en `src/lib/import/field-catalog.ts`.
  * Espeja a UnitBulkImportWizard. Resuelve la unidad por nombre contra las unidades
@@ -14,9 +14,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Papa from "papaparse";
 
 import { missingRequired, normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+
+import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
 
 import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
@@ -163,6 +164,8 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [libro, setLibro] = useState<TabularFile | null>(null);
+  const [sheetName, setSheetName] = useState<string>("");
 
   /**
    * Construye las filas validadas a partir del mapeo. Separado del parseo
@@ -218,26 +221,36 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
     [existingUnits, existingPeople],
   );
 
-  const parseFile = useCallback((file: File) => {
-    setParseError(null);
-    setFileName(file.name);
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        if (result.data.length === 0) {
-          setParseError("El archivo no contiene filas de datos.");
-          return;
-        }
-        const fields = result.meta.fields ?? [];
-        setHeaders(fields);
-        setRawRows(result.data);
-        setMapping(suggestMapping(fields, "person"));
-        setStep("map");
-      },
-      error: (err) => setParseError(`Error al leer el archivo: ${err.message}`),
-    });
+  /** Toma la hoja indicada del libro y propone su mapeo. */
+  const usarHoja = useCallback((archivo: TabularFile, nombre: string) => {
+    const hoja = archivo.sheets[nombre];
+    setSheetName(nombre);
+    setHeaders(hoja.headers);
+    setRawRows(hoja.rows);
+    setMapping(suggestMapping(hoja.headers, "person"));
   }, []);
+
+  const parseFile = useCallback(
+    async (file: File) => {
+      setParseError(null);
+      setFileName(file.name);
+      try {
+        const archivo = await readTabularFile(file);
+        setLibro(archivo);
+        usarHoja(archivo, archivo.sheetNames[0]);
+        setStep("map");
+      } catch (err) {
+        // El lector ya trae el mensaje escrito para la persona; cualquier otra
+        // cosa sería un error técnico en pantalla, que no ayuda a nadie.
+        setParseError(
+          err instanceof TabularReadError
+            ? err.message
+            : `No se pudo leer el archivo: ${err instanceof Error ? err.message : "formato no reconocido"}`,
+        );
+      }
+    },
+    [usarHoja],
+  );
 
   /** Aplica el mapeo vigente y pasa a revisión. */
   function applyMapping() {
@@ -311,7 +324,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--slate-100)]"><FileText className="h-7 w-7 text-[var(--slate-500)]" /></div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-2">
-              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo CSV</p>
+              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo</p>
               <HelpTip text="La unidad debe existir antes (importa primero las unidades). Cada residente se vincula a su unidad por el nombre. Si el email o documento ya existe, la fila se marca como duplicada y tú decides si la importas igual." />
             </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
@@ -320,10 +333,10 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           </div>
           {parseError && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{parseError}</p>}
           <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar archivo CSV</Button>
+            <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar archivo</Button>
             <Button variant="outline" onClick={downloadTemplate}><Download className="mr-2 h-4 w-4" /> Descargar plantilla</Button>
           </div>
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileChange} />
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleFileChange} />
           <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold text-blue-800">Rol (valores aceptados)</p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
@@ -342,6 +355,9 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             rows={rawRows}
             mapping={mapping}
             onChange={setMapping}
+            sheetNames={libro?.sheetNames ?? []}
+            sheetName={sheetName}
+            onSheetChange={(n) => libro && usarHoja(libro, n)}
           />
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
             <Button
@@ -351,6 +367,8 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
                 setHeaders([]);
                 setRawRows([]);
                 setMapping({});
+                setLibro(null);
+                setSheetName("");
               }}
             >
               ← Cambiar archivo

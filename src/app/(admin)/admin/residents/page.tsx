@@ -1569,7 +1569,7 @@ export default function AdminResidentsPage() {
 
       <Modal
         open={bulkImportOpen}
-        title="Importar unidades desde CSV"
+        title="Importar unidades desde archivo"
         onClose={() => setBulkImportOpen(false)}
       >
         <UnitBulkImportWizard
@@ -1581,7 +1581,7 @@ export default function AdminResidentsPage() {
 
       <Modal
         open={residentImportOpen}
-        title="Importar residentes desde CSV"
+        title="Importar residentes desde archivo"
         onClose={() => setResidentImportOpen(false)}
       >
         <ResidentBulkImportWizard

@@ -3,7 +3,7 @@
 /**
  * UnitBulkImportWizard
  * ─────────────────────
- * Wizard de 5 pasos para importación masiva de unidades desde CSV.
+ * Wizard de 5 pasos para importación masiva de unidades desde CSV o XLSX.
  *
  * Paso 1 – UPLOAD    : Botón de selección de archivo + plantilla descargable.
  * Paso 2 – MAP       : Qué columna del archivo alimenta cada campo destino.
@@ -24,9 +24,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Papa from "papaparse";
 
 import { missingRequired, normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+
+import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
 
 import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
@@ -211,6 +212,8 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [libro, setLibro] = useState<TabularFile | null>(null);
+  const [sheetName, setSheetName] = useState<string>("");
 
   // ── Parse CSV ──────────────────────────────────────────────────────────────
 
@@ -266,32 +269,36 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
     [existingUnits],
   );
 
-  const parseFile = useCallback((file: File) => {
-    setParseError(null);
-    setFileName(file.name);
-
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        if (result.data.length === 0) {
-          setParseError("El archivo no contiene filas de datos.");
-          return;
-        }
-        // El archivo ya no va directo a revisión: primero se decide qué columna
-        // alimenta qué campo. Lo que antes era la única resolución posible
-        // —los alias— es ahora solo la sugerencia de partida.
-        const fields = result.meta.fields ?? [];
-        setHeaders(fields);
-        setRawRows(result.data);
-        setMapping(suggestMapping(fields, "unit"));
-        setStep("map");
-      },
-      error: (err) => {
-        setParseError(`Error al leer el archivo: ${err.message}`);
-      },
-    });
+  /** Toma la hoja indicada del libro y propone su mapeo. */
+  const usarHoja = useCallback((archivo: TabularFile, nombre: string) => {
+    const hoja = archivo.sheets[nombre];
+    setSheetName(nombre);
+    setHeaders(hoja.headers);
+    setRawRows(hoja.rows);
+    setMapping(suggestMapping(hoja.headers, "unit"));
   }, []);
+
+  const parseFile = useCallback(
+    async (file: File) => {
+      setParseError(null);
+      setFileName(file.name);
+      try {
+        const archivo = await readTabularFile(file);
+        setLibro(archivo);
+        usarHoja(archivo, archivo.sheetNames[0]);
+        setStep("map");
+      } catch (err) {
+        // El lector ya trae el mensaje escrito para la persona; cualquier otra
+        // cosa sería un error técnico en pantalla, que no ayuda a nadie.
+        setParseError(
+          err instanceof TabularReadError
+            ? err.message
+            : `No se pudo leer el archivo: ${err instanceof Error ? err.message : "formato no reconocido"}`,
+        );
+      }
+    },
+    [usarHoja],
+  );
 
   /** Aplica el mapeo vigente y pasa a revisión. */
   function applyMapping() {
@@ -390,7 +397,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-2">
-              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo CSV</p>
+              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo</p>
               <HelpTip text="Descarga la plantilla para ver el formato exacto. El nombre de cada unidad es clave: si ya existe una con ese mismo nombre en el conjunto, el sistema la marcará como duplicada y tú decides si importarla de todos modos o descartarla. Mayúsculas, minúsculas y tildes no afectan el reconocimiento de tipo y estado." />
             </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
@@ -407,7 +414,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           <div className="flex flex-wrap justify-center gap-2">
             <Button onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
-              Seleccionar archivo CSV
+              Seleccionar archivo
             </Button>
             <Button variant="outline" onClick={downloadTemplate}>
               <Download className="mr-2 h-4 w-4" />
@@ -418,7 +425,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -444,7 +451,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           {/* Regla de negocio: unidad vs. persona */}
           <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold text-blue-800">
-              ¿Qué importa este CSV y qué no?
+              ¿Qué importa este archivo y qué no?
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
               <strong>Este wizard crea únicamente las unidades físicas</strong> del conjunto
@@ -469,6 +476,9 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
             rows={rawRows}
             mapping={mapping}
             onChange={setMapping}
+            sheetNames={libro?.sheetNames ?? []}
+            sheetName={sheetName}
+            onSheetChange={(n) => libro && usarHoja(libro, n)}
           />
 
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
@@ -479,6 +489,8 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
                 setHeaders([]);
                 setRawRows([]);
                 setMapping({});
+                setLibro(null);
+                setSheetName("");
               }}
             >
               Cambiar archivo
@@ -508,7 +520,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
                 {invalidCount} con errores
               </span>
             )}
-            <HelpTip text="Válida: fila lista para importar. — Inválida: falta un campo o el valor de tipo/estado no es reconocido; corrígela en el CSV y vuelve a cargar el archivo. — Duplicada: ya existe una unidad con ese nombre en el conjunto; puedes marcarla igual para crear una segunda unidad, o desmárcarla para omitirla. Solo las filas con checkbox marcado se importarán." />
+            <HelpTip text="Válida: fila lista para importar. — Inválida: falta un campo o el valor de tipo/estado no es reconocido; corrígela en el archivo y vuelve a cargarlo. — Duplicada: ya existe una unidad con ese nombre en el conjunto; puedes marcarla igual para crear una segunda unidad, o desmárcarla para omitirla. Solo las filas con checkbox marcado se importarán." />
             <span className="ml-auto text-xs text-[var(--slate-500)]">
               Archivo: <span className="font-medium">{fileName}</span>
             </span>
