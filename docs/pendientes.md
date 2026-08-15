@@ -44,7 +44,8 @@ atrapa.
   `overrideEnv` — visible con una llamada a la API para cualquiera con lectura
   sobre el proyecto — y además quedó impresa en la sesión del 15 de agosto.
   **Rotarla**, y al rotarla guardarla como secreto referenciado, no como
-  variable en claro. Está también en la sección de Seguridad.
+  variable en claro. **HECHO el mismo 15 de agosto** — el cierre completo, con
+  sus dos hallazgos, en la sección de Seguridad.
 - **El gate de CI falla por tres causas y el job de deploy nunca corre.** Los
   40 errores de typecheck viven en `tests/`; `npm test` usa un glob (`tests/**`)
   que el `sh` de npm no expande — corre **cero tests y sale en 1**, por eso el
@@ -502,12 +503,27 @@ diagnosticarlas cuesta lo mismo la segunda vez.
 
 ## Seguridad
 
-- **Rotar la `RESEND_API_KEY` del backend de App Hosting de producción.** Está
-  en texto plano en el `overrideEnv` del backend `vivaru` —la ve cualquiera con
-  lectura sobre `hogaru-1` con una llamada a la API— y quedó impresa en la
-  sesión del 15 de agosto. Al rotarla, referenciarla como secreto desde App
-  Hosting en lugar de variable en claro; las Cloud Functions ya usan ese
-  mecanismo con la suya.
+- ~~**Rotar la `RESEND_API_KEY` del backend de App Hosting de producción.**~~
+  **ROTADA el 15 de agosto de 2026, de punta a punta:** clave nueva (versión 6
+  del secreto), las 25 functions redesplegadas apuntando a ella, la variable en
+  claro borrada de la consola, `apphosting.yaml` de `master` la referencia como
+  `secret:`, la clave vieja revocada en Resend y las versiones 1–5 del secreto
+  deshabilitadas. Verificado con un envío real: `[demo/email-notif-ok]` y
+  `[demo/email-confirm-ok]` en los logs de la revisión `-003`.
+
+  Dos cosas que dejó la rotación:
+
+  - **Trampa nueva:** borrar una variable en la consola de App Hosting dispara
+    su PROPIO rollout. El 15 de agosto ese rollout corrió en paralelo con el del
+    push y hubo una ventana de ~5 minutos (revisión `-002`) sirviendo **sin
+    clave ninguna** — dos formularios de prueba cayeron ahí y sus correos no
+    salieron (los leads sí se guardaron: el envío es best-effort a propósito).
+    Si se repite el patrón consola+push, esperar a que el tráfico esté en la
+    revisión buena antes de verificar.
+  - **Secreto huérfano:** existe un segundo secreto `resend-api-key` (en
+    minúsculas, del 1 de junio) que no referencia nadie — ni funciones ni
+    backend. Confirmar que nadie lo usa y borrarlo: un secreto sin dueño es una
+    credencial que nadie rota.
 - **Rotar cinco credenciales de producción** pegadas en el chat el 8 de agosto
   (admin, portería y tres residentes del conjunto Las Playas, dominio
   `david.macar.18+*@hotmail.com`).
