@@ -55,6 +55,17 @@ export type PersonItem = {
   unitId: string;
   tower: string;
   status: "active" | "inactive";
+  /**
+   * Uid de la cuenta de acceso, escrito por `provisionResidentTemporaryAccess`
+   * cuando se le envía el correo para definir contraseña.
+   *
+   * **Su ausencia es el indicador de «existe en el padrón pero no puede
+   * entrar».** Importar personas NO lo crea —decisión de producto: un archivo
+   * puede traer datos viejos o gente que ya no vive ahí, y avisar a 180
+   * personas por error no se deshace—. Invitar es un paso posterior y
+   * deliberado.
+   */
+  authUid?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -91,6 +102,14 @@ export type CommunicationItem = {
   title: string;
   message: string;
   status: "published" | "draft" | "archived" | "scheduled" | "expired";
+  /**
+   * Lo que le llega al residente en la notificación, en una línea.
+   *
+   * Opcional a propósito: los comunicados anteriores a agosto de 2026 no lo
+   * tienen y no se les inventa nada — `onCommunicationCreated` cae a la frase
+   * genérica de siempre cuando falta.
+   */
+  notificationSummary?: string;
   startsAt?: string;
   endsAt?: string;
   /** Audiencia (VIV-401): "all" (default) o "towers" (segmentado por torre). */
@@ -775,7 +794,21 @@ export async function listCommunicationsOnce(tenantId: string) {
 export async function createCommunication(
   tenantId: string,
   userId: string,
-  payload: Pick<CommunicationItem, "title" | "message" | "status" | "startsAt" | "endsAt" | "attachmentUrl" | "attachmentName" | "attachments" | "audience" | "audienceTowers" | "audienceUnitIds">,
+  payload: Pick<
+    CommunicationItem,
+    | "title"
+    | "message"
+    | "notificationSummary"
+    | "status"
+    | "startsAt"
+    | "endsAt"
+    | "attachmentUrl"
+    | "attachmentName"
+    | "attachments"
+    | "audience"
+    | "audienceTowers"
+    | "audienceUnitIds"
+  >,
 ) {
   const firestore = assertDb();
   const ref = await addDoc(collection(firestore, "communications"), {

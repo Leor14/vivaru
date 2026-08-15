@@ -9,6 +9,7 @@ import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
 import { Modal } from "@/components/shared/modal";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -20,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { communicationSchema, type CommunicationInput } from "@/features/admin/schemas";
+import { AsistenteBorrador } from "@/features/communications/asistente-borrador";
+import { useFeedbackBorrador } from "@/features/communications/use-feedback-borrador";
 import {
   createCommunication,
   createDocumentRecord,
@@ -74,6 +77,7 @@ export default function AdminCommunicationsPage() {
     defaultValues: {
       title: "",
       message: "",
+      notificationSummary: "",
       status: "published",
       startsAt: "",
       endsAt: "",
@@ -130,13 +134,69 @@ export default function AdminCommunicationsPage() {
     }
   }
 
+  /**
+   * Lo que había en el formulario antes de insertar una propuesta de IA.
+   *
+   * **Deshacer siempre**, dice la hoja de ruta, y la PRD lo repite: «conservar
+   * el contenido anterior al regenerar y permitir deshacer». Vive aquí y no en
+   * el panel porque quien es dueño de los campos es el formulario.
+   *
+   * Guarda los TRES campos que la IA puede llegar a tocar: título, mensaje y
+   * el resumen de la notificación. Ni uno más — audiencia, vigencia y estado no
+   * están en el esquema de salida de la operación, así que no hay forma de que
+   * los toque.
+   */
+  const [previoAsistente, setPrevioAsistente] = useState<{
+    title: string;
+    message: string;
+    notificationSummary: string;
+  } | null>(null);
+
+  /**
+   * Qué se hizo con el borrador asistido. Vive aquí y no en el panel porque
+   * dos de los tres datos que el piloto necesita —si se guardó y cuánto se
+   * editó— solo los conoce el formulario.
+   */
+  const feedbackIa = useFeedbackBorrador();
+
+  /** Cierra el modal enviando lo anotado. Todo cierre pasa por aquí. */
+  function cerrarModal() {
+    feedbackIa.enviar();
+    setCreateOpen(false);
+  }
+
+  function aplicarBorradorIa(borrador: { title: string; body: string; notificationSummary: string }) {
+    setPrevioAsistente({
+      title: form.getValues("title"),
+      message: form.getValues("message"),
+      notificationSummary: form.getValues("notificationSummary") ?? "",
+    });
+    // `shouldDirty` para que el formulario sepa que hay cambios sin guardar; la
+    // validación se dispara sola al enviar, como con cualquier otra edición.
+    form.setValue("title", borrador.title, { shouldDirty: true });
+    form.setValue("message", borrador.body, { shouldDirty: true });
+    form.setValue("notificationSummary", borrador.notificationSummary, { shouldDirty: true });
+  }
+
+  function deshacerBorradorIa() {
+    if (!previoAsistente) return;
+    form.setValue("title", previoAsistente.title, { shouldDirty: true });
+    form.setValue("message", previoAsistente.message, { shouldDirty: true });
+    form.setValue("notificationSummary", previoAsistente.notificationSummary, { shouldDirty: true });
+    setPrevioAsistente(null);
+    // NO se reinicia el feedback: que se arrepintiera es precisamente lo que
+    // hay que anotar. Lo anota el panel con `anotarDeshecha`.
+  }
+
   function openCreate() {
     setEditingItem(null);
     setAttachmentFiles([]);
     setExistingAttachments([]);
     setAudienceType("all");
     setSelectedTowers([]);
-    form.reset({ title: "", message: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
+    setPrevioAsistente(null);
+    feedbackIa.reiniciar();
+    form.reset({ title: "", message: "", notificationSummary: "", status: "published", startsAt: "", endsAt: "", attachmentName: "", attachmentUrl: "" });
     setCreateOpen(true);
   }
 
@@ -149,12 +209,15 @@ export default function AdminCommunicationsPage() {
   function openEdit(item: CommunicationItem) {
     setEditingItem(item);
     setAttachmentFiles([]);
+    setPrevioAsistente(null);
+    feedbackIa.reiniciar();
     setExistingAttachments(attachmentsOf(item));
     setAudienceType(item.audience === "towers" ? "towers" : "all");
     setSelectedTowers(item.audienceTowers ?? []);
     form.reset({
       title: item.title,
       message: item.message,
+      notificationSummary: item.notificationSummary ?? "",
       status: item.status,
       startsAt: item.startsAt ?? "",
       endsAt: item.endsAt ?? "",
@@ -265,7 +328,10 @@ export default function AdminCommunicationsPage() {
       }
       const refreshed = await listCommunicationsOnce(user.tenantId);
       setItems(refreshed);
-      setCreateOpen(false);
+      // Se anota DESPUÉS de guardar bien: un guardado que falló no es un
+      // borrador aceptado, y contarlo inflaría la métrica del piloto.
+      feedbackIa.anotarGuardado(values.message);
+      cerrarModal();
     } catch (createError) {
       setErrorMessage(createError instanceof Error ? createError.message : "No fue posible guardar comunicado.");
       toastFirebaseError(createError);
@@ -483,8 +549,17 @@ export default function AdminCommunicationsPage() {
         />
       </div>
 
-      <Modal open={createOpen} title={editingItem ? "Editar comunicado" : "Crear comunicado"} onClose={() => setCreateOpen(false)}>
+      <Modal open={createOpen} title={editingItem ? "Editar comunicado" : "Crear comunicado"} onClose={cerrarModal}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
+          {/*
+            El panel va arriba y detrás de su bandera. `FeatureGate` solo oculta
+            la interfaz — el candado de verdad es el servidor, que comprueba la
+            misma bandera antes de gastar un token. Con la bandera apagada este
+            formulario es exactamente el de siempre.
+          */}
+          <FeatureGate flag="ai-communications-draft">
+            <AsistenteBorrador onAplicar={aplicarBorradorIa} onDeshacer={deshacerBorradorIa} feedback={feedbackIa} />
+          </FeatureGate>
           <div>
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Titulo</label>
             <Input {...form.register("title")} placeholder="Corte programado de agua" />
@@ -494,6 +569,19 @@ export default function AdminCommunicationsPage() {
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Mensaje</label>
             <Textarea {...form.register("message")} placeholder="Detalle para residentes" />
             {form.formState.errors.message ? <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.message.message}</p> : null}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">
+              Resumen para la notificación <span className="text-[var(--slate-500)]">(opcional)</span>
+            </label>
+            <Input {...form.register("notificationSummary")} placeholder="Corte de agua el sábado de 8:00 a 14:00 en las torres 1 y 2" maxLength={280} />
+            <p className="mt-1 text-xs text-[var(--slate-500)]">
+              Es lo que el residente lee en el aviso de la app, sin abrir el comunicado. Si lo dejas
+              vacío, verá el mensaje genérico de siempre.
+            </p>
+            {form.formState.errors.notificationSummary ? (
+              <p className="mt-1 text-xs text-[var(--danger-700)]">{form.formState.errors.notificationSummary.message}</p>
+            ) : null}
           </div>
           {/* Audiencia (VIV-401): todos o segmentado por torre. */}
           <div>
@@ -610,7 +698,7 @@ export default function AdminCommunicationsPage() {
             )}
           </div>
           <div className="mobile-action-group">
-            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={cerrarModal}>Cancelar</Button>
             <Button className="w-full sm:w-auto" type="submit" disabled={submitting}>{submitting ? "Guardando..." : "Guardar"}</Button>
           </div>
         </form>

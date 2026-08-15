@@ -10,7 +10,7 @@ import * as XLSX from "xlsx";
 import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
-import { anonymizeExpiredVouchers } from "./data-retention";
+import { anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import {
@@ -30,19 +30,13 @@ import {
   type NotificationOverride,
   type NotificationType,
 } from "./notification-catalog";
+import { callableCorsOrigins } from "./http-config";
+import { getAiUsageSummary, inicioDelMes } from "./ai/usage-report";
 
 initializeApp();
 
 const db = getFirestore();
 
-const callableCorsOrigins = [
-  "https://www.grupovivaru.com",
-  "https://grupovivaru.com",
-  "https://vivaru--hogaru-1.us-central1.hosted.app",
-  "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
-  "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app", // staging
-  "http://localhost:3000",
-];
 
 // NotificationType vive en ./notification-catalog (fuente única).
 
@@ -2547,8 +2541,20 @@ export const confirmPackageReceipt = onCall<ConfirmPackageReceiptInput>(async (r
 });
 
 export const onCommunicationCreated = onDocumentCreated("communications/{communicationId}", async (event) => {
-  const data = event.data?.data() as { tenantId?: string; title?: string } | undefined;
+  const data = event.data?.data() as
+    | { tenantId?: string; title?: string; notificationSummary?: string }
+    | undefined;
   if (!data?.tenantId) return;
+
+  // Hasta agosto de 2026 esto decía «La administracion publico un nuevo
+  // comunicado» para TODOS los comunicados, siempre. El residente recibía un
+  // aviso que no le decía nada y tenía que entrar para saber si le afectaba.
+  //
+  // `notificationSummary` es opcional a propósito: los comunicados escritos a
+  // mano pueden no traerlo, y los anteriores a esa fecha no lo traen. Cuando
+  // falta se cae a la frase de siempre — nunca se inventa un resumen ni se
+  // recorta el mensaje por su cuenta, que sería adivinar qué es lo importante.
+  const resumen = data.notificationSummary?.trim();
 
   const residentUids = await listTenantUidsByRoles(data.tenantId, ["resident"]);
   await createNotifications(
@@ -2557,7 +2563,7 @@ export const onCommunicationCreated = onDocumentCreated("communications/{communi
       tenantId: data.tenantId,
       type: "communication",
       title: data.title?.trim() || "Nuevo comunicado",
-      description: "La administracion publico un nuevo comunicado.",
+      description: resumen || "La administracion publico un nuevo comunicado.",
       link: "/resident/communications",
     })),
   );
@@ -3569,6 +3575,14 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
 export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async () => {
   const count = await anonymizeExpiredVouchers(db);
   console.log(`[data-retention] Anonimizados ${count} comprobante(s).`);
+
+  // Telemetría de IA vencida (12 meses, regla del Paso 0). Va en el mismo cron
+  // porque es la misma tarea: cumplir las retenciones que están declaradas.
+  const purgadas = await purgeExpiredAiUsage(db);
+  console.log(`[data-retention] Purgadas ${purgadas} fila(s) de aiUsage.`);
+
+  const feedback = await purgeExpiredAiFeedback(db);
+  console.log(`[data-retention] Purgadas ${feedback} fila(s) de aiFeedback.`);
 });
 
 // ── G4 · Observabilidad: captura de errores no controlados del cliente ────────
@@ -4059,5 +4073,43 @@ export const addSupportNote = onCall<{ ticketId: string; note: string }>(
   async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return addSupportInternalNote(request.data, uid, role);
+  },
+);
+
+// ─── Plataforma de IA ────────────────────────────────────────────────────────
+// Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.4 de
+// docs/hoja-de-ruta-ia.md): autentica, resuelve el conjunto desde la sesión,
+// comprueba rol y banderas, valida entrada y salida contra el catálogo, y deja
+// rastro en `aiUsage`. El proveedor es simulado hasta que se cierren la región
+// y el tope de gasto.
+export { aiInvoke } from "./ai/gateway";
+export { registrarFeedbackIa } from "./ai/feedback-gateway";
+export { registrarImportacion } from "./import/gateway";
+
+/**
+ * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
+ * cuánto gastó cada conjunto en el período, cuántas llamadas y cuántas
+ * fallaron. Solo superadmin: son datos de todos los conjuntos a la vez.
+ */
+export const getAiUsage = onCall<{ from?: string; to?: string }>(
+  { cors: callableCorsOrigins },
+  async (request) => {
+    assertSuperadmin(request.auth);
+
+    const desde = request.data?.from ? new Date(request.data.from) : inicioDelMes();
+    const hasta = request.data?.to ? new Date(request.data.to) : new Date();
+
+    if (Number.isNaN(desde.getTime()) || Number.isNaN(hasta.getTime())) {
+      throw new HttpsError("invalid-argument", "Las fechas del período no son válidas.");
+    }
+    if (desde >= hasta) {
+      throw new HttpsError("invalid-argument", "La fecha inicial debe ser anterior a la final.");
+    }
+
+    return {
+      from: desde.toISOString(),
+      to: hasta.toISOString(),
+      ...(await getAiUsageSummary(desde, hasta)),
+    };
   },
 );

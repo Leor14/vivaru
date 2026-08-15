@@ -3,16 +3,35 @@
 /**
  * ResidentBulkImportWizard
  * ────────────────────────
- * Wizard de 4 pasos para importación masiva de residentes/propietarios desde CSV.
+ * Wizard de 5 pasos para importación masiva de residentes/propietarios desde CSV o XLSX.
+ * El paso de columnas permite usar archivos que NO traen los encabezados de la
+ * plantilla; el catálogo vive en `src/lib/import/field-catalog.ts`.
  * Espeja a UnitBulkImportWizard. Resuelve la unidad por nombre contra las unidades
  * existentes (la unidad debe existir antes). Detecta duplicados por email/documento.
  *
- * Columnas esperadas (mayúsc/minúsc indiferente):
+ * Columnas que se reconocen solas (mayúsc/minúsc indiferente):
  *   nombre | email | telefono | documento | unidad | rol
+ * Cualquier otro encabezado se asigna a mano en el paso de columnas.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Papa from "papaparse";
+
+import {
+  hayBloqueantes,
+  pickBestSheet,
+  mappingIssues,
+  missingRequired,
+  normalizeHeader,
+  suggestMapping,
+  summarizeMapping,
+  valueFor,
+} from "@/lib/import/field-catalog";
+
+import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+
+import { registrarImportacionCallable } from "@/lib/firebase/callables";
+
+import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,13 +66,15 @@ type ParsedRow = {
   isDuplicate: boolean;
 };
 
-type WizardStep = "upload" | "review" | "confirm" | "done";
+type WizardStep = "upload" | "map" | "review" | "confirm" | "done";
 
 type Props = {
   existingUnits: UnitItem[];
   existingPeople: PersonItem[];
   onImport: (rows: ImportRow[]) => Promise<void>;
   onClose: () => void;
+  /** Pista de puesta en marcha, solo para la telemetría. */
+  track?: string;
 };
 
 const ROLE_ALIASES: Record<string, Role> = {
@@ -83,9 +104,11 @@ const ROLE_LABELS: Record<Role, string> = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
+/**
+ * Lectura cruda de una celda para ENSEÑAR lo que escribió la persona cuando el
+ * valor no es válido («Rol inválido: "dueño"»). La resolución real de columnas
+ * la hace ahora el catálogo compartido (`src/lib/import/field-catalog.ts`).
+ */
 function getField(raw: Record<string, string>, ...keys: string[]): string {
   for (const key of keys) {
     const found = Object.keys(raw).find((k) => normalizeHeader(k) === key);
@@ -113,9 +136,20 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Lo que cada campo acepta, sacado de las tablas de alias de ESTE archivo.
+ * Sirve para dos cosas en el paso de columnas: reconocer una columna por su
+ * contenido aunque su encabezado no diga nada, y avisar cuando la elegida es
+ * inequívocamente otra cosa.
+ */
+const ACEPTADOS = {
+  "person.role": Object.keys(ROLE_ALIASES),
+};
+
 function StepIndicator({ step }: { step: WizardStep }) {
   const steps: { key: WizardStep; label: string }[] = [
     { key: "upload", label: "Archivo" },
+    { key: "map", label: "Columnas" },
     { key: "review", label: "Revisión" },
     { key: "confirm", label: "Confirmar" },
     { key: "done", label: "Listo" },
@@ -142,7 +176,7 @@ function StatusBadge({ row }: { row: ParsedRow }) {
   return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"><CheckCircle2 className="h-3 w-3" /> OK</span>;
 }
 
-export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImport, onClose }: Props) {
+export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImport, onClose, track }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<WizardStep>("upload");
   const [fileName, setFileName] = useState("");
@@ -151,31 +185,33 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [libro, setLibro] = useState<TabularFile | null>(null);
+  const [sheetName, setSheetName] = useState<string>("");
+  /** Une el inicio y el fin de un mismo intento en la telemetría. */
+  const [runId, setRunId] = useState<string>("");
 
-  const parseFile = useCallback(
-    (file: File) => {
-      setParseError(null);
-      setFileName(file.name);
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          if (result.data.length === 0) {
-            setParseError("El archivo no contiene filas de datos.");
-            return;
-          }
+  /**
+   * Construye las filas validadas a partir del mapeo. Separado del parseo
+   * porque ahora corre dos veces: con el mapeo sugerido, y otra vez si la
+   * persona lo corrige en el paso de columnas.
+   */
+  const buildRows = useCallback(
+    (data: Record<string, string>[], mapping: Record<string, string | null>): ParsedRow[] => {
           const unitByName = new Map(existingUnits.map((u) => [normName(u.displayName), u]));
           const existingEmails = new Set(existingPeople.map((p) => (p.email || "").toLowerCase()).filter(Boolean));
           const existingDocs = new Set(existingPeople.map((p) => p.documentNumber || "").filter(Boolean));
 
-          const parsed: ParsedRow[] = result.data.map((raw, idx) => {
+          const parsed: ParsedRow[] = data.map((raw, idx) => {
             const errors: string[] = [];
-            const fullName = getField(raw, "nombre", "name", "fullname");
-            const email = getField(raw, "email", "correo", "e-mail");
-            const phone = getField(raw, "telefono", "celular", "phone", "tel");
-            const documentNumber = getField(raw, "documento", "cedula", "documentnumber", "id");
-            const unitLabel = getField(raw, "unidad", "unit", "apartamento");
-            const roleRaw = normName(getField(raw, "rol", "role", "tipo"));
+            const fullName = valueFor(raw, mapping, "person.fullName");
+            const email = valueFor(raw, mapping, "person.email");
+            const phone = valueFor(raw, mapping, "person.phone");
+            const documentNumber = valueFor(raw, mapping, "person.documentNumber");
+            const unitLabel = valueFor(raw, mapping, "person.unitLabel");
+            const roleRaw = normName(valueFor(raw, mapping, "person.role"));
 
             if (!fullName) errors.push("Nombre vacío");
             if (!email) errors.push("Email vacío");
@@ -206,15 +242,80 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             };
           });
 
-          setRows(parsed);
-          setSelected(new Set(parsed.filter((r) => r.errors.length === 0 && !r.isDuplicate).map((r) => r.rowIndex)));
-          setStep("review");
-        },
-        error: (err) => setParseError(`Error al leer el archivo: ${err.message}`),
-      });
+          return parsed;
     },
     [existingUnits, existingPeople],
   );
+
+  /** Toma la hoja indicada del libro y propone su mapeo. */
+  const usarHoja = useCallback((archivo: TabularFile, nombre: string) => {
+    const hoja = archivo.sheets[nombre];
+    setSheetName(nombre);
+    setHeaders(hoja.headers);
+    setRawRows(hoja.rows);
+    setMapping(suggestMapping(hoja.headers, "person", { rows: hoja.rows, accepted: ACEPTADOS }));
+  }, []);
+
+  const parseFile = useCallback(
+    async (file: File) => {
+      setParseError(null);
+      setFileName(file.name);
+      try {
+        const archivo = await readTabularFile(file);
+        setLibro(archivo);
+        // No la primera del libro: la que mejor encaja. En un archivo real la
+        // primera fue «Saldos», que no tiene ni tipo ni estado.
+        usarHoja(
+          archivo,
+          pickBestSheet(
+            archivo.sheetNames.map((n) => ({ name: n, ...archivo.sheets[n] })),
+            "person",
+            ACEPTADOS,
+          ),
+        );
+        setStep("map");
+
+        // Telemetría del intento (PRD-V-FEAT-002, CA-13). Best-effort: si falla,
+        // la persona no se entera y su importación sigue igual.
+        const id = crypto.randomUUID();
+        setRunId(id);
+        const hoja = archivo.sheets[
+          pickBestSheet(
+            archivo.sheetNames.map((n) => ({ name: n, ...archivo.sheets[n] })),
+            "person",
+            ACEPTADOS,
+          )
+        ];
+        void registrarImportacionCallable({
+          runId: id,
+          fase: "inicio",
+          entidad: "person",
+          ...(track ? { pista: track } : {}),
+          formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
+          hojas: archivo.sheetNames.length,
+          filas: hoja.rows.length,
+          ...summarizeMapping(hoja.headers, "person", suggestMapping(hoja.headers, "person", { rows: hoja.rows, accepted: ACEPTADOS })),
+        });
+      } catch (err) {
+        // El lector ya trae el mensaje escrito para la persona; cualquier otra
+        // cosa sería un error técnico en pantalla, que no ayuda a nadie.
+        setParseError(
+          err instanceof TabularReadError
+            ? err.message
+            : `No se pudo leer el archivo: ${err instanceof Error ? err.message : "formato no reconocido"}`,
+        );
+      }
+    },
+    [usarHoja, track],
+  );
+
+  /** Aplica el mapeo vigente y pasa a revisión. */
+  function applyMapping() {
+    const parsed = buildRows(rawRows, mapping);
+    setRows(parsed);
+    setSelected(new Set(parsed.filter((r) => r.errors.length === 0 && !r.isDuplicate).map((r) => r.rowIndex)));
+    setStep("review");
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -262,6 +363,21 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
       );
       setImportedCount(toImport.length);
       setStep("done");
+
+      // Cierre del intento. El par inicio/fin es la métrica: los que empiezan y
+      // nunca llegan aquí son exactamente los que se quiere contar.
+      void registrarImportacionCallable({
+        runId,
+        fase: "fin",
+        entidad: "person",
+        ...(track ? { pista: track } : {}),
+        formato: /\.xlsx?$/i.test(fileName) ? "xlsx" : "csv",
+        hojas: libro?.sheetNames.length ?? 1,
+        filas: rows.length,
+        ...summarizeMapping(headers, "person", mapping),
+        importadas: toImport.length,
+        omitidas: rows.length - toImport.length,
+      });
     } finally {
       setImporting(false);
     }
@@ -275,12 +391,34 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
     <div className="flex flex-col gap-4">
       <StepIndicator step={step} />
 
-      {step === "upload" && (
+      {/*
+        Respaldo del bloqueo que ya hace la pantalla: aquí también se puede
+        llegar desde el recorrido guiado, y sin unidades TODAS las filas
+        fallarían con «Unidad no encontrada» — un mensaje que culpa al archivo
+        cuando la causa es el orden. Se dice la causa real y se para.
+      */}
+      {step === "upload" && existingUnits.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
+            <AlertCircle className="h-7 w-7 text-amber-600" />
+          </div>
+          <p className="font-medium text-[var(--slate-900)]">Primero carga tus unidades</p>
+          <p className="max-w-md text-sm text-[var(--slate-600)]">
+            Cada persona se vincula a la unidad en la que vive, y este conjunto todavía no
+            tiene ninguna. Si importas ahora, ninguna fila encontrará su unidad.
+          </p>
+          <Button variant="outline" onClick={onClose}>
+            Entendido, cargo las unidades
+          </Button>
+        </div>
+      )}
+
+      {step === "upload" && existingUnits.length > 0 && (
         <div className="flex flex-col items-center gap-4 py-6">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--slate-100)]"><FileText className="h-7 w-7 text-[var(--slate-500)]" /></div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-2">
-              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo CSV</p>
+              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo</p>
               <HelpTip text="La unidad debe existir antes (importa primero las unidades). Cada residente se vincula a su unidad por el nombre. Si el email o documento ya existe, la fila se marca como duplicada y tú decides si la importas igual." />
             </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
@@ -289,16 +427,75 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           </div>
           {parseError && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{parseError}</p>}
           <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar archivo CSV</Button>
+            <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar archivo</Button>
             <Button variant="outline" onClick={downloadTemplate}><Download className="mr-2 h-4 w-4" /> Descargar plantilla</Button>
           </div>
-          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileChange} />
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleFileChange} />
+          {/* Espeja la tarjeta del asistente de unidades: qué hace esto, qué NO
+              hace, y por qué va en segundo lugar. */}
+          <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs font-semibold text-blue-800">
+              ¿Qué importa este archivo y qué no?
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              <strong>Este es el paso 2.</strong> Crea a las personas del conjunto —propietarios,
+              inquilinos— y <strong>engancha cada una a la unidad en la que vive</strong>. Por eso
+              las unidades van antes: si no existen, no hay a qué engancharlas y ninguna fila entra.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              <strong>No envía invitaciones ni crea accesos.</strong> Nadie recibe un correo por
+              importar. Avisar a los residentes para que entren a Vivaru es un paso aparte, cuando
+              tú lo decidas.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              Con nombre, correo y unidad basta para arrancar; el teléfono y el documento se
+              pueden completar después.
+            </p>
+          </div>
+
           <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold text-blue-800">Rol (valores aceptados)</p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
               <strong>propietario</strong> (residente) · <strong>inquilino</strong> · <strong>inversionista</strong> (propietario no residente) · <strong>otro</strong>.
-              La unidad debe existir; si no la encuentra por nombre, la fila se marca inválida.
+              Define qué ve cada persona y qué puede hacer dentro de Vivaru.
             </p>
+          </div>
+        </div>
+      )}
+
+      {step === "map" && (
+        <div className="flex flex-col gap-4">
+          <ColumnMappingStep
+            entity="person"
+            headers={headers}
+            rows={rawRows}
+            mapping={mapping}
+            onChange={setMapping}
+            accepted={ACEPTADOS}
+            sheetNames={libro?.sheetNames ?? []}
+            sheetName={sheetName}
+            onSheetChange={(n) => libro && usarHoja(libro, n)}
+          />
+          <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStep("upload");
+                setHeaders([]);
+                setRawRows([]);
+                setMapping({});
+                setLibro(null);
+                setSheetName("");
+              }}
+            >
+              ← Cambiar archivo
+            </Button>
+            <Button onClick={applyMapping} disabled={
+                missingRequired(mapping, "person").length > 0 ||
+                hayBloqueantes(mappingIssues(rawRows, "person", mapping, ACEPTADOS))
+              }>
+              Continuar
+            </Button>
           </div>
         </div>
       )}
@@ -350,7 +547,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           </div>
           <p className="text-xs text-[var(--slate-500)]">{selectedCount} residente{selectedCount !== 1 ? "s" : ""} seleccionado{selectedCount !== 1 ? "s" : ""} para importar</p>
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
-            <Button variant="outline" onClick={() => { setStep("upload"); setRows([]); }}>← Cambiar archivo</Button>
+            <Button variant="outline" onClick={() => { setStep("map"); setRows([]); }}>← Volver a columnas</Button>
             <Button onClick={() => setStep("confirm")} disabled={selectedCount === 0}>Continuar ({selectedCount})</Button>
           </div>
         </div>

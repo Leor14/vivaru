@@ -200,3 +200,75 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Densidad**: todas las nuevas ≥8 wikilinks (rango 8–17) ✅
 - **Entrantes**: mínimo 4 por página nueva tras añadir backlinks desde `stack-tecnico`, `estructura-app-router`, `componentes` y `data-table-pattern`
 - **Total wiki**: 57 páginas
+
+---
+
+## [2026-08-09] ingest | Paso 1.1 del programa de IA — banderas de funcionalidad
+
+- **Páginas creadas**: 1 — [[banderas-funcionalidad]]
+- **Páginas actualizadas**: 2 — `index.md`, [[programa-ia]] (la brecha «`featureFlags` sin lector» pasa a resuelta)
+- **Entidades extraídas**: colecciones `featureFlags` y `featureFlagOverrides`, documento `_global`, precedencia de cinco niveles, kill switch maestro y por bandera, `assertFeatureEnabled` en Cloud Functions, consola `/superadmin/flags`, script de siembra idempotente
+- **Nota**: el mecanismo se construyó genérico. No pertenece al programa de IA — este es solo su primer cliente
+
+---
+
+## [2026-08-09] ingest | Paso 1.2 del programa de IA — puerta de entrada única
+
+- **Páginas creadas**: 1 — [[puerta-ia]]
+- **Páginas actualizadas**: 3 — `index.md`, [[programa-ia]] (corrección: App Check estaba dormido de punta a punta, no «sin enforcement en servidor»), [[banderas-funcionalidad]] (primera bandera no-IA en el catálogo)
+- **Entidades extraídas**: callable `aiInvoke`, decisión pura de autorización, rechazo de `tenantId` en la petición, orden de comprobaciones, bandera `operacion-app-check-monitor`, banco de pruebas de `functions/`
+- **Nota**: el superadmin no puede invocar operaciones asistidas — no tiene conjunto en sesión, y aceptarlo del cliente es justo lo que el paso impide
+
+---
+
+## [2026-08-09] ingest | Paso 1.3 del programa de IA — catálogo de operaciones
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: el catálogo, el contrato de `comunicaciones-redactar` y la regla de `assumptions`)
+- **Entidades extraídas**: `OperationDefinition` (clave, versión, módulo, bandera, roles, esquemas, límites), operación `comunicaciones-redactar` v1, validación de entrada con Zod, tope de tamaño previo al esquema
+- **Nota**: los roles y la bandera dejaron de estar escritos a mano en la puerta; los declara cada operación
+
+---
+
+## [2026-08-09] ingest | Paso 1.4 del programa de IA — adaptador y validación de salida
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: adaptador simulado y validador definitivo)
+- **Entidades extraídas**: interfaz `AiProvider`, `stubAiProvider`, corte por tiempo, taxonomía de cuatro fallos, desenvoltura de bloques de código, metadatos de uso en tránsito hacia el Paso 1.5
+- **Nota**: el paso queda cerrado a medias a propósito — la llamada real a Vertex espera región y tope de gasto; el validador ya es definitivo
+
+---
+
+## [2026-08-09] ingest | Paso 1.5 del programa de IA — telemetría de uso y costo
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[puerta-ia]] (sección nueva: qué se registra y por qué el costo se congela al escribir)
+- **Entidades extraídas**: colección `aiUsage`, tabla de precios versionada, `estimateCostUsd`, resumen por conjunto y por operación, purga a 12 meses, consola `/superadmin/ia`
+- **Nota**: se registran también los fallos — una llamada fallida ya consumió tokens, y la tasa de fallo es la métrica que dice si la capacidad sirve
+
+---
+
+## [2026-08-10] update | Cierre de los pendientes de consola del programa de IA
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 1 — [[programa-ia]] (el modelo elegido solo existe en el endpoint global; la alineación con `us-central1` quedó descartada)
+- **Entidades extraídas**: endpoint global, `gemini-3.1-flash-lite`, límite de inversión por servicio, cuota de tokens por minuto, moneda COP de la cuenta de facturación
+- **Nota**: dos correcciones de datos que estaban mal. Vertex AI se renombró a Gemini Enterprise Agent Platform (el ID `aiplatform.googleapis.com` no cambió), y sí existe un tope de gasto que suspende servicios concretos sin tocar el resto del proyecto
+
+---
+
+## [2026-08-10] ingest | Paso 1.6 del programa de IA — cuotas por conjunto
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 2 — [[puerta-ia]] (sección nueva de cuotas), [[programa-ia]] (deja de figurar como brecha)
+- **Entidades extraídas**: colección `aiQuotaCounters`, tres topes por operación, consumo transaccional, devolución solo si el proveedor no respondió, reinicio del día en UTC, banco de pruebas con emulador en `functions/`
+- **Nota**: la razón del paso no es el costo sino el aislamiento — el tope de gasto de Google es de la cuenta entera, no por conjunto
+
+---
+
+## [2026-08-10] ingest | Paso 1.7 del programa de IA — las pruebas que cierran G3
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 2 — [[puerta-ia]] (qué se probó y qué hueco apareció), [[programa-ia]] (G3 aprobada)
+- **Entidades extraídas**: `runGateway` como camino completo probable, inyección de proveedor, pruebas de integración contra emulador, respuestas escritas de las puertas G3 y G5
+- **Nota**: el hallazgo del paso fue que nadie había comprobado que el kill switch estuviera conectado — cada pieza probada, la costura no

@@ -12,6 +12,7 @@ import { db } from "@/lib/firebase/client";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { UnitBulkImportWizard } from "@/components/features/residents/UnitBulkImportWizard";
 import { ResidentBulkImportWizard } from "@/components/features/residents/ResidentBulkImportWizard";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { Modal } from "@/components/shared/modal";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -26,6 +27,7 @@ import { useDebounce } from "@/lib/utils/use-debounce";
 import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { provisionResidentTemporaryAccessCallable } from "@/lib/firebase/callables";
+import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
 import {
   personSchema,
   primaryHolderSchema,
@@ -61,6 +63,27 @@ export default function AdminResidentsPage() {
   const [loadingUnits, setLoadingUnits] = useState(true);
   const [loadingPeople, setLoadingPeople] = useState(true);
   const [unitsLoadError, setUnitsLoadError] = useState<string | null>(null);
+  /**
+   * Unidades primero, y por eso se bloquea la carga de residentes: cada persona
+   * se resuelve contra una unidad existente, así que sin ninguna TODAS las filas
+   * fallan con «Unidad no encontrada» — un mensaje que culpa al archivo cuando
+   * la causa es el orden. Se exige `!loadingUnits` para no avisar mientras aún
+   * no se sabe.
+   */
+  const sinUnidades = !loadingUnits && units.length === 0;
+  // Solo para la telemetría de la importación: separa el baseline por pista,
+  // que es lo que la PRD de IA daba por bueno con un solo número.
+  const { onboardingTrack } = useTenantTrial(user?.tenantId);
+  /**
+   * Personas que están en el padrón pero **no pueden entrar**: sin `authUid`
+   * no hay cuenta. Importar no la crea a propósito —un archivo puede traer
+   * datos viejos o gente que ya no vive ahí, y avisar a 180 personas por error
+   * no se deshace—, así que invitar es un paso posterior y deliberado.
+   */
+  const sinAcceso = people.filter((p) => !p.authUid && p.status === "active");
+  const [enviandoAccesos, setEnviandoAccesos] = useState<{ hechos: number; total: number } | null>(
+    null,
+  );
   const [peopleLoadError, setPeopleLoadError] = useState<string | null>(null);
   const [unitRoleFilter, setUnitRoleFilter] = useState<"all" | PersonItem["occupancyType"]>("all");
   const [unitIdFilter, setUnitIdFilter] = useState<string>("all");
@@ -75,6 +98,14 @@ export default function AdminResidentsPage() {
   const [unitTypeTableFilter, setUnitTypeTableFilter] = useState<"all" | UnitItem["type"]>("all");
   const [unitStatusTableFilter, setUnitStatusTableFilter] = useState<"all" | UnitItem["status"]>("all");
   const [unitNoPersonFilter, setUnitNoPersonFilter] = useState(false);
+
+  /**
+   * Interruptor de la carga masiva. Nace encendida —los dos asistentes ya
+   * existían—, así que esto no cambia nada mientras nadie la baje. Apagada, el
+   * padrón se llena a mano: es el freno si un archivo real destapa algo que las
+   * pruebas no vieron, y se baja desde `/superadmin/flags` sin desplegar.
+   */
+  const importacionMasiva = useFeatureFlag("producto-importacion-masiva");
 
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [residentImportOpen, setResidentImportOpen] = useState(false);
@@ -455,11 +486,13 @@ export default function AdminResidentsPage() {
   useGuidedAction("unidades", (track) => {
     // Un conjunto real tiene 180 unidades: crearlas a mano no es una opción,
     // así que al cliente se le abre la carga masiva y no el alta individual.
-    if (track === "cliente") setBulkImportOpen(true);
+    // Con la bandera abajo cae al alta individual: la guía tiene que seguir
+    // llevando a algún sitio, y un botón que no hace nada es peor que uno lento.
+    if (track === "cliente" && importacionMasiva) setBulkImportOpen(true);
     else openCreateUnit();
   });
   useGuidedAction("residentes", (track) => {
-    if (track === "cliente") {
+    if (track === "cliente" && importacionMasiva) {
       setResidentImportOpen(true);
       return;
     }
@@ -703,7 +736,7 @@ export default function AdminResidentsPage() {
           personId: primaryPersonId,
           error: provisionError,
         });
-        toast.warning("Unidad y titular creados. No se pudo configurar el acceso automáticamente — usa 'Restablecer acceso' desde la tabla de personas para reenviar el correo.");
+        toast.warning("Unidad y titular creados. No se pudo configurar el acceso automáticamente — usa «Enviar acceso» desde la tabla de personas.");
       }
 
       for (const member of familyMembers) {
@@ -796,6 +829,25 @@ export default function AdminResidentsPage() {
         await updatePerson(editingPerson.id, user.uid, payload);
         toast.success("Persona actualizada.");
       } else {
+        // La carga masiva marca los duplicados por correo o documento y los deja
+        // fuera; este camino no comprobaba nada, así que la misma persona se
+        // podía crear dos veces. Dos reglas distintas para el mismo acto es lo
+        // que hace que un padrón se ensucie sin que nadie sepa por dónde.
+        const correo = (payload.email ?? "").trim().toLowerCase();
+        const documento = (payload.documentNumber ?? "").trim();
+        const yaExiste = people.find(
+          (p) =>
+            (correo && (p.email ?? "").trim().toLowerCase() === correo) ||
+            (documento && (p.documentNumber ?? "").trim() === documento),
+        );
+        if (yaExiste) {
+          toast.error(
+            `Ya existe «${yaExiste.fullName}» con ese correo o documento. Edítala en vez de crear una segunda.`,
+          );
+          setSavingPerson(false);
+          return;
+        }
+
         const personId = await createPerson(user.tenantId, user.uid, payload);
         await provisionResidentTemporaryAccessCallable({
           tenantId: user.tenantId,
@@ -843,6 +895,46 @@ export default function AdminResidentsPage() {
     }
   }
 
+  /**
+   * Envía el acceso a todas las personas que aún no lo tienen.
+   *
+   * **Va una por una a propósito.** La callable recibe una persona, y agrupar
+   * 180 invitaciones en una sola llamada exigiría una función nueva — que nace
+   * sin permiso de invocación en Cloud Run y falla con un «error interno» sin
+   * pista (ver `docs/pendientes.md`). Secuencial es más lento y no falla en
+   * silencio: si una revienta, las demás siguen y al final se dice cuántas.
+   */
+  async function handleEnviarAccesosPendientes() {
+    if (!user?.tenantId || sinAcceso.length === 0) return;
+
+    const total = sinAcceso.length;
+    setEnviandoAccesos({ hechos: 0, total });
+    let ok = 0;
+    const fallidas: string[] = [];
+
+    for (const [i, person] of sinAcceso.entries()) {
+      try {
+        await provisionResidentTemporaryAccessCallable({
+          tenantId: user.tenantId,
+          personId: person.id,
+        });
+        ok += 1;
+      } catch {
+        fallidas.push(person.fullName);
+      }
+      setEnviandoAccesos({ hechos: i + 1, total });
+    }
+
+    setEnviandoAccesos(null);
+    if (fallidas.length === 0) {
+      toast.success(`Acceso enviado a ${ok} persona${ok !== 1 ? "s" : ""}.`);
+    } else {
+      toast.warning(
+        `Acceso enviado a ${ok} de ${total}. No se pudo con: ${fallidas.slice(0, 3).join(", ")}${fallidas.length > 3 ? ` y ${fallidas.length - 3} más` : ""}.`,
+      );
+    }
+  }
+
   async function handleResetTemporaryPassword(person: PersonItem) {
     if (!user?.tenantId) return;
     setSendingResetTo(person.id);
@@ -851,7 +943,11 @@ export default function AdminResidentsPage() {
         tenantId: user.tenantId,
         personId: person.id,
       });
-      toast.success("Acceso restablecido. Se envió al residente un correo para que defina una nueva contraseña.");
+      toast.success(
+        person.authUid
+          ? "Acceso restablecido. Se envió al residente un correo para que defina una nueva contraseña."
+          : "Acceso enviado. El residente recibió un correo para definir su contraseña y entrar por primera vez.",
+      );
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -927,17 +1023,58 @@ export default function AdminResidentsPage() {
                 {seeding ? "Sembrando..." : "Cargar seed"}
               </Button>
             )}
-            <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Cargar unidades (CSV)
-            </Button>
-            <Button variant="outline" onClick={() => setResidentImportOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Cargar residentes (CSV)
-            </Button>
-            <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
+            {importacionMasiva && (
+              <>
+                <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  1 · Cargar unidades
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setResidentImportOpen(true)}
+                  disabled={sinUnidades}
+                  title={
+                    sinUnidades
+                      ? "Carga primero las unidades: cada persona se vincula a la suya."
+                      : undefined
+                  }
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  2 · Cargar residentes
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={openCreateUnit}>Crear unidad y titular</Button>
           </div>
         </div>
+        {sinUnidades && (
+          <p className="mt-3 rounded-lg bg-[var(--slate-50)] px-3 py-2 text-sm text-[var(--slate-600)]">
+            Empieza por las unidades. Cada persona se vincula a la suya, así que{" "}
+            {importacionMasiva
+              ? "importar residentes antes deja todas las filas sin unidad a la que engancharse."
+              : "no hay dónde enganchar a un residente hasta que exista su unidad."}
+          </p>
+        )}
+        {!sinUnidades && sinAcceso.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-sm text-amber-900">
+              <strong>
+                {sinAcceso.length} persona{sinAcceso.length !== 1 ? "s" : ""} sin acceso
+              </strong>{" "}
+              — están en el padrón pero todavía no pueden entrar a Vivaru. Importar no envía
+              invitaciones: se hace aquí, cuando hayas comprobado que los datos están bien.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => void handleEnviarAccesosPendientes()}
+              disabled={enviandoAccesos !== null}
+            >
+              {enviandoAccesos
+                ? `Enviando ${enviandoAccesos.hechos} de ${enviandoAccesos.total}…`
+                : `Enviar acceso a ${sinAcceso.length}`}
+            </Button>
+          </div>
+        )}
       </Card>
 
       <DuplicateUnitsPanel tenantId={user?.tenantId} units={units} people={people} />
@@ -1042,7 +1179,7 @@ export default function AdminResidentsPage() {
             getRowKey={(unit) => unit.id}
             loading={loadingUnits}
             loadingText="Cargando unidades..."
-            emptyText="Sin unidades. Crea una o aplica seed."
+            emptyText="Todavía no hay unidades. Cárgalas desde un archivo o crea la primera a mano: es la pieza sobre la que se apoya todo lo demás."
             tableMinWidthClassName="min-w-[640px] sm:min-w-[680px]"
             renderMobileRow={(unit) => {
               const count = people.filter(
@@ -1249,7 +1386,12 @@ export default function AdminResidentsPage() {
                   extraItems={[
                     {
                       key: "reset-password",
-                      label: sendingResetTo === person.id ? "Enviando..." : "Reenviar acceso",
+                      label:
+                        sendingResetTo === person.id
+                          ? "Enviando..."
+                          : person.authUid
+                            ? "Reenviar acceso"
+                            : "Enviar acceso",
                       icon: <KeyRound className="h-3.5 w-3.5" />,
                       disabled: sendingResetTo === person.id,
                       onSelect: () => void handleResetTemporaryPassword(person),
@@ -1567,30 +1709,41 @@ export default function AdminResidentsPage() {
         </form>
       </Modal>
 
-      <Modal
-        open={bulkImportOpen}
-        title="Importar unidades desde CSV"
-        onClose={() => setBulkImportOpen(false)}
-      >
-        <UnitBulkImportWizard
-          existingUnits={units}
-          onImport={handleBulkImport}
-          onClose={() => setBulkImportOpen(false)}
-        />
-      </Modal>
+      {/*
+        Los asistentes no se montan con la bandera abajo. No basta con tapar los
+        botones: al recorrido guiado se llega por URL (`?guia=`), y ese camino
+        abre el modal sin pasar por ellos.
+      */}
+      {importacionMasiva && (
+        <>
+          <Modal
+            open={bulkImportOpen}
+            title="Importar unidades desde archivo"
+            onClose={() => setBulkImportOpen(false)}
+          >
+            <UnitBulkImportWizard
+              track={onboardingTrack ?? undefined}
+              existingUnits={units}
+              onImport={handleBulkImport}
+              onClose={() => setBulkImportOpen(false)}
+            />
+          </Modal>
 
-      <Modal
-        open={residentImportOpen}
-        title="Importar residentes desde CSV"
-        onClose={() => setResidentImportOpen(false)}
-      >
-        <ResidentBulkImportWizard
-          existingUnits={units}
-          existingPeople={people}
-          onImport={handleBulkImportPeople}
-          onClose={() => setResidentImportOpen(false)}
-        />
-      </Modal>
+          <Modal
+            open={residentImportOpen}
+            title="Importar residentes desde archivo"
+            onClose={() => setResidentImportOpen(false)}
+          >
+            <ResidentBulkImportWizard
+              track={onboardingTrack ?? undefined}
+              existingUnits={units}
+              existingPeople={people}
+              onImport={handleBulkImportPeople}
+              onClose={() => setResidentImportOpen(false)}
+            />
+          </Modal>
+        </>
+      )}
 
       <ConfirmDeleteDialog
         open={Boolean(pendingUnitDeletion)}

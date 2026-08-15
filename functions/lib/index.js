@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.registrarImportacion = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -58,16 +58,10 @@ const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
+const http_config_1 = require("./http-config");
+const usage_report_1 = require("./ai/usage-report");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
-const callableCorsOrigins = [
-    "https://www.grupovivaru.com",
-    "https://grupovivaru.com",
-    "https://vivaru--hogaru-1.us-central1.hosted.app",
-    "https://hogaru-web--hogaru-1.us-central1.hosted.app", // legacy, mantener hasta confirmar 0 tráfico
-    "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app", // staging
-    "http://localhost:3000",
-];
 // Defaults = comportamiento actual. Si el alta no envia variantes (o faltan claves), se aplican
 // estos, de modo que los conjuntos quedan en el modo vigente sin requerir migracion.
 const DEFAULT_MODULE_VARIANTS = {
@@ -820,7 +814,7 @@ exports.createTenantWorkspace = (0, https_1.onCall)(async (request) => {
     return { tenantId: tenantRef.id };
 });
 exports.createTenantAdmin = (0, https_1.onCall)({
-    cors: callableCorsOrigins,
+    cors: http_config_1.callableCorsOrigins,
     invoker: "public",
     secrets: [email_1.resendApiKey],
 }, async (request) => {
@@ -927,7 +921,7 @@ exports.createTenantAdmin = (0, https_1.onCall)({
     }
 });
 exports.updateTenantAdmin = (0, https_1.onCall)({
-    cors: callableCorsOrigins,
+    cors: http_config_1.callableCorsOrigins,
     invoker: "public",
 }, async (request) => {
     assertSuperadmin(request.auth);
@@ -1007,7 +1001,7 @@ exports.updateTenantAdmin = (0, https_1.onCall)({
     }
 });
 exports.createTenantOperationalUser = (0, https_1.onCall)({
-    cors: callableCorsOrigins,
+    cors: http_config_1.callableCorsOrigins,
     invoker: "public",
     secrets: [email_1.resendApiKey],
 }, async (request) => {
@@ -1118,7 +1112,7 @@ exports.createTenantOperationalUser = (0, https_1.onCall)({
         throw mapTenantAdminError(error, "No fue posible crear el usuario operativo.");
     }
 });
-exports.setOperationalUserStatus = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.setOperationalUserStatus = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     }
@@ -1180,7 +1174,7 @@ exports.setOperationalUserStatus = (0, https_1.onCall)({ cors: callableCorsOrigi
     });
     return { ok: true, status };
 });
-exports.updateOperationalUser = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.updateOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     }
@@ -1260,7 +1254,7 @@ exports.updateOperationalUser = (0, https_1.onCall)({ cors: callableCorsOrigins 
     });
     return { ok: true };
 });
-exports.deleteOperationalUser = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.deleteOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     }
@@ -1315,7 +1309,7 @@ exports.deleteOperationalUser = (0, https_1.onCall)({ cors: callableCorsOrigins 
     });
     return { ok: true };
 });
-exports.createDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.createDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     }
@@ -1425,7 +1419,7 @@ async function ensureSystemFolderImpl(tenantId, actorUid, systemKey) {
     await writeAuditLog(tenantId, actorUid, "ensure_system_folder", { folderId: ref.id, systemKey });
     return ref.id;
 }
-exports.ensureSystemFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.ensureSystemFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -1440,7 +1434,7 @@ exports.ensureSystemFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, 
     return { folderId };
 });
 // Compatibilidad: el flujo de comunicados sigue llamando este nombre.
-exports.ensureCommunicationsFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.ensureCommunicationsFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -1456,7 +1450,7 @@ exports.ensureCommunicationsFolder = (0, https_1.onCall)({ cors: callableCorsOri
 // Actualizar carpeta: nombre, descripción y/o color (no cambia path/depth/parent;
 // integridad intacta). El nombre del callable se conserva por compatibilidad.
 const FOLDER_COLORS = ["gray", "blue", "green", "amber", "purple", "teal"];
-exports.renameDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.renameDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -1498,7 +1492,7 @@ exports.renameDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }
     return { ok: true };
 });
 // Eliminar carpeta: solo si está vacía (sin subcarpetas ni documentos).
-exports.deleteDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.deleteDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -1539,7 +1533,7 @@ exports.deleteDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }
 });
 // Mover carpeta a otra carpeta (o a la raíz). Re-parenta la carpeta y recalcula
 // path/depth de todo su subárbol; valida ciclos y que no supere los 4 niveles.
-exports.moveDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.moveDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -1603,7 +1597,7 @@ exports.moveDocumentFolder = (0, https_1.onCall)({ cors: callableCorsOrigins }, 
 });
 // Enlace de descarga: verifica admin, audita la descarga y emite una URL firmada de
 // corta duración (10 min). Si el service account no puede firmar, cae al fileUrl.
-exports.getDocumentDownloadUrl = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.getDocumentDownloadUrl = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const documentId = normalizeText(request.data?.documentId);
@@ -1638,7 +1632,7 @@ exports.getDocumentDownloadUrl = (0, https_1.onCall)({ cors: callableCorsOrigins
     return { url };
 });
 exports.provisionResidentTemporaryAccess = (0, https_1.onCall)({
-    cors: callableCorsOrigins,
+    cors: http_config_1.callableCorsOrigins,
     invoker: "public",
     secrets: [email_1.resendApiKey],
 }, async (request) => {
@@ -1681,7 +1675,7 @@ exports.provisionResidentTemporaryAccess = (0, https_1.onCall)({
     }
 });
 exports.completeResidentPasswordChange = (0, https_1.onCall)({
-    cors: callableCorsOrigins,
+    cors: http_config_1.callableCorsOrigins,
     invoker: "public",
 }, async (request) => {
     if (!request.auth?.uid) {
@@ -2029,13 +2023,22 @@ exports.onCommunicationCreated = (0, firestore_2.onDocumentCreated)("communicati
     const data = event.data?.data();
     if (!data?.tenantId)
         return;
+    // Hasta agosto de 2026 esto decía «La administracion publico un nuevo
+    // comunicado» para TODOS los comunicados, siempre. El residente recibía un
+    // aviso que no le decía nada y tenía que entrar para saber si le afectaba.
+    //
+    // `notificationSummary` es opcional a propósito: los comunicados escritos a
+    // mano pueden no traerlo, y los anteriores a esa fecha no lo traen. Cuando
+    // falta se cae a la frase de siempre — nunca se inventa un resumen ni se
+    // recorta el mensaje por su cuenta, que sería adivinar qué es lo importante.
+    const resumen = data.notificationSummary?.trim();
     const residentUids = await listTenantUidsByRoles(data.tenantId, ["resident"]);
     await createNotifications(residentUids.map((uid) => ({
         userId: uid,
         tenantId: data.tenantId,
         type: "communication",
         title: data.title?.trim() || "Nuevo comunicado",
-        description: "La administracion publico un nuevo comunicado.",
+        description: resumen || "La administracion publico un nuevo comunicado.",
         link: "/resident/communications",
     })));
 });
@@ -2255,7 +2258,7 @@ exports.onBillingStatementCreated = (0, firestore_2.onDocumentCreated)({ documen
 });
 // Recordatorio de paquete en bodega: el admin reenvía el aviso in-app al
 // residente desde el módulo de Paquetería (VIV-901).
-exports.remindPackagePickup = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.remindPackagePickup = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const tenantId = request.data?.tenantId;
     const packageId = request.data?.packageId;
     if (!tenantId || !packageId) {
@@ -2285,7 +2288,7 @@ exports.remindPackagePickup = (0, https_1.onCall)({ cors: callableCorsOrigins },
 });
 // Aviso agrupado tras una importación masiva de cartera: 1 notificación por
 // residente de las unidades afectadas (lo invoca el front al terminar el import).
-exports.notifyBillingBatch = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.notifyBillingBatch = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
     const tenantId = request.data?.tenantId;
     const period = request.data?.period ?? "";
     const unitIds = request.data?.unitIds ?? [];
@@ -2309,7 +2312,7 @@ exports.notifyBillingBatch = (0, https_1.onCall)({ cors: callableCorsOrigins, se
 });
 // Recordatorio de pago: reenvía un aviso a los residentes de las unidades indicadas
 // (una unidad o todas las morosas). Lo dispara el admin manualmente.
-exports.sendBillingReminder = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.sendBillingReminder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
     const tenantId = request.data?.tenantId;
     const unitIds = request.data?.unitIds ?? [];
     if (!tenantId || !Array.isArray(unitIds) || unitIds.length === 0) {
@@ -2388,7 +2391,7 @@ const UNIT_REF_FIELDS = [
 // Fusiona unidades duplicadas (mismo nombre, distinto doc): re-apunta TODAS las referencias
 // de las duplicadas a la superviviente y borra las duplicadas. Server-side por atomicidad y
 // porque tenantUsers es de escritura restringida en reglas.
-exports.mergeUnits = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.mergeUnits = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const tenantId = normalizeText(request.data?.tenantId);
     const survivorId = normalizeText(request.data?.survivorId);
     const duplicateIds = (request.data?.duplicateIds ?? []).map((x) => normalizeText(x)).filter(Boolean);
@@ -2488,7 +2491,7 @@ exports.mergeUnits = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (r
 });
 // Notifica al residente el resultado de la revisión de su comprobante: aceptado con
 // ajuste de monto, o no aceptado (con motivo). Lo dispara el admin desde la revisión.
-exports.notifyResidentReceipt = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.notifyResidentReceipt = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -2891,8 +2894,14 @@ exports.monthlyFinancialArchive = (0, scheduler_1.onSchedule)({ schedule: "0 6 1
 exports.anonymizeExpiredVouchersDaily = (0, scheduler_1.onSchedule)("every day 03:00", async () => {
     const count = await (0, data_retention_1.anonymizeExpiredVouchers)(db);
     console.log(`[data-retention] Anonimizados ${count} comprobante(s).`);
+    // Telemetría de IA vencida (12 meses, regla del Paso 0). Va en el mismo cron
+    // porque es la misma tarea: cumplir las retenciones que están declaradas.
+    const purgadas = await (0, data_retention_1.purgeExpiredAiUsage)(db);
+    console.log(`[data-retention] Purgadas ${purgadas} fila(s) de aiUsage.`);
+    const feedback = await (0, data_retention_1.purgeExpiredAiFeedback)(db);
+    console.log(`[data-retention] Purgadas ${feedback} fila(s) de aiFeedback.`);
 });
-exports.logClientError = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.logClientError = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const message = normalizeText(request.data?.message).slice(0, 2000);
     if (!message)
         return { ok: false };
@@ -2914,7 +2923,7 @@ exports.logClientError = (0, https_1.onCall)({ cors: callableCorsOrigins }, asyn
 // Público (sin auth): la página /activar los llama antes de tener sesión.
 // Valida el token SIN consumirlo (GET de la página). Devuelve el estado para
 // pintar el formulario o el mensaje de invitación inválida/expirada/usada.
-exports.getAccountInvite = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.getAccountInvite = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const token = normalizeText(request.data?.token);
     if (!token)
         return { status: "invalid" };
@@ -2930,7 +2939,7 @@ exports.getAccountInvite = (0, https_1.onCall)({ cors: callableCorsOrigins }, as
 });
 // Consume el token (transaccional, un solo uso) y fija la contraseña. Solo aquí
 // se invalida la invitación, por eso un escáner que hace GET no la rompe.
-exports.activateAccount = (0, https_1.onCall)({ cors: callableCorsOrigins }, async (request) => {
+exports.activateAccount = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const token = normalizeText(request.data?.token);
     const password = typeof request.data?.password === "string" ? request.data.password : "";
     if (!token)
@@ -2957,7 +2966,7 @@ exports.activateAccount = (0, https_1.onCall)({ cors: callableCorsOrigins }, asy
     return { ok: true };
 });
 // Reenvía el acceso a un usuario operativo del mismo tenant (regenera invitación).
-exports.resendAccountInvite = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.resendAccountInvite = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
     const tenantId = normalizeText(request.data?.tenantId);
@@ -3029,7 +3038,7 @@ exports.notifyPendingVisitorExits = (0, scheduler_1.onSchedule)("0 8 * * *", asy
 // Pública a propósito: la llama el registro del landing. La contención del
 // abuso es rate limiting + verificación de correo del lado del llamador, y el
 // "un correo = un trial" que valida provisionTrialWorkspace.
-exports.createTrialWorkspace = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
+exports.createTrialWorkspace = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const d = request.data;
     if (!d?.email?.trim() || !d?.nombre?.trim() || !d?.conjunto?.trim() || !d?.ciudad?.trim()) {
         throw new https_1.HttpsError("invalid-argument", "Nombre, correo, conjunto y ciudad son obligatorios.");
@@ -3071,7 +3080,7 @@ exports.trialLifecycleDaily = (0, scheduler_1.onSchedule)({ schedule: "0 10 * * 
 // ambiente REAL: nace `active`, sin vencimiento y con los módulos
 // desbloqueados. Para un lead que YA tiene ambiente de prueba, la acción
 // correcta es "Convertir a cliente" en la consola de ambientes (no crea nada).
-exports.createTenantFromLead = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.createTenantFromLead = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
     assertSuperadmin(request.auth);
     const leadId = request.data?.leadId?.trim();
     if (!leadId)
@@ -3112,7 +3121,7 @@ exports.createTenantFromLead = (0, https_1.onCall)({ cors: callableCorsOrigins, 
 // Reemplaza el mailto: recoge el mensaje y los datos de contacto, avisa al
 // equipo con el contexto del ambiente y marca el lead como CALIFICADO — que
 // es el evento más valioso del funnel.
-exports.requestAdvisorContact = (0, https_1.onCall)({ cors: callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
+exports.requestAdvisorContact = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, secrets: [email_1.resendApiKey] }, async (request) => {
     const tenantId = request.data?.tenantId;
     const uid = request.auth?.uid;
     if (!tenantId || !uid) {
@@ -3212,7 +3221,7 @@ function supportAuth(auth) {
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
     return { uid, role: auth?.token?.role };
 }
-exports.createSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
+exports.createSupportTicket = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     const result = await (0, support_1.createSupportTicket)(request.data, uid, role);
     await writeAuditLog(request.data?.tenantId ?? "", uid, "create_support_ticket", {
@@ -3221,23 +3230,56 @@ exports.createSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, i
     });
     return result;
 });
-exports.replyToSupportTicket = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
+exports.replyToSupportTicket = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.replySupportTicket)(request.data, uid, role);
 });
-exports.updateSupportTicketStatus = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
+exports.updateSupportTicketStatus = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.updateSupportTicket)(request.data, uid, role);
 });
-exports.reopenSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
+exports.reopenSupportTicketCallable = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.reopenSupportTicket)(request.data, uid, role);
 });
-exports.closeSupportTicketCallable = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public" }, async (request) => {
+exports.closeSupportTicketCallable = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.closeSupportTicket)(request.data, uid, role);
 });
-exports.addSupportNote = (0, https_1.onCall)({ cors: callableCorsOrigins, invoker: "public" }, async (request) => {
+exports.addSupportNote = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     const { uid, role } = supportAuth(request.auth);
     return (0, support_1.addSupportInternalNote)(request.data, uid, role);
+});
+// ─── Plataforma de IA ────────────────────────────────────────────────────────
+// Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.4 de
+// docs/hoja-de-ruta-ia.md): autentica, resuelve el conjunto desde la sesión,
+// comprueba rol y banderas, valida entrada y salida contra el catálogo, y deja
+// rastro en `aiUsage`. El proveedor es simulado hasta que se cierren la región
+// y el tope de gasto.
+var gateway_1 = require("./ai/gateway");
+Object.defineProperty(exports, "aiInvoke", { enumerable: true, get: function () { return gateway_1.aiInvoke; } });
+var feedback_gateway_1 = require("./ai/feedback-gateway");
+Object.defineProperty(exports, "registrarFeedbackIa", { enumerable: true, get: function () { return feedback_gateway_1.registrarFeedbackIa; } });
+var gateway_2 = require("./import/gateway");
+Object.defineProperty(exports, "registrarImportacion", { enumerable: true, get: function () { return gateway_2.registrarImportacion; } });
+/**
+ * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
+ * cuánto gastó cada conjunto en el período, cuántas llamadas y cuántas
+ * fallaron. Solo superadmin: son datos de todos los conjuntos a la vez.
+ */
+exports.getAiUsage = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
+    assertSuperadmin(request.auth);
+    const desde = request.data?.from ? new Date(request.data.from) : (0, usage_report_1.inicioDelMes)();
+    const hasta = request.data?.to ? new Date(request.data.to) : new Date();
+    if (Number.isNaN(desde.getTime()) || Number.isNaN(hasta.getTime())) {
+        throw new https_1.HttpsError("invalid-argument", "Las fechas del período no son válidas.");
+    }
+    if (desde >= hasta) {
+        throw new https_1.HttpsError("invalid-argument", "La fecha inicial debe ser anterior a la final.");
+    }
+    return {
+        from: desde.toISOString(),
+        to: hasta.toISOString(),
+        ...(await (0, usage_report_1.getAiUsageSummary)(desde, hasta)),
+    };
 });

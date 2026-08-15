@@ -75,6 +75,9 @@ async function run() {
       status: "active",
       planId: "plus",
       onboardingStatus: "completed",
+      // Conjunto de demostración: se descuenta de toda métrica de producción.
+      // Ver el comentario largo en `seed-tenant.mjs`.
+      isExample: true,
       createdAt: now,
       updatedAt: now,
     },

@@ -1,5 +1,37 @@
 # Auditoría AEO/GEO — nota base de www.grupovivaru.com
 
+> ## RESULTADO — 8 de agosto de 2026, tras el despliegue
+>
+> | | Antes | Después |
+> |---|---|---|
+> | Fundamentos (16 comprobaciones) | 34/100 | **76/100** |
+> | Inteligencia (6 dimensiones) | 53/100 | **57/100** |
+> | **Final** | **44/100 · D** | **67/100 · C+** |
+>
+> Comprobaciones que pasan: **5 → 12 de 16**. Páginas rastreadas: 8 → 6, porque
+> `/login` salió del rastreo (ver más abajo, era el arreglo nº 2).
+>
+> El salto se midió **antes de promocionar**, sirviendo el build de producción en
+> local con `NEXT_PUBLIC_APP_ENV=production`. Producción dio el mismo número.
+>
+> **Lo que quedó fallando, y por qué no se persigue:**
+>
+> - `image-alt` (8 pts) — **es un falso positivo y no se va a arreglar.** Las
+>   únicas imágenes de las páginas legales son el logo del header y del footer,
+>   con `alt=""` y el enlace padre llevando `aria-label="Vivaru — Inicio"`. Ese
+>   es el patrón correcto para una imagen decorativa dentro de un enlace
+>   etiquetado; el auditor cuenta `alt=""` como «sin alt» porque filtra por
+>   longitud mayor que cero. Ponerle texto haría que un lector de pantalla lo
+>   anunciara dos veces. **Degradar la accesibilidad para subir un marcador es
+>   exactamente al revés.**
+> - `text-depth` (12 pts) y `heading-hierarchy` (6 pts) — fallan en `/registro`
+>   (64 palabras) y `/diagnostico`. Los dos son formularios. Se arreglan con
+>   contenido de verdad, que es decisión de conversión, no de SEO.
+> - `rss-feed` (8 pts) — no hay blog. Decisión de contenido.
+>
+> Con eso, **76 está cerca del techo** sin tomar decisiones de negocio.
+
+
 **Medido:** 8 de agosto de 2026 · **Páginas rastreadas:** 8 · **Herramienta:**
 `audit-website-aeo` (onvoyage-ai/gtm-engineer-skills, MIT)
 

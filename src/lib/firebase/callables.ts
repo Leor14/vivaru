@@ -4,6 +4,9 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, functions } from "@/lib/firebase/client";
+// Solo el tipo: `import type` se borra al compilar, así que el módulo puro de
+// datos faltantes no arrastra Firebase a quien lo pruebe.
+import type { DatoFaltante } from "@/lib/ai/datos-faltantes";
 
 type CreateVisitorPassInput = {
   tenantId: string;
@@ -558,4 +561,159 @@ export async function addSupportNoteCallable(input: { ticketId: string; note: st
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { ok: true }>(functions, "addSupportNote");
   return executeCallable(callable, input, "No fue posible guardar la nota.");
+}
+
+/**
+ * Resumen de consumo de IA (Paso 1.5 de docs/hoja-de-ruta-ia.md). Solo
+ * superadmin: agrega datos de todos los conjuntos a la vez.
+ */
+export interface AiUsageBucket {
+  llamadas: number;
+  fallos: number;
+  inputTokens: number;
+  outputTokens: number;
+  costoUsd: number;
+  latenciaMediaMs: number;
+}
+
+export interface AiUsageSummaryResponse {
+  from: string;
+  to: string;
+  total: AiUsageBucket;
+  porConjunto: Array<{ tenantId: string } & AiUsageBucket>;
+  porOperacion: Array<{ operationKey: string } & AiUsageBucket>;
+  fallosPorMotivo: Array<{ outcome: string; veces: number }>;
+  filas: number;
+  truncado: boolean;
+  priceTableVersion: string;
+}
+
+export async function getAiUsageCallable(input: { from?: string; to?: string } = {}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, AiUsageSummaryResponse>(functions, "getAiUsage");
+  return executeCallable(callable, input, "No fue posible leer el consumo de IA.");
+}
+
+export interface BorradorComunicacion {
+  title: string;
+  body: string;
+  notificationSummary: string;
+  missingInformation: DatoFaltante[];
+  qualityFlags: string[];
+  /** Vacío siempre: si el modelo asumió algo, el servidor ya rechazó la respuesta entera. */
+  assumptions: string[];
+}
+
+export interface CuotaRestante {
+  conjuntoDia: number;
+  conjuntoMes: number;
+  usuarioDia: number;
+}
+
+export interface RedactarComunicacionResult {
+  output: BorradorComunicacion;
+  cuotaRestante: CuotaRestante;
+}
+
+export interface RedactarComunicacionInput {
+  proposito: string;
+  hechos: string[];
+  tono: "informativo" | "urgente" | "cordial";
+}
+
+/**
+ * Pide un borrador asistido de comunicación (Paso 2.5).
+ *
+ * **No manda `tenantId`, y no es un olvido.** La puerta rechaza cualquier
+ * llamada que lo traiga en el cuerpo *aunque coincida* con el de la sesión: el
+ * conjunto sale del token y de la membresía, nunca del cliente (Paso 1.2).
+ *
+ * Tampoco manda audiencia, torres, unidades, vigencia ni estado. No están en el
+ * esquema de entrada del catálogo, así que no hay forma de que la IA los toque.
+ *
+ * Cuando falla, el mensaje que llega ya está escrito para la persona y termina
+ * en «puedes continuar con el proceso manual». Quien llama solo tiene que
+ * mostrarlo: el detalle técnico se queda en los logs del servidor.
+ */
+export async function redactarComunicacionCallable(input: RedactarComunicacionInput) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    { operationKey: string; input: RedactarComunicacionInput },
+    RedactarComunicacionResult
+  >(functions, "aiInvoke");
+  return executeCallable(
+    callable,
+    { operationKey: "comunicaciones-redactar", input },
+    "No pudimos preparar el borrador. Puedes continuar con el proceso manual.",
+  );
+}
+
+/**
+ * Registra qué hizo el administrador con el borrador asistido (Paso 2.5).
+ *
+ * **Best-effort a propósito, como `logClientErrorCallable`.** No usa
+ * `executeCallable` porque no debe propagar: si esto falla, el comunicado ya se
+ * guardó bien y enseñarle un error a la persona sería mentirle. Se pierde una
+ * fila de medición, que es molesto y no es su problema.
+ *
+ * No manda `tenantId` — sale de la sesión, igual que en la puerta.
+ */
+export async function registrarFeedbackIaCallable(input: {
+  /** Une los varios envíos de una misma sesión de borrador en una sola fila. */
+  sesionId: string;
+  operationKey: "comunicaciones-redactar";
+  propuestas: number;
+  aplicada: boolean;
+  deshecha: boolean;
+  guardada: boolean;
+  mostrados: string[];
+  descartados: string[];
+  respondidos: string[];
+  distanciaEdicion: number | null;
+}): Promise<{ ok: boolean }> {
+  if (!functions) return { ok: false };
+  try {
+    const callable = httpsCallable<typeof input, { ok: true }>(functions, "registrarFeedbackIa");
+    const result = await callable(input);
+    return result.data;
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[feedback-ia] no se pudo registrar", error);
+    }
+    return { ok: false };
+  }
+}
+
+/**
+ * Registra un intento de importación tabular (`PRD-V-FEAT-002`, `CA-13`).
+ *
+ * **Best-effort, como el registro de feedback del canario**: si falla, la
+ * importación ya ocurrió y enseñar un error sería mentirle a la persona sobre
+ * lo que pasó con sus datos. Devuelve `ok: false` y sigue.
+ *
+ * No manda `tenantId`: sale de la sesión en el servidor.
+ */
+export async function registrarImportacionCallable(input: {
+  /** Une el inicio y el fin de un mismo intento. */
+  runId: string;
+  fase: "inicio" | "fin";
+  entidad: "unit" | "person";
+  pista?: string;
+  formato: "csv" | "xlsx";
+  hojas: number;
+  filas: number;
+  camposPorAlias: number;
+  camposAMano: number;
+  encabezadosSinUsar: string[];
+  importadas?: number;
+  omitidas?: number;
+}): Promise<{ ok: boolean }> {
+  if (!functions) return { ok: false };
+  try {
+    const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "registrarImportacion");
+    const result = await callable(input);
+    return { ok: Boolean(result.data?.ok) };
+  } catch {
+    return { ok: false };
+  }
 }

@@ -3,16 +3,19 @@
 /**
  * UnitBulkImportWizard
  * ─────────────────────
- * Wizard de 4 pasos para importación masiva de unidades desde CSV.
+ * Wizard de 5 pasos para importación masiva de unidades desde CSV o XLSX.
  *
  * Paso 1 – UPLOAD    : Botón de selección de archivo + plantilla descargable.
- * Paso 2 – REVIEW    : Tabla con filas válidas / inválidas / duplicadas.
+ * Paso 2 – MAP       : Qué columna del archivo alimenta cada campo destino.
+ * Paso 3 – REVIEW    : Tabla con filas válidas / inválidas / duplicadas.
  *                      Checkboxes para seleccionar cuáles importar.
- * Paso 3 – CONFIRM   : Resumen final antes de escribir en Firestore.
- * Paso 4 – DONE      : Resultado con conteo de unidades importadas.
+ * Paso 4 – CONFIRM   : Resumen final antes de escribir en Firestore.
+ * Paso 5 – DONE      : Resultado con conteo de unidades importadas.
  *
- * Columnas esperadas en el CSV (mayúsculas/minúsculas indiferente):
- *   nombre | torre | tipo | estado
+ * **El archivo ya NO tiene que traer los encabezados de la plantilla.** Esos
+ * —nombre, torre, tipo, estado— siguen reconociéndose solos y precargan el
+ * mapeo; cualquier otro se asigna a mano en el paso 2. El catálogo de campos
+ * destino vive en `src/lib/import/field-catalog.ts`, no aquí.
  *
  * Valores válidos para "tipo" : apartment, house, office, other
  *                               (y alias: apartamento, casa, oficina, otro)
@@ -21,7 +24,23 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Papa from "papaparse";
+
+import {
+  hayBloqueantes,
+  pickBestSheet,
+  mappingIssues,
+  missingRequired,
+  normalizeHeader,
+  suggestMapping,
+  summarizeMapping,
+  valueFor,
+} from "@/lib/import/field-catalog";
+
+import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+
+import { registrarImportacionCallable } from "@/lib/firebase/callables";
+
+import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,7 +66,7 @@ type ParsedRow = {
   duplicateId?: string;
 };
 
-type WizardStep = "upload" | "review" | "confirm" | "done";
+type WizardStep = "upload" | "map" | "review" | "confirm" | "done";
 
 type Props = {
   /** Unidades ya existentes — usadas para detección de duplicados. */
@@ -56,6 +75,8 @@ type Props = {
     rows: Array<{ displayName: string; tower: string; type: UnitType; status: UnitStatus }>,
   ) => Promise<void>;
   onClose: () => void;
+  /** Pista de puesta en marcha, solo para la telemetría. */
+  track?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -90,12 +111,13 @@ const TYPE_LABELS: Record<UnitType, string> = {
   other: "Otro",
 };
 
-/** Normaliza un header de columna para comparación flexible. */
-function normalizeHeader(h: string): string {
-  return h.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-}
-
-/** Extrae el valor de una fila buscando variantes del header. */
+/**
+ * Lectura cruda de una celda para ENSEÑAR lo que escribió la persona cuando el
+ * valor no es válido («Tipo inválido: "casa grande"»). La resolución real de
+ * columnas ya no vive aquí: la hace el catálogo compartido
+ * (`src/lib/import/field-catalog.ts`). Esto queda porque en el momento de
+ * pintar la tabla no hay mapeo a mano, solo la fila.
+ */
 function getField(raw: Record<string, string>, ...keys: string[]): string {
   for (const key of keys) {
     const found = Object.keys(raw).find((k) => normalizeHeader(k) === key);
@@ -126,11 +148,23 @@ function downloadTemplate() {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Lo que cada campo acepta, sacado de las tablas de alias de ESTE archivo.
+ * Sirve para dos cosas en el paso de columnas: reconocer una columna por su
+ * contenido aunque su encabezado no diga nada, y avisar cuando la elegida es
+ * inequívocamente otra cosa.
+ */
+const ACEPTADOS = {
+  "unit.type": Object.keys(TYPE_ALIASES),
+  "unit.status": Object.keys(STATUS_ALIASES),
+};
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StepIndicator({ step }: { step: WizardStep }) {
   const steps: { key: WizardStep; label: string }[] = [
     { key: "upload", label: "Archivo" },
+    { key: "map", label: "Columnas" },
     { key: "review", label: "Revisión" },
     { key: "confirm", label: "Confirmar" },
     { key: "done", label: "Listo" },
@@ -190,7 +224,7 @@ function StatusBadge({ row }: { row: ParsedRow }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props) {
+export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<WizardStep>("upload");
   const [fileName, setFileName] = useState<string>("");
@@ -199,83 +233,143 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [libro, setLibro] = useState<TabularFile | null>(null);
+  const [sheetName, setSheetName] = useState<string>("");
+  /** Une el inicio y el fin de un mismo intento en la telemetría. */
+  const [runId, setRunId] = useState<string>("");
 
   // ── Parse CSV ──────────────────────────────────────────────────────────────
 
-  const parseFile = useCallback(
-    (file: File) => {
-      setParseError(null);
-      setFileName(file.name);
+  /**
+   * Construye las filas validadas a partir del mapeo. Se separó del parseo
+   * porque ahora se ejecuta DOS veces: al llegar del archivo con el mapeo
+   * sugerido, y otra vez si la persona lo corrige en el paso de columnas.
+   */
+  const buildRows = useCallback(
+    (data: Record<string, string>[], mapping: Record<string, string | null>): ParsedRow[] => {
+      // Construir slug set de unidades existentes para detección de duplicados
+      const existingSlugs = new Map(
+        existingUnits.map((u) => [
+          u.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          u.id,
+        ]),
+      );
 
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          if (result.data.length === 0) {
-            setParseError("El archivo no contiene filas de datos.");
-            return;
-          }
+      return data.map((raw, idx) => {
+        const errors: string[] = [];
 
-          // Construir slug set de unidades existentes para detección de duplicados
-          const existingSlugs = new Map(
-            existingUnits.map((u) => [
-              u.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-              u.id,
-            ]),
-          );
+        const displayName = valueFor(raw, mapping, "unit.displayName");
+        const tower = valueFor(raw, mapping, "unit.tower");
+        const typeRaw = valueFor(raw, mapping, "unit.type").toLowerCase();
+        const statusRaw = valueFor(raw, mapping, "unit.status").toLowerCase();
 
-          const parsed: ParsedRow[] = result.data.map((raw, idx) => {
-            const errors: string[] = [];
+        if (!displayName) errors.push("Nombre vacío");
+        if (!tower) errors.push("Torre vacía");
 
-            const displayName = getField(raw, "nombre", "name", "unidad", "unit", "displayname");
-            const tower = getField(raw, "torre", "tower");
-            const typeRaw = getField(raw, "tipo", "type").toLowerCase();
-            const statusRaw = getField(raw, "estado", "status", "estado").toLowerCase();
+        const type: UnitType | null = TYPE_ALIASES[typeRaw] ?? null;
+        if (!type) errors.push(`Tipo inválido: "${typeRaw || "vacío"}"`);
 
-            if (!displayName) errors.push("Nombre vacío");
-            if (!tower) errors.push("Torre vacía");
+        const status: UnitStatus | null = STATUS_ALIASES[statusRaw] ?? null;
+        if (!status) errors.push(`Estado inválido: "${statusRaw || "vacío"}"`);
 
-            const type: UnitType | null = TYPE_ALIASES[typeRaw] ?? null;
-            if (!type) errors.push(`Tipo inválido: "${typeRaw || "vacío"}"`);
+        const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        const duplicateId = existingSlugs.get(slug);
+        const isDuplicate = Boolean(duplicateId) && errors.length === 0;
 
-            const status: UnitStatus | null = STATUS_ALIASES[statusRaw] ?? null;
-            if (!status) errors.push(`Estado inválido: "${statusRaw || "vacío"}"`);
-
-            const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-            const duplicateId = existingSlugs.get(slug);
-            const isDuplicate = Boolean(duplicateId) && errors.length === 0;
-
-            return {
-              rowIndex: idx + 2, // +2: header row + 1-based
-              raw,
-              displayName,
-              tower,
-              type,
-              status,
-              errors,
-              isDuplicate,
-              duplicateId,
-            };
-          });
-
-          setRows(parsed);
-
-          // Pre-seleccionar solo las filas válidas y no duplicadas
-          const preSelected = new Set<number>(
-            parsed
-              .filter((r) => r.errors.length === 0 && !r.isDuplicate)
-              .map((r) => r.rowIndex),
-          );
-          setSelected(preSelected);
-          setStep("review");
-        },
-        error: (err) => {
-          setParseError(`Error al leer el archivo: ${err.message}`);
-        },
+        return {
+          rowIndex: idx + 2, // +2: header row + 1-based
+          raw,
+          displayName,
+          tower,
+          type,
+          status,
+          errors,
+          isDuplicate,
+          duplicateId,
+        };
       });
     },
     [existingUnits],
   );
+
+  /** Toma la hoja indicada del libro y propone su mapeo. */
+  const usarHoja = useCallback((archivo: TabularFile, nombre: string) => {
+    const hoja = archivo.sheets[nombre];
+    setSheetName(nombre);
+    setHeaders(hoja.headers);
+    setRawRows(hoja.rows);
+    setMapping(suggestMapping(hoja.headers, "unit", { rows: hoja.rows, accepted: ACEPTADOS }));
+  }, []);
+
+  const parseFile = useCallback(
+    async (file: File) => {
+      setParseError(null);
+      setFileName(file.name);
+      try {
+        const archivo = await readTabularFile(file);
+        setLibro(archivo);
+        // No la primera del libro: la que mejor encaja. En un archivo real la
+        // primera fue «Saldos», que no tiene ni tipo ni estado.
+        usarHoja(
+          archivo,
+          pickBestSheet(
+            archivo.sheetNames.map((n) => ({ name: n, ...archivo.sheets[n] })),
+            "unit",
+            ACEPTADOS,
+          ),
+        );
+        setStep("map");
+
+        // Telemetría del intento (PRD-V-FEAT-002, CA-13). Best-effort: si falla,
+        // la persona no se entera y su importación sigue igual.
+        const id = crypto.randomUUID();
+        setRunId(id);
+        const hoja = archivo.sheets[
+          pickBestSheet(
+            archivo.sheetNames.map((n) => ({ name: n, ...archivo.sheets[n] })),
+            "unit",
+            ACEPTADOS,
+          )
+        ];
+        void registrarImportacionCallable({
+          runId: id,
+          fase: "inicio",
+          entidad: "unit",
+          ...(track ? { pista: track } : {}),
+          formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
+          hojas: archivo.sheetNames.length,
+          filas: hoja.rows.length,
+          ...summarizeMapping(hoja.headers, "unit", suggestMapping(hoja.headers, "unit", { rows: hoja.rows, accepted: ACEPTADOS })),
+        });
+      } catch (err) {
+        // El lector ya trae el mensaje escrito para la persona; cualquier otra
+        // cosa sería un error técnico en pantalla, que no ayuda a nadie.
+        setParseError(
+          err instanceof TabularReadError
+            ? err.message
+            : `No se pudo leer el archivo: ${err instanceof Error ? err.message : "formato no reconocido"}`,
+        );
+      }
+    },
+    [usarHoja, track],
+  );
+
+  /** Aplica el mapeo vigente y pasa a revisión. */
+  function applyMapping() {
+    const parsed = buildRows(rawRows, mapping);
+    setRows(parsed);
+
+    // Pre-seleccionar solo las filas válidas y no duplicadas
+    setSelected(
+      new Set<number>(
+        parsed.filter((r) => r.errors.length === 0 && !r.isDuplicate).map((r) => r.rowIndex),
+      ),
+    );
+    setStep("review");
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -337,6 +431,21 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
       );
       setImportedCount(toImport.length);
       setStep("done");
+
+      // Cierre del intento. El par inicio/fin es la métrica: los que empiezan y
+      // nunca llegan aquí son exactamente los que se quiere contar.
+      void registrarImportacionCallable({
+        runId,
+        fase: "fin",
+        entidad: "unit",
+        ...(track ? { pista: track } : {}),
+        formato: /\.xlsx?$/i.test(fileName) ? "xlsx" : "csv",
+        hojas: libro?.sheetNames.length ?? 1,
+        filas: rows.length,
+        ...summarizeMapping(headers, "unit", mapping),
+        importadas: toImport.length,
+        omitidas: rows.length - toImport.length,
+      });
     } finally {
       setImporting(false);
     }
@@ -360,7 +469,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-2">
-              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo CSV</p>
+              <p className="font-medium text-[var(--slate-900)]">Selecciona tu archivo</p>
               <HelpTip text="Descarga la plantilla para ver el formato exacto. El nombre de cada unidad es clave: si ya existe una con ese mismo nombre en el conjunto, el sistema la marcará como duplicada y tú decides si importarla de todos modos o descartarla. Mayúsculas, minúsculas y tildes no afectan el reconocimiento de tipo y estado." />
             </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
@@ -377,7 +486,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           <div className="flex flex-wrap justify-center gap-2">
             <Button onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-2 h-4 w-4" />
-              Seleccionar archivo CSV
+              Seleccionar archivo
             </Button>
             <Button variant="outline" onClick={downloadTemplate}>
               <Download className="mr-2 h-4 w-4" />
@@ -388,7 +497,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -414,23 +523,65 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           {/* Regla de negocio: unidad vs. persona */}
           <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold text-blue-800">
-              ¿Qué importa este CSV y qué no?
+              ¿Qué importa este archivo y qué no?
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
               <strong>Este wizard crea únicamente las unidades físicas</strong> del conjunto
               (el apartamento, la casa, el local). <strong>No crea residentes, propietarios ni accesos.</strong>
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
-              Una vez importadas las unidades, el siguiente paso es ir a la tabla de residentes
-              y usar <strong>"Crear persona"</strong> para vincular al titular de cada unidad,
-              uno a uno. Esta separación es intencional: una unidad puede existir sin residente
-              activo (vacía, en remodelación, propietario no ocupante).
+              Cuando termines, el <strong>paso 2 es «Cargar residentes»</strong>: las personas
+              se importan aparte y cada una se engancha a la unidad en la que vive. Si son
+              pocas, también puedes darlas de alta a mano con «Crear persona».
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              La separación es intencional: una unidad puede existir sin nadie dentro —vacía,
+              en remodelación, o de un propietario que no vive ahí— y por eso se cargan primero.
             </p>
           </div>
         </div>
       )}
 
-      {/* ── PASO 2: REVIEW ─────────────────────────────────────────────────── */}
+      {/* ── PASO 2: MAPEO DE COLUMNAS ──────────────────────────────────────── */}
+      {step === "map" && (
+        <div className="flex flex-col gap-4">
+          <ColumnMappingStep
+            entity="unit"
+            headers={headers}
+            rows={rawRows}
+            mapping={mapping}
+            onChange={setMapping}
+            accepted={ACEPTADOS}
+            sheetNames={libro?.sheetNames ?? []}
+            sheetName={sheetName}
+            onSheetChange={(n) => libro && usarHoja(libro, n)}
+          />
+
+          <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStep("upload");
+                setHeaders([]);
+                setRawRows([]);
+                setMapping({});
+                setLibro(null);
+                setSheetName("");
+              }}
+            >
+              Cambiar archivo
+            </Button>
+            <Button onClick={applyMapping} disabled={
+                missingRequired(mapping, "unit").length > 0 ||
+                hayBloqueantes(mappingIssues(rawRows, "unit", mapping, ACEPTADOS))
+              }>
+              Continuar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PASO 3: REVIEW ─────────────────────────────────────────────────── */}
       {step === "review" && (
         <div className="flex flex-col gap-3">
           {/* Resumen */}
@@ -448,7 +599,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
                 {invalidCount} con errores
               </span>
             )}
-            <HelpTip text="Válida: fila lista para importar. — Inválida: falta un campo o el valor de tipo/estado no es reconocido; corrígela en el CSV y vuelve a cargar el archivo. — Duplicada: ya existe una unidad con ese nombre en el conjunto; puedes marcarla igual para crear una segunda unidad, o desmárcarla para omitirla. Solo las filas con checkbox marcado se importarán." />
+            <HelpTip text="Válida: fila lista para importar. — Inválida: falta un campo o el valor de tipo/estado no es reconocido; corrígela en el archivo y vuelve a cargarlo. — Duplicada: ya existe una unidad con ese nombre en el conjunto; puedes marcarla igual para crear una segunda unidad, o desmárcarla para omitirla. Solo las filas con checkbox marcado se importarán." />
             <span className="ml-auto text-xs text-[var(--slate-500)]">
               Archivo: <span className="font-medium">{fileName}</span>
             </span>
@@ -533,7 +684,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           </p>
 
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
-            <Button variant="outline" onClick={() => { setStep("upload"); setRows([]); }}>
+            <Button variant="outline" onClick={() => { setStep("map"); setRows([]); }}>
               ← Cambiar archivo
             </Button>
             <Button

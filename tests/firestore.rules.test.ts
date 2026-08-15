@@ -1104,3 +1104,159 @@ describe("Firestore Rules - HOGARU", () => {
     await assertFails(getDoc(doc(guard.firestore(), "amenities", "am-b-1")));
   });
 });
+
+/**
+ * Banderas de funcionalidad y kill switch (Paso 1.1 de docs/hoja-de-ruta-ia.md).
+ *
+ * Lo que se prueba aquí no es que las banderas funcionen —eso es el resolutor
+ * puro, en tests/feature-flags.test.ts— sino las dos cosas que solo las reglas
+ * pueden garantizar: que nadie se encienda una capacidad a sí mismo, y que los
+ * overrides de un conjunto no se lean desde otro.
+ */
+describe("Firestore Rules - banderas de funcionalidad", () => {
+  const sa = () => testEnv.authenticatedContext("super-1", { role: "superadmin" });
+  const adminA = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+  const residentA = () => testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+  const residentB = () => testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-b" });
+
+  it("superadmin crea una bandera con booleanos", async () => {
+    await assertSucceeds(
+      setDoc(doc(sa().firestore(), "featureFlags", "ai-communications-draft"), {
+        enabled: false,
+        killSwitch: false,
+      }),
+    );
+  });
+
+  it("rechaza una bandera con enabled en texto", async () => {
+    // "true" escrito a mano es el error típico de consola. El lector lo ignora
+    // y falla apagado; la regla además impide que llegue a escribirse.
+    await assertFails(
+      setDoc(doc(sa().firestore(), "featureFlags", "ai-gateway"), { enabled: "true" }),
+    );
+  });
+
+  it("cualquier sesión puede leer las banderas", async () => {
+    await assertSucceeds(getDoc(doc(residentA().firestore(), "featureFlags", "ai-communications-draft")));
+  });
+
+  it("un admin de conjunto no puede encenderse una bandera", async () => {
+    await assertFails(
+      setDoc(doc(adminA().firestore(), "featureFlags", "ai-communications-draft"), { enabled: true }),
+    );
+  });
+
+  it("superadmin escribe los overrides de un conjunto", async () => {
+    await assertSucceeds(
+      setDoc(doc(sa().firestore(), "featureFlagOverrides", "tenant-a"), {
+        flags: { "ai-communications-draft": true },
+      }),
+    );
+  });
+
+  it("rechaza overrides cuyo campo flags no es un mapa", async () => {
+    await assertFails(
+      setDoc(doc(sa().firestore(), "featureFlagOverrides", "tenant-b"), { flags: "todo" }),
+    );
+  });
+
+  it("un miembro lee los overrides de su propio conjunto", async () => {
+    await assertSucceeds(getDoc(doc(residentA().firestore(), "featureFlagOverrides", "tenant-a")));
+  });
+
+  it("bloquea leer los overrides de otro conjunto", async () => {
+    // El motivo de que los overrides no vivan dentro del documento de la
+    // bandera: ahí cualquier residente firmado podría enumerar los conjuntos.
+    await assertFails(getDoc(doc(residentB().firestore(), "featureFlagOverrides", "tenant-a")));
+  });
+
+  it("un admin no puede escribir los overrides de su propio conjunto", async () => {
+    await assertFails(
+      setDoc(doc(adminA().firestore(), "featureFlagOverrides", "tenant-a"), {
+        flags: { "ai-communications-draft": true },
+      }),
+    );
+  });
+});
+
+/**
+ * Telemetría de IA (Paso 1.5 de docs/hoja-de-ruta-ia.md).
+ *
+ * Solo la escribe el servidor, igual que auditLogs: una fila que pudiera
+ * escribir el cliente no serviría para medir nada — ni el gasto ni la tasa de
+ * fallo, que es la métrica que dice si la capacidad sirve.
+ */
+describe("Firestore Rules - telemetría de IA", () => {
+  it("superadmin puede leer el consumo", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "aiUsage", "cualquiera")));
+  });
+
+  it("bloquea la lectura a un admin de conjunto", async () => {
+    // Son datos de todos los conjuntos a la vez.
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "aiUsage", "cualquiera")));
+  });
+
+  it("nadie escribe telemetría desde el cliente, ni el superadmin", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "aiUsage", "inventada"), {
+        tenantId: "tenant-a",
+        operationKey: "comunicaciones-redactar",
+        estimatedCostUsd: 0,
+      }),
+    );
+  });
+});
+
+/**
+ * Feedback del borrador asistido (Paso 2.5). El dato nace en el navegador, y
+ * aun así el cliente no escribe aquí: si pudiera, cualquiera podría fabricar la
+ * evidencia con la que se decide si la funcionalidad sigue o se retira.
+ */
+describe("Firestore Rules - feedback del borrador asistido", () => {
+  it("superadmin puede leerlo", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "aiFeedback", "cualquiera")));
+  });
+
+  it("bloquea la lectura a un admin de conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "aiFeedback", "cualquiera")));
+  });
+
+  it("el admin que genera el dato NO puede escribirlo: pasa por el callable", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "aiFeedback", "inventada"), {
+        tenantId: "tenant-a",
+        operationKey: "comunicaciones-redactar",
+        aplicada: true,
+      }),
+    );
+  });
+});
+
+/**
+ * Contadores de cuota de IA (Paso 1.6). Un contador que el cliente pudiera
+ * tocar no es una cuota: se escriben solo desde el servidor y en transacción.
+ */
+describe("Firestore Rules - contadores de cuota de IA", () => {
+  it("superadmin puede leer los contadores", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10")));
+  });
+
+  it("bloquea que un admin lea los contadores", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10")));
+  });
+
+  it("nadie puede bajarse el contador desde el cliente, ni el superadmin", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10"), { count: 0 }),
+    );
+  });
+});

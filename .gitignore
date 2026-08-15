@@ -51,3 +51,7 @@ test-results/
 # Salida de los guiones de medicion del landing
 .simulacion-perspectivas/
 .verificacion-perspectivas/
+
+# Corridas simuladas de la evaluación: son desechables. Las reales SÍ se versionan:
+# son la evidencia de la puerta G4.
+datasets/evaluacion/resultados/*-simulado.json

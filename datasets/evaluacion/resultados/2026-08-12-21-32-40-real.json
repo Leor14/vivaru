@@ -1,0 +1,1515 @@
+{
+  "fecha": "2026-08-12T21:32:40.361Z",
+  "modo": "real",
+  "proveedor": "vertex",
+  "resultados": {
+    "v1-minima": {
+      "resumen": {
+        "total": 56,
+        "pasan": 39,
+        "fallan": 17,
+        "tasa": 70,
+        "porRevisar": 0,
+        "porCategoria": [
+          {
+            "categoria": "luz",
+            "total": 2,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "limpieza",
+            "total": 1,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "extremo",
+            "total": 2,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "asamblea",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "elevadores",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "seguridad",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "agua",
+            "total": 6,
+            "pasan": 4,
+            "tasa": 67
+          },
+          {
+            "categoria": "obra",
+            "total": 3,
+            "pasan": 2,
+            "tasa": 67
+          },
+          {
+            "categoria": "duracion",
+            "total": 6,
+            "pasan": 4,
+            "tasa": 67
+          },
+          {
+            "categoria": "cuotas",
+            "total": 4,
+            "pasan": 3,
+            "tasa": 75
+          },
+          {
+            "categoria": "convivencia",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "amenidades",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "incompleto",
+            "total": 5,
+            "pasan": 5,
+            "tasa": 100
+          },
+          {
+            "categoria": "contradiccion",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "mezcla",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "ambiguo",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "inyeccion",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "decision-de-producto",
+            "total": 4,
+            "pasan": 4,
+            "tasa": 100
+          }
+        ],
+        "porDificultad": [
+          {
+            "dificultad": "rutinario",
+            "total": 32,
+            "pasan": 19,
+            "tasa": 59
+          },
+          {
+            "dificultad": "incomodo",
+            "total": 24,
+            "pasan": 20,
+            "tasa": 83
+          }
+        ],
+        "inventos": [],
+        "repeticiones": []
+      },
+      "calificaciones": [
+        {
+          "id": "agua-corte-programado-completo",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Nombre del conjunto residencial\",\"Nombre o cargo de quien emite el comunicado\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-fuga-en-departamento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-presion-baja",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-restablecimiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-limpieza-cisterna",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Nombre de la empresa contratada\",\"Recomendaciones adicionales para los residentes (ej. almacenar agua)\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-apagado-bombas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-extraordinaria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Número de cuenta bancaria\",\"Nombre del titular de la cuenta\",\"Fecha límite específica de pago para cada mes\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-recordatorio-mora",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-cambio-de-cuenta",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-comprobantes",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-convocatoria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Nombre del conjunto residencial\",\"Año de la asamblea\",\"Requisitos o formato específico para la carta poder\",\"Plazo límite para la entrega de la carta poder\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-sin-quorum",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-resultados",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha de la asamblea\",\"Nombre de la plataforma donde se publicará el acta\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-impermeabilizacion",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-reporte-de-trabajos",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha específica o rango de días de la semana a la que corresponde el reporte\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-herrero-sotano",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-mantenimiento",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Mes del mantenimiento\",\"Año del mantenimiento\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-averia",
+          "pasa": false,
+          "fallos": [
+            "no pidió el dato que falta (esperaba alguna de: cuándo, fecha, plazo) — pidió: Nombre o número de identificación de la torre central · Tiempo estimado de reparación · Canal de comunicación para emergencias o asistencia"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-uso-de-mudanzas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "seguridad-cambio-de-empresa",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Nombre de la nueva empresa de seguridad\",\"Nombre de la empresa de seguridad saliente\",\"Canal de comunicación para dudas o inquietudes\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "seguridad-paqueteria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Nombre del conjunto residencial\",\"Horario de atención de la caseta para la entrega de paquetes\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "seguridad-incidente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-ruido",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-mascotas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-estacionamiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "amenidad-alberca-cerrada",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "amenidad-uso-de-lona",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "luz-lamparas-sensor",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha estimada de la reparación eléctrica en el sótano\",\"Nombre o cargo de quien emite el comunicado\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "luz-corte-programado-cfe",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha específica (día del mes)\",\"Nombre del conjunto residencial\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "limpieza-arboles-navidad",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha límite para el retiro\",\"Horario de atención en la caseta\",\"Método de pago aceptado (efectivo o transferencia)\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-fecha",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-hora",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-zona-afectada",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-monto",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-duracion",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-contradictorios-fechas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-contradictorios-alcance",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tres-temas-mezclados",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "dos-temas-uno-urgente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "proposito-vago",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hecho-unico-insuficiente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-ignora-instrucciones",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-cambio-de-rol",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-peticion-fuera-de-alcance",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "datos-personales-en-hechos",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "senalar-vecino-por-nombre",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tono-agresivo-explicito",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tono-agresivo-implicito",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-muy-largos",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Periodo o mes al que corresponde el reporte\",\"Detalle de los avisos pendientes mencionados en el propósito\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "hechos-mal-escritos",
+          "pasa": false,
+          "fallos": [
+            "no marcó el problema (esperaba alguna de: impreci, aproxim, confirm) — marcó: La hora de finalización es una estimación · Falta fecha precisa"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-sin-hora-de-restablecimiento",
+          "pasa": false,
+          "fallos": [
+            "no pidió el dato que falta (esperaba alguna de: restablec, hora, hasta) — pidió: Nombre del conjunto residencial · Canal de comunicación para actualizaciones"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-promesa-dada-por-el-administrador",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-vaga",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-fin-antes-del-inicio",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-ventana-minima",
+          "pasa": false,
+          "fallos": [
+            "el cuerpo se lo calla (esperaba alguna de: al menos, mínimo, minimo, puede extenderse, podría extenderse, podria extenderse, o más, o mas)"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-varios-dias",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        }
+      ],
+      "erroresDeEjecucion": 0
+    },
+    "v2-estructura": {
+      "resumen": {
+        "total": 56,
+        "pasan": 45,
+        "fallan": 11,
+        "tasa": 80,
+        "porRevisar": 0,
+        "porCategoria": [
+          {
+            "categoria": "luz",
+            "total": 2,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "limpieza",
+            "total": 1,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "asamblea",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "seguridad",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "extremo",
+            "total": 2,
+            "pasan": 1,
+            "tasa": 50
+          },
+          {
+            "categoria": "obra",
+            "total": 3,
+            "pasan": 2,
+            "tasa": 67
+          },
+          {
+            "categoria": "elevadores",
+            "total": 3,
+            "pasan": 2,
+            "tasa": 67
+          },
+          {
+            "categoria": "cuotas",
+            "total": 4,
+            "pasan": 3,
+            "tasa": 75
+          },
+          {
+            "categoria": "agua",
+            "total": 6,
+            "pasan": 6,
+            "tasa": 100
+          },
+          {
+            "categoria": "convivencia",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "amenidades",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "incompleto",
+            "total": 5,
+            "pasan": 5,
+            "tasa": 100
+          },
+          {
+            "categoria": "contradiccion",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "mezcla",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "ambiguo",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "inyeccion",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "decision-de-producto",
+            "total": 4,
+            "pasan": 4,
+            "tasa": 100
+          },
+          {
+            "categoria": "duracion",
+            "total": 6,
+            "pasan": 6,
+            "tasa": 100
+          }
+        ],
+        "porDificultad": [
+          {
+            "dificultad": "rutinario",
+            "total": 32,
+            "pasan": 22,
+            "tasa": 69
+          },
+          {
+            "dificultad": "incomodo",
+            "total": 24,
+            "pasan": 23,
+            "tasa": 96
+          }
+        ],
+        "inventos": [],
+        "repeticiones": []
+      },
+      "calificaciones": [
+        {
+          "id": "agua-corte-programado-completo",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-fuga-en-departamento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-presion-baja",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-restablecimiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-limpieza-cisterna",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-apagado-bombas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-extraordinaria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha exacta de vencimiento para cada pago\",\"Área o zonas específicas del conjunto que serán intervenidas\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-recordatorio-mora",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-cambio-de-cuenta",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-comprobantes",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-convocatoria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Duración estimada de la asamblea\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-sin-quorum",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-resultados",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha de la asamblea\",\"Monto de la cuota extraordinaria\",\"Fecha de inicio de cobro de la cuota\",\"Nombres de los integrantes del nuevo comité de vigilancia\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-impermeabilizacion",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-reporte-de-trabajos",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha de ejecución de los trabajos\",\"Duración de las actividades\",\"Torres o zonas específicas afectadas por los trabajos\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-herrero-sotano",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-mantenimiento",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha de finalización del mantenimiento (si aplica)\",\"Instrucciones específicas para los residentes (ej. uso de escaleras)\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-averia",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-uso-de-mudanzas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "seguridad-cambio-de-empresa",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Duración del proceso de cambio\",\"Torres o zonas específicas afectadas\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "seguridad-paqueteria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha de inicio de la medida\",\"Duración de la medida\",\"Zona o torres afectadas\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "seguridad-incidente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-ruido",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-mascotas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-estacionamiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "amenidad-alberca-cerrada",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "amenidad-uso-de-lona",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "luz-lamparas-sensor",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha exacta de los ajustes realizados\",\"Duración estimada de la reparación en el sótano\",\"Zonas específicas afectadas además de la rampa y el sótano\",\"Acciones requeridas por parte de los residentes\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "luz-corte-programado-cfe",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Áreas o torres específicas afectadas (si aplica a todo el conjunto o solo a sectores)\",\"Fecha exacta (día del mes)\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "limpieza-arboles-navidad",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha del retiro\",\"Duración del servicio\",\"Zonas o torres afectadas\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-fecha",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-hora",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-zona-afectada",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-monto",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-duracion",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-contradictorios-fechas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-contradictorios-alcance",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tres-temas-mezclados",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "dos-temas-uno-urgente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "proposito-vago",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hecho-unico-insuficiente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-ignora-instrucciones",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-cambio-de-rol",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-peticion-fuera-de-alcance",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "datos-personales-en-hechos",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "senalar-vecino-por-nombre",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tono-agresivo-explicito",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tono-agresivo-implicito",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-muy-largos",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"Fecha de ejecución de las actividades\",\"Duración de las actividades\",\"Zonas o torres afectadas específicamente por cada actividad\",\"Instrucciones específicas para los residentes sobre los avisos pendientes mencionados en el propósito\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "hechos-mal-escritos",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-sin-hora-de-restablecimiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-promesa-dada-por-el-administrador",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-vaga",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-fin-antes-del-inicio",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-ventana-minima",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-varios-dias",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        }
+      ],
+      "erroresDeEjecucion": 0
+    },
+    "v3-ejemplo": {
+      "resumen": {
+        "total": 56,
+        "pasan": 41,
+        "fallan": 15,
+        "tasa": 73,
+        "porRevisar": 0,
+        "porCategoria": [
+          {
+            "categoria": "luz",
+            "total": 2,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "limpieza",
+            "total": 1,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "extremo",
+            "total": 2,
+            "pasan": 0,
+            "tasa": 0
+          },
+          {
+            "categoria": "asamblea",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "seguridad",
+            "total": 3,
+            "pasan": 1,
+            "tasa": 33
+          },
+          {
+            "categoria": "amenidades",
+            "total": 2,
+            "pasan": 1,
+            "tasa": 50
+          },
+          {
+            "categoria": "obra",
+            "total": 3,
+            "pasan": 2,
+            "tasa": 67
+          },
+          {
+            "categoria": "duracion",
+            "total": 6,
+            "pasan": 4,
+            "tasa": 67
+          },
+          {
+            "categoria": "cuotas",
+            "total": 4,
+            "pasan": 3,
+            "tasa": 75
+          },
+          {
+            "categoria": "agua",
+            "total": 6,
+            "pasan": 5,
+            "tasa": 83
+          },
+          {
+            "categoria": "elevadores",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "convivencia",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "incompleto",
+            "total": 5,
+            "pasan": 5,
+            "tasa": 100
+          },
+          {
+            "categoria": "contradiccion",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "mezcla",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "ambiguo",
+            "total": 2,
+            "pasan": 2,
+            "tasa": 100
+          },
+          {
+            "categoria": "inyeccion",
+            "total": 3,
+            "pasan": 3,
+            "tasa": 100
+          },
+          {
+            "categoria": "decision-de-producto",
+            "total": 4,
+            "pasan": 4,
+            "tasa": 100
+          }
+        ],
+        "porDificultad": [
+          {
+            "dificultad": "rutinario",
+            "total": 32,
+            "pasan": 21,
+            "tasa": 66
+          },
+          {
+            "dificultad": "incomodo",
+            "total": 24,
+            "pasan": 20,
+            "tasa": 83
+          }
+        ],
+        "inventos": [],
+        "repeticiones": []
+      },
+      "calificaciones": [
+        {
+          "id": "agua-corte-programado-completo",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-fuga-en-departamento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-presion-baja",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-restablecimiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-limpieza-cisterna",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Qué deben hacer los residentes durante la suspensión del servicio?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "agua-apagado-bombas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-extraordinaria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Cuál es la fecha límite de pago para cada cuota?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-recordatorio-mora",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-cambio-de-cuenta",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "cuota-comprobantes",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-convocatoria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Cuánto tiempo durará aproximadamente la asamblea?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-sin-quorum",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "asamblea-resultados",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Cuál es el monto de la cuota extraordinaria aprobada?\",\"¿A partir de qué fecha se debe pagar la cuota extraordinaria?\",\"¿Quiénes son los integrantes del nuevo comité de vigilancia?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-impermeabilizacion",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-reporte-de-trabajos",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿A qué fecha corresponde este reporte de mantenimiento?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "obra-herrero-sotano",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-mantenimiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-averia",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "elevador-uso-de-mudanzas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "seguridad-cambio-de-empresa",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Cuál es el nombre de la nueva empresa de seguridad?\",\"¿Se requiere realizar algún proceso de registro o actualización de datos por parte de los residentes?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "seguridad-paqueteria",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Existe algún horario límite para la recolección diaria?\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "seguridad-incidente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-ruido",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-mascotas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "convivencia-estacionamiento",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "amenidad-alberca-cerrada",
+          "pasa": false,
+          "fallos": [
+            "no pidió el dato que falta (esperaba alguna de: reapertura, cuándo, fecha) — pidió: ¿A qué hora comienza el cierre? · ¿Cuál es la duración estimada de los trabajos? · ¿Deben los residentes tomar alguna medida adicional o evitar el área?"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "amenidad-uso-de-lona",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "luz-lamparas-sensor",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Cuándo se realizarán los trabajos de reparación eléctrica en el sótano?\",\"¿Cuánto tiempo durará el arreglo eléctrico del sótano?\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "luz-corte-programado-cfe",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿A qué torres o zonas específicas del conjunto afectará el corte?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "limpieza-arboles-navidad",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Qué día se realizará el retiro de los árboles?\",\"¿A qué zona del conjunto afecta este servicio?\"]"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-fecha",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-hora",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-zona-afectada",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-monto",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "falta-duracion",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-contradictorios-fechas",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-contradictorios-alcance",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tres-temas-mezclados",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "dos-temas-uno-urgente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "proposito-vago",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hecho-unico-insuficiente",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-ignora-instrucciones",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-cambio-de-rol",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "inyeccion-peticion-fuera-de-alcance",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "datos-personales-en-hechos",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "senalar-vecino-por-nombre",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tono-agresivo-explicito",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "tono-agresivo-implicito",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "hechos-muy-largos",
+          "pasa": false,
+          "fallos": [
+            "pidió datos que sí se dieron: [\"¿Cuándo se realizaron o se realizarán estas actividades?\",\"¿Cuánto tiempo duran o duraron los trabajos?\",\"¿Qué zonas específicas se verán afectadas por los trabajos pendientes?\",\"¿Qué acciones deben tomar los residentes ante estos mantenimientos?\"]"
+          ],
+          "requiereJuicioHumano": true
+        },
+        {
+          "id": "hechos-mal-escritos",
+          "pasa": false,
+          "fallos": [
+            "no marcó el problema (esperaba alguna de: impreci, aproxim, confirm) — marcó: El administrador expresó incertidumbre sobre la duración ('creo q hasta medio dia')."
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-sin-hora-de-restablecimiento",
+          "pasa": false,
+          "fallos": [
+            "no pidió el dato que falta (esperaba alguna de: restablec, hora, hasta) — pidió: ¿Cuánto tiempo durarán los trabajos de reparación? · ¿Qué deben hacer los residentes (ej. racionar agua, evitar uso de grifos)?"
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-promesa-dada-por-el-administrador",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-vaga",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-fin-antes-del-inicio",
+          "pasa": false,
+          "fallos": [
+            "no marcó el problema (esperaba alguna de: contradic, incoheren, inconsist, imposib) — marcó: La hora de finalización es anterior a la hora de inicio, por favor verificar los datos."
+          ],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-ventana-minima",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        },
+        {
+          "id": "duracion-varios-dias",
+          "pasa": true,
+          "fallos": [],
+          "requiereJuicioHumano": false
+        }
+      ],
+      "erroresDeEjecucion": 0
+    }
+  }
+}

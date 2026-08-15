@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-02
+fecha_actualizacion: 2026-08-09
 ---
 
 # Trampas Conocidas
@@ -81,7 +81,7 @@ En Tailwind v3, el config generaba `bg-brand-greenResident` desde la clave `gree
 
 ## CORS de Cloud Functions callable (jun 2026)
 
-Las callables que fijan `cors: callableCorsOrigins` (`createTenantAdmin`, `createTenantOperationalUser`, `provisionResidentTemporaryAccess`, `completeResidentPasswordChange`) **rechazan orígenes no listados**. Síntoma exacto: en los logs solo aparece `OPTIONS 204` (preflight) y ningún `POST`; en el navegador, `net::ERR_FAILED`. El dominio que sirve la app (`www.grupovivaru.com`) debe estar en `callableCorsOrigins` o todas esas operaciones fallan en silencio. Ver [[autenticacion-roles]].
+Las callables que fijan `cors: callableCorsOrigins` (`createTenantAdmin`, `createTenantOperationalUser`, `provisionResidentTemporaryAccess`, `completeResidentPasswordChange`) **rechazan orígenes no listados**. Síntoma exacto: en los logs solo aparece `OPTIONS 204` (preflight) y ningún `POST`; en el navegador, `net::ERR_FAILED`. El dominio que sirve la app (`www.grupovivaru.com`) debe estar en `callableCorsOrigins` o todas esas operaciones fallan en silencio. Ver [[autenticacion-roles]]. **Desde agosto de 2026 la lista vive en `functions/src/http-config.ts`**, no en `index.ts`: la sacó de ahí la [[puerta-ia]] para poder compartirla sin importar el índice entero.
 
 ## unitId de personas: doc id, no slug
 
@@ -97,7 +97,7 @@ Para que el enlace de los correos abra `/restablecer`, se fija la URL de acción
 
 ## Nunca importar functions/ desde src/ o tests/
 
-App Hosting hace `npm ci` solo en la raíz (sin `functions/node_modules`), así que importar código de `functions/` desde `src/` o `tests/` rompe el `next build` con "Cannot find module 'firebase-admin/...'", aunque el build local pase. El cliente invoca las Cloud Functions por nombre vía `httpsCallable`, nunca importando su código. Ver [[stack-tecnico]].
+App Hosting hace `npm ci` solo en la raíz (sin `functions/node_modules`), así que importar código de `functions/` desde `src/` o `tests/` rompe el `next build` con "Cannot find module 'firebase-admin/...'", aunque el build local pase. El cliente invoca las Cloud Functions por nombre vía `httpsCallable`, nunca importando su código. Ver [[stack-tecnico]]. Consecuencia que costó descubrir: **las funciones no se pueden probar desde `tests/` de la raíz**. Desde agosto de 2026 tienen banco propio en `functions/tests/`, con su `vitest.config.mts` para no heredar la configuración de la raíz.
 
 ## subscribeTenantCollection no serializa Timestamps
 
