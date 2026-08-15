@@ -61,6 +61,14 @@ export default function AdminResidentsPage() {
   const [loadingUnits, setLoadingUnits] = useState(true);
   const [loadingPeople, setLoadingPeople] = useState(true);
   const [unitsLoadError, setUnitsLoadError] = useState<string | null>(null);
+  /**
+   * Unidades primero, y por eso se bloquea la carga de residentes: cada persona
+   * se resuelve contra una unidad existente, así que sin ninguna TODAS las filas
+   * fallan con «Unidad no encontrada» — un mensaje que culpa al archivo cuando
+   * la causa es el orden. Se exige `!loadingUnits` para no avisar mientras aún
+   * no se sabe.
+   */
+  const sinUnidades = !loadingUnits && units.length === 0;
   const [peopleLoadError, setPeopleLoadError] = useState<string | null>(null);
   const [unitRoleFilter, setUnitRoleFilter] = useState<"all" | PersonItem["occupancyType"]>("all");
   const [unitIdFilter, setUnitIdFilter] = useState<string>("all");
@@ -929,15 +937,30 @@ export default function AdminResidentsPage() {
             )}
             <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
               <Upload className="mr-2 h-4 w-4" />
-              Cargar unidades (CSV)
+              1 · Cargar unidades
             </Button>
-            <Button variant="outline" onClick={() => setResidentImportOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setResidentImportOpen(true)}
+              disabled={sinUnidades}
+              title={
+                sinUnidades
+                  ? "Carga primero las unidades: cada persona se vincula a la suya."
+                  : undefined
+              }
+            >
               <Upload className="mr-2 h-4 w-4" />
-              Cargar residentes (CSV)
+              2 · Cargar residentes
             </Button>
             <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
           </div>
         </div>
+        {sinUnidades && (
+          <p className="mt-3 rounded-lg bg-[var(--slate-50)] px-3 py-2 text-sm text-[var(--slate-600)]">
+            Empieza por las unidades. Cada persona se vincula a la suya, así que importar
+            residentes antes deja todas las filas sin unidad a la que engancharse.
+          </p>
+        )}
       </Card>
 
       <DuplicateUnitsPanel tenantId={user?.tenantId} units={units} people={people} />
@@ -1042,7 +1065,7 @@ export default function AdminResidentsPage() {
             getRowKey={(unit) => unit.id}
             loading={loadingUnits}
             loadingText="Cargando unidades..."
-            emptyText="Sin unidades. Crea una o aplica seed."
+            emptyText="Todavía no hay unidades. Cárgalas desde un archivo o crea la primera a mano: es la pieza sobre la que se apoya todo lo demás."
             tableMinWidthClassName="min-w-[640px] sm:min-w-[680px]"
             renderMobileRow={(unit) => {
               const count = people.filter(

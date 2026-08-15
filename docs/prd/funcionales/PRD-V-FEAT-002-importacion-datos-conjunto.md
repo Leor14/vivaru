@@ -164,6 +164,36 @@ flowchart TD
 - **Archivo grande** → ver `RN-08`.
 - **La persona cierra el asistente a mitad** → no se escribe nada. Ver §6.
 
+### El orden entre las dos cargas, y por qué está en esta PRD
+
+**Añadido el 14 de agosto de 2026, ampliando el alcance a propósito.** Al revisar
+la pantalla apareció un fallo que el paso de mapeo no arregla y que hace inútil
+todo lo demás para quien llega sin saber.
+
+**El fallo, reproducible:** conjunto nuevo, cero unidades. Los botones de cargar
+unidades y cargar residentes tienen el mismo peso visual y ningún orden. Quien
+empieza por residentes —la mitad de las veces, porque «residentes» es el nombre
+del módulo y del menú— sube su padrón, mapea, y **todas las filas salen en rojo
+con «Unidad no encontrada»**. `RN-03` impide seleccionar filas con error, así que
+no puede importar ni una. **El mensaje culpa a su archivo cuando la causa es el
+orden**, así que revisa el archivo, comprueba que está bien, lo vuelve a subir y
+falla igual.
+
+**El orden ya estaba decidido y escrito**, pero solo donde no se ve:
+`src/lib/onboarding/steps.ts` declara torres → unidades → residentes → portería,
+y su propio texto dice «con las unidades cargadas, importa a las personas». Eso
+solo aparece llegando con `?guia=`; por la barra lateral, que es el camino
+normal, no hay nada.
+
+**Decidido por David el 14 de agosto: unidades primero, siempre.** Por eso se
+bloquea en vez de advertir.
+
+| # | Regla |
+|---|---|
+| `RN-12` | Con **cero** unidades en el conjunto, la carga de residentes está deshabilitada, y el motivo se lee sin pasar el ratón por encima |
+| `RN-13` | El bloqueo se levanta con **una sola** unidad: puede haberlas creado por otro camino |
+| `RN-14` | Si aun así se llega al asistente de residentes sin unidades —el recorrido guiado lo abre—, se dice la causa real y no se ofrece subir archivo |
+
 ## 6. Estados y transiciones
 
 **La importación no crea una entidad con ciclo de vida propio.** El asistente es
@@ -255,6 +285,10 @@ conjunto en prueba, en 300 correos a gente que no aceptó nada.
 | `CA-13` | Queda instrumentado cuántas importaciones se inician y cuántas terminan, por pista | pasar |
 | `CA-14` | Importar 500 personas **no envía ni un correo** | pasar |
 | `CA-15` | El `unitId` de cada persona importada es el doc id de su unidad, no el slug | pasar |
+| `CA-16` | Con cero unidades, el botón de cargar residentes está deshabilitado y el motivo se lee en pantalla | pasar |
+| `CA-17` | Con una unidad, el botón vuelve a estar disponible | pasar |
+| `CA-18` | Abriendo el asistente de residentes sin unidades, no se ofrece subir archivo y se explica la causa | pasar |
+| `CA-19` | Los botones dicen el orden («1 · Cargar unidades», «2 · Cargar residentes») y ya no prometen solo CSV | pasar |
 
 ## 11. Arquitectura y dependencias
 

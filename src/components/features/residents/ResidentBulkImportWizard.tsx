@@ -319,7 +319,29 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
     <div className="flex flex-col gap-4">
       <StepIndicator step={step} />
 
-      {step === "upload" && (
+      {/*
+        Respaldo del bloqueo que ya hace la pantalla: aquí también se puede
+        llegar desde el recorrido guiado, y sin unidades TODAS las filas
+        fallarían con «Unidad no encontrada» — un mensaje que culpa al archivo
+        cuando la causa es el orden. Se dice la causa real y se para.
+      */}
+      {step === "upload" && existingUnits.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
+            <AlertCircle className="h-7 w-7 text-amber-600" />
+          </div>
+          <p className="font-medium text-[var(--slate-900)]">Primero carga tus unidades</p>
+          <p className="max-w-md text-sm text-[var(--slate-600)]">
+            Cada persona se vincula a la unidad en la que vive, y este conjunto todavía no
+            tiene ninguna. Si importas ahora, ninguna fila encontrará su unidad.
+          </p>
+          <Button variant="outline" onClick={onClose}>
+            Entendido, cargo las unidades
+          </Button>
+        </div>
+      )}
+
+      {step === "upload" && existingUnits.length > 0 && (
         <div className="flex flex-col items-center gap-4 py-6">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--slate-100)]"><FileText className="h-7 w-7 text-[var(--slate-500)]" /></div>
           <div className="text-center">
