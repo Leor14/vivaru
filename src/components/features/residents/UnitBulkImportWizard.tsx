@@ -27,6 +27,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   hayBloqueantes,
+  pickBestSheet,
   mappingIssues,
   missingRequired,
   normalizeHeader,
@@ -310,14 +311,29 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
       try {
         const archivo = await readTabularFile(file);
         setLibro(archivo);
-        usarHoja(archivo, archivo.sheetNames[0]);
+        // No la primera del libro: la que mejor encaja. En un archivo real la
+        // primera fue «Saldos», que no tiene ni tipo ni estado.
+        usarHoja(
+          archivo,
+          pickBestSheet(
+            archivo.sheetNames.map((n) => ({ name: n, ...archivo.sheets[n] })),
+            "unit",
+            ACEPTADOS,
+          ),
+        );
         setStep("map");
 
         // Telemetría del intento (PRD-V-FEAT-002, CA-13). Best-effort: si falla,
         // la persona no se entera y su importación sigue igual.
         const id = crypto.randomUUID();
         setRunId(id);
-        const hoja = archivo.sheets[archivo.sheetNames[0]];
+        const hoja = archivo.sheets[
+          pickBestSheet(
+            archivo.sheetNames.map((n) => ({ name: n, ...archivo.sheets[n] })),
+            "unit",
+            ACEPTADOS,
+          )
+        ];
         void registrarImportacionCallable({
           runId: id,
           fase: "inicio",

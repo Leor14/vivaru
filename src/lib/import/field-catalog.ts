@@ -466,6 +466,42 @@ export function missingRequired(
 }
 
 /**
+ * De todas las hojas del libro, la que mejor encaja con lo que se está
+ * importando.
+ *
+ * **POR QUÉ EXISTE.** Se abría siempre la primera, y en un libro real la
+ * primera fue «Saldos» — una hoja que no tiene ni tipo ni estado, así que el
+ * paso de columnas se abría a medias y con dos obligatorios en rojo. **Nadie
+ * debería tener que saber cuál de tres hojas es la buena**, y el sistema puede
+ * averiguarlo: probar el mapeo en todas y quedarse con la que resuelve más
+ * campos obligatorios.
+ *
+ * En empate gana la primera del libro, que es el orden en que las puso quien
+ * hizo el archivo y por tanto la mejor pista que queda.
+ *
+ * El selector de hoja **no desaparece**: esto acierta casi siempre, no siempre.
+ */
+export function pickBestSheet(
+  sheets: readonly {
+    name: string;
+    headers: readonly string[];
+    rows: readonly Record<string, string>[];
+  }[],
+  entity: ImportEntity,
+  accepted?: AcceptedValues,
+): string {
+  if (sheets.length === 0) return "";
+
+  let mejor = { name: sheets[0].name, faltan: Number.POSITIVE_INFINITY };
+  for (const sheet of sheets) {
+    const mapping = suggestMapping(sheet.headers, entity, { rows: sheet.rows, accepted });
+    const faltan = missingRequired(mapping, entity).length;
+    if (faltan < mejor.faltan) mejor = { name: sheet.name, faltan };
+  }
+  return mejor.name;
+}
+
+/**
  * Resumen de un mapeo, para la telemetría de `PRD-V-FEAT-002` (`CA-13`).
  *
  * Se calcula aquí y no en cada asistente porque los dos necesitan lo mismo y

@@ -329,3 +329,42 @@ describe("texto libre: lo que distingue un identificador de una agrupación", ()
     expect(hayBloqueantes(mappingIssues(conTorres, "unit", m, {}))).toBe(false);
   });
 });
+
+describe("pickBestSheet · abrir la hoja que sirve, no la primera", () => {
+  const ACEPTADOS = {
+    "unit.type": ["apartamento", "casa", "oficina", "otro"],
+    "unit.status": ["activo", "inactivo"],
+  };
+  // El libro real de la prueba: la buena está en medio.
+  const libro = [
+    { name: "Saldos", headers: ["unidad", "saldo"], rows: [{ unidad: "EA-101", saldo: "120000" }] },
+    {
+      name: "Inventario",
+      headers: ["Identificador", "Edificio", "Clase", "Situación"],
+      rows: [
+        { Identificador: "EB-201", Edificio: "Edificio A", Clase: "apartamento", "Situación": "activo" },
+        { Identificador: "EB-202", Edificio: "Edificio A", Clase: "apartamento", "Situación": "activo" },
+      ],
+    },
+    { name: "Notas", headers: ["nota"], rows: [{ nota: "revisar" }] },
+  ];
+
+  it("elige «Inventario» aunque «Saldos» vaya primera", async () => {
+    const { pickBestSheet } = await import("@/lib/import/field-catalog");
+    expect(pickBestSheet(libro, "unit", ACEPTADOS)).toBe("Inventario");
+  });
+
+  it("en empate gana la primera del libro, que es el orden que eligió quien lo hizo", async () => {
+    const { pickBestSheet } = await import("@/lib/import/field-catalog");
+    const iguales = [
+      { name: "A", headers: ["nota"], rows: [{ nota: "x" }] },
+      { name: "B", headers: ["otra"], rows: [{ otra: "y" }] },
+    ];
+    expect(pickBestSheet(iguales, "unit", ACEPTADOS)).toBe("A");
+  });
+
+  it("un libro de una sola hoja devuelve esa", async () => {
+    const { pickBestSheet } = await import("@/lib/import/field-catalog");
+    expect(pickBestSheet([libro[0]], "unit", ACEPTADOS)).toBe("Saldos");
+  });
+});
