@@ -332,6 +332,27 @@ significa que su definición está mal escrita.** Se reescribe la definición, s
 vuelve a etiquetar la muestra, y se anota qué cambió. Ese registro vale tanto
 como el número.
 
+### El flujo, ya montado
+
+```bash
+node scripts/acuerdo-pqrs.mjs --generar 36   # muestra en blanco
+node scripts/acuerdo-pqrs.mjs --medir        # kappa por eje y discrepancias
+```
+
+La muestra vive en `datasets/pqrs/doble-etiquetado/muestra.tsv` con las cuatro
+columnas vacías y el texto al lado — los casos `sin_contexto` traen su hilo
+delante, porque sin él no son etiquetables.
+
+**Es ciega por disciplina, no por candado:** `gold-set.json` está en el mismo
+repositorio y tiene las respuestas. Mirarlo antes de rellenar invalida la
+medición, y no hay forma técnica de impedirlo.
+
+**Por qué el bruto no basta, medido y no argumentado:** con el medidor probado
+sobre un desacuerdo simulado del 25%, el acuerdo bruto daba **75%** —que suena
+aceptable— y el kappa **0,67 en `type` y 0,59 en `priority`**, los dos por
+debajo de su umbral. Esa distancia entre las dos cifras es todo el motivo de
+usar kappa.
+
 **La prueba ya existe:** `functions/tests/pqrs-goldset.test.ts`, once
 comprobaciones —catálogos, identificadores únicos, cobertura por tema, los dos
 países, los `high` suficientes para medir su recall, y que los sintéticos sean

@@ -1,0 +1,45 @@
+# Rellena las cuatro columnas vacías SIN mirar gold-set.json.
+# category: pqrs | maintenance | billing
+# type: petition (pide algo) | complaint (queja de una PERSONA) | claim (reclamo de un SERVICIO) | suggestion | other
+# priority: low | medium | high — por consecuencia de esperar, no por tono
+# tema: agua cuotas_pagos asamblea_administracion obra_mantenimiento elevadores
+#       seguridad_porteria luz_electricidad convivencia_ruido amenidades
+#       accesos_estacionamiento limpieza_basura
+#
+# id	category	type	priority	tema	texto (no editar)
+MX#192					La fuga sigue igual, tienen que entrar personalmente a cada departamento a checar donde está la fuga 
+MX#3025					Han considerado la opción de pedir pipas? Con el avance hasta esta hora, podemos estar sin agua hasta el lunes 
+MX#2979					Ing. Por favor coordinar con los trabajos de limpieza de cisterna para que no falte agua el domingo 
+MX#4927					Muy buenas tardes, envío el pago de mantenimiento de correspondiente al T1-77, dígito 0.14 de Calle Ejemplo, tres 90 
+MX#4324					Buenas tardes, escribí a correo@ejemplo.test para saber la cuenta a la que debo pagar el mantenimiento pero me dice que el correo no existe. Alguien tiene el.contacto correcto? 
+MX#6287					Hola Bianca buen día , ya te envié mensaje , a ti directo , xq por lo que veo el administrador no atiende. 
+MX#4604					Gracias Gabriel y Delsi, Gabriel hay un tiempo estimado para esta reparación? 
+MX#257					Buen dia. Reportar elevador Torre Norte, que al bajar a Sotano1 sigue haciendo ese “salto o jalón” 
+MX#5504					Pasa seguido que vienen a dar Mantto a los elevadores y al día sig tienen problemas 
+MX#3959					Es éste... ya pregunté en la caseta y me dicen que no ha llegado 
+MX#2724					De casualidad estarán los del T2-89 @⁨Saul Park⁩ o el de T1-14 para que pueda acceder y ver de dónde proviene el ruido , ya que me dice que en los pisos que si tiene acceso , no alcanza a percibir ningún ruido , les va tocar el interfón el guardia haber si de casualidad están , ojalá puedan apoyarnos dando acceso para que se revise el ruido <Se editó este mensaje.> 
+MX#3317					Si, hay que reportar con CFE, alguien ya marco? 
+MX#4053					Buenas tardes Nuevamente hay dos Popis de perros en el área de perros Ahí sí hay cámara, para que porfavor apliquen las multas Son de hoy entre las 8:30 AM y las 4 pm 
+MX#4759					Buenos días Puede revisar el área de perros, no han podado las plantas desde hace meses También la cubierta de la alberca, no le han dado su mantenimiento desde hace meses, y ya está rota Y faltan varios focos en el área de jardín Gracias ! 
+MX#4700					Hola buenos días vecinos para comentarles que mañana, usaremos un rato la alberca a partir de la 1pm gracias y lindo fin de semana 
+MX#4841					Hola!! Creo que lo adecuado y lo que sería más seguro es que cada uno de nosotros tuviera un control de acceso vehicular….asi no se necesita a los vigilantes y aseguramos que solo los condóminos tengan acceso. Se podría cotizar el costo de hacer esto ? 
+MX#3847					Por favor tiren la basura en su lugar El contenedor está sin basura 
+MX#86					CONTEXTO: [administracion] El día mañana estaré supervisando al tecnico  // [residente] Esto lamentablemente es muy frecuente. A veces los dejan de uno u otro lado, e incluso vehículos que obstruyen totalmente la visibilidad al salir Coincido que los elementos de vigilancia pueden apoyar comentando con los conductores  // [administracion] Claro estando mañana les comento personalmente ello.  ▶ Podemos apoyar las acciones de los guardias con un letrero?? 
+MX#3019					CONTEXTO: [administracion] imagen omitida  // [residente] imagen omitida  // [residente] Buenas noches  ▶ Sigo sin agua , así estamos todos ? 
+MX#5597					CONTEXTO: [residente] Se pasan los del deportivo  // [residente] Si, de verdad el horario en q lo están haciendo está terrible y ni idea cuando van a acabar  // [residente] imagen omitida  ▶ @⁨Rodrigo Administración ⁩ algo se avanzó de su lado ? 
+MX#6372					CONTEXTO: [residente] Gracias!!  // [residente] Cambió tu código de seguridad con Antonio.  // [residente] Cambió tu código de seguridad con Antonio.  ▶ Hola, ya se puede usar la alberca ? 
+EC#50					Hola Paola acabo de llegar al edificio y el ascensor no baja del 4 piso y solamente suena. Parece q esta dañado.
+EC#3042					Buenos días No hay luz en el edificio Pero el servicio eléctrico de la red pública ya esta habilidaro
+EC#2202					Paolita buenas tardes. Sabe algo acerca del técnico? Mis controles remotos siguen sin abrir la puerta del parqueadero
+EC#22					Buenas noches en el edificio está en el parqueadero un vehículo Mazda prendido me parece que es del primer piso por favor su ayuda
+EC#3933					@⁨Ernesto⁩ por favor cómo podemos tener una asamblea sin la información necesaria? Mi pedido por ejemplo tiene varios dias y no entiendo por qué no se me proporciona el documento solicitado. Me genera desconfianza e intranquilidad. Y así no me parece que se mantenga la asamblea sin la información pedida.
+EC#1125					Paola buenos días, las asambleas deberían ser virtuales ya no hay otra opción.. esta muy demorado el asunto
+EC#3166					Paola buenos días, puede por favor informarnos que pasó con el mantenimiento de la puerta?
+EC#4022					Buenos días con todos. A continuación me permito enviar imágenes de una fuga de agua en una tubería del parqueadero
+EC#3719					Buenas noches, existe alguna manera de apagar el motor de la bomba, de momento continúa operando y generando un ruido atípico, pienso se puede terminar de dañar.
+EC#467					Paola, entiendo que tienen protocolos / productos de limpieza y cuidados para cada área, especialmente de ascensor. Hoy vi que las paredes del ascensor estaban todas manchadas. Gracias
+EC#443					Buenos días estimados condominos. Considero que para mantener el una adecuada convivencia, es fundamental el respeto a los demás. Cómo es posible que hace un momento alguien vomitó por la ventana de su departamento hacia mi terraza. Si se trata de menores de edad, apelo a la responsabilidad de los padres en el comportamiento de sus hijos, especialmente en estas circunstancias en que todos debemos colaborar para hacer llevadera la convivencia.
+EC#2090					Buen día. Qué pena lo sucedido y aparte del susto, nos alegramos que Jessica está bien. Estamos de acuerdo con tener las revisiones de cómo mejorar la seguridad del edificio y también con la urbanización. En cuanto al cctv: se podría colocar una cámara más cerca del panel para identificar los rostros de quienes timbran?
+EC#96					Dinero que no se lo ha invertido en nada ni está generando ningún tipo de interés.. se han reducido hasta gastos respecto a la persona que teníamos en la portería antes.. de ahí al edificio no se le ha invertido en nada más q en lo estético con plantas y los gastos recurrentes de mantenimiento.. tenemos una necesidad común q es la seguridad.. por favor que se ejecute lo q ya se propuso
+EC#1260					Hola Andrés, no recibimos la planilla física hace meses, yo tengo el pago programado
+EC#1270					Con su inquietud este rato vemos porque a nosotros también nos descuentan directo del Banco.. Los meses anteriores estábamos pagando "el historico" muy poco porque era un promedio de cuando no estamos aqui!!! Pero hoy julio si se han desquitado, es un pago alto!
