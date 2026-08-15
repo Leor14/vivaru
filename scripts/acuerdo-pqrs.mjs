@@ -69,24 +69,37 @@ function kappa(a, b) {
   return { po, pe, k: pe === 1 ? 1 : (po - pe) / (1 - pe), n };
 }
 
-function medir() {
-  if (!existsSync(RUTA_MUESTRA)) {
-    console.error(`No existe ${RUTA_MUESTRA}. Genérala con --generar 36`);
+function medir(ruta = RUTA_MUESTRA) {
+  if (!existsSync(ruta)) {
+    console.error(`No existe ${ruta}. Genérala con --generar 36`);
     process.exit(1);
   }
   const porId = Object.fromEntries(conjunto.casos.map((c) => [c.id, c.espera]));
-  const ejes = ["category", "type", "priority", "tema"];
-  const mio = { category: [], type: [], priority: [], tema: [] };
-  const suyo = { category: [], type: [], priority: [], tema: [] };
+  const lineas = readFileSync(ruta, "utf8").split("\n");
+
+  // Las columnas salen de la cabecera, no de una posición fija: la segunda
+  // muestra solo re-etiqueta `type` y `priority` —`category` y `tema` quedaron
+  // validados el 15 ago 2026— y una muestra parcial no puede obligar a rellenar
+  // ejes que ya no se miden.
+  const cabecera = lineas.find((l) => /^#\s*id\t/.test(l));
+  if (!cabecera) { console.error(`\n${ruta} no tiene cabecera '# id<tab>...'\n`); process.exit(1); }
+  const columnas = cabecera.replace(/^#\s*/, "").split("\t").map((c) => c.trim());
+  const EJES_POSIBLES = ["category", "type", "priority", "tema"];
+  const ejes = columnas.filter((c) => EJES_POSIBLES.includes(c));
+  if (!ejes.length) { console.error(`\n${ruta} no declara ningún eje medible\n`); process.exit(1); }
+
+  const mio = Object.fromEntries(ejes.map((e) => [e, []]));
+  const suyo = Object.fromEntries(ejes.map((e) => [e, []]));
   const discrepancias = [];
   let sinRellenar = 0;
 
-  for (const linea of readFileSync(RUTA_MUESTRA, "utf8").split("\n")) {
+  for (const linea of lineas) {
     if (!linea.trim() || linea.startsWith("#")) continue;
-    const [id, category, type, priority, tema] = linea.split("\t");
+    const celdas = linea.split("\t");
+    const id = celdas[0];
     const esperado = porId[id];
     if (!esperado) { console.error(`Identificador desconocido: ${id}`); continue; }
-    const suyos = { category, type, priority, tema };
+    const suyos = Object.fromEntries(ejes.map((e) => [e, celdas[columnas.indexOf(e)]]));
     if (ejes.some((e) => !suyos[e]?.trim())) { sinRellenar += 1; continue; }
     for (const e of ejes) {
       mio[e].push(esperado[e]);
@@ -98,13 +111,13 @@ function medir() {
   }
 
   if (sinRellenar) console.log(`\n(${sinRellenar} casos sin rellenar, no se cuentan)`);
-  if (!mio.category.length) { console.error("\nNo hay ni un caso rellenado.\n"); process.exit(1); }
+  if (!mio[ejes[0]].length) { console.error("\nNo hay ni un caso rellenado.\n"); process.exit(1); }
 
   // Umbrales de la taxonomía. `priority` va más bajo a propósito: es el eje más
   // subjetivo, y fingir que se le puede exigir lo mismo no lo mejora.
   const UMBRAL = { category: 0.7, type: 0.7, tema: 0.7, priority: 0.6 };
   console.log(`\n${"═".repeat(60)}`);
-  console.log(`ACUERDO — ${mio.category.length} casos`);
+  console.log(`ACUERDO — ${mio[ejes[0]].length} casos · ${ruta}`);
   console.log(`${"═".repeat(60)}`);
   console.log(`  ${"eje".padEnd(12)} ${"bruto".padStart(7)} ${"kappa".padStart(7)} ${"umbral".padStart(7)}`);
   let algunoFalla = false;
@@ -125,14 +138,15 @@ function medir() {
     console.log("significa que su definición está mal escrita. Se reescribe en");
     console.log("taxonomia.md, se vuelve a etiquetar la muestra, y se anota qué cambió.\n");
   } else {
-    console.log("\nLos cuatro ejes pasan. El conjunto queda validado.\n");
+    console.log(`\nLos ejes medidos (${ejes.join(", ")}) pasan.\n`);
   }
 }
 
 const i = process.argv.indexOf("--generar");
+const j = process.argv.indexOf("--muestra");
 if (i !== -1) generar(Number(process.argv[i + 1] ?? 36));
-else if (process.argv.includes("--medir")) medir();
+else if (process.argv.includes("--medir")) medir(j !== -1 ? process.argv[j + 1] : undefined);
 else {
-  console.error("Uso: node scripts/acuerdo-pqrs.mjs --generar 36 | --medir");
+  console.error("Uso: node scripts/acuerdo-pqrs.mjs --generar 36 | --medir [--muestra <ruta>]");
   process.exit(1);
 }

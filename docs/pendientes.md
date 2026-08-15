@@ -53,21 +53,54 @@ de personas → queja, servicios → reclamo) y `priority` tiene anclas con caso
 concretos y la prueba «¿esperar a mañana empeora el resultado?». Cambiaron 23
 casos, el 16%.
 
-**Lo que falta, en orden:**
+**La SEGUNDA muestra ciega se hizo el mismo 15 de agosto, por la tarde, y los
+dos ejes siguen suspendiendo:** `type` **0,53** (umbral 0,70) y `priority`
+**0,47** (umbral 0,60). Lectura completa en
+`datasets/pqrs/doble-etiquetado/resultado-2026-08-15-ronda2.md`; la muestra, en
+`muestra-2.tsv`. Lo que hay que saber sin abrirlos:
 
-1. **Revalidar `type` y `priority` con una SEGUNDA muestra ciega** — la primera
-   quedó quemada: David vio las respuestas del árbol sobre los siete desacuerdos
-   al aprobarlo, así que re-etiquetarla mediría memoria y no acuerdo. Hay 124
-   casos reales que no ha visto. Hasta entonces, esos dos ejes son «definiciones
-   corregidas sin validar». `category` y `tema` sí quedaron validados.
-2. **La consecuencia de producto del kappa 0,08:** el criterio «recall de `high`
-   ≥95%» de la PRD **no es evaluable** mientras dos personas no coincidan en qué
-   es `high`. Y en los dos casos con hilo previo, David etiquetó la conversación
-   en vez del mensaje — si le pasa a un humano, le pasará al modelo con
-   `responseHistory`: el prompt deberá separar «el ticket» de «el historial».
+- **`priority` salió del azar** —de 0,08 a 0,47— y las marginales ya casi
+  coinciden: **las anclas con casos funcionaron**, la frase sola no.
+- **`type` falla por lo mismo que la primera vez:** cuatro de siete desacuerdos
+  son A `claim`/`complaint` → B `petition`. **La precedencia «reportar manda
+  sobre pedir» no prendió, y esta vez B la tenía escrita delante** — así que la
+  explicación de la ronda 1 ya no sirve.
+- **Sobre los `high`, que es para lo que se sobremuestreó: coinciden 3 de 5.** El
+  criterio «recall de `high` ≥95%» sigue **sin ser evaluable**, ahora con número.
+- **El pool limpio baja de 116 a 96, y solo 5 son `high`.** Una tercera ronda ya
+  no es barata. (116, no 124: hay que excluir también los 19 identificadores que
+  `taxonomia.md` usa de ancla o ejemplo — su etiqueta la imprime el documento.)
+
+**Y lo que apareció mirando el producto vale más que el kappa:**
+
+1. **`type` no decide nada, y ya no es pregunta: David lo confirmó el 15 de
+   agosto** («van al mismo lado» — un reclamo y una petición reciben el mismo
+   tratamiento). En el código tampoco: solo pinta la etiqueta y llena el filtro
+   de `/admin/pqrs`. **Consecuencia: el 0,53 de `type` no bloquea nada.** El eje
+   queda como etiqueta descriptiva con definiciones corregidas sin validar, y
+   no se le dedica una tercera ronda. `priority` es distinto: declarado en
+   `domain.ts`, usado en cero pantallas, pero la PRD le exige revisión humana
+   en los `high` — **ahí va el esfuerzo de definiciones.**
+2. **DEFECTO VIVO EN PRODUCCIÓN:** el desplegable del residente
+   (`src/app/(resident)/resident/pqrs/page.tsx`) enseña las **definiciones
+   cruzadas** —«Queja: inconformidad con un servicio»— justo al revés de la
+   taxonomía, y no ofrece `other`. La corrección del 15 de agosto se aplicó al
+   gold set y **no a la pantalla**. Mientras siga así, todo `type` que produzca
+   producción nace con la definición equivocada.
+3. **La consecuencia de producto del kappa de `priority`:** el criterio «recall
+   de `high` ≥95%» no es evaluable mientras dos personas no coincidan en qué es
+   `high`. Y en los dos casos con hilo previo de la ronda 1, David etiquetó la
+   conversación en vez del mensaje — si le pasa a un humano, le pasará al modelo
+   con `responseHistory`: el prompt deberá separar «el ticket» de «el historial».
 3. **`billing` tiene 15 casos y `buzon_simple` ninguno.** El primero no se
-   arregla con este corpus —en Ecuador las cuotas son el 1,3%—; el segundo es
-   declarar la variante en unos cuantos casos.
+   arreglaba con los corpus de México y Ecuador —en Ecuador las cuotas son el
+   1,3%—, pero **el 15 de agosto por la tarde llegó el tercer corpus:
+   `datasets/chat-vecinal-colombia/`, 2.984 mensajes de un conjunto de Bogotá**,
+   ya anonimizado con `scripts/anonimizar-chat-colombia.mjs` (llegó descrito
+   como «datos limpios» y traía la dirección exacta del edificio — el README
+   del corpus cuenta qué sobrevivía y qué se hizo). Si trae cuotas en volumen,
+   cierra el hueco de `billing`; el `analisis.md` que lo diga no existe aún.
+   `buzon_simple` sigue siendo declarar la variante en unos cuantos casos.
 4. **El baseline de G1 sigue TBD** en la propia PRD: volumen de tickets, tiempo
    de primera respuesta, reclasificaciones. No lo da ningún corpus, y producción
    tiene **cero tickets**.

@@ -1,0 +1,31 @@
+# SEGUNDA muestra ciega — revalidación de `type` y `priority`.
+# Excluidos los 20 de la primera muestra (quemada) y los 19 IDs que taxonomia.md
+# cita como ancla o ejemplo: 116 casos limpios de partida.
+# Sorteo determinista, semilla 20260815, estratificado por priority de A: 5 high / 7 medium / 8 low.
+# `high` está sobrerrepresentado 4x sobre su prevalencia real (10/116): el kappa de
+# priority de esta ronda NO es de prevalencia natural. Fijado ANTES de correr.
+# 2 casos `other` forzados dentro del estrato low (los 5 del pool son low): sin ellos
+# la regla nueva «reportar no es mencionar» se quedaba sin medir.
+# `category` y `tema` no se re-etiquetan: quedaron validados (kappa 0,91 y 0,89).
+#
+# id	type	priority	texto (no editar)
+EC#3721	other	medium	buenas noches me perdonan si estoy equivocada pero creo que si el motor de la bomba continúa prendido pasa el aire y es como si estuviera vonsumiendo agua y marca más rapido el medidor
+MX#4689	other	low	Dice el guardia que no se ve nada raro y también ya fue mi hermano y no ve nada , que será?  igual y se le estaba quemando algo de comida a alguno , de todas formas hay que estar al pendiente y les recomiendo siempre antes de salir o dormir checar que su estufa esté bien cerrada de las perillas , puede ser peligroso si pasamos y le movemos .
+EC#3738	petition	medium	Buenos días Paola: hace varias semanas usted quedó en venir para revisar los informes económicos para verificar la información que falta,  los valores que no están registrados y la información concerniente a las tareas encomendadas por las Asambleas de copropietarios;  me podría decir cuando va a venir?
+MX#2979	petition	medium	Ing. Por favor coordinar con los trabajos de limpieza de cisterna para que no falte agua el domingo
+MX#3983	claim	medium	Si y justo iba  entrado y el Portón se quedó abierto 🥲
+MX#730	petition	high	Aprovecho para pedir que quiten también la basura que se encuentra en el sótano 1 en la esquina adyacente a la rampa de acceso, al lado del elevador de la torre central. Dificulta la maniobra de estacionamiento de los 3 vehículos que nos estacionamos entre la columna y la rampa. <Se editó este mensaje.>
+EC#74	claim	low	Paola bdia.  Como le indiqué, generalmente en la noche, cuando se abre las llaves suenan las tuberías.   Se cierra un poco las llaves y cesa el ruido
+MX#5370	petition	low	~Administración buen día, hoy continúan los trabajos de colocación de llaves de paso?
+MX#1887	claim	medium	Buenas tardes, no prende ninguna luz, de las tres que están bajando la rampa del acceso vehicular.
+EC#3042	claim	high	Buenos días No hay luz en el edificio Pero el servicio eléctrico de la red pública ya esta habilidaro
+MX#5457	petition	medium	Buenas tardes @⁨Rodrigo Administración ⁩ Esta tarde al llegar a mi lugar de estacionamiento, noté que alguien puso unos tubos estorbando parte de mi entrada con peligro de que dañaran las llantas de mi vehículo.  Ojalá puedan hacer énfasis a todos los vecinos para que se cuide de no estorbar los lugares de estacionamiento contiguos a la basura, porque no es la primera vez que pasa algo así
+MX#4927	other	low	Muy buenas tardes, envío el pago de mantenimiento de correspondiente al T1-77, dígito 0.14 de Calle Ejemplo, tres 90
+MX#3441	complaint	high	Buenas noches El dep T1-34 no deja.de molestar con su música y cantada a gritos !!! Pueden decirle a sus inquilinos que hay que respetar el Reglamento ,pf!!
+MX#6258	petition	high	Hola Vecina. Tienen que decirle al vigilante que cierre la llave de paso de ese depto cuanto antes. Antes de que se haga un hoyo en los techos. Y avisarle al vecino también!! <Se editó este mensaje.>
+MX#2021	petition	low	Esta es la información del elevador de la torre Norte? Es para los privados o para cuáles? No especifica y tampoco dice cuánto tenemos que pagar?
+MX#6036	claim	medium	Ing Gabriel, ayer dieron mantenimiento a los elevadores, y el de central sigue igual, sin pantalla indicadora de los pisos.
+EC#162	complaint	medium	Por favor no cuesta nada hacer la limpieza si se cae algún líquido o articulo, etc, sea de las mascotas o sea personal
+MX#4053	complaint	medium	Buenas tardes Nuevamente hay dos Popis de perros en el área de perros  Ahí sí hay cámara, para que porfavor apliquen las multas Son de hoy entre las 8:30 AM y las 4 pm
+MX#3959	complaint	low	Es éste... ya pregunté en la caseta y me dicen que no ha llegado
+EC#3703	claim	high	Buenas noches, NO hay nada de agua. En la mañana, tipo 11,30 también cayó muy poca agua. Pero este momento NO HSU NADA.
