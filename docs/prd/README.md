@@ -55,17 +55,7 @@ Las cinco PRD de IA siguen viviendo fuera del repositorio (Drive), cotejadas con
 | `PRD-VAI-FEAT-001` — Onboarding asistido | En espera. Su primera mitad **no necesita IA** y es `PRD-V-FEAT-002` |
 | `PRD-VAI-DOC-001` — Lectura de comprobantes | Bloqueada por falta de comprobantes reales. No se sintetiza |
 
-Existen cinco PRD de IA redactadas en Google Drive que aún no se han traído aquí:
-
-| PRD | Alcance |
-|---|---|
-| `PRD-VAI-PLAT-001` | Gateway, auditoría y cuotas de IA |
-| `PRD-VAI-FEAT-001` | Onboarding asistido |
-| `PRD-VAI-DOC-001` | Lectura asistida de comprobantes |
-| `PRD-VAI-FEAT-002` | Asistente de PQRS |
-| `PRD-VAI-FEAT-003` | Asistente de comunicaciones |
-
-Migrarlas a `ia/` es trabajo pendiente. Hasta entonces la fuente de verdad de su alcance sigue siendo Drive, con el costo de versionado que eso implica.
+Migrarlas a `ia/` es trabajo pendiente. Hasta entonces la fuente de verdad de su alcance sigue siendo Drive, con el costo de versionado que eso implica — que es exactamente lo que este README argumenta en su primera línea.
 
 ## Documentos que gobiernan el programa de IA
 
