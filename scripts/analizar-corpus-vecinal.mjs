@@ -23,8 +23,10 @@ import { readFileSync } from "node:fs";
 // extraerlo: la salida de este script no cambió ni un byte.
 import { parsear, norm } from "./lib/whatsapp.mjs";
 
-/** Verbos con los que se anuncia algo. Sin uno de estos no es un aviso. */
-const ANUNCIA = /\b(les? informo|les? informamos|se informa|informamos|comunicamos|se comunica|les? comunico|se realizara|se realizaran|se llevara a cabo|habra|tendremos|se suspende|se suspendera|se cortara|recordamos|les recuerdo|se recuerda|reporte de trabajos|aviso|atencion|convocatoria|se convoca)\b/;
+// Verbos con los que se anuncia algo. Sin uno de estos no es un aviso. Viven en
+// lib/ desde el 15 de agosto de 2026 porque el muestreador de PQRS necesita la
+// misma lista para lo contrario: descartar avisos y quedarse con los tickets.
+import { ANUNCIA } from "./lib/temas-pqrs.mjs";
 
 /**
  * Asuntos de conjunto. Incluye vocabulario de los TRES mercados a propósito:

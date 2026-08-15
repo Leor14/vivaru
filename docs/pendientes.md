@@ -449,6 +449,32 @@ diagnosticarlas cuesta lo mismo la segunda vez.
   así que es riesgo medio y no urgente — pero el disparador es observable: el
   registro del trial guarda `pais` en el lead y en el tenant.
 
+- **El SLA de PQRS son 15 días hábiles colombianos, aplicados a los tres
+  países** (encontrado el 15 de agosto de 2026 preparando el gold set de PQRS,
+  no buscándolo). `src/features/pqrs/sla.ts` hace
+  `addBusinessDays(radication, 15)` sin distinguir país ni conjunto. Quince días
+  hábiles es el plazo del **derecho de petición colombiano ante entidades
+  públicas** (Ley 1755 de 2015). Una copropiedad es privada, así que ni siquiera
+  en Colombia se sigue solo; en México y Ecuador no rige.
+
+  **Está vivo y es el default, comprobado los dos extremos:** lo consume
+  `src/app/(admin)/admin/pqrs/page.tsx:118`, y `con_sla` es el valor por defecto
+  de la variante en `src/lib/config/module-variants.ts:37`. Es decir, **todo
+  conjunto nuevo nace con el semáforo encendido**, y a un administrador mexicano
+  le pinta el ticket en rojo por una norma que no lo rige.
+
+  Es el mismo patrón que el copy colombiano en la página de México y que Ecuador
+  ausente de los datasets: **una decisión de un país aplicada a los tres sin
+  decirlo.** Y tiene una ironía que conviene ver: `PRD-VAI-FEAT-002` prohíbe
+  expresamente que la IA «calcule obligaciones legales» y saca de alcance el
+  «cálculo jurídico de términos» — el riesgo está vigilado del lado de la IA y
+  ya existe del lado de las reglas.
+
+  **No se ha tocado nada.** Las salidas son decisión de producto, no de
+  ingeniería: dejarlo con su origen documentado, hacerlo configurable por
+  conjunto, o llamarlo «meta de servicio» y no plazo legal. Entra en el mismo
+  repaso legal que el hueco de Ecuador.
+
 ## Necesitan consola, no código
 
 - **Presupuesto del proyecto completo, con SOLO ALERTAS.** El de IA ya está

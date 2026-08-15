@@ -20,46 +20,15 @@
 
 import { readFileSync } from "node:fs";
 import { parsear, norm } from "./lib/whatsapp.mjs";
-
-/**
- * Vocabulario de los TRES mercados a propósito: «pipa» es mexicano y «tanquero»
- * ecuatoriano, «cuota» convive con «alícuota» y «expensa», «alberca» con
- * «piscina», «estacionamiento» con «parqueadero». Un detector con vocabulario
- * de un solo país haría parecer que en el otro no se habla del tema.
- *
- * «mantenimiento» a secas se cuenta en obra_mantenimiento SABIENDO que en
- * México también nombra la cuota mensual («pago de mantenimiento»). El solape
- * es real y va en las dos direcciones; el conteo es para ordenar por magnitud,
- * no para separar con bisturí — la misma advertencia que dejó escrita el
- * análisis mexicano.
- */
-const TEMAS = {
-  agua: /\b(aguas?|fugas?|filtracion(es)?|humedad(es)?|goteras?|goteos?|presion|bombas?|cisternas?|tinacos?|pipas?|tanqueros?|hidroneumatico|inundacion(es)?|drenaje|tuberias?)\b/,
-  cuotas_pagos: /\b(cuotas?|alicuotas?|expensas?|mensualidad(es)?|adeudos?|morosos?|morosidad|recargos?|comprobantes?|transferencias?|depositos?|pagos?|pagar|pague|cobros?|estado de cuenta|facturas?)\b/,
-  asamblea_administracion: /\b(asambleas?|reunion(es)?|comite|administracion|administradora?|actas?|votacion(es)?|votar|convocatorias?|directivas?|consejo|quorum)\b/,
-  obra_mantenimiento: /\b(obras?|reparacion(es)?|reparar|impermeabiliza\w*|pinturas?|pintar|albanil\w*|herrer\w*|refaccion(es)?|mantenimientos?|fachadas?|azoteas?|techos?|grietas?|plomeros?|plomeria)\b/,
-  elevadores: /\b(elevador(es)?|ascensor(es)?)\b/,
-  seguridad_porteria: /\b(seguridad|guardias?|vigilan\w*|casetas?|garitas?|porterias?|conserjes?|guardiania|paquetes?|paqueteria|robos?|robar\w*|camaras?|intrusos?)\b/,
-  luz_electricidad: /\b(luz|energia|electric\w*|apagon(es)?|cfe|cortocircuitos?|focos?|lamparas?|medidor(es)?|transformador(es)?)\b/,
-  convivencia_ruido: /\b(ruidos?|fiestas?|musica|volumen|escandalos?|mascotas?|perros?|gatos?|convivencia|molestias?|claxon)\b/,
-  amenidades: /\b(albercas?|piscinas?|gimnasios?|salon (de eventos|comunal|de usos)|amenidad(es)?|palapas?|asador(es)?|terrazas?|juegos infantiles|areas? verdes?)\b/,
-  accesos_estacionamiento: /\b(porton(es)?|pluma|estacionamientos?|parqueaderos?|cajon(es)?|cocheras?|control de acceso|zaguan|acceso vehicular)\b/,
-  limpieza_basura: /\b(limpiezas?|basuras?|desechos|escombros?|reciclaje|fumigacion(es)?|plagas?|cucarachas?|ratas?)\b/,
-};
-
-/** Adjuntos: el export los deja como marcador, no como texto. */
-const SIN_TEXTO = /\b(imagen omitida|video omitido|documento omitido|audio omitido|sticker omitido|gif omitido|multimedia omitido|tarjeta de contacto omitida|se elimino este mensaje|eliminaste este mensaje)\b/;
+// El vocabulario vive en lib/ para que el muestreador que extrae los casos del
+// gold set use exactamente los mismos patrones que este contador. Si no, la
+// taxonomía citaría como ejemplo un mensaje que sus propias cifras no contaron.
+import { TEMAS, SIN_TEXTO, esAdmin } from "./lib/temas-pqrs.mjs";
 
 function analizar(ruta, etiqueta) {
   const mensajes = parsear(readFileSync(ruta, "utf8"));
 
-  // La administración se reconoce por el nombre del remitente en los dos
-  // corpus («Rodrigo Administración», «Paola Salazar Administradora»). El
-  // nombre del grupo mexicano también contiene «administración» y captura las
-  // líneas de sistema — excluirlas de los mensajes de residentes es correcto.
-  const esAdmin = (autor) => norm(autor).includes("administra");
-
-  const residentes = mensajes.filter((m) => !esAdmin(m.autor));
+  const residentes = mensajes.filter((m) => !esAdmin(m.autor, norm));
   const conTexto = residentes.filter((m) => {
     const t = norm(m.texto);
     return t.trim().length > 0 && !SIN_TEXTO.test(t);
