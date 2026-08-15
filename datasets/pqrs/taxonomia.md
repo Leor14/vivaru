@@ -64,19 +64,65 @@ pagar la extraordinaria del ascensor» es `billing` aunque hable del ascensor.
 
 ---
 
-## Eje 2 · `type`, y el error que costó rehacerlo
+## Eje 2 · `type`, y el error que costó rehacerlo dos veces
 
 Las definiciones **no se inventaron aquí**. Salen del marco del que viene la
 sigla PQRS, verificado contra una fuente pública y no contra un resumen de
 buscador:
 
-| Valor | Definición canónica | La pregunta que la decide |
-|---|---|---|
-| `petition` | Requerimiento para obtener información, documentos o una actuación | ¿Pide algo? |
-| `complaint` (queja) | Insatisfacción **respecto a la conducta o actuar de una persona** | ¿Se queja de alguien? |
-| `claim` (reclamo) | Insatisfacción sobre el **incumplimiento o irregularidad de un servicio** | ¿Se queja de algo? |
-| `suggestion` | Propuesta para mejorar el servicio | ¿Propone una mejora? |
-| `other` | No encaja en ninguna | — |
+| Valor | Definición canónica |
+|---|---|
+| `petition` | Requerimiento para obtener información, documentos o una actuación |
+| `complaint` (queja) | Insatisfacción **respecto a la conducta o actuar de una persona** |
+| `claim` (reclamo) | Insatisfacción sobre el **incumplimiento o irregularidad de un servicio** |
+| `suggestion` | Propuesta para mejorar el servicio |
+| `other` | No encaja en ninguna |
+
+### El árbol, y por qué las definiciones sueltas no bastaban
+
+**Cinco definiciones correctas no deciden nada si un mensaje encaja en dos.** Y
+encaja constantemente: «Desde el sábado no prende la luz de torre C, favor de
+revisar» es a la vez un servicio que falla —reclamo— y una petición de que lo
+revisen. Las dos lecturas son buenas, y por eso el doble etiquetado del 15 de
+agosto de 2026 dio **kappa 0,42** en este eje: seis de las siete discrepancias
+eran mensajes de esa forma. Detalle en
+`datasets/pqrs/doble-etiquetado/resultado-2026-08-15.md`.
+
+**Desde el 15 de agosto de 2026 hay un orden. Decide la primera pregunta que dé
+que sí:**
+
+**1 · ¿REPORTA o RECLAMA algo que ya salió mal?** — un servicio que no funciona,
+un hecho ocurrido, una conducta que molestó.
+
+> **Reportar no es mencionar**, y la distinción hizo falta al aplicar el árbol a
+> los 144 casos. `MX#5113` explica por qué se fracturan las tuberías del
+> edificio: menciona las fugas, pero no reporta ninguna ni reclama nada — está
+> analizando una causa que todos conocen. Va a `other`. Si bastara con nombrar
+> un problema, cualquier conversación sobre él sería un reclamo.
+
+- ¿El objeto es una **persona** —su conducta, su trato, su incumplimiento—?
+  → `complaint`
+- ¿Es una **cosa o un servicio**? → `claim`
+- **Manda aunque además pida que lo arreglen.** Pedir el remedio es la
+  consecuencia natural de reportar un fallo; si la petición ganara, `claim` se
+  quedaría casi vacío y el eje dejaría de distinguir nada.
+- Cuando el fallo es el **desempeño general de un servicio prestado por
+  personas** —«dejan pasar a cualquiera»—, es `claim`. Solo es `complaint`
+  cuando se señala a alguien identificable por lo que hizo.
+
+**2 · ¿Pide algo que el otro debe hacer o responder?** — información, un
+documento, una actuación → `petition`
+
+**3 · ¿Propone un cambio a futuro, sin señalar ningún fallo?** → `suggestion`
+
+**4 · Ninguna de las anteriores** → `other` — constancia, aviso, aporte de
+contexto.
+
+**El árbol se escribió contra los siete desacuerdos, y le lleva la contraria a
+los dos anotadores**, que es la señal de que no está hecho para dar la razón a
+quien lo escribió: en cuatro casos corrige al anotador A, en dos al B, y en
+`EC#890` —«Silvana, apague el carro, hay CO2»— **a los dos**, porque el objeto es
+la conducta de una vecina identificada y ninguno lo había visto como queja.
 
 **La primera versión de este documento las tenía cruzadas**, y conviene dejarlo
 escrito. Se habían definido en el eje de la severidad —`complaint` como
@@ -120,21 +166,39 @@ imponga sobre una administración. Ver el hallazgo del SLA en `docs/pendientes.m
 
 ## Eje 3 · `priority`
 
-El eje que habilita el criterio ≥95% de recall en `high`. Se etiqueta por
-**consecuencia de esperar**, no por el tono del mensaje: un vecino furioso por
-un ruido no es `high`, y un aviso sereno de una fuga que está mojando el
-departamento de abajo sí lo es.
+El eje que habilita el criterio ≥95% de recall en `high`. Se etiqueta por la
+**consecuencia de esperar**, no por el tono: un vecino furioso por un ruido no es
+`high`, y un aviso sereno de una fuga que moja el departamento de abajo sí.
 
-| Valor | Criterio |
-|---|---|
-| `high` | Riesgo a personas, seguridad comprometida, daño material en curso, o servicio esencial caído (agua, luz, único ascensor) |
-| `medium` | Afecta el uso normal pero no empeora solo con el tiempo |
-| `low` | Informativo, consulta, o mejora deseable |
+**Esa frase sola no bastaba, y se midió.** El doble etiquetado del 15 de agosto
+de 2026 dio **kappa 0,08** en este eje —acuerdo de azar— porque «consecuencia de
+esperar» no dice **cuánto** es esperar ni **qué** consecuencia cuenta. Un
+anotador gravitaba al centro y el otro usaba los extremos; en la primera tanda,
+uno escribió «normal-mucho» y «normal-bajo» tres veces de cinco antes de que
+nadie mencionara ninguna escala.
 
-**Es el eje que más va a discrepar entre anotadores**, y por eso el criterio de
-validación se mide por eje y no en conjunto. La PRD lo previó: la salida lleva
-`priorityReason` y `needsHumanReview` precisamente porque la prioridad «puede
-depender de señales dispersas en el mensaje».
+**La prueba operativa, desde el 15 de agosto de 2026: ¿esperar a mañana empeora
+el resultado?**
+
+| Valor | Criterio | Anclas, con casos del propio conjunto |
+|---|---|---|
+| `high` | Alguien puede resultar lastimado · el daño crece solo si nadie lo atiende · el edificio se queda sin agua, sin luz o sin su único ascensor · la seguridad queda abierta | `EC#50` el único ascensor parado · `MX#3019` sin agua · `EC#2627` la puerta del parqueadero abierta · `EC#890` CO2 en el parqueadero |
+| `medium` | Afecta el uso normal, pero mañana estará igual de mal, no peor | `MX#3587` la luz de un piso · `MX#5523` el portón que hace ruido · `MX#5041` un cajón ocupado · `EC#2202` el control que no abre |
+| `low` | Consulta, aviso o propuesta que puede esperar una semana sin que nadie note la diferencia | `MX#604` pedir el correo de pagos · `MX#4700` avisar que se usará la alberca · `EC#231` informar los días del recolector |
+
+**Las anclas son casos, no adjetivos, a propósito.** «Afecta el uso normal» se
+interpreta; «como el portón que hace ruido» se compara.
+
+**Desempate:** ante la duda entre dos niveles gana el **más bajo**, salvo que la
+duda venga de un posible riesgo a personas — ahí gana el más alto. Y la duda se
+anota: es información sobre la definición, no indecisión del que etiqueta.
+
+**Sigue siendo el eje más subjetivo**, y por eso su umbral de kappa es más bajo
+que el de los otros tres. La PRD lo había previsto sin saberlo: la salida lleva
+`priorityReason` y `needsHumanReview`, y exige revisión humana obligatoria en los
+`high`. Esta medición explica por qué hacía falta — **si dos personas que conocen
+el producto no coinciden, pedirle al modelo un 95% es pedirle que adivine cuál de
+las dos le tocó.**
 
 ---
 
@@ -274,9 +338,18 @@ inflado con casos flojos da un número alto y no mide nada.
 | Eje | Reparto |
 |---|---|
 | `category` | `pqrs` 93 · `maintenance` 44 · `billing` 15 |
-| `type` | `claim` 55 · `petition` 40 · `complaint` 23 · `suggestion` 22 · `other` 12 |
-| `priority` | `low` 66 · `medium` 65 · `high` 21 |
+| `type` | `claim` 57 · `petition` 35 · `complaint` 30 · `suggestion` 22 · `other` 8 |
+| `priority` | `low` 66 · `medium` 66 · `high` 20 |
 | Banderas | `sin_contexto` 18 · `enfado` 11 · `prompt_injection` 8 · `dato_faltante` 5 · `multi_tema` 4 |
+
+> **Los 152 se re-etiquetaron con el árbol el 15 de agosto de 2026**: cambiaron
+> 23 casos —el 16%—, y la dirección de los cambios está en el registro de
+> `doble-etiquetado/resultado-2026-08-15.md`. No fue «poner las etiquetas de un
+> anotador»: nueve de los veintitrés no estaban en la muestra de ningún
+> desacuerdo, cambiaron porque el árbol traza la frontera en otro sitio
+> (conducta de vecinos → `complaint`; desempeño de un servicio prestado por
+> personas → `claim`; peticiones entre vecinos → `petition` aunque no vayan
+> dirigidas a la administración).
 
 Los once temas tienen entre 9 y 24 casos. Los difíciles son el **30%** del
 conjunto, por debajo del 40% que se buscaba.

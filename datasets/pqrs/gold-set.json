@@ -31,14 +31,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "maintenance",
-        "type": "petition",
+        "type": "claim",
         "priority": "medium",
         "tema": "agua",
         "temasSecundarios": [
           "obra_mantenimiento"
         ]
       },
-      "porQue": "Pide revisar una filtración. Cortés y sin inconformidad: es petición, no reclamo."
+      "porQue": "Reporta humedades que pueden estar empeorando y pide revisarlas. Reportar manda sobre pedir (árbol, paso 1)."
     },
     {
       "id": "MX#3993",
@@ -49,14 +49,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "maintenance",
-        "type": "petition",
+        "type": "claim",
         "priority": "low",
         "tema": "agua",
         "temasSecundarios": [
           "obra_mantenimiento"
         ]
       },
-      "porQue": "Petición de reparación menor sin urgencia declarada."
+      "porQue": "El bota-aguas y el seguro del domo están rotos; pedir la reparación es la consecuencia, no el acto."
     },
     {
       "id": "MX#6064",
@@ -457,14 +457,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "maintenance",
-        "type": "petition",
+        "type": "claim",
         "priority": "high",
         "tema": "obra_mantenimiento",
         "temasSecundarios": [
           "seguridad_porteria"
         ]
       },
-      "porQue": "Pide cerrar la llave de paso antes de que se dañe el techo. Daño material en curso."
+      "porQue": "Fuga activa con daño inminente al techo. Reporta el fallo y pide el remedio: reportar manda."
     },
     {
       "id": "MX#6010",
@@ -475,11 +475,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "other",
+        "type": "petition",
         "priority": "low",
         "tema": "obra_mantenimiento"
       },
-      "porQue": "Pide recomendación de plomero a los vecinos. No va dirigido a la administración."
+      "porQue": "Pide una recomendación. Que el destinatario sean los vecinos y no la administración no cambia el acto."
     },
     {
       "id": "MX#76",
@@ -580,14 +580,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "complaint",
+        "type": "claim",
         "priority": "low",
         "tema": "elevadores",
         "temasSecundarios": [
           "obra_mantenimiento"
         ]
       },
-      "porQue": "Se queja del patrón de la empresa de mantenimiento. Insatisfacción con el proveedor."
+      "porQue": "El patrón de fallos tras cada mantenimiento es desempeño del proveedor como servicio, no conducta de alguien."
     },
     {
       "id": "MX#2021",
@@ -619,14 +619,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "petition",
+        "type": "complaint",
         "priority": "medium",
         "tema": "seguridad_porteria",
         "temasSecundarios": [
           "accesos_estacionamiento"
         ]
       },
-      "porQue": "Pide que vigilancia intervenga con conductores que obstruyen la salida."
+      "porQue": "La conducta de los conductores que obstruyen la salida es el objeto; pedir apoyo a vigilancia es el remedio."
     },
     {
       "id": "MX#2481",
@@ -637,11 +637,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "complaint",
-        "priority": "high",
+        "type": "claim",
+        "priority": "medium",
         "tema": "seguridad_porteria"
       },
-      "porQue": "Denuncia que dejan pasar a cualquiera sin avisar. Seguridad comprometida."
+      "porQue": "«Dejan pasar a cualquiera» es el desempeño del servicio de vigilancia, no una persona señalada. Recurrente: mañana estará igual, no peor."
     },
     {
       "id": "MX#3959",
@@ -856,14 +856,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "low",
         "tema": "convivencia_ruido",
         "temasSecundarios": [
           "seguridad_porteria"
         ]
       },
-      "porQue": "Pide aplicar multas por un incumplimiento con evidencia en cámara."
+      "porQue": "El objeto es la conducta de los dueños de las mascotas; las multas son el remedio pedido."
     },
     {
       "id": "MX#5523",
@@ -1011,11 +1011,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "medium",
         "tema": "accesos_estacionamiento"
       },
-      "porQue": "Un vehículo ajeno ocupa el cajón de un residente desde ayer."
+      "porQue": "Alguien dejó su camioneta en el cajón ajeno: conducta de una persona, no una avería."
     },
     {
       "id": "MX#5457",
@@ -1026,7 +1026,7 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "medium",
         "tema": "accesos_estacionamiento",
         "temasSecundarios": [
@@ -1034,7 +1034,7 @@
           "limpieza_basura"
         ]
       },
-      "porQue": "Objetos que estorban y ponen en riesgo las llantas; señala reincidencia."
+      "porQue": "Alguien puso tubos que estorban y es reincidente: conducta de vecinos."
     },
     {
       "id": "MX#2037",
@@ -1045,14 +1045,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "medium",
         "tema": "accesos_estacionamiento",
         "temasSecundarios": [
           "elevadores"
         ]
       },
-      "porQue": "Autos que exceden su cajón y ocupan el paso peatonal a elevadores."
+      "porQue": "Los dueños de los autos que exceden su límite son el objeto: conducta, no equipo."
     },
     {
       "id": "MX#4841",
@@ -1145,11 +1145,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "low",
         "tema": "limpieza_basura"
       },
-      "porQue": "Reincidencia de basura fuera del área establecida."
+      "porQue": "«Nuevamente tiran la basura fuera del bote»: conducta reincidente de vecinos."
     },
     {
       "id": "MX#194",
@@ -1696,14 +1696,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "other",
+        "type": "petition",
         "priority": "low",
         "tema": "accesos_estacionamiento",
         "banderas": [
           "sin_contexto"
         ]
       },
-      "porQue": "Pide prestado un cajón a otros vecinos. No es asunto de la administración."
+      "porQue": "Pide prestado un cajón. Petición entre vecinos: el eje mide el acto, no el destinatario."
     },
     {
       "id": "EC#50",
@@ -1932,11 +1932,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "petition",
+        "type": "complaint",
         "priority": "medium",
         "tema": "accesos_estacionamiento"
       },
-      "porQue": "Avisa de un vehículo encendido en el parqueadero y pide ayuda."
+      "porQue": "Un vehículo dejado encendido es conducta de un vecino, no una avería del edificio."
     },
     {
       "id": "EC#1556",
@@ -1962,11 +1962,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "high",
         "tema": "accesos_estacionamiento"
       },
-      "porQue": "Parqueadero saturado de CO2 por un vehículo encendido. Riesgo a personas."
+      "porQue": "El objeto es la conducta de una vecina identificada, no el parqueadero. El árbol corrigió a los dos anotadores."
     },
     {
       "id": "EC#1410",
@@ -2073,11 +2073,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "other",
+        "type": "petition",
         "priority": "low",
         "tema": "asamblea_administracion"
       },
-      "porQue": "Somete un punto a votación en el chat. Participación, no petición."
+      "porQue": "Someter a votación es pedir que los demás voten. Corregido por el árbol: antes se leyó como constancia."
     },
     {
       "id": "EC#1882",
@@ -2160,14 +2160,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "complaint",
+        "type": "claim",
         "priority": "medium",
         "tema": "agua",
         "temasSecundarios": [
           "obra_mantenimiento"
         ]
       },
-      "porQue": "Problema detectado hace meses y sin solucionar «como debería haberse realizado»."
+      "porQue": "Reclama que el problema siga sin solución tras meses: incumplimiento del servicio, sin señalar a nadie."
     },
     {
       "id": "EC#3150",
@@ -2178,7 +2178,7 @@
       "variante": "con_sla",
       "espera": {
         "category": "maintenance",
-        "type": "petition",
+        "type": "claim",
         "priority": "low",
         "tema": "luz_electricidad",
         "temasSecundarios": [
@@ -2188,7 +2188,7 @@
           "multi_tema"
         ]
       },
-      "porQue": "Pide reemplazar focos quemados y el ambientador del ascensor."
+      "porQue": "Focos quemados y ambientador agotado: reporta fallos concretos y pide reemplazo."
     },
     {
       "id": "EC#4022",
@@ -2265,14 +2265,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "petition",
+        "type": "claim",
         "priority": "medium",
         "tema": "agua",
         "temasSecundarios": [
           "convivencia_ruido"
         ]
       },
-      "porQue": "Pregunta cómo apagar la bomba y advierte que puede terminar de dañarse."
+      "porQue": "La bomba opera con ruido atípico y puede dañarse: reporta el fallo, la pregunta es el remedio."
     },
     {
       "id": "EC#3721",
@@ -2355,14 +2355,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "claim",
+        "type": "complaint",
         "priority": "low",
         "tema": "convivencia_ruido",
         "temasSecundarios": [
           "elevadores"
         ]
       },
-      "porQue": "Una mascota se orinó en el ascensor."
+      "porQue": "La mascota de alguien se orinó en el ascensor: conducta de su dueño, no fallo del ascensor."
     },
     {
       "id": "EC#1577",
@@ -2373,11 +2373,11 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "petition",
+        "type": "complaint",
         "priority": "low",
         "tema": "convivencia_ruido"
       },
-      "porQue": "Avisa de orina de perro en la puerta y agradece la colaboración."
+      "porQue": "Reporta un hecho causado por la mascota de alguien. Conducta, aunque el dueño no esté identificado."
     },
     {
       "id": "EC#1150",
@@ -2562,14 +2562,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "petition",
+        "type": "claim",
         "priority": "medium",
         "tema": "seguridad_porteria",
         "temasSecundarios": [
           "asamblea_administracion"
         ]
       },
-      "porQue": "Pregunta por qué no se detectó el vehículo en los monitores y pide trasladar la inquietud."
+      "porQue": "Reclama que la guardianía no detectó el vehículo en los monitores: servicio que falló, no persona señalada."
     },
     {
       "id": "EC#1827",
@@ -2733,14 +2733,14 @@
       "variante": "con_sla",
       "espera": {
         "category": "pqrs",
-        "type": "other",
+        "type": "petition",
         "priority": "low",
         "tema": "accesos_estacionamiento",
         "temasSecundarios": [
           "convivencia_ruido"
         ]
       },
-      "porQue": "Pide ayuda a los vecinos para arrancar su auto. No es asunto de la administración."
+      "porQue": "Pide ayuda para arrancar su auto. Petición entre vecinos."
     },
     {
       "id": "SYN#1",

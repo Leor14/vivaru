@@ -122,3 +122,23 @@ como el número.
 **`type` y `priority`: NO validados.** El gold set no se puede usar todavía para
 medir esos dos ejes, y decirlo es lo único que impide que el número salga a
 pasear como si significara algo.
+
+## Lo que se hizo con esto (mismo día, más tarde)
+
+**Se reescribieron las dos definiciones en `taxonomia.md`**: `type` es ahora un
+árbol con orden de precedencia —reportar manda sobre pedir— y `priority` tiene
+anclas con casos concretos y la prueba «¿esperar a mañana empeora el
+resultado?». **Los 152 casos se re-etiquetaron contra el árbol: cambiaron 23**,
+y no son una copia de las etiquetas de B — el árbol corrige a A en unos, a B en
+otros, y a los dos en `EC#890`.
+
+**La revalidación NO puede usar esta muestra, y conviene dejar escrito por
+qué:** al discutir el árbol, B vio la tabla con lo que el árbol responde en los
+siete casos de desacuerdo. Re-etiquetarlos ya no mediría acuerdo, mediría
+memoria. **La segunda ronda necesita casos que B no haya visto** — hay 124
+reales fuera de esta muestra, así que material sobra.
+
+Hasta esa segunda ronda, `type` y `priority` quedan como **definiciones
+corregidas sin validar**. La corrección tiene mejor pinta que la frase que
+falló, pero «mejor pinta» es exactamente lo que el kappa existe para no tener
+que creerse.

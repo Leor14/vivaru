@@ -39,16 +39,36 @@ hace útil el material.
   se vio contando, se vio muestreando** — el contador se creía sus cifras porque
   el ruido pasaba su propio tamiz.
 
+**El doble etiquetado SE HIZO el mismo 15 de agosto** — 20 casos, David a
+ciegas contestando en lenguaje natural. **Tumbó dos ejes de cuatro**, que es
+para lo que existía: `category` 0,91 y `tema` 0,89 pasan; `type` dio **0,42**
+—la definición no decía qué gana cuando un mensaje reporta un fallo Y pide el
+remedio, que es el formato más común de PQRS— y `priority` dio **0,08, acuerdo
+de azar**. Lectura completa en
+`datasets/pqrs/doble-etiquetado/resultado-2026-08-15.md`.
+
+**Las dos definiciones se reescribieron y los 152 casos se re-etiquetaron**:
+`type` es ahora un árbol con precedencia (reportar manda sobre pedir; conducta
+de personas → queja, servicios → reclamo) y `priority` tiene anclas con casos
+concretos y la prueba «¿esperar a mañana empeora el resultado?». Cambiaron 23
+casos, el 16%.
+
 **Lo que falta, en orden:**
 
-1. **El doble etiquetado.** 30–40 casos a ciegas, acuerdo por eje con kappa de
-   Cohen (≥0,70; ≥0,60 en `priority`, que es el más subjetivo). **Sin acuerdo
-   medido, «gold» es una opinión.** Es trabajo de David, y sin él el conjunto no
-   está validado.
-2. **`billing` tiene 15 casos y `buzon_simple` ninguno.** El primero no se
+1. **Revalidar `type` y `priority` con una SEGUNDA muestra ciega** — la primera
+   quedó quemada: David vio las respuestas del árbol sobre los siete desacuerdos
+   al aprobarlo, así que re-etiquetarla mediría memoria y no acuerdo. Hay 124
+   casos reales que no ha visto. Hasta entonces, esos dos ejes son «definiciones
+   corregidas sin validar». `category` y `tema` sí quedaron validados.
+2. **La consecuencia de producto del kappa 0,08:** el criterio «recall de `high`
+   ≥95%» de la PRD **no es evaluable** mientras dos personas no coincidan en qué
+   es `high`. Y en los dos casos con hilo previo, David etiquetó la conversación
+   en vez del mensaje — si le pasa a un humano, le pasará al modelo con
+   `responseHistory`: el prompt deberá separar «el ticket» de «el historial».
+3. **`billing` tiene 15 casos y `buzon_simple` ninguno.** El primero no se
    arregla con este corpus —en Ecuador las cuotas son el 1,3%—; el segundo es
    declarar la variante en unos cuantos casos.
-3. **El baseline de G1 sigue TBD** en la propia PRD: volumen de tickets, tiempo
+4. **El baseline de G1 sigue TBD** en la propia PRD: volumen de tickets, tiempo
    de primera respuesta, reclasificaciones. No lo da ningún corpus, y producción
    tiene **cero tickets**.
 
