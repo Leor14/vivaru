@@ -39,10 +39,21 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 | PRD | Estado | Nota |
 |---|---|---|
 | [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | **Productiva** | Desplegada y verificada de punta a punta el 2026-08-01, correo incluido |
+| [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **Lista para PRD** | Mapeo de columnas, catálogo único de campos y XLSX. El importador ya existe; lo que falta es el paso de mapeo — que es el hueco donde después entra `PRD-VAI-FEAT-001`. Un `TBD` abierto: cliente directo o callable para personas |
 
 ### IA
 
-Ninguna PRD de IA se ha escrito todavía en el repositorio, y **no hay una sola línea de IA en el código**: no existen `aiUsage`, gateway, adaptador de proveedor ni llamadas a ningún modelo. El programa está en Fase 0.
+**Este párrafo decía, hasta el 14 de agosto de 2026, que no había «una sola línea de IA en el código» y que el programa estaba en Fase 0. Dejó de ser cierto y nadie lo actualizó.** Hoy existen el gateway (`functions/src/ai/gateway.ts`), la telemetría (`aiUsage`), las cuotas, el adaptador real de Vertex, el registro de feedback (`aiFeedback`) y el contexto del conjunto — todo desplegado en staging y medido. El canario de comunicaciones está construido y probado con dos administradores reales.
+
+Las cinco PRD de IA siguen viviendo fuera del repositorio (Drive), cotejadas contra el código en `docs/auditoria-prd-ia-ago2026.md`. El estado paso a paso vive en `docs/hoja-de-ruta-ia.md`; el índice de lo pendiente, en `docs/pendientes.md`.
+
+| PRD | Estado |
+|---|---|
+| `PRD-VAI-PLAT-001` — Gateway, auditoría y cuotas | Implementada y desplegada en staging |
+| `PRD-VAI-FEAT-003` — Asistente de comunicaciones | Implementada, probada con dos administradores, sin desplegar a producción |
+| `PRD-VAI-FEAT-002` — Asistente de PQRS | En espera. Su gold set se puede fabricar |
+| `PRD-VAI-FEAT-001` — Onboarding asistido | En espera. Su primera mitad **no necesita IA** y es `PRD-V-FEAT-002` |
+| `PRD-VAI-DOC-001` — Lectura de comprobantes | Bloqueada por falta de comprobantes reales. No se sintetiza |
 
 Existen cinco PRD de IA redactadas en Google Drive que aún no se han traído aquí:
 
