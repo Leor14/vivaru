@@ -84,7 +84,7 @@ Dos hallazgos que ningún examen había cazado:
 
 ## Los cuatro datos generalizan
 
-Todo lo anterior salía de **un edificio de un país**. Un segundo corpus —un edificio de Quito, seis años y nueve meses— lo contrasta con el mismo tamiz: **1,07 de 4 datos en Ecuador contra 1,22 en México**, y **«cuánto dura» es el peor dato en los dos**. La decisión de producto más visible de la pantalla se sostiene ahora en dos países.
+Todo lo anterior salía de **un edificio de un país**. Un segundo corpus —un edificio de Quito, seis años y nueve meses— lo contrasta con el mismo tamiz: **1,13 de 4 datos en Ecuador contra 1,31 en México**, y **«cuánto dura» es el peor dato en los dos**. La decisión de producto más visible de la pantalla se sostiene ahora en dos países.
 
 De paso reinterpretó un fallo: el modelo pide «a quién afecta» donde no aplica, y eso **no es defecto del modelo sino del diseño** — el conjunto mexicano tiene torres y el ecuatoriano es un edificio único. Vivaru ya sabe cuál es cuál por [[torres-canonicas]], así que la mejora está identificada y pendiente de decisión.
 

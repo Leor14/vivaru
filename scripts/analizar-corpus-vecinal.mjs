@@ -64,10 +64,24 @@ const ASUNTO = /\b(agua|cisterna|bomba|hidroneumatico|pipa|tanquero|luz|energia|
 const DETECTORES = {
   cuando:
     /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|hoy|manana|pasado manana|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b|\b\d{1,2}\s*\/\s*\d{1,2}\b|\b\d{1,2} de [a-z]+\b/,
+  // El `(\s*[ap]\.?\s*m\.?)?` de en medio corrige un fallo, no relaja el
+  // criterio: «de 7:00 a. m. a 8:00 p. m.» es un rango horario escrito con
+  // todas las letras y el patrón viejo NO lo veía, porque esperaba «de 7:00 a
+  // 8:00» y el «a. m.» del medio lo partía. Se descubrió el 14 de agosto de
+  // 2026 mirando aviso por aviso, no leyendo el regex.
   duracion:
-    /\b(de|desde)\s*(las\s*)?\d{1,2}(:\d{2})?\s*(a|hasta|-)\s*(las\s*)?\d{1,2}(:\d{2})?|\bhasta (las|nuevo aviso|el)\b|\btodo el dia\b|\bdurante (todo|\d+|el)\b|\b(por|durante)\s*\d+\s*(hora|dia|minuto)|\b\d+\s*horas\b|\baproximadamente\s*\d+/,
+    /\b(de|desde)\s*(las\s*)?\d{1,2}(:\d{2})?(\s*[ap]\.?\s*m\.?)?\s*(a|hasta|-)\s*(las\s*)?\d{1,2}(:\d{2})?(\s*[ap]\.?\s*m\.?)?|\bhasta (las|nuevo aviso|el)\b|\btodo el dia\b|\bdurante (todo|\d+|el)\b|\b(por|durante)\s*\d+\s*(hora|dia|minuto)|\b\d+\s*horas\b|\baproximadamente\s*\d+/,
+  // Los plurales faltaban y era un agujero, no un criterio: la lista traía
+  // `area` y `zona` en singular, así que «mantenimiento en las áreas comunes»
+  // —que es literalmente decir a qué parte del conjunto afecta— salía como si
+  // no dijera nada. Mismo caso con torres, pisos y unidades.
+  //
+  // Lo que NO se añadió, y es deliberado: «estimados residentes». Es un saludo,
+  // no una declaración de alcance, y meterlo haría que CUALQUIER comunicado
+  // formal puntuara aquí sin decir a quién afecta. La tentación existía porque
+  // habría subido justo la serie que interesaba subir.
   alcance:
-    /\b(torre|bloque|departamento|depto|dpto|apartamento|piso|casa|unidad|zona|area|sector|todo el (edificio|conjunto|condominio)|todos los (departamentos|residentes|copropietarios|vecinos)|planta baja|subsuelo)\b/,
+    /\b(torres?|bloques?|departamentos?|deptos?|dptos?|apartamentos?|pisos?|casas?|unidad(es)?|zonas?|areas?|sector(es)?|todo el (edificio|conjunto|condominio)|todos los (departamentos|residentes|copropietarios|vecinos)|planta baja|subsuelo)\b/,
   accion:
     /\b(favor de|por favor|les? (pedimos|solicitamos|rogamos)|se solicita|deben|deberan|debera|tienen que|recomendamos|les recomendamos|sugerimos|abstenerse|evitar|evite|almacenar|almacene|retirar|retire|no (olviden|dejen|estacionen)|recuerden|acercarse|comunicarse|reportar|traer|presentar)\b/,
 };

@@ -118,6 +118,53 @@ modelo acertó las dos veces; la pantalla se lo dijo; se publicó sin ello.
 **Cero invenciones.** Nada en los textos contradice ni excede lo que se ve del
 aviso. Las dos reglas duras del 13 de agosto siguen sosteniéndose.
 
+## Añadido el 14 de agosto: la primera comparación de H2′, y por qué no la cierra
+
+**Se pudo hacer sin pedirle nada a nadie.** El administrador de la sesión del 13
+es el autor `D e l` del corpus de Park Coyoacán —lo confirmó David—, así que su
+**línea base personal ya estaba medida**: 27 avisos suyos, escritos a mano en su
+WhatsApp, años antes de ver la herramienta. Imposible de contaminar.
+
+Sus dos avisos asistidos se pasaron por **el mismo script**, no por una lectura a
+ojo: mezclar tamices es el error que este documento advierte dos secciones más
+arriba.
+
+```
+D e l, a mano ... 1,33 de 4   (27 avisos)
+D e l, con IA ... 2,00 de 4   (2 avisos)
+```
+
+**Y aun así no cierra H2′, por una razón que vale más que el número.** La primera
+corrida daba lo contrario —1,26 a mano contra 1,00 con IA, o sea que la
+herramienta empeoraba los avisos—. Al mirar aviso por aviso aparecieron **dos
+fallos del tamiz** que se comían datos escritos: la duración no reconocía «de
+7:00 **a. m.** a 8:00 p. m.», y el alcance tenía `area` y `zona` en singular.
+Corregidos y corridos sobre los tres archivos:
+
+| | Antes | Después | Delta |
+|---|---|---|---|
+| México (91 avisos) | 1,22 | 1,31 | +0,09 |
+| Ecuador (40 avisos) | 1,07 | 1,13 | +0,06 |
+| **Asistidos (4 avisos)** | 1,00 | **1,50** | **+0,50** |
+
+La corrección fue la misma para los tres; **el efecto no**, y esa asimetría es la
+prueba de que el tamiz viejo penalizaba la prosa de comunicado, que es justo la
+que produce la herramienta.
+
+**Con n=2, quien decide el signo no son los datos: es el tamiz.** Una comparación
+que se da la vuelta al arreglar dos expresiones regulares no sostiene una
+decisión de producto. Lo que sí queda afirmado: **las dos lecturas anteriores
+—la de a ojo y la del tamiz viejo— eran malas, y la segunda lo era de forma
+sistemática.**
+
+**Cómo se cierra, y ya no hace falta un administrador nuevo:** ocho o diez avisos
+asistidos más **de `D e l`**, cuya línea base tiene 27 de profundidad. No exige
+sesión ni observador —la instrumentación captura sola— y de paso empieza a morder
+G6. Debe hacerlos en `conjunto-las-playas`, que tiene agrupaciones como su
+edificio real; moverlo a un edificio único le cambiaría el comportamiento del
+borrador. **Aparcado por decisión de David el 14 de agosto:** el programa avanza
+por otro frente primero.
+
 ## Lo que esta sesión NO midió
 
 - **H2′**, por falta de línea base. Es lo que venía a medir.

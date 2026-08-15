@@ -27,9 +27,20 @@ son comparables entre sí, y esa es toda su utilidad.
 > Estos porcentajes **no son** los del análisis del 12 de agosto. Aquel, sobre
 > 71 avisos, daba alcance 52%, cuándo 43%, acción 16% y duración 5%. Este, con
 > detectores distintos, encuentra 91 avisos en el mismo corpus y da otros
-> desgloses. **La media coincide casi exacta —1,22 contra 1,2— y eso es lo
+> desgloses. **La media coincide casi —1,31 contra 1,2— y eso es lo
 > tranquilizador**, pero los desgloses no son intercambiables. No mezclar las
 > dos series en una misma tabla.
+
+> **CIFRAS CORREGIDAS EL 14 DE AGOSTO DE 2026.** Este documento decía 1,22 y
+> 1,07. Al medir los avisos asistidos del canario con este mismo script
+> aparecieron **dos fallos de los detectores**, y los dos se comían datos que
+> estaban escritos: la duración no reconocía «de 7:00 **a. m.** a 8:00 p. m.»
+> —el meridiano partía el patrón— y el alcance tenía `area` y `zona` en
+> singular, así que «las **áreas** comunes» no contaba. Corregidos, y **corridos
+> otra vez los dos corpus**, que es lo que mantiene comparables las cifras. Las
+> de aquí ya son las nuevas. Lo que **no** se añadió, pudiendo: «estimados
+> residentes» como alcance — es un saludo, no dice a quién afecta, y añadirlo
+> habría subido justo la serie que interesaba subir.
 
 ## El resultado
 
@@ -38,25 +49,25 @@ son comparables entre sí, y esa es toda su utilidad.
 | Mensajes | 7.352 | 4.358 |
 | Periodo | 2 años y 5 meses | **6 años y 9 meses** |
 | Avisos operativos | 91 | 40 |
-| **Media de datos de 4** | **1,22** | **1,07** |
-| A quién afecta | 34% | **13%** |
+| **Media de datos de 4** | **1,31** | **1,13** |
+| A quién afecta | 42% | **18%** |
 | Cuándo | 45% | **63%** |
 | Qué debe hacer | 29% | 23% |
-| **Cuánto dura** | **14%** | **10%** |
+| **Cuánto dura** | **15%** | **10%** |
 | Autores de avisos | 16 | 12 |
 
 ## Lo que se confirma
 
-**La hipótesis aguanta.** Los avisos de un edificio de Quito traen **1,07 de 4
-datos**; los de uno de Ciudad de México, 1,22. Dos países, dos edificios,
+**La hipótesis aguanta.** Los avisos de un edificio de Quito traen **1,13 de 4
+datos**; los de uno de Ciudad de México, 1,31. Dos países, dos edificios,
 prácticamente el mismo número. El problema que el canario intenta resolver no
 era una peculiaridad de un conjunto.
 
-**Y es peor de lo que parecía:** en Ecuador, **31 de 40 avisos traen uno o
-ninguno de los cuatro datos** —el 78%, contra el 64% de México—. **Ninguno llega
+**Y es peor de lo que parecía:** en Ecuador, **30 de 40 avisos traen uno o
+ninguno de los cuatro datos** —el 75%, contra el 59% de México—. **Ninguno llega
 a los cuatro.** En México llegaba uno de 91.
 
-**«Cuánto dura» es el peor dato en los dos países.** 14% en México, 10% en
+**«Cuánto dura» es el peor dato en los dos países.** 15% en México, 10% en
 Ecuador. Es la confirmación que más importa, porque es la decisión de producto
 más visible de toda la pantalla: la lista de lo que falta pone la duración
 arriba del todo. **Esa decisión se sostiene en dos países, no en uno.**

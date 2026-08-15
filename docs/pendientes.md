@@ -192,8 +192,9 @@ datos. Lectura completa en
 
 **Y hay un segundo corpus.** `datasets/chat-vecinal-ecuador/` — un edificio de
 Quito, seis años y nueve meses. Contesta la limitación que arrastraban los tres
-documentos del canario: **los cuatro datos generalizan** (1,07 de 4 en Ecuador
-contra 1,22 en México) y **«cuánto dura» es el peor dato en los dos países**, que
+documentos del canario: **los cuatro datos generalizan** (1,13 de 4 en Ecuador
+contra 1,31 en México, cifras corregidas el 14 de agosto al arreglar dos
+detectores del tamiz) y **«cuánto dura» es el peor dato en los dos países**, que
 es lo que sostiene la decisión más visible de la pantalla. De paso reinterpreta
 la mitad de los fallos que le quedan al modelo: pedir «a quién afecta» donde no
 aplica no es defecto del modelo, es del diseño — el conjunto mexicano tiene
