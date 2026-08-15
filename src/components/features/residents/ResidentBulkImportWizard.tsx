@@ -3,7 +3,9 @@
 /**
  * ResidentBulkImportWizard
  * ────────────────────────
- * Wizard de 4 pasos para importación masiva de residentes/propietarios desde CSV.
+ * Wizard de 5 pasos para importación masiva de residentes/propietarios desde CSV.
+ * El paso de columnas permite usar archivos que NO traen los encabezados de la
+ * plantilla; el catálogo vive en `src/lib/import/field-catalog.ts`.
  * Espeja a UnitBulkImportWizard. Resuelve la unidad por nombre contra las unidades
  * existentes (la unidad debe existir antes). Detecta duplicados por email/documento.
  *
@@ -14,7 +16,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Papa from "papaparse";
 
-import { normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+import { missingRequired, normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+
+import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +53,7 @@ type ParsedRow = {
   isDuplicate: boolean;
 };
 
-type WizardStep = "upload" | "review" | "confirm" | "done";
+type WizardStep = "upload" | "map" | "review" | "confirm" | "done";
 
 type Props = {
   existingUnits: UnitItem[];
@@ -120,6 +124,7 @@ function downloadTemplate() {
 function StepIndicator({ step }: { step: WizardStep }) {
   const steps: { key: WizardStep; label: string }[] = [
     { key: "upload", label: "Archivo" },
+    { key: "map", label: "Columnas" },
     { key: "review", label: "Revisión" },
     { key: "confirm", label: "Confirmar" },
     { key: "done", label: "Listo" },
@@ -155,29 +160,22 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string | null>>({});
 
-  const parseFile = useCallback(
-    (file: File) => {
-      setParseError(null);
-      setFileName(file.name);
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          if (result.data.length === 0) {
-            setParseError("El archivo no contiene filas de datos.");
-            return;
-          }
+  /**
+   * Construye las filas validadas a partir del mapeo. Separado del parseo
+   * porque ahora corre dos veces: con el mapeo sugerido, y otra vez si la
+   * persona lo corrige en el paso de columnas.
+   */
+  const buildRows = useCallback(
+    (data: Record<string, string>[], mapping: Record<string, string | null>): ParsedRow[] => {
           const unitByName = new Map(existingUnits.map((u) => [normName(u.displayName), u]));
           const existingEmails = new Set(existingPeople.map((p) => (p.email || "").toLowerCase()).filter(Boolean));
           const existingDocs = new Set(existingPeople.map((p) => p.documentNumber || "").filter(Boolean));
 
-          // Igual que en el asistente de unidades: el mapeo columna → campo
-          // destino se resuelve una vez con el catálogo compartido. Hoy es solo
-          // la sugerencia automática y hace lo mismo que hacía `getField`.
-          const mapping = suggestMapping(result.meta.fields ?? [], "person");
-
-          const parsed: ParsedRow[] = result.data.map((raw, idx) => {
+          const parsed: ParsedRow[] = data.map((raw, idx) => {
             const errors: string[] = [];
             const fullName = valueFor(raw, mapping, "person.fullName");
             const email = valueFor(raw, mapping, "person.email");
@@ -215,15 +213,39 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             };
           });
 
-          setRows(parsed);
-          setSelected(new Set(parsed.filter((r) => r.errors.length === 0 && !r.isDuplicate).map((r) => r.rowIndex)));
-          setStep("review");
-        },
-        error: (err) => setParseError(`Error al leer el archivo: ${err.message}`),
-      });
+          return parsed;
     },
     [existingUnits, existingPeople],
   );
+
+  const parseFile = useCallback((file: File) => {
+    setParseError(null);
+    setFileName(file.name);
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        if (result.data.length === 0) {
+          setParseError("El archivo no contiene filas de datos.");
+          return;
+        }
+        const fields = result.meta.fields ?? [];
+        setHeaders(fields);
+        setRawRows(result.data);
+        setMapping(suggestMapping(fields, "person"));
+        setStep("map");
+      },
+      error: (err) => setParseError(`Error al leer el archivo: ${err.message}`),
+    });
+  }, []);
+
+  /** Aplica el mapeo vigente y pasa a revisión. */
+  function applyMapping() {
+    const parsed = buildRows(rawRows, mapping);
+    setRows(parsed);
+    setSelected(new Set(parsed.filter((r) => r.errors.length === 0 && !r.isDuplicate).map((r) => r.rowIndex)));
+    setStep("review");
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -312,6 +334,34 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
         </div>
       )}
 
+      {step === "map" && (
+        <div className="flex flex-col gap-4">
+          <ColumnMappingStep
+            entity="person"
+            headers={headers}
+            rows={rawRows}
+            mapping={mapping}
+            onChange={setMapping}
+          />
+          <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStep("upload");
+                setHeaders([]);
+                setRawRows([]);
+                setMapping({});
+              }}
+            >
+              ← Cambiar archivo
+            </Button>
+            <Button onClick={applyMapping} disabled={missingRequired(mapping, "person").length > 0}>
+              Continuar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {step === "review" && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -359,7 +409,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           </div>
           <p className="text-xs text-[var(--slate-500)]">{selectedCount} residente{selectedCount !== 1 ? "s" : ""} seleccionado{selectedCount !== 1 ? "s" : ""} para importar</p>
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
-            <Button variant="outline" onClick={() => { setStep("upload"); setRows([]); }}>← Cambiar archivo</Button>
+            <Button variant="outline" onClick={() => { setStep("map"); setRows([]); }}>← Volver a columnas</Button>
             <Button onClick={() => setStep("confirm")} disabled={selectedCount === 0}>Continuar ({selectedCount})</Button>
           </div>
         </div>

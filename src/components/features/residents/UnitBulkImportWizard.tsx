@@ -3,16 +3,19 @@
 /**
  * UnitBulkImportWizard
  * ─────────────────────
- * Wizard de 4 pasos para importación masiva de unidades desde CSV.
+ * Wizard de 5 pasos para importación masiva de unidades desde CSV.
  *
  * Paso 1 – UPLOAD    : Botón de selección de archivo + plantilla descargable.
- * Paso 2 – REVIEW    : Tabla con filas válidas / inválidas / duplicadas.
+ * Paso 2 – MAP       : Qué columna del archivo alimenta cada campo destino.
+ * Paso 3 – REVIEW    : Tabla con filas válidas / inválidas / duplicadas.
  *                      Checkboxes para seleccionar cuáles importar.
- * Paso 3 – CONFIRM   : Resumen final antes de escribir en Firestore.
- * Paso 4 – DONE      : Resultado con conteo de unidades importadas.
+ * Paso 4 – CONFIRM   : Resumen final antes de escribir en Firestore.
+ * Paso 5 – DONE      : Resultado con conteo de unidades importadas.
  *
- * Columnas esperadas en el CSV (mayúsculas/minúsculas indiferente):
- *   nombre | torre | tipo | estado
+ * **El archivo ya NO tiene que traer los encabezados de la plantilla.** Esos
+ * —nombre, torre, tipo, estado— siguen reconociéndose solos y precargan el
+ * mapeo; cualquier otro se asigna a mano en el paso 2. El catálogo de campos
+ * destino vive en `src/lib/import/field-catalog.ts`, no aquí.
  *
  * Valores válidos para "tipo" : apartment, house, office, other
  *                               (y alias: apartamento, casa, oficina, otro)
@@ -23,7 +26,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Papa from "papaparse";
 
-import { normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+import { missingRequired, normalizeHeader, suggestMapping, valueFor } from "@/lib/import/field-catalog";
+
+import { ColumnMappingStep } from "./ColumnMappingStep";
 import { Upload, Download, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +54,7 @@ type ParsedRow = {
   duplicateId?: string;
 };
 
-type WizardStep = "upload" | "review" | "confirm" | "done";
+type WizardStep = "upload" | "map" | "review" | "confirm" | "done";
 
 type Props = {
   /** Unidades ya existentes — usadas para detección de duplicados. */
@@ -134,6 +139,7 @@ function downloadTemplate() {
 function StepIndicator({ step }: { step: WizardStep }) {
   const steps: { key: WizardStep; label: string }[] = [
     { key: "upload", label: "Archivo" },
+    { key: "map", label: "Columnas" },
     { key: "review", label: "Revisión" },
     { key: "confirm", label: "Confirmar" },
     { key: "done", label: "Listo" },
@@ -202,90 +208,104 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
   const [importing, setImporting] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string | null>>({});
 
   // ── Parse CSV ──────────────────────────────────────────────────────────────
 
-  const parseFile = useCallback(
-    (file: File) => {
-      setParseError(null);
-      setFileName(file.name);
+  /**
+   * Construye las filas validadas a partir del mapeo. Se separó del parseo
+   * porque ahora se ejecuta DOS veces: al llegar del archivo con el mapeo
+   * sugerido, y otra vez si la persona lo corrige en el paso de columnas.
+   */
+  const buildRows = useCallback(
+    (data: Record<string, string>[], mapping: Record<string, string | null>): ParsedRow[] => {
+      // Construir slug set de unidades existentes para detección de duplicados
+      const existingSlugs = new Map(
+        existingUnits.map((u) => [
+          u.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          u.id,
+        ]),
+      );
 
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          if (result.data.length === 0) {
-            setParseError("El archivo no contiene filas de datos.");
-            return;
-          }
+      return data.map((raw, idx) => {
+        const errors: string[] = [];
 
-          // Construir slug set de unidades existentes para detección de duplicados
-          const existingSlugs = new Map(
-            existingUnits.map((u) => [
-              u.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-              u.id,
-            ]),
-          );
+        const displayName = valueFor(raw, mapping, "unit.displayName");
+        const tower = valueFor(raw, mapping, "unit.tower");
+        const typeRaw = valueFor(raw, mapping, "unit.type").toLowerCase();
+        const statusRaw = valueFor(raw, mapping, "unit.status").toLowerCase();
 
-          // El mapeo columna → campo destino se resuelve UNA vez, con el
-          // catálogo compartido, en vez de buscar alias en cada fila. De
-          // momento es solo la sugerencia automática y hace exactamente lo que
-          // hacía `getField`; el paso donde la persona lo corrige llega en el
-          // siguiente incremento de `PRD-V-FEAT-002`.
-          const mapping = suggestMapping(result.meta.fields ?? [], "unit");
+        if (!displayName) errors.push("Nombre vacío");
+        if (!tower) errors.push("Torre vacía");
 
-          const parsed: ParsedRow[] = result.data.map((raw, idx) => {
-            const errors: string[] = [];
+        const type: UnitType | null = TYPE_ALIASES[typeRaw] ?? null;
+        if (!type) errors.push(`Tipo inválido: "${typeRaw || "vacío"}"`);
 
-            const displayName = valueFor(raw, mapping, "unit.displayName");
-            const tower = valueFor(raw, mapping, "unit.tower");
-            const typeRaw = valueFor(raw, mapping, "unit.type").toLowerCase();
-            const statusRaw = valueFor(raw, mapping, "unit.status").toLowerCase();
+        const status: UnitStatus | null = STATUS_ALIASES[statusRaw] ?? null;
+        if (!status) errors.push(`Estado inválido: "${statusRaw || "vacío"}"`);
 
-            if (!displayName) errors.push("Nombre vacío");
-            if (!tower) errors.push("Torre vacía");
+        const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        const duplicateId = existingSlugs.get(slug);
+        const isDuplicate = Boolean(duplicateId) && errors.length === 0;
 
-            const type: UnitType | null = TYPE_ALIASES[typeRaw] ?? null;
-            if (!type) errors.push(`Tipo inválido: "${typeRaw || "vacío"}"`);
-
-            const status: UnitStatus | null = STATUS_ALIASES[statusRaw] ?? null;
-            if (!status) errors.push(`Estado inválido: "${statusRaw || "vacío"}"`);
-
-            const slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-            const duplicateId = existingSlugs.get(slug);
-            const isDuplicate = Boolean(duplicateId) && errors.length === 0;
-
-            return {
-              rowIndex: idx + 2, // +2: header row + 1-based
-              raw,
-              displayName,
-              tower,
-              type,
-              status,
-              errors,
-              isDuplicate,
-              duplicateId,
-            };
-          });
-
-          setRows(parsed);
-
-          // Pre-seleccionar solo las filas válidas y no duplicadas
-          const preSelected = new Set<number>(
-            parsed
-              .filter((r) => r.errors.length === 0 && !r.isDuplicate)
-              .map((r) => r.rowIndex),
-          );
-          setSelected(preSelected);
-          setStep("review");
-        },
-        error: (err) => {
-          setParseError(`Error al leer el archivo: ${err.message}`);
-        },
+        return {
+          rowIndex: idx + 2, // +2: header row + 1-based
+          raw,
+          displayName,
+          tower,
+          type,
+          status,
+          errors,
+          isDuplicate,
+          duplicateId,
+        };
       });
     },
     [existingUnits],
   );
+
+  const parseFile = useCallback((file: File) => {
+    setParseError(null);
+    setFileName(file.name);
+
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        if (result.data.length === 0) {
+          setParseError("El archivo no contiene filas de datos.");
+          return;
+        }
+        // El archivo ya no va directo a revisión: primero se decide qué columna
+        // alimenta qué campo. Lo que antes era la única resolución posible
+        // —los alias— es ahora solo la sugerencia de partida.
+        const fields = result.meta.fields ?? [];
+        setHeaders(fields);
+        setRawRows(result.data);
+        setMapping(suggestMapping(fields, "unit"));
+        setStep("map");
+      },
+      error: (err) => {
+        setParseError(`Error al leer el archivo: ${err.message}`);
+      },
+    });
+  }, []);
+
+  /** Aplica el mapeo vigente y pasa a revisión. */
+  function applyMapping() {
+    const parsed = buildRows(rawRows, mapping);
+    setRows(parsed);
+
+    // Pre-seleccionar solo las filas válidas y no duplicadas
+    setSelected(
+      new Set<number>(
+        parsed.filter((r) => r.errors.length === 0 && !r.isDuplicate).map((r) => r.rowIndex),
+      ),
+    );
+    setStep("review");
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -440,7 +460,37 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
         </div>
       )}
 
-      {/* ── PASO 2: REVIEW ─────────────────────────────────────────────────── */}
+      {/* ── PASO 2: MAPEO DE COLUMNAS ──────────────────────────────────────── */}
+      {step === "map" && (
+        <div className="flex flex-col gap-4">
+          <ColumnMappingStep
+            entity="unit"
+            headers={headers}
+            rows={rawRows}
+            mapping={mapping}
+            onChange={setMapping}
+          />
+
+          <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStep("upload");
+                setHeaders([]);
+                setRawRows([]);
+                setMapping({});
+              }}
+            >
+              Cambiar archivo
+            </Button>
+            <Button onClick={applyMapping} disabled={missingRequired(mapping, "unit").length > 0}>
+              Continuar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── PASO 3: REVIEW ─────────────────────────────────────────────────── */}
       {step === "review" && (
         <div className="flex flex-col gap-3">
           {/* Resumen */}
@@ -543,7 +593,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
           </p>
 
           <div className="flex justify-between gap-2 border-t border-[var(--slate-200)] pt-3">
-            <Button variant="outline" onClick={() => { setStep("upload"); setRows([]); }}>
+            <Button variant="outline" onClick={() => { setStep("map"); setRows([]); }}>
               ← Cambiar archivo
             </Button>
             <Button
