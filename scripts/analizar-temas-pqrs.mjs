@@ -94,8 +94,14 @@ if (rutas.length === 0) {
   process.exit(1);
 }
 
+// «colombia» y «ecuador» ANTES que el genérico: las tres carpetas empiezan por
+// «chat-vecinal», y la corrida del 15 de agosto imprimió a Colombia con la
+// etiqueta MÉXICO por mirar el prefijo primero.
 const resultados = rutas.map((ruta) =>
-  analizar(ruta, ruta.includes("ecuador") ? "ECUADOR" : ruta.includes("chat-vecinal") ? "MÉXICO" : ruta),
+  analizar(
+    ruta,
+    ruta.includes("colombia") ? "COLOMBIA" : ruta.includes("ecuador") ? "ECUADOR" : ruta.includes("chat-vecinal") ? "MÉXICO" : ruta,
+  ),
 );
 resultados.forEach(imprimir);
 

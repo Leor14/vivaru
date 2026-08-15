@@ -12,8 +12,10 @@ set de PQRS salió de México y Ecuador (`datasets/pqrs/`), y las frecuencias de
 tema que sostienen la taxonomía venían de dos países. Este corpus permite
 comprobar si generalizan a un tercero — y mirar si el hueco de `billing` (15
 casos en el gold set, porque en Ecuador las cuotas son el 1,3% de los mensajes)
-se puede cerrar con material colombiano. Esa pregunta está abierta y se
-responde en `analisis.md` cuando exista.
+se puede cerrar con material colombiano. **Respondido en `analisis.md`:** los
+once temas aguantan; las cuotas dan 1,7% —México es el atípico, no la regla—
+y `billing` no crece por proporción, aunque hay ~35–40 casos utilizables si se
+decide crecerlo a mano.
 
 ## Qué se le hizo
 

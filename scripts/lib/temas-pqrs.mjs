@@ -22,7 +22,10 @@ export const TEMAS = {
   asamblea_administracion: /\b(asambleas?|reunion(es)?|comite|administracion|administradora?|actas?|votacion(es)?|votar|convocatorias?|directivas?|consejo|quorum)\b/,
   obra_mantenimiento: /\b(obras?|reparacion(es)?|reparar|impermeabiliza\w*|pinturas?|pintar|albanil\w*|herrer\w*|refaccion(es)?|mantenimientos?|fachadas?|azoteas?|techos?|grietas?|plomeros?|plomeria)\b/,
   elevadores: /\b(elevador(es)?|ascensor(es)?)\b/,
-  seguridad_porteria: /\b(seguridad|guardias?|vigilan\w*|casetas?|garitas?|porterias?|conserjes?|guardiania|paquetes?|paqueteria|robos?|robar\w*|camaras?|intrusos?)\b/,
+  // «celador» es la voz colombiana del vigilante (28 apariciones en su corpus,
+  // 0 en los otros dos — medido antes de añadirla). Sin ella, Colombia parecía
+  // hablar menos de seguridad de lo que habla: el pipa/tanquero de siempre.
+  seguridad_porteria: /\b(seguridad|guardias?|vigilan\w*|celador(es|a)?s?|casetas?|garitas?|porterias?|conserjes?|guardiania|paquetes?|paqueteria|robos?|robar\w*|camaras?|intrusos?)\b/,
   luz_electricidad: /\b(luz|energia|electric\w*|apagon(es)?|cfe|cortocircuitos?|focos?|lamparas?|medidor(es)?|transformador(es)?)\b/,
   convivencia_ruido: /\b(ruidos?|fiestas?|musica|volumen|escandalos?|mascotas?|perros?|gatos?|convivencia|molestias?|claxon)\b/,
   amenidades: /\b(albercas?|piscinas?|gimnasios?|salon (de eventos|comunal|de usos)|amenidad(es)?|palapas?|asador(es)?|terrazas?|juegos infantiles|areas? verdes?)\b/,
@@ -50,7 +53,12 @@ export const SIN_TEXTO = /\b(imagen omitida|video omitido|documento omitido|audi
  * NO incluye «se editó este mensaje»: eso es un marcador al final de un mensaje
  * real, y filtrarlo tiraría el mensaje entero.
  */
-export const SISTEMA = /(cambio tu codigo de seguridad|se unio usando el enlace|te uniste usando el enlace|anadio a |creo el grupo|cambio el asunto|cambio la descripcion|cambio la imagen del grupo|salio del grupo|elimino a |cambio su numero de telefono|los mensajes y las llamadas estan cifrados|ahora es admin|estableciste este grupo)/;
+export const SISTEMA = /(cambio tu codigo de seguridad|se unio usando el enlace|te uniste usando el enlace|anadio a |creo el grupo|cambio el asunto|cambio la descripcion|cambio la imagen del grupo|salio del grupo|elimino a |cambio su numero de telefono|los mensajes y las llamadas estan cifrados|ahora es admin|estableciste este grupo|se unio con el enlace|se unio desde la comunidad|te uniste a un grupo|creo este grupo)/;
+// Las cuatro últimas alternativas son las grafías del export COLOMBIANO (se
+// midieron 43 líneas vivas el 15 ago 2026: «se unió CON el enlace», «desde la
+// comunidad», «te uniste a un grupo en la comunidad», «creó ESTE grupo»).
+// México y Ecuador usan «usando el enlace» y «creó el grupo», así que añadirlas
+// no puede mover sus cifras — y se recorrieron los tres corpus para comprobarlo.
 
 /**
  * La administración se reconoce por el nombre del remitente en los dos corpus

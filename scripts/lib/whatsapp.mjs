@@ -21,7 +21,13 @@ export function parsear(texto) {
   const mensajes = [];
   for (const linea of texto.split("\n")) {
     // WhatsApp antepone ‎ a las líneas con adjunto o de sistema.
-    const limpia = linea.replace(/‎/g, "");
+    // El marcador «<adjunto: …>» (export CON medios, corpus de Colombia) se
+    // quita del texto: un mensaje que era solo el adjunto queda vacío y los
+    // filtros de cada analizador lo tiran; el texto humano que acompaña al
+    // archivo sobrevive. México y Ecuador (export sin medios, «imagen
+    // omitida») tienen CERO marcadores con ángulo — se midió antes de tocar
+    // esto — así que sus cifras no pueden moverse por este cambio.
+    const limpia = linea.replace(/‎/g, "").replace(/<adjunto:[^>]*>/gi, "");
     const m = CABECERA_IOS.exec(limpia) ?? CABECERA_ANDROID.exec(limpia);
     if (m) {
       mensajes.push({ fecha: m[1], hora: m[2], autor: m[3].trim(), texto: m[4] });

@@ -98,8 +98,13 @@ dos ejes siguen suspendiendo:** `type` **0,53** (umbral 0,70) y `priority`
    `datasets/chat-vecinal-colombia/`, 2.984 mensajes de un conjunto de Bogotá**,
    ya anonimizado con `scripts/anonimizar-chat-colombia.mjs` (llegó descrito
    como «datos limpios» y traía la dirección exacta del edificio — el README
-   del corpus cuenta qué sobrevivía y qué se hizo). Si trae cuotas en volumen,
-   cierra el hueco de `billing`; el `analisis.md` que lo diga no existe aún.
+   del corpus cuenta qué sobrevivía y qué se hizo). **Su `analisis.md` ya
+   respondió lo de las cuotas: 1,7% — Colombia se parece a Ecuador y México es
+   el atípico, así que `billing` NO crece por proporción; pero hay 46
+   candidatos (~35–40 limpios) si se decide crecerlo por muestreo dirigido.**
+   Los once temas aguantan el tercer país sin categorías nuevas; el tamiz ganó
+   «celador», las grafías de sistema colombianas y el marcador `<adjunto:`,
+   con México y Ecuador idénticos al dígito tras cada cambio.
    `buzon_simple` sigue siendo declarar la variante en unos cuantos casos.
 4. **El baseline de G1 sigue TBD** en la propia PRD: volumen de tickets, tiempo
    de primera respuesta, reclasificaciones. No lo da ningún corpus, y producción
