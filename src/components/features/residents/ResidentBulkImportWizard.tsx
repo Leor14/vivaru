@@ -9,8 +9,9 @@
  * Espeja a UnitBulkImportWizard. Resuelve la unidad por nombre contra las unidades
  * existentes (la unidad debe existir antes). Detecta duplicados por email/documento.
  *
- * Columnas esperadas (mayúsc/minúsc indiferente):
+ * Columnas que se reconocen solas (mayúsc/minúsc indiferente):
  *   nombre | email | telefono | documento | unidad | rol
+ * Cualquier otro encabezado se asigna a mano en el paso de columnas.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -359,11 +360,33 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             <Button variant="outline" onClick={downloadTemplate}><Download className="mr-2 h-4 w-4" /> Descargar plantilla</Button>
           </div>
           <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleFileChange} />
+          {/* Espeja la tarjeta del asistente de unidades: qué hace esto, qué NO
+              hace, y por qué va en segundo lugar. */}
+          <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs font-semibold text-blue-800">
+              ¿Qué importa este archivo y qué no?
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              <strong>Este es el paso 2.</strong> Crea a las personas del conjunto —propietarios,
+              inquilinos— y <strong>engancha cada una a la unidad en la que vive</strong>. Por eso
+              las unidades van antes: si no existen, no hay a qué engancharlas y ninguna fila entra.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              <strong>No envía invitaciones ni crea accesos.</strong> Nadie recibe un correo por
+              importar. Avisar a los residentes para que entren a Vivaru es un paso aparte, cuando
+              tú lo decidas.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              Con nombre, correo y unidad basta para arrancar; el teléfono y el documento se
+              pueden completar después.
+            </p>
+          </div>
+
           <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold text-blue-800">Rol (valores aceptados)</p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
               <strong>propietario</strong> (residente) · <strong>inquilino</strong> · <strong>inversionista</strong> (propietario no residente) · <strong>otro</strong>.
-              La unidad debe existir; si no la encuentra por nombre, la fila se marca inválida.
+              Define qué ve cada persona y qué puede hacer dentro de Vivaru.
             </p>
           </div>
         </div>

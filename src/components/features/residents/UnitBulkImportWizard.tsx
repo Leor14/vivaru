@@ -458,10 +458,13 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose }: Props
               (el apartamento, la casa, el local). <strong>No crea residentes, propietarios ni accesos.</strong>
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
-              Una vez importadas las unidades, el siguiente paso es ir a la tabla de residentes
-              y usar <strong>"Crear persona"</strong> para vincular al titular de cada unidad,
-              uno a uno. Esta separación es intencional: una unidad puede existir sin residente
-              activo (vacía, en remodelación, propietario no ocupante).
+              Cuando termines, el <strong>paso 2 es «Cargar residentes»</strong>: las personas
+              se importan aparte y cada una se engancha a la unidad en la que vive. Si son
+              pocas, también puedes darlas de alta a mano con «Crear persona».
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+              La separación es intencional: una unidad puede existir sin nadie dentro —vacía,
+              en remodelación, o de un propietario que no vive ahí— y por eso se cargan primero.
             </p>
           </div>
         </div>
