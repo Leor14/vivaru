@@ -46,6 +46,21 @@ export interface ImportField {
   aliases: readonly string[];
   /** Valor de ejemplo para la plantilla descargable. */
   example: string;
+  /**
+   * Cuánto se espera que se repitan los valores de esta columna.
+   *
+   * **Es lo único que se puede juzgar de un campo de texto libre.** «Tipo» y
+   * «estado» tienen un vocabulario cerrado y se reconocen por su contenido;
+   * «nombre de la unidad» y «torre» aceptan cualquier cosa, así que mirar qué
+   * dicen no sirve — pero **cuánto se repiten sí los distingue**: el
+   * identificador de una unidad es casi siempre único, y la torre se repite en
+   * decenas de unidades.
+   *
+   * Salió de un archivo real el 14 de agosto de 2026, donde «Nombre» quedó
+   * apuntando a una columna que decía «Edificio A» tres veces y la revisión lo
+   * dio por bueno: habrían entrado tres unidades con el mismo nombre.
+   */
+  cardinality?: "alta" | "baja";
 }
 
 /**
@@ -64,6 +79,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     required: true,
     aliases: ["nombre", "name", "unidad", "unit", "displayname"],
     example: "T1-101",
+    cardinality: "alta",
   },
   {
     key: "unit.tower",
@@ -72,6 +88,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     required: false,
     aliases: ["torre", "tower"],
     example: "T1",
+    cardinality: "baja",
   },
   {
     key: "unit.type",
@@ -98,6 +115,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     required: true,
     aliases: ["nombre", "name", "fullname"],
     example: "Ana Pérez",
+    cardinality: "alta",
   },
   {
     key: "person.email",
@@ -106,6 +124,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     required: true,
     aliases: ["email", "correo", "e-mail"],
     example: "ana@correo.com",
+    cardinality: "alta",
   },
   {
     key: "person.phone",
@@ -197,6 +216,17 @@ function muestraDe(rows: readonly Record<string, string>[], header: string): str
     if (out.length === MUESTRA) break;
   }
   return out;
+}
+
+/**
+ * Proporción de valores distintos en la columna. 1 = todos distintos, y cerca
+ * de 0 = uno repetido. Es lo que separa un identificador de una agrupación sin
+ * entender ni una palabra de lo que dicen.
+ */
+function variedad(rows: readonly Record<string, string>[], header: string): number | null {
+  const muestra = muestraDe(rows, header);
+  if (muestra.length < 2) return null;
+  return new Set(muestra).size / muestra.length;
 }
 
 /** Proporción de la muestra que el campo acepta. Sin muestra, `null`. */
@@ -296,6 +326,34 @@ export function suggestMapping(
     }
   }
 
+  // 4 · variedad, el último recurso para el texto libre que nadie resolvió.
+  // **Va DESPUÉS de la contención y eso no es un detalle:** puesta antes se
+  // llevaba «No. Depto» al nombre de la persona solo porque no repetía
+  // valores, y dejaba sin unidad un archivo que el nombre resolvía bien. La
+  // evidencia del encabezado, aunque sea difusa, manda sobre la estadística.
+  if (rows.length > 1) {
+    for (const field of campos) {
+      if (mapping[field.key] || !field.cardinality) continue;
+
+      let mejor: { original: string; ratio: number } | null = null;
+      for (const h of normalizados) {
+        if (taken.has(h.original)) continue;
+        const ratio = variedad(rows, h.original);
+        if (ratio === null) continue;
+
+        if (field.cardinality === "alta" && ratio >= 0.9) {
+          if (!mejor || ratio > mejor.ratio) mejor = { original: h.original, ratio };
+        } else if (field.cardinality === "baja" && ratio <= 0.5) {
+          if (!mejor || ratio < mejor.ratio) mejor = { original: h.original, ratio };
+        }
+      }
+      if (mejor) {
+        mapping[field.key] = mejor.original;
+        taken.add(mejor.original);
+      }
+    }
+  }
+
   return mapping;
 }
 
@@ -331,8 +389,32 @@ export function mappingIssues(
 
   for (const field of fieldsFor(entity)) {
     const header = mapping[field.key];
+    if (!header) continue;
+
+    // Texto libre: lo único juzgable es cuánto se repite.
+    if (field.cardinality) {
+      const ratio = variedad(rows, header);
+      const distintos = new Set(muestraDe(rows, header)).size;
+      if (ratio !== null) {
+        if (field.cardinality === "alta" && distintos === 1) {
+          avisos[field.key] = {
+            nivel: "bloquea",
+            mensaje: `«${header}» repite el mismo valor en todas las filas, así que no puede ser este dato: entrarían filas idénticas.`,
+          };
+          continue;
+        }
+        if (field.cardinality === "baja" && ratio === 1) {
+          avisos[field.key] = {
+            nivel: "duda",
+            mensaje: `«${header}» no repite ningún valor. Si de verdad cada unidad está en su propia agrupación está bien; si no, revisa la columna.`,
+          };
+          continue;
+        }
+      }
+    }
+
     const aceptados = accepted[field.key];
-    if (!header || !aceptados || aceptados.length === 0) continue;
+    if (!aceptados || aceptados.length === 0) continue;
 
     const ratio = encaje(rows, header, aceptados);
     if (ratio === null) continue;

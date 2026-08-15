@@ -271,3 +271,61 @@ describe("los archivos que rompieron el paso de columnas", () => {
     expect(hayBloqueantes(mappingIssues(unidades.rows, "unit", m, ACEPTADOS_UNIDAD))).toBe(false);
   });
 });
+
+/**
+ * El fallo que quedó vivo tras el arreglo del contenido: «Nombre de la unidad»
+ * apuntando a una columna que decía «Edificio A» tres veces. Pasó la revisión
+ * como «3 válidas» y habría creado tres unidades con el mismo nombre.
+ */
+describe("texto libre: lo que distingue un identificador de una agrupación", () => {
+  const headers = ["Identificador", "Edificio", "Clase", "Situación"];
+  const rows = [
+    { Identificador: "EB-201", Edificio: "Edificio A", Clase: "apartamento", "Situación": "activo" },
+    { Identificador: "EB-202", Edificio: "Edificio A", Clase: "apartamento", "Situación": "activo" },
+    { Identificador: "EB-203", Edificio: "Edificio A", Clase: "casa", "Situación": "activo" },
+  ];
+  const ACEPTADOS = {
+    "unit.type": ["apartamento", "casa", "oficina", "otro"],
+    "unit.status": ["activo", "inactivo"],
+  };
+
+  it("ahora el archivo entero se mapea solo, y bien", async () => {
+    const { suggestMapping } = await import("@/lib/import/field-catalog");
+    const m = suggestMapping(headers, "unit", { rows, accepted: ACEPTADOS });
+    // Lo que la persona tuvo que asignar a mano —y asignó al revés—.
+    expect(m["unit.displayName"]).toBe("Identificador");
+    expect(m["unit.tower"]).toBe("Edificio");
+    // Y lo que ya resolvía el contenido.
+    expect(m["unit.type"]).toBe("Clase");
+    expect(m["unit.status"]).toBe("Situación");
+  });
+
+  it("y si aun así se cruzan, el nombre repetido BLOQUEA", async () => {
+    const { mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
+    const cruzado = {
+      "unit.displayName": "Edificio",
+      "unit.tower": "Identificador",
+      "unit.type": "Clase",
+      "unit.status": "Situación",
+    };
+    const avisos = mappingIssues(rows, "unit", cruzado, ACEPTADOS);
+    expect(avisos["unit.displayName"]?.nivel).toBe("bloquea");
+    expect(hayBloqueantes(avisos)).toBe(true);
+    // La torre toda distinta solo levanta una duda: un conjunto pequeño puede
+    // tener de verdad una unidad por agrupación.
+    expect(avisos["unit.tower"]?.nivel).toBe("duda");
+  });
+
+  it("un conjunto con torres de verdad no dispara nada", async () => {
+    const conTorres = [
+      { nombre: "101", torre: "T1" },
+      { nombre: "102", torre: "T1" },
+      { nombre: "201", torre: "T2" },
+    ];
+    const { suggestMapping, mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
+    const m = suggestMapping(["nombre", "torre"], "unit", { rows: conTorres });
+    expect(m["unit.displayName"]).toBe("nombre");
+    expect(m["unit.tower"]).toBe("torre");
+    expect(hayBloqueantes(mappingIssues(conTorres, "unit", m, {}))).toBe(false);
+  });
+});
