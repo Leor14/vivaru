@@ -69,6 +69,16 @@ export default function AdminResidentsPage() {
    * no se sabe.
    */
   const sinUnidades = !loadingUnits && units.length === 0;
+  /**
+   * Personas que están en el padrón pero **no pueden entrar**: sin `authUid`
+   * no hay cuenta. Importar no la crea a propósito —un archivo puede traer
+   * datos viejos o gente que ya no vive ahí, y avisar a 180 personas por error
+   * no se deshace—, así que invitar es un paso posterior y deliberado.
+   */
+  const sinAcceso = people.filter((p) => !p.authUid && p.status === "active");
+  const [enviandoAccesos, setEnviandoAccesos] = useState<{ hechos: number; total: number } | null>(
+    null,
+  );
   const [peopleLoadError, setPeopleLoadError] = useState<string | null>(null);
   const [unitRoleFilter, setUnitRoleFilter] = useState<"all" | PersonItem["occupancyType"]>("all");
   const [unitIdFilter, setUnitIdFilter] = useState<string>("all");
@@ -711,7 +721,7 @@ export default function AdminResidentsPage() {
           personId: primaryPersonId,
           error: provisionError,
         });
-        toast.warning("Unidad y titular creados. No se pudo configurar el acceso automáticamente — usa 'Restablecer acceso' desde la tabla de personas para reenviar el correo.");
+        toast.warning("Unidad y titular creados. No se pudo configurar el acceso automáticamente — usa «Enviar acceso» desde la tabla de personas.");
       }
 
       for (const member of familyMembers) {
@@ -804,6 +814,25 @@ export default function AdminResidentsPage() {
         await updatePerson(editingPerson.id, user.uid, payload);
         toast.success("Persona actualizada.");
       } else {
+        // La carga masiva marca los duplicados por correo o documento y los deja
+        // fuera; este camino no comprobaba nada, así que la misma persona se
+        // podía crear dos veces. Dos reglas distintas para el mismo acto es lo
+        // que hace que un padrón se ensucie sin que nadie sepa por dónde.
+        const correo = (payload.email ?? "").trim().toLowerCase();
+        const documento = (payload.documentNumber ?? "").trim();
+        const yaExiste = people.find(
+          (p) =>
+            (correo && (p.email ?? "").trim().toLowerCase() === correo) ||
+            (documento && (p.documentNumber ?? "").trim() === documento),
+        );
+        if (yaExiste) {
+          toast.error(
+            `Ya existe «${yaExiste.fullName}» con ese correo o documento. Edítala en vez de crear una segunda.`,
+          );
+          setSavingPerson(false);
+          return;
+        }
+
         const personId = await createPerson(user.tenantId, user.uid, payload);
         await provisionResidentTemporaryAccessCallable({
           tenantId: user.tenantId,
@@ -851,6 +880,46 @@ export default function AdminResidentsPage() {
     }
   }
 
+  /**
+   * Envía el acceso a todas las personas que aún no lo tienen.
+   *
+   * **Va una por una a propósito.** La callable recibe una persona, y agrupar
+   * 180 invitaciones en una sola llamada exigiría una función nueva — que nace
+   * sin permiso de invocación en Cloud Run y falla con un «error interno» sin
+   * pista (ver `docs/pendientes.md`). Secuencial es más lento y no falla en
+   * silencio: si una revienta, las demás siguen y al final se dice cuántas.
+   */
+  async function handleEnviarAccesosPendientes() {
+    if (!user?.tenantId || sinAcceso.length === 0) return;
+
+    const total = sinAcceso.length;
+    setEnviandoAccesos({ hechos: 0, total });
+    let ok = 0;
+    const fallidas: string[] = [];
+
+    for (const [i, person] of sinAcceso.entries()) {
+      try {
+        await provisionResidentTemporaryAccessCallable({
+          tenantId: user.tenantId,
+          personId: person.id,
+        });
+        ok += 1;
+      } catch {
+        fallidas.push(person.fullName);
+      }
+      setEnviandoAccesos({ hechos: i + 1, total });
+    }
+
+    setEnviandoAccesos(null);
+    if (fallidas.length === 0) {
+      toast.success(`Acceso enviado a ${ok} persona${ok !== 1 ? "s" : ""}.`);
+    } else {
+      toast.warning(
+        `Acceso enviado a ${ok} de ${total}. No se pudo con: ${fallidas.slice(0, 3).join(", ")}${fallidas.length > 3 ? ` y ${fallidas.length - 3} más` : ""}.`,
+      );
+    }
+  }
+
   async function handleResetTemporaryPassword(person: PersonItem) {
     if (!user?.tenantId) return;
     setSendingResetTo(person.id);
@@ -859,7 +928,11 @@ export default function AdminResidentsPage() {
         tenantId: user.tenantId,
         personId: person.id,
       });
-      toast.success("Acceso restablecido. Se envió al residente un correo para que defina una nueva contraseña.");
+      toast.success(
+        person.authUid
+          ? "Acceso restablecido. Se envió al residente un correo para que defina una nueva contraseña."
+          : "Acceso enviado. El residente recibió un correo para definir su contraseña y entrar por primera vez.",
+      );
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -952,7 +1025,7 @@ export default function AdminResidentsPage() {
               <Upload className="mr-2 h-4 w-4" />
               2 · Cargar residentes
             </Button>
-            <Button variant="outline" onClick={openCreateUnit}>Crear unidad</Button>
+            <Button variant="outline" onClick={openCreateUnit}>Crear unidad y titular</Button>
           </div>
         </div>
         {sinUnidades && (
@@ -960,6 +1033,26 @@ export default function AdminResidentsPage() {
             Empieza por las unidades. Cada persona se vincula a la suya, así que importar
             residentes antes deja todas las filas sin unidad a la que engancharse.
           </p>
+        )}
+        {!sinUnidades && sinAcceso.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-sm text-amber-900">
+              <strong>
+                {sinAcceso.length} persona{sinAcceso.length !== 1 ? "s" : ""} sin acceso
+              </strong>{" "}
+              — están en el padrón pero todavía no pueden entrar a Vivaru. Importar no envía
+              invitaciones: se hace aquí, cuando hayas comprobado que los datos están bien.
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => void handleEnviarAccesosPendientes()}
+              disabled={enviandoAccesos !== null}
+            >
+              {enviandoAccesos
+                ? `Enviando ${enviandoAccesos.hechos} de ${enviandoAccesos.total}…`
+                : `Enviar acceso a ${sinAcceso.length}`}
+            </Button>
+          </div>
         )}
       </Card>
 
@@ -1272,7 +1365,12 @@ export default function AdminResidentsPage() {
                   extraItems={[
                     {
                       key: "reset-password",
-                      label: sendingResetTo === person.id ? "Enviando..." : "Reenviar acceso",
+                      label:
+                        sendingResetTo === person.id
+                          ? "Enviando..."
+                          : person.authUid
+                            ? "Reenviar acceso"
+                            : "Enviar acceso",
                       icon: <KeyRound className="h-3.5 w-3.5" />,
                       disabled: sendingResetTo === person.id,
                       onSelect: () => void handleResetTemporaryPassword(person),

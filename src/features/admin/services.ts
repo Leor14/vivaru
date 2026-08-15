@@ -55,6 +55,17 @@ export type PersonItem = {
   unitId: string;
   tower: string;
   status: "active" | "inactive";
+  /**
+   * Uid de la cuenta de acceso, escrito por `provisionResidentTemporaryAccess`
+   * cuando se le envía el correo para definir contraseña.
+   *
+   * **Su ausencia es el indicador de «existe en el padrón pero no puede
+   * entrar».** Importar personas NO lo crea —decisión de producto: un archivo
+   * puede traer datos viejos o gente que ya no vive ahí, y avisar a 180
+   * personas por error no se deshace—. Invitar es un paso posterior y
+   * deliberado.
+   */
+  authUid?: string;
   createdAt: string;
   updatedAt: string;
 };
