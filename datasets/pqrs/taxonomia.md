@@ -260,6 +260,57 @@ sin medir.
 
 ---
 
+## Qué hay dentro, a 15 de agosto de 2026
+
+**152 casos**, no los 200 previstos. Se dice el número real porque un conjunto
+inflado con casos flojos da un número alto y no mide nada.
+
+| | Casos |
+|---|---|
+| México (`chat-vecinal`) | 84 |
+| Ecuador (`chat-vecinal-ecuador`) | 60 |
+| Sintéticos (solo inyección) | 8 |
+
+| Eje | Reparto |
+|---|---|
+| `category` | `pqrs` 93 · `maintenance` 44 · `billing` 15 |
+| `type` | `claim` 55 · `petition` 40 · `complaint` 23 · `suggestion` 22 · `other` 12 |
+| `priority` | `low` 66 · `medium` 65 · `high` 21 |
+| Banderas | `sin_contexto` 18 · `enfado` 11 · `prompt_injection` 8 · `dato_faltante` 5 · `multi_tema` 4 |
+
+Los once temas tienen entre 9 y 24 casos. Los difíciles son el **30%** del
+conjunto, por debajo del 40% que se buscaba.
+
+**Tres huecos, dichos antes de que los encuentre alguien:**
+
+- **`billing` tiene 15 casos**, que es poco para medir exactitud de `category`.
+  No es descuido del muestreo: en Ecuador `cuotas_pagos` es el 1,3% del corpus,
+  y ahí no hay más material. Se cierra con tickets reales, no con este corpus.
+- **`high` tiene 21 casos.** Bastan para que el recall no salte veinte puntos
+  por un fallo, pero es el mínimo. La prueba exige ≥15 para que no baje de ahí.
+- **Solo hay variante `con_sla`.** `buzon_simple` no tiene ni un caso, y es una
+  variante sin medir. Falta declarar unos cuantos casos en la otra variante y
+  comprobar que el modelo devuelve `category` y `type` en `null`.
+
+### Los archivos, y cuál se edita
+
+| Archivo | Qué es |
+|---|---|
+| `etiquetas.tsv` | **Lo que se edita.** Una fila por caso, revisable sin leer JSON |
+| `sinteticos.json` | Los ocho de inyección, con su texto — no salen de ningún corpus |
+| `gold-set.json` | **Generado. No se edita a mano** |
+
+```bash
+node scripts/construir-gold-set-pqrs.mjs --revisar   # comprueba sin escribir
+node scripts/construir-gold-set-pqrs.mjs             # regenera el JSON
+```
+
+**El texto de cada caso lo pone el corpus, no el que etiqueta.** Tecleándolo se
+cuela una corrección ortográfica sin querer — y la mala ortografía es justo lo
+que hace útil el material. El generador falla si un identificador no existe, si
+está repetido, si una etiqueta se sale del catálogo, o **si el mensaje lo
+escribió la administración**.
+
 ## Cómo se valida el etiquetado
 
 **Doble etiquetado de una muestra de 30–40 casos**, a ciegas, y acuerdo medido
@@ -281,9 +332,17 @@ significa que su definición está mal escrita.** Se reescribe la definición, s
 vuelve a etiquetar la muestra, y se anota qué cambió. Ese registro vale tanto
 como el número.
 
-Y una prueba en CI que valide esquema, identificadores únicos y cobertura mínima
-por etiqueta — el equivalente de `functions/tests/ai-evalset.test.ts`, para que
-un caso mal formado falle ahí y no el día de la evaluación.
+**La prueba ya existe:** `functions/tests/pqrs-goldset.test.ts`, once
+comprobaciones —catálogos, identificadores únicos, cobertura por tema, los dos
+países, los `high` suficientes para medir su recall, y que los sintéticos sean
+solo los de inyección—. Está en `functions/tests/` a propósito y no en `tests/`
+de la raíz: esa suite corre **cero** tests por el glob roto que documenta
+`docs/pendientes.md`, así que un test allí no protegería nada.
+
+**Mutada para comprobar que atrapa**, que es la única forma de saber que una
+prueba sirve: con una etiqueta fuera de catálogo falla «toda etiqueta pertenece
+a su catálogo»; quitándole el hilo a un caso `sin_contexto` falla la suya. Las
+dos vuelven a verde al regenerar desde el TSV.
 
 ---
 

@@ -3,6 +3,55 @@
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
 Actualizado el 15 de agosto de 2026, tras promocionar todo el lote a producción.
 
+## El gold set de PQRS existe, con 152 casos y tres huecos dichos (15 ago 2026)
+
+**Fase 1 de `PRD-VAI-FEAT-002`** —«medir baseline y construir gold set»— a
+medias: el gold set está, el baseline no. Todo en `datasets/pqrs/`, y la
+taxonomía con las definiciones y su evidencia en `datasets/pqrs/taxonomia.md`.
+
+**Cinco ejes.** Los tres primeros son el contrato de la PRD y de `Ticket`, no
+invención: `category`, `type` y `priority`. **`priority` casi se queda fuera**, y
+es el que sostiene el criterio más duro de la PRD —recall de `high` ≥95%—. Los
+otros dos son el tema (once, con frecuencias de dos países) y las banderas.
+
+**152 casos: 84 de México, 60 de Ecuador y 8 sintéticos** de prompt injection,
+que son los únicos que no salen de un corpus real porque un ataque no aparece
+espontáneamente en un chat vecinal. Prueba en
+`functions/tests/pqrs-goldset.test.ts`, mutada para comprobar que atrapa.
+
+**Se edita `etiquetas.tsv`, NO el JSON**, y se regenera con
+`scripts/construir-gold-set-pqrs.mjs`. El texto de cada caso lo pone el corpus:
+tecleándolo se cuela una corrección ortográfica, y la mala ortografía es lo que
+hace útil el material.
+
+**Tres cosas que aparecieron y valen más que el conjunto:**
+
+- **Las definiciones de `type` estaban cruzadas.** Se habían escrito en el eje de
+  la severidad; el canónico es **de quién o de qué se queja** — persona (queja)
+  contra servicio (reclamo). Verificado contra fuente pública, con su límite
+  anotado: ese marco regula entidades públicas y una copropiedad es privada.
+- **Los avisos del comité contaminaban el muestreo.** Un aviso es la salida del
+  administrador; un ticket es la entrada del residente. Filtrar por remitente no
+  basta: 27 de 83 avisos mexicanos los escriben residentes del comité.
+- **«Cambió tu código de seguridad» inflaba `seguridad_porteria`.** Lo escribe
+  WhatsApp, no una persona: 89 en México y 141 en Ecuador, y el tema entero en
+  Ecuador tenía 132. Corregido, baja del tercer puesto al sexto en México. **No
+  se vio contando, se vio muestreando** — el contador se creía sus cifras porque
+  el ruido pasaba su propio tamiz.
+
+**Lo que falta, en orden:**
+
+1. **El doble etiquetado.** 30–40 casos a ciegas, acuerdo por eje con kappa de
+   Cohen (≥0,70; ≥0,60 en `priority`, que es el más subjetivo). **Sin acuerdo
+   medido, «gold» es una opinión.** Es trabajo de David, y sin él el conjunto no
+   está validado.
+2. **`billing` tiene 15 casos y `buzon_simple` ninguno.** El primero no se
+   arregla con este corpus —en Ecuador las cuotas son el 1,3%—; el segundo es
+   declarar la variante en unos cuantos casos.
+3. **El baseline de G1 sigue TBD** en la propia PRD: volumen de tickets, tiempo
+   de primera respuesta, reclasificaciones. No lo da ningún corpus, y producción
+   tiene **cero tickets**.
+
 ## Todo el lote está en producción, verificado contra el ambiente (15 ago 2026)
 
 **`master` quedó en `512ba38`: 75 commits promocionados**, los primeros desde el

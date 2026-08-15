@@ -42,6 +42,9 @@ const min = Number(arg("min", 60));
 const max = Number(arg("max", 700));
 const soloPreguntas = bandera("preguntas");
 const incluirAvisos = bandera("incluir-avisos");
+// Las preguntas cortas son inclasificables solas: el contexto está en los
+// mensajes anteriores. Ver la sección de preguntas cortas en la taxonomía.
+const contextoN = Number(arg("contexto", 0));
 
 if (temaPedido && !TEMAS[temaPedido]) {
   console.error(`Tema desconocido: ${temaPedido}`);
@@ -83,7 +86,14 @@ for (const ruta of rutas) {
     if (temaPedido && !temas.includes(temaPedido)) return;
     if (!temaPedido && temas.length === 0) return;
 
-    candidatos.push({ id, fecha: m.fecha, temas, texto: m.texto });
+    const previos = [];
+    if (contextoN > 0) {
+      for (let i = Math.max(0, indice - contextoN); i < indice; i++) {
+        const quien = esAdmin(mensajes[i].autor, norm) ? "ADMIN" : "vecino";
+        previos.push(`[${quien}] ${mensajes[i].texto.replace(/\n/g, " ⏎ ")}`);
+      }
+    }
+    candidatos.push({ id, fecha: m.fecha, temas, texto: m.texto, previos });
   });
 
   if (idPedido) continue;
@@ -99,7 +109,8 @@ for (const ruta of rutas) {
   for (let i = 0; i < candidatos.length && i / paso < n; i += paso) {
     const c = candidatos[i];
     console.log(`\n${c.id}  ${c.fecha}  [${c.temas.join(" ")}]`);
-    console.log(`  ${c.texto.replace(/\n/g, "\n  ")}`);
+    for (const p of c.previos) console.log(`  · ${p}`);
+    console.log(`  ▶ ${c.texto.replace(/\n/g, "\n    ")}`);
   }
 }
 console.log();
