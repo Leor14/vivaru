@@ -18,37 +18,10 @@
 
 import { readFileSync } from "node:fs";
 
-/**
- * Dos formatos de export conviven en los corpus y no son intercambiables:
- *
- *   iOS      `[13/8/26, 9:41:02 p. m.] Remitente: mensaje`
- *   Android  `13/8/2026, 21:41 - Remitente: mensaje`
- *
- * Si el parser solo entiende uno, el otro corpus sale con cero mensajes y
- * parece que no hay avisos — que es una forma silenciosa de equivocarse.
- */
-const CABECERA_IOS = /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),\s*([\d:]+\s*(?:[ap]\.?\s*m\.?)?)\]\s*([^:]{1,80}?):\s*([\s\S]*)$/;
-const CABECERA_ANDROID = /^(\d{1,2}\/\d{1,2}\/\d{2,4}),\s*(\d{1,2}:\d{2})\s*-\s*([^:]{1,80}?):\s*([\s\S]*)$/;
-
-function parsear(texto) {
-  const mensajes = [];
-  for (const linea of texto.split("\n")) {
-    // WhatsApp antepone ‎ a las líneas con adjunto o de sistema.
-    const limpia = linea.replace(/‎/g, "");
-    const m = CABECERA_IOS.exec(limpia) ?? CABECERA_ANDROID.exec(limpia);
-    if (m) {
-      mensajes.push({ fecha: m[1], hora: m[2], autor: m[3].trim(), texto: m[4] });
-    } else if (mensajes.length > 0 && limpia.trim()) {
-      // Continuación: los avisos largos ocupan varias líneas, y perderlas
-      // partiría justo los mensajes que más interesan.
-      mensajes[mensajes.length - 1].texto += "\n" + limpia;
-    }
-  }
-  return mensajes;
-}
-
-const norm = (s) =>
-  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+// El parser vive en `lib/whatsapp.mjs` desde el 15 de agosto de 2026, para que
+// este script y `analizar-temas-pqrs.mjs` pasen por el mismo. Verificado al
+// extraerlo: la salida de este script no cambió ni un byte.
+import { parsear, norm } from "./lib/whatsapp.mjs";
 
 /** Verbos con los que se anuncia algo. Sin uno de estos no es un aviso. */
 const ANUNCIA = /\b(les? informo|les? informamos|se informa|informamos|comunicamos|se comunica|les? comunico|se realizara|se realizaran|se llevara a cabo|habra|tendremos|se suspende|se suspendera|se cortara|recordamos|les recuerdo|se recuerda|reporte de trabajos|aviso|atencion|convocatoria|se convoca)\b/;
