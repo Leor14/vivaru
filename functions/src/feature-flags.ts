@@ -31,6 +31,7 @@ export type FeatureFlagKey =
   | "ai-onboarding-column-mapping"
   | "ai-receipts-extraction"
   | "ia-proveedor-real"
+  | "producto-importacion-masiva"
   | "operacion-app-check-monitor";
 
 /**
@@ -47,6 +48,9 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "ai-receipts-extraction": false,
   // Apagada = proveedor simulado. Encenderla es lo que empieza a gastar dinero.
   "ia-proveedor-real": false,
+  // Encendida porque los dos asistentes de importación ya estaban vivos antes
+  // que la bandera. Ver el catálogo en `src/`.
+  "producto-importacion-masiva": true,
   // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
   "operacion-app-check-monitor": true,

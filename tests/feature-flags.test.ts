@@ -17,12 +17,22 @@ const KEY = "ai-communications-draft" as const;
 describe("catálogo de banderas", () => {
   it("toda capacidad nueva nace apagada", () => {
     // La regla del catálogo tiene dos mitades: capacidad nueva → false; bandera
-    // puesta sobre algo que ya está vivo → true. Hoy el catálogo solo tiene lo
-    // primero, y eso es lo que se fija aquí.
+    // puesta sobre algo que ya está vivo → true. Aquí se fija la primera, que
+    // es la que aplica a todo lo de IA: nada llega al proveedor sin un acto
+    // consciente.
     for (const key of FEATURE_FLAG_KEYS) {
       if (FEATURE_FLAG_CATALOG[key].area !== "ia") continue;
       expect(FEATURE_FLAG_CATALOG[key].defaultEnabled).toBe(false);
     }
+  });
+
+  it("una bandera sobre algo que ya está vivo nace encendida", () => {
+    // La otra mitad de la regla, y no es teórica: los dos asistentes de
+    // importación llevaban meses en producción cuando se les puso bandera. Si
+    // naciera apagada, añadirla habría apagado la función para todos —que es
+    // exactamente lo contrario de para lo que se puso.
+    expect(FEATURE_FLAG_CATALOG["producto-importacion-masiva"].defaultEnabled).toBe(true);
+    expect(resolveFeatureFlag("producto-importacion-masiva", {}).enabled).toBe(true);
   });
 
   it("el resolutor obedece el default del catálogo, no un false fijo", () => {

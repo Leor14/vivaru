@@ -12,6 +12,7 @@ import { db } from "@/lib/firebase/client";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { UnitBulkImportWizard } from "@/components/features/residents/UnitBulkImportWizard";
 import { ResidentBulkImportWizard } from "@/components/features/residents/ResidentBulkImportWizard";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { Modal } from "@/components/shared/modal";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -97,6 +98,14 @@ export default function AdminResidentsPage() {
   const [unitTypeTableFilter, setUnitTypeTableFilter] = useState<"all" | UnitItem["type"]>("all");
   const [unitStatusTableFilter, setUnitStatusTableFilter] = useState<"all" | UnitItem["status"]>("all");
   const [unitNoPersonFilter, setUnitNoPersonFilter] = useState(false);
+
+  /**
+   * Interruptor de la carga masiva. Nace encendida —los dos asistentes ya
+   * existían—, así que esto no cambia nada mientras nadie la baje. Apagada, el
+   * padrón se llena a mano: es el freno si un archivo real destapa algo que las
+   * pruebas no vieron, y se baja desde `/superadmin/flags` sin desplegar.
+   */
+  const importacionMasiva = useFeatureFlag("producto-importacion-masiva");
 
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [residentImportOpen, setResidentImportOpen] = useState(false);
@@ -477,11 +486,13 @@ export default function AdminResidentsPage() {
   useGuidedAction("unidades", (track) => {
     // Un conjunto real tiene 180 unidades: crearlas a mano no es una opción,
     // así que al cliente se le abre la carga masiva y no el alta individual.
-    if (track === "cliente") setBulkImportOpen(true);
+    // Con la bandera abajo cae al alta individual: la guía tiene que seguir
+    // llevando a algún sitio, y un botón que no hace nada es peor que uno lento.
+    if (track === "cliente" && importacionMasiva) setBulkImportOpen(true);
     else openCreateUnit();
   });
   useGuidedAction("residentes", (track) => {
-    if (track === "cliente") {
+    if (track === "cliente" && importacionMasiva) {
       setResidentImportOpen(true);
       return;
     }
@@ -1012,30 +1023,36 @@ export default function AdminResidentsPage() {
                 {seeding ? "Sembrando..." : "Cargar seed"}
               </Button>
             )}
-            <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              1 · Cargar unidades
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setResidentImportOpen(true)}
-              disabled={sinUnidades}
-              title={
-                sinUnidades
-                  ? "Carga primero las unidades: cada persona se vincula a la suya."
-                  : undefined
-              }
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              2 · Cargar residentes
-            </Button>
+            {importacionMasiva && (
+              <>
+                <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  1 · Cargar unidades
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setResidentImportOpen(true)}
+                  disabled={sinUnidades}
+                  title={
+                    sinUnidades
+                      ? "Carga primero las unidades: cada persona se vincula a la suya."
+                      : undefined
+                  }
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  2 · Cargar residentes
+                </Button>
+              </>
+            )}
             <Button variant="outline" onClick={openCreateUnit}>Crear unidad y titular</Button>
           </div>
         </div>
         {sinUnidades && (
           <p className="mt-3 rounded-lg bg-[var(--slate-50)] px-3 py-2 text-sm text-[var(--slate-600)]">
-            Empieza por las unidades. Cada persona se vincula a la suya, así que importar
-            residentes antes deja todas las filas sin unidad a la que engancharse.
+            Empieza por las unidades. Cada persona se vincula a la suya, así que{" "}
+            {importacionMasiva
+              ? "importar residentes antes deja todas las filas sin unidad a la que engancharse."
+              : "no hay dónde enganchar a un residente hasta que exista su unidad."}
           </p>
         )}
         {!sinUnidades && sinAcceso.length > 0 && (
@@ -1692,32 +1709,41 @@ export default function AdminResidentsPage() {
         </form>
       </Modal>
 
-      <Modal
-        open={bulkImportOpen}
-        title="Importar unidades desde archivo"
-        onClose={() => setBulkImportOpen(false)}
-      >
-        <UnitBulkImportWizard
-          track={onboardingTrack ?? undefined}
-          existingUnits={units}
-          onImport={handleBulkImport}
-          onClose={() => setBulkImportOpen(false)}
-        />
-      </Modal>
+      {/*
+        Los asistentes no se montan con la bandera abajo. No basta con tapar los
+        botones: al recorrido guiado se llega por URL (`?guia=`), y ese camino
+        abre el modal sin pasar por ellos.
+      */}
+      {importacionMasiva && (
+        <>
+          <Modal
+            open={bulkImportOpen}
+            title="Importar unidades desde archivo"
+            onClose={() => setBulkImportOpen(false)}
+          >
+            <UnitBulkImportWizard
+              track={onboardingTrack ?? undefined}
+              existingUnits={units}
+              onImport={handleBulkImport}
+              onClose={() => setBulkImportOpen(false)}
+            />
+          </Modal>
 
-      <Modal
-        open={residentImportOpen}
-        title="Importar residentes desde archivo"
-        onClose={() => setResidentImportOpen(false)}
-      >
-        <ResidentBulkImportWizard
-          track={onboardingTrack ?? undefined}
-          existingUnits={units}
-          existingPeople={people}
-          onImport={handleBulkImportPeople}
-          onClose={() => setResidentImportOpen(false)}
-        />
-      </Modal>
+          <Modal
+            open={residentImportOpen}
+            title="Importar residentes desde archivo"
+            onClose={() => setResidentImportOpen(false)}
+          >
+            <ResidentBulkImportWizard
+              track={onboardingTrack ?? undefined}
+              existingUnits={units}
+              existingPeople={people}
+              onImport={handleBulkImportPeople}
+              onClose={() => setResidentImportOpen(false)}
+            />
+          </Modal>
+        </>
+      )}
 
       <ConfirmDeleteDialog
         open={Boolean(pendingUnitDeletion)}

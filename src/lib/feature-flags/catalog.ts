@@ -49,6 +49,7 @@ export type FeatureFlagKey =
   | "ai-onboarding-column-mapping"
   | "ai-receipts-extraction"
   | "ia-proveedor-real"
+  | "producto-importacion-masiva"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -145,6 +146,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "Paso 1.4 — adaptador del proveedor",
     alApagar:
       "Se vuelve al simulador al instante, sin desplegar. Es el freno de mano si el proveedor se cae o el gasto se dispara.",
+  },
+  "producto-importacion-masiva": {
+    key: "producto-importacion-masiva",
+    area: "producto",
+    label: "Importación masiva desde archivo",
+    description:
+      "Los dos asistentes de carga desde CSV o XLSX —unidades y residentes— con su paso de mapeo de columnas.",
+    // Nace ENCENDIDA, y no es un descuido: los dos asistentes ya estaban vivos
+    // en producción antes de que existiera esta bandera. Si naciera apagada,
+    // añadirla le quitaría a los conjuntos actuales algo que hoy usan.
+    defaultEnabled: true,
+    origen: "PRD-V-FEAT-002 — importación de datos del conjunto",
+    alApagar:
+      "Desaparecen las dos entradas de /admin/residents y el recorrido guiado deja de abrir el asistente: manda al alta individual. Las unidades y las personas se crean a mano, una a una. Lo ya importado no se toca.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",
