@@ -177,6 +177,25 @@ export default function AdminPqrsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTicketId]);
 
+  /**
+   * Cerrar el drawer manda la fila.
+   *
+   * **Lo encontró el ensayo a ciegas, y era la mitad de la medición.** El envío
+   * vivía solo en el desmontaje de la pantalla, al cambiar de ticket y al
+   * ocultarse la pestaña; ninguno de los tres ocurre cuando alguien analiza un
+   * ticket, cierra el panel y se queda donde está — que es exactamente lo que
+   * hace un administrador en una sesión guiada. De once asistencias reales llegó
+   * UNA fila. Cerrar el drawer es el momento en que la persona terminó con ese
+   * ticket, así que es cuando hay algo que contar.
+   *
+   * Mandar de más no cuesta: el `sesionId` hace que el servidor funda los envíos
+   * en una sola fila en vez de duplicarla.
+   */
+  useEffect(() => {
+    if (!drawerOpen) feedbackIa.enviar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen]);
+
   // En modo buzón simple no hay semáforo ni tipos: orden por recientes y sin filtros de SLA/tipo.
   useEffect(() => {
     if (isSimpleMode) {

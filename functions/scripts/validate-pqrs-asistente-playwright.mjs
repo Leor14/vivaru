@@ -58,11 +58,27 @@ async function abrirPrimerTicket(page) {
   await botones.first().waitFor({ timeout: 30_000 });
   const total = await botones.count();
   await botones.first().click();
+
+  // **Esperar al drawer antes de leer nada.** Sin esto hay una carrera con su
+  // animación de entrada: dos corridas seguidas dieron `botonPresente` true y
+  // luego false sin que cambiara ni una línea de la aplicación. Un validador
+  // que da resultados distintos sobre lo mismo no vale para decidir nada.
+  await page.getByRole("dialog").waitFor({ state: "visible", timeout: 15_000 });
+  await page.getByRole("button", { name: /Analizar con IA/i }).waitFor({ timeout: 15_000 });
   return total;
 }
 
+/**
+ * Comparación **sin distinguir mayúsculas**, y no por comodidad.
+ *
+ * Los rótulos de la pantalla llevan `uppercase` en CSS, e `innerText` devuelve
+ * el texto RENDERIZADO: «BORRADOR DE RESPUESTA», no «Borrador de respuesta». La
+ * primera versión de este archivo comparaba tal cual y daba por ausentes tres
+ * bloques que estaban delante — se notó porque encontraba «44 de 152», que va
+ * dentro del mismo bloque en texto normal, y no encontraba su título.
+ */
 function vistoEn(texto, aguja) {
-  return texto.includes(aguja);
+  return texto.toLocaleLowerCase().includes(aguja.toLocaleLowerCase());
 }
 
 async function revisarConSla(page, informe) {
@@ -96,12 +112,20 @@ async function revisarConSla(page, informe) {
   informe.conSla.avisoDelBorrador = vistoEn(conPropuesta, "44 de 152");
 
   // Aceptar la clasificación RELLENA los selectores; no guarda.
-  const categoriaAntes = await page.locator("select").first().inputValue();
+  //
+  // El selector se busca DENTRO del drawer. La primera versión usaba
+  // `page.locator("select").first()`, que es el filtro de tipo de la lista de
+  // atrás: devolvía «all» antes y después y no medía nada — un check que pasa
+  // siempre porque mira el elemento equivocado.
+  const drawer = page.getByRole("dialog");
+  const selCategoria = drawer.getByLabel("Categoría");
+  const categoriaAntes = await selCategoria.inputValue();
   await page.getByRole("button", { name: /Usar esta clasificación/i }).click();
   await page.getByText("Se copió a los selectores").waitFor({ timeout: 5_000 });
   informe.conSla.clasificacionSeAplica = true;
   informe.conSla.categoriaAntes = categoriaAntes;
-  informe.conSla.categoriaDespues = await page.locator("select").first().inputValue();
+  informe.conSla.categoriaDespues = await selCategoria.inputValue();
+  informe.conSla.prioridadDespues = await drawer.getByLabel("Prioridad").inputValue();
 
   // Copiar el borrador llena el cuadro de respuesta; publicar sigue siendo otro clic.
   await page.getByRole("button", { name: /Copiar al cuadro de respuesta/i }).click();
@@ -109,6 +133,24 @@ async function revisarConSla(page, informe) {
   const respuesta = await page.locator("textarea").last().inputValue();
   informe.conSla.borradorSeCopia = respuesta.trim().length > 0;
   informe.conSla.largoDelBorrador = respuesta.trim().length;
+
+  await cerrarDrawer(page);
+}
+
+/**
+ * Cierra el drawer y espera a que salga la fila de medición.
+ *
+ * **No es cortesía: es parte de lo que hay que probar.** La primera versión
+ * cerraba el navegador de golpe, y así se descubrió que de once asistencias solo
+ * llegaba una fila de `aiFeedback` — el envío no estaba enganchado al cierre del
+ * panel, que es justo lo que hace una persona al terminar con un ticket.
+ */
+async function cerrarDrawer(page) {
+  await page.getByRole("dialog").getByRole("button", { name: /^Cerrar$/ }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 10_000 });
+  // El envío es «dispara y olvida»: cerrar el contexto en el mismo instante
+  // abortaría la petición y perderíamos justo lo que vinimos a medir.
+  await page.waitForTimeout(3_000);
 }
 
 async function revisarBuzon(page, informe) {
@@ -130,6 +172,8 @@ async function revisarBuzon(page, informe) {
   informe.buzon.sinClasificacion = !vistoEn(conPropuesta, "Clasificación propuesta");
   informe.buzon.loDice = vistoEn(conPropuesta, "En buzón simple el asistente no clasifica");
   informe.buzon.borrador = vistoEn(conPropuesta, "Borrador de respuesta");
+
+  await cerrarDrawer(page);
 }
 
 async function run() {
