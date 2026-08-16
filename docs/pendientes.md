@@ -4,24 +4,71 @@
 Actualizado el 15 de agosto de 2026, tras construir la pantalla de asistencia de
 PQRS.
 
-## F3 de PQRS: la pantalla está construida y falta el ambiente (15 ago 2026)
+## F3 de PQRS: staging montado y ensayado; falta la sesión con la persona (15 ago 2026)
 
-**Todo el código de la Fase 3 está hecho, en verde y commiteado** (`e34a908`).
-Lo que falta no es código: son credenciales y despliegue.
+**El circuito entero funciona en staging y está ensayado a ciegas tres veces.**
+Lo único que queda de la Fase 3 es la sesión con un administrador.
 
-**Bloqueo vivo, y es de David:** las credenciales de Firebase están caducadas
-(`firebase login --reauth`). Sin eso no se puede desplegar functions, ni sembrar
-staging, ni encender banderas. El script de sembrado corre en seco sin
-credenciales a propósito, así que la selección de casos se puede revisar ya.
+**Cómo está el ambiente, verificado leyéndolo y no de memoria:**
 
-**Y una discrepancia que conviene tener presente: `develop` va 7 commits por
-delante de `origin/develop`,** y entre ellos está `f687b2d`, el arreglo del
-desplegable del residente. Staging se despliega **empujando `develop`**, así que
-el sitio de staging sigue sirviendo `8784396`: **no tiene ese arreglo**. La
-verificación con Playwright fue contra otra cosa —lo más probable, un `dev` local
-apuntando al proyecto Firebase de staging, que son los datos y no el despliegue.
-No bloquea F3 (el piloto siembra tickets, no los crea un residente), pero el
-prerrequisito está cerrado *en el repositorio* y no *en el ambiente*.
+| Qué | Dónde | Estado |
+|---|---|---|
+| Functions | `vivaru-staging-02` | `asistirTicketPqrs` creada; `run.invoker` comprobado llamándola |
+| Frente | `develop` → App Hosting | desplegado; remoto verificado |
+| Tickets `con_sla` | `tenant-nogal-bogota` | 18 sembrados (16 casos + 2 de inyección) |
+| Tickets `buzon_simple` | `tenant-santa-maria` | 6 sembrados; **variante cambiada a `buzon_simple`** |
+| Banderas | `/superadmin/flags` | `ai-gateway`, `ia-proveedor-real` y `ai-pqrs-suggestions` **encendidas** |
+
+**Accesos de la sesión:** `admin@elnogal.co` para el conjunto grande y
+`admin@santamaria.co` para el de buzón — cuentas demo, contraseñas en
+`seed-data-co.mjs` y `seed-demo-users.mjs`. **Ojo: `tenant-santa-maria` existe
+también en PRODUCCIÓN**, con otros tickets y sin nada de esto; lo que distingue
+un ambiente del otro es la URL, no el nombre del conjunto.
+
+**Cifras reales del ensayo, con el proveedor de verdad:** 12 asistencias, todas
+`ok`, `gemini-3.1-flash-lite`, **USD 0,00089 por asistencia** — confirma la cifra
+de G5 (USD 0,001) ahora sobre entradas de producto y no sobre el gold set.
+
+**Y la cadena de medición, probada de punta a punta**, que es lo que justificaba
+la fase: un ticket que nace `pqrs`, el modelo propone `maintenance`/`high`, la
+persona lo acepta y guarda, y la fila queda con las dos mitades juntas —
+`sugerida` y `guardada`, más `distanciaEdicion` del borrador.
+
+**Antes de la sesión hay que volver a sembrar.** El ensayo clasifica y responde
+el primer ticket para poder probar `guardada`, así que deja huella:
+
+```
+FIREBASE_PROJECT_ID=vivaru-staging-02 node functions/scripts/seed-pqrs-piloto.mjs \
+  --tenant-con-sla=tenant-nogal-bogota --tenant-buzon=tenant-santa-maria --limpiar
+```
+
+**Lo que encontró el ensayo y no se habría visto de otra forma: de once
+asistencias llegaba UNA fila de feedback.** El envío estaba enganchado solo al
+desmontaje de la pantalla, al cambio de ticket y al ocultarse la pestaña —
+ninguno ocurre cuando alguien analiza, cierra el panel y se queda donde está, que
+es lo que hace un administrador en una sesión guiada. Se habría hecho la sesión
+entera y salido casi sin datos. Corregido: cerrar el drawer manda la fila.
+
+**El validador falló cuatro veces antes que la aplicación**, y las cuatro se
+arreglaron en él: comparaba distinguiendo mayúsculas contra rótulos con
+`uppercase` en CSS; leía un `select` de la lista de atrás en vez del del drawer
+(«all» antes y después: un check que pasa siempre mirando lo que no es); leía la
+pantalla antes de que el drawer apareciera, dando resultados distintos en dos
+corridas iguales; y mezclaba «falló» con «no llegó a correr», de modo que un
+`waitUntil` mal elegido imprimía «PUERTA DURA: buzón simple enseñó clasificación»
+sin haber mirado nunca esa pantalla.
+
+**Dos cosas que quedaron anotadas y no se tocaron:**
+
+- **La PRD dice «producción tiene 0 tickets» y no es exacto**: `tenant-santa-maria`
+  en producción tiene 6, creados por la aplicación, anteriores y ajenos a esto
+  (uno se llama «oiyutiuyt»). Es un conjunto demo, así que «0 tickets reales de
+  residentes reales» probablemente siga siendo cierto — pero el número escrito no
+  es el que hay. El censo completo de producción quedó sin hacer.
+- `residencial-vista-prueba-012a42` se usó un momento como conjunto de buzón y se
+  **devolvió a su estado original** (tickets borrados, variante de vuelta a
+  `con_sla`): su único administrador es la cuenta del trial autoservicio, cuya
+  contraseña no está en ningún seed, así que ni se podía ensayar ni enseñar.
 
 **El hallazgo que más pesa: el administrador no podía clasificar, y eso dejaba
 sin suelo a las DOS puertas de G7.** Al ir a pintar las sugerencias no había
@@ -53,14 +100,16 @@ editables ya en F3.
   rojos preexistentes** —`data-table.tsx`, reservas, regulations y descarga de
   QR—, ajenos a PQRS y sin tocar. Son un frente aparte.
 
-**Lo que queda de F3, por orden:** reautenticar → desplegar functions a
-`vivaru-staging-02` (comprobar `run.invoker` en la callable nueva) → empujar
-`develop` → sembrar con `FIREBASE_PROJECT_ID=vivaru-staging-02 node
-functions/scripts/seed-pqrs-piloto.mjs --tenant-con-sla=… --tenant-buzon=…` →
-encender **`ai-gateway`, `ia-proveedor-real` y `ai-pqrs-suggestions`** en
-`/superadmin/flags` (la PRD llamaba a la última `ai-pqrs-assist`, que no existe;
-corregido) → ensayo a ciegas con Playwright → sesión. **Si la sesión usa al
-tercer administrador, ANTES la línea base de comunicaciones a ciegas.**
+**Lo único que queda de F3 es la sesión.** Y con la regla de orden delante: **si
+usa al tercer administrador, ANTES hay que tomarle la línea base de
+comunicaciones a ciegas.** Van tres sesiones sin medir H2′ porque se quemó a la
+persona enseñándole la herramienta primero; aquí el riesgo es el mismo y la
+herramienta es más vistosa.
+
+Lo que la sesión tiene que mirar, que es lo que el gold set no puede dar: si el
+resumen sirve, si el borrador se acepta o se reescribe, si `needsHumanReview`
+aparece donde debe, y sobre todo **cuántas veces corrige la clasificación
+sugerida** — que ahora, por primera vez, se puede contar.
 
 ## El desplegable del residente está corregido: F3 se queda sin prerrequisitos (15 ago 2026)
 
