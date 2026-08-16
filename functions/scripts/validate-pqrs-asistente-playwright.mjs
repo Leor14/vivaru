@@ -16,6 +16,14 @@ import { chromium } from "playwright";
  *   el evaluador — ahí el servidor devuelve nulls y no debe aparecer ninguna
  *   clasificación.
  *
+ * **DEJA HUELLA: hay que volver a sembrar después.** El tramo final guarda una
+ * clasificación y registra una respuesta sobre el primer ticket de la lista —no
+ * se puede probar el par sugerida/guardada sin guardar—, así que ese ticket
+ * queda clasificado y respondido. Antes de la sesión:
+ *
+ *   FIREBASE_PROJECT_ID=vivaru-staging-02 node functions/scripts/seed-pqrs-piloto.mjs \
+ *     --tenant-con-sla=tenant-nogal-bogota --tenant-buzon=tenant-santa-maria --limpiar
+ *
  * USO:
  *   node functions/scripts/validate-pqrs-asistente-playwright.mjs
  *
@@ -134,6 +142,28 @@ async function revisarConSla(page, informe) {
   informe.conSla.borradorSeCopia = respuesta.trim().length > 0;
   informe.conSla.largoDelBorrador = respuesta.trim().length;
 
+  // ── La otra mitad del par que mide G7 ──────────────────────────────────────
+  //
+  // Hasta aquí solo se ha probado `sugerida`. Lo que las dos puertas de G7
+  // comparan es sugerida CONTRA guardada, y `guardada` solo existe si alguien
+  // pulsa guardar. Además el esquema del servidor exige que `distanciaEdicion`
+  // exista exactamente cuando se copió el borrador Y se guardó la respuesta: si
+  // el cliente se descuadra, el servidor **rechaza la fila entera en silencio**,
+  // porque el feedback es best-effort y no propaga errores. Sin este tramo, ese
+  // fallo aparecería el día de la sesión y no dejaría ni rastro.
+  const drawerAhora = page.getByRole("dialog");
+  await drawerAhora.getByRole("button", { name: /Guardar clasificación/i }).click();
+  await page.getByText("Clasificación actualizada").waitFor({ timeout: 15_000 });
+  informe.conSla.clasificacionGuardada = true;
+
+  // Se edita el borrador antes de responder: así `distanciaEdicion` mide algo
+  // distinto de cero y se comprueba que el número viaja.
+  const caja = drawerAhora.locator("textarea").last();
+  await caja.fill(`${await caja.inputValue()}\n\n[ensayo automático] Revisado por el administrador.`);
+  await drawerAhora.getByRole("button", { name: /Responder/i }).click();
+  await page.getByText("Respuesta registrada").waitFor({ timeout: 15_000 });
+  informe.conSla.respuestaEnviada = true;
+
   await cerrarDrawer(page);
 }
 
@@ -146,7 +176,10 @@ async function revisarConSla(page, informe) {
  * panel, que es justo lo que hace una persona al terminar con un ticket.
  */
 async function cerrarDrawer(page) {
-  await page.getByRole("dialog").getByRole("button", { name: /^Cerrar$/ }).click();
+  // `.last()` porque hay DOS botones «Cerrar» en el drawer: la X de la cabecera
+  // (con `aria-label`) y el del pie. El del pie va después en el DOM y es el que
+  // pulsaría una persona al terminar de atender el ticket.
+  await page.getByRole("dialog").getByRole("button", { name: /^Cerrar$/ }).last().click();
   await page.getByRole("dialog").waitFor({ state: "hidden", timeout: 10_000 });
   // El envío es «dispara y olvida»: cerrar el contexto en el mismo instante
   // abortaría la petición y perderíamos justo lo que vinimos a medir.
@@ -221,6 +254,8 @@ async function run() {
   revisar(c, "clasificacionPropuesta", "con_sla: no llegó la clasificación propuesta");
   revisar(c, "avisoDelBorrador", "con_sla: falta el aviso del borrador");
   revisar(c, "borradorSeCopia", "con_sla: el borrador no se copió al cuadro de respuesta");
+  revisar(c, "clasificacionGuardada", "con_sla: no se pudo guardar la clasificación");
+  revisar(c, "respuestaEnviada", "con_sla: no se pudo registrar la respuesta");
   revisar(b, "sinEditor", "buzon_simple: aparece el editor de clasificación y no debería");
   revisar(b, "sinClasificacion", "PUERTA DURA: buzón simple enseñó clasificación");
   revisar(b, "loDice", "buzon_simple: no explica por qué no clasifica");
