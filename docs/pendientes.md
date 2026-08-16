@@ -71,6 +71,23 @@ dos ejes siguen suspendiendo:** `type` **0,53** (umbral 0,70) y `priority`
   no es barata. (116, no 124: hay que excluir también los 19 identificadores que
   `taxonomia.md` usa de ancla o ejemplo — su etiqueta la imprime el documento.)
 
+**La vuelta de definiciones de `priority` SE HIZO la noche del mismo 15 de
+agosto**, por chat sobre los 7 desacuerdos de la ronda 2. Registro completo en
+`datasets/pqrs/doble-etiquetado/definiciones-priority-2026-08-15.md`. En corto:
+cuatro golds quedaron como estaban —B llegó solo al criterio escrito en cuanto
+lo conversó, así que la sección se reescribió como **tres preguntas en orden**,
+la medicina del árbol de `type`—; dos cambiaron con regla nueva (`MX#4689`
+high→medium: riesgo verificado y no confirmado baja un nivel; `MX#4053`
+low→medium: recurrente con evidencia que caduca); y `MX#3441` fijó la decisión
+de producto: **el enfado no sube la prioridad, va en la bandera `enfado`**. Los
+`high` quedan en 19 (mínimo de la prueba: 15), todo regenerado y la suite en
+verde. **Y la tercera ronda se APLAZÓ por decisión de David** — el programa
+lleva demasiado en validaciones de muestra—, así que `priority` queda
+**corregido sin validar**: el kappa vigente sigue siendo 0,47 y el criterio
+«recall de `high` ≥95%» sigue sin ser evaluable. El plan si se retoma (muestra
+fresca de Colombia estratificada a candidatos `high`, kappa completo + binario
+high/no-high) está escrito en el registro.
+
 **Y lo que apareció mirando el producto vale más que el kappa:**
 
 1. **`type` no decide nada, y ya no es pregunta: David lo confirmó el 15 de
@@ -80,7 +97,8 @@ dos ejes siguen suspendiendo:** `type` **0,53** (umbral 0,70) y `priority`
    queda como etiqueta descriptiva con definiciones corregidas sin validar, y
    no se le dedica una tercera ronda. `priority` es distinto: declarado en
    `domain.ts`, usado en cero pantallas, pero la PRD le exige revisión humana
-   en los `high` — **ahí va el esfuerzo de definiciones.**
+   en los `high` — **ahí va el esfuerzo de definiciones.** *(Hecho la noche del
+   15 — ver el párrafo de la vuelta de definiciones, arriba.)*
 2. **DEFECTO VIVO EN PRODUCCIÓN:** el desplegable del residente
    (`src/app/(resident)/resident/pqrs/page.tsx`) enseña las **definiciones
    cruzadas** —«Queja: inconformidad con un servicio»— justo al revés de la

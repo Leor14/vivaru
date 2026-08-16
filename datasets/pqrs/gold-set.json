@@ -704,10 +704,10 @@
       "espera": {
         "category": "maintenance",
         "type": "claim",
-        "priority": "high",
+        "priority": "medium",
         "tema": "seguridad_porteria"
       },
-      "porQue": "Posible olor a quemado sin causa localizada. Riesgo a personas."
+      "porQue": "Posible olor a quemado, pero ya verificado por dos personas sin hallazgo. Riesgo revisado y no confirmado baja un nivel y queda en vigilancia (ronda de definiciones, 15 ago 2026)."
     },
     {
       "id": "MX#2724",
@@ -825,9 +825,12 @@
         "category": "pqrs",
         "type": "complaint",
         "priority": "medium",
-        "tema": "convivencia_ruido"
+        "tema": "convivencia_ruido",
+        "banderas": [
+          "enfado"
+        ]
       },
-      "porQue": "Se queja de la conducta de los inquilinos de un departamento e invoca el reglamento."
+      "porQue": "Se queja de la conducta de los inquilinos de un departamento e invoca el reglamento. El enfado va en la bandera y no sube la prioridad (decidido en la ronda de definiciones, 15 ago 2026)."
     },
     {
       "id": "MX#3821",
@@ -857,13 +860,13 @@
       "espera": {
         "category": "pqrs",
         "type": "complaint",
-        "priority": "low",
+        "priority": "medium",
         "tema": "convivencia_ruido",
         "temasSecundarios": [
           "seguridad_porteria"
         ]
       },
-      "porQue": "El objeto es la conducta de los dueños de las mascotas; las multas son el remedio pedido."
+      "porQue": "El objeto es la conducta de los dueños de las mascotas; las multas son el remedio pedido. Recurrente y con evidencia que caduca: esperar deja la multa sin aplicar (ronda de definiciones, 15 ago 2026)."
     },
     {
       "id": "MX#5523",

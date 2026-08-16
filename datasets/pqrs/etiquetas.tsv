@@ -38,16 +38,16 @@ MX#2481	pqrs	claim	medium	seguridad_porteria			«Dejan pasar a cualquiera» es e
 MX#3959	pqrs	petition	low	seguridad_porteria			Consulta por un paquete que no ha llegado a caseta.
 MX#734	pqrs	suggestion	low	seguridad_porteria	obra_mantenimiento		Propone dejar la carpeta de gastos en caseta para consulta de condóminos.
 MX#658	pqrs	complaint	medium	seguridad_porteria	asamblea_administracion		Se queja de la permanencia del vigilante y pide atención. Conducta de una persona.
-MX#4689	maintenance	claim	high	seguridad_porteria			Posible olor a quemado sin causa localizada. Riesgo a personas.
+MX#4689	maintenance	claim	medium	seguridad_porteria			Posible olor a quemado, pero ya verificado por dos personas sin hallazgo. Riesgo revisado y no confirmado baja un nivel y queda en vigilancia (ronda de definiciones, 15 ago 2026).
 MX#2724	pqrs	petition	medium	convivencia_ruido	seguridad_porteria		Pide acceso a departamentos para localizar el origen de un ruido.
 MX#3161	maintenance	claim	medium	luz_electricidad	accesos_estacionamiento	multi_tema	Reporta dos cosas opuestas: una luz siempre encendida y una zona a oscuras.
 MX#3587	maintenance	claim	medium	luz_electricidad			Sin luz en un piso desde el sábado. Servicio caído en área común.
 MX#1887	maintenance	claim	medium	luz_electricidad	accesos_estacionamiento		Tres luces apagadas en la rampa de acceso vehicular.
 MX#3317	pqrs	petition	medium	luz_electricidad			Pregunta si alguien ya reportó a la compañía eléctrica. Coordinación vecinal.
 MX#1470	maintenance	claim	low	luz_electricidad	accesos_estacionamiento		Falta foco y sensor en un cajón concreto.
-MX#3441	pqrs	complaint	medium	convivencia_ruido			Se queja de la conducta de los inquilinos de un departamento e invoca el reglamento.
+MX#3441	pqrs	complaint	medium	convivencia_ruido		enfado	Se queja de la conducta de los inquilinos de un departamento e invoca el reglamento. El enfado va en la bandera y no sube la prioridad (decidido en la ronda de definiciones, 15 ago 2026).
 MX#3821	pqrs	complaint	medium	convivencia_ruido	seguridad_porteria		No baja el volumen y desatiende al vigilante. Conducta de una persona.
-MX#4053	pqrs	complaint	low	convivencia_ruido	seguridad_porteria		El objeto es la conducta de los dueños de las mascotas; las multas son el remedio pedido.
+MX#4053	pqrs	complaint	medium	convivencia_ruido	seguridad_porteria		El objeto es la conducta de los dueños de las mascotas; las multas son el remedio pedido. Recurrente y con evidencia que caduca: esperar deja la multa sin aplicar (ronda de definiciones, 15 ago 2026).
 MX#5523	maintenance	claim	low	convivencia_ruido	accesos_estacionamiento		El portón hace ruido al cerrar. Defecto de un equipo.
 MX#5796	pqrs	suggestion	low	convivencia_ruido	asamblea_administracion		Propone un comunicado oficial con el teléfono de caseta.
 MX#4848	pqrs	suggestion	low	convivencia_ruido	seguridad_porteria		Pide consideración con el sueño de los vecinos y propone llamar en vez de claxon.

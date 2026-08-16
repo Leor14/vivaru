@@ -168,37 +168,77 @@ imponga sobre una administración. Ver el hallazgo del SLA en `docs/pendientes.m
 
 El eje que habilita el criterio ≥95% de recall en `high`. Se etiqueta por la
 **consecuencia de esperar**, no por el tono: un vecino furioso por un ruido no es
-`high`, y un aviso sereno de una fuga que moja el departamento de abajo sí.
+`high`, y un aviso sereno de una fuga que moja el departamento de abajo sí. **El
+enfado va en la bandera `enfado` y no sube la prioridad** — decidido el 15 de
+agosto de 2026 sobre `MX#3441`, el único desacuerdo de la vuelta de definiciones
+donde las dos lecturas eran defendibles: que un vecino furioso pueda escalar el
+conflicto es información real para el administrador, pero si subiera la
+prioridad, cualquier queja airada de ruido competiría con la fuga de gas. El
+administrador ve las dos cosas por separado: `medium` + bandera.
 
-**Esa frase sola no bastaba, y se midió.** El doble etiquetado del 15 de agosto
-de 2026 dio **kappa 0,08** en este eje —acuerdo de azar— porque «consecuencia de
-esperar» no dice **cuánto** es esperar ni **qué** consecuencia cuenta. Un
-anotador gravitaba al centro y el otro usaba los extremos; en la primera tanda,
-uno escribió «normal-mucho» y «normal-bajo» tres veces de cinco antes de que
-nadie mencionara ninguna escala.
+**«Consecuencia de esperar» sola no bastaba, y se midió.** El doble etiquetado
+del 15 de agosto de 2026 dio **kappa 0,08** en este eje —acuerdo de azar— porque
+la frase no dice **cuánto** es esperar ni **qué** consecuencia cuenta. Con las
+anclas, la segunda ronda del mismo día subió a **0,47 — fuera del azar y todavía
+suspenso** (umbral 0,60). Y la vuelta de definiciones sobre sus siete
+desacuerdos dejó el hallazgo de método: **en cuatro de los siete, el anotador
+llegó solo al criterio ya escrito en cuanto lo conversó.** Las anclas se
+entienden; lo que no hacen es prender aplicadas en frío — el mismo patrón que la
+precedencia de `type`. Por eso el eje ya no se aplica como tabla que recordar
+sino como **tres preguntas en orden. La primera que dé que sí, decide:**
 
-**La prueba operativa, desde el 15 de agosto de 2026: ¿esperar a mañana empeora
-el resultado?**
+**1 · ¿Esperar puede lastimar a alguien o agrandar el daño?** Riesgo a personas ·
+el daño crece solo si nadie lo atiende · el edificio sin agua, sin luz o sin su
+único ascensor · la seguridad abierta ahora → `high`.
+Anclas: `EC#50` el único ascensor parado · `MX#3019` sin agua · `EC#2627` la
+puerta del parqueadero abierta · `EC#890` CO2 en el parqueadero.
 
-| Valor | Criterio | Anclas, con casos del propio conjunto |
-|---|---|---|
-| `high` | Alguien puede resultar lastimado · el daño crece solo si nadie lo atiende · el edificio se queda sin agua, sin luz o sin su único ascensor · la seguridad queda abierta | `EC#50` el único ascensor parado · `MX#3019` sin agua · `EC#2627` la puerta del parqueadero abierta · `EC#890` CO2 en el parqueadero |
-| `medium` | Afecta el uso normal, pero mañana estará igual de mal, no peor | `MX#3587` la luz de un piso · `MX#5523` el portón que hace ruido · `MX#5041` un cajón ocupado · `EC#2202` el control que no abre |
-| `low` | Consulta, aviso o propuesta que puede esperar una semana sin que nadie note la diferencia | `MX#604` pedir el correo de pagos · `MX#4700` avisar que se usará la alberca · `EC#231` informar los días del recolector |
+> **Riesgo verificado y no confirmado baja un nivel.** «Ante la duda de riesgo,
+> el más alto» vale mientras nadie haya ido a mirar; si ya se revisó y no se
+> encontró nada, queda `medium` en vigilancia. Salió de `MX#4689` en la vuelta
+> de definiciones: el guardia y un familiar ya habían revisado el posible olor a
+> quemado sin hallar nada, y el gold decía `high` leyendo el mensaje como si el
+> riesgo siguiera sin verificar. Se corrigió el gold, no al anotador.
+
+**2 · ¿Esperar deja el problema igual de mal, o le quita eficacia al remedio?**
+Afecta el uso normal pero mañana estará igual, no peor → `medium`. **También es
+`medium` lo recurrente y lo que pide una actuación que caduca** —evidencia con
+ventana, plazos—: ahí esperar no agranda el daño, pero deja la actuación sin
+efecto. Salió de `MX#4053`: popós recurrentes («nuevamente») y una multa que
+depende de la cámara de ese día — una semana después ya no hay multa que aplicar.
+Anclas: `MX#3587` la luz de un piso · `MX#5523` el portón que hace ruido ·
+`MX#5041` un cajón ocupado · `EC#2202` el control que no abre.
+
+**3 · ¿Nadie notaría la diferencia si espera una semana?** Consulta, aviso o
+propuesta → `low`.
+Anclas: `MX#604` pedir el correo de pagos · `MX#4700` avisar que se usará la
+alberca · `EC#231` informar los días del recolector.
 
 **Las anclas son casos, no adjetivos, a propósito.** «Afecta el uso normal» se
 interpreta; «como el portón que hace ruido» se compara.
 
 **Desempate:** ante la duda entre dos niveles gana el **más bajo**, salvo que la
-duda venga de un posible riesgo a personas — ahí gana el más alto. Y la duda se
-anota: es información sobre la definición, no indecisión del que etiqueta.
+duda venga de un posible riesgo a personas **que nadie ha verificado** — ahí gana
+el más alto. Y la duda se anota: es información sobre la definición, no
+indecisión del que etiqueta.
+
+**Estado de validación, dicho sin maquillar:** esta versión es posterior a la
+ronda 2, así que está **corregida y sin validar** — el kappa vigente del eje
+sigue siendo 0,47, suspenso. La tercera ronda se aplazó a propósito el 15 de
+agosto de 2026, por decisión de ritmo del programa: el pool limpio quedó en 96
+casos con solo 5 `high`, y una ronda que casi no mide la única frontera con
+consecuencia no vale su costo. El plan, si se retoma, está en
+`doble-etiquetado/definiciones-priority-2026-08-15.md`: muestra fresca del corpus
+de Colombia estratificada hacia candidatos a `high`, midiendo kappa completo y
+binario high/no-high, con umbrales fijados antes de correr. **Mientras tanto, el
+criterio «recall de `high` ≥95%» sigue sin ser evaluable.**
 
 **Sigue siendo el eje más subjetivo**, y por eso su umbral de kappa es más bajo
 que el de los otros tres. La PRD lo había previsto sin saberlo: la salida lleva
 `priorityReason` y `needsHumanReview`, y exige revisión humana obligatoria en los
-`high`. Esta medición explica por qué hacía falta — **si dos personas que conocen
-el producto no coinciden, pedirle al modelo un 95% es pedirle que adivine cuál de
-las dos le tocó.**
+`high`. Las dos rondas explican por qué hacía falta — **si dos personas que
+conocen el producto no coinciden, pedirle al modelo un 95% es pedirle que adivine
+cuál de las dos le tocó.**
 
 ---
 
@@ -339,8 +379,8 @@ inflado con casos flojos da un número alto y no mide nada.
 |---|---|
 | `category` | `pqrs` 93 · `maintenance` 44 · `billing` 15 |
 | `type` | `claim` 57 · `petition` 35 · `complaint` 30 · `suggestion` 22 · `other` 8 |
-| `priority` | `low` 66 · `medium` 66 · `high` 20 |
-| Banderas | `sin_contexto` 18 · `enfado` 11 · `prompt_injection` 8 · `dato_faltante` 5 · `multi_tema` 4 |
+| `priority` | `low` 65 · `medium` 68 · `high` 19 |
+| Banderas | `sin_contexto` 18 · `enfado` 12 · `prompt_injection` 8 · `dato_faltante` 5 · `multi_tema` 4 |
 
 > **Los 152 se re-etiquetaron con el árbol el 15 de agosto de 2026**: cambiaron
 > 23 casos —el 16%—, y la dirección de los cambios está en el registro de
@@ -359,8 +399,9 @@ conjunto, por debajo del 40% que se buscaba.
 - **`billing` tiene 15 casos**, que es poco para medir exactitud de `category`.
   No es descuido del muestreo: en Ecuador `cuotas_pagos` es el 1,3% del corpus,
   y ahí no hay más material. Se cierra con tickets reales, no con este corpus.
-- **`high` tiene 21 casos.** Bastan para que el recall no salte veinte puntos
-  por un fallo, pero es el mínimo. La prueba exige ≥15 para que no baje de ahí.
+- **`high` tiene 19 casos** (la vuelta de definiciones del 15 de agosto movió
+  `MX#4689` a `medium`). Bastan para que el recall no salte veinte puntos por un
+  fallo, pero es el mínimo. La prueba exige ≥15 para que no baje de ahí.
 - **Solo hay variante `con_sla`.** `buzon_simple` no tiene ni un caso, y es una
   variante sin medir. Falta declarar unos cuantos casos en la otra variante y
   comprobar que el modelo devuelve `category` y `type` en `null`.

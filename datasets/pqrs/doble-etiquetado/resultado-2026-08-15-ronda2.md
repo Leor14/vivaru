@@ -161,3 +161,7 @@ desplegable además no ofrece `other`, que el gold set sí usa.
    administrador, que ya es cambiar la PRD y no la taxonomía.
 3. **`priority` se lleva el esfuerzo de definiciones**, porque es el que tiene
    consecuencia escrita. Los siete desacuerdos de esta ronda son el material.
+   *(Hecho la noche del mismo 15 — ver
+   `definiciones-priority-2026-08-15.md`: dos golds corregidos, el enfado a
+   bandera, la sección reescrita como preguntas en orden, y la tercera ronda
+   aplazada por decisión.)*
