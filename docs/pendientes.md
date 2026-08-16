@@ -1,8 +1,55 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 15 de agosto de 2026 por la noche, tras correr la evaluación
-offline de PQRS.
+Actualizado el 15 de agosto de 2026, tras corregir el desplegable del residente.
+
+## El desplegable del residente está corregido: F3 se queda sin prerrequisitos (15 ago 2026)
+
+**El último bloqueo de la F3 de PQRS está cerrado**, en un solo archivo:
+`src/app/(resident)/resident/pqrs/page.tsx`. Las cinco definiciones de `type`
+quedan alineadas con `datasets/pqrs/taxonomia.md` —el eje es **de quién o de qué
+se queja**: persona (queja) contra servicio (reclamo)— y `other` se ofrece como
+«General», que es el rótulo que ya usaban las dos pantallas del administrador.
+
+**Pero el defecto no era el que estaba escrito, y esa es la parte que vale.**
+El informe decía que el residente leía las definiciones cruzadas. No las leía:
+**el `map` de los botones pintaba solo `label`, y el campo `description` llevaba
+muerto desde siempre.** El residente elegía entre cuatro palabras desnudas
+—`Petición | Queja | Reclamo | Sugerencia`— sin una sola línea de ayuda.
+Envenenaba la sombra de F4 igual, pero **por ruido y no por engaño**.
+
+**La lección de método, que es la de siempre en este programa:** corregir las
+cinco cadenas —que era el arreglo que pedía el documento— habría dejado la
+pantalla **idéntica**, con el prerrequisito dado por cerrado y la sesión de
+staging corriendo sobre el mismo defecto. Se vio abriendo el JSX, no leyendo la
+constante. **Es la cuarta vez que el instrumento falla antes que la cosa
+medida** — el tamiz que se creía sus cifras, los checks de inyección que
+premiaban el rechazo, `npm test` corriendo cero tests, y ahora un campo de datos
+que nadie renderizaba.
+
+**Y apareció un tercer defecto que no estaba en ningún documento: en
+`buzon_simple` todo ticket nacía con `type: "petition"`.** El selector se oculta
+en esa variante, pero el estado inicial se enviaba igual — una etiqueta falsa
+**con apariencia de elección humana**, y precisamente en el eje donde la PRD
+exige nulls como puerta dura. **Decidido por David:** no se envía `type` y
+`createTicket` cae a su default `other`.
+
+**Dos cosas más que quedaron en la pantalla:**
+
+- **La precedencia del árbol, escrita arriba del grupo:** «Si reportas algo que
+  ya salió mal, elige Queja o Reclamo aunque además pidas que lo arreglen». Es
+  la regla que **el kappa tumbó dos veces** con anotadores que conocen el
+  producto; dejar que un residente la deduzca era peor.
+- Las opciones pasan a una columna en móvil (ahora llevan texto, no una palabra)
+  y anuncian su estado con `aria-pressed`.
+
+**Deuda que se ve desde aquí y NO se tocó, con su prueba de que no es teórica:**
+los rótulos de `type` están **duplicados en tres sitios** —esta pantalla,
+`/admin/pqrs` y `pqrs-aging-widget`— y **ya divergieron**: el widget pinta
+`other` como **«Otros»** y los otros dos como **«General»**, así que el mismo
+ticket cambia de nombre según la pantalla. Se comprobó al ir a escribir que
+coincidían. Un solo módulo compartido lo cerraría, pero es refactor con su
+propio alcance —y con una decisión de copy dentro— no parte de este arreglo.
 
 ## La Fase 2 de PQRS está HECHA, y `category` se cobra ahora en la puerta de escala (15 ago 2026)
 
@@ -172,9 +219,10 @@ métrica que hoy no es evaluable. G0–G3 superadas. Fases renumeradas: ~~**F2
 evaluación offline contra el gold set (el siguiente paso ejecutable**, cuesta
 centavos; prerrequisito: declarar casos `buzon_simple`)~~ **— F2 HECHA esa
 misma noche; G4 y G5 superadas: ver la sección de arriba —**, F3 piloto
-simulado en staging con tickets sembrados desde los corpus (**prerrequisito
-vivo: solo el desplegable del residente**; si la sesión usa al tercer
-administrador, ANTES se le toma la línea base de comunicaciones a ciegas), F4
+simulado en staging con tickets sembrados desde los corpus (**sin
+prerrequisitos: el desplegable se corrigió el 15 de agosto**; si la sesión usa
+al tercer administrador, ANTES se le toma la línea base de comunicaciones a
+ciegas), F4
 sombra en producción + piloto visible por bandera (la sombra fabrica los
 150–250 tickets etiquetados que piden el Paso 3 y la Fase 5), F5 escala. El
 tenant piloto se decide después de staging.
@@ -190,12 +238,10 @@ tenant piloto se decide después de staging.
    `domain.ts`, usado en cero pantallas, pero la PRD le exige revisión humana
    en los `high` — **ahí va el esfuerzo de definiciones.** *(Hecho la noche del
    15 — ver el párrafo de la vuelta de definiciones, arriba.)*
-2. **DEFECTO VIVO EN PRODUCCIÓN:** el desplegable del residente
-   (`src/app/(resident)/resident/pqrs/page.tsx`) enseña las **definiciones
-   cruzadas** —«Queja: inconformidad con un servicio»— justo al revés de la
-   taxonomía, y no ofrece `other`. La corrección del 15 de agosto se aplicó al
-   gold set y **no a la pantalla**. Mientras siga así, todo `type` que produzca
-   producción nace con la definición equivocada.
+2. ~~**DEFECTO VIVO EN PRODUCCIÓN:** el desplegable del residente enseña las
+   **definiciones cruzadas** y no ofrece `other`.~~ **CORREGIDO el 15 de agosto
+   de 2026** — ver la sección de arriba. Era mayor de lo que decía este punto:
+   las descripciones **no se renderizaban**.
 3. **La consecuencia de producto del kappa de `priority`:** el criterio «recall
    de `high` ≥95%» no es evaluable mientras dos personas no coincidan en qué es
    `high`. Y en los dos casos con hilo previo de la ronda 1, David etiquetó la

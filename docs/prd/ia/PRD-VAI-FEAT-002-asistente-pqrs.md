@@ -18,7 +18,7 @@ verdad es este archivo.**
 | Usuario principal | `tenant_admin` / `admin_tenant` |
 | Usuarios secundarios | Comité u operativos según RBAC; residentes y portería originan tickets |
 | Responsable | David |
-| Estado | **Rumbo a piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026). El paso en curso es **F3, piloto simulado en staging**; su único prerrequisito vivo es el desplegable del residente |
+| Estado | **Rumbo a piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026). El paso en curso es **F3, piloto simulado en staging**; **sin prerrequisitos vivos**: el desplegable del residente se corrigió el 15 ago 2026 |
 | Dependencias | `PRD-VAI-PLAT-001` (**en producción desde el 15 ago 2026, inerte tras banderas**: gateway `aiInvoke`, `aiUsage`, cuotas, adaptador Vertex, `aiFeedback`, consola `/superadmin/flags`) · catálogos de `Ticket` (`src/types/domain.ts:141`) · variantes `con_sla`/`buzon_simple` (`src/lib/config/module-variants.ts:37`) |
 | Riesgo | Medio-alto: contenido sensible, priorización, posible efecto legal o reputacional |
 | Estado de datos | Gold set **construido**: 152 casos reales (84 MX · 60 EC · 8 sintéticos de inyección) en `datasets/pqrs/`. Producción tiene **0 tickets** (medido 14 ago 2026) — el dataset de despliegue lo fabrica el modo sombra |
@@ -134,9 +134,10 @@ y el historial en un drawer y responde. La variante `con_sla` pinta semáforo
 de plazo; `buzon_simple` opera sin SLA ni categorías.
 
 **Dolor:** lectura de texto libre, clasificación del residente que no
-representa el caso (el desplegable además enseña definiciones cruzadas — ver
-Prerrequisitos), prioridad dependiente de señales dispersas, respuestas
-repetitivas, y solicitudes escondidas en párrafos largos.
+representa el caso (hasta el 15 ago 2026 el desplegable no enseñaba ninguna
+definición y las que llevaba escritas estaban cruzadas — ver Prerrequisitos),
+prioridad dependiente de señales dispersas, respuestas repetitivas, y
+solicitudes escondidas en párrafos largos.
 
 **Baseline cuantitativo — reformulado el 15 ago 2026.** La versión de Drive lo
 dejaba TBD (volumen, tiempo de primera respuesta, reclasificaciones). Con
@@ -349,7 +350,7 @@ proveedor → versionado; falla → editor manual). Se añaden dos medidas:
 |---|---|---|---|
 | **F1 — Gold set y taxonomía** | 152 casos, taxonomía con árbol de `type` y preguntas ordenadas de `priority`, dos rondas de doble etiquetado + vuelta de definiciones | G2 | **HECHA** (15 ago 2026) |
 | **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **HECHA** (15 ago 2026). Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Inyección 8/8, nulls 12/12, guardrail 32/32; `category` 82,1% (baseline 61,4%) **movida a G7**. **USD 0,001 por asistencia.** Prompt activo: `p1-minima`. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
-| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **Siguiente.** F2 hecha; queda **el desplegable del residente**. Mide además lo que el gold set no puede: si el administrador corrige la categoría sugerida. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
+| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **Siguiente, y sin prerrequisitos**: F2 hecha y el desplegable del residente corregido el 15 ago 2026. Mide además lo que el gold set no puede: si el administrador corrige la categoría sugerida. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
 | **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | Tenant piloto: se define después de staging (David, 15 ago) |
 | **F5 — Escala** | Abrir por plan y variante. Aquí se cobra el recall ≥95% contra la referencia de la sombra, y el costo dentro del 2–3% | G7 | — |
 
@@ -358,10 +359,30 @@ estados y alertas siguen operando sin migración.
 
 ## Prerrequisitos vivos (fuera de esta PRD, la bloquean)
 
-1. **El desplegable del residente enseña las definiciones cruzadas** y no
-   ofrece `other` (`src/app/(resident)/resident/pqrs/page.tsx`). Mientras siga
-   así, todo `type` de producción nace con la definición equivocada — envenena
-   la sombra de F4. Arreglo pequeño, va antes de F3.
+1. ~~**El desplegable del residente enseña las definiciones cruzadas** y no
+   ofrece `other`.~~ **CERRADO el 15 de agosto de 2026**
+   (`src/app/(resident)/resident/pqrs/page.tsx`). Las cinco definiciones quedan
+   alineadas con `datasets/pqrs/taxonomia.md` —persona (queja) contra servicio
+   (reclamo)— y `other` se ofrece como «General», el mismo rótulo que ya usaban
+   las dos pantallas del administrador.
+
+   **Y el defecto era mayor de lo que este punto decía: las descripciones no se
+   renderizaban.** El `map` de los botones pintaba solo `label`; el campo
+   `description` llevaba muerto desde siempre. Así que el residente no leía la
+   definición equivocada — no leía ninguna, y elegía entre cuatro palabras
+   desnudas. Envenenaba la sombra igual, pero por ruido y no por engaño.
+   **Corregir solo las cadenas habría dejado la pantalla idéntica**, con el
+   arreglo dado por bueno. Ahora se muestran, y la precedencia del árbol
+   —«reportar manda sobre pedir», la regla que el kappa tumbó dos veces con
+   anotadores que conocen el producto— va escrita arriba del grupo, porque
+   pedirle a un residente que la deduzca es peor que pedírselo a un anotador.
+
+   **Tercer hallazgo, que no estaba en ningún documento: en `buzon_simple` todo
+   ticket nacía con `type: "petition"`.** El selector se oculta en esa variante,
+   pero el estado inicial se enviaba igual — una etiqueta falsa con apariencia
+   de elección humana, justo en el eje donde la PRD exige nulls como puerta
+   dura. Ahora no se envía `type` y `createTicket` cae a su default `other`
+   (decisión de David, 15 ago 2026).
 2. ~~**`buzon_simple` sin casos en el gold set.**~~ **CERRADO el 15 de agosto de
    2026:** 12 casos declarados (7 MX, 5 EC) con una columna opcional `variante`
    en `etiquetas.tsv`. Elegidos evitando `billing`, `high` y los casos ancla de
@@ -401,3 +422,4 @@ estados y alertas siguen operando sin migración.
 | 15 ago 2026 | **La exactitud de `category` ≥90% se cobra en G7 contra la sombra, no en el lanzamiento.** `category` nace constante en producción y no la lee nadie salvo un conteo; el baseline real es 61,4% y el asistente da 82,1%. Con candado: cinco criterios que no se mueven y una regla para mover los demás | David |
 | 15 ago 2026 | `p1-minima` queda como prompt activo: gana en cuatro de cinco ejes y la taxonomía dentro del prompt no paga su costo | Evaluación offline |
 | 15 ago 2026 | Los checks automáticos de inyección de `SYN#4` no juzgan `priority`: el valor atacado coincide con una respuesta defendible. Ese eje va a la lectura a mano | Evaluación offline |
+| 15 ago 2026 | En `buzon_simple` el ticket ya no nace `petition`: no se envía `type` y queda `other`. En la variante donde el tipo no aplica, una etiqueta que nadie eligió es peor que ninguna | David |
