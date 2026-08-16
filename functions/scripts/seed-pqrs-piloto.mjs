@@ -83,6 +83,17 @@ const TENANT_CON_SLA = arg("tenant-con-sla");
 const TENANT_BUZON = arg("tenant-buzon");
 const DRY_RUN = process.argv.includes("--dry-run");
 const LIMPIAR = process.argv.includes("--limpiar");
+/**
+ * Pone el conjunto de buzón en `buzon_simple` si no lo está ya.
+ *
+ * Detrás de una bandera y **nunca en silencio**: cambiar la variante de un
+ * conjunto cambia cómo se comporta su pantalla para cualquiera que lo esté
+ * usando —desaparecen el semáforo de SLA, los tipos y el radicado—, y staging lo
+ * comparten varios frentes. Existe porque el 15 de agosto de 2026 **ninguno de
+ * los diez conjuntos de staging operaba en `buzon_simple`**: la variante nunca
+ * se había ejercitado ahí, que es justamente el motivo para enseñarla.
+ */
+const FIJAR_VARIANTE = process.argv.includes("--fijar-variante-buzon");
 
 if (!TENANT_CON_SLA) {
   console.error("\n✖ Falta --tenant-con-sla=<id>. Es el conjunto que lleva el grueso del piloto.\n");
@@ -241,6 +252,33 @@ async function main() {
 
   if (LIMPIAR && !DRY_RUN) {
     for (const t of [TENANT_CON_SLA, TENANT_BUZON].filter(Boolean)) await limpiarSembrados(t);
+  }
+
+  // La variante se comprueba SIEMPRE y se cambia solo si se pidió. Sembrar
+  // tickets de buzón simple en un conjunto que opera con SLA daría nulls donde
+  // la pantalla espera clasificación, y se leería como un fallo del modelo.
+  if (TENANT_BUZON) {
+    // Se LEE también en ensayo —leer no rompe nada— para que el ensayo diga la
+    // variante que hay y no la que se supone. Lo único que el ensayo se salta es
+    // la escritura.
+    const ref = db.collection("tenantSettings").doc(TENANT_BUZON);
+    const actual = await ref.get();
+    const variante = actual.exists ? (actual.data()?.moduleVariants?.pqrs ?? "con_sla") : "con_sla";
+
+    if (variante !== "buzon_simple") {
+      if (!FIJAR_VARIANTE) {
+        console.error(
+          `\n✖ ${TENANT_BUZON} opera en «${variante}», no en buzon_simple.\n` +
+            "  Sembrar ahí los casos de buzón enseñaría una variante que no es la del conjunto.\n" +
+            "  Añade --fijar-variante-buzon para cambiarla, o quita --tenant-buzon.\n",
+        );
+        process.exit(1);
+      }
+      if (!DRY_RUN) {
+        await ref.set({ moduleVariants: { pqrs: "buzon_simple" } }, { merge: true });
+      }
+      console.log(`  ✓ ${TENANT_BUZON}: variante de PQRS cambiada a buzon_simple (era «${variante}»)\n`);
+    }
   }
 
   const unidadesPorTenant = new Map();

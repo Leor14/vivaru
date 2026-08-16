@@ -130,9 +130,26 @@ async function runGateway(request, deps = {}) {
     // toca los contadores de cuota y la telemetría — lo que mandara el cliente ya
     // provocó un rechazo mucho antes.
     const { operation: op, tenantId, uid: actorUid } = decision;
+    // Hay operaciones cuya entrada NO la manda el cliente: la arma el servidor a
+    // partir de un identificador. Cuando hay armador, lo que viniera en
+    // `payload.input` se descarta entero — no se mezcla, porque mezclar dejaría
+    // que el cliente colara justo el campo que el servidor quería decidir.
+    let entradaCruda = payload.input;
+    if (deps.resolveInput) {
+        const resuelta = await deps.resolveInput({ tenantId, uid: actorUid });
+        if (!resuelta.ok) {
+            logger.warn("ai-gateway: entrada no resuelta", {
+                reason: resuelta.reason,
+                operationKey: op.key,
+                tenantId,
+            });
+            return { ok: false, code: resuelta.code, message: resuelta.message, reason: resuelta.reason };
+        }
+        entradaCruda = resuelta.input;
+    }
     // La entrada se valida DESPUÉS de autorizar, nunca antes: a quien no tiene
     // permiso no se le dice si su carga útil era válida.
-    const validation = (0, catalog_1.validateOperationInput)(op, payload.input);
+    const validation = (0, catalog_1.validateOperationInput)(op, entradaCruda);
     if (!validation.ok) {
         logger.warn("ai-gateway: entrada rechazada", { reason: validation.reason, operationKey: op.key, tenantId });
         return { ok: false, code: "invalid-argument", message: validation.detail, reason: validation.reason };

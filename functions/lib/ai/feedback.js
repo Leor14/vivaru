@@ -67,7 +67,20 @@ exports.AI_FEEDBACK_COLLECTION = "aiFeedback";
  * Una propuesta real trae cuatro o cinco datos faltantes.
  */
 const MAX_CATEGORIAS = 40;
-exports.feedbackSchema = zod_1.z
+/**
+ * Reglas del identificador de sesión, compartidas por las dos operaciones.
+ *
+ * Alfabeto acotado a propósito: este valor forma parte de la RUTA del
+ * documento. Una barra convertiría la fila en una subcolección, y un `..` en
+ * algo peor.
+ */
+const sesionId = zod_1.z
+    .string()
+    .trim()
+    .min(8)
+    .max(64)
+    .regex(/^[A-Za-z0-9_-]+$/, "el identificador de sesión solo admite letras, dígitos, guion y guion bajo");
+const feedbackComunicacionesSchema = zod_1.z
     .object({
     /**
      * Identificador de la sesión de borrador, generado en el navegador.
@@ -82,15 +95,8 @@ exports.feedbackSchema = zod_1.z
      * No identifica a una persona ni a un comunicado: nace y muere con el
      * panel abierto.
      */
-    // Alfabeto acotado a propósito: este valor forma parte de la RUTA del
-    // documento. Una barra convertiría la fila en una subcolección, y un `..`
-    // en algo peor. Un UUID cumple de sobra.
-    sesionId: zod_1.z
-        .string()
-        .trim()
-        .min(8)
-        .max(64)
-        .regex(/^[A-Za-z0-9_-]+$/, "el identificador de sesión solo admite letras, dígitos, guion y guion bajo"),
+    // Un UUID cumple de sobra. Las reglas viven arriba, en `sesionId`.
+    sesionId,
     operationKey: zod_1.z.literal("comunicaciones-redactar"),
     propuestas: zod_1.z.number().int().min(1).max(100),
     aplicada: zod_1.z.boolean(),
@@ -119,6 +125,69 @@ exports.feedbackSchema = zod_1.z
     .refine((v) => !(v.deshecha && !v.aplicada), {
     message: "no se puede deshacer lo que no se aplicó",
 });
+/**
+ * Los tres ejes, como los deja la persona o como los propuso el modelo. Son
+ * catálogos cerrados: **no hay dónde meter contenido**, que es la regla de esta
+ * colección. `null` en `category` y `type` es la variante `buzon_simple`.
+ */
+const clasificacionPqrs = zod_1.z
+    .object({
+    category: zod_1.z.enum(["pqrs", "maintenance", "billing"]).nullable(),
+    type: zod_1.z.enum(["petition", "complaint", "claim", "suggestion", "other"]).nullable(),
+    priority: zod_1.z.enum(["low", "medium", "high"]).nullable(),
+})
+    .strict();
+/**
+ * Feedback de la asistencia de PQRS — Fase 3 de `PRD-VAI-FEAT-002`.
+ *
+ * **Lo que de verdad viene a capturar es el par `sugerida` / `guardada`.** Las
+ * dos puertas de G7 se cobran contra «la decisión real del administrador», y esa
+ * comparación es justo lo que el gold set no puede dar: dice si el modelo
+ * coincide con un anotador, no si coincide con quien atiende el ticket. Aquí las
+ * dos van en la misma fila, así que la pregunta —«¿cuántas veces corrigió la
+ * categoría sugerida?»— se contesta contando, no recordando.
+ *
+ * El resto mide el circuito de producto que F3 vino a mirar: cuántas lecturas
+ * pidió, si se llevó la clasificación, si se llevó el borrador y cuánto lo
+ * cambió antes de publicarlo.
+ */
+const feedbackPqrsSchema = zod_1.z
+    .object({
+    sesionId,
+    operationKey: zod_1.z.literal("pqrs-asistir"),
+    /** Lecturas pedidas para el mismo ticket. Tope bajo: hay uno en la pantalla. */
+    lecturas: zod_1.z.number().int().min(1).max(20),
+    sugerida: clasificacionPqrs,
+    /** Pulsó «usar esta clasificación»: la propuesta llegó a los selectores. */
+    clasificacionAplicada: zod_1.z.boolean(),
+    /** Lo que quedó escrito en el ticket. `null` si no llegó a guardar. */
+    guardada: clasificacionPqrs.nullable(),
+    borradorCopiado: zod_1.z.boolean(),
+    respuestaGuardada: zod_1.z.boolean(),
+    distanciaEdicion: zod_1.z.number().int().min(0).max(100).nullable(),
+})
+    .strict()
+    // La distancia mide cuánto cambió EL BORRADOR DEL MODELO antes de publicarlo.
+    // Sin copiarlo no hay nada de qué medir distancia, y una respuesta escrita a
+    // mano con distancia 100 diría lo contrario de lo que parece.
+    .refine((v) => (v.borradorCopiado && v.respuestaGuardada ? v.distanciaEdicion !== null : v.distanciaEdicion === null), {
+    message: "distanciaEdicion existe exactamente cuando se copió el borrador y se guardó la respuesta",
+})
+    // En `buzon_simple` el modelo devuelve nulls por contrato y la pantalla no
+    // pinta ni el editor ni el botón. Si llega una clasificación aplicada o
+    // guardada en esa variante, el cliente está roto: no es una persona decidiendo.
+    .refine((v) => !(v.sugerida.category === null && (v.clasificacionAplicada || v.guardada !== null)), {
+    message: "en buzón simple no hay clasificación que aplicar ni que guardar",
+});
+/**
+ * Las dos operaciones que producen feedback.
+ *
+ * `union` y no `discriminatedUnion` a propósito: la rama de comunicaciones
+ * queda **intacta**, con sus dos invariantes tal y como estaban. Es una ruta de
+ * validación, y reescribirla para ganar un mensaje de error más bonito no vale
+ * el riesgo de moverle algo a la que ya está en producción.
+ */
+exports.feedbackSchema = zod_1.z.union([feedbackComunicacionesSchema, feedbackPqrsSchema]);
 /**
  * Escribe una fila de feedback.
  *
