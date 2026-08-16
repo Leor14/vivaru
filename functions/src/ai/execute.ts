@@ -1,6 +1,5 @@
 import type { OperationDefinition } from "./catalog";
 import { buildProviderPrompt } from "./prompt";
-import { PROMPT_ACTIVO, type PromptVersion } from "./prompts";
 import type { AiProvider, AiUsage } from "./provider";
 import type { ContextoConjunto } from "./tenant-context";
 
@@ -90,9 +89,9 @@ export async function executeOperation(
   operation: OperationDefinition,
   input: unknown,
   provider: AiProvider,
-  // La evaluación offline del Paso 2.4 corre el mismo camino con versiones
-  // distintas; producción usa siempre la activa.
-  promptVersion: PromptVersion = PROMPT_ACTIVO,
+  // La evaluación offline corre el mismo camino con versiones distintas;
+  // producción pasa `undefined` y usa la activa de la operación.
+  promptVersion?: string,
   // Lo que Vivaru sabe del conjunto y el administrador no tiene que escribir.
   // Lo resuelve la puerta; aquí solo se transporta hasta el prompt. Ausente, el
   // mensaje sale idéntico al de siempre.
@@ -101,14 +100,18 @@ export async function executeOperation(
   const inicio = Date.now();
   const transcurrido = () => Date.now() - inicio;
 
+  // Resuelta una sola vez: el mensaje al modelo y la telemetría tienen que
+  // contar la misma versión.
+  const version = promptVersion ?? operation.prompts.activo;
+
   let resultado;
   try {
     resultado = await conCorteDeTiempo(
       provider.generate({
         operationKey: operation.key,
         operationVersion: operation.version,
-        prompt: buildProviderPrompt(operation, input, promptVersion, contexto),
-        promptVersion,
+        prompt: buildProviderPrompt(operation, input, version, contexto),
+        promptVersion: version,
         input,
         maxOutputTokens: operation.limits.maxOutputTokens,
       }),

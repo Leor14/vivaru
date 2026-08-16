@@ -4,7 +4,6 @@ exports.CONTEXTO_EDIFICIO_UNICO = exports.CONTEXTO_CON_AGRUPACIONES = void 0;
 exports.buildFormatInstruction = buildFormatInstruction;
 exports.buildProviderPrompt = buildProviderPrompt;
 const zod_1 = require("zod");
-const prompts_1 = require("./prompts");
 /**
  * Instrucción de FORMATO para el proveedor (Paso 1.4-real).
  *
@@ -42,31 +41,12 @@ function buildFormatInstruction(operation) {
         // Las reglas duras del programa, dichas al modelo además de validadas.
         // Validarlas es lo que las hace ciertas; decirlas ahorra rechazos.
         //
-        // Van AQUÍ y no en los prompts de tarea a propósito: son fidelidad a los
-        // hechos, no estilo de redacción. Metidas en una sola versión, esa saldría
-        // con ventaja y la comparación entre v1, v2 y v3 dejaría de medir lo que
-        // dice medir.
+        // Van en el catálogo de la operación y no en los prompts de tarea a
+        // propósito: son fidelidad a los hechos, no estilo de redacción. Metidas en
+        // una sola versión, esa saldría con ventaja y la comparación entre
+        // versiones dejaría de medir lo que dice medir.
         "Reglas:",
-        "- No añadas claves que no estén en el esquema.",
-        "- Si te falta un dato para redactar bien, NO lo inventes: enumera lo que",
-        "  falta en `missingInformation` y deja el resto lo más conservador posible.",
-        // Añadida el 13 de agosto de 2026, y la única que salió de ver a un
-        // administrador de verdad en vez de de un razonamiento. Escribió «2500
-        // pesos por residente» en un hecho y «por unidad» en otro, sin notarlo, y
-        // el borrador publicó «por unidad» y descartó lo otro sin avisar — 3 de 3
-        // veces. Puede que eligiera bien; el problema es que eligiera.
-        "- Si dos hechos se contradicen entre sí, NO decidas cuál vale: dilo en",
-        "  `qualityFlags` y pide la aclaración en `missingInformation`. Elegir por la",
-        "  persona es peor que preguntarle, aunque aciertes.",
-        // Segunda regla del mismo día y de la misma sesión. La de arriba no cubría
-        // el caso: el modelo no veía contradicción entre «2500 por residente» y
-        // «conciliar por unidad» —y puede que tenga razón, son cosas distintas—
-        // pero aun así reescribía el importe como «por unidad».
-        "- Copia los datos con las MISMAS palabras del administrador. No los",
-        "  reformules por otros que signifiquen algo distinto, aunque creas que se",
-        "  equivocó o que otro hecho sugiere lo contrario. Si crees que un dato está",
-        "  mal, dilo en `qualityFlags`; no lo cambies.",
-        "- `assumptions` debe ir vacío. Si asumiste algo, la respuesta se descarta.",
+        ...operation.reglasDuras,
     ].join("\n");
 }
 /**
@@ -97,14 +77,22 @@ exports.CONTEXTO_EDIFICIO_UNICO = "El conjunto es un edificio único: no tiene t
  * la implementación: es lo que permite volver a medir el suelo y comparar la
  * corrida nueva con las seis anteriores. Hay una prueba que lo sostiene.
  */
-function buildProviderPrompt(operation, input, version = prompts_1.PROMPT_ACTIVO, contexto) {
+function buildProviderPrompt(operation, input, version, contexto) {
+    // La versión pertenece a la operación desde que hay más de una: pedirle a
+    // PQRS un prompt de comunicaciones tiene que romper aquí, en voz alta, y no
+    // salir como un mensaje a medias que el modelo intente complacer.
+    const elegida = version ?? operation.prompts.activo;
+    const definicion = operation.prompts.versiones[elegida];
+    if (!definicion) {
+        throw new Error(`La operación «${operation.key}» no tiene la versión de prompt «${elegida}».`);
+    }
     const hecho = contexto?.tieneAgrupaciones === undefined
         ? null
         : contexto.tieneAgrupaciones
             ? exports.CONTEXTO_CON_AGRUPACIONES
             : exports.CONTEXTO_EDIFICIO_UNICO;
     return [
-        (0, prompts_1.getPrompt)(version).instruccion,
+        definicion.instruccion,
         "",
         buildFormatInstruction(operation),
         "",
