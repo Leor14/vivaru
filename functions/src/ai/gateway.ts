@@ -87,10 +87,34 @@ const CODIGO_POR_FALLO = {
   salida_incumple_contrato: "internal",
 } as const;
 
+/**
+ * Lo que devuelve un armador de entrada: la entrada lista, o un fallo con el
+ * código que la puerta debe traducir.
+ */
+export type InputResolution =
+  | { ok: true; input: unknown }
+  | { ok: false; code: GatewayOutcomeCode; message: string; reason: string };
+
 export interface GatewayDeps {
   /** Inyectable para poder provocar fallos del proveedor en las pruebas. */
   provider?: AiProvider;
   now?: Date;
+  /**
+   * Arma la entrada en el SERVIDOR, ignorando la que mandó el cliente.
+   *
+   * Existe para `pqrs-asistir`, cuyo esquema lleva escrito que la puebla el
+   * servidor: el navegador manda un `ticketId` y nada más. Sin esto, la pantalla
+   * tendría que afirmar `mensaje`, `historial` y —lo que importa— `variante`, y
+   * `variante` es lo que decide la puerta dura de `buzon_simple`. Un cliente que
+   * mintiera ahí recibiría clasificación donde el contrato de producto dice que
+   * no debe haberla: la puerta dura la estaría decidiendo el navegador.
+   *
+   * Se llama **después de autorizar y antes de cobrar cuota**. Después de
+   * autorizar porque leer el ticket de quien no tiene permiso es trabajo que no
+   * se le debe; antes de cobrar porque si el ticket no existe no hay nada que
+   * devolver — cobrar y reembolsar deja una ventana peor que un `get` de más.
+   */
+  resolveInput?: (contexto: { tenantId: string; uid: string }) => Promise<InputResolution>;
 }
 
 export interface GatewayRequest {
@@ -160,9 +184,27 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
   // provocó un rechazo mucho antes.
   const { operation: op, tenantId, uid: actorUid } = decision;
 
+  // Hay operaciones cuya entrada NO la manda el cliente: la arma el servidor a
+  // partir de un identificador. Cuando hay armador, lo que viniera en
+  // `payload.input` se descarta entero — no se mezcla, porque mezclar dejaría
+  // que el cliente colara justo el campo que el servidor quería decidir.
+  let entradaCruda: unknown = payload.input;
+  if (deps.resolveInput) {
+    const resuelta = await deps.resolveInput({ tenantId, uid: actorUid });
+    if (!resuelta.ok) {
+      logger.warn("ai-gateway: entrada no resuelta", {
+        reason: resuelta.reason,
+        operationKey: op.key,
+        tenantId,
+      });
+      return { ok: false, code: resuelta.code, message: resuelta.message, reason: resuelta.reason };
+    }
+    entradaCruda = resuelta.input;
+  }
+
   // La entrada se valida DESPUÉS de autorizar, nunca antes: a quien no tiene
   // permiso no se le dice si su carga útil era válida.
-  const validation = validateOperationInput(op, payload.input);
+  const validation = validateOperationInput(op, entradaCruda);
   if (!validation.ok) {
     logger.warn("ai-gateway: entrada rechazada", { reason: validation.reason, operationKey: op.key, tenantId });
     return { ok: false, code: "invalid-argument", message: validation.detail, reason: validation.reason };

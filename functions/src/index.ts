@@ -4084,6 +4084,12 @@ export const addSupportNote = onCall<{ ticketId: string; note: string }>(
 // y el tope de gasto.
 export { aiInvoke } from "./ai/gateway";
 export { registrarFeedbackIa } from "./ai/feedback-gateway";
+// Asistencia de PQRS (Fase 3 de PRD-VAI-FEAT-002). Puerta propia y no `aiInvoke`
+// porque su entrada la puebla el SERVIDOR: el cliente manda un `ticketId` y el
+// servidor lee el ticket y resuelve la variante. Si la mandara el navegador,
+// `variante` —lo que decide la puerta dura de nulls en `buzon_simple`— la
+// estaría afirmando el cliente.
+export { asistirTicketPqrs } from "./ai/pqrs-gateway";
 export { registrarImportacion } from "./import/gateway";
 
 /**
