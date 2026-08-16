@@ -10,7 +10,7 @@ Archivos: `2026-08-16-03-30-59-pqrs-real.json` (p1 y p2; el sello es UTC),
 
 | | p1-minima | p2-taxonomia | p3-frontera | puerta |
 |---|---|---|---|---|
-| `category` | **82,1%** | 81,4% | 82,9% | ≥90% — **NINGUNA PASA** |
+| `category` | **82,1%** | 81,4% | 82,9% | ≥90% — ninguna llega; **puerta movida a G7**, ver abajo |
 | `buzon_simple` (nulls) | 12/12 | 12/12 | 12/12 | siempre — pasa |
 | inyección | 8/8 | 8/8 ¹ | 8/8 | 8/8 — pasa |
 | `type` (se reporta) | 70,7% | 75,0% | 61,4% | — |
@@ -28,7 +28,8 @@ reporta porque la PRD lo pide; no afirma nada que la definición no sostenga.
 mismo patrón que comunicaciones midió el 12 de agosto, más pronunciado: aquí la
 guía extra no solo no paga — desestabiliza los ejes que no toca.
 
-**La Fase 2 NO está en verde: la puerta de `category` no pasa.** Lo demás sí:
+**La Fase 2 quedó hecha, con la puerta de `category` movida a G7** por lo que se
+encontró al mirar el código (abajo). Lo demás pasó de largo:
 nulls perfectos, inyección resistida, guardrail de `high` impecable (el modelo
 marca revisión humana en el 100% de los `high` que propone, las tres
 versiones), y el costo por asistencia dentro de la referencia de comunicaciones
@@ -99,16 +100,49 @@ producto quiere (κ 0,91 la sostiene con 20 casos; los 152 la estresan más).
 - El recall de `enfado` fue 12/12 (p1): lo que el gold sí marcó, el modelo lo
   ve.
 
-## Qué sigue (decisión de David, no de esta sesión)
+## La decisión que se tomó, y lo que la disparó
 
-1. **Aceptar el estado y decidir la palanca de `category`**: ejemplos de
-   contraste desde el corpus (fuera del gold set, sin contaminación), revisar
-   la frontera del gold en los ~25 casos residuales, o recalibrar la puerta.
-   Con 82% el asistente acierta 4 de 5 y TODO pasa por confirmación humana —
-   pero la puerta la fijó la PRD y moverla es decisión de producto.
-2. Si `category` llega a verde: la v2 de la operación con la regla «no afirmes
-   acciones ya tomadas», y de ahí a F3 (prerrequisito restante: el desplegable
-   del residente).
+**Antes de elegir palanca se hizo la pregunta que con `type` ahorró una ronda
+de kappa: ¿qué decide `category` en el código?** La respuesta cambió el
+resultado de la Fase 2.
+
+**`category` es hoy una constante en producción.** Todo ticket del portal del
+residente nace con `category: "pqrs"` escrito a fuego
+(`src/features/pqrs/use-tickets.ts:129`) — el desplegable que llena el
+residente es el de `type`. Y no la consume nadie: no está en `firestore.rules`,
+no está en `functions/`, no aparece en `/admin/pqrs` (esa pantalla filtra y
+muestra `type`), el SLA no la mira, y hasta el `categoryFilter` del resumen de
+antigüedad filtra en realidad por `type`
+(`src/features/pqrs/use-pqrs-aging-summary.ts:86`). Su único consumidor real es
+un conteo del reporte del comité
+(`src/features/reports/use-committee-report.ts:439`) — un conteo que hoy
+necesariamente dice «100% pqrs».
+
+**Y el baseline no era cero, era 61,4%.** Clasificar todo como `pqrs` acierta
+86 de los 140 casos evaluables. No hubo que calcularlo: es exactamente la cifra
+que dio la corrida en simulado, porque el stub siempre contesta `pqrs`. La
+comparación real, entonces, no es 82 contra 90 — es **82 contra 61**, y el
+único consumidor del campo pasa de un reporte inservible a uno que acierta
+cuatro de cada cinco. Con su límite: dos edificios no son dos mercados, así que
+61,4% es el clasificador trivial sobre este conjunto, no la exactitud de
+producción.
+
+**David decidió el 15 de agosto por la noche: la exactitud de `category` se
+cobra en G7 contra la sombra**, junto al recall de `high` y por la misma lógica
+—la exigencia se mueve a donde el error empieza a costar—, con **un candado de
+cinco criterios que no se mueven** y una regla para mover los demás. Está
+escrito en la PRD como «Segunda decisión rectora». **La Fase 2 queda hecha y la
+Fase 3 desbloqueada**, con un solo prerrequisito vivo: el desplegable del
+residente.
+
+## Qué sigue
+
+1. **F3, piloto simulado en staging.** Antes, corregir el desplegable del
+   residente. Y la sesión mide algo que este conjunto no puede: **cuántas veces
+   el administrador corrige la categoría sugerida** — la señal que dice si el
+   82,1% medía error del modelo o desacuerdo con la frontera del gold.
+2. **La v2 de la operación**, con la regla dura «no afirmes acciones ya
+   tomadas» (los 44 borradores de arriba). Puede ir junto con F3 o antes.
 3. El plan de la tercera ronda de kappa de `priority` no cambia: aplazada, y
    esta corrida no la sustituye — 94,7% de recall contra una definición en la
    que dos humanos no coinciden sigue siendo una cifra con asterisco.

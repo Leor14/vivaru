@@ -4,7 +4,7 @@
 Actualizado el 15 de agosto de 2026 por la noche, tras correr la evaluación
 offline de PQRS.
 
-## La Fase 2 de PQRS se corrió, y `category` no pasa la puerta (15 ago 2026)
+## La Fase 2 de PQRS está HECHA, y `category` se cobra ahora en la puerta de escala (15 ago 2026)
 
 **La operación `pqrs-asistir` existe y la corrida está hecha.** Segunda
 operación del catálogo, sobre el gateway que ya estaba: entrada que puebla el
@@ -15,8 +15,10 @@ llamadas reales, **USD 0,45**. Lectura completa en
 **Dos puertas duras pasan y una no:**
 
 - **`buzon_simple` 12/12** y **inyección 8/8**, en las tres versiones de prompt.
-- **`category` se queda en 82,1%** (p1), 81,4% (p2), 82,9% (p3). **La puerta es
-  ≥90%.** Con eso, **F2 NO está en verde y F3 sigue bloqueada.**
+- **`category` se queda en 82,1%** (p1), 81,4% (p2), 82,9% (p3), contra una
+  puerta de ≥90%. **David decidió esa misma noche moverla a la puerta de escala
+  (G7), contra la sombra** — no por no haber llegado, sino por lo que se
+  encontró al mirar el código: ver abajo. **F2 queda HECHA y F3 desbloqueada.**
 - Se reportan sin bloquear: `type` 70,7%, `priority` 72,4%, **recall de `high`
   94,7%** (18/19) y el guardrail **32/32** — todo `high` que propone el modelo
   llega con `needsHumanReview`. El recall va con asterisco: la definición sigue
@@ -27,15 +29,35 @@ llamadas reales, **USD 0,45**. Lectura completa en
 **`p1-minima` gana y queda activa** — la versión con la taxonomía entera dentro
 del prompt no paga su costo, igual que en comunicaciones y más marcado.
 
-**Lo que hay que decidir, y es de producto:** 19 de los 25 fallos de `category`
-son `pqrs → maintenance` — preguntas y sugerencias SOBRE un tema físico que el
-modelo clasifica por el tema. Se probó una regla de frontera (p3) y **la
-frontera se giró en vez de afinarse**: +12 en `pqrs`, −11 en `maintenance`,
-neto +1, y de paso tumbó `type` nueve puntos. Cada instrucción de frontera
-mueve la frontera entera. Las salidas quedan tres opciones: ejemplos de
-contraste sacados del corpus (fuera del gold set, así que no contamina),
-revisar si la frontera del gold es la que el producto quiere, o recalibrar la
-puerta con los números delante.
+**LO QUE DECIDIÓ ESTO, y es el hallazgo que más vale de la sesión:
+`category` hoy es una constante en producción.** Todo ticket que crea el portal
+del residente nace con `category: "pqrs"` escrito a fuego
+(`src/features/pqrs/use-tickets.ts:129`) — el residente elige `type`, no
+`category`—, y **no la lee nadie**: ni `firestore.rules`, ni `functions/`, ni
+`/admin/pqrs` (esa pantalla filtra y muestra `type`), ni el SLA. Su único
+consumidor es un conteo del reporte del comité
+(`src/features/reports/use-committee-report.ts:439`). **Es el hallazgo gemelo
+del de `type`, y llegó igual: mirando el producto, no el kappa.**
+
+**Y el baseline real no es cero: es 61,4%.** Clasificar todo como `pqrs`
+—literalmente lo que hace el código— acierta 86 de 140. Salió medido sin
+buscarlo: es la cifra de la corrida en simulado, porque el simulador siempre
+contesta `pqrs`. Así que la comparación no era 82 contra 90 sino **82 contra
+61**. Su límite, dicho: el gold set son dos edificios, no dos mercados.
+
+**Se intentó arreglarlo con prompt y no se puede:** 19 de los 25 fallos son
+`pqrs → maintenance` —preguntas y sugerencias SOBRE un tema físico— y la
+versión que se lo explica (p3) **giró la frontera en vez de afinarla**: +12 en
+`pqrs`, −11 en `maintenance`, neto +1, y `type` cayó nueve puntos. Cada
+instrucción de frontera mueve la frontera entera.
+
+**El candado de la decisión, para que no se convierta en costumbre.** Es la
+segunda puerta que se mueve a G7, así que la PRD fija ahora **cinco criterios
+que no se tocan** —inyección 8/8, nulls de `buzon_simple`, revisión humana
+total con `needsHumanReview` en los `high`, cero cambios automáticos, cero
+acceso cruzado— y una regla: mover cualquier otro exige la medición que lo
+sostenga **y** una puerta posterior que lo recoja; nunca la sola constatación
+de que no se alcanzó.
 
 **Dos cosas más que salieron y valen para F3:**
 
@@ -146,11 +168,12 @@ high/no-high) está escrito en el registro.
 verdad; la copia de Drive queda como lectura. Trae la **decisión rectora de
 David**: el recall de `high` ≥95% se cobra en la puerta de escala (G7), no en
 la de lanzamiento — el piloto se protege con revisión humana total, no con una
-métrica que hoy no es evaluable. G0–G3 superadas. Fases renumeradas: **F2
+métrica que hoy no es evaluable. G0–G3 superadas. Fases renumeradas: ~~**F2
 evaluación offline contra el gold set (el siguiente paso ejecutable**, cuesta
-centavos; prerrequisito: declarar casos `buzon_simple`), F3 piloto simulado en
-staging con tickets sembrados desde los corpus (prerrequisitos: F2 en verde y
-el desplegable del residente corregido; si la sesión usa al tercer
+centavos; prerrequisito: declarar casos `buzon_simple`)~~ **— F2 HECHA esa
+misma noche; G4 y G5 superadas: ver la sección de arriba —**, F3 piloto
+simulado en staging con tickets sembrados desde los corpus (**prerrequisito
+vivo: solo el desplegable del residente**; si la sesión usa al tercer
 administrador, ANTES se le toma la línea base de comunicaciones a ciegas), F4
 sombra en producción + piloto visible por bandera (la sombra fabrica los
 150–250 tickets etiquetados que piden el Paso 3 y la Fase 5), F5 escala. El

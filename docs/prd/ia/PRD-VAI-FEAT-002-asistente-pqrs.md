@@ -18,7 +18,7 @@ verdad es este archivo.**
 | Usuario principal | `tenant_admin` / `admin_tenant` |
 | Usuarios secundarios | Comité u operativos según RBAC; residentes y portería originan tickets |
 | Responsable | David |
-| Estado | **Rumbo a piloto, con G4 abierta** — G0–G3 superadas; la Fase 2 se corrió el 15 ago 2026 y **`category` quedó en 82,1% contra la puerta de 90%**. Las otras dos puertas duras pasan |
+| Estado | **Rumbo a piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026). El paso en curso es **F3, piloto simulado en staging**; su único prerrequisito vivo es el desplegable del residente |
 | Dependencias | `PRD-VAI-PLAT-001` (**en producción desde el 15 ago 2026, inerte tras banderas**: gateway `aiInvoke`, `aiUsage`, cuotas, adaptador Vertex, `aiFeedback`, consola `/superadmin/flags`) · catálogos de `Ticket` (`src/types/domain.ts:141`) · variantes `con_sla`/`buzon_simple` (`src/lib/config/module-variants.ts:37`) |
 | Riesgo | Medio-alto: contenido sensible, priorización, posible efecto legal o reputacional |
 | Estado de datos | Gold set **construido**: 152 casos reales (84 MX · 60 EC · 8 sintéticos de inyección) en `datasets/pqrs/`. Producción tiene **0 tickets** (medido 14 ago 2026) — el dataset de despliegue lo fabrica el modo sombra |
@@ -42,6 +42,66 @@ La exigencia no se elimina: se mueve a donde el error empezaría a costar. El
 modo sombra (Fase 4) acumula, ticket a ticket real, la sugerencia del modelo
 junto a la decisión final del administrador — esa comparación es la referencia
 que hoy no existe, y contra ella se mide el 95% antes de escalar.
+
+## Segunda decisión rectora (David, 15 de agosto de 2026, noche)
+
+**La exactitud de `category` ≥90% se cobra también en la puerta de escala
+(G7/Fase 5), no en la de lanzamiento.** La corrida de la Fase 2 la dejó en
+**82,1%**, y la decisión no es rebajar la exigencia porque no se llegó: es
+corregir una puerta que se fijó **sin saber qué decide el eje ni contra qué se
+compara**. Las cuatro razones están medidas:
+
+1. **`category` hoy es una constante en producción.** Todo ticket creado por el
+   portal del residente nace con `category: "pqrs"` escrito a fuego
+   (`src/features/pqrs/use-tickets.ts:129`); el residente elige `type`, no
+   `category`. Y no la lee nadie: no aparece en `firestore.rules`, ni en
+   `functions/`, ni en `/admin/pqrs` —esa pantalla filtra y muestra `type`—, ni
+   la mira el SLA. Su único consumidor es un conteo agregado del reporte del
+   comité (`src/features/reports/use-committee-report.ts:439`). **Es el hallazgo
+   gemelo del de `type`, y llega por el mismo camino: mirar el producto, no el
+   kappa.**
+2. **El baseline real no es cero: es 61,4%, y el asistente sube 21 puntos.**
+   Clasificar todo como `pqrs` —literalmente lo que hace el código hoy— acierta
+   86 de los 140 casos evaluables del gold set. Medido sin buscarlo: es la cifra
+   que dio la corrida en modo simulado, porque el simulador siempre contesta
+   `pqrs`. Con su límite dicho: el gold set son dos edificios y sus frecuencias
+   no son las del mercado, así que 61,4% es el clasificador trivial **sobre este
+   conjunto**, no la exactitud de producción.
+3. **El error cuesta poco y no es evitable por más prompt.** Toda salida la
+   confirma el administrador y el único consumidor es un conteo. Y 19 de los ~25
+   fallos son un patrón único —preguntas y sugerencias SOBRE un tema físico— en
+   una frontera que κ 0,91 no validó: esos 20 casos salieron al azar, no de la
+   frontera. Se intentó decírselo al modelo (`p3-frontera`) y **la frontera se
+   giró en vez de afinarse**: +12 en `pqrs`, −11 en `maintenance`, y `type` cayó
+   nueve puntos.
+4. **El material es más difícil que el real.** El gold set son mensajes de
+   WhatsApp sin asunto; un ticket trae `subject` **y** `message`. Es el límite
+   que G2 ya declaraba.
+
+**Dónde se cobra ahora:** la sombra de la Fase 4 acumula, ticket a ticket real,
+la sugerencia junto a la categoría final que dejó el administrador. Contra esa
+referencia se mide el ≥90% antes de escalar, igual que el recall de `high`. Es
+la misma lógica de la primera decisión rectora: la exigencia no se elimina, se
+mueve a donde el error empieza a costar.
+
+### El candado: qué NO se mueve
+
+Esta es **la segunda puerta que se desplaza a G7**, y sin un límite escrito la
+tercera se movería igual. Las siguientes **no se tocan**, y ninguna se negocia
+con una corrida:
+
+- **Inyección 8/8.** Un solo caso que siga instrucciones del mensaje suspende.
+- **`buzon_simple`: nulls siempre.** Es contrato de producto, no calidad de
+  modelo — un fallo aquí es un defecto, no una métrica floja.
+- **Revisión humana total**, y `needsHumanReview` obligatorio en todo `high`.
+- **0 cambios automáticos** de estado, prioridad o categoría; el editor manual
+  sobrevive a cualquier fallo.
+- **0 acceso cruzado entre tenants.**
+
+**Y la regla que las protege:** mover cualquier criterio de §9 exige una
+decisión escrita **con la medición que la sostiene y una puerta posterior que la
+recoja** — nunca la sola constatación de que no se alcanzó. Las cinco de arriba
+no admiten ni eso.
 
 ## Clasificación y justificación de IA
 
@@ -198,7 +258,7 @@ Estado por eje, medido y no supuesto:
 
 | Eje | Estado | Papel en la evaluación |
 |---|---|---|
-| `category` | **Validado** (κ 0,91) | **Puerta dura**: exactitud ≥90%, medida también por clase (`billing` solo tiene 15 casos: su cifra se reporta con ese caveat, no se esconde) |
+| `category` | **Validado** (κ 0,91) · medido **82,1%** (15 ago 2026) | **Se reporta en el lanzamiento; la exactitud se cobra en G7 contra la sombra** (decisión de David del 15 ago 2026 — abajo). Se mide también por clase (`billing` solo tiene 15 casos: su cifra se reporta con ese caveat, no se esconde) |
 | `tema` | **Validado** (κ 0,89) | Informativo (no es contrato de `Ticket`) |
 | `type` | Corregido sin validar (0,53) | **Descriptivo, no bloquea**: no decide nada en el código (pinta etiqueta y llena un filtro). Se reporta |
 | `priority` | Corregido sin validar (0,47) | **Se reporta, no bloquea el lanzamiento.** Guardrail de runtime: `needsHumanReview` obligatorio en `high`. El 95% vive en la puerta de escala |
@@ -209,7 +269,9 @@ Estado por eje, medido y no supuesto:
 
 - 100% de respuestas requieren envío humano; 0 cambios automáticos de estado,
   prioridad o categoría; 100% de fallos conservan el editor manual.
-- Exactitud de `category` ≥90% en el gold set.
+- ~~Exactitud de `category` ≥90% en el gold set.~~ **Movida a G7 el 15 de
+  agosto de 2026** — ver «Segunda decisión rectora». En el lanzamiento se
+  reporta y no bloquea.
 - Inyección: 8/8. `buzon_simple`: nulls siempre.
 - 0 promesas, plazos o hechos no sustentados en los casos que se lean a mano
   en la Fase 2 y en la sesión de la Fase 3 (el resumen y el borrador no tienen
@@ -219,11 +281,19 @@ Estado por eje, medido y no supuesto:
 - 0 acceso cruzado entre tenants (pruebas negativas).
 - Costo por asistencia medido y dentro de presupuesto (§10).
 
-**Criterios de escala (Fase 5):** recall de `high` ≥95% **contra la referencia
-acumulada por la sombra** (sugerencia vs decisión real del administrador), con
-la definición de `priority` validada por esa misma acumulación o por la
-tercera ronda si se retoma (plan escrito en
-`datasets/pqrs/doble-etiquetado/definiciones-priority-2026-08-15.md`).
+**Criterios de escala (Fase 5)** — los dos **contra la referencia acumulada por
+la sombra** (sugerencia vs decisión real del administrador), que es la única que
+mide sobre tickets de verdad:
+
+- **Recall de `high` ≥95%**, con la definición de `priority` validada por esa
+  misma acumulación o por la tercera ronda si se retoma (plan escrito en
+  `datasets/pqrs/doble-etiquetado/definiciones-priority-2026-08-15.md`).
+- **Exactitud de `category` ≥90%** (movida aquí el 15 ago 2026). La sombra da
+  además la señal que el gold set no puede dar: **cuántas veces el
+  administrador corrige la categoría sugerida.** Si la corrige poco, la
+  frontera del gold discrepaba del producto y el 82,1% estaba midiendo el
+  desacuerdo, no el error; si la corrige mucho, el modelo falla de verdad y la
+  palanca son ejemplos de contraste desde el corpus.
 
 ## 10 · Economía y consumo
 
@@ -278,8 +348,8 @@ proveedor → versionado; falla → editor manual). Se añaden dos medidas:
 | Fase | Qué es | Puerta | Estado |
 |---|---|---|---|
 | **F1 — Gold set y taxonomía** | 152 casos, taxonomía con árbol de `type` y preguntas ordenadas de `priority`, dos rondas de doble etiquetado + vuelta de definiciones | G2 | **HECHA** (15 ago 2026) |
-| **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **CORRIDA el 15 ago 2026, NO en verde.** Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Nulls 12/12 e inyección 8/8; **`category` 82,1%** contra ≥90%. G5 resuelta: **USD 0,001 por asistencia**. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
-| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | Prerrequisitos: F2 en verde y desplegable del residente corregido. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
+| **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **HECHA** (15 ago 2026). Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Inyección 8/8, nulls 12/12, guardrail 32/32; `category` 82,1% (baseline 61,4%) **movida a G7**. **USD 0,001 por asistencia.** Prompt activo: `p1-minima`. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
+| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **Siguiente.** F2 hecha; queda **el desplegable del residente**. Mide además lo que el gold set no puede: si el administrador corrige la categoría sugerida. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
 | **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | Tenant piloto: se define después de staging (David, 15 ago) |
 | **F5 — Escala** | Abrir por plan y variante. Aquí se cobra el recall ≥95% contra la referencia de la sombra, y el costo dentro del 2–3% | G7 | — |
 
@@ -305,7 +375,7 @@ estados y alertas siguen operando sin migración.
 | G1 Valor | **Superada, reformulada** | Baseline de clasificación: el gold set. Baseline operativo: lo captura la sombra desde el primer ticket real (producción hoy: 0 tickets, medido) |
 | G2 Datos | **Superada** | Gold set 152 casos reales; límite dicho: son WhatsApp, no tickets de producto |
 | G3 Riesgo | **Superada** | Revisión humana total, fallback, kill switch, parada en seco |
-| G4 Evaluación | **Medida, no superada** | Fase 2 corrida el 15 ago 2026: `buzon_simple` 12/12 e inyección 8/8 pasan; `category` 82,1% no llega al 90%. La palanca es decisión de producto — ver la lectura |
+| G4 Evaluación | **Superada, reformulada** | Fase 2 corrida el 15 ago 2026: inyección 8/8, `buzon_simple` 12/12 y guardrail de `high` 32/32. `category` 82,1% sobre un baseline real de 61,4%, **movida a G7** por la segunda decisión rectora |
 | G5 Economía | **Superada** | Cifra propia medida: **USD 0,001 por asistencia** (456 llamadas, USD 0,45), del orden de comunicaciones |
 | G6 Piloto | Pendiente | Fases 3–4 |
 | G7 Escala | Pendiente | Fase 5 — aquí vive el 95% |
@@ -328,5 +398,6 @@ estados y alertas siguen operando sin migración.
 | 15 ago 2026 | `type` queda descriptivo: no decide nada en el código; su kappa no bloquea | David (confirmó «van al mismo lado») |
 | 15 ago 2026 | Tercera ronda de kappa de `priority` aplazada; plan escrito por si se retoma | David |
 | 15 ago 2026 | Primero staging; el tenant piloto de F4 se decide después | David |
+| 15 ago 2026 | **La exactitud de `category` ≥90% se cobra en G7 contra la sombra, no en el lanzamiento.** `category` nace constante en producción y no la lee nadie salvo un conteo; el baseline real es 61,4% y el asistente da 82,1%. Con candado: cinco criterios que no se mueven y una regla para mover los demás | David |
 | 15 ago 2026 | `p1-minima` queda como prompt activo: gana en cuatro de cinco ejes y la taxonomía dentro del prompt no paga su costo | Evaluación offline |
 | 15 ago 2026 | Los checks automáticos de inyección de `SYN#4` no juzgan `priority`: el valor atacado coincide con una respuesta defendible. Ese eje va a la lectura a mano | Evaluación offline |
