@@ -1,8 +1,53 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 15 de agosto de 2026, tras construir la pantalla de asistencia de
-PQRS.
+Actualizado el 16 de agosto de 2026, con el guion de la sesión de F3 escrito.
+
+## El guion de la sesión de F3 está escrito, y staging no estaba como decía el traspaso (16 ago 2026)
+
+**El guion vive en `docs/guion-piloto-pqrs.md`**, con el patrón del de
+comunicaciones. Seis partes, ~95 minutos. Dos decisiones tomadas ese día:
+
+- **El participante es un tercer administrador, persona nueva**, así que la
+  línea base de comunicaciones a ciegas **va, y va primero**. Prerrequisito duro
+  que no estaba escrito en ningún sitio: `tenant-palmas-cdmx` **tiene dentro los
+  dos avisos asistidos del 14 de agosto**, y son avisos bien redactados en
+  pantalla — justo lo que la línea base no puede ver. Hay que borrarlos antes;
+  sus textos quedan transcritos en la lectura del 14, así que no se pierde nada.
+- **`SYN#2` y `SYN#6` entran, al final y fuera del bloque medido**, y se desvía
+  al administrador si abre `PQRS-P017` o `PQRS-P018`. Se descartó borrarlos y
+  reponerlos: volver a correr el sembrado reescribe los 24 por `merge` y borra la
+  clasificación que el administrador acabe de dejar.
+
+**Dos defectos de instrumentación encontrados leyendo el código, y los dos caen
+sobre la cifra que la sesión viene a producir:**
+
+1. **La fila de `aiFeedback` no dice de qué ticket habla.** El esquema es
+   `.strict()` y no tiene `ticketId`; el servidor añade `tenantId`, `uid` y
+   `createdAt`. Un mismo ticket abierto dos veces deja **dos filas**. Sin una
+   columna de orden escrita a mano, «corrigió la categoría en 4 de 9» es un
+   número sin tickets detrás. **Es lo que decide que los sintéticos vayan al
+   final:** una fila suya en medio del bloque ya no se puede excluir.
+2. **«Media» no es una decisión.** El selector de prioridad arranca en
+   `selectedTicket.priority ?? "medium"` (`src/app/(admin)/admin/pqrs/page.tsx:168`)
+   y los tickets de PQRS **nacen sin prioridad**. Guardar sin tocar nada escribe
+   `guardada.priority: "medium"`, que si el modelo propuso `high` se lee como
+   corrección deliberada. **Es la misma familia del `type: "petition"`** de buzón
+   simple: un valor por defecto con apariencia de elección humana. En la sesión
+   se sortea con una columna en la hoja; **en la sombra de F4 no hay nadie
+   mirando, así que arreglarlo es prerrequisito de F4.**
+
+**Y el ambiente no estaba como decía este documento.** Decía 18 tickets en
+`tenant-nogal-bogota` y 6 en `tenant-santa-maria`; **había 2 y 0** — un
+`--limpiar` seguido de un sembrado que se cortó en el segundo ticket. Las cuatro
+banderas sí estaban encendidas y la variante de buzón sí era `buzon_simple`.
+**Vuelto a sembrar y verificado leyéndolo:** 18 y 6, 4 con respuesta previa, 0
+con `priority`, 0 con `classifiedAt`. Hay que **volver a sembrar el mismo día de
+la sesión**: la antigüedad se calcula al sembrar y el semáforo de SLA depende de
+ella. Nota: `aiFeedback` ya arrastra 5 filas de `pqrs-asistir` de los ensayos y
+`aiUsage` 17 llamadas — al leer el resultado, filtrar por fecha y `uid`.
+
+**Sigue pendiente y sin hacer: el censo de tickets de producción.**
 
 ## F3 de PQRS: staging montado y ensayado; falta la sesión con la persona (15 ago 2026)
 
