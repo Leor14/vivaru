@@ -1,5 +1,5 @@
 {
-  "operationKey": "pqrs-clasificar",
+  "operationKey": "pqrs-asistir",
   "version": 1,
   "creado": "2026-08-15",
   "nota": "Ver taxonomia.md. Las etiquetas viven en etiquetas.tsv y el texto lo pone el corpus: este archivo se GENERA con scripts/construir-gold-set-pqrs.mjs y no se edita a mano. Los tres primeros ejes son el contrato de PRD-VAI-FEAT-002; el tema es el aporte de los dos corpus. Dos edificios no son dos mercados: las frecuencias no son las del mercado y Colombia sigue sin corpus.",
@@ -115,7 +115,7 @@
       "pais": "MX",
       "fecha": "08/09/24",
       "texto": "En futuras ocasiones les recomiendo que se ocupen buzos ya que por la capacidad de las cisternas y la forma en que están construida y distribuidas para el edificio operan como gato hidráulico para sismos y se vacian y llegan  a existir  un pequeño sismo se pueden fracturar las cisternas así como algún daño extructural.\nDe cualquier forma gracias por su esfuerzo para que se resolviera lo antes posible\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "suggestion",
@@ -151,7 +151,7 @@
       "pais": "MX",
       "fecha": "06/09/24",
       "texto": "Ing.\nPor favor coordinar con los trabajos de limpieza de cisterna para que no falte agua el domingo\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "maintenance",
         "type": "petition",
@@ -357,7 +357,7 @@
       "pais": "MX",
       "fecha": "27/09/24",
       "texto": "Buenos días. \nMe gustaría que Administración responda y nos comparta las medidas que va a tomar como responsables de la administración del condominio <Se editó este mensaje.>\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "complaint",
@@ -523,7 +523,7 @@
       "pais": "MX",
       "fecha": "27/06/24",
       "texto": "Buenas tardes.\nPueden reportar que el elevador de Norte hace ruido cuando abre y cierra puertas por favor\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "maintenance",
         "type": "claim",
@@ -649,7 +649,7 @@
       "pais": "MX",
       "fecha": "25/11/24",
       "texto": "Es éste... ya pregunté en la caseta y me dicen que no ha llegado\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "petition",
@@ -769,7 +769,7 @@
       "pais": "MX",
       "fecha": "04/07/24",
       "texto": "Buenas tardes, no prende ninguna luz, de las tres que están bajando la rampa del acceso vehicular.\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "maintenance",
         "type": "claim",
@@ -1130,7 +1130,7 @@
       "pais": "MX",
       "fecha": "11/11/24",
       "texto": "Por favor tiren la basura en su lugar\nEl contenedor está  sin basura\r",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "complaint",
@@ -1884,7 +1884,7 @@
       "pais": "EC",
       "fecha": "3/5/2024",
       "texto": "Buenos días  Paola, algo pasa con la puerta de ingreso al parqueadero,  esta  sonando. Quizá  se pueda arreglar lo antes posible, antes de q se dañe más. Gracias",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "maintenance",
         "type": "claim",
@@ -1977,7 +1977,7 @@
       "pais": "EC",
       "fecha": "20/8/2020",
       "texto": "Paola buenos días, puede por favor enviarnos el acta de la última reunión? Los que no asistimos estamos totalmente desinformados de las desiciones tomadas...",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "petition",
@@ -2232,7 +2232,7 @@
       "pais": "EC",
       "fecha": "8/7/2022",
       "texto": "Buenos días, esta llave está botada en el piso junto a la cisterna",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "maintenance",
         "type": "claim",
@@ -2373,7 +2373,7 @@
       "pais": "EC",
       "fecha": "27/10/2020",
       "texto": "Buenos días con todos gracias Paola \nUn favor, aparentemente en la puerta del edificio (adentro) un perro se ha orinado, agradezco la colaboración",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "complaint",
@@ -2511,7 +2511,7 @@
       "pais": "EC",
       "fecha": "24/2/2022",
       "texto": "@Ernesto,  creo que se deberia poner una multa  q duela a los bolsillos, para q se responsabilice, pq de nada servirá  todo el esfuerzo q se haga por mejorar la seguridad.",
-      "variante": "con_sla",
+      "variante": "buzon_simple",
       "espera": {
         "category": "pqrs",
         "type": "suggestion",

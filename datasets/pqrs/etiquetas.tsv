@@ -1,13 +1,13 @@
-« id	category	type	priority	tema	temasSecundarios	banderas	porQue »
+« id	category	type	priority	tema	temasSecundarios	banderas	porQue	variante »
 MX#192	maintenance	claim	high	agua		dato_faltante	Fuga activa sin localizar, con daño en curso. Reclamo de servicio, no de persona.
 MX#1918	maintenance	claim	medium	agua	obra_mantenimiento		Reporta humedades que pueden estar empeorando y pide revisarlas. Reportar manda sobre pedir (árbol, paso 1).
 MX#3993	maintenance	claim	low	agua	obra_mantenimiento		El bota-aguas y el seguro del domo están rotos; pedir la reparación es la consecuencia, no el acto.
 MX#6064	pqrs	petition	medium	agua		dato_faltante	Pregunta por la hora de restablecimiento. Es el dato que el corpus dice que más falta.
 MX#3025	pqrs	suggestion	high	agua		dato_faltante	Propone pipas y avisa que pueden quedar sin agua hasta el lunes. Servicio esencial caído.
 MX#3053	pqrs	suggestion	medium	agua			Propone una solución operativa concreta y advierte de un riesgo a los hidroneumáticos.
-MX#3104	pqrs	suggestion	low	agua	convivencia_ruido		Recomendación técnica para futuras ocasiones. No pide nada inmediato.
+MX#3104	pqrs	suggestion	low	agua	convivencia_ruido		Recomendación técnica para futuras ocasiones. No pide nada inmediato.	buzon_simple
 MX#5113	pqrs	other	low	agua	obra_mantenimiento		Explicación técnica de la causa. No pide ni reclama: es aporte de contexto.
-MX#2979	maintenance	petition	medium	agua	limpieza_basura		Pide coordinar para que no falte agua el domingo. Petición preventiva.
+MX#2979	maintenance	petition	medium	agua	limpieza_basura		Pide coordinar para que no falte agua el domingo. Petición preventiva.	buzon_simple
 MX#604	billing	petition	low	cuotas_pagos			Pide un dato administrativo. Petición pura de información.
 MX#1198	pqrs	suggestion	low	cuotas_pagos	asamblea_administracion		Propone un canal de comunicación distinto. Mejora del servicio: sugerencia.
 MX#1999	billing	petition	low	cuotas_pagos			Pide el estado de la cuota extraordinaria.
@@ -18,7 +18,7 @@ MX#6562	billing	claim	medium	cuotas_pagos	asamblea_administracion	enfado	Reclama
 MX#4324	pqrs	claim	low	cuotas_pagos	obra_mantenimiento		El correo publicado no existe. Irregularidad del canal, no conducta de nadie.
 MX#2148	billing	petition	low	cuotas_pagos	elevadores	sin_contexto	Pregunta a qué se refiere una cuota. Sin el mensaje previo no se sabe cuál.
 MX#7087	pqrs	petition	low	asamblea_administracion			Pide los acuerdos de asamblea. Petición de documentación.
-MX#3536	pqrs	complaint	medium	asamblea_administracion			Reprocha que la administración no responda. El objeto es su actuar: queja.
+MX#3536	pqrs	complaint	medium	asamblea_administracion			Reprocha que la administración no responda. El objeto es su actuar: queja.	buzon_simple
 MX#6287	pqrs	complaint	medium	asamblea_administracion			«El administrador no atiende» es exactamente conducta de una persona.
 MX#3467	pqrs	complaint	medium	asamblea_administracion		enfado	Atribuye el hecho a la falta de orden de la administración, con testigos.
 MX#106	maintenance	claim	medium	obra_mantenimiento			Se solicitó en enero y no se hizo; reclama el incumplimiento, no a una persona.
@@ -28,21 +28,21 @@ MX#6258	maintenance	claim	high	obra_mantenimiento	seguridad_porteria		Fuga activ
 MX#6010	pqrs	petition	low	obra_mantenimiento			Pide una recomendación. Que el destinatario sean los vecinos y no la administración no cambia el acto.
 MX#76	maintenance	claim	medium	elevadores	luz_electricidad	multi_tema	Reporta dos fallas distintas en un mensaje: foco y salto del elevador.
 MX#257	maintenance	claim	medium	elevadores			Reporte de falla persistente del elevador. Reclamo de servicio.
-MX#1777	maintenance	claim	low	elevadores	convivencia_ruido		Ruido al abrir y cerrar puertas. Molestia, no riesgo.
+MX#1777	maintenance	claim	low	elevadores	convivencia_ruido		Ruido al abrir y cerrar puertas. Molestia, no riesgo.	buzon_simple
 MX#2272	pqrs	petition	medium	elevadores		dato_faltante	Pregunta hasta qué hora estará fuera de servicio. Falta la duración.
 MX#6036	maintenance	claim	medium	elevadores	obra_mantenimiento		Se hizo el mantenimiento y el defecto sigue. Reclamo de trabajo mal ejecutado.
 MX#5504	pqrs	claim	low	elevadores	obra_mantenimiento		El patrón de fallos tras cada mantenimiento es desempeño del proveedor como servicio, no conducta de alguien.
 MX#2021	pqrs	petition	low	elevadores	cuotas_pagos	dato_faltante	Pide precisar alcance y monto de un aviso incompleto.
 MX#78	pqrs	complaint	medium	seguridad_porteria	accesos_estacionamiento		La conducta de los conductores que obstruyen la salida es el objeto; pedir apoyo a vigilancia es el remedio.
 MX#2481	pqrs	claim	medium	seguridad_porteria			«Dejan pasar a cualquiera» es el desempeño del servicio de vigilancia, no una persona señalada. Recurrente: mañana estará igual, no peor.
-MX#3959	pqrs	petition	low	seguridad_porteria			Consulta por un paquete que no ha llegado a caseta.
+MX#3959	pqrs	petition	low	seguridad_porteria			Consulta por un paquete que no ha llegado a caseta.	buzon_simple
 MX#734	pqrs	suggestion	low	seguridad_porteria	obra_mantenimiento		Propone dejar la carpeta de gastos en caseta para consulta de condóminos.
 MX#658	pqrs	complaint	medium	seguridad_porteria	asamblea_administracion		Se queja de la permanencia del vigilante y pide atención. Conducta de una persona.
 MX#4689	maintenance	claim	medium	seguridad_porteria			Posible olor a quemado, pero ya verificado por dos personas sin hallazgo. Riesgo revisado y no confirmado baja un nivel y queda en vigilancia (ronda de definiciones, 15 ago 2026).
 MX#2724	pqrs	petition	medium	convivencia_ruido	seguridad_porteria		Pide acceso a departamentos para localizar el origen de un ruido.
 MX#3161	maintenance	claim	medium	luz_electricidad	accesos_estacionamiento	multi_tema	Reporta dos cosas opuestas: una luz siempre encendida y una zona a oscuras.
 MX#3587	maintenance	claim	medium	luz_electricidad			Sin luz en un piso desde el sábado. Servicio caído en área común.
-MX#1887	maintenance	claim	medium	luz_electricidad	accesos_estacionamiento		Tres luces apagadas en la rampa de acceso vehicular.
+MX#1887	maintenance	claim	medium	luz_electricidad	accesos_estacionamiento		Tres luces apagadas en la rampa de acceso vehicular.	buzon_simple
 MX#3317	pqrs	petition	medium	luz_electricidad			Pregunta si alguien ya reportó a la compañía eléctrica. Coordinación vecinal.
 MX#1470	maintenance	claim	low	luz_electricidad	accesos_estacionamiento		Falta foco y sensor en un cajón concreto.
 MX#3441	pqrs	complaint	medium	convivencia_ruido		enfado	Se queja de la conducta de los inquilinos de un departamento e invoca el reglamento. El enfado va en la bandera y no sube la prioridad (decidido en la ronda de definiciones, 15 ago 2026).
@@ -63,7 +63,7 @@ MX#4841	pqrs	suggestion	low	accesos_estacionamiento	seguridad_porteria		Propone 
 MX#3983	maintenance	claim	high	accesos_estacionamiento			El portón se quedó abierto. Seguridad del edificio comprometida.
 MX#730	pqrs	claim	medium	limpieza_basura	elevadores accesos_estacionamiento		Basura que dificulta la maniobra de estacionamiento de tres vehículos.
 MX#1389	pqrs	complaint	low	limpieza_basura			Reprocha a los vecinos el mal uso del contenedor. Conducta, no servicio.
-MX#3847	pqrs	complaint	low	limpieza_basura			Pide que tiren la basura en su lugar estando el contenedor vacío.
+MX#3847	pqrs	complaint	low	limpieza_basura			Pide que tiren la basura en su lugar estando el contenedor vacío.	buzon_simple
 MX#5380	pqrs	complaint	low	limpieza_basura			«Nuevamente tiran la basura fuera del bote»: conducta reincidente de vecinos.
 MX#194	pqrs	suggestion	low	limpieza_basura	elevadores		Propone un letrero e instruir al personal de limpieza.
 MX#4291	pqrs	suggestion	low	limpieza_basura	asamblea_administracion		Propone sustituir 200 fotos por un resumen escrito. Mejora del servicio.
@@ -92,13 +92,13 @@ EC#3248	maintenance	claim	medium	luz_electricidad		sin_contexto	Informa que la l
 EC#2627	maintenance	claim	high	accesos_estacionamiento	seguridad_porteria		La puerta del parqueadero quedó abierta. Seguridad comprometida.
 EC#3403	maintenance	claim	high	accesos_estacionamiento	luz_electricidad		La puerta no cierra con el control y pregunta si quedará abierta de noche.
 EC#2202	maintenance	claim	medium	accesos_estacionamiento			Los controles remotos siguen sin abrir. Reclamo por falta de solución.
-EC#3119	maintenance	claim	medium	accesos_estacionamiento			La puerta suena y pide arreglarla antes de que se dañe más.
+EC#3119	maintenance	claim	medium	accesos_estacionamiento			La puerta suena y pide arreglarla antes de que se dañe más.	buzon_simple
 EC#2553	maintenance	claim	medium	accesos_estacionamiento	luz_electricidad		No funcionan las luces de ingreso al parqueadero.
 EC#3303	pqrs	petition	medium	accesos_estacionamiento			Pide instrucciones para abrir el parqueadero a mano porque necesita salir.
 EC#22	pqrs	complaint	medium	accesos_estacionamiento			Un vehículo dejado encendido es conducta de un vecino, no una avería del edificio.
 EC#1556	pqrs	other	low	accesos_estacionamiento			Informa de un vehículo con la puerta abierta. Aviso vecinal.
 EC#890	pqrs	complaint	high	accesos_estacionamiento			El objeto es la conducta de una vecina identificada, no el parqueadero. El árbol corrigió a los dos anotadores.
-EC#1410	pqrs	petition	low	asamblea_administracion			Pide el acta de la última reunión y explica que quedaron desinformados.
+EC#1410	pqrs	petition	low	asamblea_administracion			Pide el acta de la última reunión y explica que quedaron desinformados.	buzon_simple
 EC#3933	pqrs	complaint	medium	asamblea_administracion		enfado	Reprocha que no le entreguen un documento pedido hace días. Conducta de una persona.
 EC#3738	pqrs	complaint	medium	asamblea_administracion			Recuerda un compromiso incumplido de la administradora y pide fecha.
 EC#3886	pqrs	complaint	medium	asamblea_administracion		enfado	Cuestiona la hora de convocatoria e invoca una asamblea declarada nula.
@@ -113,7 +113,7 @@ EC#1900	pqrs	claim	medium	agua	obra_mantenimiento		Reclama que el problema siga 
 EC#3150	maintenance	claim	low	luz_electricidad	elevadores	multi_tema	Focos quemados y ambientador agotado: reporta fallos concretos y pide reemplazo.
 EC#4022	maintenance	claim	medium	agua	accesos_estacionamiento		Reporta una fuga de agua en una tubería del parqueadero con imágenes.
 EC#3851	maintenance	claim	medium	agua			Ve agua fuera del cuarto de bombas. Indicio de fuga sin diagnosticar.
-EC#2359	maintenance	claim	low	agua			Una llave tirada junto a la cisterna. Reporte menor de estado.
+EC#2359	maintenance	claim	low	agua			Una llave tirada junto a la cisterna. Reporte menor de estado.	buzon_simple
 EC#74	maintenance	claim	low	agua	convivencia_ruido		Las tuberías suenan de noche al abrir las llaves.
 EC#3719	pqrs	claim	medium	agua	convivencia_ruido		La bomba opera con ruido atípico y puede dañarse: reporta el fallo, la pregunta es el remedio.
 EC#3721	pqrs	other	low	agua	luz_electricidad		Hipótesis de una vecina sobre por qué el medidor corre más rápido.
@@ -121,7 +121,7 @@ EC#3282	pqrs	suggestion	medium	agua	luz_electricidad		Propone apagar calentadore
 EC#2401	pqrs	suggestion	low	elevadores	luz_electricidad		Sugiere evitar el ascensor para ahorrar energía. Sugerencia limpia y explícita.
 EC#467	pqrs	claim	low	limpieza_basura	elevadores		Las paredes del ascensor están manchadas pese a los protocolos de limpieza.
 EC#1807	pqrs	complaint	low	convivencia_ruido	elevadores		La mascota de alguien se orinó en el ascensor: conducta de su dueño, no fallo del ascensor.
-EC#1577	pqrs	complaint	low	convivencia_ruido			Reporta un hecho causado por la mascota de alguien. Conducta, aunque el dueño no esté identificado.
+EC#1577	pqrs	complaint	low	convivencia_ruido			Reporta un hecho causado por la mascota de alguien. Conducta, aunque el dueño no esté identificado.	buzon_simple
 EC#1150	pqrs	complaint	low	convivencia_ruido			Exige en mayúsculas que el dueño de la mascota limpie. Conducta de una persona.
 EC#443	pqrs	complaint	medium	convivencia_ruido	amenidades	enfado	Alguien vomitó por la ventana hacia su terraza; apela a la responsabilidad de los padres.
 EC#288	pqrs	complaint	low	limpieza_basura	seguridad_porteria	enfado	Responde con sarcasmo e invita a revisar las cámaras. Tono agresivo entre vecinos.
@@ -129,7 +129,7 @@ EC#231	pqrs	other	low	limpieza_basura			Explica los días del recolector. Aporte
 EC#162	pqrs	suggestion	low	limpieza_basura	convivencia_ruido		Pide mantener la limpieza tras cualquier derrame.
 EC#2090	pqrs	suggestion	medium	seguridad_porteria			Propone una cámara cerca del panel para identificar a quien timbra, tras un incidente.
 EC#2763	pqrs	suggestion	medium	seguridad_porteria	asamblea_administracion		Solicita instalar una contrapuerta metálica como medida adicional.
-EC#2114	pqrs	suggestion	low	seguridad_porteria			Propone una multa disuasoria para que se cumplan las medidas.
+EC#2114	pqrs	suggestion	low	seguridad_porteria			Propone una multa disuasoria para que se cumplan las medidas.	buzon_simple
 EC#2036	pqrs	suggestion	medium	seguridad_porteria			Propone contratar un guardia al menos en turno de doce horas.
 EC#96	pqrs	complaint	medium	seguridad_porteria	obra_mantenimiento	enfado	Reprocha que no se haya invertido en seguridad y exige ejecutar lo aprobado.
 EC#2259	pqrs	claim	medium	seguridad_porteria	asamblea_administracion		Reclama que la guardianía no detectó el vehículo en los monitores: servicio que falló, no persona señalada.

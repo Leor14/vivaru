@@ -23,6 +23,10 @@ import { TEMAS, esAdmin } from "./lib/temas-pqrs.mjs";
 const CATEGORIAS = ["pqrs", "maintenance", "billing"];
 const TIPOS = ["petition", "complaint", "claim", "suggestion", "other"];
 const PRIORIDADES = ["low", "medium", "high"];
+// Las de `src/lib/config/module-variants.ts`. La columna del TSV es opcional:
+// vacía significa `con_sla`, que es el default del producto — así las filas
+// existentes no se tocan y declarar la otra variante es añadir una palabra.
+const VARIANTES = ["con_sla", "buzon_simple"];
 // Las cuatro primeras son `safetyFlags` de la PRD —salida del modelo—; las
 // cuatro últimas son metadatos de muestreo. Ver la taxonomía: mezclarlas
 // contamina la métrica.
@@ -47,7 +51,7 @@ const casos = [];
 const lineas = readFileSync("datasets/pqrs/etiquetas.tsv", "utf8").split("\n");
 for (const [n, linea] of lineas.entries()) {
   if (!linea.trim() || linea.startsWith("«")) continue;
-  const [id, category, type, priority, tema, secundarios, banderas, porQue] = linea.split("\t");
+  const [id, category, type, priority, tema, secundarios, banderas, porQue, varianteCruda] = linea.split("\t");
   const donde = `etiquetas.tsv:${n + 1} (${id})`;
 
   if (vistos.has(id)) errores.push(`${donde}: identificador repetido`);
@@ -74,6 +78,9 @@ for (const [n, linea] of lineas.entries()) {
   for (const b of banderasLista) if (!BANDERAS.includes(b)) errores.push(`${donde}: bandera «${b}»`);
   if (!porQue?.trim()) errores.push(`${donde}: falta el porQue`);
 
+  const variante = (varianteCruda ?? "").trim() || "con_sla";
+  if (!VARIANTES.includes(variante)) errores.push(`${donde}: variante «${variante}»`);
+
   // Los casos marcados `sin_contexto` llevan el hilo previo: solos son
   // inclasificables, y esa es toda la razón de que estén en el conjunto.
   const contextoPrevio = banderasLista.includes("sin_contexto")
@@ -89,9 +96,9 @@ for (const [n, linea] of lineas.entries()) {
     fecha: mensaje.fecha,
     texto: mensaje.texto,
     ...(contextoPrevio ? { contextoPrevio } : {}),
-    // `con_sla` es el valor por defecto del producto; los casos de la otra
-    // variante se declaran a mano cuando se añadan. Ver la taxonomía.
-    variante: "con_sla",
+    // En `buzon_simple` la evaluación espera `suggestedCategory` y
+    // `suggestedType` en null — puerta dura de la PRD. Ver la taxonomía.
+    variante,
     espera: {
       category,
       type,
@@ -137,6 +144,7 @@ for (const c of casos) for (const b of c.espera.banderas ?? []) porBandera[b] = 
 
 console.log(`\ncasos ............ ${casos.length}`);
 console.log(`por país ......... ${JSON.stringify(cuenta((c) => c.pais ?? "sintetico"))}`);
+console.log(`por variante ..... ${JSON.stringify(cuenta((c) => c.variante))}`);
 console.log(`por category ..... ${JSON.stringify(cuenta((c) => c.espera.category))}`);
 console.log(`por type ......... ${JSON.stringify(cuenta((c) => c.espera.type))}`);
 console.log(`por priority ..... ${JSON.stringify(cuenta((c) => c.espera.priority))}`);
@@ -154,7 +162,9 @@ if (process.argv.includes("--revisar")) {
 }
 
 const salida = {
-  operationKey: "pqrs-clasificar",
+  // La clave REAL del catálogo (`functions/src/ai/catalog.ts`). Nació como
+  // «pqrs-clasificar» cuando la operación no existía; se alineó al crearla.
+  operationKey: "pqrs-asistir",
   version: 1,
   creado: "2026-08-15",
   nota: "Ver taxonomia.md. Las etiquetas viven en etiquetas.tsv y el texto lo pone el corpus: este archivo se GENERA con scripts/construir-gold-set-pqrs.mjs y no se edita a mano. Los tres primeros ejes son el contrato de PRD-VAI-FEAT-002; el tema es el aporte de los dos corpus. Dos edificios no son dos mercados: las frecuencias no son las del mercado y Colombia sigue sin corpus.",

@@ -33,6 +33,9 @@ const TEMAS = [
   "elevadores", "seguridad_porteria", "luz_electricidad", "convivencia_ruido",
   "amenidades", "accesos_estacionamiento", "limpieza_basura",
 ];
+// Las de `src/lib/config/module-variants.ts`, copiadas por la misma razón que
+// los catálogos de arriba.
+const VARIANTES = ["con_sla", "buzon_simple"];
 
 interface Caso {
   id: string;
@@ -126,6 +129,37 @@ describe("gold set de PQRS", () => {
   it("hay casos high suficientes para medir su recall", () => {
     const high = casos.filter((c) => c.espera.priority === "high");
     expect(high.length).toBeGreaterThanOrEqual(15);
+  });
+
+  /**
+   * En `buzon_simple` la PRD exige `suggestedCategory` y `suggestedType` en
+   * null — puerta dura de la Fase 2. Una variante sin casos es una variante sin
+   * medir, y ese fue uno de los tres huecos dichos del 15 de agosto de 2026.
+   */
+  it("las dos variantes del módulo están representadas", () => {
+    for (const c of casos) expect(VARIANTES, c.id).toContain(c.variante);
+
+    const buzon = casos.filter((c) => c.variante === "buzon_simple");
+    expect(buzon.length).toBeGreaterThanOrEqual(10);
+    // Sin comerse el conjunto: `con_sla` es el default del producto y la
+    // mayoría de la evaluación de `category` vive ahí.
+    expect(buzon.length).toBeLessThanOrEqual(casos.length / 4);
+
+    for (const c of buzon) {
+      // Los ocho de inyección se quedan en `con_sla`: el 8/8 se mide con el
+      // contrato completo, no con la mitad de la salida anulada.
+      expect(c.fuente, c.id).not.toBe("sintetico");
+      // Y las clases escasas de los otros ejes no se le prestan a esta
+      // variante: `billing` tiene 15 casos y `high` 19 — son el caveat por
+      // clase y el recall que la PRD manda reportar.
+      expect(c.espera.category, c.id).not.toBe("billing");
+      expect(c.espera.priority, c.id).not.toBe("high");
+    }
+
+    // Los dos países, o la variante vuelve a medir un solo edificio.
+    for (const pais of ["MX", "EC"]) {
+      expect(buzon.some((c) => c.pais === pais), pais).toBe(true);
+    }
   });
 
   it("los once temas están representados", () => {
