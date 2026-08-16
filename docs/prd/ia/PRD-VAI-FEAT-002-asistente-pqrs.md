@@ -18,7 +18,7 @@ verdad es este archivo.**
 | Usuario principal | `tenant_admin` / `admin_tenant` |
 | Usuarios secundarios | Comité u operativos según RBAC; residentes y portería originan tickets |
 | Responsable | David |
-| Estado | **Rumbo a piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026). El paso en curso es **F3, piloto simulado en staging**; **sin prerrequisitos vivos**: el desplegable del residente se corrigió el 15 ago 2026 |
+| Estado | **En piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026). El paso en curso es **F3, piloto simulado en staging**: la pantalla, el editor de clasificación y su medición están construidos y en verde el 15 ago 2026; falta desplegar, sembrar y hacer la sesión. **Sin prerrequisitos vivos**: los tres cerrados |
 | Dependencias | `PRD-VAI-PLAT-001` (**en producción desde el 15 ago 2026, inerte tras banderas**: gateway `aiInvoke`, `aiUsage`, cuotas, adaptador Vertex, `aiFeedback`, consola `/superadmin/flags`) · catálogos de `Ticket` (`src/types/domain.ts:141`) · variantes `con_sla`/`buzon_simple` (`src/lib/config/module-variants.ts:37`) |
 | Riesgo | Medio-alto: contenido sensible, priorización, posible efecto legal o reputacional |
 | Estado de datos | Gold set **construido**: 152 casos reales (84 MX · 60 EC · 8 sintéticos de inyección) en `datasets/pqrs/`. Producción tiene **0 tickets** (medido 14 ago 2026) — el dataset de despliegue lo fabrica el modo sombra |
@@ -318,9 +318,20 @@ mide sobre tickets de verdad:
   del panel «Redactar con IA» de comunicaciones.
 - Operación nueva sobre el gateway existente (`functions/src/ai/`), con
   `operationVersion` propio. **Sin infraestructura nueva.**
-- Bandera propia (p. ej. `ai-pqrs-assist`) + `ai-gateway` + kill switch,
-  overrides por tenant en `featureFlagOverrides` — todo ya operativo en
-  `/superadmin/flags`.
+- **Callable propia, no `aiInvoke`** (F3, 15 ago 2026): `asistirTicketPqrs`
+  recibe `{ticketId}` y **el servidor** lee el ticket, resuelve la variante desde
+  `tenantSettings` y arma la entrada. Con la puerta genérica el navegador tendría
+  que afirmar `mensaje`, `historial` y `variante` — y `variante` es lo que decide
+  la puerta dura de `buzon_simple`. `runGateway` gana un enganche `resolveInput`
+  que corre después de autorizar y antes de cobrar cuota; rol, banderas, cuota y
+  telemetría **no se duplican**.
+- Bandera propia **`ai-pqrs-suggestions`** (`defaultEnabled: false`) +
+  `ai-gateway` + kill switch, overrides por tenant en `featureFlagOverrides` —
+  todo ya operativo en `/superadmin/flags`. **Ojo:** hasta el 15 de agosto de
+  2026 este documento la llamaba `ai-pqrs-assist`, que no existe; el nombre real
+  es el del catálogo (`src/lib/feature-flags/catalog.ts`). Y el interruptor que
+  se olvida es otro: **`ia-proveedor-real`**, apagada en staging — sin ella el
+  proveedor es simulado y contesta siempre `pqrs`.
 - Firestore: `aiAssistance` (nuevo, por ticket) y `aiFeedback` (existente).
 - Trampas conocidas al desplegar: callable nueva sin `run.invoker` (comprobar
   siempre) y `callableCorsOrigins`.
@@ -350,7 +361,7 @@ proveedor → versionado; falla → editor manual). Se añaden dos medidas:
 |---|---|---|---|
 | **F1 — Gold set y taxonomía** | 152 casos, taxonomía con árbol de `type` y preguntas ordenadas de `priority`, dos rondas de doble etiquetado + vuelta de definiciones | G2 | **HECHA** (15 ago 2026) |
 | **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **HECHA** (15 ago 2026). Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Inyección 8/8, nulls 12/12, guardrail 32/32; `category` 82,1% (baseline 61,4%) **movida a G7**. **USD 0,001 por asistencia.** Prompt activo: `p1-minima`. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
-| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **Siguiente, y sin prerrequisitos**: F2 hecha y el desplegable del residente corregido el 15 ago 2026. Mide además lo que el gold set no puede: si el administrador corrige la categoría sugerida. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
+| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **En curso (15 ago 2026). Código construido y en verde; falta el ambiente.** Hecho: callable `asistirTicketPqrs`, bloque de asistencia en el drawer, **editor de clasificación** (prerrequisito 3, encontrado al construir la pantalla), feedback de `pqrs-asistir` sobre `aiFeedback` con el par sugerida/guardada, y `seed-pqrs-piloto.mjs` con 24 casos fijos (16 `con_sla`, 6 `buzon_simple`, 2 de inyección; 4 con respuesta previa). Pendiente: desplegar a staging, sembrar y la sesión. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
 | **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | Tenant piloto: se define después de staging (David, 15 ago) |
 | **F5 — Escala** | Abrir por plan y variante. Aquí se cobra el recall ≥95% contra la referencia de la sombra, y el costo dentro del 2–3% | G7 | — |
 
@@ -387,6 +398,48 @@ estados y alertas siguen operando sin migración.
    2026:** 12 casos declarados (7 MX, 5 EC) con una columna opcional `variante`
    en `etiquetas.tsv`. Elegidos evitando `billing`, `high` y los casos ancla de
    la taxonomía. Los nulls se midieron 12/12 en las tres versiones.
+3. ~~**El administrador no podía confirmar ni corregir la clasificación, y eso
+   dejaba sin suelo a las DOS puertas de G7.**~~ **CERRADO el 15 de agosto de
+   2026, al construir la pantalla de F3.**
+
+   Encontrado por el mismo camino que el desplegable: mirando el producto. Al ir
+   a pintar las sugerencias no había dónde aceptarlas. Medido, no supuesto:
+   `category` nacía constante; `type` lo elegía el residente y el drawer lo
+   enseñaba de solo lectura; y **`priority` no se escribía nunca** —
+   `createTicket` no la pone, ninguna pantalla del administrador la enseña y
+   ningún servicio la cambia; todas las prioridades del repositorio pertenecen al
+   módulo de soporte del superadministrador, que es otra colección. El campo solo
+   existía en el tipo de TypeScript.
+
+   **Lo que rompía no era la pantalla.** Las dos puertas movidas a G7 el 15 de
+   agosto se cobran «contra la referencia acumulada por la sombra: sugerencia vs
+   **decisión real del administrador**». Esa decisión no existía en ningún sitio
+   del producto, así que la sombra de la Fase 4 habría acumulado sugerencias
+   contra un hueco y en G7 las dos puertas seguirían siendo tan inmedibles como
+   hoy — justo lo que el candado se escribió para evitar.
+
+   **Decisión de David (15 ago 2026): los tres ejes editables en F3.** El editor
+   vive en el cuerpo del drawer con el estilo normal, **fuera** del panel de IA,
+   porque son campos confirmados y §5 pide distinguirlos de lo que propuso una
+   máquina; «usar esta clasificación» los rellena y guardar sigue siendo un acto
+   humano. Escribe además `classifiedAt`/`classifiedBy`, para que la sombra sepa
+   si alguien llegó a tocar la clasificación — `updatedAt` no sirve, se mueve
+   también al responder.
+
+## Lo que la Fase 2 no midió y la Fase 3 sí verá
+
+**El `historial` de producción es el contrario del que midió la evaluación
+offline.** En el gold set, los 18 casos con contexto previo lo traen escrito por
+el **residente** (son hilos de WhatsApp). En el producto, `responseHistory` lo
+escribe **solo la administración**: `respondTicket` es el único que escribe ahí y
+el residente no tiene por dónde añadir; sus palabras viven únicamente en
+`subject` y `message`.
+
+La regla dura del prompt —«clasifica EL MENSAJE; el historial sirve para
+entenderlo»— se afinó contra lo primero y en producción recibe lo segundo. Se
+mapea **fiel al producto**, que es lo que habrá en la sombra, y el sembrado del
+piloto incluye cuatro tickets con respuesta previa para que esa forma de entrada
+se vea con ojos humanos en la sesión en vez de descubrirse en la Fase 4.
 
 ## Puertas
 
@@ -423,3 +476,7 @@ estados y alertas siguen operando sin migración.
 | 15 ago 2026 | `p1-minima` queda como prompt activo: gana en cuatro de cinco ejes y la taxonomía dentro del prompt no paga su costo | Evaluación offline |
 | 15 ago 2026 | Los checks automáticos de inyección de `SYN#4` no juzgan `priority`: el valor atacado coincide con una respuesta defendible. Ese eje va a la lectura a mano | Evaluación offline |
 | 15 ago 2026 | En `buzon_simple` el ticket ya no nace `petition`: no se envía `type` y queda `other`. En la variante donde el tipo no aplica, una etiqueta que nadie eligió es peor que ninguna | David |
+| 15 ago 2026 | **El administrador pasa a poder fijar y corregir los tres ejes.** Sin un sitio donde ocurra la decisión humana, la sombra de F4 acumula sugerencias contra un hueco y las dos puertas de G7 no se pueden medir. Es el cuarto prerrequisito encontrado mirando el producto | David |
+| 15 ago 2026 | En F3 no se persiste `aiAssistance`: la sesión deja rastro en `aiFeedback` con el par sugerida/guardada, y el registro de sombra se diseña en F4 con lo que la sesión enseñe | David |
+| 15 ago 2026 | El borrador se enseña y se copia al cuadro de respuesta, con un aviso que nombra la cifra medida (44 de 152 afirmaban acciones no tomadas). Publicar sigue siendo un segundo clic deliberado | David |
+| 15 ago 2026 | El piloto siembra las dos variantes en conjuntos separados: la puerta dura de nulls se ve en pantalla, no solo en el evaluador | David |

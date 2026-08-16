@@ -1,7 +1,66 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 15 de agosto de 2026, tras corregir el desplegable del residente.
+Actualizado el 15 de agosto de 2026, tras construir la pantalla de asistencia de
+PQRS.
+
+## F3 de PQRS: la pantalla está construida y falta el ambiente (15 ago 2026)
+
+**Todo el código de la Fase 3 está hecho, en verde y commiteado** (`e34a908`).
+Lo que falta no es código: son credenciales y despliegue.
+
+**Bloqueo vivo, y es de David:** las credenciales de Firebase están caducadas
+(`firebase login --reauth`). Sin eso no se puede desplegar functions, ni sembrar
+staging, ni encender banderas. El script de sembrado corre en seco sin
+credenciales a propósito, así que la selección de casos se puede revisar ya.
+
+**Y una discrepancia que conviene tener presente: `develop` va 7 commits por
+delante de `origin/develop`,** y entre ellos está `f687b2d`, el arreglo del
+desplegable del residente. Staging se despliega **empujando `develop`**, así que
+el sitio de staging sigue sirviendo `8784396`: **no tiene ese arreglo**. La
+verificación con Playwright fue contra otra cosa —lo más probable, un `dev` local
+apuntando al proyecto Firebase de staging, que son los datos y no el despliegue.
+No bloquea F3 (el piloto siembra tickets, no los crea un residente), pero el
+prerrequisito está cerrado *en el repositorio* y no *en el ambiente*.
+
+**El hallazgo que más pesa: el administrador no podía clasificar, y eso dejaba
+sin suelo a las DOS puertas de G7.** Al ir a pintar las sugerencias no había
+dónde aceptarlas. Medido: `category` nacía constante, `type` lo fijaba el
+residente y el drawer lo enseñaba de solo lectura, y **`priority` no se escribía
+nunca** — el campo solo vivía en el tipo de TypeScript; todas las prioridades del
+repositorio son del módulo de soporte, otra colección. Las dos puertas movidas a
+G7 se cobran «contra la decisión real del administrador» acumulada por la sombra,
+y esa decisión no existía: la Fase 4 habría acumulado sugerencias contra un
+hueco. **Es el tercero de la familia de `category` y `type`** —constante,
+descriptivo y ahora inexistente—, y llegó por el mismo camino: mirar el producto
+y no el kappa. No es un fallo del instrumento sino del plan, que dio por supuesta
+una capacidad que el producto no tenía. Decisión de David: los tres ejes
+editables ya en F3.
+
+**Lo demás que salió al construir:**
+
+- **Puerta propia en el servidor** (`asistirTicketPqrs`), no `aiInvoke`: con la
+  genérica el navegador afirmaría `variante`, que es lo que decide la puerta dura
+  de `buzon_simple`. El cliente manda un `ticketId` y nada más.
+- **El `historial` de producción es el contrario del que midió F2**: en el gold
+  set lo escribe el residente (hilos de WhatsApp), en el producto solo la
+  administración. Se mapea fiel al producto y el sembrado incluye 4 tickets con
+  respuesta previa para verlo en la sesión.
+- **`npm test` corría CERO tests y salía con error.** `sh` no expande
+  `tests/**/*.test.ts` porque los 58 archivos están directos en `tests/`. Estaba
+  anotado aquí desde el 15 como una de las cuatro veces que falló el instrumento,
+  **pero el script nunca se arregló**. Ahora corre 922 tests: 915 verdes y **7
+  rojos preexistentes** —`data-table.tsx`, reservas, regulations y descarga de
+  QR—, ajenos a PQRS y sin tocar. Son un frente aparte.
+
+**Lo que queda de F3, por orden:** reautenticar → desplegar functions a
+`vivaru-staging-02` (comprobar `run.invoker` en la callable nueva) → empujar
+`develop` → sembrar con `FIREBASE_PROJECT_ID=vivaru-staging-02 node
+functions/scripts/seed-pqrs-piloto.mjs --tenant-con-sla=… --tenant-buzon=…` →
+encender **`ai-gateway`, `ia-proveedor-real` y `ai-pqrs-suggestions`** en
+`/superadmin/flags` (la PRD llamaba a la última `ai-pqrs-assist`, que no existe;
+corregido) → ensayo a ciegas con Playwright → sesión. **Si la sesión usa al
+tercer administrador, ANTES la línea base de comunicaciones a ciegas.**
 
 ## El desplegable del residente está corregido: F3 se queda sin prerrequisitos (15 ago 2026)
 
