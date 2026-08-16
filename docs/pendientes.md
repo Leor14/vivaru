@@ -1,7 +1,60 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 15 de agosto de 2026, tras promocionar todo el lote a producción.
+Actualizado el 15 de agosto de 2026 por la noche, tras correr la evaluación
+offline de PQRS.
+
+## La Fase 2 de PQRS se corrió, y `category` no pasa la puerta (15 ago 2026)
+
+**La operación `pqrs-asistir` existe y la corrida está hecha.** Segunda
+operación del catálogo, sobre el gateway que ya estaba: entrada que puebla el
+servidor, salida estricta del §7 de la PRD, sin infraestructura nueva. 456
+llamadas reales, **USD 0,45**. Lectura completa en
+`datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md`.
+
+**Dos puertas duras pasan y una no:**
+
+- **`buzon_simple` 12/12** y **inyección 8/8**, en las tres versiones de prompt.
+- **`category` se queda en 82,1%** (p1), 81,4% (p2), 82,9% (p3). **La puerta es
+  ≥90%.** Con eso, **F2 NO está en verde y F3 sigue bloqueada.**
+- Se reportan sin bloquear: `type` 70,7%, `priority` 72,4%, **recall de `high`
+  94,7%** (18/19) y el guardrail **32/32** — todo `high` que propone el modelo
+  llega con `needsHumanReview`. El recall va con asterisco: la definición sigue
+  sin validar (kappa 0,47).
+- **G5 tiene su cifra: USD 0,001 por asistencia**, del mismo orden que
+  comunicaciones. 300 asistencias al mes por conjunto son USD 0,30.
+
+**`p1-minima` gana y queda activa** — la versión con la taxonomía entera dentro
+del prompt no paga su costo, igual que en comunicaciones y más marcado.
+
+**Lo que hay que decidir, y es de producto:** 19 de los 25 fallos de `category`
+son `pqrs → maintenance` — preguntas y sugerencias SOBRE un tema físico que el
+modelo clasifica por el tema. Se probó una regla de frontera (p3) y **la
+frontera se giró en vez de afinarse**: +12 en `pqrs`, −11 en `maintenance`,
+neto +1, y de paso tumbó `type` nueve puntos. Cada instrucción de frontera
+mueve la frontera entera. Las salidas quedan tres opciones: ejemplos de
+contraste sacados del corpus (fuera del gold set, así que no contamina),
+revisar si la frontera del gold es la que el producto quiere, o recalibrar la
+puerta con los números delante.
+
+**Dos cosas más que salieron y valen para F3:**
+
+1. **El modelo afirma acciones que nadie tomó** — «procederemos a programar la
+   inspección», «hemos activado el protocolo»: 44 de 152 borradores. No lo mide
+   el gold set (mide clasificación), pero en el drawer un administrador puede
+   publicarlo sin que nadie haya activado nada. **Candidata a regla dura de la
+   v2 de la operación.**
+2. **El examen falló dos veces antes que el modelo.** Los checks de inyección
+   contaban como obediencia que el borrador RECHAZARA la compensación
+   (`SYN#6`) y que propusiera `low` razonándolo (`SYN#4`). Es
+   **mención-no-es-obediencia por tercera vez** en este programa. Corregido, con
+   prueba en los dos sentidos, y la corrida pagada se **recalificó sin volver a
+   llamar al modelo** (`functions/scripts/recalificar-pqrs.mjs`).
+
+**El prerrequisito de `buzon_simple` está cerrado:** 12 casos declarados (7 MX,
+5 EC) con una columna opcional `variante` en `etiquetas.tsv`. Se eligieron
+evitando `billing`, `high` y los casos ancla de la taxonomía — sus etiquetas
+están impresas en el documento y ahora la taxonomía viaja en un prompt.
 
 ## El gold set de PQRS existe, con 152 casos y tres huecos dichos (15 ago 2026)
 

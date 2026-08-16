@@ -18,7 +18,7 @@ verdad es este archivo.**
 | Usuario principal | `tenant_admin` / `admin_tenant` |
 | Usuarios secundarios | Comité u operativos según RBAC; residentes y portería originan tickets |
 | Responsable | David |
-| Estado | **Rumbo a piloto** — G0–G3 superadas; el paso en curso es G4 (evaluación offline, Fase 2) |
+| Estado | **Rumbo a piloto, con G4 abierta** — G0–G3 superadas; la Fase 2 se corrió el 15 ago 2026 y **`category` quedó en 82,1% contra la puerta de 90%**. Las otras dos puertas duras pasan |
 | Dependencias | `PRD-VAI-PLAT-001` (**en producción desde el 15 ago 2026, inerte tras banderas**: gateway `aiInvoke`, `aiUsage`, cuotas, adaptador Vertex, `aiFeedback`, consola `/superadmin/flags`) · catálogos de `Ticket` (`src/types/domain.ts:141`) · variantes `con_sla`/`buzon_simple` (`src/lib/config/module-variants.ts:37`) |
 | Riesgo | Medio-alto: contenido sensible, priorización, posible efecto legal o reputacional |
 | Estado de datos | Gold set **construido**: 152 casos reales (84 MX · 60 EC · 8 sintéticos de inyección) en `datasets/pqrs/`. Producción tiene **0 tickets** (medido 14 ago 2026) — el dataset de despliegue lo fabrica el modo sombra |
@@ -203,7 +203,7 @@ Estado por eje, medido y no supuesto:
 | `type` | Corregido sin validar (0,53) | **Descriptivo, no bloquea**: no decide nada en el código (pinta etiqueta y llena un filtro). Se reporta |
 | `priority` | Corregido sin validar (0,47) | **Se reporta, no bloquea el lanzamiento.** Guardrail de runtime: `needsHumanReview` obligatorio en `high`. El 95% vive en la puerta de escala |
 | `safetyFlags` / inyección | 8 casos sintéticos | **Puerta dura: 8/8** — un solo caso que siga instrucciones del mensaje suspende |
-| `buzon_simple` | **0 casos hoy** | **Puerta dura una vez declarados**: `category` y `type` en `null`, siempre. Prerrequisito de la Fase 2 |
+| `buzon_simple` | **12 casos** (15 ago 2026) | **Puerta dura: nulls siempre. Medida 12/12 en las tres versiones** |
 
 **Criterios de lanzamiento (Fases 2–4):**
 
@@ -278,7 +278,7 @@ proveedor → versionado; falla → editor manual). Se añaden dos medidas:
 | Fase | Qué es | Puerta | Estado |
 |---|---|---|---|
 | **F1 — Gold set y taxonomía** | 152 casos, taxonomía con árbol de `type` y preguntas ordenadas de `priority`, dos rondas de doble etiquetado + vuelta de definiciones | G2 | **HECHA** (15 ago 2026) |
-| **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **Siguiente.** Prerrequisito: declarar casos `buzon_simple` en el gold set |
+| **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **CORRIDA el 15 ago 2026, NO en verde.** Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Nulls 12/12 e inyección 8/8; **`category` 82,1%** contra ≥90%. G5 resuelta: **USD 0,001 por asistencia**. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
 | **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | Prerrequisitos: F2 en verde y desplegable del residente corregido. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
 | **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | Tenant piloto: se define después de staging (David, 15 ago) |
 | **F5 — Escala** | Abrir por plan y variante. Aquí se cobra el recall ≥95% contra la referencia de la sombra, y el costo dentro del 2–3% | G7 | — |
@@ -292,8 +292,10 @@ estados y alertas siguen operando sin migración.
    ofrece `other` (`src/app/(resident)/resident/pqrs/page.tsx`). Mientras siga
    así, todo `type` de producción nace con la definición equivocada — envenena
    la sombra de F4. Arreglo pequeño, va antes de F3.
-2. **`buzon_simple` sin casos en el gold set.** Declarar unos cuantos y
-   comprobar los nulls. Va antes de correr F2.
+2. ~~**`buzon_simple` sin casos en el gold set.**~~ **CERRADO el 15 de agosto de
+   2026:** 12 casos declarados (7 MX, 5 EC) con una columna opcional `variante`
+   en `etiquetas.tsv`. Elegidos evitando `billing`, `high` y los casos ancla de
+   la taxonomía. Los nulls se midieron 12/12 en las tres versiones.
 
 ## Puertas
 
@@ -303,8 +305,8 @@ estados y alertas siguen operando sin migración.
 | G1 Valor | **Superada, reformulada** | Baseline de clasificación: el gold set. Baseline operativo: lo captura la sombra desde el primer ticket real (producción hoy: 0 tickets, medido) |
 | G2 Datos | **Superada** | Gold set 152 casos reales; límite dicho: son WhatsApp, no tickets de producto |
 | G3 Riesgo | **Superada** | Revisión humana total, fallback, kill switch, parada en seco |
-| G4 Evaluación | **En curso** | Fase 2 |
-| G5 Economía | **En curso** | Referencia real de comunicaciones; cifra propia en Fase 2 |
+| G4 Evaluación | **Medida, no superada** | Fase 2 corrida el 15 ago 2026: `buzon_simple` 12/12 e inyección 8/8 pasan; `category` 82,1% no llega al 90%. La palanca es decisión de producto — ver la lectura |
+| G5 Economía | **Superada** | Cifra propia medida: **USD 0,001 por asistencia** (456 llamadas, USD 0,45), del orden de comunicaciones |
 | G6 Piloto | Pendiente | Fases 3–4 |
 | G7 Escala | Pendiente | Fase 5 — aquí vive el 95% |
 
@@ -326,3 +328,5 @@ estados y alertas siguen operando sin migración.
 | 15 ago 2026 | `type` queda descriptivo: no decide nada en el código; su kappa no bloquea | David (confirmó «van al mismo lado») |
 | 15 ago 2026 | Tercera ronda de kappa de `priority` aplazada; plan escrito por si se retoma | David |
 | 15 ago 2026 | Primero staging; el tenant piloto de F4 se decide después | David |
+| 15 ago 2026 | `p1-minima` queda como prompt activo: gana en cuatro de cinco ejes y la taxonomía dentro del prompt no paga su costo | Evaluación offline |
+| 15 ago 2026 | Los checks automáticos de inyección de `SYN#4` no juzgan `priority`: el valor atacado coincide con una respuesta defendible. Ese eje va a la lectura a mano | Evaluación offline |

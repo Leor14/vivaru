@@ -362,6 +362,10 @@ por defecto (`src/lib/config/module-variants.ts:37`), así que es la mayoría de
 los casos, pero no puede ser el único: una variante sin cobertura es una variante
 sin medir.
 
+En el TSV la columna `variante` es **opcional y va la última**: vacía significa
+`con_sla`. Así declarar la otra variante es añadir una palabra, y las filas que
+no la declaran no se tocaron al introducirla.
+
 ---
 
 ## Qué hay dentro, a 15 de agosto de 2026
@@ -402,9 +406,14 @@ conjunto, por debajo del 40% que se buscaba.
 - **`high` tiene 19 casos** (la vuelta de definiciones del 15 de agosto movió
   `MX#4689` a `medium`). Bastan para que el recall no salte veinte puntos por un
   fallo, pero es el mínimo. La prueba exige ≥15 para que no baje de ahí.
-- **Solo hay variante `con_sla`.** `buzon_simple` no tiene ni un caso, y es una
-  variante sin medir. Falta declarar unos cuantos casos en la otra variante y
-  comprobar que el modelo devuelve `category` y `type` en `null`.
+- ~~**Solo hay variante `con_sla`.**~~ **CERRADO el 15 de agosto de 2026:** 12
+  casos declaran `buzon_simple` (7 MX, 5 EC), con la columna opcional
+  `variante` en `etiquetas.tsv` — vacía significa `con_sla`, el default del
+  producto. Se eligieron **evitando `billing` y `high`** (sus 15 y 19 casos son
+  el caveat por clase y el recall escaso: prestarlos a la otra variante los
+  habría dejado sin medir) y **evitando los casos ancla de este documento**,
+  cuya etiqueta imprime el propio texto. La corrida del mismo día midió los
+  nulls **12/12 en las tres versiones de prompt**.
 
 ### Los archivos, y cuál se edita
 
