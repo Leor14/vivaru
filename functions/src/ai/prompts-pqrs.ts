@@ -17,7 +17,7 @@ import type { PromptDefinition } from "./prompts";
  * preguntas y las reglas; los casos se quedan en el documento.
  */
 
-export type PqrsPromptVersion = "p1-minima" | "p2-taxonomia";
+export type PqrsPromptVersion = "p1-minima" | "p2-taxonomia" | "p3-frontera";
 
 /**
  * p1 · Mínima.
@@ -109,9 +109,46 @@ const P2: PromptDefinition = {
   ].join("\n"),
 };
 
+/**
+ * p3 · La frontera de `category`.
+ *
+ * Hipótesis: sale de LEER los fallos de la corrida real del 15 de agosto de
+ * 2026, no de la intuición. 18 de los ~25 fallos de category —idénticos en p1
+ * y p2— son `pqrs → maintenance`, y casi todos son preguntas, peticiones o
+ * sugerencias SOBRE un tema físico («¿a qué hora restablecen el agua?», «¿han
+ * considerado pedir pipas?»). El modelo clasifica por el tema; el gold, por la
+ * naturaleza del mensaje. Es «reportar no es mencionar» —el principio del
+ * árbol de `type`— aplicado a `category`, y ninguna versión lo decía.
+ *
+ * Varía UN eje sobre p1: la regla de frontera. El árbol completo de p2 no se
+ * arrastra porque en la corrida no pagó su costo (category igual, priority
+ * peor, +20% de tokens de entrada).
+ */
+const P3: PromptDefinition = {
+  version: "p3-frontera",
+  hipotesis: "La frontera pqrs/maintenance —reportar el fallo contra hablar de él— arregla el patrón dominante de fallos de category.",
+  instruccion: [
+    P1.instruccion,
+    "",
+    "La frontera de `suggestedCategory`, que es donde más se falla:",
+    "- `maintenance` es únicamente REPORTAR un fallo físico que requiere",
+    "  intervención: el que avisa de la fuga, del elevador parado, de la lámpara",
+    "  fundida.",
+    "- Preguntar por un fallo ya conocido, pedir información o plazos sobre él,",
+    "  sugerir cómo mitigarlo o quejarse del servicio que lo atiende es `pqrs`,",
+    "  aunque el tema sea físico. «¿A qué hora restablecen el agua?» es `pqrs`;",
+    "  «no hay agua desde anoche» es `maintenance`.",
+    "- Cuando un mensaje reporta una avería Y discute quién la paga, manda el",
+    "  propósito del que escribe: «el ascensor lleva tres días parado» es",
+    "  `maintenance`; «no pienso pagar la extraordinaria del ascensor» es",
+    "  `billing` aunque hable del ascensor.",
+  ].join("\n"),
+};
+
 export const PQRS_PROMPTS: Record<PqrsPromptVersion, PromptDefinition> = {
   "p1-minima": P1,
   "p2-taxonomia": P2,
+  "p3-frontera": P3,
 };
 
 export const PQRS_PROMPT_VERSIONS = Object.keys(PQRS_PROMPTS) as PqrsPromptVersion[];
