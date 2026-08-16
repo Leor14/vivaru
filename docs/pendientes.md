@@ -88,6 +88,21 @@ lleva demasiado en validaciones de muestra—, así que `priority` queda
 fresca de Colombia estratificada a candidatos `high`, kappa completo + binario
 high/no-high) está escrito en el registro.
 
+**Y la PRD se consolidó en el repo esa misma noche:**
+`docs/prd/ia/PRD-VAI-FEAT-002-asistente-pqrs.md` — desde ahí es la fuente de
+verdad; la copia de Drive queda como lectura. Trae la **decisión rectora de
+David**: el recall de `high` ≥95% se cobra en la puerta de escala (G7), no en
+la de lanzamiento — el piloto se protege con revisión humana total, no con una
+métrica que hoy no es evaluable. G0–G3 superadas. Fases renumeradas: **F2
+evaluación offline contra el gold set (el siguiente paso ejecutable**, cuesta
+centavos; prerrequisito: declarar casos `buzon_simple`), F3 piloto simulado en
+staging con tickets sembrados desde los corpus (prerrequisitos: F2 en verde y
+el desplegable del residente corregido; si la sesión usa al tercer
+administrador, ANTES se le toma la línea base de comunicaciones a ciegas), F4
+sombra en producción + piloto visible por bandera (la sombra fabrica los
+150–250 tickets etiquetados que piden el Paso 3 y la Fase 5), F5 escala. El
+tenant piloto se decide después de staging.
+
 **Y lo que apareció mirando el producto vale más que el kappa:**
 
 1. **`type` no decide nada, y ya no es pregunta: David lo confirmó el 15 de
