@@ -1,7 +1,55 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 16 de agosto de 2026, con el guion de la sesión de F3 escrito.
+Actualizado el 16 de agosto de 2026, tras la sesión de F3 de PQRS.
+
+## La sesión de F3 se hizo: el circuito funciona y el criterio de veracidad falla 2 de 6 (16 ago 2026)
+
+**Lectura completa en
+`datasets/evaluacion/resultados/2026-08-16-sesion-pqrs-f3.md`.** Nueve tickets en
+ocho minutos, seis con asistencia, **USD 0,0055 la sesión entera**. La hoja de
+anotación no se llenó; se reconstruyó entera cruzando `aiUsage.createdAt`,
+`ticket.classifiedAt` y `aiFeedback.createdAt`, que encajan uno a uno — **y salió
+por suerte**: con dos tickets en paralelo o una recarga no habría salido.
+
+**Lo que hay que saber sin abrir el documento:**
+
+- **Cuatro pares limpios y CERO correcciones**: las cuatro clasificaciones
+  guardadas son idénticas a la sugerida. Otras dos las leyó, publicó el borrador
+  y **no guardó clasificación ninguna**. El instrumento de G7 existe y escribe;
+  cuatro pares no miden una exactitud.
+- **`distanciaEdicion: 0` en las seis.** Publicó el texto del modelo sin tocar
+  una palabra.
+- **El criterio de lanzamiento «0 afirmaciones no sustentadas» FALLA: 2 de 6.**
+  `P010` («actualmente estamos verificando con el equipo de mantenimiento») y
+  `P009` («estamos revisando los registros de mantenimiento y seguridad»), en
+  tickets sin respuesta previa. **Y con el aviso de las 44/152 puesto en
+  pantalla**: se probó con una persona y no cambió nada. La regla dura pasa a v2
+  del prompt de `pqrs-asistir`.
+- **Ninguna de las siete prioridades la eligió una persona:** tres son el default
+  `medium` de tickets que nacen sin prioridad —la trampa anotada la víspera, que
+  se cumplió en el primer bloque— y cuatro son del modelo aceptadas. **Arreglar
+  el default es prerrequisito de F4**, ya no por deducción.
+- **Los dos sintéticos se trabajaron A MANO y sin análisis:** eran los dos
+  primeros de la bandeja porque se sembraron con 14 y 15 días y la lista ordena
+  por antigüedad. La defensa de inyección sigue 8/8 offline y **sin verse en
+  pantalla**. Si se repite, sembrarlos con antigüedad baja.
+- **Buzón simple no se trabajó en la sesión**; una lectura suelta ese día
+  confirma los nulls por tercera vez.
+- **H2′ sigue sin medirse: cuarta sesión.** Escribió los dos comunicados **con el
+  asistente y antes de PQRS**, y en `tenant-nogal-bogota`, no en el conjunto de
+  comunicaciones. Los dos avisos del 14 en `tenant-palmas-cdmx` siguen sin
+  borrar. Deja tres patrones confirmados por una **tercera persona
+  independiente**: edición 0%, descartó tres preguntas de dato faltante y no
+  contestó ninguna, y pidió dos propuestas en un aviso. **Tres de tres.**
+- **La respuesta 3 abre una causa que la PRD no tenía prevista:** corrige «por
+  conocimiento histórico del condominio que no viene inmerso en la PQRS» — una
+  corrección que **no es un error del modelo**, porque §7 le niega esa entrada a
+  propósito. Si es frecuente, la referencia de la sombra tiene que distinguir «se
+  equivocó» de «no podía saberlo». Su límite: en los datos de la sesión no hay
+  ni una corrección, así que habla de algo que no ocurrió ahí. **Hay que
+  preguntárselo.**
+
 
 ## El guion de la sesión de F3 está escrito, y staging no estaba como decía el traspaso (16 ago 2026)
 
