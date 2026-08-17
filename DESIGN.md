@@ -143,9 +143,17 @@ All components are custom-built (no Radix, no shadcn). Located in `src/component
 variants: default | outline | ghost | danger
 sizes:    xs (h-8) | sm (h-10 px-3) | md (h-10 px-4, default) | lg (h-11 px-5)
 ```
-- Default: `bg-brand-700`, `hover:scale-[1.02]`, `active:scale-[0.98]`
+- Default: `bg-[var(--brand-700)]`, `hover:scale-[1.02]`, `active:scale-[0.98]`
 - Rounded: `rounded-xl`
 - Has `motion-reduce:transform-none`
+
+> **Notation matters here.** Write `bg-[var(--brand-700)]`, **not** `bg-brand-700`.
+> The brand and slate scales are declared in `:root`, and `@theme inline` only
+> maps a subset of tokens to `--color-*`. Tailwind therefore does **not** generate
+> `bg-brand-700` as a utility: using it silently paints nothing. This already
+> happened — see the comment in `globals.css` about steps of the brand scale that
+> were used without being declared, where "backgrounds did not paint and borders
+> fell back to currentColor". Verified against the code on 2026-08-17.
 
 #### `Card`
 ```
@@ -262,8 +270,11 @@ Typical structure:
 
 ## Known gaps / TODOs
 
-- `Drawer`: exit animation missing. Should use `--ease-drawer` on enter.
-- No dark mode tokens defined.
-- No OKLCH migration yet — all colors in hex. Migration recommended for fine-grained chroma control.
-- `transition: all` in some older components — should be replaced with specific properties.
-- `MetricCard` on resident home has no skeleton loading state matched to its layout.
+Re-verified against the code on **2026-08-17**. Items are marked with what was actually found, not with what the list previously claimed.
+
+- ~~`Drawer`: exit animation missing.~~ **Resolved.** `src/components/ui/drawer.tsx` now animates both ways — enter 300ms with `--ease-drawer` (iOS curve), exit 220ms `ease-in` — driven by a `data-state="open|closed"` pattern.
+- **Still open — `transition-all` survives in two files**, despite `globals.css` stating "never use transition-all — specify exact properties": `src/components/ui/input.tsx:37` and `src/components/features/auth/login-form.tsx:160`. Both are focus-state transitions, so the fix is to name the properties (`transition-[box-shadow,border-color]`).
+- Still open — no dark mode tokens defined.
+- Still open — no OKLCH migration; all colors in hex. Recommended for fine-grained chroma control.
+- Still open — `MetricCard` on resident home has no skeleton loading state matched to its layout.
+- **New** — the brand and slate scales live in `:root`, not in `@theme`, so their Tailwind utilities (`bg-brand-700`, `text-slate-700`) do not exist. Always use `bg-[var(--token)]`. See the Button note above.

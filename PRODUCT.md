@@ -115,3 +115,26 @@ These products or aesthetics are explicitly wrong for Vivaru:
 | Regulations | Manage documents, track signatures | Read, sign |
 | Documents | Upload/manage building documents | Download |
 | Settings | Units, users, branding, amenities | Profile, change password |
+| **Finanzas** | Income/expense statement, ledger, reconciliation | — |
+| **Reports** | Committee report, period comparisons | — |
+| **Services** | External service offering for residents | Browse offered services |
+| **Support** | — (client-side lives in `/admin/soporte`) | — |
+| **Agreements** | Committee agreements | Read, acknowledge |
+
+> **Verified against the routes on 2026-08-17.** The five rows in bold were
+> missing from this table: `finanzas`, `reports`, `services`, `soporte` and the
+> resident-side `agreements` all exist and ship. Support is administrator →
+> Vivaru, which is a **different domain from PQRS** (resident → administration)
+> even though both are ticket systems.
+
+### Assisted layer (AI)
+
+Since August 2026 two surfaces have an AI-assisted panel, each behind its own
+feature flag and **off by default**: the draft assistant in Communications and
+the ticket assistant in PQRS. Both **propose and never decide** — the person
+confirms, edits and publishes. PQRS additionally runs a silent shadow mode in
+production that classifies incoming tickets and shows nothing to anyone; it
+exists only to build the evaluation set for a future scale gate.
+
+Turning every flag off returns the product to exactly what this document
+described before August 2026: the manual editor survives every failure.

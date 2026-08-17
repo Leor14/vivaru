@@ -29,10 +29,15 @@ import type { IconToneName } from "@/lib/ui/icon-tones";
  * cosas juntas — **a dónde ir** (`route`), **qué hacer ahí** (`purpose` / `how`,
  * que se muestran al llegar) y **cómo se sabe que quedó hecho** (`signal`).
  *
- * Tres bloques con pesos distintos, a propósito:
+ * Cuatro bloques con pesos distintos, a propósito:
  *
- * - `configura` + `prueba` = los **7 pasos de activación**. Miden puesta en
- *   marcha real y alimentan la columna "Activación" de la consola comercial.
+ * - `configura` + `prueba` + `cobrar` = los **pasos de activación**: todo lo que
+ *   NO es `descubre`, que es literalmente como los filtra `activationStepsFor`.
+ *   Miden puesta en marcha real y alimentan la columna "Activación" de la
+ *   consola comercial. **Son 7 en la prueba y 10 en un cliente**, porque el
+ *   recorrido de cliente añade pasos — la cifra depende del `track`, así que no
+ *   se puede citar una sola. Este comentario decía «7» a secas y omitía
+ *   `cobrar`, que sí cuenta.
  * - `descubre` = recorrido por el resto del producto. Se completan **viendo**,
  *   no creando: quince tareas obligatorias se leen como tarea escolar y se
  *   abandonan; el objetivo aquí es que sepa que el módulo existe y para qué.
