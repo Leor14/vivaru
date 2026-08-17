@@ -230,6 +230,26 @@ al lado — ese par es el dataset de la Fase 5. Feedback en `aiFeedback` como en
 comunicaciones. PII redactada en telemetría; retención según el cron ya
 desplegado.
 
+**Construido el 17 de agosto de 2026** (`functions/src/ai/sombra-pqrs.ts`):
+colección de primer nivel `aiAssistance`, **un documento por ticket con el
+`ticketId` de identificador**. «Separado del `Ticket`» resultó tener una razón
+concreta que la PRD no decía: `firestore.rules` deja al **residente** leer su
+propio ticket, así que un campo ahí dentro sería visible para quien lo escribió
+y la sombra dejaría de serlo el día que se encienda. La regla es la de
+`aiUsage`: `read: superadmin`, `write: false`.
+
+**Esta colección sí guarda contenido del conjunto** —el resumen y el borrador
+propuestos—, a diferencia de `aiUsage` y `aiFeedback`, donde la regla del Paso 0
+es que no haya dónde meterlo. No es una excepción sino su límite: aquella
+prohíbe contenido en la telemetría **agregada**, y esto es el conjunto de
+evaluación que G7 mide ticket a ticket. Quien puede leerlo ya podía leer el
+ticket entero.
+
+**El `ticketId` como identificador resuelve además dos cosas de paso:** da
+idempotencia frente a la entrega doble de los triggers de Firestore —lo que
+impide pagar dos veces por el mismo ticket— y cubre el hueco de que la fila de
+`aiFeedback` no guarde `ticketId` y por eso no se pueda cruzar con nada.
+
 **Aislamiento:** consulta por `tenantId` impuesto en servidor (las reglas de
 Firestore no bastan con Admin SDK — restricción del documento de estrategia);
 sin memoria entre tickets; sin ejemplos cruzados entre tenants.
@@ -362,7 +382,7 @@ proveedor → versionado; falla → editor manual). Se añaden dos medidas:
 | **F1 — Gold set y taxonomía** | 152 casos, taxonomía con árbol de `type` y preguntas ordenadas de `priority`, dos rondas de doble etiquetado + vuelta de definiciones | G2 | **HECHA** (15 ago 2026) |
 | **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **HECHA** (15 ago 2026). Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Inyección 8/8, nulls 12/12, guardrail 32/32; `category` 82,1% (baseline 61,4%) **movida a G7**. **USD 0,001 por asistencia.** Prompt activo: `p1-minima`. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
 | **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **En curso (15 ago 2026). Código construido y en verde; falta el ambiente.** Hecho: callable `asistirTicketPqrs`, bloque de asistencia en el drawer, **editor de clasificación** (prerrequisito 3, encontrado al construir la pantalla), feedback de `pqrs-asistir` sobre `aiFeedback` con el par sugerida/guardada, y `seed-pqrs-piloto.mjs` con 24 casos fijos (16 `con_sla`, 6 `buzon_simple`, 2 de inyección; 4 con respuesta previa). Pendiente: desplegar a staging, sembrar y la sesión. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
-| **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | Tenant piloto: se define después de staging (David, 15 ago) |
+| **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | **La sombra está construida (17 ago 2026, `f1fea59`) y NO desplegada.** Dos triggers propios sobre `tickets` (`sombraPqrsAlCrearTicket`, `sombraPqrsAlActualizarTicket`), colección `aiAssistance` con su regla, y `ai-pqrs-shadow` apagada en los dos ambientes. Falta: desplegar, encender y ver la primera fila. Tenant piloto de la parte visible: sin decidir (David, 15 ago) |
 | **F5 — Escala** | Abrir por plan y variante. Aquí se cobra el recall ≥95% contra la referencia de la sombra, y el costo dentro del 2–3% | G7 | — |
 
 **Rollback en cualquier fase:** apagar la bandera. Tickets, historial, editor,
@@ -480,3 +500,8 @@ se vea con ojos humanos en la sesión en vez de descubrirse en la Fase 4.
 | 15 ago 2026 | En F3 no se persiste `aiAssistance`: la sesión deja rastro en `aiFeedback` con el par sugerida/guardada, y el registro de sombra se diseña en F4 con lo que la sesión enseñe | David |
 | 15 ago 2026 | El borrador se enseña y se copia al cuadro de respuesta, con un aviso que nombra la cifra medida (44 de 152 afirmaban acciones no tomadas). Publicar sigue siendo un segundo clic deliberado | David |
 | 15 ago 2026 | El piloto siembra las dos variantes en conjuntos separados: la puerta dura de nulls se ve en pantalla, no solo en el evaluador | David |
+| 17 ago 2026 | **La sombra no pasa por `runGateway`: se extrae el tramo de ejecución y hay dos puertas.** La puerta exige sesión, membresía y App Check, y la sombra no tiene ninguna. Fabricar un usuario falso metería una excepción en la única comprobación de seguridad del programa; un camino propio duplicaría cuota, validación y telemetría. Y hay un motivo que obliga: la bandera de la operación es `ai-pqrs-suggestions`, la que hace VISIBLE la sugerencia — pasar por la puerta ataría la sombra a la sugerencia visible, lo contrario de F4 | David |
+| 17 ago 2026 | **La sombra no corre en `buzon_simple`, y se anota el motivo.** Ahí la pantalla no pinta el editor de clasificación, así que no existe decisión del administrador que capturar: sin decisión no hay par, y el par es lo único que la sombra fabrica. El hueco queda explicado en la propia colección, no se deduce | David |
+| 17 ago 2026 | **La sombra consume la cuota del conjunto pero no tiene tope por usuario.** Los topes del conjunto existen para que uno desbocado no se coma el presupuesto de todos, y su gasto es gasto del conjunto; el de 20 por usuario y día se convertiría en un techo de 20 tickets diarios, perdiendo dataset **en silencio** a partir del 21 | David |
+| 17 ago 2026 | **La decisión del administrador se anota en cada cambio y se congela al resolverse**, no solo al cierre como decía la letra de §7. Un ticket con SLA puede vivir semanas abierto: esperar al cierre dejaría fuera casi todo lo que se clasifica en un piloto. G7 mide contra las congeladas | David |
+| 17 ago 2026 | **La sombra dispara solo al crear el ticket, no al editarlo.** El residente puede editar el suyo; reclasificar cada edición multiplicaría el gasto y mediría otra cosa. Lo que se guarda es la clasificación del ticket tal como llegó, que es lo que el administrador tuvo delante. Límite conocido, escrito en el código | David |

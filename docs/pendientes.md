@@ -1,39 +1,77 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 16 de agosto de 2026 por la noche, tras la sesión de F3, la v2
-de la operación y el resaltado de la frase marcada en pantalla.
+Actualizado el 17 de agosto de 2026 por la noche, tras construir la sombra de
+F4.
 
-## La sombra de F4 NO está construida — y es el siguiente trabajo de código (hallazgo del 17 ago 2026)
+## La sombra de F4 está construida y NO desplegada (17 ago 2026)
 
-**`aiAssistance` aparece UNA vez en todo el código: en un comentario del
-catálogo.** Lo que existe es el asistente a demanda (el drawer) y `aiFeedback`
-por sesión de pantalla, sin `ticketId`. Lo que la PRD §7/§13 pide para F4 y no
-existe: clasificar **en silencio** cada ticket nuevo, persistir la sugerencia
-completa en `aiAssistance` y, al resolverse el ticket, dejar al lado la
-decisión final del administrador — el dataset de G7 se fabrica solo desde el
-primer ticket real («esperar acumulando», hoja de ruta). Decisiones de diseño
-dentro, para explicar antes de tocar: cuándo dispara, bandera propia de
-sombra, qué hace en `buzon_simple`, costo (USD 0,0009 por ticket; hoy ~0
-porque producción casi no tiene tickets), y que la sombra no muestra nada a
-nadie.
+**Lo que faltaba existe: `aiAssistance` ya no vive en un comentario.** Commits
+`713185b` (el refactor que la hizo posible) y `f1fea59` (la sombra). Cuatro
+piezas:
 
-**Tres decisiones de David del 17 de agosto que cambian los pendientes:**
+- **`functions/src/ai/ejecucion.ts`** — el tramo de una operación asistida que
+  va **después de autorizar**: validar, cobrar cuota, ejecutar y contarlo. Se
+  extrajo de `runGateway` porque la sombra no tiene sesión, ni membresía, ni App
+  Check: **nada de lo que la puerta comprueba existe.** Ahora hay un solo camino
+  de ejecución y dos puertas. Las dos alternativas descartadas —usuario falso, y
+  camino propio duplicado— están escritas dentro, porque volverán a parecer
+  buenas.
+- **`functions/src/ai/sombra-pqrs.ts`** — la sombra. `planificarSombra` es una
+  función pura: es la parte que decide **cuándo NO se gasta dinero**, y quería
+  poder probarla sin emulador.
+- **Dos triggers propios** en `index.ts` (`sombraPqrsAlCrearTicket`,
+  `sombraPqrsAlActualizarTicket`), aparte de `onTicketCreated`/`onTicketUpdated`
+  para que la notificación de un PQRS no dependa de que Vertex conteste.
+- **`aiAssistance`** en `firestore.rules`: `read: superadmin`, `write: false`.
+
+**Lo que hay que saber antes de encenderla:**
+
+- **`ai-pqrs-shadow` está APAGADA en los dos ambientes**, y nace así a
+  propósito. **Es la primera vez en el programa que el sistema gasta sin que
+  nadie pulse nada:** hasta ahora toda llamada salía de un administrador
+  abriendo el drawer o de una corrida lanzada a mano. USD 0,0009 por ticket.
+- **Desplegar el código YA cambia la conducta de producción**, aunque la bandera
+  siga apagada: los dos triggers nuevos empiezan a dispararse con cada ticket.
+  Con la bandera apagada no llaman al modelo ni escriben nada, pero se invocan.
+- **Sembrar los 24 del piloto con la bandera encendida cuesta USD 0,022** y
+  ocurre solo, sin que nadie abra una pantalla.
+- **Al desplegar, comprobar los triggers.** Son funciones nuevas; la trampa
+  conocida de `run.invoker` es de las callables, pero una función nueva que no
+  arranca da «error interno» sin pista.
+- La sombra **no escribe una sola letra en el ticket**. Si algún día lo hace,
+  dejó de ser una sombra.
+- `en_curso` en reposo al leer `aiAssistance` = una función se cayó a mitad. Ese
+  ticket no se reintenta, y es deliberado: pagar dos veces en silencio es peor.
+
+**Evidencia:** 308 pruebas de functions en verde (17 nuevas en
+`functions/tests/ai-sombra-pqrs.test.ts`), typecheck limpio en `src/` y en
+`functions/`. **Nadie ha visto una fila de `aiAssistance`** — como con el
+resaltado de F3, la evidencia es de pruebas y no de pantalla.
+
+**Sigue pendiente de redacción y firma: la entrada de §9** del registro de
+decisiones (el 0% de afirmaciones lo cumple el sistema, no el modelo).
+Borrador entregado a David el 17 por la noche, **sin aprobar**. Sin esa entrada
+F3 no cierra.
+
+**Tres decisiones de David del 17 de agosto que siguen rigiendo:**
 
 - **Sin más pruebas con administradores por ahora.** La línea base del tercer
   administrador y H2′ quedan aparcadas, no canceladas; la pregunta por la
   respuesta 3 pasa a **mensaje asíncrono**. Los dos comunicados del 14 en
   `tenant-palmas-cdmx` pierden urgencia, pero siguen por borrar.
 - **El orden: sombra de F4 primero; PRD de FEAT-001 (onboarding) después.**
-  FEAT-001 quedó más pequeña de lo que decía el plan maestro: el importador ya
-  está en producción y `importRuns` recoge solo los encabezados no mapeados.
-  Faltan los 15–25 archivos reales (recolección comercial) y la corrección
-  anotada: son **10** pasos de activación, no 7.
+  ~~Sombra de F4~~ **construida el 17 de agosto** (arriba). Sigue FEAT-001, que
+  quedó más pequeña de lo que decía el plan maestro: el importador ya está en
+  producción y `importRuns` recoge solo los encabezados no mapeados. Faltan los
+  15–25 archivos reales (recolección comercial) y la corrección anotada: son
+  **10** pasos de activación, no 7.
 - **Por redactar y firmar: la entrada de §9 en el registro de decisiones** —
   el «0 afirmaciones no sustentadas» lo cumple el SISTEMA (comprobación de
   servidor + revisión forzada + frase resaltada), no el modelo, que queda en
   6,6%. Misma lógica de la decisión rectora: la exigencia se mueve a la puerta
-  de salida. Redactarla para que David la apruebe; sin esto F3 no cierra.
+  de salida. **Borrador entregado el 17 por la noche, pendiente de que David lo
+  apruebe**; sin esto F3 no cierra.
 
 ## La frase marcada se resalta dentro del borrador, y staging ya sirve la v2 (16–17 ago 2026, noche)
 
