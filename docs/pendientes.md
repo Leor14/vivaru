@@ -62,12 +62,47 @@ staging. **Toda la cadena se comprobó por USD 0**, aprovechando que en
   Verificado leyéndolo, no por prueba unitaria.
 - Resuelto → `decisionCongeladaEn` escrita. El congelado que mide G7 funciona.
 
-**Lo único sin ver es el camino de pago:** un ticket en un conjunto `con_sla`
-—`tenant-nogal-bogota` es el bueno— para que la fila traiga `sugerencia`.
-Cuesta USD 0,0009. Lector: `node functions/scripts/leer-sombra-pqrs.mjs
-vivaru-staging-02`.
+**Y el camino de pago también, con una llamada real (USD 0,0009).** Ticket en
+`tenant-nogal-bogota`: `estado: sugerida`, `variante: con_sla`, operación **v2**,
+`marcasDeRevision: []`. Clasificó `maintenance` / `claim` / `medium`, con
+`needsHumanReview: true` y `posible_urgencia`. **El borrador no afirmó ninguna
+acción**: pide fotos y el apartamento, y dice qué se hará — la forma que la
+regla dura permite. Es la v2 comportándose como la midió la evaluación offline,
+ahora sobre un ticket de producto y no sobre un WhatsApp del gold set.
+
+La fila de `aiUsage` salió con `uid: __sombra__` y `v2`, distinguible de las del
+administrador (uid real, `v1`): **el mecanismo que separa el gasto de la sombra
+del de las personas funciona**, y no hizo falta campo nuevo.
+
+Lector: `node functions/scripts/leer-sombra-pqrs.mjs vivaru-staging-02`.
 
 **Producción sigue intacta:** ni desplegada ni encendida.
+
+### Hallazgo al probarlo: la sombra no distingue lo sembrado de lo real
+
+**Los tickets del piloto no llevan `isExample`, y `tenant-nogal-bogota` tampoco.**
+El mecanismo existe y está usado en otros sitios —`trial-seed.ts` lo pone en el
+documento, los seeds de demo en el conjunto, y `audit-volumen-ia.mjs` descuenta
+por los DOS caminos porque sin eso la volumetría dio 20 tickets que eran 0 y 26
+comunicaciones que eran 2—, pero `seed-pqrs-piloto.mjs` no lo escribe y la
+sombra no lo lee.
+
+Si se resiembra el piloto con la sombra encendida: 16 tickets `con_sla` gastan
+USD 0,014 **y entran en el conjunto de evaluación de G7 indistinguibles de los
+reales.** Es el mismo defecto que ya infló un baseline dos veces, esta vez en el
+sitio donde se cobran las dos puertas de escala.
+
+Arreglo propuesto, sin decidir: que la sombra omita con motivo `sembrado`
+cuando el ticket o su conjunto traigan `isExample`, y que
+`seed-pqrs-piloto.mjs` lo escriba. Cuesta poco y cierra el agujero antes de que
+haya datos que limpiar.
+
+**Dos filas de prueba en staging, por excluir o borrar:** los tickets
+`PQRS-SOMBRA1` (`tenant-santa-maria`, omitida) y `PQRS-SOMBRA2`
+(`tenant-nogal-bogota`, sugerida). El primero lleva además una decisión
+fabricada (`classifiedBy: prueba-sombra-f4`) escrita para probar el congelado.
+**Al segundo NO se le fabricó decisión a propósito**: habría metido en G7 un par
+que nadie decidió.
 
 **Sigue pendiente de redacción y firma: la entrada de §9** del registro de
 decisiones (el 0% de afirmaciones lo cumple el sistema, no el modelo).
