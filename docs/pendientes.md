@@ -4,7 +4,7 @@
 Actualizado el 16 de agosto de 2026 por la noche, tras la sesión de F3, la v2
 de la operación y el resaltado de la frase marcada en pantalla.
 
-## La frase marcada se resalta dentro del borrador; staging sigue sirviendo la v1 (16 ago 2026, noche)
+## La frase marcada se resalta dentro del borrador, y staging ya sirve la v2 (16–17 ago 2026, noche)
 
 **La decisión que más abajo figura como pendiente se tomó: las dos cosas, y las
 dos están en el repo.** La comprobación del servidor (commit `20e341f`) ya
@@ -34,11 +34,22 @@ Dónde vive cada pieza, con su porqué al lado en el código:
   ejemplo («procederemos a…») es un compromiso futuro permitido, no una
   afirmación.
 
+**Desplegado y verificado leyéndolo:** `asistirTicketPqrs` actualizada en
+`vivaru-staging-02` el 17 de agosto a las 04:14 UTC (`updateTime` leído con
+`gcloud describe`, estado `ACTIVE`). **Solo esa función, a propósito**: es la
+única cuya conducta cambió, y un deploy total arrastraría functions con
+secretos (Resend) sin ganancia. Ojo del día: **caducaron LAS DOS credenciales,
+que son distintas** — `firebase login --reauth` (deploy) y `gcloud auth login`
+(lecturas); la de ADC para scripts (`gcloud auth application-default login`) es
+una tercera y no se renovó esa noche. El frente salió solo con el push; la
+señal de que ya sirve lo nuevo es el aviso del borrador diciendo «10 de 152».
+
 **Nadie ha visto el resaltado pintado.** La evidencia es de tests: 291 en
-functions y 935 en cliente (los 7 rojos son preexistentes, comprobado
-corriéndolos contra HEAD sin estos cambios). Verlo de verdad necesita las
-functions v2+comprobación desplegadas a staging —siguen sin desplegar— y una
-llamada real que lanza David.
+functions y 937 en cliente (los 7 rojos son preexistentes, comprobado
+corriéndolos contra HEAD sin estos cambios). La comprobación de punta a punta
+es una llamada real de David en staging (USD 0,0009) — y el resaltado solo
+aparece si el borrador trae afirmación (~1 de cada 15 con la v2): no verlo en
+una llamada no dice nada malo.
 
 **De los tres bloqueos de F4, dos cayeron esta noche: el resaltado y el default
 de `priority`.** «Media» ya no es el arranque: el selector parte de «Sin
@@ -47,8 +58,11 @@ sin elegir NO escribe el campo (se omite, no se pone en `null`) y el feedback
 anota `null` en ese eje; `classifiedAt` se escribe igual, porque la persona sí
 clasificó categoría y tipo. Cero cambios en functions: el esquema del feedback
 ya aceptaba `null`. Lo sostiene por los dos lados
-`tests/pqrs-clasificacion-prioridad.test.ts`. **Queda UN bloqueo: desplegar
-functions a staging.**
+`tests/pqrs-clasificacion-prioridad.test.ts`. **Con el despliegue de arriba,
+los tres bloqueos de F4 cayeron la misma noche** (`d08ec7c`, `e2686f8` y el
+deploy). Antes de F4 quedan los pendientes que no son código: el censo de
+producción, borrar los dos comunicados del 14 en `tenant-palmas-cdmx`, y la
+pregunta al administrador por su respuesta 3.
 
 ## La v2 de `pqrs-asistir` está medida: las afirmaciones caen de 21,1% a 6,6% (16 ago 2026)
 
