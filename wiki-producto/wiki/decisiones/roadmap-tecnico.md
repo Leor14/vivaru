@@ -3,7 +3,7 @@ tags: [decision, roadmap, gtm, tecnico]
 tipo: decision
 fuentes: ["gtm-tecnico"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-08-17
 ---
 
 # Roadmap Técnico (GTM)
@@ -65,9 +65,17 @@ La transición al modelo Nivel 2 ocurre cuando hay 5–10 clientes estables. Imp
 
 ## Frente paralelo: IA
 
-Desde agosto de 2026 existe un programa de IA con su propio marco de fases y puertas, independiente de las fases GTM de esta página. Está **decidido y no construido**: no hay código de IA en el repositorio. Resumen en [[programa-ia]]; la decisión ejecutiva y el techo de costo en [[estrategia-ia-minima-viable]]; las fases, puertas G0–G7 y decisiones pendientes en [[plan-general-ia]].
+Desde agosto de 2026 existe un programa de IA con su propio marco de fases y puertas, independiente de las fases GTM de esta página. **Está construido y parcialmente en producción** — esta sección decía «decidido y no construido: no hay código de IA en el repositorio» hasta el 17 de agosto de 2026.
+
+Al 17 de agosto: la plataforma en producción desde el 15, dos capacidades construidas y medidas, y el modo sombra de [[pqrs]] corriendo en producción. Resumen en [[programa-ia]]; la decisión ejecutiva y el techo de costo en [[estrategia-ia-minima-viable]]; las fases y puertas G0–G7 en [[plan-general-ia]].
 
 No debe fusionarse con este roadmap. La IA se habilita por solución y con evidencia propia, no por fase de plataforma.
+
+## Estado de las fases — advertencia de lectura
+
+**Las tablas de arriba son el plan de mayo de 2026 y NO se han vuelto a verificar ítem por ítem.** Varias tareas están hechas desde entonces —comprobado el 17 de agosto: `A7` banderas de funcionalidad ([[banderas-funcionalidad]]), `A6+B3` correo transaccional por Resend ([[correos-mensajeria]]), `B4` dominio propio, `C5` aviso de privacidad—, y otras siguen abiertas con matices que la tabla no captura: `B1` App Check está **cableado pero no exigido**, y `A1` las pruebas de reglas existen pero estuvieron meses sin ejecutarse porque el emulador no arrancaba (ver [[pruebas-reglas-emulador]] y [[trampas-conocidas]]).
+
+Tratar estas tablas como registro del plan, no como estado actual. Para el estado actual, [[estado-modulos]].
 
 ## Relaciones
 

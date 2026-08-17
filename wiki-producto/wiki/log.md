@@ -281,3 +281,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 5 — [[pqrs]] (reescrita entera: era de mayo y le habían pasado encima el editor de clasificación, el asistente y el modo sombra), [[programa-ia]] (segunda capacidad, estado real por ambiente y brechas recontadas), [[puerta-ia]] (de una puerta a dos, tramo de ejecución compartido, proveedor real), [[banderas-funcionalidad]] (nueve banderas, estado en producción y las tres lecciones del catálogo), [[trampas-conocidas]] (seis trampas nuevas)
 - **Entidades extraídas**: operación `pqrs-asistir` v2, colección `aiAssistance`, `ejecucion.ts` como tramo compartido, actor `__sombra__`, motivos de omisión (`proveedor_simulado`, `sembrado`, `buzon_simple`, `ticket_sin_texto`), gold set de 152 casos, semáforo de 15 días hábiles
 - **Nota**: la reescritura de [[pqrs]] salió de comprobar el código, no de leer la página anterior — y ahí apareció que afirmaba que el [[portal-guardia]] crea tickets, cosa que nunca ha hecho. Dos de las trampas nuevas son de la misma familia: una bandera que no gobernaba nada y un typecheck que comprobaba la mitad. **Lo que está declarado no es lo que está conectado.**
+
+---
+
+## [2026-08-17] update | Nivel 2: estado de módulos, portafolio, roadmap GTM y soporte
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 4 — [[estado-modulos]] (el programa de IA figuraba como «0% construido, no existe código de IA en el repositorio»), [[portafolio-prd]] (una PRD de IA ya está versionada y las funcionales pasaron a producción), [[roadmap-tecnico]] (mismo error sobre la IA, más una advertencia de lectura), [[soporte]] (sección para no confundirlo con [[pqrs]], y lo que falta para medir SLA)
+- **Entidades extraídas**: `activationStepsFor` (activación = 7 en la prueba, 10 en un cliente), `assignedTo` y `firstResponseAt` como ausencias que no se pueden reconstruir después, PRD-V-FEAT-002 en producción
+- **Nota**: dos páginas distintas repetían la misma frase falsa —que no existía código de IA— con dos semanas de antigüedad. **Un dato equivocado se copia entre páginas**, así que al corregir una conviene buscar la frase en el resto del vault. En [[roadmap-tecnico]] se optó por **no** dar la tabla de fases por verificada: se corrigió lo comprobable y se dijo explícitamente qué no se auditó, en vez de dejar creer que el plan de mayo es el estado de hoy.

@@ -39,11 +39,13 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 | PRD | Estado | Nota |
 |---|---|---|
 | [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | **Productiva** | Desplegada y verificada de punta a punta el 2026-08-01, correo incluido |
-| [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **En staging** | Mapeo de columnas por nombre, contenido y variedad; catálogo único de campos; XLSX con selección de la hoja que mejor encaja; orden entre las dos cargas; y telemetría por pista. Construye el hueco donde entra `PRD-VAI-FEAT-001`. Sin decisiones abiertas |
+| [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **Productiva** (`registrarImportacion` desplegada en `hogaru-1`, comprobado el 2026-08-17) | Mapeo de columnas por nombre, contenido y variedad; catálogo único de campos; XLSX con selección de la hoja que mejor encaja; orden entre las dos cargas; y telemetría por pista. Construye el hueco donde entra `PRD-VAI-FEAT-001`. Sin decisiones abiertas |
 
 ### IA
 
-**Este párrafo decía, hasta el 14 de agosto de 2026, que no había «una sola línea de IA en el código» y que el programa estaba en Fase 0. Dejó de ser cierto y nadie lo actualizó.** Hoy existen el gateway (`functions/src/ai/gateway.ts`), la telemetría (`aiUsage`), las cuotas, el adaptador real de Vertex, el registro de feedback (`aiFeedback`) y el contexto del conjunto — **en producción desde el 15 de agosto de 2026, inertes tras banderas apagadas**. El canario de comunicaciones está construido y probado con dos administradores reales.
+**Este párrafo decía, hasta el 14 de agosto de 2026, que no había «una sola línea de IA en el código» y que el programa estaba en Fase 0. Dejó de ser cierto y nadie lo actualizó.** Hoy existen el gateway (`functions/src/ai/gateway.ts`), la telemetría (`aiUsage`), las cuotas, el adaptador real de Vertex, el registro de feedback (`aiFeedback`) y el contexto del conjunto — **en producción desde el 15 de agosto de 2026**. El canario de comunicaciones está construido y probado con dos administradores reales.
+
+**Y desde el 17 de agosto dejaron de estar inertes:** `ai-gateway`, `ai-pqrs-shadow` e `ia-proveedor-real` están **encendidas en producción**, con el modo sombra de PQRS clasificando en silencio. Las banderas de las capacidades visibles siguen apagadas, así que ningún usuario ve nada. El límite ya no es técnico: producción tiene dos conjuntos reales con cero tickets.
 
 El estado paso a paso vive en `docs/hoja-de-ruta-ia.md`; el índice de lo pendiente, en `docs/pendientes.md`. El cotejo contra el código, en `docs/auditoria-prd-ia-ago2026.md`.
 
@@ -51,7 +53,7 @@ El estado paso a paso vive en `docs/hoja-de-ruta-ia.md`; el índice de lo pendie
 |---|---|
 | `PRD-VAI-PLAT-001` — Gateway, auditoría y cuotas | Implementada. **En producción desde el 15 ago 2026**, inerte tras banderas |
 | `PRD-VAI-FEAT-003` — Asistente de comunicaciones | Implementada, probada con dos administradores. **En producción, banderas apagadas.** Falta la línea base H2′ (tercer administrador) |
-| [PRD-VAI-FEAT-002 — Asistente de PQRS](ia/PRD-VAI-FEAT-002-asistente-pqrs.md) | **Consolidada en el repo el 15 ago 2026.** Rumbo a piloto: gold set hecho, siguiente paso la evaluación offline (F2). El recall ≥95% se cobra en escala, no en lanzamiento — decisión rectora dentro |
+| [PRD-VAI-FEAT-002 — Asistente de PQRS](ia/PRD-VAI-FEAT-002-asistente-pqrs.md) | **F1–F3 hechas y F4 en producción** (17 ago 2026). Gold set de 152 casos, evaluación offline corrida, piloto con un administrador, y modo sombra desplegado y encendido en `hogaru-1`. Falta F5 (escala), que depende de que existan tickets reales. Las dos puertas de G7 y el criterio de afirmaciones de §9 tienen decisión firmada dentro |
 | `PRD-VAI-FEAT-001` — Onboarding asistido | En espera. Su primera mitad **no necesita IA** y es `PRD-V-FEAT-002` (en staging) |
 | `PRD-VAI-DOC-001` — Lectura de comprobantes | Bloqueada por falta de comprobantes reales. No se sintetiza |
 

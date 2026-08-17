@@ -3,7 +3,7 @@ tags: [modulo, soporte, operacion]
 tipo: tecnica
 fuentes: ["PRD-V-FEAT-001-tickets-soporte", "sesion-soporte-2026-08"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-08-17
 ---
 
 # Soporte — el canal del cliente hacia Vivaru
@@ -48,8 +48,16 @@ Las notas internas viven en una **subcolección** `supportTickets/{id}/internal/
 
 Los avisos salen por [[correos-mensajeria]] hacia `dev@qintilab.com`, donde el equipo comercial de DevQintilab los revisa una vez al día. Las respuestas por correo **no** entran al hilo: quien atiende responde dentro del producto. La entrega solo puede confirmarse en producción, porque staging no tiene el secret de Resend.
 
+## No confundir con PQRS
+
+Son dos sistemas de tickets en el mismo producto y apuntan en direcciones opuestas: **[[pqrs]] es residente → administración del conjunto; soporte es administrador → equipo de Vivaru.** Colecciones distintas (`tickets` y `supportTickets`), taxonomías distintas y reglas distintas.
+
+La distinción importa más desde agosto de 2026, cuando PQRS ganó una capa de IA que soporte no tiene. Cualquier propuesta de «ofrecer soporte como capacidad a los clientes» tiene que resolver antes **cuál de los dos es la superficie canónica** para un administrador; no es un problema de arquitectura sino de nombres y de expectativas.
+
 ## Estado
 
-**Productivo y verificado de punta a punta desde el 1 de agosto de 2026**, incluida la llegada del correo a DevQintilab. Desplegado en el orden de siempre: reglas, cuatro índices, seis callables, front.
+**Productivo y verificado de punta a punta desde el 1 de agosto de 2026**, incluida la llegada del correo a DevQintilab. Desplegado en el orden de siempre: reglas, cuatro índices, seis callables, front. **Comprobado el 17 de agosto de 2026: las seis callables siguen desplegadas en producción.**
 
 Cierre automático por inactividad, SLA y base de conocimiento quedaron para fases posteriores, tal como registra [[estado-modulos]].
+
+**Lo que no existe hoy y condiciona cualquier fase siguiente**, verificado leyendo el modelo: no hay campo de **responsable asignado**, no se registra la **primera respuesta** —que es el numerador de toda métrica de SLA— y no hay métricas de volumen, antigüedad ni recurrencia. Añadir `assignedTo` y `firstResponseAt` es barato ahora y no se puede reconstruir después: los tickets ya cerrados nunca tendrán esos datos.

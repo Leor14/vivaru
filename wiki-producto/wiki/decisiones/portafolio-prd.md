@@ -3,7 +3,7 @@ tags: [decision, proceso, documentacion]
 tipo: decision
 fuentes: ["docs/prd/README.md", "crear-prd-vivaru", "crear-prd-ia-vivaru"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-08-17
 ---
 
 # Portafolio de PRD — dónde viven y por qué ahí
@@ -19,7 +19,7 @@ docs/prd/ia/            → capacidades asistidas  → PRD-VAI-
 
 Cuando la PRD dice «máximo 5 MB por adjunto» y `SUPPORT_LIMITS.maxAttachmentBytes` dice lo mismo, ambas afirmaciones viajan en el mismo commit. En un documento externo esa pareja se separa el primer día que alguien cambia uno de los dos lados, y a partir de ahí nadie sabe cuál manda.
 
-El costo se ve hoy en las cinco PRD de IA que solo existen en Google Drive: sin historial, sin diff, sin relación con el código. Ver [[programa-ia]].
+El costo se veía en las cinco PRD de IA que solo existían en Google Drive: sin historial, sin diff, sin relación con el código. **Desde el 15 de agosto de 2026 una está versionada** y ya cobró el beneficio: entre el 15 y el 17 acumuló nueve decisiones fechadas y firmadas que en Drive se habrían perdido. Quedan cuatro por migrar. Ver [[programa-ia]].
 
 Drive sigue siendo útil para **leer y comentar** —el equipo comercial no abre el repositorio— pero como copia, no como original.
 
@@ -43,9 +43,11 @@ Una PRD que describe algo que ya no es cierto es peor que no tenerla, porque alg
 
 ## Estado
 
-| Carpeta | PRD | Estado |
+| Carpeta | PRD | Estado (17 ago 2026) |
 |---|---|---|
-| `funcionales/` | PRD-V-FEAT-001 tickets de soporte | En staging, falta recorrido visual |
-| `ia/` | — | Vacía. Cinco PRD pendientes de migrar desde Drive |
+| `funcionales/` | PRD-V-FEAT-001 · tickets de soporte | **En producción.** Las seis callables desplegadas. Ver [[soporte]] |
+| `funcionales/` | PRD-V-FEAT-002 · importación de datos del conjunto | **En producción.** El paso de mapeo es determinista, no asistido |
+| `ia/` | PRD-VAI-FEAT-002 · asistente de PQRS | **Versionada y fuente de verdad** sobre su copia de Drive. F1–F3 hechas, F4 (sombra) en producción |
+| `ia/` | gateway · onboarding · comprobantes · comunicaciones | Solo en Drive. Cuatro por migrar |
 
 Ver también [[estado-modulos]] para el estado de los módulos ya construidos.

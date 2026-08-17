@@ -115,8 +115,8 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | Página | Descripción |
 |---|---|
 | [[absolute-bans]] | Prohibiciones absolutas de diseño y código (bugs si se violan) |
-| [[estado-modulos]] | Estado de módulos SaaS + estado de secciones del landing marketing |
-| [[roadmap-tecnico]] | Fases GTM 0–4: seguridad, branding, compliance, escalado |
+| [[estado-modulos]] | Estado de módulos SaaS, landing marketing, adquisición y programa de IA (construido, no 0%) |
+| [[roadmap-tecnico]] | Fases GTM 0–4: seguridad, branding, compliance, escalado. **Plan de mayo, no estado actual** |
 | [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions, proyecto activo = producción |
 | [[triaje-auditoria-ux]] | 🆕 Cómo se verifica un reporte externo contra código antes de ejecutarlo |
 | [[torres-canonicas]] | 🆕 Agrupaciones canónicas: normalizeTower, lista por tenant y migración one-off |
