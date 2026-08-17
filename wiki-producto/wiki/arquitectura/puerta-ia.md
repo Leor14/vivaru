@@ -3,16 +3,26 @@ tags: [arquitectura, ia, plataforma, seguridad]
 tipo: concepto
 fuentes: ["plan-general-ia", "estrategia-ia-minima-viable"]
 fecha_creacion: 2026-08-09
-fecha_actualizacion: 2026-08-13
+fecha_actualizacion: 2026-08-17
 ---
 
 # Puerta de entrada de IA
 
-**Un solo callable por el que pasa toda operación asistida.** Es `aiInvoke`, y hace las cuatro comprobaciones —quién llama, de qué conjunto, con qué rol y desde dónde— antes de gastar un token. Desde el 11 de agosto de 2026 **detrás hay un modelo de verdad**, y desde el 13 hay una segunda puerta hermana, `registrarFeedbackIa`, para medir qué hizo la persona con lo que se le propuso. Ver [[programa-ia]].
+**Toda operación asistida pasa por una puerta, y desde el 17 de agosto de 2026 hay dos.** No es una excepción: es que hay dos clases de llamante y no se pueden autorizar igual.
+
+| Puerta | Llamante | Cómo se autoriza |
+|---|---|---|
+| `aiInvoke` | una persona con sesión | App Check, sesión, claims, membresía viva, rol, banderas |
+| `asistirTicketPqrs` | ídem, pero la entrada la arma el servidor | igual, más un armador que lee el ticket |
+| `sombraPqrsAlCrearTicket` | **el propio servidor**, disparado por Firestore | **por bandera**: no hay sesión que comprobar |
+
+Las tres desembocan en el **mismo tramo de ejecución** —validar, cobrar cuota, llamar al proveedor, revisar la salida y contarlo— extraído a `functions/src/ai/ejecucion.ts`. Un solo camino de ejecución, dos formas de autorizar. Desde el 11 de agosto **detrás hay un modelo de verdad**, y desde el 13 existe `registrarFeedbackIa` para medir qué hizo la persona con lo que se le propuso. Ver [[programa-ia]].
+
+**Por qué la sombra no pasa por `runGateway`.** La puerta exige sesión, claims y membresía, y un trigger de Firestore no tiene ninguna. Se descartaron dos salidas más cortas y las dos merecen quedar escritas porque volverán a parecer buenas: **fabricar un usuario falso** habría metido una excepción en la única comprobación de seguridad del programa —falsear una membresía es justo lo que la puerta existe para impedir—, y **un camino propio** habría duplicado cuota, validación y telemetría, que es la parte que cuesta dinero. Hay además un motivo que obliga: la bandera de la operación es `ai-pqrs-suggestions`, la que hace **visible** la sugerencia; pasar por la puerta ataría la sombra a la sugerencia visible, que es lo contrario de lo que la Fase 4 persigue.
 
 ## Por qué una sola puerta
 
-Vivaru tiene 41 callables y cada una se acuerda por su cuenta de comprobar quién llama y de qué conjunto es. Funciona —no hay fuga hoy—, pero la seguridad depende de que cada una **se acuerde**. Cuarenta y una oportunidades de olvidarse, y la lista crece.
+Vivaru tiene más de sesenta funciones desplegadas (65 en producción, medidas el 17 de agosto de 2026) y cada una se acuerda por su cuenta de comprobar quién llama y de qué conjunto es. Funciona —no hay fuga hoy—, pero la seguridad depende de que cada una **se acuerde**. Cuarenta y una oportunidades de olvidarse, y la lista crece.
 
 Con la IA eso no se sostiene, y no por purismo: una fuga entre conjuntos aquí no es leer datos ajenos, es mandar los datos del conjunto A dentro de un prompt del conjunto B a un proveedor externo. Por eso el aislamiento que describe [[multi-tenancy]] se extiende aquí al plano de la inferencia, y por eso «sospecha de fuga entre conjuntos» encabeza la lista de apagado inmediato.
 
@@ -50,7 +60,9 @@ Detrás de la puerta hay una lista, y **nada se invoca si no está en ella**. No
 
 Cada entrada declara clave, versión, esquema de entrada, esquema de salida, roles que pueden pedirla, su propia bandera y sus límites. Los roles y la bandera vivían escritos a mano dentro de la puerta hasta el Paso 1.3; ahora los declara la operación, así que se puede apagar una capacidad sin apagar la plataforma.
 
-Hoy hay **una sola operación registrada**: el borrador de [[comunicaciones]], el canario del programa. Se registra una operación cuando se va a construir, no antes — declarar las cinco capacidades del [[portafolio-prd]] por adelantado sería inventar contratos para cosas que no se tocan en meses.
+Hoy hay **dos operaciones registradas**: el borrador de [[comunicaciones]] (`comunicaciones-redactar`, v3) y la asistencia de [[pqrs]] (`pqrs-asistir`, v2). Se registra una operación cuando se va a construir, no antes — declarar las cinco capacidades del [[portafolio-prd]] por adelantado sería inventar contratos para cosas que no se tocan en meses.
+
+**La versión de la operación no es cosmética.** `pqrs-asistir` subió a v2 al añadir una sola regla dura, y se subió para que la telemetría no mezclara dos contratos en la misma columna: sin eso, el modo sombra habría comparado salidas de antes y de después como si fueran lo mismo.
 
 Dos detalles del contrato que valen más que el resto:
 
@@ -59,9 +71,11 @@ Dos detalles del contrato que valen más que el resto:
 
 ## El adaptador y el validador
 
-La única parte que sabe hablar con el proveedor es el adaptador; todo lo demás pide «genera esto». Hoy el proveedor es **simulado**, y ya no por falta de decisiones —el endpoint y los topes se cerraron el 10 de agosto—: simplemente falta escribir la implementación real.
+La única parte que sabe hablar con el proveedor es el adaptador; todo lo demás pide «genera esto». **Hay tres implementaciones y las tres importan**: el simulado —determinista y gratis, y sigue siendo el default—, el falso —para provocar a voluntad las cuatro formas de fallar— y el real, `createVertexProvider`, escrito el 11 de agosto de 2026 y encendido por la bandera `ia-proveedor-real`. Modelo en uso: `gemini-3.1-flash-lite` por el endpoint global.
 
-Es el mismo patrón que el transporte del SRI en el módulo de [[billing]] —una interfaz con implementación simulada, esperando un dato externo para meter la real sin tocar el resto—, y por el mismo motivo. Tampoco es un atajo para probar: el criterio del paso es que una respuesta malformada se rechace, y **al modelo real no se le puede pedir que se equivoque cuando conviene**.
+Es el mismo patrón que el transporte del SRI en el módulo de [[billing]] —una interfaz con implementación intercambiable—, y por el mismo motivo. El simulado no es un sustituto pobre sino la herramienta correcta para una parte del trabajo: el criterio del paso es que una respuesta malformada se rechace, y **al modelo real no se le puede pedir que se equivoque cuando conviene**.
+
+**Que el default sea el simulado tiene una consecuencia que costó descubrir.** Una capacidad encendida con `ia-proveedor-real` apagada no falla: responde el simulador, y su salida tiene la forma exacta de una real. Al persistirla —como hace el modo sombra— quedaría un conjunto de evaluación envenenado **sin ningún síntoma**. Por eso la sombra comprueba esa bandera y se abstiene, y por eso la fila guarda con qué proveedor se generó.
 
 Lo que sí es definitivo es el validador, que es la mitad que importa:
 

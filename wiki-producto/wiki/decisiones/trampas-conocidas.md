@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-09
+fecha_actualizacion: 2026-08-17
 ---
 
 # Trampas Conocidas
@@ -238,3 +238,35 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 Consecuencia práctica: **no hay red de seguridad en runtime**. El byte que está en `public/` es el byte que descarga el visitante, al tamaño que esté. Por eso `public/product/` se sirve ya redimensionado y en WebP (`npm run images:optimize`, ver [[landing-marketing]]); antes eran PNG @2x de hasta 2880px —7,6 MB— para tarjetas que se pintan a 300-770 px.
 
 Las dos salidas si algún día se quiere optimización de verdad: declarar `images.unoptimized: false` (el servidor de Cloud Run haría el trabajo con sharp — ojo al `memoryMiB: 512` de `apphosting.yaml` frente a capturas de 2880px), o un `images.loader` propio apuntando a la extensión Image Processing de Firebase, que es lo que Google recomienda hoy. Ninguna de las dos hace falta mientras los assets salgan ya optimizados. Ver [[landing-marketing]] y [[dominios-app-hosting]].
+
+## El proyecto activo de gcloud es PRODUCCIÓN
+
+`gcloud config get-value project` devuelve `hogaru-1`, que es producción. Cualquier comando de `firebase` o `gcloud` sin `--project` explícito opera sobre datos reales creyendo que es una prueba. **Todo comando lleva el proyecto escrito**, incluidos los de solo lectura, porque el hábito es lo que protege el día que el comando sí escribe. Mismo criterio que ya obligó a `FIREBASE_PROJECT_ID=vivaru-staging-02` delante de los sembradores. Ver [[multi-tenancy]].
+
+Y el nombre del conjunto **no distingue el ambiente**: `tenant-santa-maria` existe en los dos, con variante de [[pqrs]] distinta en cada uno (`buzon_simple` en staging, `con_sla` en producción). Lo que distingue es el proyecto, nunca el nombre.
+
+## El typecheck de functions comprobaba solo la mitad
+
+`functions/tsconfig.json` incluye únicamente `src`, y es correcto: es el que emite a `lib/` y ahí no debe caer una prueba. El efecto secundario era que `npx tsc --noEmit` **nunca pasaba por `functions/tests/`** —diecisiete archivos y más de trescientas pruebas sin comprobar tipos— mientras el gate del proyecto prometía «typecheck limpio en functions/».
+
+Se descubrió el 17 de agosto de 2026 porque un cambio de firma dejó una llamada de prueba pasando un `string` donde iba un objeto: pasó el typecheck en verde y lo cazó vitest al ejecutar. Con suerte, porque esa llamada tenía aserción; una que solo construyera datos habría pasado las dos puertas. **Usar `npm --prefix functions run typecheck`**, que usa `tsconfig.typecheck.json` y añade `tests`.
+
+## Una bandera puede existir y no gobernar nada
+
+`ai-pqrs-suggestions` existía en el catálogo de [[banderas-funcionalidad]] desde su creación, con una ficha que describía exactamente el panel de IA de [[pqrs]]. No aparecía en un solo sitio de `src/` fuera del propio catálogo: **el panel se pintaba siempre**. El servidor sí la comprobaba, así que el efecto no era una fuga sino un panel que se ve y falla al pulsarlo — y habría llegado a producción, donde su callable ni siquiera está desplegada.
+
+Regla: al añadir una bandera, comprobar que **algo la lee**, no solo que está declarada. Un `grep` de la clave que solo devuelve el catálogo es la señal.
+
+## El sembrador de banderas no enciende nada
+
+`functions/scripts/seed-feature-flags.mjs` es idempotente y **no destructivo a propósito**: crea los documentos que falten con el valor del catálogo y no toca un campo existente, para que correrlo dos veces no reencienda algo que alguien apagó a mano. Consecuencia que confunde: sembrar un catálogo nuevo deja las banderas **apagadas**, porque así nacen. Sembrar no es encender. Para mover una, `functions/scripts/mover-bandera.mjs <projectId> <clave> <true|false>` o la consola de [[superadmin]].
+
+## Desplegar functions desde una rama que no las contiene las BORRA
+
+`firebase deploy --only functions` elimina de la nube las funciones que no estén en el código fuente que sube. Si producción corre funciones desplegadas desde `develop` y alguien despliega desde `master` sin haber promocionado, esas funciones **desaparecen** sin más aviso que su ausencia. Ocurrió como riesgo real el 17 de agosto de 2026 con los dos triggers del modo sombra de [[pqrs]]: se desarmó promocionando `develop` a `master`, no redesplegando. Antes de cualquier despliegue de functions, comprobar que la rama contiene todo lo que ya está desplegado.
+
+## El proveedor simulado produce salidas con forma de real
+
+El adaptador de [[puerta-ia]] cae al simulador cuando `ia-proveedor-real` está apagada, y su salida cumple el mismo esquema que la del modelo. Para una pantalla eso es inocuo —se ve un borrador raro—, pero **cualquier cosa que persista esa salida guarda datos falsos indistinguibles de los buenos**. Es el riesgo del modo sombra: un gold set envenenado se detecta comparándolo, mientras que una referencia de despliegue envenenada **parece que funciona**, porque no hay nada contra qué contrastarla.
+
+Regla general: quien persista una salida del modelo debe guardar **con qué proveedor se generó**, y abstenerse si no es el real.

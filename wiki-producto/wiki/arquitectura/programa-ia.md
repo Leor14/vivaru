@@ -3,14 +3,25 @@ tags: [arquitectura, ia, roadmap]
 tipo: concepto
 fuentes: ["estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-13
+fecha_actualizacion: 2026-08-17
 ---
 
-# Programa de IA — el canario ya escribe, y un administrador lo usó
+# Programa de IA — dos capacidades, y la sombra ya corre en producción
 
-**Hasta el 1 de agosto de 2026 no existía ni una línea de IA en Vivaru.** Entre el 9 y el 10 de agosto se construyó la plataforma entera menos la llamada real; entre el 11 y el 13 se conectó el modelo, se midió contra un conjunto de evaluación y **un administrador de verdad escribió cuatro avisos con la herramienta**. El marco de decisión está en [[estrategia-ia-minima-viable]] y [[plan-general-ia]].
+**Hasta el 1 de agosto de 2026 no existía ni una línea de IA en Vivaru.** Entre el 9 y el 10 de agosto se construyó la plataforma entera menos la llamada real; entre el 11 y el 13 se conectó el modelo, se midió y **un administrador de verdad escribió cuatro avisos con la herramienta**; del 14 al 17 se construyó y midió la segunda capacidad, [[pqrs]], hasta dejar su **modo sombra corriendo en producción**. El marco de decisión está en [[estrategia-ia-minima-viable]] y [[plan-general-ia]].
 
-Hoy hay **una capacidad asistida en producción de código**: el borrador de comunicaciones, detrás de bandera y solo desplegado en staging. Esta página resume el marco; el detalle paso a paso vive en `docs/hoja-de-ruta-ia.md`.
+**Estado al 17 de agosto de 2026**, verificado contra los ambientes y no contra documentos:
+
+| | Comunicaciones | PQRS |
+|---|---|---|
+| Operación | `comunicaciones-redactar` v3 | `pqrs-asistir` v2 |
+| Evaluación offline | 60 casos, 7 corridas | **gold set de 152 casos reales** |
+| Piloto con administrador | 2 sesiones | 1 sesión (16 ago) |
+| Bandera en producción | apagada | sugerencia apagada · **sombra ENCENDIDA** |
+
+La plataforma (`PLAT-001`) está **en producción desde el 15 de agosto**, y el modo sombra de PQRS **desde el 17**. Esta página resume el marco; el detalle paso a paso vive en `docs/hoja-de-ruta-ia.md`.
+
+> **Lo que NO hay que confundir:** infraestructura desplegada no es funcionalidad en uso. Ningún cliente real ha usado ninguna capacidad asistida — producción tiene dos conjuntos reales, **0 tickets y 1 comunicación de marzo**. El programa está limitado por materia prima comercial, no por ingeniería.
 
 ## La decisión ejecutiva
 
@@ -88,17 +99,38 @@ Todo lo anterior salía de **un edificio de un país**. Un segundo corpus —un 
 
 De paso reinterpretó un fallo: el modelo pide «a quién afecta» donde no aplica, y eso **no es defecto del modelo sino del diseño** — el conjunto mexicano tiene torres y el ecuatoriano es un edificio único. Vivaru ya sabe cuál es cuál por [[torres-canonicas]], así que la mejora está identificada y pendiente de decisión.
 
+## PQRS, del 14 al 17 de agosto de 2026 — el gold set y la sombra
+
+La segunda capacidad, y la primera con un **conjunto de evaluación construido a mano sobre datos reales**: 152 casos (84 de México, 60 de Ecuador, 8 sintéticos de inyección) sacados de dos chats vecinales. El detalle vive en la PRD versionada; aquí lo que cambia el marco del programa.
+
+**Dos decisiones rectoras de David, y las dos mueven una exigencia en vez de rebajarla.** El recall de `high` ≥95% y la exactitud de `category` ≥90% se cobran en la **puerta de escala (G7)**, no en la de lanzamiento. El motivo no es que no se llegara: es que **hoy no son evaluables**. Dos anotadores que conocen el producto coinciden en los `high` 3 de 5 veces (kappa 0,47), y contra una referencia así cualquier cifra de recall es inventada. La exigencia se mueve a donde el error empezaría a costar.
+
+**El hallazgo que se repitió y ya es método: mirar el producto rinde más que mirar el kappa.** `category` nace constante en `pqrs` y no la lee nadie salvo un conteo del reporte de comité; `type` no decide nada en el código. Los dos ejes con peor kappa resultaron ser los que menos deciden.
+
+**Una regla dura ganada midiendo, y el límite de las reglas duras.** Prohibir que el borrador afirme acciones no consignadas bajó las afirmaciones del 21,1% al 6,6% — y ahí se detuvo, porque **8 de los 10 casos restantes son la frase que la propia regla cita como prohibida**. Citar el ejemplo prohibido dentro de la regla no vacuna contra él: una regla de prompt compra el grueso y nunca la cola. El 0% lo cumple el sistema —comprobación de servidor, revisión humana forzada y la frase resaltada dentro del borrador—, no el modelo.
+
+**El modo sombra (Fase 4).** Clasifica en silencio cada ticket nuevo y guarda la sugerencia junto a la decisión del administrador. Es lo que fabrica, desde el primer ticket real, la referencia que hoy no existe y contra la que se cobrará G7. Diseño en [[pqrs]] y mecánica en [[puerta-ia]].
+
+Dos defensas que tuvo que aprender, ambas por el mismo motivo —**un conjunto de evaluación envenenado no da síntomas**—: omite lo sembrado (`isExample`, por el documento **y** por el conjunto) y omite si el proveedor real está apagado, para no guardar salidas del simulador como si fueran del modelo.
+
 ## Lo aplazado, con motivo escrito
 
 **Dictar los hechos por voz** lo pidió el administrador y queda en fase 2, por un motivo que no es técnico: una grabación de voz es, en la mayoría de las lecturas, un **dato biométrico**, y hoy la política de privacidad declara por escrito que Vivaru no los trata. Esa línea es la que sostiene la base de legitimación del módulo de visitantes. Encender un micrófono sería un cambio de régimen jurídico para toda la plataforma, no una funcionalidad más.
 
-Brechas que siguen abiertas:
+Brechas que siguen abiertas **al 17 de agosto de 2026** (las tres últimas de la lista anterior ya se cerraron y quedan tachadas para que se vea qué se movió):
 
 - **App Check está cableado pero no se exige.** Hasta el 9 de agosto esta página decía que estaba «inicializado en cliente sin enforcement en servidor»; la verdad era peor — `setupAppCheck()` existía sin que lo llamara nadie. Ahora el cliente lo llama y el rechazo lo gobierna una bandera; **falta el trabajo de consola** para poder exigirlo.
-- No hay líneas base de tiempo, error ni volumen de los procesos que la IA pretende mejorar. Sin baseline no hay forma de saber si funcionó.
-- No hay datasets ni criterios de evaluación offline.
-- **Ningún módulo del producto invoca nada todavía**, y eso es correcto: el orden del programa pone la plataforma antes que la función.
+- ~~No hay líneas base.~~ **Cerrado a medias:** hay línea base de redacción (9–12 min/mes) y el corpus de dos países. **H2′ sigue sin medir tras tres sesiones**, y los dos administradores disponibles ya vieron la herramienta, así que hace falta un tercero.
+- ~~No hay datasets ni criterios de evaluación offline.~~ **Cerrado:** gold set de 152 casos protegido por 217 pruebas, evaluador propio y corridas guardadas re-calificables sin volver a llamar al modelo.
+- ~~Ningún módulo del producto invoca nada.~~ **Cerrado:** [[comunicaciones]] y [[pqrs]] tienen pantalla, y PQRS además corre en sombra.
+- **`priority` sigue con kappa 0,47**, corregido sin validar. La tercera ronda se aplazó por decisión de David — fatiga de validación declarada—, y el recall ≥95% no será evaluable hasta que la sombra acumule pares reales.
+- **Dos capacidades existen solo como bandera**, sin una línea de implementación: mapeo de columnas en [[onboarding-guiado]] y extracción de comprobantes en [[billing]]. Y las dos están bloqueadas por falta de materia prima, no de código: `importRuns` no tiene ni una fila con encabezados sin mapear, y producción no tiene comprobantes.
+- **`aiAssistance` no está en el cron de retención**, siendo la única colección de IA que guarda contenido del conjunto.
 
 ## Dónde viven las PRD
 
-Cinco PRD de IA redactadas, todas en Google Drive y ninguna versionada: gateway, onboarding, comprobantes, PQRS y comunicaciones. La carpeta destino en el repositorio ya existe (`docs/prd/ia/`) y está vacía. Ver [[portafolio-prd]].
+Cinco PRD de IA redactadas en Google Drive: gateway, onboarding, comprobantes, PQRS y comunicaciones.
+
+**Una está versionada y es fuente de verdad sobre su copia de Drive:** `docs/prd/ia/PRD-VAI-FEAT-002-asistente-pqrs.md`, consolidada el 15 de agosto de 2026 e incorporando todo lo que el programa midió desde entonces. Las otras cuatro siguen solo en Drive. Ver [[portafolio-prd]].
+
+**Cómo leer esa PRD:** su registro de decisiones es la parte que más se consulta y la que explica por qué las puertas están donde están. Contiene las dos decisiones rectoras del 15 de agosto y las siete del 17.

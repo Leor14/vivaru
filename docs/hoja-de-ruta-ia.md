@@ -1503,19 +1503,65 @@ Lectura completa, con las frases textuales, en
 
 ---
 
+## Registro de ejecución — Paso 3 · PQRS (14–17 de agosto de 2026)
+
+**El muro que este documento anticipaba sigue en pie, y el plan que proponía
+—esperar acumulando— está construido y corriendo.**
+
+**F1 · Gold set (15 ago).** 152 casos reales de dos corpus (84 MX, 60 EC) más 8
+sintéticos de inyección, con taxonomía de `type` en árbol con precedencia y dos
+rondas de doble etiquetado. Protegido por 217 pruebas. Los sintéticos de modelo
+quedaron descartados por el motivo que este documento ya daba: salen demasiado
+limpios.
+
+**F2 · Evaluación offline (15 ago).** Inyección 8/8, nulls de `buzon_simple`
+12/12, guardrail de `high` 32/32 — las tres puertas duras. `category` 82,1%
+sobre un baseline real de 61,4%. **USD 0,001 por asistencia.**
+
+**F3 · Piloto simulado (16 ago), cerrada el 17.** Sesión de ocho minutos para
+nueve tickets, con edición 0%. Salieron tres bloqueos y los tres cayeron: el
+resaltado de la frase que afirma una acción, «Sin prioridad» como estado real
+del selector, y el despliegue de la v2 a staging. La entrada de §9 quedó firmada
+el 17.
+
+**F4 · Modo sombra (17 ago) — en producción.** Dos triggers propios sobre
+`tickets`, colección `aiAssistance` con un documento por ticket, y la decisión
+del administrador anotada al lado. Detalle en `docs/pendientes.md` y en la PRD.
+
+**Tres lecciones de este paso que valen para los siguientes:**
+
+1. **El prompt compra el grueso y nunca la cola.** Una regla dura bajó las
+   afirmaciones del 21,1% al 6,6% y ahí se detuvo, con 8 de los 10 restantes
+   siendo la frase que la propia regla cita como prohibida. Para el cero hace
+   falta algo determinista.
+2. **Mirar el producto rindió más que mirar el kappa.** Los dos ejes con peor
+   acuerdo entre anotadores resultaron ser los que menos deciden en el código.
+3. **Un conjunto de evaluación que se fabrica solo hay que protegerlo el día que
+   nace.** La sombra tuvo que aprender a descartar lo sembrado y a abstenerse con
+   el proveedor simulado. Un gold set envenenado se detecta comparándolo; una
+   referencia de despliegue envenenada **parece que funciona**.
+
+---
+
 ## Por dónde seguimos
 
-**El Paso 1 está completo.** La plataforma está en pie:
-banderas y kill switch, puerta única, catálogo, validación, telemetría, cuotas
-y las pruebas que cierran G3.
+**Pasos 1, 2 y 3 completos.** La plataforma está en pie, el canario está medido
+con dos administradores reales, y PQRS tiene gold set, evaluación offline,
+piloto y modo sombra corriendo en producción.
 
-**Y después el canario, Paso 2 — pero ojo con el orden.** Su primer incremento,
-el **2.1, no es código**: es cronometrar a mano de diez a quince comunicaciones
-reales, tal y como se escriben hoy. Eso lo tiene que hacer David o un
-administrador. **Sin esa línea base no hay forma de demostrar que la IA mejoró
-nada**, y es la clase de medición que ya no se puede tomar una vez la
-herramienta está encima.
+**Lo que sigue NO es código, y conviene no disfrazarlo de código:**
 
-Conviene empezar a cronometrar **ya**, en paralelo al adaptador.
+1. **Tickets reales.** La sombra está armada y no tiene nada que clasificar:
+   producción tiene dos conjuntos reales con cero tickets. Las dos puertas de G7
+   se cobran contra pares que solo existen si entra trabajo de verdad. Esto lo
+   desbloquea vender y activar conjuntos, no el programa de IA.
+2. **La línea base de H2′ en comunicaciones**, que lleva tres sesiones sin
+   tomarse y ya gastó dos administradores. Hacen falta veinte minutos con una
+   persona nueva, **antes** de enseñarle la herramienta.
+3. **El Paso 4 (onboarding asistido) está bloqueado por materia prima**, no por
+   ingeniería: `importRuns` no tiene ni una fila con encabezados sin mapear, así
+   que hoy se especificaría sobre suposiciones. Hacen falta los 15–25 archivos
+   reales.
+4. **El Paso 5 (comprobantes) igual**: producción tiene cero.
 
-Y en paralelo también, la tabla de la Parte IV.
+Y en paralelo, la tabla de la Parte IV.

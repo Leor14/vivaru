@@ -272,3 +272,12 @@ Fuente: `vivaru_ux_audit.html` (42 hallazgos VIV-###) y la sesión de ejecución
 - **Páginas actualizadas**: 2 — [[puerta-ia]] (qué se probó y qué hueco apareció), [[programa-ia]] (G3 aprobada)
 - **Entidades extraídas**: `runGateway` como camino completo probable, inyección de proveedor, pruebas de integración contra emulador, respuestas escritas de las puertas G3 y G5
 - **Nota**: el hallazgo del paso fue que nadie había comprobado que el kill switch estuviera conectado — cada pieza probada, la costura no
+
+---
+
+## [2026-08-17] update | PQRS asistido, modo sombra en producción y puesta al día de lo desfasado
+
+- **Páginas creadas**: 0
+- **Páginas actualizadas**: 5 — [[pqrs]] (reescrita entera: era de mayo y le habían pasado encima el editor de clasificación, el asistente y el modo sombra), [[programa-ia]] (segunda capacidad, estado real por ambiente y brechas recontadas), [[puerta-ia]] (de una puerta a dos, tramo de ejecución compartido, proveedor real), [[banderas-funcionalidad]] (nueve banderas, estado en producción y las tres lecciones del catálogo), [[trampas-conocidas]] (seis trampas nuevas)
+- **Entidades extraídas**: operación `pqrs-asistir` v2, colección `aiAssistance`, `ejecucion.ts` como tramo compartido, actor `__sombra__`, motivos de omisión (`proveedor_simulado`, `sembrado`, `buzon_simple`, `ticket_sin_texto`), gold set de 152 casos, semáforo de 15 días hábiles
+- **Nota**: la reescritura de [[pqrs]] salió de comprobar el código, no de leer la página anterior — y ahí apareció que afirmaba que el [[portal-guardia]] crea tickets, cosa que nunca ha hecho. Dos de las trampas nuevas son de la misma familia: una bandera que no gobernaba nada y un typecheck que comprobaba la mitad. **Lo que está declarado no es lo que está conectado.**

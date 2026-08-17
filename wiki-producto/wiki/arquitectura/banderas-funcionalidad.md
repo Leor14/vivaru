@@ -3,7 +3,7 @@ tags: [arquitectura, plataforma, banderas, kill-switch]
 tipo: concepto
 fuentes: ["plan-general-ia", "estrategia-ia-minima-viable"]
 fecha_creacion: 2026-08-09
-fecha_actualizacion: 2026-08-09
+fecha_actualizacion: 2026-08-17
 ---
 
 # Banderas de funcionalidad y kill switch
@@ -58,6 +58,19 @@ El catálogo se siembra con `functions/scripts/seed-feature-flags.mjs`, que es i
 
 ## Qué hay en el catálogo hoy
 
-Seis del área de IA, todas apagadas, una por cada capacidad prevista en el [[portafolio-prd]]: la puerta de entrada de la plataforma, el borrador asistido de [[comunicaciones]], la clasificación en sombra y la sugerencia visible de [[pqrs]], el mapeo de columnas del [[onboarding-guiado]] y la extracción de comprobantes de [[billing]].
+**Nueve banderas**, y el estado real cambió el 17 de agosto de 2026: producción dejó de tener la colección vacía.
 
-Y una del área de operación, `operacion-app-check-monitor`, que es la que demuestra que el mecanismo es genérico de verdad: no es de IA, **nace encendida** —porque describe lo que ya pasa hoy— y está redactada en positivo a propósito. Gobierna si la [[puerta-ia]] rechaza o solo registra las llamadas sin App Check; si dijera «exigir App Check», bajar el kill switch maestro relajaría una comprobación de seguridad en vez de endurecerla.
+Siete del área de IA. Una por cada capacidad prevista en el [[portafolio-prd]] —la puerta de la plataforma, el borrador de [[comunicaciones]], la sombra y la sugerencia visible de [[pqrs]], el mapeo de columnas del [[onboarding-guiado]] y la extracción de comprobantes de [[billing]]— más `ia-proveedor-real`, que decide si responde el modelo o el simulador y es **la que empieza a costar dinero**.
+
+Estado en producción, medido el 17 de agosto de 2026: **`ai-gateway`, `ai-pqrs-shadow` e `ia-proveedor-real` encendidas**; el resto apagadas. En staging están encendidas además las dos de sugerencia visible.
+
+**Las otras dos son las que demuestran que el mecanismo es genérico de verdad**, porque no son de IA y ninguna nace apagada:
+
+- `operacion-app-check-monitor` **nace encendida** —describe lo que ya pasa hoy— y está redactada en positivo a propósito. Gobierna si la [[puerta-ia]] rechaza o solo registra las llamadas sin App Check; si dijera «exigir App Check», bajar el kill switch maestro relajaría una comprobación de seguridad en vez de endurecerla.
+- `producto-importacion-masiva` también nace encendida, porque los dos asistentes de importación ya estaban vivos cuando se creó la bandera: ponerla en `false` habría apagado una función existente para todos. Es la segunda mitad de la regla del default.
+
+**Tres cosas que este catálogo enseñó y conviene no volver a aprender:**
+
+- **Una bandera declarada no gobierna nada por sí sola.** `ai-pqrs-suggestions` describía en su ficha el panel de IA de PQRS y no cerraba nada: el panel se pintaba siempre. Ver [[trampas-conocidas]].
+- **Sembrar no es encender.** El sembrador es no destructivo a propósito, así que crea las banderas con el valor del catálogo — y las de IA nacen apagadas.
+- **Una capacidad puede estar encendida y no hacer nada útil**, si `ia-proveedor-real` está apagada: responde el simulador, con salidas que tienen la forma exacta de las reales.

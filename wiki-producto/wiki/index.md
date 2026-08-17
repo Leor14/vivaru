@@ -42,9 +42,9 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[stack-tecnico]] | Stack: Next.js 15 / React 19 / Tailwind v4 / Firebase App Hosting |
 | [[dominios-app-hosting]] | Topología prod/staging, dominios custom y runbook del incidente 403 |
 | [[ciclo-de-vida-tenant]] | 🆕 `tenants.status`: prueba → cliente, `tenantOperable()` y el candado de módulos en tres capas |
-| [[programa-ia]] | 🆕 IA decidida y no construida: dos capacidades, principios, orden de fases y brechas verificadas |
+| [[programa-ia]] | Dos capacidades construidas y medidas; la sombra de PQRS corre en producción. Estado por ambiente y brechas recontadas |
 | [[banderas-funcionalidad]] | 🆕 Encender y apagar capacidades sin desplegar: precedencia, kill switch maestro y aislamiento de overrides |
-| [[puerta-ia]] | 🆕 `aiInvoke`: el conjunto sale de la sesión, App Check cableado y el orden de las comprobaciones |
+| [[puerta-ia]] | Dos puertas —sesión y servidor— sobre un solo tramo de ejecución. El conjunto sale de la sesión; proveedor real vía Vertex |
 
 ---
 
@@ -55,7 +55,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[dashboard-admin]] | Vista principal del administrador: KPIs, accesos rápidos, widgets |
 | [[billing]] | Cartera y cobros: CRM de cobros, comprobantes, tipos de cobro, lote/programación |
 | [[cartera-campanas]] | 🆕 Campañas, listados por pestaña, embudo CRM, recordatorios y cierre de períodos |
-| [[pqrs]] | Peticiones, quejas, reclamos y sugerencias: tickets, radicados, historial |
+| [[pqrs]] | Tickets residente→administración: radicado, semáforo de 15 días hábiles, editor de clasificación y capa de IA con modo sombra |
 | [[reservaciones]] | Reserva de amenidades y mudanzas: slots, aprobación, depósitos |
 | [[visitantes]] | Registro de visitas, QR, check-in/out, guardas |
 | [[paquetes]] | Paquetería: recepción, notificación y entrega a residente |
@@ -117,7 +117,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[absolute-bans]] | Prohibiciones absolutas de diseño y código (bugs si se violan) |
 | [[estado-modulos]] | Estado de módulos SaaS + estado de secciones del landing marketing |
 | [[roadmap-tecnico]] | Fases GTM 0–4: seguridad, branding, compliance, escalado |
-| [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions |
+| [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions, proyecto activo = producción |
 | [[triaje-auditoria-ux]] | 🆕 Cómo se verifica un reporte externo contra código antes de ejecutarlo |
 | [[torres-canonicas]] | 🆕 Agrupaciones canónicas: normalizeTower, lista por tenant y migración one-off |
 | [[integridad-financiera]] | Reversar en vez de borrar, confirmar cobros y mora real |
