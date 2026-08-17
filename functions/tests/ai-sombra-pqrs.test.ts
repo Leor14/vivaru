@@ -36,8 +36,31 @@ function ticket(overrides: Partial<TicketEnSombra> = {}): TicketEnSombra {
 }
 
 function ctx(overrides: Partial<ContextoSombra> = {}): ContextoSombra {
-  return { variante: "con_sla", conjuntoDeEjemplo: false, ...overrides };
+  return { variante: "con_sla", conjuntoDeEjemplo: false, proveedorReal: true, ...overrides };
 }
+
+describe("con el proveedor simulado la sombra no acumula nada", () => {
+  it("omite cuando `ia-proveedor-real` está apagada", () => {
+    // Encontrado al mirar producción antes de desplegar: sus banderas están
+    // VACÍAS, así que `ia-proveedor-real` resolvía al default —apagada—. Encender
+    // solo la sombra habría escrito salidas del SIMULADOR dentro del conjunto de
+    // evaluación de G7, y la fila no tenía cómo delatarlo.
+    const plan = planificarSombra(ticket(), CONJUNTO, ctx({ proveedorReal: false }));
+
+    expect(plan).toEqual({ accion: "omitir", motivo: "proveedor_simulado" });
+  });
+
+  it("el proveedor manda sobre todo lo demás", () => {
+    // Da igual lo bueno que sea el caso si lo va a contestar el simulador.
+    const plan = planificarSombra(
+      ticket({ isExample: true }),
+      CONJUNTO,
+      ctx({ proveedorReal: false, variante: "buzon_simple" }),
+    );
+
+    expect(plan).toMatchObject({ motivo: "proveedor_simulado" });
+  });
+});
 
 describe("lo sembrado no entra en el conjunto de evaluación de G7", () => {
   it("omite un ticket marcado como ejemplo", () => {
@@ -123,7 +146,7 @@ describe("dónde sí corre", () => {
     const plan = planificarSombra(
       ticket({ priority: "high", classifiedBy: "admin-1", status: "in_progress" }),
       CONJUNTO,
-      "con_sla",
+      ctx(),
     );
 
     expect(plan.accion === "clasificar" && Object.keys(plan.entrada as object).sort()).toEqual([

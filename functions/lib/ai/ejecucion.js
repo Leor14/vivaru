@@ -139,6 +139,7 @@ async function ejecutarOperacionAutorizada(params) {
         operationKey: op.key,
         version: op.version,
         output: resultado.output,
+        proveedor: provider.name,
         // Es lo que necesita la pantalla del Paso 2 para deshabilitar el botón
         // antes de que alguien choque contra el tope, en vez de después.
         cuotaRestante: cuota.restante,

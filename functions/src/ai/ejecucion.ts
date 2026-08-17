@@ -58,6 +58,16 @@ export type EjecucionOutcome =
       operationKey: string;
       version: number;
       output: unknown;
+      /**
+       * Con qué proveedor se generó de verdad esta salida.
+       *
+       * No es telemetría de adorno: `ia-proveedor-real` apagada devuelve el
+       * simulador, y una salida simulada guardada como si fuera del modelo
+       * envenena cualquier conjunto de evaluación que la recoja. Quien persista
+       * una salida tiene que poder decir de dónde vino **sin fiarse de que la
+       * bandera estuviera bien puesta en ese momento.**
+       */
+      proveedor: string;
       /** Lo que le queda al conjunto y al usuario después de esta llamada. */
       cuotaRestante: QuotaRemaining;
       /**
@@ -211,6 +221,7 @@ export async function ejecutarOperacionAutorizada(params: EjecucionParams): Prom
     operationKey: op.key,
     version: op.version,
     output: resultado.output,
+    proveedor: provider.name,
     // Es lo que necesita la pantalla del Paso 2 para deshabilitar el botón
     // antes de que alguien choque contra el tope, en vez de después.
     cuotaRestante: cuota.restante,

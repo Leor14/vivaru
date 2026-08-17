@@ -139,6 +139,11 @@ function planificarSombra(ticket, tenantId, contexto) {
     //
     // Y de paso no se paga por ello: resembrar el piloto con la sombra encendida
     // costaba USD 0,014 en clasificar tickets inventados.
+    // Va antes que todo: da igual lo bueno que sea el caso si lo va a contestar el
+    // simulador. Y se anota, para que «la sombra no acumula nada» tenga respuesta
+    // en la propia colección en vez de acabar en una tarde de depuración.
+    if (!contexto.proveedorReal)
+        return { accion: "omitir", motivo: "proveedor_simulado" };
     if (ticket.isExample === true || contexto.conjuntoDeEjemplo) {
         return { accion: "omitir", motivo: "sembrado" };
     }
@@ -198,9 +203,12 @@ async function clasificarTicketEnSombra(ticketId, ticket, db = (0, firestore_1.g
     // `ai-gateway` sí, porque el kill switch maestro tiene que poder apagar esto
     // como apaga todo lo demás; `resolveFeatureFlag` falla cerrado si no puede
     // leer, así que una lectura rota no gasta dinero.
-    const [gateway, sombra] = await Promise.all([
+    const [gateway, sombra, proveedorReal] = await Promise.all([
         (0, feature_flags_1.resolveFeatureFlag)("ai-gateway", tenantId),
         (0, feature_flags_1.resolveFeatureFlag)("ai-pqrs-shadow", tenantId),
+        // Se lee aquí y no dentro de la ejecución porque decide si esto se hace, no
+        // solo cómo: con el simulador no hay nada que valga la pena guardar.
+        (0, feature_flags_1.resolveFeatureFlag)("ia-proveedor-real", tenantId),
     ]);
     // Apagada no deja rastro a propósito: una fila «no corrí porque estaba
     // apagada» por cada ticket de cada conjunto sería ruido, y la ausencia de
@@ -248,6 +256,7 @@ async function clasificarTicketEnSombra(ticketId, ticket, db = (0, firestore_1.g
     const plan = planificarSombra(ticket, tenantId, {
         variante,
         conjuntoDeEjemplo: tenantSnap.data()?.isExample === true,
+        proveedorReal: proveedorReal.enabled,
     });
     if (plan.accion === "omitir") {
         // El motivo se guarda: el día que alguien cuente cuántos tickets tienen
@@ -286,6 +295,10 @@ async function clasificarTicketEnSombra(ticketId, ticket, db = (0, firestore_1.g
         // protege es la regla de Firestore —solo la lee el superadministrador, que
         // ya puede leer el ticket— y que nadie del conjunto la ve.
         sugerencia: outcome.output,
+        // Con qué proveedor se generó DE VERDAD, no con cuál creíamos. La guardia
+        // de arriba debería impedir que aquí llegue nunca el simulador; esto es
+        // por si la guardia falla, porque un dataset envenenado no da síntomas.
+        proveedor: outcome.proveedor,
         recorte: plan.recorte,
         // Solo el vocabulario cerrado, como en `aiUsage`. Las posiciones de las
         // frases sirven para pintarlas en pantalla, y aquí no hay pantalla.

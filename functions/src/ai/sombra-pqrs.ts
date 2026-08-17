@@ -66,7 +66,7 @@ const OPERACION = "pqrs-asistir" as const;
  */
 export type EstadoSombra = "en_curso" | "sugerida" | "omitida" | "fallo";
 
-export type MotivoOmision = "sembrado" | "buzon_simple" | "ticket_sin_texto";
+export type MotivoOmision = "proveedor_simulado" | "sembrado" | "buzon_simple" | "ticket_sin_texto";
 
 /** Estados en los que el ticket ya se considera cerrado para medir. */
 const ESTADOS_TERMINALES = new Set(["resolved", "closed"]);
@@ -147,6 +147,21 @@ export type PlanDeSombra =
 export interface ContextoSombra {
   variante: VariantePqrs;
   /**
+   * `ia-proveedor-real` encendida. **Apagada, la sombra NO corre.**
+   *
+   * Sin esto, un conjunto con la sombra encendida y el proveedor apagado
+   * escribiría salidas del SIMULADOR dentro del conjunto de evaluación de G7, y
+   * la fila no tendría cómo delatarlo. Es el mismo defecto que `sembrado` y peor
+   * de detectar: un caso sembrado se reconoce por su texto, y una salida del
+   * stub tiene la forma exacta de una real.
+   *
+   * Descubierto al mirar producción antes de desplegar: sus banderas están
+   * vacías, así que `ia-proveedor-real` resolvía al default —apagada— y encender
+   * solo la sombra habría empezado a fabricar dataset falso desde el primer
+   * ticket real.
+   */
+  proveedorReal: boolean;
+  /**
    * El conjunto entero es de ejemplo (`isExample` en `tenants/{tenantId}`).
    *
    * Se mira además del campo del propio ticket porque **lo sembrado se marca por
@@ -174,6 +189,11 @@ export function planificarSombra(
   //
   // Y de paso no se paga por ello: resembrar el piloto con la sombra encendida
   // costaba USD 0,014 en clasificar tickets inventados.
+  // Va antes que todo: da igual lo bueno que sea el caso si lo va a contestar el
+  // simulador. Y se anota, para que «la sombra no acumula nada» tenga respuesta
+  // en la propia colección en vez de acabar en una tarde de depuración.
+  if (!contexto.proveedorReal) return { accion: "omitir", motivo: "proveedor_simulado" };
+
   if (ticket.isExample === true || contexto.conjuntoDeEjemplo) {
     return { accion: "omitir", motivo: "sembrado" };
   }
@@ -239,9 +259,12 @@ export async function clasificarTicketEnSombra(
   // `ai-gateway` sí, porque el kill switch maestro tiene que poder apagar esto
   // como apaga todo lo demás; `resolveFeatureFlag` falla cerrado si no puede
   // leer, así que una lectura rota no gasta dinero.
-  const [gateway, sombra] = await Promise.all([
+  const [gateway, sombra, proveedorReal] = await Promise.all([
     resolveFeatureFlag("ai-gateway", tenantId),
     resolveFeatureFlag("ai-pqrs-shadow", tenantId),
+    // Se lee aquí y no dentro de la ejecución porque decide si esto se hace, no
+    // solo cómo: con el simulador no hay nada que valga la pena guardar.
+    resolveFeatureFlag("ia-proveedor-real", tenantId),
   ]);
   // Apagada no deja rastro a propósito: una fila «no corrí porque estaba
   // apagada» por cada ticket de cada conjunto sería ruido, y la ausencia de
@@ -291,6 +314,7 @@ export async function clasificarTicketEnSombra(
   const plan = planificarSombra(ticket, tenantId, {
     variante,
     conjuntoDeEjemplo: tenantSnap.data()?.isExample === true,
+    proveedorReal: proveedorReal.enabled,
   });
   if (plan.accion === "omitir") {
     // El motivo se guarda: el día que alguien cuente cuántos tickets tienen
@@ -339,6 +363,10 @@ export async function clasificarTicketEnSombra(
       // protege es la regla de Firestore —solo la lee el superadministrador, que
       // ya puede leer el ticket— y que nadie del conjunto la ve.
       sugerencia: outcome.output,
+      // Con qué proveedor se generó DE VERDAD, no con cuál creíamos. La guardia
+      // de arriba debería impedir que aquí llegue nunca el simulador; esto es
+      // por si la guardia falla, porque un dataset envenenado no da síntomas.
+      proveedor: outcome.proveedor,
       recorte: plan.recorte,
       // Solo el vocabulario cerrado, como en `aiUsage`. Las posiciones de las
       // frases sirven para pintarlas en pantalla, y aquí no hay pantalla.
