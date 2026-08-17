@@ -120,5 +120,6 @@ contexto) {
         usage: resultado.usage,
         latencyMs: transcurrido(),
         ...(revisada?.marcas.length ? { marcas: revisada.marcas } : {}),
+        ...(revisada?.frasesMarcadas.length ? { frasesMarcadas: revisada.frasesMarcadas } : {}),
     };
 }

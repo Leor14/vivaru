@@ -39,6 +39,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CASOS_AUTOPRUEBA = exports.COMPROMISO_FUTURO = exports.AFIRMA_ACCION = void 0;
+exports.afirmacionesDeAccion = afirmacionesDeAccion;
 exports.afirmaAccion = afirmaAccion;
 exports.prometeFuturo = prometeFuturo;
 exports.fallosDeAutoprueba = fallosDeAutoprueba;
@@ -72,11 +73,42 @@ exports.COMPROMISO_FUTURO = new RegExp("\\b(procederemos|realizaremos|coordinare
     "contactaremos|notificaremos|gestionaremos|inspeccionaremos|daremos\\s+seguimiento|" +
     "nos\\s+comunicaremos|se\\s+procederá|se\\s+realizará|se\\s+coordinará|se\\s+programará|" +
     "se\\s+verificará)", "i");
-/** El fragmento que disparó la marca, o `null`. Devuelve el texto para poder registrarlo. */
-function afirmaAccion(texto) {
+/**
+ * TODOS los fragmentos que afirman una acción, con su posición.
+ *
+ * **Devuelve posiciones y no solo texto** porque la pantalla resalta el trozo
+ * dentro del borrador: buscando el texto otra vez podría resaltar una segunda
+ * aparición de las mismas palabras, y ya tenemos la posición buena aquí.
+ *
+ * **Y devuelve todos, no el primero.** En la corrida de la v2 ninguno de los 10
+ * marcados tiene dos, pero en la v1 había uno («Estamos verificando» y «se ha
+ * gestionado»). Resaltar uno y callar el otro enseñaría que lo no resaltado está
+ * comprobado, que es peor que no resaltar nada.
+ */
+function afirmacionesDeAccion(texto) {
     if (!texto)
-        return null;
-    return texto.match(exports.AFIRMA_ACCION)?.[0] ?? null;
+        return [];
+    // Una expresión NUEVA en cada llamada, no una constante compartida: con `g`,
+    // el objeto guarda `lastIndex` entre llamadas y el segundo borrador empezaría
+    // a buscar donde acabó el primero. Mismo `source`, así que mismo criterio.
+    const barrido = new RegExp(exports.AFIRMA_ACCION.source, "gi");
+    const fragmentos = [];
+    for (let m = barrido.exec(texto); m !== null; m = barrido.exec(texto)) {
+        fragmentos.push({ texto: m[0], desde: m.index, hasta: m.index + m[0].length });
+    }
+    return fragmentos;
+}
+/**
+ * El fragmento que disparó la marca, o `null`. Devuelve el texto para poder
+ * registrarlo.
+ *
+ * **Delega, no reimplementa.** La cifra del 6,6% sale de aquí a través del
+ * contador offline, así que dos caminos distintos para el mismo criterio serían
+ * exactamente la divergencia contra la que avisa la cabecera de este archivo. El
+ * primer fragmento de la lista es el mismo que devolvía `.match()`.
+ */
+function afirmaAccion(texto) {
+    return afirmacionesDeAccion(texto)[0]?.texto ?? null;
 }
 function prometeFuturo(texto) {
     if (!texto)

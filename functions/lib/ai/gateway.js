@@ -199,6 +199,10 @@ async function runGateway(request, deps = {}) {
         // uso y no en un log porque **es una cifra que hay que contar**: cuántas
         // veces el borrador afirmó una acción es lo que dirá en la Fase 4 si la
         // comprobación sigue haciendo falta, y los logs no se cuentan.
+        //
+        // Va la CATEGORÍA y nunca `frasesMarcadas`: el trozo de borrador es texto
+        // del conjunto, y lo que protege a esta colección es no tener un solo campo
+        // libre donde pueda entrar. Esa frase va a la pantalla, no a la fila.
         ...(resultado.ok && resultado.marcas?.length ? { marcasDeRevision: resultado.marcas } : {}),
     });
     if (!resultado.ok) {
@@ -230,6 +234,7 @@ async function runGateway(request, deps = {}) {
         // Es lo que necesita la pantalla del Paso 2 para deshabilitar el botón
         // antes de que alguien choque contra el tope, en vez de después.
         cuotaRestante: cuota.restante,
+        frasesMarcadas: resultado.frasesMarcadas ?? [],
     };
 }
 exports.aiInvoke = (0, https_1.onCall)({

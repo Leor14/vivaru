@@ -331,14 +331,23 @@ const OPERATIONS = {
          * silencio nos haría autores del texto; rechazar dejaría al administrador
          * sin propuesta por un defecto de redacción, cuando lo que necesita es
          * verla y borrar la frase.
+         *
+         * Las posiciones se calculan sobre la salida YA validada, que es la misma
+         * cadena que se devuelve: Zod aplica `.trim()` al validar, así que medir
+         * antes daría índices corridos respecto a lo que la pantalla pinta.
          */
         revisarSalida: (salida) => {
             const s = salida;
-            // El fragmento se calcula y NO se propaga: la marca es la categoría. Ver
-            // `MARCAS_DE_REVISION`.
-            if (!(0, afirmaciones_1.afirmaAccion)(s.draftResponse))
-                return { salida, marcas: [] };
-            return { salida: { ...s, needsHumanReview: true }, marcas: ["afirma_accion"] };
+            const fragmentos = (0, afirmaciones_1.afirmacionesDeAccion)(s.draftResponse);
+            if (!fragmentos.length)
+                return { salida, marcas: [], frasesMarcadas: [] };
+            return {
+                salida: { ...s, needsHumanReview: true },
+                // La categoría, para la fila de uso. Una sola aunque haya dos frases:
+                // lo que se cuenta es cuántos borradores afirmaron, no cuántas veces.
+                marcas: ["afirma_accion"],
+                frasesMarcadas: fragmentos.map((f) => ({ marca: "afirma_accion", ...f })),
+            };
         },
         // El historial de un ticket puede ser largo; el tope de entrada dobla el de
         // comunicaciones y el de salida lo hereda: el borrador de respuesta es del
