@@ -40,9 +40,15 @@ corriéndolos contra HEAD sin estos cambios). Verlo de verdad necesita las
 functions v2+comprobación desplegadas a staging —siguen sin desplegar— y una
 llamada real que lanza David.
 
-**De los tres bloqueos de F4 este era el primero.** Quedan: el default de
-`priority` (detalle en la sección de la sesión de F3) y desplegar functions a
-staging.
+**De los tres bloqueos de F4, dos cayeron esta noche: el resaltado y el default
+de `priority`.** «Media» ya no es el arranque: el selector parte de «Sin
+prioridad» —estado real, solo visible mientras el ticket no la tenga—, guardar
+sin elegir NO escribe el campo (se omite, no se pone en `null`) y el feedback
+anota `null` en ese eje; `classifiedAt` se escribe igual, porque la persona sí
+clasificó categoría y tipo. Cero cambios en functions: el esquema del feedback
+ya aceptaba `null`. Lo sostiene por los dos lados
+`tests/pqrs-clasificacion-prioridad.test.ts`. **Queda UN bloqueo: desplegar
+functions a staging.**
 
 ## La v2 de `pqrs-asistir` está medida: las afirmaciones caen de 21,1% a 6,6% (16 ago 2026)
 
@@ -156,7 +162,8 @@ sobre la cifra que la sesión viene a producir:**
    corrección deliberada. **Es la misma familia del `type: "petition"`** de buzón
    simple: un valor por defecto con apariencia de elección humana. En la sesión
    se sortea con una columna en la hoja; **en la sombra de F4 no hay nadie
-   mirando, así que arreglarlo es prerrequisito de F4.**
+   mirando, así que arreglarlo es prerrequisito de F4.** *(Arreglado el 16 por
+   la noche — ver la sección del resaltado, arriba.)*
 
 **Y el ambiente no estaba como decía este documento.** Decía 18 tickets en
 `tenant-nogal-bogota` y 6 en `tenant-santa-maria`; **había 2 y 0** — un

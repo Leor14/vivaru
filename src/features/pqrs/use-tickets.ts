@@ -154,6 +154,14 @@ export async function createTicket(input: {
  *
  * **No la llama la IA.** La escribe una persona que pulsó guardar, con los
  * valores que dejó en pantalla; el asistente solo pudo proponer.
+ *
+ * **`priority: null` significa «no decidió este eje» y NO se escribe.** Los
+ * tickets de PQRS nacen sin prioridad, y hasta el 16 de agosto de 2026 guardar
+ * cualquier corrección escribía también el `medium` con el que arrancaba el
+ * selector: en la sesión de F3, 3 de las 7 prioridades guardadas fueron ese
+ * default — decisiones que nadie tomó, que la sombra de la Fase 4 leería como
+ * correcciones deliberadas del administrador. Omitir el campo deja el ticket
+ * como estaba: sin prioridad, que es la verdad.
  */
 export async function updateTicketClassification(input: {
   ticketId: string;
@@ -161,7 +169,7 @@ export async function updateTicketClassification(input: {
   adminUserId: string;
   category: Ticket["category"];
   type: NonNullable<Ticket["type"]>;
-  priority: NonNullable<Ticket["priority"]>;
+  priority: NonNullable<Ticket["priority"]> | null;
 }) {
   if (!db) {
     throw new Error("Firebase no esta configurado.");
@@ -173,10 +181,13 @@ export async function updateTicketClassification(input: {
     tenantId: input.tenantId,
     category: input.category,
     type: input.type,
-    priority: input.priority,
+    // Se omite, no se escribe `null`: un `priority: null` en el documento sería
+    // un tercer estado que ningún lector espera. Ausente ya es el estado normal.
+    ...(input.priority ? { priority: input.priority } : {}),
     // Marca propia además de `updatedAt`: la sombra de la Fase 4 necesita saber
     // si un administrador llegó a tocar la clasificación, y `updatedAt` se mueve
-    // también al responder, que es otra cosa.
+    // también al responder, que es otra cosa. Se escribe aunque no haya
+    // prioridad: la persona SÍ clasificó — categoría y tipo.
     classifiedAt: nowIso,
     classifiedBy: input.adminUserId,
     updatedAt: nowIso,

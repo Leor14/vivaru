@@ -103,7 +103,11 @@ export default function AdminPqrsPage() {
   // constante, `type` lo fijaba el residente y `priority` no se escribía nunca.
   const [clasCategory, setClasCategory] = useState<Ticket["category"]>("pqrs");
   const [clasType, setClasType] = useState<NonNullable<Ticket["type"]>>("other");
-  const [clasPriority, setClasPriority] = useState<NonNullable<Ticket["priority"]>>("medium");
+  // `""` es «sin prioridad», y es un estado REAL, no un hueco del formulario:
+  // los tickets de PQRS nacen sin prioridad. El tipo anterior no podía decirlo
+  // (`NonNullable`, arrancaba en «medium»), y en la sesión de F3 ese default se
+  // guardó 3 de 7 veces como si una persona lo hubiera decidido.
+  const [clasPriority, setClasPriority] = useState<NonNullable<Ticket["priority"]> | "">("");
   const [savingClasificacion, setSavingClasificacion] = useState(false);
 
   /**
@@ -161,11 +165,13 @@ export default function AdminPqrsPage() {
 
     setResponseStatus(selectedTicket.status === "closed" ? "closed" : "responded");
     // Los selectores arrancan en lo que el ticket ya tiene, no en una sugerencia.
-    // `priority` no existe en los tickets creados hasta hoy: se muestra «Media»
-    // como punto de partida, y solo se escribe si la persona guarda.
+    // `priority` no existe en los tickets creados hasta hoy, y eso se ENSEÑA:
+    // el selector arranca en «Sin prioridad» y guardar así no escribe el campo.
+    // Arrancar en «medium» era la trampa medida en la sesión de F3 — un default
+    // con apariencia de decisión, la misma familia que el `type: "petition"`.
     setClasCategory(selectedTicket.category ?? "pqrs");
     setClasType(selectedTicket.type ?? "other");
-    setClasPriority(selectedTicket.priority ?? "medium");
+    setClasPriority(selectedTicket.priority ?? "");
   }, [drawerOpen, selectedTicket]);
 
   // Cambiar de ticket cierra la fila del anterior y abre otra. Sin esto, lo que
@@ -263,13 +269,17 @@ export default function AdminPqrsPage() {
 
     try {
       setSavingClasificacion(true);
+      // `""` → `null`: «sin prioridad» no se escribe en el ticket y el feedback
+      // registra que este eje no se decidió. Es la diferencia entre medir una
+      // corrección y fabricarla.
+      const prioridadElegida = clasPriority === "" ? null : clasPriority;
       await updateTicketClassification({
         ticketId: selectedTicket.id,
         tenantId: user.tenantId,
         adminUserId: user.uid,
         category: clasCategory,
         type: clasType,
-        priority: clasPriority,
+        priority: prioridadElegida,
       });
       // La «decisión real del administrador» de la que hablan las dos puertas de
       // G7. Se anota DESPUÉS de que la escritura haya ido bien: una clasificación
@@ -277,7 +287,7 @@ export default function AdminPqrsPage() {
       feedbackIa.anotarClasificacionGuardada({
         category: clasCategory,
         type: clasType,
-        priority: clasPriority,
+        priority: prioridadElegida,
       });
       toast.success("Clasificación actualizada.");
     } catch (clasError) {
@@ -678,8 +688,15 @@ export default function AdminPqrsPage() {
                     <select
                       className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
                       value={clasPriority}
-                      onChange={(event) => setClasPriority(event.target.value as NonNullable<Ticket["priority"]>)}
+                      onChange={(event) => setClasPriority(event.target.value as NonNullable<Ticket["priority"]> | "")}
                     >
+                      {/*
+                        La opción vacía existe solo mientras el ticket no tenga
+                        prioridad: es el estado real del que se parte, no un
+                        valor al que volver. Una vez escrita, quitarla no es una
+                        operación del producto — puerta de un solo sentido.
+                      */}
+                      {!selectedTicket.priority ? <option value="">Sin prioridad</option> : null}
                       <option value="low">Baja</option>
                       <option value="medium">Media</option>
                       <option value="high">Alta</option>
