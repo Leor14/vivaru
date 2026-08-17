@@ -647,6 +647,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Modo sombra de PQRS (Fase 4 de PRD-VAI-FEAT-002): la sugerencia del
+    // modelo para cada ticket y, al lado, lo que decidió el administrador. Un
+    // documento por ticket, con el ticketId de identificador.
+    //
+    // `write: false` es lo de siempre —solo el servidor escribe—, pero el
+    // `read` es lo que hace que la sombra sea sombra, y por eso esta colección
+    // existe en vez de un campo dentro del ticket: la regla de `tickets` deja
+    // leer a su RESIDENTE, así que un campo ahí dentro sería visible para quien
+    // escribió el ticket. Aquí no lo ve nadie del conjunto — ni el residente,
+    // ni el administrador, ni el comité.
+    //
+    // A diferencia de aiUsage y aiFeedback, esta colección SÍ guarda contenido
+    // del conjunto (el resumen y el borrador propuestos). No es una excepción a
+    // la regla del Paso 0 sino su límite: aquel prohíbe contenido en las
+    // colecciones de telemetría agregada, y esto es el conjunto de evaluación
+    // que G7 mide ticket a ticket. Quien lo lee ya puede leer el ticket entero.
+    match /aiAssistance/{docId} {
+      allow read: if superadmin();
+      allow write: if false;
+    }
+
     // Telemetría de la importación tabular (PRD-V-FEAT-002, CA-13): cuántos
     // intentos empiezan y cuántos terminan. Mismo criterio que aiFeedback y por
     // el mismo motivo: es la evidencia con la que se decidirá si el paso de

@@ -37,13 +37,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
 const https_1 = require("firebase-functions/v2/https");
 const firestore_2 = require("firebase-functions/v2/firestore");
+const logger = __importStar(require("firebase-functions/logger"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const crypto_1 = require("crypto");
 const XLSX = __importStar(require("xlsx"));
@@ -60,6 +61,7 @@ const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
 const http_config_1 = require("./http-config");
 const usage_report_1 = require("./ai/usage-report");
+const sombra_pqrs_1 = require("./ai/sombra-pqrs");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
 // Defaults = comportamiento actual. Si el alta no envia variantes (o faltan claves), se aplican
@@ -3269,6 +3271,65 @@ var pqrs_gateway_1 = require("./ai/pqrs-gateway");
 Object.defineProperty(exports, "asistirTicketPqrs", { enumerable: true, get: function () { return pqrs_gateway_1.asistirTicketPqrs; } });
 var gateway_2 = require("./import/gateway");
 Object.defineProperty(exports, "registrarImportacion", { enumerable: true, get: function () { return gateway_2.registrarImportacion; } });
+/**
+ * Modo sombra de PQRS — Fase 4 de `PRD-VAI-FEAT-002`.
+ *
+ * **Dos triggers propios y no un añadido a `onTicketCreated`/`onTicketUpdated`.**
+ * Aquellos mandan las notificaciones y el correo al residente, y son lo que no
+ * puede fallar: una llamada al modelo tarda hasta 20 segundos y puede caerse, y
+ * la notificación de un PQRS no puede depender de que conteste Vertex. Aparte
+ * hay otras dos ganancias: se despliegan solas —como se desplegó
+ * `asistirTicketPqrs` el 17 de agosto, para no arrastrar funciones con
+ * secretos— y se apagan solas.
+ *
+ * Sin reintentos (el default de v2), y a propósito: un reintento automático es
+ * otra llamada al modelo, es decir dinero, por algo que nadie está esperando en
+ * pantalla. La entrega doble la para la reserva de `clasificarTicketEnSombra`.
+ *
+ * **Solo al crear, no al editar.** Las reglas dejan al residente actualizar su
+ * ticket, así que el mensaje puede cambiar después; reclasificar cada edición
+ * multiplicaría el gasto y mediría otra cosa. Lo que la sombra guarda es la
+ * clasificación del ticket TAL COMO LLEGÓ, que es lo mismo que el administrador
+ * tuvo delante. Es un límite conocido, no un olvido.
+ */
+exports.sombraPqrsAlCrearTicket = (0, firestore_2.onDocumentCreated)("tickets/{ticketId}", async (event) => {
+    const data = event.data?.data();
+    if (!data)
+        return;
+    try {
+        await (0, sombra_pqrs_1.clasificarTicketEnSombra)(event.params.ticketId, data);
+    }
+    catch (error) {
+        // Nunca propaga: el ticket del residente ya está escrito y notificado, y un
+        // fallo de la sombra no puede convertirse en un reintento de la plataforma.
+        logger.error("sombra-pqrs: fallo al clasificar", {
+            ticketId: event.params.ticketId,
+            detail: error instanceof Error ? error.message : String(error),
+        });
+    }
+});
+/**
+ * La otra mitad del par: qué decidió el administrador.
+ *
+ * Sin esto la sombra guardaría sugerencias contra un hueco y las dos puertas de
+ * G7 seguirían sin poder medirse — es la misma razón por la que en F3 hubo que
+ * construir el editor de clasificación antes que nada.
+ */
+exports.sombraPqrsAlActualizarTicket = (0, firestore_2.onDocumentUpdated)("tickets/{ticketId}", async (event) => {
+    const antes = event.data?.before.data();
+    const despues = event.data?.after.data();
+    if (!antes || !despues)
+        return;
+    try {
+        await (0, sombra_pqrs_1.registrarDecisionEnSombra)(event.params.ticketId, antes, despues);
+    }
+    catch (error) {
+        logger.error("sombra-pqrs: fallo al registrar la decisión", {
+            ticketId: event.params.ticketId,
+            detail: error instanceof Error ? error.message : String(error),
+        });
+    }
+});
 /**
  * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
  * cuánto gastó cada conjunto en el período, cuántas llamadas y cuántas

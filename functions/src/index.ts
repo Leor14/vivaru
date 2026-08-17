@@ -4,6 +4,7 @@ import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
@@ -32,6 +33,7 @@ import {
 } from "./notification-catalog";
 import { callableCorsOrigins } from "./http-config";
 import { getAiUsageSummary, inicioDelMes } from "./ai/usage-report";
+import { clasificarTicketEnSombra, registrarDecisionEnSombra } from "./ai/sombra-pqrs";
 
 initializeApp();
 
@@ -4091,6 +4093,63 @@ export { registrarFeedbackIa } from "./ai/feedback-gateway";
 // estaría afirmando el cliente.
 export { asistirTicketPqrs } from "./ai/pqrs-gateway";
 export { registrarImportacion } from "./import/gateway";
+
+/**
+ * Modo sombra de PQRS — Fase 4 de `PRD-VAI-FEAT-002`.
+ *
+ * **Dos triggers propios y no un añadido a `onTicketCreated`/`onTicketUpdated`.**
+ * Aquellos mandan las notificaciones y el correo al residente, y son lo que no
+ * puede fallar: una llamada al modelo tarda hasta 20 segundos y puede caerse, y
+ * la notificación de un PQRS no puede depender de que conteste Vertex. Aparte
+ * hay otras dos ganancias: se despliegan solas —como se desplegó
+ * `asistirTicketPqrs` el 17 de agosto, para no arrastrar funciones con
+ * secretos— y se apagan solas.
+ *
+ * Sin reintentos (el default de v2), y a propósito: un reintento automático es
+ * otra llamada al modelo, es decir dinero, por algo que nadie está esperando en
+ * pantalla. La entrega doble la para la reserva de `clasificarTicketEnSombra`.
+ *
+ * **Solo al crear, no al editar.** Las reglas dejan al residente actualizar su
+ * ticket, así que el mensaje puede cambiar después; reclasificar cada edición
+ * multiplicaría el gasto y mediría otra cosa. Lo que la sombra guarda es la
+ * clasificación del ticket TAL COMO LLEGÓ, que es lo mismo que el administrador
+ * tuvo delante. Es un límite conocido, no un olvido.
+ */
+export const sombraPqrsAlCrearTicket = onDocumentCreated("tickets/{ticketId}", async (event) => {
+  const data = event.data?.data();
+  if (!data) return;
+  try {
+    await clasificarTicketEnSombra(event.params.ticketId, data);
+  } catch (error) {
+    // Nunca propaga: el ticket del residente ya está escrito y notificado, y un
+    // fallo de la sombra no puede convertirse en un reintento de la plataforma.
+    logger.error("sombra-pqrs: fallo al clasificar", {
+      ticketId: event.params.ticketId,
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+/**
+ * La otra mitad del par: qué decidió el administrador.
+ *
+ * Sin esto la sombra guardaría sugerencias contra un hueco y las dos puertas de
+ * G7 seguirían sin poder medirse — es la misma razón por la que en F3 hubo que
+ * construir el editor de clasificación antes que nada.
+ */
+export const sombraPqrsAlActualizarTicket = onDocumentUpdated("tickets/{ticketId}", async (event) => {
+  const antes = event.data?.before.data();
+  const despues = event.data?.after.data();
+  if (!antes || !despues) return;
+  try {
+    await registrarDecisionEnSombra(event.params.ticketId, antes, despues);
+  } catch (error) {
+    logger.error("sombra-pqrs: fallo al registrar la decisión", {
+      ticketId: event.params.ticketId,
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 /**
  * Resumen de consumo de IA (Paso 1.5). Contesta la pregunta del criterio:
