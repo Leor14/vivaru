@@ -399,7 +399,11 @@ const OPERATIONS: Record<OperationKey, OperationDefinition> = {
     // v1 (15 de agosto de 2026): el contrato de la Fase 2 de PRD-VAI-FEAT-002.
     // Nace para la evaluación offline contra el gold set; la pantalla del
     // drawer llega en la Fase 3 sin tocar estos esquemas.
-    version: 1,
+    // v2 (16 de agosto de 2026): una sola regla dura nueva —no afirmar acciones
+    // de la administración—, sin tocar esquemas ni prompts. Se sube la versión
+    // para que la telemetría sepa distinguir las salidas de antes y las de
+    // después: sin eso, la sombra de F4 mezclaría dos contratos en una columna.
+    version: 2,
     modulo: "pqrs",
     label: "Asistir un ticket de PQRS",
     description:
@@ -419,6 +423,17 @@ const OPERATIONS: Record<OperationKey, OperationDefinition> = {
       "  deben ser null.",
       "- En el borrador no prometas solución, compensación, sanción ni plazo, y no",
       "  cites normas, leyes o hechos que no estén en el ticket o su historial.",
+      // v2 (16 de agosto de 2026). La regla anterior prohíbe PROMETER y CITAR, y
+      // el modelo cumplía las dos mientras afirmaba acciones propias: «estamos
+      // verificando con el equipo de mantenimiento» no es una promesa ni una
+      // cita. Medido en la evaluación offline (32 de 152 borradores) y publicado
+      // literal por un administrador en la sesión de F3 —con el aviso de la
+      // pantalla delante—, así que el aviso no basta y la regla sube al prompt.
+      "- No afirmes acciones de la administración que no consten en el historial:",
+      "  ni hechas («hemos coordinado con mantenimiento»), ni en curso («estamos",
+      "  verificando»), ni iniciadas («se ha programado la inspección»). Si no",
+      "  consta, el borrador acusa recibo, pide lo que falte y dice qué se hará;",
+      "  nunca lo que ya se hizo.",
       // De la ronda 1 del doble etiquetado: con el hilo delante, hasta un humano
       // etiqueta la conversación en vez del mensaje.
       "- Clasifica EL MENSAJE del ticket. El historial sirve para entenderlo, no",

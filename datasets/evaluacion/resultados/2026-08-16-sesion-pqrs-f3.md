@@ -76,6 +76,15 @@ Las otras cuatro se salvan por poco y por la misma forma: comprometen futuro
 «la compartiremos con el consejo») en vez de dar por hecho el pasado. La
 frontera entre las dos familias es fina y el modelo la cruza sin avisar.
 
+> **Añadido el 16 de agosto, al escribir el contador.** «Salvarse por poco» no
+> era una lectura firme: el conteo a mano de F2 sí incluía futuros
+> —«procederemos a programar la inspección» es uno de sus tres ejemplos—, así que
+> por aquel criterio esas cuatro también contaban. El criterio quedó **escrito y
+> congelado** en `medir-afirmaciones-pqrs.mjs`, que separa **A** (acción dada por
+> hecha o en curso) de **B** (compromiso futuro, casi siempre condicional) y
+> cobra solo A. Con él, las dos de arriba son A y las otras cuatro son B. Lectura
+> completa en `2026-08-16-pqrs-v2-afirmaciones.md`.
+
 **Y esto ocurrió con el aviso puesto.** La pantalla lleva desde el 15 de agosto
 un recuadro que dice, con la cifra medida delante, «en la evaluación, 44 de 152
 borradores daban por hechas acciones que nadie había tomado; borra lo que no sea

@@ -1,7 +1,38 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 16 de agosto de 2026, tras la sesión de F3 de PQRS.
+Actualizado el 16 de agosto de 2026, tras la sesión de F3 y la v2 de la operación.
+
+## La v2 de `pqrs-asistir` está medida: las afirmaciones caen de 21,1% a 6,6% (16 ago 2026)
+
+**Lectura en `datasets/evaluacion/resultados/2026-08-16-pqrs-v2-afirmaciones.md`.**
+Un solo cambio: **una regla dura nueva** —no afirmar acciones de la
+administración que no consten en el historial— en `reglasDuras` de
+`functions/src/ai/catalog.ts`, con `version` de la operación subida a **2** para
+que la telemetría no mezcle los dos contratos en una columna. 152 casos, USD
+0,1435.
+
+- **A (acción dada por hecha o en curso): 32/152 → 10/152.** −69%.
+- **La clasificación NO se movió:** `category` 82,1→82,9%, `type` 70,7→69,3%,
+  `priority` 72,4→71,7% — ±2 casos, que a temperatura 0,2 es ruido. **Las tres
+  puertas duras intactas:** inyección 8/8, nulls 12/12, guardrail 32/32. Era el
+  riesgo real del cambio y no se materializó.
+- **B (compromiso futuro) sube de 45 a 59.** El comportamiento se desplaza a la
+  forma permitida, que es justo lo que la regla pide («dice qué se hará»).
+- **El criterio de §9 sigue sin cumplirse: pide 0 y hay 6,6%.**
+
+**Y el prompt ya no es la palanca: 8 de los 10 que quedan son «estamos
+verificando» o «estamos revisando», la frase que la propia regla cita como
+prohibida con esas palabras exactas.** Para llegar a 0 hace falta algo
+determinista — comprobación en el servidor que fuerce `needsHumanReview`, o
+resaltar la frase en la pantalla. **Decisión pendiente de David.** Otra vuelta de
+prompt no se recomienda.
+
+**Nota de método:** «44 de 152» de la Fase 2 **no era una línea base
+reproducible** —conteo a mano sin criterio escrito, mezclando acciones afirmadas
+con futuros condicionales—. El criterio de ahora está congelado en
+`functions/scripts/medir-afirmaciones-pqrs.mjs`, **con autoprueba de 11 casos que
+corre antes de contar**.
 
 ## La sesión de F3 se hizo: el circuito funciona y el criterio de veracidad falla 2 de 6 (16 ago 2026)
 
