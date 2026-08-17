@@ -46,8 +46,28 @@ piezas:
 
 **Evidencia:** 308 pruebas de functions en verde (17 nuevas en
 `functions/tests/ai-sombra-pqrs.test.ts`), typecheck limpio en `src/` y en
-`functions/`. **Nadie ha visto una fila de `aiAssistance`** — como con el
-resaltado de F3, la evidencia es de pruebas y no de pantalla.
+`functions/`.
+
+**Y desplegada y vista funcionando en staging el 17 por la noche.** Las dos
+funciones `ACTIVE` (`19:33:57 UTC`, disparador leído: `tickets/{ticketId}`,
+`RETRY_POLICY_DO_NOT_RETRY`), reglas desplegadas, `ai-pqrs-shadow` encendida en
+staging. **Toda la cadena se comprobó por USD 0**, aprovechando que en
+`buzon_simple` la sombra omite sin llamar al modelo:
+
+- Ticket nuevo en `tenant-santa-maria` (`buzon_simple`) → fila escrita con
+  `estado: omitida`, `motivo: buzon_simple`. Disparo, reserva, lectura de la
+  variante y escritura, comprobados sin gastar.
+- Clasificado sin prioridad → `decision` anotada y **`priority` AUSENTE, no
+  `null`**: la corrección del 16 de agosto sobrevive hasta la fila de la sombra.
+  Verificado leyéndolo, no por prueba unitaria.
+- Resuelto → `decisionCongeladaEn` escrita. El congelado que mide G7 funciona.
+
+**Lo único sin ver es el camino de pago:** un ticket en un conjunto `con_sla`
+—`tenant-nogal-bogota` es el bueno— para que la fila traiga `sugerencia`.
+Cuesta USD 0,0009. Lector: `node functions/scripts/leer-sombra-pqrs.mjs
+vivaru-staging-02`.
+
+**Producción sigue intacta:** ni desplegada ni encendida.
 
 **Sigue pendiente de redacción y firma: la entrada de §9** del registro de
 decisiones (el 0% de afirmaciones lo cumple el sistema, no el modelo).
