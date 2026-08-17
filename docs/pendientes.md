@@ -76,7 +76,60 @@ del de las personas funciona**, y no hizo falta campo nuevo.
 
 Lector: `node functions/scripts/leer-sombra-pqrs.mjs vivaru-staging-02`.
 
-**Producción sigue intacta:** ni desplegada ni encendida.
+## Producción: la sombra está DESPLEGADA e INERTE, y falta promocionar (17 ago 2026)
+
+**El código está en producción; las banderas no.** Escribir en Firestore de
+producción quedó bloqueado en la sesión, así que las banderas las enciende David.
+
+- `sombraPqrsAlCrearTicket` y `sombraPqrsAlActualizarTicket`: **ACTIVE** en
+  `hogaru-1` (20:02:28 UTC), disparador leído sobre `tickets/{ticketId}`, sin
+  reintentos. Regla de `aiAssistance` desplegada — el diff de reglas con `master`
+  era **solo** ese bloque. Vertex (`aiplatform.googleapis.com`) habilitado.
+- **`featureFlags` de producción: 0 documentos.** Todo apagado por default, que
+  es un estado seguro y no uno a medias. `aiAssistance`: 0 filas.
+
+### Antes de encender: hay que promocionar, y no es opcional
+
+**Un administrador de producción NO puede clasificar un ticket hoy**:
+`updateTicketClassification` no existe en `master` (comprobado: 0 apariciones), y
+`asistente-ticket.tsx` tampoco. La sombra guarda pares *sugerencia + decisión*, y
+sin editor la mitad que importa no ocurre nunca — es literalmente lo que la PRD
+advirtió para F3. Y la pantalla del residente en `master` sigue **sin renderizar
+las definiciones** de los cinco tipos, que envenena la sombra por ruido.
+
+**Encender la sombra sin promocionar deja un sistema a medias.**
+
+El orden, con lo ya hecho marcado:
+
+1. ~~Poner `AsistenteTicket` detrás de `ai-pqrs-suggestions`.~~ **HECHO**
+   (`8bfc1c2`). Sin esto, promocionar habría puesto delante de un administrador
+   un panel de IA que revienta: producción no tiene `asistirTicketPqrs`.
+2. **Promocionar `develop` → `master`.** Comprobado que es seguro: el diff de
+   interfaz son **8 archivos, todos de PQRS**, y el ensayo de fusión da **0
+   conflictos**. Las ramas divergieron —`master` tiene 9 commits propios—, pero
+   el único contenido que `master` tiene y `develop` no es **`apphosting.yaml`**
+   (del arreglo `6e1f9ed`, que referencia la clave de Resend como secreto en vez
+   de en claro). **`develop` no tocó ese archivo**, así que la fusión conserva la
+   versión segura sola. Aun así: comprobarlo después de fusionar.
+3. **Redesplegar functions desde `master`.** Aquí muere la mina: hoy producción
+   corre functions de `develop`, y un despliegue desde `master` **borraría** las
+   dos funciones de la sombra, porque Firebase elimina lo que no está en el
+   código fuente.
+4. **Encender las tres banderas** (`ai-gateway`, `ai-pqrs-shadow`,
+   `ia-proveedor-real`) desde `/superadmin/flags`, o sembrando el catálogo con
+   `node functions/scripts/seed-feature-flags.mjs hogaru-1` y poniéndolas en
+   `true`. El orden entre ellas da igual: con el proveedor apagado la sombra
+   omite con motivo `proveedor_simulado` en vez de fabricar basura.
+
+**Qué pasará al encenderla: nada, y es lo esperado.** De los 9 conjuntos de
+producción, **7 están marcados `isExample=true`** —incluidos los dos que tienen
+los 20 tickets, `conjunto-las-playas` (14) y `tenant-santa-maria` (6)—. Los dos
+reales, Bromelias y Queretarock, tienen **cero tickets**. La sombra queda armada
+para el primer ticket de verdad, que es justo lo que F4 persigue. El filtro no
+discrimina conjuntos: descarta datos de mentira.
+
+**Ojo con `tenant-santa-maria`:** en producción es `con_sla`, no `buzon_simple`
+como en staging. Mismo nombre, comportamiento distinto.
 
 ### Hallazgo al probarlo: la sombra no distingue lo sembrado de lo real
 
