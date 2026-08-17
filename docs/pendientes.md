@@ -4,6 +4,37 @@
 Actualizado el 16 de agosto de 2026 por la noche, tras la sesión de F3, la v2
 de la operación y el resaltado de la frase marcada en pantalla.
 
+## La sombra de F4 NO está construida — y es el siguiente trabajo de código (hallazgo del 17 ago 2026)
+
+**`aiAssistance` aparece UNA vez en todo el código: en un comentario del
+catálogo.** Lo que existe es el asistente a demanda (el drawer) y `aiFeedback`
+por sesión de pantalla, sin `ticketId`. Lo que la PRD §7/§13 pide para F4 y no
+existe: clasificar **en silencio** cada ticket nuevo, persistir la sugerencia
+completa en `aiAssistance` y, al resolverse el ticket, dejar al lado la
+decisión final del administrador — el dataset de G7 se fabrica solo desde el
+primer ticket real («esperar acumulando», hoja de ruta). Decisiones de diseño
+dentro, para explicar antes de tocar: cuándo dispara, bandera propia de
+sombra, qué hace en `buzon_simple`, costo (USD 0,0009 por ticket; hoy ~0
+porque producción casi no tiene tickets), y que la sombra no muestra nada a
+nadie.
+
+**Tres decisiones de David del 17 de agosto que cambian los pendientes:**
+
+- **Sin más pruebas con administradores por ahora.** La línea base del tercer
+  administrador y H2′ quedan aparcadas, no canceladas; la pregunta por la
+  respuesta 3 pasa a **mensaje asíncrono**. Los dos comunicados del 14 en
+  `tenant-palmas-cdmx` pierden urgencia, pero siguen por borrar.
+- **El orden: sombra de F4 primero; PRD de FEAT-001 (onboarding) después.**
+  FEAT-001 quedó más pequeña de lo que decía el plan maestro: el importador ya
+  está en producción y `importRuns` recoge solo los encabezados no mapeados.
+  Faltan los 15–25 archivos reales (recolección comercial) y la corrección
+  anotada: son **10** pasos de activación, no 7.
+- **Por redactar y firmar: la entrada de §9 en el registro de decisiones** —
+  el «0 afirmaciones no sustentadas» lo cumple el SISTEMA (comprobación de
+  servidor + revisión forzada + frase resaltada), no el modelo, que queda en
+  6,6%. Misma lógica de la decisión rectora: la exigencia se mueve a la puerta
+  de salida. Redactarla para que David la apruebe; sin esto F3 no cierra.
+
 ## La frase marcada se resalta dentro del borrador, y staging ya sirve la v2 (16–17 ago 2026, noche)
 
 **La decisión que más abajo figura como pendiente se tomó: las dos cosas, y las
