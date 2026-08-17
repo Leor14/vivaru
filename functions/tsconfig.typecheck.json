@@ -1,0 +1,26 @@
+// Comprobación de tipos de TODO lo que hay aquí, no solo de lo que se compila.
+//
+// `tsconfig.json` incluye únicamente `src`, porque es el que emite a `lib/` y
+// ahí no debe caer una prueba. El efecto secundario era que `functions/tests/`
+// —diecisiete archivos y más de trescientas pruebas— NUNCA pasaba por el
+// compilador: el gate del CLAUDE.md prometía «typecheck limpio en `functions/`»
+// y comprobaba la mitad.
+//
+// Se vio el 17 de agosto de 2026 al construir la sombra de F4: un cambio de
+// firma dejó una llamada de prueba pasando un `string` donde iba un objeto, el
+// typecheck pasó en verde y el fallo lo cazó vitest al ejecutar. Con suerte,
+// porque esa llamada tenía aserción; una que solo construya datos habría pasado
+// las dos puertas.
+//
+// `rootDir: "."` es lo único que hay que anular: el de base es `src`, y con él
+// cada archivo de `tests/` da un TS6059 que no es un error de tipo sino ruido.
+//
+// Uso: npm --prefix functions run typecheck
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src", "tests"]
+}

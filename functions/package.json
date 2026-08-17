@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "backfill:names": "node scripts/backfill-readable-names.mjs",
     "backfill:names:write": "node scripts/backfill-readable-names.mjs --write",
     "serve": "firebase emulators:start --only functions",

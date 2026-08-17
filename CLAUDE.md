@@ -47,7 +47,14 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 ## Comandos clave
 
 - Typecheck app: `npm run typecheck` — los errores en `tests/` son **preexistentes**; el gate real es 0 errores fuera de `tests/`.
-- Typecheck functions: `cd functions && npx tsc --noEmit`
+- Typecheck functions: `npm --prefix functions run typecheck` — **usar este, no
+  `npx tsc --noEmit`**. El `tsconfig.json` de functions incluye solo `src`
+  (es el que emite a `lib/`), así que el comando directo **nunca ha comprobado
+  `functions/tests/`**: el 17 de agosto de 2026 un cambio de firma dejó una
+  llamada de prueba pasando un `string` donde iba un objeto, pasó el typecheck
+  en verde y lo cazó vitest al ejecutar. El script usa
+  `tsconfig.typecheck.json`, que añade `tests`. Está en **0 errores**, así que
+  aquí no hay «preexistentes» que tolerar, al revés que en la raíz.
 - Build functions (obligatorio antes de desplegar): `npm --prefix functions run build`
 - Deploy functions: `firebase deploy --only functions --project hogaru-1`
 - Deploy reglas: `firebase deploy --only firestore:rules`
@@ -71,7 +78,7 @@ El landing vive en `/mx`; `/` solo redirige allí.
 
 ## Metodología
 
-critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/`. Mensajes de commit semánticos. Despliegue del front por push a `master`; functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
+critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/` — este último con `npm --prefix functions run typecheck`, que es el que mira también `functions/tests/`. Mensajes de commit semánticos. Despliegue del front por push a `master`; functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
 
 ## Trampas críticas (ver `wiki-producto/wiki/decisiones/trampas-conocidas.md`)
 

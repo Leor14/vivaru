@@ -20,6 +20,7 @@ import { resolveIdentityCell } from "@/lib/utils/identity";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { AsistenteTicket } from "@/features/pqrs/asistente-ticket";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { formatTicketDate, getTicketSla } from "@/features/pqrs/sla";
 import { getTicketTypeLabel } from "@/features/pqrs/ticket-status";
 import { useFeedbackAsistencia } from "@/features/pqrs/use-feedback-asistencia";
@@ -752,23 +753,44 @@ export default function AdminPqrsPage() {
               rellena los selectores de arriba y «copiar al cuadro de respuesta»
               llena el textarea del pie. Guardar y responder siguen siendo actos
               de la persona, con su propio botón.
+
+              Y va detrás de SU bandera, que es lo que su ficha del catálogo dice
+              que hace («muestra al administrador la categoría y el resumen
+              propuestos») y hasta el 17 de agosto de 2026 no hacía: la clave
+              `ai-pqrs-suggestions` no aparecía en un solo sitio de `src/` fuera
+              del propio catálogo, así que el panel se pintaba siempre. Se vio al
+              preparar la promoción a producción, donde `asistirTicketPqrs` no
+              está desplegada: un administrador habría encontrado un panel de IA
+              que revienta al pulsarlo.
+
+              Apagada, el drawer queda exactamente como antes de la Fase 3 — el
+              editor de clasificación y el pie de respuesta siguen enteros,
+              porque no son de IA. Es lo que la PRD llama «rollback: apagar la
+              bandera, sin migración».
+
+              Y esto es presentación, no candado: el servidor ya lo comprueba en
+              `runGateway`. La sombra de la Fase 4 NO mira esta bandera a
+              propósito — clasifica en silencio con `ai-pqrs-shadow`, que es lo
+              que permite tener sombra global sin sugerencia visible.
             */}
-            <div className="border-t border-[var(--slate-200)] pt-3">
-              <AsistenteTicket
-                // Al cambiar de ticket se monta un panel nuevo: sin la clave, la
-                // propuesta del ticket anterior seguiría en pantalla sobre un
-                // caso distinto, que es la peor forma de equivocarse aquí.
-                key={selectedTicket.id}
-                ticketId={selectedTicket.id}
-                onAplicarClasificacion={(clasificacion) => {
-                  setClasCategory(clasificacion.category);
-                  setClasType(clasificacion.type);
-                  setClasPriority(clasificacion.priority);
-                }}
-                onUsarBorrador={(texto) => setResponseText(texto)}
-                feedback={feedbackIa}
-              />
-            </div>
+            <FeatureGate flag="ai-pqrs-suggestions">
+              <div className="border-t border-[var(--slate-200)] pt-3">
+                <AsistenteTicket
+                  // Al cambiar de ticket se monta un panel nuevo: sin la clave, la
+                  // propuesta del ticket anterior seguiría en pantalla sobre un
+                  // caso distinto, que es la peor forma de equivocarse aquí.
+                  key={selectedTicket.id}
+                  ticketId={selectedTicket.id}
+                  onAplicarClasificacion={(clasificacion) => {
+                    setClasCategory(clasificacion.category);
+                    setClasType(clasificacion.type);
+                    setClasPriority(clasificacion.priority);
+                  }}
+                  onUsarBorrador={(texto) => setResponseText(texto)}
+                  feedback={feedbackIa}
+                />
+              </div>
+            </FeatureGate>
           </div>
         ) : null}
       </Drawer>
