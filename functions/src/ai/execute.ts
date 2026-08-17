@@ -1,4 +1,4 @@
-import type { OperationDefinition } from "./catalog";
+import type { MarcaDeRevision, OperationDefinition } from "./catalog";
 import { buildProviderPrompt } from "./prompt";
 import type { AiProvider, AiUsage } from "./provider";
 import type { ContextoConjunto } from "./tenant-context";
@@ -30,6 +30,13 @@ export interface ExecutionSuccess {
   output: unknown;
   usage: AiUsage;
   latencyMs: number;
+  /**
+   * Lo que corrigió `revisarSalida`, si corrigió algo. Se devuelve en vez de
+   * registrarse aquí: este módulo no depende del runtime de Functions —es lo
+   * que permite al evaluador offline importarlo—, y meterle el logger le
+   * cambiaría esa propiedad por una línea de traza.
+   */
+  marcas?: readonly MarcaDeRevision[];
 }
 
 export interface ExecutionFailure {
@@ -165,10 +172,16 @@ export async function executeOperation(
     };
   }
 
+  // Última pasada, sobre la salida ya validada. Aquí no se rechaza nada: se
+  // corrige. Ver `revisarSalida` en el catálogo — vive ahí y se aplica aquí para
+  // que la pantalla y el evaluador offline vean exactamente lo mismo.
+  const revisada = operation.revisarSalida?.(validada.data);
+
   return {
     ok: true,
-    output: validada.data,
+    output: revisada ? revisada.salida : validada.data,
     usage: resultado.usage,
     latencyMs: transcurrido(),
+    ...(revisada?.marcas.length ? { marcas: revisada.marcas } : {}),
   };
 }

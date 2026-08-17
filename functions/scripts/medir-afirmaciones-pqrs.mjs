@@ -3,10 +3,11 @@
  *
  * Cuenta, sobre una corrida guardada, cuántos borradores **afirman acciones de
  * la administración que nadie tomó**. Es el contador de la regla dura que la v2
- * de `pqrs-asistir` añade al prompt.
+ * de `pqrs-asistir` añadió al prompt, y del criterio que el servidor comprueba
+ * en `revisarSalida`.
  *
- * USO:
- *   node functions/scripts/medir-afirmaciones-pqrs.mjs <corrida.json> [--version=p1-minima] [--listar]
+ * USO (requiere compilar antes: npm --prefix functions run build):
+ *   node functions/scripts/medir-afirmaciones-pqrs.mjs <corrida.json> [--version p1-minima] [--listar]
  *
  * ── Por qué existe, y por qué no reproduce «44 de 152» ───────────────────────
  *
@@ -19,7 +20,7 @@
  * conteo a mano que señaló un problema real y no una línea base.
  *
  * Lo que sí hay aquí es un criterio escrito y congelado ANTES de correr la v2,
- * que es la única forma de que la comparación signifique algo (lección 8 del
+ * que es la única forma de que la comparación signifique algo (lección del
  * programa: relajar una afirmación después de ver el resultado no vale).
  *
  * ── Las dos familias, separadas a propósito ──────────────────────────────────
@@ -33,7 +34,7 @@
  * **B — compromiso operativo futuro.** «Procederemos a revisar su estado de
  * cuenta». Se cuenta aparte y **no es la puerta**: casi todos son condicionales
  * y prometer trabajo futuro es lo que hace una administración. Se mide para
- * saber si la regla de A lo mueve sin querer.
+ * saber si la regla de A lo mueve sin querer — y lo movió, de 45 a 59.
  *
  * ── Por qué el gold set permite medir A sin ambigüedad ───────────────────────
  *
@@ -41,87 +42,39 @@
  * acción de la administración que pueda constar, así que en este conjunto
  * cualquier afirmación de la familia A está sin sustento por construcción. No
  * hace falta juzgar caso por caso. Sobre tickets de producción CON historial
- * esto ya no vale y el contador necesitaría mirar el historial.
+ * esto ya no vale, y el criterio lo dice en su propio archivo.
  */
 
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-// ── El criterio, congelado ───────────────────────────────────────────────────
+// ── El criterio: UNA sola copia ──────────────────────────────────────────────
 //
-// Formas verbales explícitas y no raíces: con raíces, «hemos recibido su
-// REPORTe» se cuenta como «reportar» y el contador se dispara a 109 de 152. El
-// acuse de recibo —«hemos recibido», «hemos tomado nota»— es un acto de habla
-// sobre el mensaje, siempre verdadero, y no entra.
+// Se importa del compilado en vez de reescribirse aquí. Es exactamente el mismo
+// que corre en el servidor dentro de `revisarSalida`, así que la cifra que mide
+// este contador y lo que hace el producto no pueden separarse. Dos copias
+// divergen: en este mismo repositorio los rótulos de `type` están duplicados en
+// tres pantallas y ya no coinciden.
 
-const PARTICIPIO =
-  "(verificado|revisado|coordinado|contactado|notificado|programado|activado|canalizado|" +
-  "gestionado|inspeccionado|escalado|trasladado|remitido|analizado|evaluado|iniciado|" +
-  "solicitado|reportado|comunicado)";
-
-const GERUNDIO =
-  "(verificando|revisando|coordinando|contactando|notificando|programando|activando|" +
-  "canalizando|gestionando|inspeccionando|escalando|trasladando|remitiendo|analizando|" +
-  "evaluando|iniciando|solicitando|reportando|comunicando|trabajando|dando\\s+seguimiento)";
-
-const PRETERITO =
-  "(verificamos|revisamos|coordinamos|contactamos|notificamos|programamos|activamos|" +
-  "canalizamos|gestionamos|solicitamos|reportamos|procedimos|nos\\s+comunicamos)";
-
-export const AFIRMA_ACCION = new RegExp(
-  `\\b(?:hemos|habíamos)\\s+(?:ya\\s+)?${PARTICIPIO}` +
-    `|\\b(?:estamos|nos\\s+encontramos)\\s+(?:ya\\s+)?${GERUNDIO}` +
-    `|\\bya\\s+${PRETERITO}` +
-    `|\\bse\\s+(?:ha|han)\\s+${PARTICIPIO}` +
-    `|\\bse\\s+encuentra\\s+en\\s+(?:proceso|revisión)`,
-  "i",
+const AQUI = dirname(fileURLToPath(import.meta.url));
+const { afirmaAccion, prometeFuturo, fallosDeAutoprueba, CASOS_AUTOPRUEBA } = await import(
+  join(AQUI, "../lib/ai/afirmaciones.js")
 );
 
-export const COMPROMISO_FUTURO = new RegExp(
-  "\\b(procederemos|realizaremos|coordinaremos|programaremos|verificaremos|revisaremos|" +
-    "contactaremos|notificaremos|gestionaremos|inspeccionaremos|daremos\\s+seguimiento|" +
-    "nos\\s+comunicaremos|se\\s+procederá|se\\s+realizará|se\\s+coordinará|se\\s+programará|" +
-    "se\\s+verificará)",
-  "i",
-);
-
-// ── Autoprueba ───────────────────────────────────────────────────────────────
-//
-// Corre SIEMPRE, antes de contar nada. Un contador que no demuestra que atrapa
-// es exactamente lo que ya falló cuatro veces en este programa: el tamiz que se
-// creía sus cifras, los checks de inyección que premiaban el rechazo, `npm test`
-// corriendo cero tests, y un campo que nadie renderizaba.
-
-const AUTOPRUEBA = [
-  // Tienen que dar POSITIVO en A.
-  ["A", "Estamos verificando con el equipo de mantenimiento el avance de las labores."],
-  ["A", "Hemos coordinado con el proveedor la visita técnica."],
-  ["A", "Ya notificamos a la empresa encargada del ascensor."],
-  ["A", "Se ha programado la inspección para la próxima semana."],
-  ["A", "Su caso se encuentra en proceso con el área contable."],
-  // Tienen que dar NEGATIVO en A: son acuses de recibo o futuro condicional.
-  ["-", "Hemos recibido su reporte sobre el estado del bota aguas."],
-  ["-", "Hemos tomado nota de su solicitud y la compartiremos con el consejo."],
-  ["-", "Agradecemos su reporte sobre el ruido en el elevador."],
-  ["-", "Una vez contemos con esta información, procederemos a revisar su estado de cuenta."],
-  ["-", "Le agradecemos nos indique el número de su unidad."],
-  // Y este tiene que dar positivo en B y negativo en A.
-  ["B", "Coordinaremos con el área técnica apenas nos confirme el horario."],
-];
-
+/**
+ * Corre SIEMPRE, antes de contar nada. Un contador que no demuestra que atrapa
+ * es lo que ya falló cuatro veces en este programa: el tamiz que se creía sus
+ * cifras, los checks de inyección que premiaban el rechazo, `npm test`
+ * corriendo cero tests, y un campo que nadie renderizaba.
+ */
 function autoprueba() {
-  const fallos = [];
-  for (const [espera, texto] of AUTOPRUEBA) {
-    const a = AFIRMA_ACCION.test(texto);
-    const b = COMPROMISO_FUTURO.test(texto);
-    if (espera === "A" && !a) fallos.push(`no atrapó A: «${texto}»`);
-    if (espera === "-" && a) fallos.push(`falso positivo en A: «${texto}»`);
-    if (espera === "B" && (!b || a)) fallos.push(`B mal clasificado: «${texto}»`);
-  }
+  const fallos = fallosDeAutoprueba();
   if (fallos.length) {
-    console.error("\n✖ El contador no pasa su propia autoprueba:\n  " + fallos.join("\n  ") + "\n");
+    console.error("\n✖ El criterio no pasa su propia autoprueba:\n  " + fallos.join("\n  ") + "\n");
     process.exit(1);
   }
-  console.log(`✓ Autoprueba del contador: ${AUTOPRUEBA.length}/${AUTOPRUEBA.length}`);
+  console.log(`✓ Autoprueba del criterio: ${CASOS_AUTOPRUEBA.length}/${CASOS_AUTOPRUEBA.length}`);
 }
 
 // ── Conteo ───────────────────────────────────────────────────────────────────
@@ -131,7 +84,8 @@ if (!ruta) {
   console.error("\n✖ Falta la corrida: node functions/scripts/medir-afirmaciones-pqrs.mjs <corrida.json>\n");
   process.exit(1);
 }
-const version = process.argv.find((a) => a.startsWith("--version="))?.split("=")[1] ?? "p1-minima";
+const iVersion = process.argv.indexOf("--version");
+const version = iVersion >= 0 ? process.argv[iVersion + 1] : "p1-minima";
 const listar = process.argv.includes("--listar");
 
 autoprueba();
@@ -139,20 +93,28 @@ autoprueba();
 const corrida = JSON.parse(readFileSync(ruta, "utf8"));
 const bloque = corrida.resultados?.[version];
 if (!bloque) {
-  console.error(`\n✖ La corrida no tiene la versión «${version}». Tiene: ${Object.keys(corrida.resultados ?? {}).join(", ")}\n`);
+  console.error(
+    `\n✖ La corrida no tiene la versión «${version}». Tiene: ${Object.keys(corrida.resultados ?? {}).join(", ")}\n`,
+  );
   process.exit(1);
 }
 
 const salidas = bloque.salidas ?? [];
 const marcados = { A: [], B: [] };
+/** Cuántos de los marcados en A ya venían con `needsHumanReview`. El resto son
+ *  los que la comprobación del servidor rescata: sin ella pasaban sin aviso. */
+let yaRevisables = 0;
 
 for (const { id, salida } of salidas) {
   const borrador = salida?.draftResponse ?? "";
   if (!borrador) continue;
-  const a = borrador.match(AFIRMA_ACCION);
-  const b = borrador.match(COMPROMISO_FUTURO);
-  if (a) marcados.A.push({ id, frag: a[0] });
-  if (b) marcados.B.push({ id, frag: b[0] });
+  const a = afirmaAccion(borrador);
+  const b = prometeFuturo(borrador);
+  if (a) {
+    marcados.A.push({ id, frag: a });
+    if (salida?.needsHumanReview) yaRevisables += 1;
+  }
+  if (b) marcados.B.push({ id, frag: b });
 }
 
 const n = salidas.length;
@@ -162,6 +124,15 @@ console.log(`\nCorrida: ${ruta}`);
 console.log(`Versión de prompt: ${version}   ·   operationVersion: ${corrida.operationVersion ?? "?"}   ·   ${n} casos\n`);
 console.log(`  A · acción afirmada (hecha o en curso) ... ${String(marcados.A.length).padStart(3)}/${n}  ${pct(marcados.A.length)}   <- la puerta`);
 console.log(`  B · compromiso operativo futuro ......... ${String(marcados.B.length).padStart(3)}/${n}  ${pct(marcados.B.length)}   (se reporta, no bloquea)`);
+
+if (marcados.A.length) {
+  const rescatados = marcados.A.length - yaRevisables;
+  console.log(
+    `\n  De los ${marcados.A.length} marcados en A, ${yaRevisables} ya traían needsHumanReview del modelo.\n` +
+      `  La comprobación del servidor fuerza la revisión en los ${rescatados} restantes,\n` +
+      `  que sin ella habrían llegado al administrador sin ningún aviso.`,
+  );
+}
 
 if (listar) {
   console.log("\n  Casos marcados en A:");

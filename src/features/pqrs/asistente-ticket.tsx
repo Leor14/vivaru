@@ -278,8 +278,15 @@ export function AsistenteTicket({
               */}
               {asistencia.needsHumanReview ? (
                 <p className="rounded-lg bg-[var(--surface-soft)] p-2 text-xs text-[var(--slate-800)]">
-                  <span className="font-semibold">Revísalo tú.</span> El asistente no tiene bastante para decidir, o
-                  propuso prioridad alta.
+                  {/*
+                    Tres causas, no dos: desde la v2 la comprobación del
+                    servidor enciende esta bandera también cuando el borrador
+                    afirma una acción de la administración. Si el texto siguiera
+                    nombrando solo dos, diría algo falso una de cada tres veces
+                    que aparece.
+                  */}
+                  <span className="font-semibold">Revísalo tú.</span> El asistente no tiene bastante para decidir,
+                  propuso prioridad alta, o el borrador da por hecha alguna acción que habría que comprobar.
                 </p>
               ) : null}
 

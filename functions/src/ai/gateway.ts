@@ -255,6 +255,11 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
     outputTokens: resultado.ok ? resultado.usage.outputTokens : 0,
     latencyMs: resultado.latencyMs,
     outcome: resultado.ok ? "ok" : resultado.reason,
+    // Qué corrigió la revisión de contrato, si corrigió algo. Va en la fila de
+    // uso y no en un log porque **es una cifra que hay que contar**: cuántas
+    // veces el borrador afirmó una acción es lo que dirá en la Fase 4 si la
+    // comprobación sigue haciendo falta, y los logs no se cuentan.
+    ...(resultado.ok && resultado.marcas?.length ? { marcasDeRevision: resultado.marcas } : {}),
   });
 
   if (!resultado.ok) {

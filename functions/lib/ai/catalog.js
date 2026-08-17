@@ -1,11 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OPERATION_KEYS = exports.PQRS_SAFETY_FLAGS = exports.CATEGORIAS_DATO_FALTANTE = void 0;
+exports.OPERATION_KEYS = exports.PQRS_SAFETY_FLAGS = exports.CATEGORIAS_DATO_FALTANTE = exports.MARCAS_DE_REVISION = void 0;
 exports.findOperation = findOperation;
 exports.validateOperationInput = validateOperationInput;
 const zod_1 = require("zod");
+const afirmaciones_1 = require("./afirmaciones");
 const prompts_1 = require("./prompts");
 const prompts_pqrs_1 = require("./prompts-pqrs");
+/**
+ * Vocabulario CERRADO de lo que puede corregir `revisarSalida`.
+ *
+ * Cerrado a propósito y no una cadena libre: estas marcas acaban en `aiUsage`,
+ * y de esa colección lo que la protege es que **no tiene ni un campo de texto
+ * libre donde pueda colarse contenido del conjunto**. El fragmento que disparó
+ * la marca se queda en el servidor; lo que viaja es la categoría, igual que en
+ * `aiFeedback` viaja la categoría de un dato descartado y nunca la frase.
+ */
+exports.MARCAS_DE_REVISION = ["afirma_accion"];
 const ADMIN_ROLES = ["tenant_admin", "admin_tenant"];
 /**
  * Entrada del borrador de comunicaciones: **solo lo que escribe el
@@ -311,6 +322,24 @@ const OPERATIONS = {
         ],
         input: asistirPqrsInput,
         output: asistirPqrsOutput,
+        /**
+         * Si el borrador afirma una acción de la administración, el caso va a
+         * revisión humana obligatoria — el mismo mecanismo que ya protege los
+         * `high`, sobre el mismo campo.
+         *
+         * **No se reescribe el borrador y no se rechaza la salida.** Editar en
+         * silencio nos haría autores del texto; rechazar dejaría al administrador
+         * sin propuesta por un defecto de redacción, cuando lo que necesita es
+         * verla y borrar la frase.
+         */
+        revisarSalida: (salida) => {
+            const s = salida;
+            // El fragmento se calcula y NO se propaga: la marca es la categoría. Ver
+            // `MARCAS_DE_REVISION`.
+            if (!(0, afirmaciones_1.afirmaAccion)(s.draftResponse))
+                return { salida, marcas: [] };
+            return { salida: { ...s, needsHumanReview: true }, marcas: ["afirma_accion"] };
+        },
         // El historial de un ticket puede ser largo; el tope de entrada dobla el de
         // comunicaciones y el de salida lo hereda: el borrador de respuesta es del
         // mismo orden que un aviso. La cifra real la da la corrida de la Fase 2.

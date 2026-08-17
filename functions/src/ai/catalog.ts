@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { FeatureFlagKey } from "../feature-flags";
+import { afirmaAccion } from "./afirmaciones";
 import { PROMPT_ACTIVO, PROMPTS, type PromptDefinition } from "./prompts";
 import { PQRS_PROMPT_ACTIVO, PQRS_PROMPTS } from "./prompts-pqrs";
 
@@ -107,9 +108,38 @@ export interface OperationDefinition {
   reglasDuras: readonly string[];
   input: z.ZodType;
   output: z.ZodType;
+  /**
+   * Última pasada sobre la salida YA validada, antes de devolverla.
+   *
+   * Existe porque **una regla de prompt compra el grueso y nunca la cola**: la
+   * v2 de `pqrs-asistir` bajó las afirmaciones de acción de 32 a 10 de 152, y
+   * ocho de esos diez son la frase que la propia regla cita como prohibida.
+   * Decirlo otra vez con otras palabras no lo cierra; comprobarlo sí.
+   *
+   * Va aquí —en el catálogo, aplicada por `executeOperation`— y no en la
+   * callable, para que **la pantalla y el evaluador offline vean lo mismo**. Si
+   * viviera solo en la puerta, la cifra medida y el producto se separarían en
+   * silencio.
+   *
+   * Puede corregir la salida, nunca rechazarla: rechazar dejaría al
+   * administrador sin propuesta por un defecto de redacción.
+   */
+  revisarSalida?: (salida: unknown) => { salida: unknown; marcas: readonly MarcaDeRevision[] };
   limits: OperationLimits;
   quota: OperationQuota;
 }
+
+/**
+ * Vocabulario CERRADO de lo que puede corregir `revisarSalida`.
+ *
+ * Cerrado a propósito y no una cadena libre: estas marcas acaban en `aiUsage`,
+ * y de esa colección lo que la protege es que **no tiene ni un campo de texto
+ * libre donde pueda colarse contenido del conjunto**. El fragmento que disparó
+ * la marca se queda en el servidor; lo que viaja es la categoría, igual que en
+ * `aiFeedback` viaja la categoría de un dato descartado y nunca la frase.
+ */
+export const MARCAS_DE_REVISION = ["afirma_accion"] as const;
+export type MarcaDeRevision = (typeof MARCAS_DE_REVISION)[number];
 
 const ADMIN_ROLES = ["tenant_admin", "admin_tenant"] as const;
 
@@ -443,6 +473,23 @@ const OPERATIONS: Record<OperationKey, OperationDefinition> = {
     ],
     input: asistirPqrsInput,
     output: asistirPqrsOutput,
+    /**
+     * Si el borrador afirma una acción de la administración, el caso va a
+     * revisión humana obligatoria — el mismo mecanismo que ya protege los
+     * `high`, sobre el mismo campo.
+     *
+     * **No se reescribe el borrador y no se rechaza la salida.** Editar en
+     * silencio nos haría autores del texto; rechazar dejaría al administrador
+     * sin propuesta por un defecto de redacción, cuando lo que necesita es
+     * verla y borrar la frase.
+     */
+    revisarSalida: (salida) => {
+      const s = salida as { draftResponse?: string; needsHumanReview?: boolean };
+      // El fragmento se calcula y NO se propaga: la marca es la categoría. Ver
+      // `MARCAS_DE_REVISION`.
+      if (!afirmaAccion(s.draftResponse)) return { salida, marcas: [] };
+      return { salida: { ...s, needsHumanReview: true }, marcas: ["afirma_accion"] };
+    },
     // El historial de un ticket puede ser largo; el tope de entrada dobla el de
     // comunicaciones y el de salida lo hereda: el borrador de respuesta es del
     // mismo orden que un aviso. La cifra real la da la corrida de la Fase 2.

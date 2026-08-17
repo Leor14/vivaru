@@ -110,10 +110,15 @@ contexto) {
             latencyMs: transcurrido(),
         };
     }
+    // Última pasada, sobre la salida ya validada. Aquí no se rechaza nada: se
+    // corrige. Ver `revisarSalida` en el catálogo — vive ahí y se aplica aquí para
+    // que la pantalla y el evaluador offline vean exactamente lo mismo.
+    const revisada = operation.revisarSalida?.(validada.data);
     return {
         ok: true,
-        output: validada.data,
+        output: revisada ? revisada.salida : validada.data,
         usage: resultado.usage,
         latencyMs: transcurrido(),
+        ...(revisada?.marcas.length ? { marcas: revisada.marcas } : {}),
     };
 }

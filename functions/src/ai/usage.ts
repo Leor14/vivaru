@@ -1,6 +1,7 @@
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 
+import type { MarcaDeRevision } from "./catalog";
 import type { ExecutionFailureReason } from "./execute";
 
 /**
@@ -78,6 +79,17 @@ export interface AiUsageEntry {
   outputTokens: number;
   latencyMs: number;
   outcome: AiUsageOutcome;
+  /**
+   * Qué corrigió la revisión de contrato de la operación, si corrigió algo.
+   *
+   * **Vocabulario cerrado** (`MARCAS_DE_REVISION`), no cadenas libres: la
+   * ausencia de texto libre de arriba sigue siendo la garantía, y el fragmento
+   * que disparó la marca se queda en el servidor. Va aquí y no en un log
+   * porque es una cifra que hay que contar: cuántas veces el borrador afirmó
+   * una acción es lo que dirá en la Fase 4 si la comprobación sigue haciendo
+   * falta.
+   */
+  marcasDeRevision?: readonly MarcaDeRevision[];
 }
 
 /**
