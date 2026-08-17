@@ -88,7 +88,35 @@ producción quedó bloqueado en la sesión, así que las banderas las enciende D
 - **`featureFlags` de producción: 0 documentos.** Todo apagado por default, que
   es un estado seguro y no uno a medias. `aiAssistance`: 0 filas.
 
-### Antes de encender: hay que promocionar, y no es opcional
+### Promocionado el 17 por la noche. Falta SOLO encender las banderas
+
+**`develop` está en `master` (`6d5bba8`) y producción sirve el front nuevo:**
+rollout de App Hosting a las 14:45:58, landing y login en **200** comprobados
+después. Las dos ramas quedaron sincronizadas en el mismo commit.
+
+- **El arreglo de seguridad de Resend sobrevivió**, que era el riesgo real de la
+  fusión: `apphosting.yaml` conserva `secret: RESEND_API_KEY` y hay **cero**
+  claves en claro. Comprobado leyéndolo tras fusionar.
+- **La mina murió con la FUSIÓN, no con el redespliegue** — corrige lo que este
+  documento decía antes. Desde que `master` contiene las dos funciones, un
+  despliegue desde `master` ya no puede borrarlas. Se redesplegaron igual desde
+  `master` para que rama y ambiente coincidan sin dudas; **solo esas dos**, nunca
+  las ~60, porque un despliegue total arrastra las que llevan el secreto de
+  Resend sin ganancia.
+- Gate corrido sobre `master` antes de empujar: 0 errores de typecheck fuera de
+  `tests/`, 0 en functions con sus pruebas, 314 en verde, y **`npm run build` de
+  Next completo** — empujar `master` dispara App Hosting y un build roto tumbaría
+  producción.
+
+**Lo único que falta: las tres banderas** (`ai-gateway`, `ai-pqrs-shadow`,
+`ia-proveedor-real`) desde `/superadmin/flags`, o sembrando el catálogo con
+`node functions/scripts/seed-feature-flags.mjs hogaru-1` y poniéndolas en `true`.
+**Las enciende David**: escribir documentos en Firestore de producción está
+bloqueado por el clasificador de permisos de Claude Code (desplegar functions y
+reglas sí pasa). El orden entre ellas da igual: con el proveedor apagado la
+sombra omite con motivo `proveedor_simulado` en vez de fabricar basura.
+
+### Por qué la promoción no era opcional
 
 **Un administrador de producción NO puede clasificar un ticket hoy**:
 `updateTicketClassification` no existe en `master` (comprobado: 0 apariciones), y
@@ -99,29 +127,19 @@ las definiciones** de los cinco tipos, que envenena la sombra por ruido.
 
 **Encender la sombra sin promocionar deja un sistema a medias.**
 
-El orden, con lo ya hecho marcado:
+Un administrador de producción **no podía clasificar un ticket**:
+`updateTicketClassification` no existía en `master` (comprobado: 0 apariciones),
+y `asistente-ticket.tsx` tampoco. La sombra guarda pares *sugerencia + decisión*,
+y sin editor la mitad que importa no ocurre nunca — es literalmente lo que la PRD
+advirtió para F3. Y la pantalla del residente seguía **sin renderizar las
+definiciones** de los cinco tipos, lo que envenena la sombra por ruido.
 
-1. ~~Poner `AsistenteTicket` detrás de `ai-pqrs-suggestions`.~~ **HECHO**
-   (`8bfc1c2`). Sin esto, promocionar habría puesto delante de un administrador
-   un panel de IA que revienta: producción no tiene `asistirTicketPqrs`.
-2. **Promocionar `develop` → `master`.** Comprobado que es seguro: el diff de
-   interfaz son **8 archivos, todos de PQRS**, y el ensayo de fusión da **0
-   conflictos**. Las ramas divergieron —`master` tiene 9 commits propios—, pero
-   el único contenido que `master` tiene y `develop` no es **`apphosting.yaml`**
-   (del arreglo `6e1f9ed`, que referencia la clave de Resend como secreto en vez
-   de en claro). **`develop` no tocó ese archivo**, así que la fusión conserva la
-   versión segura sola. Aun así: comprobarlo después de fusionar.
-3. **Redesplegar functions desde `master`.** Aquí muere la mina: hoy producción
-   corre functions de `develop`, y un despliegue desde `master` **borraría** las
-   dos funciones de la sombra, porque Firebase elimina lo que no está en el
-   código fuente.
-4. **Encender las tres banderas** (`ai-gateway`, `ai-pqrs-shadow`,
-   `ia-proveedor-real`) desde `/superadmin/flags`, o sembrando el catálogo con
-   `node functions/scripts/seed-feature-flags.mjs hogaru-1` y poniéndolas en
-   `true`. El orden entre ellas da igual: con el proveedor apagado la sombra
-   omite con motivo `proveedor_simulado` en vez de fabricar basura.
+Con la promoción, las dos cosas están en producción. El panel de IA no: va
+detrás de `ai-pqrs-suggestions`, apagada (`8bfc1c2`). Sin ese gate, promocionar
+habría puesto delante de un administrador un panel que revienta al pulsarlo,
+porque producción **no tiene desplegada `asistirTicketPqrs`**.
 
-**Qué pasará al encenderla: nada, y es lo esperado.** De los 9 conjuntos de
+**Qué pasará al encender las banderas: nada, y es lo esperado.** De los 9 conjuntos de
 producción, **7 están marcados `isExample=true`** —incluidos los dos que tienen
 los 20 tickets, `conjunto-las-playas` (14) y `tenant-santa-maria` (6)—. Los dos
 reales, Bromelias y Queretarock, tienen **cero tickets**. La sombra queda armada
@@ -153,12 +171,17 @@ ya marca lo que escribe. Verificado con un ticket sembrado en
 `omitida`/`sembrado` y **`aiUsage` siguió con una sola llamada de la sombra**,
 la de pago. Es decir: no se pagó por él.
 
-**Dos filas de prueba en staging, por excluir o borrar:** los tickets
-`PQRS-SOMBRA1` (`tenant-santa-maria`, omitida) y `PQRS-SOMBRA2`
-(`tenant-nogal-bogota`, sugerida). El primero lleva además una decisión
-fabricada (`classifiedBy: prueba-sombra-f4`) escrita para probar el congelado.
-**Al segundo NO se le fabricó decisión a propósito**: habría metido en G7 un par
-que nadie decidió.
+**Staging quedó limpio el 17 por la noche.** Los tres tickets de prueba
+(`PQRS-SOMBRA1/2/3`) y sus filas de `aiAssistance` están borrados: **0 filas**.
+Se crearon para comprobar la sombra y su sitio no es el conjunto de evaluación —
+uno llevaba además una decisión fabricada para probar el congelado, y eso en G7
+es un par que nadie tomó.
+
+**Y los dos comunicados del 14 en `tenant-palmas-cdmx` también**, tras comprobar
+—no dar por bueno— que sus textos están transcritos en
+`datasets/evaluacion/resultados/2026-08-14-sesion-administrador-2.md` (líneas 101
+y 105). El conjunto queda con **0 comunicados**: si algún día se retoma la línea
+base de comunicaciones, ya se puede tomar a ciegas.
 
 **F3 CERRADA el 17 de agosto**: la entrada de §9 quedó firmada por David y
 escrita en los dos sitios —el criterio de §9, tachado y reformulado como se hizo

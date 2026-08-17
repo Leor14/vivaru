@@ -74,7 +74,9 @@ project ID da un host que no existe y responde 404 en TODO, lo que se lee como
 | Producción | `https://www.grupovivaru.com` · `https://vivaru--hogaru-1.us-central1.hosted.app` | `master` |
 | Staging | `https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app` | `develop` |
 
-El landing vive en `/mx`; `/` solo redirige allí.
+El landing vive en **`/`**; `/mx` redirige allí. (Estaba escrito al revés hasta
+el 17 de agosto de 2026; el landing salió a la raíz en `9dca506` y esta línea no
+se actualizó. Comprobado con `curl -L` contra producción, no de memoria.)
 
 ## Metodología
 
