@@ -126,21 +126,36 @@ function decisionDelTicket(ticket) {
 function esEstadoTerminal(status) {
     return typeof status === "string" && ESTADOS_TERMINALES.has(status);
 }
-function planificarSombra(ticket, tenantId, variante) {
+function planificarSombra(ticket, tenantId, contexto) {
+    // **Lo sembrado no entra en el conjunto de evaluación de G7.** Va primero
+    // porque es la razón más fuerte: un ticket de ejemplo no es un caso real
+    // aunque su conjunto tenga SLA y su texto sea perfecto.
+    //
+    // Este repo ya pagó dos veces por no descontarlo —la volumetría dio 20
+    // tickets que eran 0, y 26 comunicaciones que eran 2—, y aquí saldría más
+    // caro: es el conjunto contra el que se cobran las DOS puertas de escala. Un
+    // gold set envenenado se detecta; una referencia de despliegue envenenada
+    // parece que funciona.
+    //
+    // Y de paso no se paga por ello: resembrar el piloto con la sombra encendida
+    // costaba USD 0,014 en clasificar tickets inventados.
+    if (ticket.isExample === true || contexto.conjuntoDeEjemplo) {
+        return { accion: "omitir", motivo: "sembrado" };
+    }
     // **En buzón simple no se corre, y no es por ahorrar.** Ahí el contrato de
     // producto obliga a `suggestedCategory` y `suggestedType` en null, y la
     // pantalla no pinta el editor de clasificación —el esquema de `aiFeedback` lo
     // tiene escrito como invariante—. Es decir: no existe la decisión del
     // administrador. Y sin decisión no hay par, que es lo único que la sombra
     // viene a fabricar.
-    if (variante === "buzon_simple")
+    if (contexto.variante === "buzon_simple")
         return { accion: "omitir", motivo: "buzon_simple" };
     // Un ticket de otro conjunto se trata como uno sin texto: no se clasifica y
     // no se paga. Aquí el `tenantId` sale del propio documento, así que esto es
     // una red contra un documento incoherente, no contra un cliente mentiroso.
     if (!(0, pqrs_ticket_1.ticketPerteneceAlConjunto)(ticket, tenantId))
         return { accion: "omitir", motivo: "ticket_sin_texto" };
-    const construida = (0, pqrs_ticket_1.construirEntradaPqrs)(ticket, variante);
+    const construida = (0, pqrs_ticket_1.construirEntradaPqrs)(ticket, contexto.variante);
     if (!construida.ok)
         return { accion: "omitir", motivo: "ticket_sin_texto" };
     return { accion: "clasificar", entrada: construida.entrada, recorte: construida.recorte };
@@ -223,9 +238,17 @@ async function clasificarTicketEnSombra(ticketId, ticket, db = (0, firestore_1.g
         logger.info("sombra-pqrs: el ticket ya tenía fila, no se repite la llamada", { ticketId, tenantId });
         return;
     }
-    const settingsSnap = await db.collection("tenantSettings").doc(tenantId).get();
+    // Las dos lecturas a la vez: la variante decide la puerta dura de nulls, y el
+    // conjunto dice si todo lo suyo es de ejemplo. No dependen la una de la otra.
+    const [settingsSnap, tenantSnap] = await Promise.all([
+        db.collection("tenantSettings").doc(tenantId).get(),
+        db.collection("tenants").doc(tenantId).get(),
+    ]);
     const variante = (0, pqrs_ticket_1.variantePqrsDe)(settingsSnap.exists ? settingsSnap.data() : null);
-    const plan = planificarSombra(ticket, tenantId, variante);
+    const plan = planificarSombra(ticket, tenantId, {
+        variante,
+        conjuntoDeEjemplo: tenantSnap.data()?.isExample === true,
+    });
     if (plan.accion === "omitir") {
         // El motivo se guarda: el día que alguien cuente cuántos tickets tienen
         // sombra, la diferencia tiene que estar explicada en la colección y no

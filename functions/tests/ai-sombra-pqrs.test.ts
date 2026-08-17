@@ -6,6 +6,7 @@ import {
   esEstadoTerminal,
   hayQueRegistrarDecision,
   planificarSombra,
+  type ContextoSombra,
   type TicketEnSombra,
 } from "../src/ai/sombra-pqrs";
 import { evaluateQuota } from "../src/ai/quota";
@@ -34,30 +35,73 @@ function ticket(overrides: Partial<TicketEnSombra> = {}): TicketEnSombra {
   };
 }
 
+function ctx(overrides: Partial<ContextoSombra> = {}): ContextoSombra {
+  return { variante: "con_sla", conjuntoDeEjemplo: false, ...overrides };
+}
+
+describe("lo sembrado no entra en el conjunto de evaluación de G7", () => {
+  it("omite un ticket marcado como ejemplo", () => {
+    // `trial-seed.ts` marca cada documento. Sin esto, una resiembra del piloto
+    // metería 16 casos inventados en la referencia contra la que se cobran las
+    // dos puertas de escala — y pagaría USD 0,014 por clasificarlos.
+    const plan = planificarSombra(ticket({ isExample: true }), CONJUNTO, ctx());
+
+    expect(plan).toEqual({ accion: "omitir", motivo: "sembrado" });
+  });
+
+  it("omite cualquier ticket de un conjunto de ejemplo, aunque el ticket no esté marcado", () => {
+    // El segundo camino: los seeds de demo marcan el CONJUNTO y no sus filas.
+    // `audit-volumen-ia.mjs` descuenta por los dos, y por eso la volumetría dejó
+    // de dar 20 tickets que eran 0.
+    const plan = planificarSombra(ticket(), CONJUNTO, ctx({ conjuntoDeEjemplo: true }));
+
+    expect(plan).toEqual({ accion: "omitir", motivo: "sembrado" });
+  });
+
+  it("«sembrado» gana a «buzon_simple»: importa más que no sea real", () => {
+    // Al contar por qué faltan filas, saber que era de mentira dice más que
+    // saber en qué variante estaba.
+    const plan = planificarSombra(
+      ticket({ isExample: true }),
+      CONJUNTO,
+      ctx({ variante: "buzon_simple" }),
+    );
+
+    expect(plan).toMatchObject({ motivo: "sembrado" });
+  });
+
+  it("un `isExample` que no sea exactamente true NO cuenta como sembrado", () => {
+    // Nada de repliegues por valor blando: una cadena "false" o un 0 no pueden
+    // decidir que un ticket real se descarte del dataset.
+    expect(planificarSombra(ticket({ isExample: "true" }), CONJUNTO, ctx()).accion).toBe("clasificar");
+    expect(planificarSombra(ticket({ isExample: false }), CONJUNTO, ctx()).accion).toBe("clasificar");
+  });
+});
+
 describe("dónde NO corre la sombra", () => {
   it("omite los conjuntos de buzón simple, y deja dicho el motivo", () => {
     // No es ahorro: en esa variante la pantalla no pinta el editor de
     // clasificación, así que no hay decisión del administrador que capturar.
     // Sin decisión no hay par, y el par es lo único que la sombra fabrica.
-    const plan = planificarSombra(ticket(), CONJUNTO, "buzon_simple");
+    const plan = planificarSombra(ticket(), CONJUNTO, ctx({ variante: "buzon_simple" }));
 
     expect(plan).toEqual({ accion: "omitir", motivo: "buzon_simple" });
   });
 
   it("omite un ticket sin nada que leer", () => {
-    const plan = planificarSombra(ticket({ subject: "", message: "" }), CONJUNTO, "con_sla");
+    const plan = planificarSombra(ticket({ subject: "", message: "" }), CONJUNTO, ctx());
 
     expect(plan).toEqual({ accion: "omitir", motivo: "ticket_sin_texto" });
   });
 
   it("omite un ticket cuyo conjunto no coincide con el suyo", () => {
-    const plan = planificarSombra(ticket({ tenantId: "conjunto-b" }), CONJUNTO, "con_sla");
+    const plan = planificarSombra(ticket({ tenantId: "conjunto-b" }), CONJUNTO, ctx());
 
     expect(plan).toMatchObject({ accion: "omitir" });
   });
 
   it("omite un ticket sin conjunto — un documento sin conjunto no es de nadie", () => {
-    const plan = planificarSombra(ticket({ tenantId: undefined }), CONJUNTO, "con_sla");
+    const plan = planificarSombra(ticket({ tenantId: undefined }), CONJUNTO, ctx());
 
     expect(plan).toMatchObject({ accion: "omitir" });
   });
@@ -65,7 +109,7 @@ describe("dónde NO corre la sombra", () => {
 
 describe("dónde sí corre", () => {
   it("clasifica un ticket normal con SLA y arma la entrada en servidor", () => {
-    const plan = planificarSombra(ticket(), CONJUNTO, "con_sla");
+    const plan = planificarSombra(ticket(), CONJUNTO, ctx());
 
     expect(plan.accion).toBe("clasificar");
     // La variante viaja dentro de la entrada porque es lo que decide la puerta

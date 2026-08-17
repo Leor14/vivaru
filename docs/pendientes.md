@@ -92,10 +92,13 @@ USD 0,014 **y entran en el conjunto de evaluación de G7 indistinguibles de los
 reales.** Es el mismo defecto que ya infló un baseline dos veces, esta vez en el
 sitio donde se cobran las dos puertas de escala.
 
-Arreglo propuesto, sin decidir: que la sombra omita con motivo `sembrado`
-cuando el ticket o su conjunto traigan `isExample`, y que
-`seed-pqrs-piloto.mjs` lo escriba. Cuesta poco y cierra el agujero antes de que
-haya datos que limpiar.
+**ARREGLADO el 17 de agosto, y comprobado en staging.** La sombra omite con
+motivo `sembrado` cuando el ticket **o su conjunto** traen `isExample` —hacen
+falta los dos caminos, como en `audit-volumen-ia.mjs`— y `seed-pqrs-piloto.mjs`
+ya marca lo que escribe. Verificado con un ticket sembrado en
+`tenant-nogal-bogota` (`con_sla`, donde sí clasificaría): salió
+`omitida`/`sembrado` y **`aiUsage` siguió con una sola llamada de la sombra**,
+la de pago. Es decir: no se pagó por él.
 
 **Dos filas de prueba en staging, por excluir o borrar:** los tickets
 `PQRS-SOMBRA1` (`tenant-santa-maria`, omitida) y `PQRS-SOMBRA2`
@@ -104,10 +107,13 @@ fabricada (`classifiedBy: prueba-sombra-f4`) escrita para probar el congelado.
 **Al segundo NO se le fabricó decisión a propósito**: habría metido en G7 un par
 que nadie decidió.
 
-**Sigue pendiente de redacción y firma: la entrada de §9** del registro de
-decisiones (el 0% de afirmaciones lo cumple el sistema, no el modelo).
-Borrador entregado a David el 17 por la noche, **sin aprobar**. Sin esa entrada
-F3 no cierra.
+**F3 CERRADA el 17 de agosto**: la entrada de §9 quedó firmada por David y
+escrita en los dos sitios —el criterio de §9, tachado y reformulado como se hizo
+con el de `category`, y el registro de decisiones—. El 0% de afirmaciones lo
+cumple el sistema (comprobación de servidor + revisión forzada + resaltado), no
+el modelo, que se queda en 6,6%. Con el alcance dicho: lo prohibido es **afirmar
+acciones**; el compromiso futuro —«procederemos a revisar»— lo permite la regla
+dura, y su subida de 45 a 59 es la conducta desplazándose a la forma buena.
 
 **Tres decisiones de David del 17 de agosto que siguen rigiendo:**
 

@@ -18,7 +18,7 @@ verdad es este archivo.**
 | Usuario principal | `tenant_admin` / `admin_tenant` |
 | Usuarios secundarios | Comité u operativos según RBAC; residentes y portería originan tickets |
 | Responsable | David |
-| Estado | **En piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026). El paso en curso es **F3, piloto simulado en staging**: la pantalla, el editor de clasificación y su medición están construidos y en verde el 15 ago 2026; falta desplegar, sembrar y hacer la sesión. **Sin prerrequisitos vivos**: los tres cerrados |
+| Estado | **En piloto** — G0–G5 superadas (F2 corrida el 15 ago 2026) y **F3 cerrada el 17 de agosto de 2026** con la firma de la entrada de §9. El paso en curso es **F4**: la sombra está construida, desplegada a staging y vista clasificar un ticket real (17 ago); falta desplegarla a producción y decidir el tenant piloto de la parte visible. **Sin prerrequisitos vivos**: los tres cerrados |
 | Dependencias | `PRD-VAI-PLAT-001` (**en producción desde el 15 ago 2026, inerte tras banderas**: gateway `aiInvoke`, `aiUsage`, cuotas, adaptador Vertex, `aiFeedback`, consola `/superadmin/flags`) · catálogos de `Ticket` (`src/types/domain.ts:141`) · variantes `con_sla`/`buzon_simple` (`src/lib/config/module-variants.ts:37`) |
 | Riesgo | Medio-alto: contenido sensible, priorización, posible efecto legal o reputacional |
 | Estado de datos | Gold set **construido**: 152 casos reales (84 MX · 60 EC · 8 sintéticos de inyección) en `datasets/pqrs/`. Producción tiene **0 tickets** (medido 14 ago 2026) — el dataset de despliegue lo fabrica el modo sombra |
@@ -294,11 +294,23 @@ Estado por eje, medido y no supuesto:
   agosto de 2026** — ver «Segunda decisión rectora». En el lanzamiento se
   reporta y no bloquea.
 - Inyección: 8/8. `buzon_simple`: nulls siempre.
-- 0 promesas, plazos o hechos no sustentados en los casos que se lean a mano
-  en la Fase 2 y en la sesión de la Fase 3 (el resumen y el borrador no tienen
-  afirmaciones comprobables en el gold set — ese conjunto mide clasificación;
-  la calidad del texto se evalúa como en comunicaciones: afirmaciones por
-  caso, su propio incremento).
+- ~~0 promesas, plazos o hechos no sustentados en los casos que se lean a mano
+  en la Fase 2 y en la sesión de la Fase 3.~~ **Reformulado el 17 de agosto de
+  2026: lo cumple el SISTEMA, no el modelo** — ver el registro de decisiones. El
+  modelo se queda en **6,6%** (10 de 152 con el criterio congelado) y el prompt
+  dejó de ser la palanca: 8 de esos 10 son «estamos verificando» o «estamos
+  revisando», las palabras exactas que la propia regla dura cita como
+  prohibidas. El 0% lo garantizan tres mecanismos deterministas, y se comprueban
+  por separado: la comprobación de contrato del servidor fuerza
+  `needsHumanReview` (`20e341f`), ninguna respuesta sale sin que una persona la
+  envíe, y la frase marcada se resalta dentro del borrador (`d08ec7c`).
+
+  **Alcance, porque las dos cosas se confunden y no son la misma:** lo prohibido
+  es **afirmar acciones** de la administración que no consten en el historial.
+  El **compromiso futuro** —«procederemos a revisar»— lo permite la regla dura
+  («dice qué se hará»), y su subida de 45 a 59 casos entre v1 y v2 es la
+  conducta desplazándose a la forma buena, no un empeoramiento. Sigue prohibido
+  prometer solución, compensación, sanción o plazo.
 - 0 acceso cruzado entre tenants (pruebas negativas).
 - Costo por asistencia medido y dentro de presupuesto (§10).
 
@@ -381,7 +393,7 @@ proveedor → versionado; falla → editor manual). Se añaden dos medidas:
 |---|---|---|---|
 | **F1 — Gold set y taxonomía** | 152 casos, taxonomía con árbol de `type` y preguntas ordenadas de `priority`, dos rondas de doble etiquetado + vuelta de definiciones | G2 | **HECHA** (15 ago 2026) |
 | **F2 — Evaluación offline** | Operación PQRS sobre el gateway; corrida contra el gold set; criterios de lanzamiento de §9; costo real por asistencia | G4 + G5 | **HECHA** (15 ago 2026). Operación `pqrs-asistir` construida y prerrequisito cerrado (12 casos `buzon_simple`). Inyección 8/8, nulls 12/12, guardrail 32/32; `category` 82,1% (baseline 61,4%) **movida a G7**. **USD 0,001 por asistencia.** Prompt activo: `p1-minima`. Lectura en `datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md` |
-| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **En curso (15 ago 2026). Código construido y en verde; falta el ambiente.** Hecho: callable `asistirTicketPqrs`, bloque de asistencia en el drawer, **editor de clasificación** (prerrequisito 3, encontrado al construir la pantalla), feedback de `pqrs-asistir` sobre `aiFeedback` con el par sugerida/guardada, y `seed-pqrs-piloto.mjs` con 24 casos fijos (16 `con_sla`, 6 `buzon_simple`, 2 de inyección; 4 con respuesta previa). Pendiente: desplegar a staging, sembrar y la sesión. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
+| **F3 — Piloto simulado en staging** | Tenant de staging sembrado con 20–30 tickets cuyo texto sale de los corpus reales (voz real, canal simulado — los sintéticos de modelo quedan descartados por la hoja de ruta); sesión guiada con un administrador, guion como el de comunicaciones; mide el circuito de producto: resumen útil, borrador aceptado/editado, `needsHumanReview` donde debe | G6 (parte 1) | **HECHA (17 ago 2026).** La sesión se corrió, los tres bloqueos cayeron —resaltado de la frase (`d08ec7c`), «sin prioridad» como estado real del selector (`e2686f8`) y la v2 desplegada a staging— y el último pendiente, la entrada de §9, quedó firmada el 17. Detalle de lo construido: **En curso (15 ago 2026). Código construido y en verde; falta el ambiente.** Hecho: callable `asistirTicketPqrs`, bloque de asistencia en el drawer, **editor de clasificación** (prerrequisito 3, encontrado al construir la pantalla), feedback de `pqrs-asistir` sobre `aiFeedback` con el par sugerida/guardada, y `seed-pqrs-piloto.mjs` con 24 casos fijos (16 `con_sla`, 6 `buzon_simple`, 2 de inyección; 4 con respuesta previa). Pendiente: desplegar a staging, sembrar y la sesión. **Si la sesión usa al tercer administrador, primero se le toma la línea base de comunicaciones a ciegas** — al revés se quema |
 | **F4 — Producción: sombra + piloto visible** | Sombra global (clasifica en silencio, guarda sugerencia + decisión final); sugerencias visibles solo para tenants piloto por bandera. **Desde el primer ticket real, el dataset de despliegue se fabrica solo** | G6 (parte 2) | **La sombra está construida (17 ago 2026, `f1fea59`) y NO desplegada.** Dos triggers propios sobre `tickets` (`sombraPqrsAlCrearTicket`, `sombraPqrsAlActualizarTicket`), colección `aiAssistance` con su regla, y `ai-pqrs-shadow` apagada en los dos ambientes. Falta: desplegar, encender y ver la primera fila. Tenant piloto de la parte visible: sin decidir (David, 15 ago) |
 | **F5 — Escala** | Abrir por plan y variante. Aquí se cobra el recall ≥95% contra la referencia de la sombra, y el costo dentro del 2–3% | G7 | — |
 
@@ -504,4 +516,6 @@ se vea con ojos humanos en la sesión en vez de descubrirse en la Fase 4.
 | 17 ago 2026 | **La sombra no corre en `buzon_simple`, y se anota el motivo.** Ahí la pantalla no pinta el editor de clasificación, así que no existe decisión del administrador que capturar: sin decisión no hay par, y el par es lo único que la sombra fabrica. El hueco queda explicado en la propia colección, no se deduce | David |
 | 17 ago 2026 | **La sombra consume la cuota del conjunto pero no tiene tope por usuario.** Los topes del conjunto existen para que uno desbocado no se coma el presupuesto de todos, y su gasto es gasto del conjunto; el de 20 por usuario y día se convertiría en un techo de 20 tickets diarios, perdiendo dataset **en silencio** a partir del 21 | David |
 | 17 ago 2026 | **La decisión del administrador se anota en cada cambio y se congela al resolverse**, no solo al cierre como decía la letra de §7. Un ticket con SLA puede vivir semanas abierto: esperar al cierre dejaría fuera casi todo lo que se clasifica en un piloto. G7 mide contra las congeladas | David |
+| 17 ago 2026 | **El «0 afirmaciones no sustentadas» de §9 lo cumple el SISTEMA, no el modelo — y por eso el criterio se cobra en la puerta de salida.** Medido: la v2 bajó las afirmaciones de acción de 21,1% a 6,6% (10 de 152, criterio congelado) y ahí se detuvo — **8 de esos 10 son «estamos verificando» o «estamos revisando», las palabras exactas que la propia regla dura cita como prohibidas**. El prompt dejó de ser la palanca. El 0% lo garantizan tres mecanismos deterministas: la comprobación de contrato en el servidor fuerza `needsHumanReview` (`20e341f`), ninguna respuesta sale sin que una persona la envíe, y la frase marcada se resalta **dentro** del borrador y se nombra en el aviso (`d08ec7c`). Alcance: lo prohibido es afirmar acciones que no consten en el historial; **el compromiso futuro —«procederemos a revisar»— lo permite la regla dura** («dice qué se hará»), y su subida de 45 a 59 es la conducta desplazándose a la forma buena. Misma lógica que las dos decisiones rectoras: la exigencia se mueve a donde se puede cumplir de verdad, no se rebaja. **Límite dicho: el aviso general ya se probó con una persona y publicó literal igual** — por eso el mecanismo que cuenta es el resaltado, y nadie lo ha visto pintado todavía | David |
+| 17 ago 2026 | **Lo sembrado no entra en el conjunto de evaluación de la sombra.** Si el ticket o su conjunto traen `isExample`, se omite con motivo `sembrado` y no se paga. Encontrado al probar la sombra en staging: los tickets de `seed-pqrs-piloto.mjs` no llevaban la marca y el conjunto tampoco, así que una resiembra habría metido 16 casos inventados en la referencia contra la que se cobran las DOS puertas de escala —y pagado USD 0,014 por clasificarlos—. Es el defecto que ya infló un baseline dos veces, en el sitio donde sale más caro: un gold set envenenado se detecta, una referencia de despliegue envenenada parece que funciona | David |
 | 17 ago 2026 | **La sombra dispara solo al crear el ticket, no al editarlo.** El residente puede editar el suyo; reclasificar cada edición multiplicaría el gasto y mediría otra cosa. Lo que se guarda es la clasificación del ticket tal como llegó, que es lo que el administrador tuvo delante. Límite conocido, escrito en el código | David |

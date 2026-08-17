@@ -318,6 +318,12 @@ async function main() {
       createdAt: fecha,
       updatedAt: fecha,
       residentName: `Residente ${unidad.label}`,
+      // Lo sembrado se marca, y no es cosmético: desde la Fase 4 la sombra lee
+      // este campo y OMITE el ticket con motivo `sembrado`. Sin la marca, una
+      // resiembra metería 16 casos inventados en el conjunto contra el que se
+      // cobran las dos puertas de G7 —y pagaría USD 0,014 por clasificarlos—.
+      // Mismo mecanismo que `trial-seed.ts` y que descuenta `audit-volumen-ia.mjs`.
+      isExample: true,
       // `priority` NO se escribe: en producción tampoco. Ver decisión 2.
       ...(respuesta
         ? {
