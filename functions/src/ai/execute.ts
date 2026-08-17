@@ -1,4 +1,4 @@
-import type { MarcaDeRevision, OperationDefinition } from "./catalog";
+import type { FraseMarcada, MarcaDeRevision, OperationDefinition } from "./catalog";
 import { buildProviderPrompt } from "./prompt";
 import type { AiProvider, AiUsage } from "./provider";
 import type { ContextoConjunto } from "./tenant-context";
@@ -37,6 +37,12 @@ export interface ExecutionSuccess {
    * cambiaría esa propiedad por una línea de traza.
    */
   marcas?: readonly MarcaDeRevision[];
+  /**
+   * Los trozos que dispararon esas marcas, con su posición dentro del campo
+   * revisado. Van separados de `marcas` porque tienen destinos distintos: la
+   * categoría se registra en `aiUsage` y esto se le enseña a la persona.
+   */
+  frasesMarcadas?: readonly FraseMarcada[];
 }
 
 export interface ExecutionFailure {
@@ -183,5 +189,6 @@ export async function executeOperation(
     usage: resultado.usage,
     latencyMs: transcurrido(),
     ...(revisada?.marcas.length ? { marcas: revisada.marcas } : {}),
+    ...(revisada?.frasesMarcadas.length ? { frasesMarcadas: revisada.frasesMarcadas } : {}),
   };
 }

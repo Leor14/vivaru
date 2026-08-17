@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronUp, Sparkles } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { partirEnTramos } from "@/lib/ai/frases-marcadas";
 import {
   getTicketCategoryLabel,
   getTicketPriorityLabel,
@@ -15,6 +15,7 @@ import {
   asistirTicketPqrsCallable,
   type AsistenciaPqrs,
   type CuotaRestante,
+  type FraseMarcadaPqrs,
   type RecorteAsistencia,
 } from "@/lib/firebase/callables";
 
@@ -37,10 +38,13 @@ import {
  *    `buzon_simple` la salida trae nulls por contrato de producto, y la pantalla
  *    obedece a lo que llegó, no a lo que el cliente crea que es el conjunto. Así
  *    la puerta dura se ve cumplida en pantalla, no solo en el evaluador.
- * 3. **El borrador lleva su aviso.** La corrida de la Fase 2 midió que 44 de 152
- *    borradores afirman acciones que nadie tomó —«procederemos a programar la
- *    inspección»— y el botón de abajo publica al residente. Copiar es un clic y
- *    publicar es otro; entre los dos va dicho el riesgo.
+ * 3. **La frase sospechosa se señala DENTRO del borrador, no al lado.** El
+ *    aviso general ya se probó: en la sesión del 16 de agosto de 2026 un
+ *    administrador publicó literal un borrador con «estamos verificando», con
+ *    el aviso delante y la bandera encendida. Desde la v2 el servidor manda
+ *    qué trozo afirma una acción que no consta y dónde está, y aquí se resalta
+ *    y se nombra. Cuando no hay frase marcada queda el aviso general, porque
+ *    la comprobación solo atrapa las formas que conoce.
  * 4. **El editor manual sobrevive a todo.** Panel cerrado, bandera apagada o IA
  *    caída: responder y cambiar el estado funcionan igual que hoy.
  */
@@ -118,6 +122,7 @@ export function AsistenteTicket({
   const [asistencia, setAsistencia] = useState<AsistenciaPqrs | null>(null);
   const [cuota, setCuota] = useState<CuotaRestante | null>(null);
   const [recorte, setRecorte] = useState<RecorteAsistencia | null>(null);
+  const [frasesMarcadas, setFrasesMarcadas] = useState<FraseMarcadaPqrs[]>([]);
   const [veces, setVeces] = useState(0);
   const [borradorUsado, setBorradorUsado] = useState(false);
   const [clasificacionUsada, setClasificacionUsada] = useState(false);
@@ -137,6 +142,10 @@ export function AsistenteTicket({
       setAsistencia(resultado.output);
       setCuota(resultado.cuotaRestante);
       setRecorte(resultado.recorte);
+      // `?? []` no es manía: mientras las functions desplegadas sean anteriores
+      // a la v2 con comprobación, el campo no llega, y la pantalla se comporta
+      // como ayer en vez de romperse.
+      setFrasesMarcadas(resultado.frasesMarcadas ?? []);
       setVeces((v) => v + 1);
       setBorradorUsado(false);
       setClasificacionUsada(false);
@@ -159,6 +168,13 @@ export function AsistenteTicket({
   }
 
   const banderas = (asistencia?.safetyFlags ?? []).filter((f) => BANDERAS[f]);
+
+  // El corte valida cada posición contra el texto (ver `partirEnTramos`): una
+  // frase que no cuadre no se resalta. Por eso el aviso específico sale de los
+  // TRAMOS y no de la respuesta cruda — el aviso y el resaltado no pueden
+  // contradecirse, porque nombran lo mismo.
+  const tramos = asistencia ? partirEnTramos(asistencia.draftResponse, frasesMarcadas) : [];
+  const resaltadas = [...new Set(tramos.filter((t) => t.marcado).map((t) => t.texto))];
 
   return (
     <section
@@ -343,17 +359,54 @@ export function AsistenteTicket({
                 <span className="block text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
                   Borrador de respuesta
                 </span>
+                {resaltadas.length > 0 ? (
+                  /*
+                    La frase va NOMBRADA en el aviso, no solo pintada abajo: un
+                    resaltado que fuera solo color no existiría para quien lee
+                    con lector de pantalla ni sobreviviría a una impresión.
+                  */
+                  <p className="mt-1 rounded-lg border border-[var(--amber-300)] bg-[var(--amber-50)] p-2 text-xs text-[var(--slate-800)]">
+                    <span className="font-semibold">El borrador da por hecho algo que no consta.</span>{" "}
+                    {resaltadas.length === 1
+                      ? `La frase resaltada —«${resaltadas[0]}»— afirma una acción que no está en el historial de este ticket.`
+                      : `Las frases resaltadas (${resaltadas.map((f) => `«${f}»`).join(", ")}) afirman acciones que no están en el historial de este ticket.`}{" "}
+                    Bórrala o corrígela antes de responder.
+                  </p>
+                ) : (
+                  /*
+                    Sin frase marcada queda el aviso general, con la cifra del
+                    criterio congelado (10 de 152, corrida de la v2 del 17 de
+                    agosto de 2026). El «44 de 152» que decía antes salía de un
+                    conteo a mano que `docs/pendientes.md` declara no
+                    reproducible, y era de la v1. Y se dice el límite: que la
+                    comprobación no marque nada no significa que sea verdad.
+                  */
+                  <p className="mt-1 rounded-lg border border-[var(--amber-300)] bg-[var(--amber-50)] p-2 text-xs text-[var(--slate-800)]">
+                    <span className="font-semibold">Léelo antes de enviarlo.</span> En la evaluación, 10 de 152
+                    borradores daban por hecha alguna acción que nadie había tomado. Aquí no se detectó ninguna,
+                    pero la comprobación solo atrapa las formas que conoce: borra lo que no sea verdad.
+                  </p>
+                )}
                 {/*
-                  El aviso no es genérico ni prudencial: nombra un fallo MEDIDO,
-                  con su cifra, porque un aviso vago se aprende a ignorar en tres
-                  tickets y uno concreto se comprueba.
+                  Deja de ser un Textarea: dentro de un textarea no se puede
+                  resaltar nada. El texto es EXACTAMENTE `draftResponse` — la
+                  invariante de `partirEnTramos`, probada, es que concatenar los
+                  tramos devuelve el borrador letra a letra.
                 */}
-                <p className="mt-1 rounded-lg border border-[var(--amber-300)] bg-[var(--amber-50)] p-2 text-xs text-[var(--slate-800)]">
-                  <span className="font-semibold">Léelo antes de enviarlo.</span> En la evaluación, 44 de 152
-                  borradores daban por hechas acciones que nadie había tomado («procederemos a programar la
-                  inspección»). Borra lo que no sea verdad.
-                </p>
-                <Textarea readOnly value={asistencia.draftResponse} className="mt-2 bg-[var(--surface-soft)]" rows={6} />
+                <div className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-md border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3 text-sm text-[var(--slate-900)]">
+                  {tramos.map((tramo, i) =>
+                    tramo.marcado ? (
+                      <mark
+                        key={i}
+                        className="rounded-sm bg-[var(--amber-100)] px-0.5 font-medium text-[var(--slate-900)] underline decoration-[var(--amber-700)] decoration-2 underline-offset-2"
+                      >
+                        {tramo.texto}
+                      </mark>
+                    ) : (
+                      tramo.texto
+                    ),
+                  )}
+                </div>
                 <Button
                   type="button"
                   variant="outline"

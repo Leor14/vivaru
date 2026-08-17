@@ -5,7 +5,7 @@ import * as logger from "firebase-functions/logger";
 import { callableCorsOrigins } from "../http-config";
 import { resolveFeatureFlag } from "../feature-flags";
 import { authorizeGatewayCall, type GatewayMembership } from "./authorize";
-import { findOperation, validateOperationInput } from "./catalog";
+import { findOperation, validateOperationInput, type FraseMarcada } from "./catalog";
 import { executeOperation } from "./execute";
 import { resolveProvider, type AiProvider } from "./provider";
 import { consumeQuota, refundQuota, type QuotaRemaining } from "./quota";
@@ -69,6 +69,14 @@ export type GatewayOutcome =
       output: unknown;
       /** Lo que le queda al conjunto y al usuario después de esta llamada. */
       cuotaRestante: QuotaRemaining;
+      /**
+       * Los trozos que la revisión de contrato marcó, con su posición, para que
+       * la pantalla pueda señalarlos dentro del texto. Vacío si no marcó nada, y
+       * ausente en las operaciones que no revisan la salida.
+       *
+       * **No se registran en `aiUsage`** — ver `FraseMarcada` en el catálogo.
+       */
+      frasesMarcadas: readonly FraseMarcada[];
     }
   | {
       ok: false;
@@ -259,6 +267,10 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
     // uso y no en un log porque **es una cifra que hay que contar**: cuántas
     // veces el borrador afirmó una acción es lo que dirá en la Fase 4 si la
     // comprobación sigue haciendo falta, y los logs no se cuentan.
+    //
+    // Va la CATEGORÍA y nunca `frasesMarcadas`: el trozo de borrador es texto
+    // del conjunto, y lo que protege a esta colección es no tener un solo campo
+    // libre donde pueda entrar. Esa frase va a la pantalla, no a la fila.
     ...(resultado.ok && resultado.marcas?.length ? { marcasDeRevision: resultado.marcas } : {}),
   });
 
@@ -293,6 +305,7 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
     // Es lo que necesita la pantalla del Paso 2 para deshabilitar el botón
     // antes de que alguien choque contra el tope, en vez de después.
     cuotaRestante: cuota.restante,
+    frasesMarcadas: resultado.frasesMarcadas ?? [],
   };
 }
 

@@ -670,10 +670,35 @@ export interface RecorteAsistencia {
   historialOmitido: number;
 }
 
+/**
+ * Un trozo del borrador que la comprobación del servidor marcó, con su
+ * posición dentro de `draftResponse`. Es lo que permite resaltar la frase
+ * DENTRO del texto en vez de avisar al lado — el aviso general se probó con
+ * una persona el 16 de agosto de 2026 y publicó el borrador literal igual.
+ *
+ * Viaja en el sobre y no en `output` a propósito: `output` es el esquema de la
+ * operación y ese esquema se le manda al modelo dentro del prompt. El servidor
+ * calcula esto después, sobre la salida ya validada.
+ */
+export interface FraseMarcadaPqrs {
+  marca: "afirma_accion";
+  /** El texto literal, tal y como está en el borrador. */
+  texto: string;
+  desde: number;
+  hasta: number;
+}
+
 export interface AsistirTicketPqrsResult {
   output: AsistenciaPqrs;
   cuotaRestante: CuotaRestante;
   recorte: RecorteAsistencia;
+  /**
+   * Opcional porque el frente y las functions no se despliegan juntos: el
+   * frente sale con el push a `develop` y las functions a mano. Mientras el
+   * servidor sirva la versión anterior, este campo no llega — y la pantalla
+   * tiene que comportarse como antes, no romperse.
+   */
+  frasesMarcadas?: FraseMarcadaPqrs[];
 }
 
 /**

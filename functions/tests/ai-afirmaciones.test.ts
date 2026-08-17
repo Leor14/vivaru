@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { afirmaAccion, fallosDeAutoprueba, prometeFuturo } from "../src/ai/afirmaciones";
+import {
+  afirmaAccion,
+  afirmacionesDeAccion,
+  CASOS_AUTOPRUEBA,
+  fallosDeAutoprueba,
+  prometeFuturo,
+} from "../src/ai/afirmaciones";
 import { findOperation, MARCAS_DE_REVISION } from "../src/ai/catalog";
 
 /**
@@ -55,6 +61,68 @@ describe("criterio de afirmaciones", () => {
   });
 });
 
+/**
+ * Las posiciones, que son lo que permite resaltar la frase DENTRO del borrador
+ * en vez de avisar al lado.
+ *
+ * El aviso general se probó el 16 de agosto de 2026 con un administrador y
+ * publicó el borrador literal, con la bandera encendida. Señalar la frase es lo
+ * que no se ha probado; para poder hacerlo, la posición tiene que llegar buena.
+ */
+describe("posiciones de las afirmaciones", () => {
+  it("el corte por posición devuelve exactamente el fragmento", () => {
+    const borrador = "Estimado residente, agradecemos su reporte. Estamos verificando con mantenimiento.";
+    const [frase] = afirmacionesDeAccion(borrador);
+
+    expect(borrador.slice(frase.desde, frase.hasta)).toBe(frase.texto);
+    expect(frase.texto).toBe("Estamos verificando");
+  });
+
+  /**
+   * El caso es real: sale de la corrida de la v1 del 16 de agosto de 2026, el
+   * único de los 32 marcados con dos afirmaciones en el mismo borrador. En la v2
+   * ninguno de los 10 lo tiene, y aun así se resaltan todas — resaltar una y
+   * callar la otra enseñaría que lo no resaltado está comprobado.
+   */
+  it("devuelve TODAS las afirmaciones del borrador, no la primera", () => {
+    const borrador = "Estamos verificando el caso. Además, se ha gestionado con el proveedor.";
+    const frases = afirmacionesDeAccion(borrador);
+
+    expect(frases.map((f) => f.texto)).toEqual(["Estamos verificando", "se ha gestionado"]);
+    for (const f of frases) expect(borrador.slice(f.desde, f.hasta)).toBe(f.texto);
+  });
+
+  /**
+   * Una expresión con `g` guarda `lastIndex` entre llamadas. Compartida, el
+   * segundo borrador empezaría a buscar donde acabó el primero y perdería
+   * afirmaciones según el orden en que se atendieran los tickets.
+   */
+  it("no arrastra estado de una llamada a la siguiente", () => {
+    const borrador = "Estamos verificando con el equipo.";
+    expect(afirmacionesDeAccion(borrador)).toHaveLength(1);
+    expect(afirmacionesDeAccion(borrador)).toHaveLength(1);
+    expect(afirmacionesDeAccion(borrador)).toHaveLength(1);
+  });
+
+  it("no marca nada en un borrador limpio", () => {
+    expect(afirmacionesDeAccion("Hemos recibido su reporte. ¿Podría indicarnos su unidad?")).toEqual([]);
+    expect(afirmacionesDeAccion("")).toEqual([]);
+    expect(afirmacionesDeAccion(null)).toEqual([]);
+  });
+
+  /**
+   * `afirmaAccion` es de donde sale el 6,6% a través del contador offline, y
+   * ahora delega en la función de arriba. Si las dos dejaran de coincidir, la
+   * cifra medida y lo que ve la pantalla se separarían en silencio — que es la
+   * divergencia contra la que avisa la cabecera del módulo.
+   */
+  it("el primer fragmento es exactamente lo que devuelve afirmaAccion", () => {
+    for (const { texto } of CASOS_AUTOPRUEBA) {
+      expect(afirmacionesDeAccion(texto)[0]?.texto ?? null).toBe(afirmaAccion(texto));
+    }
+  });
+});
+
 describe("revisarSalida de pqrs-asistir", () => {
   const operacion = findOperation("pqrs-asistir");
 
@@ -88,6 +156,40 @@ describe("revisarSalida de pqrs-asistir", () => {
 
     expect(revisada.salida).toBe(limpia);
     expect(revisada.marcas).toEqual([]);
+    expect(revisada.frasesMarcadas).toEqual([]);
+  });
+
+  /**
+   * La propiedad de la que depende el resaltado entero: las posiciones se miden
+   * sobre la MISMA cadena que sale hacia la pantalla. Zod aplica `.trim()` al
+   * validar, así que medir sobre la salida cruda daría índices corridos y el
+   * resaltado caería una o dos letras a la izquierda de la frase.
+   */
+  it("las posiciones cortan sobre el borrador que se devuelve", () => {
+    const borrador = "Estimado residente, agradecemos su mensaje. Estamos verificando con el equipo.";
+    const revisada = operacion!.revisarSalida!({ ...salidaBase, draftResponse: borrador });
+    const salida = revisada.salida as typeof salidaBase;
+
+    expect(revisada.frasesMarcadas).toHaveLength(1);
+    for (const frase of revisada.frasesMarcadas) {
+      expect(salida.draftResponse.slice(frase.desde, frase.hasta)).toBe(frase.texto);
+      expect(frase.marca).toBe("afirma_accion");
+    }
+  });
+
+  /**
+   * Dos frases y UNA marca. Lo que se cuenta en `aiUsage` es cuántos borradores
+   * afirmaron, no cuántas veces: si la marca se repitiera, la cifra de la Fase 4
+   * subiría sola cada vez que un borrador dijera dos cosas.
+   */
+  it("dos afirmaciones dan dos frases y una sola marca", () => {
+    const revisada = operacion!.revisarSalida!({
+      ...salidaBase,
+      draftResponse: "Estamos verificando el caso. Además, se ha gestionado con el proveedor.",
+    });
+
+    expect(revisada.frasesMarcadas).toHaveLength(2);
+    expect(revisada.marcas).toEqual(["afirma_accion"]);
   });
 
   /**
@@ -129,5 +231,9 @@ describe("revisarSalida de pqrs-asistir", () => {
       expect(MARCAS_DE_REVISION).toContain(marca);
       expect(marca).not.toContain("mantenimiento");
     }
+
+    // Y el texto del conjunto va por el otro canal, el que NO se registra:
+    // `frasesMarcadas` llega a la pantalla, `marcas` a la fila de `aiUsage`.
+    expect(revisada.frasesMarcadas[0].texto).toBe("Estamos verificando");
   });
 });

@@ -1,7 +1,48 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 16 de agosto de 2026, tras la sesión de F3 y la v2 de la operación.
+Actualizado el 16 de agosto de 2026 por la noche, tras la sesión de F3, la v2
+de la operación y el resaltado de la frase marcada en pantalla.
+
+## La frase marcada se resalta dentro del borrador; staging sigue sirviendo la v1 (16 ago 2026, noche)
+
+**La decisión que más abajo figura como pendiente se tomó: las dos cosas, y las
+dos están en el repo.** La comprobación del servidor (commit `20e341f`) ya
+forzaba `needsHumanReview`; ahora además dice QUÉ frase y DÓNDE, y la pantalla
+la resalta dentro del borrador y la nombra en el aviso. Es la única palanca que
+la sesión de F3 dejó viva: el aviso general se probó con una persona y publicó
+literal igual.
+
+Dónde vive cada pieza, con su porqué al lado en el código:
+
+- **El criterio no se movió ni se duplicó:** `afirmacionesDeAccion` en
+  `functions/src/ai/afirmaciones.ts` devuelve todas las coincidencias con su
+  posición, y `afirmaAccion` —de donde sale el 6,6%— delega en ella.
+- **El fragmento viaja por el SOBRE de la callable (`frasesMarcadas`), no por
+  `output`:** el esquema de salida se le manda al modelo dentro del prompt
+  (`z.toJSONSchema`), así que meterlo ahí obligaría a subir a v3 y a remedir
+  los 152. La operación sigue en v2 y la corrida del 17 sigue valiendo.
+- **En `aiUsage` sigue entrando solo la categoría, nunca la frase** — la
+  distinción está escrita en `FraseMarcada` del catálogo.
+- El corte en pantalla es un módulo puro (`src/lib/ai/frases-marcadas.ts`) que
+  **descarta toda posición que no corte exactamente su texto**: el frente se
+  despliega con el push y las functions a mano, y en esa ventana el campo llega
+  ausente (es opcional en `callables.ts`) o podría llegar de otro criterio.
+  Resaltar palabras inocentes mataría la confianza igual que la mató el aviso.
+- El aviso sin frase marcada corrige la cifra: **10 de 152 con el criterio
+  congelado**. El «44 de 152» era el conteo a mano no reproducible, y su
+  ejemplo («procederemos a…») es un compromiso futuro permitido, no una
+  afirmación.
+
+**Nadie ha visto el resaltado pintado.** La evidencia es de tests: 291 en
+functions y 935 en cliente (los 7 rojos son preexistentes, comprobado
+corriéndolos contra HEAD sin estos cambios). Verlo de verdad necesita las
+functions v2+comprobación desplegadas a staging —siguen sin desplegar— y una
+llamada real que lanza David.
+
+**De los tres bloqueos de F4 este era el primero.** Quedan: el default de
+`priority` (detalle en la sección de la sesión de F3) y desplegar functions a
+staging.
 
 ## La v2 de `pqrs-asistir` está medida: las afirmaciones caen de 21,1% a 6,6% (16 ago 2026)
 
@@ -25,8 +66,9 @@ que la telemetría no mezcle los dos contratos en una columna. 152 casos, USD
 verificando» o «estamos revisando», la frase que la propia regla cita como
 prohibida con esas palabras exactas.** Para llegar a 0 hace falta algo
 determinista — comprobación en el servidor que fuerce `needsHumanReview`, o
-resaltar la frase en la pantalla. **Decisión pendiente de David.** Otra vuelta de
-prompt no se recomienda.
+resaltar la frase en la pantalla. **Decisión tomada el 16 por la noche: las dos
+— ver la sección del resaltado, arriba.** Otra vuelta de prompt no se
+recomienda.
 
 **Nota de método:** «44 de 152» de la Fase 2 **no era una línea base
 reproducible** —conteo a mano sin criterio escrito, mezclando acciones afirmadas

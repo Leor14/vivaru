@@ -146,6 +146,13 @@ export const asistirTicketPqrs = onCall<{ ticketId?: string }>(
       output: outcome.output,
       cuotaRestante: outcome.cuotaRestante,
       recorte: outcome.recorte,
+      // Las frases que la revisión de contrato marcó dentro del borrador, con
+      // su posición. Viajan por el SOBRE y no por `output` a propósito: `output`
+      // es el esquema de la operación, y ese esquema se le manda al modelo
+      // dentro del prompt (`z.toJSONSchema`). Meterlo ahí cambiaría lo que el
+      // modelo recibe —obligando a subir la operación a v3 y a volver a medir
+      // los 152 casos— para transportar algo que calcula el servidor.
+      frasesMarcadas: outcome.frasesMarcadas,
     };
   },
 );

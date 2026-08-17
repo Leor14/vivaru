@@ -81,10 +81,54 @@ export const COMPROMISO_FUTURO = new RegExp(
   "i",
 );
 
-/** El fragmento que disparó la marca, o `null`. Devuelve el texto para poder registrarlo. */
+/** Un trozo del borrador que disparó la marca, y dónde está. */
+export interface FragmentoAfirmado {
+  /** El texto literal que coincidió. */
+  texto: string;
+  /** Dónde empieza dentro del borrador. */
+  desde: number;
+  /** Dónde termina, exclusivo: `borrador.slice(desde, hasta) === texto`. */
+  hasta: number;
+}
+
+/**
+ * TODOS los fragmentos que afirman una acción, con su posición.
+ *
+ * **Devuelve posiciones y no solo texto** porque la pantalla resalta el trozo
+ * dentro del borrador: buscando el texto otra vez podría resaltar una segunda
+ * aparición de las mismas palabras, y ya tenemos la posición buena aquí.
+ *
+ * **Y devuelve todos, no el primero.** En la corrida de la v2 ninguno de los 10
+ * marcados tiene dos, pero en la v1 había uno («Estamos verificando» y «se ha
+ * gestionado»). Resaltar uno y callar el otro enseñaría que lo no resaltado está
+ * comprobado, que es peor que no resaltar nada.
+ */
+export function afirmacionesDeAccion(texto: string | null | undefined): FragmentoAfirmado[] {
+  if (!texto) return [];
+
+  // Una expresión NUEVA en cada llamada, no una constante compartida: con `g`,
+  // el objeto guarda `lastIndex` entre llamadas y el segundo borrador empezaría
+  // a buscar donde acabó el primero. Mismo `source`, así que mismo criterio.
+  const barrido = new RegExp(AFIRMA_ACCION.source, "gi");
+
+  const fragmentos: FragmentoAfirmado[] = [];
+  for (let m = barrido.exec(texto); m !== null; m = barrido.exec(texto)) {
+    fragmentos.push({ texto: m[0], desde: m.index, hasta: m.index + m[0].length });
+  }
+  return fragmentos;
+}
+
+/**
+ * El fragmento que disparó la marca, o `null`. Devuelve el texto para poder
+ * registrarlo.
+ *
+ * **Delega, no reimplementa.** La cifra del 6,6% sale de aquí a través del
+ * contador offline, así que dos caminos distintos para el mismo criterio serían
+ * exactamente la divergencia contra la que avisa la cabecera de este archivo. El
+ * primer fragmento de la lista es el mismo que devolvía `.match()`.
+ */
 export function afirmaAccion(texto: string | null | undefined): string | null {
-  if (!texto) return null;
-  return texto.match(AFIRMA_ACCION)?.[0] ?? null;
+  return afirmacionesDeAccion(texto)[0]?.texto ?? null;
 }
 
 export function prometeFuturo(texto: string | null | undefined): string | null {

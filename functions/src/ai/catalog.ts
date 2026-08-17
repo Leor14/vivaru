@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { FeatureFlagKey } from "../feature-flags";
-import { afirmaAccion } from "./afirmaciones";
+import { afirmacionesDeAccion } from "./afirmaciones";
 import { PROMPT_ACTIVO, PROMPTS, type PromptDefinition } from "./prompts";
 import { PQRS_PROMPT_ACTIVO, PQRS_PROMPTS } from "./prompts-pqrs";
 
@@ -124,7 +124,13 @@ export interface OperationDefinition {
    * Puede corregir la salida, nunca rechazarla: rechazar dejaría al
    * administrador sin propuesta por un defecto de redacción.
    */
-  revisarSalida?: (salida: unknown) => { salida: unknown; marcas: readonly MarcaDeRevision[] };
+  revisarSalida?: (salida: unknown) => {
+    salida: unknown;
+    /** La categoría, que es lo único que llega a `aiUsage`. */
+    marcas: readonly MarcaDeRevision[];
+    /** Los trozos concretos, que llegan a la pantalla y no a la telemetría. */
+    frasesMarcadas: readonly FraseMarcada[];
+  };
   limits: OperationLimits;
   quota: OperationQuota;
 }
@@ -140,6 +146,31 @@ export interface OperationDefinition {
  */
 export const MARCAS_DE_REVISION = ["afirma_accion"] as const;
 export type MarcaDeRevision = (typeof MARCAS_DE_REVISION)[number];
+
+/**
+ * El trozo concreto que disparó una marca, con su posición dentro del campo.
+ *
+ * **Esto SÍ viaja a la pantalla y sigue sin viajar a `aiUsage`**, y la
+ * distinción es el diseño entero. Lo que protege a la telemetría es no tener
+ * ningún campo de texto libre donde se cuele contenido del conjunto: ahí se
+ * guarda la categoría y nada más. La respuesta de la callable es otra cosa —
+ * este texto es un trozo literal del `draftResponse` que ya va en esa misma
+ * respuesta, a la misma persona, en la misma pantalla. Devolverlo no enseña
+ * nada que no estuviera ya delante.
+ *
+ * Existe porque el aviso general no cambió la conducta: se probó con un
+ * administrador el 16 de agosto de 2026 y publicó el borrador literal con la
+ * bandera encendida. Lo que no se había probado es señalar la frase.
+ */
+export interface FraseMarcada {
+  marca: MarcaDeRevision;
+  /** El texto literal, tal y como está en el borrador. */
+  texto: string;
+  /** Dónde empieza en el campo revisado. */
+  desde: number;
+  /** Dónde termina, exclusivo. */
+  hasta: number;
+}
 
 const ADMIN_ROLES = ["tenant_admin", "admin_tenant"] as const;
 
@@ -482,13 +513,22 @@ const OPERATIONS: Record<OperationKey, OperationDefinition> = {
      * silencio nos haría autores del texto; rechazar dejaría al administrador
      * sin propuesta por un defecto de redacción, cuando lo que necesita es
      * verla y borrar la frase.
+     *
+     * Las posiciones se calculan sobre la salida YA validada, que es la misma
+     * cadena que se devuelve: Zod aplica `.trim()` al validar, así que medir
+     * antes daría índices corridos respecto a lo que la pantalla pinta.
      */
     revisarSalida: (salida) => {
       const s = salida as { draftResponse?: string; needsHumanReview?: boolean };
-      // El fragmento se calcula y NO se propaga: la marca es la categoría. Ver
-      // `MARCAS_DE_REVISION`.
-      if (!afirmaAccion(s.draftResponse)) return { salida, marcas: [] };
-      return { salida: { ...s, needsHumanReview: true }, marcas: ["afirma_accion"] };
+      const fragmentos = afirmacionesDeAccion(s.draftResponse);
+      if (!fragmentos.length) return { salida, marcas: [], frasesMarcadas: [] };
+      return {
+        salida: { ...s, needsHumanReview: true },
+        // La categoría, para la fila de uso. Una sola aunque haya dos frases:
+        // lo que se cuenta es cuántos borradores afirmaron, no cuántas veces.
+        marcas: ["afirma_accion"],
+        frasesMarcadas: fragmentos.map((f) => ({ marca: "afirma_accion" as const, ...f })),
+      };
     },
     // El historial de un ticket puede ser largo; el tope de entrada dobla el de
     // comunicaciones y el de salida lo hereda: el borrador de respuesta es del
