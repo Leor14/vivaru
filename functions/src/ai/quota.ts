@@ -48,16 +48,43 @@ const MENSAJE_POR_SCOPE: Record<QuotaScope, string> = {
 const SEGUIR_A_MANO = "Puedes continuar con el proceso manual.";
 
 /**
+ * Quién consume, a efectos de cuota.
+ *
+ * **`topeDeUsuario: false` no es un privilegio: es que no hay usuario.** La
+ * sombra de la Fase 4 (`PRD-VAI-FEAT-002` §13) la dispara la creación de un
+ * ticket, no una persona; aplicarle un tope «por usuario» convertiría los 20
+ * diarios en un techo de 20 tickets clasificados al día por conjunto, y a
+ * partir del 21 se perdería conjunto de evaluación **en silencio** — que es la
+ * peor forma de perderlo, porque el hueco no se ve al contar.
+ *
+ * Los topes del CONJUNTO se le aplican igual, y eso sí es deliberado: existen
+ * para que un conjunto desbocado no se coma el presupuesto de todos, y el gasto
+ * de la sombra es gasto del conjunto como cualquier otro.
+ */
+export interface OpcionesCuota {
+  /** `false` = ni se lee ni se escribe el contador por usuario. Default `true`. */
+  topeDeUsuario?: boolean;
+}
+
+/**
  * Decisión pura, sin Firestore. Se prueba entera en milisegundos.
  *
  * El orden importa: **el mes se comprueba antes que el día**. Si un conjunto
  * agotó el mes, decirle «vuelve mañana» sería mentira.
  */
-export function evaluateQuota(counts: QuotaCounts, quota: OperationQuota): QuotaDecision {
+export function evaluateQuota(
+  counts: QuotaCounts,
+  quota: OperationQuota,
+  opciones: OpcionesCuota = {},
+): QuotaDecision {
+  const topeDeUsuario = opciones.topeDeUsuario ?? true;
+
   const restante: QuotaRemaining = {
     conjuntoDia: Math.max(0, quota.perTenantDay - counts.conjuntoDia),
     conjuntoMes: Math.max(0, quota.perTenantMonth - counts.conjuntoMes),
-    usuarioDia: Math.max(0, quota.perUserDay - counts.usuarioDia),
+    // Sin tope de usuario, el contador ni se leyó: lo honesto es decir que está
+    // entero, no restarle un consumo que no ocurrió.
+    usuarioDia: topeDeUsuario ? Math.max(0, quota.perUserDay - counts.usuarioDia) : quota.perUserDay,
   };
 
   const excedida: QuotaScope | null =
@@ -65,7 +92,7 @@ export function evaluateQuota(counts: QuotaCounts, quota: OperationQuota): Quota
       ? "conjunto_mes"
       : counts.conjuntoDia >= quota.perTenantDay
         ? "conjunto_dia"
-        : counts.usuarioDia >= quota.perUserDay
+        : topeDeUsuario && counts.usuarioDia >= quota.perUserDay
           ? "usuario_dia"
           : null;
 
@@ -133,7 +160,9 @@ export async function consumeQuota(
   uid: string,
   now: Date = new Date(),
   db: Firestore = getFirestore(),
+  opciones: OpcionesCuota = {},
 ): Promise<QuotaDecision> {
+  const topeDeUsuario = opciones.topeDeUsuario ?? true;
   const ids = counterIds(operation.key, tenantId, uid, now);
   const col = db.collection(AI_QUOTA_COLLECTION);
   const refs = {
@@ -146,23 +175,29 @@ export async function consumeQuota(
     const [dia, mes, usuario] = await Promise.all([
       tx.get(refs.conjuntoDia),
       tx.get(refs.conjuntoMes),
-      tx.get(refs.usuarioDia),
+      // Sin tope de usuario no se lee: una lectura cuyo valor no decide nada.
+      topeDeUsuario ? tx.get(refs.usuarioDia) : Promise.resolve(null),
     ]);
 
     const counts: QuotaCounts = {
       conjuntoDia: leerCuenta(dia),
       conjuntoMes: leerCuenta(mes),
-      usuarioDia: leerCuenta(usuario),
+      usuarioDia: usuario ? leerCuenta(usuario) : 0,
     };
 
-    const decision = evaluateQuota(counts, operation.quota);
+    const decision = evaluateQuota(counts, operation.quota, opciones);
     if (!decision.ok) return decision;
 
     const sello = Timestamp.now();
     const base = { tenantId, operationKey: operation.key, updatedAt: sello };
     tx.set(refs.conjuntoDia, { ...base, scope: "conjunto_dia", count: counts.conjuntoDia + 1 }, { merge: true });
     tx.set(refs.conjuntoMes, { ...base, scope: "conjunto_mes", count: counts.conjuntoMes + 1 }, { merge: true });
-    tx.set(refs.usuarioDia, { ...base, scope: "usuario_dia", uid, count: counts.usuarioDia + 1 }, { merge: true });
+    // El contador de usuario no se toca cuando no hay usuario. Escribir una fila
+    // `u:...:__sombra__:...` daría un contador que nadie evalúa y que al leer la
+    // telemetría parecería un tope vivo.
+    if (topeDeUsuario) {
+      tx.set(refs.usuarioDia, { ...base, scope: "usuario_dia", uid, count: counts.usuarioDia + 1 }, { merge: true });
+    }
 
     // Lo que queda DESPUÉS de consumir: es lo que una pantalla necesita para
     // deshabilitar el botón antes de que el usuario choque contra el tope.
@@ -171,7 +206,7 @@ export async function consumeQuota(
       restante: {
         conjuntoDia: decision.restante.conjuntoDia - 1,
         conjuntoMes: decision.restante.conjuntoMes - 1,
-        usuarioDia: decision.restante.usuarioDia - 1,
+        usuarioDia: topeDeUsuario ? decision.restante.usuarioDia - 1 : decision.restante.usuarioDia,
       },
     };
   });
@@ -194,13 +229,22 @@ export async function refundQuota(
   uid: string,
   now: Date = new Date(),
   db: Firestore = getFirestore(),
+  opciones: OpcionesCuota = {},
 ): Promise<void> {
+  const topeDeUsuario = opciones.topeDeUsuario ?? true;
   const ids = counterIds(operation.key, tenantId, uid, now);
   const col = db.collection(AI_QUOTA_COLLECTION);
 
   try {
     await db.runTransaction(async (tx) => {
-      const refs = [col.doc(ids.conjuntoDia), col.doc(ids.conjuntoMes), col.doc(ids.usuarioDia)];
+      // Se devuelve exactamente lo que se cobró. Descontar el contador de
+      // usuario a quien no lo consumió lo dejaría por debajo del real y
+      // regalaría cuota al siguiente administrador que sí sea una persona.
+      const refs = [
+        col.doc(ids.conjuntoDia),
+        col.doc(ids.conjuntoMes),
+        ...(topeDeUsuario ? [col.doc(ids.usuarioDia)] : []),
+      ];
       const snaps = await Promise.all(refs.map((ref) => tx.get(ref)));
 
       snaps.forEach((snap, i) => {
