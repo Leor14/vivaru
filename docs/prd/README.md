@@ -43,19 +43,19 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 
 ### IA
 
-**Este párrafo decía, hasta el 14 de agosto de 2026, que no había «una sola línea de IA en el código» y que el programa estaba en Fase 0. Dejó de ser cierto y nadie lo actualizó.** Hoy existen el gateway (`functions/src/ai/gateway.ts`), la telemetría (`aiUsage`), las cuotas, el adaptador real de Vertex, el registro de feedback (`aiFeedback`) y el contexto del conjunto — todo desplegado en staging y medido. El canario de comunicaciones está construido y probado con dos administradores reales.
+**Este párrafo decía, hasta el 14 de agosto de 2026, que no había «una sola línea de IA en el código» y que el programa estaba en Fase 0. Dejó de ser cierto y nadie lo actualizó.** Hoy existen el gateway (`functions/src/ai/gateway.ts`), la telemetría (`aiUsage`), las cuotas, el adaptador real de Vertex, el registro de feedback (`aiFeedback`) y el contexto del conjunto — **en producción desde el 15 de agosto de 2026, inertes tras banderas apagadas**. El canario de comunicaciones está construido y probado con dos administradores reales.
 
-Las cinco PRD de IA siguen viviendo fuera del repositorio (Drive), cotejadas contra el código en `docs/auditoria-prd-ia-ago2026.md`. El estado paso a paso vive en `docs/hoja-de-ruta-ia.md`; el índice de lo pendiente, en `docs/pendientes.md`.
+El estado paso a paso vive en `docs/hoja-de-ruta-ia.md`; el índice de lo pendiente, en `docs/pendientes.md`. El cotejo contra el código, en `docs/auditoria-prd-ia-ago2026.md`.
 
 | PRD | Estado |
 |---|---|
-| `PRD-VAI-PLAT-001` — Gateway, auditoría y cuotas | Implementada y desplegada en staging |
-| `PRD-VAI-FEAT-003` — Asistente de comunicaciones | Implementada, probada con dos administradores, sin desplegar a producción |
-| `PRD-VAI-FEAT-002` — Asistente de PQRS | En espera. Su gold set se puede fabricar |
-| `PRD-VAI-FEAT-001` — Onboarding asistido | En espera. Su primera mitad **no necesita IA** y es `PRD-V-FEAT-002` |
+| `PRD-VAI-PLAT-001` — Gateway, auditoría y cuotas | Implementada. **En producción desde el 15 ago 2026**, inerte tras banderas |
+| `PRD-VAI-FEAT-003` — Asistente de comunicaciones | Implementada, probada con dos administradores. **En producción, banderas apagadas.** Falta la línea base H2′ (tercer administrador) |
+| [PRD-VAI-FEAT-002 — Asistente de PQRS](ia/PRD-VAI-FEAT-002-asistente-pqrs.md) | **Consolidada en el repo el 15 ago 2026.** Rumbo a piloto: gold set hecho, siguiente paso la evaluación offline (F2). El recall ≥95% se cobra en escala, no en lanzamiento — decisión rectora dentro |
+| `PRD-VAI-FEAT-001` — Onboarding asistido | En espera. Su primera mitad **no necesita IA** y es `PRD-V-FEAT-002` (en staging) |
 | `PRD-VAI-DOC-001` — Lectura de comprobantes | Bloqueada por falta de comprobantes reales. No se sintetiza |
 
-Migrarlas a `ia/` es trabajo pendiente. Hasta entonces la fuente de verdad de su alcance sigue siendo Drive, con el costo de versionado que eso implica — que es exactamente lo que este README argumenta en su primera línea.
+Las otras cuatro siguen viviendo fuera del repositorio (Drive). Migrarlas a `ia/` sigue pendiente; hasta entonces la fuente de verdad de su alcance es Drive, con el costo de versionado que eso implica — que es exactamente lo que este README argumenta en su primera línea. Para `FEAT-002`, desde el 15 de agosto, **la fuente de verdad es el repo** y la copia de Drive queda como lectura.
 
 ## Documentos que gobiernan el programa de IA
 

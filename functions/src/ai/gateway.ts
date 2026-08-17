@@ -5,12 +5,9 @@ import * as logger from "firebase-functions/logger";
 import { callableCorsOrigins } from "../http-config";
 import { resolveFeatureFlag } from "../feature-flags";
 import { authorizeGatewayCall, type GatewayMembership } from "./authorize";
-import { findOperation, validateOperationInput } from "./catalog";
-import { executeOperation } from "./execute";
-import { resolveProvider, type AiProvider } from "./provider";
-import { consumeQuota, refundQuota, type QuotaRemaining } from "./quota";
-import { resolverContextoConjunto } from "./tenant-context";
-import { recordAiUsage } from "./usage";
+import { findOperation } from "./catalog";
+import { ejecutarOperacionAutorizada, type EjecucionOutcome, type OperationOutcomeCode } from "./ejecucion";
+import type { AiProvider } from "./provider";
 
 /**
  * Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.7 de
@@ -49,48 +46,44 @@ interface GatewayPayload {
   input?: unknown;
 }
 
-/** Códigos que sabe devolver la puerta, incluidos los de ejecución. */
-export type GatewayOutcomeCode =
-  | "unauthenticated"
-  | "permission-denied"
-  | "invalid-argument"
-  | "failed-precondition"
-  | "unimplemented"
-  | "resource-exhausted"
-  | "deadline-exceeded"
-  | "unavailable"
-  | "internal";
+/**
+ * Códigos y resultado de la puerta.
+ *
+ * Viven en `ejecucion.ts` desde la Fase 4 y se reexportan aquí con su nombre de
+ * siempre: la forma no cambió, cambió quién la define. Lo que llama a la puerta
+ * —`pqrs-gateway.ts`, las pruebas, el callable— no se entera.
+ */
+export type GatewayOutcomeCode = OperationOutcomeCode;
+export type GatewayOutcome = EjecucionOutcome;
 
-export type GatewayOutcome =
-  | {
-      ok: true;
-      operationKey: string;
-      version: number;
-      output: unknown;
-      /** Lo que le queda al conjunto y al usuario después de esta llamada. */
-      cuotaRestante: QuotaRemaining;
-    }
-  | {
-      ok: false;
-      code: GatewayOutcomeCode;
-      /** Lo que ve la persona. */
-      message: string;
-      /** Motivo interno, para logs y pruebas. Nunca se le enseña al usuario. */
-      reason: string;
-    };
-
-/** Cada forma de fallar en la ejecución tiene su código. */
-const CODIGO_POR_FALLO = {
-  proveedor_no_responde: "deadline-exceeded",
-  proveedor_error: "unavailable",
-  salida_ilegible: "internal",
-  salida_incumple_contrato: "internal",
-} as const;
+/**
+ * Lo que devuelve un armador de entrada: la entrada lista, o un fallo con el
+ * código que la puerta debe traducir.
+ */
+export type InputResolution =
+  | { ok: true; input: unknown }
+  | { ok: false; code: GatewayOutcomeCode; message: string; reason: string };
 
 export interface GatewayDeps {
   /** Inyectable para poder provocar fallos del proveedor en las pruebas. */
   provider?: AiProvider;
   now?: Date;
+  /**
+   * Arma la entrada en el SERVIDOR, ignorando la que mandó el cliente.
+   *
+   * Existe para `pqrs-asistir`, cuyo esquema lleva escrito que la puebla el
+   * servidor: el navegador manda un `ticketId` y nada más. Sin esto, la pantalla
+   * tendría que afirmar `mensaje`, `historial` y —lo que importa— `variante`, y
+   * `variante` es lo que decide la puerta dura de `buzon_simple`. Un cliente que
+   * mintiera ahí recibiría clasificación donde el contrato de producto dice que
+   * no debe haberla: la puerta dura la estaría decidiendo el navegador.
+   *
+   * Se llama **después de autorizar y antes de cobrar cuota**. Después de
+   * autorizar porque leer el ticket de quien no tiene permiso es trabajo que no
+   * se le debe; antes de cobrar porque si el ticket no existe no hay nada que
+   * devolver — cobrar y reembolsar deja una ventana peor que un `get` de más.
+   */
+  resolveInput?: (contexto: { tenantId: string; uid: string }) => Promise<InputResolution>;
 }
 
 export interface GatewayRequest {
@@ -160,93 +153,37 @@ export async function runGateway(request: GatewayRequest, deps: GatewayDeps = {}
   // provocó un rechazo mucho antes.
   const { operation: op, tenantId, uid: actorUid } = decision;
 
-  // La entrada se valida DESPUÉS de autorizar, nunca antes: a quien no tiene
-  // permiso no se le dice si su carga útil era válida.
-  const validation = validateOperationInput(op, payload.input);
-  if (!validation.ok) {
-    logger.warn("ai-gateway: entrada rechazada", { reason: validation.reason, operationKey: op.key, tenantId });
-    return { ok: false, code: "invalid-argument", message: validation.detail, reason: validation.reason };
+  // Hay operaciones cuya entrada NO la manda el cliente: la arma el servidor a
+  // partir de un identificador. Cuando hay armador, lo que viniera en
+  // `payload.input` se descarta entero — no se mezcla, porque mezclar dejaría
+  // que el cliente colara justo el campo que el servidor quería decidir.
+  let entradaCruda: unknown = payload.input;
+  if (deps.resolveInput) {
+    const resuelta = await deps.resolveInput({ tenantId, uid: actorUid });
+    if (!resuelta.ok) {
+      logger.warn("ai-gateway: entrada no resuelta", {
+        reason: resuelta.reason,
+        operationKey: op.key,
+        tenantId,
+      });
+      return { ok: false, code: resuelta.code, message: resuelta.message, reason: resuelta.reason };
+    }
+    entradaCruda = resuelta.input;
   }
 
-  // La cuota se cobra ANTES de llamar al proveedor. Cobrarla después dejaría
-  // una ventana en la que dos peticiones simultáneas pasan las dos.
-  const cuota = await consumeQuota(op, tenantId, actorUid, now);
-  if (!cuota.ok) {
-    logger.info("ai-gateway: cuota agotada", { operationKey: op.key, tenantId, excedida: cuota.excedida });
-    return { ok: false, code: "resource-exhausted", message: cuota.message, reason: cuota.excedida };
-  }
-
-  // El contexto se resuelve DESPUÉS de cobrar la cuota: a quien ya no le quedan
-  // borradores no se le lee la colección de unidades. Y va en paralelo con el
-  // proveedor porque no dependen el uno del otro.
-  //
-  // `resolverContextoConjunto` nunca lanza: si Firestore falla, devuelve «no se
-  // sabe» y el borrador sale igual, preguntando como hoy.
-  const [provider, contexto] = await Promise.all([
-    deps.provider ? Promise.resolve(deps.provider) : resolveProvider(op, tenantId),
-    op.contextoDelConjunto ? resolverContextoConjunto(db, tenantId) : Promise.resolve({}),
-  ]);
-
-  // El `undefined` es la versión de prompt: producción usa siempre la activa del
-  // catálogo. Solo la evaluación offline pasa otra.
-  const resultado = await executeOperation(op, validation.input, provider, undefined, contexto);
-
-  // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
-  // salida incumplió el contrato, los tokens se gastaron y la cuota se queda
-  // consumida — devolverla sería mentir sobre el costo.
-  if (!resultado.ok && (resultado.reason === "proveedor_error" || resultado.reason === "proveedor_no_responde")) {
-    await refundQuota(op, tenantId, actorUid, now);
-  }
-
-  // Se registra pase lo que pase. Un fallo ya consumió tokens, y la tasa de
-  // fallo es la métrica que dice si esto sirve. Nunca lanza: si la telemetría
-  // no se puede escribir, el administrador se queda igual con su borrador.
-  await recordAiUsage({
+  // A partir de aquí la puerta ya hizo su trabajo. Todo lo que sigue —validar,
+  // cobrar, ejecutar y contarlo— es idéntico venga de una sesión o de la sombra
+  // de la Fase 4, y por eso vive en un módulo aparte desde entonces.
+  return ejecutarOperacionAutorizada({
+    operation: op,
     tenantId,
-    uid: actorUid,
-    operationKey: op.key,
-    operationVersion: op.version,
-    provider: provider.name,
-    model: resultado.ok ? resultado.usage.model : provider.name,
-    promptVersion: resultado.ok ? resultado.usage.promptVersion : "n/a",
-    inputTokens: resultado.ok ? resultado.usage.inputTokens : 0,
-    outputTokens: resultado.ok ? resultado.usage.outputTokens : 0,
-    latencyMs: resultado.latencyMs,
-    outcome: resultado.ok ? "ok" : resultado.reason,
+    // Una persona con sesión sí tiene tope por usuario: es lo que impide que un
+    // administrador se coma solo la cuota del conjunto.
+    actor: { uid: actorUid, topeDeUsuario: true },
+    entradaCruda,
+    now,
+    provider: deps.provider,
   });
-
-  if (!resultado.ok) {
-    logger.warn("ai-gateway: operación fallida", {
-      operationKey: op.key,
-      tenantId,
-      reason: resultado.reason,
-      detail: resultado.detail,
-    });
-    return {
-      ok: false,
-      code: CODIGO_POR_FALLO[resultado.reason],
-      message: resultado.message,
-      reason: resultado.reason,
-    };
-  }
-
-  logger.info("ai-gateway: operación ejecutada", {
-    operationKey: op.key,
-    version: op.version,
-    tenantId,
-    latencyMs: resultado.latencyMs,
-    usage: resultado.usage,
-  });
-
-  return {
-    ok: true,
-    operationKey: op.key,
-    version: op.version,
-    output: resultado.output,
-    // Es lo que necesita la pantalla del Paso 2 para deshabilitar el botón
-    // antes de que alguien choque contra el tope, en vez de después.
-    cuotaRestante: cuota.restante,
-  };
 }
 
 export const aiInvoke = onCall<GatewayPayload>(

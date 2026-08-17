@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.executeOperation = executeOperation;
 const prompt_1 = require("./prompt");
-const prompts_1 = require("./prompts");
 /**
  * Los cuatro mensajes terminan igual a propósito: pase lo que pase, el flujo
  * tradicional sigue abierto. Es el principio de fallback determinista del plan
@@ -43,22 +42,25 @@ async function conCorteDeTiempo(promise, timeoutMs) {
     }
 }
 async function executeOperation(operation, input, provider, 
-// La evaluación offline del Paso 2.4 corre el mismo camino con versiones
-// distintas; producción usa siempre la activa.
-promptVersion = prompts_1.PROMPT_ACTIVO, 
+// La evaluación offline corre el mismo camino con versiones distintas;
+// producción pasa `undefined` y usa la activa de la operación.
+promptVersion, 
 // Lo que Vivaru sabe del conjunto y el administrador no tiene que escribir.
 // Lo resuelve la puerta; aquí solo se transporta hasta el prompt. Ausente, el
 // mensaje sale idéntico al de siempre.
 contexto) {
     const inicio = Date.now();
     const transcurrido = () => Date.now() - inicio;
+    // Resuelta una sola vez: el mensaje al modelo y la telemetría tienen que
+    // contar la misma versión.
+    const version = promptVersion ?? operation.prompts.activo;
     let resultado;
     try {
         resultado = await conCorteDeTiempo(provider.generate({
             operationKey: operation.key,
             operationVersion: operation.version,
-            prompt: (0, prompt_1.buildProviderPrompt)(operation, input, promptVersion, contexto),
-            promptVersion,
+            prompt: (0, prompt_1.buildProviderPrompt)(operation, input, version, contexto),
+            promptVersion: version,
             input,
             maxOutputTokens: operation.limits.maxOutputTokens,
         }), operation.limits.timeoutMs);
@@ -108,10 +110,16 @@ contexto) {
             latencyMs: transcurrido(),
         };
     }
+    // Última pasada, sobre la salida ya validada. Aquí no se rechaza nada: se
+    // corrige. Ver `revisarSalida` en el catálogo — vive ahí y se aplica aquí para
+    // que la pantalla y el evaluador offline vean exactamente lo mismo.
+    const revisada = operation.revisarSalida?.(validada.data);
     return {
         ok: true,
-        output: validada.data,
+        output: revisada ? revisada.salida : validada.data,
         usage: resultado.usage,
         latencyMs: transcurrido(),
+        ...(revisada?.marcas.length ? { marcas: revisada.marcas } : {}),
+        ...(revisada?.frasesMarcadas.length ? { frasesMarcadas: revisada.frasesMarcadas } : {}),
     };
 }

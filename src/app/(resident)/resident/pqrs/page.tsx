@@ -17,11 +17,14 @@ import type { Ticket } from "@/types/domain";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// Definiciones canónicas: datasets/pqrs/taxonomia.md (eje 2). El eje es de QUIÉN
+// o de QUÉ se queja —persona (queja) contra servicio (reclamo)—, no la severidad.
 const TICKET_TYPES = [
-  { value: "petition",   label: "Petición",   description: "Solicitud de un servicio o acción" },
-  { value: "complaint",  label: "Queja",      description: "Inconformidad con un servicio" },
-  { value: "claim",      label: "Reclamo",    description: "Corrección de un error o incumplimiento" },
-  { value: "suggestion", label: "Sugerencia", description: "Idea para mejorar el edificio" },
+  { value: "petition",   label: "Petición",   description: "Pides información, un documento o que se haga algo" },
+  { value: "complaint",  label: "Queja",      description: "Inconformidad con la conducta de una persona" },
+  { value: "claim",      label: "Reclamo",    description: "Inconformidad con un servicio que falló o no se cumplió" },
+  { value: "suggestion", label: "Sugerencia", description: "Propones una mejora, sin reportar una falla" },
+  { value: "other",      label: "General",    description: "No encaja en las anteriores" },
 ] as const;
 
 type TicketTypeValue = typeof TICKET_TYPES[number]["value"];
@@ -122,7 +125,9 @@ export default function ResidentPqrsPage() {
         subject: subject.trim(),
         message: message.trim() || subject.trim(),
         residentName: user.fullName,
-        type: ticketType,
+        // En buzon_simple el tipo no aplica y el selector está oculto: sin él,
+        // createTicket escribe "other" en vez de un "petition" que nadie eligió.
+        type: isSimpleMode ? undefined : ticketType,
       });
       setSubject("");
       setMessage("");
@@ -188,24 +193,37 @@ export default function ResidentPqrsPage() {
           {/* Tipo */}
           {!isSimpleMode && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
+              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">
                 Tipo de solicitud
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {TICKET_TYPES.map((t) => (
-                  <button
-                    key={t.value}
-                    type="button"
-                    onClick={() => setTicketType(t.value)}
-                    className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
-                      ticketType === t.value
-                        ? "border-[var(--brand-700)] bg-[var(--brand-50)] font-semibold text-[var(--brand-700)]"
-                        : "border-[var(--slate-200)] text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+              <p className="mb-2 text-xs text-[var(--slate-500)]">
+                Si reportas algo que ya salió mal, elige Queja o Reclamo aunque además
+                pidas que lo arreglen.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {TICKET_TYPES.map((t) => {
+                  const selected = ticketType === t.value;
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setTicketType(t.value)}
+                      className={`rounded-xl border px-3 py-2.5 text-left text-xs transition-colors ${
+                        selected
+                          ? "border-[var(--brand-700)] bg-[var(--brand-50)]"
+                          : "border-[var(--slate-200)] hover:bg-[var(--slate-100)]"
+                      }`}
+                    >
+                      <span className={`block font-semibold ${selected ? "text-[var(--brand-700)]" : "text-[var(--slate-800)]"}`}>
+                        {t.label}
+                      </span>
+                      <span className={`mt-0.5 block ${selected ? "text-[var(--brand-700)]" : "text-[var(--slate-500)]"}`}>
+                        {t.description}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

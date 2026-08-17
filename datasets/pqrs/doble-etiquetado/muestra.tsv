@@ -1,0 +1,29 @@
+# Rellena las cuatro columnas vacías SIN mirar gold-set.json.
+# category: pqrs | maintenance | billing
+# type: petition (pide algo) | complaint (queja de una PERSONA) | claim (reclamo de un SERVICIO) | suggestion | other
+# priority: low | medium | high — por consecuencia de esperar, no por tono
+# tema: agua cuotas_pagos asamblea_administracion obra_mantenimiento elevadores
+#       seguridad_porteria luz_electricidad convivencia_ruido amenidades
+#       accesos_estacionamiento limpieza_basura
+#
+# id	category	type	priority	tema	texto (no editar)
+MX#192	maintenance	petition	high	agua	La fuga sigue igual, tienen que entrar personalmente a cada departamento a checar donde está la fuga 
+MX#5113	maintenance	other	medium	agua	El problema principal no es la presión del agua, sino que las tuberías del condominio fueron incrustadas dentro de las losas de concreto. Debido a que la zona es sísmica y cercanos a una fractura geológica en Plateros Mixcoac, los microsismos provocan fracturas en las tuberías, causando fugas de agua.. 😢 <Se editó este mensaje.> 
+MX#2195	billing	claim	low	cuotas_pagos	Por qué se está pagando dos veces el concepto de basura. Si siempre se ha hecho un solo pago por ese concepto ? 
+MX#3467	pqrs	other	medium	asamblea_administracion	Tenemos mas de 10 testigos, sin embargo, nuevamente me disculpo, no es mi intención ofender a nadie, solo estoy exhibiendo el hecho de que la falta de orden en la administración provoca circunstancias como esta 
+MX#257	maintenance	claim	high	elevadores	Buen dia. Reportar elevador Torre Norte, que al bajar a Sotano1 sigue haciendo ese “salto o jalón” 
+MX#2481	pqrs	claim	low	seguridad_porteria	Buen día Me queda claro que quienes vivimos aquí lo vamos a respetar, me refiero a alguien de la calle Es sencillo que cuando lleguemos en el carro nos lo entreguen al entrar como siempre se hacía, incluso les sirve a los policías para que sepas que carros si pueden entrar Ya que dejan pasar a cualquier persona sin avisar o pedir info Mis cosas no las quiero afuera de la caseta pf, nunca se ha manejado así 
+MX#3587	maintenance	petition	medium	luz_electricidad	Buenos días! Desde el sábado no prende la luz de torre C 3er piso. Favor de revisar. 
+MX#5523	maintenance	claim	medium	accesos_estacionamiento	Ya son varios días, también el portón vehicular hace mucho ruido al terminar de cerrar. 
+MX#4700	pqrs	petition	low	amenidades	Hola buenos días vecinos para comentarles que mañana, usaremos un rato la alberca a partir de la 1pm gracias y lindo fin de semana 
+MX#1389	pqrs	complaint	low	limpieza_basura	Vecinos, el bote de basura no reciclable, llena de cosas que no van allí, y basura tirada afuera. En serio cada quien hagamos un esfuerzo, no podemos traer a una persona recogiendo todo el tiempo lo que ensuciamos. 
+MX#1912	maintenance	petition	low	agua	CONTEXTO: [residente] Muchas gracias @⁨Julio vello T2-11⁩ ya le avisé al dueño que pase por ella a la caseta 🙏 Buen día !! ☀️  // [administracion] Hola buenos dias  // [residente] Hola Gabriel y vecinos, buenos días  ▶ Gabriel, ha tenido la oportunidad de revisarnlas filtraciones de las escaleras de Norte? 
+MX#5923	maintenance	petition	low	luz_electricidad	CONTEXTO: [residente] Tarjeta de contacto omitida  // [residente] Según yo, el está aquí en la colonia  // [residente] Muchas gracias!!!  ▶ Buenas tardes, se les fue la luz ? 
+EC#50	maintenance	claim	high	elevadores	Hola Paola acabo de llegar al edificio y el ascensor no baja del 4 piso y solamente suena. Parece q esta dañado.
+EC#3403	maintenance	petition	medium	accesos_estacionamiento	Pao ya regresó la energía, la puerta del parqueadero NO se cierra con el control!! Va a permanecer abierta en la noche también??
+EC#890	pqrs	petition	high	accesos_estacionamiento	Silvana: El área de los parqueaderos está saturado de CO2 porque ha dejado el carro prendido para que se cargue la batería. Por favor apáguelo a saque el vehículo a la calle.
+EC#2943	pqrs	petition	medium	asamblea_administracion	Pienso que sí, pero someto a votación en este chat.
+EC#4022	maintenance	other	high	agua	Buenos días con todos. A continuación me permito enviar imágenes de una fuga de agua en una tubería del parqueadero
+EC#2401	pqrs	suggestion	medium	luz_electricidad	Sugiero evitar el uso del ascensor (en la medida de lo posible) si se requiere ahorrar energía.
+EC#231	pqrs	other	medium	limpieza_basura	Esos días son los que pasa el recolector de basura para que cada persona saquemos las fundas y no colocarlas en el cuarto de basura
+EC#2259	pqrs	petition	medium	seguridad_porteria	Por otro lado, en la guardiania de la urbanización existe los monitores de las cámaras ... me pregunto por que no se percataron de los movimientos de ese vehículo estaba ? Sugiero que Paola comparta esta inquietud con la Administración de la Urbanización.

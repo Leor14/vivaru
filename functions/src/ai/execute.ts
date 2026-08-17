@@ -1,6 +1,5 @@
-import type { OperationDefinition } from "./catalog";
+import type { FraseMarcada, MarcaDeRevision, OperationDefinition } from "./catalog";
 import { buildProviderPrompt } from "./prompt";
-import { PROMPT_ACTIVO, type PromptVersion } from "./prompts";
 import type { AiProvider, AiUsage } from "./provider";
 import type { ContextoConjunto } from "./tenant-context";
 
@@ -31,6 +30,19 @@ export interface ExecutionSuccess {
   output: unknown;
   usage: AiUsage;
   latencyMs: number;
+  /**
+   * Lo que corrigió `revisarSalida`, si corrigió algo. Se devuelve en vez de
+   * registrarse aquí: este módulo no depende del runtime de Functions —es lo
+   * que permite al evaluador offline importarlo—, y meterle el logger le
+   * cambiaría esa propiedad por una línea de traza.
+   */
+  marcas?: readonly MarcaDeRevision[];
+  /**
+   * Los trozos que dispararon esas marcas, con su posición dentro del campo
+   * revisado. Van separados de `marcas` porque tienen destinos distintos: la
+   * categoría se registra en `aiUsage` y esto se le enseña a la persona.
+   */
+  frasesMarcadas?: readonly FraseMarcada[];
 }
 
 export interface ExecutionFailure {
@@ -90,9 +102,9 @@ export async function executeOperation(
   operation: OperationDefinition,
   input: unknown,
   provider: AiProvider,
-  // La evaluación offline del Paso 2.4 corre el mismo camino con versiones
-  // distintas; producción usa siempre la activa.
-  promptVersion: PromptVersion = PROMPT_ACTIVO,
+  // La evaluación offline corre el mismo camino con versiones distintas;
+  // producción pasa `undefined` y usa la activa de la operación.
+  promptVersion?: string,
   // Lo que Vivaru sabe del conjunto y el administrador no tiene que escribir.
   // Lo resuelve la puerta; aquí solo se transporta hasta el prompt. Ausente, el
   // mensaje sale idéntico al de siempre.
@@ -101,14 +113,18 @@ export async function executeOperation(
   const inicio = Date.now();
   const transcurrido = () => Date.now() - inicio;
 
+  // Resuelta una sola vez: el mensaje al modelo y la telemetría tienen que
+  // contar la misma versión.
+  const version = promptVersion ?? operation.prompts.activo;
+
   let resultado;
   try {
     resultado = await conCorteDeTiempo(
       provider.generate({
         operationKey: operation.key,
         operationVersion: operation.version,
-        prompt: buildProviderPrompt(operation, input, promptVersion, contexto),
-        promptVersion,
+        prompt: buildProviderPrompt(operation, input, version, contexto),
+        promptVersion: version,
         input,
         maxOutputTokens: operation.limits.maxOutputTokens,
       }),
@@ -162,10 +178,17 @@ export async function executeOperation(
     };
   }
 
+  // Última pasada, sobre la salida ya validada. Aquí no se rechaza nada: se
+  // corrige. Ver `revisarSalida` en el catálogo — vive ahí y se aplica aquí para
+  // que la pantalla y el evaluador offline vean exactamente lo mismo.
+  const revisada = operation.revisarSalida?.(validada.data);
+
   return {
     ok: true,
-    output: validada.data,
+    output: revisada ? revisada.salida : validada.data,
     usage: resultado.usage,
     latencyMs: transcurrido(),
+    ...(revisada?.marcas.length ? { marcas: revisada.marcas } : {}),
+    ...(revisada?.frasesMarcadas.length ? { frasesMarcadas: revisada.frasesMarcadas } : {}),
   };
 }

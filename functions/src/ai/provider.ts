@@ -90,6 +90,28 @@ function respuestaSimulada(request: AiGenerationRequest): string {
     });
   }
 
+  if (request.operationKey === "pqrs-asistir") {
+    const input = request.input as { mensaje?: string; variante?: string } | undefined;
+    // El simulador respeta la puerta dura de la variante: un stub que
+    // clasificara en `buzon_simple` enseñaría a ignorar el contrato, igual que
+    // uno que llenara `assumptions` en comunicaciones.
+    const buzonSimple = input?.variante === "buzon_simple";
+
+    return JSON.stringify({
+      summary: `[SIMULADO] Resumen del ticket: ${(input?.mensaje ?? "").slice(0, 120)}`,
+      suggestedCategory: buzonSimple ? null : "pqrs",
+      suggestedType: buzonSimple ? null : "petition",
+      suggestedPriority: "medium",
+      priorityReason: "[SIMULADO] Motivo de la prioridad",
+      needsHumanReview: true,
+      requests: ["[SIMULADO] Solicitud extraída"],
+      missingInformation: ["[SIMULADO] ¿Qué dato falta?"],
+      nextSteps: ["[SIMULADO] Paso sugerido para el administrador"],
+      draftResponse: "[SIMULADO] Borrador de respuesta al residente.",
+      safetyFlags: [],
+    });
+  }
+
   return JSON.stringify({});
 }
 

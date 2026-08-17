@@ -56,17 +56,30 @@ const feedback_1 = require("./feedback");
  * entera contra Firestore sin fabricar una sesión de `onCall`.
  */
 const APP_CHECK_MONITOR_FLAG = "operacion-app-check-monitor";
-/** La única operación que hoy produce feedback. */
-const OPERACION = "comunicaciones-redactar";
+/**
+ * Operaciones que producen feedback. Dejó de ser una sola en la Fase 3 de
+ * `PRD-VAI-FEAT-002`.
+ *
+ * La clave llega del cliente y sirve **solo para consultar el catálogo**, que es
+ * una tabla estática: de ahí salen los roles. Quien decide el conjunto y el
+ * permiso sigue siendo la sesión, igual que en la puerta.
+ */
+const OPERACIONES_CON_FEEDBACK = ["comunicaciones-redactar", "pqrs-asistir"];
 async function runFeedback(request) {
     const db = (0, firestore_1.getFirestore)();
     const uid = typeof request.auth?.uid === "string" ? request.auth.uid : undefined;
     const claims = request.auth?.token;
     const claimTenantId = typeof claims?.tenantId === "string" ? claims.tenantId : undefined;
-    // Los roles salen del catálogo, no escritos a mano: quien puede pedir el
-    // borrador es quien puede contar qué hizo con él. Si mañana cambian ahí,
+    // Los roles salen del catálogo, no escritos a mano: quien puede pedir la
+    // asistencia es quien puede contar qué hizo con ella. Si mañana cambian ahí,
     // cambian aquí solos.
-    const operacion = (0, catalog_1.findOperation)(OPERACION);
+    //
+    // La clave se comprueba contra la lista de arriba ANTES de ir al catálogo: el
+    // catálogo tiene operaciones que no producen feedback, y aceptar cualquiera
+    // dejaría escribir filas de algo que esta puerta no sabe validar.
+    const clave = request.data?.operationKey;
+    const conocida = OPERACIONES_CON_FEEDBACK.includes(clave);
+    const operacion = conocida ? (0, catalog_1.findOperation)(clave) : null;
     if (!operacion) {
         return { ok: false, code: "invalid-argument", message: "Esa operación no existe.", reason: "operacion_desconocida" };
     }

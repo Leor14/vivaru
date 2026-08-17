@@ -42,11 +42,7 @@ const http_config_1 = require("../http-config");
 const feature_flags_1 = require("../feature-flags");
 const authorize_1 = require("./authorize");
 const catalog_1 = require("./catalog");
-const execute_1 = require("./execute");
-const provider_1 = require("./provider");
-const quota_1 = require("./quota");
-const tenant_context_1 = require("./tenant-context");
-const usage_1 = require("./usage");
+const ejecucion_1 = require("./ejecucion");
 /**
  * Punto de entrada único de las operaciones asistidas (Pasos 1.2 a 1.7 de
  * `docs/hoja-de-ruta-ia.md`).
@@ -76,13 +72,6 @@ const GATEWAY_FLAG = "ai-gateway";
  * seguridad. Así, apagarlo todo la endurece.
  */
 const APP_CHECK_MONITOR_FLAG = "operacion-app-check-monitor";
-/** Cada forma de fallar en la ejecución tiene su código. */
-const CODIGO_POR_FALLO = {
-    proveedor_no_responde: "deadline-exceeded",
-    proveedor_error: "unavailable",
-    salida_ilegible: "internal",
-    salida_incumple_contrato: "internal",
-};
 async function runGateway(request, deps = {}) {
     const db = (0, firestore_1.getFirestore)();
     const now = deps.now ?? new Date();
@@ -130,85 +119,36 @@ async function runGateway(request, deps = {}) {
     // toca los contadores de cuota y la telemetría — lo que mandara el cliente ya
     // provocó un rechazo mucho antes.
     const { operation: op, tenantId, uid: actorUid } = decision;
-    // La entrada se valida DESPUÉS de autorizar, nunca antes: a quien no tiene
-    // permiso no se le dice si su carga útil era válida.
-    const validation = (0, catalog_1.validateOperationInput)(op, payload.input);
-    if (!validation.ok) {
-        logger.warn("ai-gateway: entrada rechazada", { reason: validation.reason, operationKey: op.key, tenantId });
-        return { ok: false, code: "invalid-argument", message: validation.detail, reason: validation.reason };
+    // Hay operaciones cuya entrada NO la manda el cliente: la arma el servidor a
+    // partir de un identificador. Cuando hay armador, lo que viniera en
+    // `payload.input` se descarta entero — no se mezcla, porque mezclar dejaría
+    // que el cliente colara justo el campo que el servidor quería decidir.
+    let entradaCruda = payload.input;
+    if (deps.resolveInput) {
+        const resuelta = await deps.resolveInput({ tenantId, uid: actorUid });
+        if (!resuelta.ok) {
+            logger.warn("ai-gateway: entrada no resuelta", {
+                reason: resuelta.reason,
+                operationKey: op.key,
+                tenantId,
+            });
+            return { ok: false, code: resuelta.code, message: resuelta.message, reason: resuelta.reason };
+        }
+        entradaCruda = resuelta.input;
     }
-    // La cuota se cobra ANTES de llamar al proveedor. Cobrarla después dejaría
-    // una ventana en la que dos peticiones simultáneas pasan las dos.
-    const cuota = await (0, quota_1.consumeQuota)(op, tenantId, actorUid, now);
-    if (!cuota.ok) {
-        logger.info("ai-gateway: cuota agotada", { operationKey: op.key, tenantId, excedida: cuota.excedida });
-        return { ok: false, code: "resource-exhausted", message: cuota.message, reason: cuota.excedida };
-    }
-    // El contexto se resuelve DESPUÉS de cobrar la cuota: a quien ya no le quedan
-    // borradores no se le lee la colección de unidades. Y va en paralelo con el
-    // proveedor porque no dependen el uno del otro.
-    //
-    // `resolverContextoConjunto` nunca lanza: si Firestore falla, devuelve «no se
-    // sabe» y el borrador sale igual, preguntando como hoy.
-    const [provider, contexto] = await Promise.all([
-        deps.provider ? Promise.resolve(deps.provider) : (0, provider_1.resolveProvider)(op, tenantId),
-        op.contextoDelConjunto ? (0, tenant_context_1.resolverContextoConjunto)(db, tenantId) : Promise.resolve({}),
-    ]);
-    // El `undefined` es la versión de prompt: producción usa siempre la activa del
-    // catálogo. Solo la evaluación offline pasa otra.
-    const resultado = await (0, execute_1.executeOperation)(op, validation.input, provider, undefined, contexto);
-    // Se devuelve solo si el proveedor no llegó a responder. Si respondió y su
-    // salida incumplió el contrato, los tokens se gastaron y la cuota se queda
-    // consumida — devolverla sería mentir sobre el costo.
-    if (!resultado.ok && (resultado.reason === "proveedor_error" || resultado.reason === "proveedor_no_responde")) {
-        await (0, quota_1.refundQuota)(op, tenantId, actorUid, now);
-    }
-    // Se registra pase lo que pase. Un fallo ya consumió tokens, y la tasa de
-    // fallo es la métrica que dice si esto sirve. Nunca lanza: si la telemetría
-    // no se puede escribir, el administrador se queda igual con su borrador.
-    await (0, usage_1.recordAiUsage)({
+    // A partir de aquí la puerta ya hizo su trabajo. Todo lo que sigue —validar,
+    // cobrar, ejecutar y contarlo— es idéntico venga de una sesión o de la sombra
+    // de la Fase 4, y por eso vive en un módulo aparte desde entonces.
+    return (0, ejecucion_1.ejecutarOperacionAutorizada)({
+        operation: op,
         tenantId,
-        uid: actorUid,
-        operationKey: op.key,
-        operationVersion: op.version,
-        provider: provider.name,
-        model: resultado.ok ? resultado.usage.model : provider.name,
-        promptVersion: resultado.ok ? resultado.usage.promptVersion : "n/a",
-        inputTokens: resultado.ok ? resultado.usage.inputTokens : 0,
-        outputTokens: resultado.ok ? resultado.usage.outputTokens : 0,
-        latencyMs: resultado.latencyMs,
-        outcome: resultado.ok ? "ok" : resultado.reason,
+        // Una persona con sesión sí tiene tope por usuario: es lo que impide que un
+        // administrador se coma solo la cuota del conjunto.
+        actor: { uid: actorUid, topeDeUsuario: true },
+        entradaCruda,
+        now,
+        provider: deps.provider,
     });
-    if (!resultado.ok) {
-        logger.warn("ai-gateway: operación fallida", {
-            operationKey: op.key,
-            tenantId,
-            reason: resultado.reason,
-            detail: resultado.detail,
-        });
-        return {
-            ok: false,
-            code: CODIGO_POR_FALLO[resultado.reason],
-            message: resultado.message,
-            reason: resultado.reason,
-        };
-    }
-    logger.info("ai-gateway: operación ejecutada", {
-        operationKey: op.key,
-        version: op.version,
-        tenantId,
-        latencyMs: resultado.latencyMs,
-        usage: resultado.usage,
-    });
-    return {
-        ok: true,
-        operationKey: op.key,
-        version: op.version,
-        output: resultado.output,
-        // Es lo que necesita la pantalla del Paso 2 para deshabilitar el botón
-        // antes de que alguien choque contra el tope, en vez de después.
-        cuotaRestante: cuota.restante,
-    };
 }
 exports.aiInvoke = (0, https_1.onCall)({
     cors: http_config_1.callableCorsOrigins,

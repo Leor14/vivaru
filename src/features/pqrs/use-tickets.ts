@@ -138,6 +138,63 @@ export async function createTicket(input: {
   });
 }
 
+/**
+ * Fija o corrige la clasificación de un ticket — Fase 3 de `PRD-VAI-FEAT-002`.
+ *
+ * **Antes de esto no existía, y ese era el problema.** El administrador podía
+ * responder y cambiar el estado, nada más: `category` nacía constante,
+ * `type` lo elegía el residente y `priority` **no se escribía nunca** — el campo
+ * solo vivía en el tipo de TypeScript. Un ticket mal clasificado no se podía
+ * arreglar.
+ *
+ * Importa más allá de la pantalla: las dos puertas de G7 se cobran «contra la
+ * decisión real del administrador» acumulada por la sombra. Sin un sitio donde
+ * esa decisión ocurra, la sombra de la Fase 4 acumularía sugerencias contra un
+ * hueco y las dos puertas seguirían sin poder medirse.
+ *
+ * **No la llama la IA.** La escribe una persona que pulsó guardar, con los
+ * valores que dejó en pantalla; el asistente solo pudo proponer.
+ *
+ * **`priority: null` significa «no decidió este eje» y NO se escribe.** Los
+ * tickets de PQRS nacen sin prioridad, y hasta el 16 de agosto de 2026 guardar
+ * cualquier corrección escribía también el `medium` con el que arrancaba el
+ * selector: en la sesión de F3, 3 de las 7 prioridades guardadas fueron ese
+ * default — decisiones que nadie tomó, que la sombra de la Fase 4 leería como
+ * correcciones deliberadas del administrador. Omitir el campo deja el ticket
+ * como estaba: sin prioridad, que es la verdad.
+ */
+export async function updateTicketClassification(input: {
+  ticketId: string;
+  tenantId: string;
+  adminUserId: string;
+  category: Ticket["category"];
+  type: NonNullable<Ticket["type"]>;
+  priority: NonNullable<Ticket["priority"]> | null;
+}) {
+  if (!db) {
+    throw new Error("Firebase no esta configurado.");
+  }
+
+  const nowIso = new Date().toISOString();
+
+  await updateDoc(doc(db, "tickets", input.ticketId), {
+    tenantId: input.tenantId,
+    category: input.category,
+    type: input.type,
+    // Se omite, no se escribe `null`: un `priority: null` en el documento sería
+    // un tercer estado que ningún lector espera. Ausente ya es el estado normal.
+    ...(input.priority ? { priority: input.priority } : {}),
+    // Marca propia además de `updatedAt`: la sombra de la Fase 4 necesita saber
+    // si un administrador llegó a tocar la clasificación, y `updatedAt` se mueve
+    // también al responder, que es otra cosa. Se escribe aunque no haya
+    // prioridad: la persona SÍ clasificó — categoría y tipo.
+    classifiedAt: nowIso,
+    classifiedBy: input.adminUserId,
+    updatedAt: nowIso,
+    updatedBy: input.adminUserId,
+  });
+}
+
 export async function respondTicket(input: {
   ticketId: string;
   tenantId: string;

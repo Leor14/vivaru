@@ -18,7 +18,8 @@
 export type PromptVersion = "v1-minima" | "v2-estructura" | "v3-ejemplo";
 
 export interface PromptDefinition {
-  version: PromptVersion;
+  /** El identificador de la versión. Cada operación tiene su propio espacio. */
+  version: string;
   /** Qué hipótesis pone a prueba. Sin esto, comparar no enseña nada. */
   hipotesis: string;
   /** Instrucción de TAREA. El formato lo pone el esquema, no esto. */

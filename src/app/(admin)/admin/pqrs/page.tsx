@@ -19,8 +19,12 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { resolveIdentityCell } from "@/lib/utils/identity";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
+import { AsistenteTicket } from "@/features/pqrs/asistente-ticket";
+import { FeatureGate } from "@/components/shared/feature-gate";
 import { formatTicketDate, getTicketSla } from "@/features/pqrs/sla";
-import { respondTicket, useTickets } from "@/features/pqrs/use-tickets";
+import { getTicketTypeLabel } from "@/features/pqrs/ticket-status";
+import { useFeedbackAsistencia } from "@/features/pqrs/use-feedback-asistencia";
+import { respondTicket, updateTicketClassification, useTickets } from "@/features/pqrs/use-tickets";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import type { Ticket } from "@/types/domain";
 import { getStatusLabel } from "@/utils/statusMapper";
@@ -28,20 +32,6 @@ import { getStatusLabel } from "@/utils/statusMapper";
 type AlertFilter = "all" | "green" | "yellow" | "red";
 type SortOption = "due" | "oldest" | "newest";
 
-
-const TICKET_TYPE_LABELS: Record<string, string> = {
-  petition: "Petición",
-  complaint: "Queja",
-  claim: "Reclamo",
-  suggestion: "Sugerencia",
-  other: "General",
-};
-
-function getTicketTypeLabel(type?: string | null): string {
-  if (!type) return "General";
-  const key = type.trim().toLowerCase();
-  return TICKET_TYPE_LABELS[key] ?? type;
-}
 
 const TICKET_STATUS_LABELS: Record<string, string> = {
   open: "Abierto",
@@ -109,6 +99,25 @@ export default function AdminPqrsPage() {
   const [responseStatus, setResponseStatus] = useState<Ticket["status"]>("responded");
   const [savingResponse, setSavingResponse] = useState(false);
 
+  // Clasificación editable — Fase 3 de PRD-VAI-FEAT-002. Hasta ahora el
+  // administrador no podía tocar ninguno de los tres ejes: `category` nacía
+  // constante, `type` lo fijaba el residente y `priority` no se escribía nunca.
+  const [clasCategory, setClasCategory] = useState<Ticket["category"]>("pqrs");
+  const [clasType, setClasType] = useState<NonNullable<Ticket["type"]>>("other");
+  // `""` es «sin prioridad», y es un estado REAL, no un hueco del formulario:
+  // los tickets de PQRS nacen sin prioridad. El tipo anterior no podía decirlo
+  // (`NonNullable`, arrancaba en «medium»), y en la sesión de F3 ese default se
+  // guardó 3 de 7 veces como si una persona lo hubiera decidido.
+  const [clasPriority, setClasPriority] = useState<NonNullable<Ticket["priority"]> | "">("");
+  const [savingClasificacion, setSavingClasificacion] = useState(false);
+
+  /**
+   * Medición de la sesión de F3. Vive en la página y no en el panel porque los
+   * dos guardados que más importan —la clasificación y la respuesta— ocurren
+   * fuera de él: el panel solo propone.
+   */
+  const feedbackIa = useFeedbackAsistencia();
+
   const enrichedItems = useMemo(() => {
     return items.map((ticket) => {
       const unitLabel = ticket.unitLabel || "Sin unidad";
@@ -156,7 +165,43 @@ export default function AdminPqrsPage() {
     if (!drawerOpen || !selectedTicket) return;
 
     setResponseStatus(selectedTicket.status === "closed" ? "closed" : "responded");
+    // Los selectores arrancan en lo que el ticket ya tiene, no en una sugerencia.
+    // `priority` no existe en los tickets creados hasta hoy, y eso se ENSEÑA:
+    // el selector arranca en «Sin prioridad» y guardar así no escribe el campo.
+    // Arrancar en «medium» era la trampa medida en la sesión de F3 — un default
+    // con apariencia de decisión, la misma familia que el `type: "petition"`.
+    setClasCategory(selectedTicket.category ?? "pqrs");
+    setClasType(selectedTicket.type ?? "other");
+    setClasPriority(selectedTicket.priority ?? "");
   }, [drawerOpen, selectedTicket]);
+
+  // Cambiar de ticket cierra la fila del anterior y abre otra. Sin esto, lo que
+  // se guarde en un caso quedaría anotado junto a la sugerencia de otro.
+  useEffect(() => {
+    feedbackIa.reiniciar();
+    // Solo el ticket: `feedbackIa` es estable y añadirlo dispararía el reinicio
+    // en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTicketId]);
+
+  /**
+   * Cerrar el drawer manda la fila.
+   *
+   * **Lo encontró el ensayo a ciegas, y era la mitad de la medición.** El envío
+   * vivía solo en el desmontaje de la pantalla, al cambiar de ticket y al
+   * ocultarse la pestaña; ninguno de los tres ocurre cuando alguien analiza un
+   * ticket, cierra el panel y se queda donde está — que es exactamente lo que
+   * hace un administrador en una sesión guiada. De once asistencias reales llegó
+   * UNA fila. Cerrar el drawer es el momento en que la persona terminó con ese
+   * ticket, así que es cuando hay algo que contar.
+   *
+   * Mandar de más no cuesta: el `sesionId` hace que el servidor funda los envíos
+   * en una sola fila en vez de duplicarla.
+   */
+  useEffect(() => {
+    if (!drawerOpen) feedbackIa.enviar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen]);
 
   // En modo buzón simple no hay semáforo ni tipos: orden por recientes y sin filtros de SLA/tipo.
   useEffect(() => {
@@ -214,6 +259,45 @@ export default function AdminPqrsPage() {
     setResponseText("");
   }
 
+  /**
+   * Guarda la clasificación que dejó la persona en los selectores.
+   *
+   * La IA nunca llama a esto: solo puede rellenar los selectores, y quien pulsa
+   * guardar es un administrador mirando lo que va a escribir.
+   */
+  async function handleSaveClasificacion() {
+    if (!selectedTicket || !user?.tenantId || !user?.uid) return;
+
+    try {
+      setSavingClasificacion(true);
+      // `""` → `null`: «sin prioridad» no se escribe en el ticket y el feedback
+      // registra que este eje no se decidió. Es la diferencia entre medir una
+      // corrección y fabricarla.
+      const prioridadElegida = clasPriority === "" ? null : clasPriority;
+      await updateTicketClassification({
+        ticketId: selectedTicket.id,
+        tenantId: user.tenantId,
+        adminUserId: user.uid,
+        category: clasCategory,
+        type: clasType,
+        priority: prioridadElegida,
+      });
+      // La «decisión real del administrador» de la que hablan las dos puertas de
+      // G7. Se anota DESPUÉS de que la escritura haya ido bien: una clasificación
+      // que falló al guardar no es una decisión, es un error.
+      feedbackIa.anotarClasificacionGuardada({
+        category: clasCategory,
+        type: clasType,
+        priority: prioridadElegida,
+      });
+      toast.success("Clasificación actualizada.");
+    } catch (clasError) {
+      toastFirebaseError(clasError);
+    } finally {
+      setSavingClasificacion(false);
+    }
+  }
+
   async function handleRespondTicket() {
     if (!selectedTicket || !user?.tenantId || !user?.uid) return;
     if (!responseText.trim()) {
@@ -232,6 +316,9 @@ export default function AdminPqrsPage() {
         adminUserName: user.fullName,
         previousHistory: selectedTicket.responseHistory,
       });
+      // Con el texto ANTES de limpiarlo: es lo que hay que comparar con el
+      // borrador que propuso el modelo para saber cuánto se cambió.
+      feedbackIa.anotarRespuestaGuardada(responseText);
       setResponseText("");
       toast.success("Respuesta registrada correctamente.");
     } catch (responseError) {
@@ -536,12 +623,11 @@ export default function AdminPqrsPage() {
                   <span className="block text-[var(--slate-500)]">{selectedTicket.unitLabel || "\u2014"}</span>
                 </dd>
               </div>
-              {!isSimpleMode && (
-                <div>
-                  <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Tipo</dt>
-                  <dd className="mt-0.5 text-[var(--slate-900)]">{getTicketTypeLabel(selectedTicket.type)}</dd>
-                </div>
-              )}
+              {/*
+                El «Tipo» de solo lectura que vivía aquí lo sustituye el editor
+                de clasificación de más abajo: enseñarlo en los dos sitios haría
+                que el mismo campo apareciera dos veces, uno editable y otro no.
+              */}
               {!isSimpleMode && (
                 <div className="col-span-2">
                   <dt className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Vencimiento</dt>
@@ -557,6 +643,85 @@ export default function AdminPqrsPage() {
                 </div>
               )}
             </dl>
+
+            {/*
+              Clasificación editable — Fase 3 de PRD-VAI-FEAT-002.
+
+              Va en el cuerpo del drawer, con el estilo normal de Vivaru y NO
+              dentro del panel morado: son los campos confirmados del ticket, y
+              la PRD §5 pide que se distingan de lo que propuso una máquina.
+
+              En buzón simple no aparece, igual que el resto de la pantalla: esa
+              variante opera sin categorías, y ahí el asistente tampoco clasifica.
+            */}
+            {!isSimpleMode && (
+              <div className="border-t border-[var(--slate-200)] pt-3">
+                <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Clasificación</p>
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <label className="text-xs text-[var(--slate-700)]">
+                    Categoría
+                    <select
+                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                      value={clasCategory}
+                      onChange={(event) => setClasCategory(event.target.value as Ticket["category"])}
+                    >
+                      <option value="pqrs">PQRS</option>
+                      <option value="maintenance">Mantenimiento</option>
+                      <option value="billing">Cartera</option>
+                    </select>
+                  </label>
+                  <label className="text-xs text-[var(--slate-700)]">
+                    Tipo
+                    <select
+                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                      value={clasType}
+                      onChange={(event) => setClasType(event.target.value as NonNullable<Ticket["type"]>)}
+                    >
+                      <option value="petition">Petición</option>
+                      <option value="complaint">Queja</option>
+                      <option value="claim">Reclamo</option>
+                      <option value="suggestion">Sugerencia</option>
+                      <option value="other">General</option>
+                    </select>
+                  </label>
+                  <label className="text-xs text-[var(--slate-700)]">
+                    Prioridad
+                    <select
+                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                      value={clasPriority}
+                      onChange={(event) => setClasPriority(event.target.value as NonNullable<Ticket["priority"]> | "")}
+                    >
+                      {/*
+                        La opción vacía existe solo mientras el ticket no tenga
+                        prioridad: es el estado real del que se parte, no un
+                        valor al que volver. Una vez escrita, quitarla no es una
+                        operación del producto — puerta de un solo sentido.
+                      */}
+                      {!selectedTicket.priority ? <option value="">Sin prioridad</option> : null}
+                      <option value="low">Baja</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={savingClasificacion}
+                    onClick={() => void handleSaveClasificacion()}
+                  >
+                    {savingClasificacion ? "Guardando..." : "Guardar clasificación"}
+                  </Button>
+                  {!selectedTicket.priority ? (
+                    <span className="text-[11px] text-[var(--slate-500)]">
+                      Este ticket todavía no tiene prioridad asignada.
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            )}
 
             <div className="border-t border-[var(--slate-200)] pt-3">
               <p className="text-[11px] uppercase tracking-wide text-[var(--slate-500)]">Descripción</p>
@@ -577,6 +742,55 @@ export default function AdminPqrsPage() {
                 </div>
               </div>
             ) : null}
+
+            {/*
+              El asistente va al FINAL del cuerpo y plegado: después de que la
+              persona haya leído el caso y su historial, y justo encima del pie
+              donde se responde. Quien no lo abra ve el drawer de siempre con una
+              línea más.
+
+              Ninguna de sus dos acciones escribe nada: «usar esta clasificación»
+              rellena los selectores de arriba y «copiar al cuadro de respuesta»
+              llena el textarea del pie. Guardar y responder siguen siendo actos
+              de la persona, con su propio botón.
+
+              Y va detrás de SU bandera, que es lo que su ficha del catálogo dice
+              que hace («muestra al administrador la categoría y el resumen
+              propuestos») y hasta el 17 de agosto de 2026 no hacía: la clave
+              `ai-pqrs-suggestions` no aparecía en un solo sitio de `src/` fuera
+              del propio catálogo, así que el panel se pintaba siempre. Se vio al
+              preparar la promoción a producción, donde `asistirTicketPqrs` no
+              está desplegada: un administrador habría encontrado un panel de IA
+              que revienta al pulsarlo.
+
+              Apagada, el drawer queda exactamente como antes de la Fase 3 — el
+              editor de clasificación y el pie de respuesta siguen enteros,
+              porque no son de IA. Es lo que la PRD llama «rollback: apagar la
+              bandera, sin migración».
+
+              Y esto es presentación, no candado: el servidor ya lo comprueba en
+              `runGateway`. La sombra de la Fase 4 NO mira esta bandera a
+              propósito — clasifica en silencio con `ai-pqrs-shadow`, que es lo
+              que permite tener sombra global sin sugerencia visible.
+            */}
+            <FeatureGate flag="ai-pqrs-suggestions">
+              <div className="border-t border-[var(--slate-200)] pt-3">
+                <AsistenteTicket
+                  // Al cambiar de ticket se monta un panel nuevo: sin la clave, la
+                  // propuesta del ticket anterior seguiría en pantalla sobre un
+                  // caso distinto, que es la peor forma de equivocarse aquí.
+                  key={selectedTicket.id}
+                  ticketId={selectedTicket.id}
+                  onAplicarClasificacion={(clasificacion) => {
+                    setClasCategory(clasificacion.category);
+                    setClasType(clasificacion.type);
+                    setClasPriority(clasificacion.priority);
+                  }}
+                  onUsarBorrador={(texto) => setResponseText(texto)}
+                  feedback={feedbackIa}
+                />
+              </div>
+            </FeatureGate>
           </div>
         ) : null}
       </Drawer>

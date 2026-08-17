@@ -648,6 +648,81 @@ export async function redactarComunicacionCallable(input: RedactarComunicacionIn
   );
 }
 
+/** Salida del asistente de PQRS, tal y como la fija el §7 de PRD-VAI-FEAT-002. */
+export interface AsistenciaPqrs {
+  summary: string;
+  /** `null` siempre en `buzon_simple`: contrato de producto, no calidad de modelo. */
+  suggestedCategory: "pqrs" | "maintenance" | "billing" | null;
+  suggestedType: "petition" | "complaint" | "claim" | "suggestion" | "other" | null;
+  suggestedPriority: "low" | "medium" | "high";
+  priorityReason: string;
+  needsHumanReview: boolean;
+  requests: string[];
+  missingInformation: string[];
+  nextSteps: string[];
+  draftResponse: string;
+  safetyFlags: Array<"amenaza" | "dato_sensible" | "lenguaje_ofensivo" | "posible_urgencia" | "enfado">;
+}
+
+/** Qué se quedó fuera por no caber en el esquema. Se le enseña a la persona. */
+export interface RecorteAsistencia {
+  mensaje: boolean;
+  historialOmitido: number;
+}
+
+/**
+ * Un trozo del borrador que la comprobación del servidor marcó, con su
+ * posición dentro de `draftResponse`. Es lo que permite resaltar la frase
+ * DENTRO del texto en vez de avisar al lado — el aviso general se probó con
+ * una persona el 16 de agosto de 2026 y publicó el borrador literal igual.
+ *
+ * Viaja en el sobre y no en `output` a propósito: `output` es el esquema de la
+ * operación y ese esquema se le manda al modelo dentro del prompt. El servidor
+ * calcula esto después, sobre la salida ya validada.
+ */
+export interface FraseMarcadaPqrs {
+  marca: "afirma_accion";
+  /** El texto literal, tal y como está en el borrador. */
+  texto: string;
+  desde: number;
+  hasta: number;
+}
+
+export interface AsistirTicketPqrsResult {
+  output: AsistenciaPqrs;
+  cuotaRestante: CuotaRestante;
+  recorte: RecorteAsistencia;
+  /**
+   * Opcional porque el frente y las functions no se despliegan juntos: el
+   * frente sale con el push a `develop` y las functions a mano. Mientras el
+   * servidor sirva la versión anterior, este campo no llega — y la pantalla
+   * tiene que comportarse como antes, no romperse.
+   */
+  frasesMarcadas?: FraseMarcadaPqrs[];
+}
+
+/**
+ * Pide la asistencia de un ticket de PQRS (Fase 3 de `PRD-VAI-FEAT-002`).
+ *
+ * **Manda un `ticketId` y nada más, y eso es el diseño entero.** No manda el
+ * mensaje, ni el historial, ni —lo que importa— la variante del conjunto: los
+ * lee el servidor. `variante` es lo que decide la puerta dura de `buzon_simple`
+ * (nulls siempre), así que dejar que la afirme el navegador sería poner una
+ * puerta de producto en manos del cliente.
+ *
+ * Tampoco manda `tenantId`: sale de la sesión, igual que en el resto de la
+ * plataforma de IA. Cuando falla, el mensaje ya viene escrito para la persona.
+ */
+export async function asistirTicketPqrsCallable(ticketId: string) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<{ ticketId: string }, AsistirTicketPqrsResult>(functions, "asistirTicketPqrs");
+  return executeCallable(
+    callable,
+    { ticketId },
+    "No pudimos preparar la asistencia. Puedes atender el ticket a mano, como siempre.",
+  );
+}
+
 /**
  * Registra qué hizo el administrador con el borrador asistido (Paso 2.5).
  *
@@ -658,7 +733,7 @@ export async function redactarComunicacionCallable(input: RedactarComunicacionIn
  *
  * No manda `tenantId` — sale de la sesión, igual que en la puerta.
  */
-export async function registrarFeedbackIaCallable(input: {
+export interface FeedbackComunicacionesInput {
   /** Une los varios envíos de una misma sesión de borrador en una sola fila. */
   sesionId: string;
   operationKey: "comunicaciones-redactar";
@@ -670,7 +745,32 @@ export async function registrarFeedbackIaCallable(input: {
   descartados: string[];
   respondidos: string[];
   distanciaEdicion: number | null;
-}): Promise<{ ok: boolean }> {
+}
+
+/** Los tres ejes. Catálogos cerrados: aquí no cabe contenido del ticket. */
+export interface ClasificacionMedidaPqrs {
+  category: "pqrs" | "maintenance" | "billing" | null;
+  type: "petition" | "complaint" | "claim" | "suggestion" | "other" | null;
+  priority: "low" | "medium" | "high" | null;
+}
+
+export interface FeedbackPqrsInput {
+  sesionId: string;
+  operationKey: "pqrs-asistir";
+  lecturas: number;
+  /** Lo que propuso el modelo. */
+  sugerida: ClasificacionMedidaPqrs;
+  clasificacionAplicada: boolean;
+  /** Lo que quedó escrito en el ticket, o `null` si no llegó a guardar. */
+  guardada: ClasificacionMedidaPqrs | null;
+  borradorCopiado: boolean;
+  respuestaGuardada: boolean;
+  distanciaEdicion: number | null;
+}
+
+export async function registrarFeedbackIaCallable(
+  input: FeedbackComunicacionesInput | FeedbackPqrsInput,
+): Promise<{ ok: boolean }> {
   if (!functions) return { ok: false };
   try {
     const callable = httpsCallable<typeof input, { ok: true }>(functions, "registrarFeedbackIa");

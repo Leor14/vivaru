@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "images:optimize": "node scripts/optimize-product-images.mjs",
-    "test": "vitest run tests/**/*.test.ts",
+    "test": "vitest run --dir tests",
     "test:guard-visitors": "vitest run tests/guard-qr-validation.test.ts",
     "test:rules": "vitest run tests/firestore.rules.test.ts",
     "test:rules:auto": "firebase emulators:exec --only firestore \"npm run test:rules\"",

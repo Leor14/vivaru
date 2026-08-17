@@ -1,8 +1,806 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 14 de agosto de 2026, tras desplegar el contexto del conjunto en
-staging y correr la segunda sesión con un administrador.
+Actualizado el 17 de agosto de 2026 por la noche, tras construir la sombra de
+F4.
+
+## La sombra de F4 está construida y NO desplegada (17 ago 2026)
+
+**Lo que faltaba existe: `aiAssistance` ya no vive en un comentario.** Commits
+`713185b` (el refactor que la hizo posible) y `f1fea59` (la sombra). Cuatro
+piezas:
+
+- **`functions/src/ai/ejecucion.ts`** — el tramo de una operación asistida que
+  va **después de autorizar**: validar, cobrar cuota, ejecutar y contarlo. Se
+  extrajo de `runGateway` porque la sombra no tiene sesión, ni membresía, ni App
+  Check: **nada de lo que la puerta comprueba existe.** Ahora hay un solo camino
+  de ejecución y dos puertas. Las dos alternativas descartadas —usuario falso, y
+  camino propio duplicado— están escritas dentro, porque volverán a parecer
+  buenas.
+- **`functions/src/ai/sombra-pqrs.ts`** — la sombra. `planificarSombra` es una
+  función pura: es la parte que decide **cuándo NO se gasta dinero**, y quería
+  poder probarla sin emulador.
+- **Dos triggers propios** en `index.ts` (`sombraPqrsAlCrearTicket`,
+  `sombraPqrsAlActualizarTicket`), aparte de `onTicketCreated`/`onTicketUpdated`
+  para que la notificación de un PQRS no dependa de que Vertex conteste.
+- **`aiAssistance`** en `firestore.rules`: `read: superadmin`, `write: false`.
+
+**Lo que hay que saber antes de encenderla:**
+
+- **`ai-pqrs-shadow` está APAGADA en los dos ambientes**, y nace así a
+  propósito. **Es la primera vez en el programa que el sistema gasta sin que
+  nadie pulse nada:** hasta ahora toda llamada salía de un administrador
+  abriendo el drawer o de una corrida lanzada a mano. USD 0,0009 por ticket.
+- **Desplegar el código YA cambia la conducta de producción**, aunque la bandera
+  siga apagada: los dos triggers nuevos empiezan a dispararse con cada ticket.
+  Con la bandera apagada no llaman al modelo ni escriben nada, pero se invocan.
+- **Sembrar los 24 del piloto con la bandera encendida cuesta USD 0,022** y
+  ocurre solo, sin que nadie abra una pantalla.
+- **Al desplegar, comprobar los triggers.** Son funciones nuevas; la trampa
+  conocida de `run.invoker` es de las callables, pero una función nueva que no
+  arranca da «error interno» sin pista.
+- La sombra **no escribe una sola letra en el ticket**. Si algún día lo hace,
+  dejó de ser una sombra.
+- `en_curso` en reposo al leer `aiAssistance` = una función se cayó a mitad. Ese
+  ticket no se reintenta, y es deliberado: pagar dos veces en silencio es peor.
+
+**Evidencia:** 308 pruebas de functions en verde (17 nuevas en
+`functions/tests/ai-sombra-pqrs.test.ts`), typecheck limpio en `src/` y en
+`functions/`.
+
+**Y desplegada y vista funcionando en staging el 17 por la noche.** Las dos
+funciones `ACTIVE` (`19:33:57 UTC`, disparador leído: `tickets/{ticketId}`,
+`RETRY_POLICY_DO_NOT_RETRY`), reglas desplegadas, `ai-pqrs-shadow` encendida en
+staging. **Toda la cadena se comprobó por USD 0**, aprovechando que en
+`buzon_simple` la sombra omite sin llamar al modelo:
+
+- Ticket nuevo en `tenant-santa-maria` (`buzon_simple`) → fila escrita con
+  `estado: omitida`, `motivo: buzon_simple`. Disparo, reserva, lectura de la
+  variante y escritura, comprobados sin gastar.
+- Clasificado sin prioridad → `decision` anotada y **`priority` AUSENTE, no
+  `null`**: la corrección del 16 de agosto sobrevive hasta la fila de la sombra.
+  Verificado leyéndolo, no por prueba unitaria.
+- Resuelto → `decisionCongeladaEn` escrita. El congelado que mide G7 funciona.
+
+**Y el camino de pago también, con una llamada real (USD 0,0009).** Ticket en
+`tenant-nogal-bogota`: `estado: sugerida`, `variante: con_sla`, operación **v2**,
+`marcasDeRevision: []`. Clasificó `maintenance` / `claim` / `medium`, con
+`needsHumanReview: true` y `posible_urgencia`. **El borrador no afirmó ninguna
+acción**: pide fotos y el apartamento, y dice qué se hará — la forma que la
+regla dura permite. Es la v2 comportándose como la midió la evaluación offline,
+ahora sobre un ticket de producto y no sobre un WhatsApp del gold set.
+
+La fila de `aiUsage` salió con `uid: __sombra__` y `v2`, distinguible de las del
+administrador (uid real, `v1`): **el mecanismo que separa el gasto de la sombra
+del de las personas funciona**, y no hizo falta campo nuevo.
+
+Lector: `node functions/scripts/leer-sombra-pqrs.mjs vivaru-staging-02`.
+
+## Producción: la sombra está DESPLEGADA e INERTE, y falta promocionar (17 ago 2026)
+
+**El código está en producción; las banderas no.** Escribir en Firestore de
+producción quedó bloqueado en la sesión, así que las banderas las enciende David.
+
+- `sombraPqrsAlCrearTicket` y `sombraPqrsAlActualizarTicket`: **ACTIVE** en
+  `hogaru-1` (20:02:28 UTC), disparador leído sobre `tickets/{ticketId}`, sin
+  reintentos. Regla de `aiAssistance` desplegada — el diff de reglas con `master`
+  era **solo** ese bloque. Vertex (`aiplatform.googleapis.com`) habilitado.
+- **`featureFlags` de producción: 0 documentos.** Todo apagado por default, que
+  es un estado seguro y no uno a medias. `aiAssistance`: 0 filas.
+
+### Antes de encender: hay que promocionar, y no es opcional
+
+**Un administrador de producción NO puede clasificar un ticket hoy**:
+`updateTicketClassification` no existe en `master` (comprobado: 0 apariciones), y
+`asistente-ticket.tsx` tampoco. La sombra guarda pares *sugerencia + decisión*, y
+sin editor la mitad que importa no ocurre nunca — es literalmente lo que la PRD
+advirtió para F3. Y la pantalla del residente en `master` sigue **sin renderizar
+las definiciones** de los cinco tipos, que envenena la sombra por ruido.
+
+**Encender la sombra sin promocionar deja un sistema a medias.**
+
+El orden, con lo ya hecho marcado:
+
+1. ~~Poner `AsistenteTicket` detrás de `ai-pqrs-suggestions`.~~ **HECHO**
+   (`8bfc1c2`). Sin esto, promocionar habría puesto delante de un administrador
+   un panel de IA que revienta: producción no tiene `asistirTicketPqrs`.
+2. **Promocionar `develop` → `master`.** Comprobado que es seguro: el diff de
+   interfaz son **8 archivos, todos de PQRS**, y el ensayo de fusión da **0
+   conflictos**. Las ramas divergieron —`master` tiene 9 commits propios—, pero
+   el único contenido que `master` tiene y `develop` no es **`apphosting.yaml`**
+   (del arreglo `6e1f9ed`, que referencia la clave de Resend como secreto en vez
+   de en claro). **`develop` no tocó ese archivo**, así que la fusión conserva la
+   versión segura sola. Aun así: comprobarlo después de fusionar.
+3. **Redesplegar functions desde `master`.** Aquí muere la mina: hoy producción
+   corre functions de `develop`, y un despliegue desde `master` **borraría** las
+   dos funciones de la sombra, porque Firebase elimina lo que no está en el
+   código fuente.
+4. **Encender las tres banderas** (`ai-gateway`, `ai-pqrs-shadow`,
+   `ia-proveedor-real`) desde `/superadmin/flags`, o sembrando el catálogo con
+   `node functions/scripts/seed-feature-flags.mjs hogaru-1` y poniéndolas en
+   `true`. El orden entre ellas da igual: con el proveedor apagado la sombra
+   omite con motivo `proveedor_simulado` en vez de fabricar basura.
+
+**Qué pasará al encenderla: nada, y es lo esperado.** De los 9 conjuntos de
+producción, **7 están marcados `isExample=true`** —incluidos los dos que tienen
+los 20 tickets, `conjunto-las-playas` (14) y `tenant-santa-maria` (6)—. Los dos
+reales, Bromelias y Queretarock, tienen **cero tickets**. La sombra queda armada
+para el primer ticket de verdad, que es justo lo que F4 persigue. El filtro no
+discrimina conjuntos: descarta datos de mentira.
+
+**Ojo con `tenant-santa-maria`:** en producción es `con_sla`, no `buzon_simple`
+como en staging. Mismo nombre, comportamiento distinto.
+
+### Hallazgo al probarlo: la sombra no distingue lo sembrado de lo real
+
+**Los tickets del piloto no llevan `isExample`, y `tenant-nogal-bogota` tampoco.**
+El mecanismo existe y está usado en otros sitios —`trial-seed.ts` lo pone en el
+documento, los seeds de demo en el conjunto, y `audit-volumen-ia.mjs` descuenta
+por los DOS caminos porque sin eso la volumetría dio 20 tickets que eran 0 y 26
+comunicaciones que eran 2—, pero `seed-pqrs-piloto.mjs` no lo escribe y la
+sombra no lo lee.
+
+Si se resiembra el piloto con la sombra encendida: 16 tickets `con_sla` gastan
+USD 0,014 **y entran en el conjunto de evaluación de G7 indistinguibles de los
+reales.** Es el mismo defecto que ya infló un baseline dos veces, esta vez en el
+sitio donde se cobran las dos puertas de escala.
+
+**ARREGLADO el 17 de agosto, y comprobado en staging.** La sombra omite con
+motivo `sembrado` cuando el ticket **o su conjunto** traen `isExample` —hacen
+falta los dos caminos, como en `audit-volumen-ia.mjs`— y `seed-pqrs-piloto.mjs`
+ya marca lo que escribe. Verificado con un ticket sembrado en
+`tenant-nogal-bogota` (`con_sla`, donde sí clasificaría): salió
+`omitida`/`sembrado` y **`aiUsage` siguió con una sola llamada de la sombra**,
+la de pago. Es decir: no se pagó por él.
+
+**Dos filas de prueba en staging, por excluir o borrar:** los tickets
+`PQRS-SOMBRA1` (`tenant-santa-maria`, omitida) y `PQRS-SOMBRA2`
+(`tenant-nogal-bogota`, sugerida). El primero lleva además una decisión
+fabricada (`classifiedBy: prueba-sombra-f4`) escrita para probar el congelado.
+**Al segundo NO se le fabricó decisión a propósito**: habría metido en G7 un par
+que nadie decidió.
+
+**F3 CERRADA el 17 de agosto**: la entrada de §9 quedó firmada por David y
+escrita en los dos sitios —el criterio de §9, tachado y reformulado como se hizo
+con el de `category`, y el registro de decisiones—. El 0% de afirmaciones lo
+cumple el sistema (comprobación de servidor + revisión forzada + resaltado), no
+el modelo, que se queda en 6,6%. Con el alcance dicho: lo prohibido es **afirmar
+acciones**; el compromiso futuro —«procederemos a revisar»— lo permite la regla
+dura, y su subida de 45 a 59 es la conducta desplazándose a la forma buena.
+
+**Tres decisiones de David del 17 de agosto que siguen rigiendo:**
+
+- **Sin más pruebas con administradores por ahora.** La línea base del tercer
+  administrador y H2′ quedan aparcadas, no canceladas; la pregunta por la
+  respuesta 3 pasa a **mensaje asíncrono**. Los dos comunicados del 14 en
+  `tenant-palmas-cdmx` pierden urgencia, pero siguen por borrar.
+- **El orden: sombra de F4 primero; PRD de FEAT-001 (onboarding) después.**
+  ~~Sombra de F4~~ **construida el 17 de agosto** (arriba). Sigue FEAT-001, que
+  quedó más pequeña de lo que decía el plan maestro: el importador ya está en
+  producción y `importRuns` recoge solo los encabezados no mapeados. Faltan los
+  15–25 archivos reales (recolección comercial) y la corrección anotada: son
+  **10** pasos de activación, no 7.
+- **Por redactar y firmar: la entrada de §9 en el registro de decisiones** —
+  el «0 afirmaciones no sustentadas» lo cumple el SISTEMA (comprobación de
+  servidor + revisión forzada + frase resaltada), no el modelo, que queda en
+  6,6%. Misma lógica de la decisión rectora: la exigencia se mueve a la puerta
+  de salida. **Borrador entregado el 17 por la noche, pendiente de que David lo
+  apruebe**; sin esto F3 no cierra.
+
+## La frase marcada se resalta dentro del borrador, y staging ya sirve la v2 (16–17 ago 2026, noche)
+
+**La decisión que más abajo figura como pendiente se tomó: las dos cosas, y las
+dos están en el repo.** La comprobación del servidor (commit `20e341f`) ya
+forzaba `needsHumanReview`; ahora además dice QUÉ frase y DÓNDE, y la pantalla
+la resalta dentro del borrador y la nombra en el aviso. Es la única palanca que
+la sesión de F3 dejó viva: el aviso general se probó con una persona y publicó
+literal igual.
+
+Dónde vive cada pieza, con su porqué al lado en el código:
+
+- **El criterio no se movió ni se duplicó:** `afirmacionesDeAccion` en
+  `functions/src/ai/afirmaciones.ts` devuelve todas las coincidencias con su
+  posición, y `afirmaAccion` —de donde sale el 6,6%— delega en ella.
+- **El fragmento viaja por el SOBRE de la callable (`frasesMarcadas`), no por
+  `output`:** el esquema de salida se le manda al modelo dentro del prompt
+  (`z.toJSONSchema`), así que meterlo ahí obligaría a subir a v3 y a remedir
+  los 152. La operación sigue en v2 y la corrida del 17 sigue valiendo.
+- **En `aiUsage` sigue entrando solo la categoría, nunca la frase** — la
+  distinción está escrita en `FraseMarcada` del catálogo.
+- El corte en pantalla es un módulo puro (`src/lib/ai/frases-marcadas.ts`) que
+  **descarta toda posición que no corte exactamente su texto**: el frente se
+  despliega con el push y las functions a mano, y en esa ventana el campo llega
+  ausente (es opcional en `callables.ts`) o podría llegar de otro criterio.
+  Resaltar palabras inocentes mataría la confianza igual que la mató el aviso.
+- El aviso sin frase marcada corrige la cifra: **10 de 152 con el criterio
+  congelado**. El «44 de 152» era el conteo a mano no reproducible, y su
+  ejemplo («procederemos a…») es un compromiso futuro permitido, no una
+  afirmación.
+
+**Desplegado y verificado leyéndolo:** `asistirTicketPqrs` actualizada en
+`vivaru-staging-02` el 17 de agosto a las 04:14 UTC (`updateTime` leído con
+`gcloud describe`, estado `ACTIVE`). **Solo esa función, a propósito**: es la
+única cuya conducta cambió, y un deploy total arrastraría functions con
+secretos (Resend) sin ganancia. Ojo del día: **caducaron LAS DOS credenciales,
+que son distintas** — `firebase login --reauth` (deploy) y `gcloud auth login`
+(lecturas); la de ADC para scripts (`gcloud auth application-default login`) es
+una tercera y no se renovó esa noche. El frente salió solo con el push; la
+señal de que ya sirve lo nuevo es el aviso del borrador diciendo «10 de 152».
+
+**Nadie ha visto el resaltado pintado.** La evidencia es de tests: 291 en
+functions y 937 en cliente (los 7 rojos son preexistentes, comprobado
+corriéndolos contra HEAD sin estos cambios). La comprobación de punta a punta
+es una llamada real de David en staging (USD 0,0009) — y el resaltado solo
+aparece si el borrador trae afirmación (~1 de cada 15 con la v2): no verlo en
+una llamada no dice nada malo.
+
+**De los tres bloqueos de F4, dos cayeron esta noche: el resaltado y el default
+de `priority`.** «Media» ya no es el arranque: el selector parte de «Sin
+prioridad» —estado real, solo visible mientras el ticket no la tenga—, guardar
+sin elegir NO escribe el campo (se omite, no se pone en `null`) y el feedback
+anota `null` en ese eje; `classifiedAt` se escribe igual, porque la persona sí
+clasificó categoría y tipo. Cero cambios en functions: el esquema del feedback
+ya aceptaba `null`. Lo sostiene por los dos lados
+`tests/pqrs-clasificacion-prioridad.test.ts`. **Con el despliegue de arriba,
+los tres bloqueos de F4 cayeron la misma noche** (`d08ec7c`, `e2686f8` y el
+deploy). Antes de F4 quedan los pendientes que no son código: el censo de
+producción, borrar los dos comunicados del 14 en `tenant-palmas-cdmx`, y la
+pregunta al administrador por su respuesta 3.
+
+## La v2 de `pqrs-asistir` está medida: las afirmaciones caen de 21,1% a 6,6% (16 ago 2026)
+
+**Lectura en `datasets/evaluacion/resultados/2026-08-16-pqrs-v2-afirmaciones.md`.**
+Un solo cambio: **una regla dura nueva** —no afirmar acciones de la
+administración que no consten en el historial— en `reglasDuras` de
+`functions/src/ai/catalog.ts`, con `version` de la operación subida a **2** para
+que la telemetría no mezcle los dos contratos en una columna. 152 casos, USD
+0,1435.
+
+- **A (acción dada por hecha o en curso): 32/152 → 10/152.** −69%.
+- **La clasificación NO se movió:** `category` 82,1→82,9%, `type` 70,7→69,3%,
+  `priority` 72,4→71,7% — ±2 casos, que a temperatura 0,2 es ruido. **Las tres
+  puertas duras intactas:** inyección 8/8, nulls 12/12, guardrail 32/32. Era el
+  riesgo real del cambio y no se materializó.
+- **B (compromiso futuro) sube de 45 a 59.** El comportamiento se desplaza a la
+  forma permitida, que es justo lo que la regla pide («dice qué se hará»).
+- **El criterio de §9 sigue sin cumplirse: pide 0 y hay 6,6%.**
+
+**Y el prompt ya no es la palanca: 8 de los 10 que quedan son «estamos
+verificando» o «estamos revisando», la frase que la propia regla cita como
+prohibida con esas palabras exactas.** Para llegar a 0 hace falta algo
+determinista — comprobación en el servidor que fuerce `needsHumanReview`, o
+resaltar la frase en la pantalla. **Decisión tomada el 16 por la noche: las dos
+— ver la sección del resaltado, arriba.** Otra vuelta de prompt no se
+recomienda.
+
+**Nota de método:** «44 de 152» de la Fase 2 **no era una línea base
+reproducible** —conteo a mano sin criterio escrito, mezclando acciones afirmadas
+con futuros condicionales—. El criterio de ahora está congelado en
+`functions/scripts/medir-afirmaciones-pqrs.mjs`, **con autoprueba de 11 casos que
+corre antes de contar**.
+
+## La sesión de F3 se hizo: el circuito funciona y el criterio de veracidad falla 2 de 6 (16 ago 2026)
+
+**Lectura completa en
+`datasets/evaluacion/resultados/2026-08-16-sesion-pqrs-f3.md`.** Nueve tickets en
+ocho minutos, seis con asistencia, **USD 0,0055 la sesión entera**. La hoja de
+anotación no se llenó; se reconstruyó entera cruzando `aiUsage.createdAt`,
+`ticket.classifiedAt` y `aiFeedback.createdAt`, que encajan uno a uno — **y salió
+por suerte**: con dos tickets en paralelo o una recarga no habría salido.
+
+**Lo que hay que saber sin abrir el documento:**
+
+- **Cuatro pares limpios y CERO correcciones**: las cuatro clasificaciones
+  guardadas son idénticas a la sugerida. Otras dos las leyó, publicó el borrador
+  y **no guardó clasificación ninguna**. El instrumento de G7 existe y escribe;
+  cuatro pares no miden una exactitud.
+- **`distanciaEdicion: 0` en las seis.** Publicó el texto del modelo sin tocar
+  una palabra.
+- **El criterio de lanzamiento «0 afirmaciones no sustentadas» FALLA: 2 de 6.**
+  `P010` («actualmente estamos verificando con el equipo de mantenimiento») y
+  `P009` («estamos revisando los registros de mantenimiento y seguridad»), en
+  tickets sin respuesta previa. **Y con el aviso de las 44/152 puesto en
+  pantalla**: se probó con una persona y no cambió nada. La regla dura pasa a v2
+  del prompt de `pqrs-asistir`.
+- **Ninguna de las siete prioridades la eligió una persona:** tres son el default
+  `medium` de tickets que nacen sin prioridad —la trampa anotada la víspera, que
+  se cumplió en el primer bloque— y cuatro son del modelo aceptadas. **Arreglar
+  el default es prerrequisito de F4**, ya no por deducción.
+- **Los dos sintéticos se trabajaron A MANO y sin análisis:** eran los dos
+  primeros de la bandeja porque se sembraron con 14 y 15 días y la lista ordena
+  por antigüedad. La defensa de inyección sigue 8/8 offline y **sin verse en
+  pantalla**. Si se repite, sembrarlos con antigüedad baja.
+- **Buzón simple no se trabajó en la sesión**; una lectura suelta ese día
+  confirma los nulls por tercera vez.
+- **H2′ sigue sin medirse: cuarta sesión.** Escribió los dos comunicados **con el
+  asistente y antes de PQRS**, y en `tenant-nogal-bogota`, no en el conjunto de
+  comunicaciones. Los dos avisos del 14 en `tenant-palmas-cdmx` siguen sin
+  borrar. Deja tres patrones confirmados por una **tercera persona
+  independiente**: edición 0%, descartó tres preguntas de dato faltante y no
+  contestó ninguna, y pidió dos propuestas en un aviso. **Tres de tres.**
+- **La respuesta 3 abre una causa que la PRD no tenía prevista:** corrige «por
+  conocimiento histórico del condominio que no viene inmerso en la PQRS» — una
+  corrección que **no es un error del modelo**, porque §7 le niega esa entrada a
+  propósito. Si es frecuente, la referencia de la sombra tiene que distinguir «se
+  equivocó» de «no podía saberlo». Su límite: en los datos de la sesión no hay
+  ni una corrección, así que habla de algo que no ocurrió ahí. **Hay que
+  preguntárselo.**
+
+
+## El guion de la sesión de F3 está escrito, y staging no estaba como decía el traspaso (16 ago 2026)
+
+**El guion vive en `docs/guion-piloto-pqrs.md`**, con el patrón del de
+comunicaciones. Seis partes, ~95 minutos. Dos decisiones tomadas ese día:
+
+- **El participante es un tercer administrador, persona nueva**, así que la
+  línea base de comunicaciones a ciegas **va, y va primero**. Prerrequisito duro
+  que no estaba escrito en ningún sitio: `tenant-palmas-cdmx` **tiene dentro los
+  dos avisos asistidos del 14 de agosto**, y son avisos bien redactados en
+  pantalla — justo lo que la línea base no puede ver. Hay que borrarlos antes;
+  sus textos quedan transcritos en la lectura del 14, así que no se pierde nada.
+- **`SYN#2` y `SYN#6` entran, al final y fuera del bloque medido**, y se desvía
+  al administrador si abre `PQRS-P017` o `PQRS-P018`. Se descartó borrarlos y
+  reponerlos: volver a correr el sembrado reescribe los 24 por `merge` y borra la
+  clasificación que el administrador acabe de dejar.
+
+**Dos defectos de instrumentación encontrados leyendo el código, y los dos caen
+sobre la cifra que la sesión viene a producir:**
+
+1. **La fila de `aiFeedback` no dice de qué ticket habla.** El esquema es
+   `.strict()` y no tiene `ticketId`; el servidor añade `tenantId`, `uid` y
+   `createdAt`. Un mismo ticket abierto dos veces deja **dos filas**. Sin una
+   columna de orden escrita a mano, «corrigió la categoría en 4 de 9» es un
+   número sin tickets detrás. **Es lo que decide que los sintéticos vayan al
+   final:** una fila suya en medio del bloque ya no se puede excluir.
+2. **«Media» no es una decisión.** El selector de prioridad arranca en
+   `selectedTicket.priority ?? "medium"` (`src/app/(admin)/admin/pqrs/page.tsx:168`)
+   y los tickets de PQRS **nacen sin prioridad**. Guardar sin tocar nada escribe
+   `guardada.priority: "medium"`, que si el modelo propuso `high` se lee como
+   corrección deliberada. **Es la misma familia del `type: "petition"`** de buzón
+   simple: un valor por defecto con apariencia de elección humana. En la sesión
+   se sortea con una columna en la hoja; **en la sombra de F4 no hay nadie
+   mirando, así que arreglarlo es prerrequisito de F4.** *(Arreglado el 16 por
+   la noche — ver la sección del resaltado, arriba.)*
+
+**Y el ambiente no estaba como decía este documento.** Decía 18 tickets en
+`tenant-nogal-bogota` y 6 en `tenant-santa-maria`; **había 2 y 0** — un
+`--limpiar` seguido de un sembrado que se cortó en el segundo ticket. Las cuatro
+banderas sí estaban encendidas y la variante de buzón sí era `buzon_simple`.
+**Vuelto a sembrar y verificado leyéndolo:** 18 y 6, 4 con respuesta previa, 0
+con `priority`, 0 con `classifiedAt`. Hay que **volver a sembrar el mismo día de
+la sesión**: la antigüedad se calcula al sembrar y el semáforo de SLA depende de
+ella. Nota: `aiFeedback` ya arrastra 5 filas de `pqrs-asistir` de los ensayos y
+`aiUsage` 17 llamadas — al leer el resultado, filtrar por fecha y `uid`.
+
+**Sigue pendiente y sin hacer: el censo de tickets de producción.**
+
+## F3 de PQRS: staging montado y ensayado; falta la sesión con la persona (15 ago 2026)
+
+**El circuito entero funciona en staging y está ensayado a ciegas tres veces.**
+Lo único que queda de la Fase 3 es la sesión con un administrador.
+
+**Cómo está el ambiente, verificado leyéndolo y no de memoria:**
+
+| Qué | Dónde | Estado |
+|---|---|---|
+| Functions | `vivaru-staging-02` | `asistirTicketPqrs` creada; `run.invoker` comprobado llamándola |
+| Frente | `develop` → App Hosting | desplegado; remoto verificado |
+| Tickets `con_sla` | `tenant-nogal-bogota` | 18 sembrados (16 casos + 2 de inyección) |
+| Tickets `buzon_simple` | `tenant-santa-maria` | 6 sembrados; **variante cambiada a `buzon_simple`** |
+| Banderas | `/superadmin/flags` | `ai-gateway`, `ia-proveedor-real` y `ai-pqrs-suggestions` **encendidas** |
+
+**Accesos de la sesión:** `admin@elnogal.co` para el conjunto grande y
+`admin@santamaria.co` para el de buzón — cuentas demo, contraseñas en
+`seed-data-co.mjs` y `seed-demo-users.mjs`. **Ojo: `tenant-santa-maria` existe
+también en PRODUCCIÓN**, con otros tickets y sin nada de esto; lo que distingue
+un ambiente del otro es la URL, no el nombre del conjunto.
+
+**Cifras reales del ensayo, con el proveedor de verdad:** 12 asistencias, todas
+`ok`, `gemini-3.1-flash-lite`, **USD 0,00089 por asistencia** — confirma la cifra
+de G5 (USD 0,001) ahora sobre entradas de producto y no sobre el gold set.
+
+**Y la cadena de medición, probada de punta a punta**, que es lo que justificaba
+la fase: un ticket que nace `pqrs`, el modelo propone `maintenance`/`high`, la
+persona lo acepta y guarda, y la fila queda con las dos mitades juntas —
+`sugerida` y `guardada`, más `distanciaEdicion` del borrador.
+
+**Antes de la sesión hay que volver a sembrar.** El ensayo clasifica y responde
+el primer ticket para poder probar `guardada`, así que deja huella:
+
+```
+FIREBASE_PROJECT_ID=vivaru-staging-02 node functions/scripts/seed-pqrs-piloto.mjs \
+  --tenant-con-sla=tenant-nogal-bogota --tenant-buzon=tenant-santa-maria --limpiar
+```
+
+**Lo que encontró el ensayo y no se habría visto de otra forma: de once
+asistencias llegaba UNA fila de feedback.** El envío estaba enganchado solo al
+desmontaje de la pantalla, al cambio de ticket y al ocultarse la pestaña —
+ninguno ocurre cuando alguien analiza, cierra el panel y se queda donde está, que
+es lo que hace un administrador en una sesión guiada. Se habría hecho la sesión
+entera y salido casi sin datos. Corregido: cerrar el drawer manda la fila.
+
+**El validador falló cuatro veces antes que la aplicación**, y las cuatro se
+arreglaron en él: comparaba distinguiendo mayúsculas contra rótulos con
+`uppercase` en CSS; leía un `select` de la lista de atrás en vez del del drawer
+(«all» antes y después: un check que pasa siempre mirando lo que no es); leía la
+pantalla antes de que el drawer apareciera, dando resultados distintos en dos
+corridas iguales; y mezclaba «falló» con «no llegó a correr», de modo que un
+`waitUntil` mal elegido imprimía «PUERTA DURA: buzón simple enseñó clasificación»
+sin haber mirado nunca esa pantalla.
+
+**Dos cosas que quedaron anotadas y no se tocaron:**
+
+- **La PRD dice «producción tiene 0 tickets» y no es exacto**: `tenant-santa-maria`
+  en producción tiene 6, creados por la aplicación, anteriores y ajenos a esto
+  (uno se llama «oiyutiuyt»). Es un conjunto demo, así que «0 tickets reales de
+  residentes reales» probablemente siga siendo cierto — pero el número escrito no
+  es el que hay. El censo completo de producción quedó sin hacer.
+- `residencial-vista-prueba-012a42` se usó un momento como conjunto de buzón y se
+  **devolvió a su estado original** (tickets borrados, variante de vuelta a
+  `con_sla`): su único administrador es la cuenta del trial autoservicio, cuya
+  contraseña no está en ningún seed, así que ni se podía ensayar ni enseñar.
+
+**El hallazgo que más pesa: el administrador no podía clasificar, y eso dejaba
+sin suelo a las DOS puertas de G7.** Al ir a pintar las sugerencias no había
+dónde aceptarlas. Medido: `category` nacía constante, `type` lo fijaba el
+residente y el drawer lo enseñaba de solo lectura, y **`priority` no se escribía
+nunca** — el campo solo vivía en el tipo de TypeScript; todas las prioridades del
+repositorio son del módulo de soporte, otra colección. Las dos puertas movidas a
+G7 se cobran «contra la decisión real del administrador» acumulada por la sombra,
+y esa decisión no existía: la Fase 4 habría acumulado sugerencias contra un
+hueco. **Es el tercero de la familia de `category` y `type`** —constante,
+descriptivo y ahora inexistente—, y llegó por el mismo camino: mirar el producto
+y no el kappa. No es un fallo del instrumento sino del plan, que dio por supuesta
+una capacidad que el producto no tenía. Decisión de David: los tres ejes
+editables ya en F3.
+
+**Lo demás que salió al construir:**
+
+- **Puerta propia en el servidor** (`asistirTicketPqrs`), no `aiInvoke`: con la
+  genérica el navegador afirmaría `variante`, que es lo que decide la puerta dura
+  de `buzon_simple`. El cliente manda un `ticketId` y nada más.
+- **El `historial` de producción es el contrario del que midió F2**: en el gold
+  set lo escribe el residente (hilos de WhatsApp), en el producto solo la
+  administración. Se mapea fiel al producto y el sembrado incluye 4 tickets con
+  respuesta previa para verlo en la sesión.
+- **`npm test` corría CERO tests y salía con error.** `sh` no expande
+  `tests/**/*.test.ts` porque los 58 archivos están directos en `tests/`. Estaba
+  anotado aquí desde el 15 como una de las cuatro veces que falló el instrumento,
+  **pero el script nunca se arregló**. Ahora corre 922 tests: 915 verdes y **7
+  rojos preexistentes** —`data-table.tsx`, reservas, regulations y descarga de
+  QR—, ajenos a PQRS y sin tocar. Son un frente aparte.
+
+**Lo único que queda de F3 es la sesión.** Y con la regla de orden delante: **si
+usa al tercer administrador, ANTES hay que tomarle la línea base de
+comunicaciones a ciegas.** Van tres sesiones sin medir H2′ porque se quemó a la
+persona enseñándole la herramienta primero; aquí el riesgo es el mismo y la
+herramienta es más vistosa.
+
+Lo que la sesión tiene que mirar, que es lo que el gold set no puede dar: si el
+resumen sirve, si el borrador se acepta o se reescribe, si `needsHumanReview`
+aparece donde debe, y sobre todo **cuántas veces corrige la clasificación
+sugerida** — que ahora, por primera vez, se puede contar.
+
+## El desplegable del residente está corregido: F3 se queda sin prerrequisitos (15 ago 2026)
+
+**El último bloqueo de la F3 de PQRS está cerrado**, en un solo archivo:
+`src/app/(resident)/resident/pqrs/page.tsx`. Las cinco definiciones de `type`
+quedan alineadas con `datasets/pqrs/taxonomia.md` —el eje es **de quién o de qué
+se queja**: persona (queja) contra servicio (reclamo)— y `other` se ofrece como
+«General», que es el rótulo que ya usaban las dos pantallas del administrador.
+
+**Pero el defecto no era el que estaba escrito, y esa es la parte que vale.**
+El informe decía que el residente leía las definiciones cruzadas. No las leía:
+**el `map` de los botones pintaba solo `label`, y el campo `description` llevaba
+muerto desde siempre.** El residente elegía entre cuatro palabras desnudas
+—`Petición | Queja | Reclamo | Sugerencia`— sin una sola línea de ayuda.
+Envenenaba la sombra de F4 igual, pero **por ruido y no por engaño**.
+
+**La lección de método, que es la de siempre en este programa:** corregir las
+cinco cadenas —que era el arreglo que pedía el documento— habría dejado la
+pantalla **idéntica**, con el prerrequisito dado por cerrado y la sesión de
+staging corriendo sobre el mismo defecto. Se vio abriendo el JSX, no leyendo la
+constante. **Es la cuarta vez que el instrumento falla antes que la cosa
+medida** — el tamiz que se creía sus cifras, los checks de inyección que
+premiaban el rechazo, `npm test` corriendo cero tests, y ahora un campo de datos
+que nadie renderizaba.
+
+**Y apareció un tercer defecto que no estaba en ningún documento: en
+`buzon_simple` todo ticket nacía con `type: "petition"`.** El selector se oculta
+en esa variante, pero el estado inicial se enviaba igual — una etiqueta falsa
+**con apariencia de elección humana**, y precisamente en el eje donde la PRD
+exige nulls como puerta dura. **Decidido por David:** no se envía `type` y
+`createTicket` cae a su default `other`.
+
+**Dos cosas más que quedaron en la pantalla:**
+
+- **La precedencia del árbol, escrita arriba del grupo:** «Si reportas algo que
+  ya salió mal, elige Queja o Reclamo aunque además pidas que lo arreglen». Es
+  la regla que **el kappa tumbó dos veces** con anotadores que conocen el
+  producto; dejar que un residente la deduzca era peor.
+- Las opciones pasan a una columna en móvil (ahora llevan texto, no una palabra)
+  y anuncian su estado con `aria-pressed`.
+
+**Deuda que se ve desde aquí y NO se tocó, con su prueba de que no es teórica:**
+los rótulos de `type` están **duplicados en tres sitios** —esta pantalla,
+`/admin/pqrs` y `pqrs-aging-widget`— y **ya divergieron**: el widget pinta
+`other` como **«Otros»** y los otros dos como **«General»**, así que el mismo
+ticket cambia de nombre según la pantalla. Se comprobó al ir a escribir que
+coincidían. Un solo módulo compartido lo cerraría, pero es refactor con su
+propio alcance —y con una decisión de copy dentro— no parte de este arreglo.
+
+## La Fase 2 de PQRS está HECHA, y `category` se cobra ahora en la puerta de escala (15 ago 2026)
+
+**La operación `pqrs-asistir` existe y la corrida está hecha.** Segunda
+operación del catálogo, sobre el gateway que ya estaba: entrada que puebla el
+servidor, salida estricta del §7 de la PRD, sin infraestructura nueva. 456
+llamadas reales, **USD 0,45**. Lectura completa en
+`datasets/evaluacion/resultados/2026-08-15-pqrs-evaluacion-offline.md`.
+
+**Dos puertas duras pasan y una no:**
+
+- **`buzon_simple` 12/12** y **inyección 8/8**, en las tres versiones de prompt.
+- **`category` se queda en 82,1%** (p1), 81,4% (p2), 82,9% (p3), contra una
+  puerta de ≥90%. **David decidió esa misma noche moverla a la puerta de escala
+  (G7), contra la sombra** — no por no haber llegado, sino por lo que se
+  encontró al mirar el código: ver abajo. **F2 queda HECHA y F3 desbloqueada.**
+- Se reportan sin bloquear: `type` 70,7%, `priority` 72,4%, **recall de `high`
+  94,7%** (18/19) y el guardrail **32/32** — todo `high` que propone el modelo
+  llega con `needsHumanReview`. El recall va con asterisco: la definición sigue
+  sin validar (kappa 0,47).
+- **G5 tiene su cifra: USD 0,001 por asistencia**, del mismo orden que
+  comunicaciones. 300 asistencias al mes por conjunto son USD 0,30.
+
+**`p1-minima` gana y queda activa** — la versión con la taxonomía entera dentro
+del prompt no paga su costo, igual que en comunicaciones y más marcado.
+
+**LO QUE DECIDIÓ ESTO, y es el hallazgo que más vale de la sesión:
+`category` hoy es una constante en producción.** Todo ticket que crea el portal
+del residente nace con `category: "pqrs"` escrito a fuego
+(`src/features/pqrs/use-tickets.ts:129`) — el residente elige `type`, no
+`category`—, y **no la lee nadie**: ni `firestore.rules`, ni `functions/`, ni
+`/admin/pqrs` (esa pantalla filtra y muestra `type`), ni el SLA. Su único
+consumidor es un conteo del reporte del comité
+(`src/features/reports/use-committee-report.ts:439`). **Es el hallazgo gemelo
+del de `type`, y llegó igual: mirando el producto, no el kappa.**
+
+**Y el baseline real no es cero: es 61,4%.** Clasificar todo como `pqrs`
+—literalmente lo que hace el código— acierta 86 de 140. Salió medido sin
+buscarlo: es la cifra de la corrida en simulado, porque el simulador siempre
+contesta `pqrs`. Así que la comparación no era 82 contra 90 sino **82 contra
+61**. Su límite, dicho: el gold set son dos edificios, no dos mercados.
+
+**Se intentó arreglarlo con prompt y no se puede:** 19 de los 25 fallos son
+`pqrs → maintenance` —preguntas y sugerencias SOBRE un tema físico— y la
+versión que se lo explica (p3) **giró la frontera en vez de afinarla**: +12 en
+`pqrs`, −11 en `maintenance`, neto +1, y `type` cayó nueve puntos. Cada
+instrucción de frontera mueve la frontera entera.
+
+**El candado de la decisión, para que no se convierta en costumbre.** Es la
+segunda puerta que se mueve a G7, así que la PRD fija ahora **cinco criterios
+que no se tocan** —inyección 8/8, nulls de `buzon_simple`, revisión humana
+total con `needsHumanReview` en los `high`, cero cambios automáticos, cero
+acceso cruzado— y una regla: mover cualquier otro exige la medición que lo
+sostenga **y** una puerta posterior que lo recoja; nunca la sola constatación
+de que no se alcanzó.
+
+**Dos cosas más que salieron y valen para F3:**
+
+1. **El modelo afirma acciones que nadie tomó** — «procederemos a programar la
+   inspección», «hemos activado el protocolo»: 44 de 152 borradores. No lo mide
+   el gold set (mide clasificación), pero en el drawer un administrador puede
+   publicarlo sin que nadie haya activado nada. **Candidata a regla dura de la
+   v2 de la operación.**
+2. **El examen falló dos veces antes que el modelo.** Los checks de inyección
+   contaban como obediencia que el borrador RECHAZARA la compensación
+   (`SYN#6`) y que propusiera `low` razonándolo (`SYN#4`). Es
+   **mención-no-es-obediencia por tercera vez** en este programa. Corregido, con
+   prueba en los dos sentidos, y la corrida pagada se **recalificó sin volver a
+   llamar al modelo** (`functions/scripts/recalificar-pqrs.mjs`).
+
+**El prerrequisito de `buzon_simple` está cerrado:** 12 casos declarados (7 MX,
+5 EC) con una columna opcional `variante` en `etiquetas.tsv`. Se eligieron
+evitando `billing`, `high` y los casos ancla de la taxonomía — sus etiquetas
+están impresas en el documento y ahora la taxonomía viaja en un prompt.
+
+## El gold set de PQRS existe, con 152 casos y tres huecos dichos (15 ago 2026)
+
+**Fase 1 de `PRD-VAI-FEAT-002`** —«medir baseline y construir gold set»— a
+medias: el gold set está, el baseline no. Todo en `datasets/pqrs/`, y la
+taxonomía con las definiciones y su evidencia en `datasets/pqrs/taxonomia.md`.
+
+**Cinco ejes.** Los tres primeros son el contrato de la PRD y de `Ticket`, no
+invención: `category`, `type` y `priority`. **`priority` casi se queda fuera**, y
+es el que sostiene el criterio más duro de la PRD —recall de `high` ≥95%—. Los
+otros dos son el tema (once, con frecuencias de dos países) y las banderas.
+
+**152 casos: 84 de México, 60 de Ecuador y 8 sintéticos** de prompt injection,
+que son los únicos que no salen de un corpus real porque un ataque no aparece
+espontáneamente en un chat vecinal. Prueba en
+`functions/tests/pqrs-goldset.test.ts`, mutada para comprobar que atrapa.
+
+**Se edita `etiquetas.tsv`, NO el JSON**, y se regenera con
+`scripts/construir-gold-set-pqrs.mjs`. El texto de cada caso lo pone el corpus:
+tecleándolo se cuela una corrección ortográfica, y la mala ortografía es lo que
+hace útil el material.
+
+**Tres cosas que aparecieron y valen más que el conjunto:**
+
+- **Las definiciones de `type` estaban cruzadas.** Se habían escrito en el eje de
+  la severidad; el canónico es **de quién o de qué se queja** — persona (queja)
+  contra servicio (reclamo). Verificado contra fuente pública, con su límite
+  anotado: ese marco regula entidades públicas y una copropiedad es privada.
+- **Los avisos del comité contaminaban el muestreo.** Un aviso es la salida del
+  administrador; un ticket es la entrada del residente. Filtrar por remitente no
+  basta: 27 de 83 avisos mexicanos los escriben residentes del comité.
+- **«Cambió tu código de seguridad» inflaba `seguridad_porteria`.** Lo escribe
+  WhatsApp, no una persona: 89 en México y 141 en Ecuador, y el tema entero en
+  Ecuador tenía 132. Corregido, baja del tercer puesto al sexto en México. **No
+  se vio contando, se vio muestreando** — el contador se creía sus cifras porque
+  el ruido pasaba su propio tamiz.
+
+**El doble etiquetado SE HIZO el mismo 15 de agosto** — 20 casos, David a
+ciegas contestando en lenguaje natural. **Tumbó dos ejes de cuatro**, que es
+para lo que existía: `category` 0,91 y `tema` 0,89 pasan; `type` dio **0,42**
+—la definición no decía qué gana cuando un mensaje reporta un fallo Y pide el
+remedio, que es el formato más común de PQRS— y `priority` dio **0,08, acuerdo
+de azar**. Lectura completa en
+`datasets/pqrs/doble-etiquetado/resultado-2026-08-15.md`.
+
+**Las dos definiciones se reescribieron y los 152 casos se re-etiquetaron**:
+`type` es ahora un árbol con precedencia (reportar manda sobre pedir; conducta
+de personas → queja, servicios → reclamo) y `priority` tiene anclas con casos
+concretos y la prueba «¿esperar a mañana empeora el resultado?». Cambiaron 23
+casos, el 16%.
+
+**La SEGUNDA muestra ciega se hizo el mismo 15 de agosto, por la tarde, y los
+dos ejes siguen suspendiendo:** `type` **0,53** (umbral 0,70) y `priority`
+**0,47** (umbral 0,60). Lectura completa en
+`datasets/pqrs/doble-etiquetado/resultado-2026-08-15-ronda2.md`; la muestra, en
+`muestra-2.tsv`. Lo que hay que saber sin abrirlos:
+
+- **`priority` salió del azar** —de 0,08 a 0,47— y las marginales ya casi
+  coinciden: **las anclas con casos funcionaron**, la frase sola no.
+- **`type` falla por lo mismo que la primera vez:** cuatro de siete desacuerdos
+  son A `claim`/`complaint` → B `petition`. **La precedencia «reportar manda
+  sobre pedir» no prendió, y esta vez B la tenía escrita delante** — así que la
+  explicación de la ronda 1 ya no sirve.
+- **Sobre los `high`, que es para lo que se sobremuestreó: coinciden 3 de 5.** El
+  criterio «recall de `high` ≥95%» sigue **sin ser evaluable**, ahora con número.
+- **El pool limpio baja de 116 a 96, y solo 5 son `high`.** Una tercera ronda ya
+  no es barata. (116, no 124: hay que excluir también los 19 identificadores que
+  `taxonomia.md` usa de ancla o ejemplo — su etiqueta la imprime el documento.)
+
+**La vuelta de definiciones de `priority` SE HIZO la noche del mismo 15 de
+agosto**, por chat sobre los 7 desacuerdos de la ronda 2. Registro completo en
+`datasets/pqrs/doble-etiquetado/definiciones-priority-2026-08-15.md`. En corto:
+cuatro golds quedaron como estaban —B llegó solo al criterio escrito en cuanto
+lo conversó, así que la sección se reescribió como **tres preguntas en orden**,
+la medicina del árbol de `type`—; dos cambiaron con regla nueva (`MX#4689`
+high→medium: riesgo verificado y no confirmado baja un nivel; `MX#4053`
+low→medium: recurrente con evidencia que caduca); y `MX#3441` fijó la decisión
+de producto: **el enfado no sube la prioridad, va en la bandera `enfado`**. Los
+`high` quedan en 19 (mínimo de la prueba: 15), todo regenerado y la suite en
+verde. **Y la tercera ronda se APLAZÓ por decisión de David** — el programa
+lleva demasiado en validaciones de muestra—, así que `priority` queda
+**corregido sin validar**: el kappa vigente sigue siendo 0,47 y el criterio
+«recall de `high` ≥95%» sigue sin ser evaluable. El plan si se retoma (muestra
+fresca de Colombia estratificada a candidatos `high`, kappa completo + binario
+high/no-high) está escrito en el registro.
+
+**Y la PRD se consolidó en el repo esa misma noche:**
+`docs/prd/ia/PRD-VAI-FEAT-002-asistente-pqrs.md` — desde ahí es la fuente de
+verdad; la copia de Drive queda como lectura. Trae la **decisión rectora de
+David**: el recall de `high` ≥95% se cobra en la puerta de escala (G7), no en
+la de lanzamiento — el piloto se protege con revisión humana total, no con una
+métrica que hoy no es evaluable. G0–G3 superadas. Fases renumeradas: ~~**F2
+evaluación offline contra el gold set (el siguiente paso ejecutable**, cuesta
+centavos; prerrequisito: declarar casos `buzon_simple`)~~ **— F2 HECHA esa
+misma noche; G4 y G5 superadas: ver la sección de arriba —**, F3 piloto
+simulado en staging con tickets sembrados desde los corpus (**sin
+prerrequisitos: el desplegable se corrigió el 15 de agosto**; si la sesión usa
+al tercer administrador, ANTES se le toma la línea base de comunicaciones a
+ciegas), F4
+sombra en producción + piloto visible por bandera (la sombra fabrica los
+150–250 tickets etiquetados que piden el Paso 3 y la Fase 5), F5 escala. El
+tenant piloto se decide después de staging.
+
+**Y lo que apareció mirando el producto vale más que el kappa:**
+
+1. **`type` no decide nada, y ya no es pregunta: David lo confirmó el 15 de
+   agosto** («van al mismo lado» — un reclamo y una petición reciben el mismo
+   tratamiento). En el código tampoco: solo pinta la etiqueta y llena el filtro
+   de `/admin/pqrs`. **Consecuencia: el 0,53 de `type` no bloquea nada.** El eje
+   queda como etiqueta descriptiva con definiciones corregidas sin validar, y
+   no se le dedica una tercera ronda. `priority` es distinto: declarado en
+   `domain.ts`, usado en cero pantallas, pero la PRD le exige revisión humana
+   en los `high` — **ahí va el esfuerzo de definiciones.** *(Hecho la noche del
+   15 — ver el párrafo de la vuelta de definiciones, arriba.)*
+2. ~~**DEFECTO VIVO EN PRODUCCIÓN:** el desplegable del residente enseña las
+   **definiciones cruzadas** y no ofrece `other`.~~ **CORREGIDO el 15 de agosto
+   de 2026** — ver la sección de arriba. Era mayor de lo que decía este punto:
+   las descripciones **no se renderizaban**.
+3. **La consecuencia de producto del kappa de `priority`:** el criterio «recall
+   de `high` ≥95%» no es evaluable mientras dos personas no coincidan en qué es
+   `high`. Y en los dos casos con hilo previo de la ronda 1, David etiquetó la
+   conversación en vez del mensaje — si le pasa a un humano, le pasará al modelo
+   con `responseHistory`: el prompt deberá separar «el ticket» de «el historial».
+3. **`billing` tiene 15 casos y `buzon_simple` ninguno.** El primero no se
+   arreglaba con los corpus de México y Ecuador —en Ecuador las cuotas son el
+   1,3%—, pero **el 15 de agosto por la tarde llegó el tercer corpus:
+   `datasets/chat-vecinal-colombia/`, 2.984 mensajes de un conjunto de Bogotá**,
+   ya anonimizado con `scripts/anonimizar-chat-colombia.mjs` (llegó descrito
+   como «datos limpios» y traía la dirección exacta del edificio — el README
+   del corpus cuenta qué sobrevivía y qué se hizo). **Su `analisis.md` ya
+   respondió lo de las cuotas: 1,7% — Colombia se parece a Ecuador y México es
+   el atípico, así que `billing` NO crece por proporción; pero hay 46
+   candidatos (~35–40 limpios) si se decide crecerlo por muestreo dirigido.**
+   Los once temas aguantan el tercer país sin categorías nuevas; el tamiz ganó
+   «celador», las grafías de sistema colombianas y el marcador `<adjunto:`,
+   con México y Ecuador idénticos al dígito tras cada cambio.
+   `buzon_simple` sigue siendo declarar la variante en unos cuantos casos.
+4. **El baseline de G1 sigue TBD** en la propia PRD: volumen de tickets, tiempo
+   de primera respuesta, reclasificaciones. No lo da ningún corpus, y producción
+   tiene **cero tickets**.
+
+## Todo el lote está en producción, verificado contra el ambiente (15 ago 2026)
+
+**`master` quedó en `512ba38`: 75 commits promocionados**, los primeros desde el
+8 de agosto. El orden fue el seguro —reglas → índices → functions → front— y
+cada paso se comprobó contra el ambiente, no contra el «Deploy complete!»:
+
+- **Reglas:** antes de desplegar se bajó el ruleset vivo y era idéntico a
+  `master` byte a byte — nadie había tocado la consola. Las nuevas (849 líneas)
+  quedaron idénticas a `develop`, comprobado igual.
+- **Índices:** 50, los dos nuevos de `aiUsage` en `READY`.
+- **Functions: 64** (eran 60). `aiInvoke`, `registrarFeedbackIa`,
+  `registrarImportacion` y `getAiUsage` nacieron **con** `allUsers →
+  run.invoker` — la trampa no mordió, comprobado servicio por servicio.
+  `onCommunicationCreated` ya lee `notificationSummary`, y el cron de retención
+  purga la telemetría de IA vencida.
+- **Front:** `vivaru-build-2026-08-15-001` sirviendo; landing 200 en la raíz.
+  El rollout lo dispara la conexión de App Hosting con el repo al empujar
+  `master` — tarda unos diez minutos, verificado mirando la revisión de Cloud
+  Run, no el reloj.
+
+**La IA está desplegada e INERTE:** `featureFlags` y `featureFlagOverrides`
+están **vacías** en producción, así que todo resuelve por el default del
+catálogo — las de IA apagadas. Y eso corrigió un pendiente viejo: **sembrar el
+catálogo ya no hace falta.** La consola `/superadmin/flags` se pinta desde el
+código y escribe el documento al primer toque; la colección vacía es un estado
+completo, no un hueco.
+
+**Lo único que un administrador ve distinto:** el importador con paso de mapeo.
+Va detrás de una bandera nueva, `producto-importacion-masiva`, que **nace
+encendida** porque los asistentes ya estaban vivos —una bandera apagada por
+defecto los habría retirado—. Apagarla oculta la carga masiva entera, y el corte
+cubre las tres entradas: botones, recorrido guiado (`?guia=`) y los modales.
+Test propio en `tests/import-feature-flag.test.ts`, mutado para comprobar que
+atrapa.
+
+**Tres cosas que aparecieron por el camino:**
+
+- **La `RESEND_API_KEY` del backend de App Hosting está en texto plano** en su
+  `overrideEnv` — visible con una llamada a la API para cualquiera con lectura
+  sobre el proyecto — y además quedó impresa en la sesión del 15 de agosto.
+  **Rotarla**, y al rotarla guardarla como secreto referenciado, no como
+  variable en claro. **HECHO el mismo 15 de agosto** — el cierre completo, con
+  sus dos hallazgos, en la sección de Seguridad.
+- **El gate de CI falla por tres causas y el job de deploy nunca corre.** Los
+  40 errores de typecheck viven en `tests/`; `npm test` usa un glob (`tests/**`)
+  que el `sh` de npm no expande — corre **cero tests y sale en 1**, por eso el
+  gate está rojo hasta con la suite en verde—; y hay errores de lint
+  preexistentes (4 en `UnitBulkImportWizard` vienen de `master`). Como
+  `deploy-production` depende del gate, nunca ha corrido: el despliegue real lo
+  hace App Hosting por su cuenta. Y si algún día se arregla el workflow, ojo:
+  `firebase.json` declara `backendId: "hogaru-web"`, **que no existe** — el
+  backend de producción se llama `vivaru`.
+- **El CLI de Firebase (15.4.0) puede inventarse un «Changing from an HTTPS
+  function to a background triggered function»** al desplegar
+  `onCommunicationCreated` en lote con otras cinco. El ambiente decía lo
+  contrario (`GEN_2`, trigger de Firestore, verificado con `gcloud`). Sola, se
+  desplegó sin queja. Si reaparece: desplegarla aparte antes de creerle al
+  error.
 
 ## Segunda sesión con administrador: el canario acertó, y la línea base volvió a quedarse sin tomar (14 ago 2026)
 
@@ -45,7 +843,9 @@ borradores.
 **Desplegadas `aiInvoke` y `registrarFeedbackIa`** en `vivaru-staging-02`, a las
 12:25 hora de México. Solo esas dos: el cambio del contexto vive entero en
 `functions/src/ai/`, y un despliegue completo habría mezclado sesenta funciones
-que nadie revisó hoy con la única que cambió. **Producción sigue sin nada.**
+que nadie revisó hoy con la única que cambió. ~~**Producción sigue sin
+nada.**~~ **En producción desde el 15 de agosto de 2026** — ver la sección de
+arriba.
 
 **Lo que NO hizo falta tocar, comprobado y no supuesto** —los documentos decían
 que faltaba y era mentira—: las reglas desplegadas son **idénticas** a
@@ -156,8 +956,9 @@ Lectura completa en
 `datasets/evaluacion/resultados/2026-08-14-contexto-conjunto.md`.
 
 ~~**Lo siguiente, y es tuyo:** nada está desplegado.~~ **DESPLEGADO en staging
-el 14 de agosto de 2026** — ver la sección de arriba. **Sigue sin haber nada en
-producción.**
+el 14 de agosto de 2026** — ver la sección de arriba. ~~**Sigue sin haber nada
+en producción.**~~ **En producción desde el 15 de agosto de 2026, con las
+banderas de IA apagadas.**
 
 ## El canario, tras la primera sesión con un administrador (13 ago 2026)
 
@@ -213,9 +1014,11 @@ bandera `ia-proveedor-real` quedó **apagada** al terminar.
 
 **Lo que bloquea el piloto (Paso 2.6), en orden:**
 
-1. **Nada de esto está en producción.** Reglas, índices, functions y banderas
+1. ~~**Nada de esto está en producción.** Reglas, índices, functions y banderas
    viven solo en `vivaru-staging-02`. Los administradores reales están en
-   `hogaru-1`.
+   `hogaru-1`.~~ **RESUELTO el 15 de agosto de 2026:** todo está en producción,
+   con las banderas de IA apagadas. Encender el canario para un conjunto real
+   ya no exige desplegar nada — es la consola de banderas.
 2. ~~**A quién se le entrega el piloto.**~~ **DECIDIDO el 12 de agosto de 2026:
    al administrador, hipótesis H2′.** Es para quien se está comercializando
    Vivaru. **No exige tocar código**: el catálogo ya autoriza solo a
@@ -362,9 +1165,11 @@ diagnosticarlas cuesta lo mismo la segunda vez.
   en `featureFlagOverrides`, y consola en `/superadmin/flags`. Se construyó
   genérico: no es una pieza del programa de IA, sirve para cualquier capacidad
   que deba poder apagarse sin desplegar. Detalle en el registro de ejecución de
-  `docs/hoja-de-ruta-ia.md`. **Queda por hacer en consola:** sembrar el catálogo
-  (`node functions/scripts/seed-feature-flags.mjs <projectId>`) y desplegar
-  reglas en cada ambiente.
+  `docs/hoja-de-ruta-ia.md`. ~~**Queda por hacer en consola:** sembrar el
+  catálogo (`node functions/scripts/seed-feature-flags.mjs <projectId>`) y
+  desplegar reglas en cada ambiente.~~ **Ya no (15 ago 2026):** las reglas
+  están desplegadas en los dos ambientes, y sembrar no hace falta — la consola
+  se pinta desde el catálogo del código y escribe el documento al primer toque.
 - **Ecuador no está en ningún dataset de evaluación** de `DOC-001` ni
   `FEAT-001`: piden Colombia y México, y Ecuador está en `PAISES`. Mismo punto
   ciego que `docs/brief-legal-ecuador.md`, pero aquí aprobaría una capacidad
@@ -383,6 +1188,32 @@ diagnosticarlas cuesta lo mismo la segunda vez.
   `docs/brief-legal-ecuador.md`. **No hay ningún conjunto ecuatoriano firmado**,
   así que es riesgo medio y no urgente — pero el disparador es observable: el
   registro del trial guarda `pais` en el lead y en el tenant.
+
+- **El SLA de PQRS son 15 días hábiles colombianos, aplicados a los tres
+  países** (encontrado el 15 de agosto de 2026 preparando el gold set de PQRS,
+  no buscándolo). `src/features/pqrs/sla.ts` hace
+  `addBusinessDays(radication, 15)` sin distinguir país ni conjunto. Quince días
+  hábiles es el plazo del **derecho de petición colombiano ante entidades
+  públicas** (Ley 1755 de 2015). Una copropiedad es privada, así que ni siquiera
+  en Colombia se sigue solo; en México y Ecuador no rige.
+
+  **Está vivo y es el default, comprobado los dos extremos:** lo consume
+  `src/app/(admin)/admin/pqrs/page.tsx:118`, y `con_sla` es el valor por defecto
+  de la variante en `src/lib/config/module-variants.ts:37`. Es decir, **todo
+  conjunto nuevo nace con el semáforo encendido**, y a un administrador mexicano
+  le pinta el ticket en rojo por una norma que no lo rige.
+
+  Es el mismo patrón que el copy colombiano en la página de México y que Ecuador
+  ausente de los datasets: **una decisión de un país aplicada a los tres sin
+  decirlo.** Y tiene una ironía que conviene ver: `PRD-VAI-FEAT-002` prohíbe
+  expresamente que la IA «calcule obligaciones legales» y saca de alcance el
+  «cálculo jurídico de términos» — el riesgo está vigilado del lado de la IA y
+  ya existe del lado de las reglas.
+
+  **No se ha tocado nada.** Las salidas son decisión de producto, no de
+  ingeniería: dejarlo con su origen documentado, hacerlo configurable por
+  conjunto, o llamarlo «meta de servicio» y no plazo legal. Entra en el mismo
+  repaso legal que el hueco de Ecuador.
 
 ## Necesitan consola, no código
 
@@ -438,6 +1269,27 @@ diagnosticarlas cuesta lo mismo la segunda vez.
 
 ## Seguridad
 
+- ~~**Rotar la `RESEND_API_KEY` del backend de App Hosting de producción.**~~
+  **ROTADA el 15 de agosto de 2026, de punta a punta:** clave nueva (versión 6
+  del secreto), las 25 functions redesplegadas apuntando a ella, la variable en
+  claro borrada de la consola, `apphosting.yaml` de `master` la referencia como
+  `secret:`, la clave vieja revocada en Resend y las versiones 1–5 del secreto
+  deshabilitadas. Verificado con un envío real: `[demo/email-notif-ok]` y
+  `[demo/email-confirm-ok]` en los logs de la revisión `-003`.
+
+  Dos cosas que dejó la rotación:
+
+  - **Trampa nueva:** borrar una variable en la consola de App Hosting dispara
+    su PROPIO rollout. El 15 de agosto ese rollout corrió en paralelo con el del
+    push y hubo una ventana de ~5 minutos (revisión `-002`) sirviendo **sin
+    clave ninguna** — dos formularios de prueba cayeron ahí y sus correos no
+    salieron (los leads sí se guardaron: el envío es best-effort a propósito).
+    Si se repite el patrón consola+push, esperar a que el tráfico esté en la
+    revisión buena antes de verificar.
+  - **Secreto huérfano:** existe un segundo secreto `resend-api-key` (en
+    minúsculas, del 1 de junio) que no referencia nadie — ni funciones ni
+    backend. Confirmar que nadie lo usa y borrarlo: un secreto sin dueño es una
+    credencial que nadie rota.
 - **Rotar cinco credenciales de producción** pegadas en el chat el 8 de agosto
   (admin, portería y tres residentes del conjunto Las Playas, dominio
   `david.macar.18+*@hotmail.com`).
