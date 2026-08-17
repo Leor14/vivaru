@@ -100,6 +100,12 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
 
 - **Wiki del producto:** `wiki-producto/wiki/` — empezar por `index.md` y seguir wikilinks. Páginas clave: `arquitectura/autenticacion-roles.md`, `arquitectura/correos-mensajeria.md`, `decisiones/trampas-conocidas.md`, `patrones-tecnicos/firebase-firestore.md`. Convenciones de la wiki en `wiki-producto/CLAUDE.md` (es-CO, frontmatter de 5 campos, mínimo 8 wikilinks).
 - **Diseño/producto:** `PRODUCT.md`, `DESIGN.md` (raíz del repo).
+- **Roadmap de producto:** `docs/roadmap-producto.md` — **el repositorio es la fuente
+  de verdad; la copia de Notion es la vista publicada.** Tres zonas con reglas
+  distintas: el estado se REESCRIBE arriba, el cuerpo se EDITA en su sitio, y solo el
+  changelog acumula (lo nuevo primero). **Nunca añadir «actualización del …» al final
+  del cuerpo**: obliga a bajar y deja dos épocas conviviendo sin decir cuál manda —
+  el defecto que tenía `wiki/modulos/pqrs.md` desde mayo de 2026.
 - **Plan de auth (go-live):** `Hogaru/Producto/seguridad y accesos/Vivaru_Plan_Remediacion_Auth_GoLive.md`.
 - **Módulo financiero/SRI:** `Hogaru/Producto/modulo  financiero - contable/` (Modelo fundacional, F1, F2 con las 6 preguntas del spike) + `Hogaru/Vivaru_Planning_Modulo_Financiero.md`.
 
