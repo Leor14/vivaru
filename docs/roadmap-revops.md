@@ -14,16 +14,18 @@ en `docs/roadmap-producto.md`.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.2 |
+| **Versión** | 0.3 |
 | **Fecha** | 17 de agosto de 2026, noche |
-| **Base** | Documento Rector REVOPS v1.0 + documentación de Albert CRM |
-| **Verificado contra** | Repositorio en `cc46643` y proyecto `hogaru-1` (producción) |
-| **Bloqueo dominante** | **Resuelto a medias: el CRM se conoce. Falta el camino de vuelta Albert → Vivaru, que no existe** |
+| **Base** | Documento Rector REVOPS v1.0 + documentación de Albert CRM + **navegación de la consola desplegada** |
+| **Verificado contra** | Repositorio en `4f3a9f7`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
+| **Bloqueo dominante** | **Los leads del landing no tienen interfaz en Albert.** La pestaña que su documentación describe no está desplegada |
+
+**Qué cambió en 0.3:** se navegó la consola real de Albert. **Su documentación
+sobredescribe lo desplegado en un punto crítico** y lo subdescribe en otros. Ver 5.5.
 
 **Qué cambió en 0.2:** se identificó el CRM. El «CRM Quintilab» del documento
 original es **Albert CRM**, producto propio de la misma casa, con el mismo stack que
-Vivaru. Eso convierte tres preguntas bloqueantes en respuestas y cambia el diseño de
-la integración — ver sección 5.
+Vivaru.
 
 **Qué aporta esta base sobre el Documento Rector:**
 
@@ -259,6 +261,56 @@ Super Admin con pestaña de leads en tiempo real y estado editable.
 etapa, owner, monto y fecha. `REVOPS-001B` y `001C` no tienen que modelarlo: tienen
 que **conectarse a él**.
 
+### 5.5 Lo que se vio navegando la consola desplegada
+
+La documentación de Albert se comprobó contra el producto en vivo el 17 de agosto de
+2026. **Sobredescribe en un punto crítico y subdescribe en varios.**
+
+**Lo que NO existe aunque esté documentado:**
+
+- **La pestaña «Leads» de la consola de Super Admin no está desplegada.** Su §9
+  describe ocho pestañas con una de Leads que muestra en tiempo real las solicitudes
+  del landing, con métricas y estado editable. **Hay siete**: Overview, Tenants,
+  Onboarding, Planes, Uso, Health y Plataforma. Ninguna es Leads.
+- **Consecuencia directa para REVOPS, y es la que manda:** `submitDemoLead` escribe
+  en la colección global `/leads`, y **nadie tiene pantalla para trabajarla**.
+  Empujar leads de Vivaru por ese endpoint los mandaría a un sitio que no se mira.
+- **«Leads y contactos» del CRM es otra cosa:** son los contactos **del tenant**
+  (`?tab=contacts`), no los leads globales del landing.
+- **No hay sección de integraciones, claves de API ni webhooks** en ningún sitio. La
+  configuración del comercio tiene Usuarios, Productos, Plantillas, Aprobaciones y
+  Auditoría, y nada más. Confirma que no existe superficie de integración saliente.
+- **La pestaña «Plataforma» son cuatro viñetas estáticas**, no una interfaz de
+  autoservicio y gobierno.
+
+**Lo que existe y la documentación no menciona:** un dashboard ejecutivo con
+*revenue engine*, forecast ponderado y GAP; reportes de inteligencia comercial;
+**importación y exportación de contactos por CSV**; y un asistente embebido.
+
+**Y el dato que conviene mirar de frente:** Albert tiene **3 tenants** —`demo`,
+`do-payment` y `lucho`—, los tres en plan Starter, los tres con **0% de onboarding y
+0% de adopción**, con última actividad en abril, junio y agosto. Sus planes tienen
+límites y **ningún precio**, igual que los de Vivaru.
+
+> **Albert no es un CRM rodado al que Vivaru se conecta. Es un producto hermano en la
+> misma etapa de madurez y con el mismo problema: plataforma construida, uso
+> ausente.** Apoyarse en él es una decisión legítima, pero no reduce riesgo por ser
+> «un CRM ya existente»: Vivaru sería su usuario más exigente y probablemente el
+> primero real.
+
+### 5.6 El camino que sí funciona hoy
+
+De todo lo anterior sale una recomendación concreta y barata:
+
+**Importar los leads por CSV a los contactos de un tenant de Albert.** Existe hoy,
+funciona hoy, no requiere construir nada en ninguno de los dos productos, y le da al
+equipo comercial un pipeline de verdad con etapas, tareas y timeline.
+
+Con 5 leads es más que suficiente, y sirve para lo que el Documento Rector pide antes
+que nada: **levantar baseline trabajando leads reales**. Si con ese circuito manual el
+equipo descubre que el CRM le sirve, entonces se justifica automatizar el empuje; si
+descubre que no, se ahorró la integración entera.
+
 ## 6 · Alcance corregido de los incrementos
 
 | Incremento | Alcance del documento | Corrección |
@@ -297,7 +349,9 @@ El documento acierta en cosas que no hay que tocar:
 | Riesgo | Severidad | Por qué no estaba |
 |---|---|---|
 | ~~Diseñar la integración antes de conocer el CRM~~ | — | **Cerrado en 0.2**: el CRM es Albert y sus capacidades están documentadas |
+| **Los leads empujados no se ven** | **Crítica** | La pestaña de Leads de Albert no está desplegada; `/leads` no tiene interfaz |
 | **El circuito no cierra sin la señal de vuelta** | **Crítica** | Albert no tiene webhooks; `REVOPS-001C` depende de construirla |
+| **Apoyarse en un CRM sin rodaje** | Alta | Albert tiene 3 tenants de prueba con 0% de adopción: no es infraestructura probada |
 | **La mensajería con consentimiento no tiene dueño** | Alta | El documento la da por resuelta en el CRM; ni Albert ni Vivaru la tienen |
 | **Estados de lead incompatibles entre productos** | Media | Albert no tiene `convertido`, el terminal que REVOPS necesita |
 | **Suponer PostHog operativo** | Alta | La librería existe; la configuración no |
@@ -341,6 +395,25 @@ original y se reordenan las críticas:
    forma más barata de levantar baseline.
 
 ## Changelog
+
+### 0.3 — 17 de agosto de 2026, noche
+
+**Por qué:** se navegó la consola desplegada de Albert en vez de fiarse de su
+documentación. Aparecieron discrepancias en los dos sentidos.
+
+- **La pestaña «Leads» que su documentación describe NO está desplegada.** Hay siete
+  pestañas y ninguna es de leads. Como `submitDemoLead` escribe en `/leads`, empujar
+  leads desde Vivaru los dejaría donde nadie los mira. **Pasa a ser el bloqueo
+  dominante**, por delante de la señal de vuelta.
+- «Leads y contactos» del CRM son los **contactos del tenant**, no los leads globales.
+- **No hay integraciones, claves de API ni webhooks** en ninguna pantalla.
+- La documentación también **subdescribe**: hay revenue engine, forecast, reportes,
+  **importación CSV de contactos** y un asistente embebido que no menciona.
+- **Albert tiene 3 tenants de prueba con 0% de adopción.** No es un CRM rodado: es un
+  producto hermano en la misma etapa que Vivaru. Se añade como riesgo.
+- **Recomendación nueva (5.6):** importar los 5 leads por CSV a un tenant de Albert.
+  Funciona hoy, no requiere construir nada, y levanta el baseline que el Documento
+  Rector pide antes que ninguna automatización.
 
 ### 0.2 — 17 de agosto de 2026, noche
 
