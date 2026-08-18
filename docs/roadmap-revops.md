@@ -29,7 +29,7 @@ Vivaru.
 
 **Qué aporta esta base sobre el Documento Rector:**
 
-- **La línea base del embudo está medida**: 5 leads, 1 calificado, **cero convertidos**.
+- **La línea base del embudo está medida, y es cero**: los 5 leads de producción son **pruebas internas**. Nunca ha entrado un prospecto real.
 - **Cuatro capacidades que el documento da por ausentes ya existen**, incluida la
   definición de trial activado — que además ya se ve en la consola comercial.
 - **Tres que da por presentes no funcionan**: PostHog no recibe nada, no hay agenda
@@ -74,17 +74,23 @@ El documento pide levantar baseline antes de diseñar. **Se midió.** Producció
 
 | | Valor |
 |---|---|
-| Leads totales | **5** |
+| Leads totales | **5 — y ninguno real** |
+| Qué son | Pruebas internas: uno de `qintilab.com`, otro llamado «Prueba Dummy», y tres envíos de la misma persona en cinco minutos con empresa «prueba» y «demo» |
 | Por estado | 4 `nuevo` · 1 `calificado` · **0 `convertido`** · 0 `perdido` |
-| Por origen | 3 `demo` · 2 `trial` |
 | Conjuntos con `leadId` vinculado | **2 de 9** |
 | Conjuntos por plan | `plus` 5 · `starter` 1 · `premium` 1 · `trial` 2 |
 | Documentos en la colección `plans` | **0** |
 
 **Lecturas que importan:**
 
-- **Cero conversiones registradas.** Ningún lead ha llegado a `convertido`. El
-  embudo no está roto por volumen alto: nunca ha completado un ciclo.
+- **Cero leads reales, no cero conversiones.** Es peor y más simple de lo que parecía:
+  no es que el embudo pierda gente, es que **nunca ha entrado nadie**. La persistencia
+  de leads además es reciente —antes `/api/demo` y `/api/lead` solo mandaban correo—,
+  así que **cualquier lead real anterior está en el buzón y no en Firestore**.
+- **Consecuencia para el diseño:** no se puede atribuir tráfico que no existe ni medir
+  un embudo por el que no ha pasado nadie. Y la guía maestra de precios diseña **canal
+  KAM y reseller en cuatro países**, un camino que **no pasa por el landing** — que es
+  justo lo que este frente instrumenta. Decidir el canal va antes que instrumentarlo.
 - **La trazabilidad lead → conjunto existe pero está incompleta.** El campo `leadId`
   está en el conjunto, y solo 2 de 9 lo tienen. Los otros 7 se crearon por otras vías.
 - **El precio está decidido y no cableado.** La guía maestra
@@ -122,8 +128,8 @@ conversión — porque no hay conversiones. `REVOPS-001B` pasa de «definir» a
 ### 3.2 Los estados comerciales del lead ya están normalizados
 
 `LeadStatus` es un catálogo cerrado: `nuevo` → `contactado` → `calificado` →
-`convertido` | `perdido`. El documento lo lista como brecha. Lo que falta es que
-**alguien los mueva**: 4 de 5 leads siguen en `nuevo`.
+`convertido` | `perdido`. El documento lo lista como brecha. **Existen y funcionan**;
+lo que no hay es a quién aplicárselos.
 
 ### 3.3 Ya hay 14 eventos con nombre, versionados y con doble destino
 
@@ -306,14 +312,15 @@ límites y **ningún precio**. Vivaru sí tiene precio decidido, pero fuera del 
 
 De todo lo anterior sale una recomendación concreta y barata:
 
-**Importar los leads por CSV a los contactos de un tenant de Albert.** Existe hoy,
-funciona hoy, no requiere construir nada en ninguno de los dos productos, y le da al
-equipo comercial un pipeline de verdad con etapas, tareas y timeline.
+**El mecanismo existe y sirve; lo que falta es el contenido.** La importación CSV de
+contactos funciona en Albert, así que el día que haya prospectos reales el circuito
+manual es el primer paso correcto: sin construir nada, y contestando si el equipo
+comercial entra al CRM antes de invertir en integrarlo.
 
-Con 5 leads es más que suficiente, y sirve para lo que el Documento Rector pide antes
-que nada: **levantar baseline trabajando leads reales**. Si con ese circuito manual el
-equipo descubre que el CRM le sirve, entonces se justifica automatizar el empuje; si
-descubre que no, se ahorró la integración entera.
+**Pero hoy no hay a quién importar.** Los 5 leads de producción son pruebas internas.
+Meterlos a un CRM para «levantar baseline» no probaría nada y ensuciaría el sistema
+comercial — el mismo error que la sombra de IA aprendió a evitar con los datos
+sembrados.
 
 ## 6 · Alcance corregido de los incrementos
 
@@ -361,12 +368,13 @@ El documento acierta en cosas que no hay que tocar:
 | **Suponer PostHog operativo** | Alta | La librería existe; la configuración no |
 | **`REVOPS-001A` como séptimo P0** | Media | El horizonte AHORA del roadmap ya tiene seis |
 | **Contratar sin catálogo de planes ni precio** | Alta | `REVOPS-001C` pide snapshot de precio y no hay fuente |
-| **Los 5 leads existentes envejecen** | Media | 4 siguen en `nuevo`; el proceso ya falla con el volumen que hay |
+| **Instrumentar un canal que no ha producido nada** | **Alta** | Cero leads reales, y la guía de precios diseña KAM y reseller — un camino que no pasa por el landing |
 
-Ese último merece énfasis: **el embudo no está fallando por falta de herramientas,
-está fallando con cinco leads.** Antes de construir orquestación conviene trabajar
-esos cinco a mano y ver dónde se atasca de verdad — es la línea base más barata que
-existe y no requiere una sola línea de código.
+Ese último merece énfasis: **el embudo no está fallando por falta de herramientas —
+nunca se ha encendido.** No hay un solo prospecto real. Antes de construir
+orquestación hay que decidir por dónde va a entrar el primero, y la guía maestra de
+precios ya diseña un canal —KAM y reseller en cuatro países— que este frente no
+instrumenta.
 
 ---
 
@@ -396,12 +404,19 @@ original y se reordenan las críticas:
    `convertido`, que es el que importa.
 4. **¿Dónde vive la mensajería con consentimiento y supresión?** Ninguno de los dos
    productos la tiene, y la §14 del documento la da por resuelta.
-5. **¿Se trabajan a mano los 5 leads actuales antes de automatizar?** Sigue siendo la
-   forma más barata de levantar baseline.
+5. **¿Por qué canal entra el primer cliente?** La guía maestra diseña KAM y reseller;
+   este frente instrumenta el autoservicio. Decidirlo va antes que construirlo.
+6. **¿Hay leads reales en el buzón**, anteriores a que existiera la persistencia? Es el
+   único sitio donde podrían estar.
 
 ## Changelog
 
 ### 0.4 — 17 de agosto de 2026, noche
+
+**Corrección del mismo día:** los 5 leads de producción **no son reales**. Son pruebas
+internas —una se llama «Prueba Dummy», tres son la misma persona en cinco minutos—. No
+es que el embudo pierda gente: **nunca ha entrado nadie**. Se retira la recomendación
+de importarlos a un CRM y se sustituye por decidir el canal de salida al mercado.
 
 **Por qué:** las versiones anteriores afirmaban que no había precio. Era falso: existe
 desde el 12 de agosto de 2026 en `Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12`.

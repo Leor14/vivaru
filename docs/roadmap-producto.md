@@ -35,9 +35,9 @@ dependencias y criterio de salida.
 - **`Adquisición y conversión` pasa a ser `REVOPS`**, épica transversal. `GROW-001` y
   `GROW-002` se absorben en `REVOPS-001A`; `GROW-003` evoluciona a `001B`; `GROW-004`
   se reparte entre `002`, `003` y `004`.
-- **Entra `REVOPS-000`**, el paso más barato del tablero: importar los 5 leads por CSV
-  a Albert y trabajarlos a mano. Cero código, y levanta el baseline que tres
-  documentos distintos piden antes de construir nada.
+- **Entra `REVOPS-000`**, y no es trabajo de ingeniería: **no hay un solo lead real**.
+  Los 5 de producción son pruebas internas. El embudo no falla — **nunca se ha
+  encendido**. Toca revisar el buzón y decidir por qué canal sale Vivaru al mercado.
 - **Entra `FIN-000`**, seguridad: Storage no filtra por rol dentro del conjunto, así
   que un residente puede leer y escribir documentos financieros.
 - **`FIN-001` se afila con evidencia**: hay dos rutas que aplican un pago y producen
@@ -49,7 +49,8 @@ dependencias y criterio de salida.
 
 1. Tenant piloto para la IA visible de PQRS.
 2. Política de retención de `aiAssistance`.
-3. **Si se hace `REVOPS-000` esta semana.** No depende de nadie más.
+3. **Por qué canal sale Vivaru al mercado** — autoservicio o KAM/reseller. La guía
+   maestra ya diseña el segundo y el roadmap instrumenta el primero.
 4. **Dónde viven la agenda y la mensajería**, que no tiene ninguno de los dos
    productos — y **cuál de los dos marcos de precio manda**, el de la guía maestra o
    el del Documento Rector de Finance.
@@ -172,19 +173,29 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
   Cloud Function aplica un pago: toda la aritmética del dinero ocurre en el navegador.
   Detalle en `docs/roadmap-finance.md`.
 
-#### `REVOPS-000` — Trabajar los 5 leads a mano en Albert
+#### `REVOPS-000` — Encender la parte de arriba del embudo
 
-- **Frente:** REVOPS · **Estado:** No empezado · **Prioridad:** P0 · **Coste: cero código**
-- **Qué:** exportar los 5 leads de producción e importarlos por CSV a los contactos de
-  un tenant de Albert CRM. Trabajarlos con el pipeline real durante una o dos semanas.
-- **Por qué es lo primero:** tres documentos distintos —Finance, REVOPS y el de
-  integración— exigen levantar baseline antes de construir. Con cinco leads, el
-  baseline se levanta importando un CSV. **Y contesta la pregunta de fondo: si el
-  equipo comercial entra al CRM o no.** Si no entra, se ahorra la integración entera.
-- **Criterio de salida:** los 5 leads tienen estado real, responsable y siguiente
-  acción, y hay una opinión fundada sobre si el CRM sirve.
-- **Evidencia (17 ago 2026):** la importación CSV de contactos existe y funciona en
-  Albert. 4 de los 5 leads siguen en `nuevo`.
+- **Frente:** REVOPS · **Estado:** No empezado · **Prioridad:** P0 · **No es trabajo de ingeniería**
+- **El hallazgo que lo motiva:** **Cero leads reales.** Los 5 registros de `leads` en producción son pruebas internas:
+  uno es del propio David (`qintilab.com`), otro se llama literalmente «Prueba Dummy», y
+  los tres restantes son la misma persona enviando el formulario **tres veces en cinco
+  minutos** el 15 de agosto, con empresa «prueba» y «demo».
+  
+  **Y la persistencia de leads es reciente:** antes, `/api/demo` y `/api/lead` solo
+  mandaban correo. **Si llegaron leads reales antes de eso, están en el buzón y no en
+  Firestore** — no se pueden contar desde el código.
+- **Qué hacer, y ninguna de las dos cosas es código:**
+  1. **Revisar el buzón** (`dev@qintilab.com`) buscando solicitudes de demo o contacto
+     anteriores a la persistencia. Es el único sitio donde puede haber leads reales.
+  2. **Decidir el canal del primer cliente.** La guía maestra ya diseña **KAM y
+     reseller en cuatro países**, con la compensación del canal calculada. Ese camino
+     **no pasa por el landing** — y el landing es justo lo que `REVOPS-001A` viene a
+     instrumentar.
+- **Por qué va antes que todo:** no se puede atribuir tráfico que no existe, ni medir
+  un embudo por el que no ha pasado nadie. **Instrumentar el autoservicio antes de
+  saber si el canal es el autoservicio** es optimizar el camino equivocado.
+- **Criterio de salida:** hay al menos una conversación comercial real en curso, y una
+  decisión escrita sobre por qué canal sale Vivaru al mercado.
 
 #### `REVOPS-001A` — Adquisición medible y respuesta inmediata
 
@@ -491,8 +502,13 @@ seguridad abierto hoy; y solo entonces elegir **uno** entre `FIN-001` y `REVOPS-
 **2 · Ninguna iniciativa produce clientes, y casi todo depende de que existan.**
 Cinco iniciativas —`AI-DATA-001`, `ONB-001`, `SUP-002`, `FIN-AI-001`, `AI-ONB-001`—
 esperan datos reales. `REVOPS-001A` es instrumentación **para** adquirir, no
-adquisición. **La única excepción del tablero es `REVOPS-000`**, que no adquiere pero
-sí ejerce el proceso con lo que hay. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
+adquisición.
+
+**Y el embudo no está fallando: nunca se ha encendido.** No hay un solo lead real
+registrado — los cinco de producción son pruebas internas. Eso cambia el primer
+movimiento: no es instrumentar mejor, es **generar la primera conversación real**, que
+es lo que `REVOPS-000` recoge y es lo único del tablero que no es trabajo de
+ingeniería. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
 tanto no lo posee nadie. **Es el bloqueo estructural del roadmap, y no es técnico.**
 
 **3 · `AI-DATA-001` está etiquetado como bloqueado y su decisión no lo está.** Su
@@ -557,6 +573,11 @@ fecha de revisión.
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
 
 ### 0.4 — 17 de agosto de 2026, noche
+
+**Corrección del mismo día:** los 5 leads de producción **no son reales**. Son pruebas
+internas —una se llama «Prueba Dummy», tres son la misma persona en cinco minutos—. No
+es que el embudo pierda gente: **nunca ha entrado nadie**. Se retira la recomendación
+de importarlos a un CRM y se sustituye por decidir el canal de salida al mercado.
 
 **Por qué:** las versiones anteriores afirmaban que no había precio. **Era falso.**
 Existe desde el **12 de agosto** en la guía maestra de precios por país, cinco días

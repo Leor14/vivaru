@@ -67,7 +67,7 @@ Medido en producción (`hogaru-1`), 17 de agosto de 2026 **[V]**:
 
 | | Valor |
 |---|---|
-| Leads | **5** — 4 `nuevo`, 1 `calificado`, **0 `convertido`** |
+| Leads | **5, y ninguno real** — pruebas internas, incluida una llamada «Prueba Dummy» |
 | Origen | 3 `demo` · 2 `trial` |
 | Conjuntos con `leadId` | 2 de 9 |
 | Colección `plans` | **vacía**. El precio está decidido en la guía maestra, pero **no cableado** al producto |
@@ -78,9 +78,9 @@ Medido en producción (`hogaru-1`), 17 de agosto de 2026 **[V]**:
 | Agenda de demos | **no existe** |
 | Sistema de soporte | **completo y en producción**: 6 callables desplegadas |
 
-**La lectura que cambia la conversación:** el embudo de Vivaru **nunca ha completado
-un ciclo**. No falla por volumen — falla con cinco leads. Cualquier integración se
-diseñaría para un proceso que aún no se ha ejercido ni una vez a mano.
+**La lectura que cambia la conversación:** el embudo de Vivaru **nunca ha recibido un
+prospecto real**. Los cinco registros son pruebas internas. Cualquier integración se
+diseñaría para un proceso que no solo no se ha ejercido — es que no ha tenido con qué.
 
 ---
 
@@ -192,15 +192,21 @@ va a usar el CRM.**
 
 | Paso | Qué | Coste | Qué demuestra |
 |---|---|---|---|
-| **0** | **Importar los 5 leads por CSV** a los contactos de un tenant de Albert y trabajarlos a mano | **Cero código** | Si el CRM sirve, y cuál es el baseline real |
+| **0** | **Conseguir el primer prospecto real** y decidir por qué canal entra: autoservicio o KAM/reseller | **Cero código** | Si hay demanda, y por dónde llega |
 | **1** | Empujar el lead al crearse — **solo si el paso 0 demuestra uso, y a una superficie visible** | Bajo | Que la atribución sobrevive el salto |
 | **2** | **La señal de vuelta**, construida en Albert: trigger sobre `deals` → callable de Vivaru | Medio, **en el repo de Albert** | Que el circuito cierra |
 | **3** | Eventos de producto, tareas por señal, expediente de activación | Alto | Lo que el documento llama Fases 2 y 3 |
 
-**El paso 0 es lo que los dos documentos piden y ninguno propone.** Ambos exigen
-levantar baseline antes de construir; con cinco leads, el baseline se levanta con una
-importación CSV y una semana de trabajo comercial. Si de ahí sale que el equipo no
-entra al CRM, se ahorró la integración entera.
+**El paso 0 cambió el 17 de agosto, y el cambio importa.** Se proponía importar los 5
+leads por CSV y trabajarlos a mano. Al mirarlos resultó que **los cinco son pruebas
+internas**: no hay nada que importar, y meterlos habría ensuciado el CRM con datos de
+mentira — el mismo error que la sombra de IA aprendió a evitar.
+
+Lo que queda en pie es el **mecanismo**: la importación CSV existe y funciona, así que
+el día que haya prospectos reales el circuito manual sigue siendo el primer paso, sin
+construir nada. Lo que hay que hacer antes es **conseguir ese primer prospecto y
+decidir por dónde entra** — y la guía maestra de precios ya diseña un canal, KAM y
+reseller en cuatro países, que no pasa por el landing que este roadmap instrumenta.
 
 ---
 
@@ -264,6 +270,11 @@ que es bastante menos trabajo del que su tabla sugiere.
 ## Changelog
 
 ### 0.2 — 17 de agosto de 2026, noche
+
+**Corrección del mismo día:** los 5 leads de producción **no son reales**. Son pruebas
+internas —una se llama «Prueba Dummy», tres son la misma persona en cinco minutos—. No
+es que el embudo pierda gente: **nunca ha entrado nadie**. Se retira la recomendación
+de importarlos a un CRM y se sustituye por decidir el canal de salida al mercado.
 
 **Por qué:** las versiones anteriores afirmaban que no había precio. Era falso: existe
 desde el 12 de agosto de 2026 en `Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12`.
