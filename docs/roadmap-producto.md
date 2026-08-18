@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.7 |
-| **Fecha** | 17 de agosto de 2026, noche |
-| **Estado** | **Orden decidido; el canal resulta estar dotado** |
-| **Verificado contra** | Repositorio en `c2d58a0` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, la consola de Albert CRM en vivo, y el expediente de fases del trial self-service |
+| **Versión** | 0.8 |
+| **Fecha** | 17 de agosto de 2026, madrugada del 18 |
+| **Estado** | **Nivel 1 construido a medias: `FIN-000` y `REVOPS-001E` en `develop`, sin desplegar** |
+| **Verificado contra** | Repositorio en `11e3bae` (`develop`), 144 pruebas de reglas contra el emulador (Firestore + Storage), build local en verde |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,24 +32,27 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **La función comercial no hay que crearla: ya está montada.** Dos KAM —México y
-  Colombia— más tres socios de Qintilab atendiendo directamente: David en México, Jaime
-  en Colombia y David en Ecuador. **Cinco personas, tres países.**
-- **Eso corrige una lectura errónea de la 0.5.** Allí se leyó «cero leads» como «cero
-  demanda». La colección `leads` **solo mide el landing y `/registro`**, y un KAM no
-  rellena un formulario web. Lo que sabemos es que **la entrada por autoservicio es
-  cero**; sobre el canal que sí está dotado **no sabemos nada, porque nada lo mide**.
-  No es que el embudo esté vacío: **hay dos embudos y solo uno tiene medidor**.
-- **`REVOPS-000` pasa de «activar el canal» a «instrumentar el que ya corre».** Su
-  primer paso sigue sin ser código: preguntar a los cinco qué tienen en marcha.
-- **Cambia el primer puesto del trabajo que caduca.** Ya no son los `utm_*` sino **la
-  propiedad comercial**: quién es dueño de cada lead y de cada conjunto. En México el
-  canal se lleva **$24 de un precio final de $51**. Eso no es una métrica, es dinero de
-  alguien — y no se reconstruye.
-- **Entra `REVOPS-001E`**, el campo de dueño. Es el hermano de `001A` y pesa más que él.
-- **Vuelve el paso cero de Albert**, retirado en la 0.4 por importar datos falsos. Si
-  hay recorrido real repartido entre cinco cabezas, eso es justo para lo que sirve un
-  CRM.
+- **`FIN-000` está resuelto.** `storage.rules` pasó de conceder todo el árbol del
+  conjunto por pertenencia a conceder **carpeta a carpeta con filtro de rol**. Los
+  comprobantes de pago se segmentaron por usuario (cada residente sube y lee solo el
+  suyo). 47 casos de Storage en emulador, verificados en las dos direcciones: 21
+  fallan con las reglas viejas. Las reglas entran a CI en un job propio.
+- **`REVOPS-001E` está construido.** Catálogo `salesReps` (colección global), dueño y
+  referencia de CRM en el lead, `vendedorId` estampado al convertir por los dos
+  caminos, página Comerciales y selectores en Superadmin. El esquema es a la vez el
+  de Vivaru y la entrada del primer PRD de Albert.
+- **Ambos viven en `develop` sin desplegar.** `FIN-000` exige orden: **primero el
+  código, después las reglas** — las reglas nuevas ya esperan la ruta por usuario. Y
+  el selector de vendedor del alta directa requiere **deploy de functions**
+  (`createTenantFromLead` cambió de firma; el campo es opcional y sin deploy el alta
+  sigue funcionando, solo que sin registrar vendedor).
+- **De paso cayeron dos averías que nadie veía:** los scripts `test:rules*` llevaban
+  meses sin poder ejecutar nada («No test files found»: la exclusión de vitest no se
+  puede deshacer desde la CLI), y `markTrialAsLost` nunca marcó un lead como perdido
+  (las reglas vetaban el update y un `catch` vacío se tragaba el rechazo).
+- **Siguen del 0.7:** el canal dotado (cinco personas, tres países), los dos embudos
+  con un solo medidor, y `REVOPS-000` sin empezar — que ahora además es la entrada
+  del PRD de Albert.
 
 **Qué espera decisión tuya:**
 
@@ -103,17 +106,18 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
-| Vivaru Finance | 🔴 `FIN-000` · `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
+| Vivaru Finance | ✅ `FIN-000` · 🔴 `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
-| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ⏳ `REVOPS-001E` · ⏳ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
+| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ⏳ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ⏳ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
 
-**Leyenda:** 🟢 coste cero, se puede hoy · ⏳ **caduca: el dato se pierde si llega
-tarde** · 🔴 prioridad fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior ·
-🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración condicionada
+**Leyenda:** ✅ construido (ver su ficha para lo que falte de despliegue) · 🟢 coste
+cero, se puede hoy · ⏳ **caduca: el dato se pierde si llega tarde** · 🔴 prioridad
+fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 descubrimiento ·
+⏸ bloqueado por datos · ◇ exploración condicionada
 
 ### Horizontes
 
@@ -142,7 +146,7 @@ tarde** · 🔴 prioridad fundacional · 🟠 siguiente capacidad · 🔵 expans
 | Nivel | Qué | Coste | Por qué está ahí |
 |---|---|---|---|
 | **0** | **Generar demanda** — `REVOPS-000` | Cero código | Es el bloqueo compartido de cinco frentes |
-| **1** | **Lo que caduca** — `REVOPS-001E` · `REVOPS-001A` · `SUP-001` · `FIN-000` | Bajo | El dato no se reconstruye después |
+| **1** | **Lo que caduca** — ✅ `REVOPS-001E` · ⏳ `REVOPS-001A` · ⏳ `SUP-001` · ✅ `FIN-000` | Bajo | El dato no se reconstruye después |
 | **2** | **Lo que rompe al convertir** — `FIN-001` | Alto | El trial protege; la conversión no |
 | **3** | **Cablear el precio** — primera mitad de `REVOPS-001C` | Medio | Hace falta al convertir, no al probar |
 | **4** | Todo lo demás | — | Espera al primer cliente real |
@@ -287,11 +291,25 @@ filtro de rol.
 
 #### `REVOPS-001E` — Propiedad comercial del lead y del conjunto
 
-- **Frente:** REVOPS · **Estado:** Ausente · **Nivel 1** · ⏳ **Caduca** · **Nace en la 0.6**
-- **Problema:** con cinco personas vendiendo en tres países, **nada en el producto
-  registra de quién es cada lead ni quién vendió cada conjunto**. El lead tiene estado
-  y no tiene dueño; el conjunto guarda `createdBy`, que es el superadmin que ejecutó la
-  conversión.
+- **Frente:** REVOPS · **Estado:** ✅ **Construido en `develop` (`11e3bae`, 17 ago 2026) — pendiente de desplegar** · **Nivel 1** · **Nace en la 0.6**
+- **El problema que cerró:** con cinco personas vendiendo en tres países, **nada en el
+  producto registraba de quién es cada lead ni quién vendió cada conjunto**. El lead
+  tenía estado y no dueño; el conjunto guardaba `createdBy`, que es el superadmin que
+  ejecutó la conversión.
+- **Lo construido:** colección global `salesReps` (nombre, correo, país, activo,
+  referencia en Albert); `ownerId` + `ownerAssignedAt` + `crmRef` en el lead;
+  `vendedorId` en el conjunto, estampado al convertir por los **dos** caminos (alta
+  directa desde el lead, que lo valida contra el catálogo, y conversión de prueba a
+  cliente, precargada con el dueño del lead); página **Comerciales**, columna Dueño y
+  referencia CRM en la bandeja de Leads, y vendedor visible en la consola de
+  conjuntos. Reglas: `leads` admite update de superadmin —lo que reparó de paso el
+  `markTrialAsLost` que fallaba en silencio—, crear y borrar siguen vetados, y el
+  catálogo es invisible para los conjuntos. 8 casos de reglas en emulador y CI.
+- **Para el vendedor del alta directa hace falta desplegar functions**
+  (`createTenantFromLead` cambió de firma; sin deploy el alta funciona, sin registrar
+  vendedor). **El enrutado del aviso comercial por país quedó fuera a propósito** —
+  alcance acordado el 17 de agosto: catálogo, dueño, referencia y selector; sin
+  cuentas, sin portal, sin tocar autenticación.
 - **Por qué pesa más que `REVOPS-001A`:** los `utm_*` responden «de dónde vino el
   clic», que solo aplica al embudo de autoservicio. Esto responde **«de quién es la
   comisión»**, y aplica al canal que de verdad está operando. En México el canal se
@@ -317,18 +335,31 @@ filtro de rol.
   comerciales existen, qué referencia cruza— **no es solo el esquema de Vivaru: es la
   entrada de ese PRD**. Se define una vez y sirve a los dos lados.
 - **Criterio de salida:** cualquier conjunto en producción dice quién lo vendió, y
-  cualquier lead dice quién lo está trabajando.
+  cualquier lead dice quién lo está trabajando. **La mecánica está; para cumplirlo en
+  producción faltan el despliegue, dar de alta a los cinco en el catálogo y asignar
+  dueño a los leads vivos.**
 
 #### `FIN-000` — Storage con filtro de rol
 
-- **Frente:** Vivaru Finance · **Estado:** Ausente · **Nivel 1** · **Seguridad, y abierto hoy**
-- **Problema:** `storage.rules` aísla bien por conjunto, pero **no comprueba el rol**.
-  Cualquier miembro autenticado —incluido un **residente** o un guardia— puede leer y
-  escribir todos los archivos del conjunto: comprobantes de gasto, actas, documentos
-  financieros. El propio comentario de la regla dice «admin and superadmin» y la
-  condición no lo verifica.
-- **Criterio de salida:** un residente no puede leer ni escribir documentos
-  financieros, probado en emulador y en CI.
+- **Frente:** Vivaru Finance · **Estado:** ✅ **Resuelto en `develop` (`be09cbc`, 17 ago 2026) — pendiente de desplegar** · **Nivel 1**
+- **El problema que cerró:** `storage.rules` aislaba por conjunto pero **no comprobaba
+  el rol**: cualquier miembro —residente o guardia— leía y escribía todos los archivos
+  del conjunto. El comentario de la regla decía «admin and superadmin» y la condición
+  no lo verificaba.
+- **La forma del arreglo:** como las reglas de Storage **suman** permisos, la concesión
+  ancha se sustituyó por permiso **carpeta a carpeta** en tres grupos: financieras
+  (solo admin), compartidas (publica admin, lee el conjunto) y con dueño. Los
+  comprobantes de pago van ahora bajo el **uid** del residente: cada uno sube y lee
+  solo el suyo. Una carpeta no declarada nace cerrada. Los roles aceptan los alias
+  antiguos aún vivos en tokens (`admin_tenant`, `super_admin`, `security`).
+- **Criterio de salida, cumplido:** un residente no puede leer ni escribir documentos
+  financieros — 47 casos en emulador (21 fallan con las reglas viejas: la suite
+  distingue) y job `rules-tests` en CI.
+- **Lo que queda es despliegue, con orden obligatorio: primero el código, después las
+  reglas.** Las reglas nuevas exigen la ruta por usuario; desplegarlas sobre un
+  ambiente con el código viejo rompe la subida de comprobantes.
+- **Deuda anotada:** `support/` sigue abierta a todo el conjunto (ruta plana, sin dueño
+  en el camino). Cerrarla exige segmentarla primero — trabajo aparte, ya anotado.
 - **Nota:** es prerrequisito de cualquier fase que suba documentos financieros.
 
 #### `AI-GOV-001` — Cerrar brechas de gobierno y operación de IA
@@ -684,6 +715,28 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.8 — 17 de agosto de 2026, madrugada del 18
+
+**Por qué:** sesión de construcción del nivel 1. Las dos fichas que no dependían de
+nadie más pasaron de decididas a construidas, verificadas contra el emulador
+(144 pruebas de reglas) y el build local.
+
+- **`FIN-000` resuelto** — reglas por carpeta con filtro de rol, comprobantes por
+  usuario, 47 casos verificados en las dos direcciones, y las reglas entran a CI en
+  el job `rules-tests`. Queda el despliegue, con orden: primero código, después
+  reglas.
+- **`REVOPS-001E` construido** — `salesReps` como colección, dueño y `crmRef` en el
+  lead, `vendedorId` por los dos caminos de conversión, página Comerciales y
+  selectores. El esquema queda escrito una vez para dos destinos: Vivaru y el primer
+  PRD de Albert.
+- **Dos averías silenciosas cazadas de paso:** los scripts `test:rules*` no podían
+  ejecutar nada desde hacía meses (la exclusión de vitest no se deshace desde la
+  CLI — se creó `vitest.rules.config.ts`), y `markTrialAsLost` nunca marcó un lead
+  como perdido (reglas en `write: false` + `catch` vacío).
+- **Verificado contra:** `11e3bae` en `develop`, emulador de Firestore + Storage,
+  `npm test` (los 7 fallos preexistentes siguen siendo los mismos 7), typecheck de
+  functions en 0.
 
 ### 0.7 — 17 de agosto de 2026, noche
 
