@@ -53,9 +53,9 @@ dependencias y criterio de salida.
 
 **Qué espera decisión tuya:**
 
-1. **Panamá.** La guía maestra tarifa **cuatro** países y las personas cubren **tres**.
-   Panamá es el único tarifado como *reseller* y no tiene a nadie asignado: ¿hay un
-   reseller sin nombrar, o se tarifó por adelantado?
+1. ~~**Panamá.**~~ **Resuelta el 17 de agosto: a la nevera.** La guía maestra lo tarifa
+   como *reseller* y no tiene a nadie asignado; queda tarifado y en espera, sin
+   consumir atención. **No es una brecha, es una decisión.**
 2. Tenant piloto para la IA visible de PQRS.
 3. Política de retención de `aiAssistance`.
 4. **Dónde viven la agenda y la mensajería**, y **cuál de los dos marcos de precio
@@ -709,8 +709,9 @@ superadmin que pulsó el botón, no quién vendió.
   si hay recorrido real repartido entre cinco cabezas, eso es justo para lo que sirve un
   CRM.
 
-**Queda abierto:** la guía maestra tarifa **cuatro** países y las personas cubren
-**tres**. Panamá es el único tarifado como *reseller*, y no tiene a nadie asignado.
+**Queda abierto y se cerró el mismo día:** la guía maestra tarifa **cuatro** países y
+las personas cubren **tres**. Panamá, el único tarifado como *reseller*, **queda en la
+nevera** por decisión de David — tarifado y en espera, sin consumir atención.
 
 ### 0.5 — 17 de agosto de 2026, noche
 
