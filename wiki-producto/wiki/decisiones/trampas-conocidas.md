@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-17
+fecha_actualizacion: 2026-08-18
 ---
 
 # Trampas Conocidas
@@ -106,6 +106,14 @@ El helper hace `{ id, ...doc.data() }` crudo: los campos `serverTimestamp` (p. e
 ## Cartera: el flag `archived` se filtra SOLO en las tablas vivas
 
 Archivar un período de [[billing|cartera]] pone `archived=true` pero **no borra**. El filtro de `archived` debe aplicarse únicamente en la tabla viva del admin (a nivel página). El hook `useBillingStatements` conserva su firma; el gráfico histórico, `cuotaIncome`, los tableros, el [[reportes|reporte de comité]] y la vista del [[portal-residente]] leen el set completo. Si se filtra `archived` en el hook o en esos consumidores, se pierde el análisis por período y el residente deja de ver su deuda. La mora de meses cerrados vive en la pestaña Cartera vencida — ver [[cartera-campanas]].
+
+## Storage: las reglas SUMAN, no existe la regla que quita
+
+Al contrario que la intuicion, un `match` mas especifico en `storage.rules` **no recorta** lo que concedio uno mas ancho: los permisos se unen. Mientras exista una concesion sobre `tenants/{tenantId}/**`, ninguna regla de una subcarpeta puede cerrarla — solo puede anadir. Por eso `FIN-000` (ago 2026) no "endurecio" la regla ancha: la **elimino** y concedio carpeta a carpeta, con la consecuencia deliberada de que **una carpeta nueva nace cerrada** hasta que se la nombre. Corolario que muerde en el cliente: `getDownloadURL()` pasa por `allow read`, asi que quitarle la lectura a quien sube un archivo **rompe la subida** en la linea siguiente — es lo que obligo a segmentar `payment-receipts/` y `support/` por `uid` en vez de dejarlas sin lectura. Ver [[pruebas-reglas-emulador]] y [[multi-tenancy]].
+
+## Auditar reglas: `write` es azucar de `create+update+delete`
+
+Comparar dos versiones de `firestore.rules` contando lineas o diffeando en crudo produce **falsos positivos con signo invertido**: una regla que pasa de `allow write` a `allow create, update` + `allow delete` aparece como si hubiera perdido `write`, cuando la cobertura es la misma o mayor. Paso el 18 de agosto de 2026 auditando un stash de tres semanas: dos "perdidas" detectadas (`featureFlags` y `leads`) resultaron ser descomposiciones — en `featureFlags` para **anadir** validacion de tipos, y en `leads` para **abrir** `update` a superadmin. Regla: al auditar reglas, normalizar a `coleccion → {operaciones}` expandiendo `write` en sus tres, y leer las diferencias que sobrevivan **en pantalla**, no por conteo. Ver [[firebase-firestore]] y [[pruebas-reglas-emulador]].
 
 ## Colecciones nuevas: desplegar reglas antes del front
 
