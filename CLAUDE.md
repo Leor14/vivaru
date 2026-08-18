@@ -100,7 +100,7 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
 
 - **Wiki del producto:** `wiki-producto/wiki/` — empezar por `index.md` y seguir wikilinks. Páginas clave: `arquitectura/autenticacion-roles.md`, `arquitectura/correos-mensajeria.md`, `decisiones/trampas-conocidas.md`, `patrones-tecnicos/firebase-firestore.md`. Convenciones de la wiki en `wiki-producto/CLAUDE.md` (es-CO, frontmatter de 5 campos, mínimo 8 wikilinks).
 - **Diseño/producto:** `PRODUCT.md`, `DESIGN.md` (raíz del repo).
-- **Roadmap REVOPS (activación comercial):** `docs/roadmap-revops.md` — base de la épica transversal. Adapta el Documento Rector REVOPS v1.0 con la línea base medida (5 leads, cero convertidos), las cuatro capacidades que ya existían y el bloqueo del CRM Quintilab.
+- **Roadmap REVOPS (activación comercial):** `docs/roadmap-revops.md` — base de la épica transversal. Adapta el Documento Rector REVOPS v1.0 con la línea base medida (5 leads, cero convertidos), las cuatro capacidades que ya existían, y el CRM identificado: es **Albert CRM**, producto propio — se puede empujar leads hoy, pero NO tiene webhooks, así que la señal de vuelta hay que construirla.
 - **Roadmap financiero:** `docs/roadmap-finance.md` — base para cuando arranque el módulo. Adapta el Documento Rector v2 (Word) con la verificación contra código y ambientes: el mapa de rutas de pago, los cuatro defectos nombrados, y la línea base medida (cero datos propios).
 - **Roadmap de producto:** `docs/roadmap-producto.md` — **el repositorio es la fuente
   de verdad; la copia de Notion es la vista publicada.** Tres zonas con reglas

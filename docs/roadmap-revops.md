@@ -14,20 +14,25 @@ en `docs/roadmap-producto.md`.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.1 |
+| **Versión** | 0.2 |
 | **Fecha** | 17 de agosto de 2026, noche |
-| **Base** | Documento Rector REVOPS v1.0, verificado contra código y ambientes |
-| **Verificado contra** | Repositorio en `80c4bf5` y proyecto `hogaru-1` (producción) |
-| **Bloqueo dominante** | **El CRM Quintilab es la fuente de verdad de cinco dominios y sus capacidades no están confirmadas** |
+| **Base** | Documento Rector REVOPS v1.0 + documentación de Albert CRM |
+| **Verificado contra** | Repositorio en `cc46643` y proyecto `hogaru-1` (producción) |
+| **Bloqueo dominante** | **Resuelto a medias: el CRM se conoce. Falta el camino de vuelta Albert → Vivaru, que no existe** |
 
-**Qué aporta esta versión:**
+**Qué cambió en 0.2:** se identificó el CRM. El «CRM Quintilab» del documento
+original es **Albert CRM**, producto propio de la misma casa, con el mismo stack que
+Vivaru. Eso convierte tres preguntas bloqueantes en respuestas y cambia el diseño de
+la integración — ver sección 5.
+
+**Qué aporta esta base sobre el Documento Rector:**
 
 - **La línea base del embudo está medida**: 5 leads, 1 calificado, **cero convertidos**.
 - **Cuatro capacidades que el documento da por ausentes ya existen**, incluida la
   definición de trial activado — que además ya se ve en la consola comercial.
 - **Tres que da por presentes no funcionan**: PostHog no recibe nada, no hay agenda
   de demos, y no hay puerta pública de alta intención.
-- Se nombra el bloqueo estructural que el documento trata como tarea de discovery.
+- **El CRM se conoce**, y con él lo que se puede integrar hoy y lo que hay que construir.
 
 **Lo que NO cambia, porque está bien:** la tesis, la separación entre Finance y
 billing SaaS, las cinco máquinas de estado independientes, el contrato de eventos
@@ -171,47 +176,97 @@ hay que construirla, no conectarla.
 
 ---
 
-## 5 · El bloqueo estructural que el documento trata como tarea
+## 5 · El CRM, ya identificado: Albert CRM
 
-El Documento Rector asigna al **CRM Quintilab** la fuente de verdad de **cinco
-dominios**: lead, contacto comercial, organización, oportunidad y tareas. Construye
-sobre eso una tabla de fuentes de verdad, un contrato de eventos, una estrategia de
-reconciliación y tres incrementos.
+El Documento Rector asigna al «CRM Quintilab» la fuente de verdad de **cinco
+dominios** —lead, contacto, organización, oportunidad y tareas— y a la vez su
+decisión abierta número 1 es preguntar qué capacidades tiene. Con la documentación de
+**Albert CRM** esa pregunta queda contestada.
 
-Y su **decisión abierta número 1** es: *«¿Qué capacidades ofrece exactamente el CRM
-Quintilab? ¿Tiene API, webhooks, automatizaciones, agenda y mensajería?»*
+**Albert CRM es producto propio de la misma casa**, no un proveedor externo. Firebase
+`albert-crm-1-1c162`, Next.js 16, Firestore, Cloud Functions v2, Zod en los callables,
+aislamiento multi-tenant por custom claims, auditoría y catch-all deny en reglas. **Es
+la misma doctrina de arquitectura que Vivaru**, escrita por el mismo equipo.
 
-**Se está diseñando una arquitectura sobre un sistema cuyas capacidades no están
-confirmadas.** No es un detalle de discovery: si Quintilab no tiene API o webhooks,
-la mitad del documento —sincronización, outbox, reconciliación periódica, replay
-controlado— no se puede construir como está escrita.
+### 5.1 Las tres preguntas bloqueantes, contestadas
 
-**Recomendación:** `Gate R0` deja de ser un entregable más y pasa a ser **condición
-de entrada bloqueante** de `REVOPS-001A`. Concretamente, tres preguntas cuya
-respuesta cambia el diseño:
+| Pregunta | Respuesta | Consecuencia |
+|---|---|---|
+| ¿Hay API de escritura? | **Sí, parcial.** `submitDemoLead` es un endpoint **HTTP público con CORS** que crea el lead en `/leads` con `status: "new"` | **Vivaru puede empujar leads a Albert hoy**, sin construir nada del lado de Albert |
+| ¿Hay webhooks de salida? | **No.** No hay emisión de eventos, outbox ni notificación saliente | **Albert no puede avisar a Vivaru de nada.** Es el hueco crítico |
+| ¿Hay agenda? | **No.** Su propio landing agenda con formulario, igual que Vivaru | El journey *sales-assisted* sigue sin soporte **en los dos productos** |
+| ¿Hay mensajería con consentimiento y supresión? | **No.** Hay **plantillas con merge fields** para email y tareas — almacenamiento de plantillas, no motor de envío | Las diez secuencias de la §14 del documento **no tienen dónde vivir** |
 
-1. ¿Hay API de escritura y webhooks de salida? Si no, la sincronización es
-   exportación manual y el contrato de eventos sobra en esta fase.
-2. ¿Hay agenda? Si no, el journey sales-assisted necesita herramienta externa antes
-   de instrumentarse.
-3. ¿Hay mensajería con supresión y consentimiento? Si no, las diez secuencias de la
-   sección 14 no tienen dónde vivir.
+### 5.2 Lo que esto cambia en el diseño
 
-**Lo que sí se puede hacer sin esa respuesta**, y conviene separarlo para no quedar
-bloqueado: la atribución del lead, el consentimiento persistente, los eventos de
-producto y la respuesta automática por correo —que ya usa Resend—. Es decir, **el
-valor de `REVOPS-001A` que no depende del CRM**.
+**La integración es de una sola dirección hoy.** Vivaru → Albert funciona por el
+endpoint público. **Albert → Vivaru no existe**, y es justo la dirección que
+`REVOPS-001C` necesita: que un deal ganado dispare la activación de la suscripción.
 
----
+Eso reordena el trabajo:
+
+- **Se puede hacer ya, sin tocar Albert:** empujar el lead con su atribución al
+  crearse, y que la consola de Albert lo reciba en tiempo real. El equipo comercial
+  deja de trabajar leads en la pantalla de Superadmin de Vivaru y pasa a su CRM.
+- **Hay que construirlo, y en Albert:** la señal de vuelta. Es un trigger de
+  Firestore sobre `deals` que llame a una callable de Vivaru cuando la etapa cambie a
+  ganada. **No es negociable con un tercero: es trabajo propio en un repo propio.**
+- **Queda sin dueño:** la mensajería con consentimiento y supresión. Ninguno de los
+  dos productos la tiene, y el documento la da por resuelta en el CRM.
+
+**La ventaja que el Documento Rector no podía conocer:** al ser producto propio,
+desaparecen de golpe cuatro de sus riesgos —DPA con proveedor, límites de tasa,
+vendor lock-in y contratos de integración—. **Lo que no desaparece** es la necesidad
+técnica: idempotencia, reconciliación y una bandeja de excepciones siguen haciendo
+falta aunque ambos lados sean nuestros.
+
+### 5.3 Dos colecciones `leads` que no encajan
+
+Los dos productos tienen una colección `leads` y **sus vocabularios no son
+compatibles**:
+
+| | Vivaru | Albert |
+|---|---|---|
+| Estados | `nuevo` · `contactado` · `calificado` · **`convertido`** · **`perdido`** | `new` · `contacted` · `qualified` · `discarded` |
+| Origen | `demo` · `diagnostico` · `trial` | `landing` |
+| Campos propios | `unidadesEstimadas`, `conjuntos`, `timeline`, `appEnv` | `teamSize`, `company` |
+| Alcance | Global | **Global**, con `create` público y lectura solo de Super Admin |
+
+**Albert no tiene estado `convertido`**, que es precisamente el terminal que a REVOPS
+más le importa. El mapeo no es uno a uno y hay que decidirlo explícitamente, no
+deducirlo al integrar.
+
+Tres notas de diseño que salen de aquí:
+
+1. La colección `leads` de Albert es **global y compartida** con los leads de su
+   propio landing. Un lead empujado desde Vivaru necesita un `source` que lo
+   discrimine — Albert ya tiene ese campo.
+2. **Vivaru sería un tenant dentro de Albert.** Es limpio —el aislamiento de Albert
+   protege los datos— pero conviene decidirlo a conciencia: los datos comerciales de
+   Vivaru vivirían en otro producto multi-tenant.
+3. Los dos exponen un `/api/lead`. Misma ruta, sistemas distintos: conviene cuidarlo
+   al documentar para no confundir a quien llegue después.
+
+### 5.4 Lo que Albert ya resuelve y REVOPS daba por construir
+
+Albert tiene implementado, y no hay que rehacerlo: pipeline por etapas con
+responsable, monto, probabilidad y fecha de cierre; contactos con historial;
+tareas; `timeline` de actividad por deal; `auditEvents` con lenguaje de negocio;
+plantillas con merge fields; políticas de aprobación por umbral; y una consola de
+Super Admin con pestaña de leads en tiempo real y estado editable.
+
+**El modelo `Opportunity` de la §10 del Documento Rector ya existe** como `deals`, con
+etapa, owner, monto y fecha. `REVOPS-001B` y `001C` no tienen que modelarlo: tienen
+que **conectarse a él**.
 
 ## 6 · Alcance corregido de los incrementos
 
 | Incremento | Alcance del documento | Corrección |
 |---|---|---|
-| **R0** | Entregable de discovery | **Condición de entrada bloqueante** para lo que toque CRM |
-| **001A** | Atribución, consentimiento, dedup, sync CRM, respuesta, rutas | Se parte en **001A-1 sin CRM** (atribución, consentimiento, eventos, respuesta por Resend, **construir la puerta de alta intención**) y **001A-2 con CRM**, que espera a R0 |
+| **R0** | Entregable de discovery | **Parcialmente resuelto** por la documentación de Albert. Queda decidir mapeo de estados y quién es tenant de quién |
+| **001A** | Atribución, consentimiento, dedup, sync CRM, respuesta, rutas | **El sync a Albert se puede hacer ya** por su endpoint público. Sigue habiendo que **construir la puerta de alta intención**, que no existe |
 | **001B** | Definir trial activado, eventos, cohortes | La definición **ya existe**: instrumentar el evento y correlacionarlo. Alcance menor del previsto |
-| **001C** | Solicitud de activación, planes, handoff reseller | Necesita antes **un catálogo de planes con precio**, que hoy no existe en ninguna parte |
+| **001C** | Solicitud de activación, planes, handoff reseller | Necesita **un catálogo de planes con precio** (no existe) **y la señal de vuelta desde Albert** (tampoco existe, pero es trabajo propio) |
 | **002** | Nurturing y scoring | Correcto: requiere conversiones reales, y hay **cero** |
 | **003 / 004** | Reseller y checkout | Correcto que vayan después |
 
@@ -241,7 +296,10 @@ El documento acierta en cosas que no hay que tocar:
 
 | Riesgo | Severidad | Por qué no estaba |
 |---|---|---|
-| **Diseñar la integración antes de conocer el CRM** | **Crítica** | El documento lo trata como pregunta de discovery, no como bloqueo |
+| ~~Diseñar la integración antes de conocer el CRM~~ | — | **Cerrado en 0.2**: el CRM es Albert y sus capacidades están documentadas |
+| **El circuito no cierra sin la señal de vuelta** | **Crítica** | Albert no tiene webhooks; `REVOPS-001C` depende de construirla |
+| **La mensajería con consentimiento no tiene dueño** | Alta | El documento la da por resuelta en el CRM; ni Albert ni Vivaru la tienen |
+| **Estados de lead incompatibles entre productos** | Media | Albert no tiene `convertido`, el terminal que REVOPS necesita |
 | **Suponer PostHog operativo** | Alta | La librería existe; la configuración no |
 | **`REVOPS-001A` como séptimo P0** | Media | El horizonte AHORA del roadmap ya tiene seis |
 | **Contratar sin catálogo de planes ni precio** | Alta | `REVOPS-001C` pide snapshot de precio y no hay fuente |
@@ -256,21 +314,53 @@ existe y no requiere una sola línea de código.
 
 ## 9 · Decisiones abiertas
 
-Se conservan las 27 del documento original. Se elevan tres a **bloqueantes**, y se
-añade una:
+De las tres que en 0.1 marqué como bloqueantes, **dos quedan resueltas** por la
+documentación de Albert y una sigue abierta. Se conservan las 27 del documento
+original y se reordenan las críticas:
 
-1. **¿Qué puede hacer realmente Quintilab?** (API, webhooks, agenda, mensajería).
-   Bloquea todo lo que sea sincronización.
-2. **¿Con qué herramienta se agenda una demo?** No hay ninguna, y tres journeys la
-   asumen.
-3. **¿Cuál es el catálogo de planes y su precio?** `plans` está vacía y no hay precio
-   en el código; sin eso no hay solicitud de activación.
-4. **Nueva — ¿se trabajan a mano los 5 leads actuales antes de automatizar?** Es la
-   forma más rápida y barata de levantar el baseline que el documento pide.
+**Resueltas:**
 
----
+- ~~¿Qué puede hacer Quintilab?~~ Es Albert CRM: hay escritura pública de leads, no
+  hay webhooks, no hay agenda y no hay motor de mensajería.
+- ~~¿Con qué herramienta se agenda una demo?~~ Sigue sin resolverse, pero ya se sabe
+  que **Albert tampoco la tiene**: hay que elegir herramienta externa para los dos.
+
+**Bloqueantes hoy:**
+
+1. **¿Quién construye la señal de vuelta Albert → Vivaru, y cuándo?** Sin ella,
+   `REVOPS-001C` no puede cerrar el circuito. Es trabajo propio en el repo de Albert,
+   no una negociación.
+2. **¿Cuál es el catálogo de planes y su precio?** `plans` está vacía en Vivaru y no
+   hay precio en el código. Albert tiene su propia estructura de planes, que es de
+   Albert y no sirve para Vivaru.
+3. **¿Cómo se mapean los estados de lead entre los dos productos?** Albert no tiene
+   `convertido`, que es el que importa.
+4. **¿Dónde vive la mensajería con consentimiento y supresión?** Ninguno de los dos
+   productos la tiene, y la §14 del documento la da por resuelta.
+5. **¿Se trabajan a mano los 5 leads actuales antes de automatizar?** Sigue siendo la
+   forma más barata de levantar baseline.
 
 ## Changelog
+
+### 0.2 — 17 de agosto de 2026, noche
+
+**Por qué:** apareció la documentación de **Albert CRM**, que es el «CRM Quintilab»
+del documento original. Eso convierte el bloqueo principal de 0.1 en respuestas.
+
+- **Es producto propio**, mismo stack y misma doctrina que Vivaru — no un proveedor.
+  Desaparecen cuatro riesgos del original: DPA, límites de tasa, lock-in y contratos.
+- **Se puede integrar hoy en una dirección:** `submitDemoLead` es un endpoint HTTP
+  público con CORS. Vivaru puede empujar leads sin tocar Albert.
+- **Falta la dirección que importa:** Albert **no tiene webhooks ni emisión de
+  eventos**, así que no puede avisar de un deal ganado. Es el hueco crítico de
+  `REVOPS-001C`, y es trabajo propio.
+- **Ni Albert ni Vivaru tienen agenda ni motor de mensajería con consentimiento.** Dos
+  supuestos del documento original se quedan sin dueño en los dos productos.
+- **Las dos colecciones `leads` no encajan:** Albert no tiene estado `convertido`, que
+  es el terminal que REVOPS necesita.
+- **Albert ya resuelve el modelo `Opportunity`** como `deals`, con etapa, owner, monto
+  y fecha, más tareas, timeline, auditoría y plantillas. `001B` y `001C` no lo modelan:
+  se conectan a él.
 
 ### 0.1 — 17 de agosto de 2026
 
