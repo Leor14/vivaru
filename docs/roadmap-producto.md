@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.6 |
+| **Versión** | 0.7 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Estado** | **Orden decidido; el canal resulta estar dotado** |
 | **Verificado contra** | Repositorio en `c2d58a0` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, la consola de Albert CRM en vivo, y el expediente de fases del trial self-service |
@@ -300,6 +300,18 @@ filtro de rol.
   de una persona concreta.
 - **Incluir:** dueño en el lead, vendedor en el conjunto, país del responsable, y
   enrutado del aviso comercial por país en vez de un buzón único para todos.
+- **Decidido el 17 de agosto — el catálogo es COLECCIÓN, no enumeración.** David:
+  «debería crecer pero no de inmediato». Con cinco personas una enumeración en el
+  código sería más simple hoy y una migración mañana; una colección cuesta lo mismo
+  ahora y admite el sexto sin desplegar.
+- **Decidido el 17 de agosto — los leads de inbound llevan trazabilidad al CRM.**
+  Eso resuelve la duda que tenía esta ficha: **la mitad del lead NO sobra**. El lead
+  necesita dueño **y** un sitio donde guardar su referencia en el CRM, y ese campo es
+  de los que no se rellenan hacia atrás.
+- **Lo que esa decisión NO desbloquea todavía:** empujar el lead a Albert hoy lo
+  deja en una colección **sin pantalla** — la pestaña global de Leads **no está
+  desplegada** en la consola. Trazabilidad que nadie puede mirar no es trazabilidad.
+  El primer paso de esa decisión es **trabajo en el repositorio de Albert**, no aquí.
 - **Criterio de salida:** cualquier conjunto en producción dice quién lo vendió, y
   cualquier lead dice quién lo está trabajando.
 
@@ -668,6 +680,27 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.7 — 17 de agosto de 2026, noche
+
+**Por qué:** dos decisiones de David al preparar la siguiente sesión, y una de ellas
+resuelve una duda que la 0.6 había dejado abierta a propósito.
+
+- **El catálogo de comerciales es una colección, no una enumeración.** «Debería crecer
+  pero no de inmediato.» Con cinco personas la enumeración sería más simple hoy y una
+  migración mañana; la colección cuesta lo mismo ahora.
+- **Los leads de inbound llevan trazabilidad al CRM.** La 0.6 decía que la mitad del
+  lead en `REVOPS-001E` **podía sobrar** si el recorrido acababa viviendo en Albert.
+  **No sobra:** el lead necesita dueño y un sitio donde guardar su referencia en el
+  CRM, y ese campo tampoco se rellena hacia atrás.
+- **Panamá a la nevera.** Tarifado y en espera. Se marca resuelta en vez de borrarla:
+  una pregunta que se contesta «no ahora» y desaparece se vuelve a formular en dos meses.
+
+**Y una consecuencia que conviene no perder:** la decisión del CRM **no habilita
+empujar leads a Albert todavía**. La pestaña global de Leads **no está desplegada** en
+la consola —verificado navegándola: siete pestañas, no ocho—, así que un lead empujado
+hoy cae en una colección sin pantalla. El primer paso de esa decisión vive en el
+repositorio de Albert, no en este.
 
 ### 0.6 — 17 de agosto de 2026, noche
 

@@ -14,7 +14,7 @@ decisión de integración**, no un roadmap paralelo.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.3 |
+| **Versión** | 0.4 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Base** | Documento de observaciones v1.0 + navegación propia + medición del lado Vivaru |
 | **Verificado contra** | Repositorio en `600c8e6`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
@@ -193,7 +193,7 @@ va a usar el CRM.**
 | Paso | Qué | Coste | Qué demuestra |
 |---|---|---|---|
 | **0** | **Volcar en Albert el recorrido que ya llevan los cinco comerciales**, a mano o por CSV | **Cero código** | Si el equipo entra al CRM, y cuál es la línea base real |
-| **1** | Empujar el lead al crearse — **solo si el paso 0 demuestra uso, y a una superficie visible** | Bajo | Que la atribución sobrevive el salto |
+| **1** | Empujar el lead al crearse — **decidido por David el 17 ago; condicionado a que exista superficie visible** | Bajo, **pero primero en Albert** | Que la atribución sobrevive el salto |
 | **2** | **La señal de vuelta**, construida en Albert: trigger sobre `deals` → callable de Vivaru | Medio, **en el repo de Albert** | Que el circuito cierra |
 | **3** | Eventos de producto, tareas por señal, expediente de activación | Alto | Lo que el documento llama Fases 2 y 3 |
 
@@ -275,6 +275,23 @@ que es bastante menos trabajo del que su tabla sugiere.
 ---
 
 ## Changelog
+
+### 0.4 — 17 de agosto de 2026, noche
+
+**Decisión de David:** los leads de inbound **deben tener trazabilidad en el CRM**. El
+paso 1 deja de ser condicional al resultado del paso 0 en cuanto al *qué*, y pasa a ser
+una dirección tomada.
+
+**Pero el condicionante técnico sigue en pie, y es de Albert, no de Vivaru.** La
+pestaña global de Leads **no está desplegada** en la consola —verificado navegándola:
+siete pestañas, no ocho—, así que un lead empujado hoy caería en una colección **sin
+pantalla**. Trazabilidad que nadie puede mirar no es trazabilidad. **El primer paso de
+esta decisión es trabajo en el repositorio de Albert.**
+
+**Lo que sí se puede hacer en Vivaru desde ya, y es la parte que caduca:** dejar el
+lead **listo para el CRM** — con dueño comercial y con un campo donde guarde su
+referencia externa cuando exista. Ficha `REVOPS-001E`. Empujar es después; estar
+preparado para empujar es ahora, porque esos campos no se rellenan hacia atrás.
 
 ### 0.3 — 17 de agosto de 2026, noche
 
