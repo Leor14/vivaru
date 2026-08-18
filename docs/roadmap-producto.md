@@ -12,10 +12,9 @@ dependencias y criterio de salida.
 
 ## Estado de esta revisión
 
-> Esta sección **se reescribe entera** en cada revisión. Es lo primero que se lee y
-> nunca crece: lo que deja de ser actual baja al changelog del final.
+> Esta sección **se reescribe entera** en cada revisión. Es lo primero que se lee y nunca crece: lo que deja de ser actual baja al changelog del final.
 
-| | |
+| Campo | Valor |
 |---|---|
 | **Versión** | 0.3 |
 | **Fecha** | 17 de agosto de 2026, noche |
@@ -431,9 +430,7 @@ notificaciones web, correo y push · analítica operativa por conjunto.
 
 ## Observaciones de la revisión técnica del 17 de agosto de 2026
 
-> **Esto son opiniones, no cambios de prioridad.** Priorizar es decisión de David; el
-> inventario de arriba conserva su orden tal como él lo definió. Esta sección existe
-> para que la discrepancia quede registrada y fechada en vez de perderse en un chat.
+> **Esto son opiniones, no cambios de prioridad.** Priorizar es decisión de David; el inventario de arriba conserva su orden tal como él lo definió. Esta sección existe para que la discrepancia quede registrada y fechada en vez de perderse en un chat.
 
 **1 · Ahora hay SIETE P0 simultáneos en AHORA, y eso significa que no hay ninguno.**
 `CORE-001`, `FIN-000`, `FIN-001`, `REVOPS-001A`, `AI-GOV-001`, `AI-DATA-001` y
@@ -494,8 +491,7 @@ hacerla · esfuerzo relativo · horizonte y estado · criterio de entrada y de s
 decisión (priorizar, mantener, aplazar, experimentar o descartar) · justificación y
 fecha de revisión.
 
-> Una solicitud de prospecto aumenta la evidencia, pero **no determina por sí sola la
-> prioridad**.
+> Una solicitud de prospecto aumenta la evidencia, pero **no determina por sí sola la prioridad**.
 
 ## Cadencia de actualización
 
@@ -511,8 +507,7 @@ fecha de revisión.
 
 ## Changelog
 
-> **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se
-> verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+> **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
 
 ### 0.3 — 17 de agosto de 2026, noche
 
