@@ -30,7 +30,13 @@ const RECIBO_VECINO = "tenants/tenant-a/payment-receipts/resident-9/1700000000-r
 const RECIBO_VIEJO = "tenants/tenant-a/payment-receipts/unidad-101/1600000000-recibo.png";
 
 const NOTA_PORTERIA = "tenants/tenant-a/visitor-notes/pase-1/1700000000-foto.png";
-const EVIDENCIA_SOPORTE = "tenants/tenant-a/support/1700000000-evidencia.png";
+
+// Evidencia de soporte: la propia, la de otro miembro, y la plana anterior a
+// la segmentación por uid (el nombre del archivo ocupa el hueco del dueño).
+const EVIDENCIA_PROPIA = "tenants/tenant-a/support/resident-1/1700000000-evidencia.png";
+const EVIDENCIA_AJENA = "tenants/tenant-a/support/resident-9/1700000000-captura.png";
+const EVIDENCIA_VIEJA = "tenants/tenant-a/support/1600000000-evidencia.png";
+
 const CARPETA_NO_DECLARADA = "tenants/tenant-a/inventada/archivo.txt";
 
 let testEnv: RulesTestEnvironment;
@@ -77,7 +83,9 @@ beforeAll(async () => {
       sembrar(RECIBO_VECINO, "comprobante del residente 9"),
       sembrar(RECIBO_VIEJO, "comprobante anterior al cambio de ruta"),
       sembrar(NOTA_PORTERIA, "nota de porteria"),
-      sembrar(EVIDENCIA_SOPORTE, "evidencia de ticket"),
+      sembrar(EVIDENCIA_PROPIA, "evidencia del residente 1"),
+      sembrar(EVIDENCIA_AJENA, "evidencia del residente 9"),
+      sembrar(EVIDENCIA_VIEJA, "evidencia anterior a la segmentacion"),
       sembrar(CARPETA_NO_DECLARADA, "carpeta que nadie declaro"),
     ]);
   });
@@ -266,7 +274,7 @@ describe("FIN-000 · comprobantes de pago: cada residente con el suyo", () => {
   });
 });
 
-describe("FIN-000 · notas de portería y evidencia de soporte", () => {
+describe("FIN-000 · notas de portería", () => {
   it("un guarda guarda y lee su nota de visitante", async () => {
     await assertSucceeds(
       uploadString(ref(guarda().storage(), "tenants/tenant-a/visitor-notes/pase-2/1700000003-foto.png"), "foto"),
@@ -285,14 +293,56 @@ describe("FIN-000 · notas de portería y evidencia de soporte", () => {
   it("el admin lee las notas de portería", async () => {
     await assertSucceeds(getBytes(ref(admin().storage(), NOTA_PORTERIA)));
   });
+});
 
-  // Soporte queda como estaba: la ruta es plana y no dice de quién es cada
-  // archivo. Cerrarla exige segmentarla por usuario primero — trabajo aparte.
-  it("un residente adjunta y lee evidencia de soporte, como antes de FIN-000", async () => {
+// La carpeta que FIN-000 dejó anotada como trabajo aparte: era plana y abierta
+// a todo el conjunto. Ahora va segmentada por quien sube, como los comprobantes.
+describe("Soporte · evidencia segmentada por quien la sube", () => {
+  it("quien sube adjunta bajo su uid y lee lo suyo (lo exige getDownloadURL)", async () => {
     await assertSucceeds(
-      uploadString(ref(residente().storage(), "tenants/tenant-a/support/1700000004-foto.png"), "evidencia"),
+      uploadString(ref(residente().storage(), "tenants/tenant-a/support/resident-1/1700000004-foto.png"), "evidencia"),
     );
-    await assertSucceeds(getBytes(ref(residente().storage(), EVIDENCIA_SOPORTE)));
+    await assertSucceeds(getBytes(ref(residente().storage(), EVIDENCIA_PROPIA)));
+  });
+
+  it("NO lee la evidencia de otro miembro", async () => {
+    await assertFails(getBytes(ref(residente().storage(), EVIDENCIA_AJENA)));
+  });
+
+  it("NO escribe bajo el uid de otro", async () => {
+    await assertFails(
+      uploadString(ref(vecino().storage(), "tenants/tenant-a/support/resident-1/intruso.png"), "no"),
+    );
+  });
+
+  // El admin abre y responde los tickets del conjunto: lee todo support/,
+  // incluida la evidencia que subió otra persona.
+  it("el admin lee toda la evidencia del conjunto", async () => {
+    await assertSucceeds(getBytes(ref(admin().storage(), EVIDENCIA_PROPIA)));
+    await assertSucceeds(getBytes(ref(admin().storage(), EVIDENCIA_AJENA)));
+  });
+
+  it("el superadmin también — es quien atiende la bandeja", async () => {
+    await assertSucceeds(getBytes(ref(superadmin().storage(), EVIDENCIA_AJENA)));
+  });
+
+  it("un admin de OTRO conjunto no lee esta evidencia", async () => {
+    const adminB = testEnv.authenticatedContext("admin-2", { role: "tenant_admin", tenantId: "tenant-b" });
+    await assertFails(getBytes(ref(adminB.storage(), EVIDENCIA_PROPIA)));
+  });
+
+  // La evidencia anterior al cambio vive plana: el nombre del archivo cae en
+  // el hueco del dueño y no es el uid de nadie. Queda solo para administración,
+  // mismo criterio que los comprobantes viejos por unidad.
+  it("la evidencia plana anterior al cambio queda solo para administración", async () => {
+    await assertSucceeds(getBytes(ref(admin().storage(), EVIDENCIA_VIEJA)));
+    await assertFails(getBytes(ref(residente().storage(), EVIDENCIA_VIEJA)));
+  });
+
+  it("y ya nadie puede subir plano, sin dueño en la ruta", async () => {
+    await assertFails(
+      uploadString(ref(residente().storage(), "tenants/tenant-a/support/1700000005-plano.png"), "plano"),
+    );
   });
 });
 

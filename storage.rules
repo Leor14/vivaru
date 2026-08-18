@@ -95,13 +95,20 @@ service firebase.storage {
       allow write: if (admin(tenantId) || porteria(tenantId)) && tamanoOk();
     }
 
-    // Evidencia de tickets de soporte. Sigue abierta a todo el conjunto, igual
-    // que antes de FIN-000: la ruta es plana y no dice de quién es cada
-    // archivo, así que cerrarla exige segmentarla por usuario primero. Queda
-    // anotado como trabajo aparte; no es documentación financiera.
-    match /tenants/{tenantId}/support/{resto=**} {
-      allow read: if miembro(tenantId);
-      allow write: if miembro(tenantId) && tamanoOk();
+    // Evidencia de tickets de soporte, segmentada por quien la sube. El que
+    // adjunta lee lo suyo —getDownloadURL tras subir pasa por `allow read`— y
+    // la administración lo lee todo: es quien abre y responde los tickets del
+    // conjunto, y un hilo puede llevar adjuntos de más de una persona. La
+    // evidencia anterior a este cambio vive plana (`support/{archivo}`): el
+    // nombre del archivo cae en el hueco del dueño y no es el uid de nadie,
+    // así que queda solo para administración — mismo criterio que los
+    // comprobantes viejos por unidad.
+    match /tenants/{tenantId}/support/{duenoUid}/{resto=**} {
+      allow read: if admin(tenantId) ||
+        (miembro(tenantId) && duenoUid == request.auth.uid);
+
+      allow write: if (admin(tenantId) ||
+        (miembro(tenantId) && duenoUid == request.auth.uid)) && tamanoOk();
     }
 
     // Todo lo demás, negado.

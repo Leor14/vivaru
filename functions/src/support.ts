@@ -70,13 +70,14 @@ export type AttachmentInput = { name: string; path: string; url: string };
  *
  * 1. **La ruta.** El archivo se sube directo desde el navegador y solo después
  *    se le pasa la ruta a esta función. Sin comprobar que está bajo
- *    `tenants/{tenantId}/support/`, cualquiera podría inyectar en el hilo un
- *    enlace a otro conjunto —o externo— que el equipo va a abrir.
- * 2. **El tamaño y el tipo.** No se pueden imponer en las reglas de Storage,
- *    porque las reglas SUMAN permisos: una regla más estricta para esta ruta
- *    sería una concesión extra, no un límite, ya que la general de
- *    `tenants/{id}/**` concede hasta 25 MB. Y aunque se pudieran, fiarse de lo
- *    que declare el cliente sería fiarse de quien queremos validar.
+ *    `tenants/{tenantId}/support/{uid}/` —el uid de QUIEN LLAMA, no un segmento
+ *    libre—, cualquiera podría inyectar en el hilo un enlace a otro conjunto,
+ *    a un archivo ajeno, o externo, que el equipo va a abrir.
+ * 2. **El tamaño y el tipo.** La regla de Storage corta en 25 MB (gobernanza
+ *    general del bucket), pero el límite fino de 5 MB y el tipo no pueden
+ *    venir de ahí: el contentType de una subida lo declara el cliente, y
+ *    fiarse de lo que declare sería fiarse de quien queremos validar. Aquí se
+ *    lee el metadato REAL del objeto ya subido.
  *
  * Lo que no pasa el filtro se BORRA: un archivo subido que nunca llega a un
  * ticket es basura que nadie va a limpiar después.
@@ -84,6 +85,7 @@ export type AttachmentInput = { name: string; path: string; url: string };
 async function validateAttachments(
   entrada: unknown,
   tenantId: string,
+  uid: string,
 ): Promise<Array<{ name: string; path: string; url: string; size: number; contentType: string }>> {
   if (!Array.isArray(entrada) || entrada.length === 0) return [];
   if (entrada.length > MAX_ATTACHMENTS) {
@@ -91,7 +93,7 @@ async function validateAttachments(
   }
 
   const bucket = getStorage().bucket();
-  const prefijo = `tenants/${tenantId}/support/`;
+  const prefijo = `tenants/${tenantId}/support/${uid}/`;
   const salida: Array<{ name: string; path: string; url: string; size: number; contentType: string }> = [];
 
   for (const raw of entrada as AttachmentInput[]) {
@@ -244,7 +246,7 @@ export async function createSupportTicket(
 
   // Se validan ANTES de crear el ticket: si la evidencia no sirve, es mejor
   // que el administrador lo sepa al enviar y no con el ticket ya abierto.
-  const adjuntos = await validateAttachments(input.attachments, tenantId);
+  const adjuntos = await validateAttachments(input.attachments, tenantId, uid);
 
   const tenantSnap = await db.collection("tenants").doc(tenantId).get();
   const tenant = tenantSnap.data() as { name?: string; status?: string; planId?: string } | undefined;
@@ -336,7 +338,7 @@ export async function replySupportTicket(
     }
   }
 
-  const adjuntos = await validateAttachments(input.attachments, data.tenantId);
+  const adjuntos = await validateAttachments(input.attachments, data.tenantId, uid);
 
   const nowIso = new Date().toISOString();
   // Vivaru responde ⇒ la pelota pasa al cliente. El cliente responde ⇒ vuelve
