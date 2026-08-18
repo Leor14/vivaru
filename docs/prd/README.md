@@ -8,6 +8,7 @@ Toda especificación de producto vive aquí, versionada junto al código que des
 docs/prd/
   funcionales/   → Producto sin IA. Prefijo PRD-V-
   ia/            → Capacidades asistidas por IA. Prefijo PRD-VAI-
+  albert/        → Vivaru redacta, Albert desarrolla. Prefijo PRD-A-
 ```
 
 La separación no es cosmética. Una PRD de IA tiene que responder preguntas que una funcional no tiene: con qué datos se evalúa, cuánto cuesta cada ejecución, qué pasa cuando el modelo se equivoca, y quién confirma antes de que algo se guarde. Mezclarlas obligaría a arrastrar esas secciones vacías por todo el portafolio.
@@ -18,6 +19,13 @@ La separación no es cosmética. Una PRD de IA tiene que responder preguntas que
 |---|---|---|
 | `funcionales/` | `PRD-V-[TIPO]-NNN-[resultado].md` | `FEAT` · `FLOW` · `PLAT` · `OPS` · `FIX` |
 | `ia/` | `PRD-VAI-[TIPO]-NNN-[resultado].md` | `FEAT` · `DOC` · `AGT` · `PRED` · `PLAT` |
+| `albert/` | `PRD-A-[TIPO]-NNN-[resultado].md` | Los mismos de `funcionales/` |
+
+La familia `albert/` existe por la decisión de los socios del 17 de agosto de 2026:
+Albert es de Qintilab y **se adapta a las reglas de negocio de Vivaru vía PRDs que
+Vivaru redacta**. Especifican trabajo en el repo de Albert, no en este — se versionan
+aquí porque el contrato (estados, identidad cruzada, permisos) es la mitad de Vivaru
+y tiene que viajar con su código. Expediente: `docs/albert-vivaru-integracion.md`.
 
 Se nombra por resultado, no por pantalla: `tickets-soporte`, no `pantalla-tickets`. El número es correlativo dentro de su tipo y carpeta.
 
@@ -40,6 +48,12 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 |---|---|---|
 | [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | **Productiva** | Desplegada y verificada de punta a punta el 2026-08-01, correo incluido |
 | [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **Productiva** (`registrarImportacion` desplegada en `hogaru-1`, comprobado el 2026-08-17) | Mapeo de columnas por nombre, contenido y variedad; catálogo único de campos; XLSX con selección de la hoja que mejor encaja; orden entre las dos cargas; y telemetría por pista. Construye el hueco donde entra `PRD-VAI-FEAT-001`. Sin decisiones abiertas |
+
+### Albert
+
+| PRD | Estado | Nota |
+|---|---|---|
+| [PRD-A-OPS-001 — Vista de Leads de Vivaru](albert/PRD-A-OPS-001-vista-de-leads-vivaru.md) | **Borrador — NO lista para desarrollo** | La mitad de Vivaru (esquema de `REVOPS-001E`) verificada en código; el flujo comercial (§5) espera la salida de `REVOPS-000` y hay dos `TBD` que necesitan al equipo de Albert y una decisión de negocio |
 
 ### IA
 
