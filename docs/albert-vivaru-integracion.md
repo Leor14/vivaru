@@ -1,4 +1,4 @@
-# Albert CRM + Vivaru — base de decisión para la integración
+# Albert CRM + Vivaru — qué necesita Vivaru que Albert construya
 
 Auditoría del documento **«Albert CRM + Vivaru — Observaciones de producto, encaje con
 REVOPS y posibilidades de integración» v1.0**, contrastada con lo que está medido del
@@ -6,7 +6,49 @@ lado de Vivaru y con la navegación propia de la consola de Albert.
 
 Mantiene la estructura de tres zonas del roadmap de producto. Complementa a
 `docs/roadmap-revops.md`, que es donde vive la épica; **esto es el expediente de la
-decisión de integración**, no un roadmap paralelo.
+relación con Albert**, no un roadmap paralelo.
+
+---
+
+## La premisa cambió el 17 de agosto, y con ella la pregunta
+
+**Albert es de Qintilab.** Las versiones 0.1 a 0.4 de este documento están escritas como
+si fuera un producto ajeno con el que se negocia una integración: qué tiene, qué le
+falta, qué se puede aprovechar. **Eso era una lectura equivocada del terreno.**
+
+**La decisión tomada con los socios no es conectar Albert con Vivaru: es adaptar Albert
+a las reglas de negocio de Vivaru.** Una vista propia, construida para la naturaleza y
+la necesidad de Vivaru — leads, los roles que hagan falta, los flujos que hagan falta.
+
+**El mecanismo es concreto: Vivaru redacta PRDs y Albert los desarrolla.** No hay que
+esperar a que Albert tenga algo; hay que escribir qué necesita Vivaru que exista.
+
+**Y el propósito es más grande que el CRM.** Esto estrena la hipótesis de que **las
+soluciones de Qintilab deben adaptarse a la naturaleza de cada cliente**, en vez de
+pedirle al cliente que se adapte al producto. Vivaru es el primer caso y Albert el
+primer adaptado. Si funciona aquí, el patrón se repite.
+
+### Qué se cae de este documento, y qué se refuerza
+
+- **Se cae el marco de «qué se puede aprovechar de lo que Albert ya tiene».** La
+  pregunta correcta no es qué hay, sino **qué necesita Vivaru que haya**.
+- **La pestaña de Leads sin desplegar deja de ser un bloqueo y pasa a ser el primer
+  PRD.** El hallazgo sigue siendo cierto —siete pestañas, no ocho— pero cambia de
+  signo: no es un impedimento, es el primer punto del encargo.
+- **Se refuerza la disciplina por fases**, aunque por otro motivo. Antes ordenaba el
+  gasto en una integración incierta; ahora ordena el **encargo**, para no pedir de
+  golpe un CRM entero.
+
+### El riesgo que hay que decir en voz alta
+
+**Vivaru va a especificar un CRM a medida teniendo cero recorrido comercial
+registrado.** Diseñar sobre supuestos es justo lo que este roadmap prohíbe en
+`ONB-001` y `AI-ONB-001`, y no deja de aplicar porque el que construya sea de casa.
+
+**La mitigación no es esperar: es de dónde salen los requisitos.** La conversación de
+`REVOPS-000` con los cinco comerciales deja de ser solo una línea base y pasa a ser
+**la entrada del PRD**. Eso la hace más urgente, no menos: sin ella, el primer PRD
+describiría el CRM que nos imaginamos, no el que usa la gente que vende.
 
 ---
 
@@ -14,7 +56,7 @@ decisión de integración**, no un roadmap paralelo.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.4 |
+| **Versión** | 0.5 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Base** | Documento de observaciones v1.0 + navegación propia + medición del lado Vivaru |
 | **Verificado contra** | Repositorio en `600c8e6`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
@@ -275,6 +317,33 @@ que es bastante menos trabajo del que su tabla sugiere.
 ---
 
 ## Changelog
+
+### 0.5 — 17 de agosto de 2026, noche
+
+**Cambia la premisa del documento entero, no un detalle.** David explicó lo que este
+expediente no sabía: **Albert es de Qintilab**, y la decisión tomada con los socios no
+es conectarlo con Vivaru sino **adaptarlo a las reglas de negocio de Vivaru**, con una
+vista construida para su naturaleza. El mecanismo: **Vivaru redacta PRDs y Albert los
+desarrolla**.
+
+**Las versiones 0.1 a 0.4 preguntaban lo que no había que preguntar.** Están escritas
+como auditoría de un producto ajeno —qué tiene, qué le falta, qué se puede
+aprovechar—. La pregunta correcta es **qué necesita Vivaru que exista**. Se conservan
+porque el inventario de capacidades sigue siendo válido como foto; lo que caduca es el
+marco.
+
+**El hallazgo de la pestaña de Leads cambia de signo.** Sigue siendo cierto que no está
+desplegada —verificado navegando la consola: siete pestañas, no ocho—, pero deja de ser
+un bloqueo y pasa a ser **el primer PRD**.
+
+**Y esto estrena una hipótesis que excede al CRM:** que las soluciones de Qintilab
+deben adaptarse a la naturaleza de cada cliente en vez de al revés. Vivaru es el primer
+caso.
+
+**El riesgo queda anotado, no escondido:** se va a especificar un CRM a medida con cero
+recorrido comercial registrado, que es diseñar sobre supuestos — lo mismo que este
+roadmap prohíbe en `ONB-001`. La mitigación cambia el papel de `REVOPS-000`: la
+conversación con los cinco comerciales pasa de línea base a **entrada de requisitos**.
 
 ### 0.4 — 17 de agosto de 2026, noche
 

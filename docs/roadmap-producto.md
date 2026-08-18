@@ -308,10 +308,14 @@ filtro de rol.
   Eso resuelve la duda que tenía esta ficha: **la mitad del lead NO sobra**. El lead
   necesita dueño **y** un sitio donde guardar su referencia en el CRM, y ese campo es
   de los que no se rellenan hacia atrás.
-- **Lo que esa decisión NO desbloquea todavía:** empujar el lead a Albert hoy lo
-  deja en una colección **sin pantalla** — la pestaña global de Leads **no está
-  desplegada** en la consola. Trazabilidad que nadie puede mirar no es trazabilidad.
-  El primer paso de esa decisión es **trabajo en el repositorio de Albert**, no aquí.
+- **Y esa pantalla no hay que esperarla: hay que encargarla.** Albert es de Qintilab,
+  y la decisión de los socios es **adaptarlo a las reglas de negocio de Vivaru** con
+  una vista propia, vía **PRDs que Vivaru redacta y Albert desarrolla**. La pestaña
+  global de Leads no está desplegada —siete pestañas, no ocho— y eso **deja de ser un
+  bloqueo para ser el primer PRD**. Expediente en `docs/albert-vivaru-integracion.md`.
+- **Consecuencia para esta ficha:** lo que definamos aquí —quién es dueño, qué roles
+  comerciales existen, qué referencia cruza— **no es solo el esquema de Vivaru: es la
+  entrada de ese PRD**. Se define una vez y sirve a los dos lados.
 - **Criterio de salida:** cualquier conjunto en producción dice quién lo vendió, y
   cualquier lead dice quién lo está trabajando.
 
@@ -696,11 +700,19 @@ resuelve una duda que la 0.6 había dejado abierta a propósito.
 - **Panamá a la nevera.** Tarifado y en espera. Se marca resuelta en vez de borrarla:
   una pregunta que se contesta «no ahora» y desaparece se vuelve a formular en dos meses.
 
-**Y una consecuencia que conviene no perder:** la decisión del CRM **no habilita
-empujar leads a Albert todavía**. La pestaña global de Leads **no está desplegada** en
-la consola —verificado navegándola: siete pestañas, no ocho—, así que un lead empujado
-hoy cae en una colección sin pantalla. El primer paso de esa decisión vive en el
-repositorio de Albert, no en este.
+**Y una tercera decisión, que llegó después y cambia el marco entero de Albert:**
+**Albert es de Qintilab**, y lo acordado con los socios no es conectarlo con Vivaru
+sino **adaptarlo a las reglas de negocio de Vivaru** —una vista propia para su
+naturaleza—, mediante **PRDs que Vivaru redacta y Albert desarrolla**. Con eso, la
+pestaña de Leads sin desplegar **deja de ser un bloqueo y pasa a ser el primer PRD**, y
+lo que se defina en `REVOPS-001E` sirve a los dos lados a la vez.
+
+**Esto estrena una hipótesis que excede al CRM:** que las soluciones de Qintilab deben
+adaptarse a la naturaleza de cada cliente en vez de al revés. **El riesgo queda
+anotado:** se especificará un CRM a medida con cero recorrido comercial registrado, que
+es diseñar sobre supuestos. La mitigación cambia el papel de `REVOPS-000`: la
+conversación con los cinco comerciales pasa de línea base a **entrada de requisitos**, y
+con eso sube de urgencia.
 
 ### 0.6 — 17 de agosto de 2026, noche
 
