@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.5 |
+| **Versión** | 0.6 |
 | **Fecha** | 17 de agosto de 2026, noche |
-| **Estado** | **Orden de ejecución decidido** |
-| **Verificado contra** | Repositorio en `5bb407a` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, la consola de Albert CRM en vivo, y el expediente de fases del trial self-service |
+| **Estado** | **Orden decidido; el canal resulta estar dotado** |
+| **Verificado contra** | Repositorio en `c2d58a0` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, la consola de Albert CRM en vivo, y el expediente de fases del trial self-service |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,36 +32,34 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **El hallazgo que reordena el tablero: la máquina de autoservicio está completa y en
-  producción desde el 1 de agosto.** Fases 0 a 4 —`/registro` público, conjunto de
-  prueba con siembra, candado de módulos en tres capas, ciclo de vida con avisos y
-  expiración sin borrado, bandeja de prospectos en Superadmin— y canario confirmado con
-  un registro real. **Lleva 16 días en el aire, pública e indexable, con cero entradas
-  reales.**
-- **Eso cambia el diagnóstico.** No falta recorrido ni instrumentación: **falta
-  demanda**. El tablero sabe medir, calificar, convertir y retener demanda, y **no tiene
-  una sola iniciativa para generarla**. Todo `REVOPS` de `001A` en adelante es aguas
-  abajo de algo que no existe.
-- **Entra el `Orden de ejecución`**, sección propia con cinco niveles. Sustituye a los
-  siete P0 simultáneos que la 0.4 tenía en AHORA.
-- **Entra un eje nuevo: `El trabajo que caduca`.** La vista por horizontes ordena por
-  dependencias y por eso no lo mostraba — hay cambios pequeños cuyo dato **no se
-  reconstruye** si llegan después del primer cliente real.
-- **`REVOPS-000` deja de ser «decidir el canal» y pasa a «activarlo»**, con
-  recomendación fechada.
-- **`REVOPS-001A` se parte en dos:** la atribución sube porque caduca; la
-  instrumentación y la puerta de alta intención bajan a `REVOPS-001D`.
+- **La función comercial no hay que crearla: ya está montada.** Dos KAM —México y
+  Colombia— más tres socios de Qintilab atendiendo directamente: David en México, Jaime
+  en Colombia y David en Ecuador. **Cinco personas, tres países.**
+- **Eso corrige una lectura errónea de la 0.5.** Allí se leyó «cero leads» como «cero
+  demanda». La colección `leads` **solo mide el landing y `/registro`**, y un KAM no
+  rellena un formulario web. Lo que sabemos es que **la entrada por autoservicio es
+  cero**; sobre el canal que sí está dotado **no sabemos nada, porque nada lo mide**.
+  No es que el embudo esté vacío: **hay dos embudos y solo uno tiene medidor**.
+- **`REVOPS-000` pasa de «activar el canal» a «instrumentar el que ya corre».** Su
+  primer paso sigue sin ser código: preguntar a los cinco qué tienen en marcha.
+- **Cambia el primer puesto del trabajo que caduca.** Ya no son los `utm_*` sino **la
+  propiedad comercial**: quién es dueño de cada lead y de cada conjunto. En México el
+  canal se lleva **$24 de un precio final de $51**. Eso no es una métrica, es dinero de
+  alguien — y no se reconstruye.
+- **Entra `REVOPS-001E`**, el campo de dueño. Es el hermano de `001A` y pesa más que él.
+- **Vuelve el paso cero de Albert**, retirado en la 0.4 por importar datos falsos. Si
+  hay recorrido real repartido entre cinco cabezas, eso es justo para lo que sirve un
+  CRM.
 
 **Qué espera decisión tuya:**
 
-1. **Si hay relación comercial que activar, o hay que crear la función de venta.** Es
-   la única entrada que falta para arrancar el nivel 0, y es la que el tablero no puede
-   contestar solo.
+1. **Panamá.** La guía maestra tarifa **cuatro** países y las personas cubren **tres**.
+   Panamá es el único tarifado como *reseller* y no tiene a nadie asignado: ¿hay un
+   reseller sin nombrar, o se tarifó por adelantado?
 2. Tenant piloto para la IA visible de PQRS.
 3. Política de retención de `aiAssistance`.
-4. **Dónde viven la agenda y la mensajería**, que no tiene ninguno de los dos
-   productos — y **cuál de los dos marcos de precio manda**, el de la guía maestra o
-   el del Documento Rector de Finance.
+4. **Dónde viven la agenda y la mensajería**, y **cuál de los dos marcos de precio
+   manda**, el de la guía maestra o el del Documento Rector de Finance.
 
 ---
 
@@ -107,7 +105,7 @@ de entrega.**
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | 🔴 `FIN-000` · `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
-| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ⏳ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
+| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ⏳ `REVOPS-001E` · ⏳ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ⏳ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
@@ -144,7 +142,7 @@ tarde** · 🔴 prioridad fundacional · 🟠 siguiente capacidad · 🔵 expans
 | Nivel | Qué | Coste | Por qué está ahí |
 |---|---|---|---|
 | **0** | **Generar demanda** — `REVOPS-000` | Cero código | Es el bloqueo compartido de cinco frentes |
-| **1** | **Lo que caduca** — `REVOPS-001A` · `SUP-001` · `FIN-000` | Bajo | El dato no se reconstruye después |
+| **1** | **Lo que caduca** — `REVOPS-001E` · `REVOPS-001A` · `SUP-001` · `FIN-000` | Bajo | El dato no se reconstruye después |
 | **2** | **Lo que rompe al convertir** — `FIN-001` | Alto | El trial protege; la conversión no |
 | **3** | **Cablear el precio** — primera mitad de `REVOPS-001C` | Medio | Hace falta al convertir, no al probar |
 | **4** | Todo lo demás | — | Espera al primer cliente real |
@@ -154,10 +152,11 @@ puede estar en `AHORA` por dependencia —está lista para hacerse— y en el **
 orden —no toca todavía—. `CORE-001`, `AI-GOV-001` y `AI-DATA-001` son justo ese caso.
 Todo lo que no aparece nombrado en los niveles 0 a 3 es nivel 4.
 
-**De las ocho filas del frente, solo dos tienen trabajo de ingeniería que hoy
-signifique algo:** Fundaciones y Finance. IA, Onboarding, Mobile, Soporte y la mitad de
-REVOPS esperan exactamente lo mismo — un cliente real usando el producto. **No son
-cinco bloqueos: es uno.**
+**De las ocho filas del frente, tres tienen trabajo de ingeniería que hoy signifique
+algo:** Fundaciones, Finance y —desde la 0.6— **REVOPS**, porque hay cinco personas
+vendiendo y el producto no sabe quiénes son. IA, Onboarding, Mobile y Soporte esperan
+exactamente lo mismo: un cliente real usando el producto. **No son cuatro bloqueos: es
+uno.**
 
 **Por qué el nivel 2 puede esperar, y no es optimismo.** El trial deja Cartera, Egresos,
 Libro y Conciliación en solo lectura, mediante `assertModuleAllowed` en functions y
@@ -182,7 +181,8 @@ recupera nunca.
 
 | Qué | Dónde | Qué se pierde si llega tarde |
 |---|---|---|
-| Campos de atribución del lead | `src/lib/marketing/leads.ts` | Un lead sin `utm_*` ni `referrer` **no se atribuye después**. Nunca se sabrá de dónde vino el primero |
+| **Dueño comercial** del lead y del conjunto | `REVOPS-001E` | **Dinero de alguien.** En México el canal se lleva $24 de $51. Un conjunto creado sin registrar quién lo vendió no se reatribuye |
+| Campos de atribución de marketing | `src/lib/marketing/leads.ts` | Un lead sin `utm_*` ni `referrer` **no se atribuye después**. Aplica al embudo de autoservicio, no al del KAM |
 | `firstResponseAt` · `assignedTo` | `SUP-001` | **No se reconstruye.** Los tickets ya cerrados nunca lo tendrán |
 | La sombra de PQRS | ✅ **Ya está** | Nada — se armó a tiempo y captura desde el primer ticket real |
 
@@ -235,45 +235,40 @@ filtro de rol.
   Cloud Function aplica un pago: toda la aritmética del dinero ocurre en el navegador.
   Detalle en `docs/roadmap-finance.md`.
 
-#### `REVOPS-000` — Activar el canal y generar la primera demanda
+#### `REVOPS-000` — Instrumentar el canal que ya está corriendo
 
 - **Frente:** REVOPS · **Estado:** No empezado · **Nivel 0** · **No es trabajo de ingeniería**
-- **El hallazgo que lo motiva, y es más fuerte de lo que parecía en 0.4:** la máquina de
-  autoservicio **está completa y en producción desde el 1 de agosto de 2026**. Fases 0 a
-  4: `/registro` público, conjunto de prueba con siembra parametrizable, candado de
-  módulos en tres capas, ciclo de vida con avisos a 7/3/1 días y expiración sin borrar,
-  bandeja de prospectos en Superadmin, y **canario confirmado con un registro real**. No
-  falta ni una pieza del recorrido landing → prueba → «hablar con un asesor» →
-  `createTenantFromLead` → cliente.
-
-  **Y lleva 16 días en el aire, pública e indexable, con cero entradas reales.**
-- **Los 5 `leads` de producción no son reales:** uno es del propio David
-  (`qintilab.com`), otro se llama literalmente «Prueba Dummy», y los tres restantes son
-  la misma persona enviando el formulario **tres veces en cinco minutos** el 15 de
-  agosto, con empresa «prueba» y «demo». Además la persistencia es reciente —antes
-  `/api/demo` y `/api/lead` solo mandaban correo—, así que **si llegó alguien real antes,
-  está en el buzón y no en Firestore**.
-- **Diagnóstico:** no es que el embudo pierda gente en algún paso. **Nadie ha llegado a
-  la puerta.** No falta recorrido ni instrumentación: falta demanda.
-- **Recomendación registrada el 17 de agosto — empezar por KAM/reseller**, dejando el
-  autoservicio encendido sin más inversión. Tres razones:
-  1. Es **la única vía de generación de demanda que ya está diseñada**: la guía maestra
-     la define en cuatro países con la compensación del canal calculada, y no necesita
-     una línea de código.
-  2. El autoservicio **no es una alternativa que haya que financiar** — ya está
-     construido, probado y en producción, así que sigue ahí gratis.
-  3. **El trial ya es híbrido por diseño.** Su decisión cerrada dice que no convierte
-     solo, califica, y que la conversión siempre es hablar con un asesor. El producto ya
-     asume que hay una persona cerrando; lo que falta es que alguien llegue hasta ella.
-- **La entrada que falta, y es decisión de David:** si hay relación comercial que
-  activar —clientes de Qintilab a los que Vivaru se venda de rebote, contactos del
-  sector— el KAM es inmediato. Si no la hay, «KAM» significa contratar a alguien o ser
-  él el vendedor, y **ese coste el tablero no puede evaluarlo**.
-- **Tarea concreta mientras tanto:** revisar `dev@qintilab.com` buscando solicitudes de
-  demo o contacto anteriores a la persistencia. Es el único sitio donde puede haber
-  leads reales.
-- **Criterio de salida:** hay al menos una conversación comercial real en curso, y una
-  decisión escrita sobre por qué canal sale Vivaru al mercado.
+- **El canal está dotado, y eso lo cambia todo respecto a la 0.5.** Hay **dos KAM**
+  —México y Colombia— y **tres socios de Qintilab** atendiendo en directo: David en
+  México, Jaime en Colombia y David en Ecuador. **Cinco personas, tres países.** La
+  función comercial no hay que crearla.
+- **Hay dos embudos y solo uno tiene medidor.** La colección `leads` mide el landing y
+  `/registro`. **Un KAM no rellena un formulario web.** Así que lo verificado es que la
+  entrada por autoservicio es **cero** —16 días con la máquina pública—; sobre el canal
+  asistido **no hay dato de ninguna clase, porque nada lo observa**.
+- **La 0.5 leyó «cero leads» como «cero demanda». Era una lectura errónea**, y esta
+  ficha existe para corregirla: lo que falta no es demanda demostrada, es **visibilidad
+  sobre la que pueda estar habiendo**.
+- **Qué sabe el producto de todo esto, comprobado en el código: casi nada.**
+  - La palabra «KAM» aparece **una sola vez en el repositorio**, y es una etiqueta de
+    log en `src/app/api/lead/route.ts`.
+  - **El lead tiene estado pero no tiene dueño.** Recorre
+    `nuevo → contactado → calificado → convertido → perdido` sin registrar en ningún
+    momento quién lo trabaja, así que «contactado» no dice **quién** contactó.
+  - **El aviso va a un buzón compartido**, `comercial@qintilab.com`. Admite lista
+    separada por comas, pero **no hay enrutado por país**: puestos los cinco, los cinco
+    reciben todo.
+  - **El enlace lead → conjunto sí existe** —`createTenantFromLead` escribe el
+    `tenantId` de vuelta sobre el lead—. El que falta es el eslabón anterior:
+    **KAM → lead**. Y `createdBy` en un conjunto guarda **el superadmin que pulsó el
+    botón**, no quién lo vendió.
+- **Qué hacer, y sigue sin ser código:**
+  1. **Preguntar a los cinco qué tienen en marcha.** Ahí está la línea base que tres
+     documentos venían pidiendo por separado — no en Firestore, en cinco cabezas.
+  2. **Revisar el buzón** buscando solicitudes anteriores a la persistencia de leads.
+  3. **Decidir dónde vive ese recorrido**, que es lo que reabre el paso cero de Albert.
+- **Criterio de salida:** existe un recuento escrito de oportunidades reales por país y
+  por persona, y una decisión sobre dónde se registra a partir de ahora.
 
 #### `REVOPS-001A` — Atribución del lead y respuesta inmediata
 
@@ -289,6 +284,24 @@ filtro de rol.
   — y el primero real es justo el que más interesa saber de dónde vino.
 - **Criterio de salida:** todo lead válido queda atribuido, recibe respuesta y produce
   una siguiente acción trazable.
+
+#### `REVOPS-001E` — Propiedad comercial del lead y del conjunto
+
+- **Frente:** REVOPS · **Estado:** Ausente · **Nivel 1** · ⏳ **Caduca** · **Nace en la 0.6**
+- **Problema:** con cinco personas vendiendo en tres países, **nada en el producto
+  registra de quién es cada lead ni quién vendió cada conjunto**. El lead tiene estado
+  y no tiene dueño; el conjunto guarda `createdBy`, que es el superadmin que ejecutó la
+  conversión.
+- **Por qué pesa más que `REVOPS-001A`:** los `utm_*` responden «de dónde vino el
+  clic», que solo aplica al embudo de autoservicio. Esto responde **«de quién es la
+  comisión»**, y aplica al canal que de verdad está operando. En México el canal se
+  lleva **$24 de un precio final de $51** — casi la mitad. Un conjunto creado sin ese
+  campo **no se reatribuye después**, y lo que se pierde no es una métrica: es dinero
+  de una persona concreta.
+- **Incluir:** dueño en el lead, vendedor en el conjunto, país del responsable, y
+  enrutado del aviso comercial por país en vez de un buzón único para todos.
+- **Criterio de salida:** cualquier conjunto en producción dice quién lo vendió, y
+  cualquier lead dice quién lo está trabajando.
 
 #### `FIN-000` — Storage con filtro de rol
 
@@ -593,7 +606,7 @@ esperan datos reales. `REVOPS-001A` es instrumentación **para** adquirir, no
 adquisición. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
 tanto no lo posee nadie. **Es el bloqueo estructural del roadmap, y no es técnico.**
 
-> ✅ **Recogida como nivel 0.** Y al comprobarla apareció algo más fuerte de lo que decía la observación: la máquina de autoservicio **lleva 16 días en producción, pública, sin una sola entrada real**. No es que falte instrumentar la adquisición — es que **no hay demanda que instrumentar**. El tablero sabe medir, calificar, convertir y retener; generar sigue sin tener dueño, y ahora al menos tiene ficha.
+> ✅ **Recogida como nivel 0** — pero con una corrección de la 0.6 que conviene leer entera, porque la observación acertaba a medias y la 0.5 la empeoró. Al comprobarla apareció que la máquina de autoservicio **lleva 16 días pública sin una sola entrada real**, y de ahí la 0.5 concluyó que «no hay demanda que instrumentar». **Eso era falso.** La colección `leads` solo mide el landing, y el canal real —**dos KAM y tres socios en tres países**— no pasa por ahí. Así que la frase de la observación, «no lo posee nadie», **también era falsa**: sí lo posee gente, cinco personas. Lo que no existe es el instrumento. El tablero sabe medir, calificar, convertir y retener el embudo de autoservicio, y **es ciego al que de verdad está operando**.
 
 **3 · `AI-DATA-001` está etiquetado como bloqueado y su decisión no lo está.** Su
 evaluación sí depende de datos, pero definir tenant piloto, volumen mínimo y periodo
@@ -655,6 +668,49 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.6 — 17 de agosto de 2026, noche
+
+**Por qué:** al preguntar por la entrada que faltaba —si había relación comercial que
+activar o había que crear la función de venta— David contestó que **ya está montada**:
+dos KAM (México y Colombia) y tres socios de Qintilab atendiendo en directo, David en
+México, Jaime en Colombia y David en Ecuador. Cinco personas, tres países.
+
+**Lo que corrige, y es una corrección mía.** La 0.5 leyó «cero leads» como «cero
+demanda» y construyó el nivel 0 sobre esa lectura. **Era errónea.** La colección `leads`
+mide el landing y `/registro`, y **un KAM no rellena un formulario web**. Lo verificado
+sigue en pie —la entrada por autoservicio es cero tras 16 días con la máquina pública—
+pero sobre el canal asistido **no hay dato de ninguna clase, porque nada lo observa**.
+No es que el embudo esté vacío: hay dos embudos y solo uno tiene medidor.
+
+**Verificado en el código, y el resultado es pobre:** la palabra «KAM» aparece **una
+vez en todo el repositorio**, como etiqueta de log en `src/app/api/lead/route.ts`. El
+lead recorre `nuevo → contactado → calificado → convertido → perdido` **sin dueño**, así
+que «contactado» no dice quién contactó. El aviso comercial va a un buzón compartido sin
+enrutado por país. El enlace lead → conjunto sí existe —`createTenantFromLead` escribe
+el `tenantId` sobre el lead—; el que falta es **KAM → lead**, y `createdBy` guarda el
+superadmin que pulsó el botón, no quién vendió.
+
+**Decisiones que quedan tomadas:**
+
+- **`REVOPS-000` pasa de «activar el canal» a «instrumentar el que ya corre».** Su
+  primer paso sigue sin ser código: preguntar a los cinco qué tienen en marcha. Ahí está
+  la línea base que tres documentos pedían — no en Firestore, en cinco cabezas.
+- **Cambia el primer puesto del trabajo que caduca.** Los `utm_*` responden «de dónde
+  vino el clic» y solo aplican al autoservicio. **La propiedad comercial responde de
+  quién es la comisión**, y aplica al canal que opera. En México el canal se lleva $24
+  de un precio final de $51: lo que se pierde si llega tarde no es una métrica, es
+  dinero de una persona concreta.
+- **Nace `REVOPS-001E`**, el campo de dueño, en el nivel 1 y por delante de `001A`.
+- **REVOPS entra en la cuenta de frentes con trabajo de ingeniería real**, que pasa de
+  dos a tres: hay cinco personas vendiendo y el producto no sabe quiénes son.
+- **Vuelve el paso cero de Albert**, retirado en la 0.4 porque importar los 5 leads
+  falsos habría ensuciado el CRM. El argumento sigue siendo válido y el material ya no:
+  si hay recorrido real repartido entre cinco cabezas, eso es justo para lo que sirve un
+  CRM.
+
+**Queda abierto:** la guía maestra tarifa **cuatro** países y las personas cubren
+**tres**. Panamá es el único tarifado como *reseller*, y no tiene a nadie asignado.
 
 ### 0.5 — 17 de agosto de 2026, noche
 

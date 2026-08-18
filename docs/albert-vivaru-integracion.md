@@ -14,7 +14,7 @@ decisión de integración**, no un roadmap paralelo.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.2 |
+| **Versión** | 0.3 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Base** | Documento de observaciones v1.0 + navegación propia + medición del lado Vivaru |
 | **Verificado contra** | Repositorio en `600c8e6`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
@@ -192,21 +192,28 @@ va a usar el CRM.**
 
 | Paso | Qué | Coste | Qué demuestra |
 |---|---|---|---|
-| **0** | **Conseguir el primer prospecto real** y decidir por qué canal entra: autoservicio o KAM/reseller | **Cero código** | Si hay demanda, y por dónde llega |
+| **0** | **Volcar en Albert el recorrido que ya llevan los cinco comerciales**, a mano o por CSV | **Cero código** | Si el equipo entra al CRM, y cuál es la línea base real |
 | **1** | Empujar el lead al crearse — **solo si el paso 0 demuestra uso, y a una superficie visible** | Bajo | Que la atribución sobrevive el salto |
 | **2** | **La señal de vuelta**, construida en Albert: trigger sobre `deals` → callable de Vivaru | Medio, **en el repo de Albert** | Que el circuito cierra |
 | **3** | Eventos de producto, tareas por señal, expediente de activación | Alto | Lo que el documento llama Fases 2 y 3 |
 
-**El paso 0 cambió el 17 de agosto, y el cambio importa.** Se proponía importar los 5
-leads por CSV y trabajarlos a mano. Al mirarlos resultó que **los cinco son pruebas
-internas**: no hay nada que importar, y meterlos habría ensuciado el CRM con datos de
-mentira — el mismo error que la sombra de IA aprendió a evitar.
+**El paso 0 cambió dos veces el 17 de agosto, y las dos veces por un motivo bueno.**
+Se proponía importar los 5 leads por CSV y trabajarlos a mano. Al mirarlos resultó que
+**los cinco son pruebas internas**: no había nada que importar, y meterlos habría
+ensuciado el CRM con datos de mentira — el mismo error que la sombra de IA aprendió a
+evitar. Así que se retiró.
 
-Lo que queda en pie es el **mecanismo**: la importación CSV existe y funciona, así que
-el día que haya prospectos reales el circuito manual sigue siendo el primer paso, sin
-construir nada. Lo que hay que hacer antes es **conseguir ese primer prospecto y
-decidir por dónde entra** — y la guía maestra de precios ya diseña un canal, KAM y
-reseller en cuatro países, que no pasa por el landing que este roadmap instrumenta.
+**Y esa misma noche volvió, con material distinto.** Vivaru tiene **dos KAM** —México y
+Colombia— y **tres socios de Qintilab** atendiendo en directo: David en México, Jaime en
+Colombia y David en Ecuador. **Cinco personas vendiendo en tres países, y ni una línea
+del producto sabe quiénes son.** Lo que hay que volcar no son cinco leads falsos de
+Firestore: es el recorrido comercial que esas cinco personas llevan en la cabeza.
+
+**El argumento de la retirada sigue siendo válido y ya no aplica.** No se importan datos
+de mentira; se registra actividad real que hoy no está en ningún sistema. Y eso es
+exactamente la pregunta que el paso 0 existía para contestar: **si el equipo comercial
+entra al CRM**. Con cinco personas repartidas en tres países, la respuesta vale mucho
+más que con un solo vendedor.
 
 ---
 
@@ -268,6 +275,29 @@ que es bastante menos trabajo del que su tabla sugiere.
 ---
 
 ## Changelog
+
+### 0.3 — 17 de agosto de 2026, noche
+
+**El paso cero vuelve, y con mejor material del que tenía al principio.** La 0.2 lo
+retiró porque los 5 leads eran pruebas internas y meterlos en el CRM habría sido
+ensuciarlo con datos de mentira. **Ese argumento sigue en pie.** Lo que cambió es lo que
+hay para volcar: Vivaru tiene **dos KAM** —México y Colombia— y **tres socios de
+Qintilab** atendiendo en directo —David en México, Jaime en Colombia y David en
+Ecuador—. Cinco personas vendiendo en tres países.
+
+**Y ni una línea del producto sabe quiénes son.** Comprobado en el repositorio: la
+palabra «KAM» aparece **una sola vez**, como etiqueta de log; el lead tiene estado y no
+tiene dueño; el aviso comercial va a un buzón compartido sin enrutado por país.
+
+**Por eso el paso 0 vale ahora más que en la 0.1.** Su pregunta era si el equipo
+comercial entra al CRM. Con un vendedor la respuesta era anecdótica; con cinco
+repartidos en tres países es la decisión de dónde vive el recorrido comercial de la
+empresa. Y no se importa nada falso: se registra actividad real que hoy no está en
+ningún sistema.
+
+**Verificado contra:** `src/app/api/lead/route.ts`, `src/lib/marketing/leads.ts` y
+`functions/src/index.ts` (`createTenantFromLead`). Detalle en
+`docs/roadmap-producto.md`, ficha `REVOPS-000` y `REVOPS-001E`.
 
 ### 0.2 — 17 de agosto de 2026, noche
 
