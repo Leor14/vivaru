@@ -15,7 +15,7 @@ porqué está en `docs/roadmap-producto.md`.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.1 |
+| **Versión** | 0.2 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Base** | Documento Rector v2 (Word), fortalecido con verificación directa |
 | **Verificado contra** | Repositorio en `3dc443f` y proyecto `hogaru-1` (producción) |
@@ -241,10 +241,21 @@ esfuerzo de ingeniería los produce.
 
 ## 8 · Economía — qué conservar y qué no afirmar
 
-Se conservan los escenarios del Documento Rector: base de MXN $40 por unidad al mes y
-premium de +$10 / +$15 / +$20 / +$25, sobre un conjunto de referencia de 150 unidades.
-Se conserva también su decisión de **no fijar precio** hasta medir costo y ahorro
-reales.
+**El precio ya está fijado, y no en este documento.** La guía maestra
+—`Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12` (Drive), 12 de agosto de 2026, cinco días antes que el
+Documento Rector— define precio por unidad al mes para México, Panamá, Colombia y
+Ecuador, separando base de Vivaru, compensación de canal y precio final al cliente.
+Para México: base MXN $27, canal $24 KAM, **final al cliente MXN $51**.
+
+**Y ahí hay una discrepancia que hay que resolver, no promediar.** El Documento Rector
+razona sobre una **base de MXN $40 por unidad** con premium de +$10/15/20/25 para el
+módulo financiero, sobre un conjunto de referencia de 150 unidades. **Son dos marcos
+distintos.** Mientras convivan, cualquier cálculo de margen de este módulo se apoya en
+una cifra que no es la comercial vigente.
+
+Lo que sí se conserva del Documento Rector es su criterio: **no comprometer un premium
+concreto** hasta medir costo y ahorro reales. Eso sigue siendo correcto — lo que cambia
+es que el precio **base** ya no es una incógnita.
 
 **Lo que hay que decir y el documento no dice:** ese conjunto de referencia no se
 parece a ningún conjunto que Vivaru tenga hoy. Los dos reales tienen **1 unidad y 0**.
@@ -275,6 +286,13 @@ salieron de la verificación:
 ---
 
 ## Changelog
+
+### 0.2 — 17 de agosto de 2026, noche
+
+**Por qué:** las versiones anteriores afirmaban que no había precio. Era falso: existe
+desde el 12 de agosto de 2026 en `Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12`.
+Lo que falta es cablearlo al producto y reconciliar la nomenclatura. Detalle en
+`docs/roadmap-producto.md`, sección «El precio».
 
 ### 0.1 — 17 de agosto de 2026
 

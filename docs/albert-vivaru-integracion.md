@@ -14,7 +14,7 @@ decisión de integración**, no un roadmap paralelo.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.1 |
+| **Versión** | 0.2 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Base** | Documento de observaciones v1.0 + navegación propia + medición del lado Vivaru |
 | **Verificado contra** | Repositorio en `600c8e6`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
@@ -70,7 +70,7 @@ Medido en producción (`hogaru-1`), 17 de agosto de 2026 **[V]**:
 | Leads | **5** — 4 `nuevo`, 1 `calificado`, **0 `convertido`** |
 | Origen | 3 `demo` · 2 `trial` |
 | Conjuntos con `leadId` | 2 de 9 |
-| Colección `plans` | **vacía**, y ningún precio en el código |
+| Colección `plans` | **vacía**. El precio está decidido en la guía maestra, pero **no cableado** al producto |
 | Eventos analíticos | **14 con nombre**, todos de landing, **ninguno de producto** |
 | PostHog | importado y **sin configurar en ninguna rama**: no recibe nada |
 | Definición de trial activado | **existe** — 7 pasos en la prueba, 10 en un cliente — y ya se ve en Superadmin |
@@ -115,7 +115,7 @@ ciertas.** Pero omite la simetría:
 | Tenants | 3, todos de prueba | 9, **7 marcados como ejemplo** |
 | Adopción | **0%** en los tres | Los 2 reales, sin actividad |
 | Última actividad | abril · junio · agosto | 1 comunicación de marzo |
-| Planes | 4, con límites y **sin precio** | `plans` vacía, **sin precio** |
+| Planes | 4, con límites y **sin precio** | `plans` vacía; precio **decidido fuera del producto** |
 
 **No se está conectando Vivaru a un CRM probado. Se están conectando dos productos
 jóvenes que nunca han operado en serio.** Eso no invalida la decisión —puede ser
@@ -166,7 +166,7 @@ Ninguno de los dos documentos lo señala, y sale de cruzar los dos inventarios *
 |---|---|---|
 | **Agenda de demos** | No. Su landing agenda con formulario | No |
 | **Motor de mensajería** con consentimiento, supresión y frecuencia | No. Solo plantillas con merge fields | No |
-| **Precio de plan** | Planes con límites, sin precio | `plans` vacía, sin precio |
+| **Precio de plan** | Planes con límites, sin precio | Decidido en la guía maestra, **no cableado** |
 
 Los tres son **prerrequisitos del circuito comercial** de los dos productos, y ninguno
 los tiene. Construirlos una vez y compartirlos es un argumento a favor de integrar más
@@ -253,12 +253,22 @@ que es bastante menos trabajo del que su tabla sugiere.
 
 **Necesitan decisión de negocio:**
 
-7. **¿Cuál es el precio de los planes?** Bloquea a los dos productos.
+7. **¿Cuál de los dos marcos de precio manda** — la guía maestra del 12 de agosto o la
+   base de MXN $40 del Documento Rector de Finance? Y **con qué nomenclatura se cablea**
+   al producto. La decisión de precio ya existe; lo que falta es reconciliarla y
+   conectarla.
 8. **¿Dónde viven la agenda y la mensajería con consentimiento**, que ninguno tiene?
 
 ---
 
 ## Changelog
+
+### 0.2 — 17 de agosto de 2026, noche
+
+**Por qué:** las versiones anteriores afirmaban que no había precio. Era falso: existe
+desde el 12 de agosto de 2026 en `Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12`.
+Lo que falta es cablearlo al producto y reconciliar la nomenclatura. Detalle en
+`docs/roadmap-producto.md`, sección «El precio».
 
 ### 0.1 — 17 de agosto de 2026, noche
 

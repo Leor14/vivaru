@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.3 |
+| **Versión** | 0.4 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Estado** | Borrador para conversación y validación |
 | **Verificado contra** | Repositorio en `c8e8923` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, y la consola de Albert CRM en vivo |
@@ -50,8 +50,9 @@ dependencias y criterio de salida.
 1. Tenant piloto para la IA visible de PQRS.
 2. Política de retención de `aiAssistance`.
 3. **Si se hace `REVOPS-000` esta semana.** No depende de nadie más.
-4. **Dónde viven la agenda, la mensajería y el precio**, que hoy no tiene ninguno de
-   los dos productos.
+4. **Dónde viven la agenda y la mensajería**, que no tiene ninguno de los dos
+   productos — y **cuál de los dos marcos de precio manda**, el de la guía maestra o
+   el del Documento Rector de Finance.
 5. Si las observaciones sobre el orden se incorporan al tablero o se descartan.
 
 ---
@@ -303,10 +304,12 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 #### `REVOPS-001C` — Solicitud de activación y handoff
 
 - **Frente:** REVOPS · **Estado:** Ausente
-- **Depende de dos cosas que hoy no existen:** un **catálogo de planes con precio**
-  —`plans` está vacía en Vivaru y los planes de Albert tienen límites sin precio— y **la
-  señal de vuelta desde Albert**, que no tiene webhooks. Esa segunda es trabajo propio
-  en el repositorio de Albert, no una negociación con un tercero.
+- **Depende de dos cosas.** La primera es **cablear el precio al producto**: la
+  decisión comercial existe desde el 12 de agosto de 2026 en la guía maestra
+  —ver «El precio» más abajo— pero `plans` está vacía y los `planId` de producción no
+  corresponden a la segmentación comercial. Es cableado, no decisión. La segunda es **la
+  señal de vuelta desde Albert**, que no tiene webhooks: trabajo propio en el
+  repositorio de Albert, no una negociación con un tercero.
 - **Criterio de salida:** una intención de compra se convierte en expediente trazable
   hasta una suscripción activa, sin reconstruir contexto por correo.
 
@@ -394,6 +397,50 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 ---
 
+## El precio — decidido, no cableado
+
+**Fuente de verdad: `Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12` (Drive).** Versión del 12 de agosto de
+2026, uso interno para preparar cotizaciones. **Precio por unidad al mes**, salvo setup
+o ticket señalado.
+
+Separa **tres capas que no deben confundirse**: precio base de Vivaru o Qintilab,
+compensación del canal (KAM o reseller), y precio final al cliente. Oferta trimestral
+recomendada, segmento **Core** (101–200 unidades):
+
+| País | Base Vivaru | Canal | **Final cliente** |
+|---|---|---|---|
+| México | MXN $27 | $24 KAM | **MXN $51** |
+| Panamá | incluida | USD $1,80 reseller | **USD $3,77** |
+| Colombia | COP $5.100 | $3.400 KAM | **COP $8.500** |
+| Ecuador | USD $1,90 | $1,25 KAM | **USD $3,15** |
+
+Frecuencia trimestral por defecto; mensual existe y es más costosa. Segmentación por
+tamaño: **Emergente** 50–100 unidades · **Core** 101–200 · **Enterprise** 201–300+.
+
+**Regla de autoridad documental:** para México manda su documento individual; para
+Panamá, su presentación; para Colombia y Ecuador, el consolidado.
+
+### Lo que falta no es la decisión, es el cableado
+
+- **La colección `plans` de producción tiene 0 documentos** y no hay ninguna cifra de
+  precio en el código.
+- **Los `planId` en uso no corresponden a la segmentación comercial:** producción usa
+  `starter`, `plus`, `premium` y `trial`; la guía segmenta por Emergente, Core y
+  Enterprise. **Son dos vocabularios para lo mismo** y hay que reconciliarlos —
+  preferiblemente antes de vender, porque después habría que migrar conjuntos que ya
+  están cobrando.
+
+### Discrepancia por resolver
+
+El **Documento Rector de Vivaru Finance** razona sobre una base de **MXN $40 por unidad
+al mes** con premium de +10/15/20/25 para el módulo financiero. La guía maestra dice
+**base $27 y final al cliente $51**. **Son dos marcos de precio en circulación**, y
+mientras convivan, cualquier cálculo de margen del módulo financiero se apoya en la
+cifra equivocada. La guía es posterior y se declara consolidada; decidir cuál manda es
+de negocio, no de producto.
+
+---
+
 ## Compartido con Albert CRM — tres carencias sin dueño
 
 Salió de cruzar el inventario de Vivaru con el de Albert CRM, y **no estaba en el
@@ -403,7 +450,7 @@ roadmap de ninguno de los dos**:
 |---|---|---|
 | **Agenda de demos** | No. Su landing agenda con formulario | No |
 | **Motor de mensajería** con consentimiento, supresión y frecuencia | No. Solo plantillas con merge fields | No |
-| **Precio de plan** | Planes con límites, **sin precio** | `plans` vacía, **sin precio** |
+| **Precio de plan** | Planes con límites, sin precio | **Decidido** en la guía maestra; **no cableado** al producto |
 
 Los tres son prerrequisitos del circuito comercial de **ambos productos**. Construirlos
 una vez y compartirlos es, en mi opinión, mejor argumento a favor de integrar que
@@ -508,6 +555,23 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.4 — 17 de agosto de 2026, noche
+
+**Por qué:** las versiones anteriores afirmaban que no había precio. **Era falso.**
+Existe desde el **12 de agosto** en la guía maestra de precios por país, cinco días
+antes de que se escribieran los documentos rectores que decían lo contrario.
+
+- **Sección nueva «El precio»**, con la guía maestra como fuente de verdad: precio por
+  unidad al mes para México, Panamá, Colombia y Ecuador, con las tres capas separadas
+  —base, canal y final al cliente— y la segmentación por tamaño.
+- **Lo que falta no es la decisión, es el cableado:** `plans` con 0 documentos, sin
+  cifra de precio en el código, y los `planId` de producción (`starter/plus/premium`)
+  **no corresponden** a la segmentación comercial (`Emergente/Core/Enterprise`).
+- **Se registra una discrepancia sin resolver:** el Documento Rector de Finance razona
+  sobre base MXN $40 y la guía dice base $27 / final $51. Dos marcos en circulación.
+- `REVOPS-001C` deja de depender de «un precio que no existe» y pasa a depender de
+  conectar uno que sí.
 
 ### 0.3 — 17 de agosto de 2026, noche
 

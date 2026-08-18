@@ -14,7 +14,7 @@ en `docs/roadmap-producto.md`.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.3 |
+| **Versión** | 0.4 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Base** | Documento Rector REVOPS v1.0 + documentación de Albert CRM + **navegación de la consola desplegada** |
 | **Verificado contra** | Repositorio en `4f3a9f7`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
@@ -87,10 +87,14 @@ El documento pide levantar baseline antes de diseñar. **Se midió.** Producció
   embudo no está roto por volumen alto: nunca ha completado un ciclo.
 - **La trazabilidad lead → conjunto existe pero está incompleta.** El campo `leadId`
   está en el conjunto, y solo 2 de 9 lo tienen. Los otros 7 se crearon por otras vías.
-- **Hay planes en uso sin catálogo de planes.** Los conjuntos llevan `planId`
-  (`starter`, `plus`, `premium`, `trial`) pero la colección `plans` está **vacía** y
-  **no hay ningún precio en el código**. `REVOPS-001C` necesita seleccionar plan y
-  guardar un snapshot de precio; hoy no hay de dónde sacarlo.
+- **El precio está decidido y no cableado.** La guía maestra
+  —`Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12` (Drive), 12 de agosto de 2026— fija precio por unidad al
+  mes para México, Panamá, Colombia y Ecuador, separando base, canal y final al
+  cliente. Pero la colección `plans` de producción está **vacía**, no hay cifra de
+  precio en el código, y los `planId` en uso (`starter`, `plus`, `premium`, `trial`)
+  **no corresponden** a la segmentación comercial (Emergente, Core, Enterprise).
+  `REVOPS-001C` necesita un snapshot de precio: la fuente existe, falta conectarla.
+  Detalle en `docs/roadmap-producto.md`, sección «El precio».
 
 ---
 
@@ -290,7 +294,7 @@ La documentación de Albert se comprobó contra el producto en vivo el 17 de ago
 **Y el dato que conviene mirar de frente:** Albert tiene **3 tenants** —`demo`,
 `do-payment` y `lucho`—, los tres en plan Starter, los tres con **0% de onboarding y
 0% de adopción**, con última actividad en abril, junio y agosto. Sus planes tienen
-límites y **ningún precio**, igual que los de Vivaru.
+límites y **ningún precio**. Vivaru sí tiene precio decidido, pero fuera del producto.
 
 > **Albert no es un CRM rodado al que Vivaru se conecta. Es un producto hermano en la
 > misma etapa de madurez y con el mismo problema: plataforma construida, uso
@@ -384,9 +388,10 @@ original y se reordenan las críticas:
 1. **¿Quién construye la señal de vuelta Albert → Vivaru, y cuándo?** Sin ella,
    `REVOPS-001C` no puede cerrar el circuito. Es trabajo propio en el repo de Albert,
    no una negociación.
-2. **¿Cuál es el catálogo de planes y su precio?** `plans` está vacía en Vivaru y no
-   hay precio en el código. Albert tiene su propia estructura de planes, que es de
-   Albert y no sirve para Vivaru.
+2. **¿Cuándo se cablea el precio al producto y con qué nomenclatura?** La decisión
+   existe desde el 12 de agosto en la guía maestra; lo que falta es cargar el catálogo
+   y reconciliar `starter/plus/premium` con `Emergente/Core/Enterprise`. Y decidir cuál
+   de los dos marcos manda: el de la guía o el del Documento Rector de Finance.
 3. **¿Cómo se mapean los estados de lead entre los dos productos?** Albert no tiene
    `convertido`, que es el que importa.
 4. **¿Dónde vive la mensajería con consentimiento y supresión?** Ninguno de los dos
@@ -395,6 +400,13 @@ original y se reordenan las críticas:
    forma más barata de levantar baseline.
 
 ## Changelog
+
+### 0.4 — 17 de agosto de 2026, noche
+
+**Por qué:** las versiones anteriores afirmaban que no había precio. Era falso: existe
+desde el 12 de agosto de 2026 en `Vivaru_Guia_Maestra_Precios_por_Pais_2026-08-12`.
+Lo que falta es cablearlo al producto y reconciliar la nomenclatura. Detalle en
+`docs/roadmap-producto.md`, sección «El precio».
 
 ### 0.3 — 17 de agosto de 2026, noche
 
