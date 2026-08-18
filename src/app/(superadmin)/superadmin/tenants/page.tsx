@@ -35,6 +35,10 @@ import {
   type OnboardingSummary,
 } from "@/features/onboarding/services";
 import { useAuth } from "@/features/auth/auth-context";
+import { watchSalesReps, type SalesRep } from "@/features/superadmin/sales-reps";
+import { doc, getDoc } from "firebase/firestore";
+
+import { db } from "@/lib/firebase/client";
 import { CURRENCY_OPTIONS } from "@/lib/currency";
 import {
   DEFAULT_MODULE_VARIANTS,
@@ -77,7 +81,11 @@ export default function SuperadminTenantsPage() {
   const [convertTarget, setConvertTarget] = useState<TenantWorkspaceItem | null>(null);
   // Sin selector: Vivaru se contrata completo, no por planes ni por módulos.
   const convertPlan = "completo";
+  // Quién VENDIÓ (REVOPS-001E) — distinto de quién ejecuta la conversión.
+  // Se precarga con el dueño del lead cuando el ambiente nació de uno.
+  const [convertVendedor, setConvertVendedor] = useState("");
   const [converting, setConverting] = useState(false);
+  const [reps, setReps] = useState<SalesRep[]>([]);
   const { user } = useAuth();
 
   const createForm = useForm<TenantCreateInput>({
@@ -119,6 +127,13 @@ export default function SuperadminTenantsPage() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const unsub = watchSalesReps(setReps, () => undefined);
+    return () => unsub();
+  }, []);
+
+  const repById = useMemo(() => new Map(reps.map((r) => [r.id, r])), [reps]);
 
   const onboardingPendingCount = useMemo(
     () => tenants.filter((tenant) => tenant.onboardingStatus !== "completed").length,
@@ -191,6 +206,7 @@ export default function SuperadminTenantsPage() {
         tenantId: convertTarget.id,
         planId: convertPlan,
         convertedByUid: user.uid,
+        ...(convertVendedor ? { vendedorId: convertVendedor } : {}),
       });
       toast.success(`${convertTarget.name} ahora es cliente. Se conservó toda su configuración.`);
       setConvertTarget(null);
@@ -261,8 +277,18 @@ export default function SuperadminTenantsPage() {
     },
     {
       key: "city",
-      header: "Ciudad",
-      render: (tenant) => tenant.city,
+      header: "Ciudad · Vendedor",
+      render: (tenant) => {
+        const rep = tenant.vendedorId ? repById.get(tenant.vendedorId) : undefined;
+        return (
+          <div>
+            <p>{tenant.city}</p>
+            <p className="text-xs text-[var(--slate-500)]">
+              {rep ? rep.name : tenant.vendedorId ? `···${tenant.vendedorId.slice(-6)}` : "Sin vendedor"}
+            </p>
+          </div>
+        );
+      },
     },
     {
       key: "plan",
@@ -436,7 +462,17 @@ export default function SuperadminTenantsPage() {
                   <Button
                     size="sm"
                     onClick={() => {
+                      setConvertVendedor("");
                       setConvertTarget(tenant);
+                      // El caso normal: quien trabajó el lead es quien vendió.
+                      if (tenant.leadId && db) {
+                        void getDoc(doc(db, "leads", tenant.leadId))
+                          .then((snap) => {
+                            const ownerId = (snap.data() as { ownerId?: string } | undefined)?.ownerId;
+                            if (ownerId) setConvertVendedor((prev) => prev || ownerId);
+                          })
+                          .catch(() => undefined);
+                      }
                     }}
                   >
                     Convertir a cliente
@@ -487,6 +523,23 @@ export default function SuperadminTenantsPage() {
               <li>Se elimina la fecha de vencimiento de la prueba.</li>
               <li>No se mueve ningún documento — por eso funciona igual con una prueba ya vencida.</li>
             </ul>
+            <label className="block text-sm">
+              Vendedor
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={convertVendedor}
+                onChange={(e) => setConvertVendedor(e.target.value)}
+              >
+                <option value="">Sin registrar (se puede corregir después… a mano)</option>
+                {reps.filter((r) => r.active).map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-[var(--slate-500)]">
+                Quién vendió este conjunto. En México el canal se lleva casi la mitad del precio:
+                sin este dato la comisión no se reatribuye después.
+              </span>
+            </label>
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setConvertTarget(null)} disabled={converting}>
                 Cancelar

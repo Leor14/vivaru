@@ -3829,6 +3829,8 @@ export const createTenantFromLead = onCall<{
   leadId: string;
   planId?: string;
   seedExamples?: boolean;
+  /** Quién vendió (REVOPS-001E). Id en `salesReps`. */
+  vendedorId?: string;
 }>(
   { cors: callableCorsOrigins, secrets: [resendApiKey] },
   async (request) => {
@@ -3855,6 +3857,16 @@ export const createTenantFromLead = onCall<{
       throw new HttpsError("failed-precondition", "El lead no tiene nombre o correo para crear el ambiente.");
     }
 
+    // El vendedor se valida contra el catálogo: un id suelto que no existe
+    // atribuiría la venta a nadie, que es justo lo que esta ficha cierra.
+    const vendedorId = request.data?.vendedorId?.trim() || undefined;
+    if (vendedorId) {
+      const repSnap = await db.collection("salesReps").doc(vendedorId).get();
+      if (!repSnap.exists) {
+        throw new HttpsError("invalid-argument", "El vendedor indicado no está en el catálogo de comerciales.");
+      }
+    }
+
     const unidades = Number(lead.unidadesEstimadas);
     const result = await provisionTrialWorkspace({
       nombre: lead.nombre,
@@ -3868,6 +3880,7 @@ export const createTenantFromLead = onCall<{
       asCustomer: true,
       planId: request.data?.planId,
       seedExamples: request.data?.seedExamples,
+      vendedorId,
     });
 
     // El admin define su contraseña por el enlace de siempre.
@@ -3882,6 +3895,7 @@ export const createTenantFromLead = onCall<{
     await writeAuditLog(result.tenantId, request.auth?.uid, "create_tenant_from_lead", {
       leadId,
       planId: request.data?.planId ?? "starter",
+      ...(vendedorId ? { vendedorId } : {}),
     });
 
     return { tenantId: result.tenantId };

@@ -864,7 +864,22 @@ service cloud.firestore {
     // escritura la hacen las rutas de servidor con admin SDK, que salta reglas.
     match /leads/{leadId} {
       allow read: if superadmin();
-      allow write: if false;
+      // Crear y borrar siguen vetados: los leads los escribe el servidor (los
+      // formularios del landing pasan por la API con Admin SDK). El UPDATE de
+      // superadmin es REVOPS-001E: asignar dueño y referencia de CRM desde la
+      // bandeja. Antes decia `write: if false` a secas, y markTrialAsLost
+      // llevaba desde entonces intentando marcar el lead como perdido desde el
+      // cliente — con el rechazo tragado por un catch vacio.
+      allow update: if superadmin();
+      allow create, delete: if false;
+    }
+
+    // Catalogo de comerciales (REVOPS-001E). Coleccion GLOBAL, fuera de los
+    // conjuntos: un KAM no es un rol de tenant y no tiene cuenta en el
+    // producto — es un registro de quien vende, para atribuir leads y
+    // conjuntos. Solo la consola Superadmin lo ve y lo edita.
+    match /salesReps/{repId} {
+      allow read, write: if superadmin();
     }
   }
 }

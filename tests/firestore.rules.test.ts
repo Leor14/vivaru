@@ -384,6 +384,20 @@ beforeAll(async () => {
       createdBy: "resident-2",
       updatedBy: "resident-2",
     });
+
+    // REVOPS-001E: un lead y un comercial para probar la propiedad comercial.
+    await setDoc(doc(db, "leads", "lead-1"), {
+      origen: "demo",
+      nombre: "Prospecto Uno",
+      email: "prospecto@ejemplo.test",
+      status: "nuevo",
+    });
+    await setDoc(doc(db, "salesReps", "rep-1"), {
+      name: "Comercial Uno",
+      email: "kam@vivaru.test",
+      country: "MX",
+      active: true,
+    });
   });
 });
 
@@ -1257,6 +1271,69 @@ describe("Firestore Rules - contadores de cuota de IA", () => {
     const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
     await assertFails(
       setDoc(doc(sa.firestore(), "aiQuotaCounters", "t:tenant-a:op:d:2026-08-10"), { count: 0 }),
+    );
+  });
+});
+
+/**
+ * REVOPS-001E — propiedad comercial. La bandeja asigna dueño y referencia de
+ * CRM con updateDoc desde la consola, así que el UPDATE de superadmin tiene
+ * que estar concedido: antes `leads` era `write: if false` a secas y
+ * markTrialAsLost llevaba desde entonces fallando en silencio.
+ */
+describe("Firestore Rules - propiedad comercial (REVOPS-001E)", () => {
+  it("superadmin asigna el dueño de un lead", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(
+      updateDoc(doc(sa.firestore(), "leads", "lead-1"), { ownerId: "rep-1", ownerAssignedAt: "2026-08-17" }),
+    );
+  });
+
+  it("superadmin marca un lead como perdido (el camino de markTrialAsLost)", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(
+      updateDoc(doc(sa.firestore(), "leads", "lead-1"), { status: "perdido", lostReason: "precio" }),
+    );
+  });
+
+  it("un admin de conjunto NO toca leads", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(updateDoc(doc(admin.firestore(), "leads", "lead-1"), { ownerId: "rep-1" }));
+  });
+
+  it("ni los lee", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "leads", "lead-1")));
+  });
+
+  it("crear y borrar leads sigue vetado, también para superadmin (los crea el servidor)", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(setDoc(doc(sa.firestore(), "leads", "lead-nuevo"), { nombre: "Colado" }));
+    await assertFails(deleteDoc(doc(sa.firestore(), "leads", "lead-1")));
+  });
+
+  it("superadmin administra el catálogo de comerciales", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(getDoc(doc(sa.firestore(), "salesReps", "rep-1")));
+    await assertSucceeds(
+      setDoc(doc(sa.firestore(), "salesReps", "rep-2"), {
+        name: "Comercial Dos", email: "kam2@vivaru.test", country: "CO", active: true,
+      }),
+    );
+  });
+
+  it("el catálogo es invisible para los conjuntos: ni admin ni residente", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "salesReps", "rep-1")));
+    await assertFails(getDoc(doc(resident.firestore(), "salesReps", "rep-1")));
+    await assertFails(updateDoc(doc(admin.firestore(), "salesReps", "rep-1"), { active: false }));
+  });
+
+  it("superadmin estampa el vendedor al convertir un conjunto", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertSucceeds(
+      updateDoc(doc(sa.firestore(), "tenants", "tenant-a"), { vendedorId: "rep-1" }),
     );
   });
 });

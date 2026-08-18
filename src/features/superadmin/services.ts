@@ -64,6 +64,8 @@ export interface TenantWorkspaceItem {
   trialEndsAt?: string;
   leadId?: string;
   convertedAt?: string;
+  /** Quién vendió este conjunto (REVOPS-001E). Id en `salesReps`. */
+  vendedorId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -113,6 +115,7 @@ export function watchTenants(
           trialEndsAt: typeof data.trialEndsAt === "string" ? data.trialEndsAt : undefined,
           leadId: typeof data.leadId === "string" ? data.leadId : undefined,
           convertedAt: typeof data.convertedAt === "string" ? data.convertedAt : undefined,
+          vendedorId: typeof data.vendedorId === "string" ? data.vendedorId : undefined,
           createdAt: toIsoString(data.createdAt),
           updatedAt: toIsoString(data.updatedAt),
         } as TenantWorkspaceItem;
@@ -174,6 +177,9 @@ export async function convertTenantToCustomer(input: {
   tenantId: string;
   planId: string;
   convertedByUid: string;
+  /** Quién VENDIÓ (REVOPS-001E) — no quién ejecutó la conversión, que es
+   *  `convertedBy`. La diferencia es la comisión de una persona concreta. */
+  vendedorId?: string;
 }) {
   const firestore = assertDb();
   await updateDoc(doc(firestore, "tenants", input.tenantId), {
@@ -182,6 +188,7 @@ export async function convertTenantToCustomer(input: {
     trialEndsAt: deleteField(),
     convertedAt: new Date().toISOString(),
     convertedBy: input.convertedByUid,
+    ...(input.vendedorId ? { vendedorId: input.vendedorId } : {}),
     // Al convertir cambia la misión, y con ella el recorrido: quien ya probó
     // el producto ahora tiene que invitar a su comunidad y emitir el primer
     // cobro. Los pasos compartidos se conservan hechos, así que no arranca de

@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import {
   BarChart2,
+  BriefcaseBusiness,
   Building2,
   CalendarCheck,
   ClipboardList,
@@ -31,6 +32,7 @@ const ICON_BY_HREF: Record<string, IconComponent> = {
   "/superadmin": ShieldCheck,
   "/superadmin/tenants": Building2,
   "/superadmin/leads": UserPlus,
+  "/superadmin/comerciales": BriefcaseBusiness,
   "/superadmin/admin-users": Users,
   "/superadmin/plans": Wallet,
   "/superadmin/metrics": BarChart2,

@@ -13,6 +13,12 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase/client";
 import { createTenantFromLeadCallable } from "@/lib/firebase/callables";
+import {
+  assignLeadOwner,
+  setLeadCrmRef,
+  watchSalesReps,
+  type SalesRep,
+} from "@/features/superadmin/sales-reps";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { toast } from "sonner";
@@ -38,6 +44,10 @@ type Lead = {
   unidadesEstimadas?: string | number;
   timeline?: string;
   status?: string;
+  /** Dueño comercial (REVOPS-001E): id en `salesReps`. */
+  ownerId?: string;
+  /** Referencia del lead en Albert CRM. */
+  crmRef?: string;
   tenantId?: string;
   appEnv?: string;
   createdAt?: string;
@@ -73,7 +83,12 @@ export default function SuperadminLeadsPage() {
   // Alta de cliente desde un lead sin ambiente (se acordó la suscripción).
   const [altaTarget, setAltaTarget] = useState<Lead | null>(null);
   const [altaSeed, setAltaSeed] = useState(false);
+  // Quién vendió, para estampar el vendedorId al crear el ambiente. Se
+  // precarga con el dueño del lead: el caso normal es que quien lo trabajó
+  // sea quien cerró la venta.
+  const [altaVendedor, setAltaVendedor] = useState("");
   const [creando, setCreando] = useState(false);
+  const [reps, setReps] = useState<SalesRep[]>([]);
 
   async function handleAlta() {
     if (!altaTarget) return;
@@ -82,6 +97,7 @@ export default function SuperadminLeadsPage() {
       const res = await createTenantFromLeadCallable({
         leadId: altaTarget.id,
         seedExamples: altaSeed,
+        ...(altaVendedor ? { vendedorId: altaVendedor } : {}),
       });
       toast.success(`Ambiente creado: ${res.tenantId}. Se envió el acceso al administrador.`);
       setAltaTarget(null);
@@ -91,6 +107,11 @@ export default function SuperadminLeadsPage() {
       setCreando(false);
     }
   }
+
+  useEffect(() => {
+    const unsub = watchSalesReps(setReps, () => undefined);
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (!db) {
@@ -172,12 +193,13 @@ export default function SuperadminLeadsPage() {
         </div>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--slate-200)]">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1040px] text-sm">
             <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
               <tr>
                 <th className="px-3 py-2 font-medium">Prospecto</th>
                 <th className="px-3 py-2 font-medium">Conjunto</th>
                 <th className="px-3 py-2 font-medium">Contacto</th>
+                <th className="px-3 py-2 font-medium">Dueño</th>
                 <th className="px-3 py-2 font-medium">Origen</th>
                 <th className="px-3 py-2 font-medium">Interés</th>
                 <th className="px-3 py-2 font-medium">Fecha</th>
@@ -218,6 +240,35 @@ export default function SuperadminLeadsPage() {
                       ) : null}
                     </td>
                     <td className="px-3 py-2">
+                      {/* El dueño se asigna aquí mismo: sacar la asignación a un
+                          detalle era una pantalla más para una acción de dos
+                          segundos. El rechazo de reglas lo reporta el toast. */}
+                      <select
+                        className="h-8 w-full min-w-[130px] rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                        value={lead.ownerId ?? ""}
+                        onChange={(e) => {
+                          void assignLeadOwner(lead.id, e.target.value || null).catch(toastFirebaseError);
+                        }}
+                      >
+                        <option value="">Sin dueño</option>
+                        {reps
+                          .filter((r) => r.active || r.id === lead.ownerId)
+                          .map((r) => (
+                            <option key={r.id} value={r.id}>{r.name}</option>
+                          ))}
+                      </select>
+                      <Input
+                        className="mt-1 h-7 text-[11px]"
+                        placeholder="Ref. en Albert"
+                        defaultValue={lead.crmRef ?? ""}
+                        onBlur={(e) => {
+                          const next = e.target.value.trim();
+                          if (next === (lead.crmRef ?? "")) return;
+                          void setLeadCrmRef(lead.id, next).catch(toastFirebaseError);
+                        }}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
                       <Badge className={origin.className}>{origin.label}</Badge>
                       {lead.tenantId ? (
                         <p className="mt-1 text-[11px] text-[var(--slate-500)]" title={lead.tenantId}>
@@ -240,7 +291,8 @@ export default function SuperadminLeadsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                                                  setAltaSeed(false);
+                            setAltaSeed(false);
+                            setAltaVendedor(lead.ownerId ?? "");
                             setAltaTarget(lead);
                           }}
                         >
@@ -269,6 +321,19 @@ export default function SuperadminLeadsPage() {
               Vas a crear el ambiente de <strong>{altaTarget.empresa ?? altaTarget.nombre}</strong> para{" "}
               <strong>{altaTarget.nombre}</strong> ({altaTarget.email}).
             </p>
+            <label className="block text-sm">
+              Vendedor
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={altaVendedor}
+                onChange={(e) => setAltaVendedor(e.target.value)}
+              >
+                <option value="">Sin registrar (se puede corregir después… a mano)</option>
+                {reps.filter((r) => r.active).map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={altaSeed} onChange={(e) => setAltaSeed(e.target.checked)} />
               Sembrar datos de ejemplo

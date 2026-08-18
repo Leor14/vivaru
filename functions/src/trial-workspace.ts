@@ -77,6 +77,8 @@ export type CreateTrialInput = {
   asCustomer?: boolean;
   /** Plan negociado. Solo aplica con `asCustomer`. */
   planId?: string;
+  /** Quién VENDIÓ (REVOPS-001E). Id en `salesReps`; lo valida el callable. */
+  vendedorId?: string;
   /** Sembrar datos de ejemplo. Un cliente real suele preferir arrancar limpio. */
   seedExamples?: boolean;
 };
@@ -152,6 +154,7 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
         ? { convertedAt: startedAt.toISOString(), convertedBy: "superadmin" }
         : { trialStartedAt: startedAt.toISOString(), trialEndsAt: endsAt.toISOString() }),
       ...(input.leadId ? { leadId: input.leadId } : {}),
+      ...(input.vendedorId ? { vendedorId: input.vendedorId } : {}),
       branding: { primaryColor: "#0B3C5D", accentColor: "#1A7A45" },
       createdAt: now,
       updatedAt: now,

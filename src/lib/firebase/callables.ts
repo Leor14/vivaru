@@ -147,6 +147,8 @@ export async function createTenantFromLeadCallable(input: {
   leadId: string;
   planId?: string;
   seedExamples?: boolean;
+  /** Quién vendió (REVOPS-001E). Id en `salesReps`; el servidor lo valida. */
+  vendedorId?: string;
 }) {
   if (!functions) {
     throw new Error("Firebase Functions no esta configurado en este entorno.");
