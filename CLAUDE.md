@@ -131,14 +131,23 @@ meses sin ejecutarse — sus fallos pasaban por "preexistentes".
 ```bash
 export JAVA_HOME="$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
-firebase emulators:start --only firestore --project hogaru-1-test   # en otra terminal
-npx vitest run --dir tests tests/firestore.rules.test.ts
+firebase emulators:start --only firestore,storage --project hogaru-1-test   # en otra terminal
+npm run test:rules:all
 ```
 
-Dos trampas:
+Tres trampas:
 - `firebase emulators:exec "npx vitest ..."` NO sirve: la CLI corre el script con
   su Node empaquetado, que no puede cargar el ESM de vitest. Hay que levantar el
   emulador aparte.
-- `--dir tests` no es opcional si hay worktrees en `.claude/worktrees/`: vitest
-  recoge también sus copias del archivo, que comparten emulador y chocan entre sí
-  con los mismos IDs de documento. Provocaba fallos fantasma en otras suites.
+- **Las pruebas de reglas SOLO corren con `vitest.rules.config.ts`** (es lo que
+  hacen los scripts `test:rules*`). El config normal las excluye porque piden
+  emulador, y esa exclusión no se puede deshacer desde la CLI: `--exclude` SUMA
+  patrones, no los sustituye. Invocar el archivo directo contra el config normal
+  da «No test files found» — así estuvieron meses sin ejecutarse.
+- El config de reglas lista los archivos con ruta explícita para no recoger las
+  copias de `.claude/worktrees/`, que comparten emulador y chocan entre sí con
+  los mismos IDs. Provocaba fallos fantasma en otras suites.
+
+Desde FIN-000 (ago 2026) las dos suites corren también en CI, en el job
+`rules-tests` — separado del `quality-gate` para que el rojo preexistente del
+typecheck de `tests/` no lo arrastre.

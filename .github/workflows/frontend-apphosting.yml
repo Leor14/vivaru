@@ -36,6 +36,49 @@ jobs:
       - name: Build
         run: npm run build
 
+  # FIN-000: las reglas de Firestore y Storage se prueban contra el emulador en
+  # cada push. Job separado del quality-gate a propósito: aquel lleva en rojo
+  # desde que el typecheck arrastra errores preexistentes en tests/, y este
+  # gate nace en verde y debe seguir asi.
+  rules-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Java (lo exige el emulador)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install deps
+        run: npm ci
+
+      # El emulador se levanta aparte y no con emulators:exec: la CLI corre el
+      # script con su Node empaquetado, que no carga el ESM de vitest.
+      - name: Rules tests (emulador Firestore + Storage)
+        run: |
+          npx firebase emulators:start --only firestore,storage --project hogaru-1-test > emulators.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -s http://127.0.0.1:8080 >/dev/null && curl -s http://127.0.0.1:9199 >/dev/null; then
+              echo "emuladores arriba tras ${i}s"; break
+            fi
+            sleep 1
+          done
+          npx vitest run --config vitest.rules.config.ts
+
+      - name: Emulator log (solo si algo fallo)
+        if: failure()
+        run: tail -50 emulators.log
+
   deploy-preview:
     if: github.event_name == 'pull_request'
     needs: quality-gate

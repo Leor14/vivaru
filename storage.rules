@@ -5,29 +5,106 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function rol() {
+      return request.auth.token.role;
+    }
+
+    // Los tres roles con peso aquí llevan un alias antiguo todavía vivo en
+    // tokens emitidos: `super_admin`, `admin_tenant` y `security`. Mirar solo
+    // el nombre nuevo dejaría a un administrador antiguo fuera de sus propios
+    // documentos financieros. Mismo criterio que firestore.rules.
     function superadmin() {
-      return signedIn() && request.auth.token.role == 'superadmin';
+      return signedIn() && rol() in ['superadmin', 'super_admin'];
     }
 
-    // Path strategy: tenants/{tenantId}/...
-    match /tenants/{tenantId}/{allPaths=**} {
-      // Solo miembros del mismo tenant (o superadmin) pueden leer. Sin este
-      // filtro, cualquier usuario autenticado de OTRO conjunto leeria estos
-      // archivos (actas, reglamento, documentos) — fuga cross-tenant.
-      allow read: if signedIn() && (
-        superadmin() || request.auth.token.tenantId == tenantId
-      );
-
-      // Admin and superadmin can upload tenant documents. Límite de 25 MB por
-      // archivo (gobernanza de costo/abuso). En delete request.resource es null.
-      allow write: if signedIn() && (
-        superadmin() || request.auth.token.tenantId == tenantId
-      ) && (
-        request.resource == null || request.resource.size < 25 * 1024 * 1024
-      );
+    function delConjunto(tenantId) {
+      return signedIn() && request.auth.token.tenantId == tenantId;
     }
 
-    // Block everything else by default.
+    // Cualquiera con acceso al conjunto, sea cual sea su rol.
+    function miembro(tenantId) {
+      return superadmin() || delConjunto(tenantId);
+    }
+
+    function admin(tenantId) {
+      return superadmin() || (delConjunto(tenantId) && rol() in ['tenant_admin', 'admin_tenant']);
+    }
+
+    function porteria(tenantId) {
+      return delConjunto(tenantId) && rol() in ['security_guard', 'security'];
+    }
+
+    // Límite de 25 MB por archivo (gobernanza de costo/abuso). En delete
+    // request.resource es null.
+    function tamanoOk() {
+      return request.resource == null || request.resource.size < 25 * 1024 * 1024;
+    }
+
+    // ── Por qué no hay una regla ancha sobre tenants/{id}/** ────────────────
+    //
+    // Las reglas de Storage SUMAN permisos: no existe la regla que quita. Una
+    // concesión ancha sobre todo el árbol del conjunto no se puede recortar
+    // después por subcarpeta — cualquier regla de abajo solo añade. Por eso el
+    // permiso se concede carpeta a carpeta y lo que no se nombra queda negado.
+    //
+    // Consecuencia práctica: una carpeta nueva no funciona hasta que aparezca
+    // en una de estas listas. Es deliberado — es lo contrario de lo que pasaba
+    // antes, cuando una carpeta nueva nacía abierta a todo el conjunto.
+
+    // Dinero y gobierno del conjunto: cierres de facturación, histórico de
+    // cartera, libro contable y reportes de comité. Solo administración.
+    function carpetasFinancieras() {
+      return ['billing-closures', 'cartera-history', 'ledger-history', 'committee-reports'];
+    }
+
+    // Documentación del conjunto: la publica la administración y la consulta
+    // todo el mundo (reglamento, actas, comunicados, servicios, logo, acuerdos).
+    function carpetasCompartidas() {
+      return ['documents', 'communications', 'services', 'branding', 'amenity-photos', 'agreements'];
+    }
+
+    match /tenants/{tenantId}/{carpeta}/{resto=**} {
+      allow read: if
+        (carpeta in carpetasFinancieras() && admin(tenantId)) ||
+        (carpeta in carpetasCompartidas() && miembro(tenantId));
+
+      allow write: if
+        (carpeta in carpetasFinancieras() || carpeta in carpetasCompartidas()) &&
+        admin(tenantId) && tamanoOk();
+    }
+
+    // ── Carpetas con dueño ──────────────────────────────────────────────────
+
+    // Comprobantes de pago. El residente sube el suyo y lo lee —necesita la
+    // lectura porque el código pide la URL de descarga justo después de subir—,
+    // pero no ve el de sus vecinos. La administración los lee todos para
+    // revisarlos. Los comprobantes anteriores a este cambio viven bajo el
+    // identificador de UNIDAD en vez del de usuario: quedan solo para admin,
+    // que es quien los revisa, y nada del producto los busca por ruta.
+    match /tenants/{tenantId}/payment-receipts/{duenoUid}/{resto=**} {
+      allow read: if admin(tenantId) ||
+        (miembro(tenantId) && duenoUid == request.auth.uid);
+
+      allow write: if (admin(tenantId) ||
+        (miembro(tenantId) && duenoUid == request.auth.uid)) && tamanoOk();
+    }
+
+    // Notas de visitantes: las escribe portería desde el puesto de vigilancia.
+    match /tenants/{tenantId}/visitor-notes/{resto=**} {
+      allow read: if admin(tenantId) || porteria(tenantId);
+      allow write: if (admin(tenantId) || porteria(tenantId)) && tamanoOk();
+    }
+
+    // Evidencia de tickets de soporte. Sigue abierta a todo el conjunto, igual
+    // que antes de FIN-000: la ruta es plana y no dice de quién es cada
+    // archivo, así que cerrarla exige segmentarla por usuario primero. Queda
+    // anotado como trabajo aparte; no es documentación financiera.
+    match /tenants/{tenantId}/support/{resto=**} {
+      allow read: if miembro(tenantId);
+      allow write: if miembro(tenantId) && tamanoOk();
+    }
+
+    // Todo lo demás, negado.
     match /{allPaths=**} {
       allow read, write: if false;
     }

@@ -97,7 +97,10 @@ export default function ResidentAccountPage() {
 
     try {
       const cleanName = file.name.toLowerCase().replace(/[^a-z0-9.\-_]+/g, "-");
-      const storagePath = `tenants/${tenantId}/payment-receipts/${unitId}/${Date.now()}-${cleanName}`;
+      // La ruta va por USUARIO, no por unidad: es lo que permite que el
+      // residente lea su propio comprobante —hace falta para pedir la URL de
+      // descarga de aquí abajo— sin ver los de sus vecinos. Ver storage.rules.
+      const storagePath = `tenants/${tenantId}/payment-receipts/${uid}/${Date.now()}-${cleanName}`;
       const storageRef = ref(storage, storagePath);
 
       await uploadBytes(storageRef, file);
