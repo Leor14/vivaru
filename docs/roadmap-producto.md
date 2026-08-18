@@ -17,33 +17,43 @@ dependencias y criterio de salida.
 
 | | |
 |---|---|
-| **Versión** | 0.2 |
+| **Versión** | 0.3 |
 | **Fecha** | 17 de agosto de 2026, noche |
 | **Estado** | Borrador para conversación y validación |
-| **Verificado contra** | Repositorio en `1f3a86a` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02` |
+| **Verificado contra** | Repositorio en `c8e8923` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, y la consola de Albert CRM en vivo |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
+
+**Detalle por frente.** Este documento es el tablero. El detalle vive en:
+
+| Documento | Cubre |
+|---|---|
+| `docs/roadmap-finance.md` | Vivaru Finance — rutas de pago mapeadas, cuatro defectos nombrados |
+| `docs/roadmap-revops.md` | REVOPS — embudo medido, capacidades reales y bloqueos |
+| `docs/albert-vivaru-integracion.md` | La decisión de integrar con Albert CRM |
 
 **Qué cambió en esta revisión:**
 
-- **El modo sombra de PQRS pasó de «construido» a «corriendo en producción».** Dos
-  triggers `ACTIVE` en `hogaru-1` y tres banderas encendidas (`ai-gateway`,
-  `ai-pqrs-shadow`, `ia-proveedor-real`). Cero filas acumuladas, porque no hay
-  tickets reales.
-- **`AI-GOV-001` avanzó sin haberse planificado:** la divergencia del catálogo de
-  banderas está corregida. `ai-pqrs-suggestions` estaba declarada y **no cerraba
-  nada** — el panel de IA se pintaba siempre.
-- **Desapareció un riesgo que no estaba en el tablero:** producción corría
-  funciones desplegadas desde `develop`, y un despliegue desde `master` las habría
-  **borrado**. Se promocionó `develop` a `master` y ambas ramas coinciden.
-- **Se añadió una sección de observaciones sobre el orden**, firmada y separada del
-  inventario: son opiniones de la revisión técnica, no cambios de prioridad.
+- **`Adquisición y conversión` pasa a ser `REVOPS`**, épica transversal. `GROW-001` y
+  `GROW-002` se absorben en `REVOPS-001A`; `GROW-003` evoluciona a `001B`; `GROW-004`
+  se reparte entre `002`, `003` y `004`.
+- **Entra `REVOPS-000`**, el paso más barato del tablero: importar los 5 leads por CSV
+  a Albert y trabajarlos a mano. Cero código, y levanta el baseline que tres
+  documentos distintos piden antes de construir nada.
+- **Entra `FIN-000`**, seguridad: Storage no filtra por rol dentro del conjunto, así
+  que un residente puede leer y escribir documentos financieros.
+- **`FIN-001` se afila con evidencia**: hay dos rutas que aplican un pago y producen
+  efectos distintos; ninguna es transaccional.
+- **Se añade una fila nueva al final: las tres carencias compartidas** con Albert
+  —agenda, mensajería con consentimiento y precio— que no tenían dónde vivir.
 
 **Qué espera decisión tuya:**
 
 1. Tenant piloto para la IA visible de PQRS.
-2. Política de retención de `aiAssistance` — hoy es la única colección de IA que
-   guarda contenido del conjunto y no está en el cron de purga.
-3. Si las observaciones sobre el orden se incorporan al tablero o se descartan.
+2. Política de retención de `aiAssistance`.
+3. **Si se hace `REVOPS-000` esta semana.** No depende de nadie más.
+4. **Dónde viven la agenda, la mensajería y el precio**, que hoy no tiene ninguno de
+   los dos productos.
+5. Si las observaciones sobre el orden se incorporan al tablero o se descartan.
 
 ---
 
@@ -87,15 +97,17 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
-| Vivaru Finance | 🔴 `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
+| Vivaru Finance | 🔴 `FIN-000` · `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
-| Adquisición y conversión | 🔴 `GROW-001` · `GROW-002` | 🟠 `GROW-003` | 🔵 `GROW-004` | — |
+| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · 🔴 `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | 🟠 `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
+| **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
 
-**Leyenda:** 🔴 prioridad fundacional · 🟠 siguiente capacidad · 🔵 expansión
-posterior · 🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración condicionada
+**Leyenda:** 🟢 coste cero, se puede hoy · 🔴 prioridad fundacional · 🟠 siguiente
+capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado por datos ·
+◇ exploración condicionada
 
 ### Horizontes
 
@@ -152,32 +164,56 @@ posterior · 🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración 
   migración de flujos existentes.
 - **Criterio de salida:** un pago aplicado o revertido mantiene consistentes
   obligación, payment, ledger, voucher, expediente y auditoría.
+- **Evidencia (17 ago 2026):** hay **dos rutas** que aplican un pago y **producen
+  efectos distintos**. `recordPayment` reserva secuencial, crea asiento, emite
+  comprobante y actualiza la cuota — en **cuatro escrituras sueltas sin transacción**.
+  `approveReceiptAndRegisterPayment` actualiza la cuota **y no crea asiento ni
+  comprobante**: el dinero se mueve en cartera y nunca llega al libro. Además ninguna
+  Cloud Function aplica un pago: toda la aritmética del dinero ocurre en el navegador.
+  Detalle en `docs/roadmap-finance.md`.
 
-#### `GROW-001` — Atribución y consentimiento del lead
+#### `REVOPS-000` — Trabajar los 5 leads a mano en Albert
 
-- **Frente:** Adquisición y conversión · **Estado:** Ausente · **Prioridad:** P0
-- **Incluir:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`;
-  `referrer`; landing; identificadores publicitarios cuando proceda; consentimiento y fecha.
-- **Razón:** no se debe escalar publicidad si Vivaru no puede atribuir leads, trials
-  y conversiones.
-- **Criterio de salida:** cada lead conserva origen, consentimiento y ambiente sin
-  mezclar staging y producción.
-- **Evidencia (17 ago 2026):** `src/lib/marketing/leads.ts` ya persiste el lead con
-  `appEnv` —bien resuelto— pero **ningún campo de atribución**.
+- **Frente:** REVOPS · **Estado:** No empezado · **Prioridad:** P0 · **Coste: cero código**
+- **Qué:** exportar los 5 leads de producción e importarlos por CSV a los contactos de
+  un tenant de Albert CRM. Trabajarlos con el pipeline real durante una o dos semanas.
+- **Por qué es lo primero:** tres documentos distintos —Finance, REVOPS y el de
+  integración— exigen levantar baseline antes de construir. Con cinco leads, el
+  baseline se levanta importando un CSV. **Y contesta la pregunta de fondo: si el
+  equipo comercial entra al CRM o no.** Si no entra, se ahorra la integración entera.
+- **Criterio de salida:** los 5 leads tienen estado real, responsable y siguiente
+  acción, y hay una opinión fundada sobre si el CRM sirve.
+- **Evidencia (17 ago 2026):** la importación CSV de contactos existe y funciona en
+  Albert. 4 de los 5 leads siguen en `nuevo`.
 
-#### `GROW-002` — Instrumentación del funnel y activación del trial
+#### `REVOPS-001A` — Adquisición medible y respuesta inmediata
 
-- **Frente:** Adquisición y conversión · **Estado:** Parcial · **Prioridad:** P0
-- **Eventos mínimos:** `lead_submitted`, `trial_started`, `activation_step_completed`,
-  `activation_milestone`, `trial_expiring`, `converted`.
-- **Hitos iniciales:** primera unidad, primer residente, primer cobro, primera
-  comunicación y primera operación relevante por rol.
-- **Criterio de salida:** embudo y cohortes visibles desde fuente de tráfico hasta
-  conversión o abandono.
-- **Evidencia (17 ago 2026):** GA4 está cableado con consentimiento y carga diferida
-  (`src/lib/marketing/google-analytics.ts`); los hitos de activación ya están
-  modelados en `src/lib/onboarding/steps.ts` — **activación son 7 pasos en la prueba
-  y 10 en un cliente**, según `activationStepsFor`.
+- **Frente:** REVOPS · **Estado:** Parcial · **Prioridad:** P0
+- **Absorbe** los antiguos `GROW-001` (atribución y consentimiento) y `GROW-002`
+  (instrumentación del funnel).
+- **Incluir:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`,
+  `referrer`, landing y consentimiento con fecha; eventos de producto
+  (`trial_started`, `activation_milestone`, `converted`); respuesta automática;
+  **y construir la puerta pública de alta intención, que no existe**.
+- **Criterio de salida:** todo lead válido queda atribuido, recibe respuesta y produce
+  una siguiente acción trazable.
+- **Evidencia (17 ago 2026):** `src/lib/marketing/leads.ts` persiste el lead con
+  `appEnv` pero **ningún campo de atribución**. Hay **14 eventos con nombre**, todos de
+  landing y **ninguno de producto**. La definición de trial activado **ya existe** —7
+  pasos en la prueba, 10 en un cliente— y ya se ve en Superadmin. `requestAdvisorContact`
+  exige `tenantId`, así que **un prospecto no tiene por dónde decir «quiero contratar»**.
+
+#### `FIN-000` — Storage con filtro de rol
+
+- **Frente:** Vivaru Finance · **Estado:** Ausente · **Prioridad:** P0 · **Seguridad**
+- **Problema:** `storage.rules` aísla bien por conjunto, pero **no comprueba el rol**.
+  Cualquier miembro autenticado —incluido un **residente** o un guardia— puede leer y
+  escribir todos los archivos del conjunto: comprobantes de gasto, actas, documentos
+  financieros. El propio comentario de la regla dice «admin and superadmin» y la
+  condición no lo verifica.
+- **Criterio de salida:** un residente no puede leer ni escribir documentos
+  financieros, probado en emulador y en CI.
+- **Nota:** es prerrequisito de cualquier fase que suba documentos financieros.
 
 #### `AI-GOV-001` — Cerrar brechas de gobierno y operación de IA
 
@@ -256,13 +292,24 @@ posterior · 🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración 
 - **Nota:** la línea base H2′ lleva **tres sesiones sin tomarse** y ya se gastaron dos
   administradores, que vieron la herramienta antes de la medición a ciegas.
 
-#### `GROW-003` — Orquestación del trial y back office comercial
+#### `REVOPS-001B` — Trial conectado al funnel
 
-- **Estado:** Parcial
-- **Incluye:** estados del lead, señales de intención e inactividad, tareas de
-  seguimiento, secuencias controladas, alertas y motivo de conversión o pérdida.
-- **Criterio de salida:** el equipo sabe quién llegó, qué hizo, dónde se detuvo y cuál
-  es la siguiente acción.
+- **Frente:** REVOPS · **Estado:** Parcial · **Sustituye** a `GROW-003`
+- **Incluye:** emitir el evento de activación —**la regla ya existe, falta el
+  evento**—, detección de inactividad, resumen de uso hacia el CRM, tareas por señal y
+  cohortes.
+- **Criterio de salida:** el equipo distingue trial registrado, activo, bloqueado y con
+  intención de compra.
+
+#### `REVOPS-001C` — Solicitud de activación y handoff
+
+- **Frente:** REVOPS · **Estado:** Ausente
+- **Depende de dos cosas que hoy no existen:** un **catálogo de planes con precio**
+  —`plans` está vacía en Vivaru y los planes de Albert tienen límites sin precio— y **la
+  señal de vuelta desde Albert**, que no tiene webhooks. Esa segunda es trabajo propio
+  en el repositorio de Albert, no una negociación con un tercero.
+- **Criterio de salida:** una intención de compra se convierte en expediente trazable
+  hasta una suscripción activa, sin reconstruir contexto por correo.
 
 #### `MOB-002` — Experimento móvil para portería
 
@@ -299,12 +346,14 @@ posterior · 🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración 
   determinísticos server-side.
 - **Evidencia:** producción tiene **cero comprobantes**.
 
-#### `GROW-004` — CRM, automatización comercial y monetización
+#### `REVOPS-002` · `003` · `004` — Nurturing, reseller y checkout
 
-- **Estado:** Ausente
-- **Incluye:** decisión de CRM, nutrición, checkout, suscripción, facturación,
-  habilitación posterior al pago y lifecycle del cliente.
-- **Dependencias:** `GROW-001`, `GROW-002`, definición de precio, plan y cliente activo.
+- **Frente:** REVOPS · **Estado:** Ausente · **Sustituyen** a `GROW-004`
+- **`002` nurturing y scoring:** solo después de observar conversiones reales. Hay
+  **cero**.
+- **`003` reseller y contratación semi-automatizada.**
+- **`004` checkout y pagos digitales:** depende de vendedor legal por país,
+  facturación, impuestos, monedas y conciliación. **No debe bloquear a `001A–C`.**
 - **Evidencia (17 ago 2026):** **no hay checkout ni pasarela de ningún tipo.** La
   conversión la ejecuta una persona invocando `createTenantFromLead`.
 
@@ -346,6 +395,26 @@ posterior · 🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración 
 
 ---
 
+## Compartido con Albert CRM — tres carencias sin dueño
+
+Salió de cruzar el inventario de Vivaru con el de Albert CRM, y **no estaba en el
+roadmap de ninguno de los dos**:
+
+| Capacidad | Albert | Vivaru |
+|---|---|---|
+| **Agenda de demos** | No. Su landing agenda con formulario | No |
+| **Motor de mensajería** con consentimiento, supresión y frecuencia | No. Solo plantillas con merge fields | No |
+| **Precio de plan** | Planes con límites, **sin precio** | `plans` vacía, **sin precio** |
+
+Los tres son prerrequisitos del circuito comercial de **ambos productos**. Construirlos
+una vez y compartirlos es, en mi opinión, mejor argumento a favor de integrar que
+reutilizar el pipeline — porque el pipeline se puede sustituir con una hoja de cálculo
+durante meses, y esto no.
+
+**Decisión pendiente:** dónde viven. Detalle en `docs/albert-vivaru-integracion.md`.
+
+---
+
 ## Áreas pendientes de evaluación sistemática
 
 Forman parte del inventario, pero no tienen diagnóstico suficiente para asignarles
@@ -366,15 +435,20 @@ notificaciones web, correo y push · analítica operativa por conjunto.
 > inventario de arriba conserva su orden tal como él lo definió. Esta sección existe
 > para que la discrepancia quede registrada y fechada en vez de perderse en un chat.
 
-**1 · Hay seis P0 simultáneos en AHORA, y eso significa que no hay ninguno.**
-`CORE-001`, `FIN-001`, `GROW-001`, `GROW-002`, `AI-GOV-001` y `AI-DATA-001`. Con el
-tamaño de equipo actual, seis frentes fundacionales a la vez es una lista de deseos.
-Convendría una secuencia explícita dentro del propio horizonte.
+**1 · Ahora hay SIETE P0 simultáneos en AHORA, y eso significa que no hay ninguno.**
+`CORE-001`, `FIN-000`, `FIN-001`, `REVOPS-001A`, `AI-GOV-001`, `AI-DATA-001` y
+`REVOPS-000`. Con el tamaño de equipo actual es una lista de deseos, y la revisión de
+esta semana **añadió uno en vez de secuenciar**.
+
+**Mi propuesta de secuencia, si sirve de algo:** `REVOPS-000` primero porque cuesta
+cero y contesta una pregunta de fondo; `FIN-000` después porque es un agujero de
+seguridad abierto hoy; y solo entonces elegir **uno** entre `FIN-001` y `REVOPS-001A`.
 
 **2 · Ninguna iniciativa produce clientes, y casi todo depende de que existan.**
 Cinco iniciativas —`AI-DATA-001`, `ONB-001`, `SUP-002`, `FIN-AI-001`, `AI-ONB-001`—
-esperan datos reales. `GROW-001` y `GROW-002` son instrumentación **para** adquirir,
-no adquisición. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
+esperan datos reales. `REVOPS-001A` es instrumentación **para** adquirir, no
+adquisición. **La única excepción del tablero es `REVOPS-000`**, que no adquiere pero
+sí ejerce el proceso con lo que hay. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
 tanto no lo posee nadie. **Es el bloqueo estructural del roadmap, y no es técnico.**
 
 **3 · `AI-DATA-001` está etiquetado como bloqueado y su decisión no lo está.** Su
@@ -439,6 +513,31 @@ fecha de revisión.
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se
 > verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.3 — 17 de agosto de 2026, noche
+
+**Por qué:** se auditaron los dos documentos rectores pendientes —Finance y REVOPS— y
+la documentación de Albert CRM, y se navegó su consola. El tablero incorpora lo que
+salió, y los tres detalles quedan en documentos propios.
+
+**Verificado contra:** repositorio en `c8e8923`, `hogaru-1`, `vivaru-staging-02` y la
+consola de Albert en vivo.
+
+- **`Adquisición y conversión` pasa a ser `REVOPS`.** `GROW-001` y `GROW-002` se
+  absorben en `REVOPS-001A`; `GROW-003` evoluciona a `001B`; `GROW-004` se reparte.
+- **Entra `REVOPS-000`**, el único trabajo del tablero con coste cero: importar los 5
+  leads por CSV a Albert y trabajarlos a mano. Levanta el baseline que Finance, REVOPS
+  y el documento de integración piden por separado, y contesta si el equipo comercial
+  entra al CRM.
+- **Entra `FIN-000`**, seguridad: `storage.rules` aísla por conjunto pero **no filtra
+  por rol**, así que un residente puede leer y escribir documentos financieros.
+- **`FIN-001` se afila:** hay dos rutas que aplican un pago con efectos distintos, y la
+  del residente **nunca escribe en el libro contable**.
+- **Fila nueva: las tres carencias compartidas con Albert** —agenda, mensajería con
+  consentimiento y precio—, que no estaban en el roadmap de ninguno de los dos
+  productos y son prerrequisito de los dos.
+- **La observación sobre los P0 empeora:** eran seis, ahora son siete. Se añade una
+  propuesta de secuencia.
 
 ### 0.2 — 17 de agosto de 2026, noche
 
