@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.4.1 |
-| **Fecha** | 17 de agosto de 2026, noche — con dos correcciones del mismo día |
-| **Estado** | Borrador para conversación y validación |
-| **Verificado contra** | Repositorio en `0b9d860` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, y la consola de Albert CRM en vivo |
+| **Versión** | 0.5 |
+| **Fecha** | 17 de agosto de 2026, noche |
+| **Estado** | **Orden de ejecución decidido** |
+| **Verificado contra** | Repositorio en `5bb407a` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, la consola de Albert CRM en vivo, y el expediente de fases del trial self-service |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,29 +32,36 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **`Adquisición y conversión` pasa a ser `REVOPS`**, épica transversal. `GROW-001` y
-  `GROW-002` se absorben en `REVOPS-001A`; `GROW-003` evoluciona a `001B`; `GROW-004`
-  se reparte entre `002`, `003` y `004`.
-- **Entra `REVOPS-000`**, y no es trabajo de ingeniería: **no hay un solo lead real**.
-  Los 5 de producción son pruebas internas. El embudo no falla — **nunca se ha
-  encendido**. Toca revisar el buzón y decidir por qué canal sale Vivaru al mercado.
-- **Entra `FIN-000`**, seguridad: Storage no filtra por rol dentro del conjunto, así
-  que un residente puede leer y escribir documentos financieros.
-- **`FIN-001` se afila con evidencia**: hay dos rutas que aplican un pago y producen
-  efectos distintos; ninguna es transaccional.
-- **Se añade una fila nueva al final: las tres carencias compartidas** con Albert
-  —agenda, mensajería con consentimiento y precio— que no tenían dónde vivir.
+- **El hallazgo que reordena el tablero: la máquina de autoservicio está completa y en
+  producción desde el 1 de agosto.** Fases 0 a 4 —`/registro` público, conjunto de
+  prueba con siembra, candado de módulos en tres capas, ciclo de vida con avisos y
+  expiración sin borrado, bandeja de prospectos en Superadmin— y canario confirmado con
+  un registro real. **Lleva 16 días en el aire, pública e indexable, con cero entradas
+  reales.**
+- **Eso cambia el diagnóstico.** No falta recorrido ni instrumentación: **falta
+  demanda**. El tablero sabe medir, calificar, convertir y retener demanda, y **no tiene
+  una sola iniciativa para generarla**. Todo `REVOPS` de `001A` en adelante es aguas
+  abajo de algo que no existe.
+- **Entra el `Orden de ejecución`**, sección propia con cinco niveles. Sustituye a los
+  siete P0 simultáneos que la 0.4 tenía en AHORA.
+- **Entra un eje nuevo: `El trabajo que caduca`.** La vista por horizontes ordena por
+  dependencias y por eso no lo mostraba — hay cambios pequeños cuyo dato **no se
+  reconstruye** si llegan después del primer cliente real.
+- **`REVOPS-000` deja de ser «decidir el canal» y pasa a «activarlo»**, con
+  recomendación fechada.
+- **`REVOPS-001A` se parte en dos:** la atribución sube porque caduca; la
+  instrumentación y la puerta de alta intención bajan a `REVOPS-001D`.
 
 **Qué espera decisión tuya:**
 
-1. Tenant piloto para la IA visible de PQRS.
-2. Política de retención de `aiAssistance`.
-3. **Por qué canal sale Vivaru al mercado** — autoservicio o KAM/reseller. La guía
-   maestra ya diseña el segundo y el roadmap instrumenta el primero.
+1. **Si hay relación comercial que activar, o hay que crear la función de venta.** Es
+   la única entrada que falta para arrancar el nivel 0, y es la que el tablero no puede
+   contestar solo.
+2. Tenant piloto para la IA visible de PQRS.
+3. Política de retención de `aiAssistance`.
 4. **Dónde viven la agenda y la mensajería**, que no tiene ninguno de los dos
    productos — y **cuál de los dos marcos de precio manda**, el de la guía maestra o
    el del Documento Rector de Finance.
-5. Si las observaciones sobre el orden se incorporan al tablero o se descartan.
 
 ---
 
@@ -100,15 +107,15 @@ de entrega.**
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | 🔴 `FIN-000` · `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
-| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · 🔴 `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
+| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ⏳ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
-| Servicio a clientes | 🟠 `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
+| Servicio a clientes | ⏳ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
 
-**Leyenda:** 🟢 coste cero, se puede hoy · 🔴 prioridad fundacional · 🟠 siguiente
-capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado por datos ·
-◇ exploración condicionada
+**Leyenda:** 🟢 coste cero, se puede hoy · ⏳ **caduca: el dato se pierde si llega
+tarde** · 🔴 prioridad fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior ·
+🟡 descubrimiento · ⏸ bloqueado por datos · ◇ exploración condicionada
 
 ### Horizontes
 
@@ -130,6 +137,61 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 ---
 
+## Orden de ejecución — decidido el 17 de agosto de 2026
+
+> La vista por horizontes dice **qué depende de qué**. Esta dice **qué se hace primero**, que no es lo mismo. Sustituye a los siete P0 simultáneos de la revisión 0.4.
+
+| Nivel | Qué | Coste | Por qué está ahí |
+|---|---|---|---|
+| **0** | **Generar demanda** — `REVOPS-000` | Cero código | Es el bloqueo compartido de cinco frentes |
+| **1** | **Lo que caduca** — `REVOPS-001A` · `SUP-001` · `FIN-000` | Bajo | El dato no se reconstruye después |
+| **2** | **Lo que rompe al convertir** — `FIN-001` | Alto | El trial protege; la conversión no |
+| **3** | **Cablear el precio** — primera mitad de `REVOPS-001C` | Medio | Hace falta al convertir, no al probar |
+| **4** | Todo lo demás | — | Espera al primer cliente real |
+
+**El horizonte y el nivel no son lo mismo, y conviene no confundirlos.** Una iniciativa
+puede estar en `AHORA` por dependencia —está lista para hacerse— y en el **nivel 4** por
+orden —no toca todavía—. `CORE-001`, `AI-GOV-001` y `AI-DATA-001` son justo ese caso.
+Todo lo que no aparece nombrado en los niveles 0 a 3 es nivel 4.
+
+**De las ocho filas del frente, solo dos tienen trabajo de ingeniería que hoy
+signifique algo:** Fundaciones y Finance. IA, Onboarding, Mobile, Soporte y la mitad de
+REVOPS esperan exactamente lo mismo — un cliente real usando el producto. **No son
+cinco bloqueos: es uno.**
+
+**Por qué el nivel 2 puede esperar, y no es optimismo.** El trial deja Cartera, Egresos,
+Libro y Conciliación en solo lectura, mediante `assertModuleAllowed` en functions y
+`previewModuleWritable()` en las reglas. Un prospecto en prueba **no puede alcanzar** las
+dos rutas de pago divergentes de `FIN-001`. El defecto muerde en la conversión, no en la
+prueba — así que los quince días del trial son una ventana regalada, y `FIN-001` es del
+tamaño que cabe en ella.
+
+**Lo que explícitamente no se hace ahora:** `AI-PQRS-001`, `ONB-001`, todo Mobile,
+`SUP-002`, `REVOPS-002`, `003` y `004`. Los seis esperan el mismo dato, y adelantarlos
+es construir sobre supuestos.
+
+**Y la IA está aparcada, no abandonada.** Es el único frente del tablero que **mejora
+solo** en cuanto llegue demanda: la sombra está armada y acumulando cero, y empieza a
+recoger evidencia con el primer ticket real sin que nadie vuelva a tocarla.
+
+### El trabajo que caduca
+
+Eje nuevo, y el único del tablero que **no ordena por dependencia sino por
+irreversibilidad**: si esto no existe antes del primer cliente real, el dato no se
+recupera nunca.
+
+| Qué | Dónde | Qué se pierde si llega tarde |
+|---|---|---|
+| Campos de atribución del lead | `src/lib/marketing/leads.ts` | Un lead sin `utm_*` ni `referrer` **no se atribuye después**. Nunca se sabrá de dónde vino el primero |
+| `firstResponseAt` · `assignedTo` | `SUP-001` | **No se reconstruye.** Los tickets ya cerrados nunca lo tendrán |
+| La sombra de PQRS | ✅ **Ya está** | Nada — se armó a tiempo y captura desde el primer ticket real |
+
+**`FIN-000` viaja con ellos por un motivo distinto:** no caduca, está **abierto hoy**.
+El candado del trial protege Firestore, pero `storage.rules` es otra capa y ahí no hay
+filtro de rol.
+
+---
+
 ## Resultados estratégicos buscados
 
 1. Un núcleo multi-tenant confiable, seguro y auditable.
@@ -148,7 +210,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 #### `CORE-001` — Integridad, seguridad y fuente de verdad
 
-- **Frente:** Fundaciones de plataforma · **Estado:** Parcial · **Prioridad:** P0
+- **Frente:** Fundaciones de plataforma · **Estado:** Parcial · **Nivel 4**
 - **Problema:** la madurez real depende de reglas, sesiones, auditoría, consistencia
   entre rutas y pruebas de operaciones sensibles.
 - **Siguiente decisión:** consolidar una lista verificable de brechas de seguridad,
@@ -158,7 +220,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 #### `FIN-001` — Comando único e idempotente de aplicación de pagos
 
-- **Frente:** Vivaru Finance · **Estado:** Parcial · **Prioridad:** P0
+- **Frente:** Vivaru Finance · **Estado:** Parcial · **Nivel 2** · **Cabe en la ventana del trial**
 - **Problema:** las rutas de pago, comprobantes, ledger, vouchers, saldos y reversos
   deben producir un resultado completo o ninguno.
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
@@ -173,50 +235,64 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
   Cloud Function aplica un pago: toda la aritmética del dinero ocurre en el navegador.
   Detalle en `docs/roadmap-finance.md`.
 
-#### `REVOPS-000` — Encender la parte de arriba del embudo
+#### `REVOPS-000` — Activar el canal y generar la primera demanda
 
-- **Frente:** REVOPS · **Estado:** No empezado · **Prioridad:** P0 · **No es trabajo de ingeniería**
-- **El hallazgo que lo motiva:** **Cero leads reales.** Los 5 registros de `leads` en producción son pruebas internas:
-  uno es del propio David (`qintilab.com`), otro se llama literalmente «Prueba Dummy», y
-  los tres restantes son la misma persona enviando el formulario **tres veces en cinco
-  minutos** el 15 de agosto, con empresa «prueba» y «demo».
-  
-  **Y la persistencia de leads es reciente:** antes, `/api/demo` y `/api/lead` solo
-  mandaban correo. **Si llegaron leads reales antes de eso, están en el buzón y no en
-  Firestore** — no se pueden contar desde el código.
-- **Qué hacer, y ninguna de las dos cosas es código:**
-  1. **Revisar el buzón** (`dev@qintilab.com`) buscando solicitudes de demo o contacto
-     anteriores a la persistencia. Es el único sitio donde puede haber leads reales.
-  2. **Decidir el canal del primer cliente.** La guía maestra ya diseña **KAM y
-     reseller en cuatro países**, con la compensación del canal calculada. Ese camino
-     **no pasa por el landing** — y el landing es justo lo que `REVOPS-001A` viene a
-     instrumentar.
-- **Por qué va antes que todo:** no se puede atribuir tráfico que no existe, ni medir
-  un embudo por el que no ha pasado nadie. **Instrumentar el autoservicio antes de
-  saber si el canal es el autoservicio** es optimizar el camino equivocado.
+- **Frente:** REVOPS · **Estado:** No empezado · **Nivel 0** · **No es trabajo de ingeniería**
+- **El hallazgo que lo motiva, y es más fuerte de lo que parecía en 0.4:** la máquina de
+  autoservicio **está completa y en producción desde el 1 de agosto de 2026**. Fases 0 a
+  4: `/registro` público, conjunto de prueba con siembra parametrizable, candado de
+  módulos en tres capas, ciclo de vida con avisos a 7/3/1 días y expiración sin borrar,
+  bandeja de prospectos en Superadmin, y **canario confirmado con un registro real**. No
+  falta ni una pieza del recorrido landing → prueba → «hablar con un asesor» →
+  `createTenantFromLead` → cliente.
+
+  **Y lleva 16 días en el aire, pública e indexable, con cero entradas reales.**
+- **Los 5 `leads` de producción no son reales:** uno es del propio David
+  (`qintilab.com`), otro se llama literalmente «Prueba Dummy», y los tres restantes son
+  la misma persona enviando el formulario **tres veces en cinco minutos** el 15 de
+  agosto, con empresa «prueba» y «demo». Además la persistencia es reciente —antes
+  `/api/demo` y `/api/lead` solo mandaban correo—, así que **si llegó alguien real antes,
+  está en el buzón y no en Firestore**.
+- **Diagnóstico:** no es que el embudo pierda gente en algún paso. **Nadie ha llegado a
+  la puerta.** No falta recorrido ni instrumentación: falta demanda.
+- **Recomendación registrada el 17 de agosto — empezar por KAM/reseller**, dejando el
+  autoservicio encendido sin más inversión. Tres razones:
+  1. Es **la única vía de generación de demanda que ya está diseñada**: la guía maestra
+     la define en cuatro países con la compensación del canal calculada, y no necesita
+     una línea de código.
+  2. El autoservicio **no es una alternativa que haya que financiar** — ya está
+     construido, probado y en producción, así que sigue ahí gratis.
+  3. **El trial ya es híbrido por diseño.** Su decisión cerrada dice que no convierte
+     solo, califica, y que la conversión siempre es hablar con un asesor. El producto ya
+     asume que hay una persona cerrando; lo que falta es que alguien llegue hasta ella.
+- **La entrada que falta, y es decisión de David:** si hay relación comercial que
+  activar —clientes de Qintilab a los que Vivaru se venda de rebote, contactos del
+  sector— el KAM es inmediato. Si no la hay, «KAM» significa contratar a alguien o ser
+  él el vendedor, y **ese coste el tablero no puede evaluarlo**.
+- **Tarea concreta mientras tanto:** revisar `dev@qintilab.com` buscando solicitudes de
+  demo o contacto anteriores a la persistencia. Es el único sitio donde puede haber
+  leads reales.
 - **Criterio de salida:** hay al menos una conversación comercial real en curso, y una
   decisión escrita sobre por qué canal sale Vivaru al mercado.
 
-#### `REVOPS-001A` — Adquisición medible y respuesta inmediata
+#### `REVOPS-001A` — Atribución del lead y respuesta inmediata
 
-- **Frente:** REVOPS · **Estado:** Parcial · **Prioridad:** P0
-- **Absorbe** los antiguos `GROW-001` (atribución y consentimiento) y `GROW-002`
-  (instrumentación del funnel).
+- **Frente:** REVOPS · **Estado:** Parcial · **Nivel 1** · ⏳ **Caduca**
+- **Se partió en la 0.5.** Antes cubría atribución **e** instrumentación del embudo; la
+  instrumentación bajó a `REVOPS-001D`, porque medir un embudo por el que no pasa nadie
+  no mide nada. Aquí queda lo pequeño y lo irreversible.
+- **Absorbe** el antiguo `GROW-001` (atribución y consentimiento).
 - **Incluir:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`,
-  `referrer`, landing y consentimiento con fecha; eventos de producto
-  (`trial_started`, `activation_milestone`, `converted`); respuesta automática;
-  **y construir la puerta pública de alta intención, que no existe**.
+  `referrer`, landing y consentimiento con fecha; y respuesta automática al lead.
+- **Por qué no espera:** `src/lib/marketing/leads.ts` persiste el lead con `appEnv` y
+  **ningún campo de atribución**. Un lead que entra sin ellos **no se atribuye después**
+  — y el primero real es justo el que más interesa saber de dónde vino.
 - **Criterio de salida:** todo lead válido queda atribuido, recibe respuesta y produce
   una siguiente acción trazable.
-- **Evidencia (17 ago 2026):** `src/lib/marketing/leads.ts` persiste el lead con
-  `appEnv` pero **ningún campo de atribución**. Hay **14 eventos con nombre**, todos de
-  landing y **ninguno de producto**. La definición de trial activado **ya existe** —7
-  pasos en la prueba, 10 en un cliente— y ya se ve en Superadmin. `requestAdvisorContact`
-  exige `tenantId`, así que **un prospecto no tiene por dónde decir «quiero contratar»**.
 
 #### `FIN-000` — Storage con filtro de rol
 
-- **Frente:** Vivaru Finance · **Estado:** Ausente · **Prioridad:** P0 · **Seguridad**
+- **Frente:** Vivaru Finance · **Estado:** Ausente · **Nivel 1** · **Seguridad, y abierto hoy**
 - **Problema:** `storage.rules` aísla bien por conjunto, pero **no comprueba el rol**.
   Cualquier miembro autenticado —incluido un **residente** o un guardia— puede leer y
   escribir todos los archivos del conjunto: comprobantes de gasto, actas, documentos
@@ -228,7 +304,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 #### `AI-GOV-001` — Cerrar brechas de gobierno y operación de IA
 
-- **Frente:** Plataforma de IA · **Estado:** Parcial · **Prioridad:** P0
+- **Frente:** Plataforma de IA · **Estado:** Parcial · **Nivel 4**, salvo sus tres puntos baratos
 - **Criterio de salida:** contenido, feedback, telemetría, retención y despliegues
   tienen trazabilidad y políticas verificables.
 
@@ -242,7 +318,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 #### `AI-DATA-001` — Evidencia real para G6–G7
 
 - **Frente:** Plataforma de IA · **Estado:** Bloqueado por datos
-- **Prioridad:** P0 de aprendizaje, no de construcción
+- **Nivel 4 de construcción — pero su decisión no está bloqueada y se puede tomar hoy**
 - **Problema:** la plataforma está más madura que el volumen real de tickets,
   comunicaciones, comprobantes e importaciones.
 - **Siguiente decisión:** definir tenant piloto, volumen mínimo, calidad requerida y
@@ -256,7 +332,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 #### `SUP-001` — Operación básica de soporte
 
-- **Frente:** Servicio a clientes · **Estado:** Parcial · **Prioridad:** P1
+- **Frente:** Servicio a clientes · **Estado:** Parcial · **Nivel 1** · ⏳ **Caduca**
 - **Añadir:** `assignedTo`, `firstResponseAt` y contador de pendientes.
 - **Criterio de salida:** cada ticket tiene responsable, primera respuesta medible y
   visibilidad operativa desde Superadmin.
@@ -265,7 +341,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 #### `MOB-001` — Medición y auditoría de experiencia móvil
 
-- **Frente:** Mobile/iOS · **Estado:** Descubrimiento · **Prioridad:** P1
+- **Frente:** Mobile/iOS · **Estado:** Descubrimiento · **Nivel 4**
 - **Preguntas:** ¿qué roles usan móvil? ¿qué tareas intentan completar? ¿dónde
   abandonan? ¿qué es responsive y qué exige capacidades nativas?
 - **Criterio de salida:** datos por dispositivo, portal y tarea; auditoría responsive;
@@ -314,7 +390,7 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
 
 #### `REVOPS-001C` — Solicitud de activación y handoff
 
-- **Frente:** REVOPS · **Estado:** Ausente
+- **Frente:** REVOPS · **Estado:** Ausente · **Nivel 3** — su primera mitad, cablear el precio
 - **Depende de dos cosas.** La primera es **cablear el precio al producto**: la
   decisión comercial existe desde el 12 de agosto de 2026 en la guía maestra
   —ver «El precio» más abajo— pero `plans` está vacía y los `planId` de producción no
@@ -323,6 +399,20 @@ capacidad · 🔵 expansión posterior · 🟡 descubrimiento · ⏸ bloqueado p
   repositorio de Albert, no una negociación con un tercero.
 - **Criterio de salida:** una intención de compra se convierte en expediente trazable
   hasta una suscripción activa, sin reconstruir contexto por correo.
+
+#### `REVOPS-001D` — Instrumentación del embudo y puerta de alta intención
+
+- **Frente:** REVOPS · **Estado:** Ausente · **Nivel 4** · **Sale de `REVOPS-001A` en la 0.5**
+- **Incluye:** eventos de producto (`trial_started`, `activation_milestone`,
+  `converted`) y **la puerta pública de alta intención**: `requestAdvisorContact` exige
+  `tenantId`, así que un prospecto que todavía no tiene conjunto **no tiene por dónde
+  decir «quiero contratar»**.
+- **Por qué baja de AHORA:** hay **14 eventos con nombre**, todos de landing y ninguno
+  de producto — pero instrumentar antes de que exista tráfico es ponerle velocímetro a
+  un coche aparcado. Sube en cuanto el nivel 0 produzca la primera conversación real.
+- **Nota:** la definición de trial activado **ya existe** —7 pasos en la prueba, 10 en
+  un cliente— y ya se ve en Superadmin. Lo que falta es emitir el evento, que es
+  `REVOPS-001B`.
 
 #### `MOB-002` — Experimento móvil para portería
 
@@ -488,28 +578,22 @@ notificaciones web, correo y push · analítica operativa por conjunto.
 
 ## Observaciones de la revisión técnica del 17 de agosto de 2026
 
-> **Esto son opiniones, no cambios de prioridad.** Priorizar es decisión de David; el inventario de arriba conserva su orden tal como él lo definió. Esta sección existe para que la discrepancia quede registrada y fechada en vez de perderse en un chat.
+> **Opiniones fechadas de la revisión técnica.** Las dos primeras **quedaron resueltas el mismo día**, cuando David decidió el orden. Se conservan porque el changelog dice qué cambió y esto dice qué se pensaba antes de cambiarlo.
 
-**1 · Ahora hay SIETE P0 simultáneos en AHORA, y eso significa que no hay ninguno.**
+**1 · Había SIETE P0 simultáneos en AHORA, y eso significaba que no había ninguno.**
 `CORE-001`, `FIN-000`, `FIN-001`, `REVOPS-001A`, `AI-GOV-001`, `AI-DATA-001` y
-`REVOPS-000`. Con el tamaño de equipo actual es una lista de deseos, y la revisión de
-esta semana **añadió uno en vez de secuenciar**.
+`REVOPS-000`. Con el tamaño de equipo actual era una lista de deseos, y la revisión de
+esa semana **añadió uno en vez de secuenciar**.
 
-**Mi propuesta de secuencia, si sirve de algo:** `REVOPS-000` primero porque cuesta
-cero y contesta una pregunta de fondo; `FIN-000` después porque es un agujero de
-seguridad abierto hoy; y solo entonces elegir **uno** entre `FIN-001` y `REVOPS-001A`.
+> ✅ **Resuelta en la 0.5.** Existe el `Orden de ejecución` con cinco niveles, y la prioridad ya no se declara por etiqueta sino por posición. La secuencia propuesta aquí —`REVOPS-000`, luego `FIN-000`, y solo entonces elegir uno entre `FIN-001` y `REVOPS-001A`— se mantuvo casi entera, con un matiz que la mejoró: `REVOPS-001A` no compite con `FIN-001`, porque **se partió** y su mitad urgente cuesta poco.
 
 **2 · Ninguna iniciativa produce clientes, y casi todo depende de que existan.**
 Cinco iniciativas —`AI-DATA-001`, `ONB-001`, `SUP-002`, `FIN-AI-001`, `AI-ONB-001`—
 esperan datos reales. `REVOPS-001A` es instrumentación **para** adquirir, no
-adquisición.
-
-**Y el embudo no está fallando: nunca se ha encendido.** No hay un solo lead real
-registrado — los cinco de producción son pruebas internas. Eso cambia el primer
-movimiento: no es instrumentar mejor, es **generar la primera conversación real**, que
-es lo que `REVOPS-000` recoge y es lo único del tablero que no es trabajo de
-ingeniería. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
+adquisición. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
 tanto no lo posee nadie. **Es el bloqueo estructural del roadmap, y no es técnico.**
+
+> ✅ **Recogida como nivel 0.** Y al comprobarla apareció algo más fuerte de lo que decía la observación: la máquina de autoservicio **lleva 16 días en producción, pública, sin una sola entrada real**. No es que falte instrumentar la adquisición — es que **no hay demanda que instrumentar**. El tablero sabe medir, calificar, convertir y retener; generar sigue sin tener dueño, y ahora al menos tiene ficha.
 
 **3 · `AI-DATA-001` está etiquetado como bloqueado y su decisión no lo está.** Su
 evaluación sí depende de datos, pero definir tenant piloto, volumen mínimo y periodo
@@ -571,6 +655,54 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.5 — 17 de agosto de 2026, noche
+
+**Por qué:** David pidió decidir el orden antes de publicar en Notion. Al preparar la
+respuesta se comprobó el expediente del trial self-service, y apareció el dato que
+reordena el tablero entero.
+
+**Lo que se encontró:** la máquina de autoservicio **está completa y en producción desde
+el 1 de agosto** —Fases 0 a 4, con canario confirmado por un registro real— y lleva
+**16 días pública e indexable con cero entradas reales**. La 0.4 decía que había que
+decidir el canal; con el trial ya en producción la pregunta es otra. No falta recorrido
+ni instrumentación: **falta demanda**. El tablero sabe medir, calificar, convertir y
+retener demanda, y no tiene una sola iniciativa para generarla.
+
+**La cuenta que lo sostiene:** de las ocho filas del frente, solo dos tienen trabajo de
+ingeniería que hoy signifique algo —Fundaciones y Finance—. Las otras esperan lo mismo:
+un cliente real usando el producto. No son cinco bloqueos, es uno.
+
+**Verificado contra:** repositorio en `5bb407a`, el expediente de fases del trial con
+sus commits y su canario, `firestore.rules`, `storage.rules`,
+`src/lib/marketing/leads.ts`, `functions/src/trial-modules.ts`, y los proyectos
+`hogaru-1` y `vivaru-staging-02`.
+
+**Decisiones que quedan tomadas:**
+
+- **Orden de ejecución en cinco niveles**, con sección propia. Sustituye a los siete P0
+  simultáneos que la 0.4 tenía en AHORA — que es la forma educada de no priorizar.
+- **`FIN-001` baja al nivel 2, y no por optimismo.** El trial deja los módulos
+  financieros en solo lectura por `assertModuleAllowed` y `previewModuleWritable()`, así
+  que las dos rutas de pago divergentes **no son alcanzables durante la prueba**. El
+  defecto muerde en la conversión. Los quince días del trial son la ventana para
+  arreglarlo, y `FIN-001` es del tamaño que cabe en ella.
+- **`FIN-000` sube al nivel 1** por lo contrario: no caduca, está abierto **hoy**. El
+  candado del trial protege Firestore, pero `storage.rules` es otra capa sin filtro de
+  rol.
+- **`REVOPS-001A` se parte.** La atribución sube porque caduca; la instrumentación y la
+  puerta de alta intención bajan a `REVOPS-001D`. Instrumentar un embudo sin tráfico es
+  ponerle velocímetro a un coche aparcado.
+- **Canal recomendado: KAM/reseller**, con el autoservicio encendido sin más inversión.
+  Queda **como recomendación fechada, no como decisión cerrada**: falta una entrada que
+  solo David tiene —si hay relación comercial que activar, o si «KAM» significa
+  contratar a alguien.
+
+**Eje nuevo: el trabajo que caduca.** La vista por horizontes ordena por dependencias y
+por eso no lo mostraba. Hay cambios pequeños —atribución del lead, `firstResponseAt`,
+`assignedTo`— cuyo dato **no se reconstruye**: si no existen antes del primer cliente
+real, se pierde para siempre. La sombra de PQRS ya estaba a tiempo, y es el único frente
+que mejora solo cuando llegue la demanda.
 
 ### 0.4 — 17 de agosto de 2026, noche
 
