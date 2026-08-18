@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.4 |
-| **Fecha** | 17 de agosto de 2026, noche |
+| **Versión** | 0.4.1 |
+| **Fecha** | 17 de agosto de 2026, noche — con dos correcciones del mismo día |
 | **Estado** | Borrador para conversación y validación |
-| **Verificado contra** | Repositorio en `c8e8923` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, y la consola de Albert CRM en vivo |
+| **Verificado contra** | Repositorio en `0b9d860` (`develop` = `master`), proyectos `hogaru-1` y `vivaru-staging-02`, y la consola de Albert CRM en vivo |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
