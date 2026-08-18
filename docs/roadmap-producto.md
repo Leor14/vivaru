@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.8 |
-| **Fecha** | 17 de agosto de 2026, madrugada del 18 |
-| **Estado** | **Nivel 1 construido a medias: `FIN-000` y `REVOPS-001E` en `develop`, sin desplegar** |
-| **Verificado contra** | Repositorio en `11e3bae` (`develop`), 144 pruebas de reglas contra el emulador (Firestore + Storage), build local en verde |
+| **Versión** | 0.8.1 |
+| **Fecha** | 18 de agosto de 2026, madrugada |
+| **Estado** | **Nivel 1 construido a medias: `FIN-000` (sin deudas) y `REVOPS-001E` en `develop`, sin desplegar** |
+| **Verificado contra** | Repositorio en `90dce82` (`develop`, empujado), 151 pruebas de reglas contra el emulador (Firestore + Storage), typecheck de app y functions |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -358,8 +358,9 @@ filtro de rol.
 - **Lo que queda es despliegue, con orden obligatorio: primero el código, después las
   reglas.** Las reglas nuevas exigen la ruta por usuario; desplegarlas sobre un
   ambiente con el código viejo rompe la subida de comprobantes.
-- **Deuda anotada:** `support/` sigue abierta a todo el conjunto (ruta plana, sin dueño
-  en el camino). Cerrarla exige segmentarla primero — trabajo aparte, ya anotado.
+- **Sin deudas: `support/` también quedó cerrada** (`90dce82`, sesión paralela nacida
+  de la anotación de esta ficha): ruta segmentada por autor, callable exigiendo el uid
+  de quien llama, y la evidencia vieja plana solo para administración.
 - **Nota:** es prerrequisito de cualquier fase que suba documentos financieros.
 
 #### `AI-GOV-001` — Cerrar brechas de gobierno y operación de IA
@@ -715,6 +716,14 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.8.1 — 18 de agosto de 2026, madrugada
+
+**Por qué:** la deuda que la 0.8 dejó anotada en `FIN-000` se cerró en paralelo antes
+de cerrar la sesión — la anotación se convirtió en tarea, la tarea en sesión, y la
+sesión en `90dce82`: `support/` segmentada por quien sube, con la callable exigiendo
+el uid del autor. Verificado junto a todo lo anterior: 151 pruebas de reglas en
+emulador, typecheck de app y functions en 0.
 
 ### 0.8 — 17 de agosto de 2026, madrugada del 18
 
