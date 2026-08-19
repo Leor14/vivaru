@@ -24,7 +24,7 @@ vi.mock("firebase/firestore", () => ({
         exists: () => existingCounter !== undefined,
         data: () => existingCounter,
       }),
-      set: (...args: unknown[]) => mockSet(...args),
+      set: (...args: Parameters<typeof mockSet>) => mockSet(...args),
     }),
 }));
 

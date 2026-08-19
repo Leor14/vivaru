@@ -239,10 +239,10 @@ const mockQuery = vi.fn((_col: unknown, ...constraints: unknown[]) => ({
 const mockWhere = vi.fn((...args: unknown[]) => ({ type: "where", args }));
 
 vi.mock("firebase/firestore", () => ({
-  getDocs: (...args: unknown[]) => mockGetDocs(...args),
-  collection: (...args: unknown[]) => mockCollection(...args),
-  query: (...args: unknown[]) => mockQuery(...args),
-  where: (...args: unknown[]) => mockWhere(...args),
+  getDocs: (...args: Parameters<typeof mockGetDocs>) => mockGetDocs(...args),
+  collection: (...args: Parameters<typeof mockCollection>) => mockCollection(...args),
+  query: (...args: Parameters<typeof mockQuery>) => mockQuery(...args),
+  where: (...args: Parameters<typeof mockWhere>) => mockWhere(...args),
 }));
 
 vi.mock("@/lib/firebase/client", () => ({ db: { _isMock: true } }));

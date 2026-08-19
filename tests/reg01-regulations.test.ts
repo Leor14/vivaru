@@ -164,8 +164,24 @@ describe("Resident page (resident/regulations/page.tsx)", () => {
     expect(residentPage).toMatch(/signRegulation/);
   });
 
-  it("27. Tiene <iframe para previsualizar el PDF", () => {
-    expect(residentPage).toMatch(/<iframe/);
+  // Esta prueba exigía un <iframe> para previsualizar el PDF. **El iframe se
+  // quitó a propósito**: no funciona en iOS Safari, y el portal del residente es
+  // mobile-first. Lo dice el propio componente en un comentario junto a lo que lo
+  // sustituyó. Así que la prueba llevaba fallando desde entonces reclamando lo
+  // contrario de una decisión deliberada, tolerada entre los fallos
+  // «preexistentes».
+  //
+  // Se invierte: ahora vigila que el iframe NO vuelva, y que exista la tarjeta
+  // con enlace que lo reemplazó. De exigir lo que se quitó a proteger por qué se
+  // quitó.
+  it("27. NO usa <iframe> — inoperante en iOS Safari, se retiró a propósito", () => {
+    expect(residentPage).not.toMatch(/<iframe/);
+  });
+
+  it("27b. Ofrece el PDF con un enlace que abre en pestaña nueva", () => {
+    expect(residentPage).toMatch(/href=\{activeRegulation\.fileUrl\}/);
+    expect(residentPage).toContain('target="_blank"');
+    expect(residentPage).toContain('rel="noopener noreferrer"');
   });
 
   it("28. Tiene checkbox de aceptación antes del botón de firma", () => {

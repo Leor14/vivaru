@@ -79,10 +79,23 @@ describe("BLOQUE 1 — motion.ts: constantes", () => {
 describe("BLOQUE 2 — data-table.tsx: tr hover transition", () => {
   const src = read("src/components/shared/data-table.tsx");
 
-  // Aislar sección del <tr> de filas dentro de <tbody>
+  // Aislar la fila de DATOS dentro de <tbody> — no la de esqueleto ni las de
+  // error o vacío, que no llevan hover.
+  //
+  // Se ancla en `.map((row)` y NO en el nombre de la colección: la versión
+  // anterior buscaba `rows.map` y dejó de encontrar nada el día que se añadió
+  // paginación y el array pasó a llamarse `pageItems`. Al no encontrar nada
+  // comparaba contra cadena vacía, así que las cuatro comprobaciones fallaban
+  // sin que hubiera ninguna regresión — el componente conservaba sus
+  // transiciones intactas. Una prueba que falla por el nombre de una variable
+  // no está midiendo lo que dice medir.
   const tbodyMatch = src.match(/<tbody>[\s\S]*?<\/tbody>/)?.[0] ?? "";
-  const trMatch = tbodyMatch.match(/rows\.map[\s\S]*?<tr[\s\S]*?className=\{cn\(([\s\S]*?)\)\}/);
+  const trMatch = tbodyMatch.match(/\.map\(\(row\)[\s\S]*?<tr[\s\S]*?className=\{cn\(([\s\S]*?)\)\}/);
   const trClasses = trMatch ? trMatch[0] : "";
+
+  it("la extracción encuentra la fila de datos (si esto falla, el resto miente)", () => {
+    expect(trMatch).not.toBeNull();
+  });
 
   it("<tr> de filas contiene 'transition-colors'", () => {
     expect(trClasses).toContain("transition-colors");

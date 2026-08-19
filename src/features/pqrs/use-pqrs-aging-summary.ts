@@ -69,8 +69,20 @@ export function usePqrsAgingSummary(tenantId?: string, categoryFilter: string = 
     return () => unsub();
   }, [tenantId]);
 
+  // `now` como estado y no como `Date.now()` dentro del useMemo, por dos motivos
+  // que apuntan al mismo sitio: llamar una función impura durante el render es lo
+  // que marcaba la regla de lint, y además la antigüedad quedaba **congelada**
+  // hasta que cambiara algún ticket — un tablero abierto toda la tarde seguía
+  // diciendo «hace 2 días» al día siguiente. Mismo patrón que
+  // `usePackagesBodegaSummary`, que ya lo resolvía así.
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 60 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
   return useMemo(() => {
-    const now = Date.now();
     const categories = new Set<string>();
     let age0to15 = 0;
     let age15to30 = 0;

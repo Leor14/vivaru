@@ -24,10 +24,10 @@ const mockCollection = vi.fn(() => "col-ref-stub");
 const mockServerTimestamp = vi.fn(() => "SERVER_TS");
 
 vi.mock("firebase/firestore", () => ({
-  addDoc: (...args: unknown[]) => mockAddDoc(...args),
-  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
-  doc: (...args: unknown[]) => mockDoc(...args),
-  collection: (...args: unknown[]) => mockCollection(...args),
+  addDoc: (...args: Parameters<typeof mockAddDoc>) => mockAddDoc(...args),
+  updateDoc: (...args: Parameters<typeof mockUpdateDoc>) => mockUpdateDoc(...args),
+  doc: (...args: Parameters<typeof mockDoc>) => mockDoc(...args),
+  collection: (...args: Parameters<typeof mockCollection>) => mockCollection(...args),
   serverTimestamp: () => mockServerTimestamp(),
   onSnapshot: vi.fn(),
   orderBy: vi.fn(),

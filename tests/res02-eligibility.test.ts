@@ -2,6 +2,8 @@
 // RES-02: checkReservationEligibility — unit tests with Firestore mocked
 // env=node, no DOM, no RTL
 
+import fs from "node:fs";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Mock } from "vitest";
 
@@ -124,8 +126,16 @@ describe("checkReservationEligibility", () => {
     // Override the firebase/client mock to return db = null for this test only
     vi.doMock("@/lib/firebase/client", () => ({ db: null }));
 
-    // Re-import the function with the overridden module
+    // Re-import the function with the overridden module.
+    //
+    // El `?nulldb=1` es un truco de vitest para saltarse su caché de módulos, y
+    // TypeScript no sabe resolver una ruta con query. Se silencia AQUÍ y no se
+    // convierte la ruta en variable a propósito: con una variable, vitest podría
+    // resolver distinto y la prueba se iría siempre por la rama de respaldo —que
+    // solo hace grep del fuente— sin que nadie lo notara. Un `expect-error` se
+    // queja solo el día que deje de hacer falta; un `ignore`, nunca.
     const { checkReservationEligibility: checkWithNullDb } = await import(
+      // @ts-expect-error — ruta con query param, resuelta por vitest y no por tsc
       "../src/features/reservations/eligibility?nulldb=1"
     ).catch(() => {
       // If module cache prevents re-import, test the null-guard path directly
@@ -241,8 +251,20 @@ describe("resident/reservations/page.tsx — static checks", () => {
     expect(residentReservationsSrc).toContain("saldo");
   });
 
-  it("banner links to /resident/billing", () => {
-    expect(residentReservationsSrc).toContain("/resident/billing");
+  // Pedía `/resident/billing`, **que no existe**: el portal del residente no
+  // tiene esa ruta. O sea, la prueba exigía un enlace roto y fallaba porque el
+  // código tenía el bueno — `/resident/account`, donde el residente ve su estado
+  // de cuenta y sube comprobantes. Llevaba así entre los fallos «preexistentes».
+  //
+  // Además de corregir el destino, se comprueba que la ruta EXISTA en disco, que
+  // es lo que esta prueba querría haber hecho desde el principio: un enlace a una
+  // página inexistente es un fallo, lo apunte donde lo apunte.
+  it("el banner enlaza al estado de cuenta, y esa ruta existe", () => {
+    expect(residentReservationsSrc).toContain("/resident/account");
+    expect(
+      fs.existsSync("src/app/(resident)/resident/account/page.tsx"),
+      "la ruta enlazada desde el banner no existe en el proyecto",
+    ).toBe(true);
   });
 
   it("reservation UI not gated behind eligibility.eligible (banner above, not replacing)", () => {

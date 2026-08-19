@@ -8,7 +8,7 @@ const mockAddDoc = vi.fn();
 const mockServerTimestamp = vi.fn(() => "SERVER_TS");
 
 vi.mock("firebase/firestore", () => ({
-  addDoc: (...args: unknown[]) => mockAddDoc(...args),
+  addDoc: (...args: Parameters<typeof mockAddDoc>) => mockAddDoc(...args),
   collection: vi.fn(() => "col-ref"),
   serverTimestamp: () => mockServerTimestamp(),
   // unused but required to prevent module resolution errors

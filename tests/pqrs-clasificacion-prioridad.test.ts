@@ -20,8 +20,8 @@ const mockUpdateDoc = vi.fn();
 const mockDoc = vi.fn(() => "doc-ref-stub");
 
 vi.mock("firebase/firestore", () => ({
-  doc: (...args: unknown[]) => mockDoc(...args),
-  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
+  doc: (...args: Parameters<typeof mockDoc>) => mockDoc(...args),
+  updateDoc: (...args: Parameters<typeof mockUpdateDoc>) => mockUpdateDoc(...args),
   serverTimestamp: vi.fn(),
   addDoc: vi.fn(),
   collection: vi.fn(),

@@ -48,7 +48,9 @@ function parseArrivedAt(value: unknown): number {
 
 export function usePackagesBodegaSummary(tenantId?: string): SummaryReturn {
   const { items: packages, loading, error } = usePackages(tenantId);
-  const [now, setNow] = useState(Date.now());
+  // Inicializador perezoso: pasado como valor, `Date.now()` se evalúa en CADA
+  // render aunque solo se use en el primero. Es lo que marca la regla de pureza.
+  const [now, setNow] = useState(() => Date.now());
 
   // Refresh "days" once per hour so badges stay accurate without a reload.
   useEffect(() => {

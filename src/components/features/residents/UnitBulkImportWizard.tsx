@@ -735,7 +735,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             <p className="text-xs font-semibold text-amber-800">Recuerda: solo se crean las unidades físicas</p>
             <p className="mt-1 text-xs leading-relaxed text-amber-700">
               Esta importación <strong>no vincula residentes ni propietarios</strong>. Después de confirmar,
-              ve a la tabla de residentes y usa <strong>"Crear persona"</strong> para agregar al titular
+              ve a la tabla de residentes y usa <strong>“Crear persona”</strong> para agregar al titular
               de cada unidad, uno a uno. Las unidades recién creadas ya estarán disponibles
               en el selector de unidades del formulario de persona.
             </p>
@@ -779,7 +779,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
               </li>
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
                 <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">2</span>
-                <span>En la sección <strong>Personas asociadas</strong>, usa <strong>"Crear persona"</strong> para agregar al propietario o inquilino de cada unidad.</span>
+                <span>En la sección <strong>Personas asociadas</strong>, usa <strong>“Crear persona”</strong> para agregar al propietario o inquilino de cada unidad.</span>
               </li>
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
                 <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">3</span>

@@ -102,75 +102,110 @@ describe("BLOQUE 1 — types.ts: constantes", () => {
   });
 
   describe("SupportTicket interface — compatibilidad de tipos", () => {
-    it("objeto completo compila sin error de tipo", () => {
+    /**
+     * Estas tres pruebas valen por COMPILAR, no por lo que afirman en runtime.
+     *
+     * Estuvieron rotas desde que el módulo pasó del vocabulario en inglés al
+     * español y de `Timestamp` a ISO: sus fixtures describían un producto que ya
+     * no existía. Como los errores de tipo de `tests/` se toleraban como
+     * «preexistentes», el fallo no se veía — así que la prueba llevaba meses
+     * verificando nada mientras parecía estar ahí. Se reescriben contra el
+     * contrato vigente e incluyen los campos de `SUP-001`, para que la próxima
+     * vez que alguien cambie el tipo, esto lo diga.
+     */
+    it("un ticket completo satisface el tipo, con los campos de SUP-001", () => {
       const ticket: SupportTicket = {
         id: "st-001",
         tenantId: "tenant-nogal-bogota",
         tenantName: "Conjunto Residencial El Nogal",
-        reportedBy: "admin@elnogal.co",
-        reportedByName: "Claudia Moreno",
-        category: "technical",
+        createdBy: "uid-admin-1",
+        createdByName: "Claudia Moreno",
+        createdByEmail: "admin@elnogal.co",
+        category: "tecnico",
         subject: "Falla en login",
         description: "El admin no puede iniciar sesión desde ayer.",
-        priority: "high",
-        status: "open",
-        createdAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        updatedAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        resolvedAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        createdBy: "uid-superadmin-1",
-        notes: "Revisando con el equipo técnico.",
-        responseHistory: [
+        priority: "alta",
+        status: "en_proceso",
+        thread: [
           {
-            id: "rh-001",
-            message: "Se escaló al equipo de infraestructura.",
+            id: "msg-1",
+            role: "cliente",
+            authorUid: "uid-admin-1",
+            authorName: "Claudia Moreno",
+            message: "No podemos entrar.",
             createdAt: "2026-05-09T10:00:00.000Z",
-            createdBy: "uid-superadmin-1",
-            createdByName: "Superadmin HOGARU",
+          },
+          {
+            id: "msg-2",
+            role: "vivaru",
+            authorUid: "uid-soporte",
+            authorName: "Equipo Vivaru",
+            message: "Lo estamos mirando.",
+            createdAt: "2026-05-09T11:30:00.000Z",
           },
         ],
+        createdAt: "2026-05-09T09:00:00.000Z",
+        updatedAt: "2026-05-09T11:30:00.000Z",
+        lastActivityAt: "2026-05-09T11:30:00.000Z",
+        // SUP-001 — sellados al responder por primera vez.
+        assignedTo: "uid-soporte",
+        assignedToName: "Equipo Vivaru",
+        assignedAt: "2026-05-09T11:30:00.000Z",
+        firstResponseAt: "2026-05-09T11:30:00.000Z",
       };
-      // Si compila → el type es correcto. Runtime: solo verificar que tiene los campos requeridos.
+
       expect(ticket.id).toBe("st-001");
-      expect(ticket.tenantId).toBe("tenant-nogal-bogota");
-      expect(ticket.status).toBe("open");
+      expect(ticket.status).toBe("en_proceso");
+      expect(ticket.thread).toHaveLength(2);
+      expect(ticket.firstResponseAt).toBe("2026-05-09T11:30:00.000Z");
     });
 
-    it("ticket sin resolvedAt es tipo válido (campo opcional)", () => {
+    it("los campos de SUP-001 son opcionales: un ticket sin responder es válido", () => {
       const ticket: SupportTicket = {
         id: "st-002",
         tenantId: "tenant-palmas-cdmx",
         tenantName: "Privada Las Palmas",
-        reportedBy: "admin@privadapalmas.mx",
-        category: "billing",
+        createdBy: "uid-admin-2",
+        createdByName: "Administración",
+        createdByEmail: "admin@privadapalmas.mx",
+        category: "facturacion",
         subject: "Cobro duplicado",
         description: "Aparecen dos cobros del mes de abril.",
-        priority: "medium",
-        status: "in_progress",
-        createdAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        updatedAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        createdBy: "uid-superadmin-1",
-        // resolvedAt ausente — debe ser válido
+        priority: "media",
+        status: "abierto",
+        thread: [],
+        createdAt: "2026-04-02T08:00:00.000Z",
       };
+
+      // Es justo el caso que la consola pinta como «sin responder».
+      expect(ticket.firstResponseAt).toBeUndefined();
+      expect(ticket.assignedTo).toBeUndefined();
       expect(ticket.resolvedAt).toBeUndefined();
     });
 
-    it("ticket con responseHistory vacío es válido", () => {
+    it("los campos de la etapa bitácora siguen aceptándose, para no romper tickets viejos", () => {
       const ticket: SupportTicket = {
         id: "st-003",
         tenantId: "tenant-a",
         tenantName: "Tenant A",
-        reportedBy: "admin@tenant-a.co",
-        category: "operational",
+        createdBy: "uid-superadmin-1",
+        createdByName: "Superadmin",
+        createdByEmail: "super@qintilab.com",
+        category: "operativo",
         subject: "Consulta operativa",
         description: "Pregunta sobre proceso de onboarding.",
-        priority: "low",
-        status: "open",
-        createdAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        updatedAt: { toDate: () => new Date() } as unknown as import("firebase/firestore").Timestamp,
-        createdBy: "uid-superadmin-1",
-        responseHistory: [],
+        priority: "baja",
+        status: "cerrado",
+        thread: [],
+        // Campos de cuando esto era una bitácora interna. No se escriben en
+        // tickets nuevos, pero el tipo debe seguir admitiéndolos.
+        reportedByName: "Claudia Moreno",
+        notes: "Se resolvió por teléfono.",
+        closedAt: "2026-04-10T15:00:00.000Z",
       };
-      expect(ticket.responseHistory).toHaveLength(0);
+
+      expect(ticket.reportedByName).toBe("Claudia Moreno");
+      expect(ticket.thread).toHaveLength(0);
     });
   });
 });
@@ -312,15 +347,15 @@ const mockWhere = vi.fn((...args) => ({ type: "where", args }));
 const mockOrderBy = vi.fn((...args) => ({ type: "orderBy", args }));
 
 vi.mock("firebase/firestore", () => ({
-  addDoc: (...args: unknown[]) => mockAddDoc(...args),
-  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
-  onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
+  addDoc: (...args: Parameters<typeof mockAddDoc>) => mockAddDoc(...args),
+  updateDoc: (...args: Parameters<typeof mockUpdateDoc>) => mockUpdateDoc(...args),
+  onSnapshot: (...args: Parameters<typeof mockOnSnapshot>) => mockOnSnapshot(...args),
   serverTimestamp: () => mockServerTimestamp(),
-  collection: (...args: unknown[]) => mockCollection(...args),
-  doc: (...args: unknown[]) => mockDoc(...args),
-  query: (...args: unknown[]) => mockQuery(...args),
-  where: (...args: unknown[]) => mockWhere(...args),
-  orderBy: (...args: unknown[]) => mockOrderBy(...args),
+  collection: (...args: Parameters<typeof mockCollection>) => mockCollection(...args),
+  doc: (...args: Parameters<typeof mockDoc>) => mockDoc(...args),
+  query: (...args: Parameters<typeof mockQuery>) => mockQuery(...args),
+  where: (...args: Parameters<typeof mockWhere>) => mockWhere(...args),
+  orderBy: (...args: Parameters<typeof mockOrderBy>) => mockOrderBy(...args),
 }));
 
 vi.mock("@/lib/firebase/client", () => ({ db: { _isMock: true } }));

@@ -5,7 +5,7 @@
 // Strategy: simular exactamente el mismo código que ejecuta handleSaveUnitFlow
 // en la página, sin importar el componente React.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 // ── Minimal stubs for the flow ────────────────────────────────────────────────
 
@@ -62,8 +62,12 @@ describe("residents/page.tsx — handleSaveUnitFlow tras IMP-02", () => {
   const PRIMARY = { fullName: "Ana García", email: "ana@test.com", occupancyType: "owner_occupant" };
   const UNIT_VALUES = { displayName: "T2-503", tower: "Torre 1" };
 
-  let mockCreateUnit: ReturnType<typeof vi.fn>;
-  let mockCreatePerson: ReturnType<typeof vi.fn>;
+  // Tipados con la firma que `handleSaveUnitFlow` espera, no con
+  // `ReturnType<typeof vi.fn>`: ese tipo es demasiado ancho y no encaja donde se
+  // pide una función concreta, que era el motivo de tres errores tolerados como
+  // «preexistentes». `Mock<F>` conserva además `toHaveBeenCalledWith`.
+  let mockCreateUnit: Mock<() => Promise<CreateUnitResult>>;
+  let mockCreatePerson: Mock<(payload: PersonPayload) => Promise<string>>;
 
   beforeEach(() => {
     mockCreateUnit = vi.fn().mockResolvedValue(MOCK_UNIT);

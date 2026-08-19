@@ -202,8 +202,18 @@ describe("BLOQUE 2 — page.tsx: verificación estática", () => {
     expect(pageContent).toMatch(/QRCodeCanvas[^/]*ref=\{canvasRef\}/);
   });
 
-  it("existe <Button> con onClick={handleDownload}", () => {
-    expect(pageContent).toContain("onClick={handleDownload}");
+  // El handler se llamaba `handleDownload` cuando esto solo descargaba. Al
+  // añadirse compartir nativo pasó a `handleAction`, que comparte si el
+  // navegador lo soporta y descarga si no — y esta prueba lleva fallando desde
+  // entonces, tolerada como «preexistente». Se comprueba el cableado y el
+  // comportamiento, no el nombre, para que un renombrado no vuelva a romperla.
+  it("el botón está cableado a la acción de guardar/compartir", () => {
+    expect(pageContent).toMatch(/onClick=\{\(\)\s*=>\s*void handleAction\(\)\}/);
+  });
+
+  it("la acción comparte si el navegador puede, y descarga si no", () => {
+    expect(pageContent).toContain("navigator.share");
+    expect(pageContent).toContain("link.download");
   });
 
   it("botón contiene texto 'Descargar QR'", () => {

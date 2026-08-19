@@ -10,13 +10,13 @@ const mockDoc = vi.fn(() => "doc-ref-stub");
 const mockServerTimestamp = vi.fn(() => "SERVER_TS");
 
 vi.mock("@/lib/firebase/realtime-helpers", () => ({
-  createTenantDocument: (...args: unknown[]) => mockCreateTenantDocument(...args),
+  createTenantDocument: (...args: Parameters<typeof mockCreateTenantDocument>) => mockCreateTenantDocument(...args),
   subscribeTenantCollection: vi.fn(),
 }));
 
 vi.mock("firebase/firestore", () => ({
-  doc: (...args: unknown[]) => mockDoc(...args),
-  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
+  doc: (...args: Parameters<typeof mockDoc>) => mockDoc(...args),
+  updateDoc: (...args: Parameters<typeof mockUpdateDoc>) => mockUpdateDoc(...args),
   serverTimestamp: () => mockServerTimestamp(),
   addDoc: vi.fn(),
   collection: vi.fn(),
