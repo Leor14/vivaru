@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.3 |
+| **Versión** | 0.9.4 |
 | **Fecha** | 18 de agosto de 2026, noche |
-| **Estado** | **Nivel 1 desplegado; `FIN-001` construida y sin desplegar** — cartera y libro ya no pueden discrepar, pero solo en `develop` |
+| **Estado** | **Nivel 1 en producción; `FIN-001` en staging sin validar** — cartera y libro ya no pueden discrepar, pero falta comprobarlo a mano |
 | **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -230,8 +230,8 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `FIN-001` — Comando único e idempotente de aplicación de pagos
 
-- **Frente:** Vivaru Finance · **Estado:** ✅ **Construida** (18 ago 2026, `66c03c7` +
-  `75d9e47`) · **Nivel 2** · **Sin desplegar**
+- **Frente:** Vivaru Finance · **Estado:** 🟡 **En staging, sin validar a mano**
+  (18 ago 2026, `66c03c7` + `75d9e47`) · **Nivel 2** · **No está en producción**
 - **Problema:** las rutas de pago, comprobantes, ledger, vouchers, saldos y reversos
   deben producir un resultado completo o ninguno.
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
@@ -262,6 +262,17 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   - **Los asientos anteriores a esta ficha no se pueden revertir** por la vía nueva: no
     guardan su `operationKey`. Hoy no hay ninguno real, así que el costo es cero — pero
     deja de serlo el día que haya un cliente.
+- **Despliegue (18 ago 2026):** en **staging** las tres capas —functions, front y
+  reglas—. En **producción, ninguna**. Las callables responden `401` sin sesión, que es
+  lo correcto; el resto **no está verificado**: el CLI de App Hosting no expone de qué
+  commit viene el build, así que la comprobación decisiva es **registrar un cobro a
+  mano** en staging. Si fallara con «no tienes permiso», el front aún sería el viejo y se
+  cura solo al terminar el rollout.
+- **El orden se invirtió, y conviene saber por qué.** `CLAUDE.md` dice reglas → functions
+  → front, y eso vale cuando la regla **concede**. Ésta **quita**: veta que el cliente
+  escriba asientos de pago, que es lo que el front anterior hacía. Se desplegó functions →
+  front → reglas. **Generaliza así:** una regla que concede va antes del código que la
+  necesita; una que restringe, después del código que dejó de necesitarla.
 
 #### `REVOPS-000` — Instrumentar el canal que ya está corriendo
 
@@ -819,6 +830,21 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.4 — 18 de agosto de 2026, noche
+
+**Por qué: `FIN-001` salió a staging**, las tres capas. Esta entrada existe sobre todo
+para que el estado no se lea mejor de lo que es: **desplegado no es validado**, y aquí
+solo está verificado que las callables responden `401` sin sesión.
+
+- `FIN-001` pasa de ✅ construida a 🟡 **en staging, sin validar a mano**. Producción no
+  la tiene.
+- Se anota **por qué el orden de despliegue se invirtió** —functions → front → reglas— y
+  la regla que lo generaliza: la que concede va antes del código que la necesita, la que
+  restringe va después del código que dejó de necesitarla.
+- Se anota también **lo que no se pudo verificar**: el CLI de App Hosting no dice de qué
+  commit viene el build, y la ruta de finanzas redirige a login, así que desde fuera no
+  hay forma de confirmar que el bundle traiga el código nuevo.
 
 ### 0.9.3 — 18 de agosto de 2026, noche
 
