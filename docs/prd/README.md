@@ -53,7 +53,7 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 
 | PRD | Estado | Nota |
 |---|---|---|
-| [PRD-A-OPS-001 — Vista de Leads de Vivaru](albert/PRD-A-OPS-001-vista-de-leads-vivaru.md) | **Borrador 0.2 — NO lista para desarrollo** | La mitad de Vivaru está **desplegada** y el catálogo de comerciales poblado. Pero la 0.2 encontró que **el canal asistido produce leads que hoy no pueden existir en Vivaru** (§7.1), y añadió tres huecos que faltaban: autenticación de la escritura (hoy es un endpoint público), retención y consentimiento de datos personales, y notificaciones. §5 sigue esperando a `REVOPS-000`; hay cinco insumos que pedirle a Albert (§0.5) |
+| [PRD-A-OPS-001 — Vista de Leads de Vivaru](albert/PRD-A-OPS-001-vista-de-leads-vivaru.md) | **Borrador 0.3 — NO lista para desarrollo** | **Bisagra decidida: Vivaru es un tenant de Albert.** Con eso el vocabulario de estados pasa a ser configuración en vez de desarrollo. La ficha técnica de Albert corrigió dos supuestos —«convertido» vive en el pipeline de deals, no en `leads`; y `crmRef` necesita estructura porque un deal vive bajo su tenant—. El §5 de inbound ya está escrito (el lead cruza **al asignarle dueño**, no al entrar). **Solo falta `REVOPS-000`** para el flujo del canal asistido |
 
 ### IA
 

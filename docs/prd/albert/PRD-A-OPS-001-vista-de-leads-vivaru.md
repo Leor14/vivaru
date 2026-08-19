@@ -9,11 +9,11 @@
 |---|---|
 | **ID** | `PRD-A-OPS-001` |
 | **Tipo** | `OPS` — operación comercial; el usuario es interno |
-| **Superficie** | Consola de Albert (nueva vista) |
+| **Superficie** | Consola de Albert, **dentro del tenant `vivaru`** — decidido el 18 ago 2026 (§0.3) |
 | **Portales de Vivaru** | **`SUPERADMIN`** — afectado, no alcance: la bandeja de Leads y Comerciales ya existen y se operan en paralelo. `ADMIN`, `RESIDENTE` y `PORTERIA` no se tocan |
 | **Usuario principal** | Los cinco comerciales (2 KAM + 3 socios) y quien opere la consola Superadmin de Vivaru |
 | **Responsable** | David (Vivaru) redacta y acepta · equipo de Albert construye |
-| **Estado** | **Borrador — NO lista para desarrollo** (ver «Lo que falta», §0) |
+| **Estado** | **Borrador 0.3 — NO lista para desarrollo.** La bisagra está cerrada y los insumos técnicos llegaron; sigue faltando §5 completo (`REVOPS-000`) |
 | **Dependencias** | `REVOPS-001E` ✅ construido y **desplegado** (`6207fa7`, 18 ago) · catálogo `salesReps` ✅ **poblado con los cinco** (18 ago) · `REVOPS-000` ⏳ sin empezar · dos `TBD` de Albert y una decisión de negocio (§0) |
 | **Riesgo** | **Alto** — corregido en la 0.2. El lead lleva **datos personales de un prospecto** (nombre, correo, teléfono) y su consentimiento se recoge en Vivaru bajo la Ley 1581 y la LFPDPPP. Empujarlos a otro sistema es un tratamiento, no una copia técnica |
 | **Reversibilidad** | Alta para la vista; **no para los datos empujados** — ver §13, retención y supresión |
@@ -31,35 +31,73 @@ mitad **no está y no se va a inventar aquí**:
    (flujo funcional) queda deliberadamente en `TBD` hasta esa conversación. Redactar
    esos flujos por deducción sería especificar **el CRM que nos imaginamos** — el
    riesgo que el expediente advierte por escrito.
-2. **Pregunta al equipo de Albert (expediente §6.4):** ¿la superficie de destino es la
-   pestaña global de Leads sin desplegar, o los contactos del tenant? Este PRD
-   **propone la vista global** (§4) porque el recorrido comercial de Vivaru es
-   anterior a la existencia del tenant; queda `TBD` confirmar con Albert que esa
-   pestaña es desplegable sin rehacerla.
-3. **Decisión previa:** ¿Vivaru opera como un tenant de Albert? (expediente §6.3).
-   Condiciona dónde viven estos datos en el modelo de Albert. `TBD` de negocio.
-4. **Dónde nace el lead del canal asistido — hallazgo de la 0.2, y es estructural.**
-   Ver §7.1. Este PRD asumía en su 0.1 una sola dirección: el lead nace en Vivaru y se
-   empuja. **Para el canal que de verdad opera eso es imposible**, y no por falta de
-   permisos sino por diseño. Hay que decidir la dirección antes de escribir el
-   contrato de identidad.
+2. ~~**¿La superficie de destino es la pestaña global de Leads o los contactos del
+   tenant?**~~ **Resuelta por la decisión de la bisagra:** ninguna de las dos. El
+   trabajo comercial vive en el **pipeline del tenant `vivaru`** (§0.3), y la colección
+   global `leads` de Albert **queda fuera de alcance** — es su captura de landing, no
+   la nuestra (§7.3).
+3. ~~**¿Vivaru opera como un tenant de Albert?**~~ ✅ **DECIDIDO el 18 de agosto de
+   2026: sí.** Ver §0.3 para el razonamiento y lo que cuesta.
+4. ~~**Dónde nace el lead del canal asistido.**~~ **Resuelto en §7.1 con mecanismo
+   concreto**, no solo con un principio: dos orígenes que convergen en el pipeline del
+   tenant, y `vivaruLeadId` presente solo en los de inbound.
 
-**Regla de avance:** este documento pasa a «Lista para desarrollo» cuando §5 se llene
-con la salida de `REVOPS-000`, las tres `TBD` de arriba tengan respuesta, y §7.1 tenga
-dirección decidida. No antes.
+**Lo único que sigue bloqueando:** `REVOPS-000`. El §5 tiene ahora su mitad de inbound
+—que se deduce del sistema, no de las personas— y le falta la del canal asistido.
+
+**Regla de avance:** este documento pasa a «Lista para desarrollo» cuando **§5 se
+complete con la salida de `REVOPS-000`**. Es lo único que queda: las tres `TBD` de la
+0.2 están cerradas y los insumos técnicos llegaron.
+
+### 0.3 · La bisagra, decidida — Vivaru es un tenant de Albert
+
+**Decisión de David, 18 de agosto de 2026.** Los datos comerciales de Vivaru viven en
+`tenants/vivaru/` dentro de Albert. Los cinco trabajan ahí, con cuentas de ese tenant.
+
+**El argumento que la decidió no es de arquitectura, es de exposición.** El `stage` de
+Albert es **texto configurable por tenant**, así que el espacio `vivaru` puede usar el
+vocabulario de Vivaru **sin que Albert cambie una línea**. Con eso, la parte más
+peliaguda de «Albert se adapta a Vivaru» pasa de desarrollo a configuración — y eso
+ataca directamente el riesgo que el expediente marca en primer lugar: que los tiempos
+del equipo de Albert se conviertan en dependencia de planificación de Vivaru. Cuanto
+menos haya que construir allá, menos expuesto está esto.
+
+Efectos colaterales, todos a favor:
+
+- **`tenantId` es constante** (`vivaru`), así que `crmRef` se simplifica (§7.3).
+- **Se reutilizan RBAC, pipeline y auditoría** de Albert tal cual.
+- **Lo que queda por construir en Albert son dos cosas**, no un programa: la vista de
+  Leads y el disparador de vuelta.
+
+**Lo que cuesta, y queda escrito para que nadie lo descubra tarde:** el pipeline
+comercial de Vivaru queda **acoplado al modelo de datos de Albert**. Si Qintilab vende
+Albert, lo separa, o cambia su esquema de `deals`, ese acoplamiento hay que deshacerlo.
+Hoy los dos productos son de casa, así que es riesgo de futuro; conviene revisarlo si
+eso deja de ser cierto.
+
+**Y descarta explícitamente la alternativa:** «Vivaru como sistema externo» habría
+significado mantener dos modelos sincronizados por contrato y, llevado en serio, que
+**Vivaru desarrollara sus propias pantallas de CRM** — exactamente lo que
+`REVOPS-001E` decidió no hacer el 17 de agosto («sin cuentas, sin portal»).
 
 ### 0.5 · Qué hay que pedirle al equipo de Albert, en concreto
 
 Las `TBD` de arriba son decisiones. Esto son **insumos**: sin ellos no se puede
 escribir el contrato, y pedirlos no depende de `REVOPS-000`.
 
-| Qué se pide | Por qué bloquea |
+**Contestados el 18 de agosto de 2026** con la ficha técnica del equipo de Albert:
+
+| Qué se pidió | Respuesta y dónde se aplicó |
 |---|---|
-| Modelo de datos de `lead` y `deal`: campos, obligatorios y **formato del identificador** | Sin el formato, `crmRef` en Vivaru guarda un texto que no resuelve a nada. Hoy es un campo libre porque no sabemos qué forma tiene lo que va a contener |
-| Vocabulario de estados y **quién manda** | Albert usa `new · contacted · qualified · discarded`; Vivaru añade `convertido`. §6 fija la regla, pero renombrar o mapear es decisión de Albert |
-| **Cómo se autentica una escritura servidor a servidor** | Ver §12.1. Hoy la única vía que funciona es pública |
-| Si la pestaña global de Leads es desplegable sin rehacerla | Es la superficie que este PRD propone (§4) |
-| Si Albert puede **emitir un evento** al ganar un negocio | No hace falta una API completa: un disparador sobre `deals` que llame a una callable de Vivaru basta. Es el PRD siguiente, pero saber si es posible cambia el orden |
+| Modelo de datos de `lead` y `deal` | ✅ El deal vive en `tenants/{tenantId}/deals/{dealId}` y el lead es top-level sin `tenantId`. **Obligó a rehacer `crmRef`** — §7.3 |
+| Vocabulario de estados | ✅ **Son DOS, no uno**, y «convertido» vive en el pipeline, no en `leads`. **Corrigió el §6** — ver §6.1 |
+| Cómo se autentica una escritura servidor a servidor | ✅ **OIDC Google-a-Google**, recomendado por Albert y adoptado — §12.1 |
+| Si la pestaña global de Leads es desplegable | ✅ **Deja de importar**: con la bisagra en tenant, esa colección queda fuera de alcance |
+| Si Albert puede emitir un evento al ganar | ✅ **Hoy no tiene ni un disparador** (`functions/src` son solo callables), pero es viable y barato. Contrato en §5.2 |
+
+**Lo que quedó abierto y no bloquea la decisión**, solo la implementación: si un deal
+puede nacer con `amount: 0` sin ensuciar el forecast, y si puede nacer sin `contactId`.
+Ver §7.3.
 
 ---
 
@@ -128,14 +166,55 @@ los leads de Vivaru, con los estados de Vivaru y la propiedad de Vivaru.
 - **Importar los 5 leads del landing.** Son pruebas, no clientes — ya se descartó una
   vez (expediente, changelog 0.4).
 
-## 5 · Flujo funcional — `TBD-REVOPS-000`
+## 5 · Flujo funcional
 
-**Esta sección se llena con la conversación con los cinco, no antes.** Lo que debe
-salir de ahí, como mínimo: cómo entra un lead que no viene del landing (¿lo teclea el
-comercial? ¿quién?), qué pasa en «contactado» (¿llamada, visita, WhatsApp?), cuánto
-vive un lead sin tocar antes de considerarse frío, y quién decide «perdido» y con qué
-motivos. El criterio de salida de `REVOPS-000` —un recuento escrito de oportunidades
-reales por país y persona— es la materia prima de esta sección.
+**Se parte en dos**, porque una mitad se deduce del sistema y la otra solo la saben las
+personas. La primera se escribe aquí; la segunda sigue esperando a `REVOPS-000`.
+
+### 5.1 · Lead de inbound — completo, y usa lo ya desplegado
+
+El recorrido del lead que llega por el landing **no depende de la conversación con los
+cinco**: el sistema ya lo determina, y su mitad de Vivaru está en producción desde el
+18 de agosto de 2026.
+
+1. **Entra por el landing** (`/api/demo` o `/api/lead`). Vivaru lo persiste en
+   `leads/{leadId}` con su atribución —`utm_*`, `referrer`, landing— y su
+   **consentimiento con fecha de servidor y versión de política**. Ya funciona.
+2. **Se documenta solo.** Aparece en la bandeja de Leads del Superadmin con el contexto
+   completo: de dónde vino, qué contestó en el diagnóstico, qué autorizó y cuándo.
+3. **Alguien le asigna dueño** del catálogo `salesReps`. Ya existe y está desplegado.
+4. **La asignación es el disparador del cruce.** Solo entonces el lead pasa al pipeline
+   del tenant `vivaru` en Albert, **ya con dueño**, y Vivaru guarda la referencia
+   devuelta en `crmRef`.
+5. **A partir de ahí se trabaja en un solo sitio**, Albert, igual que una oportunidad
+   nacida allá.
+
+**Por qué el cruce ocurre AL ASIGNAR y no al entrar el lead** — y no es un detalle de
+implementación:
+
+- **El consentimiento se queda donde se dio.** Empujar datos personales a otro sistema
+  es un tratamiento, no una copia técnica (§13). Si solo cruzan los **asignados**, cruza
+  mucho menos dato personal y **los leads que nadie trabaja nunca se replican**. El
+  problema de supresión que la 0.2 dejó abierto se encoge solo.
+- **Un lead sin dueño no es una oportunidad**, es una entrada. El pipeline es para lo
+  que alguien está trabajando.
+
+### 5.2 · Señal de vuelta — fuera de alcance aquí, pero el contrato queda dicho
+
+Cuando el deal llega a la etapa terminal-ganada, un disparador en Albert avisa a Vivaru
+para que el conjunto nazca con su `vendedorId`. **No entra en este PRD** —es el
+siguiente—, pero se deja escrito el contrato para que la vista no se diseñe de espaldas
+a él: `{ crmRef, tenantId, dealId, amount, contactId, closedAt }`, detectando el estado
+ganado **contra la configuración de etapas del tenant** (§6.1), no contra el literal.
+
+### 5.3 · Canal asistido — `TBD-REVOPS-000`
+
+**Esta mitad se llena con la conversación con los cinco, no antes.** Lo que debe salir
+de ahí, como mínimo: qué pasa en «contactado» (¿llamada, visita, WhatsApp?), cuánto vive
+un lead sin tocar antes de considerarse frío, y **quién decide «perdido» y con qué
+motivos** — la lista de motivos tiene que ser la suya, no una inventada aquí. El criterio
+de salida de `REVOPS-000` —un recuento escrito de oportunidades reales por país y
+persona— es la materia prima de esta sección.
 
 ## 6 · Estados y transiciones
 
@@ -148,15 +227,39 @@ nuevo → contactado → calificado → convertido (terminal)
 
 - **Todo estado tiene dueño:** el del lead (`ownerId`). Un lead sin dueño solo puede
   estar en `nuevo`.
-- **`convertido` es terminal y no lo escribe un comercial a mano:** lo produce la
-  conversión en Vivaru (hoy: `createTenantFromLead` marca el lead de Vivaru; la vista
-  lo refleja vía la referencia cruzada — a mano mientras no haya señal de vuelta).
 - **`perdido` exige motivo** — el aprendizaje comercial del que Vivaru ya guarda
   espejo (`lostReason`).
-- Correspondencia con los estados actuales de Albert (`new·contacted·qualified·
-  discarded`): **decisión de implementación de Albert** (renombrar o mapear), con una
-  regla no negociable: `convertido` y `perdido` no se colapsan en `discarded` — son
-  terminales distintos y REVOPS los cuenta por separado.
+
+### 6.1 · Albert tiene DOS vocabularios, no uno — corrección de la 0.3
+
+La 0.1 y la 0.2 asumían que Albert tenía una sola escalera de estados y que bastaba
+mapearla. **Es falso, y la ficha técnica de Albert lo aclara:**
+
+| Dónde | Vocabulario | Para qué sirve |
+|---|---|---|
+| Colección `leads` (global) | `new · contacted · qualified · discarded` | Captura de **su** landing |
+| Pipeline de `deals` (por tenant) | `Nuevo · Contactado · Propuesta · Negociacion · Ganado · Perdido` | El recorrido comercial de verdad |
+
+**Y la consecuencia cambia el diseño: «convertido» NO vive en la colección de leads.**
+Un negocio está convertido cuando **el deal alcanza el estado terminal-ganado**. Ese es
+el terminal que le importa a REVOPS, y está en otra colección y en otro nivel del que
+este PRD suponía.
+
+**Decisión, alineada con la recomendación de Albert:** el estado que manda es el del
+**deal**. La escalera de Vivaru se configura como los `stage` del tenant `vivaru`, y
+«convertido» es su etapa terminal-ganada.
+
+> ▲ **Trampa que hay que respetar al implementar:** `stage` es **texto libre
+> configurable por tenant**. Detectar la conversión comparando la cadena `"Ganado"` se
+> rompe en cuanto alguien renombre la etapa. **Hay que detectar contra la configuración
+> de etapas del tenant** —la posición terminal-ganada—, nunca contra el literal. Aplica
+> igual a la vista y al disparador de vuelta (§5.2).
+
+- **`convertido` no lo escribe un comercial a mano en Vivaru:** lo produce ganar el
+  deal en Albert. El disparador avisa a Vivaru, y Vivaru crea o marca el conjunto con
+  su `vendedorId`.
+- **`convertido` y `perdido` no se colapsan** en un solo terminal: REVOPS los cuenta por
+  separado, y el pipeline de Albert ya los distingue (`Ganado` / `Perdido`).
 
 ## 7 · Contrato de datos e identidad cruzada
 
@@ -165,7 +268,7 @@ La mitad de Vivaru **ya existe y está verificada en código** (`11e3bae`):
 | En Vivaru | Campo | Quién lo escribe |
 |---|---|---|
 | `leads/{leadId}` | `ownerId` · `ownerAssignedAt` | Superadmin (bandeja) |
-| `leads/{leadId}` | `crmRef` — **el id del lead en Albert** | Superadmin, a mano, hasta que exista señal de vuelta |
+| `leads/{leadId}` | `crmRef` — **referencia estructurada al deal en Albert**, ver §7.3 | Lo escribe el cruce al asignar dueño (§5.1); a mano solo como respaldo |
 | `salesReps/{repId}` | `crmRef` — **la identidad del comercial en Albert** | Superadmin (página Comerciales) |
 | `tenants/{tenantId}` | `vendedorId` | La conversión (ambos caminos) |
 
@@ -224,6 +327,43 @@ Por cada lead **recibido de Vivaru**:
 
 **Regla de oro del contrato:** los campos que empuja Vivaru los corrige Vivaru; los
 campos de trabajo comercial los escribe Albert. Ninguno pisa los del otro.
+
+### 7.3 · `crmRef` no puede ser un identificador plano — corrección de la 0.3
+
+**Lo construido en `REVOPS-001E` guarda `crmRef` como texto libre, sin formato.** Eso
+estaba bien mientras no supiéramos qué iba a contener; ahora sí lo sabemos, y un id
+suelto **no resuelve a nada**:
+
+- Un **deal** vive en `tenants/{tenantId}/deals/{dealId}`. Sin el tenant, el id no
+  localiza nada.
+- Un **lead** de Albert sí es top-level (`leads/{leadId}`), pero **queda fuera de
+  alcance**: esa colección es la captura de la landing de Albert, no la nuestra (§0.2).
+
+**Y aquí la decisión de la bisagra paga:** como Vivaru es **un** tenant, el `tenantId`
+es la constante `vivaru`. Así que el formato puede ser mínimo sin perder capacidad de
+resolver:
+
+```
+albert:deal:vivaru:{dealId}
+```
+
+Se guarda el prefijo completo en vez del `dealId` a secas por dos motivos: dice **de qué
+sistema y de qué entidad** habla —el día que haya otra referencia cruzada no habrá que
+adivinar—, y hace evidente al leerlo que apunta a un deal y no a un lead.
+
+**No hay migración que hacer:** el campo es texto libre, no tiene validación, y **no
+existe ni un lead real** que lo tenga rellenado. Definir el formato hoy no cuesta nada;
+definirlo con cien leads dentro, sí.
+
+**Pendiente de confirmar con Albert** (no bloquea la decisión, sí la implementación):
+
+1. **¿Se puede crear un deal sin monto conocido?** El esquema exige `amount` y admite
+   `0`, pero una oportunidad recién entrada por el landing no tiene cifra. Hay que saber
+   si un `0` ensucia su forecast o es lo normal.
+2. **¿La oportunidad puede nacer sin contacto asociado?** `contactId` figura opcional;
+   conviene confirmarlo antes de construir el cruce.
+
+---
 
 ## 8 · Reglas de negocio verificables
 
@@ -298,9 +438,20 @@ leads reales es inaceptable por dos motivos independientes:
    inmutable, cosa que no se puede sostener sobre un canal anónimo.
 
 **Requisito:** la escritura Vivaru → Albert es **servidor a servidor y autenticada**,
-desde una Cloud Function de Vivaru, nunca desde el navegador. El mecanismo concreto
-—clave de servicio, OIDC, token firmado— es **decisión de Albert** (§0.5); lo que este
-PRD fija es que el llamante debe ser identificable y el endpoint no público.
+desde una Cloud Function de Vivaru, nunca desde el navegador.
+
+**Mecanismo, decidido en la 0.3 siguiendo la recomendación de Albert: OIDC
+Google-a-Google.** Vivaru firma un token de identidad con su cuenta de servicio y Albert
+verifica firma, audiencia y correo. **Cero secretos compartidos y rotación automática**,
+que es lo que lo hace mejor que un HMAC: un secreto compartido funciona hasta que hay que
+rotarlo, y entonces alguien tiene que acordarse. Los dos productos ya viven en GCP, así
+que es el camino natural y no añade infraestructura.
+
+**Y hay que cerrar lo que hoy está abierto:** la regla de Albert es
+`allow create: if true` sobre `leads`. Aunque Vivaru deje de usar esa colección (§7.3),
+**el ingreso público sigue existiendo para su propia landing**, y conviene separar los
+dos caminos: uno público para el formulario anónimo y otro autenticado para sistemas.
+Eso es de Albert, no de Vivaru, pero lo anota este PRD porque lo destapó.
 
 **Consecuencia de alcance:** esto sí es trabajo en Vivaru, aunque pequeño, y corrige la
 línea del encabezado de la 0.1 que decía «en Vivaru no se construye nada». Se construye
@@ -350,19 +501,63 @@ teléfono— recogidos bajo un consentimiento que Vivaru pide de forma expresa d
 |---|---|
 | G0 Necesidad | ✅ El problema está medido: cero recorrido registrado, comisión no atribuible |
 | G1 Valor | ✅ Baseline cero y métrica declarada (§2) |
-| G2 Datos y permisos | ◐ La mitad de Vivaru verificada y **desplegada**, con el catálogo poblado. Falta la de Albert (§0.3) y **la dirección de §7.1**, que la 0.1 daba por supuesta |
-| G3 Riesgo | ◐ **Bajó de ✅ en la 0.2.** La vista es reversible, pero los datos personales empujados no: sin mecanismo de supresión en Albert (§13) no hay cómo revertir un tratamiento |
-| G4 Aceptación | ◐ Borrador — se completa con §5 |
+| G2 Datos y permisos | ✅ **Sube en la 0.3.** La mitad de Vivaru desplegada y el catálogo poblado; la de Albert resuelta por la bisagra —tenant, con su RBAC— y el contrato de identidad reescrito contra el modelo real (§7.3) |
+| G3 Riesgo | ◐ **Sigue abajo, y mejora sin cerrarse.** El cruce solo al asignar (§5.1) reduce mucho el dato personal replicado, pero **el mecanismo de supresión en Albert sigue `TBD`** (§13): reducir no es revertir |
+| G4 Aceptación | ◐ Mejor que en la 0.2 — §5.1 y §5.2 dan criterios verificables; falta §5.3 |
 | G5 Operación | ◐ Declarada, pendiente de validar con los cinco |
 | G6 Escala | ✅ Cinco personas y decenas de leads: el volumen no es el riesgo aquí |
 
-**Ninguna puerta se marcó ✅ por avanzar.** G3 bajó a ◐ al revisar: la 0.1 la daba por
-superada leyendo «reversible» como una propiedad de la vista, cuando la pregunta es si
-es reversible el **tratamiento de datos personales**. No lo es todavía.
+**G2 sube porque se resolvió, no porque el documento crezca.** Y **G3 sigue abajo a
+propósito**: el cruce solo al asignar reduce el daño, pero reducir no es revertir.
+Mientras Albert no diga cómo borra, un dato personal empujado no tiene vuelta — y esa es
+exactamente la pregunta que G3 hace.
 
 ---
 
 ## Changelog
+
+### 0.3 — 18 de agosto de 2026 (noche)
+
+**Por qué:** llegó la ficha técnica del equipo de Albert con los cinco insumos que la
+0.2 pidió, y David cerró la bisagra. **Sube una puerta (G2) y el §5 deja de estar vacío.**
+
+**La decisión: Vivaru es un tenant de Albert** (§0.3). El argumento que la cerró no es de
+arquitectura sino de exposición: el `stage` de Albert es texto configurable por tenant,
+así que el espacio `vivaru` usa el vocabulario de Vivaru **sin que Albert cambie una
+línea**. La parte más peliaguda de «Albert se adapta a Vivaru» pasa de desarrollo a
+configuración, y eso ataca el riesgo que el expediente marca primero — que los tiempos de
+Albert se vuelvan dependencia de planificación de Vivaru. Queda escrito lo que cuesta: el
+pipeline comercial queda acoplado al modelo de datos de Albert.
+
+**Dos correcciones que la ficha forzó, y las dos tocaban cosas ya escritas:**
+
+1. **Albert tiene DOS vocabularios de estado, no uno** (§6.1). La 0.1 y la 0.2 asumían
+   una sola escalera. **«Convertido» no vive en la colección `leads` sino en el pipeline
+   de deals**, como etapa terminal-ganada. Con la trampa asociada: `stage` es texto libre
+   por tenant, así que detectar la conversión comparando el literal `"Ganado"` se rompe en
+   cuanto alguien la renombre.
+2. **`crmRef` no puede ser un identificador plano** (§7.3). Un deal vive bajo
+   `tenants/{tenantId}/deals/{dealId}` y sin el tenant no resuelve. La bisagra lo suaviza
+   —el tenant es constante— y queda `albert:deal:vivaru:{dealId}`. **Sin migración**: el
+   campo es texto libre y no hay ni un lead real que lo tenga.
+
+**El §5 se parte en tres y dos partes se escriben ya.** La mitad de inbound no dependía
+de `REVOPS-000` —la determina el sistema, no las personas—: el lead entra por el landing
+con su atribución y consentimiento, se documenta en la bandeja, y **cruza a Albert solo
+cuando se le asigna dueño**. Ese «solo al asignar» no es un detalle de implementación:
+mantiene el consentimiento donde se dio y evita replicar datos personales de leads que
+nadie va a trabajar. Con eso el hueco estructural de la 0.2 —los dos orígenes— queda
+resuelto con un mecanismo, no con un principio.
+
+**Autenticación decidida: OIDC Google-a-Google** (§12.1), la opción que Albert
+recomienda. Cero secretos compartidos y rotación automática; los dos productos ya viven
+en GCP. Y queda anotado que Albert debería separar su ingreso público de landing
+(`allow create: if true`) del ingreso autenticado de sistemas — es suyo, pero lo destapó
+este PRD.
+
+**Lo único que sigue bloqueando es `REVOPS-000`.** El §5.3 —qué pasa entre «hablé con
+alguien» y «firmó», y con qué motivos se da por perdido— es lo que solo saben las cinco
+personas.
 
 ### 0.2 — 18 de agosto de 2026 (tarde)
 
