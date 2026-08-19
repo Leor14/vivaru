@@ -16,8 +16,8 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9 |
-| **Fecha** | 18 de agosto de 2026, tarde |
+| **Versión** | 0.9.1 |
+| **Fecha** | 18 de agosto de 2026, noche |
 | **Estado** | **Nivel 1 COMPLETO y desplegado en producción** — las cuatro fichas construidas, probadas y en `master` |
 | **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
@@ -368,11 +368,14 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   entrada de ese PRD**. Se define una vez y sirve a los dos lados.
 - **Criterio de salida:** cualquier conjunto en producción dice quién lo vendió, y
   cualquier lead dice quién lo está trabajando. **Cumplido de aquí en adelante**: la
-  mecánica está desplegada y los cinco comerciales dados de alta el 18 de agosto. Con
-  dos salvedades que conviene no olvidar: no hay leads reales todavía a los que asignar
-  dueño, y **los dos conjuntos reales que ya existían se quedaron sin vendedor** —
-  `vendedorId` solo se escribe al nacer el conjunto y no hay ruta de edición, así que
-  arreglarlos exige una pantalla nueva o una escritura manual.
+  mecánica está desplegada y los cinco comerciales dados de alta el 18 de agosto.
+  **Y no hay nada que arreglar hacia atrás**, porque no hay nada atrás: David confirmó
+  el 18 de agosto que **ningún conjunto de producción es real** — los nueve son pruebas.
+  Así que el primer conjunto que nazca será también el primero con vendedor.
+- **Deuda latente, sin urgencia hoy:** `vendedorId` solo se escribe al nacer el conjunto
+  y **no existe ruta de edición**. Con cero conjuntos reales eso no duele; en cuanto haya
+  uno vendido y estampado con la persona equivocada, sí. Conviene resolverlo antes del
+  primer cliente, no después.
 
 #### `FIN-000` — Storage con filtro de rol
 
@@ -425,9 +428,11 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   tomar hoy.
 - **Criterio de salida:** dataset productivo suficiente para evaluar calidad,
   seguridad, latencia, costo y utilidad humana.
-- **Evidencia (17 ago 2026):** producción tiene 9 conjuntos, **7 marcados
-  `isExample`**. Los dos reales tienen **0 tickets**. La sombra está armada y
-  acumulando cero.
+- **Evidencia (corregida el 18 ago 2026):** producción tiene 9 conjuntos y **ninguno es
+  real**. Siete están marcados `isExample` y los otros dos también son pruebas —lo
+  confirmó David—, así que la lectura anterior («los dos reales tienen 0 tickets») era
+  optimista de más: no es que los clientes reales no generen tickets, es que **no hay
+  clientes**. La sombra está armada y acumulando cero, y seguirá así hasta el nivel 0.
 
 #### `SUP-001` — Operación básica de soporte
 
@@ -769,6 +774,40 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.1 — 18 de agosto de 2026, noche
+
+**Por qué: una corrección de hecho que David dio al revisar, y que invalida algo que
+este documento repetía desde la 0.2.** No hay dos conjuntos reales en producción.
+**No hay ninguno.** Los nueve son pruebas; siete llevaban la marca `isExample` y los
+otros dos no, y de ahí salió la lectura equivocada — se dedujo «real» de «no marcado
+como ejemplo», que no es lo mismo.
+
+**Qué cambia, y es más de lo que parece:**
+
+- **`AI-DATA-001` empeora su diagnóstico y mejora su claridad.** Decía que los dos
+  conjuntos reales tenían cero tickets, lo que sugiere clientes callados. La verdad es
+  más simple y más dura: **no hay clientes**. El bloqueo por datos no es de volumen, es
+  de existencia.
+- **`REVOPS-001E` pierde una deuda que creía tener.** La 0.9 anotaba que «los dos
+  conjuntos reales se quedaron sin vendedor y no se puede arreglar desde la consola».
+  **No hay nada que reatribuir.** Queda la deuda latente —no existe ruta de edición de
+  `vendedorId`— pero sin urgencia: conviene resolverla antes del primer cliente, no
+  ahora.
+- **La línea base es cero en todas partes, sin matices.** Cero leads reales, cero
+  conjuntos reales, cero tickets, cero comprobantes, cero conversiones. Eso refuerza el
+  nivel 0 en lugar de debilitarlo: `REVOPS-000` no compite con nada.
+
+**La lección de método, que ya ha aparecido dos veces esta semana:** `isExample` es una
+marca que alguien pone a mano, y su ausencia **no es evidencia de lo contrario**.
+Deducir «real» de «no marcado» es lo mismo que la 0.5 hizo al leer «cero leads» como
+«cero demanda». Cuando el dato que importa es «esto es de verdad», hay que preguntarle a
+quien lo sabe.
+
+**Y llegó la ficha técnica de Albert**, que responde los cinco insumos que la 0.9 dejó
+pedidos y corrige dos supuestos del PRD: «convertido» no vive en la colección `leads`
+sino en el pipeline de deals (`Ganado`), y `crmRef` no puede ser un identificador plano
+porque un deal vive bajo `tenants/{tenantId}/deals/{dealId}`. Detalle en el PRD 0.3.
 
 ### 0.9 — 18 de agosto de 2026, tarde
 

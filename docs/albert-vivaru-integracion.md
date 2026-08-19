@@ -155,7 +155,7 @@ ciertas.** Pero omite la simetría:
 | | Albert | Vivaru |
 |---|---|---|
 | Tenants | 3, todos de prueba | 9, **7 marcados como ejemplo** |
-| Adopción | **0%** en los tres | Los 2 reales, sin actividad |
+| Adopción | **0%** en los tres | **0%** — corregido el 18 ago: los 9 conjuntos son pruebas, ninguno es real |
 | Última actividad | abril · junio · agosto | 1 comunicación de marzo |
 | Planes | 4, con límites y **sin precio** | `plans` vacía; precio **decidido fuera del producto** |
 
