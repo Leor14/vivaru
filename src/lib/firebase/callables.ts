@@ -541,6 +541,9 @@ export async function updateSupportTicketStatusCallable(input: {
   ticketId: string;
   status?: string;
   priority?: string;
+  /** SUP-001. `null` desasigna; omitirlo deja la asignación como esté. */
+  assignedTo?: string | null;
+  assignedToName?: string;
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { ok: true }>(functions, "updateSupportTicketStatus");

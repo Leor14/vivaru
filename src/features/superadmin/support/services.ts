@@ -33,7 +33,13 @@ function assertDb() {
  */
 export async function updateSupportTicket(
   ticketId: string,
-  updates: { status?: string; priority?: string },
+  updates: {
+    status?: string;
+    priority?: string;
+    /** SUP-001. `null` desasigna; omitirlo no toca la asignación. */
+    assignedTo?: string | null;
+    assignedToName?: string;
+  },
 ): Promise<void> {
   await updateSupportTicketStatusCallable({ ticketId, ...updates });
 }

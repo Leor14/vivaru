@@ -28,6 +28,8 @@ export {
   SUPPORT_STATUSES,
   canReopen,
   daysSinceActivity,
+  esperaPrimeraRespuesta,
+  horasHastaPrimeraRespuesta,
   isSupportPending,
 } from "@/features/support/types";
 

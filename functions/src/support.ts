@@ -1,5 +1,6 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { getAuth } from "firebase-admin/auth";
 import { HttpsError } from "firebase-functions/v2/https";
 import { randomUUID } from "node:crypto";
 
@@ -144,6 +145,11 @@ type TicketDoc = {
   subject?: string;
   status?: string;
   resolvedAt?: string;
+  /** SUP-001. Espejo en `src/features/support/types.ts`. */
+  assignedTo?: string;
+  assignedToName?: string;
+  assignedAt?: string;
+  firstResponseAt?: string;
 };
 
 function text(value: unknown, max: number, field: string): string {
@@ -310,6 +316,39 @@ export async function createSupportTicket(
 
 // ── Respuestas ──────────────────────────────────────────────────────────────
 
+/**
+ * `SUP-001` — qué marcas deja una respuesta. Función pura y exportada para
+ * poder probarla sin emulador: es la parte del módulo que, si se equivoca,
+ * destruye un dato que no se reconstruye.
+ *
+ * Dos reglas, y las dos son de idempotencia:
+ *
+ * 1. **`firstResponseAt` se escribe una sola vez.** Sobrescribirlo en cada
+ *    respuesta haría que todos los tickets parecieran contestados al instante
+ *    — la métrica marcaría siempre el último mensaje, no el primero.
+ * 2. **La asignación automática no roba tickets.** Si ya hay responsable no se
+ *    toca: puede habérselo asignado otra persona a propósito, y responder en
+ *    un hilo ajeno no debería cambiar de quién es.
+ *
+ * Y ninguna de las dos aplica cuando escribe el cliente: que el cliente
+ * conteste no es que Vivaru haya respondido.
+ */
+export function marcasSup001(
+  actual: Pick<TicketDoc, "firstResponseAt" | "assignedTo">,
+  ctx: { esVivaru: boolean; uid: string; autorNombre: string; nowIso: string },
+): Record<string, unknown> {
+  if (!ctx.esVivaru) return {};
+
+  const marcas: Record<string, unknown> = {};
+  if (!actual.firstResponseAt) marcas.firstResponseAt = ctx.nowIso;
+  if (!actual.assignedTo) {
+    marcas.assignedTo = ctx.uid;
+    marcas.assignedToName = ctx.autorNombre;
+    marcas.assignedAt = ctx.nowIso;
+  }
+  return marcas;
+}
+
 export async function replySupportTicket(
   input: { ticketId: string; message: string; attachments?: AttachmentInput[] },
   uid: string,
@@ -345,6 +384,8 @@ export async function replySupportTicket(
   // a nuestra cola. Es lo que hace que «pendiente» sea un número accionable.
   const nuevoEstado = esVivaru ? "esperando_respuesta" : "en_proceso";
 
+  const sup001 = marcasSup001(data, { esVivaru, uid, autorNombre, nowIso });
+
   await ref.update({
     // arrayUnion garantiza append: nada se edita ni se borra.
     thread: FieldValue.arrayUnion({
@@ -359,6 +400,7 @@ export async function replySupportTicket(
     status: nuevoEstado,
     lastActivityAt: nowIso,
     updatedAt: Timestamp.now(),
+    ...sup001,
   });
 
   if (esVivaru) {
@@ -386,7 +428,14 @@ export async function replySupportTicket(
 // ── Cambio de estado y prioridad ────────────────────────────────────────────
 
 export async function updateSupportTicket(
-  input: { ticketId: string; status?: string; priority?: string },
+  input: {
+    ticketId: string;
+    status?: string;
+    priority?: string;
+    /** SUP-001. `null` desasigna; ausente no toca la asignación. */
+    assignedTo?: string | null;
+    assignedToName?: string;
+  },
   uid: string,
   role: unknown,
 ): Promise<{ ok: true }> {
@@ -413,6 +462,36 @@ export async function updateSupportTicket(
     patch.status = input.status;
     if (input.status === "resuelto") patch.resolvedAt = nowIso;
     if (input.status === CLOSED) patch.closedAt = nowIso;
+  }
+
+  // SUP-001 · asignación explícita. Se distingue «no viene» de «viene null»:
+  // lo primero deja la asignación como esté (este update iba de otra cosa) y
+  // lo segundo la retira a propósito. Con `undefined` en ambos casos no habría
+  // forma de desasignar.
+  if (input.assignedTo !== undefined) {
+    if (input.assignedTo === null || input.assignedTo === "") {
+      patch.assignedTo = FieldValue.delete();
+      patch.assignedToName = FieldValue.delete();
+      patch.assignedAt = FieldValue.delete();
+    } else {
+      // Solo se asigna a alguien de Vivaru: el soporte lo opera Vivaru, y un
+      // ticket asignado a un administrador de conjunto no significaría nada.
+      const destino = await getAuth()
+        .getUser(input.assignedTo)
+        .catch(() => null);
+      if (!destino) throw new HttpsError("not-found", "Esa persona no existe.");
+      if (destino.customClaims?.role !== "superadmin") {
+        throw new HttpsError("failed-precondition", "Solo se puede asignar a alguien de Vivaru.");
+      }
+      patch.assignedTo = input.assignedTo;
+      // El nombre que manda el cliente es solo comodidad para pintar; si no
+      // viene o viene vacío, la fuente fiable es la propia cuenta.
+      const nombreEnviado =
+        typeof input.assignedToName === "string" ? input.assignedToName.trim().slice(0, 120) : "";
+      patch.assignedToName =
+        nombreEnviado || destino.displayName || destino.email || "Equipo Vivaru";
+      patch.assignedAt = nowIso;
+    }
   }
 
   await ref.update(patch);

@@ -19,6 +19,8 @@ import {
   SUPPORT_STATUSES,
   addInternalNote,
   daysSinceActivity,
+  esperaPrimeraRespuesta,
+  horasHastaPrimeraRespuesta,
   isSupportPending,
   normalizeSupportCategory,
   normalizeSupportPriority,
@@ -30,6 +32,7 @@ import {
   type SupportTicket,
 } from "@/features/superadmin/support";
 import { uploadSupportAttachments } from "@/features/support/upload";
+import { useAuth } from "@/features/auth/auth-context";
 import { useSupportTickets } from "@/features/superadmin/support/use-support";
 import { db } from "@/lib/firebase/client";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -93,6 +96,7 @@ function useInternalNotes(ticketId: string | undefined) {
 }
 
 export default function SuperadminSupportPage() {
+  const { user } = useAuth();
   const [tenantSearch, setTenantSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -190,6 +194,30 @@ export default function SuperadminSupportPage() {
     }
   }
 
+  /**
+   * SUP-001 · asignación. La consola ofrece quedárselo o soltarlo, que es lo
+   * que necesita un equipo pequeño: para reasignar, la otra persona lo reclama.
+   * La callable acepta cualquier uid de Vivaru, así que un selector completo
+   * cabe después sin tocar el servidor.
+   */
+  async function asignar(a: "yo" | "nadie") {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      await updateSupportTicket(
+        selected.id,
+        a === "yo"
+          ? { assignedTo: user?.uid, assignedToName: user?.fullName }
+          : { assignedTo: null },
+      );
+      toast.success(a === "yo" ? "Te asignaste el ticket." : "Ticket sin responsable.");
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function guardarNota() {
     if (!selected || note.trim().length < 2) return;
     setSaving(true);
@@ -237,6 +265,55 @@ export default function SuperadminSupportPage() {
       key: "status",
       header: "Estado",
       render: (t) => <Badge className={STATUS_TONE[t.status]}>{SUPPORT_STATUSES[t.status]}</Badge>,
+    },
+    {
+      key: "assignedTo",
+      header: "Responsable",
+      // SUP-001. «Sin asignar» solo alarma si el ticket espera acción nuestra:
+      // uno resuelto o esperando al cliente sin dueño no es una omisión.
+      render: (t) => {
+        if (t.assignedToName) {
+          return <span className="text-xs text-[var(--slate-700)]">{t.assignedToName}</span>;
+        }
+        const urge = isSupportPending(t.status);
+        return (
+          <span
+            className={cn(
+              "text-xs",
+              urge ? "font-medium text-[var(--danger-700)]" : "text-[var(--slate-500)]",
+            )}
+          >
+            Sin asignar
+          </span>
+        );
+      },
+      mobileHidden: true,
+    },
+    {
+      key: "primeraRespuesta",
+      header: "1ª respuesta",
+      // Tres estados distintos y conviene no confundirlos: contestado (horas),
+      // esperando contestación (rojo), y sin dato porque el ticket es anterior
+      // a SUP-001 — ese guion no significa que nadie respondiera.
+      render: (t) => {
+        const horas = horasHastaPrimeraRespuesta(t);
+        if (horas !== null) {
+          return (
+            <span className="text-xs text-[var(--slate-600)]">
+              {horas < 1 ? "< 1 h" : `${horas} h`}
+            </span>
+          );
+        }
+        if (esperaPrimeraRespuesta(t)) {
+          return <span className="text-xs font-medium text-[var(--danger-700)]">Sin responder</span>;
+        }
+        return (
+          <span className="text-xs text-[var(--slate-400)]" title="Ticket anterior a esta métrica">
+            —
+          </span>
+        );
+      },
+      mobileHidden: true,
     },
     {
       key: "antiguedad",
@@ -375,6 +452,43 @@ export default function SuperadminSupportPage() {
         footer={
           selected && selected.status !== "cerrado" ? (
             <div className="space-y-3">
+              {/* SUP-001 · responsable. Va arriba del todo porque es la
+                  pregunta que se hace quien abre el ticket: ¿es mío esto? */}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2">
+                <span className="text-xs text-[var(--slate-700)]">
+                  {selected.assignedToName ? (
+                    <>
+                      Responsable:{" "}
+                      <strong className="text-[var(--slate-900)]">{selected.assignedToName}</strong>
+                    </>
+                  ) : (
+                    <span className="font-medium text-[var(--danger-700)]">Sin responsable</span>
+                  )}
+                </span>
+                <span className="flex gap-2">
+                  {selected.assignedTo !== user?.uid ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={saving || !user?.uid}
+                      onClick={() => void asignar("yo")}
+                    >
+                      Asignármelo
+                    </Button>
+                  ) : null}
+                  {selected.assignedTo ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={saving}
+                      onClick={() => void asignar("nadie")}
+                    >
+                      Quitar
+                    </Button>
+                  ) : null}
+                </span>
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs text-[var(--slate-700)]">
                   Estado
