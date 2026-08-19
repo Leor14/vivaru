@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.1 |
+| **Versión** | 0.9.2 |
 | **Fecha** | 18 de agosto de 2026, noche |
-| **Estado** | **Nivel 1 COMPLETO y desplegado en producción** — las cuatro fichas construidas, probadas y en `master` |
+| **Estado** | **Nivel 1 desplegado y `REVOPS-000` hecho** — el nivel 0 deja de estar sin empezar, y su respuesta corrige quién está vendiendo |
 | **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -255,11 +255,23 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `REVOPS-000` — Instrumentar el canal que ya está corriendo
 
-- **Frente:** REVOPS · **Estado:** No empezado · **Nivel 0** · **No es trabajo de ingeniería**
-- **El canal está dotado, y eso lo cambia todo respecto a la 0.5.** Hay **dos KAM**
-  —México y Colombia— y **tres socios de Qintilab** atendiendo en directo: David en
-  México, Jaime en Colombia y David en Ecuador. **Cinco personas, tres países.** La
-  función comercial no hay que crearla.
+- **Frente:** REVOPS · **Estado:** ✅ **Su pregunta está contestada** (18 ago 2026) ·
+  **Nivel 0** · **No es trabajo de ingeniería**
+- **Y la respuesta corrige la premisa que esta ficha traía desde la 0.6.** No son cinco
+  personas vendiendo Vivaru. Son **una prospectando y un acercamiento suelto**:
+
+| Persona | Qué hace hoy con Vivaru |
+|---|---|
+| **Daniel Aguilar** (KAM) | El único prospectando. Lista **fría**, ~6-7 nombres, **nada concreto** |
+| **David Almeida** | **Un** acercamiento, por definir a corto plazo |
+| **David Martínez** | No vende: acompaña a Daniel y habilita el producto |
+| **Jaime** | No — enfocado en otras soluciones de Qintilab |
+| **Luis Otero** | No |
+
+- **La función comercial existe, pero está mucho menos dotada de lo que este documento
+  afirmaba.** «Cinco personas, tres países» describía el catálogo de quiénes *podrían*
+  vender, no de quiénes están vendiendo. El error es del mismo tipo que los otros dos de
+  esta semana: se dio por hecho un dato de negocio sin preguntárselo a quien lo sabe.
 - **Hay dos embudos y solo uno tiene medidor.** La colección `leads` mide el landing y
   `/registro`. **Un KAM no rellena un formulario web.** Así que lo verificado es que la
   entrada por autoservicio es **cero** —16 días con la máquina pública—; sobre el canal
@@ -280,13 +292,31 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
     `tenantId` de vuelta sobre el lead—. El que falta es el eslabón anterior:
     **KAM → lead**. Y `createdBy` en un conjunto guarda **el superadmin que pulsó el
     botón**, no quién lo vendió.
-- **Qué hacer, y sigue sin ser código:**
-  1. **Preguntar a los cinco qué tienen en marcha.** Ahí está la línea base que tres
-     documentos venían pidiendo por separado — no en Firestore, en cinco cabezas.
-  2. **Revisar el buzón** buscando solicitudes anteriores a la persistencia de leads.
-  3. **Decidir dónde vive ese recorrido**, que es lo que reabre el paso cero de Albert.
-- **Criterio de salida:** existe un recuento escrito de oportunidades reales por país y
-  por persona, y una decisión sobre dónde se registra a partir de ahora.
+- **La línea base, por fin escrita (18 ago 2026):** ~6-7 prospectos **en frío** de
+  Daniel, **1** acercamiento de David Almeida, **cero** conversaciones maduras y **cero
+  firmados**. Nadie ha llegado nunca a «firmó», así que el recorrido posterior a la
+  primera conversación **no se puede observar, solo suponer**.
+- **Cómo llegan:** mayoritariamente **conocidos**. Se aspira a referidos; la puerta fría
+  es lo que hay hoy. El inbound no va ligado a los ejecutivos.
+- **Dónde se anota hoy:** un **documento de Word** para consolidar y **WhatsApp** para
+  avisar. **Sin institucionalizar.** Es el mejor escenario posible para adoptar una
+  herramienta: hay hábito de registrar, falta dónde.
+- **Y una regla de negocio que salió de aquí y no la había pedido nadie:** la lista fría
+  **no entra al CRM**. En palabras de David, «no queremos que eso radique como un
+  compromiso dentro del CRM hasta no tener los datos correctos». Eso **define la puerta
+  de entrada al pipeline** — se entra con conversación e interés declarado, no con un
+  nombre— y quedó escrito en el PRD de Albert (§5.3).
+- **Motivos de pérdida, en sus palabras:** *distanciamiento* (dejan de contestar) y
+  *enganche con el proveedor actual* — más barato, sacrificando calidad, y con costo de
+  cambio. **Ojo al matiz: eso no es «precio», es costo de cambio**, y conviene contarlos
+  por separado.
+- **Lo que sigue sin dato:** qué necesita ver un comercial de un conjunto que ya vendió.
+  No hay experiencia todavía; se propone una hipótesis en el PRD y se corrige con el
+  primer cliente.
+- **Criterio de salida: cumplido en su primera mitad.** Existe el recuento escrito por
+  persona, y la decisión de dónde se registra a partir de ahora está tomada — Albert,
+  con Vivaru como tenant. **Queda abierto** revisar el buzón `comercial@qintilab.com`
+  por si hay solicitudes anteriores a la persistencia de leads.
 
 #### `REVOPS-001A` — Atribución del lead y respuesta inmediata
 
@@ -323,8 +353,10 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 #### `REVOPS-001E` — Propiedad comercial del lead y del conjunto
 
 - **Frente:** REVOPS · **Estado:** ✅ **Desplegado en producción** (`6207fa7`, 18 ago 2026) · **Nivel 1** · **Nace en la 0.6**
-- **El problema que cerró:** con cinco personas vendiendo en tres países, **nada en el
-  producto registraba de quién es cada lead ni quién vendió cada conjunto**. El lead
+- **El problema que cerró:** **nada en el producto registraba de quién es cada lead ni
+  quién vendió cada conjunto**. (La 0.6 justificaba esto con «cinco personas vendiendo
+  en tres países»; la cifra resultó falsa —ver `REVOPS-000`— pero **el problema no**:
+  basta una venta para que la comisión tenga dueño, y ese dato no se reconstruye.) El lead
   tenía estado y no dueño; el conjunto guardaba `createdBy`, que es el superadmin que
   ejecutó la conversión.
 - **Lo construido:** colección global `salesReps` (nombre, correo, país, activo,
@@ -774,6 +806,49 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.2 — 18 de agosto de 2026, noche
+
+**Por qué: se hizo `REVOPS-000`.** Era el nivel 0, llevaba tres revisiones sin empezar y
+bloqueaba el PRD de Albert. Su respuesta **corrige la premisa sobre la que este
+documento razona desde la 0.6**.
+
+**No son cinco personas vendiendo en tres países.** Es **una prospectando en frío**
+—Daniel Aguilar, ~6-7 nombres, nada concreto— y **un acercamiento suelto** de David
+Almeida. Jaime y Luis Otero no venden Vivaru; David Martínez acompaña y habilita el
+producto. **Cero conversaciones maduras y cero firmados.**
+
+**Qué cambia y qué no.** `REVOPS-001E` sigue siendo correcto —basta una venta para que
+la comisión tenga dueño, y ese dato no se reconstruye— pero **la urgencia con la que este
+documento lo vendió estaba inflada**: no había cinco comisiones en riesgo, había una
+lista fría. El trabajo ya está hecho, desplegado y costó poco, así que no hay daño; lo
+que hay es una lección repetida.
+
+**Y es la tercera del mismo tipo esta semana**, lo que la convierte en patrón y no en
+casualidad: la 0.5 dedujo «cero demanda» de «cero leads»; la 0.9.1 dedujo «conjunto real»
+de «no marcado `isExample`»; y esta dedujo «cinco vendiendo» de «cinco en el catálogo».
+**Las tres veces se infirió un hecho de negocio a partir de un dato técnico, sin
+preguntárselo a quien lo sabía.** El coste de preguntar es una conversación; el de no
+preguntar fueron tres correcciones.
+
+**Lo que la conversación aportó, además de la cifra:**
+
+- **Dónde anotan hoy:** Word para consolidar y WhatsApp para avisar, sin
+  institucionalizar. Es el mejor escenario para adoptar herramienta: hay hábito de
+  registrar, falta dónde.
+- **Una regla de negocio que nadie había pedido:** la lista fría **no entra al CRM**.
+  Define la puerta de entrada al pipeline —conversación e interés, no un nombre— y con
+  eso el pipeline mide **oportunidades, no esfuerzo**.
+- **Motivos de pérdida en sus palabras:** distanciamiento, y enganche con el proveedor
+  actual por precio con costo de cambio. Se separan en el PRD porque son aprendizajes
+  opuestos.
+- **Lo que sigue sin dato:** el recorrido entre «hablé» y «firmó», porque **nadie ha
+  firmado**. En el PRD va como hipótesis marcada, no como hecho.
+
+**El PRD de Albert sube a 0.4** con el §5 completo, dos puertas más (G4 y G5) y una
+etapa que solo puede existir aquí: **«en prueba»**, apoyada en la activación que el
+producto ya calcula —7 pasos en la prueba, 10 en un cliente—. Es la única etapa del
+pipeline que no depende de la opinión del comercial.
 
 ### 0.9.1 — 18 de agosto de 2026, noche
 

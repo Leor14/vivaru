@@ -11,10 +11,10 @@
 | **Tipo** | `OPS` — operación comercial; el usuario es interno |
 | **Superficie** | Consola de Albert, **dentro del tenant `vivaru`** — decidido el 18 ago 2026 (§0.3) |
 | **Portales de Vivaru** | **`SUPERADMIN`** — afectado, no alcance: la bandeja de Leads y Comerciales ya existen y se operan en paralelo. `ADMIN`, `RESIDENTE` y `PORTERIA` no se tocan |
-| **Usuario principal** | Los cinco comerciales (2 KAM + 3 socios) y quien opere la consola Superadmin de Vivaru |
+| **Usuario principal** | **Daniel Aguilar** (KAM, el único prospectando) y **David Almeida**. Los otros tres del catálogo no venden Vivaru hoy — ver §5.3. Más quien opere la consola Superadmin de Vivaru |
 | **Responsable** | David (Vivaru) redacta y acepta · equipo de Albert construye |
-| **Estado** | **Borrador 0.3 — NO lista para desarrollo.** La bisagra está cerrada y los insumos técnicos llegaron; sigue faltando §5 completo (`REVOPS-000`) |
-| **Dependencias** | `REVOPS-001E` ✅ construido y **desplegado** (`6207fa7`, 18 ago) · catálogo `salesReps` ✅ **poblado con los cinco** (18 ago) · `REVOPS-000` ⏳ sin empezar · dos `TBD` de Albert y una decisión de negocio (§0) |
+| **Estado** | **Borrador 0.4 — casi lista.** Bisagra cerrada, insumos técnicos recibidos y `REVOPS-000` hecho. Lo que queda es que el §5.3 es en parte hipótesis, y se corrige con el primer cliente |
+| **Dependencias** | `REVOPS-001E` ✅ desplegado · catálogo `salesReps` ✅ poblado · `REVOPS-000` ✅ **hecho el 18 ago** · bisagra ✅ decidida · `REVOPS-001B` (evento de activación) para automatizar la etapa «en prueba» |
 | **Riesgo** | **Alto** — corregido en la 0.2. El lead lleva **datos personales de un prospecto** (nombre, correo, teléfono) y su consentimiento se recoge en Vivaru bajo la Ley 1581 y la LFPDPPP. Empujarlos a otro sistema es un tratamiento, no una copia técnica |
 | **Reversibilidad** | Alta para la vista; **no para los datos empujados** — ver §13, retención y supresión |
 
@@ -129,9 +129,15 @@ y que la comisión de cada conjunto sea atribuible sin arqueología.
 
 ## 3 · Usuarios, roles y permisos
 
-Los cinco comerciales **no tienen cuenta en Vivaru y no la van a tener** — decisión
-cerrada de `REVOPS-001E`: sin cuentas, sin portal, sin tocar autenticación. Sus
-cuentas viven en Albert.
+Los comerciales **no tienen cuenta en Vivaru y no la van a tener** — decisión cerrada de
+`REVOPS-001E`: sin cuentas, sin portal, sin tocar autenticación. Sus cuentas viven en
+Albert, en el tenant `vivaru`.
+
+**Cuántos son de verdad:** el catálogo `salesReps` tiene cinco dados de alta, pero
+`REVOPS-000` reveló que **solo uno prospecta** (Daniel Aguilar) y otro tiene un
+acercamiento (David Almeida). Los otros tres están en el catálogo porque podrían vender,
+no porque estén vendiendo — el campo `activo` sirve justo para eso. **La vista se diseña
+para uno o dos usuarios concurrentes, no para cinco.**
 
 | Rol (en Albert) | Ve | Puede | Prohibido |
 |---|---|---|---|
@@ -207,14 +213,89 @@ siguiente—, pero se deja escrito el contrato para que la vista no se diseñe d
 a él: `{ crmRef, tenantId, dealId, amount, contactId, closedAt }`, detectando el estado
 ganado **contra la configuración de etapas del tenant** (§6.1), no contra el literal.
 
-### 5.3 · Canal asistido — `TBD-REVOPS-000`
+### 5.3 · Canal asistido — lo observado y lo supuesto, separados
 
-**Esta mitad se llena con la conversación con los cinco, no antes.** Lo que debe salir
-de ahí, como mínimo: qué pasa en «contactado» (¿llamada, visita, WhatsApp?), cuánto vive
-un lead sin tocar antes de considerarse frío, y **quién decide «perdido» y con qué
-motivos** — la lista de motivos tiene que ser la suya, no una inventada aquí. El criterio
-de salida de `REVOPS-000` —un recuento escrito de oportunidades reales por país y
-persona— es la materia prima de esta sección.
+`REVOPS-000` se hizo el 18 de agosto de 2026. **Parte de esta sección son hechos y parte
+es hipótesis, y van marcados**, porque tratarlos igual es cómo se acaba construyendo un
+CRM imaginado.
+
+#### Hechos [V]
+
+- **Quién vende, de verdad:** Daniel Aguilar prospectando en frío (~6-7 nombres) y un
+  acercamiento de David Almeida. Los otros tres no venden Vivaru. **Cero firmados.**
+- **Cómo llegan:** mayoritariamente **conocidos**. Se aspira a referidos; la puerta fría
+  es lo que hay. El inbound no pasa por los ejecutivos.
+- **Dónde se anota hoy:** Word para consolidar, WhatsApp para avisar. Sin institucionalizar.
+- **Motivos de pérdida, en sus palabras:** *distanciamiento* (dejan de contestar, no hay
+  respuesta clara) y *enganche con el proveedor actual* — más barato, sacrificando
+  calidad, y con **costo de cambio** que los frena.
+
+#### La regla que decidió David, y es de negocio [V]
+
+> **La lista fría NO entra al CRM.** «No queremos que eso radique como un compromiso
+> dentro del CRM hasta no tener los datos correctos.»
+
+**Eso define la puerta de entrada al pipeline**, que es la decisión más importante de
+esta sección: se entra con **conversación e interés declarado**, no con un nombre. La
+prospección en frío sigue viviendo donde vive hoy —Word— hasta que produzca una
+conversación. Consecuencia directa: **el pipeline mide oportunidades, no esfuerzo**, y
+el número de deals abiertos significa algo desde el primer día.
+
+#### El recorrido — **HIPÓTESIS**, a corregir con el primer cliente [S]
+
+**Nadie ha firmado nunca**, así que estos pasos no se observaron: se proponen. Van
+marcados `[S]` de supuesto, y la regla de esta PRD es que **se corrigen en cuanto Daniel
+cierre el primero** — no se defienden.
+
+```
+(prospección en frío — fuera del CRM, en Word)
+        │  hay conversación e interés declarado
+        ▼
+   contactado ──→ calificado ──→ en prueba ──→ convertido
+        └──────────────┴─────────────┴───────→ perdido (con motivo)
+```
+
+| Etapa | Qué la define | Por qué esta y no otra |
+|---|---|---|
+| **contactado** | Hubo conversación e interés | Es la puerta que fijó David |
+| **calificado** | Se sabe **cuántas unidades**, **quién decide** y **cuándo** | Son los tres datos que el precio necesita: la guía maestra tarifa por unidad y por país |
+| **en prueba** | Se le abrió la prueba de 15 días | **Es la etapa que hace esto de Vivaru** — ver abajo |
+| **convertido** | La prueba pasó a cliente | Terminal-ganado (§6.1) |
+| **perdido** | Con motivo obligatorio | Terminal, y el motivo es el aprendizaje |
+
+**Por qué «en prueba» merece ser una etapa y no una nota.** El producto ya tiene una
+prueba de 15 días y **una definición de activación calculada** —7 pasos durante la
+prueba, 10 en un cliente— que ya se ve en la consola de Superadmin. Eso convierte esa
+etapa en la única del pipeline que **no depende de la opinión del comercial**: no es
+«creo que va bien», es «activó 7 de 7 y le quedan 4 días». Un CRM genérico no puede
+tener esa etapa; este sí, y es exactamente lo que significa «Albert se adapta a Vivaru».
+
+> ◆ Emitir esa señal es `REVOPS-001B` («la regla ya existe, falta el evento»). Mientras
+> no exista, la etapa se mueve a mano — pero la etapa debe existir desde el principio,
+> porque cambiar un pipeline con datos dentro cuesta mucho más que definirlo bien.
+
+#### Motivos de pérdida — lista cerrada
+
+Sale de sus palabras, con un desdoblamiento deliberado:
+
+| Motivo | Cuándo |
+|---|---|
+| `sin_respuesta` | Distanciamiento: dejaron de contestar |
+| `proveedor_actual` | Están enganchados con otro proveedor y **cambiar les cuesta** |
+| `precio` | El nuestro no encaja, sin proveedor de por medio |
+| `momento` | Interés real, pero no ahora |
+| `otro` | **Texto obligatorio** |
+
+**`proveedor_actual` y `precio` van separados a propósito.** David los describió juntos,
+pero son aprendizajes distintos: uno dice que nuestro precio está mal y el otro que el
+costo de cambio pesa más que la diferencia de precio. Colapsarlos haría parecer un
+problema de tarifa lo que es un problema de migración — y se atacan de formas opuestas.
+
+#### Lo que sigue sin dato
+
+**Qué necesita ver un comercial de un conjunto que ya vendió.** No hay experiencia; se
+propone el mínimo que el producto ya sabe —si la prueba activó, si está pagando, cuántas
+unidades— y se corrige con el primer cliente real. `[S]`
 
 ## 6 · Estados y transiciones
 
@@ -374,7 +455,7 @@ definirlo con cien leads dentro, sí.
    válida en los leads nacidos en Albert (§7.1) y **no** lo es en los empujados.
 5. Ninguna acción de la vista borra un lead; retirar es `perdido` con motivo.
 
-## 9 · Criterios de aceptación (borrador — se completan con §5)
+## 9 · Criterios de aceptación
 
 - [ ] Un comercial abre la vista y ve leads de Vivaru con estado y dueño.
 - [ ] Cambiar un estado deja rastro: quién y cuándo.
@@ -389,6 +470,16 @@ definirlo con cien leads dentro, sí.
 - [ ] Una escritura hacia Albert **sin credencial válida falla** (§12.1).
 - [ ] Un lead empujado llega con la versión de política y la fecha de consentimiento
       que Vivaru registró (§13).
+- [ ] La etapa **«en prueba»** existe en el pipeline del tenant `vivaru` y se puede
+      alcanzar desde «calificado» (§5.3).
+- [ ] Marcar `perdido` **exige elegir motivo de la lista cerrada**, y `otro` **sin texto
+      falla** (§5.3).
+- [ ] La conversión se detecta **contra la configuración de etapas del tenant**, no
+      contra el literal `"Ganado"`: renombrar la etapa terminal **no rompe** la
+      detección (§6.1).
+- [ ] Un lead que entra al pipeline **sin conversación previa** —una importación de la
+      lista fría— **no es un caso soportado**: la puerta de entrada es conversación e
+      interés (§5.3).
 
 ## 10 · Notificaciones
 
@@ -488,8 +579,8 @@ teléfono— recogidos bajo un consentimiento que Vivaru pide de forma expresa d
 ## 14 · Despliegue y operación
 
 - El despliegue es **en Albert**; Vivaru no despliega nada para este PRD.
-- **Quién opera esto a diario (G5):** los cinco comerciales en Albert; en Vivaru, el
-  superadmin que ya opera la bandeja. La anotación manual de `crmRef` es operación
+- **Quién opera esto a diario (G5):** **Daniel Aguilar**, que es quien prospecta; David
+  Almeida de forma ocasional; y en Vivaru, el superadmin que ya opera la bandeja. La anotación manual de `crmRef` es operación
   diaria **hasta** la señal de vuelta — si eso dura más de un trimestre, la señal de
   vuelta sube de prioridad.
 - Rollback: retirar la vista no pierde datos de Vivaru — Vivaru es la fuente de su
@@ -503,9 +594,9 @@ teléfono— recogidos bajo un consentimiento que Vivaru pide de forma expresa d
 | G1 Valor | ✅ Baseline cero y métrica declarada (§2) |
 | G2 Datos y permisos | ✅ **Sube en la 0.3.** La mitad de Vivaru desplegada y el catálogo poblado; la de Albert resuelta por la bisagra —tenant, con su RBAC— y el contrato de identidad reescrito contra el modelo real (§7.3) |
 | G3 Riesgo | ◐ **Sigue abajo, y mejora sin cerrarse.** El cruce solo al asignar (§5.1) reduce mucho el dato personal replicado, pero **el mecanismo de supresión en Albert sigue `TBD`** (§13): reducir no es revertir |
-| G4 Aceptación | ◐ Mejor que en la 0.2 — §5.1 y §5.2 dan criterios verificables; falta §5.3 |
-| G5 Operación | ◐ Declarada, pendiente de validar con los cinco |
-| G6 Escala | ✅ Cinco personas y decenas de leads: el volumen no es el riesgo aquí |
+| G4 Aceptación | ✅ **Sube en la 0.4.** §5 completo — los criterios cubren el camino de inbound, el del canal asistido y los que deben fallar |
+| G5 Operación | ✅ **Sube en la 0.4.** Sabemos quién opera esto: Daniel a diario, David Almeida ocasional, y el superadmin en la bandeja de Vivaru. Ya no es una suposición |
+| G6 Escala | ✅ **Y el volumen real es aún menor de lo que decía la 0.1**: ~7 prospectos en frío y 1 acercamiento, no «decenas de leads». Refuerza construir lo mínimo |
 
 **G2 sube porque se resolvió, no porque el documento crezca.** Y **G3 sigue abajo a
 propósito**: el cruce solo al asignar reduce el daño, pero reducir no es revertir.
@@ -515,6 +606,43 @@ exactamente la pregunta que G3 hace.
 ---
 
 ## Changelog
+
+### 0.4 — 18 de agosto de 2026 (noche, tras `REVOPS-000`)
+
+**Por qué:** se hizo `REVOPS-000` — la conversación que este documento llevaba tres
+versiones esperando. **Suben dos puertas (G4, G5) y el §5 queda completo.** Y corrige la
+premisa sobre la que se escribió todo lo anterior.
+
+**No son cinco personas vendiendo.** Es **una prospectando en frío** (Daniel Aguilar,
+~6-7 nombres, nada concreto) y **un acercamiento suelto** (David Almeida). Jaime y Luis
+Otero no venden Vivaru; David Martínez acompaña y habilita el producto. **Cero
+firmados.** «Cinco personas, tres países» describía quiénes *podrían* vender, no quiénes
+están vendiendo — y este PRD dimensionaba su usuario a partir de esa cifra.
+
+**La regla que salió sola y no la había pedido nadie:** la lista fría **no entra al
+CRM**. Con eso queda definida la puerta de entrada al pipeline, que es la decisión más
+importante del §5.3: se entra con **conversación e interés declarado**, no con un
+nombre. Consecuencia: el pipeline mide **oportunidades, no esfuerzo**, y el número de
+deals abiertos significa algo desde el primer día.
+
+**El §5.3 separa hechos de hipótesis, y va marcado.** Nadie ha firmado nunca, así que el
+recorrido posterior a la primera conversación **no se observó: se propone**. Va con `[S]`
+y con la regla de que se corrige en cuanto Daniel cierre el primero — no se defiende.
+
+**La etapa «en prueba» es la que hace esto de Vivaru y no un pipeline genérico.** El
+producto ya tiene prueba de 15 días y una definición de activación calculada —7 pasos en
+la prueba, 10 en un cliente, visible en Superadmin—. Es la única etapa del pipeline que
+**no depende de la opinión del comercial**: no es «creo que va bien», es «activó 7 de 7 y
+le quedan 4 días». Un CRM genérico no puede tenerla.
+
+**Motivos de pérdida como lista cerrada**, con un desdoblamiento deliberado: David
+describió juntos «se enganchan con su proveedor actual» y «es más barato», pero son
+aprendizajes opuestos — uno dice que nuestro precio está mal y el otro que el **costo de
+cambio** pesa más que la diferencia. Colapsarlos haría parecer problema de tarifa lo que
+es problema de migración.
+
+**Lo que sigue sin dato:** qué necesita ver un comercial de un conjunto ya vendido. Se
+propone el mínimo que el producto ya sabe y se corrige con el primer cliente.
 
 ### 0.3 — 18 de agosto de 2026 (noche)
 
