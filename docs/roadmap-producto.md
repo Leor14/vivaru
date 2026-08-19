@@ -32,38 +32,28 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **El nivel 1 está entero y en producción.** `FIN-000`, `REVOPS-001E`, `REVOPS-001A`
-  y `SUP-001`: construidas, probadas y desplegadas el 18 de agosto. Era el nivel de
-  «lo que caduca», y deja de caducar.
-- **`REVOPS-001A` — atribución y consentimiento.** Los `utm_*`, el `referrer` y la
-  ruta de aterrizaje se capturan **al entrar al sitio**, no al enviar el formulario:
-  quien aterriza con campaña y navega antes de rellenar llegaba, si no, como «vino de
-  Vivaru». Y **no va detrás del consentimiento de cookies** a propósito — esa puerta
-  gobierna analítica de terceros, esto es el expediente del lead. El consentimiento
-  sale de donde estaba enterrado (`meta.respuestas`, sin fecha) a campo propio con
-  fecha del servidor y versión de la política; el formulario de demo, que no pedía
-  nada, ahora tiene la misma casilla expresa que el diagnóstico.
-- **`SUP-001` — responsable y primera respuesta.** `firstResponseAt` se sella una sola
-  vez y nunca se sobrescribe; quien contesta primero se queda el ticket si no tenía
-  dueño, y responder no roba uno ajeno. **Sin relleno hacia atrás**: los tickets
-  viejos no tienen el dato y la consola distingue tres estados —contestado, sin
-  responder, y sin dato— para no hacer parecer desatendido lo que se contestó hace
-  meses. El contador de pendientes ya existía.
-- **El despliegue respetó el orden y eso importó.** Primero el código, después las
-  reglas de Storage: las nuevas exigen la ruta por usuario, y desplegarlas antes
-  habría roto la subida de comprobantes **en silencio** hasta que un residente
-  intentara pagar. Se esperó a comprobar por API que producción servía el código
-  nuevo. Verificado en staging con un comprobante real antes de tocar producción.
-- **Tres averías que nadie veía, cazadas de camino.** `functions/lib` está versionado
-  y no hay predeploy: los commits de `REVOPS-001E` y `SUP-001` no lo recompilaron, así
-  que un deploy desde un clon limpio habría subido functions **sin** `vendedorId` ni el
-  sellado de SUP-001 —con el `src/` diciendo lo contrario—. **Staging llevaba sin poder
-  construir** por un permiso de IAM sobre el secreto de Resend. Y `markTrialAsLost`
-  nunca marcó un lead como perdido (0.8).
-- **Los cinco comerciales están dados de alta.** El catálogo dejó de estar vacío, que
-  era lo que impedía cumplir el criterio de salida de `REVOPS-001E`.
-- **Sigue del 0.7:** `REVOPS-000` sin empezar — y ahora es lo único que bloquea el
-  nivel siguiente y el PRD de Albert.
+- **`REVOPS-000` está hecho, y su respuesta corrige a este documento.** Era el nivel 0,
+  llevaba tres revisiones sin empezar y bloqueaba el PRD de Albert. **No son cinco
+  personas vendiendo en tres países:** es **una prospectando en frío** —Daniel Aguilar,
+  ~6-7 nombres, nada concreto— y **un acercamiento suelto** de David Almeida. Cero
+  conversaciones maduras, cero firmados. Ver la ficha de `REVOPS-000`.
+- **Cero conjuntos reales en producción.** Los nueve son pruebas. La cifra anterior
+  —«dos reales»— salía de deducir «real» de «no marcado `isExample`».
+- **El nivel 1 completo y en producción**, desplegado el 18 de agosto: `FIN-000`,
+  `REVOPS-001E`, `REVOPS-001A` y `SUP-001`. El eje «trabajo que caduca» queda vacío.
+- **Tres correcciones de hecho en un día, y el patrón importa más que las tres.** Las
+  tres veces se dedujo un hecho de negocio a partir de un dato técnico: «cero demanda»
+  de «cero leads», «conjunto real» de «no marcado `isExample`», y «cinco vendiendo» de
+  «cinco en el catálogo». **Preguntar cuesta una conversación.**
+- **La regla de negocio que salió de `REVOPS-000` y nadie había pedido:** la lista fría
+  **no entra al CRM**. Define la puerta de entrada al pipeline —conversación e interés,
+  no un nombre— y con eso el pipeline mide **oportunidades, no esfuerzo**.
+- **El PRD de Albert sube a 0.4**, con la bisagra decidida (Vivaru es tenant de Albert),
+  el §5 completo y una etapa que solo puede existir aquí: **«en prueba»**, apoyada en la
+  activación que el producto ya calcula.
+- **Y tres averías que el despliegue destapó:** `functions/lib` iba desfasado del `src/`
+  y un deploy limpio habría subido otra cosa; staging llevaba sin poder construir por un
+  permiso de IAM; y no existe forma de asignar vendedor a un conjunto ya creado.
 
 **Qué espera decisión tuya:**
 
@@ -168,8 +158,10 @@ orden —no toca todavía—. `CORE-001`, `AI-GOV-001` y `AI-DATA-001` son justo
 Todo lo que no aparece nombrado en los niveles 0 a 3 es nivel 4.
 
 **De las ocho filas del frente, tres tienen trabajo de ingeniería que hoy signifique
-algo:** Fundaciones, Finance y —desde la 0.6— **REVOPS**, porque hay cinco personas
-vendiendo y el producto no sabe quiénes son. IA, Onboarding, Mobile y Soporte esperan
+algo:** Fundaciones, Finance y —desde la 0.6— **REVOPS**. (La 0.6 justificaba REVOPS con
+«cinco personas vendiendo»; `REVOPS-000` demostró que es **una**. El frente sigue siendo
+real —esa persona necesita dónde trabajar y su venta necesita dueño— pero es más pequeño
+de lo que este documento decía.) IA, Onboarding, Mobile y Soporte esperan
 exactamente lo mismo: un cliente real usando el producto. **No son cuatro bloqueos: es
 uno.**
 
