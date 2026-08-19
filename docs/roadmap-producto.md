@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.2 |
+| **Versión** | 0.9.3 |
 | **Fecha** | 18 de agosto de 2026, noche |
-| **Estado** | **Nivel 1 desplegado y `REVOPS-000` hecho** — el nivel 0 deja de estar sin empezar, y su respuesta corrige quién está vendiendo |
+| **Estado** | **Nivel 1 desplegado; `FIN-001` construida y sin desplegar** — cartera y libro ya no pueden discrepar, pero solo en `develop` |
 | **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -107,7 +107,7 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
-| Vivaru Finance | ✅ `FIN-000` · 🔴 `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
+| Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
@@ -230,20 +230,38 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `FIN-001` — Comando único e idempotente de aplicación de pagos
 
-- **Frente:** Vivaru Finance · **Estado:** Parcial · **Nivel 2** · **Cabe en la ventana del trial**
+- **Frente:** Vivaru Finance · **Estado:** ✅ **Construida** (18 ago 2026, `66c03c7` +
+  `75d9e47`) · **Nivel 2** · **Sin desplegar**
 - **Problema:** las rutas de pago, comprobantes, ledger, vouchers, saldos y reversos
   deben producir un resultado completo o ninguno.
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
   migración de flujos existentes.
 - **Criterio de salida:** un pago aplicado o revertido mantiene consistentes
-  obligación, payment, ledger, voucher, expediente y auditoría.
-- **Evidencia (17 ago 2026):** hay **dos rutas** que aplican un pago y **producen
-  efectos distintos**. `recordPayment` reserva secuencial, crea asiento, emite
-  comprobante y actualiza la cuota — en **cuatro escrituras sueltas sin transacción**.
-  `approveReceiptAndRegisterPayment` actualiza la cuota **y no crea asiento ni
-  comprobante**: el dinero se mueve en cartera y nunca llega al libro. Además ninguna
-  Cloud Function aplica un pago: toda la aritmética del dinero ocurre en el navegador.
-  Detalle en `docs/roadmap-finance.md`.
+  obligación, payment, ledger, voucher, expediente y auditoría. **Cumplido salvo el
+  voucher**, que queda fuera por la decisión de alcance de abajo.
+- **El defecto que cerró (17 ago 2026):** había **dos rutas** que aplicaban un pago y
+  **producían efectos distintos**. `recordPayment` hacía **cuatro escrituras sueltas sin
+  transacción**; `approveReceiptAndRegisterPayment` actualizaba la cuota **y no escribía
+  en el libro** — el dinero se movía en cartera y nunca llegaba a la contabilidad. Y las
+  dos calculaban el saldo **en el navegador**. Detalle en `docs/roadmap-finance.md`.
+- **Qué se construyó:** una callable `applyPayment` y su gemela `revertPayment`, ambas
+  transaccionales e idempotentes por clave, con **la aritmética del saldo en el
+  servidor**. Las reglas vetan que un cliente escriba un asiento con origen
+  `billingStatement`, y `paymentOperations` es del servidor y de nadie más.
+- **La decisión de alcance, de David:** *«no será necesario meternos al tema fiscal de
+  momento para ninguno de los países»*. El comprobante con secuencial lo sigue emitiendo
+  el cliente. Lo único que cambió es **cuándo**: ahora **después** de aplicar el pago, de
+  modo que un fallo deja un pago sin comprobante —recuperable— en vez de un comprobante
+  fiscal de un pago que no existe.
+- **Lo que queda abierto, y conviene que se lea:**
+  - Si falla la emisión, **el secuencial ya reservado deja un hueco en la serie fiscal**.
+    Cerrarlo exige emitir dentro de la transacción, que es entrar en lo fiscal.
+  - Revertir un pago **no anula su comprobante**: eso pide una nota de crédito. La
+    reversión lo señala (`requiereNotaCredito`) y la interfaz lo avisa, pero **el paso es
+    manual y nadie lo persigue**.
+  - **Los asientos anteriores a esta ficha no se pueden revertir** por la vía nueva: no
+    guardan su `operationKey`. Hoy no hay ninguno real, así que el costo es cero — pero
+    deja de serlo el día que haya un cliente.
 
 #### `REVOPS-000` — Instrumentar el canal que ya está corriendo
 
@@ -801,6 +819,27 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.3 — 18 de agosto de 2026, noche
+
+**Por qué: se construyó `FIN-001` entera**, aplicación y reversión. Verificado contra el
+código en `66c03c7` y `75d9e47`, con el gate completo en verde y las pruebas del suelo de
+cero comprobadas **por mutación** —se retira el `Math.max` y se ponen rojas—, porque una
+prueba que no falla cuando debe no está probando nada.
+
+**Lo que cambia en el inventario:**
+
+- `FIN-001` pasa de 🔴 a ✅ **construida, sin desplegar**. Las dos rutas de pago ya no
+  pueden discrepar: cartera y libro se escriben en una transacción, con la aritmética del
+  saldo **en el servidor** y no en el navegador.
+- Su ficha ahora dice **lo que quedó fuera**, que es la parte útil: el hueco en la serie
+  fiscal si falla la emisión del comprobante, la nota de crédito manual que nadie
+  persigue, y que **los asientos anteriores no son revertibles** por la vía nueva. Los
+  tres son consecuencia de la decisión de alcance de David de no entrar en lo fiscal
+  todavía, y ninguno tiene costo hoy porque no hay un solo pago real.
+
+**Lo que NO cambia:** sigue sin desplegarse. El código está en `develop`, no en
+producción, y el orden importa —reglas antes que functions antes que front—.
 
 ### 0.9.2 — 18 de agosto de 2026, noche
 
