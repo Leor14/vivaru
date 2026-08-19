@@ -336,9 +336,10 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   conjuntos. Reglas: `leads` admite update de superadmin —lo que reparó de paso el
   `markTrialAsLost` que fallaba en silencio—, crear y borrar siguen vetados, y el
   catálogo es invisible para los conjuntos. 8 casos de reglas en emulador y CI.
-- **Para el vendedor del alta directa hace falta desplegar functions**
-  (`createTenantFromLead` cambió de firma; sin deploy el alta funciona, sin registrar
-  vendedor). **El enrutado del aviso comercial por país quedó fuera a propósito** —
+- **Functions desplegadas el 18 de agosto**, así que el selector del alta directa ya
+  registra vendedor (`createTenantFromLead` cambió de firma; hasta ese deploy el alta
+  funcionaba sin registrarlo). **El enrutado del aviso comercial por país quedó fuera
+  a propósito** —
   alcance acordado el 17 de agosto: catálogo, dueño, referencia y selector; sin
   cuentas, sin portal, sin tocar autenticación.
 - **Por qué pesa más que `REVOPS-001A`:** los `utm_*` responden «de dónde vino el
@@ -366,9 +367,12 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   comerciales existen, qué referencia cruza— **no es solo el esquema de Vivaru: es la
   entrada de ese PRD**. Se define una vez y sirve a los dos lados.
 - **Criterio de salida:** cualquier conjunto en producción dice quién lo vendió, y
-  cualquier lead dice quién lo está trabajando. **La mecánica está; para cumplirlo en
-  producción faltan el despliegue, dar de alta a los cinco en el catálogo y asignar
-  dueño a los leads vivos.**
+  cualquier lead dice quién lo está trabajando. **Cumplido de aquí en adelante**: la
+  mecánica está desplegada y los cinco comerciales dados de alta el 18 de agosto. Con
+  dos salvedades que conviene no olvidar: no hay leads reales todavía a los que asignar
+  dueño, y **los dos conjuntos reales que ya existían se quedaron sin vendedor** —
+  `vendedorId` solo se escribe al nacer el conjunto y no hay ruta de edición, así que
+  arreglarlos exige una pantalla nueva o una escritura manual.
 
 #### `FIN-000` — Storage con filtro de rol
 
