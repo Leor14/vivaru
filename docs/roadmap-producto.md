@@ -736,7 +736,7 @@ esperan datos reales. `REVOPS-001A` es instrumentación **para** adquirir, no
 adquisición. Activar conjuntos es trabajo comercial, no aparece en el tablero y por
 tanto no lo posee nadie. **Es el bloqueo estructural del roadmap, y no es técnico.**
 
-> ✅ **Recogida como nivel 0** — pero con una corrección de la 0.6 que conviene leer entera, porque la observación acertaba a medias y la 0.5 la empeoró. Al comprobarla apareció que la máquina de autoservicio **lleva 16 días pública sin una sola entrada real**, y de ahí la 0.5 concluyó que «no hay demanda que instrumentar». **Eso era falso.** La colección `leads` solo mide el landing, y el canal real —**dos KAM y tres socios en tres países**— no pasa por ahí. Así que la frase de la observación, «no lo posee nadie», **también era falsa**: sí lo posee gente, cinco personas. Lo que no existe es el instrumento. El tablero sabe medir, calificar, convertir y retener el embudo de autoservicio, y **es ciego al que de verdad está operando**.
+> ✅ **Recogida como nivel 0**, y **confirmada por `REVOPS-000` el 18 de agosto** — más de lo que su autor creía. La 0.6 le enmendó la plana diciendo que sí había gente poseyendo el canal, cinco personas; al preguntarles resultó que **es una prospectando en frío y un acercamiento suelto**, con cero firmados. Así que «no lo posee nadie» estaba **más cerca de la verdad que la corrección que se le hizo**. Lo que sigue en pie de la 0.6 es lo otro: la colección `leads` solo mide el landing, y el canal asistido es invisible para el producto — el tablero sabe medir, calificar, convertir y retener el embudo de autoservicio, y **es ciego al que de verdad está operando**.
 
 **3 · `AI-DATA-001` está etiquetado como bloqueado y su decisión no lo está.** Su
 evaluación sí depende de datos, pero definir tenant piloto, volumen mínimo y periodo
@@ -761,7 +761,10 @@ Empaquetarlos con una auditoría de banderas los retrasa sin motivo.
 3. ¿Qué volumen mínimo permite cerrar G7?
 4. ¿Quién utiliza Vivaru desde móvil y para qué tareas?
 5. ¿Qué define un trial activado y un cliente activo?
-6. ¿Cuál será la fuente comercial canónica: Firestore, CRM u otra?
+6. ~~¿Cuál será la fuente comercial canónica: Firestore, CRM u otra?~~ **Resuelta el
+   18 ago 2026:** Albert, con **Vivaru como tenant**. Vivaru sigue siendo dueño del
+   producto —conjunto, prueba, activación, atribución, consentimiento—; Albert del
+   pipeline comercial. Ver `docs/prd/albert/`.
 7. ¿Cómo se cobrarán planes, módulos premium y consumo?
 8. ¿Cuándo existe volumen suficiente para SLA y consola de soporte separada?
 9. ¿Qué conjuntos pueden aportar comprobantes, tickets y archivos reales autorizados?
