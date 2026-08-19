@@ -53,7 +53,7 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 
 | PRD | Estado | Nota |
 |---|---|---|
-| [PRD-A-OPS-001 — Vista de Leads de Vivaru](albert/PRD-A-OPS-001-vista-de-leads-vivaru.md) | **Borrador — NO lista para desarrollo** | La mitad de Vivaru (esquema de `REVOPS-001E`) verificada en código; el flujo comercial (§5) espera la salida de `REVOPS-000` y hay dos `TBD` que necesitan al equipo de Albert y una decisión de negocio |
+| [PRD-A-OPS-001 — Vista de Leads de Vivaru](albert/PRD-A-OPS-001-vista-de-leads-vivaru.md) | **Borrador 0.2 — NO lista para desarrollo** | La mitad de Vivaru está **desplegada** y el catálogo de comerciales poblado. Pero la 0.2 encontró que **el canal asistido produce leads que hoy no pueden existir en Vivaru** (§7.1), y añadió tres huecos que faltaban: autenticación de la escritura (hoy es un endpoint público), retención y consentimiento de datos personales, y notificaciones. §5 sigue esperando a `REVOPS-000`; hay cinco insumos que pedirle a Albert (§0.5) |
 
 ### IA
 
