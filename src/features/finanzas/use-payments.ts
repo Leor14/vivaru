@@ -3,6 +3,7 @@
 import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { applyPaymentCallable } from "@/lib/firebase/callables";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BillingStatement, FiscalProfile, PaymentVoucher } from "@/types/domain";
 
@@ -53,6 +54,13 @@ export type RecordPaymentInput = {
   payerName?: string | null;
   /** Cédula del condómino — obligatoria para el comprobante en Ecuador. */
   payerTaxId?: string | null;
+  /**
+   * Clave de idempotencia (`FIN-001`). **La genera la pantalla al abrir el
+   * formulario y la conserva entre reintentos**: un doble clic o un reintento de
+   * red con la misma clave aplica el pago una sola vez. Generar una nueva en
+   * cada intento anula la protección.
+   */
+  operationKey: string;
 };
 
 /**
@@ -92,24 +100,40 @@ export async function recordPayment(
 
   const concept = `Pago de alícuota ${statement.period} — ${statement.unitLabel}`;
 
-  // 1. Reservar secuencial atómico.
+  // ── 1. Aplicar el pago: cuota + asiento, en UNA transacción de servidor ────
+  //
+  // `FIN-001`. Antes esto eran cuatro escrituras sueltas en este orden:
+  // secuencial, asiento, comprobante y cuota. Un fallo entre la segunda y la
+  // cuarta dejaba **el libro diciendo que entró dinero y la cartera diciendo
+  // que se debe**, y el saldo lo calculaba este archivo, en el navegador.
+  //
+  // Ahora el servidor lee la cuota, calcula el saldo y escribe cuota y asiento
+  // como una sola cosa. Ver `functions/src/payments.ts`.
+  const aplicado = await applyPaymentCallable({
+    tenantId,
+    statementId: statement.id,
+    amount: input.amount,
+    date: input.date,
+    operationKey: input.operationKey,
+    source: "manual",
+  });
+
+  // ── 2. El comprobante, DESPUÉS de que el pago esté aplicado ────────────────
+  //
+  // El cambio de orden es deliberado y es lo único fiscal que toca esta ficha
+  // —por decisión de no entrar en lo fiscal—. Antes el comprobante se emitía
+  // antes de aplicar el pago, así que un fallo dejaba **un documento fiscal de
+  // un pago inexistente**. Ahora un fallo deja un pago sin comprobante, que se
+  // puede volver a emitir: se cambia un daño por una tarea pendiente.
+  //
+  // Lo que sigue abierto: si la emisión falla, el secuencial ya reservado deja
+  // un hueco en la serie. Cerrarlo exige emitir dentro de la transacción, que es
+  // meterse en lo fiscal — anotado en la ficha, no resuelto aquí.
   const seqValue = await nextSequential(tenantId, "ingreso");
   const seqNumber = formatSequential(seqValue, input.fiscalProfile?.voucherSeriesPrefix);
 
-  // 2. Asiento de ingreso en el libro.
-  const ledgerRef = await createTenantDocument("ledgerEntries", tenantId, userId, {
-    type: "ingreso",
-    date: input.date,
-    amount: input.amount,
-    concept,
-    category: "alicuota",
-    bankAccountId: null,
-    sourceType: "billingStatement",
-    sourceId: statement.id,
-    reconciled: false,
-  });
+  const ledgerRef = { id: aplicado.ledgerEntryId };
 
-  // 3. Comprobante (recibo genérico en F1; provider por país).
   const provider = getComprobanteProvider(input.fiscalProfile?.country ?? null);
   const draft = provider.buildVoucher({
     type: "ingreso",
@@ -140,15 +164,9 @@ export async function recordPayment(
     pdfStoragePath: null,
   });
 
-  // 4. Actualizar la cuota en cartera.
-  await updateDoc(doc(db, "billingStatements", statement.id), {
-    paymentAmount: newPaid,
-    balance,
-    status,
-    lastPaymentAt: input.date,
-    updatedBy: userId,
-    updatedAt: serverTimestamp(),
-  });
+  // La cuota ya quedó actualizada dentro de la transacción del paso 1. Escribirla
+  // aquí otra vez volvería a poner la aritmética en el navegador, que es
+  // justamente lo que esta ficha quita.
 
   const voucher: PaymentVoucher = {
     id: voucherRef.id,

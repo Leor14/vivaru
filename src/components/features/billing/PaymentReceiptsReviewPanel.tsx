@@ -102,7 +102,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
   }
 
   async function handleApproveAndRegister(receipt: PaymentReceipt) {
-    if (!reviewerId || !receipt.statementId) return;
+    if (!reviewerId || !receipt.statementId || !tenantId) return;
     const amount = parseFloat(amountValue(receipt).replace(/[^0-9.-]/g, ""));
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error("Ingresa el monto pagado para registrar.");
@@ -111,11 +111,16 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
     setPendingActionId(receipt.id);
     try {
       await approveReceiptAndRegisterPayment({
+        tenantId,
         receiptId: receipt.id,
         statementId: receipt.statementId,
         amount,
         reviewerId,
         reviewerName,
+        // La clave es el propio comprobante: aprobarlo es una operación única, y
+        // así un doble clic o un reintento de red no cobra dos veces. Si el
+        // primer intento falla no queda marca, y el reintento sí aplica.
+        operationKey: `receipt:${receipt.id}`,
       });
       toast.success("Pago registrado y comprobante aprobado.");
       void archiveReceipt(receipt);

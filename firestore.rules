@@ -419,7 +419,14 @@ service cloud.firestore {
 
     match /ledgerEntries/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // FIN-001: los asientos que nacen de un pago los escribe SOLO el servidor,
+      // dentro de la transaccion que tambien mueve la cuota. Si el cliente
+      // pudiera crearlos, podria registrar un ingreso en el libro sin que la
+      // cartera se enterase — que es exactamente la incoherencia que la ficha
+      // cierra. Los movimientos manuales (egresos, ajustes, reversos) siguen
+      // escribiendose desde la consola: esta regla solo veta los de origen pago.
+      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && request.resource.data.get('sourceType', '') != 'billingStatement';
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 

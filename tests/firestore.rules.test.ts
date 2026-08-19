@@ -1337,3 +1337,89 @@ describe("Firestore Rules - propiedad comercial (REVOPS-001E)", () => {
     );
   });
 });
+
+// ── FIN-001 · el libro contable no se escribe a mano cuando viene de un pago ──
+
+describe("FIN-001 · asientos de pago: solo el servidor", () => {
+  /**
+   * Un asiento con `sourceType: "billingStatement"` significa «entró dinero por
+   * una cuota». Si el cliente pudiera crearlo, podría registrar el ingreso en el
+   * libro **sin mover la cartera** — la incoherencia exacta que esta ficha cierra.
+   * Ahora esos asientos nacen dentro de la transacción de `applyPayment`, que
+   * corre con Admin SDK y no pasa por estas reglas.
+   */
+  it("un admin NO puede crear un asiento originado en una cuota", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-pago-a-mano"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        amount: 100,
+        date: "2026-08-18",
+        concept: "Pago inventado",
+        sourceType: "billingStatement",
+        sourceId: "stmt-1",
+      }),
+    );
+  });
+
+  it("ni el superadmin — la vía es la callable, no el rol", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "ledgerEntries", "le-pago-super"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        amount: 100,
+        date: "2026-08-18",
+        concept: "Pago inventado",
+        sourceType: "billingStatement",
+        sourceId: "stmt-1",
+      }),
+    );
+  });
+
+  // La regla veta el origen, no la colección: la consola financiera sigue
+  // registrando egresos, ajustes y reversos con normalidad.
+  it("los movimientos manuales del libro siguen funcionando", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-manual"), {
+        tenantId: "tenant-a",
+        type: "egreso",
+        amount: 50,
+        date: "2026-08-18",
+        concept: "Compra de bombillas",
+        sourceType: "manual",
+      }),
+    );
+  });
+
+  it("y los reversos también", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-reverso"), {
+        tenantId: "tenant-a",
+        type: "egreso",
+        amount: -50,
+        date: "2026-08-18",
+        concept: "Reverso de compra",
+        sourceType: "reversal",
+      }),
+    );
+  });
+
+  // Un asiento sin `sourceType` no se puede confundir con uno de pago, así que
+  // no cae en el veto — es el caso de los movimientos antiguos.
+  it("un asiento sin sourceType sigue permitido", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-sin-origen"), {
+        tenantId: "tenant-a",
+        type: "egreso",
+        amount: 10,
+        date: "2026-08-18",
+        concept: "Movimiento sin origen declarado",
+      }),
+    );
+  });
+});

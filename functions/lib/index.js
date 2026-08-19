@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.applyPayment = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -55,6 +55,7 @@ const data_retention_1 = require("./data-retention");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
 const support_1 = require("./support");
+const payments_1 = require("./payments");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
@@ -3242,6 +3243,31 @@ exports.createSupportTicket = (0, https_1.onCall)({ cors: http_config_1.callable
         category: request.data?.category,
     });
     return result;
+});
+// ── FIN-001 · aplicación de pagos ────────────────────────────────────────────
+//
+// La lógica vive en `payments.ts`; aquí solo se expone, se valida la sesión y se
+// deja el rastro de auditoría. Es la ÚNICA vía por la que un pago toca la
+// cartera y el libro: las dos rutas del cliente —cobro manual y aprobación del
+// comprobante del residente— llaman aquí.
+exports.applyPayment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const role = request.auth?.token?.role;
+    const tokenTenant = request.auth?.token?.tenantId;
+    const resultado = await (0, payments_1.aplicarPago)(request.data, uid, role, tokenTenant);
+    // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
+    // genera una segunda entrada, que si no el registro contaría dos cobros.
+    if (resultado.applied) {
+        await writeAuditLog(request.data?.tenantId ?? "", uid, "apply_payment", {
+            statementId: request.data?.statementId,
+            amount: request.data?.amount,
+            source: request.data?.source,
+            ledgerEntryId: resultado.ledgerEntryId,
+        });
+    }
+    return resultado;
 });
 exports.replyToSupportTicket = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public", secrets: [email_1.resendApiKey] }, async (request) => {
     const { uid, role } = supportAuth(request.auth);

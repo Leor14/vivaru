@@ -22,6 +22,7 @@ import {
   replySupportTicket,
   updateSupportTicket as updateSupportTicketImpl,
 } from "./support";
+import { aplicarPago, type AplicarPagoInput } from "./payments";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -4050,6 +4051,36 @@ export const createSupportTicket = onCall<{
   });
   return result;
 });
+
+// ── FIN-001 · aplicación de pagos ────────────────────────────────────────────
+//
+// La lógica vive en `payments.ts`; aquí solo se expone, se valida la sesión y se
+// deja el rastro de auditoría. Es la ÚNICA vía por la que un pago toca la
+// cartera y el libro: las dos rutas del cliente —cobro manual y aprobación del
+// comprobante del residente— llaman aquí.
+export const applyPayment = onCall<AplicarPagoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const role = request.auth?.token?.role;
+    const tokenTenant = request.auth?.token?.tenantId;
+
+    const resultado = await aplicarPago(request.data, uid, role, tokenTenant);
+
+    // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
+    // genera una segunda entrada, que si no el registro contaría dos cobros.
+    if (resultado.applied) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "apply_payment", {
+        statementId: request.data?.statementId,
+        amount: request.data?.amount,
+        source: request.data?.source,
+        ledgerEntryId: resultado.ledgerEntryId,
+      });
+    }
+    return resultado;
+  },
+);
 
 export const replyToSupportTicket = onCall<{ ticketId: string; message: string }>(
   { cors: callableCorsOrigins, invoker: "public", secrets: [resendApiKey] },

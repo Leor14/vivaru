@@ -101,6 +101,7 @@ describe("recordPayment — validación Ecuador", () => {
         date: "2026-06-01",
         fiscalProfile: { country: "EC" },
         payerTaxId: "1700000000",
+        operationKey: "test-op-1",
       }),
     ).rejects.toThrow(/RUC/i);
   });
@@ -112,6 +113,7 @@ describe("recordPayment — validación Ecuador", () => {
         amount: 100,
         date: "2026-06-01",
         fiscalProfile: { country: "EC", taxId: "1790012345001" },
+        operationKey: "test-op-2",
       }),
     ).rejects.toThrow(/cédula/i);
   });

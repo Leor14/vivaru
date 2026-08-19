@@ -1,7 +1,7 @@
 "use client";
 
 import { doc, onSnapshot } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
@@ -36,6 +36,15 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
   const [payerName, setPayerName] = useState("");
   const [payerTaxId, setPayerTaxId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  /**
+   * Clave de idempotencia del cobro (`FIN-001`).
+   *
+   * Se genera **una vez por apertura del formulario**, no en cada envío: esa es
+   * toda la gracia. Con la misma clave, un doble clic o un reintento tras un
+   * timeout aplican el pago una sola vez; con una clave nueva por intento, la
+   * protección no existiría. Se renueva al abrir para un cobro distinto.
+   */
+  const operationKey = useRef<string>("");
   const [createdVoucher, setCreatedVoucher] = useState<PaymentVoucher | null>(null);
   const [liveFiscalStatus, setLiveFiscalStatus] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
@@ -80,6 +89,10 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
     return () => unsub();
   }, [createdVoucher, isEcuador]);
 
+  useEffect(() => {
+    if (open) operationKey.current = crypto.randomUUID();
+  }, [open, statement?.id]);
+
   async function handleSubmit() {
     if (!user?.tenantId || !statement) return;
     const parsed = Number(amount);
@@ -100,6 +113,7 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
         fiscalProfile,
         payerName: payerName.trim() || null,
         payerTaxId: payerTaxId.trim() || null,
+        operationKey: operationKey.current,
       });
       setCreatedVoucher(result.voucher);
       toast.success(`Cobro registrado. Comprobante ${result.voucher.sequentialNumber}.`);

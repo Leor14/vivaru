@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where, writeBatch } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { applyPaymentCallable } from "@/lib/firebase/callables";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { PaymentReceipt } from "@/types/domain";
 
@@ -106,37 +107,33 @@ export async function approveReceiptAndRegisterPayment(input: {
   amount: number;
   reviewerId: string;
   reviewerName?: string;
+  /** Conjunto al que pertenece la cuota. Lo exige la callable para validar permisos. */
+  tenantId: string;
+  /**
+   * Clave de idempotencia (`FIN-001`). **La genera quien llama y la conserva
+   * entre reintentos**: si se genera una nueva en cada intento, la protección
+   * contra el doble cobro no sirve de nada.
+   */
+  operationKey: string;
 }): Promise<void> {
-  if (!db) throw new Error("DB_UNAVAILABLE");
-  const stmtRef = doc(db, "billingStatements", input.statementId);
-  const snap = await getDoc(stmtRef);
-  if (!snap.exists()) throw new Error("El cobro vinculado ya no existe.");
-
-  const s = snap.data() as { amount?: number; paymentAmount?: number; dueDate?: string };
-  const charge = s.amount ?? 0;
-  const newPayment = Math.max((s.paymentAmount ?? 0) + input.amount, 0);
-  const balance = Math.max(charge - newPayment, 0);
-  const today = new Date().toISOString().slice(0, 10);
-  const status = balance <= 0 ? "paid" : s.dueDate && s.dueDate < today ? "overdue" : "pending";
-
-  const batch = writeBatch(db);
-  batch.update(stmtRef, {
-    paymentAmount: newPayment,
-    balance,
-    status,
-    lastPaymentAt: today,
-    lastReceiptId: input.receiptId,
-    updatedAt: serverTimestamp(),
+  // Ya no escribe nada directamente. Antes actualizaba la cuota y marcaba el
+  // comprobante en un batch —atómico entre esos dos, sí— pero **no tocaba el
+  // libro contable**: el dinero se movía en cartera y nunca llegaba a la
+  // contabilidad. Y calculaba el saldo aquí, en el navegador, con las reglas de
+  // Firestore aceptando cualquier cifra.
+  //
+  // Ahora el servidor hace las tres cosas en una transacción. Ver
+  // `functions/src/payments.ts`.
+  await applyPaymentCallable({
+    tenantId: input.tenantId,
+    statementId: input.statementId,
+    amount: input.amount,
+    date: new Date().toISOString().slice(0, 10),
+    operationKey: input.operationKey,
+    source: "receipt",
+    receiptId: input.receiptId,
+    ...(input.reviewerName ? { reviewerName: input.reviewerName } : {}),
   });
-  batch.update(doc(db, "paymentReceipts", input.receiptId), {
-    status: "approved",
-    registeredAmount: input.amount,
-    reviewedAt: serverTimestamp(),
-    reviewedBy: input.reviewerId,
-    ...(input.reviewerName ? { reviewedByName: input.reviewerName } : {}),
-    rejectedReason: null,
-  });
-  await batch.commit();
 }
 
 /**

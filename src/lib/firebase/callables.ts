@@ -537,6 +537,39 @@ export async function replyToSupportTicketCallable(input: {
   return executeCallable(callable, input, "No fue posible enviar tu mensaje. Intenta de nuevo.");
 }
 
+/**
+ * `FIN-001` — la única vía por la que un pago toca la cartera y el libro.
+ *
+ * La `operationKey` es la clave de idempotencia: **la genera el llamante y la
+ * repite si reintenta**. Enviarla dos veces aplica el pago una sola vez, y la
+ * segunda respuesta trae `applied: false` con el mismo resultado. Generar una
+ * clave nueva en cada intento anula la protección — por eso no se genera aquí.
+ */
+export async function applyPaymentCallable(input: {
+  tenantId: string;
+  statementId: string;
+  amount: number;
+  date: string;
+  operationKey: string;
+  source: "manual" | "receipt";
+  receiptId?: string;
+  reviewerName?: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    typeof input,
+    {
+      ok: true;
+      applied: boolean;
+      ledgerEntryId: string;
+      paymentAmount: number;
+      balance: number;
+      status: "paid" | "overdue" | "pending";
+    }
+  >(functions, "applyPayment");
+  return executeCallable(callable, input, "No fue posible registrar el cobro.");
+}
+
 export async function updateSupportTicketStatusCallable(input: {
   ticketId: string;
   status?: string;
