@@ -3097,6 +3097,15 @@ exports.createTenantFromLead = (0, https_1.onCall)({ cors: http_config_1.callabl
     if (!lead.email || !lead.nombre) {
         throw new https_1.HttpsError("failed-precondition", "El lead no tiene nombre o correo para crear el ambiente.");
     }
+    // El vendedor se valida contra el catálogo: un id suelto que no existe
+    // atribuiría la venta a nadie, que es justo lo que esta ficha cierra.
+    const vendedorId = request.data?.vendedorId?.trim() || undefined;
+    if (vendedorId) {
+        const repSnap = await db.collection("salesReps").doc(vendedorId).get();
+        if (!repSnap.exists) {
+            throw new https_1.HttpsError("invalid-argument", "El vendedor indicado no está en el catálogo de comerciales.");
+        }
+    }
     const unidades = Number(lead.unidadesEstimadas);
     const result = await (0, trial_workspace_1.provisionTrialWorkspace)({
         nombre: lead.nombre,
@@ -3110,12 +3119,14 @@ exports.createTenantFromLead = (0, https_1.onCall)({ cors: http_config_1.callabl
         asCustomer: true,
         planId: request.data?.planId,
         seedExamples: request.data?.seedExamples,
+        vendedorId,
     });
     // El admin define su contraseña por el enlace de siempre.
     await sendOnboardingInvite(result.adminUid, lead.email.trim().toLowerCase(), lead.nombre, result.tenantId, "tenant_admin");
     await writeAuditLog(result.tenantId, request.auth?.uid, "create_tenant_from_lead", {
         leadId,
         planId: request.data?.planId ?? "starter",
+        ...(vendedorId ? { vendedorId } : {}),
     });
     return { tenantId: result.tenantId };
 });

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SUPPORT_LIMITS = void 0;
 exports.createSupportTicket = createSupportTicket;
+exports.marcasSup001 = marcasSup001;
 exports.replySupportTicket = replySupportTicket;
 exports.updateSupportTicket = updateSupportTicket;
 exports.reopenSupportTicket = reopenSupportTicket;
@@ -9,6 +10,7 @@ exports.closeSupportTicket = closeSupportTicket;
 exports.addSupportInternalNote = addSupportInternalNote;
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
+const auth_1 = require("firebase-admin/auth");
 const https_1 = require("firebase-functions/v2/https");
 const node_crypto_1 = require("node:crypto");
 const email_1 = require("./email");
@@ -67,25 +69,26 @@ const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
  *
  * 1. **La ruta.** El archivo se sube directo desde el navegador y solo después
  *    se le pasa la ruta a esta función. Sin comprobar que está bajo
- *    `tenants/{tenantId}/support/`, cualquiera podría inyectar en el hilo un
- *    enlace a otro conjunto —o externo— que el equipo va a abrir.
- * 2. **El tamaño y el tipo.** No se pueden imponer en las reglas de Storage,
- *    porque las reglas SUMAN permisos: una regla más estricta para esta ruta
- *    sería una concesión extra, no un límite, ya que la general de
- *    `tenants/{id}/**` concede hasta 25 MB. Y aunque se pudieran, fiarse de lo
- *    que declare el cliente sería fiarse de quien queremos validar.
+ *    `tenants/{tenantId}/support/{uid}/` —el uid de QUIEN LLAMA, no un segmento
+ *    libre—, cualquiera podría inyectar en el hilo un enlace a otro conjunto,
+ *    a un archivo ajeno, o externo, que el equipo va a abrir.
+ * 2. **El tamaño y el tipo.** La regla de Storage corta en 25 MB (gobernanza
+ *    general del bucket), pero el límite fino de 5 MB y el tipo no pueden
+ *    venir de ahí: el contentType de una subida lo declara el cliente, y
+ *    fiarse de lo que declare sería fiarse de quien queremos validar. Aquí se
+ *    lee el metadato REAL del objeto ya subido.
  *
  * Lo que no pasa el filtro se BORRA: un archivo subido que nunca llega a un
  * ticket es basura que nadie va a limpiar después.
  */
-async function validateAttachments(entrada, tenantId) {
+async function validateAttachments(entrada, tenantId, uid) {
     if (!Array.isArray(entrada) || entrada.length === 0)
         return [];
     if (entrada.length > MAX_ATTACHMENTS) {
         throw new https_1.HttpsError("invalid-argument", `Máximo ${MAX_ATTACHMENTS} archivos por mensaje.`);
     }
     const bucket = (0, storage_1.getStorage)().bucket();
-    const prefijo = `tenants/${tenantId}/support/`;
+    const prefijo = `tenants/${tenantId}/support/${uid}/`;
     const salida = [];
     for (const raw of entrada) {
         const path = typeof raw?.path === "string" ? raw.path : "";
@@ -199,7 +202,7 @@ async function createSupportTicket(input, uid, role) {
     }
     // Se validan ANTES de crear el ticket: si la evidencia no sirve, es mejor
     // que el administrador lo sepa al enviar y no con el ticket ya abierto.
-    const adjuntos = await validateAttachments(input.attachments, tenantId);
+    const adjuntos = await validateAttachments(input.attachments, tenantId, uid);
     const tenantSnap = await db.collection("tenants").doc(tenantId).get();
     const tenant = tenantSnap.data();
     const userSnap = await db.collection("users").doc(uid).get();
@@ -257,6 +260,36 @@ async function createSupportTicket(input, uid, role) {
     return { ticketId: ref.id };
 }
 // ── Respuestas ──────────────────────────────────────────────────────────────
+/**
+ * `SUP-001` — qué marcas deja una respuesta. Función pura y exportada para
+ * poder probarla sin emulador: es la parte del módulo que, si se equivoca,
+ * destruye un dato que no se reconstruye.
+ *
+ * Dos reglas, y las dos son de idempotencia:
+ *
+ * 1. **`firstResponseAt` se escribe una sola vez.** Sobrescribirlo en cada
+ *    respuesta haría que todos los tickets parecieran contestados al instante
+ *    — la métrica marcaría siempre el último mensaje, no el primero.
+ * 2. **La asignación automática no roba tickets.** Si ya hay responsable no se
+ *    toca: puede habérselo asignado otra persona a propósito, y responder en
+ *    un hilo ajeno no debería cambiar de quién es.
+ *
+ * Y ninguna de las dos aplica cuando escribe el cliente: que el cliente
+ * conteste no es que Vivaru haya respondido.
+ */
+function marcasSup001(actual, ctx) {
+    if (!ctx.esVivaru)
+        return {};
+    const marcas = {};
+    if (!actual.firstResponseAt)
+        marcas.firstResponseAt = ctx.nowIso;
+    if (!actual.assignedTo) {
+        marcas.assignedTo = ctx.uid;
+        marcas.assignedToName = ctx.autorNombre;
+        marcas.assignedAt = ctx.nowIso;
+    }
+    return marcas;
+}
 async function replySupportTicket(input, uid, role) {
     const ticketId = typeof input.ticketId === "string" ? input.ticketId.trim() : "";
     if (!ticketId)
@@ -277,11 +310,12 @@ async function replySupportTicket(input, uid, role) {
             throw new https_1.HttpsError("failed-precondition", "Este ticket ya no admite respuestas.");
         }
     }
-    const adjuntos = await validateAttachments(input.attachments, data.tenantId);
+    const adjuntos = await validateAttachments(input.attachments, data.tenantId, uid);
     const nowIso = new Date().toISOString();
     // Vivaru responde ⇒ la pelota pasa al cliente. El cliente responde ⇒ vuelve
     // a nuestra cola. Es lo que hace que «pendiente» sea un número accionable.
     const nuevoEstado = esVivaru ? "esperando_respuesta" : "en_proceso";
+    const sup001 = marcasSup001(data, { esVivaru, uid, autorNombre, nowIso });
     await ref.update({
         // arrayUnion garantiza append: nada se edita ni se borra.
         thread: firestore_1.FieldValue.arrayUnion({
@@ -296,6 +330,7 @@ async function replySupportTicket(input, uid, role) {
         status: nuevoEstado,
         lastActivityAt: nowIso,
         updatedAt: firestore_1.Timestamp.now(),
+        ...sup001,
     });
     if (esVivaru) {
         await notifyClient(data, "Tienes una respuesta de Vivaru", [
@@ -344,6 +379,36 @@ async function updateSupportTicket(input, uid, role) {
             patch.resolvedAt = nowIso;
         if (input.status === CLOSED)
             patch.closedAt = nowIso;
+    }
+    // SUP-001 · asignación explícita. Se distingue «no viene» de «viene null»:
+    // lo primero deja la asignación como esté (este update iba de otra cosa) y
+    // lo segundo la retira a propósito. Con `undefined` en ambos casos no habría
+    // forma de desasignar.
+    if (input.assignedTo !== undefined) {
+        if (input.assignedTo === null || input.assignedTo === "") {
+            patch.assignedTo = firestore_1.FieldValue.delete();
+            patch.assignedToName = firestore_1.FieldValue.delete();
+            patch.assignedAt = firestore_1.FieldValue.delete();
+        }
+        else {
+            // Solo se asigna a alguien de Vivaru: el soporte lo opera Vivaru, y un
+            // ticket asignado a un administrador de conjunto no significaría nada.
+            const destino = await (0, auth_1.getAuth)()
+                .getUser(input.assignedTo)
+                .catch(() => null);
+            if (!destino)
+                throw new https_1.HttpsError("not-found", "Esa persona no existe.");
+            if (destino.customClaims?.role !== "superadmin") {
+                throw new https_1.HttpsError("failed-precondition", "Solo se puede asignar a alguien de Vivaru.");
+            }
+            patch.assignedTo = input.assignedTo;
+            // El nombre que manda el cliente es solo comodidad para pintar; si no
+            // viene o viene vacío, la fuente fiable es la propia cuenta.
+            const nombreEnviado = typeof input.assignedToName === "string" ? input.assignedToName.trim().slice(0, 120) : "";
+            patch.assignedToName =
+                nombreEnviado || destino.displayName || destino.email || "Equipo Vivaru";
+            patch.assignedAt = nowIso;
+        }
     }
     await ref.update(patch);
     if (input.status === "resuelto") {
