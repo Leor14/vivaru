@@ -35,6 +35,7 @@ import { buildFinancialStatement } from "@/features/finanzas/financial-statement
 import { ledgerEntrySchema, type LedgerEntryFormValues } from "@/features/finanzas/schemas";
 import { useAuth } from "@/features/auth/auth-context";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { revertPaymentCallable } from "@/lib/firebase/callables";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { createDocumentRecord } from "@/features/admin/services";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -56,6 +57,17 @@ function AdminFinanzasLibroPageContent() {
   const [createOpen, setCreateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeletion, setPendingDeletion] = useState<LedgerEntry | null>(null);
+  // FIN-001. Revertir un PAGO no es lo mismo que anular un asiento: hay que
+  // deshacer también la cuota y el comprobante, y eso solo lo puede hacer el
+  // servidor en una transacción. Por eso va por su propia vía y no por
+  // `reverseLedgerEntry`, que solo tocaría el libro y dejaría la cartera
+  // diciendo que la cuota está pagada.
+  const [pendingReversal, setPendingReversal] = useState<LedgerEntry | null>(null);
+  const [reversalReason, setReversalReason] = useState("");
+  const [reverting, setReverting] = useState(false);
+  // Una clave por reversión, generada al ABRIR el diálogo y no en cada envío:
+  // si se regenerara al reintentar, la idempotencia no protegería de nada.
+  const [reversalKey, setReversalKey] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [monthFilter, setMonthFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -218,6 +230,45 @@ function AdminFinanzasLibroPageContent() {
       toastFirebaseError(error);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  function abrirReversionDePago(item: LedgerEntry) {
+    setPendingReversal(item);
+    setReversalReason("");
+    setReversalKey(`revert:${item.operationKey}:${crypto.randomUUID()}`);
+  }
+
+  async function handleConfirmRevertPayment() {
+    if (!pendingReversal?.operationKey || !user?.tenantId) return;
+    const motivo = reversalReason.trim();
+    if (!motivo) {
+      toast.error("Indica el motivo de la reversión.");
+      return;
+    }
+    setReverting(true);
+    try {
+      const res = await revertPaymentCallable({
+        tenantId: user.tenantId,
+        operationKey: pendingReversal.operationKey,
+        reversalKey,
+        reason: motivo,
+      });
+      if (res.reversed) {
+        toast.success("Pago revertido: la cuota y el libro quedaron al día.");
+        // Lo fiscal no se anula solo. Se avisa aquí y no en un correo porque
+        // quien acaba de revertir es quien tiene que emitir la nota.
+        if (res.requiereNotaCredito) {
+          toast.warning("El pago tenía comprobante: hay que emitir la nota de crédito.");
+        }
+      } else {
+        toast.info("Ese pago ya estaba revertido.");
+      }
+      setPendingReversal(null);
+    } catch (error) {
+      toastFirebaseError(error);
+    } finally {
+      setReverting(false);
     }
   }
 
@@ -395,6 +446,24 @@ function AdminFinanzasLibroPageContent() {
             if (item.reversedByEntryId) {
               return <span className="block text-right text-xs text-[var(--slate-500)]">Anulado</span>;
             }
+            if (item.sourceType === "billingStatement" && item.operationKey) {
+              return (
+                <div className="flex justify-end">
+                  <RowActionsMenu
+                    ariaLabel={`Acciones para ${item.concept}`}
+                    items={[
+                      {
+                        key: "revert-payment",
+                        label: "Revertir pago",
+                        icon: <Undo2 className="h-4 w-4" />,
+                        danger: true,
+                        onSelect: () => abrirReversionDePago(item),
+                      },
+                    ]}
+                  />
+                </div>
+              );
+            }
             if (item.sourceType === "manual") {
               return (
                 <div className="flex justify-end">
@@ -459,6 +528,50 @@ function AdminFinanzasLibroPageContent() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(pendingReversal)}
+        title="Revertir pago"
+        onClose={() => (reverting ? undefined : setPendingReversal(null))}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--slate-700)]">
+            Se creará el asiento inverso y la cuota volverá a quedar con saldo. Si el pago
+            vino de un comprobante del residente, ese comprobante quedará rechazado con
+            este motivo.
+          </p>
+          <p className="text-sm text-[var(--slate-700)]">
+            El comprobante fiscal, si lo hubo, <strong>no se anula aquí</strong>: eso pide
+            una nota de crédito.
+          </p>
+          <label className="block text-sm text-[var(--slate-700)]">
+            Motivo de la reversión
+            <textarea
+              className="mt-1 min-h-20 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm"
+              value={reversalReason}
+              onChange={(event) => setReversalReason(event.target.value)}
+              placeholder="Por ejemplo: se registró en la unidad equivocada."
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={reverting}
+              onClick={() => setPendingReversal(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              disabled={reverting || !reversalReason.trim()}
+              onClick={() => void handleConfirmRevertPayment()}
+            >
+              {reverting ? "Revirtiendo..." : "Revertir pago"}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <ConfirmDeleteDialog

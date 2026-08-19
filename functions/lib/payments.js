@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.calcularSaldo = calcularSaldo;
 exports.aplicarPago = aplicarPago;
+exports.saldoTrasRevertir = saldoTrasRevertir;
+exports.revertirPago = revertirPago;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 /**
@@ -169,6 +171,12 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             category: "alicuota",
             bankAccountId: null,
             sourceType: "billingStatement",
+            // El asiento guarda SU clave de operación. Sin esto la reversión no es
+            // direccionable: la marca de idempotencia sabe cuál es su asiento, pero
+            // el asiento no sabría cuál es su marca, y la del cobro manual es un UUID
+            // que muere con el formulario. Es el único puente entre la fila que el
+            // administrador ve y el pago que quiere deshacer.
+            operationKey,
             sourceId: statementId,
             reconciled: false,
             // Deja ver de qué ruta vino sin tener que cruzar colecciones.
@@ -220,6 +228,188 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             paymentAmount: pagadoDespues,
             balance,
             status,
+        };
+    });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Reversión
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Cómo queda una cuota después de quitarle un pago.
+ *
+ * El `Math.max(…, 0)` no es defensa teórica: si alguien tocó la cuota por otra
+ * vía entre el pago y su reversión, restar a ciegas dejaría un **pagado
+ * negativo**, que en cartera se lee como que el conjunto le debe dinero al
+ * residente. Quedarse en cero es incorrecto de una forma que se nota y se
+ * corrige; el negativo es incorrecto de una forma que se propaga.
+ */
+function saldoTrasRevertir(totalCobrado, pagadoAntes, montoRevertido, vencimiento, hoy) {
+    const pagadoDespues = Math.max(pagadoAntes - montoRevertido, 0);
+    const { balance, status } = calcularSaldo(totalCobrado, pagadoDespues, vencimiento, hoy);
+    return { paymentAmount: pagadoDespues, balance, status };
+}
+/**
+ * Revierte un pago aplicado. Transaccional e idempotente, como su gemelo.
+ *
+ * **Sigue la convención contable del repositorio: nunca borrar, siempre anular.**
+ * El asiento original se conserva y se crea su espejo con **monto negativo** —no
+ * con el tipo opuesto—, que es como `reverseLedgerEntry` lo viene haciendo para
+ * los movimientos manuales: así las agregaciones tratan igual al original y a su
+ * reverso, sin excepciones que recordar.
+ *
+ * **Qué pasa con el comprobante del residente, y por qué no vuelve a `pending`.**
+ * Queda **rechazado** con el motivo. Devolverlo a pendiente parecería más amable
+ * pero rompería algo: la clave de idempotencia de su aprobación es su propio id,
+ * así que al re-aprobarlo la marca ya existiría y el pago **no se aplicaría**,
+ * devolviendo «ya aplicado» sin haber aplicado nada — un fallo silencioso, que es
+ * la peor clase. Con el rechazo se mantiene el invariante de que un comprobante
+ * sostiene como mucho un pago. Si hubo error de monto, se registra por el cobro
+ * manual, que ya tiene la evidencia archivada.
+ *
+ * **Lo fiscal sigue fuera** (decisión del 18 ago 2026). Si el pago original emitió
+ * comprobante, revertirlo **no lo anula**: eso pide una nota de crédito, que es
+ * terreno fiscal. El resultado lo señala en `requiereNotaCredito` para que quien
+ * opera lo sepa y no se entere por un cuadre a fin de mes.
+ */
+async function revertirPago(input, uid, role, tokenTenant) {
+    const tenantId = texto(input.tenantId, "el conjunto");
+    const operationKey = texto(input.operationKey, "la operación a revertir");
+    const reversalKey = texto(input.reversalKey, "la clave de la reversión");
+    const motivo = texto(input.reason, "el motivo de la reversión");
+    assertPuedeCobrar(role, tokenTenant, tenantId);
+    if (reversalKey === operationKey) {
+        throw new https_1.HttpsError("invalid-argument", "La clave de la reversión no puede ser la misma del pago.");
+    }
+    const firestore = db();
+    const opRef = firestore.collection("paymentOperations").doc(operationKey);
+    const revRef = firestore.collection("paymentOperations").doc(reversalKey);
+    const hoy = new Date().toISOString().slice(0, 10);
+    return firestore.runTransaction(async (tx) => {
+        // ── Lecturas ─────────────────────────────────────────────────────────────
+        const revSnap = await tx.get(revRef);
+        if (revSnap.exists) {
+            const prev = revSnap.data();
+            return {
+                ok: true,
+                reversed: false,
+                reversalEntryId: prev.reversalEntryId ?? "",
+                paymentAmount: prev.paymentAmount ?? 0,
+                balance: prev.balance ?? 0,
+                status: prev.status ?? "pending",
+                requiereNotaCredito: prev.requiereNotaCredito ?? false,
+            };
+        }
+        const opSnap = await tx.get(opRef);
+        if (!opSnap.exists) {
+            throw new https_1.HttpsError("not-found", "No existe el pago que se quiere revertir.");
+        }
+        const op = opSnap.data();
+        if (op.tenantId && op.tenantId !== tenantId) {
+            throw new https_1.HttpsError("permission-denied", "Ese pago pertenece a otro conjunto.");
+        }
+        if (op.reversedAt) {
+            throw new https_1.HttpsError("failed-precondition", "Ese pago ya fue revertido.");
+        }
+        const monto = typeof op.amount === "number" ? op.amount : 0;
+        const statementId = op.statementId ?? "";
+        if (!statementId || monto <= 0) {
+            throw new https_1.HttpsError("failed-precondition", "El pago original está incompleto y no se puede revertir.");
+        }
+        const cuotaRef = firestore.collection("billingStatements").doc(statementId);
+        const cuotaSnap = await tx.get(cuotaRef);
+        if (!cuotaSnap.exists) {
+            throw new https_1.HttpsError("not-found", "La cuota del pago ya no existe.");
+        }
+        const cuota = cuotaSnap.data();
+        const asientoRef = op.ledgerEntryId
+            ? firestore.collection("ledgerEntries").doc(op.ledgerEntryId)
+            : null;
+        const asientoSnap = asientoRef ? await tx.get(asientoRef) : null;
+        const reciboRef = op.receiptId
+            ? firestore.collection("paymentReceipts").doc(op.receiptId)
+            : null;
+        // Se lee para saber si SIGUE existiendo. `tx.update` sobre un documento
+        // borrado aborta la transacción entera, y un comprobante que ya no está no
+        // puede ser motivo para que el dinero no se pueda revertir.
+        const reciboSnap = reciboRef ? await tx.get(reciboRef) : null;
+        // ── Aritmética ───────────────────────────────────────────────────────────
+        const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
+        const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
+        const { paymentAmount: pagadoDespues, balance, status, } = saldoTrasRevertir(cobrado, pagadoAntes, monto, cuota.dueDate, hoy);
+        // ── Escrituras ───────────────────────────────────────────────────────────
+        const reversoRef = firestore.collection("ledgerEntries").doc();
+        const conceptoOriginal = asientoSnap?.data()?.concept ?? `Pago ${statementId}`;
+        tx.set(reversoRef, {
+            tenantId,
+            type: "ingreso",
+            date: hoy,
+            // Negativo, no tipo opuesto: misma convención que `reverseLedgerEntry`.
+            amount: -Math.abs(monto),
+            concept: `Reverso: ${conceptoOriginal}`,
+            category: "alicuota",
+            bankAccountId: null,
+            sourceType: "reversal",
+            sourceId: op.ledgerEntryId ?? statementId,
+            reversalReason: motivo,
+            reconciled: false,
+            createdBy: uid,
+            updatedBy: uid,
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+        if (asientoRef && asientoSnap?.exists) {
+            tx.update(asientoRef, {
+                reversedByEntryId: reversoRef.id,
+                updatedBy: uid,
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            });
+        }
+        tx.update(cuotaRef, {
+            paymentAmount: pagadoDespues,
+            balance,
+            status,
+            updatedBy: uid,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+        if (reciboRef && reciboSnap?.exists) {
+            tx.update(reciboRef, {
+                status: "rejected",
+                rejectedReason: `Pago revertido: ${motivo}`,
+                registeredAmount: null,
+                reviewedAt: firestore_1.FieldValue.serverTimestamp(),
+                reviewedBy: uid,
+            });
+        }
+        tx.update(opRef, {
+            reversedAt: firestore_1.Timestamp.now(),
+            reversedBy: uid,
+            reversalKey,
+            reversalReason: motivo,
+        });
+        const requiereNotaCredito = op.source === "manual";
+        tx.set(revRef, {
+            tenantId,
+            kind: "reversal",
+            reversesOperationKey: operationKey,
+            statementId,
+            amount: -Math.abs(monto),
+            reason: motivo,
+            reversalEntryId: reversoRef.id,
+            paymentAmount: pagadoDespues,
+            balance,
+            status,
+            requiereNotaCredito,
+            actorUid: uid,
+            createdAt: firestore_1.Timestamp.now(),
+        });
+        return {
+            ok: true,
+            reversed: true,
+            reversalEntryId: reversoRef.id,
+            paymentAmount: pagadoDespues,
+            balance,
+            status,
+            requiereNotaCredito,
         };
     });
 }

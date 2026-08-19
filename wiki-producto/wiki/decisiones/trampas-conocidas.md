@@ -278,3 +278,16 @@ Regla: al añadir una bandera, comprobar que **algo la lee**, no solo que está 
 El adaptador de [[puerta-ia]] cae al simulador cuando `ia-proveedor-real` está apagada, y su salida cumple el mismo esquema que la del modelo. Para una pantalla eso es inocuo —se ve un borrador raro—, pero **cualquier cosa que persista esa salida guarda datos falsos indistinguibles de los buenos**. Es el riesgo del modo sombra: un gold set envenenado se detecta comparándolo, mientras que una referencia de despliegue envenenada **parece que funciona**, porque no hay nada contra qué contrastarla.
 
 Regla general: quien persista una salida del modelo debe guardar **con qué proveedor se generó**, y abstenerse si no es el real.
+
+## Revertir un pago NO es anular su asiento del libro
+
+Son dos operaciones distintas y una es un subconjunto pobre de la otra. Un pago toca **tres sitios**: el asiento del libro, la cuota en cartera y —si vino de ahí— el comprobante del residente. `reverseLedgerEntry` solo toca el primero. Usarla sobre un asiento de pago dejaría el libro cuadrado y **la cuota diciendo que está pagada**, que es exactamente el desajuste que `FIN-001` vino a cerrar.
+
+La interfaz del libro ya lo impedía sin decirlo: solo ofrece «Reversar movimiento» a los asientos `sourceType: "manual"`, y uno de pago es `billingStatement`. Desde `FIN-001` esos asientos tienen su propia acción, «Revertir pago», que llama a la callable `revertPayment`.
+
+**El detalle que hace posible la reversión** es que el asiento guarda su `operationKey`. Sin ese campo la operación no es *direccionable*: la marca de idempotencia sabe cuál es su asiento, pero el asiento no sabría cuál es su marca, y la del cobro manual es un UUID que muere con el formulario. **Los asientos anteriores a `FIN-001` no la tienen y no se pueden revertir por esa vía** — hay que anularlos a mano en las dos colecciones.
+
+Y dos consecuencias que no son obvias:
+
+- **Revertir no es «volver a pendiente».** El estado se recalcula contra la fecha, así que una cuota cuyo vencimiento ya pasó vuelve **vencida**. Es lo correcto, pero sorprende.
+- **El comprobante del residente queda rechazado, no pendiente.** Devolverlo a pendiente parecería más amable y rompería la idempotencia: su clave de aprobación es su propio id, así que al re-aprobarlo la marca ya existiría y el pago **no se aplicaría**, devolviendo «ya aplicado» sin aplicar nada.

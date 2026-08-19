@@ -22,7 +22,12 @@ import {
   replySupportTicket,
   updateSupportTicket as updateSupportTicketImpl,
 } from "./support";
-import { aplicarPago, type AplicarPagoInput } from "./payments";
+import {
+  aplicarPago,
+  revertirPago,
+  type AplicarPagoInput,
+  type RevertirPagoInput,
+} from "./payments";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -4076,6 +4081,35 @@ export const applyPayment = onCall<AplicarPagoInput>(
         amount: request.data?.amount,
         source: request.data?.source,
         ledgerEntryId: resultado.ledgerEntryId,
+      });
+    }
+    return resultado;
+  },
+);
+
+/**
+ * `FIN-001` — revierte un pago ya aplicado.
+ *
+ * Se audita **siempre que la reversión ocurra**, y se registra si el pago
+ * original había emitido comprobante fiscal: quien lea la auditoría tiene que
+ * poder saber que hay una nota de crédito pendiente sin ir a buscarlo.
+ */
+export const revertPayment = onCall<RevertirPagoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const role = request.auth?.token?.role;
+    const tokenTenant = request.auth?.token?.tenantId;
+
+    const resultado = await revertirPago(request.data, uid, role, tokenTenant);
+
+    if (resultado.reversed) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "revert_payment", {
+        operationKey: request.data?.operationKey,
+        reason: request.data?.reason,
+        reversalEntryId: resultado.reversalEntryId,
+        requiereNotaCredito: resultado.requiereNotaCredito,
       });
     }
     return resultado;

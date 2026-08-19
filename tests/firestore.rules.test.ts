@@ -1394,6 +1394,47 @@ describe("FIN-001 · asientos de pago: solo el servidor", () => {
     );
   });
 
+  /**
+   * `FIN-001` — la marca de idempotencia es del servidor y de nadie más.
+   *
+   * **Por qué importa más de lo que parece.** Si un cliente pudiera escribir en
+   * `paymentOperations`, podría fabricar una marca con la clave de un pago que
+   * todavía no ha ocurrido; cuando ese pago se intentara, la función vería la
+   * marca, devolvería «ya aplicado» y **no aplicaría nada**. Un cobro anulado en
+   * silencio, sin error y sin rastro.
+   *
+   * Hoy la colección se deniega **por omisión**: no tiene regla, y la lista
+   * blanca del comodín solo incluye `communications`. Estas pruebas existen
+   * porque esa protección es invisible — el día que alguien añada la colección a
+   * esa lista, esto se pone rojo en vez de abrirse en silencio.
+   */
+  it("un admin NO puede fabricar una marca de idempotencia de pago", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "paymentOperations", "receipt:cualquiera"), {
+        tenantId: "tenant-a",
+        statementId: "stmt-1",
+        amount: 100,
+      }),
+    );
+  });
+
+  it("ni el superadmin puede fabricarla", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "paymentOperations", "receipt:otra"), {
+        tenantId: "tenant-a",
+        statementId: "stmt-1",
+        amount: 100,
+      }),
+    );
+  });
+
+  it("un admin tampoco puede leer las marcas de idempotencia", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "paymentOperations", "receipt:cualquiera")));
+  });
+
   it("y los reversos también", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(

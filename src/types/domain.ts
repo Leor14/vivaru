@@ -434,6 +434,13 @@ export type LedgerCategory =
 
 /** Movimiento del libro de ingresos/egresos. Backbone contable + conciliación. */
 export interface LedgerEntry {
+  /**
+   * `FIN-001`. Clave de la operación que creó este asiento, presente solo en los
+   * de `sourceType: "billingStatement"`. Es lo que permite revertir el pago
+   * entero —cuota, asiento y comprobante— desde la fila del libro. Los asientos
+   * anteriores a FIN-001 no la tienen y **no se pueden revertir por esa vía**.
+   */
+  operationKey?: string;
   id: string;
   tenantId: string;
   type: LedgerEntryType;

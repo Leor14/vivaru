@@ -570,6 +570,41 @@ export async function applyPaymentCallable(input: {
   return executeCallable(callable, input, "No fue posible registrar el cobro.");
 }
 
+/**
+ * `FIN-001` — deshace un pago ya aplicado.
+ *
+ * Se identifica por la `operationKey` **del pago original**, no por el asiento:
+ * la clave es lo único que conoce todo lo que hay que deshacer —cuota, asiento
+ * y comprobante— sin tener que reconstruirlo.
+ *
+ * `reversalKey` es la idempotencia de esta reversión y **tiene que ser distinta**
+ * de la del pago; si no, la marca del pago se confundiría con la del reverso.
+ *
+ * `requiereNotaCredito` viene en `true` cuando el pago original emitió
+ * comprobante fiscal: revertirlo NO lo anula, y quien opera tiene que saberlo.
+ */
+export async function revertPaymentCallable(input: {
+  tenantId: string;
+  operationKey: string;
+  reversalKey: string;
+  reason: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    typeof input,
+    {
+      ok: true;
+      reversed: boolean;
+      reversalEntryId: string;
+      paymentAmount: number;
+      balance: number;
+      status: "paid" | "overdue" | "pending";
+      requiereNotaCredito: boolean;
+    }
+  >(functions, "revertPayment");
+  return executeCallable(callable, input, "No fue posible revertir el pago.");
+}
+
 export async function updateSupportTicketStatusCallable(input: {
   ticketId: string;
   status?: string;

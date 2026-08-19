@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { calcularSaldo } from "../src/payments";
+import { calcularSaldo, saldoTrasRevertir } from "../src/payments";
 
 /**
  * `FIN-001` — la aritmética del dinero, ahora del lado del servidor.
@@ -57,5 +57,67 @@ describe("FIN-001 · saldo y estado", () => {
     const r = calcularSaldo(100.1, 100.1, "2026-08-31", HOY);
     expect(r.status).toBe("paid");
     expect(r.balance).toBe(0);
+  });
+});
+
+describe("FIN-001 · reversión de un pago", () => {
+  // El caso corriente: se cobró de más o al residente equivocado y se deshace.
+  it("revertir el pago completo devuelve la cuota a pendiente con todo el saldo", () => {
+    expect(saldoTrasRevertir(100, 100, 100, "2026-08-31", HOY)).toEqual({
+      paymentAmount: 0,
+      balance: 100,
+      status: "pending",
+    });
+  });
+
+  it("revertir uno de dos pagos deja el otro en pie", () => {
+    expect(saldoTrasRevertir(100, 100, 40, "2026-08-31", HOY)).toEqual({
+      paymentAmount: 60,
+      balance: 40,
+      status: "pending",
+    });
+  });
+
+  // Revertir NO es «volver a pendiente»: el estado se recalcula, y una cuota
+  // cuya fecha ya pasó vuelve VENCIDA, que es la verdad.
+  it("si la fecha ya venció, revertir devuelve la cuota a vencida y no a pendiente", () => {
+    expect(saldoTrasRevertir(100, 100, 100, "2026-08-01", HOY).status).toBe("overdue");
+  });
+
+  // La razón de ser del Math.max: un pagado negativo se leería en cartera como
+  // que el conjunto le debe dinero al residente.
+  it("si la cuota ya fue tocada por otra vía, el pagado se queda en CERO y no en negativo", () => {
+    expect(saldoTrasRevertir(100, 30, 100, "2026-08-31", HOY)).toEqual({
+      paymentAmount: 0,
+      balance: 100,
+      status: "pending",
+    });
+  });
+
+  it("revertir un pago parcial de una cuota sobrepagada puede dejarla pagada aún", () => {
+    expect(saldoTrasRevertir(100, 130, 20, "2026-08-31", HOY)).toEqual({
+      paymentAmount: 110,
+      balance: 0,
+      status: "paid",
+    });
+  });
+
+  // Aplicar y revertir el mismo monto tiene que devolver el punto de partida,
+  // o la reversión no sería tal.
+  it("aplicar y revertir el mismo monto devuelve exactamente el estado inicial", () => {
+    const inicial = calcularSaldo(100, 0, "2026-08-31", HOY);
+    const trasPagar = calcularSaldo(100, 60, "2026-08-31", HOY);
+    const trasRevertir = saldoTrasRevertir(100, 60, 60, "2026-08-31", HOY);
+    expect(trasPagar).not.toEqual(inicial);
+    expect({ balance: trasRevertir.balance, status: trasRevertir.status }).toEqual(inicial);
+    expect(trasRevertir.paymentAmount).toBe(0);
+  });
+
+  it("revertir cero no cambia nada", () => {
+    expect(saldoTrasRevertir(100, 60, 0, "2026-08-31", HOY)).toEqual({
+      paymentAmount: 60,
+      balance: 40,
+      status: "pending",
+    });
   });
 });
