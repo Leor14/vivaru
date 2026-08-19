@@ -54,6 +54,7 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 | PRD | Estado | Nota |
 |---|---|---|
 | [PRD-A-OPS-001 — Vista de Leads de Vivaru](albert/PRD-A-OPS-001-vista-de-leads-vivaru.md) | **Borrador 0.3 — NO lista para desarrollo** | **Bisagra decidida: Vivaru es un tenant de Albert.** Con eso el vocabulario de estados pasa a ser configuración en vez de desarrollo. La ficha técnica de Albert corrigió dos supuestos —«convertido» vive en el pipeline de deals, no en `leads`; y `crmRef` necesita estructura porque un deal vive bajo su tenant—. El §5 de inbound ya está escrito (el lead cruza **al asignarle dueño**, no al entrar). **Solo falta `REVOPS-000`** para el flujo del canal asistido |
+| [CONSULTA-A-001 — Preguntas para Albert](albert/CONSULTA-A-001-preguntas-para-albert.md) | **Enviada — esperando respuesta** | Una sola tanda con todo lo pendiente, agrupado por qué bloquea. El bloque A bloquea la implementación (campos propios en `deal` para `vivaruLeadId`, y si `wonDealStage` es por tenant — de eso depende la decisión de la bisagra). El B bloquea G3: supresión de datos personales. No es una PRD: es su insumo |
 
 ### IA
 
