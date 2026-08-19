@@ -30,6 +30,7 @@ import {
   createManualLedgerEntry,
   reverseLedgerEntry,
   watchLedger,
+  movimientoEntraAlFondo,
 } from "@/features/finanzas/use-ledger";
 import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
 import { ledgerEntrySchema, type LedgerEntryFormValues } from "@/features/finanzas/schemas";
@@ -302,12 +303,19 @@ function AdminFinanzasLibroPageContent() {
     {
       key: "amount",
       header: "Monto",
-      render: (item) => (
-        <span className={item.type === "ingreso" ? "font-medium text-[#2f775f]" : "font-medium text-[#936b24]"}>
-          {item.type === "ingreso" ? "+" : "−"}
-          {formatAmount(item.amount)}
-        </span>
-      ),
+      render: (item) => {
+        // El signo y el color salen de si el movimiento ENTRA o SALE, no del
+        // tipo: un reverso conserva el tipo y lleva monto negativo, así que
+        // derivarlo del tipo pintaba «+-$430.000» en verde. Se muestra el valor
+        // absoluto porque el signo ya lo pone esta línea.
+        const entra = movimientoEntraAlFondo(item.type, item.amount);
+        return (
+          <span className={entra ? "font-medium text-[#2f775f]" : "font-medium text-[#936b24]"}>
+            {entra ? "+" : "−"}
+            {formatAmount(Math.abs(item.amount))}
+          </span>
+        );
+      },
     },
   ];
 

@@ -231,3 +231,22 @@ export function computeFundPosition(
     balance: openingBalance + totalIncome - expenses,
   };
 }
+
+/**
+ * Si un movimiento SUMA o RESTA al fondo, mirando tipo y monto a la vez.
+ *
+ * **Por qué hace falta.** El signo no se puede derivar solo del tipo. Un reverso
+ * conserva el tipo del asiento que anula y lleva **monto negativo** —convención
+ * de `reverseLedgerEntry`, ver arriba—, así que un reverso de ingreso es de tipo
+ * `ingreso` y sin embargo resta. Derivarlo del tipo pintaba `+-$430.000` en
+ * verde, como si hubiera entrado dinero: los dos signos juntos y el color al
+ * revés. Defecto de `72c3083`, visible desde que `FIN-001` trajo reversos de
+ * pago al libro.
+ *
+ * Las cuatro combinaciones: ingreso positivo entra; ingreso negativo (su
+ * reverso) sale; egreso positivo sale; egreso negativo (su reverso) **entra**,
+ * porque anular un gasto devuelve el dinero al fondo.
+ */
+export function movimientoEntraAlFondo(type: LedgerEntry["type"], amount: number): boolean {
+  return (type === "ingreso") === (amount >= 0);
+}
