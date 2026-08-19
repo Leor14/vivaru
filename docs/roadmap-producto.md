@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.4 |
+| **Versión** | 0.9.5 |
 | **Fecha** | 18 de agosto de 2026, noche |
-| **Estado** | **Nivel 1 en producción; `FIN-001` en staging sin validar** — cartera y libro ya no pueden discrepar, pero falta comprobarlo a mano |
+| **Estado** | **Nivel 1 en producción; `FIN-001` validada en staging** — cobro y reversión probados a mano de punta a punta; falta producción |
 | **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -230,8 +230,8 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `FIN-001` — Comando único e idempotente de aplicación de pagos
 
-- **Frente:** Vivaru Finance · **Estado:** 🟡 **En staging, sin validar a mano**
-  (18 ago 2026, `66c03c7` + `75d9e47`) · **Nivel 2** · **No está en producción**
+- **Frente:** Vivaru Finance · **Estado:** ✅ **Validada en staging** (18 ago 2026,
+  `66c03c7` + `75d9e47`) · **Nivel 2** · **No está en producción**
 - **Problema:** las rutas de pago, comprobantes, ledger, vouchers, saldos y reversos
   deben producir un resultado completo o ninguno.
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
@@ -262,12 +262,20 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   - **Los asientos anteriores a esta ficha no se pueden revertir** por la vía nueva: no
     guardan su `operationKey`. Hoy no hay ninguno real, así que el costo es cero — pero
     deja de serlo el día que haya un cliente.
-- **Despliegue (18 ago 2026):** en **staging** las tres capas —functions, front y
-  reglas—. En **producción, ninguna**. Las callables responden `401` sin sesión, que es
-  lo correcto; el resto **no está verificado**: el CLI de App Hosting no expone de qué
-  commit viene el build, así que la comprobación decisiva es **registrar un cobro a
-  mano** en staging. Si fallara con «no tienes permiso», el front aún sería el viejo y se
-  cura solo al terminar el rollout.
+- **Validación en staging (18 ago 2026), hecha por David:** cobro de $430.000 sobre la
+  cuota `2026-05` de `T2-204`, comprobante `000000001` emitido, y **reversión probada
+  también**. En el libro quedaron las dos filas —el pago marcado «Anulado» y su
+  «Reverso»— y los totales del período en **cero**, que es la prueba de que las
+  agregaciones cuadran. Por la ruta del comprobante del residente, antes el pago **nunca
+  llegaba al libro**; ahora sí. En **producción sigue sin desplegarse**.
+- **Y la validación encontró un defecto, que es para lo que sirve.** El libro pintaba el
+  reverso como `+-$430.000` **en verde**: el signo salía del *tipo* del asiento, y un
+  reverso conserva el tipo del que anula llevando monto negativo. **No lo introdujo esta
+  ficha** —viene de `72c3083`, de cuando se creó el libro— pero estaba latente porque
+  solo se reversaban movimientos manuales. Arreglado en `8df5a4d` con
+  `movimientoEntraAlFondo`, incluida la mitad menos evidente: **anular un egreso devuelve
+  dinero al fondo**. Era solo presentación; las agregaciones ya sumaban bien, y por eso
+  los totales daban cero.
 - **El orden se invirtió, y conviene saber por qué.** `CLAUDE.md` dice reglas → functions
   → front, y eso vale cuando la regla **concede**. Ésta **quita**: veta que el cliente
   escriba asientos de pago, que es lo que el front anterior hacía. Se desplegó functions →
@@ -830,6 +838,23 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.5 — 18 de agosto de 2026, noche
+
+**Por qué: David validó `FIN-001` a mano en staging**, cobro y reversión. Ya no es
+«desplegado sin validar», que es lo que decía la 0.9.4 — y la diferencia entre las dos
+entradas es exactamente el trabajo que vale la pena.
+
+- `FIN-001` pasa a ✅ **validada en staging**. Cobro de $430.000 sobre `T2-204`,
+  comprobante emitido, reverso creado, totales del período en cero. **Producción sigue
+  sin tenerla.**
+- **La validación encontró un defecto de presentación en el libro** —el reverso pintaba
+  `+-$430.000` en verde—, anterior a esta ficha (`72c3083`) y latente hasta que hubo
+  reversos de pago que mirar. Arreglado en `8df5a4d`.
+
+Vale la pena dejarlo escrito: el defecto **no lo cazó ninguna de las 969 pruebas**, lo
+cazó una persona mirando una pantalla. Las pruebas cubrían la aritmética, que estaba
+bien; lo que estaba mal era cómo se contaba.
 
 ### 0.9.4 — 18 de agosto de 2026, noche
 
