@@ -1,4 +1,6 @@
 import { getAdminDb } from "@/lib/firebase/admin";
+import type { Atribucion } from "@/lib/marketing/attribution";
+import type { ConsentimientoLead } from "@/lib/marketing/lead-consent";
 
 /**
  * Persistencia de leads de marketing (Fase 0 del plan de self-service).
@@ -39,14 +41,37 @@ export type LeadInput = {
   timeline?: string;
   /** Datos propios de cada origen (score del diagnóstico, respuestas, etc.). */
   meta?: Record<string, unknown>;
+  /** De dónde vino (`REVOPS-001A`). Ausente en tráfico directo, y eso es un
+   *  dato en sí: significa que nadie lo trajo desde una campaña. */
+  attribution?: Atribucion;
+  /** Autorización para tratar sus datos, con fecha del servidor y versión de
+   *  la política. Obligatoria: las rutas rechazan el lead sin ella. */
+  consent?: ConsentimientoLead;
 };
 
-/** Quita claves vacías: Firestore rechaza `undefined` y los "" ensucian la consola. */
+/**
+ * Quita claves vacías: Firestore rechaza `undefined` y los "" ensucian la consola.
+ *
+ * Baja por los objetos planos anidados. Antes solo miraba el primer nivel, lo
+ * que bastaba mientras el lead era plano; `attribution` y `consent` son objetos,
+ * y un `undefined` dentro de ellos habría hecho fallar la escritura entera —
+ * perdiendo el lead, no solo el campo. No toca arrays ni fechas.
+ */
 function clean(value: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value)) {
     if (val === undefined || val === null) continue;
     if (typeof val === "string" && val.trim() === "") continue;
+    if (
+      typeof val === "object" &&
+      !Array.isArray(val) &&
+      Object.getPrototypeOf(val) === Object.prototype
+    ) {
+      const anidado = clean(val as Record<string, unknown>);
+      if (Object.keys(anidado).length === 0) continue;
+      out[key] = anidado;
+      continue;
+    }
     out[key] = val;
   }
   return out;

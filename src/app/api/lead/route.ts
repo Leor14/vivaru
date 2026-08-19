@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { Resend } from "resend";
+import { z } from "zod";
 
 import { diagnosticSchema } from "@/lib/marketing/diagnostic-schema";
+import { atribucionSchema } from "@/lib/marketing/attribution";
+import { registrarConsentimiento } from "@/lib/marketing/lead-consent";
 import { persistLead } from "@/lib/marketing/leads";
 import { envSubject, resolveNotifyTo } from "@/lib/marketing/notify-target";
 import { calculateScore } from "@/lib/marketing/diagnostic-score";
@@ -54,6 +57,21 @@ const NOTIFY_TO: string[] = resolveNotifyTo(
 const NOTIFY_FROM =
   process.env.LEAD_NOTIFICATION_FROM || "Vivaru <onboarding@resend.dev>";
 
+/**
+ * Sobre de atribución (`REVOPS-001A`), aparte del diagnóstico.
+ *
+ * Va en su propio esquema en vez de dentro de `diagnosticSchema` porque el
+ * diagnóstico son las RESPUESTAS de la persona y esto es de dónde vino: mezclarlos
+ * obligaría a que el formulario del cliente validara un campo que no rellena
+ * nadie. Además `diagnosticSchema` se usa para validar por pasos en el navegador
+ * y para recuperar borradores; meterle atribución rompería ambos.
+ *
+ * El consentimiento NO viaja aquí: el diagnóstico ya lo exige dentro de
+ * `q9_contacto.consent`, validado en cliente y en servidor, así que un lead sin
+ * él ni siquiera pasa el `safeParse` de más abajo.
+ */
+const sobreSchema = z.object({ attribution: atribucionSchema });
+
 export async function POST(request: Request) {
   const ip = getClientIp(request);
   if (rateLimited(ip)) {
@@ -79,6 +97,10 @@ export async function POST(request: Request) {
   }
 
   const answers = parsed.data;
+  // La atribución nunca invalida el lead: si viene mal formada se ignora y el
+  // lead entra sin ella. Perder de dónde vino es malo; perder el lead, peor.
+  const sobre = sobreSchema.safeParse(body);
+  const attribution = sobre.success ? sobre.data.attribution : undefined;
   const score = calculateScore(answers);
   const pillar = answers.q5_pilarDolor;
   const recommendation = RECOMMENDATIONS[pillar];
@@ -110,6 +132,10 @@ export async function POST(request: Request) {
     empresa: contacto.conjunto,
     unidadesEstimadas: answers.q2_unidades,
     timeline: answers.q8_timeline,
+    attribution,
+    // Sale a campo propio con fecha del servidor. Seguía viajando dentro de
+    // `meta.respuestas`, donde no se podía consultar ni decía cuándo se dio.
+    consent: registrarConsentimiento(),
     meta: {
       score,
       pilarDolor: pillar,

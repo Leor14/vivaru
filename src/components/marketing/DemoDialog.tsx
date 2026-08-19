@@ -8,6 +8,7 @@ import { Input } from "@/components/marketing/ui/input";
 import { Label } from "@/components/marketing/ui/label";
 import { track } from "@/lib/marketing/analytics";
 import { Flecha } from "@/components/marketing/ui/flecha";
+import { leerAtribucion } from "@/lib/marketing/attribution";
 
 /**
  * Demo lead-capture wizard.
@@ -74,6 +75,9 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
   const [profile, setProfile] = React.useState<ProfileData>(EMPTY_PROFILE);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // REVOPS-001A. Arranca en false a propósito: la autorización tiene que ser un
+  // acto de la persona, así que la casilla nunca viene premarcada.
+  const [consent, setConsent] = React.useState(false);
 
   const trigger = React.Children.only(children) as React.ReactElement;
 
@@ -83,6 +87,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
     setProfile(EMPTY_PROFILE);
     setLoading(false);
     setError(null);
+    setConsent(false);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -108,6 +113,8 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
     if (!profile.conjuntos)
       return "Selecciona la cantidad de conjuntos que administras.";
     if (!profile.timeline) return "Selecciona cuándo planeas implementar.";
+    if (!consent)
+      return "Necesitamos tu autorización para tratar tus datos y contactarte.";
     return null;
   }
 
@@ -129,7 +136,12 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
       const res = await fetch("/api/demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...contact, ...profile }),
+        body: JSON.stringify({
+          ...contact,
+          ...profile,
+          consent,
+          attribution: leerAtribucion(),
+        }),
       });
       if (!res.ok) throw new Error("api_error");
       track("demo_booked", { section });
@@ -367,6 +379,40 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
                     <option value="investigando">Solo explorando opciones</option>
                   </select>
                 </div>
+
+                {/* REVOPS-001A · autorización expresa. La política declara
+                    cumplimiento de la Ley 1581 de Colombia, que pide
+                    autorización previa, expresa e informada — de ahí la casilla
+                    y no un aviso al pie. Mismo texto que el diagnóstico. */}
+                <label
+                  htmlFor="demo-consent"
+                  className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-sm leading-relaxed text-slate-700"
+                >
+                  <input
+                    id="demo-consent"
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => {
+                      setConsent(e.target.checked);
+                      if (e.target.checked) setError(null);
+                    }}
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300"
+                  />
+                  <span>
+                    Acepto que Vivaru (operado por Qintilab S.A.S.) trate mis
+                    datos para agendar la demo y enviarme materiales comerciales
+                    relacionados, conforme a la{" "}
+                    <a
+                      href="/legal/privacidad"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Política de Privacidad
+                    </a>
+                    . Puedo retirar mi consentimiento en cualquier momento.
+                  </span>
+                </label>
 
                 {error && (
                   <p role="alert" className="text-sm text-red-600">

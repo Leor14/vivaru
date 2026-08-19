@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { persistLead } from "@/lib/marketing/leads";
 import { envSubject, resolveNotifyTo } from "@/lib/marketing/notify-target";
+import { atribucionSchema } from "@/lib/marketing/attribution";
+import { consentimientoSchema, registrarConsentimiento } from "@/lib/marketing/lead-consent";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,11 @@ const demoSchema = z.object({
   conjuntos: z.enum(["1", "2-5", "6-15", "16+"]),
   unidades: z.string().max(10).default(""),
   timeline: z.enum(["30dias", "trimestre", "anio", "investigando"]),
+  // REVOPS-001A. La atribución es opcional —el tráfico directo también es un
+  // lead válido— pero el consentimiento NO: sin él la petición se rechaza con
+  // 400, aunque alguien llame esta ruta a mano saltándose el formulario.
+  attribution: atribucionSchema,
+  consent: consentimientoSchema,
 });
 
 type DemoData = z.infer<typeof demoSchema>;
@@ -137,6 +144,8 @@ export async function POST(request: Request) {
     unidadesEstimadas: d.unidades,
     conjuntos: d.conjuntos,
     timeline: d.timeline,
+    attribution: d.attribution,
+    consent: registrarConsentimiento(),
   });
 
   // Email dispatch — best-effort, never blocks lead capture success

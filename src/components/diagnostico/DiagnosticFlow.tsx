@@ -19,6 +19,7 @@ import {
 
 import { Button } from "@/components/marketing/ui/button";
 import { track } from "@/lib/marketing/analytics";
+import { leerAtribucion } from "@/lib/marketing/attribution";
 import { useReducedMotion } from "@/lib/marketing/hooks";
 import {
   diagnosticSchema,
@@ -223,7 +224,9 @@ export function DiagnosticFlow() {
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        // La atribución viaja junto a las respuestas, no dentro: se capturó al
+        // entrar al sitio (REVOPS-001A) y no es algo que la persona conteste.
+        body: JSON.stringify({ ...parsed.data, attribution: leerAtribucion() }),
       });
       if (res.status === 429) {
         setServerError("Demasiados intentos. Intenta en unos minutos.");

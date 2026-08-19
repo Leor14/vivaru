@@ -8,6 +8,7 @@ import {
   iniciarGoogleAnalytics,
   vistaGoogleAnalytics,
 } from '@/lib/marketing/google-analytics';
+import { capturarAtribucion } from '@/lib/marketing/attribution';
 
 /**
  * Vivaru — puerta de consentimiento de la analítica (solo rutas de marketing).
@@ -109,6 +110,14 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const [consentido, setConsentido] = useState(false);
 
   useEffect(() => {
+    // Atribución del lead (REVOPS-001A). Va ANTES de la puerta de
+    // consentimiento y a propósito: gobierna otra cosa. Esa puerta protege la
+    // analítica de terceros (GA4, PostHog); esto se queda en `sessionStorage`
+    // del propio navegador y no sale de ahí hasta que la persona envía un
+    // formulario aceptando el tratamiento de forma expresa. Detrás de la
+    // cookie, quien la rechace y luego pida una demo llegaría sin atribuir.
+    capturarAtribucion();
+
     const arrancar = () => {
       initPosthog();
       void iniciarGoogleAnalytics();
