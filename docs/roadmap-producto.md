@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.8.1 |
-| **Fecha** | 18 de agosto de 2026, madrugada |
-| **Estado** | **Nivel 1 construido a medias: `FIN-000` (sin deudas) y `REVOPS-001E` en `develop`, sin desplegar** |
-| **Verificado contra** | Repositorio en `90dce82` (`develop`, empujado), 151 pruebas de reglas contra el emulador (Firestore + Storage), typecheck de app y functions |
+| **Versión** | 0.9 |
+| **Fecha** | 18 de agosto de 2026, tarde |
+| **Estado** | **Nivel 1 COMPLETO y desplegado en producción** — las cuatro fichas construidas, probadas y en `master` |
+| **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,27 +32,38 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **`FIN-000` está resuelto.** `storage.rules` pasó de conceder todo el árbol del
-  conjunto por pertenencia a conceder **carpeta a carpeta con filtro de rol**. Los
-  comprobantes de pago se segmentaron por usuario (cada residente sube y lee solo el
-  suyo). 47 casos de Storage en emulador, verificados en las dos direcciones: 21
-  fallan con las reglas viejas. Las reglas entran a CI en un job propio.
-- **`REVOPS-001E` está construido.** Catálogo `salesReps` (colección global), dueño y
-  referencia de CRM en el lead, `vendedorId` estampado al convertir por los dos
-  caminos, página Comerciales y selectores en Superadmin. El esquema es a la vez el
-  de Vivaru y la entrada del primer PRD de Albert.
-- **Ambos viven en `develop` sin desplegar.** `FIN-000` exige orden: **primero el
-  código, después las reglas** — las reglas nuevas ya esperan la ruta por usuario. Y
-  el selector de vendedor del alta directa requiere **deploy de functions**
-  (`createTenantFromLead` cambió de firma; el campo es opcional y sin deploy el alta
-  sigue funcionando, solo que sin registrar vendedor).
-- **De paso cayeron dos averías que nadie veía:** los scripts `test:rules*` llevaban
-  meses sin poder ejecutar nada («No test files found»: la exclusión de vitest no se
-  puede deshacer desde la CLI), y `markTrialAsLost` nunca marcó un lead como perdido
-  (las reglas vetaban el update y un `catch` vacío se tragaba el rechazo).
-- **Siguen del 0.7:** el canal dotado (cinco personas, tres países), los dos embudos
-  con un solo medidor, y `REVOPS-000` sin empezar — que ahora además es la entrada
-  del PRD de Albert.
+- **El nivel 1 está entero y en producción.** `FIN-000`, `REVOPS-001E`, `REVOPS-001A`
+  y `SUP-001`: construidas, probadas y desplegadas el 18 de agosto. Era el nivel de
+  «lo que caduca», y deja de caducar.
+- **`REVOPS-001A` — atribución y consentimiento.** Los `utm_*`, el `referrer` y la
+  ruta de aterrizaje se capturan **al entrar al sitio**, no al enviar el formulario:
+  quien aterriza con campaña y navega antes de rellenar llegaba, si no, como «vino de
+  Vivaru». Y **no va detrás del consentimiento de cookies** a propósito — esa puerta
+  gobierna analítica de terceros, esto es el expediente del lead. El consentimiento
+  sale de donde estaba enterrado (`meta.respuestas`, sin fecha) a campo propio con
+  fecha del servidor y versión de la política; el formulario de demo, que no pedía
+  nada, ahora tiene la misma casilla expresa que el diagnóstico.
+- **`SUP-001` — responsable y primera respuesta.** `firstResponseAt` se sella una sola
+  vez y nunca se sobrescribe; quien contesta primero se queda el ticket si no tenía
+  dueño, y responder no roba uno ajeno. **Sin relleno hacia atrás**: los tickets
+  viejos no tienen el dato y la consola distingue tres estados —contestado, sin
+  responder, y sin dato— para no hacer parecer desatendido lo que se contestó hace
+  meses. El contador de pendientes ya existía.
+- **El despliegue respetó el orden y eso importó.** Primero el código, después las
+  reglas de Storage: las nuevas exigen la ruta por usuario, y desplegarlas antes
+  habría roto la subida de comprobantes **en silencio** hasta que un residente
+  intentara pagar. Se esperó a comprobar por API que producción servía el código
+  nuevo. Verificado en staging con un comprobante real antes de tocar producción.
+- **Tres averías que nadie veía, cazadas de camino.** `functions/lib` está versionado
+  y no hay predeploy: los commits de `REVOPS-001E` y `SUP-001` no lo recompilaron, así
+  que un deploy desde un clon limpio habría subido functions **sin** `vendedorId` ni el
+  sellado de SUP-001 —con el `src/` diciendo lo contrario—. **Staging llevaba sin poder
+  construir** por un permiso de IAM sobre el secreto de Resend. Y `markTrialAsLost`
+  nunca marcó un lead como perdido (0.8).
+- **Los cinco comerciales están dados de alta.** El catálogo dejó de estar vacío, que
+  era lo que impedía cumplir el criterio de salida de `REVOPS-001E`.
+- **Sigue del 0.7:** `REVOPS-000` sin empezar — y ahora es lo único que bloquea el
+  nivel siguiente y el PRD de Albert.
 
 **Qué espera decisión tuya:**
 
@@ -108,13 +119,13 @@ de entrega.**
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | ✅ `FIN-000` · 🔴 `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
-| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ⏳ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
+| **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
-| Servicio a clientes | ⏳ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
+| Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
 
-**Leyenda:** ✅ construido (ver su ficha para lo que falte de despliegue) · 🟢 coste
+**Leyenda:** ✅ construido **y desplegado** (18 ago 2026) · 🟢 coste
 cero, se puede hoy · ⏳ **caduca: el dato se pierde si llega tarde** · 🔴 prioridad
 fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 descubrimiento ·
 ⏸ bloqueado por datos · ◇ exploración condicionada
@@ -146,7 +157,7 @@ fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 des
 | Nivel | Qué | Coste | Por qué está ahí |
 |---|---|---|---|
 | **0** | **Generar demanda** — `REVOPS-000` | Cero código | Es el bloqueo compartido de cinco frentes |
-| **1** | **Lo que caduca** — ✅ `REVOPS-001E` · ⏳ `REVOPS-001A` · ⏳ `SUP-001` · ✅ `FIN-000` | Bajo | El dato no se reconstruye después |
+| **1** | ✅ **COMPLETO** — `REVOPS-001E` · `REVOPS-001A` · `SUP-001` · `FIN-000`, los cuatro en producción | Bajo | El dato no se reconstruye después. **Ya no caduca** |
 | **2** | **Lo que rompe al convertir** — `FIN-001` | Alto | El trial protege; la conversión no |
 | **3** | **Cablear el precio** — primera mitad de `REVOPS-001C` | Medio | Hace falta al convertir, no al probar |
 | **4** | Todo lo demás | — | Espera al primer cliente real |
@@ -185,14 +196,17 @@ recupera nunca.
 
 | Qué | Dónde | Qué se pierde si llega tarde |
 |---|---|---|
-| **Dueño comercial** del lead y del conjunto | `REVOPS-001E` | **Dinero de alguien.** En México el canal se lleva $24 de $51. Un conjunto creado sin registrar quién lo vendió no se reatribuye |
-| Campos de atribución de marketing | `src/lib/marketing/leads.ts` | Un lead sin `utm_*` ni `referrer` **no se atribuye después**. Aplica al embudo de autoservicio, no al del KAM |
-| `firstResponseAt` · `assignedTo` | `SUP-001` | **No se reconstruye.** Los tickets ya cerrados nunca lo tendrán |
+| **Dueño comercial** del lead y del conjunto | ✅ **Ya está** | **Dinero de alguien.** En México el canal se lleva $24 de $51. Un conjunto creado sin registrar quién lo vendió no se reatribuye |
+| Campos de atribución de marketing | ✅ **Ya está** | Nada — `REVOPS-001A` los captura al entrar al sitio desde el 18 de agosto |
+| `firstResponseAt` · `assignedTo` | ✅ **Ya está** | Los tickets anteriores al 18 de agosto siguen sin el dato y nunca lo tendrán; desde esa fecha se sella solo |
 | La sombra de PQRS | ✅ **Ya está** | Nada — se armó a tiempo y captura desde el primer ticket real |
 
-**`FIN-000` viaja con ellos por un motivo distinto:** no caduca, está **abierto hoy**.
-El candado del trial protege Firestore, pero `storage.rules` es otra capa y ahí no hay
-filtro de rol.
+**Este eje se vació el 18 de agosto de 2026**, y conviene dejarlo escrito. Nació en la
+0.5 con cuatro filas abiertas; hoy las cuatro están cerradas y desplegadas. `FIN-000`
+entró aquí por un motivo distinto —no caducaba, estaba **abierto**— y también quedó
+resuelto. **La sección se conserva vacía a propósito:** es el recordatorio de qué tipo
+de trabajo hay que cazar temprano, no un tablero que se archiva por estar completo. La
+próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde va.
 
 ---
 
@@ -276,22 +290,39 @@ filtro de rol.
 
 #### `REVOPS-001A` — Atribución del lead y respuesta inmediata
 
-- **Frente:** REVOPS · **Estado:** Parcial · **Nivel 1** · ⏳ **Caduca**
+- **Frente:** REVOPS · **Estado:** ✅ **Desplegado en producción** (`9a4d86c`, 18 ago
+  2026) · **Nivel 1**
 - **Se partió en la 0.5.** Antes cubría atribución **e** instrumentación del embudo; la
   instrumentación bajó a `REVOPS-001D`, porque medir un embudo por el que no pasa nadie
-  no mide nada. Aquí queda lo pequeño y lo irreversible.
+  no mide nada. Aquí quedó lo pequeño y lo irreversible.
 - **Absorbe** el antiguo `GROW-001` (atribución y consentimiento).
-- **Incluir:** `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`,
-  `referrer`, landing y consentimiento con fecha; y respuesta automática al lead.
-- **Por qué no espera:** `src/lib/marketing/leads.ts` persiste el lead con `appEnv` y
-  **ningún campo de atribución**. Un lead que entra sin ellos **no se atribuye después**
-  — y el primero real es justo el que más interesa saber de dónde vino.
-- **Criterio de salida:** todo lead válido queda atribuido, recibe respuesta y produce
-  una siguiente acción trazable.
+- **La atribución se captura al ENTRAR, no al enviar el formulario.** Es la decisión
+  que sostiene la ficha: quien aterriza en `/?utm_source=…` y navega a `/diagnostico`
+  antes de rellenar llega, si se lee al enviar, como «vino de Vivaru» — el referrer ya
+  es interno y los `utm_*` desaparecieron de la URL. Primera visita gana, vive en
+  `sessionStorage`.
+- **Y NO va detrás del consentimiento de cookies, a propósito.** Esa puerta gobierna
+  analítica de terceros; esto es el expediente del lead. El dato no sale del navegador
+  hasta que la persona envía el formulario autorizando. Detrás de la cookie, quien la
+  rechace y luego pida una demo llegaría **sin atribuir** — justo lo que la ficha
+  existe para evitar.
+- **El consentimiento sale de donde estaba enterrado.** El diagnóstico ya pedía casilla
+  expresa; lo que no hacía era guardarla de forma útil —viajaba dentro de
+  `meta.respuestas`, sin fecha y sin poder consultarse—. Ahora es campo propio, **con
+  la fecha puesta por el servidor** (el reloj del cliente no acredita nada) y la
+  versión de la política aceptada. El formulario de demo **no pedía nada**: ahora tiene
+  la misma casilla.
+- **La respuesta automática al lead ya existía** en las dos rutas — la ficha la pedía
+  de más.
+- **Asimetría deliberada en el servidor:** sin consentimiento el lead se rechaza con
+  400 aunque llamen la API a mano; con la atribución mal formada se ignora y el lead
+  entra. Perder de dónde vino es malo; perder el lead es peor.
+- **Criterio de salida, cumplido:** todo lead válido queda atribuido, recibe respuesta
+  y su autorización queda registrada con fecha y versión. 12 pruebas.
 
 #### `REVOPS-001E` — Propiedad comercial del lead y del conjunto
 
-- **Frente:** REVOPS · **Estado:** ✅ **Construido en `develop` (`11e3bae`, 17 ago 2026) — pendiente de desplegar** · **Nivel 1** · **Nace en la 0.6**
+- **Frente:** REVOPS · **Estado:** ✅ **Desplegado en producción** (`6207fa7`, 18 ago 2026) · **Nivel 1** · **Nace en la 0.6**
 - **El problema que cerró:** con cinco personas vendiendo en tres países, **nada en el
   producto registraba de quién es cada lead ni quién vendió cada conjunto**. El lead
   tenía estado y no dueño; el conjunto guardaba `createdBy`, que es el superadmin que
@@ -341,7 +372,7 @@ filtro de rol.
 
 #### `FIN-000` — Storage con filtro de rol
 
-- **Frente:** Vivaru Finance · **Estado:** ✅ **Resuelto en `develop` (`be09cbc`, 17 ago 2026) — pendiente de desplegar** · **Nivel 1**
+- **Frente:** Vivaru Finance · **Estado:** ✅ **Desplegado en producción** (`6207fa7`, 18 ago 2026) · **Nivel 1**
 - **El problema que cerró:** `storage.rules` aislaba por conjunto pero **no comprobaba
   el rol**: cualquier miembro —residente o guardia— leía y escribía todos los archivos
   del conjunto. El comentario de la regla decía «admin and superadmin» y la condición
@@ -355,9 +386,12 @@ filtro de rol.
 - **Criterio de salida, cumplido:** un residente no puede leer ni escribir documentos
   financieros — 47 casos en emulador (21 fallan con las reglas viejas: la suite
   distingue) y job `rules-tests` en CI.
-- **Lo que queda es despliegue, con orden obligatorio: primero el código, después las
-  reglas.** Las reglas nuevas exigen la ruta por usuario; desplegarlas sobre un
-  ambiente con el código viejo rompe la subida de comprobantes.
+- **El orden importó de verdad, y quedó demostrado.** Primero el código, después las
+  reglas: las nuevas exigen la ruta por usuario, y desplegarlas antes habría roto la
+  subida de comprobantes **en silencio**, hasta que un residente intentara pagar. En
+  producción las reglas esperaron a que una comprobación por API confirmara que el
+  código nuevo se estaba sirviendo; antes se validó en staging subiendo un comprobante
+  de verdad.
 - **Sin deudas: `support/` también quedó cerrada** (`90dce82`, sesión paralela nacida
   de la anotación de esta ficha): ruta segmentada por autor, callable exigiendo el uid
   de quien llama, y la evidencia vieja plana solo para administración.
@@ -393,12 +427,27 @@ filtro de rol.
 
 #### `SUP-001` — Operación básica de soporte
 
-- **Frente:** Servicio a clientes · **Estado:** Parcial · **Nivel 1** · ⏳ **Caduca**
-- **Añadir:** `assignedTo`, `firstResponseAt` y contador de pendientes.
-- **Criterio de salida:** cada ticket tiene responsable, primera respuesta medible y
-  visibilidad operativa desde Superadmin.
-- **Nota:** `firstResponseAt` **no se puede reconstruir después**. Los tickets ya
-  cerrados nunca lo tendrán.
+- **Frente:** Servicio a clientes · **Estado:** ✅ **Desplegado en producción**
+  (`f9ed734`, 18 ago 2026) · **Nivel 1**
+- **El contador de pendientes ya existía** —se calculaba y se pintaba en rojo en
+  Superadmin—, así que la ficha se redujo a dos campos, no tres.
+- **Dos reglas de idempotencia, extraídas a una función pura** (`marcasSup001`) porque
+  son la parte que, si se equivoca, destruye un dato irrecuperable: `firstResponseAt`
+  se escribe **una sola vez** —sobrescribirlo en cada respuesta haría que la métrica
+  marcara el último mensaje y todos los tickets parecieran contestados al instante— y
+  la asignación automática **no roba tickets**: si ya hay responsable no se toca.
+- **Un cambio de estado no cuenta como respuesta.** Marcar «en proceso» sin escribirle
+  al cliente no es haber respondido, y que el cliente conteste tampoco lo es.
+- **Quien contesta primero se queda el ticket** si no tenía dueño, más «asignármelo» y
+  «quitar» en Superadmin. Sin la asignación automática, «cada ticket tiene
+  responsable» dependería de que alguien recuerde pulsar un botón.
+- **Sin relleno hacia atrás, y la consola lo dice.** Los tickets anteriores no tienen
+  el dato y nunca lo tendrán: sale de un instante que ya pasó. Se distinguen tres
+  estados —contestado en X horas, **sin responder** en rojo, y un guion para «anterior
+  a la métrica»—, porque confundir los dos últimos haría parecer desatendido lo que se
+  contestó hace meses.
+- **Criterio de salida, cumplido:** cada ticket nuevo tiene responsable y primera
+  respuesta medible, visibles desde Superadmin. 19 pruebas (11 app + 8 functions).
 
 #### `MOB-001` — Medición y auditoría de experiencia móvil
 
@@ -716,6 +765,52 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9 — 18 de agosto de 2026, tarde
+
+**Por qué:** se cerró el nivel 1 entero y se desplegó a producción. Las dos fichas que
+faltaban —`REVOPS-001A` y `SUP-001`— pasaron de decididas a desplegadas el mismo día.
+
+**Verificado contra:** `6207fa7` en `master` y `develop`; producción sirviendo el
+código nuevo **comprobado por API** (`/api/demo` exigiendo el campo de consentimiento);
+staging idéntico y validado a mano subiendo un comprobante; 151 pruebas de reglas en
+emulador, 321 de functions, build limpio.
+
+**Lo que queda tomado:**
+
+- **`REVOPS-001A`.** La atribución se captura al ENTRAR al sitio, no al enviar el
+  formulario — leerla al enviar daría «vino de Vivaru» a todo el que navegue antes de
+  rellenar. Y se dejó **fuera** de la puerta de cookies a propósito: esa puerta es de
+  analítica de terceros, y ponerla ahí dejaría sin atribuir a quien rechaza cookies y
+  luego pide una demo. El consentimiento salió de `meta.respuestas` a campo propio con
+  fecha de servidor y versión de política; el formulario de demo pasó a pedirlo, que no
+  lo hacía. La respuesta automática al lead **ya existía**: la ficha la pedía de más.
+- **`SUP-001`.** `firstResponseAt` se sella una vez y nunca se sobrescribe; la
+  asignación automática no roba tickets ajenos. Ambas reglas viven en una función pura
+  para poder probarlas sin emulador, porque son las que destruirían el dato si se
+  equivocaran. Sin relleno hacia atrás, y la consola distingue «sin responder» de «sin
+  dato» para no acusar de desatendidos a tickets contestados hace meses.
+- **El eje «trabajo que caduca» quedó vacío.** Nació en la 0.5 con cuatro filas; las
+  cuatro cerradas. Se conserva la sección, no el contenido.
+
+**Tres averías que el despliegue destapó y que nadie veía:**
+
+1. **`functions/lib` iba desfasado.** Está versionado y no hay predeploy que compile:
+   los commits de `REVOPS-001E` y `SUP-001` tocaron `src/` sin reconstruirlo, así que un
+   deploy desde un clon limpio habría subido functions **sin** `vendedorId` ni el
+   sellado de SUP-001 — y se habría leído como «el código no funciona», no como
+   «desplegué otra cosa».
+2. **Staging llevaba sin poder construir**, por un permiso de IAM sobre el secreto de
+   Resend. Anterior a esta sesión y sin diagnosticar.
+3. **No hay forma de asignar vendedor a un conjunto ya creado.** `vendedorId` solo se
+   escribe al nacer el conjunto, por los dos caminos de conversión; no existe ruta de
+   edición. Los dos conjuntos reales de producción se quedaron sin él y **no se puede
+   arreglar desde la consola**.
+
+**Y el PRD de Albert subió a 0.2** con un hallazgo estructural: el canal asistido
+produce leads que **hoy no pueden existir en Vivaru** —las reglas vetan la creación y no
+hay alta manual—, así que la identidad cruzada que la 0.1 daba por supuesta no se
+sostiene en esa dirección. Detalle en `docs/prd/albert/`.
 
 ### 0.8.1 — 18 de agosto de 2026, madrugada
 
