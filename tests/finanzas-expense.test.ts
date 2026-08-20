@@ -1,40 +1,15 @@
 // tests/finanzas-expense.test.ts
-// F1 · C1 — validación de egresos + secuencial de comprobantes (C0).
+// F1 · C1 — validación de egresos.
+//
+// Aquí vivían también las pruebas del secuencial de comprobantes, con todo un
+// mock de Firestore para poder importarlo sin arrancar Firebase. **El contador
+// se retiró el 20 de agosto de 2026**: el recibo dejó de ser un documento fiscal
+// y su número correlativo dejó de tener sentido —además de serializar todos los
+// pagos de un conjunto sobre un único documento—. Con ellas se fue el mock.
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-// ── Mocks para poder importar financial-counters sin inicializar Firebase ──
-const mockSet = vi.fn();
-let existingCounter: { value?: number } | undefined;
-
-vi.mock("@/lib/firebase/client", () => ({ db: {} }));
-
-vi.mock("firebase/firestore", () => ({
-  doc: vi.fn(() => "counter-ref"),
-  serverTimestamp: vi.fn(() => "SERVER_TS"),
-  runTransaction: async (
-    _db: unknown,
-    cb: (tx: {
-      get: (ref: unknown) => Promise<{ exists: () => boolean; data: () => { value?: number } | undefined }>;
-      set: (...args: unknown[]) => void;
-    }) => Promise<number>,
-  ) =>
-    cb({
-      get: async () => ({
-        exists: () => existingCounter !== undefined,
-        data: () => existingCounter,
-      }),
-      set: (...args: Parameters<typeof mockSet>) => mockSet(...args),
-    }),
-}));
-
-import { formatSequential, nextSequential } from "@/features/finanzas/financial-counters";
 import { expenseSchema } from "@/features/finanzas/schemas";
-
-beforeEach(() => {
-  mockSet.mockClear();
-  existingCounter = undefined;
-});
 
 describe("expenseSchema", () => {
   const base = {
@@ -68,34 +43,5 @@ describe("expenseSchema", () => {
   it("acepta vencimiento vacío pero rechaza fecha mal formada", () => {
     expect(expenseSchema.safeParse({ ...base, dueDate: "" }).success).toBe(true);
     expect(expenseSchema.safeParse({ ...base, dueDate: "01/06/2026" }).success).toBe(false);
-  });
-});
-
-describe("formatSequential", () => {
-  it("rellena a 9 dígitos sin prefijo", () => {
-    expect(formatSequential(123)).toBe("000000123");
-  });
-
-  it("antepone el prefijo de serie", () => {
-    expect(formatSequential(123, "001-001")).toBe("001-001-000000123");
-  });
-});
-
-describe("nextSequential", () => {
-  it("inicializa en 1 cuando el contador no existe", async () => {
-    existingCounter = undefined;
-    const value = await nextSequential("tenant-1", "ingreso");
-    expect(value).toBe(1);
-    expect(mockSet).toHaveBeenCalledWith(
-      "counter-ref",
-      expect.objectContaining({ tenantId: "tenant-1", series: "ingreso", value: 1 }),
-      { merge: true },
-    );
-  });
-
-  it("incrementa desde el valor existente", async () => {
-    existingCounter = { value: 41 };
-    const value = await nextSequential("tenant-1", "ingreso");
-    expect(value).toBe(42);
   });
 });

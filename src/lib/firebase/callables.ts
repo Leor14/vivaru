@@ -571,6 +571,9 @@ export async function applyPaymentCallable(input: {
   source: "manual" | "receipt";
   receiptId?: string;
   reviewerName?: string;
+  /** Quién pagó, para el recibo. Solo los usa el cobro manual. */
+  payerName?: string | null;
+  payerTaxId?: string | null;
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<
@@ -582,6 +585,14 @@ export async function applyPaymentCallable(input: {
       paymentAmount: number;
       balance: number;
       status: "paid" | "overdue" | "pending";
+      /**
+       * El recibo, emitido por el servidor DENTRO de la transacción del pago
+       * desde el 20 de agosto de 2026. Antes lo construía y lo escribía este
+       * lado, después de aplicar el pago: si esa escritura fallaba, el pago
+       * quedaba sin recibo. Solo viene en el cobro manual.
+       */
+      voucherId?: string;
+      voucherCode?: string;
     }
   >(functions, "applyPayment");
   return executeCallable(callable, input, "No fue posible registrar el cobro.");
@@ -597,8 +608,11 @@ export async function applyPaymentCallable(input: {
  * `reversalKey` es la idempotencia de esta reversión y **tiene que ser distinta**
  * de la del pago; si no, la marca del pago se confundiría con la del reverso.
  *
- * `requiereNotaCredito` viene en `true` cuando el pago original emitió
- * comprobante fiscal: revertirlo NO lo anula, y quien opera tiene que saberlo.
+ * `voucherAnuladoId` dice QUÉ recibo se anuló, si el pago había emitido uno.
+ * Hasta el 20 de agosto de 2026 aquí venía `requiereNotaCredito`: el recibo NO se
+ * anulaba —eso pedía una nota de crédito, que era fiscal— y quien operaba tenía
+ * que acordarse de emitirla. **Ahora la anulación ocurre dentro de la misma
+ * transacción**, así que esto informa de un hecho en vez de recordar una tarea.
  */
 export async function revertPaymentCallable(input: {
   tenantId: string;
@@ -616,7 +630,7 @@ export async function revertPaymentCallable(input: {
       paymentAmount: number;
       balance: number;
       status: "paid" | "overdue" | "pending";
-      requiereNotaCredito: boolean;
+      voucherAnuladoId?: string;
     }
   >(functions, "revertPayment");
   return executeCallable(callable, input, "No fue posible revertir el pago.");

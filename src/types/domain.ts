@@ -475,15 +475,22 @@ export interface LedgerEntry {
 
 export type VoucherType = "ingreso" | "egreso";
 
-/** Comprobante/recibo emitido (recibo genérico en F1; comprobante de alícuota SRI en F2). */
+/**
+ * Recibo emitido por Vivaru al registrar un pago. **No es un documento fiscal**
+ * (decisión de David, 20 de agosto de 2026): la factura la emite el cliente.
+ */
 export interface PaymentVoucher {
   id: string;
   tenantId: string;
   type: VoucherType;
-  /** Número secuencial formateado, ej. "001-001-000000123". */
-  sequentialNumber: string;
-  /** Valor entero crudo del secuencial (para ordenar/auditar). */
-  sequentialValue: number;
+  /**
+   * Identificador legible, ej. `REC-A7F3K2`. **No es correlativo**: se deriva del
+   * id del documento. Hasta el 20 de agosto de 2026 era un secuencial con
+   * contador, porque una serie fiscal no admite huecos; al dejar de ser fiscal,
+   * el contador solo aportaba contención —serializaba todos los pagos de un
+   * conjunto sobre un único documento—.
+   */
+  code: string;
   issueDate: string;
   amount: number;
   concept: string;
@@ -500,6 +507,16 @@ export interface PaymentVoucher {
   sourceType?: "billingStatement" | "expense" | "manual";
   sourceId?: string;
   ledgerEntryId?: string;
+  /** Clave de la operación de pago que lo emitió. El puente con el reverso. */
+  operationKey?: string;
+  /**
+   * Anulado al revertir su pago. Sustituye a la nota de crédito, que era un
+   * instrumento fiscal y por tanto una tarea manual que nadie perseguía.
+   */
+  anulado?: boolean;
+  anuladoEn?: string;
+  anuladoPor?: string;
+  anuladoMotivo?: string;
   /** PDF generado en Storage (si aplica). */
   pdfUrl?: string;
   pdfStoragePath?: string;

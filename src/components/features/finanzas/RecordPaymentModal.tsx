@@ -6,13 +6,13 @@ import { toast } from "sonner";
 import { Modal } from "@/components/shared/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { watchPeople, watchTenantSettings, type PersonItem } from "@/features/admin/services";
+import { watchPeople, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
-import { recordPayment } from "@/features/finanzas/use-payments";
+import { fetchPaymentVoucher, recordPayment } from "@/features/finanzas/use-payments";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
-import type { BillingStatement, FiscalProfile, PaymentVoucher } from "@/types/domain";
+import type { BillingStatement } from "@/types/domain";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -26,7 +26,6 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
   const { user } = useAuth();
   const { formatAmount } = useTenantCurrency();
 
-  const [fiscalProfile, setFiscalProfile] = useState<FiscalProfile | null>(null);
   const [people, setPeople] = useState<PersonItem[]>([]);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today());
@@ -42,21 +41,15 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
    * protección no existiría. Se renueva al abrir para un cobro distinto.
    */
   const operationKey = useRef<string>("");
-  const [createdVoucher, setCreatedVoucher] = useState<PaymentVoucher | null>(null);
+  const [createdVoucher, setCreatedVoucher] = useState<{ id: string; code: string } | null>(null);
 
 
+  // Ya no se escucha el perfil fiscal del conjunto: desde el 20 de agosto de
+  // 2026 lo lee el servidor al emitir el recibo, que es donde debe leerse. Esta
+  // pantalla solo necesita a las personas, para prellenar quién paga.
   useEffect(() => {
     if (!user?.tenantId) return;
-    const unsubSettings = watchTenantSettings(
-      user.tenantId,
-      (item) => setFiscalProfile(item?.fiscalProfile ?? null),
-      () => setFiscalProfile(null),
-    );
-    const unsubPeople = watchPeople(user.tenantId, setPeople, () => setPeople([]));
-    return () => {
-      unsubSettings();
-      unsubPeople();
-    };
+    return watchPeople(user.tenantId, setPeople, () => setPeople([]));
   }, [user?.tenantId]);
 
   useEffect(() => {
@@ -90,13 +83,12 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
         statement,
         amount: parsed,
         date,
-        fiscalProfile,
         payerName: payerName.trim() || null,
         payerTaxId: payerTaxId.trim() || null,
         operationKey: operationKey.current,
       });
-      setCreatedVoucher(result.voucher);
-      toast.success(`Cobro registrado. Comprobante ${result.voucher.sequentialNumber}.`);
+      setCreatedVoucher({ id: result.voucherId, code: result.voucherCode });
+      toast.success(`Cobro registrado. Recibo ${result.voucherCode}.`);
     } catch (error) {
       toastFirebaseError(error);
     } finally {
@@ -107,7 +99,14 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
   async function handleDownload() {
     if (!createdVoucher) return;
     try {
-      await renderReciboPdf(createdVoucher, formatAmount);
+      // Se lee el recibo guardado en vez de armar el PDF con lo que tiene esta
+      // pantalla: el papel debe salir de lo que está escrito.
+      const voucher = await fetchPaymentVoucher(createdVoucher.id);
+      if (!voucher) {
+        toast.error("No encontramos el recibo. Vuelve a abrir la lista de recibos.");
+        return;
+      }
+      await renderReciboPdf(voucher, formatAmount);
     } catch (error) {
       toastFirebaseError(error);
     }
@@ -128,8 +127,8 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
             <div className="space-y-3">
               <div className="rounded-xl border border-[var(--slate-200)] bg-white p-3 text-sm">
                 <p className="text-[var(--slate-700)]">
-                  Comprobante <strong>{createdVoucher.sequentialNumber}</strong> emitido por{" "}
-                  {formatAmount(createdVoucher.amount)}.
+                  Recibo <strong>{createdVoucher.code}</strong> emitido por{" "}
+                  {formatAmount(Number(amount) || 0)}.
                 </p>
               </div>
               <div className="mobile-action-group">

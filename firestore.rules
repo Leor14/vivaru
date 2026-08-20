@@ -440,12 +440,23 @@ service cloud.firestore {
     }
 
     // Comprobantes/recibos: admin todos; residente solo los suyos (por unidad).
+    // El recibo lo emite y lo anula el SERVIDOR, dentro de la transaccion del
+    // pago (`functions/src/payments.ts`, 20 ago 2026). El cliente solo lee.
+    //
+    // Antes podia crearlo y actualizarlo, porque lo construia el navegador
+    // despues de aplicar el pago. Al mover la emision al servidor esa concesion
+    // dejo de hacer falta, y dejarla abierta permitiria fabricar un recibo de un
+    // pago que no existe — el reverso exacto del hueco que esto cierra.
+    //
+    // OJO AL DESPLEGAR: esta regla RESTRINGE, asi que va DESPUES del front que
+    // dejo de escribir. Al reves rompe el cobro manual hasta que termine el
+    // rollout. Es la leccion de FIN-001.
     match /paymentVouchers/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
         residentOwnUnit(resource.data.tenantId, resource.data.payerUnitId)
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+      allow create, update: if false;
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 

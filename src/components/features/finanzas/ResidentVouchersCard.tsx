@@ -47,7 +47,7 @@ export function ResidentVouchersCard() {
         {vouchers.map((voucher) => (
           <li key={voucher.id} className="flex items-center justify-between gap-3 py-2.5">
             <div>
-              <p className="text-sm font-medium text-[var(--slate-900)]">{voucher.sequentialNumber}</p>
+              <p className="text-sm font-medium text-[var(--slate-900)]">{voucher.code}</p>
               <p className="text-xs text-[var(--slate-500)]">
                 {voucher.issueDate} · {formatAmount(voucher.amount)}
               </p>
@@ -56,7 +56,7 @@ export function ResidentVouchersCard() {
               size="sm"
               variant="outline"
               type="button"
-              aria-label={`Descargar recibo ${voucher.sequentialNumber}`}
+              aria-label={`Descargar recibo ${voucher.code}`}
               onClick={() => {
                 renderReciboPdf(voucher, formatAmount).catch((error) => toastFirebaseError(error));
               }}

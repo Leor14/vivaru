@@ -256,12 +256,14 @@ function AdminFinanzasLibroPageContent() {
         reason: motivo,
       });
       if (res.reversed) {
-        toast.success("Pago revertido: la cuota y el libro quedaron al día.");
-        // Lo fiscal no se anula solo. Se avisa aquí y no en un correo porque
-        // quien acaba de revertir es quien tiene que emitir la nota.
-        if (res.requiereNotaCredito) {
-          toast.warning("El pago tenía comprobante: hay que emitir la nota de crédito.");
-        }
+        // El recibo se anula solo, dentro de la misma transacción, desde el 20
+        // de agosto de 2026. Antes esto avisaba de que había que emitir una nota
+        // de crédito a mano — un paso que nadie perseguía.
+        toast.success(
+          res.voucherAnuladoId
+            ? "Pago revertido: la cuota y el libro quedaron al día, y el recibo quedó anulado."
+            : "Pago revertido: la cuota y el libro quedaron al día.",
+        );
       } else {
         toast.info("Ese pago ya estaba revertido.");
       }

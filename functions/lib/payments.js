@@ -6,6 +6,7 @@ exports.saldoTrasRevertir = saldoTrasRevertir;
 exports.revertirPago = revertirPago;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const comprobante_1 = require("./comprobante");
 /**
  * `FIN-001` — aplicación de pagos: un solo comando, transaccional e idempotente.
  *
@@ -124,6 +125,9 @@ async function aplicarPago(input, uid, role, tokenTenant) {
                 paymentAmount: prev.paymentAmount ?? 0,
                 balance: prev.balance ?? 0,
                 status: prev.status ?? "pending",
+                // El recibo del intento original, no uno nuevo: un reintento no debe
+                // multiplicar recibos de un pago que ya existe.
+                ...(prev.voucherId ? { voucherId: prev.voucherId, voucherCode: prev.voucherCode } : {}),
             };
         }
         const cuotaSnap = await tx.get(cuotaRef);
@@ -153,6 +157,15 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             if (reciboYaAprobado) {
                 throw new https_1.HttpsError("failed-precondition", "Ese comprobante ya fue aprobado.");
             }
+        }
+        // El perfil fiscal del conjunto se lee AQUÍ, del servidor, y no llega desde
+        // el navegador como antes: el que emite el recibo es quien debe leer con qué
+        // datos lo emite. Y va con el resto de lecturas porque una transacción de
+        // Firestore no admite leer después de escribir.
+        let perfil = null;
+        if (input.source === "manual") {
+            const ajustesSnap = await tx.get(firestore.collection("tenantSettings").doc(tenantId));
+            perfil = ajustesSnap.data()?.fiscalProfile ?? null;
         }
         // ── Aritmética, en el servidor ───────────────────────────────────────────
         const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
@@ -196,6 +209,51 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             updatedBy: uid,
             updatedAt: firestore_1.FieldValue.serverTimestamp(),
         });
+        // ── El recibo, DENTRO de la misma transacción ────────────────────────────
+        //
+        // Hasta el 20 de agosto de 2026 esto lo hacía el navegador, después de que
+        // el pago estuviera aplicado, y el motivo estaba escrito: emitir dentro de
+        // la transacción «es meterse en lo fiscal». **Dejó de serlo** al salir lo
+        // fiscal del alcance, así que el hueco que aquello dejaba —un pago aplicado
+        // y sin recibo si la escritura de después fallaba— ya no tiene por qué
+        // existir. Ahora o están los dos o no está ninguno.
+        //
+        // Solo el cobro manual emite recibo. La aprobación del comprobante del
+        // residente no lo hacía antes y sigue sin hacerlo: el residente ya tiene su
+        // propio comprobante archivado, y emitirle además uno de Vivaru sería
+        // duplicar la evidencia del mismo pago.
+        let voucherId;
+        let voucherCode;
+        if (input.source === "manual") {
+            const voucherRef = firestore.collection("paymentVouchers").doc();
+            const recibo = (0, comprobante_1.construirRecibo)({
+                voucherId: voucherRef.id,
+                issueDate: fecha,
+                amount: monto,
+                concept: concepto,
+                payer: {
+                    name: input.payerName ?? null,
+                    taxId: input.payerTaxId ?? null,
+                    unitId: cuota.unitId ?? null,
+                    unitLabel: cuota.unitLabel ?? null,
+                },
+                issuer: perfil,
+                sourceType: "billingStatement",
+                sourceId: statementId,
+            });
+            tx.set(voucherRef, {
+                ...recibo,
+                tenantId,
+                ledgerEntryId: ledgerRef.id,
+                operationKey,
+                createdBy: uid,
+                updatedBy: uid,
+                createdAt: firestore_1.FieldValue.serverTimestamp(),
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            });
+            voucherId = voucherRef.id;
+            voucherCode = recibo.code;
+        }
         if (reciboRef) {
             tx.update(reciboRef, {
                 status: "approved",
@@ -218,6 +276,7 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             paymentAmount: pagadoDespues,
             balance,
             status,
+            ...(voucherId ? { voucherId, voucherCode } : {}),
             actorUid: uid,
             createdAt: firestore_1.Timestamp.now(),
         });
@@ -228,6 +287,7 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             paymentAmount: pagadoDespues,
             balance,
             status,
+            ...(voucherId ? { voucherId, voucherCode } : {}),
         };
     });
 }
@@ -266,10 +326,14 @@ function saldoTrasRevertir(totalCobrado, pagadoAntes, montoRevertido, vencimient
  * sostiene como mucho un pago. Si hubo error de monto, se registra por el cobro
  * manual, que ya tiene la evidencia archivada.
  *
- * **Lo fiscal sigue fuera** (decisión del 18 ago 2026). Si el pago original emitió
- * comprobante, revertirlo **no lo anula**: eso pide una nota de crédito, que es
- * terreno fiscal. El resultado lo señala en `requiereNotaCredito` para que quien
- * opera lo sepa y no se entere por un cuadre a fin de mes.
+ * **El recibo se ANULA aquí, en la misma transacción** (20 ago 2026). Hasta
+ * entonces no se anulaba, y el motivo escrito era que «eso pide una nota de
+ * crédito, que es terreno fiscal»: se levantaba `requiereNotaCredito` y la
+ * pantalla avisaba, **pero el paso quedaba en manos de una persona y nadie lo
+ * perseguía**. Al salir lo fiscal del alcance el recibo dejó de ser un documento
+ * ante la autoridad, así que anularlo es marcar un campo — no emitir nada—, y
+ * puede ocurrir dentro de la transacción que ya existía. Se cambia una tarea
+ * pendiente que nadie hacía por una escritura que no se puede olvidar.
  */
 async function revertirPago(input, uid, role, tokenTenant) {
     const tenantId = texto(input.tenantId, "el conjunto");
@@ -296,7 +360,7 @@ async function revertirPago(input, uid, role, tokenTenant) {
                 paymentAmount: prev.paymentAmount ?? 0,
                 balance: prev.balance ?? 0,
                 status: prev.status ?? "pending",
-                requiereNotaCredito: prev.requiereNotaCredito ?? false,
+                ...(prev.voucherAnuladoId ? { voucherAnuladoId: prev.voucherAnuladoId } : {}),
             };
         }
         const opSnap = await tx.get(opRef);
@@ -332,6 +396,14 @@ async function revertirPago(input, uid, role, tokenTenant) {
         // borrado aborta la transacción entera, y un comprobante que ya no está no
         // puede ser motivo para que el dinero no se pueda revertir.
         const reciboSnap = reciboRef ? await tx.get(reciboRef) : null;
+        // El recibo emitido por Vivaru, si el pago fue manual. Se lee por lo mismo
+        // que el comprobante del residente: si alguien lo borró, un `tx.update`
+        // sobre él tumbaría la reversión entera — y que falte el recibo no puede
+        // impedir deshacer el movimiento del dinero.
+        const voucherRef = op.voucherId
+            ? firestore.collection("paymentVouchers").doc(op.voucherId)
+            : null;
+        const voucherSnap = voucherRef ? await tx.get(voucherRef) : null;
         // ── Aritmética ───────────────────────────────────────────────────────────
         const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
         const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
@@ -386,7 +458,21 @@ async function revertirPago(input, uid, role, tokenTenant) {
             reversalKey,
             reversalReason: motivo,
         });
-        const requiereNotaCredito = op.source === "manual";
+        // Anular el recibo: un campo, dentro de esta misma transacción. Antes esto
+        // era una bandera y un aviso en pantalla que alguien tenía que atender a
+        // mano — ver la nota de arriba.
+        let voucherAnuladoId;
+        if (voucherRef && voucherSnap?.exists) {
+            tx.update(voucherRef, {
+                anulado: true,
+                anuladoEn: firestore_1.Timestamp.now(),
+                anuladoPor: uid,
+                anuladoMotivo: motivo,
+                updatedBy: uid,
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            });
+            voucherAnuladoId = voucherRef.id;
+        }
         tx.set(revRef, {
             tenantId,
             kind: "reversal",
@@ -398,7 +484,7 @@ async function revertirPago(input, uid, role, tokenTenant) {
             paymentAmount: pagadoDespues,
             balance,
             status,
-            requiereNotaCredito,
+            ...(voucherAnuladoId ? { voucherAnuladoId } : {}),
             actorUid: uid,
             createdAt: firestore_1.Timestamp.now(),
         });
@@ -409,7 +495,7 @@ async function revertirPago(input, uid, role, tokenTenant) {
             paymentAmount: pagadoDespues,
             balance,
             status,
-            requiereNotaCredito,
+            ...(voucherAnuladoId ? { voucherAnuladoId } : {}),
         };
     });
 }

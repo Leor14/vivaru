@@ -1,6 +1,8 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { construirRecibo, type PerfilFiscal } from "./comprobante";
+
 /**
  * `FIN-001` — aplicación de pagos: un solo comando, transaccional e idempotente.
  *
@@ -68,6 +70,15 @@ export type AplicarPagoInput = {
   /** Obligatorio cuando `source === "receipt"`. */
   receiptId?: string;
   reviewerName?: string;
+  /**
+   * Quién pagó, para el recibo. Los pone el formulario del cobro manual porque
+   * no salen de la cuota: la cuota es de la UNIDAD, y quien paga puede ser
+   * cualquiera de sus residentes. Ambos opcionales — un recibo sin nombre sigue
+   * siendo válido, y desde el 20 de agosto de 2026 la cédula no es obligatoria
+   * en ningún país (era un requisito del SRI, que salió del alcance).
+   */
+  payerName?: string | null;
+  payerTaxId?: string | null;
 };
 
 export type AplicarPagoResultado = {
@@ -78,7 +89,20 @@ export type AplicarPagoResultado = {
   paymentAmount: number;
   balance: number;
   status: EstadoCuota;
+  /**
+   * El recibo emitido, cuando el cobro es manual. Se devuelve para que la
+   * pantalla pueda enseñarlo y generar el PDF **sin volver a leer** — antes lo
+   * construía ella misma, que es justo lo que se arregló.
+   *
+   * En un reintento con la misma clave vuelve el MISMO recibo, no uno nuevo:
+   * sale de la marca de idempotencia, no de una emisión nueva.
+   */
+  voucherId?: string;
+  voucherCode?: string;
 };
+
+/** Datos del conjunto que el recibo congela al emitirse. */
+type AjustesTenant = { fiscalProfile?: PerfilFiscal | null };
 
 /**
  * Saldo y estado a partir de lo cobrado y lo pagado.
@@ -176,6 +200,9 @@ export async function aplicarPago(
         paymentAmount: prev.paymentAmount ?? 0,
         balance: prev.balance ?? 0,
         status: (prev.status as EstadoCuota) ?? "pending",
+        // El recibo del intento original, no uno nuevo: un reintento no debe
+        // multiplicar recibos de un pago que ya existe.
+        ...(prev.voucherId ? { voucherId: prev.voucherId, voucherCode: prev.voucherCode } : {}),
       };
     }
 
@@ -208,6 +235,16 @@ export async function aplicarPago(
       if (reciboYaAprobado) {
         throw new HttpsError("failed-precondition", "Ese comprobante ya fue aprobado.");
       }
+    }
+
+    // El perfil fiscal del conjunto se lee AQUÍ, del servidor, y no llega desde
+    // el navegador como antes: el que emite el recibo es quien debe leer con qué
+    // datos lo emite. Y va con el resto de lecturas porque una transacción de
+    // Firestore no admite leer después de escribir.
+    let perfil: PerfilFiscal | null = null;
+    if (input.source === "manual") {
+      const ajustesSnap = await tx.get(firestore.collection("tenantSettings").doc(tenantId));
+      perfil = (ajustesSnap.data() as AjustesTenant | undefined)?.fiscalProfile ?? null;
     }
 
     // ── Aritmética, en el servidor ───────────────────────────────────────────
@@ -256,6 +293,52 @@ export async function aplicarPago(
       updatedAt: FieldValue.serverTimestamp(),
     });
 
+    // ── El recibo, DENTRO de la misma transacción ────────────────────────────
+    //
+    // Hasta el 20 de agosto de 2026 esto lo hacía el navegador, después de que
+    // el pago estuviera aplicado, y el motivo estaba escrito: emitir dentro de
+    // la transacción «es meterse en lo fiscal». **Dejó de serlo** al salir lo
+    // fiscal del alcance, así que el hueco que aquello dejaba —un pago aplicado
+    // y sin recibo si la escritura de después fallaba— ya no tiene por qué
+    // existir. Ahora o están los dos o no está ninguno.
+    //
+    // Solo el cobro manual emite recibo. La aprobación del comprobante del
+    // residente no lo hacía antes y sigue sin hacerlo: el residente ya tiene su
+    // propio comprobante archivado, y emitirle además uno de Vivaru sería
+    // duplicar la evidencia del mismo pago.
+    let voucherId: string | undefined;
+    let voucherCode: string | undefined;
+    if (input.source === "manual") {
+      const voucherRef = firestore.collection("paymentVouchers").doc();
+      const recibo = construirRecibo({
+        voucherId: voucherRef.id,
+        issueDate: fecha,
+        amount: monto,
+        concept: concepto,
+        payer: {
+          name: input.payerName ?? null,
+          taxId: input.payerTaxId ?? null,
+          unitId: cuota.unitId ?? null,
+          unitLabel: cuota.unitLabel ?? null,
+        },
+        issuer: perfil,
+        sourceType: "billingStatement",
+        sourceId: statementId,
+      });
+      tx.set(voucherRef, {
+        ...recibo,
+        tenantId,
+        ledgerEntryId: ledgerRef.id,
+        operationKey,
+        createdBy: uid,
+        updatedBy: uid,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      voucherId = voucherRef.id;
+      voucherCode = recibo.code;
+    }
+
     if (reciboRef) {
       tx.update(reciboRef, {
         status: "approved",
@@ -279,6 +362,7 @@ export async function aplicarPago(
       paymentAmount: pagadoDespues,
       balance,
       status,
+      ...(voucherId ? { voucherId, voucherCode } : {}),
       actorUid: uid,
       createdAt: Timestamp.now(),
     });
@@ -290,6 +374,7 @@ export async function aplicarPago(
       paymentAmount: pagadoDespues,
       balance,
       status,
+      ...(voucherId ? { voucherId, voucherCode } : {}),
     };
   });
 }
@@ -337,8 +422,11 @@ export type RevertirPagoResultado = {
   paymentAmount: number;
   balance: number;
   status: EstadoCuota;
-  /** `true` si el pago original emitió comprobante fiscal — ver nota de abajo. */
-  requiereNotaCredito: boolean;
+  /**
+   * El recibo que se anuló, si el pago original emitió uno. Se devuelve para que
+   * la pantalla lo diga en vez de dejar a alguien preguntándose qué pasó con él.
+   */
+  voucherAnuladoId?: string;
 };
 
 /**
@@ -359,10 +447,14 @@ export type RevertirPagoResultado = {
  * sostiene como mucho un pago. Si hubo error de monto, se registra por el cobro
  * manual, que ya tiene la evidencia archivada.
  *
- * **Lo fiscal sigue fuera** (decisión del 18 ago 2026). Si el pago original emitió
- * comprobante, revertirlo **no lo anula**: eso pide una nota de crédito, que es
- * terreno fiscal. El resultado lo señala en `requiereNotaCredito` para que quien
- * opera lo sepa y no se entere por un cuadre a fin de mes.
+ * **El recibo se ANULA aquí, en la misma transacción** (20 ago 2026). Hasta
+ * entonces no se anulaba, y el motivo escrito era que «eso pide una nota de
+ * crédito, que es terreno fiscal»: se levantaba `requiereNotaCredito` y la
+ * pantalla avisaba, **pero el paso quedaba en manos de una persona y nadie lo
+ * perseguía**. Al salir lo fiscal del alcance el recibo dejó de ser un documento
+ * ante la autoridad, así que anularlo es marcar un campo — no emitir nada—, y
+ * puede ocurrir dentro de la transacción que ya existía. Se cambia una tarea
+ * pendiente que nadie hacía por una escritura que no se puede olvidar.
  */
 export async function revertirPago(
   input: RevertirPagoInput,
@@ -401,7 +493,7 @@ export async function revertirPago(
         paymentAmount: prev.paymentAmount ?? 0,
         balance: prev.balance ?? 0,
         status: (prev.status as EstadoCuota) ?? "pending",
-        requiereNotaCredito: prev.requiereNotaCredito ?? false,
+        ...(prev.voucherAnuladoId ? { voucherAnuladoId: prev.voucherAnuladoId } : {}),
       };
     }
 
@@ -415,6 +507,7 @@ export async function revertirPago(
       amount?: number;
       ledgerEntryId?: string;
       receiptId?: string;
+      voucherId?: string;
       source?: string;
       reversedAt?: unknown;
     };
@@ -451,6 +544,15 @@ export async function revertirPago(
     // borrado aborta la transacción entera, y un comprobante que ya no está no
     // puede ser motivo para que el dinero no se pueda revertir.
     const reciboSnap = reciboRef ? await tx.get(reciboRef) : null;
+
+    // El recibo emitido por Vivaru, si el pago fue manual. Se lee por lo mismo
+    // que el comprobante del residente: si alguien lo borró, un `tx.update`
+    // sobre él tumbaría la reversión entera — y que falte el recibo no puede
+    // impedir deshacer el movimiento del dinero.
+    const voucherRef = op.voucherId
+      ? firestore.collection("paymentVouchers").doc(op.voucherId)
+      : null;
+    const voucherSnap = voucherRef ? await tx.get(voucherRef) : null;
 
     // ── Aritmética ───────────────────────────────────────────────────────────
     const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
@@ -518,7 +620,21 @@ export async function revertirPago(
       reversalReason: motivo,
     });
 
-    const requiereNotaCredito = op.source === "manual";
+    // Anular el recibo: un campo, dentro de esta misma transacción. Antes esto
+    // era una bandera y un aviso en pantalla que alguien tenía que atender a
+    // mano — ver la nota de arriba.
+    let voucherAnuladoId: string | undefined;
+    if (voucherRef && voucherSnap?.exists) {
+      tx.update(voucherRef, {
+        anulado: true,
+        anuladoEn: Timestamp.now(),
+        anuladoPor: uid,
+        anuladoMotivo: motivo,
+        updatedBy: uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      voucherAnuladoId = voucherRef.id;
+    }
 
     tx.set(revRef, {
       tenantId,
@@ -531,7 +647,7 @@ export async function revertirPago(
       paymentAmount: pagadoDespues,
       balance,
       status,
-      requiereNotaCredito,
+      ...(voucherAnuladoId ? { voucherAnuladoId } : {}),
       actorUid: uid,
       createdAt: Timestamp.now(),
     });
@@ -543,7 +659,7 @@ export async function revertirPago(
       paymentAmount: pagadoDespues,
       balance,
       status,
-      requiereNotaCredito,
+      ...(voucherAnuladoId ? { voucherAnuladoId } : {}),
     };
   });
 }

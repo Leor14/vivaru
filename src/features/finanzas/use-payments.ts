@@ -1,14 +1,11 @@
 "use client";
 
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { applyPaymentCallable } from "@/lib/firebase/callables";
-import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
-import type { BillingStatement, FiscalProfile, PaymentVoucher } from "@/types/domain";
-
-import { getComprobanteProvider } from "./comprobante/provider";
-import { formatSequential, nextSequential } from "./financial-counters";
+import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
+import type { BillingStatement, PaymentVoucher } from "@/types/domain";
 
 /** Calcula el saldo y estado de una cuota tras aplicar un pago acumulado. */
 export function computeBalanceStatus(
@@ -25,9 +22,14 @@ export function computeBalanceStatus(
 }
 
 /**
- * Suscripción a los comprobantes emitidos (admin: todos; residente: filtra por
- * unidad). El orden por secuencial se aplica del lado del cliente para no
- * exigir un índice compuesto en Firestore.
+ * Suscripción a los recibos emitidos (admin: todos; residente: filtra por
+ * unidad). El orden se aplica del lado del cliente para no exigir un índice
+ * compuesto en Firestore.
+ *
+ * **Ordena por fecha de emisión, no por secuencial** (20 ago 2026): al dejar de
+ * ser un documento fiscal, el recibo dejó de llevar número correlativo. La fecha
+ * es además lo que espera quien mira la lista — un residente busca «el recibo de
+ * agosto», no el número 47.
  */
 export function watchPaymentVouchers(
   tenantId: string,
@@ -39,20 +41,45 @@ export function watchPaymentVouchers(
     subscribeTenantCollection<PaymentVoucher>(
       "paymentVouchers",
       tenantId,
-      (items) => onData([...items].sort((a, b) => (b.sequentialValue ?? 0) - (a.sequentialValue ?? 0))),
+      (items) =>
+        onData(
+          [...items].sort(
+            (a, b) =>
+              (b.issueDate ?? "").localeCompare(a.issueDate ?? "") ||
+              (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+          ),
+        ),
       onError,
       { equals: unitId ? [{ field: "payerUnitId", value: unitId }] : undefined },
     ) ?? (() => {})
   );
 }
 
+/**
+ * Lee un recibo concreto. Lo usa la descarga del PDF.
+ *
+ * **Se lee en vez de arrastrarlo desde quien lo creó**: el servidor devuelve el
+ * id y el código al registrar el cobro, y el papel se genera con lo que está
+ * guardado. Así un recibo anulado sale marcado como tal aunque se descargue
+ * desde una pantalla que se abrió antes de la anulación.
+ */
+export async function fetchPaymentVoucher(voucherId: string): Promise<PaymentVoucher | null> {
+  if (!db) throw new Error("Firebase no esta configurado en este entorno.");
+  const snap = await getDoc(doc(db, "paymentVouchers", voucherId));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...(snap.data() as Omit<PaymentVoucher, "id">) };
+}
+
 export type RecordPaymentInput = {
   statement: BillingStatement;
   amount: number;
   date: string;
-  fiscalProfile?: FiscalProfile | null;
   payerName?: string | null;
-  /** Cédula del condómino — obligatoria para el comprobante en Ecuador. */
+  /**
+   * Documento de quien paga. **Opcional en los tres países** desde el 20 de
+   * agosto de 2026: era obligatorio solo en Ecuador porque lo exigía el
+   * documento del SRI, que salió del alcance.
+   */
   payerTaxId?: string | null;
   /**
    * Clave de idempotencia (`FIN-001`). **La genera la pantalla al abrir el
@@ -64,132 +91,51 @@ export type RecordPaymentInput = {
 };
 
 /**
- * Registra un cobro sobre una cuota: actualiza la cartera, crea el asiento de
- * ingreso en el libro y emite el comprobante con secuencial. Devuelve el id del
- * comprobante para poder descargarlo enseguida.
+ * Registra un cobro sobre una cuota. **Una sola llamada**: el servidor actualiza
+ * la cartera, escribe el asiento del libro y emite el recibo, todo dentro de la
+ * misma transacción. Devuelve el recibo para poder descargarlo enseguida.
+ *
+ * **Qué hacía este archivo hasta el 20 de agosto de 2026 y ya no hace.** Después
+ * de que el servidor aplicara el pago, reservaba aquí un secuencial, construía
+ * el recibo y lo escribía por su cuenta. Si esa escritura fallaba —red, permiso,
+ * pestaña cerrada—, **el pago quedaba aplicado y sin recibo**. El motivo escrito
+ * para no meterlo en la transacción era que emitir ahí dentro «es meterse en lo
+ * fiscal»; al salir lo fiscal del alcance dejó de serlo, y el hueco se cerró.
+ *
+ * Lo que se fue con ello: el contador de secuenciales —que serializaba todos los
+ * pagos de un conjunto sobre un único documento— y los candados de Ecuador, que
+ * exigían RUC del conjunto y cédula del condómino porque los pedía el SRI.
  */
 export async function recordPayment(
   tenantId: string,
   userId: string,
   input: RecordPaymentInput,
-): Promise<{ voucherId: string; ledgerEntryId: string; voucher: PaymentVoucher }> {
-  if (!db) {
-    throw new Error("Firebase no esta configurado en este entorno.");
-  }
+): Promise<{ voucherId: string; ledgerEntryId: string; voucherCode: string }> {
   if (input.amount <= 0) {
     throw new Error("El monto del cobro debe ser mayor a cero.");
   }
 
-  // En Ecuador el comprobante exige RUC del conjunto + cédula del condómino.
-  if (input.fiscalProfile?.country === "EC") {
-    if (!input.fiscalProfile.taxId?.trim()) {
-      throw new Error(
-        "Configura el RUC del conjunto en Configuración antes de emitir comprobantes en Ecuador.",
-      );
-    }
-    if (!input.payerTaxId?.trim()) {
-      throw new Error("La cédula del condómino es obligatoria para el comprobante en Ecuador.");
-    }
-  }
-
-  const { statement } = input;
-  const prevPaid = statement.paymentAmount ?? 0;
-  const newPaid = prevPaid + input.amount;
-  const totalCharged = statement.amount ?? 0;
-  const { balance, status } = computeBalanceStatus(totalCharged, newPaid, statement.dueDate);
-
-  const concept = `Pago de alícuota ${statement.period} — ${statement.unitLabel}`;
-
-  // ── 1. Aplicar el pago: cuota + asiento, en UNA transacción de servidor ────
-  //
-  // `FIN-001`. Antes esto eran cuatro escrituras sueltas en este orden:
-  // secuencial, asiento, comprobante y cuota. Un fallo entre la segunda y la
-  // cuarta dejaba **el libro diciendo que entró dinero y la cartera diciendo
-  // que se debe**, y el saldo lo calculaba este archivo, en el navegador.
-  //
-  // Ahora el servidor lee la cuota, calcula el saldo y escribe cuota y asiento
-  // como una sola cosa. Ver `functions/src/payments.ts`.
   const aplicado = await applyPaymentCallable({
     tenantId,
-    statementId: statement.id,
+    statementId: input.statement.id,
     amount: input.amount,
     date: input.date,
     operationKey: input.operationKey,
     source: "manual",
+    payerName: input.payerName ?? null,
+    payerTaxId: input.payerTaxId ?? null,
   });
 
-  // ── 2. El comprobante, DESPUÉS de que el pago esté aplicado ────────────────
-  //
-  // El cambio de orden es deliberado y es lo único fiscal que toca esta ficha
-  // —por decisión de no entrar en lo fiscal—. Antes el comprobante se emitía
-  // antes de aplicar el pago, así que un fallo dejaba **un documento fiscal de
-  // un pago inexistente**. Ahora un fallo deja un pago sin comprobante, que se
-  // puede volver a emitir: se cambia un daño por una tarea pendiente.
-  //
-  // Lo que sigue abierto: si la emisión falla, el secuencial ya reservado deja
-  // un hueco en la serie. Cerrarlo exige emitir dentro de la transacción, que es
-  // meterse en lo fiscal — anotado en la ficha, no resuelto aquí.
-  const seqValue = await nextSequential(tenantId, "ingreso");
-  const seqNumber = formatSequential(seqValue, input.fiscalProfile?.voucherSeriesPrefix);
+  // El recibo llega del servidor. Si no viniera, el pago SÍ se aplicó —eso ya
+  // está confirmado— y lo que falta es solo cómo llamarlo en pantalla; se avisa
+  // en vez de fingir un id.
+  if (!aplicado.voucherId || !aplicado.voucherCode) {
+    throw new Error("El cobro se registró, pero el servidor no devolvió el recibo.");
+  }
 
-  const ledgerRef = { id: aplicado.ledgerEntryId };
-
-  const provider = getComprobanteProvider(input.fiscalProfile?.country ?? null);
-  const draft = provider.buildVoucher({
-    type: "ingreso",
-    sequentialValue: seqValue,
-    sequentialNumber: seqNumber,
-    issueDate: input.date,
-    amount: input.amount,
-    concept,
-    payer: {
-      name: input.payerName ?? null,
-      taxId: input.payerTaxId ?? null,
-      unitId: statement.unitId,
-      unitLabel: statement.unitLabel,
-    },
-    issuer: {
-      taxId: input.fiscalProfile?.taxId ?? null,
-      legalName: input.fiscalProfile?.legalName ?? null,
-      address: input.fiscalProfile?.address ?? null,
-      country: input.fiscalProfile?.country ?? null,
-    },
-    sourceType: "billingStatement",
-    sourceId: statement.id,
-  });
-  const voucherRef = await createTenantDocument("paymentVouchers", tenantId, userId, {
-    ...draft,
-    ledgerEntryId: ledgerRef.id,
-    pdfUrl: null,
-    pdfStoragePath: null,
-  });
-
-  // La cuota ya quedó actualizada dentro de la transacción del paso 1. Escribirla
-  // aquí otra vez volvería a poner la aritmética en el navegador, que es
-  // justamente lo que esta ficha quita.
-
-  const voucher: PaymentVoucher = {
-    id: voucherRef.id,
-    tenantId,
-    type: draft.type,
-    sequentialNumber: draft.sequentialNumber,
-    sequentialValue: draft.sequentialValue,
-    issueDate: draft.issueDate,
-    amount: draft.amount,
-    concept: draft.concept,
-    payerName: draft.payerName ?? undefined,
-    payerTaxId: draft.payerTaxId ?? undefined,
-    payerUnitId: draft.payerUnitId ?? undefined,
-    payerUnitLabel: draft.payerUnitLabel ?? undefined,
-    issuerTaxId: draft.issuerTaxId ?? undefined,
-    issuerLegalName: draft.issuerLegalName ?? undefined,
-    issuerAddress: draft.issuerAddress ?? undefined,
-    issuerCountry: draft.issuerCountry ?? undefined,
-    sourceType: draft.sourceType ?? undefined,
-    sourceId: draft.sourceId ?? undefined,
-    ledgerEntryId: ledgerRef.id,
-    createdBy: userId,
+  return {
+    voucherId: aplicado.voucherId,
+    ledgerEntryId: aplicado.ledgerEntryId,
+    voucherCode: aplicado.voucherCode,
   };
-
-  return { voucherId: voucherRef.id, ledgerEntryId: ledgerRef.id, voucher };
 }

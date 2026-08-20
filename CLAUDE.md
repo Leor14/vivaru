@@ -120,9 +120,11 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
 
 **C) Módulo financiero — NO congelado. Y lo fiscal sale del alcance (20 ago 2026).**
 
-**Decisión de David: Vivaru no maneja temas fiscales.** La factura la emite el cliente, en todos los países. Con eso **el frente del SRI de Ecuador deja de bloquear**: ya no hay que esperar el dato del experto SAP↔SRI, ni implementar `realSriTransport`. Queda `stubSriTransport` en `functions/src/sri-ecuador.ts` **sin destino decidido** — retirarlo o dejarlo documentado como opción dormida, pero no dejarlo sin decidir, porque el próximo que lo lea supondrá que el frente sigue vivo.
+**Decisión de David: Vivaru no maneja temas fiscales.** La factura la emite el cliente, en todos los países. Con eso **el frente del SRI de Ecuador dejó de bloquear**, y su código se **retiró entero** el 20 de agosto (`dc3e061`): ya no existe `sri-ecuador.ts`, y `retransmitVoucher` está borrada de los dos ambientes. **No buscarlo.**
 
-**Este archivo decía «congelado» y esa etiqueta era del frente fiscal, no del módulo.** Se leía sobre el todo. El estado real: `FIN-000` (Storage por rol) y `FIN-001` (comando único de pagos) están **en producción y validadas a mano**; lo siguiente es el expediente de conciliación, que **no lo bloquea nadie** —`ReconciliationCase` no existe todavía—; y las fases de IA y piloto esperan **clientes**, no personas. Detalle en `docs/roadmap-finance.md` §5.
+**Este archivo decía «congelado» y esa etiqueta era del frente fiscal, no del módulo.** Se leía sobre el todo. El estado real: `FIN-000` (Storage por rol) y `FIN-001` (comando único de pagos) están **en producción**; las fases de IA y piloto esperan **clientes**, no personas. Detalle en `docs/roadmap-finance.md` §5.
+
+**El recibo lo emite el SERVIDOR** desde el 20 de agosto, dentro de la transacción del pago (`functions/src/payments.ts` + `functions/src/comprobante.ts`). Antes lo construía el navegador **después** de aplicar el pago, así que un fallo dejaba **un pago sin recibo**; y revertir no anulaba el recibo, dejaba una tarea manual que nadie perseguía. Las dos cosas estaban bloqueadas por «eso es meterse en lo fiscal», que dejó de ser cierto. Con ello se fue el contador de secuenciales —el recibo lleva un código no correlativo derivado de su id— y la regla de `paymentVouchers` pasó a `create, update: if false`.
 
 **Verificar siempre `git status` al inicio:** parte del último lote (logo + fixes residentes + A6 + wiki) puede estar pendiente de commit/push/deploy.
 

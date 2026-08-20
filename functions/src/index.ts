@@ -4155,7 +4155,10 @@ export const revertPayment = onCall<RevertirPagoInput>(
         operationKey: request.data?.operationKey,
         reason: request.data?.reason,
         reversalEntryId: resultado.reversalEntryId,
-        requiereNotaCredito: resultado.requiereNotaCredito,
+        // Qué recibo se anuló, en vez de si hacía falta una nota de crédito:
+        // ahora la anulación ocurre, así que la auditoría registra un hecho y
+        // no un recordatorio.
+        voucherAnuladoId: resultado.voucherAnuladoId ?? null,
       });
     }
     return resultado;

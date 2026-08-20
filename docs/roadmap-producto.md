@@ -274,8 +274,9 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
   migración de flujos existentes.
 - **Criterio de salida:** un pago aplicado o revertido mantiene consistentes
-  obligación, payment, ledger, voucher, expediente y auditoría. **Cumplido salvo el
-  voucher**, que queda fuera por la decisión de alcance de abajo.
+  obligación, payment, ledger, voucher, expediente y auditoría. **CUMPLIDO ENTERO desde
+  el 20 de agosto de 2026**, incluido el voucher — que hasta entonces quedaba fuera y
+  era lo único que faltaba. Ver «Lo que cerró la salida de lo fiscal», abajo.
 - **El defecto que cerró (17 ago 2026):** había **dos rutas** que aplicaban un pago y
   **producían efectos distintos**. `recordPayment` hacía **cuatro escrituras sueltas sin
   transacción**; `approveReceiptAndRegisterPayment` actualizaba la cuota **y no escribía
@@ -296,12 +297,21 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   por una dependencia externa que ya no hace falta. Los tres huecos de abajo dejan de ser
   temporales por espera y pasan a ser **permanentes por decisión**. Ver
   `docs/roadmap-finance.md` §5.
-- **Lo que queda abierto, y conviene que se lea:**
-  - Si falla la emisión, **el secuencial ya reservado deja un hueco en la serie fiscal**.
-    Cerrarlo exige emitir dentro de la transacción, que es entrar en lo fiscal.
-  - Revertir un pago **no anula su comprobante**: eso pide una nota de crédito. La
-    reversión lo señala (`requiereNotaCredito`) y la interfaz lo avisa, pero **el paso es
-    manual y nadie lo persigue**.
+- **Lo que cerró la salida de lo fiscal (20 ago 2026).** Dos de los tres huecos que
+  esta ficha dejó abiertos **estaban bloqueados por la misma frase** —«cerrarlo exige
+  entrar en lo fiscal»—, y esa frase dejó de ser cierta:
+  - ~~Un pago podía quedarse sin recibo.~~ **El recibo se emite ahora DENTRO de la
+    transacción del pago**, en el servidor. O están los dos o no está ninguno. Con ello
+    se retiró el contador de secuenciales, que además serializaba todos los pagos de un
+    conjunto sobre un único documento; el recibo lleva un **código no correlativo**
+    derivado de su id. **Decisión de David: la numeración correlativa no hace falta.**
+  - ~~Revertir no anulaba el comprobante.~~ **Ahora lo anula**, en la transacción que ya
+    existía. Se cambió una tarea manual que nadie perseguía —la nota de crédito, que era
+    un instrumento fiscal— por una escritura que no se puede olvidar.
+  - Y la regla de `paymentVouchers` pasó a `create, update: if false`: **el cliente ya no
+    puede fabricar el recibo de un pago que no ocurrió**, que es el reverso exacto del
+    hueco que se cerró. Cubierto por cuatro pruebas de reglas contra emulador.
+- **Lo que SIGUE abierto, y no tiene que ver con lo fiscal:**
   - **Los asientos anteriores a esta ficha no se pueden revertir** por la vía nueva: no
     guardan su `operationKey`. Hoy no hay ninguno real, así que el costo es cero — pero
     deja de serlo el día que haya un cliente.

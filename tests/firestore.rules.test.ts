@@ -1464,3 +1464,80 @@ describe("FIN-001 · asientos de pago: solo el servidor", () => {
     );
   });
 });
+
+/**
+ * El recibo lo emite el SERVIDOR, dentro de la transacción del pago (20 ago 2026).
+ *
+ * **Por qué la regla importa.** Si un cliente pudiera crear un `paymentVoucher`,
+ * podría fabricar el recibo de un pago que nunca ocurrió — el reverso exacto del
+ * hueco que esta ficha cierra, que era un pago sin recibo. Y si pudiera
+ * actualizarlo, podría desanular uno anulado.
+ *
+ * Hasta el 20 de agosto el cliente SÍ creaba y actualizaba, porque el recibo lo
+ * construía el navegador después de aplicar el pago. Al mover la emisión al
+ * servidor, esa concesión dejó de hacer falta.
+ */
+describe("El recibo lo emite el servidor: el cliente solo lee", () => {
+  it("un admin NO puede crear un recibo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "paymentVouchers", "pv-inventado"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        code: "REC-FALSO",
+        issueDate: "2026-08-20",
+        amount: 250,
+        concept: "Pago que nunca ocurrió",
+      }),
+    );
+  });
+
+  it("ni el superadmin — la vía es la callable, no el rol", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "paymentVouchers", "pv-super"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        code: "REC-FALSO",
+        issueDate: "2026-08-20",
+        amount: 250,
+        concept: "Pago que nunca ocurrió",
+      }),
+    );
+  });
+
+  it("un admin NO puede desanular un recibo anulado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "paymentVouchers", "pv-anulado"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        code: "REC-ABC123",
+        issueDate: "2026-08-20",
+        amount: 250,
+        concept: "Pago revertido",
+        payerUnitId: "unit-1",
+        anulado: true,
+      });
+    });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "paymentVouchers", "pv-anulado"), { anulado: false }),
+    );
+  });
+
+  it("pero el admin SÍ lo lee: quitarle la escritura no le quita la vista", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "paymentVouchers", "pv-legible"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        code: "REC-XYZ789",
+        issueDate: "2026-08-20",
+        amount: 250,
+        concept: "Pago de alícuota",
+        payerUnitId: "unit-1",
+      });
+    });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "paymentVouchers", "pv-legible")));
+  });
+});

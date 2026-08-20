@@ -15,12 +15,11 @@ export async function renderReciboPdf(
   let y = 56;
   const lineGap = 18;
 
-  const title =
-    voucher.issuerCountry === "EC"
-      ? "COMPROBANTE DE PAGO DE ALÍCUOTA"
-      : voucher.type === "ingreso"
-        ? "RECIBO DE PAGO"
-        : "COMPROBANTE DE EGRESO";
+  // Un recibo es un recibo en los tres países. Hasta el 20 de agosto de 2026
+  // Ecuador llevaba «COMPROBANTE DE PAGO DE ALÍCUOTA», que era el nombre del
+  // documento del SRI; al no emitir Vivaru documentos fiscales, ese título
+  // prometía algo que el papel no es.
+  const title = voucher.type === "ingreso" ? "RECIBO DE PAGO" : "COMPROBANTE DE EGRESO";
 
   // Emisor
   docpdf.setFontSize(13);
@@ -42,9 +41,18 @@ export async function renderReciboPdf(
   docpdf.text(title, left, y);
   y += lineGap;
   docpdf.setFontSize(10);
-  docpdf.text(`No. ${voucher.sequentialNumber}`, left, y);
+  docpdf.text(`No. ${voucher.code}`, left, y);
   docpdf.text(`Fecha: ${voucher.issueDate}`, 360, y);
   y += lineGap + 6;
+
+  // Un recibo anulado se puede seguir descargando —es parte del histórico— pero
+  // tiene que decirlo en la cara, no en una nota al pie.
+  if (voucher.anulado) {
+    docpdf.setFontSize(13);
+    docpdf.text("ANULADO", left, y);
+    docpdf.setFontSize(10);
+    y += lineGap;
+  }
 
   // Cuerpo
   docpdf.setDrawColor(200);
@@ -79,5 +87,5 @@ export async function renderReciboPdf(
     y,
   );
 
-  docpdf.save(`recibo-${voucher.sequentialNumber}.pdf`);
+  docpdf.save(`recibo-${voucher.code}.pdf`);
 }

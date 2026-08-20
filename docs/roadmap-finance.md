@@ -278,7 +278,7 @@ WhatsApp o de un estado bancario. Hoy hay dos y divergen; ese es el trabajo.
 
 | Fase | Objetivo | Criterio de ENTRADA | Criterio de SALIDA |
 |---|---|---|---|
-| **F0 · Integridad** | Comando único server-side, transaccional e idempotente | Ninguno. **Se puede empezar hoy** | Un pago se aplica o revierte por completo o no ocurre; las dos rutas terminan en el mismo comando; concurrencia y reversos probados |
+| **F0 · Integridad** | Comando único server-side, transaccional e idempotente | — | ✅ **CUMPLIDO ENTERO el 20 ago 2026.** Las dos rutas terminan en el mismo comando, y desde el 20 **el recibo se emite dentro de esa misma transacción** y el reverso lo anula. Era lo único que faltaba, y lo desbloqueó la salida de lo fiscal |
 | **F0b · Storage por rol** | Filtro de rol dentro del conjunto | Ninguno | Un residente no puede leer ni escribir documentos financieros; probado en emulador y en CI |
 | **F1 · Expediente y bandeja** | `ReconciliationCase`, estados, duplicados, candidatos determinísticos | F0 | Un caso se rastrea de la evidencia a la aplicación, rechazo o reverso |
 | **F2 · IA en sombra** | Extracción documental medida, sin tocar saldos | F1 **y un conjunto de documentos reales** | Métricas por campo sobre baseline determinístico, con costo y latencia |
