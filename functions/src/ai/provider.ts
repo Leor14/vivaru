@@ -17,8 +17,11 @@ import type { OperationDefinition } from "./catalog";
  *    que aquí el simulador no es un sustituto pobre, es la herramienta correcta.
  *  · `createVertexProvider` en `provider-vertex.ts` — la llamada de verdad.
  *
- * Es el mismo patrón que `SriTransport` en `functions/src/sri-ecuador.ts`:
- * interfaz estable, implementación intercambiable.
+ * El patrón —interfaz estable, implementación intercambiable— también lo usaba
+ * `SriTransport`, en un `sri-ecuador.ts` que se retiró el 20 de agosto de 2026 al
+ * salir lo fiscal del alcance. Se deja escrito porque aquel precedente es lo que
+ * justificó esta forma, y porque un puntero a un archivo que ya no existe manda a
+ * buscar en balde.
  */
 
 export interface AiGenerationRequest {

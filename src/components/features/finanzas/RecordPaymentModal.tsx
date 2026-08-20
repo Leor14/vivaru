@@ -1,6 +1,5 @@
 "use client";
 
-import { doc, onSnapshot } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { watchPeople, watchTenantSettings, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
-import { retransmitVoucherCallable } from "@/lib/firebase/callables";
-import { db } from "@/lib/firebase/client";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
 import { recordPayment } from "@/features/finanzas/use-payments";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -46,11 +43,7 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
    */
   const operationKey = useRef<string>("");
   const [createdVoucher, setCreatedVoucher] = useState<PaymentVoucher | null>(null);
-  const [liveFiscalStatus, setLiveFiscalStatus] = useState<string | null>(null);
-  const [retrying, setRetrying] = useState(false);
 
-  const isEcuador = fiscalProfile?.country === "EC";
-  const missingRuc = isEcuador && !fiscalProfile?.taxId?.trim();
 
   useEffect(() => {
     if (!user?.tenantId) return;
@@ -76,18 +69,9 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
       setPayerName(holder?.fullName ?? "");
       setPayerTaxId(holder?.documentNumber ?? "");
       setCreatedVoucher(null);
-      setLiveFiscalStatus(null);
     }
   }, [open, statement, people]);
 
-  // Estado de transmisión al SRI en vivo (solo Ecuador), tras emitir el comprobante.
-  useEffect(() => {
-    if (!createdVoucher || !isEcuador || !db) return;
-    const unsub = onSnapshot(doc(db, "paymentVouchers", createdVoucher.id), (snap) => {
-      setLiveFiscalStatus((snap.data()?.fiscalStatus as string | undefined) ?? null);
-    });
-    return () => unsub();
-  }, [createdVoucher, isEcuador]);
 
   useEffect(() => {
     if (open) operationKey.current = crypto.randomUUID();
@@ -98,10 +82,6 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
     const parsed = Number(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       toast.error("Ingresa un monto válido mayor a cero.");
-      return;
-    }
-    if (isEcuador && !payerTaxId.trim()) {
-      toast.error("La cédula del condómino es obligatoria en Ecuador.");
       return;
     }
     setSubmitting(true);
@@ -133,19 +113,6 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
     }
   }
 
-  async function handleRetry() {
-    if (!createdVoucher) return;
-    setRetrying(true);
-    try {
-      await retransmitVoucherCallable({ voucherId: createdVoucher.id });
-      toast.success("Reintentando transmisión al SRI.");
-    } catch (error) {
-      toastFirebaseError(error);
-    } finally {
-      setRetrying(false);
-    }
-  }
-
   return (
     <Modal open={open} title="Registrar cobro" onClose={onClose}>
       {statement ? (
@@ -165,32 +132,6 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
                   {formatAmount(createdVoucher.amount)}.
                 </p>
               </div>
-              {isEcuador ? (
-                <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3 text-sm">
-                  <p className="text-[var(--slate-700)]">
-                    Transmisión al SRI:{" "}
-                    <strong>
-                      {liveFiscalStatus === "transmitted"
-                        ? "Transmitido"
-                        : liveFiscalStatus === "error"
-                          ? "Error"
-                          : "Pendiente..."}
-                    </strong>
-                  </p>
-                  {liveFiscalStatus === "error" ? (
-                    <Button
-                      className="mt-2"
-                      size="sm"
-                      variant="outline"
-                      type="button"
-                      disabled={retrying}
-                      onClick={() => void handleRetry()}
-                    >
-                      {retrying ? "Reintentando..." : "Reintentar transmisión"}
-                    </Button>
-                  ) : null}
-                </div>
-              ) : null}
               <div className="mobile-action-group">
                 <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={onClose}>
                   Cerrar
@@ -229,24 +170,14 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
               </div>
               <div>
                 <label className="mb-1 block text-sm text-[var(--slate-700)]">
-                  Cédula del condómino{isEcuador ? "" : " (opcional)"}
+                  Cédula del condómino (opcional)
                 </label>
                 <Input
                   value={payerTaxId}
                   onChange={(event) => setPayerTaxId(event.target.value)}
                   placeholder="Documento de identidad"
                 />
-                {isEcuador ? (
-                  <p className="mt-1 text-xs text-[var(--slate-500)]">
-                    Obligatoria en Ecuador: el comprobante se emite con el RUC del conjunto y la cédula del condómino.
-                  </p>
-                ) : null}
               </div>
-              {missingRuc ? (
-                <p className="rounded-xl border border-[var(--danger-300)] bg-[var(--danger-50)] px-3 py-2 text-xs text-[var(--danger-700)]">
-                  Configura el RUC del conjunto en Configuración → Datos fiscales antes de emitir comprobantes en Ecuador.
-                </p>
-              ) : null}
               <div className="mobile-action-group">
                 <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={onClose}>
                   Cancelar
@@ -254,7 +185,7 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
                 <Button
                   className="w-full sm:w-auto"
                   type="button"
-                  disabled={submitting || missingRuc}
+                  disabled={submitting}
                   onClick={() => void handleSubmit()}
                 >
                   {submitting ? "Registrando..." : "Registrar y emitir recibo"}

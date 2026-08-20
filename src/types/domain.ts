@@ -503,9 +503,6 @@ export interface PaymentVoucher {
   /** PDF generado en Storage (si aplica). */
   pdfUrl?: string;
   pdfStoragePath?: string;
-  /** Estado de transmisión al ente fiscal — usado por el adaptador de país (F2). */
-  fiscalStatus?: "none" | "pending" | "transmitted" | "error";
-  fiscalProviderRef?: string;
   /** Fecha en que se anonimizaron los datos sensibles (retención, F2/G4). */
   anonymizedAt?: string;
   createdAt?: string;

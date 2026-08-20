@@ -229,11 +229,22 @@ estado no llega hasta ahí. **Una etiqueta puesta sobre una parte se lee sobre e
 
 ### Lo que esta decisión deja abierto — y son preguntas, no tareas
 
-1. **¿Qué se hace con el código del SRI ya escrito?** Existe `functions/src/sri-ecuador.ts`
-   con `stubSriTransport` y `buildSriDocument`. Verificado hoy: **`realSriTransport` no
-   existe**, solo el stub. Con lo fiscal fuera de alcance ese código no tiene destino:
-   o se retira, o se deja documentado como opción dormida. **Dejarlo sin decidir es la
-   peor de las tres**, porque el próximo que lo lea supondrá que el frente sigue vivo.
+1. ~~**¿Qué se hace con el código del SRI ya escrito?**~~ **RETIRADO el 20 de agosto de
+   2026, por decisión de David.** No era un fichero: eran **nueve**. Se fue
+   `functions/src/sri-ecuador.ts` entero, su import, la rama del disparador de
+   comprobantes, la callable `retransmitVoucher` y su envoltorio en el front, el
+   `sriEcuadorProvider` y la rama `EC` del selector, el campo `fiscalStatus`, y toda la
+   interfaz de transmisión.
+   **Lo que se conserva a propósito:** `issuerTaxId`, `payerTaxId` e `issuerCountry` —un
+   recibo interno sigue queriendo decir de quién y para quién es—, el seam por país
+   —porque el FORMATO del recibo sí puede diferir aunque no haya factura— y la numeración
+   secuencial, **que pasa de fiscal a interna**.
+   **Y se llevó por delante tres candados de Ecuador que solo existían para alimentar al
+   SRI:** el que exigía RUC del conjunto para poder registrar un pago, el que hacía
+   obligatoria la cédula del condómino, y el aviso que explicaba una emisión que ya no
+   ocurre. **Eran un mismo paquete**, y el primero es el que más pesaba: un conjunto
+   ecuatoriano no podía registrar un pago hasta que alguien rellenara un RUC que Vivaru
+   nunca iba a usar.
 2. **¿A quién se le puede vender en Ecuador?** El checklist de salida a producción
    recomendaba «evitar EC fiscal hasta destrabar SRI». Con lo fiscal fuera, **la pregunta
    deja de ser cuándo se destraba y pasa a ser comercial**: si un conjunto ecuatoriano

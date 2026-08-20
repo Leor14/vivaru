@@ -10,7 +10,6 @@ import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
 import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
-import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
 import { currencyForCountry } from "./country-currency";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
@@ -3396,10 +3395,6 @@ export const onPaymentVoucherCreated = onDocumentCreated({ document: "paymentVou
       );
     }
   }
-
-  // Transmisión al SRI (Ecuador) — comportamiento existente.
-  if (data.issuerCountry !== "EC" || data.fiscalStatus !== "pending") return;
-  await transmitVoucher(db, event.params.voucherId, stubSriTransport);
 });
 
 // ── F4 · Notificaciones de publicaciones del admin ────────────────────────────
@@ -3439,25 +3434,6 @@ export const onSurveyUpdated = onDocumentUpdated({ document: "surveys/{surveyId}
   await deliverResidentNotifications("survey_new", after.tenantId, residentUids, { conjunto }, override);
 });
 
-// Reenvío / reintento manual de la transmisión (admin del tenant o superadmin).
-export const retransmitVoucher = onCall<{ voucherId: string }>(async (request) => {
-  const voucherId = request.data?.voucherId;
-  if (!voucherId) {
-    throw new HttpsError("invalid-argument", "voucherId requerido.");
-  }
-  const snap = await db.collection("paymentVouchers").doc(voucherId).get();
-  if (!snap.exists) {
-    throw new HttpsError("not-found", "Comprobante no encontrado.");
-  }
-  const voucher = snap.data() as { tenantId: string };
-  await assertTenantAdminOrSuper({
-    tenantId: voucher.tenantId,
-    uid: request.auth?.uid,
-    role: request.auth?.token?.role,
-  });
-  await transmitVoucher(db, voucherId, stubSriTransport);
-  return { ok: true };
-});
 
 // ── P4 · Archivo mensual automático: reporte de comité + histórico de cartera ──
 

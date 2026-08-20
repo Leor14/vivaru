@@ -101,15 +101,6 @@ export async function registerWalkInVisitCallable(input: RegisterWalkInVisitInpu
   return executeCallable(callable, input, "No fue posible registrar la visita.");
 }
 
-export async function retransmitVoucherCallable(input: { voucherId: string }) {
-  if (!functions) {
-    throw new Error("Firebase Functions no esta configurado en este entorno.");
-  }
-
-  const callable = httpsCallable<{ voucherId: string }, { ok: boolean }>(functions, "retransmitVoucher");
-  return executeCallable(callable, input, "No fue posible reintentar la transmisión al SRI.");
-}
-
 /**
  * Provisión del ambiente de prueba desde el registro público del landing.
  * No requiere sesión: es el único punto de entrada del self-service.

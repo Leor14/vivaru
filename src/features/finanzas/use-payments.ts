@@ -187,7 +187,6 @@ export async function recordPayment(
     issuerCountry: draft.issuerCountry ?? undefined,
     sourceType: draft.sourceType ?? undefined,
     sourceId: draft.sourceId ?? undefined,
-    fiscalStatus: draft.fiscalStatus,
     ledgerEntryId: ledgerRef.id,
     createdBy: userId,
   };

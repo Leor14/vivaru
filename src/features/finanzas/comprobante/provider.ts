@@ -1,9 +1,15 @@
 import type { FiscalCountry, VoucherType } from "@/types/domain";
 
 /**
- * Capa fiscal pluggable por país (F1 = recibo genérico; F2 = comprobante SRI EC).
- * `buildVoucher` es puro: calcula los campos del comprobante sin I/O, de modo que
- * cada país pueda formatear su documento sin tocar el core contable.
+ * Formato de recibo pluggable por país. `buildVoucher` es puro: calcula los campos
+ * del comprobante sin I/O, de modo que cada país pueda formatear su documento sin
+ * tocar el core contable.
+ *
+ * **Vivaru NO emite documentos fiscales** (decisión de David, 20 de agosto de 2026):
+ * la factura la emite el cliente, en los tres países. Este seam era la capa fiscal
+ * pluggable y el adaptador de Ecuador transmitía al SRI; el 20 de agosto se retiró
+ * la transmisión entera. Lo que queda es un recibo interno, y el seam se conserva
+ * porque el formato del recibo sí puede diferir por país aunque no haya factura.
  */
 export interface VoucherInput {
   type: VoucherType;
@@ -46,7 +52,6 @@ export interface VoucherDraft {
   issuerCountry: FiscalCountry | null;
   sourceType: "billingStatement" | "expense" | "manual" | null;
   sourceId: string | null;
-  fiscalStatus: "none" | "pending" | "transmitted" | "error";
 }
 
 export interface ComprobanteFiscalProvider {
@@ -54,7 +59,7 @@ export interface ComprobanteFiscalProvider {
   buildVoucher(input: VoucherInput): VoucherDraft;
 }
 
-/** Recibo genérico válido para CO/MX y base para EC (sin transmisión fiscal). */
+/** Recibo interno, válido para los tres países. No es un documento fiscal. */
 export const reciboGenericoProvider: ComprobanteFiscalProvider = {
   id: "recibo-generico",
   buildVoucher(input) {
@@ -75,28 +80,19 @@ export const reciboGenericoProvider: ComprobanteFiscalProvider = {
       issuerCountry: input.issuer?.country ?? null,
       sourceType: input.sourceType ?? null,
       sourceId: input.sourceId ?? null,
-      fiscalStatus: "none",
     };
   },
 };
 
 /**
- * Adaptador Ecuador (F2). Igual al recibo genérico pero marca el comprobante
- * como `pending` para que la Cloud Function de transmisión al SRI lo tome.
- * La transmisión en sí vive server-side (ver functions/), no aquí.
+ * Resuelve el formato de recibo por país. Hoy los tres usan el mismo, y por eso
+ * este selector parece de más — se conserva porque es el punto donde enchufar un
+ * formato propio sin tocar el core contable, y porque quitarlo obligaría a
+ * reescribir a sus llamadores el día que haga falta.
+ *
+ * Hasta el 20 de agosto de 2026 aquí se devolvía `sriEcuadorProvider` para `EC`,
+ * que marcaba el comprobante para transmitirlo al SRI. **Eso ya no existe.**
  */
-export const sriEcuadorProvider: ComprobanteFiscalProvider = {
-  id: "sri-ecuador",
-  buildVoucher(input) {
-    return { ...reciboGenericoProvider.buildVoucher(input), fiscalStatus: "pending" };
-  },
-};
-
-/**
- * Resuelve el provider fiscal por país. CO/MX usan el recibo genérico (sin
- * transmisión); EC usa el adaptador SRI. El seam permite enchufar nuevos
- * países sin tocar el core contable.
- */
-export function getComprobanteProvider(country?: FiscalCountry | null): ComprobanteFiscalProvider {
-  return country === "EC" ? sriEcuadorProvider : reciboGenericoProvider;
+export function getComprobanteProvider(_country?: FiscalCountry | null): ComprobanteFiscalProvider {
+  return reciboGenericoProvider;
 }

@@ -36,8 +36,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
+exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -50,7 +50,6 @@ const crypto_1 = require("crypto");
 const XLSX = __importStar(require("xlsx"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
 const datetimeValidation_1 = require("./utils/datetimeValidation");
-const sri_ecuador_1 = require("./sri-ecuador");
 const data_retention_1 = require("./data-retention");
 const country_currency_1 = require("./country-currency");
 const password_policy_1 = require("./password-policy");
@@ -2719,10 +2718,6 @@ exports.onPaymentVoucherCreated = (0, firestore_2.onDocumentCreated)({ document:
             await deliverResidentNotifications("billing_receipt", data.tenantId, residentUids, { período: formatPeriodFromDate(data.issueDate), conjunto }, override);
         }
     }
-    // Transmisión al SRI (Ecuador) — comportamiento existente.
-    if (data.issuerCountry !== "EC" || data.fiscalStatus !== "pending")
-        return;
-    await (0, sri_ecuador_1.transmitVoucher)(db, event.params.voucherId, sri_ecuador_1.stubSriTransport);
 });
 // ── F4 · Notificaciones de publicaciones del admin ────────────────────────────
 // Reglamento nuevo: al subir un documento de categoría "reglamento" (el flujo de
@@ -2758,25 +2753,6 @@ exports.onSurveyUpdated = (0, firestore_2.onDocumentUpdated)({ document: "survey
         getTenantName(after.tenantId),
     ]);
     await deliverResidentNotifications("survey_new", after.tenantId, residentUids, { conjunto }, override);
-});
-// Reenvío / reintento manual de la transmisión (admin del tenant o superadmin).
-exports.retransmitVoucher = (0, https_1.onCall)(async (request) => {
-    const voucherId = request.data?.voucherId;
-    if (!voucherId) {
-        throw new https_1.HttpsError("invalid-argument", "voucherId requerido.");
-    }
-    const snap = await db.collection("paymentVouchers").doc(voucherId).get();
-    if (!snap.exists) {
-        throw new https_1.HttpsError("not-found", "Comprobante no encontrado.");
-    }
-    const voucher = snap.data();
-    await assertTenantAdminOrSuper({
-        tenantId: voucher.tenantId,
-        uid: request.auth?.uid,
-        role: request.auth?.token?.role,
-    });
-    await (0, sri_ecuador_1.transmitVoucher)(db, voucherId, sri_ecuador_1.stubSriTransport);
-    return { ok: true };
 });
 // ── P4 · Archivo mensual automático: reporte de comité + histórico de cartera ──
 const ARCHIVE_PATH = {

@@ -17,7 +17,6 @@ vi.mock("firebase/firestore", () => ({
 import {
   getComprobanteProvider,
   reciboGenericoProvider,
-  sriEcuadorProvider,
 } from "@/features/finanzas/comprobante/provider";
 import { computeBalanceStatus, recordPayment } from "@/features/finanzas/use-payments";
 import type { BillingStatement } from "@/types/domain";
@@ -38,7 +37,7 @@ describe("computeBalanceStatus", () => {
 });
 
 describe("reciboGenericoProvider.buildVoucher", () => {
-  it("mapea datos del pagador y emisor con estado fiscal 'none'", () => {
+  it("mapea datos del pagador y del emisor", () => {
     const draft = reciboGenericoProvider.buildVoucher({
       type: "ingreso",
       sequentialValue: 7,
@@ -51,7 +50,6 @@ describe("reciboGenericoProvider.buildVoucher", () => {
       sourceType: "billingStatement",
       sourceId: "stmt-1",
     });
-    expect(draft.fiscalStatus).toBe("none");
     expect(draft.payerUnitLabel).toBe("T1-101");
     expect(draft.issuerCountry).toBe("EC");
     expect(draft.sequentialNumber).toBe("001-001-000000007");
@@ -60,20 +58,14 @@ describe("reciboGenericoProvider.buildVoucher", () => {
 });
 
 describe("getComprobanteProvider", () => {
-  it("usa el adaptador SRI (pending) para Ecuador", () => {
-    expect(getComprobanteProvider("EC")).toBe(sriEcuadorProvider);
-    const draft = sriEcuadorProvider.buildVoucher({
-      type: "ingreso",
-      sequentialValue: 1,
-      sequentialNumber: "1",
-      issueDate: "2026-06-01",
-      amount: 10,
-      concept: "x",
-    });
-    expect(draft.fiscalStatus).toBe("pending");
-  });
-
-  it("usa el recibo genérico (sin transmisión) para CO/MX", () => {
+  /**
+   * Los tres países devuelven el MISMO recibo, y Ecuador ya no es la excepción.
+   * Hasta el 20 de agosto de 2026 devolvía un adaptador que marcaba el comprobante
+   * para transmitirlo al SRI; se retiró al salir lo fiscal del alcance. Esta prueba
+   * se conserva para que, si alguien vuelve a ramificar por país, sea a propósito.
+   */
+  it("devuelve el recibo genérico para los tres países y sin país", () => {
+    expect(getComprobanteProvider("EC")).toBe(reciboGenericoProvider);
     expect(getComprobanteProvider("CO")).toBe(reciboGenericoProvider);
     expect(getComprobanteProvider("MX")).toBe(reciboGenericoProvider);
     expect(getComprobanteProvider()).toBe(reciboGenericoProvider);
