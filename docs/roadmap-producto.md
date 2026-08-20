@@ -16,8 +16,8 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.10 |
-| **Fecha** | 20 de agosto de 2026, madrugada |
+| **Versión** | 0.9.11 |
+| **Fecha** | 20 de agosto de 2026, madrugada (rev. 2) |
 | **Estado** | **Niveles 1, 2 y 3 EN PRODUCCIÓN, validados a mano y comprobados leyéndolos.** Lo construido el 19 se desplegó la madrugada del 20: **el hueco de acceso al borrar un residente queda cerrado en producción** —era el que arrastraba la radiografía desde el 13 de agosto— y todo conjunto creado desde ahora nace con su país y su moneda correctos. **Y llegó `RESPUESTA-A-002` de Albert**, que nos da la razón en las dos contradicciones sin regatear. **El intercambio con Albert ya no tiene preguntas abiertas**: lo que falta es un correo de David y tres piezas nuestras |
 | **Verificado contra** | **Producción leída directamente, no deducida.** Repositorio en `c81e2fe` (`master` = `develop` = `origin/master`). `revokeResidentAccess` y `createTenantWorkspace` vivas en `hogaru-1`, y **el permiso de invocación de la nueva leído en IAM** (`allUsers` + `run.invoker`). **El front verificado descargando los chunks de `/login`** —marcador nuevo presente, control viejo presente, símbolo inventado ausente—, nunca por la fecha del backend, que marca que arrancó y no que terminó. **994 pruebas de app y 349 de functions**, typecheck limpio en `src/` y en `functions/`. Los 9 conjuntos releídos con credenciales renovadas: `plans` con **0 documentos**, **6 sin moneda y 4 sin país**, y **dos sin marcar como de ejemplo** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
@@ -32,6 +32,16 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
+- **LO FISCAL SALE DEL ALCANCE, y con ello el módulo financiero deja de estar
+  congelado.** Decisión de David: **Vivaru no maneja temas fiscales** — la factura la
+  emite el cliente, en los tres países. No es nueva, es la de `FIN-001` sin su «de
+  momento». **El frente del SRI de Ecuador, bloqueado desde junio esperando a un experto
+  externo, deja de bloquear porque deja de hacer falta.**
+- **Y al ir a mirarlo apareció que «congelado» nunca fue el estado del módulo.** Era la
+  etiqueta del frente fiscal, puesta en la fila que todo el mundo lee primero. `FIN-000`
+  y `FIN-001` están en producción; el expediente de conciliación **no lo bloquea nadie**;
+  y las fases de IA y piloto esperan **clientes**, no personas. Tres situaciones
+  distintas debajo de una sola palabra. Ver `docs/roadmap-finance.md` §5.
 - **Lo construido el 19 está en producción, y con ello se cierra el hueco de acceso más
   antiguo abierto.** Borrar a un residente ya le quita el acceso de verdad: la radiografía
   del 13 de agosto lo nombró, el arreglo se escribió el 19 y **hasta la madrugada del 20
@@ -280,6 +290,12 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   el cliente. Lo único que cambió es **cuándo**: ahora **después** de aplicar el pago, de
   modo que un fallo deja un pago sin comprobante —recuperable— en vez de un comprobante
   fiscal de un pago que no existe.
+- **ENDURECIDA el 20 de agosto de 2026: se cae el «de momento».** Vivaru **no maneja
+  temas fiscales**, y punto. Con eso **el frente del SRI de Ecuador sale del alcance y
+  deja de bloquear el módulo financiero** — que llevaba desde junio marcado «congelado»
+  por una dependencia externa que ya no hace falta. Los tres huecos de abajo dejan de ser
+  temporales por espera y pasan a ser **permanentes por decisión**. Ver
+  `docs/roadmap-finance.md` §5.
 - **Lo que queda abierto, y conviene que se lea:**
   - Si falla la emisión, **el secuencial ya reservado deja un hueco en la serie fiscal**.
     Cerrarlo exige emitir dentro de la transacción, que es entrar en lo fiscal.
@@ -896,6 +912,33 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.11 — 20 de agosto de 2026, madrugada (rev. 2)
+
+**Por qué: una decisión de alcance de David desbloquea un módulo entero**, y al ir a
+aplicarla apareció que ese módulo llevaba meses marcado como congelado por un motivo que
+solo aplicaba a una parte.
+
+- **Vivaru no maneja temas fiscales.** La factura la emite el cliente, en México,
+  Colombia y Ecuador. Es la decisión de `FIN-001` **sin su «de momento»**.
+- **El frente del SRI de Ecuador sale del alcance y deja de bloquear.** Estaba esperando
+  desde junio el dato de un experto SAP↔SRI externo —firma `.p12`, endpoint, formato—.
+  Ya no hace falta. La pregunta «¿quién lo desbloquea y con qué plazo?» se cierra **por
+  no hacer falta**, que es la mejor forma de cerrar una dependencia.
+- **«Congelado» nunca fue el estado del módulo financiero**, sino el del frente fiscal —
+  pero estaba escrito en la fila de estado, así que se leía sobre el todo. El propio
+  roadmap de finanzas se contradecía cuatro secciones más abajo. **Una etiqueta puesta
+  sobre una parte se lee sobre el todo.**
+- **El estado real, medido:** `FIN-000` y `FIN-001` en producción y validadas a mano; el
+  expediente de conciliación **sin empezar y sin nada delante** (`ReconciliationCase`:
+  cero apariciones en el código); las fases de IA y piloto esperando **datos que ninguna
+  ingeniería produce** — cero comprobantes reales y cero conjuntos reales.
+- **Lo que queda abierto no es técnico:** qué se hace con el código del SRI ya escrito, y
+  **a quién se le puede vender en Ecuador** sabiendo que Vivaru no emite factura. El
+  checklist de salida recomendaba «evitar EC hasta destrabar SRI»; ahora Ecuador no está
+  bloqueado por lo técnico y el filtro pasa a ser comercial.
+- **Los tres huecos fiscales de `FIN-001`** dejan de ser temporales por espera y pasan a
+  ser **permanentes por decisión**. Cuestan cero mientras no haya clientes reales.
 
 ### 0.9.10 — 20 de agosto de 2026, madrugada
 

@@ -39,9 +39,12 @@
 
 ## P2 — Por segmento o más adelante
 
-10. **Facturación electrónica fiscal.** SRI Ecuador **congelado → EC bloqueado** para factura
-    fiscal de cuotas. Evaluar DIAN (CO) / CFDI (MX) si el conjunto debe emitir factura por la
-    administración. Define a qué clientes puedes venderles "con factura".
+10. ~~**Facturación electrónica fiscal.**~~ **FUERA DE ALCANCE (20 ago 2026, decisión de
+    David): Vivaru no maneja temas fiscales.** La factura la emite el cliente, en los tres
+    países. Ya no hay nada que evaluar de DIAN, CFDI ni SRI, y **el SRI deja de bloquear
+    Ecuador**. Lo que queda no es técnico sino comercial: **si un conjunto necesita factura
+    electrónica por la administración, Vivaru no se la da**, y eso hay que saberlo antes de
+    firmar y no después. Ver `docs/roadmap-finance.md` §5.
 11. **Scale-readiness (Etapa 1).** El build actual sirve para los primeros ~100–300 conjuntos
     típicos (≤150 unidades). **Antes de aceptar un conjunto grande (>500 unidades)** hay que
     hacer la Etapa 1 (rollups + paginación servidor). No bloquea el arranque; condiciona a
@@ -57,6 +60,8 @@
   operación: (a) **carga inicial de datos + saldos**, (b) **legal/privacidad**, (c)
   **respaldos/monitoreo**, (d) el **pendiente de auth branded**.
 - **Monetización y soporte** pueden arrancar manuales para los primeros clientes.
-- **Pagos de residentes, facturación fiscal y scale-readiness** se priorizan según el
-  segmento al que le vendas primero (recomendado: conjuntos típicos ≤150 unidades en CO/MX,
-  evitando EC fiscal hasta destrabar SRI).
+- **Pagos de residentes y scale-readiness** se priorizan según el segmento al que le vendas
+  primero (recomendado: conjuntos típicos ≤150 unidades). **La facturación fiscal sale de
+  esta lista: no se construye.** Y con ella cae la recomendación de «evitar EC hasta
+  destrabar SRI» — **Ecuador ya no está bloqueado por lo técnico**. El filtro pasa a ser
+  otro, y es comercial: a quién se le puede vender sabiendo que Vivaru no emite factura.

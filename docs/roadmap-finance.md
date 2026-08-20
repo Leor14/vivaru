@@ -15,11 +15,20 @@ porqué está en `docs/roadmap-producto.md`.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.2 |
-| **Fecha** | 17 de agosto de 2026, noche |
+| **Versión** | 0.3 |
+| **Fecha** | 20 de agosto de 2026, madrugada |
 | **Base** | Documento Rector v2 (Word), fortalecido con verificación directa |
-| **Verificado contra** | Repositorio en `3dc443f` y proyecto `hogaru-1` (producción) |
-| **Estado del módulo** | **Congelado** por dependencia externa — ver «El bloqueo que el documento no nombra» |
+| **Verificado contra** | Repositorio en `c81e2fe` y proyecto `hogaru-1` (producción). `FIN-000` y `FIN-001` leídas como desplegadas y validadas; `ReconciliationCase` buscado en el código: **cero apariciones**; `realSriTransport` buscado: **no existe**, solo el stub |
+| **Estado del módulo** | **NO congelado. La etiqueta era falsa y esta revisión la retira.** F0 y F0b están **en producción**; F1 es lo siguiente y **no lo bloquea nadie**; F2 y F3 esperan clientes, no personas. **Y el frente fiscal deja de bloquear porque sale del alcance** — ver §5 |
+
+**Qué cambió en esta revisión:**
+
+- **Lo fiscal sale del alcance por decisión de David**, y con ello **el módulo deja de
+  estar congelado**. Ver §5.
+- **F0 y F0b pasaron de «se puede empezar hoy» a estar en producción** — este documento
+  es del 17 y no lo sabía.
+- **Se separa lo que bloquea una persona de lo que bloquea la ausencia de clientes.**
+- Corregido: **no hay dos conjuntos reales, hay cero.**
 
 **Qué aporta esta versión sobre el Documento Rector v2:**
 
@@ -74,9 +83,16 @@ Producción (`hogaru-1`), 17 de agosto de 2026:
 | `paymentVouchers` | **0** | 0 | **0** |
 | `financialCounters` | **0** | 0 | **0** |
 
-Los 24 cobros, 12 asientos y 16 gastos que aparecían en los dos conjuntos «reales»
-son **siembra del trial**, marcada `isExample: true` a nivel de documento. Descontada
-la siembra, **no existe un solo dato financiero propio en producción.**
+Los 24 cobros, 12 asientos y 16 gastos que aparecían en los conjuntos que entonces se
+tomaron por «reales» son **siembra del trial**, marcada `isExample: true` a nivel de
+documento. Descontada la siembra, **no existe un solo dato financiero propio en
+producción.**
+
+**Corrección del 18 de agosto de 2026, de David: no hay DOS conjuntos reales, hay CERO.**
+Los nueve de producción son de prueba. La lectura anterior deducía «real» de «no marcado
+`isExample`», y no es lo mismo: **esa marca es manual y su ausencia no prueba nada.** De
+hecho, al releer los nueve el 20 de agosto, **dos siguen sin marcar** —uno de ellos en
+Quito—, así que siguen contando como reales en cualquier métrica que salga de producción.
 
 **Consecuencia para el plan de 8 semanas:** su semana 1 es «instrumentar baseline y
 mapear rutas de pago». La segunda mitad se puede hacer hoy —y está hecha en la
@@ -184,22 +200,49 @@ donde ya hay red.
 
 ---
 
-## 5 · El bloqueo que el documento no nombra
+## 5 · El bloqueo que ya no existe, y por qué se creía que sí
 
-`CLAUDE.md` registra el módulo financiero como **congelado**, y no por decisión de
-producto: **G3 (transporte real al SRI de Ecuador) está bloqueado** esperando el dato
-del experto SAP↔SRI que gestiona **David Almeida** — firma electrónica `.p12` por
-conjunto, endpoint y formato, seis preguntas concretas.
+**DECISIÓN DE DAVID (20 de agosto de 2026): Vivaru NO maneja temas fiscales, y el
+frente del SRI de Ecuador deja de bloquear el módulo financiero.**
 
-El Documento Rector menciona el stub pero **no menciona el bloqueo ni a su
-responsable**. Para un roadmap eso importa: hay una dependencia externa con dueño
-nombrado, y ninguna de las fases fiscales avanza sin ella.
+Esta sección decía lo contrario hasta hoy: que el módulo estaba congelado por una
+dependencia externa —el dato del experto SAP↔SRI que gestiona David Almeida, con seis
+preguntas concretas sobre firma electrónica `.p12`, endpoint y formato— y que ninguna
+fase fiscal avanzaba sin ella.
 
-**Implicación de secuencia:** los frentes A y B (integridad y conciliación
-determinística) **no dependen del SRI** y se pueden hacer hoy. Conviene decirlo
-explícitamente para que el congelamiento del frente fiscal no congele el resto.
+**Todo eso era cierto y ya no importa, porque el frente fiscal sale del alcance.** La
+factura fiscal la sigue emitiendo el cliente, en todos los países. Vivaru administra el
+conjunto; no es su agente fiscal.
 
----
+**No es una decisión nueva, es una que se endurece.** La ficha de `FIN-001` ya la
+recogía —*«no será necesario meternos al tema fiscal de momento para ninguno de los
+países»*— y el alcance de aquel trabajo se diseñó sobre ella: el comprobante se emite
+**después** de aplicar el pago, para que un fallo deje un pago sin comprobante
+—recuperable— en vez de un comprobante fiscal de un pago que no existe. **Lo que cambia
+hoy es que se cae el «de momento».**
+
+**El error que hay que no repetir.** «Congelado» se escribió sobre el frente fiscal y
+acabó leyéndose como el estado del **módulo entero**, en la tabla que todo el mundo lee
+primero. Este mismo documento se contradecía cuatro secciones más abajo diciendo que los
+frentes de integridad y conciliación se podían hacer hoy — pero quien lee la fila de
+estado no llega hasta ahí. **Una etiqueta puesta sobre una parte se lee sobre el todo.**
+
+### Lo que esta decisión deja abierto — y son preguntas, no tareas
+
+1. **¿Qué se hace con el código del SRI ya escrito?** Existe `functions/src/sri-ecuador.ts`
+   con `stubSriTransport` y `buildSriDocument`. Verificado hoy: **`realSriTransport` no
+   existe**, solo el stub. Con lo fiscal fuera de alcance ese código no tiene destino:
+   o se retira, o se deja documentado como opción dormida. **Dejarlo sin decidir es la
+   peor de las tres**, porque el próximo que lo lea supondrá que el frente sigue vivo.
+2. **¿A quién se le puede vender en Ecuador?** El checklist de salida a producción
+   recomendaba «evitar EC fiscal hasta destrabar SRI». Con lo fiscal fuera, **la pregunta
+   deja de ser cuándo se destraba y pasa a ser comercial**: si un conjunto ecuatoriano
+   necesita factura electrónica por la administración, Vivaru no se la da y tiene que
+   saberlo antes de firmar, no después. **Decisión de David, no técnica.**
+3. **Los tres huecos fiscales que `FIN-001` dejó abiertos siguen abiertos**, y ahora son
+   permanentes por decisión y no temporales por espera: el hueco en la serie si falla la
+   emisión, la nota de crédito manual que nadie persigue al revertir, y los asientos
+   antiguos sin `operationKey`. **Cuestan cero mientras no haya clientes reales.**
 
 ## 6 · Tesis, conservada
 
@@ -230,7 +273,7 @@ WhatsApp o de un estado bancario. Hoy hay dos y divergen; ese es el trabajo.
 | **F2 · IA en sombra** | Extracción documental medida, sin tocar saldos | F1 **y un conjunto de documentos reales** | Métricas por campo sobre baseline determinístico, con costo y latencia |
 | **F3 · Piloto** | Reducir tiempo real | F2 **y un conjunto que emita pagos de verdad** | Go/no-go económico |
 | **F4 · Canales y escala** | WhatsApp, estados bancarios, autoaplicación exacta | F3 | Escala por conjunto sin perder control |
-| **Fiscal (transversal)** | SRI productivo | **Bloqueado: dato del experto SAP↔SRI** | Transporte real, certificación y pruebas |
+| ~~**Fiscal (transversal)**~~ | ~~SRI productivo~~ | **FUERA DE ALCANCE (20 ago 2026)** | **No aplica.** Vivaru no maneja temas fiscales; la factura la emite el cliente. Ver §5 |
 
 **La diferencia con el plan original está en la columna de entrada.** F0 y F0b no
 dependen de nada: son deuda de integridad y de seguridad que existe hoy y que empeora
@@ -257,10 +300,11 @@ Lo que sí se conserva del Documento Rector es su criterio: **no comprometer un 
 concreto** hasta medir costo y ahorro reales. Eso sigue siendo correcto — lo que cambia
 es que el precio **base** ya no es una incógnita.
 
-**Lo que hay que decir y el documento no dice:** ese conjunto de referencia no se
-parece a ningún conjunto que Vivaru tenga hoy. Los dos reales tienen **1 unidad y 0**.
-La aritmética es correcta; **la base es hipotética**, y conviene marcarla como tal
-para que nadie la cite como proyección.
+**Lo que hay que decir y el documento no dice:** ese conjunto de referencia de 150
+unidades no se parece a nada que Vivaru tenga hoy, y el motivo es más fuerte de lo que
+decía esta línea: **no hay ningún conjunto real** —los nueve de producción son de
+prueba—. La aritmética es correcta; **la base es hipotética**, y conviene marcarla como
+tal para que nadie la cite como proyección.
 
 La métrica que sí se puede empezar a construir sin clientes es el **costo por caso**
 del lado de la inferencia, reutilizando la telemetría de IA que ya existe.
@@ -280,12 +324,43 @@ salieron de la verificación:
 2. **¿El comando único se construye antes o después de que exista un cliente?**
    Argumento a favor de antes: es deuda que crece con cada pago. En contra: nadie lo
    está usando todavía.
-3. **¿Quién desbloquea el dato del SRI, y con qué plazo?** Está nominado —David
-   Almeida— pero sin fecha, y congela todo el frente fiscal.
+3. ~~**¿Quién desbloquea el dato del SRI, y con qué plazo?**~~ **CERRADA el 20 de
+   agosto de 2026: no hay que desbloquearlo.** Vivaru no maneja temas fiscales, así que
+   el frente sale del alcance y el dato deja de hacer falta. **Lo que queda en su lugar
+   son las tres preguntas de §5**, y ninguna es de ingeniería.
 
 ---
 
 ## Changelog
+
+### 0.3 — 20 de agosto de 2026, madrugada
+
+**Por qué: este documento decía «Congelado» en la fila que todo el mundo lee primero, y
+el módulo no lo estaba.** La etiqueta era del frente fiscal y se leía sobre el todo. El
+propio documento se contradecía cuatro secciones más abajo.
+
+- **Lo fiscal SALE DEL ALCANCE. Decisión de David: Vivaru no maneja temas fiscales**, y
+  la factura la emite el cliente en los tres países. No es nueva: la ficha de `FIN-001`
+  ya la traía como *«no será necesario meternos al tema fiscal de momento»*. **Lo que se
+  cae hoy es el «de momento».**
+- **Con eso, el frente del SRI de Ecuador deja de bloquear.** Ya no hace falta el dato
+  del experto SAP↔SRI, ni implementar `realSriTransport`. La decisión abierta «¿quién
+  desbloquea el SRI y con qué plazo?» queda **cerrada por no hacer falta**.
+- **F0 y F0b ya no son «se puede empezar hoy»: están EN PRODUCCIÓN.** `FIN-000` el 18 de
+  agosto y `FIN-001` el 19, las dos validadas a mano. Este documento es del 17 y no se
+  había enterado.
+- **F1 es lo siguiente y no lo bloquea nadie.** Su único criterio de entrada era F0, que
+  ya está. Verificado: `ReconciliationCase` tiene **cero apariciones** en el código —
+  está sin empezar, que no es lo mismo que estar bloqueado.
+- **Se separa «bloqueado por una persona» de «bloqueado por falta de clientes».** F2 y F3
+  esperan documentos y pagos reales que **ninguna ingeniería produce**. Meterlos en el
+  mismo saco que el SRI hacía parecer que todo dependía de destrabar a alguien.
+- **Corregido el dato de los conjuntos reales: no son dos, son CERO** —David lo corrigió
+  el 18 de agosto—. Importa porque toda la aritmética de márgenes se apoya en un conjunto
+  de referencia de 150 unidades que no se parece a nada existente.
+- **Tres preguntas nuevas y ninguna es de ingeniería:** qué se hace con el código del SRI
+  ya escrito, a quién se le puede vender en Ecuador sin factura, y que los tres huecos
+  fiscales de `FIN-001` pasan de temporales a permanentes por decisión.
 
 ### 0.2 — 17 de agosto de 2026, noche
 
