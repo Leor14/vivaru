@@ -12,6 +12,7 @@ import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { stubSriTransport, transmitVoucher } from "./sri-ecuador";
 import { anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
+import { currencyForCountry } from "./country-currency";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import {
@@ -141,6 +142,8 @@ type CreateTenantWorkspaceInput = {
   name: string;
   city: string;
   planId: string;
+  /** País del conjunto. Gobierna la moneda y la tarifa; ver `country-currency.ts`. */
+  country?: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
   moduleVariants?: Partial<ModuleVariants>;
@@ -1043,9 +1046,22 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
   const moduleVariants = normalizeModuleVariants(data.moduleVariants);
   const tenantRef = db.collection("tenants").doc();
 
+  // `country` y `currency` se escriben aquí desde el 19 de agosto de 2026, y su
+  // ausencia era un defecto silencioso: esta función tiene lista blanca de
+  // campos, el formulario de la consola SÍ recogía la moneda, y aquí se perdía.
+  // Como la lectura la defaultea a "COP", **todo conjunto creado desde la
+  // consola nacía colombiano** — un conjunto en México mostraba pesos
+  // colombianos y nadie lo notaba, porque el defecto se tapaba a sí mismo.
+  //
+  // La moneda se DERIVA del país en vez de aceptarse del cliente: así no puede
+  // existir el par imposible (país México, moneda COP). Es lo que el camino del
+  // trial ya hacía bien; esto solo lo alcanza.
+  const country = normalizeText(data.country).toUpperCase() || "MX";
   await tenantRef.set({
     name: data.name,
     city: data.city,
+    country,
+    currency: currencyForCountry(country),
     status: data.status,
     planId: data.planId,
     onboardingStatus: data.onboardingStatus,
@@ -1072,6 +1088,7 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
     action: "create_tenant_workspace",
     metadata: {
       city: data.city,
+      country,
       planId: data.planId,
       moduleVariants,
     },

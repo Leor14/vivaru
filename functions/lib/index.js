@@ -52,6 +52,7 @@ const pdfkit_1 = __importDefault(require("pdfkit"));
 const datetimeValidation_1 = require("./utils/datetimeValidation");
 const sri_ecuador_1 = require("./sri-ecuador");
 const data_retention_1 = require("./data-retention");
+const country_currency_1 = require("./country-currency");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
 const support_1 = require("./support");
@@ -786,9 +787,22 @@ exports.createTenantWorkspace = (0, https_1.onCall)(async (request) => {
     const now = firestore_1.Timestamp.now();
     const moduleVariants = normalizeModuleVariants(data.moduleVariants);
     const tenantRef = db.collection("tenants").doc();
+    // `country` y `currency` se escriben aquí desde el 19 de agosto de 2026, y su
+    // ausencia era un defecto silencioso: esta función tiene lista blanca de
+    // campos, el formulario de la consola SÍ recogía la moneda, y aquí se perdía.
+    // Como la lectura la defaultea a "COP", **todo conjunto creado desde la
+    // consola nacía colombiano** — un conjunto en México mostraba pesos
+    // colombianos y nadie lo notaba, porque el defecto se tapaba a sí mismo.
+    //
+    // La moneda se DERIVA del país en vez de aceptarse del cliente: así no puede
+    // existir el par imposible (país México, moneda COP). Es lo que el camino del
+    // trial ya hacía bien; esto solo lo alcanza.
+    const country = normalizeText(data.country).toUpperCase() || "MX";
     await tenantRef.set({
         name: data.name,
         city: data.city,
+        country,
+        currency: (0, country_currency_1.currencyForCountry)(country),
         status: data.status,
         planId: data.planId,
         onboardingStatus: data.onboardingStatus,
@@ -810,6 +824,7 @@ exports.createTenantWorkspace = (0, https_1.onCall)(async (request) => {
         action: "create_tenant_workspace",
         metadata: {
             city: data.city,
+            country,
             planId: data.planId,
             moduleVariants,
         },

@@ -21,6 +21,7 @@ import {
   updateTenantAdminCallable,
 } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
+import { currencyForCountry } from "@/lib/currency";
 import type { ModuleVariants } from "@/lib/config/module-variants";
 import type { TenantStatus } from "@/types/domain";
 
@@ -57,6 +58,7 @@ export interface TenantWorkspaceItem {
   name: string;
   city: string;
   planId: string;
+  country?: string;
   status: TenantStatus;
   onboardingStatus: "not_started" | "in_progress" | "completed";
   currency: "COP" | "MXN" | "USD";
@@ -109,6 +111,7 @@ export function watchTenants(
           name: typeof data.name === "string" ? data.name : "Tenant sin nombre",
           city: typeof data.city === "string" ? data.city : "-",
           planId: typeof data.planId === "string" ? data.planId : "starter",
+          country: typeof data.country === "string" ? data.country : undefined,
           status: normalizeTenantStatus(data.status),
           onboardingStatus: normalizeOnboarding(data.onboardingStatus),
           currency: (data.currency === "COP" || data.currency === "MXN" || data.currency === "USD") ? data.currency : "COP",
@@ -131,9 +134,10 @@ export async function createTenantWorkspace(input: {
   name: string;
   city: string;
   planId: string;
+  /** La moneda NO viaja: la deriva el servidor a partir de esto. */
+  country: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
-  currency: "COP" | "MXN" | "USD";
   moduleVariants?: ModuleVariants;
 }) {
   return createTenantWorkspaceCallable(input);
@@ -145,14 +149,19 @@ export async function updateTenantWorkspace(
     name: string;
     city: string;
     planId: string;
+    country: string;
     status: TenantStatus;
     onboardingStatus: "not_started" | "in_progress" | "completed";
-    currency: "COP" | "MXN" | "USD";
   },
 ) {
   const firestore = assertDb();
+  const country = input.country.trim().toUpperCase();
   await updateDoc(doc(firestore, "tenants", tenantId), {
     ...input,
+    country,
+    // Derivada, nunca recibida: el par imposible (país México, moneda COP) deja
+    // de ser representable.
+    currency: currencyForCountry(country),
     updatedAt: serverTimestamp(),
   });
 }

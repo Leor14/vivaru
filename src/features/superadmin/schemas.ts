@@ -15,7 +15,12 @@ export const tenantCreateSchema = z.object({
   planId: z.string().min(1, "Selecciona un plan"),
   status: z.enum(["active", "suspended", "trial", "expired"]),
   onboardingStatus: z.enum(["not_started", "in_progress", "completed"]),
-  currency: z.enum(["COP", "MXN", "USD"]),
+  /**
+   * País del conjunto. **La moneda ya no se elige: se deriva de aquí.** Podían
+   * quedar en desacuerdo —país México con moneda COP— y no había nada que lo
+   * impidiera.
+   */
+  country: z.string().trim().length(2, "Selecciona el país"),
   // Modos de operación elegidos al crear el conjunto. Opcional para no afectar el update,
   // que reutiliza este schema; el formulario de creacion siempre los provee por defaultValues.
   moduleVariants: moduleVariantsSchema.optional(),

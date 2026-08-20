@@ -27,6 +27,14 @@ export interface Tenant {
   status: TenantStatus;
   planId: string;
   onboardingStatus: "not_started" | "in_progress" | "completed";
+  /**
+   * País del conjunto, ISO-3166-1 alpha-2. Gobierna la moneda y la tarifa.
+   *
+   * **La moneda no basta para identificarlo:** Panamá y Ecuador comparten USD y
+   * tienen precios distintos (USD 3,77 contra 3,15 por unidad). Ojo: esto NO es
+   * `FiscalProfile.country`, que es dónde factura y puede diferir.
+   */
+  country?: string;
   currency?: AppCurrency;
   branding: {
     logoUrl?: string;

@@ -31,6 +31,8 @@ type CreateTenantWorkspaceInput = {
   name: string;
   city: string;
   planId: string;
+  /** ISO-3166-1 alpha-2. El servidor deriva la moneda de aquí. */
+  country: string;
   status: "active" | "suspended" | "trial";
   onboardingStatus: "not_started" | "in_progress" | "completed";
 };

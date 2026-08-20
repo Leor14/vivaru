@@ -39,7 +39,31 @@ import { watchSalesReps, type SalesRep } from "@/features/superadmin/sales-reps"
 import { doc, getDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
-import { CURRENCY_OPTIONS } from "@/lib/currency";
+import { currencyForCountry } from "@/lib/currency";
+import { CountrySelect } from "@/components/ui/country-select";
+import { PLAN_SERVICIO_COMPLETO, PLAN_TRIAL } from "@/lib/pricing/catalog";
+
+/**
+ * País propuesto para un conjunto que no lo tiene, a partir de su moneda.
+ *
+ * Solo para rellenar el formulario de edición de conjuntos anteriores al 19 de
+ * agosto de 2026, cuando la callable descartaba el país. **USD se propone como
+ * Ecuador**, no como Panamá, porque Panamá quedó en la nevera — pero es una
+ * propuesta que el superadmin ve y puede cambiar, no un dato que se escriba solo.
+ */
+function paisPropuestoDesdeMoneda(currency?: string): string {
+  if (currency === "COP") return "CO";
+  if (currency === "MXN") return "MX";
+  if (currency === "USD") return "EC";
+  return "MX";
+}
+
+/** Etiqueta legible del único plan que existe, más el de prueba. */
+function etiquetaDePlan(planId: string): string {
+  if (planId === PLAN_TRIAL) return "En prueba";
+  if (planId === PLAN_SERVICIO_COMPLETO) return "Servicio completo";
+  return planId;
+}
 import {
   DEFAULT_MODULE_VARIANTS,
   MODULE_VARIANT_META,
@@ -93,10 +117,10 @@ export default function SuperadminTenantsPage() {
     defaultValues: {
       name: "",
       city: "",
-      planId: "starter",
+      planId: PLAN_TRIAL,
       status: "trial",
       onboardingStatus: "not_started",
-      currency: "COP",
+      country: "MX",
       moduleVariants: DEFAULT_MODULE_VARIANTS,
     },
   });
@@ -106,10 +130,10 @@ export default function SuperadminTenantsPage() {
     defaultValues: {
       name: "",
       city: "",
-      planId: "starter",
+      planId: PLAN_SERVICIO_COMPLETO,
       status: "active",
       onboardingStatus: "not_started",
-      currency: "COP",
+      country: "MX",
     },
   });
 
@@ -148,7 +172,11 @@ export default function SuperadminTenantsPage() {
       planId: tenant.planId,
       status: tenant.status,
       onboardingStatus: tenant.onboardingStatus,
-      currency: tenant.currency,
+      // Los conjuntos creados antes del 19 de agosto de 2026 no tienen país
+      // —la callable lo descartaba—, así que se propone uno a partir de la
+      // moneda. Es una propuesta editable en el formulario, no una escritura a
+      // ciegas. USD se propone como Ecuador porque Panamá está en la nevera.
+      country: tenant.country ?? paisPropuestoDesdeMoneda(tenant.currency),
     });
   }
 
@@ -157,7 +185,10 @@ export default function SuperadminTenantsPage() {
     try {
       // "expired" solo se alcanza venciendo una prueba, nunca al crear.
       const status = values.status === "expired" ? "trial" : values.status;
-      await createTenantWorkspace({ ...values, status });
+      // El plan NO se elige: Vivaru se vende como un solo servicio. Lo único que
+      // distingue a un conjunto es si está en prueba o contratado.
+      const planId = status === "trial" ? PLAN_TRIAL : PLAN_SERVICIO_COMPLETO;
+      await createTenantWorkspace({ ...values, status, planId });
       toast.success("Tenant creado correctamente.");
       setCreateOpen(false);
       createForm.reset();
@@ -567,11 +598,12 @@ export default function SuperadminTenantsPage() {
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm text-[var(--slate-700)]">Plan</label>
-              <select className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...createForm.register("planId")}>
-                <option value="starter">starter</option>
-                <option value="plus">plus</option>
-                <option value="premium">premium</option>
-              </select>
+              <div className="flex h-11 items-center rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 text-sm text-[var(--slate-700)]">
+                {createForm.watch("status") === "trial" ? "En prueba" : "Servicio completo"}
+              </div>
+              <p className="mt-1 text-xs text-[var(--slate-600)]">
+                Vivaru se contrata completo: no hay planes con funciones distintas. Lo sigue el estado.
+              </p>
             </div>
             <div>
               <label className="mb-1 block text-sm text-[var(--slate-700)]">Estado</label>
@@ -595,14 +627,18 @@ export default function SuperadminTenantsPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Moneda</label>
-            <select className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...createForm.register("currency")}>
-              {CURRENCY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">País</label>
+            <CountrySelect
+              value={createForm.watch("country") ?? "MX"}
+              onChange={(code) => createForm.setValue("country", code, { shouldValidate: true })}
+            />
+            <p className="mt-1 text-xs text-[var(--slate-600)]">
+              Fija la moneda ({currencyForCountry(createForm.watch("country"))}) y la tarifa. La moneda ya no se elige
+              aparte: podían quedar en desacuerdo.
+            </p>
+            {createForm.formState.errors.country ? (
+              <p className="mt-1 text-xs text-[var(--danger-700)]">{createForm.formState.errors.country.message}</p>
+            ) : null}
           </div>
           <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3">
             <p className="text-sm font-semibold text-[var(--slate-900)]">Modos de operación</p>
@@ -662,7 +698,19 @@ export default function SuperadminTenantsPage() {
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm text-[var(--slate-700)]">Plan</label>
-              <Input {...editForm.register("planId")} />
+              <div className="flex h-11 items-center rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 text-sm text-[var(--slate-700)]">
+                {etiquetaDePlan(editForm.watch("planId") ?? "")}
+              </div>
+              {/* Se muestra tal cual está, no derivado del estado: editar un
+                  conjunto no debe migrarle el plan de callada. Los valores
+                  antiguos se señalan para que se vean, no se corrigen solos. */}
+              {editForm.watch("planId") !== PLAN_TRIAL && editForm.watch("planId") !== PLAN_SERVICIO_COMPLETO ? (
+                <p className="mt-1 text-xs text-[var(--warning-700,var(--slate-600))]">
+                  Plan heredado del vocabulario antiguo. Se conserva; lo corrige la conversión a cliente.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-[var(--slate-600)]">Vivaru se contrata completo. No se edita aquí.</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm text-[var(--slate-700)]">Estado</label>
@@ -686,14 +734,17 @@ export default function SuperadminTenantsPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm text-[var(--slate-700)]">Moneda</label>
-            <select className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...editForm.register("currency")}>
-              {CURRENCY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <label className="mb-1 block text-sm text-[var(--slate-700)]">País</label>
+            <CountrySelect
+              value={editForm.watch("country") ?? "MX"}
+              onChange={(code) => editForm.setValue("country", code, { shouldValidate: true })}
+            />
+            <p className="mt-1 text-xs text-[var(--slate-600)]">
+              Fija la moneda ({currencyForCountry(editForm.watch("country"))}) y la tarifa.
+            </p>
+            {editForm.formState.errors.country ? (
+              <p className="mt-1 text-xs text-[var(--danger-700)]">{editForm.formState.errors.country.message}</p>
+            ) : null}
           </div>
           <div className="mobile-action-group">
             <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={() => setEditingTenant(null)}>
