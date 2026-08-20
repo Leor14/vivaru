@@ -1,8 +1,91 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 17 de agosto de 2026 por la noche, tras construir la sombra de
-F4.
+Actualizado el 19 de agosto de 2026 por la noche.
+
+## LO PRIMERO AL ABRIR SESIÓN (19 ago 2026, noche)
+
+**`develop` = `3ad4ce5`, `master` = `1e0324a`: producción está 10 commits por detrás
+y NO tiene nada de lo construido hoy después de `FIN-001`.**
+
+Lo que está en `develop` y solo en staging, sin validar a mano:
+
+| Commit | Qué |
+|---|---|
+| `6eab535` | Borrar un residente ahora sí le quita el acceso |
+| `c4f96a0` · `311ee1c` · `5f86254` | El precio de la guía maestra cableado, y el conjunto guarda su país |
+
+**Desplegado en staging:** `revokeResidentAccess` (nueva) y `createTenantWorkspace`
+(actualizada), las dos en `vivaru-staging-02`. El front de staging ya sirve el código
+nuevo, comprobado leyendo los chunks de `/login`.
+
+### Las dos validaciones a mano que faltan, y son de David
+
+Ninguna prueba puede contestarlas — la lección de `FIN-001`, donde 969 pruebas dieron
+por bueno un reverso pintado en verde.
+
+1. **Borrar residente.** Dar acceso a un residente de prueba, entrar con esa cuenta en
+   otra ventana, borrarlo desde Residentes, **refrescar la ventana del residente: tiene
+   que echarte**, y comprobar que ya no puede iniciar sesión. El paso del refresco es el
+   que estaba roto.
+2. **Crear conjunto eligiendo México.** Debe quedar en **MXN**, no en COP. Y el plan
+   debe decir «En prueba» o «Servicio completo», sin `starter`.
+
+### Después: subir a producción, y aquí el orden es el NORMAL
+
+Las dos functions **conceden**, no quitan, así que van **antes** del front:
+
+```
+firebase deploy --only functions:revokeResidentAccess,functions:createTenantWorkspace --project hogaru-1
+git checkout master && git merge --ff-only develop && git push origin master
+firebase apphosting:rollouts:create vivaru --git-commit <sha> --project hogaru-1
+```
+
+(El orden se invierte **solo** cuando la regla restringe, como en `FIN-001`. Aquí no.)
+
+### El estado de producción, medido leyéndolo el 19 (no deducido)
+
+9 conjuntos: **6 sin `currency` y 4 sin `country`**. `Privada Las Palmas` está en México
+y la consola la lee en COP. Planes en uso: `plus`×5, `starter`, `premium`, `trial`×2.
+La colección `plans` tiene **0 documentos**.
+
+**El arreglo NO corrige los conjuntos que ya existen.** Son de prueba, así que hay tres
+salidas y ninguna es obvia: corregirlos a mano, borrarlos, o dejarlos sabiendo que están
+así. **Decisión de David, no técnica.**
+
+## Con qué seguir, por orden (19 ago 2026)
+
+1. **Validar las dos cosas de arriba en staging y subirlas a producción.** Es lo único
+   construido y sin entregar.
+2. **Escribir la política de retención de Vivaru.** Deuda nueva, salió de contestarle a
+   Albert: se les pidió la función parametrizable porque aquí no hay número que darles.
+   Bloquea cerrar su B3.
+3. **Decidir qué se hace con los 9 conjuntos de datos incompletos.**
+4. **Validar el formato de `crmRef`** al construirlo. Para deals,
+   `albert:deal:{tenantId}:{dealId}`; para comerciales, el **`uid` crudo de Firebase
+   Auth** — eso lo cerró `RESPUESTA-A-001`. Hoy es un string libre sin validar.
+5. **`REVOPS-001B`** — evento de activación, que automatiza la etapa «en prueba».
+
+**Lo que NO toca ahora:** la segunda mitad de `REVOPS-001C` (la señal de vuelta depende
+de Albert), y la pantalla `/superadmin/plans`, **aplazada al módulo financiero** por
+decisión de David — hoy administra un catálogo que no describe nada real, pero vuelve a
+tener sentido entonces.
+
+**Albert no bloquea nada.** `DECISIONES-A-001` se envió el 19 y no se espera respuesta
+en corto plazo.
+
+## Dos cosas de método que salieron hoy y conviene no perder
+
+- **Buscar el gemelo que lo hace bien.** Los dos defectos del 19 tenían un camino hermano
+  que ya hacía lo correcto: `deleteOperationalUser` para el del residente, y el trial
+  self-service para el de la moneda. Leer ese camino **antes** de diseñar el arreglo. Y
+  el corolario: si dos caminos hacen lo mismo y solo uno está bien, probablemente hay un
+  tercero.
+- **Sí se puede saber qué front hay desplegado**, y el documento decía que no. `/login`
+  sirve 200 y sus chunks son públicos: se descargan y se busca dentro un símbolo que solo
+  exista en el código nuevo, con un símbolo viejo de control para saber que la búsqueda
+  funciona. **La fecha de `apphosting:backends:get` NO sirve**: cambia a los ~45 segundos
+  de crear el rollout, o sea marca que arrancó, no que terminó.
 
 ## La sombra de F4 está construida y NO desplegada (17 ago 2026)
 
