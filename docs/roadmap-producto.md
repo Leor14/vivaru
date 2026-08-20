@@ -589,7 +589,12 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `REVOPS-001C` — Solicitud de activación y handoff
 
-- **Frente:** REVOPS · **Estado:** Ausente · **Nivel 3** — su primera mitad, cablear el precio
+- **Frente:** REVOPS · **Estado:** 🟡 **Primera mitad CONSTRUIDA** (19 ago 2026,
+  `c4f96a0` + `311ee1c`) · **Nivel 3**. La tarifa de la guía es código y el conjunto ya
+  guarda su país. **Es tarifa de REFERENCIA para cotizar, NO el precio de un conjunto**:
+  a cada conjunto vendido se le aplican reglas propias, y ese dato todavía no existe en
+  el producto — entra con el módulo financiero. Falta la segunda mitad: la señal de
+  vuelta desde Albert
 - **Depende de dos cosas.** La primera es **cablear el precio al producto**: la
   decisión comercial existe desde el 12 de agosto de 2026 en la guía maestra
   —ver «El precio» más abajo— pero `plans` está vacía y los `planId` de producción no
