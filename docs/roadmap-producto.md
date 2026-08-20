@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.5 |
-| **Fecha** | 18 de agosto de 2026, noche |
-| **Estado** | **Nivel 1 en producción; `FIN-001` validada en staging** — cobro y reversión probados a mano de punta a punta; falta producción |
-| **Verificado contra** | Repositorio en `6207fa7` (`master` = `develop`), producción sirviendo el código nuevo **comprobado por API**, staging idéntico, 151 pruebas de reglas en emulador, 321 de functions, build limpio |
+| **Versión** | 0.9.6 |
+| **Fecha** | 19 de agosto de 2026 |
+| **Estado** | **Niveles 1 y 2 en producción** — `FIN-001` desplegada el 19 de agosto con el orden invertido functions → front → reglas. **Falta validarla a mano allí**, que es el paso que en staging encontró lo que las pruebas no |
+| **Verificado contra** | Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,28 +32,31 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **`REVOPS-000` está hecho, y su respuesta corrige a este documento.** Era el nivel 0,
-  llevaba tres revisiones sin empezar y bloqueaba el PRD de Albert. **No son cinco
-  personas vendiendo en tres países:** es **una prospectando en frío** —Daniel Aguilar,
-  ~6-7 nombres, nada concreto— y **un acercamiento suelto** de David Almeida. Cero
-  conversaciones maduras, cero firmados. Ver la ficha de `REVOPS-000`.
-- **Cero conjuntos reales en producción.** Los nueve son pruebas. La cifra anterior
-  —«dos reales»— salía de deducir «real» de «no marcado `isExample`».
-- **El nivel 1 completo y en producción**, desplegado el 18 de agosto: `FIN-000`,
-  `REVOPS-001E`, `REVOPS-001A` y `SUP-001`. El eje «trabajo que caduca» queda vacío.
-- **Tres correcciones de hecho en un día, y el patrón importa más que las tres.** Las
-  tres veces se dedujo un hecho de negocio a partir de un dato técnico: «cero demanda»
-  de «cero leads», «conjunto real» de «no marcado `isExample`», y «cinco vendiendo» de
-  «cinco en el catálogo». **Preguntar cuesta una conversación.**
-- **La regla de negocio que salió de `REVOPS-000` y nadie había pedido:** la lista fría
-  **no entra al CRM**. Define la puerta de entrada al pipeline —conversación e interés,
-  no un nombre— y con eso el pipeline mide **oportunidades, no esfuerzo**.
-- **El PRD de Albert sube a 0.4**, con la bisagra decidida (Vivaru es tenant de Albert),
-  el §5 completo y una etapa que solo puede existir aquí: **«en prueba»**, apoyada en la
-  activación que el producto ya calcula.
-- **Y tres averías que el despliegue destapó:** `functions/lib` iba desfasado del `src/`
-  y un deploy limpio habría subido otra cosa; staging llevaba sin poder construir por un
-  permiso de IAM; y no existe forma de asignar vendedor a un conjunto ya creado.
+- **`FIN-001` está en producción** (19 de agosto), y con ella **se cierra el nivel 2**.
+  El agujero de consistencia de pagos —dos rutas que aplicaban un pago con efectos
+  distintos, y el saldo calculado en el navegador— queda cerrado también allí.
+- **Falta la validación a mano en producción, y no es un trámite.** En staging ese paso
+  encontró un defecto de presentación que **969 pruebas dieron por bueno**. Hasta que
+  alguien registre un cobro real y lo revierta, el estado correcto es «desplegada», no
+  «funcionando».
+- **El orden de despliegue se invierte cuando la regla restringe**, y ya está demostrado
+  dos veces. Una regla que **concede** va antes del código que la necesita; una que
+  **quita** va después del código que dejó de necesitarla. La de esta ficha quita, así
+  que fue functions → front → reglas.
+- **Cae una creencia que estaba escrita como imposible:** sí se puede saber qué código de
+  front hay desplegado. `/login` sirve 200 y sus chunks son públicos; buscar dentro un
+  símbolo que solo exista en el código nuevo lo resuelve en un minuto. La fecha de
+  `apphosting:backends:get` **no** sirve: cambia a los ~45 segundos de crear el rollout,
+  o sea marca que arrancó, no que terminó.
+- **`REVOPS-000` seguía dándose por pendiente en una nota de traspaso**, y está hecho
+  desde el 18. Corregido. **No es el mismo error que las tres correcciones de la semana
+  pasada:** aquellas dedujeron un hecho de negocio de un dato técnico; esta arrastró un
+  estado por copia sin releer la fuente. El remedio también es otro — releer este
+  documento, no preguntarle a nadie.
+- **Los tres huecos fiscales de `FIN-001` ya están en producción**, por la decisión de
+  alcance de David: hueco en la serie si falla la emisión, reversión que no anula el
+  comprobante, y asientos anteriores irreversibles por no guardar `operationKey`. Cuestan
+  cero mientras no haya clientes reales y dejan de costarlo con el primero.
 
 **Qué espera decisión tuya:**
 
@@ -115,7 +118,7 @@ de entrega.**
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
 
-**Leyenda:** ✅ construido **y desplegado** (18 ago 2026) · 🟢 coste
+**Leyenda:** ✅ construido **y desplegado** (18–19 ago 2026) · 🟢 coste
 cero, se puede hoy · ⏳ **caduca: el dato se pierde si llega tarde** · 🔴 prioridad
 fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 descubrimiento ·
 ⏸ bloqueado por datos · ◇ exploración condicionada
@@ -148,7 +151,7 @@ fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 des
 |---|---|---|---|
 | **0** | **Generar demanda** — `REVOPS-000` | Cero código | Es el bloqueo compartido de cinco frentes |
 | **1** | ✅ **COMPLETO** — `REVOPS-001E` · `REVOPS-001A` · `SUP-001` · `FIN-000`, los cuatro en producción | Bajo | El dato no se reconstruye después. **Ya no caduca** |
-| **2** | **Lo que rompe al convertir** — `FIN-001` | Alto | El trial protege; la conversión no |
+| **2** | ✅ **COMPLETO** — `FIN-001` en producción (19 ago 2026) | Alto | El trial protege; la conversión no |
 | **3** | **Cablear el precio** — primera mitad de `REVOPS-001C` | Medio | Hace falta al convertir, no al probar |
 | **4** | Todo lo demás | — | Espera al primer cliente real |
 
@@ -165,12 +168,13 @@ de lo que este documento decía.) IA, Onboarding, Mobile y Soporte esperan
 exactamente lo mismo: un cliente real usando el producto. **No son cuatro bloqueos: es
 uno.**
 
-**Por qué el nivel 2 puede esperar, y no es optimismo.** El trial deja Cartera, Egresos,
-Libro y Conciliación en solo lectura, mediante `assertModuleAllowed` en functions y
-`previewModuleWritable()` en las reglas. Un prospecto en prueba **no puede alcanzar** las
-dos rutas de pago divergentes de `FIN-001`. El defecto muerde en la conversión, no en la
-prueba — así que los quince días del trial son una ventana regalada, y `FIN-001` es del
-tamaño que cabe en ella.
+**El nivel 2 esperó a propósito, y la apuesta salió bien.** El trial deja Cartera,
+Egresos, Libro y Conciliación en solo lectura, mediante `assertModuleAllowed` en
+functions y `previewModuleWritable()` en las reglas: un prospecto en prueba **no podía
+alcanzar** las dos rutas de pago divergentes de `FIN-001`. El defecto mordía en la
+conversión, no en la prueba — así que los quince días del trial eran una ventana
+regalada, y `FIN-001` cupo entera en ella: construida, validada en staging y desplegada
+a producción el 19 de agosto, **antes de que hubiera un solo cliente convertido**.
 
 **Lo que explícitamente no se hace ahora:** `AI-PQRS-001`, `ONB-001`, todo Mobile,
 `SUP-002`, `REVOPS-002`, `003` y `004`. Los seis esperan el mismo dato, y adelantarlos
@@ -230,8 +234,8 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `FIN-001` — Comando único e idempotente de aplicación de pagos
 
-- **Frente:** Vivaru Finance · **Estado:** ✅ **Validada en staging** (18 ago 2026,
-  `66c03c7` + `75d9e47`) · **Nivel 2** · **No está en producción**
+- **Frente:** Vivaru Finance · **Estado:** ✅ **En producción** (19 ago 2026, `1e0324a`)
+  · **Nivel 2 cerrado** · **Pendiente: validarla a mano en producción**
 - **Problema:** las rutas de pago, comprobantes, ledger, vouchers, saldos y reversos
   deben producir un resultado completo o ninguno.
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
@@ -267,7 +271,14 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   también**. En el libro quedaron las dos filas —el pago marcado «Anulado» y su
   «Reverso»— y los totales del período en **cero**, que es la prueba de que las
   agregaciones cuadran. Por la ruta del comprobante del residente, antes el pago **nunca
-  llegaba al libro**; ahora sí. En **producción sigue sin desplegarse**.
+  llegaba al libro**; ahora sí.
+- **Despliegue a producción (19 ago 2026), en tres pasos y con el orden invertido:**
+  primero las dos callables —solo esas dos, sin tocar las 67 ya vivas—, después el front
+  por rollout de App Hosting, y **al final** las reglas. La regla de esta ficha **quita**
+  un permiso que el front anterior usaba en `use-payments.ts`, así que soltarla primero
+  habría roto el cobro manual con un «no tienes permiso» hasta terminar el rollout. Antes
+  de soltarla se comprobó que el bundle nuevo ya servía, leyendo los chunks de `/login` y
+  buscando dentro `applyPayment`. **Falta la validación a mano en producción.**
 - **Y la validación encontró un defecto, que es para lo que sirve.** El libro pintaba el
   reverso como `+-$430.000` **en verde**: el signo salía del *tipo* del asiento, y un
   reverso conserva el tipo del que anula llevando monto negativo. **No lo introdujo esta
@@ -838,6 +849,28 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.6 — 19 de agosto de 2026
+
+**Por qué: `FIN-001` salió a producción**, y con ella se cierra el nivel 2. Verificado
+contra `hogaru-1` en este orden: las dos callables vivas, el bundle nuevo sirviendo, y
+solo entonces las reglas liberadas.
+
+- `FIN-001` pasa de ✅ validada en staging a ✅ **en producción**. **Falta validarla a
+  mano allí**, y el estado lo dice en vez de disimularlo: en staging ese paso encontró un
+  defecto que 969 pruebas no vieron.
+- **Queda demostrado por segunda vez que el orden de despliegue se invierte cuando la
+  regla restringe.** Es la clase de regla que solo se aprende rompiéndola, así que está
+  escrita dos veces a propósito.
+- **Cae una creencia escrita: sí se puede saber qué front hay desplegado.** `/login`
+  sirve 200 y sus chunks son públicos. La fecha del backend, en cambio, cambió a los ~45
+  segundos del rollout: marca que arrancó, no que terminó — y era la señal en la que
+  íbamos a apoyarnos para decidir cuándo soltar las reglas.
+- **`REVOPS-000` se daba por pendiente en una nota de traspaso y estaba hecho desde el
+  18.** Corregido. El fallo no es el de la semana pasada —deducir negocio de un dato
+  técnico— sino arrastrar un estado por copia sin releer la fuente.
+
+Lo siguiente por orden es el **nivel 3: cablear el precio**.
 
 ### 0.9.5 — 18 de agosto de 2026, noche
 
