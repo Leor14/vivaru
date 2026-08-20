@@ -1,48 +1,48 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 19 de agosto de 2026 por la noche.
+Actualizado en la madrugada del 20 de agosto de 2026.
 
-## LO PRIMERO AL ABRIR SESIÓN (19 ago 2026, noche)
+## LO PRIMERO AL ABRIR SESIÓN (19 ago 2026, madrugada del 20)
 
-**`master` = `1e0324a`: producción NO tiene nada de lo construido el 19 de agosto
-después de `FIN-001`.** (No se pone aquí la cuenta de commits a propósito: caduca sola
-—de hecho caducó al escribir este mismo archivo—. Los hashes de abajo no caducan.)
+**`master` = `c81e2fe`: lo construido el 19 YA ESTÁ EN PRODUCCIÓN, validado y
+comprobado.** El hueco de acceso del residente está cerrado en producción, y todo
+conjunto creado desde ahora nace con su país y su moneda correctos.
 
-Lo que está en `develop` y solo en staging, sin validar a mano:
+David validó a mano en staging las dos cosas que ninguna prueba puede contestar: al
+borrar al residente, la otra ventana lo echó al refrescar; y el conjunto creado con
+México quedó en MXN. Con eso se subió.
 
-| Commit | Qué |
-|---|---|
-| `6eab535` | Borrar un residente ahora sí le quita el acceso |
-| `c4f96a0` · `311ee1c` · `5f86254` | El precio de la guía maestra cableado, y el conjunto guarda su país |
+### Qué se desplegó y cómo se comprobó (no deducido — leído)
 
-**Desplegado en staging:** `revokeResidentAccess` (nueva) y `createTenantWorkspace`
-(actualizada), las dos en `vivaru-staging-02`. El front de staging ya sirve el código
-nuevo, comprobado leyendo los chunks de `/login`.
+| Pieza | Estado en producción | Cómo se comprobó |
+|---|---|---|
+| `revokeResidentAccess` (nueva) | Viva, v2, `us-central1` | `functions:list`, y su permiso de invocación leído en IAM: `allUsers` + `run.invoker` |
+| `createTenantWorkspace` (actualizada) | Viva, v2, `us-central1` | `functions:list` |
+| Front (`c81e2fe`) | Servido | Chunks de `/login` descargados: marcador nuevo `revokeResidentAccess` presente, control viejo `deleteOperationalUser` presente, símbolo inventado ausente |
 
-### Las dos validaciones a mano que faltan, y son de David
+El orden fue el NORMAL —functions antes que front— porque las dos **conceden** permiso.
+Se invierte solo cuando la regla restringe, como en `FIN-001`.
 
-Ninguna prueba puede contestarlas — la lección de `FIN-001`, donde 969 pruebas dieron
-por bueno un reverso pintado en verde.
+**La trampa de `run.invoker` no mordió, y no fue suerte:** `revokeResidentAccess` ya
+nace declarando `invoker: "public"` en su definición. Quien la escribió se adelantó.
 
-1. **Borrar residente.** Dar acceso a un residente de prueba, entrar con esa cuenta en
-   otra ventana, borrarlo desde Residentes, **refrescar la ventana del residente: tiene
-   que echarte**, y comprobar que ya no puede iniciar sesión. El paso del refresco es el
-   que estaba roto.
-2. **Crear conjunto eligiendo México.** Debe quedar en **MXN**, no en COP. Y el plan
-   debe decir «En prueba» o «Servicio completo», sin `starter`.
+**El secreto de Resend sobrevivió a la fusión otra vez.** `apphosting.yaml` conserva
+`secret: RESEND_API_KEY`, cero claves en claro. Comprobado antes de empujar.
 
-### Después: subir a producción, y aquí el orden es el NORMAL
+**Puerta en verde antes de subir:** 349 pruebas de functions + 994 del front, los dos
+typecheck limpios.
 
-Las dos functions **conceden**, no quitan, así que van **antes** del front:
+### Lo que NO arregló este despliegue
 
-```
-firebase deploy --only functions:revokeResidentAccess,functions:createTenantWorkspace --project hogaru-1
-git checkout master && git merge --ff-only develop && git push origin master
-firebase apphosting:rollouts:create vivaru --git-commit <sha> --project hogaru-1
-```
+**Los conjuntos que ya existían siguen incompletos.** El arreglo actúa al crear, no
+hacia atrás. Sigue pendiente la decisión de David sobre los 9 —corregirlos a mano,
+borrarlos, o dejarlos sabiendo que están así—.
 
-(El orden se invierte **solo** cuando la regla restringe, como en `FIN-001`. Aquí no.)
+**Ojo al medirlo:** las credenciales de lectura de producción (`gcloud auth
+application-default`) caducaron el 19 por la noche. Antes de leer Firestore de
+producción hay que correr `gcloud auth application-default login`, o el script falla con
+`invalid_rapt` y parece un error de código.
 
 ### El estado de producción, medido leyéndolo el 19 (no deducido)
 
@@ -54,26 +54,95 @@ La colección `plans` tiene **0 documentos**.
 salidas y ninguna es obvia: corregirlos a mano, borrarlos, o dejarlos sabiendo que están
 así. **Decisión de David, no técnica.**
 
-## Con qué seguir, por orden (19 ago 2026)
+## Con qué seguir, por orden (20 ago 2026)
 
-1. **Validar las dos cosas de arriba en staging y subirlas a producción.** Es lo único
-   construido y sin entregar.
-2. **Escribir la política de retención de Vivaru.** Deuda nueva, salió de contestarle a
-   Albert: se les pidió la función parametrizable porque aquí no hay número que darles.
-   Bloquea cerrar su B3.
-3. **Decidir qué se hace con los 9 conjuntos de datos incompletos.**
-4. **Validar el formato de `crmRef`** al construirlo. Para deals,
-   `albert:deal:{tenantId}:{dealId}`; para comerciales, el **`uid` crudo de Firebase
-   Auth** — eso lo cerró `RESPUESTA-A-001`. Hoy es un string libre sin validar.
-5. **`REVOPS-001B`** — evento de activación, que automatiza la etapa «en prueba».
+1. **Mandarle a Albert el correo del `tenant_admin`, por canal aparte.** Es lo más
+   barato de la lista y **lo que más abre**: sin eso no puede dar de alta el tenant
+   `vivaru` ni crear el usuario de servicio, y **sin esa credencial no hay con qué
+   suscribirse a sus deals — que es la segunda mitad de `REVOPS-001C`** (ver abajo). Él
+   pide expresamente que NO vaya dentro del documento.
+2. **Escribir la política de retención de Vivaru — y ahora son DOS números.** `RESPUESTA-A-002`
+   confirma el criterio (`updatedAt` del deal) y deja la N parametrizable, con **24 meses**
+   como candidato de partida. Pero al corregir lo de la reidentificación añade un segundo
+   plazo: **cuánto vive el registro de auditoría del borrado**. Los dos son decisión de
+   David y bloquean cerrar su B3.
+3. **Decidir qué se hace con los 9 conjuntos de datos incompletos.** (Leerlos primero
+   exige reautenticar `gcloud`, ver arriba.)
+4. **Validar el formato de las referencias cruzadas — y son DOS, no una.**
+   - **Albert → Vivaru (`crmRef`).** Para deals, `albert:deal:{tenantId}:{dealId}`; para
+     comerciales, el **`uid` crudo de Firebase Auth** (cerrado por `RESPUESTA-A-001`, y
+     `RESPUESTA-A-002` C2 lo reconfirma: los campos de auditoría guardan el `uid`, no el
+     nombre legible). **Hoy es un `<Input>` de texto libre sin ninguna validación**, en
+     comerciales y en leads. Comprobado leyendo el código el 19.
+   - **Vivaru → Albert (`externalRef.leadId`).** **No existe en nuestro código**: cero
+     apariciones. Está sin construir.
+5. **La comprobación que sostenga la invariante que acabamos de firmar.** Albert se negó
+   —con razón— a obligar por esquema que todo deal tenga contacto, y en su lugar aceptó
+   nuestra palabra de crear siempre el contacto antes. **Es una promesa que hoy no vigila
+   nadie:** si el código crea un deal suelto, el consentimiento no tiene dónde vivir y no
+   salta ningún aviso.
+6. **`REVOPS-001B`** — evento de activación, que automatiza la etapa «en prueba».
 
-**Lo que NO toca ahora:** la segunda mitad de `REVOPS-001C` (la señal de vuelta depende
-de Albert), y la pantalla `/superadmin/plans`, **aplazada al módulo financiero** por
-decisión de David — hoy administra un catálogo que no describe nada real, pero vuelve a
-tener sentido entonces.
+**La segunda mitad de `REVOPS-001C` NO está bloqueada por Albert, y este documento decía
+que sí. Corregido el 20 de agosto de 2026.**
 
-**Albert no bloquea nada.** `DECISIONES-A-001` se envió el 19 y no se espera respuesta
-en corto plazo.
+`RESPUESTA-A-001` ya lo cerró el 19, en su C1, con veredicto literal: **«SÍ, sin nada que
+os lo impida. El trigger queda fuera del camino crítico.»** La regla que cita —
+`match /deals/{docId} { allow read: if canReadTenant(tenantId); }`— concede lectura a
+**todos** los roles del tenant, `sales` incluido, que es exactamente el rol del usuario de
+servicio que nos dan en C2. **Vivaru puede suscribirse en vivo (`onSnapshot`) a
+`tenants/vivaru/deals` y ver la conversión en tiempo real.** No hace falta webhook, ni
+trigger, ni OIDC — Albert lo descarta explícitamente.
+
+`RESPUESTA-A-002` no menciona la señal de vuelta (se buscaron *webhook*, *señal de
+vuelta*, *activación*, *suscripción*, *disparador*: ninguna aparece), y **no hacía falta
+que la mencionara**: ya estaba contestada en la ronda anterior.
+
+**Lo que sí la bloquea es operativo y barato: el alta del tenant (A5).** Sin el tenant
+`vivaru` dado de alta y sin el usuario de servicio creado, no hay credencial con la que
+suscribirse. Y el alta espera **el correo del `tenant_admin`**, que es el punto 1 de esta
+lista. Por eso el punto 1 no es un trámite: **es lo que abre `REVOPS-001C`.**
+
+**Cómo se coló el error, para no repetirlo:** el roadmap escribió «Albert no tiene
+webhooks» cuando eso era cierto, y nadie reescribió la frase después de que
+`RESPUESTA-A-001` la volviera irrelevante al hacernos tenant. **Una dependencia se cae
+por dejar de necesitarla, no solo porque alguien la construya** — y ese cambio no deja
+commit, así que hay que ir a borrarlo a mano.
+
+**Lo que NO toca ahora:** la pantalla `/superadmin/plans`, **aplazada al módulo
+financiero** por decisión de David — hoy administra un catálogo que no describe nada
+real, pero vuelve a tener sentido entonces.
+
+### Albert — el estado vive en su propio documento
+
+**`docs/prd/albert/ESTADO-ALBERT.md`** es el documento vivo del expediente: qué está
+cerrado, qué debe Vivaru, qué debe Albert, y qué no tiene dueño. **Ir ahí antes que a los
+cuatro documentos del intercambio.** Abajo, solo lo que cambia esta lista.
+
+#### `RESPUESTA-A-002` — lo que hay que saber sin releerla
+
+Llegó el 19. Da la razón en las dos contradicciones **sin regatear** y corrige su propia
+frase «sin PII».
+
+- **Confirmado y sin coste para nosotros:** el `country` que empezamos a guardar hoy ya
+  encaja con lo que pide (código ISO de dos letras, y nuestro selector es cerrado). No
+  hay que rehacerlo.
+- **`consent` vive SOLO en el contacto**, retirado del deal. `acceptedAt` lo pone
+  nuestro servidor.
+- **Sin fecha para lo suyo.** Dice que su A1 «cabe en días» y va primero, pero se niega
+  a poner fecha de calendario por escrito porque la fija su owner. Consecuencia: podemos
+  construir contra un contrato cerrado, **pero no probar el circuito hasta que publique**.
+- **El motor de mensajería NO tiene compromiso** — «sobre la mesa», sin sí firme. Y lo
+  nombra él mismo: sin control de opt-out y frecuencia, **el `consent` que acaban de
+  diseñar no tiene quién lo respete al enviar**. Se construyó el candado, no la puerta.
+- **Hallazgo suyo que conviene conocer:** el PII del timeline no está en campos
+  estructurados sino embebido en el texto de cada evento (`Contacto creado: Juan Pérez`),
+  así que borrar no basta con vaciar campos: hay que reescribir mensajes. Es trabajo
+  suyo, pero hace la supresión más frágil de lo que se suponía.
+- **Una imprecisión suya, para el registro:** justifica el índice diciendo que sin él la
+  consulta «degrada al crecer». No es cierto para una igualdad simple — ese campo se
+  indexa solo y el coste depende de los resultados, no del tamaño de la colección. El
+  índice es barato y no estorba; la razón que da, no se sostiene.
 
 ## Dos cosas de método que salieron hoy y conviene no perder
 

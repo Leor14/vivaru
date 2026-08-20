@@ -14,11 +14,21 @@ en `docs/roadmap-producto.md`.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.4 |
-| **Fecha** | 17 de agosto de 2026, noche |
+| **Versión** | 0.5 |
+| **Fecha** | 20 de agosto de 2026, madrugada |
 | **Base** | Documento Rector REVOPS v1.0 + documentación de Albert CRM + **navegación de la consola desplegada** |
-| **Verificado contra** | Repositorio en `4f3a9f7`, proyecto `hogaru-1`, y `albert-crm-1-1c162.web.app` en vivo |
-| **Bloqueo dominante** | **Los leads del landing no tienen interfaz en Albert.** La pestaña que su documentación describe no está desplegada |
+| **Verificado contra** | Repositorio en `c81e2fe` (`master` = `develop`), proyecto `hogaru-1`, y las cuatro rondas del intercambio con Albert en `docs/prd/albert/`. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md` |
+| **Bloqueo dominante** | **El alta del tenant `vivaru` en Albert (A5), que espera un correo.** Es operación y no desarrollo, pero sin ella no hay usuario de servicio — y **sin esa credencial no hay con qué suscribirse a sus deals**, que es la segunda mitad de `REVOPS-001C` |
+
+**Qué cambió en 0.5:** **la señal de vuelta dejó de ser un bloqueo, y este documento
+decía que sí lo era.** `RESPUESTA-A-001` C1 lo cerró el 19 de agosto: siendo tenant de
+Albert, Vivaru se suscribe en vivo (`onSnapshot`) a `tenants/vivaru/deals`, porque sus
+reglas conceden lectura a todos los roles del tenant. **La frase «Albert no tiene
+webhooks» era cierta mientras Vivaru fuese un tercero y murió al volverse tenant** — y ese
+tipo de muerte no deja commit ni prueba en rojo. Corregido en tres sitios de este
+documento. **El bloqueo dominante pasa a ser el alta del tenant**, que cuesta un correo.
+Además llegó `RESPUESTA-A-002`, que confirma el contrato y deja a Vivaru dos deudas
+propias: la invariante «contacto antes que deal» y **dos** números de retención.
 
 **Qué cambió en 0.3:** se navegó la consola real de Albert. **Su documentación
 sobredescribe lo desplegado en un punto crítico** y lo subdescribe en otros. Ver 5.5.
@@ -361,7 +371,7 @@ El documento acierta en cosas que no hay que tocar:
 |---|---|---|
 | ~~Diseñar la integración antes de conocer el CRM~~ | — | **Cerrado en 0.2**: el CRM es Albert y sus capacidades están documentadas |
 | **Los leads empujados no se ven** | **Crítica** | La pestaña de Leads de Albert no está desplegada; `/leads` no tiene interfaz |
-| **El circuito no cierra sin la señal de vuelta** | **Crítica** | Albert no tiene webhooks; `REVOPS-001C` depende de construirla |
+| ~~El circuito no cierra sin la señal de vuelta~~ | — | **Cerrado el 20 ago 2026 por `RESPUESTA-A-001` C1**: siendo tenant, Vivaru lee sus deals en vivo con `onSnapshot`. No hace falta webhook. Solo espera el alta del tenant (A5) |
 | **Apoyarse en un CRM sin rodaje** | Alta | Albert tiene 3 tenants de prueba con 0% de adopción: no es infraestructura probada |
 | **La mensajería con consentimiento no tiene dueño** | Alta | El documento la da por resuelta en el CRM; ni Albert ni Vivaru la tienen |
 | **Estados de lead incompatibles entre productos** | Media | Albert no tiene `convertido`, el terminal que REVOPS necesita |
@@ -393,9 +403,11 @@ original y se reordenan las críticas:
 
 **Bloqueantes hoy:**
 
-1. **¿Quién construye la señal de vuelta Albert → Vivaru, y cuándo?** Sin ella,
-   `REVOPS-001C` no puede cerrar el circuito. Es trabajo propio en el repo de Albert,
-   no una negociación.
+1. ~~**¿Quién construye la señal de vuelta Albert → Vivaru, y cuándo?**~~ **YA NO
+   BLOQUEA — corregido el 20 ago 2026.** `RESPUESTA-A-001` C1 lo cerró: siendo tenant,
+   Vivaru se suscribe en vivo a `tenants/vivaru/deals` y ve la conversión al instante.
+   Nadie construye nada. Lo único que falta es el **alta del tenant (A5)**, que espera
+   el correo del `tenant_admin`.
 2. **¿Cuándo se cablea el precio al producto y con qué nomenclatura?** La decisión
    existe desde el 12 de agosto en la guía maestra; lo que falta es cargar el catálogo
    y reconciliar `starter/plus/premium` con `Emergente/Core/Enterprise`. Y decidir cuál
@@ -451,9 +463,11 @@ del documento original. Eso convierte el bloqueo principal de 0.1 en respuestas.
   Desaparecen cuatro riesgos del original: DPA, límites de tasa, lock-in y contratos.
 - **Se puede integrar hoy en una dirección:** `submitDemoLead` es un endpoint HTTP
   público con CORS. Vivaru puede empujar leads sin tocar Albert.
-- **Falta la dirección que importa:** Albert **no tiene webhooks ni emisión de
-  eventos**, así que no puede avisar de un deal ganado. Es el hueco crítico de
-  `REVOPS-001C`, y es trabajo propio.
+- ~~**Falta la dirección que importa.**~~ **CORREGIDO el 20 ago 2026.** Era cierto
+  mientras Vivaru fuese un tercero. **Al ser tenant de Albert deja de hacer falta:** sus
+  reglas conceden lectura de deals a todos los roles del tenant, así que Vivaru se
+  suscribe en vivo y no necesita que le avisen. `RESPUESTA-A-001` C1, con la regla
+  citada. **Una dependencia también se cae por dejar de necesitarla.**
 - **Ni Albert ni Vivaru tienen agenda ni motor de mensajería con consentimiento.** Dos
   supuestos del documento original se quedan sin dueño en los dos productos.
 - **Las dos colecciones `leads` no encajan:** Albert no tiene estado `convertido`, que

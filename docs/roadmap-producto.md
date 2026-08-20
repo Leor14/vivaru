@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.9 |
-| **Fecha** | 19 de agosto de 2026, noche |
-| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y el intercambio con Albert quedó cerrado por nuestro lado**: respondieron las trece, y `DECISIONES-A-001` cierra las seis decisiones que nos dejaron y **quedó enviada el 19 de agosto**. Sin respuesta, y no se espera en corto plazo: **no bloquea nada nuestro**. **Y el nivel 3 está construido**: la tarifa de la guía maestra es código, y el conjunto ya guarda su país |
-| **Verificado contra** | **Producción leída directamente** (Firestore REST, 19 ago): `plans` con **0 documentos**, 9 conjuntos, **6 sin moneda y 4 sin país**. `RESPUESTA-A-001` archivada en `docs/prd/albert/`, con cita a `archivo:línea` del repo de Albert en cada afirmación. Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
+| **Versión** | 0.9.10 |
+| **Fecha** | 20 de agosto de 2026, madrugada |
+| **Estado** | **Niveles 1, 2 y 3 EN PRODUCCIÓN, validados a mano y comprobados leyéndolos.** Lo construido el 19 se desplegó la madrugada del 20: **el hueco de acceso al borrar un residente queda cerrado en producción** —era el que arrastraba la radiografía desde el 13 de agosto— y todo conjunto creado desde ahora nace con su país y su moneda correctos. **Y llegó `RESPUESTA-A-002` de Albert**, que nos da la razón en las dos contradicciones sin regatear. **El intercambio con Albert ya no tiene preguntas abiertas**: lo que falta es un correo de David y tres piezas nuestras |
+| **Verificado contra** | **Producción leída directamente, no deducida.** Repositorio en `c81e2fe` (`master` = `develop` = `origin/master`). `revokeResidentAccess` y `createTenantWorkspace` vivas en `hogaru-1`, y **el permiso de invocación de la nueva leído en IAM** (`allUsers` + `run.invoker`). **El front verificado descargando los chunks de `/login`** —marcador nuevo presente, control viejo presente, símbolo inventado ausente—, nunca por la fecha del backend, que marca que arrancó y no que terminó. **994 pruebas de app y 349 de functions**, typecheck limpio en `src/` y en `functions/`. Los 9 conjuntos releídos con credenciales renovadas: `plans` con **0 documentos**, **6 sin moneda y 4 sin país**, y **dos sin marcar como de ejemplo** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,47 +32,64 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **El nivel 3 está construido: la tarifa de la guía maestra ya es código**, con
-  pruebas que fijan sus cifras. Si alguna falla, la pregunta pasa a ser «¿cambió la
-  guía?» en vez de «¿por qué falla esto?».
-- **Y sabe decir que no sabe.** La guía solo publica el segmento Core en trimestral;
-  Emergente, Enterprise y la frecuencia mensual están modelados y **vacíos a
-  propósito**. Pedir el precio de un conjunto de 300 unidades devuelve «sin tarifa
-  publicada», no un número inventado. Una cotización inventada no la revisa nadie,
-  precisamente porque la calculó el sistema.
-- **La tarifa es de REFERENCIA y no se muestra como el precio de un conjunto.**
-  Decisión de David: a cada conjunto vendido se le pueden aplicar reglas de diferencia
-  de precio, así que dos conjuntos idénticos en país y tamaño pueden pagar distinto. El
-  precio real de un conjunto vendido **todavía no existe en el producto** y entra con el
-  módulo financiero.
-- **Un defecto que nadie había visto, y de los que se tapan solos:** la callable que
-  crea conjuntos tiene lista blanca de campos y **no escribía la moneda**, aunque el
-  formulario sí la recogía. Como la lectura la defaultea a `COP`, **todo conjunto creado
-  desde la consola nacía colombiano**. No había hueco visible: había un valor, y estaba
-  mal. Arreglado, y la moneda pasa a **derivarse del país** para que el par imposible
-  —México con pesos colombianos— deje de ser representable.
-- **Medido en producción, no deducido:** de 9 conjuntos, **6 no tienen moneda y 4 no
-  tienen país**. `Privada Las Palmas` está en México y la consola la lee en COP. Los dos
-  que sí están completos vienen del trial, que era el camino que lo hacía bien.
-- **Se acabó el vocabulario de tres planes.** La consola ya no ofrece
-  `starter`/`plus`/`premium`: el plan lo sigue el estado. Los valores heredados **no se
-  migran solos** —editar un conjunto no debe cambiarle el plan de callada— pero se
-  señalan en pantalla. En producción siguen vivos: 5 `plus`, 1 `starter`, 1 `premium`.
-- **La pantalla de planes del superadmin queda APLAZADA, no descartada.** Hoy administra
-  un catálogo que no describe nada real, pero **vuelve a tener sentido con el módulo
-  financiero**. Decisión de David.
-- **`plans` en producción tiene 0 documentos**, confirmado leyéndolo. El roadmap lo
-  afirmaba desde el 12 de agosto sin que nadie lo hubiera comprobado.
+- **Lo construido el 19 está en producción, y con ello se cierra el hueco de acceso más
+  antiguo abierto.** Borrar a un residente ya le quita el acceso de verdad: la radiografía
+  del 13 de agosto lo nombró, el arreglo se escribió el 19 y **hasta la madrugada del 20
+  siguió vivo para clientes**. David lo validó a mano en staging —borró al residente y la
+  otra ventana lo echó al refrescar— porque **ninguna prueba puede contestar eso**.
+- **El orden de despliegue fue el NORMAL**, functions antes que front, porque las dos
+  funciones **conceden** permiso. Se invierte solo cuando la regla restringe, como en
+  `FIN-001`. Son dos casos con la misma forma y sentido opuesto: conviene decidir el orden
+  preguntando qué hace la pieza, no repitiendo el del despliegue anterior.
+- **La trampa de `run.invoker` no mordió, y no fue suerte:** la función nueva ya nacía
+  declarando su acceso público. Mirarlo antes de desplegar una callable nueva ahorra un
+  «error interno» sin pista.
+- **Llegó `RESPUESTA-A-002` de Albert**, y nos da la razón en las dos contradicciones sin
+  regatear: el consentimiento vive **solo en el contacto**, y la del deal huérfano se
+  cierra **por nuestro lado** en vez de romperle el esquema a sus usuarios actuales. El
+  expediente completo pasa a tener documento propio: `docs/prd/albert/ESTADO-ALBERT.md`.
+- **La segunda mitad de `REVOPS-001C` NUNCA estuvo bloqueada, y tres documentos decían que
+  sí.** `RESPUESTA-A-001` ya lo había cerrado el 19: siendo tenant de Albert, Vivaru se
+  suscribe en vivo a sus deals. **La frase era cierta mientras Vivaru fuese un tercero y
+  murió al volverse tenant** — y ese tipo de muerte no deja commit ni prueba en rojo, solo
+  una frase obsoleta. Corregido aquí, en `roadmap-revops.md` y en `pendientes.md`.
+- **Una dependencia se cae por dejar de necesitarla, no solo porque alguien la construya.**
+  Es la lección de método de la revisión, y el corolario operativo es concreto: cuando
+  cambie el encuadre de una integración, **releer los bloqueos escritos bajo el encuadre
+  viejo** antes de seguir.
+- **Dos deudas nuevas que nos pone la respuesta de Albert.** La invariante «siempre contacto
+  antes que deal» dejó de ser regla de esquema y pasó a ser **promesa nuestra que hoy no
+  vigila nadie**; y la política de retención necesita **dos números, no uno** —el del deal
+  inactivo y el del registro de auditoría del borrado—.
+- **Los 9 conjuntos releídos, y aparecieron dos cosas que nadie había anotado.** Hay un
+  conjunto **en Quito** sin país ni moneda: como la lectura defaultea a `COP`, **un conjunto
+  ecuatoriano se está leyendo en pesos colombianos**. Y **dos de los nueve no están marcados
+  como de ejemplo**, así que **siguen contando como reales en cualquier métrica** — que es
+  exactamente lo que ya mintió dos veces.
 
 **Qué espera decisión tuya:**
 
-1. ~~**Panamá.**~~ **Resuelta el 17 de agosto: a la nevera.** La guía maestra lo tarifa
-   como *reseller* y no tiene a nadie asignado; queda tarifado y en espera, sin
-   consumir atención. **No es una brecha, es una decisión.**
-2. Tenant piloto para la IA visible de PQRS.
-3. Política de retención de `aiAssistance`.
-4. **Dónde viven la agenda y la mensajería**, y **cuál de los dos marcos de precio
-   manda**, el de la guía maestra o el del Documento Rector de Finance.
+1. **El correo del `tenant_admin` para Albert**, por canal aparte —él pide expresamente
+   que no vaya dentro del documento—. Es un mensaje, y **abre la segunda mitad de
+   `REVOPS-001C`**: sin alta no hay usuario de servicio, y sin esa credencial no hay con
+   qué suscribirse a sus deals.
+2. **Los dos números de la política de retención.** Cuánto vive un deal sin actividad
+   (Albert propone **24 meses** de partida) y cuánto vive el registro de auditoría del
+   borrado (**sin propuesta**). Bloquean cerrar su B3.
+3. **Qué se hace con los 9 conjuntos incompletos**, y **no son un grupo homogéneo**: los
+   siete marcados como de ejemplo están mal pero son inertes; **los dos sin marcar
+   contaminan las métricas hoy**, y uno de ellos —el de Quito— además muestra la moneda de
+   otro país. El arreglo no corrige hacia atrás.
+4. ~~**Panamá.**~~ **Resuelta el 17 de agosto: a la nevera.** La guía maestra lo tarifa
+   como *reseller* y no tiene a nadie asignado; queda tarifado y en espera, sin consumir
+   atención. **No es una brecha, es una decisión.**
+5. Tenant piloto para la IA visible de PQRS.
+6. Política de retención de `aiAssistance`.
+7. **Dónde viven la agenda y la mensajería**, y **cuál de los dos marcos de precio manda**,
+   el de la guía maestra o el del Documento Rector de Finance. Con un matiz nuevo: Albert
+   confirma que **el motor de mensajería sigue sin compromiso** de construirse, y lo nombra
+   él mismo — sin control de opt-out y frecuencia, **el consentimiento que se acaba de
+   diseñar no tiene quién lo respete al enviar**.
 
 ---
 
@@ -593,14 +610,20 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   `c4f96a0` + `311ee1c`) · **Nivel 3**. La tarifa de la guía es código y el conjunto ya
   guarda su país. **Es tarifa de REFERENCIA para cotizar, NO el precio de un conjunto**:
   a cada conjunto vendido se le aplican reglas propias, y ese dato todavía no existe en
-  el producto — entra con el módulo financiero. Falta la segunda mitad: la señal de
-  vuelta desde Albert
+  el producto — entra con el módulo financiero. Falta la segunda mitad: **enterarse de
+  que un deal se ganó — y eso ya NO depende de que Albert construya nada.**
+  `RESPUESTA-A-001` C1 (19 ago) lo cerró: siendo tenant, Vivaru se suscribe en vivo
+  (`onSnapshot`) a `tenants/vivaru/deals`, porque sus reglas conceden lectura a todos
+  los roles del tenant. Lo único que falta es el **alta del tenant (A5)**, que espera el
+  correo del `tenant_admin`
 - **Depende de dos cosas.** La primera es **cablear el precio al producto**: la
   decisión comercial existe desde el 12 de agosto de 2026 en la guía maestra
   —ver «El precio» más abajo— pero `plans` está vacía y los `planId` de producción no
-  corresponden a la segmentación comercial. Es cableado, no decisión. La segunda es **la
-  señal de vuelta desde Albert**, que no tiene webhooks: trabajo propio en el
-  repositorio de Albert, no una negociación con un tercero.
+  corresponden a la segmentación comercial. Es cableado, no decisión. **La segunda ya no
+  es dependencia de Albert:** este documento decía «la señal de vuelta desde Albert, que
+  no tiene webhooks», y quedó obsoleto el 19 de agosto al hacernos tenant suyo.
+  Corregido el 20. Lo que queda es **el alta del tenant (A5)**, que es operación y no
+  desarrollo, y espera el correo del `tenant_admin`.
 - **Criterio de salida:** una intención de compra se convierte en expediente trazable
   hasta una suscripción activa, sin reconstruir contexto por correo.
 
@@ -873,6 +896,40 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.10 — 20 de agosto de 2026, madrugada
+
+**Por qué: lo del 19 llegó a producción, y al revisar la respuesta de Albert apareció que
+un bloqueo escrito en tres documentos llevaba un día muerto sin que nadie lo notara.**
+
+- **El hueco de acceso más antiguo abierto queda cerrado en producción.** Borrar a un
+  residente ya le quita el acceso. Lo nombró la radiografía del 13 de agosto y **siguió
+  vivo para clientes hasta esta madrugada**. Validado a mano por David en staging, porque
+  ninguna prueba puede contestar «¿la otra ventana te echa al refrescar?».
+- **Orden de despliegue NORMAL** —functions antes que front—, porque estas dos funciones
+  **conceden** permiso. Es el caso opuesto a `FIN-001`, donde la regla restringía. Dos
+  casos con la misma forma y sentido contrario: el orden se decide preguntando qué hace la
+  pieza, no repitiendo el despliegue anterior.
+- **Comprobado leyéndolo, no por la fecha del backend**, que marca que el rollout arrancó
+  y no que terminó: chunks de `/login` descargados, con marcador nuevo, control viejo y un
+  símbolo inventado que no debía aparecer.
+- **`RESPUESTA-A-002` de Albert nos da la razón en las dos contradicciones sin regatear**,
+  y corrige su propia frase «sin PII». El expediente pasa a tener documento vivo propio:
+  `docs/prd/albert/ESTADO-ALBERT.md`.
+- **La segunda mitad de `REVOPS-001C` nunca estuvo bloqueada por Albert.** `pendientes.md`,
+  `roadmap-revops.md` y este documento decían «Albert no tiene webhooks». Su C1 del 19 ya
+  lo había cerrado: siendo tenant, Vivaru se suscribe en vivo a sus deals. **La frase era
+  cierta mientras Vivaru fuese un tercero y murió al volverse tenant.** Corregidos los tres.
+- **Lección de método: una dependencia se cae por dejar de necesitarla**, no solo porque
+  alguien la construya — y esa muerte no deja commit ni prueba en rojo, solo una frase
+  obsoleta que nadie contradice. Al cambiar el encuadre de una integración, releer los
+  bloqueos escritos bajo el viejo.
+- **Dos deudas nuevas, las dos nuestras.** La invariante «contacto antes que deal» dejó de
+  ser regla de esquema y es **promesa que hoy no vigila nadie**; y la retención necesita
+  **dos números**, no uno.
+- **Los 9 conjuntos releídos:** hay uno **en Quito** sin moneda, y como la lectura
+  defaultea a `COP`, se está leyendo en pesos colombianos. Y **dos de los nueve no están
+  marcados como de ejemplo**, así que siguen contando como reales en las métricas.
 
 ### 0.9.9 — 19 de agosto de 2026, noche
 
