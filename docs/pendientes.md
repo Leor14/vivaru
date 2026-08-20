@@ -5,8 +5,9 @@ Actualizado el 19 de agosto de 2026 por la noche.
 
 ## LO PRIMERO AL ABRIR SESIÓN (19 ago 2026, noche)
 
-**`develop` = `3ad4ce5`, `master` = `1e0324a`: producción está 10 commits por detrás
-y NO tiene nada de lo construido hoy después de `FIN-001`.**
+**`master` = `1e0324a`: producción NO tiene nada de lo construido el 19 de agosto
+después de `FIN-001`.** (No se pone aquí la cuenta de commits a propósito: caduca sola
+—de hecho caducó al escribir este mismo archivo—. Los hashes de abajo no caducan.)
 
 Lo que está en `develop` y solo en staging, sin validar a mano:
 
