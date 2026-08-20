@@ -81,19 +81,19 @@ describe("las cifras de la guía maestra, segmento Core y trimestral", () => {
 describe("el total, y el ruido de la coma flotante", () => {
   it("Colombia, 150 unidades: 1.275.000 al mes", () => {
     const r = resolverTarifa({ pais: "CO", unidades: 150, frecuencia: "trimestral" });
-    expect(r.estado === "tarifada" && r.totalMensual).toBe(1_275_000);
+    expect(r.estado === "tarifada" && r.totalMensualReferencia).toBe(1_275_000);
   });
 
   // 3.15 * 150 en coma flotante no da 472.5 limpio. Sin redondeo, la cotización
   // saldría con una cola de decimales que parece un error de cálculo.
   it("Ecuador, 150 unidades: 472,5 exacto, sin cola de decimales", () => {
     const r = resolverTarifa({ pais: "EC", unidades: 150, frecuencia: "trimestral" });
-    expect(r.estado === "tarifada" && r.totalMensual).toBe(472.5);
+    expect(r.estado === "tarifada" && r.totalMensualReferencia).toBe(472.5);
   });
 
   it("las unidades fraccionarias se truncan, no se cobran a medias", () => {
     const r = resolverTarifa({ pais: "MX", unidades: 150.9, frecuencia: "trimestral" });
-    expect(r).toMatchObject({ estado: "tarifada", unidades: 150, totalMensual: 7650 });
+    expect(r).toMatchObject({ estado: "tarifada", unidades: 150, totalMensualReferencia: 7650 });
   });
 });
 

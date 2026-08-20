@@ -11,7 +11,12 @@ import {
 } from "./catalog";
 
 /**
- * Resuelve qué paga un conjunto, a partir de su país, su tamaño y la frecuencia.
+ * Resuelve la **tarifa de referencia** de la guía, por país, tamaño y frecuencia.
+ *
+ * **No es «lo que paga este conjunto», y la diferencia no es de matiz.** A cada
+ * conjunto vendido se le pueden aplicar reglas de diferencia de precio, así que
+ * dos conjuntos idénticos en país y tamaño pueden pagar distinto. Esto sirve
+ * para **cotizar**, no para facturar ni para pintar en la ficha de un conjunto.
  *
  * **Esta función puede decir que no sabe, y es su parte más importante.** La guía
  * maestra solo publica el segmento Core en trimestral; el resto de la tabla está
@@ -38,8 +43,13 @@ export type ResultadoTarifa =
       unidades: number;
       currency: AppCurrency;
       porUnidad: CapasPorUnidad;
-      /** Precio por unidad × unidades. Es mensual, como la tarifa. */
-      totalMensual: number;
+      /**
+       * Precio de referencia por unidad × unidades, mensual.
+       *
+       * Se llama «de referencia» a propósito: es lo que costaría **según la
+       * guía**, no lo que un conjunto concreto paga.
+       */
+      totalMensualReferencia: number;
     }
   | {
       estado: "sin-tarifa";
@@ -108,7 +118,7 @@ export function resolverTarifa(input: {
       canal: compensacionCanal(tarifa),
       final: tarifa.finalCliente,
     },
-    totalMensual: redondear(tarifa.finalCliente * unidades),
+    totalMensualReferencia: redondear(tarifa.finalCliente * unidades),
   };
 }
 

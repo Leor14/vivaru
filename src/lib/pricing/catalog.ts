@@ -7,6 +7,24 @@ import type { AppCurrency } from "@/lib/currency";
  * Este archivo es la copia ejecutable de esa tabla, no una decisión nueva. Si la
  * guía cambia, cambia esto; nunca al revés.
  *
+ * ## Esto es una TARIFA DE REFERENCIA para cotizar, no lo que paga un conjunto
+ *
+ * **No mostrar esta cifra como el precio de un conjunto concreto, en ninguna
+ * pantalla.** Decisión de David del 19 de agosto de 2026, y la razón es de
+ * negocio: **a cada conjunto vendido se le pueden aplicar reglas de diferencia
+ * de precio**. Dos conjuntos del mismo país y del mismo tamaño pueden estar
+ * pagando cosas distintas, y ninguna de las dos tiene por qué ser la de esta
+ * tabla.
+ *
+ * Derivar «lo que paga este conjunto» de su país sería mostrar un número
+ * plausible y equivocado — y con la autoridad de haberlo calculado el sistema,
+ * que es justo lo que hace que nadie lo revise.
+ *
+ * **Para qué SÍ sirve:** preparar una cotización, dimensionar el negocio y
+ * calcular márgenes de referencia. El precio real de un conjunto vendido es un
+ * dato propio de ese conjunto y **todavía no existe en el producto**; entra con
+ * el módulo financiero.
+ *
  * ## Tres cosas que este archivo asume, y que son decisiones tomadas
  *
  * 1. **Vivaru se vende como UN solo servicio.** No hay planes con funciones
