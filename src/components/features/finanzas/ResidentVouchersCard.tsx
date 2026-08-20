@@ -47,7 +47,21 @@ export function ResidentVouchersCard() {
         {vouchers.map((voucher) => (
           <li key={voucher.id} className="flex items-center justify-between gap-3 py-2.5">
             <div>
-              <p className="text-sm font-medium text-[var(--slate-900)]">{voucher.code}</p>
+              {/*
+                Un recibo anulado tiene que decirlo AQUÍ, no solo dentro del PDF.
+                Si la lista los pinta iguales, quien mira cree que su pago sigue
+                en pie y solo se entera al abrir el papel — o no se entera.
+              */}
+              <p className="flex items-center gap-2 text-sm font-medium text-[var(--slate-900)]">
+                <span className={voucher.anulado ? "line-through opacity-60" : undefined}>
+                  {voucher.code}
+                </span>
+                {voucher.anulado ? (
+                  <span className="rounded-full bg-[var(--danger-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--danger-700)]">
+                    Anulado
+                  </span>
+                ) : null}
+              </p>
               <p className="text-xs text-[var(--slate-500)]">
                 {voucher.issueDate} · {formatAmount(voucher.amount)}
               </p>
