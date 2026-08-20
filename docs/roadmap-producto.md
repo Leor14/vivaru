@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.7 |
+| **Versión** | 0.9.8 |
 | **Fecha** | 19 de agosto de 2026, noche |
-| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y llegó la respuesta de Albert a `CONSULTA-A-001`**: contesta las trece, desbloquea A1 construyendo, y deja **seis decisiones de producto** en el tejado de Vivaru |
+| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y el intercambio con Albert quedó cerrado por nuestro lado**: respondieron las trece, y `DECISIONES-A-001` cierra las seis decisiones que nos dejaron. **Lista para enviar, sin enviar todavía** |
 | **Verificado contra** | `RESPUESTA-A-001` archivada en `docs/prd/albert/`, con cita a `archivo:línea` del repo de Albert en cada afirmación. Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -53,7 +53,15 @@ dependencias y criterio de salida.
   tiene dónde guardarlo**.
 - **Las tres carencias compartidas están confirmadas y ninguna está construida** — pero
   Albert dice explícitamente que **no están en un roadmap comprometido suyo**. Eso las
-  convierte en decisión, no en espera.
+  convierte en decisión, no en espera. **Y decidida queda:** el precio lo cablea Vivaru
+  y no espera a nadie; **la mensajería con consentimiento es la única que pedimos como
+  componente compartido**; la agenda de demos no se pide, porque sería infraestructura
+  para una demanda que todavía no existe.
+- **Las seis decisiones están tomadas y escritas** en `DECISIONES-A-001`, lista para
+  enviar. Con una excepción dicha en voz alta: **la N de retención NO se cierra**, porque
+  Vivaru tampoco tiene política escrita y fijarla allí sería comprometer por la puerta de
+  atrás algo que aquí no está decidido. Se les pide que construyan el parámetro, no el
+  número.
 
 **Qué espera decisión tuya:**
 
@@ -854,6 +862,24 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.8 — 19 de agosto de 2026, noche
+
+**Por qué: se cierran las seis decisiones que Albert dejó en nuestro tejado**, en
+`DECISIONES-A-001` (lista para enviar). Se aceptan sus cinco recomendaciones y se
+resuelven las dos contradicciones de su propia respuesta: el consentimiento vive **en el
+contacto**, y Vivaru se obliga a **crear siempre contacto** para que ningún deal se quede
+sin dónde guardarlo.
+
+- **La N de retención queda fuera a propósito.** Vivaru no tiene política escrita, y
+  fijar el número en un documento dirigido a otro equipo lo habría comprometido sin
+  decidirlo aquí. Se les pide la función parametrizable; el número llega cuando exista la
+  política. **Es una deuda nueva y con dueño: nuestra.**
+- **De las tres carencias compartidas solo se pide una:** el motor de mensajería con
+  consentimiento. El precio lo cablea Vivaru —ya es el nivel 3— y la agenda de demos no
+  se pide con cero clientes firmados.
+- **Lo único que se les pide de vuelta es una fecha para A1**, no un tamaño: es lo único
+  que deja a Vivaru parado del todo, y de eso depende qué se hace mientras tanto.
 
 ### 0.9.7 — 19 de agosto de 2026, noche
 
