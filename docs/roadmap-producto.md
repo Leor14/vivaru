@@ -18,7 +18,7 @@ dependencias y criterio de salida.
 |---|---|
 | **Versión** | 0.9.8 |
 | **Fecha** | 19 de agosto de 2026, noche |
-| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y el intercambio con Albert quedó cerrado por nuestro lado**: respondieron las trece, y `DECISIONES-A-001` cierra las seis decisiones que nos dejaron. **Lista para enviar, sin enviar todavía** |
+| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y el intercambio con Albert quedó cerrado por nuestro lado**: respondieron las trece, y `DECISIONES-A-001` cierra las seis decisiones que nos dejaron y **quedó enviada el 19 de agosto**. Sin respuesta, y no se espera en corto plazo: **no bloquea nada nuestro** |
 | **Verificado contra** | `RESPUESTA-A-001` archivada en `docs/prd/albert/`, con cita a `archivo:línea` del repo de Albert en cada afirmación. Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -866,7 +866,7 @@ fecha de revisión.
 ### 0.9.8 — 19 de agosto de 2026, noche
 
 **Por qué: se cierran las seis decisiones que Albert dejó en nuestro tejado**, en
-`DECISIONES-A-001` (lista para enviar). Se aceptan sus cinco recomendaciones y se
+`DECISIONES-A-001`, **enviada el mismo 19 de agosto**. Se aceptan sus cinco recomendaciones y se
 resuelven las dos contradicciones de su propia respuesta: el consentimiento vive **en el
 contacto**, y Vivaru se obliga a **crear siempre contacto** para que ningún deal se quede
 sin dónde guardarlo.
