@@ -13,6 +13,13 @@ David validó a mano en staging las dos cosas que ninguna prueba puede contestar
 borrar al residente, la otra ventana lo echó al refrescar; y el conjunto creado con
 México quedó en MXN. Con eso se subió.
 
+**Y en la madrugada del 20 se desplegó además el retiro del SRI** (`dc3e061`): front en
+producción, `onPaymentVoucherCreated` sin la rama fiscal, y **`retransmitVoucher` BORRADA**
+de los dos ambientes —comprobado en `functions:list`, ya no existe—. La verificación del
+bundle fue **al revés**: aquí había que probar una ausencia, así que el marcador viejo
+debe faltar Y los controles vivos deben aparecer. Sin los controles, «no aparece» no
+prueba nada: podría ser que la búsqueda no funcionara.
+
 ### Qué se desplegó y cómo se comprobó (no deducido — leído)
 
 | Pieza | Estado en producción | Cómo se comprobó |
@@ -53,6 +60,54 @@ La colección `plans` tiene **0 documentos**.
 **El arreglo NO corrige los conjuntos que ya existen.** Son de prueba, así que hay tres
 salidas y ninguna es obvia: corregirlos a mano, borrarlos, o dejarlos sabiendo que están
 así. **Decisión de David, no técnica.**
+
+### Vivaru Finance — dónde quedó (20 ago 2026, madrugada)
+
+**Lo fiscal salió del alcance y el SRI se retiró del código.** Ver
+[`docs/roadmap-finance.md`](roadmap-finance.md) §5. Nueve ficheros, 339 líneas fuera.
+`retransmitVoucher` **borrada** de los dos ambientes; `onPaymentVoucherCreated`
+redesplegada sin la rama del SRI.
+
+**Precisión que costó una corrección:** el candado del RUC **no estaba bloqueando a
+nadie**. Depende de `tenantSettings.fiscalProfile.country === "EC"`, y **en producción
+solo un conjunto tiene perfil fiscal, de México**; en staging no lo tiene ninguno. Era
+trampa latente —habría saltado al configurar el perfil de un conjunto ecuatoriano—, no
+un incendio. **Leer el dato antes de calificar la gravedad.**
+
+**Consecuencia de eso para validar:** el panel del SRI y el candado **nunca se vieron en
+staging**, así que no hay clic que los pruebe. Lo que prueba que se fueron es que las
+condiciones ya no existen ni en el código ni en el bundle servido, comprobado con la
+prueba al revés: marcador viejo AUSENTE, control vivo PRESENTE, símbolo inventado
+ausente.
+
+### Lo siguiente en Finance NO es el expediente: es terminar `FIN-001`
+
+**Su propio criterio de salida dice «Cumplido salvo el voucher».** Y hay dos cosas
+abiertas que estaban bloqueadas **por la misma frase**, que hoy dejó de ser cierta:
+
+1. **Un pago puede existir sin su recibo.** El servidor aplica el pago —cuota y asiento,
+   transaccional— pero **el comprobante se sigue creando en el navegador**, después.
+   `functions/src/payments.ts` no menciona «voucher» ni una vez. El comentario del código
+   dice que cerrarlo *«exige emitir dentro de la transacción, que es meterse en lo
+   fiscal»*. **Ya no lo es:** el comprobante es un recibo interno.
+2. **Revertir no anula el recibo.** Mismo argumento en `payments.ts`: *«eso pide una nota
+   de crédito, que es terreno fiscal»*. Hoy levanta `requiereNotaCredito` y la pantalla
+   avisa, pero **el paso es manual y nadie lo persigue**. Una nota de crédito es un
+   instrumento fiscal; sin factura, revertir anula el recibo interno y ya.
+
+**Por qué va antes que el expediente de conciliación:**
+
+- **Es el momento más barato que habrá**, y está medido: producción tiene **0
+  comprobantes, 0 contadores y 0 operaciones de pago**. Migración: ninguna.
+- **El expediente se construye ENCIMA de la aplicación de pagos.** Montarlo sobre un
+  camino que aún deja recibos huérfanos es construir sobre arena — es la propia tesis del
+  Documento Rector: *«automatizar un flujo fragmentado amplifica la inconsistencia»*.
+- **Es pequeño:** mover la emisión a una transacción que ya existe y añadir la anulación
+  al reverso que ya existe. El expediente es un módulo entero para una bandeja **vacía**.
+
+**Decisión de David pendiente:** si el recibo interno debe conservar **numeración
+correlativa** ahora que no es fiscal. Si sí, el hueco al fallar deja de importar pero la
+serie se mantiene por orden; si no, se puede simplificar bastante.
 
 ## Con qué seguir, por orden (20 ago 2026)
 
