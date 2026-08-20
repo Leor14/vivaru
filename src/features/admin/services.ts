@@ -23,6 +23,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import { db, storage } from "@/lib/firebase/client";
+import { revokeResidentAccessCallable } from "@/lib/firebase/callables";
 import { normalizeTower } from "@/utils/tower";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import type { FiscalProfile } from "@/types/domain";
@@ -731,11 +732,34 @@ export async function updatePerson(id: string, userId: string, payload: Partial<
   }
 }
 
+/**
+ * Borra a una persona y, antes, **le cierra el acceso de verdad**.
+ *
+ * Hasta el 19 de agosto de 2026 esta función borraba un solo documento,
+ * `people/{id}`. Pero dar acceso a un residente crea cinco cosas —cuenta de
+ * Auth, claim con el `tenantId`, `users/{uid}`, `tenantUsers/{tenantId}_{uid}` y
+ * el `authUid` de la ficha— y las cuatro primeras sobrevivían. Como las reglas
+ * conceden pertenencia por la **existencia** del documento de membresía y nunca
+ * miran su `status`, el residente borrado seguía entrando. Indefinidamente, y
+ * con el diálogo de confirmación prometiéndole al administrador lo contrario.
+ *
+ * **El orden es deliberado: primero se cierra la puerta, después se borra la
+ * ficha.** Si la revocación falla, esto lanza y la persona sigue listada —
+ * molesto, pero cierto. Al revés dejaría el estado que este arreglo elimina.
+ */
 export async function deletePerson(id: string) {
   const firestore = assertDb();
   const personRef = doc(firestore, "people", id);
   const personSnap = await getDoc(personRef);
   const person = personSnap.exists() ? (personSnap.data() as Partial<PersonItem>) : null;
+
+  const tenantId = typeof person?.tenantId === "string" ? person.tenantId.trim() : "";
+  if (tenantId) {
+    // El servidor decide qué hacer con la cuenta: puede no haberla, puede ser de
+    // alguien que además pertenece a otro conjunto, o puede ser de un admin — y
+    // en ese último caso rechaza, que es lo que queremos.
+    await revokeResidentAccessCallable({ tenantId, personId: id });
+  }
 
   if (person?.unitId && person.roleType) {
     const roleType = normalizeRoleType(person.roleType);

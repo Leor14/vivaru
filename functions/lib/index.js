@@ -36,8 +36,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.retransmitVoucher = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -56,6 +56,7 @@ const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
 const support_1 = require("./support");
 const payments_1 = require("./payments");
+const resident_access_1 = require("./resident-access");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
@@ -1311,6 +1312,42 @@ exports.deleteOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callab
         role: membership.role,
     });
     return { ok: true };
+});
+// ── Revocar el acceso de un residente al borrarlo ────────────────────────────
+//
+// La lógica vive en `resident-access.ts`; aquí solo se expone, se valida que
+// quien llama sea administrador activo del conjunto, y se deja el rastro.
+//
+// **Se llama ANTES de borrar la ficha, no después.** Si esto falla, el borrado
+// se aborta y la persona sigue listada — que es molesto pero honesto. Al revés
+// —ficha borrada, acceso vivo— es exactamente el defecto que esta función cierra,
+// y encima con el diálogo prometiendo lo contrario.
+exports.revokeResidentAccess = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    if (!request.auth?.uid) {
+        throw new https_1.HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+    const tenantId = normalizeText(request.data?.tenantId);
+    if (!tenantId) {
+        throw new https_1.HttpsError("invalid-argument", "tenantId es requerido.");
+    }
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) {
+        throw new https_1.HttpsError("permission-denied", "No puedes gestionar residentes de otro conjunto.");
+    }
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+    const resultado = await (0, resident_access_1.revocarAccesoDeResidente)({ tenantId: actor.tenantId, personId: normalizeText(request.data?.personId) }, request.auth.uid);
+    // Solo se audita cuando de verdad había una cuenta que cerrar: anotar los
+    // residentes sin acceso llenaría el registro de ruido y escondería lo que
+    // importa.
+    if (resultado.revoked) {
+        await writeAuditLog(actor.tenantId, request.auth.uid, "revoke_resident_access", {
+            personId: normalizeText(request.data?.personId),
+            uid: resultado.uid,
+            accion: resultado.accion,
+            motivo: resultado.motivo,
+        });
+    }
+    return resultado;
 });
 exports.createDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     if (!request.auth?.uid) {

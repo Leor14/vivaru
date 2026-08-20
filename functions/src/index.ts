@@ -28,6 +28,10 @@ import {
   type AplicarPagoInput,
   type RevertirPagoInput,
 } from "./payments";
+import {
+  revocarAccesoDeResidente,
+  type RevocarAccesoInput,
+} from "./resident-access";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -1702,6 +1706,55 @@ export const deleteOperationalUser = onCall<DeleteOperationalUserInput>(
     });
 
     return { ok: true };
+  },
+);
+
+// ── Revocar el acceso de un residente al borrarlo ────────────────────────────
+//
+// La lógica vive en `resident-access.ts`; aquí solo se expone, se valida que
+// quien llama sea administrador activo del conjunto, y se deja el rastro.
+//
+// **Se llama ANTES de borrar la ficha, no después.** Si esto falla, el borrado
+// se aborta y la persona sigue listada — que es molesto pero honesto. Al revés
+// —ficha borrada, acceso vivo— es exactamente el defecto que esta función cierra,
+// y encima con el diálogo prometiendo lo contrario.
+export const revokeResidentAccess = onCall<RevocarAccesoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated", "Debes autenticarte.");
+    }
+
+    const tenantId = normalizeText(request.data?.tenantId);
+    if (!tenantId) {
+      throw new HttpsError("invalid-argument", "tenantId es requerido.");
+    }
+
+    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
+    if (tokenTenantId && tokenTenantId !== tenantId) {
+      throw new HttpsError("permission-denied", "No puedes gestionar residentes de otro conjunto.");
+    }
+
+    const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
+
+    const resultado = await revocarAccesoDeResidente(
+      { tenantId: actor.tenantId, personId: normalizeText(request.data?.personId) },
+      request.auth.uid,
+    );
+
+    // Solo se audita cuando de verdad había una cuenta que cerrar: anotar los
+    // residentes sin acceso llenaría el registro de ruido y escondería lo que
+    // importa.
+    if (resultado.revoked) {
+      await writeAuditLog(actor.tenantId, request.auth.uid, "revoke_resident_access", {
+        personId: normalizeText(request.data?.personId),
+        uid: resultado.uid,
+        accion: resultado.accion,
+        motivo: resultado.motivo,
+      });
+    }
+
+    return resultado;
   },
 );
 

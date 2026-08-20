@@ -262,6 +262,30 @@ export async function setOperationalUserStatusCallable(input: {
   return executeCallable(callable, input, "No fue posible actualizar el estado del usuario.");
 }
 
+/**
+ * Cierra el acceso de un residente antes de borrar su ficha.
+ *
+ * Vive en el servidor porque desactivar una cuenta y revocar sus tokens son
+ * operaciones del Admin SDK — y porque si el navegador pudiera hacerlo,
+ * cualquiera con la consola abierta podría cerrar cuentas ajenas.
+ */
+export async function revokeResidentAccessCallable(input: { tenantId: string; personId: string }) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<
+    typeof input,
+    {
+      revoked: boolean;
+      accion: "sin-cuenta" | "revocar-y-borrar" | "revocar-y-conservar";
+      motivo: string;
+      uid: string | null;
+    }
+  >(functions, "revokeResidentAccess");
+  return executeCallable(callable, input, "No fue posible cerrar el acceso del residente.");
+}
+
 export async function updateOperationalUserCallable(input: {
   tenantId: string;
   uid: string;
