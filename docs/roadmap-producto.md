@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.8 |
+| **Versión** | 0.9.9 |
 | **Fecha** | 19 de agosto de 2026, noche |
-| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y el intercambio con Albert quedó cerrado por nuestro lado**: respondieron las trece, y `DECISIONES-A-001` cierra las seis decisiones que nos dejaron y **quedó enviada el 19 de agosto**. Sin respuesta, y no se espera en corto plazo: **no bloquea nada nuestro** |
-| **Verificado contra** | `RESPUESTA-A-001` archivada en `docs/prd/albert/`, con cita a `archivo:línea` del repo de Albert en cada afirmación. Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
+| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y el intercambio con Albert quedó cerrado por nuestro lado**: respondieron las trece, y `DECISIONES-A-001` cierra las seis decisiones que nos dejaron y **quedó enviada el 19 de agosto**. Sin respuesta, y no se espera en corto plazo: **no bloquea nada nuestro**. **Y el nivel 3 está construido**: la tarifa de la guía maestra es código, y el conjunto ya guarda su país |
+| **Verificado contra** | **Producción leída directamente** (Firestore REST, 19 ago): `plans` con **0 documentos**, 9 conjuntos, **6 sin moneda y 4 sin país**. `RESPUESTA-A-001` archivada en `docs/prd/albert/`, con cita a `archivo:línea` del repo de Albert en cada afirmación. Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,36 +32,37 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **`FIN-001` está validada a mano en producción**, y con eso el nivel 2 queda cerrado
-  del todo — no «desplegado», que es lo que decía la 0.9.6 y no es lo mismo.
-- **Albert respondió `CONSULTA-A-001`, y responde las trece preguntas** con cita a
-  `archivo:línea` de su repositorio. Lo importante: **A1 —la única que nos dejaba
-  parados— se desbloquea**, pero construyendo, no porque existiera.
-- **Lo que Albert confirma que NO existe hoy:** campos propios en el deal, supresión con
-  cascada, política de retención, agenda de demos, motor de mensajería y precio de plan.
-  Seis ausencias, todas verificadas contra su código.
-- **Una buena noticia que cambia un supuesto:** **los límites de plan de Albert no se
-  aplican en ningún camino de escritura** — son metadato informativo. Ningún tope nos
-  frena.
-- **`crmRef` ya tiene forma para usuarios:** el identificador que resuelve es el **`uid`
-  crudo de Firebase Auth**, no una cadena compuesta. Cierra la mitad de la tarea de
-  validar el formato de `crmRef` que estaba pendiente.
-- **Y hay dos contradicciones DENTRO de su respuesta que conviene resolver antes de que
-  construyan nada**, porque si no las cablean mal: el consentimiento aparece en el deal
-  en A1 y recomendado en el contacto en B2; y un deal puede nacer **sin contacto**
-  (A3), así que si el consentimiento vive en el contacto, un deal sin contacto **no
-  tiene dónde guardarlo**.
-- **Las tres carencias compartidas están confirmadas y ninguna está construida** — pero
-  Albert dice explícitamente que **no están en un roadmap comprometido suyo**. Eso las
-  convierte en decisión, no en espera. **Y decidida queda:** el precio lo cablea Vivaru
-  y no espera a nadie; **la mensajería con consentimiento es la única que pedimos como
-  componente compartido**; la agenda de demos no se pide, porque sería infraestructura
-  para una demanda que todavía no existe.
-- **Las seis decisiones están tomadas y escritas** en `DECISIONES-A-001`, lista para
-  enviar. Con una excepción dicha en voz alta: **la N de retención NO se cierra**, porque
-  Vivaru tampoco tiene política escrita y fijarla allí sería comprometer por la puerta de
-  atrás algo que aquí no está decidido. Se les pide que construyan el parámetro, no el
-  número.
+- **El nivel 3 está construido: la tarifa de la guía maestra ya es código**, con
+  pruebas que fijan sus cifras. Si alguna falla, la pregunta pasa a ser «¿cambió la
+  guía?» en vez de «¿por qué falla esto?».
+- **Y sabe decir que no sabe.** La guía solo publica el segmento Core en trimestral;
+  Emergente, Enterprise y la frecuencia mensual están modelados y **vacíos a
+  propósito**. Pedir el precio de un conjunto de 300 unidades devuelve «sin tarifa
+  publicada», no un número inventado. Una cotización inventada no la revisa nadie,
+  precisamente porque la calculó el sistema.
+- **La tarifa es de REFERENCIA y no se muestra como el precio de un conjunto.**
+  Decisión de David: a cada conjunto vendido se le pueden aplicar reglas de diferencia
+  de precio, así que dos conjuntos idénticos en país y tamaño pueden pagar distinto. El
+  precio real de un conjunto vendido **todavía no existe en el producto** y entra con el
+  módulo financiero.
+- **Un defecto que nadie había visto, y de los que se tapan solos:** la callable que
+  crea conjuntos tiene lista blanca de campos y **no escribía la moneda**, aunque el
+  formulario sí la recogía. Como la lectura la defaultea a `COP`, **todo conjunto creado
+  desde la consola nacía colombiano**. No había hueco visible: había un valor, y estaba
+  mal. Arreglado, y la moneda pasa a **derivarse del país** para que el par imposible
+  —México con pesos colombianos— deje de ser representable.
+- **Medido en producción, no deducido:** de 9 conjuntos, **6 no tienen moneda y 4 no
+  tienen país**. `Privada Las Palmas` está en México y la consola la lee en COP. Los dos
+  que sí están completos vienen del trial, que era el camino que lo hacía bien.
+- **Se acabó el vocabulario de tres planes.** La consola ya no ofrece
+  `starter`/`plus`/`premium`: el plan lo sigue el estado. Los valores heredados **no se
+  migran solos** —editar un conjunto no debe cambiarle el plan de callada— pero se
+  señalan en pantalla. En producción siguen vivos: 5 `plus`, 1 `starter`, 1 `premium`.
+- **La pantalla de planes del superadmin queda APLAZADA, no descartada.** Hoy administra
+  un catálogo que no describe nada real, pero **vuelve a tener sentido con el módulo
+  financiero**. Decisión de David.
+- **`plans` en producción tiene 0 documentos**, confirmado leyéndolo. El roadmap lo
+  afirmaba desde el 12 de agosto sin que nadie lo hubiera comprobado.
 
 **Qué espera decisión tuya:**
 
@@ -157,7 +158,7 @@ fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 des
 | **0** | **Generar demanda** — `REVOPS-000` | Cero código | Es el bloqueo compartido de cinco frentes |
 | **1** | ✅ **COMPLETO** — `REVOPS-001E` · `REVOPS-001A` · `SUP-001` · `FIN-000`, los cuatro en producción | Bajo | El dato no se reconstruye después. **Ya no caduca** |
 | **2** | ✅ **COMPLETO** — `FIN-001` en producción (19 ago 2026) | Alto | El trial protege; la conversión no |
-| **3** | **Cablear el precio** — primera mitad de `REVOPS-001C` | Medio | Hace falta al convertir, no al probar |
+| **3** | ✅ **CONSTRUIDO** — cablear el precio, primera mitad de `REVOPS-001C` (19 ago 2026) | Medio | Hace falta al convertir, no al probar |
 | **4** | Todo lo demás | — | Espera al primer cliente real |
 
 **El horizonte y el nivel no son lo mismo, y conviene no confundirlos.** Una iniciativa
@@ -721,8 +722,10 @@ Panamá, su presentación; para Colombia y Ecuador, el consolidado.
 
 ### Lo que falta no es la decisión, es el cableado
 
-- **La colección `plans` de producción tiene 0 documentos** y no hay ninguna cifra de
-  precio en el código.
+- ~~**La colección `plans` de producción tiene 0 documentos** y no hay ninguna cifra de
+  precio en el código.~~ **Los 0 documentos se confirmaron leyendo producción el 19 de
+  agosto de 2026** —hasta entonces era una afirmación sin comprobar—. Y **las cifras ya
+  están en el código** desde esa fecha: `src/lib/pricing/catalog.ts`.
 - **Los `planId` en uso no corresponden a la segmentación comercial:** producción usa
   `starter`, `plus`, `premium` y `trial`; la guía segmenta por Emergente, Core y
   Enterprise. **Son dos vocabularios para lo mismo** y hay que reconciliarlos —
@@ -730,6 +733,9 @@ Panamá, su presentación; para Colombia y Ecuador, el consolidado.
   están cobrando.
 
 ### Discrepancia por resolver
+
+> ✅ **RESUELTA el 19 de agosto de 2026: manda la guía maestra**, por ser posterior y
+> declararse consolidada. Decisión de David. Cableada en `src/lib/pricing/catalog.ts`.
 
 El **Documento Rector de Vivaru Finance** razona sobre una base de **MXN $40 por unidad
 al mes** con premium de +10/15/20/25 para el módulo financiero. La guía maestra dice
@@ -862,6 +868,25 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.9 — 19 de agosto de 2026, noche
+
+**Por qué: se construyó el nivel 3**, cablear el precio. Y al hacerlo apareció un
+defecto de datos que llevaba meses tapándose a sí mismo.
+
+- La guía maestra deja de vivir solo en Drive. **La parte que más protege es la que
+  devuelve «no sé»**: solo hay tarifa publicada para Core en trimestral, y el resto
+  se niega a inventar.
+- **La tarifa es de referencia, no el precio de un conjunto**, y queda escrito en el
+  código donde se va a leer. A cada conjunto vendido se le aplican reglas propias.
+- **Todo conjunto creado desde la consola nacía colombiano.** La callable no escribía
+  la moneda y la lectura la defaulteaba a `COP`. Medido: 6 de 9 conjuntos de producción
+  sin moneda, 4 sin país. **El camino del trial lo hacía bien desde siempre**, así que
+  el arreglo fue alcanzarlo, no inventarlo — igual que el de borrar residentes.
+- **Dos defectos el mismo día con la misma forma:** un camino hacía lo correcto y su
+  gemelo se había quedado atrás. Conviene buscar el patrón antes de que aparezca un
+  tercero.
+- **La pantalla de planes se aplaza al módulo financiero** en vez de retirarse.
 
 ### 0.9.8 — 19 de agosto de 2026, noche
 
