@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.6 |
-| **Fecha** | 19 de agosto de 2026 |
-| **Estado** | **Niveles 1 y 2 en producción** — `FIN-001` desplegada el 19 de agosto con el orden invertido functions → front → reglas. **Falta validarla a mano allí**, que es el paso que en staging encontró lo que las pruebas no |
-| **Verificado contra** | Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
+| **Versión** | 0.9.7 |
+| **Fecha** | 19 de agosto de 2026, noche |
+| **Estado** | **Niveles 1 y 2 cerrados y validados en producción.** `FIN-001` validada a mano allí por David. **Y llegó la respuesta de Albert a `CONSULTA-A-001`**: contesta las trece, desbloquea A1 construyendo, y deja **seis decisiones de producto** en el tejado de Vivaru |
+| **Verificado contra** | `RESPUESTA-A-001` archivada en `docs/prd/albert/`, con cita a `archivo:línea` del repo de Albert en cada afirmación. Repositorio en `1e0324a` (`master` = `develop` = `origin/master`), `applyPayment` y `revertPayment` vivas en `hogaru-1`, **el bundle nuevo comprobado leyendo los chunks de `/login`** —no por la fecha del backend, que engaña—, reglas liberadas, 969 pruebas de app y 337 de functions, typecheck limpio en `src/` y en `functions/` |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,31 +32,28 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **`FIN-001` está en producción** (19 de agosto), y con ella **se cierra el nivel 2**.
-  El agujero de consistencia de pagos —dos rutas que aplicaban un pago con efectos
-  distintos, y el saldo calculado en el navegador— queda cerrado también allí.
-- **Falta la validación a mano en producción, y no es un trámite.** En staging ese paso
-  encontró un defecto de presentación que **969 pruebas dieron por bueno**. Hasta que
-  alguien registre un cobro real y lo revierta, el estado correcto es «desplegada», no
-  «funcionando».
-- **El orden de despliegue se invierte cuando la regla restringe**, y ya está demostrado
-  dos veces. Una regla que **concede** va antes del código que la necesita; una que
-  **quita** va después del código que dejó de necesitarla. La de esta ficha quita, así
-  que fue functions → front → reglas.
-- **Cae una creencia que estaba escrita como imposible:** sí se puede saber qué código de
-  front hay desplegado. `/login` sirve 200 y sus chunks son públicos; buscar dentro un
-  símbolo que solo exista en el código nuevo lo resuelve en un minuto. La fecha de
-  `apphosting:backends:get` **no** sirve: cambia a los ~45 segundos de crear el rollout,
-  o sea marca que arrancó, no que terminó.
-- **`REVOPS-000` seguía dándose por pendiente en una nota de traspaso**, y está hecho
-  desde el 18. Corregido. **No es el mismo error que las tres correcciones de la semana
-  pasada:** aquellas dedujeron un hecho de negocio de un dato técnico; esta arrastró un
-  estado por copia sin releer la fuente. El remedio también es otro — releer este
-  documento, no preguntarle a nadie.
-- **Los tres huecos fiscales de `FIN-001` ya están en producción**, por la decisión de
-  alcance de David: hueco en la serie si falla la emisión, reversión que no anula el
-  comprobante, y asientos anteriores irreversibles por no guardar `operationKey`. Cuestan
-  cero mientras no haya clientes reales y dejan de costarlo con el primero.
+- **`FIN-001` está validada a mano en producción**, y con eso el nivel 2 queda cerrado
+  del todo — no «desplegado», que es lo que decía la 0.9.6 y no es lo mismo.
+- **Albert respondió `CONSULTA-A-001`, y responde las trece preguntas** con cita a
+  `archivo:línea` de su repositorio. Lo importante: **A1 —la única que nos dejaba
+  parados— se desbloquea**, pero construyendo, no porque existiera.
+- **Lo que Albert confirma que NO existe hoy:** campos propios en el deal, supresión con
+  cascada, política de retención, agenda de demos, motor de mensajería y precio de plan.
+  Seis ausencias, todas verificadas contra su código.
+- **Una buena noticia que cambia un supuesto:** **los límites de plan de Albert no se
+  aplican en ningún camino de escritura** — son metadato informativo. Ningún tope nos
+  frena.
+- **`crmRef` ya tiene forma para usuarios:** el identificador que resuelve es el **`uid`
+  crudo de Firebase Auth**, no una cadena compuesta. Cierra la mitad de la tarea de
+  validar el formato de `crmRef` que estaba pendiente.
+- **Y hay dos contradicciones DENTRO de su respuesta que conviene resolver antes de que
+  construyan nada**, porque si no las cablean mal: el consentimiento aparece en el deal
+  en A1 y recomendado en el contacto en B2; y un deal puede nacer **sin contacto**
+  (A3), así que si el consentimiento vive en el contacto, un deal sin contacto **no
+  tiene dónde guardarlo**.
+- **Las tres carencias compartidas están confirmadas y ninguna está construida** — pero
+  Albert dice explícitamente que **no están en un roadmap comprometido suyo**. Eso las
+  convierte en decisión, no en espera.
 
 **Qué espera decisión tuya:**
 
@@ -234,8 +231,8 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `FIN-001` — Comando único e idempotente de aplicación de pagos
 
-- **Frente:** Vivaru Finance · **Estado:** ✅ **En producción** (19 ago 2026, `1e0324a`)
-  · **Nivel 2 cerrado** · **Pendiente: validarla a mano en producción**
+- **Frente:** Vivaru Finance · **Estado:** ✅ **En producción y validada a mano allí**
+  (19 ago 2026, `1e0324a`) · **Nivel 2 cerrado** · **Ficha cerrada**
 - **Problema:** las rutas de pago, comprobantes, ledger, vouchers, saldos y reversos
   deben producir un resultado completo o ninguno.
 - **Dependencias:** modelo financiero vigente, permisos, reglas transaccionales y
@@ -278,7 +275,9 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   un permiso que el front anterior usaba en `use-payments.ts`, así que soltarla primero
   habría roto el cobro manual con un «no tienes permiso» hasta terminar el rollout. Antes
   de soltarla se comprobó que el bundle nuevo ya servía, leyendo los chunks de `/login` y
-  buscando dentro `applyPayment`. **Falta la validación a mano en producción.**
+  buscando dentro `applyPayment`.
+- **Validada a mano en producción el 19 de agosto de 2026, por David.** El criterio de
+  salida queda cumplido en los dos ambientes, y la ficha se cierra.
 - **Y la validación encontró un defecto, que es para lo que sirve.** El libro pintaba el
   reverso como `+-$430.000` **en verde**: el signo salía del *tipo* del asiento, y un
   reverso conserva el tipo del que anula llevando monto negativo. **No lo introdujo esta
@@ -740,9 +739,9 @@ roadmap de ninguno de los dos**:
 
 | Capacidad | Albert | Vivaru |
 |---|---|---|
-| **Agenda de demos** | No. Su landing agenda con formulario | No |
-| **Motor de mensajería** con consentimiento, supresión y frecuencia | No. Solo plantillas con merge fields | No |
-| **Precio de plan** | Planes con límites, sin precio | **Decidido** en la guía maestra; **no cableado** al producto |
+| **Agenda de demos** | No. Su landing agenda con formulario — **confirmado por ellos** (`RESPUESTA-A-001`, D1) | No |
+| **Motor de mensajería** con consentimiento, supresión y frecuencia | No. Solo plantillas con merge fields — **confirmado por ellos** | No |
+| **Precio de plan** | Planes con límites **informativos que no se aplican**, sin precio — **confirmado por ellos** | **Decidido** en la guía maestra; **no cableado** al producto |
 
 Los tres son prerrequisitos del circuito comercial de **ambos productos**. Construirlos
 una vez y compartirlos es, en mi opinión, mejor argumento a favor de integrar que
@@ -750,6 +749,12 @@ reutilizar el pipeline — porque el pipeline se puede sustituir con una hoja de
 durante meses, y esto no.
 
 **Decisión pendiente:** dónde viven. Detalle en `docs/albert-vivaru-integracion.md`.
+
+**Y desde el 19 de agosto la decisión es más urgente, no menos.** Albert confirmó las
+tres y añadió lo que faltaba saber: **no están en un roadmap comprometido suyo**. Se
+ofrecen a llevarlas a priorización y a decir que no si sale que no —«para que no la
+escribáis esperándonos», textual—. Así que esto deja de ser «esperar a ver» y pasa a
+ser una decisión de Vivaru: construirlas, compartirlas o vivir sin ellas.
 
 ---
 
@@ -849,6 +854,28 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.7 — 19 de agosto de 2026, noche
+
+**Por qué: dos cosas el mismo día.** `FIN-001` quedó validada a mano en producción, y
+llegó la respuesta de Albert a `CONSULTA-A-001`.
+
+- `FIN-001` pasa de ✅ desplegada a ✅ **validada en producción**. El nivel 2 se cierra
+  del todo. La distinción entre «desplegado» y «validado» se sostuvo tres revisiones a
+  propósito, y esta es la que la cierra.
+- **Albert responde las trece preguntas**, con cita a `archivo:línea` de su repositorio
+  y separando lo que es hecho de código de lo que es decisión de producto. Archivada en
+  `docs/prd/albert/RESPUESTA-A-001-albert-a-vivaru.md`.
+- **A1 se desbloquea construyendo.** Su `dealSchema` es cerrado y descarta claves
+  desconocidas, tal como habíamos diagnosticado; proponen un bloque tipado y opcional en
+  vez de un mapa genérico. Días de trabajo, no semanas.
+- **Cae un supuesto nuestro:** los límites de plan de Albert **no se aplican**. Eran
+  metadato de consola. Ningún tope nos frena.
+- **Dos contradicciones internas de su respuesta quedan anotadas** para contestarlas
+  antes de que cableen: dónde vive el consentimiento (deal en A1, contacto en B2) y qué
+  pasa con un deal sin contacto, que su propio A3 permite.
+- **Las tres carencias compartidas no están en su roadmap comprometido**, y lo dicen
+  ellos. Deja de ser espera y pasa a ser decisión.
 
 ### 0.9.6 — 19 de agosto de 2026
 
