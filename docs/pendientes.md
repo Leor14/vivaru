@@ -172,27 +172,31 @@ abiertas que estaban bloqueadas **por la misma frase**, que hoy dejó de ser cie
 correlativa** ahora que no es fiscal. Si sí, el hueco al fallar deja de importar pero la
 serie se mantiene por orden; si no, se puede simplificar bastante.
 
-## Track nuevo, abierto el 21 de agosto de 2026 — **es lo que David quiere hacer primero**
+## LA PRÓXIMA SESIÓN EMPIEZA POR OTRO SITIO — leer esto antes que la lista de abajo
 
-**PRDs de una solución de gestión residencial, filtrados para sacar el alcance de nuevas
-funciones contables y financieras de Vivaru.**
+**Hay un documento de arranque escrito para ti:
+[`docs/arranque-exploracion-plataforma.md`](arranque-exploracion-plataforma.md). Ábrelo
+antes de nada.** Lleva el contexto medido —qué es Vivaru hoy, sus 66 pantallas, sus cinco
+roles, cómo entrar y con qué datos— para que no gastes el tiempo de David reconstruyéndolo.
 
-Queda anotado tal como se dijo, **sin interpretar**, porque la frase admite dos lecturas y
-elegir la equivocada cuesta una sesión entera:
+**Lo que David va a pedir:** entrar a la plataforma —él concede el acceso—, navegarla
+hasta tener granularidad, **decidir tú cuántas pasadas hacen falta**, y después construir
+el esqueleto del sitio a partir de PRDs funcionales.
 
-1. **Escribir** PRDs para una solución de gestión residencial, y de ahí filtrar el alcance.
-2. **Extraer** los PRDs de una solución que ya existe —un producto de referencia— y
-   filtrar de ahí lo que le falta a Vivaru.
+**Y hay una ambigüedad que se resuelve con él en los primeros minutos**, porque el 21 de
+agosto abrió el track con una frase y lo concretó con otra:
 
-**Lo primero de la próxima sesión es preguntarle a David cuál de las dos es**, y de qué
-solución habla. No arrancar sin eso.
+1. **Documentar Vivaru tal como es hoy** en PRDs funcionales, y de ahí el esqueleto.
+2. **Extraer los PRDs de una solución de referencia ajena** y filtrarla para sacar alcance
+   nuevo, sobre todo **contable y financiero**.
 
-**Con qué enlaza:** cae justo encima del punto 5 de la lista de abajo —`F1` de Finance, el
-expediente de conciliación— y puede que lo conteste. La pregunta abierta de ese punto es
-si vale la pena construir la bandeja con cero pagos reales; **un alcance sacado de un
-producto de referencia es exactamente el tipo de dato que falta** para contestarla sin
-inventar. Existe ya la skill `crear-prd-vivaru` para producto sin IA y
-`crear-prd-ia-vivaru` para lo asistido.
+La segunda frase apunta a la primera lectura; la primera hablaba claramente de extraer.
+**Preguntar, no elegir.** El documento de arranque lo explica en su §0.
+
+**Con qué enlaza:** cae encima del punto 5 de la lista de abajo —`F1` de Finance— y puede
+contestarlo. Su pregunta abierta es si vale la pena la bandeja de conciliación con cero
+pagos reales, y un alcance sacado de mirar el producto de verdad es el dato que falta.
+Existen las skills `crear-prd-vivaru` y `crear-prd-ia-vivaru`.
 
 ---
 
