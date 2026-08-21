@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/auth-context";
+import { codigoDeRecibo } from "@/features/finanzas/comprobante/codigo";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
 import { watchPaymentVouchers } from "@/features/finanzas/use-payments";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -27,7 +28,7 @@ export function filtrarRecibos(recibos: PaymentVoucher[], busqueda: string): Pay
   const q = busqueda.trim().toLowerCase();
   if (!q) return recibos;
   return recibos.filter((v) =>
-    [v.code, v.payerName, v.payerUnitLabel, v.concept]
+    [codigoDeRecibo(v), v.payerName, v.payerUnitLabel, v.concept]
       .filter(Boolean)
       .some((campo) => String(campo).toLowerCase().includes(q)),
   );
@@ -94,7 +95,7 @@ export function AdminVouchersCard() {
                 : "font-medium text-[var(--slate-900)]"
             }
           >
-            {item.code}
+            {codigoDeRecibo(item)}
           </span>
           {item.anulado ? (
             <span className="rounded-full bg-[var(--danger-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--danger-700)]">
@@ -165,7 +166,7 @@ export function AdminVouchersCard() {
               size="sm"
               variant="outline"
               type="button"
-              aria-label={`Descargar recibo ${item.code}`}
+              aria-label={`Descargar recibo ${codigoDeRecibo(item)}`}
               onClick={() => {
                 renderReciboPdf(item, formatAmount).catch((error) => toastFirebaseError(error));
               }}

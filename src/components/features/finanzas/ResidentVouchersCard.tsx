@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
+import { codigoDeRecibo } from "@/features/finanzas/comprobante/codigo";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
 import { watchPaymentVouchers } from "@/features/finanzas/use-payments";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -54,7 +55,7 @@ export function ResidentVouchersCard() {
               */}
               <p className="flex items-center gap-2 text-sm font-medium text-[var(--slate-900)]">
                 <span className={voucher.anulado ? "line-through opacity-60" : undefined}>
-                  {voucher.code}
+                  {codigoDeRecibo(voucher)}
                 </span>
                 {voucher.anulado ? (
                   <span className="rounded-full bg-[var(--danger-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--danger-700)]">
@@ -70,7 +71,7 @@ export function ResidentVouchersCard() {
               size="sm"
               variant="outline"
               type="button"
-              aria-label={`Descargar recibo ${voucher.code}`}
+              aria-label={`Descargar recibo ${codigoDeRecibo(voucher)}`}
               onClick={() => {
                 renderReciboPdf(voucher, formatAmount).catch((error) => toastFirebaseError(error));
               }}

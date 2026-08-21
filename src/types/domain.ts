@@ -491,6 +491,13 @@ export interface PaymentVoucher {
    * conjunto sobre un único documento—.
    */
   code: string;
+  /**
+   * Secuencial de los recibos emitidos ANTES del 20 de agosto de 2026, cuando el
+   * recibo era un documento fiscal. **No se escribe nunca más**, pero se lee:
+   * los que ya existen no se migran, porque cambiarle el número a un papel que
+   * alguien descargó es peor que soportar dos formas. Ver `codigoDeRecibo`.
+   */
+  sequentialNumber?: string;
   issueDate: string;
   amount: number;
   concept: string;

@@ -1,5 +1,7 @@
 import type { PaymentVoucher } from "@/types/domain";
 
+import { codigoDeRecibo } from "./codigo";
+
 /**
  * Genera y descarga el PDF de un comprobante/recibo. jspdf se importa de forma
  * dinámica para no incluirlo en el bundle del servidor (usa APIs de navegador).
@@ -41,7 +43,7 @@ export async function renderReciboPdf(
   docpdf.text(title, left, y);
   y += lineGap;
   docpdf.setFontSize(10);
-  docpdf.text(`No. ${voucher.code}`, left, y);
+  docpdf.text(`No. ${codigoDeRecibo(voucher)}`, left, y);
   docpdf.text(`Fecha: ${voucher.issueDate}`, 360, y);
   y += lineGap + 6;
 
@@ -92,5 +94,5 @@ export async function renderReciboPdf(
     y,
   );
 
-  docpdf.save(`recibo-${voucher.code}.pdf`);
+  docpdf.save(`recibo-${codigoDeRecibo(voucher)}.pdf`);
 }

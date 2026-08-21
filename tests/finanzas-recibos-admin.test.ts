@@ -13,6 +13,7 @@ vi.mock("firebase/firestore", () => ({
 }));
 
 import { filtrarRecibos } from "@/components/features/finanzas/AdminVouchersCard";
+import { codigoDeRecibo } from "@/features/finanzas/comprobante/codigo";
 import type { PaymentVoucher } from "@/types/domain";
 
 const recibo = (extra: Partial<PaymentVoucher>): PaymentVoucher =>
@@ -65,5 +66,32 @@ describe("filtrarRecibos", () => {
 
   it("devuelve vacío cuando nada coincide", () => {
     expect(filtrarRecibos(lista, "no-existe")).toEqual([]);
+  });
+});
+
+describe("codigoDeRecibo", () => {
+  const base = { code: "", sequentialNumber: undefined } as Pick<
+    PaymentVoucher,
+    "code" | "sequentialNumber"
+  >;
+
+  it("usa el código nuevo cuando existe", () => {
+    expect(codigoDeRecibo({ ...base, code: "REC-ABC123" })).toBe("REC-ABC123");
+  });
+
+  it("cae al secuencial viejo en los recibos anteriores al cambio", () => {
+    // Es el caso real que se vio en producción: el recibo 000000001 no tiene
+    // `code`, y leer solo el campo nuevo pintaba «No. undefined» en el PDF.
+    expect(codigoDeRecibo({ ...base, sequentialNumber: "000000001" })).toBe("000000001");
+  });
+
+  it("prefiere el nuevo si por lo que sea estuvieran los dos", () => {
+    expect(codigoDeRecibo({ code: "REC-ABC123", sequentialNumber: "000000001" })).toBe("REC-ABC123");
+  });
+
+  it("nunca devuelve undefined: sin ninguno de los dos, devuelve una raya", () => {
+    // Un guion es feo, pero es legible. `undefined` en un PDF no lo es, y
+    // encima se colaba en el nombre del archivo.
+    expect(codigoDeRecibo(base)).toBe("—");
   });
 });
