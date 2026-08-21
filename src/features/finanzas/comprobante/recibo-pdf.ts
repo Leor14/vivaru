@@ -81,8 +81,13 @@ export async function renderReciboPdf(
 
   docpdf.setFontSize(8);
   docpdf.setTextColor(120);
+  // El pie cambia si el recibo está anulado. Decirle a alguien que conserve
+  // como soporte de su pago un documento que ya no lo respalda es peor que no
+  // decir nada: el papel se guarda y se saca meses después creyendo que vale.
   docpdf.text(
-    "Documento generado por Vivaru. Conserve este comprobante como soporte de su pago.",
+    voucher.anulado
+      ? "Documento generado por Vivaru. Este recibo fue ANULADO y no soporta un pago vigente."
+      : "Documento generado por Vivaru. Conserve este comprobante como soporte de su pago.",
     left,
     y,
   );
