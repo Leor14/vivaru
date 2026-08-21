@@ -61,7 +61,50 @@ La colección `plans` tiene **0 documentos**.
 salidas y ninguna es obvia: corregirlos a mano, borrarlos, o dejarlos sabiendo que están
 así. **Decisión de David, no técnica.**
 
-### Vivaru Finance — dónde quedó (20 ago 2026, madrugada)
+### Vivaru Finance — `FIN-001` CERRADA Y EN PRODUCCIÓN (20 ago 2026)
+
+**`master` = `d17478d`.** El criterio de salida de `FIN-001` decía «cumplido salvo el
+voucher». Ya no: **el recibo se emite dentro de la transacción del pago y el reverso lo
+anula**. Las dos cosas estaban bloqueadas por «eso es meterse en lo fiscal», que dejó de
+ser cierto al salir lo fiscal del alcance.
+
+**Validado a mano en staging por David, punta a punta:** emitir → PDF correcto →
+revertir → recibo anulado en la lista y con `ANULADO` en el PDF. Y desplegado a
+producción en el orden **front → functions → reglas**, con las reglas al final porque
+`paymentVouchers` pasó a `create, update: if false` y eso **restringe**.
+
+**Lo que salió por probar, y ninguna prueba lo habría cazado:**
+
+1. **El administrador no tenía dónde ver los recibos.** Solo existían en el instante de
+   emitirlos. El residente sí tenía su lista. Se construyó la tarjeta «Recibos emitidos»
+   en Finanzas — y **no** en Cartera, cuya columna «Comprobante» significa otra cosa: el
+   archivo que SUBE el residente.
+2. **El pie del PDF anulado decía «Conserve este comprobante como soporte de su pago».**
+   La marca de arriba avisaba y el pie la desmentía.
+3. **Los recibos anteriores al cambio salían como `No. undefined`** y se descargaban como
+   `recibo-undefined.pdf`: no tienen `code`, tienen `sequentialNumber`. Resuelto con
+   `codigoDeRecibo`, que lee las dos formas. **No se migran los viejos a propósito:**
+   cambiarle el número a un papel que alguien descargó es peor que soportar dos formas.
+
+**La lección que las agrupa:** las tres salieron de **mirar la salida** —una pantalla, un
+PDF— y no de una suite. Cuando se construye algo que alguien mira, alguien tiene que
+mirarlo.
+
+### Cabo suelto en producción, pendiente de una escritura manual
+
+Quedó un cobro de prueba de **$1.120.000** en el Apartamento 503, emitido con el código
+viejo. **David lo revirtió**, y el reverso está bien. Pero su recibo `000000001`
+**sigue figurando como válido**: su operación de pago es anterior al cambio y no guarda
+enlace al recibo, así que el reverso no tenía por dónde encontrarlo.
+
+**Decisión de David: marcarlo anulado a mano.** Escribir solo `anulado`, `anuladoEn`,
+`anuladoPor: "correccion-manual"` y `anuladoMotivo`. **No tocar el secuencial.** Espera a
+renovar `gcloud auth application-default login`.
+
+**Y es la forma general del problema:** los registros anteriores a un cambio de forma no
+se migran solos. Los asientos sin `operationKey` son el otro caso, y sigue abierto.
+
+### Vivaru Finance — el contexto de antes (20 ago 2026, madrugada)
 
 **Lo fiscal salió del alcance y el SRI se retiró del código.** Ver
 [`docs/roadmap-finance.md`](roadmap-finance.md) §5. Nueve ficheros, 339 líneas fuera.
@@ -109,34 +152,38 @@ abiertas que estaban bloqueadas **por la misma frase**, que hoy dejó de ser cie
 correlativa** ahora que no es fiscal. Si sí, el hueco al fallar deja de importar pero la
 serie se mantiene por orden; si no, se puede simplificar bastante.
 
-## Con qué seguir, por orden (20 ago 2026)
+## Con qué seguir, por orden (para la sesión siguiente)
 
-1. **Mandarle a Albert el correo del `tenant_admin`, por canal aparte.** Es lo más
-   barato de la lista y **lo que más abre**: sin eso no puede dar de alta el tenant
-   `vivaru` ni crear el usuario de servicio, y **sin esa credencial no hay con qué
-   suscribirse a sus deals — que es la segunda mitad de `REVOPS-001C`** (ver abajo). Él
-   pide expresamente que NO vaya dentro del documento.
-2. **Escribir la política de retención de Vivaru — y ahora son DOS números.** `RESPUESTA-A-002`
-   confirma el criterio (`updatedAt` del deal) y deja la N parametrizable, con **24 meses**
-   como candidato de partida. Pero al corregir lo de la reidentificación añade un segundo
-   plazo: **cuánto vive el registro de auditoría del borrado**. Los dos son decisión de
-   David y bloquean cerrar su B3.
-3. **Decidir qué se hace con los 9 conjuntos de datos incompletos.** (Leerlos primero
-   exige reautenticar `gcloud`, ver arriba.)
-4. **Validar el formato de las referencias cruzadas — y son DOS, no una.**
-   - **Albert → Vivaru (`crmRef`).** Para deals, `albert:deal:{tenantId}:{dealId}`; para
-     comerciales, el **`uid` crudo de Firebase Auth** (cerrado por `RESPUESTA-A-001`, y
-     `RESPUESTA-A-002` C2 lo reconfirma: los campos de auditoría guardan el `uid`, no el
-     nombre legible). **Hoy es un `<Input>` de texto libre sin ninguna validación**, en
-     comerciales y en leads. Comprobado leyendo el código el 19.
-   - **Vivaru → Albert (`externalRef.leadId`).** **No existe en nuestro código**: cero
-     apariciones. Está sin construir.
-5. **La comprobación que sostenga la invariante que acabamos de firmar.** Albert se negó
-   —con razón— a obligar por esquema que todo deal tenga contacto, y en su lugar aceptó
-   nuestra palabra de crear siempre el contacto antes. **Es una promesa que hoy no vigila
-   nadie:** si el código crea un deal suelto, el consentimiento no tiene dónde vivir y no
-   salta ningún aviso.
-6. **`REVOPS-001B`** — evento de activación, que automatiza la etapa «en prueba».
+**Lo de arriba está cerrado.** `FIN-001` en producción y validada; el SRI retirado; el
+expediente de Albert al día. Esto es lo que queda, ordenado por lo que abre más con menos
+esfuerzo.
+
+1. **Marcar anulado el recibo `000000001` de producción.** Decisión ya tomada; espera la
+   credencial. Cinco minutos. Detalle en la sección de arriba.
+2. **Mandarle a Albert el correo del `tenant_admin`, por canal aparte.** Sigue siendo lo
+   más barato de la lista y **lo que más abre**: sin alta no hay usuario de servicio, y
+   sin esa credencial no hay con qué suscribirse a sus deals — que es la segunda mitad de
+   `REVOPS-001C`.
+3. **Escribir la política de retención — DOS números.** Cuánto vive un deal sin actividad
+   (Albert propone 24 meses de partida) y cuánto vive el registro de auditoría del
+   borrado (sin propuesta). Bloquean cerrar su B3.
+4. **Decidir qué se hace con los 9 conjuntos incompletos**, y no son un grupo homogéneo:
+   los siete marcados de ejemplo son inertes; **los dos sin marcar contaminan las
+   métricas hoy**, y uno de ellos —el de Quito— muestra la moneda de otro país.
+5. **`F1` de Finance: el expediente de conciliación.** Ahora sí no tiene nada delante ni
+   debajo: `ReconciliationCase` no existe, y su único requisito era `FIN-001`. **Pregunta
+   previa, que es de David:** ¿vale la pena construir la bandeja antes de que haya alguien
+   conciliando? Hay cero pagos reales.
+6. **Validar el formato de las referencias cruzadas — son DOS.** `crmRef` es hoy un
+   `<Input>` de texto libre sin validación; `externalRef.leadId` **no existe** en el
+   código.
+7. **La comprobación que sostenga la invariante contacto→deal**, que Albert aceptó como
+   palabra nuestra y hoy no vigila nadie.
+8. **`REVOPS-001B`** — evento de activación.
+
+**Deuda conocida que NO urge pero deja de no urgir con el primer cliente:** los asientos
+anteriores a `FIN-001` no se pueden revertir porque no guardan `operationKey`. Es la misma
+familia que el recibo `000000001`.
 
 **La segunda mitad de `REVOPS-001C` NO está bloqueada por Albert, y este documento decía
 que sí. Corregido el 20 de agosto de 2026.**

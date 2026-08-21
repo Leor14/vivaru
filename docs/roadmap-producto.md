@@ -16,8 +16,8 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.11 |
-| **Fecha** | 20 de agosto de 2026, madrugada (rev. 2) |
+| **Versión** | 0.9.12 |
+| **Fecha** | 20 de agosto de 2026, tarde |
 | **Estado** | **Niveles 1, 2 y 3 EN PRODUCCIÓN, validados a mano y comprobados leyéndolos.** Lo construido el 19 se desplegó la madrugada del 20: **el hueco de acceso al borrar un residente queda cerrado en producción** —era el que arrastraba la radiografía desde el 13 de agosto— y todo conjunto creado desde ahora nace con su país y su moneda correctos. **Y llegó `RESPUESTA-A-002` de Albert**, que nos da la razón en las dos contradicciones sin regatear. **El intercambio con Albert ya no tiene preguntas abiertas**: lo que falta es un correo de David y tres piezas nuestras |
 | **Verificado contra** | **Producción leída directamente, no deducida.** Repositorio en `c81e2fe` (`master` = `develop` = `origin/master`). `revokeResidentAccess` y `createTenantWorkspace` vivas en `hogaru-1`, y **el permiso de invocación de la nueva leído en IAM** (`allUsers` + `run.invoker`). **El front verificado descargando los chunks de `/login`** —marcador nuevo presente, control viejo presente, símbolo inventado ausente—, nunca por la fecha del backend, que marca que arrancó y no que terminó. **994 pruebas de app y 349 de functions**, typecheck limpio en `src/` y en `functions/`. Los 9 conjuntos releídos con credenciales renovadas: `plans` con **0 documentos**, **6 sin moneda y 4 sin país**, y **dos sin marcar como de ejemplo** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
@@ -32,6 +32,24 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
+- **`FIN-001` queda CERRADA de verdad y validada en producción.** Su criterio de salida
+  decía «cumplido salvo el voucher»: ahora **el recibo se emite dentro de la transacción
+  del pago y el reverso lo anula**. Las dos cosas estaban bloqueadas por la misma frase
+  —«eso es meterse en lo fiscal»— que la decisión de alcance invalidó el mismo día. **Una
+  decisión de producto cerró un defecto técnico que llevaba semanas descrito.**
+- **Se retiró el contador de secuenciales.** No solo era un número: era una transacción
+  sobre un único documento por conjunto, o sea que **serializaba todos sus pagos**.
+  Meterlo dentro de la transacción del pago habría empeorado la contención en la
+  escritura más importante del sistema. El recibo lleva un código no correlativo.
+- **Tres defectos salieron de MIRAR, no de probar**, y ninguna suite los habría cazado:
+  el administrador no tenía dónde ver los recibos que emite; el pie del PDF anulado decía
+  «conserve este comprobante como soporte de su pago»; y los recibos anteriores al cambio
+  salían como «No. undefined». **Cuando se construye algo que alguien mira, alguien tiene
+  que mirarlo.**
+- **Y la forma general del tercero, que vuelve:** un cambio de forma **no migra lo que ya
+  está escrito**. Los recibos viejos se leen con respaldo en vez de migrarse —cambiarle el
+  número a un papel descargado es peor—, y los asientos sin `operationKey` siguen siendo
+  el mismo caso, abierto.
 - **LO FISCAL SALE DEL ALCANCE, y con ello el módulo financiero deja de estar
   congelado.** Decisión de David: **Vivaru no maneja temas fiscales** — la factura la
   emite el cliente, en los tres países. No es nueva, es la de `FIN-001` sin su «de
@@ -922,6 +940,24 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.12 — 20 de agosto de 2026, tarde
+
+**Por qué: `FIN-001` se pudo terminar**, y lo que la desbloqueó fue la decisión de alcance
+de la misma mañana, no una idea técnica nueva.
+
+- **El recibo se emite dentro de la transacción del pago; el reverso lo anula.** Antes lo
+  construía el navegador después, así que un fallo dejaba un pago sin recibo; y revertir
+  dejaba una tarea manual que nadie perseguía. Validado a mano en staging punta a punta y
+  desplegado en el orden front → functions → reglas.
+- **Fuera el contador de secuenciales**, por decisión de David. Serializaba todos los
+  pagos de un conjunto sobre un único documento.
+- **Regla cerrada:** `paymentVouchers` pasa a `create, update: if false`, con cuatro
+  pruebas contra emulador. El cliente ya no puede fabricar el recibo de un pago que no
+  ocurrió — el reverso exacto del hueco que se cerró.
+- **Tres defectos encontrados mirando la salida**, no ejecutando pruebas: sin pantalla de
+  recibos para el administrador, el pie del PDF anulado contradiciendo su propia marca, y
+  «No. undefined» en los recibos anteriores al cambio.
 
 ### 0.9.11 — 20 de agosto de 2026, madrugada (rev. 2)
 
