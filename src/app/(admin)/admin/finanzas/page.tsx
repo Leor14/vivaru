@@ -14,6 +14,8 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+import { AdminVouchersCard } from "@/components/features/finanzas/AdminVouchersCard";
+import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
 import { DataTable, type DataTableColumn } from "@/components/shared/data-table";
 import { MobileFiltersPanel } from "@/components/shared/mobile-filters-panel";
@@ -599,6 +601,20 @@ function AdminFinanzasLibroPageContent() {
         onConfirm={() => void handleConfirmReverse()}
       />
       </Card>
+
+      {/*
+        Los recibos emitidos, para la administración. Van aquí y no en Cartera
+        porque son el registro del dinero que entró, igual que el libro — y
+        porque la columna «Comprobante» de Cartera ya significa otra cosa: el
+        archivo que SUBE el residente como prueba de pago.
+
+        Envuelto porque el error boundary de la ruta convierte cualquier fallo
+        de un widget en la pantalla de «No pudimos cargar el workspace»: sin
+        esto, un tropiezo leyendo recibos tumbaría el libro entero.
+      */}
+      <WidgetErrorBoundary label="los recibos emitidos">
+        <AdminVouchersCard />
+      </WidgetErrorBoundary>
     </div>
   );
 }
