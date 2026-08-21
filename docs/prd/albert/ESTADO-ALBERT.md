@@ -2,15 +2,18 @@
 
 > Documento **vivo**: se reescribe, no se acumula. Es el sitio donde mirar para retomar
 > sin releer los cuatro documentos del intercambio.
-> **Actualizado: 20 de agosto de 2026, madrugada.**
+> **Actualizado: 21 de agosto de 2026** — los dos números de retención ya están decididos
+> (§4.2). Lo que queda de ellos es comunicarlos, no pensarlos.
 
 ---
 
 ## En una frase
 
 **El contrato técnico está cerrado y no queda ninguna pregunta abierta con Albert.** Lo
-que falta es de dos clases: **un correo que tiene que mandar David** para que Albert dé
-de alta el tenant, y **tres piezas que Vivaru tiene que construir o decidir**. Albert no
+que falta es de dos clases: **dos mensajes que tiene que mandar David** —el correo del
+`tenant_admin` para el alta, y los dos números de retención ya decididos— y **dos piezas
+que Vivaru tiene que construir**: el freno de la invariante y las referencias
+cruzadas. **Ya no queda nada por decidir.** Albert no
 bloquea nada salvo la fecha de su propio A1, y esa no bloquea construir — solo probar.
 
 ---
@@ -19,13 +22,57 @@ bloquea nada salvo la fecha de su propio A1, y esa no bloquea construir — solo
 
 | # | Qué | Quién | Por qué primero |
 |---|---|---|---|
-| **1** | **Mandar el correo del `tenant_admin`** por canal aparte | **David** | Es un mensaje, y **abre la segunda mitad de `REVOPS-001C`** (ver §5). Sin alta no hay usuario de servicio; sin usuario de servicio no hay credencial con la que leer sus deals |
-| **2** | **Decidir los dos números de retención** | **David** | Bloquea cerrar el B3 de Albert. Ver §4.2 |
+| **1** | **Mandar el `tenant_admin` por el canal** — decidido: `comercial@qintilab.com` | **David** | Es un mensaje, y **abre la segunda mitad de `REVOPS-001C`** (ver §5). Sin alta no hay usuario de servicio; sin usuario de servicio no hay credencial con la que leer sus deals. **Ojo: es provisional, ver abajo** |
+| **2** | **Mandar `DECISIONES-A-002`** — retención, canal y fecha de A1 | **David** | Ya redactado y sin mandar. Cierra su B3 y reclama lo único que él debe |
 | **3** | Construir el freno de la invariante contacto→deal | Técnico | Es una promesa que hoy no vigila nadie. Ver §4.1 |
 | **4** | Validar las dos referencias cruzadas | Técnico | Una es texto libre sin validar; la otra no existe. Ver §4.3 |
 
 **Ojo con el correo del punto 1:** Albert pide **expresamente** que no vaya dentro de
-ningún documento del intercambio, sino por canal aparte.
+ningún documento del intercambio, sino por el canal. Por eso **no está** en
+`DECISIONES-A-002` —comprobado, el documento no contiene ninguna dirección— y **no debe
+añadirse ahí**.
+
+#### El `tenant_admin` es `comercial@qintilab.com`, y es provisional a propósito
+
+**Decidido por David el 21 de agosto de 2026, con el riesgo sobre la mesa.** El motivo es
+que **Vivaru no tiene hoy ningún buzón propio que sirva**, y habría que crearlo — y crear
+un buzón no puede frenar una semana lo que abre `REVOPS-001C`.
+
+**Qué se acepta al elegirlo.** No es un buzón personal: el propio repositorio lo describe
+como *«un buzón compartido, admite lista separada por comas»*, y es el destino de todos
+los avisos de leads y demos en producción. Consecuencias reales:
+
+- **Quien lea ese buzón puede recuperar la cuenta** y, con ella, reconfigurar el pipeline
+  — la etapa «en prueba» incluida, que es lo único que el `tenant_admin` protege.
+- **Al ser `@qintilab.com`**, el dominio que comparten Vivaru y Albert, la frase que
+  repiten los cuatro documentos —el `tenant_admin` es nuestro «para que en prueba no
+  dependa de nadie más»— **no es del todo cierta en la práctica**. Queda dicho aquí para
+  que nadie la lea como garantía.
+- **Mezcla dos funciones:** el buzón que recibe los leads pasa a ser también la identidad
+  que administra el CRM donde esos leads acaban.
+
+**La corrección, cuando exista un buzón de Vivaru.** Cambiar el `tenant_admin` después es
+barato: se le pide a un superadmin de Albert. **El criterio no es el dominio, es quién
+puede leerlo** — una dirección dedicada deja el control de recuperación donde debe estar.
+
+**Y un desprendimiento que no es de este expediente pero salió aquí.** El dominio
+`grupovivaru.com` tiene **cuatro direcciones publicadas en los documentos legales del
+sitio**: `privacidad@` (canal para ejercer derechos y reportar incidentes, citado siete
+veces en la política de privacidad), `soporte@` (con tiempos de respuesta comprometidos
+en los términos), `facturacion@` y `hola@` (correo de contacto de Qintilab S.A.S., junto
+al NIT). **Si esos buzones no reciben, es un problema mayor que éste** — no se pudo
+comprobar desde el repositorio.
+
+**El canal: uno, no dos.** Los documentos de ambos lados hablaban de un «canal aparte» y
+un «canal de coordinación» como si fueran distintos, y **ninguno decía cuál era**.
+`DECISIONES-A-002` §2 propone **un único canal por correo** con una regla de una línea:
+*el repositorio lleva las decisiones; el correo lleva los datos personales, las
+credenciales y las fechas.* Pendiente de que Albert confirme quién lo recibe.
+
+**Y algo que no estaba escrito en ninguna parte:** cuando Albert devuelva el usuario de
+servicio, **esa credencial no entra en el repositorio** — va a Secret Manager, como la
+clave de Resend. Queda fijado en `DECISIONES-A-002` §2 *antes* de que la credencial
+exista, que es cuando se puede fijar sin prisa.
 
 ---
 
@@ -55,6 +102,7 @@ Todos en `docs/prd/albert/`.
 | `RESPUESTA-A-001-albert-a-vivaru.md` | 19 ago | Las contesta todas, citando `archivo:línea` de su repo. **Aquí está el C1 que desbloquea `REVOPS-001C`** |
 | `DECISIONES-A-001-vivaru-a-albert.md` | 19 ago | Vivaru cierra las seis decisiones y **le nombra dos contradicciones de su propia respuesta** |
 | `RESPUESTA-A-002-albert-a-vivaru.md` | 19 ago | **Nos da la razón en las dos sin regatear**, confirma las seis y corrige su frase «sin PII» |
+| `DECISIONES-A-002-vivaru-a-albert.md` | **21 ago** | **REDACTADO, SIN MANDAR.** Los dos números de retención (12 y 12, con la frase del reloj), la propuesta de **un solo canal**, y la reclamación de la fecha de A1 |
 
 Además: `PRD-A-OPS-001-vista-de-leads-vivaru.md` — el primer PRD, en borrador, con el §5
 (flujos comerciales) en `TBD`.
@@ -107,12 +155,16 @@ a ser una promesa.
 
 **Pendiente:** un freno nuestro que lo impida. No un comentario — algo que falle.
 
-### 4.2 · Dos números de retención, no uno · **DECISIÓN DE DAVID**
+### 4.2 · Dos números de retención · **DECIDIDOS el 21 de agosto de 2026**
 
-| Número | Qué es | Punto de partida |
+**Los dos son 12 meses.** David eligió la cifra de la casa para las dos ventanas.
+Documento completo, con el razonamiento y el riesgo aceptado:
+[`docs/politica-retencion-datos.md`](../../politica-retencion-datos.md).
+
+| Número | Qué es | **Decidido** |
 |---|---|---|
-| **N.º 1** | Cuánto vive un deal **sin actividad** antes de anonimizarse (criterio: su `updatedAt`) | Albert propone **24 meses** como candidato |
-| **N.º 2** | Cuánto vive el **registro de auditoría del borrado** (`vivaruLeadId`, `dealId`, fecha, actor) | **No hay propuesta.** Nace de la corrección del punto 3 |
+| **N.º 1** | Cuánto vive un deal **sin actividad** antes de anonimizarse (criterio: su `updatedAt`) | **12 meses** — Albert proponía 24 |
+| **N.º 2** | Cuánto vive el **registro de auditoría del borrado** (`vivaruLeadId`, `dealId`, fecha, actor) | **12 meses**, contados **desde la fecha del borrado**, no desde la del deal |
 
 **Por qué existe el segundo.** Vivaru le señaló que llamar «sin PII» a ese registro era
 impreciso: mientras el lead exista de nuestro lado, `vivaruLeadId` **reidentifica**.
@@ -120,11 +172,21 @@ Albert lo aceptó, declaró la base legal —acreditar que se ejerció el derech
 supresión— y dijo que ese registro **no vive para siempre**, sino con ventana propia.
 Esa ventana es el segundo número.
 
-**Bloquea:** cerrar el B3 de Albert. La maquinaria es suya; los números son nuestros.
+**Por qué 12 y no los 24 de Albert.** Este documento sostenía que «Vivaru tampoco tiene
+política de retención escrita». **Escrita no la había; números sí.** Al ir a mirar el
+código aparecieron **tres ventanas ya corriendo en producción todas las noches a las
+03:00, y las tres dicen 12 meses**: la PII de los comprobantes, `aiUsage` y `aiFeedback`.
+Los 24 de Albert son su contexto comercial, no el nuestro, y el campo es parametrizable
+para que subirlo después salga barato.
 
-**Y hay una razón de fondo para no improvisarlos:** Vivaru tampoco tiene política de
-retención escrita. Se pidió la función parametrizable **precisamente** para no
-comprometer en un documento ajeno un número que aquí nunca se decidió.
+**El riesgo que se acepta en el n.º 2, dicho aquí también:** a los 18 meses no habrá con
+qué demostrar que un borrado ocurrió. Es la contrapartida de minimizar la
+reidentificación, y está elegida a ojos abiertos — no es un olvido.
+
+**Al mandárselos, incluir la frase del reloj:** «12 meses **desde la fecha del borrado**».
+Sin eso el n.º 2 es ambiguo y podría implementarse contra el reloj del deal.
+
+**Ya no bloquea el B3.** Lo que falta para cerrarlo es mandárselos.
 
 ### 4.3 · Dos referencias cruzadas que validar, no una
 
@@ -181,7 +243,7 @@ equivocado lleva a concluir «sigue parado» cuando está abierto.
 |---|---|
 | **Construir A1** (extender los dos esquemas + el índice) | Confirmado, «cabe en días», y lo pone **por delante** de B1 y del precio |
 | **Construir B1** (la callable de supresión) | Confirmado, 🔧 mediano |
-| **Construir B3** (la función programada de retención) | Confirmado, **pero espera nuestros dos números** |
+| **Construir B3** (la función programada de retención) | Confirmado. **Los dos números ya están decididos (12 y 12); espera que se los mandemos** |
 | **Ejecutar el alta A5** | **Espera el correo del `tenant_admin`** |
 
 **Devuelve tras el alta:** el `uid` del `tenant_admin`, el `uid` y correo del usuario de

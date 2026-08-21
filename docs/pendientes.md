@@ -1,7 +1,8 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado en la madrugada del 20 de agosto de 2026.
+Actualizado el 21 de agosto de 2026: el recibo `000000001` quedó anulado en producción y
+la política de retención está escrita y decidida. Los dos salen de la lista.
 
 ## LO PRIMERO AL ABRIR SESIÓN (19 ago 2026, madrugada del 20)
 
@@ -90,19 +91,38 @@ producción en el orden **front → functions → reglas**, con las reglas al fi
 PDF— y no de una suite. Cuando se construye algo que alguien mira, alguien tiene que
 mirarlo.
 
-### Cabo suelto en producción, pendiente de una escritura manual
+### Cabo suelto en producción — CERRADO el 21 de agosto de 2026
 
-Quedó un cobro de prueba de **$1.120.000** en el Apartamento 503, emitido con el código
-viejo. **David lo revirtió**, y el reverso está bien. Pero su recibo `000000001`
-**sigue figurando como válido**: su operación de pago es anterior al cambio y no guarda
-enlace al recibo, así que el reverso no tenía por dónde encontrarlo.
+El recibo `000000001` (Apartamento 503, $1.120.000, `tenant-santa-maria`, doc
+`zAcFYtEUx0AFyOdalIYQ`) **está anulado en producción**. Se escribieron los cuatro campos
+acordados y **nada más**; el secuencial y el importe quedaron intactos, comprobado
+releyendo de Firestore. Script: [`scripts/anular-recibo-000000001.mjs`](../scripts/anular-recibo-000000001.mjs),
+idempotente — si se vuelve a correr, se niega.
 
-**Decisión de David: marcarlo anulado a mano.** Escribir solo `anulado`, `anuladoEn`,
-`anuladoPor: "correccion-manual"` y `anuladoMotivo`. **No tocar el secuencial.** Espera a
-renovar `gcloud auth application-default login`.
+**Antes de escribir se verificó el reverso leyéndolo, no fiándose del documento.** Era la
+única forma de que esta escritura hiciera daño: un recibo anulado sin pago revertido
+detrás es una mentira en un registro financiero. Lo leído:
+
+| Qué | Estado |
+|---|---|
+| Operación de pago `e52cf94a…` | `reversedAt` = 21 ago 00:39 UTC, con su `reversalKey` |
+| Operación inversa | Existe, `-1.120.000`, apuntando de vuelta con `reversesOperationKey` |
+| Asientos del libro | `+1.120.000` y `Reverso: … −1.120.000`. **Netean a cero** |
+| Cuota del 503 | De vuelta en `pending`, saldo íntegro de 1.120.000. Nadie quedó dado por pagado |
+| `voucherId` en la operación de pago | **AUSENTE** — la causa, leída y no supuesta |
+
+**La lección, que es la de siempre en este documento:** el reverso estaba bien, pero eso
+se sabía por una frase escrita, no por un dato. Verificarlo costó dos minutos y era lo
+único que separaba «corregir un registro» de «falsear uno».
+
+**Falta mirarlo con los ojos** — la pantalla de Recibos emitidos y el PDF. La escritura
+está comprobada en el dato; que la interfaz lo pinte tachado y el PDF salga con `ANULADO`
+es otra cosa, y este documento ya enseñó tres veces que eso solo se sabe mirando.
 
 **Y es la forma general del problema:** los registros anteriores a un cambio de forma no
-se migran solos. Los asientos sin `operationKey` son el otro caso, y sigue abierto.
+se migran solos. Los asientos sin `operationKey` son el otro caso, y **sigue abierto** —
+se confirmó de paso: de los 12 asientos de `tenant-santa-maria`, solo uno tiene
+`operationKey`.
 
 ### Vivaru Finance — el contexto de antes (20 ago 2026, madrugada)
 
@@ -152,21 +172,64 @@ abiertas que estaban bloqueadas **por la misma frase**, que hoy dejó de ser cie
 correlativa** ahora que no es fiscal. Si sí, el hueco al fallar deja de importar pero la
 serie se mantiene por orden; si no, se puede simplificar bastante.
 
+## Track nuevo, abierto el 21 de agosto de 2026 — **es lo que David quiere hacer primero**
+
+**PRDs de una solución de gestión residencial, filtrados para sacar el alcance de nuevas
+funciones contables y financieras de Vivaru.**
+
+Queda anotado tal como se dijo, **sin interpretar**, porque la frase admite dos lecturas y
+elegir la equivocada cuesta una sesión entera:
+
+1. **Escribir** PRDs para una solución de gestión residencial, y de ahí filtrar el alcance.
+2. **Extraer** los PRDs de una solución que ya existe —un producto de referencia— y
+   filtrar de ahí lo que le falta a Vivaru.
+
+**Lo primero de la próxima sesión es preguntarle a David cuál de las dos es**, y de qué
+solución habla. No arrancar sin eso.
+
+**Con qué enlaza:** cae justo encima del punto 5 de la lista de abajo —`F1` de Finance, el
+expediente de conciliación— y puede que lo conteste. La pregunta abierta de ese punto es
+si vale la pena construir la bandeja con cero pagos reales; **un alcance sacado de un
+producto de referencia es exactamente el tipo de dato que falta** para contestarla sin
+inventar. Existe ya la skill `crear-prd-vivaru` para producto sin IA y
+`crear-prd-ia-vivaru` para lo asistido.
+
+---
+
 ## Con qué seguir, por orden (para la sesión siguiente)
 
 **Lo de arriba está cerrado.** `FIN-001` en producción y validada; el SRI retirado; el
 expediente de Albert al día. Esto es lo que queda, ordenado por lo que abre más con menos
 esfuerzo.
 
-1. **Marcar anulado el recibo `000000001` de producción.** Decisión ya tomada; espera la
-   credencial. Cinco minutos. Detalle en la sección de arriba.
-2. **Mandarle a Albert el correo del `tenant_admin`, por canal aparte.** Sigue siendo lo
-   más barato de la lista y **lo que más abre**: sin alta no hay usuario de servicio, y
-   sin esa credencial no hay con qué suscribirse a sus deals — que es la segunda mitad de
-   `REVOPS-001C`.
-3. **Escribir la política de retención — DOS números.** Cuánto vive un deal sin actividad
-   (Albert propone 24 meses de partida) y cuánto vive el registro de auditoría del
-   borrado (sin propuesta). Bloquean cerrar su B3.
+1. ~~**Marcar anulado el recibo `000000001` de producción.**~~ **HECHO el 21 de agosto de
+   2026**, y verificado releyendo. Lo único que queda es **mirarlo en pantalla**: que la
+   tarjeta de Recibos emitidos lo pinte tachado y que el PDF salga con `ANULADO`. Detalle
+   en la sección de arriba.
+2. **Mandarle a Albert dos cosas, por sitios distintos.** Sigue siendo lo más barato de la
+   lista y **lo que más abre**: sin alta no hay usuario de servicio, y sin esa credencial
+   no hay con qué suscribirse a sus deals — la segunda mitad de `REVOPS-001C`.
+   - **El `tenant_admin`, por el canal** — nunca dentro de un documento. Decidido el 21:
+     **`comercial@qintilab.com`, y es provisional a propósito** porque Vivaru no tiene hoy
+     buzón propio y crearlo frenaría el envío. Se acepta que es un **buzón compartido** y
+     que quien lo lea puede recuperar la cuenta y tocar el pipeline. Motivo y corrección
+     en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md) §«Lo primero mañana».
+   - **[`DECISIONES-A-002`](prd/albert/DECISIONES-A-002-vivaru-a-albert.md), ya redactado
+     y sin mandar** — los dos números de retención con la frase del reloj, la propuesta de
+     **un solo canal** (los documentos hablaban de dos y ninguno decía cuál era), y la
+     reclamación de la fecha de A1, que Albert prometió el 19 «como lo primero que
+     cerramos» y no ha llegado.
+3. ~~**Escribir la política de retención — DOS números.**~~ **HECHO el 21 de agosto de
+   2026.** Los dos son **12 meses**, la cifra de la casa: el deal sin actividad (Albert
+   proponía 24) y el registro de auditoría del borrado, éste contado **desde la fecha del
+   borrado**. Documento nuevo: [`docs/politica-retencion-datos.md`](politica-retencion-datos.md).
+   **Lo que queda es mandárselos a Albert**, junto con la frase del reloj — va en el
+   intercambio normal, no por canal aparte.
+   **Y salió un hallazgo que este documento negaba:** decíamos que Vivaru no tenía
+   política de retención. Escrita no la había, pero **números sí, y llevan tiempo
+   corriendo**: tres ventanas de 12 meses en la tarea de las 03:00 —PII de comprobantes,
+   `aiUsage` y `aiFeedback`—. Es la misma forma del error de los webhooks de Albert: una
+   frase que fue cierta y que nadie volvió a contrastar contra el código.
 4. **Decidir qué se hace con los 9 conjuntos incompletos**, y no son un grupo homogéneo:
    los siete marcados de ejemplo son inertes; **los dos sin marcar contaminan las
    métricas hoy**, y uno de ellos —el de Quito— muestra la moneda de otro país.
@@ -184,6 +247,19 @@ esfuerzo.
 **Deuda conocida que NO urge pero deja de no urgir con el primer cliente:** los asientos
 anteriores a `FIN-001` no se pueden revertir porque no guardan `operationKey`. Es la misma
 familia que el recibo `000000001`.
+
+**Dos cosas anotadas el 21 de agosto que no urgen hoy y no conviene perder:**
+
+- **Cambiar el `tenant_admin` de Albert** a un buzón propio de Vivaru cuando exista. Hoy
+  es `comercial@qintilab.com`, compartido, elegido a sabiendas. Cambiarlo después es
+  barato —se le pide a un superadmin de Albert—; **el criterio no es el dominio, es quién
+  puede leerlo**.
+- **Comprobar que los buzones de `grupovivaru.com` reciben de verdad**, y es de otra
+  gravedad: `privacidad@grupovivaru.com` es el canal que la política de privacidad
+  publica **siete veces** para ejercer derechos y reportar incidentes, y `soporte@` lleva
+  tiempos de respuesta comprometidos en los términos. Si rebotan, no es incomodidad: es
+  incumplimiento de lo publicado. **No se puede comprobar desde el repositorio** — hay que
+  abrir el correo, o mandarles una prueba desde fuera.
 
 **La segunda mitad de `REVOPS-001C` NO está bloqueada por Albert, y este documento decía
 que sí. Corregido el 20 de agosto de 2026.**
