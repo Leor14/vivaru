@@ -48,6 +48,119 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 |---|---|---|
 | [PRD-V-FEAT-001 — Tickets de soporte](funcionales/PRD-V-FEAT-001-tickets-soporte.md) | **Productiva** | Desplegada y verificada de punta a punta el 2026-08-01, correo incluido |
 | [PRD-V-FEAT-002 — Importación de datos del conjunto](funcionales/PRD-V-FEAT-002-importacion-datos-conjunto.md) | **Productiva** (`registrarImportacion` desplegada en `hogaru-1`, comprobado el 2026-08-17) | Mapeo de columnas por nombre, contenido y variedad; catálogo único de campos; XLSX con selección de la hoja que mejor encaja; orden entre las dos cargas; y telemetría por pista. Construye el hueco donde entra `PRD-VAI-FEAT-001`. Sin decisiones abiertas |
+| [PRD-V-PLAT-001 — Copropiedad: alícuota, expensa y responsable de la unidad](funcionales/PRD-V-PLAT-001-copropiedad-y-modelo-de-unidad.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Primera de la tanda 1 del inventario de Habitanto. Añade coeficiente, expensa y responsable a la unidad, y la corrida de cobro por coeficiente. **Aditiva y reversible**: sin coeficiente, la corrida plana de hoy sigue igual. Cerradas: 6 decimales · responsable designado con propietario por defecto · **decimales por moneda** (`COP` 0, `MXN`/`USD` 2 — corregir `formatAmount` es la primera tarea del MVP y cambia el render de todos los importes en esas monedas). G5: **Vivaru no verifica escrituras**; el control es que la suma cuadre al 100% más la visibilidad del listado para el consejo |
+| [PRD-V-PLAT-002 — Administradora: un administrador sobre varios conjuntos](funcionales/PRD-V-PLAT-002-administradora-multiconjunto.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Segunda de la tanda 1. **El almacenamiento y las reglas ya lo soportan**: la membresía es un documento por pareja `tenantId_uid` y las reglas no usan el claim `tenantId`. El bloqueo son la sesión y **once callables** que comparan el conjunto pedido contra el claim (`functions/src/index.ts` 1349…2036). Ese cambio **no se revierte con una bandera**: va en su propio despliegue y es **la primera tarea del MVP**. Cerradas: el administrador asigna membresías en los conjuntos donde ya es administrador; superadmin crea la administradora en el alta comercial |
+| [PRD-V-FLOW-001 — Prorrateo de un gasto entre las unidades](funcionales/PRD-V-FLOW-001-prorrateo-de-un-gasto-entre-unidades.md) | **Lista para desarrollo** (1.0, 21 ago 2026) — **secuencia: después de `PLAT-001`** | Tanda 2. Une egreso y cartera, que hoy **no se hablan**: no existe puente `Expense`→`BillingStatement`. Incluye **anular una corrida entera**, que hoy tampoco existe. **Bloqueada por `PRD-V-PLAT-001`**. Cerradas: concepto elegido de los siete existentes con `extraordinaria` por defecto (**sin ampliar `BillingConcept`**) · reparto a subconjunto fuera del MVP |
+| [PRD-V-FLOW-002 — Anticipos y aplicación del pago a varios cargos](funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Tanda 2. Tres defectos medidos en `functions/src/payments.ts`: **el sobrepago se evapora** (`balance = max(0, cobrado − pagado)`, y el excedente se contabiliza como ingreso sin dejar saldo a favor), **un pago solo aplica a un cargo**, y **el asiento se escribe con `bankAccountId: null` fijo**. El cambio de firma de `aplicarPago` es **aditivo** para no romper producción. Cerradas: el anticipo es ingreso del mes en que entra, **en su propia línea** · la imputación la decide la administración. **Trampa documentada**: si `anticipo` se excluye del libro como se excluye `alicuota` (`use-ledger.ts:220`), el anticipo desaparece del estado financiero |
+| [PRD-V-FEAT-003 — Registro de proveedores y beneficiarios](funcionales/PRD-V-FEAT-003-registro-de-proveedores.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Tanda 3. Hoy **el proveedor no existe como entidad**: `Expense.vendorName` es texto libre y se reteclea en cada egreso. Añade registro, **datos bancarios**, categoría por defecto y estado de cuenta por proveedor. **Restricción dura**: los datos bancarios de un tercero no se muestran al residente nunca. Cerrada: un solo registro con `type` obligatorio; los de tipo `empleado` entran en la política de retención |
+| [PRD-V-PLAT-003 — Plan de cuentas gobernado y el concepto que llega al libro](funcionales/PRD-V-PLAT-003-plan-de-cuentas-gobernado.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Tanda 3. Dos problemas medidos: el vocabulario contable vive **en ocho ficheros** con dos mapas de etiquetas que ya discrepan, y **`aplicarPago`/`revertirPago` escriben `category: "alicuota"` fijo** (`payments.ts` 266 y 578) — una multa, una extraordinaria o un parqueadero se contabilizan todos como cuota de administración. **Habilita el consolidado entre conjuntos de `PLAT-002`.** Cerradas: código numérico jerárquico validado e inmutable una vez usado · plan por conjunto en el MVP. **Alcance movido**: la bitácora transversal de anulaciones pasa a Fase 2 de esta PRD y las notas de crédito/débito, al backlog |
+| [PRD-V-FEAT-004 — Estado de cuenta de la unidad y certificado de paz y salvo](funcionales/PRD-V-FEAT-004-estado-de-cuenta-y-paz-y-salvo.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Tanda 4. Hay PDF de recibo (`recibo-pdf.ts`) y **ninguno de estado de cuenta**; «certificado» solo aparece en los textos legales, referido al borrado de datos. **La condición «saldo cero» se evalúa en el servidor**: es el ejemplo de libro de por qué existe la frontera cliente/callable. Cerrada: el residente emite el suyo; el interruptor por conjunto para restringirlo queda fuera del MVP |
+| [PRD-V-FLOW-003 — Cobranza que llega: entrega medida y calendario del conjunto](funcionales/PRD-V-FLOW-003-cobranza-que-llega.md) | **Lista para desarrollo** (1.0, 21 ago 2026) — **el adjunto del estado de cuenta necesita `FEAT-004`** | Tanda 4. **El correo sale por la API de Resend sin webhook**: cero medición de entrega, rebotes y quejas. El calendario de cobranza está en el despliegue, no en manos del conjunto. **Corrige una suposición nuestra**: la bandeja de notificaciones en producto **ya existe** (colección `notifications`); lo que hay es un componente muerto con cuatro notificaciones inventadas, que se borra. Cerradas: ciclo mínimo de **7 días** (Habitanto permite 1) · «sin confirmar» a las 48 h · la lista de rebotes vive tras un **aviso persistente en el panel del administrador** |
+| [PRD-V-FIX-001 — Las reglas de reserva se cumplen en el servidor](funcionales/PRD-V-FIX-001-reglas-de-reserva-en-servidor.md) | **Lista para desarrollo** (1.0, 21 ago 2026) — **en dos entregas** | Tanda 4. **Defecto encontrado leyendo el código:** la compuerta de morosos **ya existe** (`eligibility.ts`, con exención por unidad) pero **se comprueba solo en el cliente**, y `firestore.rules:558` no valida ni la mora ni los límites del área. **6 de 13 reglas se verifican en servidor.** No se arregla solo en reglas: seis exigen contar reservas y una regla de Firestore no cuenta. Cerrada: **entrega 1** = cumplimiento en servidor sin cambiar nada visible; **entrega 2** = política por área. Nunca en el mismo despliegue |
+
+### Orden de construcción del lote de Habitanto
+
+Nueve PRD escritas entre el 21 de agosto de 2026, todas **listas para desarrollo**. Este es el
+orden que se defiende, y **el orden importa más que ninguna de ellas por separado**: dos tocan la
+misma función de producción y una no se puede revertir con una bandera.
+
+#### Antes de nada
+
+**Corregir `formatAmount` por moneda** (`src/lib/currency.ts`): hoy formatea con cero decimales
+para `COP`, `MXN` y `USD`, así que una expensa de `140,40` se muestra como `140` en Ecuador,
+Panamá y México. Es la primera tarea del MVP de `PLAT-001` porque su regla de reparto redondea a
+la unidad que el producto muestra. **Cambia el render de todos los importes en esas dos monedas**
+— y con cero clientes reales es el momento más barato.
+
+#### Ola A — sin dependencias
+
+| # | PRD | Por qué aquí |
+|---|---|---|
+| 1 | **`PLAT-002` · auditoría de las once callables** | Va **sola y primero**. Es el único cambio del lote que **no se revierte con una bandera** |
+| 2 | **`FIX-001` · entrega 1** | Corrección de una regla de negocio que hoy solo vive en el cliente. **No cambia nada visible** |
+| 3 | **`PLAT-001` · copropiedad** | Base de la que dependen catorce candidatos |
+| 4 | **`FEAT-003` · proveedores** | Independiente de todo lo demás |
+
+#### Ola B — contabilidad
+
+| # | PRD | Por qué en este orden |
+|---|---|---|
+| 5 | **`PLAT-003` · plan de cuentas** | **Antes que `FLOW-002`.** Si va después, `FLOW-002` añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
+| 6 | **`FLOW-002` · anticipos** | Después del 5 |
+| 7 | **`FLOW-001` · prorrateo** | Necesita `PLAT-001` |
+
+> **`PLAT-003` y `FLOW-002` modifican la misma función: `aplicarPago`, que está en producción y
+> mueve dinero.** `PLAT-003` cambia **qué valor** escribe en la categoría; `FLOW-002` cambia **su
+> firma**. **No pueden estar en vuelo a la vez.**
+
+#### Ola C — lo que se ve
+
+| # | PRD |
+|---|---|
+| 8 | **`FEAT-004` · estado de cuenta y paz y salvo** — después de `FLOW-002`, para que el documento sepa mostrar el saldo a favor |
+| 9 | **`FLOW-003` · cobranza que llega** — su adjunto necesita el 8 |
+| 10 | **`PLAT-002` · entrega 2** — selector de conjunto y vista de cartera |
+| 11 | **`FIX-001` · entrega 2** — política de reserva por área |
+
+#### En espera de disparador
+
+**No se construyen hasta el primer mes con pagos reales**, por decisión del 21 de agosto:
+
+- **Cierre de conciliación** — depósitos en tránsito, cheques no cobrados y resumen de saldos.
+  Vivaru ya tiene el casado línea a línea; le falta el cierre. **Se beneficia del
+  `bankAccountId` que aporta `FLOW-002`.**
+- **Mora y pronto pago** — el recargo **no lo tiene ninguna de las dos plataformas**. Es ventaja
+  que ganar, y no se puede calibrar sin cartera real.
+
+#### Solapamientos declarados
+
+| Entre | Qué |
+|---|---|
+| `PLAT-001` y `FEAT-003` ↔ `FEAT-002` | Sus campos nuevos **extienden el catálogo del importador que ya existe**. Ninguna construye un segundo importador |
+| `PLAT-001` ↔ `FLOW-001` | Comparten la regla de reparto del residuo por resto mayor. **Se define una vez, en `PLAT-001` R6** |
+| `FLOW-002` ↔ cierre de conciliación | `FLOW-002` corrige `bankAccountId: null`, que aquella necesitará |
+| `PLAT-003` ↔ `PLAT-002` | El consolidado entre conjuntos **solo es correcto con códigos gobernados** |
+
+#### Revisión cruzada de las nueve — 21 ago 2026
+
+Antes de construir nada se cotejaron las nueve entre sí y contra el código, buscando
+**contradicciones**, no erratas. **Salieron cinco.** Cuatro están corregidas; la quinta es de
+portafolio y está marcada en las PRD afectadas.
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| 1 | **`FLOW-003` decía que Comunicaciones está `limitado` en prueba.** `TRIAL_MODULE_ACCESS` dice **`libre`** — el `limitado` es Documentos, por almacenamiento. Y la «cuota de correo a terceros» que mencionaba **no existe**: no hay nada de eso ni en `email.ts` ni en `trial-modules.ts` | **Corregido** |
+| 2 | **`PLAT-002` decía que `managementCompanies` sería la primera colección sin `tenantId`.** No lo es: `tenants`, `users`, `plans` y `featureFlags` tampoco lo llevan. Sí es la primera que **agrupa conjuntos** | **Corregido** |
+| 3 | **`PLAT-003` decía «ocho ficheros».** Son **seis ficheros distintos**, con ocho apariciones entre los dos vocabularios | **Corregido** |
+| 4 | **El acoplamiento `PLAT-003` ↔ `FLOW-002` vivía solo aquí, en el índice.** Las dos modifican `aplicarPago` y no pueden estar en vuelo a la vez. **Una dependencia que solo vive en el índice es una dependencia que alguien se salta** | **Declarada en el encabezado de las dos** |
+| 5 | **El rol `committee` no puede llegar a lo que ocho PRD le asignan.** `canAccessPath` (`src/lib/auth/routing.ts:28`) lo deja **solo en `/admin/documents`**. A nivel de reglas **sí puede leer** —es miembro del conjunto— así que **el bloqueo es de navegación, no de permisos** | **Marcado en las ocho.** Ver abajo |
+
+##### El hallazgo 5 merece PRD propia
+
+Ocho PRD dan al consejo capacidades de consulta —coeficientes, plan de cuentas, proveedores,
+estados de cuenta, entregabilidad— que **hoy son intención declarada, no capacidad disponible**.
+
+Ampliarlo no es cambiar una línea de `routing.ts`: hay que **decidir qué pantallas ve** y
+**comprobar que las reglas no le abran datos personales por el camino** — muchas colecciones
+tienen `allow read: sameTenant(...)`, y el consejo es miembro del conjunto.
+
+**Candidato: `PRD-V-PLAT-004 — Alcance del rol Consejo`.** No bloquea a ninguna de las nueve:
+todas funcionan sin la fila del consejo.
+
+##### Lo que se cotejó y salió consistente
+
+- **La regla de reparto del residuo se define una sola vez**, en `PLAT-001` R6; `FLOW-001` la
+  referencia en vez de repetirla.
+- **La frontera cliente/callable** no se contradice entre PRD.
+- **Sin colisiones de identificador** con `FEAT-001` y `FEAT-002`.
+- Los niveles de prueba de **Cartera, Finanzas y Reservas** están bien citados en las siete PRD
+  que los mencionan.
+
+#### Dos correcciones que este lote produjo
+
+Escribir las PRD obligó a leer el código, y eso **anuló dos huecos** del inventario: la
+**compuerta de morosos en reservas** y la **bandeja de notificaciones en producto** **ya
+existen**. Están corregidos en `candidatos-prd-desde-habitanto.md`.
 
 ### Albert
 

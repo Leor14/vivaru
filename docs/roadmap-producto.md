@@ -16,8 +16,8 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.12 |
-| **Fecha** | 20 de agosto de 2026, tarde |
+| **Versión** | 0.9.13 |
+| **Fecha** | 21 de agosto de 2026, noche |
 | **Estado** | **Niveles 1, 2 y 3 EN PRODUCCIÓN, validados a mano y comprobados leyéndolos.** Lo construido el 19 se desplegó la madrugada del 20: **el hueco de acceso al borrar un residente queda cerrado en producción** —era el que arrastraba la radiografía desde el 13 de agosto— y todo conjunto creado desde ahora nace con su país y su moneda correctos. **Y llegó `RESPUESTA-A-002` de Albert**, que nos da la razón en las dos contradicciones sin regatear. **El intercambio con Albert ya no tiene preguntas abiertas**: lo que falta es un correo de David y tres piezas nuestras |
 | **Verificado contra** | **Producción leída directamente, no deducida.** Repositorio en `c81e2fe` (`master` = `develop` = `origin/master`). `revokeResidentAccess` y `createTenantWorkspace` vivas en `hogaru-1`, y **el permiso de invocación de la nueva leído en IAM** (`allUsers` + `run.invoker`). **El front verificado descargando los chunks de `/login`** —marcador nuevo presente, control viejo presente, símbolo inventado ausente—, nunca por la fecha del backend, que marca que arrancó y no que terminó. **994 pruebas de app y 349 de functions**, typecheck limpio en `src/` y en `functions/`. Los 9 conjuntos releídos con credenciales renovadas: `plans` con **0 documentos**, **6 sin moneda y 4 sin país**, y **dos sin marcar como de ejemplo** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
@@ -612,6 +612,60 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   visuales responsive sobre 4 rutas.
 
 ### SIGUIENTE
+
+#### `PH-001` — Propiedad horizontal: el lote derivado de Habitanto
+
+- **Estado:** 🟢 **Nueve PRD escritas y listas para desarrollo** (21 ago 2026). Ninguna
+  construida. · **Frente:** Producto · **Dependencia:** ninguna externa
+- **Origen:** inventario de Habitanto en cinco pasadas (`docs/inventario-habitanto.md`) y
+  contraste contra nuestro código, no contra nuestros documentos. De ahí salieron **108
+  candidatos** priorizados (`docs/prd/candidatos-prd-desde-habitanto.md`), y de esos, **once
+  PRD**: nueve escritas y **dos en espera de disparador**.
+- **Por qué ahora y no después:** cinco de las nueve tocan **modelo de datos**. Cambiar cómo se
+  calcula una cuota cuando ya haya dos años de cargos emitidos no es una funcionalidad, es una
+  migración. **Cero clientes reales es la ventana, y se cierra sola.**
+- **El orden importa más que cualquiera de ellas por separado.** Está en
+  `docs/prd/README.md § Orden de construcción`. Tres razones:
+  - `PLAT-002` (auditoría de once callables) va **sola y primero**: es el único cambio del lote
+    que **no se revierte con una bandera**.
+  - `PLAT-003` va **antes** que `FLOW-002`: **las dos modifican `aplicarPago`, que está en
+    producción y mueve dinero**, y no pueden estar en vuelo a la vez.
+  - Antes de todo, corregir `formatAmount`: hoy formatea con **cero decimales para las tres
+    monedas**, así que una expensa de `140,40` se muestra como `140` en Ecuador, Panamá y México.
+
+##### Lo que el lote corrige, medido en el código
+
+| Defecto | Dónde | PRD |
+|---|---|---|
+| **El sobrepago se evapora**: se contabiliza como ingreso y no deja saldo a favor | `functions/src/payments.ts` — `calcularSaldo` | `FLOW-002` |
+| **El concepto del cargo nunca llega al libro**: una multa o una extraordinaria se contabilizan como cuota de administración | `payments.ts:266` y `:578` — `category: "alicuota"` fijo | `PLAT-003` |
+| **Las reglas de reserva se comprueban solo en el cliente**: 6 de 13 en servidor | `eligibility.ts` + `firestore.rules:558` | `FIX-001` |
+| **El pago no registra a qué cuenta bancaria entró** | `payments.ts:267` — `bankAccountId: null` | `FLOW-002` |
+| **El correo sale sin webhook**: cero entrega, rebotes y quejas | `functions/src/email.ts` | `FLOW-003` |
+| **Se cobra el mismo importe a todas las unidades** | `BillingCampaign.unitAmount` | `PLAT-001` |
+| **El proveedor no existe como entidad**: se teclea en cada egreso | `Expense.vendorName` | `FEAT-003` |
+
+##### Lo que la revisión cruzada anuló
+
+Leer el código antes de escribir **anuló dos huecos** que el inventario daba por buenos: la
+**compuerta de morosos en reservas** y la **bandeja de notificaciones en producto** **ya
+existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
+`/admin/documents`**, así que lo que ocho PRD le asignan es intención declarada, no capacidad
+— candidato a `PRD-V-PLAT-004`.
+
+- **Criterio de salida:** las nueve construidas en el orden declarado, con la primera entrega de
+  `FIX-001` desplegada sola y verificada **escribiendo contra la base**, no desde la interfaz.
+
+#### `PH-002` — Lo que espera al primer pago real
+
+- **Estado:** Especificado a nivel de alcance, **sin PRD escrita a propósito**
+- **Disparador:** el primer mes de un conjunto con **pagos reales**. Hoy son cero.
+- **Incluye:** **cierre de conciliación** —depósitos en tránsito, cheques girados y no cobrados,
+  resumen de saldos— y **interés de mora calculado**, que **no lo tiene ninguna de las dos
+  plataformas**: es ventaja que ganar, no que copiar.
+- **Por qué no se escribe todavía:** el cierre solo tiene sentido con movimientos que cuadrar, y
+  el recargo no se puede calibrar sin cartera real. **Contesta la pregunta abierta de `FIN-002`:
+  no, todavía no.**
 
 #### `FIN-002` — Expediente y conciliación determinística
 
