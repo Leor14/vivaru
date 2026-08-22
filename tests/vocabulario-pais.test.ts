@@ -74,6 +74,31 @@ describe("los textos de ayuda nombran las palabras de los otros países", () => 
     }
   });
 
+  /**
+   * Aportado por David el 22 ago 2026 y faltaba: el porcentaje no solo manda
+   * sobre lo que se paga, también sobre **el peso del voto en asamblea**. Es
+   * la mitad del concepto, y vale igual en los tres países.
+   */
+  it("dice que el porcentaje manda sobre el pago Y sobre el voto", () => {
+    for (const texto of [AYUDA.coeficiente, AYUDA.coeficienteResidente]) {
+      expect(texto).toContain("gastos comunes");
+      expect(texto).toContain("voto en asamblea");
+    }
+  });
+
+  /**
+   * El término legal es correcto para el administrador —trabaja con escrituras
+   * y actas— pero el condómino rara vez lo usa: piensa en la cuota. Así que al
+   * residente se le explica sin exigirle la palabra, y se le ofrece por si la
+   * necesita para casarla con su escritura.
+   */
+  it("el texto del residente ofrece el término sin exigirlo, y lo ata a la escritura", () => {
+    expect(AYUDA.coeficienteResidente).toContain("escritura");
+    for (const palabra of ["indiviso", "coeficiente de copropiedad", "alícuota"]) {
+      expect(AYUDA.coeficienteResidente).toContain(palabra);
+    }
+  });
+
   it("la ayuda de la corrida explica el mecanismo, que es igual en los tres países", () => {
     expect(AYUDA.corridaPorCoeficiente).toContain("resto mayor");
     expect(AYUDA.corridaPorCoeficiente).toContain("vista previa");

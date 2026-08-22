@@ -19,7 +19,8 @@ import { db, storage } from "@/lib/firebase/client";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
-import { capitalizar } from "@/lib/config/vocabulario-pais";
+import { AYUDA, capitalizar } from "@/lib/config/vocabulario-pais";
+import { HelpTip } from "@/components/shared/help-tip";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -185,9 +186,16 @@ export default function ResidentAccountPage() {
       {unitOwnership && (unitOwnership.coefficient != null || unitOwnership.monthlyFeeAmount != null) ? (
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2 text-xs text-[var(--slate-600)]">
           {unitOwnership.coefficient != null ? (
-            <span>
-              {capitalizar(vocab.coeficiente)} de tu unidad:{" "}
-              <span className="font-medium text-[var(--slate-900)]">{unitOwnership.coefficient}%</span>
+            // Al residente se le encabeza con la CONSECUENCIA, no con el
+            // término de la escritura: el condómino rara vez dice «indiviso»
+            // —ni «alícuota», ni «coeficiente»—, piensa en lo que paga. La
+            // palabra exacta se la ofrece la ayuda, por si la necesita para
+            // casarla con su escritura.
+            <span className="inline-flex items-center gap-1">
+              Tu unidad aporta el{" "}
+              <span className="font-medium text-[var(--slate-900)]">{unitOwnership.coefficient}%</span>{" "}
+              de los gastos comunes
+              <HelpTip text={AYUDA.coeficienteResidente} />
             </span>
           ) : null}
           {unitOwnership.monthlyFeeAmount != null ? (

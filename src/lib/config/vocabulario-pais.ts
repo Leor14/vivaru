@@ -117,9 +117,22 @@ export function capitalizar(texto: string): string {
  */
 export const AYUDA = {
   coeficiente:
-    "El porcentaje que representa esta unidad dentro del conjunto. Determina cuánto le toca pagar de los gastos comunes. " +
-    "Se llama coeficiente de copropiedad en Colombia, alícuota en Ecuador e indiviso en México: es el mismo dato. " +
-    "La suma de todas las unidades activas debe dar exactamente 100 %.",
+    "El porcentaje que representa esta unidad dentro del conjunto y sus áreas comunes. Manda sobre DOS cosas: " +
+    "cuánto le toca pagar de los gastos comunes, ordinarios y extraordinarios, y el peso de su voto en asamblea. " +
+    "Se llama coeficiente de copropiedad en Colombia, alícuota en Ecuador e indiviso en México: es el mismo dato, " +
+    "y es el que aparece en la escritura. La suma de todas las unidades activas debe dar exactamente 100 %.",
+  /**
+   * La misma idea para el RESIDENTE. El término legal es el correcto en la
+   * escritura y en la pantalla del administrador, pero —confirmado por David
+   * el 22 ago 2026 para México, y vale igual en los otros dos— **el condómino
+   * rara vez usa la palabra**: piensa en la consecuencia, «la cuota». Así que
+   * a él se le encabeza con la consecuencia y el término se le ofrece aquí,
+   * para que pueda casarlo con su escritura si lo necesita.
+   */
+  coeficienteResidente:
+    "Es la proporción que tu unidad representa dentro del condominio y sus áreas comunes. " +
+    "De ahí sale la parte que te toca de los gastos comunes, y también el peso de tu voto en asamblea. " +
+    "En la escritura aparece como indiviso en México, coeficiente de copropiedad en Colombia y alícuota en Ecuador.",
   corridaPorCoeficiente:
     "Reparte un total entre las unidades activas según el porcentaje de cada una, en vez de cobrar lo mismo a todas. " +
     "Primero calcula una vista previa y no se genera nada hasta que confirmes. " +
