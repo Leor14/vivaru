@@ -29,6 +29,8 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { CoefficientCampaignDialog } from "@/components/features/billing/CoefficientCampaignDialog";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import * as XLSX from "xlsx";
 
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
@@ -222,6 +224,8 @@ function AdminBillingPageContent() {
   const [dueDate, setDueDate] = useState("");
   const [concept, setConcept] = useState<BillingConcept>("administracion");
   const [chargeMode, setChargeMode] = useState<"individual" | "batch">("individual");
+  const [coefficientDialogOpen, setCoefficientDialogOpen] = useState(false);
+  const cobroPorCoeficiente = useFeatureFlag("producto-cobro-por-coeficiente");
   const [scheduledFor, setScheduledFor] = useState("");
   const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
   const [createResult, setCreateResult] = useState<string | null>(null);
@@ -1357,6 +1361,11 @@ function AdminBillingPageContent() {
               </button>
             </div>
           </div>
+          {cobroPorCoeficiente ? (
+            <Button type="button" variant="outline" onClick={() => setCoefficientDialogOpen(true)}>
+              Generar por coeficiente
+            </Button>
+          ) : null}
           <label className="text-sm text-[var(--slate-700)]">
             Programar para (opcional)
             <input
@@ -2325,6 +2334,14 @@ function AdminBillingPageContent() {
         onSend={() => void handleSendOverdueBulkMessage()}
         isSending={isBulkSending}
       />
+      {user?.tenantId ? (
+        <CoefficientCampaignDialog
+          open={coefficientDialogOpen}
+          tenantId={user.tenantId}
+          onClose={() => setCoefficientDialogOpen(false)}
+          onCreated={() => setCreateResult("Corrida por coeficiente generada. Revisa las cuotas en la tabla y la campaña en “Campañas de cobro”.")}
+        />
+      ) : null}
     </section>
   );
 }

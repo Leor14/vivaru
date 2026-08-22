@@ -8,6 +8,28 @@ import { normalizeTower } from "@/utils/tower";
 
 const requiredText = (label: string, min = 2) => z.string().trim().min(min, `${label} es obligatorio`);
 
+/**
+ * Los campos de copropiedad (PRD-V-PLAT-001) llegan como texto del formulario
+ * y aquí se convierten: vacío → undefined (la unidad no participa), número
+ * inválido o fuera de rango → error con nombre. El coeficiente admite hasta 6
+ * decimales (D1); la validación de que la SUMA del conjunto cuadre no vive
+ * aquí — es de la corrida (R2) y la decide el servidor.
+ */
+const optionalBoundedNumber = (label: string, min: number, max: number) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .transform((val, ctx) => {
+      if (!val) return undefined;
+      const parsed = Number(val.replace(",", "."));
+      if (Number.isNaN(parsed) || parsed < min || parsed > max) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${label} debe ser un número entre ${min} y ${max}` });
+        return z.NEVER;
+      }
+      return parsed;
+    });
+
 export const unitSchema = z.object({
   displayName: requiredText("Nombre de unidad"),
   tower: z
@@ -18,6 +40,10 @@ export const unitSchema = z.object({
     .transform((val) => normalizeTower(val) || val.trim()),
   type: z.enum(["apartment", "house", "office", "other"]),
   status: z.enum(["active", "inactive"]),
+  coefficient: optionalBoundedNumber("Coeficiente", 0, 100),
+  monthlyFeeAmount: optionalBoundedNumber("Valor de expensa", 0, 1_000_000_000),
+  insuranceFeeAmount: optionalBoundedNumber("Valor de seguro", 0, 1_000_000_000),
+  areaSqm: optionalBoundedNumber("Área en m²", 0, 100_000),
 });
 
 export const personSchema = z.object({

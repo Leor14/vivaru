@@ -110,6 +110,52 @@ export async function createReservationRequestCallable(input: CreateReservationR
   return executeCallable(callable, input, "No fue posible crear la reserva en este momento.");
 }
 
+export type GenerateCoefficientCampaignInput = {
+  tenantId: string;
+  totalAmount: number;
+  /** `YYYY-MM`. */
+  period: string;
+  concept?: string;
+  dueDate?: string;
+  /** true = solo vista previa, no escribe nada. */
+  dryRun?: boolean;
+  operationKey: string;
+};
+
+export type CoefficientCampaignLine = {
+  unitId: string;
+  unitLabel: string;
+  coefficient: number;
+  amount: number;
+  roundingAdjustment: number;
+};
+
+export type GenerateCoefficientCampaignResult = {
+  ok: true;
+  dryRun: boolean;
+  campaignId?: string;
+  created?: boolean;
+  lines: CoefficientCampaignLine[];
+  total: number;
+  coefficientSum: number;
+};
+
+/**
+ * PRD-V-PLAT-001: corrida por coeficiente. La MISMA callable sirve la vista
+ * previa (dryRun) y la generación — el reparto vive solo en el servidor.
+ */
+export async function generateCoefficientCampaignCallable(input: GenerateCoefficientCampaignInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<GenerateCoefficientCampaignInput, GenerateCoefficientCampaignResult>(
+    functions,
+    "generateCoefficientCampaign",
+  );
+  return executeCallable(callable, input, "No fue posible generar la corrida por coeficiente.");
+}
+
 export type RegisterWalkInVisitInput = {
   tenantId: string;
   unitId: string;

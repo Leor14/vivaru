@@ -2,7 +2,7 @@
 
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
@@ -16,6 +16,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { db, storage } from "@/lib/firebase/client";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -34,6 +35,23 @@ export default function ResidentAccountPage() {
   // F1: el residente confirma el monto antes de enviar el comprobante.
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [declaredAmount, setDeclaredAmount] = useState("");
+
+  // Copropiedad de la unidad propia (PLAT-001, CA7): el residente ve su
+  // coeficiente y su expensa — R9: solo los suyos; la regla de units ya
+  // permite leer a cualquier miembro del conjunto.
+  const [unitOwnership, setUnitOwnership] = useState<{ coefficient?: number; monthlyFeeAmount?: number } | null>(null);
+
+  useEffect(() => {
+    if (!db || !user?.unitId) return;
+    return onSnapshot(doc(db, "units", user.unitId), (snap) => {
+      if (!snap.exists()) {
+        setUnitOwnership(null);
+        return;
+      }
+      const data = snap.data() as { coefficient?: number; monthlyFeeAmount?: number };
+      setUnitOwnership({ coefficient: data.coefficient, monthlyFeeAmount: data.monthlyFeeAmount });
+    });
+  }, [user?.unitId]);
 
   // Sort statements newest-first
   const sortedItems = [...items].sort((a, b) => (a.period > b.period ? -1 : 1));
@@ -157,6 +175,24 @@ export default function ResidentAccountPage() {
       ) : sortedItems.length > 0 ? (
         <div className="mt-4">
           <BillingHeroCard items={sortedItems} formatAmount={formatAmount} />
+        </div>
+      ) : null}
+
+      {/* Copropiedad (PLAT-001): visible solo si el conjunto cargó los datos. */}
+      {unitOwnership && (unitOwnership.coefficient != null || unitOwnership.monthlyFeeAmount != null) ? (
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2 text-xs text-[var(--slate-600)]">
+          {unitOwnership.coefficient != null ? (
+            <span>
+              Coeficiente de copropiedad de tu unidad:{" "}
+              <span className="font-medium text-[var(--slate-900)]">{unitOwnership.coefficient}%</span>
+            </span>
+          ) : null}
+          {unitOwnership.monthlyFeeAmount != null ? (
+            <span>
+              Expensa mensual:{" "}
+              <span className="font-medium text-[var(--slate-900)]">{formatAmount(unitOwnership.monthlyFeeAmount)}</span>
+            </span>
+          ) : null}
         </div>
       ) : null}
 

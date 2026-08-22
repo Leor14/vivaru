@@ -33,6 +33,7 @@ export type FeatureFlagKey =
   | "ia-proveedor-real"
   | "producto-importacion-masiva"
   | "producto-reservas-servidor"
+  | "producto-cobro-por-coeficiente"
   | "operacion-app-check-monitor";
 
 /**
@@ -55,6 +56,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   // Apagada = el residente sigue escribiendo directo (comportamiento de hoy).
   // Es el paso 2 del despliegue de PRD-V-FIX-001; ver el catálogo en `src/`.
   "producto-reservas-servidor": false,
+  // Apagada = sin botón de generar por coeficiente; la corrida plana sigue.
+  "producto-cobro-por-coeficiente": false,
   // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
   "operacion-app-check-monitor": true,

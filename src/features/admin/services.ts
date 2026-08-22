@@ -42,6 +42,18 @@ export type UnitItem = {
   createdAt: string;
   updatedAt: string;
   reservationExempt?: boolean;
+  // ── Copropiedad (PRD-V-PLAT-001 §7.1). Todos aditivos y opcionales: sin
+  // coeficiente, el conjunto sigue cobrando plano como siempre. ──────────────
+  /** Porcentaje de copropiedad, hasta 6 decimales (D1). Ausente = no participa del reparto. */
+  coefficient?: number;
+  /** Valor de expensa de la unidad, en la moneda del conjunto. */
+  monthlyFeeAmount?: number;
+  /** Valor de seguro, si el conjunto lo cobra aparte. */
+  insuranceFeeAmount?: number;
+  /** Área en m²: base alternativa de reparto y dato del certificado. */
+  areaSqm?: number;
+  /** A quién se emiten los cargos (id en `people`). Ausente = `ownerIds[0]` (R5). */
+  billingResponsiblePersonId?: string;
 };
 
 export type PersonItem = {
@@ -458,6 +470,10 @@ export async function createUnit(
     tower: string;
     type: UnitItem["type"];
     status: UnitItem["status"];
+    coefficient?: number;
+    monthlyFeeAmount?: number;
+    insuranceFeeAmount?: number;
+    areaSqm?: number;
   },
 ): Promise<{ id: string; unitId: string; displayName: string }> {
   const firestore = assertDb();
@@ -471,6 +487,12 @@ export async function createUnit(
     tower: normalizeTower(payload.tower) || payload.tower,
     type: payload.type,
     status: payload.status,
+    // Copropiedad (PLAT-001): solo se escribe lo que viene. Un campo ausente
+    // significa «no participa», no cero.
+    ...(payload.coefficient !== undefined ? { coefficient: payload.coefficient } : {}),
+    ...(payload.monthlyFeeAmount !== undefined ? { monthlyFeeAmount: payload.monthlyFeeAmount } : {}),
+    ...(payload.insuranceFeeAmount !== undefined ? { insuranceFeeAmount: payload.insuranceFeeAmount } : {}),
+    ...(payload.areaSqm !== undefined ? { areaSqm: payload.areaSqm } : {}),
     ownerIds: [],
     residentIds: [],
     createdBy: userId,
@@ -595,13 +617,25 @@ export async function updateUnit(
     tower: string;
     type: UnitItem["type"];
     status: UnitItem["status"];
+    coefficient?: number;
+    monthlyFeeAmount?: number;
+    insuranceFeeAmount?: number;
+    areaSqm?: number;
   },
 ) {
   const firestore = assertDb();
+  const { coefficient, monthlyFeeAmount, insuranceFeeAmount, areaSqm, ...rest } = payload;
   await updateDoc(doc(firestore, "units", id), {
-    ...payload,
+    ...rest,
     tower: normalizeTower(payload.tower) || payload.tower,
     unitId: payload.displayName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    // Copropiedad (PLAT-001): el formulario siempre manda el juego completo,
+    // así que aquí vacío = borrar el valor (deleteField), no ignorarlo. Si se
+    // ignorara, un coeficiente mal cargado no se podría quitar nunca.
+    coefficient: coefficient !== undefined ? coefficient : deleteField(),
+    monthlyFeeAmount: monthlyFeeAmount !== undefined ? monthlyFeeAmount : deleteField(),
+    insuranceFeeAmount: insuranceFeeAmount !== undefined ? insuranceFeeAmount : deleteField(),
+    areaSqm: areaSqm !== undefined ? areaSqm : deleteField(),
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });

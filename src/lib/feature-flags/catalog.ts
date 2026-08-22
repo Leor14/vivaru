@@ -51,6 +51,7 @@ export type FeatureFlagKey =
   | "ia-proveedor-real"
   | "producto-importacion-masiva"
   | "producto-reservas-servidor"
+  | "producto-cobro-por-coeficiente"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -175,6 +176,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FIX-001 — reglas de reserva en el servidor, entrega 1",
     alApagar:
       "El residente vuelve a crear la reserva escribiendo directo, con las comprobaciones solo en el navegador — el comportamiento de hoy. Nada se rompe mientras la regla de Firestore siga abierta; por eso la regla no se cierra hasta que esta bandera lleve tiempo encendida sin escrituras directas.",
+  },
+  "producto-cobro-por-coeficiente": {
+    key: "producto-cobro-por-coeficiente",
+    area: "producto",
+    label: "Corrida de cobro por coeficiente",
+    description:
+      "Genera la cuota del período repartiendo un total entre las unidades según su coeficiente de copropiedad, con vista previa calculada por el servidor.",
+    // Nace apagada: capacidad nueva. Los campos de la unidad (coeficiente,
+    // expensa) se pueden cargar con la bandera apagada — son parte de la
+    // puesta en marcha — pero el botón de generar no aparece hasta encenderla.
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-001 — copropiedad y modelo de unidad",
+    alApagar:
+      "Desaparece el botón de generar por coeficiente. La corrida plana de siempre sigue intacta, y los coeficientes ya cargados se conservan sin efecto.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

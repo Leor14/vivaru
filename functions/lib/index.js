@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -58,6 +58,7 @@ const support_1 = require("./support");
 const payments_1 = require("./payments");
 const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
+const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
@@ -3287,6 +3288,42 @@ exports.createReservationRequest = (0, https_1.onCall)({ cors: http_config_1.cal
         createdByName: normalizeText(data.createdByName) ||
             (typeof membership.fullName === "string" ? membership.fullName : ""),
     }, uid);
+});
+// ── PLAT-001 · corrida de cobro por coeficiente ──────────────────────────────
+//
+// La lógica y la aritmética del reparto viven en `coefficient-billing.ts`;
+// aquí solo se valida la sesión. La MISMA callable sirve la vista previa
+// (`dryRun: true`, no escribe nada) y la generación: así el reparto no vive
+// duplicado entre cliente y servidor.
+exports.generateCoefficientCampaign = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.period || typeof data.totalAmount !== "number" || !data.operationKey) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para generar la corrida.");
+    }
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    const resultado = await (0, coefficient_billing_1.generarCorridaPorCoeficiente)({
+        tenantId: data.tenantId,
+        totalAmount: data.totalAmount,
+        period: normalizeText(data.period),
+        concept: normalizeText(data.concept) || undefined,
+        dueDate: normalizeText(data.dueDate) || undefined,
+        dryRun: data.dryRun === true,
+        operationKey: normalizeText(data.operationKey),
+    }, uid);
+    // Solo se audita lo que escribió de verdad: ni la vista previa ni el
+    // reintento idempotente dejan rastro doble.
+    if (!resultado.dryRun && resultado.created) {
+        await writeAuditLog(data.tenantId, uid, "generate_coefficient_campaign", {
+            campaignId: resultado.campaignId,
+            period: data.period,
+            totalDistributed: resultado.total,
+            unitCount: resultado.lines.length,
+        });
+    }
+    return resultado;
 });
 // ── FIN-001 · aplicación de pagos ────────────────────────────────────────────
 //

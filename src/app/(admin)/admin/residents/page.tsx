@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Building2, FilterX, KeyRound, Search, Upload, UserCheck, UserPlus, Users2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -138,13 +139,19 @@ export default function AdminResidentsPage() {
     }>
   >([]);
 
-  const unitForm = useForm<UnitInput>({
+  // Tres genéricos: los campos de copropiedad son texto en el formulario y
+  // número tras el schema (PLAT-001). handleSubmit entrega el tipo de salida.
+  const unitForm = useForm<z.input<typeof unitSchema>, unknown, UnitInput>({
     resolver: zodResolver(unitSchema),
     defaultValues: {
       displayName: "",
       tower: "",
       type: "apartment",
       status: "active",
+      coefficient: "",
+      monthlyFeeAmount: "",
+      insuranceFeeAmount: "",
+      areaSqm: "",
     },
   });
 
@@ -513,6 +520,10 @@ export default function AdminResidentsPage() {
       tower: towerOptions.length === 1 ? towerOptions[0] : "",
       type: "apartment",
       status: "active",
+      coefficient: "",
+      monthlyFeeAmount: "",
+      insuranceFeeAmount: "",
+      areaSqm: "",
     });
     personForm.reset({
       fullName: "",
@@ -540,6 +551,10 @@ export default function AdminResidentsPage() {
       tower: normalizeTower(unit.tower),
       type: unit.type,
       status: unit.status,
+      coefficient: unit.coefficient != null ? String(unit.coefficient) : "",
+      monthlyFeeAmount: unit.monthlyFeeAmount != null ? String(unit.monthlyFeeAmount) : "",
+      insuranceFeeAmount: unit.insuranceFeeAmount != null ? String(unit.insuranceFeeAmount) : "",
+      areaSqm: unit.areaSqm != null ? String(unit.areaSqm) : "",
     });
     personForm.reset({
       fullName: "",
@@ -664,8 +679,10 @@ export default function AdminResidentsPage() {
     }
 
     // getValues() devuelve los valores CRUDOS del form (el transform de zod solo
-    // aplica vía handleSubmit) — normalizar aquí explícitamente.
-    const unitValues = { ...unitForm.getValues() };
+    // aplica vía handleSubmit) — el parse aplica los transforms (torre canónica
+    // y los campos de copropiedad de texto a número). trigger() ya validó, así
+    // que aquí no puede fallar.
+    const unitValues = unitSchema.parse(unitForm.getValues());
     unitValues.tower = normalizeTower(unitValues.tower) || DEFAULT_TOWER;
 
     if (editingUnit) {
@@ -1474,6 +1491,28 @@ export default function AdminResidentsPage() {
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
                 </select>
+              </label>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="text-sm text-[var(--slate-700)]">
+                Coeficiente de copropiedad (%)
+                <Input className="mt-1" inputMode="decimal" {...unitForm.register("coefficient")} placeholder="Ej: 1.769387" />
+                {unitForm.formState.errors.coefficient ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.coefficient.message}</p> : null}
+              </label>
+              <label className="text-sm text-[var(--slate-700)]">
+                Valor de expensa mensual
+                <Input className="mt-1" inputMode="decimal" {...unitForm.register("monthlyFeeAmount")} placeholder="Ej: 140.40" />
+                {unitForm.formState.errors.monthlyFeeAmount ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.monthlyFeeAmount.message}</p> : null}
+              </label>
+              <label className="text-sm text-[var(--slate-700)]">
+                Valor de seguro
+                <Input className="mt-1" inputMode="decimal" {...unitForm.register("insuranceFeeAmount")} placeholder="Opcional" />
+                {unitForm.formState.errors.insuranceFeeAmount ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.insuranceFeeAmount.message}</p> : null}
+              </label>
+              <label className="text-sm text-[var(--slate-700)]">
+                Área (m²)
+                <Input className="mt-1" inputMode="decimal" {...unitForm.register("areaSqm")} placeholder="Ej: 72.5" />
+                {unitForm.formState.errors.areaSqm ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.areaSqm.message}</p> : null}
               </label>
             </div>
             <div className="mt-3">

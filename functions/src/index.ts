@@ -33,6 +33,7 @@ import {
   type RevocarAccesoInput,
 } from "./resident-access";
 import { crearReserva, type CrearReservaInput } from "./reservations";
+import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -4124,6 +4125,53 @@ export const createReservationRequest = onCall<CrearReservaInput>(
       },
       uid,
     );
+  },
+);
+
+// ── PLAT-001 · corrida de cobro por coeficiente ──────────────────────────────
+//
+// La lógica y la aritmética del reparto viven en `coefficient-billing.ts`;
+// aquí solo se valida la sesión. La MISMA callable sirve la vista previa
+// (`dryRun: true`, no escribe nada) y la generación: así el reparto no vive
+// duplicado entre cliente y servidor.
+export const generateCoefficientCampaign = onCall<GenerarCorridaInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.period || typeof data.totalAmount !== "number" || !data.operationKey) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para generar la corrida.");
+    }
+
+    await assertActiveTenantAdmin(data.tenantId, uid);
+
+    const resultado = await generarCorridaPorCoeficiente(
+      {
+        tenantId: data.tenantId,
+        totalAmount: data.totalAmount,
+        period: normalizeText(data.period),
+        concept: normalizeText(data.concept) || undefined,
+        dueDate: normalizeText(data.dueDate) || undefined,
+        dryRun: data.dryRun === true,
+        operationKey: normalizeText(data.operationKey),
+      },
+      uid,
+    );
+
+    // Solo se audita lo que escribió de verdad: ni la vista previa ni el
+    // reintento idempotente dejan rastro doble.
+    if (!resultado.dryRun && resultado.created) {
+      await writeAuditLog(data.tenantId, uid, "generate_coefficient_campaign", {
+        campaignId: resultado.campaignId,
+        period: data.period,
+        totalDistributed: resultado.total,
+        unitCount: resultado.lines.length,
+      });
+    }
+
+    return resultado;
   },
 );
 
