@@ -1,13 +1,62 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el **22 de agosto de 2026, tarde**: el expediente de Albert se cerró entero
-—intercambio, alta y A1— y arrancó `PLAT-003`. Cuatro puntos salen de la lista.
+Actualizado el **22 de agosto de 2026, noche**: `PLAT-003` **entrega 1b-i construida y
+commiteada**. Antes, esa misma tarde, se cerró entero el expediente de Albert.
 
-## LO PRIMERO AL ABRIR SESIÓN (22 ago 2026, tarde)
+## LO PRIMERO AL ABRIR SESIÓN (22 ago 2026, noche)
 
-**`develop` = `41eeb9c`, empujado y verificado** (`origin/develop` releído, no supuesto).
+**`develop` local = `1635ac2` — COMMITEADO PERO NO EMPUJADO.** El push lo bloqueó el
+clasificador de auto mode, no un fallo de git. `origin/develop` sigue en `2ffa894`.
+**Lo primero al abrir sesión es empujarlo y releer el remoto**; hasta entonces 1b-i vive
+solo en esta máquina y no está ni en staging.
 `master` sigue en `d17478d`: **nada de esto está en producción.**
+
+### `PLAT-003` 1b-i — la exclusión del libro, HECHA (`1635ac2`)
+
+El trozo pequeño y seguro: **solo** la corrección de la exclusión, sin tocar `aplicarPago`.
+La regla R12 pasa a mirar el **origen** del asiento (`sourceType === "billingStatement"`) y
+no su categoría. **Va sin bandera**, porque con la bandera apagada todo asiento de cobro es
+las dos cosas a la vez.
+
+**La regla de orden, escrita como es y no como se venía leyendo:** no es «las dos juntas»,
+es **la exclusión primero, o a la vez, nunca después**. Escribir la cuenta del concepto y
+arreglar la exclusión luego es desplegar el doble conteo. §13 de la PRD ya lo dice así.
+
+**Dos cosas que encontró construir, y que leer no había visto:**
+
+1. **Los sitios eran TRES, no dos.** Faltaba `use-committee-report.ts:623`, con la forma
+   idéntica —`ingresos = recaudado + ingresosOtros`— en la tendencia de doce meses del
+   consejo. Ahora la exclusión es **un predicado exportado**, `esRecaudoDeCartera`, y no la
+   misma línea copiada. Fue copiarla lo que dejó un sitio fuera del inventario.
+2. **El reverso del pago es la misma mina, en negativo** — regla **R13**, nueva. Hoy
+   `revertirPago` escribe `sourceType: "reversal"` + `alicuota` y se excluye por la segunda
+   rama; en cuanto R7 le ponga la cuenta del concepto dejará de excluirse y su monto
+   negativo entrará en el libro con Cartera ya descontándolo. **R13 va en 1b-ii**, con R6 y
+   R7. No se puede olvidar: es el mismo defecto que esta entrega arregla, mirando al revés.
+
+**El tripwire de la medición saltó, y con el signo contrario al esperado.** Se leyeron los
+dos ambientes antes de tocar nada (`functions/scripts/auditar-exclusion-libro.mjs` y
+`medir-delta-exclusion-libro.mjs`, los dos de solo lectura). Sí existe un asiento
+`billingStatement` con categoría distinta de `alicuota` —en producción **y** en staging, con
+el mismo id— y lo siembra `seed-data-playas.mjs:248`, **que ya escribe la cuenta del concepto
+desde antes**. Su cargo está pagado, así que sus 1.500 están hoy en `cuotaIncome` y en
+`ledgerIncome` a la vez: **el doble conteo que la PRD decía que este cambio introduciría ya
+existía**. Esto lo quita. `conjunto-las-playas` pasa de 129.000 a 127.500 —lo que Cartera dice
+que recaudó— y los otros trece conjuntos no se mueven. **David decidió desplegarlo tal cual**
+(22 ago): con cero clientes reales es el momento más barato.
+
+**Sin cambios en `functions/`:** 1b-i no necesita recompilar ni desplegar functions. Es front,
+y en staging entra por el push a `develop`.
+
+**Lo siguiente es 1b-ii**, y ahí sí se toca dinero vivo: `accountCode` en `aplicarPago` y
+`revertirPago`, R13, la semilla en el alta y las reglas con id derivado, todo detrás de
+`producto-concepto-al-libro`.
+
+**Un descuadre suelto, de otro frente:** `conjunto-las-playas` está marcado `isExample` en
+producción y **no** en staging. Descuadra cualquier volumetría que descuente lo sembrado —el
+mismo error que ya infló el baseline dos veces en agosto—. Anotado a propósito y **no
+corregido**: es una escritura en staging fuera del alcance de una sesión de dinero vivo.
 
 ### Albert dejó de ser un frente abierto, y los dos equipos van por separado a propósito
 
@@ -57,10 +106,14 @@ La PRD pasó a **1.1**. Los dos hallazgos, en `PRD-V-PLAT-003` §2 y §8:
 concepto→cuenta— con 22 pruebas, y las dos banderas **apagadas** y registradas en los
 cuatro sitios del catálogo.
 
-**Lo siguiente es la entrega 1b, y es de otro calibre:** reglas con id derivado, la semilla
-dentro del alta, y `accountCode` en `aplicarPago`/`revertirPago` **junto con la corrección
-de la exclusión** — las dos en el mismo despliegue, porque separarlas es desplegar el doble
-conteo. Ahí se toca dinero vivo.
+**~~Lo siguiente es la entrega 1b~~ — 1b se partió en dos, y la primera mitad ya está hecha.**
+Esta línea decía que la corrección de la exclusión y `accountCode` iban «las dos en el mismo
+despliegue, porque separarlas es desplegar el doble conteo». **Era cierta a medias y por eso
+engañaba:** lo que no se puede es desplegarlas **al revés**. La exclusión sola es inocua —con
+la bandera apagada todo asiento de cobro es `billingStatement` **y** `alicuota`—, así que
+puede ir sola y antes, y así fue: **1b-i está en `1635ac2`** (ver arriba). Lo que queda es
+**1b-ii**: reglas con id derivado, la semilla dentro del alta, y `accountCode` en
+`aplicarPago`/`revertirPago` con **R13**. Ahí se toca dinero vivo.
 
 **Nada de esto necesita desplegar functions todavía:** el módulo aún no lo llama nadie.
 
