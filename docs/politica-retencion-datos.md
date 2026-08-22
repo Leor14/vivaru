@@ -44,9 +44,40 @@ Esto **no es un descuido**: es la contrapartida de la coherencia. La alternativa
 identificador que **reidentifica** mientras el lead exista de nuestro lado. Se eligió
 minimizar la reidentificación y asumir la ventana corta.
 
-**Cuándo volver sobre esto:** con el primer cliente real que ejerza un derecho de
-supresión, o con el primer contrato que nos imponga una ventana probatoria más larga.
-Cualquiera de los dos convierte este riesgo teórico en uno concreto.
+**Cuándo volver sobre esto — ya no es «cuando alguien se acuerde».** Ver la condición de
+vigilancia de abajo, que es lo que salió de discutirlo con Albert el 22 de agosto.
+
+### Condición de vigilancia del número 2 — escrita para que se revise sola
+
+Albert recomendó subir el n.º 2 a 24–36 meses, y su argumento era bueno: el registro de
+borrado **deja de reidentificar** en cuanto el lead muere en Vivaru, porque `vivaruLeadId`
+pasa a ser un puntero colgante. Si eso fuese cierto hoy, 12 sería un número mal elegido.
+
+**Se fue a medir y la premisa no se cumple** (22 ago 2026): `eraseByExternalRef` **no se
+invoca desde ningún sitio** de Vivaru, y `leads` **no tiene ventana** (§3). O sea que **hoy
+nada borra un lead**, el puntero apunta a un registro vivo y **sigue reidentificando** — que
+es exactamente la razón por la que se eligió 12.
+
+Su argumento no era falso: era **condicional**, y la condición es una pieza nuestra que aún
+no existe.
+
+> **CONDICIÓN — redacción de Vivaru, comprobable en casa:**
+> El número 2 permanece en **12 meses** mientras **no exista en el código de Vivaru un
+> camino de supresión que borre el lead e invoque `eraseByExternalRef` en la misma
+> operación**. El día que exista, el puntero cuelga de verdad y **el número 2 se revisa al
+> alza**.
+>
+> **Cómo se comprueba:** `grep -rn "eraseByExternalRef" src/ functions/src/`.
+> **Estado hoy (22 ago 2026): cero apariciones.**
+
+**Por qué la redacción es nuestra y no la suya.** Albert la escribió como *«mientras
+`eraseByExternalRef` no reciba llamadas originadas en Vivaru»*, que es observable **desde su
+lado** — nosotros no vemos sus invocaciones. Misma condición, una redacción por casa, para
+que ninguno dependa del otro para verificarla. La suya vive en su
+`docs/POLITICA-RETENCION-ALBERT.md`.
+
+**Y subirlo será barato:** Albert construyó los dos números como **parámetros
+independientes**, así que cambiar el 2 no toca el 1 ni pide despliegue.
 
 ---
 
@@ -82,7 +113,7 @@ Quedan fuera, al menos:
 |---|---|---|
 | `tickets` | PQRS en **texto libre**, donde el residente escribe lo que quiera | Sin ventana |
 | `people` | Residentes y su información de contacto | Sin ventana |
-| `leads` | Interesados comerciales del lado Vivaru | Sin ventana |
+| `leads` | Interesados comerciales del lado Vivaru | Sin ventana. **Es la que sostiene la condición de vigilancia del §1**: mientras un lead viva para siempre, el registro de borrado de Albert sigue reidentificando |
 | `errorLogs` | Errores del navegador, que pueden arrastrar contexto | Sin ventana |
 
 **El más incómodo es `tickets`**, y por la misma razón que Albert descubrió en su
@@ -94,12 +125,12 @@ esto cuánto vive?» la respuesta no sea un silencio.
 
 ---
 
-## 4. Qué hay que mandarle a Albert
+## 4. Lo que se le mandó a Albert — HECHO y aceptado
 
-Los dos números del §1, y una frase: **la ventana del registro de auditoría arranca en la
-fecha del borrado, no en la del deal.** Sin eso, «12 meses» es ambiguo para el segundo
-número y podría implementarlo contra el reloj equivocado.
+Los dos números salieron en `DECISIONES-A-002` (21 ago) con la frase del reloj: **la ventana
+del registro de auditoría arranca en la fecha del borrado, no en la del deal.** Sin ella,
+«12 meses» era ambiguo y podía cablearse contra el reloj equivocado — que además era el que
+tenían más a mano.
 
-Va junto con el resto del intercambio, no por canal aparte — **el canal aparte es solo
-para el correo del `tenant_admin`**, que Albert pidió expresamente que no viajara dentro
-de ningún documento.
+**Aceptados los dos en `RESPUESTA-A-004`** (22 ago), con la condición de vigilancia del §1
+recogida en ambos lados. **B3 deja de estar bloqueado por nosotros.**

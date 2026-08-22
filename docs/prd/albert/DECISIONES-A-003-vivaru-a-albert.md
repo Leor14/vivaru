@@ -71,6 +71,15 @@ O sea: «vuestro DPO» somos nosotros. La decisión de arriba es la nuestra, tom
 información que tenemos, y queda por escrito que nos avisasteis del hueco — igual que
 queda por escrito que os avisamos de que la premisa todavía no se cumple.
 
+> **Nota añadida al repositorio el 22 de agosto por la tarde, después de mandarlo.** El
+> párrafo de abajo dice que nuestra política «no dice lo que no cubre». **Es falso, y no se
+> corrige el texto enviado a propósito — se anota.** El §3 de
+> `docs/politica-retencion-datos.md` se titula literalmente «Lo que esta política NO cubre —
+> los huecos, dichos en voz alta» y **lista `leads` entre ellos**. El hecho de fondo —que los
+> leads no tienen ventana— es cierto y es lo que sostiene el argumento; lo equivocado era
+> decir que no estaba escrito. Se afirmó lo que un documento decía sin abrirlo, que es el
+> error que este mismo expediente lleva tres rondas nombrando en otros.
+
 ### Un hueco de nuestra casa que sale de aquí, y lo decimos nosotros
 
 Nuestra política de retención presenta su inventario como *«leído del código, no

@@ -1,80 +1,24 @@
 # Estado de Albert ↔ Vivaru
 
 > Documento **vivo**: se reescribe, no se acumula. Es el sitio donde mirar para retomar
-> sin releer los cuatro documentos del intercambio.
-> **Actualizado: 22 de agosto de 2026** — los dos números de retención están decididos
-> (§4.2) y lo que queda de ellos es comunicarlos, no pensarlos. Añadido §4.0 con el
-> estado del código medido, que **reordena lo técnico**: el freno de la invariante va
-> dentro del empuje, no antes.
+> sin releer los nueve documentos del intercambio.
+> **Actualizado: 22 de agosto de 2026, tarde** — el intercambio documental **está cerrado**,
+> el alta A5 **está ejecutada**, **A1 está publicado en producción** y la validación de
+> `crmRef` **está construida y en staging**. Lo que queda es de otra clase: ver §4.0.
 
 ---
 
 ## En una frase
 
-**El contrato técnico está cerrado y no queda ninguna pregunta abierta con Albert.** Lo
-que falta es de dos clases: **dos mensajes que tiene que mandar David** —el correo del
-`tenant_admin` para el alta, y los dos números de retención ya decididos— y **dos piezas
-que Vivaru tiene que construir**: el freno de la invariante y las referencias
-cruzadas. **Ya no queda nada por decidir.** Albert no
-bloquea nada salvo la fecha de su propio A1, y esa no bloquea construir — solo probar.
+**Ya no hay nada bloqueado por Albert, ni nada pendiente de decidir con ellos.** El
+contrato se cerró en nueve documentos, el tenant `vivaru` existe con su usuario de
+servicio, y A1 salió en producción **antes** de la ventana comprometida. Lo que queda es
+trabajo nuestro —el empuje de leads con su freno, y el camino de supresión— más **una
+pregunta técnica de una línea** que hay que hacerles antes de escribir el empuje (§4.4).
 
----
-
-## Lo primero mañana, por orden
-
-| # | Qué | Quién | Por qué primero |
-|---|---|---|---|
-| **1** | **Mandar el `tenant_admin` por el canal** — decidido: `comercial@qintilab.com` | **David** | Es un mensaje, y **abre la segunda mitad de `REVOPS-001C`** (ver §5). Sin alta no hay usuario de servicio; sin usuario de servicio no hay credencial con la que leer sus deals. **Ojo: es provisional, ver abajo** |
-| **2** | **Mandar `DECISIONES-A-002`** — retención, canal y fecha de A1 | **David** | Ya redactado y sin mandar. Cierra su B3 y reclama lo único que él debe |
-| **3** | Construir el freno de la invariante contacto→deal | Técnico | Es una promesa que hoy no vigila nadie. Ver §4.1 |
-| **4** | Validar las dos referencias cruzadas | Técnico | Una es texto libre sin validar; la otra no existe. Ver §4.3 |
-
-**Ojo con el correo del punto 1:** Albert pide **expresamente** que no vaya dentro de
-ningún documento del intercambio, sino por el canal. Por eso **no está** en
-`DECISIONES-A-002` —comprobado, el documento no contiene ninguna dirección— y **no debe
-añadirse ahí**.
-
-#### El `tenant_admin` es `comercial@qintilab.com`, y es provisional a propósito
-
-**Decidido por David el 21 de agosto de 2026, con el riesgo sobre la mesa.** El motivo es
-que **Vivaru no tiene hoy ningún buzón propio que sirva**, y habría que crearlo — y crear
-un buzón no puede frenar una semana lo que abre `REVOPS-001C`.
-
-**Qué se acepta al elegirlo.** No es un buzón personal: el propio repositorio lo describe
-como *«un buzón compartido, admite lista separada por comas»*, y es el destino de todos
-los avisos de leads y demos en producción. Consecuencias reales:
-
-- **Quien lea ese buzón puede recuperar la cuenta** y, con ella, reconfigurar el pipeline
-  — la etapa «en prueba» incluida, que es lo único que el `tenant_admin` protege.
-- **Al ser `@qintilab.com`**, el dominio que comparten Vivaru y Albert, la frase que
-  repiten los cuatro documentos —el `tenant_admin` es nuestro «para que en prueba no
-  dependa de nadie más»— **no es del todo cierta en la práctica**. Queda dicho aquí para
-  que nadie la lea como garantía.
-- **Mezcla dos funciones:** el buzón que recibe los leads pasa a ser también la identidad
-  que administra el CRM donde esos leads acaban.
-
-**La corrección, cuando exista un buzón de Vivaru.** Cambiar el `tenant_admin` después es
-barato: se le pide a un superadmin de Albert. **El criterio no es el dominio, es quién
-puede leerlo** — una dirección dedicada deja el control de recuperación donde debe estar.
-
-**Y un desprendimiento que no es de este expediente pero salió aquí.** El dominio
-`grupovivaru.com` tiene **cuatro direcciones publicadas en los documentos legales del
-sitio**: `privacidad@` (canal para ejercer derechos y reportar incidentes, citado siete
-veces en la política de privacidad), `soporte@` (con tiempos de respuesta comprometidos
-en los términos), `facturacion@` y `hola@` (correo de contacto de Qintilab S.A.S., junto
-al NIT). **Si esos buzones no reciben, es un problema mayor que éste** — no se pudo
-comprobar desde el repositorio.
-
-**El canal: uno, no dos.** Los documentos de ambos lados hablaban de un «canal aparte» y
-un «canal de coordinación» como si fueran distintos, y **ninguno decía cuál era**.
-`DECISIONES-A-002` §2 propone **un único canal por correo** con una regla de una línea:
-*el repositorio lleva las decisiones; el correo lleva los datos personales, las
-credenciales y las fechas.* Pendiente de que Albert confirme quién lo recibe.
-
-**Y algo que no estaba escrito en ninguna parte:** cuando Albert devuelva el usuario de
-servicio, **esa credencial no entra en el repositorio** — va a Secret Manager, como la
-clave de Resend. Queda fijado en `DECISIONES-A-002` §2 *antes* de que la credencial
-exista, que es cuando se puede fijar sin prisa.
+**Y los dos equipos dejaron de ir en paralelo, a propósito** (decisión de David, 22 ago):
+Albert avanza con su roadmap y Vivaru con el lote de Habitanto. No hay nada urgente que
+obligue a sincronizarlos.
 
 ---
 
@@ -85,178 +29,195 @@ de los socios del 17 de agosto de 2026 no fue «conectar Albert con Vivaru»: fu
 Albert a las reglas de negocio de Vivaru**, y el mecanismo es que **Vivaru redacta PRDs y
 Albert los desarrolla**.
 
-El propósito excede al CRM: estrena la hipótesis de que **las soluciones de Qintilab se
-adaptan a la naturaleza de cada cliente**, y no al revés. Vivaru es el primer caso.
-
-**Vivaru es tenant de Albert.** Ese encuadre —decidido en la ronda de agosto— es el que
-tumba media lista de bloqueos antiguos, y es el detalle que más veces se ha olvidado al
-leer documentos viejos. Ver §5.
+**Vivaru es tenant de Albert.** Ese encuadre es el que tumbó media lista de bloqueos
+antiguos, y es el detalle que más veces se ha olvidado al leer documentos viejos. Ver §5.
 
 ---
 
-## 2. El intercambio, en cuatro documentos
+## 2. El intercambio — CERRADO en nueve documentos
 
-Todos en `docs/prd/albert/`.
+Todos en `docs/prd/albert/`. **`DECISIONES-A-004` lo declara cerrado explícitamente**, y esa
+declaración es parte del trabajo: un intercambio que nadie cierra sigue por inercia.
 
 | Documento | Fecha | Qué es |
 |---|---|---|
-| `CONSULTA-A-001-preguntas-para-albert.md` | 19 ago | Trece preguntas de Vivaru, ordenadas por urgencia |
-| `RESPUESTA-A-001-albert-a-vivaru.md` | 19 ago | Las contesta todas, citando `archivo:línea` de su repo. **Aquí está el C1 que desbloquea `REVOPS-001C`** |
-| `DECISIONES-A-001-vivaru-a-albert.md` | 19 ago | Vivaru cierra las seis decisiones y **le nombra dos contradicciones de su propia respuesta** |
-| `RESPUESTA-A-002-albert-a-vivaru.md` | 19 ago | **Nos da la razón en las dos sin regatear**, confirma las seis y corrige su frase «sin PII» |
-| `DECISIONES-A-002-vivaru-a-albert.md` | **21 ago** | **REDACTADO, SIN MANDAR.** Los dos números de retención (12 y 12, con la frase del reloj), la propuesta de **un solo canal**, y la reclamación de la fecha de A1 |
+| `CONSULTA-A-001` | 19 ago | Trece preguntas de Vivaru |
+| `RESPUESTA-A-001` | 19 ago | Las contesta todas citando `archivo:línea`. **Aquí está el C1 que desbloquea `REVOPS-001C`** |
+| `DECISIONES-A-001` | 19 ago | Cierra seis decisiones y **le nombra dos contradicciones suyas** |
+| `RESPUESTA-A-002` | 19 ago | **Da la razón en las dos sin regatear** |
+| `DECISIONES-A-002` | 21 ago | Los dos números de retención, el canal único, y la reclamación de la fecha de A1 |
+| `RESPUESTA-A-003` | 22 ago | Acepta 12 y 12 pero **recomienda subir el n.º 2**; dice sí al canal; **anuncia la fecha de A1 y deja el marcador vacío** |
+| `DECISIONES-A-003` | 22 ago | Contesta su recomendación **con una medición que le da la vuelta**; resuelve la deriva de `crmRef`; nombra que el documento anunció lo que no entregaba |
+| `RESPUESTA-A-004` | 22 ago | Concede las tres. **Entrega el rango de A1** y regala la idempotencia de `eraseByExternalRef` |
+| `DECISIONES-A-004` | 22 ago | Ata «esta semana» al calendario, declina el adelanto del esquema, **y cierra el intercambio** |
 
-Además: `PRD-A-OPS-001-vista-de-leads-vivaru.md` — el primer PRD, en borrador, con el §5
-(flujos comerciales) en `TBD`.
+Después, fuera del hilo numerado: su **estado de integración** (22 ago) y una **ronda de
+dudas** contestada por el canal. Ambos recogidos aquí.
 
 ---
 
 ## 3. Lo que está CERRADO — el contrato
 
-No hace falta volver a discutir nada de esto.
+| Punto | Qué quedó | Estado |
+|---|---|---|
+| **A1 · Campos propios en el deal** | `externalRef {system,leadId}`, `estimatedUnits`, `country` (ISO-2) + `consent` en el contacto + índice | ✅ **PUBLICADO en producción** el 22 ago, antes de la ventana |
+| **A2 · Importe** | `amount: 0` al entrar, cifra al calificar. Sin `is_estimate` | ✅ |
+| **B1 · Supresión** | Callable `eraseByExternalRef`, dos llaves, **e idempotente** | 🟡 Por construir (Albert) |
+| **B2 · Consentimiento** | **Solo en el contacto**; `acceptedAt` lo pone nuestro servidor | ✅ Decidido |
+| **B3 · Retención** | **12 y 12**, `updatedAt` del deal / fecha del borrado. Dos parámetros independientes | ✅ Cerrado. 🟡 Por construir (Albert) |
+| **C1 · Leer sus deals** | `onSnapshot` sobre `tenants/vivaru/deals`. Sin trigger, sin webhook, sin OIDC | ✅ |
+| **C2 · Identidad de escritura** | Usuario de servicio del tenant, rol `sales`, **SDK cliente directo a Firestore** | ✅ Creado |
+| **A5 · Alta del tenant** | `tenantId = vivaru` | ✅ **EJECUTADA** el 22 ago |
 
-| Punto | Qué quedó |
-|---|---|
-| **A1 · Campos propios en el deal** | Bloque **tipado y opcional**, no un mapa genérico: `externalRef {system:"vivaru", leadId}`, `estimatedUnits`, `country` (ISO de dos letras). Aditivo, sin migración. Más un índice sobre `externalRef.leadId` |
-| **A2 · Importe** | `amount: 0` al entrar, cifra al calificar. **Sin campo `is_estimate`.** Un `0` no distorsiona el ingreso ganado ni el forecast |
-| **B1 · Supresión** | Callable `eraseByExternalRef`, y acepta **las dos llaves**: `{tenantId, vivaruLeadId}` y `{tenantId, dealId}` |
-| **B2 · Consentimiento** | **Solo en el contacto**, retirado del deal. `acceptedAt` lo pone el servidor de Vivaru |
-| **B3 · Retención** | Criterio: **`updatedAt` del deal**. La N queda **parametrizable**, no cableada |
-| **C1 · Leer sus deals** | **Sí, sin impedimento.** Ver §5 — es lo más importante del expediente |
-| **C2 · Identidad de escritura** | **Usuario de servicio del tenant**, sin Cloud Function intermedia. `displayName` = `integracion-vivaru`, rol `sales` |
-| **A5 · Alta del tenant** | `tenantId` = `vivaru`. Es **operación, no desarrollo**: lo ejecuta un superadmin de Albert |
+**El alta devolvió lo acordado y se verificó, no se supuso.** `tenants/vivaru` existe y está
+`active`; el rol `sales` está confirmado **en tres sitios** —custom claims, `users/{uid}` y
+`tenants/vivaru/users/{uid}`—. Y como `canWriteTenantData` incluye `sales`, la identidad
+sirve para leer **y** para escribir.
+
+**Los identificadores y las credenciales NO están en este repositorio**, y es la regla que
+fijamos en `DECISIONES-A-002` §2 antes de que existieran: *el repositorio lleva las
+decisiones; el correo lleva los datos personales, las credenciales y las fechas.* Viven en
+el canal. La contraseña del usuario de servicio va a **Secret Manager**.
 
 **Dos precisiones suyas que conviene no olvidar:**
 
-- **La auditoría guarda el `uid`, no el nombre legible.** En `createdBy`/`updatedBy`
-  quedará el `uid` del usuario de servicio, no la cadena `integracion-vivaru`. La
-  trazabilidad existe, pero se resuelve mirando el documento del usuario.
-- **Normalizan el correo a minúsculas.** Cualquier cruce nuestro debe normalizar igual o
-  fallará **en silencio**.
-
-**Y una cosa que ya está bien de nuestro lado:** el `country` que Vivaru empezó a guardar
-el 19 de agosto **ya encaja** con lo que pide — código ISO de dos letras, salido de un
-selector cerrado. No hay que rehacerlo. Verificado leyendo el código.
+- **La auditoría guarda el `uid`, no el nombre legible.** En `createdBy`/`updatedBy` queda
+  el `uid` del usuario de servicio. La trazabilidad existe, pero se resuelve mirando el
+  documento del usuario — y por eso el `displayName` importa (§4.5).
+- **Normalizan el correo a minúsculas.** Nuestro `saveSalesRep` ya lo hace
+  (`sales-reps.ts:107`). Verificado.
 
 ---
 
 ## 4. Lo que le toca a VIVARU
 
-Esto es la deuda real, y toda es nuestra.
-
-### 4.0 · El estado del código, verificado el 22 de agosto de 2026
-
-Antes de planificar, lo que hay **medido con `grep`, no supuesto**:
+### 4.0 · El estado del código, verificado el 22 de agosto por la tarde
 
 | Pieza | En el código |
 |---|---|
-| Empuje de leads a Albert (`submitDemoLead`) | **Cero apariciones.** El endpoint es de Albert y está disponible —el expediente dice bien «Vivaru **podría** empujar»—, pero **nosotros no lo llamamos desde ningún sitio** |
-| `externalRef.leadId` (Vivaru → Albert) | **Cero apariciones** |
-| `crmRef` (Albert → Vivaru) | **16 apariciones**, texto libre sin validar, en el catálogo de comerciales y en leads |
+| **Validación de `crmRef`** | ✅ **HECHA.** `src/lib/albert/crm-ref.ts`, los dos formatos, conectada a las dos pantallas, 20 pruebas. En `develop` (`e59f8dc`), staging |
+| Empuje de leads (`submitDemoLead`) | ❌ **Cero apariciones.** No lo llamamos desde ningún sitio |
+| `externalRef.leadId` | ❌ **Cero apariciones** |
+| `eraseByExternalRef` | ❌ **Cero apariciones.** El camino de supresión no existe |
+| Ventana de retención sobre `leads` | ❌ **No existe.** `data-retention.ts` cubre comprobantes, `aiUsage` y `aiFeedback` — los leads no |
 
-**Lo que esto reordena, y no es menor:** el freno de §4.1 vigila que **nunca creemos un
-deal sin contacto**, pero **hoy no creamos deals en absoluto**. Construirlo solo no
-guarda nada. **Va dentro del empuje, en el mismo commit** — es una condición de esa
-pieza, no una tarea suelta que la preceda. La lista de «lo primero mañana» lo pone como
-punto 3 independiente y **así leído lleva a construir un guardián sin puerta**.
-
-**Y el orden real de lo técnico queda:** primero el alta (A5, que depende del correo),
-porque sin credencial no hay suscripción; después el empuje **con** su freno y sus dos
-referencias cruzadas; y la lectura en vivo de `deals` cuando exista el usuario de
-servicio.
+**El orden que sigue en pie:** el empuje **con su freno dentro** —no antes, porque hoy no
+creamos deals y un freno solo sería un guardián sin puerta— y después el camino de
+supresión, que depende de B1.
 
 ### 4.1 · Una promesa que hoy no vigila nadie
 
-Albert se negó —**con razón**— a hacer `contactId` obligatorio en su esquema, porque
-rompería a sus usuarios actuales que crean deals sueltos. En su lugar **aceptó nuestra
-palabra**: Vivaru creará siempre el contacto **antes** del deal. Lo llama literalmente
-*«invariante del lado de Vivaru»*.
+Albert se negó —**con razón**— a hacer `contactId` obligatorio, porque rompería a sus
+usuarios que crean deals sueltos. En su lugar **aceptó nuestra palabra**: Vivaru creará
+siempre el contacto **antes** del deal.
 
-**Traducido:** si algún día nuestro código crea un deal sin contacto, el consentimiento
-no tendrá dónde guardarse y **ningún sistema nos avisará**. Dejó de ser una regla y pasó
-a ser una promesa.
+**Pendiente:** un freno que lo impida. No un comentario — algo que falle. **Va dentro del
+empuje, en el mismo commit.**
 
-**Pendiente:** un freno nuestro que lo impida. No un comentario — algo que falle.
+### 4.2 · Retención — cerrada, comunicada y aceptada
 
-### 4.2 · Dos números de retención · **DECIDIDOS el 21 de agosto de 2026**
+**12 y 12.** Documento completo en [`docs/politica-retencion-datos.md`](../../politica-retencion-datos.md).
 
-**Los dos son 12 meses.** David eligió la cifra de la casa para las dos ventanas.
-Documento completo, con el razonamiento y el riesgo aceptado:
-[`docs/politica-retencion-datos.md`](../../politica-retencion-datos.md).
+Albert recomendó subir el n.º 2 a 24–36 meses con un buen argumento: el registro de
+borrado deja de reidentificar en cuanto el lead muere en Vivaru, así que el puntero cuelga.
+**Fuimos a medirlo y la premisa no se cumple:** `eraseByExternalRef` no se invoca y los
+leads no tienen ventana, o sea que **hoy nada borra un lead** y el puntero apunta a un
+registro vivo.
 
-| Número | Qué es | **Decidido** |
+> **Conclusión aceptada por los dos lados:** n.º 1 = 12 firme; n.º 2 = 12 hoy; y el
+> **disparador para subirlo no es una fecha ni una opinión, es que exista en Vivaru un
+> camino de supresión que borre el lead y llame a `eraseByExternalRef` en la misma
+> operación.**
+
+**Escrito como condición de vigilancia en las dos casas, con una redacción por casa** para
+que cada uno la compruebe sin depender del otro: Albert por sus logs, Vivaru por un `grep`.
+La suya vive en su `docs/POLITICA-RETENCION-ALBERT.md`.
+
+### 4.3 · Las dos referencias cruzadas
+
+| Dirección | Campo | Estado |
 |---|---|---|
-| **N.º 1** | Cuánto vive un deal **sin actividad** antes de anonimizarse (criterio: su `updatedAt`) | **12 meses** — Albert proponía 24 |
-| **N.º 2** | Cuánto vive el **registro de auditoría del borrado** (`vivaruLeadId`, `dealId`, fecha, actor) | **12 meses**, contados **desde la fecha del borrado**, no desde la del deal |
+| **Albert → Vivaru** | `crmRef` | ✅ **Validado.** `albert:user:{uid}` y `albert:deal:{tenantId}:{dealId}` |
+| **Vivaru → Albert** | `externalRef.leadId` | ❌ No existe en nuestro código |
 
-**Por qué existe el segundo.** Vivaru le señaló que llamar «sin PII» a ese registro era
-impreciso: mientras el lead exista de nuestro lado, `vivaruLeadId` **reidentifica**.
-Albert lo aceptó, declaró la base legal —acreditar que se ejerció el derecho de
-supresión— y dijo que ese registro **no vive para siempre**, sino con ventana propia.
-Esa ventana es el segundo número.
+**Por qué adoptamos el envoltorio:** un `uid` pelado de 28 caracteres no se distingue de
+otra referencia de la misma forma, así que sin prefijo la validación se queda en «comprobar
+que no está vacío». **Albert nos manda el `uid` crudo y lo envolvemos nosotros.**
 
-**Por qué 12 y no los 24 de Albert.** Este documento sostenía que «Vivaru tampoco tiene
-política de retención escrita». **Escrita no la había; números sí.** Al ir a mirar el
-código aparecieron **tres ventanas ya corriendo en producción todas las noches a las
-03:00, y las tres dicen 12 meses**: la PII de los comprobantes, `aiUsage` y `aiFeedback`.
-Los 24 de Albert son su contexto comercial, no el nuestro, y el campo es parametrizable
-para que subirlo después salga barato.
+### 4.4 · La pregunta de una línea, antes de escribir el empuje
 
-**El riesgo que se acepta en el n.º 2, dicho aquí también:** a los 18 meses no habrá con
-qué demostrar que un borrado ocurrió. Es la contrapartida de minimizar la
-reidentificación, y está elegida a ojos abiertos — no es un olvido.
+**Su prueba de que A1 está publicado no cubre nuestro camino.** Enseñaron dos evidencias: el
+índice LIVE en producción —sólida— y **su web desplegada**. Pero nosotros no escribimos por
+su web: `RESPUESTA-A-001` C2 dice que escribimos **con el SDK cliente, directo a Firestore**,
+y que *«respeta reglas»*. Su `dealSchema` de Zod corre en su código, no sobre nuestras
+escrituras.
 
-**Al mandárselos, incluir la frase del reloj:** «12 meses **desde la fecha del borrado**».
-Sin eso el n.º 2 es ambiguo y podría implementarse contra el reloj del deal.
+Y `RESPUESTA-A-003` §3 dice que A1 va *«sin tocar reglas»*. De ahí salen dos mundos:
 
-**Ya no bloquea el B3.** Lo que falta para cerrarlo es mandárselos.
+- Si las reglas **no** validan la forma del deal → `externalRef` nunca estuvo bloqueado
+  para nosotros.
+- Si **sí** la validan → A1 necesitaba tocar reglas, y dicen que no las tocó.
 
-### 4.3 · Dos referencias cruzadas que validar, no una
+> **Preguntar antes de construir el empuje:** *¿qué rechaza hoy un `externalRef` escrito
+> directamente a `tenants/vivaru/deals` por el usuario de servicio — las reglas, o solo
+> vuestra app?*
 
-| Dirección | Campo | Formato | Estado hoy |
-|---|---|---|---|
-| **Albert → Vivaru** | `crmRef` | Deals: `albert:deal:{tenantId}:{dealId}`. Comerciales: **el `uid` crudo** de Firebase Auth (~28 chars) | **Texto libre sin ninguna validación**, en el catálogo de comerciales y en leads. Verificado leyendo el código |
-| **Vivaru → Albert** | `externalRef.leadId` | `{system:"vivaru", leadId}` | **No existe en nuestro código**: cero apariciones |
+**No es urgente. Es barato y evita construir contra un supuesto.**
 
-**Por qué el `dealId` suelto no sirve:** el deal vive bajo su tenant, así que sin el
-`tenantId` no resuelve.
+### 4.5 · El usuario de servicio quedó en un buzón de desarrollo — decisión de David
+
+**Decidido el 22 de agosto de 2026, con el riesgo sobre la mesa.** El contrato (C2) decía
+`integracion-vivaru`; el alta lo creó sobre un **buzón de desarrollo compartido de
+Qintilab**. **David lo mantiene a propósito:** no hay alias de correo en Albert todavía, y
+crear uno frenaría lo que el alta abre. Se corregirá con el tiempo.
+
+**Qué se acepta al elegirlo, dicho para que nadie lo lea como definitivo:**
+
+- **Es un buzón humano compartido.** Quien lo lea puede recuperar esa cuenta, y esa cuenta
+  es la credencial con la que Vivaru escribe en el CRM.
+- **Es además la identidad con la que se opera el CLI de Firebase de Vivaru** —comprobado
+  con `firebase login:list` el 22 de agosto—, o sea la cuenta desde la que se despliega.
+  Junta en una sola identidad la que despliega y la que escribe en el CRM. **El Owner de
+  `hogaru-1` es otra cuenta**, lo que acota el alcance, pero no lo elimina.
+- **La auditoría pierde su asa legible**, porque `createdBy` guarda el `uid` y el correo ya
+  no dice «integración de Vivaru». **Mitigación pedida a Albert: que el `displayName` sea
+  `integracion-vivaru`**, como fija C2. Con eso, resolver el `uid` sigue dando el nombre.
+
+**La corrección, cuando existan los alias:** recrear el usuario de servicio con dirección
+propia. **Hoy es gratis porque no hay ni un deal escrito**; cada deal que se cree estampa
+ese `uid` en `createdBy` para siempre y encarece el cambio.
+
+**Y una separación que no cuesta esperar a ningún alias:** que el CLI de Vivaru se
+autentique con otra cuenta. Separa las dos funciones ya.
+
+### 4.6 · Nuestra mitad, aún sin escribir
+
+La **contraseña del usuario de servicio en Secret Manager** y el **reseteo de las dos
+credenciales**. Aplazados por David el 22 de agosto: no hay prisa porque **nada lee ese
+secreto todavía** —cero cableado de Albert en `functions/src`—. Cuando se haga:
+
+1. El enlace de reset del `tenant_admin` es de **vida corta**; el que se envió el 22
+   probablemente ya caducó. Habrá que pedir uno nuevo.
+2. La contraseña del `tenant_admin` va al **gestor de contraseñas**, no a Secret Manager:
+   la usa una persona para entrar.
+3. La del usuario de servicio va a **Secret Manager**, staging primero.
 
 ---
 
-## 5. La corrección que más cambia el plan
+## 5. La corrección que más cambió el plan
 
-> **La segunda mitad de `REVOPS-001C` NUNCA estuvo bloqueada por Albert, y tres
-> documentos de Vivaru decían que sí.** Corregido el 20 de agosto de 2026 en
-> `pendientes.md`, `roadmap-revops.md` y `roadmap-producto.md`.
+> **La segunda mitad de `REVOPS-001C` NUNCA estuvo bloqueada por Albert, y tres documentos
+> de Vivaru decían que sí.** Corregido el 20 de agosto de 2026.
 
-**Qué decían:** «Albert no tiene webhooks; `REVOPS-001C` depende de construirla».
+`RESPUESTA-A-001` C1, literal: **«SÍ, sin nada que os lo impida.»** La regla
+`match /deals/{docId} { allow read: if canReadTenant(tenantId); }` incluye a `sales`.
 
-**Qué dice Albert, desde el 19, en `RESPUESTA-A-001` C1:**
+**Y desde el 22 de agosto ya no queda ni el impedimento operativo:** el tenant existe y el
+usuario de servicio también. **La suscripción en vivo se puede construir cuando queramos.**
 
-> **«SÍ, sin nada que os lo impida. El trigger queda fuera del camino crítico.»**
-
-Con la regla citada: `match /deals/{docId} { allow read: if canReadTenant(tenantId); }`,
-y `canReadTenant` incluye **todos** los roles del tenant — `sales` entre ellos, que es
-justo el rol del usuario de servicio de C2.
-
-**Traducido:** Vivaru se **suscribe en vivo** (`onSnapshot`) a `tenants/vivaru/deals` y ve
-la conversión al instante. **Sin webhook, sin trigger, sin OIDC** — Albert descarta los
-tres explícitamente.
-
-**Por qué se coló el error, que es lo que hay que llevarse:** la frase era **cierta**
-mientras Vivaru fuese un tercero consumiendo su API. Dejó de serlo al convertirse en
-**tenant** suyo. Y ese tipo de muerte **no deja rastro**: ni commit, ni prueba en rojo,
-ni error en pantalla. Solo deja una frase obsoleta que nadie contradice.
-**Una dependencia se cae por dejar de necesitarla, no solo porque alguien la construya.**
-
-**Lo único que falta para abrirla es el alta del tenant (A5)** — sin el usuario de
-servicio no hay credencial con la que suscribirse. Por eso el correo del punto 1 no es
-un trámite.
-
-**Y `RESPUESTA-A-002` no menciona la señal de vuelta** (se buscaron *webhook*, *señal de
-vuelta*, *activación*, *suscripción*, *disparador*: ninguna aparece). **No hacía falta
-que la mencionara** — ya estaba contestada en la ronda anterior. Buscar en el documento
-equivocado lleva a concluir «sigue parado» cuando está abierto.
+**Por qué se coló el error, que es lo que hay que llevarse:** la frase era cierta mientras
+Vivaru fuese un tercero. Dejó de serlo al hacernos tenant. Y ese tipo de muerte **no deja
+rastro**: ni commit, ni prueba en rojo. **Una dependencia se cae por dejar de necesitarla.**
 
 ---
 
@@ -264,93 +225,66 @@ equivocado lleva a concluir «sigue parado» cuando está abierto.
 
 | Qué | Estado |
 |---|---|
-| **Construir A1** (extender los dos esquemas + el índice) | Confirmado, «cabe en días», y lo pone **por delante** de B1 y del precio |
-| **Construir B1** (la callable de supresión) | Confirmado, 🔧 mediano |
-| **Construir B3** (la función programada de retención) | Confirmado. **Los dos números ya están decididos (12 y 12); espera que se los mandemos** |
-| **Ejecutar el alta A5** | **Espera el correo del `tenant_admin`** |
+| **A1** | ✅ **Publicado en producción** el 22 ago |
+| **A5** | ✅ **Ejecutada** |
+| **B1** — `eraseByExternalRef` idempotente | 🟡 Por construir. Va después de A1 |
+| **B3** — retención programada 12/12 | 🟡 Por construir. Va después de B1 |
+| **Nombre del receptor único del canal** | ⟨⟨pendiente de su owner⟩⟩. **No bloquea nada** |
+| **Confirmar el `displayName` del usuario de servicio** | Pedido el 22 ago (§4.5) |
+| **Endurecer su `/leads` público** | Deuda suya. No nos toca: escribimos deals, no leads |
 
-**Devuelve tras el alta:** el `uid` del `tenant_admin`, el `uid` y correo del usuario de
-servicio, y confirmación del documento `tenants/vivaru`.
-
-**Un hallazgo suyo que conviene conocer.** Al verificar B1 descubrieron que el dato
-personal de su timeline **no está en campos estructurados**, sino **embebido en el texto
-de cada evento** (`Contacto creado: Juan Pérez`). Borrar el contacto no basta: el nombre
-sobrevive en el mensaje. La anonimización tiene que **reescribir los mensajes**, no
-vaciar campos. Es trabajo suyo, pero hace la supresión más frágil de lo que se suponía.
+**Un hallazgo suyo que conviene conocer.** El dato personal de su timeline **no está en
+campos estructurados** sino embebido en el texto de cada evento (`Contacto creado: Juan
+Pérez`). La anonimización tiene que **reescribir mensajes**, no vaciar campos.
 
 ---
 
 ## 7. Lo que NADIE tiene y sigue SIN compromiso
 
-### El motor de mensajería — **el hueco que importa**
+### El motor de mensajería — el hueco que importa
 
-Sin control de **opt-out y frecuencia**, el `consent` que se acaba de diseñar **no tiene
-quién lo respete a la hora de enviar**. Se construyó el candado y no la puerta.
+Sin control de **opt-out y frecuencia**, el `consent` que se diseñó **no tiene quién lo
+respete al enviar**. Se construyó el candado y no la puerta. Albert lo nombra él mismo y
+dice que **no está en un roadmap comprometido**. **No bloquea nada hoy. Bloqueará el día
+que se manden correos de verdad.**
 
-**Lo nombra Albert mismo**, y es honesto: la lleva a priorización de producto, pero
-**«aún no está en un roadmap comprometido»** y dice que no puede dar un sí firme hoy.
-Quedó el acuerdo de que avisará claro —también si sale que no— **para que Vivaru no la
-escriba esperándolos**.
+### El reset self-service en el login de Albert
 
-**No bloquea nada hoy. Bloqueará el día que se manden correos de verdad.**
+Hoy **no existe**: recuperar una cuenta depende de que un superadmin genere un enlace. Se
+ofrecieron a construirlo.
+
+> **Recomendación: que no lo prioricen por nosotros.** Añadiría recuperación por correo a
+> **todas** las cuentas, la del usuario de servicio incluida — justo la segunda llave que
+> queremos evitar en una credencial de máquina. Tenemos dos cuentas allí y un superadmin a
+> un mensaje. Si lo construyen, que sea por su producto.
 
 ### La agenda de demos
 
 **No se pide y no se construye.** Con cero clientes firmados es infraestructura para una
-demanda inexistente. El formulario aguanta para una persona prospectando.
-
-### El precio de plan
-
-**Lo cablea Vivaru sin esperarlos**, y Albert confirma que no bloquea nada de su lado.
-Primera mitad de `REVOPS-001C`, **ya construida y en producción** desde el 20 de agosto.
+demanda inexistente.
 
 ---
 
-## 8. Lo único que Albert NO cierra por escrito
+## 8. Dos cosas de método que salieron de este expediente
 
-**La fecha de calendario de A1.** Dice que el trabajo «cabe en días, no semanas» y que lo
-eleva como primer incremento, pero se niega a poner fecha porque **la fija su owner**, y
-argumenta que escribirla sin él sería inventarla.
+**La regla del canal se adoptó cuando ya estaba rota.** Fijamos que el correo del
+`tenant_admin` no viajaría dentro de ningún documento — y esa dirección **ya llevaba tiempo
+escrita en `PRD-A-OPS-001`**, que es un documento del intercambio, en otro papel: el buzón
+de avisos de leads. Nadie contrastó la regla contra el estado real al escribirla.
 
-**Consecuencia práctica, y no es menor:** Vivaru puede **construir** contra un contrato
-ya cerrado, **pero no probar el circuito completo** hasta que Albert publique. La ventana
-concreta la confirma su owner por el canal de coordinación.
+Es la misma forma que «Vivaru no tiene política de retención» —la tenía, corriendo cada
+noche— y que «Albert no tiene webhooks» —dejó de importar—. **Una regla nueva también hay
+que verificarla contra el código y los documentos que ya existen.**
 
----
+*Pendiente de decidir: si esas apariciones se limpian o se aceptan. Es un buzón de rol
+compartido, no una dirección personal.*
 
-## 9. Tres imprecisiones suyas, nombradas
-
-No son errores nuestros y ninguna cambia una decisión, pero quedan registradas porque
-adoptarlas como criterio sí costaría.
-
-1. **`consent` en dos sitios a la vez** (`RESPUESTA-A-001`). Su bloque de A1 lo metía en
-   el deal y su B2 lo recomendaba en el contacto. **Resuelto en A-002:** solo en el
-   contacto.
-2. **Un deal huérfano no podía guardar consentimiento.** Su propio A3 confirmaba que
-   `contactId` es opcional. **Resuelto en A-002**, por nuestra invariante (§4.1).
-3. **La justificación del índice no se sostiene.** Dice que sin él la consulta «degrada
-   al crecer». No es cierto para una igualdad simple: ese campo se indexa solo y el coste
-   depende de cuántos resultados devuelve, no del tamaño de la colección. **El índice es
-   barato y no estorba** — no vale la pena discutirlo, pero **no adoptar ese motivo** como
-   criterio para futuros índices.
-
----
-
-## 10. Riesgo de fondo, dicho en voz alta
-
-**Se está especificando un CRM a medida con cero recorrido comercial registrado.**
-Diseñar sobre supuestos es justo lo que el roadmap prohíbe en `ONB-001` y `AI-ONB-001`, y
-no deja de aplicar porque quien construya sea de casa.
-
-**La mitigación no es esperar, es de dónde salen los requisitos:** la conversación de
-`REVOPS-000` con los comerciales —que corrigió la premisa y dejó claro que **no son cinco
-vendiendo, sino una persona prospectando en frío con cero firmados**— es la entrada del
-PRD, no solo línea base. Sin ella, el primer PRD describiría el CRM que nos imaginamos.
-
-De ahí salió además una regla que nadie había pedido: **la lista fría NO entra al CRM.**
+**Un documento puede anunciar lo que no entrega, y hay que decirlo.** `RESPUESTA-A-003`
+abría con «cerramos por fin la fecha de A1» y su §3 llevaba un marcador vacío. Nombrarlo en
+`DECISIONES-A-003` —sin dramatizarlo, reconociendo lo que sí habían mejorado— es lo que
+hizo que la siguiente ronda la entregara de verdad.
 
 ---
 
 *Documento vivo. Al actualizarlo, reescribir — no acumular. Expediente completo en
-`docs/albert-vivaru-integracion.md`; los cuatro documentos del intercambio, en esta misma
-carpeta.*
+`docs/albert-vivaru-integracion.md`.*

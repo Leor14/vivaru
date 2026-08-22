@@ -1,10 +1,72 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el 21 de agosto de 2026: el recibo `000000001` quedó anulado en producción y
-la política de retención está escrita y decidida. Los dos salen de la lista.
+Actualizado el **22 de agosto de 2026, tarde**: el expediente de Albert se cerró entero
+—intercambio, alta y A1— y arrancó `PLAT-003`. Cuatro puntos salen de la lista.
 
-## LO PRIMERO AL ABRIR SESIÓN (19 ago 2026, madrugada del 20)
+## LO PRIMERO AL ABRIR SESIÓN (22 ago 2026, tarde)
+
+**`develop` = `41eeb9c`, empujado y verificado** (`origin/develop` releído, no supuesto).
+`master` sigue en `d17478d`: **nada de esto está en producción.**
+
+### Albert dejó de ser un frente abierto, y los dos equipos van por separado a propósito
+
+**Decisión de David:** Albert avanza con su roadmap y Vivaru con el lote de Habitanto. No
+hay nada urgente que obligue a sincronizarlos. El estado vive, como siempre, en
+[`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md) — **ir ahí, no a los nueve documentos.**
+
+Lo que cambió en un día: el intercambio se **cerró** (A-003 y A-004 nuestros, A-003 y A-004
+suyos), el **alta A5 está ejecutada** —tenant `vivaru` activo, usuario de servicio con rol
+`sales` verificado en tres sitios— y **A1 está publicado en producción**, antes de la
+ventana que habían comprometido.
+
+**Lo único que hay que preguntarles antes de construir el empuje** está en `ESTADO-ALBERT`
+§4.4, y es una línea: su prueba de que A1 está publicado enseña **su web desplegada**, y
+nosotros no escribimos por su web sino con el SDK cliente directo a Firestore. Falta saber
+qué valida nuestras escrituras: las reglas, o solo su app.
+
+**Y una decisión de David que hay que leer como provisional, no como definitiva:** el
+usuario de servicio quedó sobre un **buzón de desarrollo compartido** en vez de una
+dirección propia, porque no hay alias de correo en Albert. `ESTADO-ALBERT` §4.5 tiene lo
+que se acepta al elegirlo — incluido que **es la misma identidad con la que se opera el CLI
+de Firebase de Vivaru**, comprobado con `firebase login:list`.
+
+### Credenciales del alta — SIN guardar todavía, y es deliberado
+
+La contraseña del usuario de servicio **no está en Secret Manager** y las dos credenciales
+**no se han reseteado**. Aplazado por David: **nada lee ese secreto todavía** —cero cableado
+de Albert en `functions/src`— así que un secreto vacío no rompe nada. Los pasos, en
+`ESTADO-ALBERT` §4.6. **Ojo: el enlace de reset del `tenant_admin` es de vida corta y el
+que se mandó el 22 probablemente ya caducó.**
+
+### `PLAT-003` arrancó, y leer el código antes de construir encontró dos huecos
+
+La PRD pasó a **1.1**. Los dos hallazgos, en `PRD-V-PLAT-003` §2 y §8:
+
+1. **La semilla de trece no cubría los conceptos de cargo.** Tres de los siete —`multa`,
+   `reparacion`, `parqueadero`— no tenían cuenta, y `multa` es el ejemplo de la métrica de
+   éxito de la propia PRD. Además el cargo `administracion` colisiona con el egreso
+   homónimo y tiene que resolver a la cuenta de **ingreso**.
+2. **El cambio introducía un doble conteo.** `use-ledger.ts:220` excluye del ingreso los
+   asientos de categoría `alicuota` para no duplicar lo que ya suma Cartera. Hoy funciona
+   por accidente, porque `aplicarPago` escribe `alicuota` para todo. En cuanto se escriba
+   la cuenta del concepto, una multa deja de excluirse y **se cuenta dos veces**.
+
+**Lo que hay construido (entrega 1a, `41eeb9c`):** el módulo puro
+`functions/src/plan-de-cuentas.ts` —formato del código, semilla de 18 documentos, mapa
+concepto→cuenta— con 22 pruebas, y las dos banderas **apagadas** y registradas en los
+cuatro sitios del catálogo.
+
+**Lo siguiente es la entrega 1b, y es de otro calibre:** reglas con id derivado, la semilla
+dentro del alta, y `accountCode` en `aplicarPago`/`revertirPago` **junto con la corrección
+de la exclusión** — las dos en el mismo despliegue, porque separarlas es desplegar el doble
+conteo. Ahí se toca dinero vivo.
+
+**Nada de esto necesita desplegar functions todavía:** el módulo aún no lo llama nadie.
+
+---
+
+## El contexto de antes (19 ago 2026, madrugada del 20)
 
 **`master` = `c81e2fe`: lo construido el 19 YA ESTÁ EN PRODUCCIÓN, validado y
 comprobado.** El hueco de acceso del residente está cerrado en producción, y todo
@@ -210,7 +272,8 @@ esfuerzo.
    2026**, y verificado releyendo. Lo único que queda es **mirarlo en pantalla**: que la
    tarjeta de Recibos emitidos lo pinte tachado y que el PDF salga con `ANULADO`. Detalle
    en la sección de arriba.
-2. **Mandarle a Albert dos cosas, por sitios distintos.** Sigue siendo lo más barato de la
+2. ~~**Mandarle a Albert dos cosas, por sitios distintos.**~~ **HECHO el 22 de agosto**, y
+   con ello se ejecutó el alta A5 y salió A1. Ver arriba. El texto viejo: Sigue siendo lo más barato de la
    lista y **lo que más abre**: sin alta no hay usuario de servicio, y sin esa credencial
    no hay con qué suscribirse a sus deals — la segunda mitad de `REVOPS-001C`.
    - **El `tenant_admin`, por el canal** — nunca dentro de un documento. Decidido el 21:
@@ -241,11 +304,14 @@ esfuerzo.
    debajo: `ReconciliationCase` no existe, y su único requisito era `FIN-001`. **Pregunta
    previa, que es de David:** ¿vale la pena construir la bandeja antes de que haya alguien
    conciliando? Hay cero pagos reales.
-6. **Validar el formato de las referencias cruzadas — son DOS.** `crmRef` es hoy un
-   `<Input>` de texto libre sin validación; `externalRef.leadId` **no existe** en el
-   código.
+6. **Validar el formato de las referencias cruzadas — son DOS, y ya solo queda una.**
+   `crmRef` **está validado** desde el 22 de agosto (`e59f8dc`, en staging): módulo
+   `src/lib/albert/crm-ref.ts` con los dos formatos, conectado a las dos pantallas, 20
+   pruebas. **Falta `externalRef.leadId`**, que sigue sin existir y va dentro del empuje
+   de leads, no suelto.
 7. **La comprobación que sostenga la invariante contacto→deal**, que Albert aceptó como
-   palabra nuestra y hoy no vigila nadie.
+   palabra nuestra y hoy no vigila nadie. **Va DENTRO del empuje de leads, en el mismo
+   commit** — hoy no creamos deals, así que construirla sola es un guardián sin puerta.
 8. **`REVOPS-001B`** — evento de activación.
 
 **Deuda conocida que NO urge pero deja de no urgir con el primer cliente:** los asientos
