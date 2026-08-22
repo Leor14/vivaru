@@ -18,6 +18,7 @@ import {
   type SalesRep,
   type SalesRepCountry,
 } from "@/features/superadmin/sales-reps";
+import { normalizeSalesRepCrmRef } from "@/lib/albert/crm-ref";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 /**
@@ -66,6 +67,13 @@ export default function SuperadminComercialesPage() {
       toast.error("Nombre y correo son obligatorios.");
       return;
     }
+    /* La referencia a Albert era texto libre y aceptaba cualquier cosa; ahora falla
+       aquí, con alguien delante, en vez de meses después al intentar resolverla. */
+    const crmRef = normalizeSalesRepCrmRef(form.crmRef);
+    if (!crmRef.ok) {
+      toast.error(crmRef.error);
+      return;
+    }
     setSaving(true);
     try {
       await saveSalesRep({
@@ -74,7 +82,7 @@ export default function SuperadminComercialesPage() {
         email: form.email,
         phone: form.phone || undefined,
         country: form.country,
-        crmRef: form.crmRef || undefined,
+        crmRef: crmRef.value ?? undefined,
       });
       toast.success(form.id ? "Comercial actualizado." : "Comercial dado de alta.");
       setForm(null);
@@ -215,7 +223,12 @@ export default function SuperadminComercialesPage() {
             </div>
             <label className="block">
               Referencia en Albert <span className="text-xs text-[var(--slate-400)]">(opcional — cuando Albert la tenga)</span>
-              <Input className="mt-1" value={form.crmRef} onChange={(e) => setForm({ ...form, crmRef: e.target.value })} />
+              <Input
+                className="mt-1"
+                placeholder="Pega el uid que manda Albert (28 caracteres)"
+                value={form.crmRef}
+                onChange={(e) => setForm({ ...form, crmRef: e.target.value })}
+              />
             </label>
             <div className="flex justify-end gap-2 pt-1">
               <Button variant="outline" onClick={() => setForm(null)} disabled={saving}>

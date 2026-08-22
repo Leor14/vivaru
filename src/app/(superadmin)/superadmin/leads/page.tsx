@@ -19,6 +19,7 @@ import {
   watchSalesReps,
   type SalesRep,
 } from "@/features/superadmin/sales-reps";
+import { normalizeLeadCrmRef } from "@/lib/albert/crm-ref";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/shared/modal";
 import { toast } from "sonner";
@@ -46,7 +47,7 @@ type Lead = {
   status?: string;
   /** Dueño comercial (REVOPS-001E): id en `salesReps`. */
   ownerId?: string;
-  /** Referencia del lead en Albert CRM. */
+  /** El DEAL de Albert que corresponde a este lead: `albert:deal:{tenantId}:{dealId}`. */
   crmRef?: string;
   tenantId?: string;
   appEnv?: string;
@@ -259,12 +260,19 @@ export default function SuperadminLeadsPage() {
                       </select>
                       <Input
                         className="mt-1 h-7 text-[11px]"
-                        placeholder="Ref. en Albert"
+                        placeholder="albert:deal:{tenant}:{id}"
                         defaultValue={lead.crmRef ?? ""}
                         onBlur={(e) => {
                           const next = e.target.value.trim();
                           if (next === (lead.crmRef ?? "")) return;
-                          void setLeadCrmRef(lead.id, next).catch(toastFirebaseError);
+                          /* Aquí va el DEAL, no un lead de Albert: la conversión vive en
+                             su pipeline de deals y el deal cuelga de su tenant. */
+                          const ref = normalizeLeadCrmRef(next);
+                          if (!ref.ok) {
+                            toast.error(ref.error);
+                            return;
+                          }
+                          void setLeadCrmRef(lead.id, ref.value ?? "").catch(toastFirebaseError);
                         }}
                       />
                     </td>

@@ -26,8 +26,10 @@ import { db } from "@/lib/firebase/client";
  *
  * Este esquema es a la vez el de Vivaru y la entrada del primer PRD de Albert
  * (ver docs/albert-vivaru-integracion.md): `crmRef` es el puente en los dos
- * sentidos — en el comercial, su identidad en Albert; en el lead, la
- * referencia del lead allí. Ninguno se rellena hacia atrás.
+ * sentidos — en el comercial, su identidad en Albert (`albert:user:{uid}`); en
+ * el lead, el DEAL que le corresponde (`albert:deal:{tenantId}:{dealId}`), no un
+ * «lead allí»: la conversión vive en su pipeline de deals. Ninguno se rellena
+ * hacia atrás. Los dos formatos se validan en `@/lib/albert/crm-ref`.
  */
 
 export type SalesRepCountry = "MX" | "CO" | "EC";
