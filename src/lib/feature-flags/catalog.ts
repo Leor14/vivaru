@@ -20,7 +20,19 @@
  *
  * ESPEJO de `functions/src/feature-flags.ts`. `src/` no puede importar de
  * `functions/` (rompe el build de App Hosting, ver CLAUDE.md), así que el
- * catálogo vive duplicado a propósito. Si cambias uno, cambia el otro.
+ * catálogo vive duplicado a propósito.
+ *
+ * **EL CATÁLOGO VIVE EN CUATRO SITIOS, no en dos.** Añadir una bandera y tocar
+ * solo los dos primeros la deja **imposible de encender**: el sembrador no crea
+ * su documento y el movedor la rechaza como clave desconocida, así que la
+ * capacidad se queda apagada para siempre y sin síntoma visible. Pasó con las
+ * tres banderas de producto de agosto de 2026, y se descubrió al ir a
+ * encenderlas en staging. Los cuatro:
+ *
+ *   1. `src/lib/feature-flags/catalog.ts`      — el cliente
+ *   2. `functions/src/feature-flags.ts`        — el servidor
+ *   3. `functions/scripts/seed-feature-flags.mjs` — crea los documentos
+ *   4. `functions/scripts/mover-bandera.mjs`   — enciende y apaga
  */
 
 /** Documento con el kill switch maestro, dentro de la misma colección. */

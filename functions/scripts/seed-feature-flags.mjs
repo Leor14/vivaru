@@ -84,6 +84,33 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-reservas-servidor",
+    area: "producto",
+    label: "Reservas decididas en el servidor",
+    origen: "PRD-V-FIX-001",
+    // Nace apagada: capacidad nueva. Encendida, la reserva del residente pasa
+    // por la callable y las trece reglas se comprueban donde no se puede mentir.
+    enabled: false,
+  },
+  {
+    key: "producto-cobro-por-coeficiente",
+    area: "producto",
+    label: "Corrida de cobro por coeficiente",
+    origen: "PRD-V-PLAT-001",
+    // Nace apagada: capacidad nueva. Los coeficientes se pueden cargar con esto
+    // apagado —son parte de la puesta en marcha—; el botón de generar, no.
+    enabled: false,
+  },
+  {
+    key: "producto-registro-proveedores",
+    area: "producto",
+    label: "Registro de proveedores",
+    origen: "PRD-V-FEAT-003",
+    // Nace apagada: capacidad nueva. El nombre a mano en el egreso nunca se
+    // retira, así que apagarla no quita nada que ya se usara.
+    enabled: false,
+  },
+  {
     key: "operacion-app-check-monitor",
     area: "operacion",
     label: "App Check en modo monitor",

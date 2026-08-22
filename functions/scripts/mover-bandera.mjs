@@ -34,6 +34,9 @@ const CLAVES = [
   "ai-receipts-extraction",
   "ia-proveedor-real",
   "producto-importacion-masiva",
+  "producto-reservas-servidor",
+  "producto-cobro-por-coeficiente",
+  "producto-registro-proveedores",
   "operacion-app-check-monitor",
 ];
 
