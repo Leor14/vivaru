@@ -27,6 +27,8 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
+import { repartirRecaudo } from "@/lib/finanzas/conceptos-de-cargo";
 import {
   computeFundPosition,
   createManualLedgerEntry,
@@ -122,10 +124,14 @@ function AdminFinanzasLibroPageContent() {
     return () => unsub();
   }, [user?.tenantId]);
 
-  const cuotaIncome = useMemo(
-    () => statements.reduce((sum, item) => sum + (item.paymentAmount ?? 0), 0),
-    [statements],
-  );
+  // Entrega 1b-iii. Con la bandera apagada, `cuota` es el número de siempre y el
+  // estado financiero enseña una sola línea de «Cuotas de administración».
+  // Encendida, es el MISMO total repartido por concepto, y cada uno tiene su
+  // línea. La suma no cambia (CA11): son los mismos cargos, solo agrupados.
+  const conceptoAlLibro = useFeatureFlag("producto-concepto-al-libro");
+  const recaudo = useMemo(() => repartirRecaudo(statements), [statements]);
+  const cuotaIncome = recaudo.total;
+  const cuotaParaEstado = conceptoAlLibro ? recaudo : recaudo.total;
 
   const fundPosition = useMemo(
     () => computeFundPosition(entries, cuotaIncome),
@@ -138,7 +144,7 @@ function AdminFinanzasLibroPageContent() {
   }
 
   function handleExportStatement() {
-    const statement = buildFinancialStatement(entries, cuotaIncome);
+    const statement = buildFinancialStatement(entries, cuotaParaEstado);
     const rows: (string | number)[][] = [
       ["Estado de ingresos y egresos"],
       [],

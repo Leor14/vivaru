@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { computeCollectionSummary, statementChargedAmount } from "@/features/billing/collection";
 import { buildFinancialStatement, esRecaudoDeCartera } from "@/features/finanzas/financial-statement";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
+import { categoriaDeConcepto, type RecaudoDeCartera } from "@/lib/finanzas/conceptos-de-cargo";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
 import type { CommitteeAgreement, CommitteeAgreementSignature } from "@/features/committee-agreements/types";
 import type { BillingStatement, LedgerEntry, PackageItem, Ticket, VisitorPass, Reservation } from "@/types/domain";
@@ -245,6 +247,11 @@ const EMPTY: CommitteeReport = {
 };
 
 export function useCommitteeReport(tenantId: string | undefined, range: DateRange): CommitteeReport {
+  // Entrega 1b-iii. Si el informe del consejo se quedara con el total en un solo
+  // bloque mientras Finanzas lo reparte, las dos pantallas dirían cosas
+  // distintas del mismo dinero — que es exactamente el problema que esta PRD
+  // arregla, reaparecido una pantalla más allá.
+  const conceptoAlLibro = useFeatureFlag("producto-concepto-al-libro");
   const [billing, setBilling] = useState<BillingStatement[]>([]);
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -501,7 +508,25 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       .reduce((sum, b) => sum + (b.paymentAmount ?? b.amount ?? 0), 0);
     const fundPosition = computeFundPosition(ledger, cuotaIncomeAllTime);
     const periodLedger = ledger.filter((e) => inRange(toDateStr(e.date), start, end));
-    const statement = buildFinancialStatement(periodLedger, totalCollected);
+    // El reparto se construye AQUÍ y no con `repartirRecaudo` a propósito: este
+    // informe define «recaudado» de otra forma que la pantalla de Finanzas
+    // —solo cargos `paid`, y con `amount` de respaldo si falta `paymentAmount`—.
+    // Esa discrepancia es anterior a esta entrega y no se toca aquí; lo que sí
+    // importa es que el reparto sume EXACTAMENTE el total de este informe, o el
+    // estado financiero dejaría de cuadrar consigo mismo.
+    const recaudoPorCategoria = new Map<string, number>();
+    for (const b of billingInPeriod) {
+      if (b.status !== "paid") continue;
+      const pagado = b.paymentAmount ?? b.amount ?? 0;
+      if (!pagado) continue;
+      const cat = categoriaDeConcepto(b.concept);
+      recaudoPorCategoria.set(cat, (recaudoPorCategoria.get(cat) ?? 0) + pagado);
+    }
+    const recaudo: RecaudoDeCartera = {
+      total: totalCollected,
+      porCategoria: recaudoPorCategoria as RecaudoDeCartera["porCategoria"],
+    };
+    const statement = buildFinancialStatement(periodLedger, conceptoAlLibro ? recaudo : totalCollected);
     const financialMetrics = {
       totalIncome: statement.totalIncome,
       totalExpenses: statement.totalExpenses,
@@ -659,7 +684,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     };
   }, [billing, packages, tickets, visitors, visitorsInside, reservations, ledger, agreements, agreementSignatures, units, range, error,
     loadingBilling, loadingPackages, loadingTickets, loadingVisitors, loadingReservations, loadingLedger, loadingVisitorsInside,
-    loadingAgreements, loadingAgreementSignatures, loadingUnits]);
+    loadingAgreements, loadingAgreementSignatures, loadingUnits, conceptoAlLibro]);
 
   if (!tenantId) return EMPTY;
   return report;

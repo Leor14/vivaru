@@ -1,3 +1,4 @@
+import type { RecaudoDeCartera } from "@/lib/finanzas/conceptos-de-cargo";
 import type { LedgerEntry } from "@/types/domain";
 
 export type CategoryTotal = { category: string; label: string; amount: number };
@@ -84,19 +85,37 @@ export function esRecaudoDeCartera(
 
 /**
  * Construye el estado de ingresos y egresos por categoría a partir del libro.
- * El recaudo de cuotas (cuotaIncome, derivado de Cartera) se agrega como una
- * línea "alicuota"; los asientos que ya vienen contados por Cartera se omiten
- * para no duplicar (ver `esRecaudoDeCartera` y `computeFundPosition`).
+ *
+ * Los asientos que ya vienen contados por Cartera se omiten para no duplicar
+ * (ver `esRecaudoDeCartera` y `computeFundPosition`), y lo recaudado entra por
+ * la vía de Cartera, que es la fuente completa.
+ *
+ * **`cuota` admite dos formas, y ahí está la entrega 1b-iii.** Un número se
+ * pinta entero como «Cuotas de administración» —el comportamiento de siempre, y
+ * el que se conserva con `producto-concepto-al-libro` apagada—. Un
+ * `RecaudoDeCartera` trae el mismo total **repartido por concepto**, y entonces
+ * cada concepto tiene su línea.
+ *
+ * **El total es idéntico en las dos formas** (CA11): son los mismos cargos, solo
+ * agrupados. Por eso el reparto se toma tal cual y no se vuelve a sumar aquí —
+ * dos formas de calcular el mismo número acaban discrepando.
  */
 export function buildFinancialStatement(
   entries: LedgerEntry[],
-  cuotaIncome: number,
+  cuota: number | RecaudoDeCartera,
   openingBalance = 0,
 ): FinancialStatement {
   const incomeMap = new Map<string, number>();
   const expenseMap = new Map<string, number>();
 
-  if (cuotaIncome) incomeMap.set("alicuota", cuotaIncome);
+  const cuotaIncome = typeof cuota === "number" ? cuota : cuota.total;
+  if (typeof cuota === "number") {
+    if (cuotaIncome) incomeMap.set("alicuota", cuotaIncome);
+  } else {
+    for (const [categoria, monto] of cuota.porCategoria) {
+      if (monto) incomeMap.set(categoria, (incomeMap.get(categoria) ?? 0) + monto);
+    }
+  }
 
   for (const entry of entries) {
     if (entry.type === "ingreso") {
