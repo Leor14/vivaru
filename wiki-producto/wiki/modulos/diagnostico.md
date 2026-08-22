@@ -47,7 +47,7 @@ Los eventos de conversión del diagnóstico se tracean via `track()` de `src/lib
 
 - Véase también: [[landing-marketing]], [[roadmap-tecnico]]
 - Depende de: [[landing-marketing]]
-- Se conecta con: [[pain-section]], [[analytics]]
+- Se conecta con: [[landing-marketing]], [[gtm-tecnico]]
 
 ## Fuentes
 

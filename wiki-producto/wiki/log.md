@@ -3,10 +3,46 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-08-22
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-08-22] sync | Tres semanas de construcción que la wiki no tenía
+
+**Este log llevaba parado desde el 1 de agosto**, mientras el producto vivía sus tres semanas más
+activas. Esta pasada no ingesta una fuente nueva: **cierra el desfase**, y se hizo con un criterio
+explícito — **la wiki describe lo que corre en PRODUCCIÓN**. El lote de propiedad horizontal está
+en staging, así que entra marcado como tal y no como hecho.
+
+- **Páginas creadas: 2** → [[integracion-albert]] y [[globals-css]]. Era el hueco mayor: una integración **viva**,
+  con tenant dado de alta y credenciales, y ni una página que la describiera.
+- **Páginas actualizadas: 5** → [[integridad-financiera]], [[estado-modulos]],
+  [[trampas-conocidas]], [[puerta-ia]], [[index]].
+- **Trampas nuevas: 3** → el catálogo de banderas vive en **cuatro** sitios y tocar dos deja la
+  bandera imposible de encender; **una exclusión escrita contra un valor se rompe cuando cambia
+  quién escribe ese valor** (el doble conteo que `PRD-V-PLAT-003` habría introducido); y **una
+  regla nueva también hay que verificarla contra lo que ya existe** — la simétrica de la frase que
+  envejece, y se cuela más fácil porque nace falsa en vez de volverse falsa.
+- **Afirmación muerta corregida:** [[puerta-ia]] comparaba su adaptador con «el transporte del SRI
+  en [[billing]]». **Ese código ya no existe** — lo fiscal salió del alcance el 19 de agosto y el
+  SRI se retiró de los dos ambientes. La analogía se queda; la advertencia de no ir a buscarlo,
+  también.
+- **Lint ejecutado, con números:** **70 páginas · frontmatter correcto en el 100%** (los cinco
+  campos exactos, sin alternativas) · **wikilinks rotos: de 13 a 8**. Se crearon
+  [[globals-css]] —lo enlazaban cinco páginas de diseño y no había nada al otro lado— y se
+  reemplazaron dos enlaces muertos de [[diagnostico]] por páginas que sí existen.
+- **El fantasma que queda, y por qué se queda:** `consolidacion-landing-2026`, citado desde
+  **ocho** páginas. Es una **sesión de trabajo, no un fichero**, y no está en `raw/`.
+  Escribirle una página de fuente resumiendo lo que dicen las páginas que la citan sería
+  circular e inventaría un original que no existe: **un enlace roto es menos dañino que una
+  fuente fabricada.** Queda como deuda con dueño.
+- **Lo que NO se hizo, y conviene que conste:** de las 68 páginas solo se revisaron las que
+  contenían algo falso. [[billing]] sigue con fecha de junio y **es la siguiente candidata**:
+  `FIN-001` cambió el camino del pago entero y esa página no lo sabe. Tampoco se revisaron
+  [[cartera-campanas]] ni el catálogo de [[portafolio-prd]], que ganó nueve PRD nuevas.
 
 ---
 

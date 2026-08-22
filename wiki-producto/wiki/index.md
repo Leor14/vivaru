@@ -3,7 +3,7 @@ tags: [indice, navegacion]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06", "estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-09
+fecha_actualizacion: 2026-08-22
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -45,6 +45,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[programa-ia]] | Dos capacidades construidas y medidas; la sombra de PQRS corre en producción. Estado por ambiente y brechas recontadas |
 | [[banderas-funcionalidad]] | 🆕 Encender y apagar capacidades sin desplegar: precedencia, kill switch maestro y aislamiento de overrides |
 | [[puerta-ia]] | Dos puertas —sesión y servidor— sobre un solo tramo de ejecución. El conjunto sale de la sesión; proveedor real vía Vertex |
+| [[integracion-albert]] | 🆕 Vivaru es TENANT de Albert CRM, y eso decide la arquitectura: sin webhooks, sin OIDC, con usuario de servicio. Tenant dado de alta el 22 ago 2026 |
 
 ---
 

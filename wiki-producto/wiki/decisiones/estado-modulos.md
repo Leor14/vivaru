@@ -1,9 +1,9 @@
 ---
 tags: [decision, estado, modulos, backlog]
 tipo: decision
-fuentes: ["BACKLOG.md", "consolidacion-landing-2026"]
+fuentes: ["BACKLOG.md", "consolidacion-landing-2026", "FIN-001", "lote-habitanto"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-17
+fecha_actualizacion: 2026-08-22
 ---
 
 # Estado de Módulos
@@ -76,6 +76,39 @@ Estado del sitio público (`grupovivaru.com`). Ver [[landing-marketing]] para de
 | Wizard «Inicia tu suscripción» | ✅ en producción | Sin promesa de plazo de respuesta |
 | Tickets de soporte | ✅ en producción | Verificado de punta a punta. Ver [[soporte]] y [[portafolio-prd]] |
 | Barrido de tokens CSS | ✅ cerrado | 20 variables declaradas. Ver [[transiciones-navegacion]] |
+
+## Vivaru Finance y REVOPS — en PRODUCCIÓN (ago 2026)
+
+| Capacidad | Estado | Notas |
+|---|---|---|
+| `FIN-000` — Storage con filtro de rol | ✅ en producción (17 ago) | Por carpeta y no por árbol. Ver [[integridad-financiera]] |
+| `FIN-001` — un solo comando de pago | ✅ en producción (18 ago) | Transaccional e idempotente; su reverso deshace los tres registros |
+| El recibo dentro de la transacción | ✅ en producción (20 ago) | Y revertir lo anula. **Lo emite el servidor, no el navegador** |
+| **Lo fiscal FUERA del alcance** | ✅ retirado (19 ago) | La factura la emite el cliente. El SRI de Ecuador **ya no existe en el código** de ninguno de los dos ambientes — no buscarlo |
+| `SUP-001` — responsable y primera respuesta | ✅ en producción (18 ago) | Ver [[soporte]] |
+| `REVOPS-001E` — propiedad comercial del lead | ✅ en producción (17 ago) | Quién es dueño de cada lead y quién vendió cada conjunto |
+| `REVOPS-001A` — atribución y consentimiento | ✅ en producción (18 ago) | `acceptedAt` lo pone el servidor |
+| Precio de plan cableado | ✅ en producción (19 ago) | Primera mitad de `REVOPS-001C` |
+| País y moneda al crear un conjunto | ✅ en producción (19 ago) | **No corrige los nueve anteriores**: 6 sin moneda y 4 sin país. Ver [[ciclo-de-vida-tenant]] |
+| Borrar a un residente le quita el acceso | ✅ en producción (19 ago) | Antes seguía dentro con su sesión viva |
+| Integración con Albert CRM | ✅ tenant dado de alta (22 ago) | Ver [[integracion-albert]] |
+
+## Construido y SIN desplegar a producción — el lote de propiedad horizontal
+
+**Esta tabla es la que más fácil se lee mal.** Todo lo de abajo **existe en el código y está en
+staging**; en `hogaru-1` **no hay nada de esto**. Casi todo nace además detrás de una
+[[banderas-funcionalidad|bandera apagada]], así que ni siquiera en staging lo ve un usuario.
+
+| Pieza | Bandera | Notas |
+|---|---|---|
+| Decimales por moneda | sin bandera | MXN y USD muestran sus centavos; COP sigue sin ellos |
+| `PLAT-002` — la autoridad del admin es su membresía | **sin bandera** | **La única del lote que no se revierte apagando nada.** Abre el multi-conjunto |
+| `FIX-001` entrega 1 — reglas de reserva en servidor | `producto-reservas-servidor` | La compuerta de morosos existía y **solo se comprobaba en el cliente**. Ver [[reservaciones]] |
+| `PLAT-001` — coeficiente y cobro por reparto | `producto-cobro-por-coeficiente` | Ver [[cartera-campanas]] |
+| `FEAT-003` — registro de proveedores | `producto-registro-proveedores` | Datos bancarios que el residente no ve nunca |
+| Vocabulario por país | sin bandera | El término lo decide el país del conjunto **y la audiencia** |
+| `PLAT-003` entrega 1a — plan de cuentas | `producto-plan-de-cuentas` · `producto-concepto-al-libro` | Todavía no toca el comando de pago. Ver [[integridad-financiera]] §5 |
+| Validación de `crmRef` | sin bandera | Ver [[integracion-albert]] |
 
 ## Programa de IA
 

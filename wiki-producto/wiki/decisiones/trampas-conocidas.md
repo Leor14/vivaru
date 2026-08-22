@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-18
+fecha_actualizacion: 2026-08-22
 ---
 
 # Trampas Conocidas
@@ -291,3 +291,53 @@ Y dos consecuencias que no son obvias:
 
 - **Revertir no es «volver a pendiente».** El estado se recalcula contra la fecha, así que una cuota cuyo vencimiento ya pasó vuelve **vencida**. Es lo correcto, pero sorprende.
 - **El comprobante del residente queda rechazado, no pendiente.** Devolverlo a pendiente parecería más amable y rompería la idempotencia: su clave de aprobación es su propio id, así que al re-aprobarlo la marca ya existiría y el pago **no se aplicaría**, devolviendo «ya aplicado» sin aplicar nada.
+
+## El catálogo de banderas vive en CUATRO sitios, no en dos
+
+Los dos evidentes son los espejos de código —`src/lib/feature-flags/catalog.ts` para el cliente y
+`functions/src/feature-flags.ts` para el servidor, duplicados a propósito porque `src/` no puede
+importar de `functions/`—. **Los otros dos son scripts, y son los que muerden:**
+`functions/scripts/seed-feature-flags.mjs`, que crea el documento, y
+`functions/scripts/mover-bandera.mjs`, que lo enciende.
+
+**Añadir una bandera tocando solo los dos primeros la deja imposible de encender, sin síntoma
+visible.** El sembrador no crea su documento y el movedor rechaza la clave como desconocida, así
+que la capacidad se queda apagada para siempre y nadie ve un error: simplemente no pasa nada.
+Ocurrió con las tres banderas de producto de agosto de 2026, y se descubrió **al ir a encenderlas
+en staging**, no antes.
+
+Es pariente de [[banderas-funcionalidad|una bandera puede existir y no gobernar nada]]: allí
+faltaba quien la leyera, aquí falta quien la cree. **La comprobación es la misma y cuesta un
+`grep`**: la clave nueva tiene que aparecer en los cuatro ficheros.
+
+## Una exclusión escrita contra un VALOR se rompe cuando cambia quien escribe ese valor
+
+`computeFundPosition` excluye del ingreso los asientos de categoría `alicuota`, para no duplicar
+el recaudo que [[cartera-campanas|Cartera]] ya suma. Funciona — **por accidente**: el comando de
+pago escribe `alicuota` en *todos* los asientos de cobro, sea una cuota o una multa.
+
+El día que el asiento lleve la categoría de verdad, la multa **deja de coincidir con el valor
+excluido**, entra en el ingreso del libro y sigue contándose en Cartera: **se cuenta dos veces**.
+Nada falla, nada avisa, y la cifra que se rompe es dinero. Detalle en [[integridad-financiera]] §5.
+
+**La forma general, que vale fuera de finanzas:** cuando una condición se escribe contra un valor
+concreto en vez de contra la **propiedad** que de verdad importa —aquí, el origen del asiento—,
+queda acoplada a que nadie cambie quién produce ese valor. Y ese cambio **no rompe ninguna
+prueba**, porque la prueba también se escribió contra el valor.
+
+## Una regla nueva también hay que verificarla contra lo que ya existe
+
+Vivaru y Albert acordaron que cierto correo **no viajaría dentro de ningún documento** del
+intercambio. Esa dirección **ya llevaba tiempo escrita en uno de ellos**, en otro papel. Nadie lo
+comprobó al escribir la regla, y se descubrió al ver al otro equipo dar por recibido algo que no
+se había mandado por ese canal. Ver [[integracion-albert]].
+
+Este vault ya tiene catalogada la forma contraria —una frase que **fue** cierta y envejeció, como
+«Albert no tiene webhooks»—. Ésta es la simétrica y se cuela más fácil: **la frase no envejeció,
+nació falsa.** Una regla se escribe mirando hacia adelante, así que a nadie se le ocurre
+verificarla hacia atrás.
+
+**Regla: antes de dar por adoptada una prohibición —un dato que no debe estar en cierto sitio,
+una llamada que no debe existir— hacer el `grep` que demuestre que hoy se cumple.** Si no se
+cumple, la regla no está adoptada: está pendiente, y hay que decir qué se hace con lo que ya la
+incumple.
