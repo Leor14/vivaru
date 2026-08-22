@@ -115,6 +115,10 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
   el estado — está congelado en el 18 de agosto, antes del intercambio.
 - **Roadmap REVOPS (activación comercial):** `docs/roadmap-revops.md` — base de la épica transversal. Adapta el Documento Rector REVOPS v1.0 con la línea base medida (5 leads, cero convertidos), las cuatro capacidades que ya existían, y el CRM identificado: es **Albert CRM**, producto propio. **Vivaru es TENANT suyo**, y eso cambia la integración entera: se empujan leads hoy, y **la señal de vuelta NO hay que construirla** — siendo tenant, Vivaru se suscribe en vivo (`onSnapshot`) a `tenants/vivaru/deals`, porque sus reglas conceden lectura a todos los roles del tenant. Este archivo decía «no tiene webhooks, así que hay que construirla» y **quedó obsoleto el 19 de agosto de 2026**, al hacernos tenant. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md`.
 - **Roadmap financiero:** `docs/roadmap-finance.md` — **el módulo ya arrancó**: F0 y F0b en producción. Adapta el Documento Rector v2 (Word) con la verificación contra código y ambientes: el mapa de rutas de pago, los cuatro defectos nombrados, y la línea base medida (cero datos propios). Su §5 explica por qué el frente fiscal salió del alcance.
+- **Bitácora de lo construido:** base de Notion **Construido — bitácora de Vivaru**
+  (`app.notion.com/p/0bdb213a53274fe2bcc7bd9b4fa1510a`), una fila por entrega con frente,
+  ambiente, bandera y commit. **El roadmap dice qué se va a hacer y por qué; la bitácora dice
+  qué existe y dónde corre.** Se actualiza en la misma pasada que el roadmap.
 - **Roadmap de producto:** `docs/roadmap-producto.md` — **el repositorio es la fuente
   de verdad; la copia de Notion es la vista publicada.** Tres zonas con reglas
   distintas: el estado se REESCRIBE arriba, el cuerpo se EDITA en su sitio, y solo el

@@ -22,6 +22,21 @@ dependencias y criterio de salida.
 | **Verificado contra** | **Ejecución, no lectura.** `origin/develop` en `0c0d422`, árbol limpio y remoto releído con `git rev-parse` tras cada push. **1029 pruebas de app y 425 de functions** en esta revisión, los dos typecheck limpios — y el de la app **en 0 errores incluidos `tests/`**, que obligó a corregir `CLAUDE.md`. De la tanda anterior: **168 pruebas de reglas** —estas últimas contra el emulador de Firestore y Storage levantado a mano—, con **46 pruebas nuevas** en esta tanda. Typecheck limpio en `src/` y en `functions/` (con `tsconfig.typecheck.json`, el que sí mira `functions/tests/`) y build de functions limpio. **El reparto por resto mayor se verificó ejecutándolo**, no razonándolo: la suma de las cuotas es exactamente el total en COP, MXN y USD |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
+**Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
+[**Construido — bitácora de Vivaru**](https://app.notion.com/p/0bdb213a53274fe2bcc7bd9b4fa1510a)—,
+una fila por entrega con su frente, su ambiente, su bandera y su commit, y tres vistas: por
+frente, esperando producción, y cronológica.
+
+**La división de trabajo es lo que evita que este documento se vuelva ilegible:** el roadmap
+dice **qué se va a hacer y por qué**; la bitácora dice **qué existe y dónde está corriendo**.
+Lo segundo crece cada semana y no cabe en una narración. **La fuente de verdad de las dos sigue
+siendo el repositorio**, y la bitácora se actualiza en la misma pasada que este documento.
+
+**Y abrió un frente que la vista ejecutiva no tenía: «Propiedad horizontal».** El lote de
+Habitanto —coeficiente, proveedores, reservas en servidor, plan de cuentas, multiconjunto— es el
+mayor cuerpo de trabajo de la semana y **no encajaba en ninguno de los ocho**; quedaba metido a
+la fuerza en Fundaciones.
+
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
 
 | Documento | Cubre |
