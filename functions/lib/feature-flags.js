@@ -43,6 +43,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Encendida porque los dos asistentes de importación ya estaban vivos antes
     // que la bandera. Ver el catálogo en `src/`.
     "producto-importacion-masiva": true,
+    // Apagada = el residente sigue escribiendo directo (comportamiento de hoy).
+    // Es el paso 2 del despliegue de PRD-V-FIX-001; ver el catálogo en `src/`.
+    "producto-reservas-servidor": false,
     // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
     // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
     "operacion-app-check-monitor": true,

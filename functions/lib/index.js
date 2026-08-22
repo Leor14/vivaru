@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -57,6 +57,7 @@ const email_1 = require("./email");
 const support_1 = require("./support");
 const payments_1 = require("./payments");
 const resident_access_1 = require("./resident-access");
+const reservations_1 = require("./reservations");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const trial_workspace_1 = require("./trial-workspace");
@@ -3245,6 +3246,47 @@ exports.createSupportTicket = (0, https_1.onCall)({ cors: http_config_1.callable
         category: request.data?.category,
     });
     return result;
+});
+// ── FIX-001 · reservas con las reglas en el servidor ─────────────────────────
+//
+// La lógica vive en `reservations.ts`; aquí se valida la sesión y la
+// membresía. Entrega 1: comportamiento idéntico al del cliente de hoy, pero
+// decidido donde el cliente no puede mentir. La regla de Firestore que aún
+// permite la escritura directa del residente se cierra en el paso 4 del
+// despliegue (PRD-V-FIX-001 §13), NUNCA antes de verificar que la interfaz ya
+// usa esta vía.
+exports.createReservationRequest = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.unitId || !data.amenityId || !data.date || !data.startTime || !data.endTime) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para crear la reserva.");
+    }
+    const membership = await assertTenantMember(data.tenantId, uid);
+    const role = membership.role;
+    const isAdmin = role === "tenant_admin" || role === "admin_tenant" || request.auth?.token?.role === "superadmin";
+    if (!isAdmin && role !== "resident") {
+        throw new https_1.HttpsError("permission-denied", "No tienes permisos para reservar.");
+    }
+    // El residente solo reserva para SU unidad — la misma condición que la
+    // regla `residentOwnUnit`. El administrador puede reservar para cualquiera.
+    if (!isAdmin && membership.unitId !== data.unitId) {
+        throw new https_1.HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
+    }
+    await assertTenantOperable(data.tenantId);
+    return (0, reservations_1.crearReserva)({
+        tenantId: data.tenantId,
+        unitId: data.unitId,
+        unitLabel: normalizeText(data.unitLabel),
+        amenityId: data.amenityId,
+        date: normalizeText(data.date),
+        startTime: normalizeText(data.startTime),
+        endTime: normalizeText(data.endTime),
+        exclusiveUse: data.exclusiveUse === true,
+        createdByName: normalizeText(data.createdByName) ||
+            (typeof membership.fullName === "string" ? membership.fullName : ""),
+    }, uid);
 });
 // ── FIN-001 · aplicación de pagos ────────────────────────────────────────────
 //

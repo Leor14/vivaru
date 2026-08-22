@@ -32,6 +32,7 @@ import {
   revocarAccesoDeResidente,
   type RevocarAccesoInput,
 } from "./resident-access";
+import { crearReserva, type CrearReservaInput } from "./reservations";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -4072,6 +4073,59 @@ export const createSupportTicket = onCall<{
   });
   return result;
 });
+
+// ── FIX-001 · reservas con las reglas en el servidor ─────────────────────────
+//
+// La lógica vive en `reservations.ts`; aquí se valida la sesión y la
+// membresía. Entrega 1: comportamiento idéntico al del cliente de hoy, pero
+// decidido donde el cliente no puede mentir. La regla de Firestore que aún
+// permite la escritura directa del residente se cierra en el paso 4 del
+// despliegue (PRD-V-FIX-001 §13), NUNCA antes de verificar que la interfaz ya
+// usa esta vía.
+export const createReservationRequest = onCall<CrearReservaInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.unitId || !data.amenityId || !data.date || !data.startTime || !data.endTime) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para crear la reserva.");
+    }
+
+    const membership = await assertTenantMember(data.tenantId, uid);
+    const role = membership.role;
+    const isAdmin = role === "tenant_admin" || role === "admin_tenant" || request.auth?.token?.role === "superadmin";
+
+    if (!isAdmin && role !== "resident") {
+      throw new HttpsError("permission-denied", "No tienes permisos para reservar.");
+    }
+    // El residente solo reserva para SU unidad — la misma condición que la
+    // regla `residentOwnUnit`. El administrador puede reservar para cualquiera.
+    if (!isAdmin && membership.unitId !== data.unitId) {
+      throw new HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
+    }
+
+    await assertTenantOperable(data.tenantId);
+
+    return crearReserva(
+      {
+        tenantId: data.tenantId,
+        unitId: data.unitId,
+        unitLabel: normalizeText(data.unitLabel),
+        amenityId: data.amenityId,
+        date: normalizeText(data.date),
+        startTime: normalizeText(data.startTime),
+        endTime: normalizeText(data.endTime),
+        exclusiveUse: data.exclusiveUse === true,
+        createdByName:
+          normalizeText(data.createdByName) ||
+          (typeof membership.fullName === "string" ? membership.fullName : ""),
+      },
+      uid,
+    );
+  },
+);
 
 // ── FIN-001 · aplicación de pagos ────────────────────────────────────────────
 //

@@ -33,6 +33,7 @@ import {
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { reservationMatchesAmenity } from "@/features/reservations/amenity-match";
 import { checkReservationEligibility } from "@/features/reservations/eligibility";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import {
   buildTimeMarks,
   formatClockTime,
@@ -188,6 +189,7 @@ export default function ResidentReservationsPage() {
   const [eligibility, setEligibility] = useState<{ eligible: boolean; amountDue: number } | null>(null);
   const [galleryAmenity, setGalleryAmenity] = useState<ReservableAmenity | null>(null);
   const [monthlyUsageCount, setMonthlyUsageCount] = useState<number | null>(null);
+  const reservasEnServidor = useFeatureFlag("producto-reservas-servidor");
 
   useEffect(() => {
     if (!tenantId || !user?.unitId) return;
@@ -704,6 +706,7 @@ export default function ResidentReservationsPage() {
         startTime: selectedStartTime,
         endTime: selectedEndTime,
         exclusiveUse,
+        viaServidor: reservasEnServidor,
       });
 
       toast.success("Reserva creada en estado pendiente.");

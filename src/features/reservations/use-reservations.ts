@@ -27,6 +27,7 @@ import {
 import type { Reservation } from "@/types/domain";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import { checkReservationEligibility } from "@/features/reservations/eligibility";
+import { createReservationRequestCallable } from "@/lib/firebase/callables";
 
 function debugReservations(message: string, payload: Record<string, unknown>) {
   const enabled = process.env.NEXT_PUBLIC_DEBUG_GUARD_RESERVATIONS === "true";
@@ -115,7 +116,32 @@ export async function createReservation(input: {
   startTime: string;
   endTime: string;
   exclusiveUse?: boolean;
+  /**
+   * Bandera `producto-reservas-servidor` (PRD-V-FIX-001 entrega 1). Encendida,
+   * la reserva la decide y la escribe el servidor — mora, cupo, aforo y
+   * solapamiento verificados contra TODAS las unidades, no solo la propia.
+   * Apagada, se conserva la escritura directa de siempre. El parámetro viene
+   * del llamador porque esto no es un hook y no puede leer la bandera.
+   */
+  viaServidor?: boolean;
 }) {
+  if (input.viaServidor) {
+    // El mensaje del servidor ya nombra la regla incumplida (R7) y
+    // `executeCallable` lo deja pasar limpio: no se re-normaliza aquí.
+    await createReservationRequestCallable({
+      tenantId: input.tenantId,
+      unitId: input.unitId,
+      unitLabel: input.unitLabel,
+      amenityId: input.amenityId,
+      date: input.date,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      exclusiveUse: input.exclusiveUse,
+      createdByName: input.createdByName,
+    });
+    return;
+  }
+
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }

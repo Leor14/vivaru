@@ -50,6 +50,7 @@ export type FeatureFlagKey =
   | "ai-receipts-extraction"
   | "ia-proveedor-real"
   | "producto-importacion-masiva"
+  | "producto-reservas-servidor"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -160,6 +161,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FEAT-002 — importación de datos del conjunto",
     alApagar:
       "Desaparecen las dos entradas de /admin/residents y el recorrido guiado deja de abrir el asistente: manda al alta individual. Las unidades y las personas se crean a mano, una a una. Lo ya importado no se toca.",
+  },
+  "producto-reservas-servidor": {
+    key: "producto-reservas-servidor",
+    area: "producto",
+    label: "Reservas decididas en el servidor",
+    description:
+      "La reserva del residente se crea vía callable, con las trece reglas —mora, cupo, aforo, horario, solapamiento— verificadas donde el cliente no puede mentir.",
+    // Nace APAGADA: es el paso 2 del despliegue de PRD-V-FIX-001. La regla de
+    // Firestore que permite la escritura directa NO se cierra hasta verificar,
+    // con esto encendido en todos los conjuntos, que ya nadie escribe directo.
+    defaultEnabled: false,
+    origen: "PRD-V-FIX-001 — reglas de reserva en el servidor, entrega 1",
+    alApagar:
+      "El residente vuelve a crear la reserva escribiendo directo, con las comprobaciones solo en el navegador — el comportamiento de hoy. Nada se rompe mientras la regla de Firestore siga abierta; por eso la regla no se cierra hasta que esta bandera lleve tiempo encendida sin escrituras directas.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

@@ -81,6 +81,35 @@ export async function createVisitorPassCallable(input: CreateVisitorPassInput) {
   return executeCallable(callable, input, "No fue posible crear el visitante.");
 }
 
+export type CreateReservationRequestInput = {
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  amenityId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  exclusiveUse?: boolean;
+  createdByName?: string;
+};
+
+/**
+ * PRD-V-FIX-001 entrega 1: la reserva del residente decidida en el servidor.
+ * El error del servidor trae `details.regla` con la regla concreta incumplida;
+ * el mensaje ya viene listo para mostrarse.
+ */
+export async function createReservationRequestCallable(input: CreateReservationRequestInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<CreateReservationRequestInput, { ok: true; reservationId: string; status: "pending" }>(
+    functions,
+    "createReservationRequest",
+  );
+  return executeCallable(callable, input, "No fue posible crear la reserva en este momento.");
+}
+
 export type RegisterWalkInVisitInput = {
   tenantId: string;
   unitId: string;
