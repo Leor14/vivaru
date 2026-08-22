@@ -405,6 +405,19 @@ service cloud.firestore {
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
+    // Registro de proveedores y beneficiarios (PRD-V-FEAT-003). Mismo patrón
+    // que expenses: SOLO administración lee — los datos bancarios de un
+    // tercero no se muestran al residente nunca (R7), y como la regla no
+    // filtra campos, se restringe la colección entera (§11.2 de la PRD).
+    // Sin delete desde el cliente: un proveedor con historia no se borra, se
+    // desactiva (R5/§6 — sin estado terminal). La unicidad del taxId por
+    // conjunto se valida en el formulario; la regla no puede consultarla.
+    match /vendors/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow delete: if false;
+    }
+
     match /bankAccounts/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));

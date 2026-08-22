@@ -34,6 +34,7 @@ export type FeatureFlagKey =
   | "producto-importacion-masiva"
   | "producto-reservas-servidor"
   | "producto-cobro-por-coeficiente"
+  | "producto-registro-proveedores"
   | "operacion-app-check-monitor";
 
 /**
@@ -58,6 +59,7 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-reservas-servidor": false,
   // Apagada = sin botón de generar por coeficiente; la corrida plana sigue.
   "producto-cobro-por-coeficiente": false,
+  "producto-registro-proveedores": false,
   // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
   "operacion-app-check-monitor": true,

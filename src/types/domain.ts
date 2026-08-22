@@ -387,6 +387,13 @@ export interface Expense {
   tenantId: string;
   category: ExpenseCategory;
   description: string;
+  /**
+   * Id en `vendors` (PRD-V-FEAT-003). Opcional: los egresos anteriores al
+   * registro llevan solo el nombre a mano. `vendorName` y `vendorTaxId` se
+   * conservan SIEMPRE como copia congelada de lo que decía el registro al
+   * momento del egreso (R2): editar el proveedor no reescribe la historia.
+   */
+  vendorId?: string;
   vendorName?: string;
   vendorTaxId?: string;
   amount: number;

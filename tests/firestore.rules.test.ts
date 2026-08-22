@@ -1541,3 +1541,71 @@ describe("El recibo lo emite el servidor: el cliente solo lee", () => {
     await assertSucceeds(getDoc(doc(admin.firestore(), "paymentVouchers", "pv-legible")));
   });
 });
+
+describe("FEAT-003 · proveedores: solo administración, y sin borrado", () => {
+  /**
+   * `vendors` guarda datos bancarios de terceros (R7 de PRD-V-FEAT-003). La
+   * regla no puede filtrar campos, así que la LECTURA entera queda restringida
+   * a administración — un residente no ve ni el nombre, y mucho menos la
+   * cuenta. Y no hay borrado desde el cliente (R5): un proveedor con historia
+   * se desactiva, no se borra.
+   */
+  it("un admin crea y edita proveedores de su conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "vendors", "v-1"), {
+        tenantId: "tenant-a",
+        type: "proveedor",
+        legalName: "Electricidad Andina SAS",
+        taxId: "900123456",
+        status: "active",
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "vendors", "v-1"), {
+        tenantId: "tenant-a",
+        type: "proveedor",
+        legalName: "Electricidad Andina S.A.S.",
+        taxId: "900123456",
+        bankName: "Banco X",
+        accountNumber: "123-456",
+        status: "active",
+      }),
+    );
+  });
+
+  it("un residente NO lee el registro — los datos bancarios de un tercero no son suyos", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(resident.firestore(), "vendors", "v-1")));
+  });
+
+  it("un residente NO crea proveedores", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(resident.firestore(), "vendors", "v-res"), {
+        tenantId: "tenant-a",
+        type: "proveedor",
+        legalName: "Intento",
+        status: "active",
+      }),
+    );
+  });
+
+  it("un admin NO borra un proveedor — se desactiva (R5)", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "vendors", "v-1")));
+  });
+
+  it("un admin de OTRO conjunto no lee ni escribe estos proveedores", async () => {
+    const foreign = testEnv.authenticatedContext("admin-b", { role: "tenant_admin", tenantId: "tenant-b" });
+    await assertFails(getDoc(doc(foreign.firestore(), "vendors", "v-1")));
+    await assertFails(
+      setDoc(doc(foreign.firestore(), "vendors", "v-ajeno"), {
+        tenantId: "tenant-a",
+        type: "proveedor",
+        legalName: "Cruce de conjuntos",
+        status: "active",
+      }),
+    );
+  });
+});

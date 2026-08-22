@@ -52,6 +52,7 @@ export type FeatureFlagKey =
   | "producto-importacion-masiva"
   | "producto-reservas-servidor"
   | "producto-cobro-por-coeficiente"
+  | "producto-registro-proveedores"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -190,6 +191,18 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-PLAT-001 — copropiedad y modelo de unidad",
     alApagar:
       "Desaparece el botón de generar por coeficiente. La corrida plana de siempre sigue intacta, y los coeficientes ya cargados se conservan sin efecto.",
+  },
+  "producto-registro-proveedores": {
+    key: "producto-registro-proveedores",
+    area: "producto",
+    label: "Registro de proveedores",
+    description:
+      "Proveedores y beneficiarios como entidad: datos bancarios, categoría por defecto y selección en el egreso con copia congelada del nombre.",
+    // Nace apagada: capacidad nueva.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-003 — registro de proveedores y beneficiarios",
+    alApagar:
+      "Desaparecen el botón de gestión y el selector del formulario de egreso. El nombre a mano sigue funcionando — nunca se retira — y los egresos ya ligados conservan su vendorId sin efecto.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

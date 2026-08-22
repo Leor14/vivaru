@@ -32,6 +32,8 @@ export const expenseSchema = z
   .object({
     category: expenseCategoryEnum,
     description: requiredText("Descripcion", 3),
+    /** Id en `vendors` (FEAT-003). El nombre y el taxId de abajo quedan como copia congelada (R2). */
+    vendorId: z.string().trim().optional(),
     vendorName: z.string().trim().optional(),
     vendorTaxId: z.string().trim().optional(),
     amount: positiveAmount,
@@ -48,6 +50,30 @@ export const expenseSchema = z
   );
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;
+
+/**
+ * PRD-V-FEAT-003. `type` obligatorio (R9): decide si el registro contiene
+ * datos personales — un empleado entra en la política de retención; una
+ * empresa no. La unicidad del taxId (R4) no vive aquí: se comprueba contra la
+ * lista suscrita antes de escribir (findDuplicateTaxId).
+ */
+export const vendorSchema = z.object({
+  type: z.enum(["proveedor", "empleado"]),
+  taxId: z.string().trim().optional(),
+  legalName: requiredText("Razon social o nombre", 3),
+  tradeName: z.string().trim().optional(),
+  email: z.union([z.string().trim().email("Correo invalido"), z.literal("")]).optional(),
+  phone: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  representative: z.string().trim().optional(),
+  bankName: z.string().trim().optional(),
+  accountNumber: z.string().trim().optional(),
+  accountType: z.union([z.enum(["corriente", "ahorros"]), z.literal("")]).optional(),
+  defaultCategory: z.union([expenseCategoryEnum, z.literal("")]).optional(),
+  status: z.enum(["active", "inactive"]),
+});
+
+export type VendorFormInput = z.infer<typeof vendorSchema>;
 
 export const bankAccountSchema = z.object({
   label: requiredText("Nombre de la cuenta", 2),

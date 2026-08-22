@@ -31,6 +31,9 @@ import {
 import { detectAmountAnomaly } from "@/features/finanzas/expense-anomaly";
 import { expenseSchema, type ExpenseFormValues } from "@/features/finanzas/schemas";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { useVendors } from "@/features/finanzas/use-vendors";
+import { VendorRegistryDialog } from "@/components/features/finanzas/VendorRegistryDialog";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
 
@@ -69,6 +72,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const EMPTY_DEFAULTS: Partial<ExpenseFormValues> = {
   category: "proveedores",
   description: "",
+  vendorId: "",
   vendorName: "",
   vendorTaxId: "",
   issueDate: today(),
@@ -97,6 +101,10 @@ export default function AdminEgresosPage() {
   const [searchFilter, setSearchFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const registroProveedores = useFeatureFlag("producto-registro-proveedores");
+  const { vendors } = useVendors(registroProveedores ? user?.tenantId : undefined);
+  const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -136,6 +144,7 @@ export default function AdminEgresosPage() {
     form.reset({
       category: item.category,
       description: item.description,
+      vendorId: item.vendorId ?? "",
       vendorName: item.vendorName ?? "",
       vendorTaxId: item.vendorTaxId ?? "",
       amount: item.amount,
@@ -286,12 +295,19 @@ export default function AdminEgresosPage() {
           <CardTitle>Egresos</CardTitle>
           <CardDescription className="mt-1">Cuentas por pagar y pagos del conjunto.</CardDescription>
         </div>
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+        {registroProveedores ? (
+          <Button variant="outline" className="w-full sm:w-auto" onClick={() => setVendorDialogOpen(true)}>
+            Proveedores
+          </Button>
+        ) : null}
         <Button className="w-full sm:w-auto" onClick={openCreate}>
           <IconBadge tone="mint" className="mr-2">
             <Plus className="h-4 w-4" />
           </IconBadge>
           Registrar egreso
         </Button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -438,6 +454,38 @@ export default function AdminEgresosPage() {
               ) : null}
             </div>
           </div>
+          {registroProveedores ? (
+            <label className="block text-sm text-[var(--slate-700)]">
+              Beneficiario del registro
+              <select
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                value={form.watch("vendorId") ?? ""}
+                onChange={(e) => {
+                  const vendorId = e.target.value;
+                  form.setValue("vendorId", vendorId);
+                  const vendor = vendors.find((v) => v.id === vendorId);
+                  if (vendor) {
+                    // R2: el egreso congela nombre e identificación tal como
+                    // están HOY en el registro. Editar el proveedor después no
+                    // reescribe este egreso.
+                    form.setValue("vendorName", vendor.legalName);
+                    form.setValue("vendorTaxId", vendor.taxId ?? "");
+                    if (vendor.defaultCategory) form.setValue("category", vendor.defaultCategory);
+                  }
+                }}
+              >
+                <option value="">Sin registro — escribir a mano</option>
+                {vendors
+                  .filter((v) => v.status === "active" || v.id === form.watch("vendorId"))
+                  .map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.legalName}
+                      {v.taxId ? ` — ${v.taxId}` : ""}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Proveedor
@@ -501,6 +549,16 @@ export default function AdminEgresosPage() {
           </div>
         </form>
       </Modal>
+
+      {user?.tenantId && user.uid ? (
+        <VendorRegistryDialog
+          open={vendorDialogOpen}
+          tenantId={user.tenantId}
+          userId={user.uid}
+          vendors={vendors}
+          onClose={() => setVendorDialogOpen(false)}
+        />
+      ) : null}
 
       <ConfirmDeleteDialog
         open={Boolean(pendingDeletion)}
