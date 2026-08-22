@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase/client";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense, LedgerEntry } from "@/types/domain";
 
+import { esRecaudoDeCartera } from "./financial-statement";
 import type { LedgerEntryFormValues } from "./schemas";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -98,8 +99,9 @@ export async function deleteLedgerEntry(id: string) {
  * Anula un movimiento manual creando su asiento inverso (mismo tipo, monto
  * NEGATIVO) y marcando el original con `reversedByEntryId`. El monto negativo
  * — en vez de tipo opuesto — mantiene simétricas todas las agregaciones
- * (`computeFundPosition` y la exclusión de "alicuota" aplican igual al
- * original y a su reverso). Convención contable: nunca borrar, siempre anular.
+ * (`computeFundPosition` y la exclusión de `esRecaudoDeCartera` aplican igual
+ * al original y a su reverso, porque el reverso copia su categoría).
+ * Convención contable: nunca borrar, siempre anular.
  */
 export async function reverseLedgerEntry(
   tenantId: string,
@@ -215,9 +217,10 @@ export function computeFundPosition(
   let expenses = 0;
   for (const entry of entries) {
     if (entry.type === "ingreso") {
-      // El recaudo de cuotas (categoría "alicuota") se cuenta vía cuotaIncome
-      // (derivado de Cartera, fuente completa). Se excluye aquí para no duplicar.
-      if (entry.category !== "alicuota") ledgerIncome += entry.amount;
+      // El recaudo de cargos se cuenta vía cuotaIncome (derivado de Cartera,
+      // fuente completa). Se excluye aquí para no duplicar, mirando el ORIGEN
+      // del asiento y no su categoría — ver `esRecaudoDeCartera`.
+      if (!esRecaudoDeCartera(entry)) ledgerIncome += entry.amount;
     } else if (entry.type === "egreso") {
       expenses += entry.amount;
     }

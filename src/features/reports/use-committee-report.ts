@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { fetchTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { computeCollectionSummary, statementChargedAmount } from "@/features/billing/collection";
-import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
+import { buildFinancialStatement, esRecaudoDeCartera } from "@/features/finanzas/financial-statement";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
 import type { CommitteeAgreement, CommitteeAgreementSignature } from "@/features/committee-agreements/types";
 import type { BillingStatement, LedgerEntry, PackageItem, Ticket, VisitorPass, Reservation } from "@/types/domain";
@@ -620,7 +620,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       const recaudado = monthCollection.collected;
       const vencido = bs.filter((b) => b.status === "overdue").reduce((s, b) => s + (b.balance ?? 0), 0);
       const monthLedger = ledger.filter((e) => toDateStr(e.date).slice(0, 7) === period);
-      const ingresosOtros = monthLedger.filter((e) => e.type === "ingreso" && e.category !== "alicuota").reduce((s, e) => s + e.amount, 0);
+      const ingresosOtros = monthLedger.filter((e) => e.type === "ingreso" && !esRecaudoDeCartera(e)).reduce((s, e) => s + e.amount, 0);
       const egresos = monthLedger.filter((e) => e.type === "egreso").reduce((s, e) => s + e.amount, 0);
       const ingresos = recaudado + ingresosOtros;
       return {

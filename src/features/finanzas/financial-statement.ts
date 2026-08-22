@@ -33,10 +33,36 @@ export function categoryLabel(category: string): string {
 }
 
 /**
+ * Si un asiento de ingreso ya viene contado por Cartera y por tanto **no** debe
+ * volver a sumarse desde el libro.
+ *
+ * **Mira el ORIGEN, no la categoría.** El recaudo de cargos se agrega aparte
+ * como `cuotaIncome` —derivado de Cartera, que es la fuente completa— y el
+ * libro tiene que descontarlo para no contarlo dos veces. Hasta el 22 de agosto
+ * de 2026 ese descuento preguntaba `category !== "alicuota"`, y **acertaba por
+ * accidente**: `aplicarPago` escribía `alicuota` fijo para todo, así que todo
+ * cargo quedaba excluido. En cuanto el asiento lleve la cuenta de su concepto
+ * (R6 de `PRD-V-PLAT-003`), una multa deja de llamarse `alicuota`, entra en el
+ * ingreso del libro y **sigue estando en `cuotaIncome`**: se cuenta dos veces,
+ * y justo en los conjuntos que cobran algo distinto de la cuota.
+ *
+ * Excluir por origen sobrevive a cualquier concepto futuro. Regla **R12**.
+ *
+ * La rama de `"alicuota"` es la **convivencia**: los asientos ya escritos —y
+ * los que se sigan escribiendo mientras la bandera `producto-concepto-al-libro`
+ * esté apagada— no llevan `sourceType` fiable en todos los casos, y el reverso
+ * de un pago se guarda como `sourceType: "reversal"`. No se puede quitar hasta
+ * que el reverso arrastre el origen del asiento que anula.
+ */
+export function esRecaudoDeCartera(entry: Pick<LedgerEntry, "sourceType" | "category">): boolean {
+  return entry.sourceType === "billingStatement" || entry.category === "alicuota";
+}
+
+/**
  * Construye el estado de ingresos y egresos por categoría a partir del libro.
  * El recaudo de cuotas (cuotaIncome, derivado de Cartera) se agrega como una
- * línea "alicuota"; los asientos de libro con esa categoría se omiten para no
- * duplicar (ver computeFundPosition).
+ * línea "alicuota"; los asientos que ya vienen contados por Cartera se omiten
+ * para no duplicar (ver `esRecaudoDeCartera` y `computeFundPosition`).
  */
 export function buildFinancialStatement(
   entries: LedgerEntry[],
@@ -50,7 +76,7 @@ export function buildFinancialStatement(
 
   for (const entry of entries) {
     if (entry.type === "ingreso") {
-      if (entry.category === "alicuota") continue;
+      if (esRecaudoDeCartera(entry)) continue;
       const key = entry.category ?? "otros_ingresos";
       incomeMap.set(key, (incomeMap.get(key) ?? 0) + entry.amount);
     } else if (entry.type === "egreso") {

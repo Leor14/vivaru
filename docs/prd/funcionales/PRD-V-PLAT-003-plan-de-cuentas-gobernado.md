@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `committee` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión **1.1**. D1 y D2 cerradas el 21 ago 2026. **La 1.1 (22 ago) corrige dos huecos que salieron al leer el código antes de construir: la semilla no cubría los conceptos de cargo (§2) y el cambio introducía un doble conteo (§2 y §5.2)** |
+| **Estado** | **En construcción** — versión **1.2**. D1 y D2 cerradas el 21 ago 2026. La 1.1 (22 ago) corrigió dos huecos que salieron al leer el código antes de construir: la semilla no cubría los conceptos de cargo (§2) y el cambio introducía un doble conteo (§2 y §5.2). **La 1.2 (22 ago, tarde) sale de construir la corrección: los sitios del doble conteo eran TRES y no dos (§2), el reverso del pago es la misma mina en negativo (R13), y la exclusión puede desplegarse sola y antes (§13)** |
 | **Dependencias** | Ninguna. **Habilita** el consolidado entre conjuntos de `PRD-V-PLAT-002`. **Secuencia obligatoria: va ANTES que `PRD-V-FLOW-002`** — las dos modifican `aplicarPago` y no pueden estar en vuelo a la vez |
 | **Riesgo** | **Alto.** Toca la categoría de todos los asientos del libro |
 | **Reversibilidad** | **Parcial.** La corrección de §5.2 **cambia lo que muestra el estado financiero** y no se deshace con una bandera (§13) |
@@ -90,10 +90,59 @@ no lo que se llama de cierta forma. Los asientos de cobro llevan `sourceType:
 "billingStatement"`. Excluir por origen sobrevive a cualquier concepto futuro; excluir por
 `"alicuota"` era una coincidencia que iba a durar hasta hoy.
 
+**Y los sitios eran TRES, no dos** (encontrado al construir, 22 ago 2026). Esta sección
+nombraba `use-ledger.ts` y `financial-statement.ts`. Falta el informe del comité:
+
+```
+src/features/reports/use-committee-report.ts:623
+  ingresosOtros = monthLedger.filter(e => e.type === "ingreso" && e.category !== "alicuota")
+  ingresos = recaudado + ingresosOtros        ← `recaudado` sale de Cartera
+```
+
+Misma forma exacta, mismo doble conteo, y en la tendencia de doce meses que ve el consejo.
+Por eso la exclusión pasa a ser **un predicado exportado y único** —`esRecaudoDeCartera`, en
+`financial-statement.ts`— y no la misma condición copiada tres veces: fue precisamente
+copiarla lo que dejó un sitio fuera del inventario.
+
 **Por qué no estaba escrito:** R10 demuestra que sí se conocía la exclusión, pero razonaba
 sobre el anticipo **desapareciendo** del libro. El caso simétrico —los demás conceptos
 **apareciendo dos veces**— no se miró. Es la misma forma de error que este repositorio ya tiene
 catalogada: una frase cierta que deja de serlo al cambiar lo que hay debajo.
+
+### Lo que dijo la base al medirlo (22 ago 2026, tarde)
+
+Antes de tocar la exclusión se leyeron los dos ambientes —`hogaru-1` y `vivaru-staging-02`—
+para saber si el cambio movía números:
+`functions/scripts/auditar-exclusion-libro.mjs` y `medir-delta-exclusion-libro.mjs`, los dos
+de solo lectura.
+
+**Existe un asiento `sourceType: "billingStatement"` con categoría distinta de `alicuota`, y
+está en los dos ambientes con el mismo id:** `ledger-in-bill-playas-t1-106-extra-2026-05`
+(1.500, `extraordinaria`, conjunto `conjunto-las-playas`).
+
+**Lo escribe el seed de demo, y el seed ya hace lo que hará R6.**
+`functions/scripts/seed-data-playas.mjs:248` resuelve
+`category: b.concept === "administracion" ? "alicuota" : "extraordinaria"`. Su cargo está
+`paid` con `paymentAmount: 1.500`, así que ese importe **está hoy en `cuotaIncome` y en
+`ledgerIncome` a la vez**.
+
+**Conclusión, y es la contraria de la que se esperaba:** el doble conteo que esta PRD decía
+que el cambio *introduciría* **ya existe**, sembrado, desde antes de tocar nada. Las Playas
+muestra 129.000 de ingresos habiendo recaudado 127.500. La corrección de R12 no lo introduce:
+**lo quita**.
+
+| Ambiente | Conjuntos cuyo total cambia | Delta |
+|---|---|---|
+| Producción `hogaru-1` | **1 de 7** (`conjunto-las-playas`, `isExample`) | **−1.500** |
+| Staging `vivaru-staging-02` | **1 de 8** (`conjunto-las-playas`) | **−1.500** |
+
+Los otros trece conjuntos no se mueven. Decisión de David (22 ago): **se despliega tal cual**;
+127.500 es el número correcto, y con cero clientes reales es el momento más barato de
+corregirlo.
+
+**Un descuadre suelto que salió al medir, ajeno a esta PRD:** `conjunto-las-playas` está
+marcado `isExample` en producción y **no** en staging, lo que descuadra cualquier volumetría
+que descuente lo sembrado. Anotado en `docs/pendientes.md`, no corregido aquí.
 
 ### Baseline
 
@@ -272,7 +321,8 @@ El plan de cuentas **no contiene datos personales**. Fuera de la política de re
 | **R10** | El anticipo de `PRD-V-FLOW-002` usa **su propia cuenta** y **nunca se excluye del libro** como se excluye `alicuota` |
 
 | **R11** | El mapa **`BillingConcept` → cuenta es explícito y vive en un solo sitio.** Dos resoluciones no son obvias y hay que escribirlas: el cargo `administracion` va a la cuenta de **ingreso** `alicuota` —no a la de egreso homónima— y el cargo `otro` va a `otros_ingresos`. Las tres que hoy no tienen cuenta (`multa`, `reparacion`, `parqueadero`) **se siembran**, no caen en R8 |
-| **R12** | La exclusión que evita el doble conteo mira el **origen** del asiento (`sourceType === "billingStatement"`), no su categoría. Durante la convivencia acepta también `category === "alicuota"` para lo histórico |
+| **R12** | La exclusión que evita el doble conteo mira el **origen** del asiento (`sourceType === "billingStatement"`), no su categoría. Durante la convivencia acepta también `category === "alicuota"` para lo histórico. Vive en **un solo predicado**, `esRecaudoDeCartera`, usado por los **tres** sitios de §2 |
+| **R13** | **El reverso de un pago tiene que arrastrar el origen del asiento que anula.** Hoy `revertirPago` escribe `sourceType: "reversal"` y `category: "alicuota"`, así que R12 lo excluye por la segunda rama. En cuanto R7 le ponga la cuenta del concepto, el reverso de una multa **deja de excluirse** —no es `billingStatement` ni es `alicuota`— y su monto negativo entra en el ingreso del libro mientras Cartera ya lo descontó: **el mismo doble conteo, en negativo**. R13 va en el mismo incremento que R6 y R7 |
 
 **R8 no es la red del mapa incompleto.** Si los conceptos conocidos cayeran en `otros_ingresos`,
 la métrica de éxito de §2 fallaría el primer día — `multa` es justo el ejemplo que usa. R8 es
@@ -380,10 +430,19 @@ condominios.
 
 1. **Reglas** — `chartOfAccounts` con id derivado.
 2. **Functions** — semilla en el alta; `accountCode` en `aplicarPago` y `revertirPago`, **detrás
-   de `producto-concepto-al-libro`**.
-   **En el mismo incremento, y no en otro:** la corrección de la exclusión del libro (§2, R12).
+   de `producto-concepto-al-libro`**, junto con **R13** (el reverso arrastra el origen).
    El front que lee y la función que escribe cambian a la vez porque **el defecto vive entre los
    dos**.
+
+   **Precisión del 22 de agosto: la exclusión SÍ puede ir sola, y antes.** Esta sección decía
+   «en el mismo incremento, y no en otro», y de ahí se leía «las dos juntas o ninguna». La
+   regla real es **la exclusión primero, o a la vez, nunca después**. Sola es inocua: con la
+   bandera apagada todo asiento de cobro es `billingStatement` **y** `alicuota` a la vez, así
+   que la exclusión vieja y la nueva seleccionan el mismo conjunto y no se mueve un peso.
+   **Lo que no puede ocurrir es lo contrario** —escribir la cuenta del concepto y arreglar la
+   exclusión después—, porque eso es desplegar el doble conteo. Se desplegó así:
+   **1b-i, solo la exclusión** (front, sin bandera) · **1b-ii, `aplicarPago`/`revertirPago`**
+   (functions, con bandera).
 3. **Front** — plan de cuentas, selector en egreso y cargo, informes por cuenta.
 
 ### Rollback

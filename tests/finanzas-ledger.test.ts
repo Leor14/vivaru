@@ -49,6 +49,42 @@ describe("computeFundPosition", () => {
     expect(pos.ledgerIncome).toBe(100);
     expect(pos.totalIncome).toBe(600);
   });
+
+  // R12 · PRD-V-PLAT-003. El caso que hoy no puede ocurrir y ocurrirá en cuanto
+  // `aplicarPago` escriba la cuenta del concepto: un cargo de multa cobrado.
+  // Cartera ya lo suma en `cuotaIncome`; si el libro además lo sumara, el
+  // conjunto vería 1.500 donde recaudó 1.000.
+  it("excluye el asiento de un cargo aunque su categoría NO sea alicuota", () => {
+    const multa: LedgerEntry = {
+      ...entry("ingreso", 500),
+      category: "otros_ingresos",
+      sourceType: "billingStatement",
+    };
+    const pos = computeFundPosition([multa, entry("ingreso", 100)], 1000);
+    expect(pos.ledgerIncome).toBe(100);
+    expect(pos.totalIncome).toBe(1100);
+  });
+
+  // El otro lado: excluir por origen no puede tragarse ingresos que Cartera no
+  // conoce. Un ingreso manual o un asiento de egreso reversado siguen contando.
+  it("no excluye ingresos que no vienen de un cargo", () => {
+    const manual: LedgerEntry = { ...entry("ingreso", 300), category: "arriendo", sourceType: "manual" };
+    const pos = computeFundPosition([manual], 0);
+    expect(pos.ledgerIncome).toBe(300);
+  });
+
+  // Convivencia: con la bandera apagada el reverso de un pago se guarda con
+  // `sourceType: "reversal"` y categoría `alicuota`. Se sigue excluyendo por la
+  // segunda rama de R12 — si no, el reverso restaría dos veces.
+  it("sigue excluyendo el reverso de un pago, que llega como reversal + alicuota", () => {
+    const reverso: LedgerEntry = {
+      ...entry("ingreso", -500),
+      category: "alicuota",
+      sourceType: "reversal",
+    };
+    const pos = computeFundPosition([reverso], 0);
+    expect(pos.ledgerIncome).toBe(0);
+  });
 });
 
 describe("resolveExpenseLedgerAction", () => {

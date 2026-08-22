@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
+import { buildFinancialStatement, esRecaudoDeCartera } from "@/features/finanzas/financial-statement";
 import type { LedgerEntry } from "@/types/domain";
 
 const entry = (
@@ -42,5 +42,35 @@ describe("buildFinancialStatement", () => {
     const entries = [entry("ingreso", 1000, "alicuota")];
     const s = buildFinancialStatement(entries, 1000, 0);
     expect(s.totalIncome).toBe(1000);
+  });
+
+  // R12 · PRD-V-PLAT-003 — el mismo caso que en computeFundPosition, aquí
+  // además comprueba que la multa NO aparece como una línea de ingreso propia
+  // duplicando la que ya trae Cartera.
+  it("no duplica el asiento de un cargo cuya categoría no es alicuota", () => {
+    const multa: LedgerEntry = {
+      ...entry("ingreso", 400, "otros_ingresos"),
+      sourceType: "billingStatement",
+    };
+    const s = buildFinancialStatement([multa], 1000, 0);
+    expect(s.totalIncome).toBe(1000);
+    expect(s.incomeByCategory.find((i) => i.category === "otros_ingresos")).toBeUndefined();
+  });
+
+  it("mantiene los ingresos que no vienen de un cargo", () => {
+    const arriendo: LedgerEntry = { ...entry("ingreso", 400, "arriendo"), sourceType: "manual" };
+    const s = buildFinancialStatement([arriendo], 1000, 0);
+    expect(s.totalIncome).toBe(1400);
+    expect(s.incomeByCategory.find((i) => i.category === "arriendo")?.amount).toBe(400);
+  });
+});
+
+describe("esRecaudoDeCartera", () => {
+  it("excluye por origen y, durante la convivencia, también por categoría", () => {
+    expect(esRecaudoDeCartera({ sourceType: "billingStatement", category: "otros_ingresos" })).toBe(true);
+    expect(esRecaudoDeCartera({ sourceType: "reversal", category: "alicuota" })).toBe(true);
+    expect(esRecaudoDeCartera({ sourceType: "manual", category: "arriendo" })).toBe(false);
+    expect(esRecaudoDeCartera({ sourceType: "expense", category: "nomina" })).toBe(false);
+    expect(esRecaudoDeCartera({})).toBe(false);
   });
 });
