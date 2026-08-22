@@ -5,6 +5,7 @@ exports.repartirPorCoeficiente = repartirPorCoeficiente;
 exports.generarCorridaPorCoeficiente = generarCorridaPorCoeficiente;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const vocabulario_pais_1 = require("./vocabulario-pais");
 /**
  * `PRD-V-PLAT-001` — corrida de cobro por coeficiente de copropiedad.
  *
@@ -47,7 +48,15 @@ exports.TOLERANCIA_SUMA = 0.000001;
  * Lanza HttpsError con el detalle exacto de qué falta — R4: la unidad sin
  * coeficiente se NOMBRA, no se dice "hay un error".
  */
-function repartirPorCoeficiente(total, unidades, currency) {
+function repartirPorCoeficiente(total, unidades, currency, 
+/**
+ * Cómo se llama el coeficiente en el país del conjunto: «coeficiente» en
+ * Colombia, «alícuota» en Ecuador, «indiviso» en México. Los mensajes de
+ * abajo los lee una persona, y decirle «coeficiente» a quien su ley llama
+ * «indiviso» es un error sobre algo que no reconoce. Ver
+ * `functions/src/vocabulario-pais.ts`.
+ */
+termino = "porcentaje") {
     if (!(total > 0)) {
         throw new https_1.HttpsError("invalid-argument", "El total a repartir debe ser mayor que cero.");
     }
@@ -60,11 +69,11 @@ function repartirPorCoeficiente(total, unidades, currency) {
     if (sinCoeficiente.length > 0) {
         const nombres = sinCoeficiente.slice(0, 5).map((u) => u.unitLabel).join(", ");
         const extra = sinCoeficiente.length > 5 ? ` y ${sinCoeficiente.length - 5} más` : "";
-        throw new https_1.HttpsError("failed-precondition", `No se puede generar por coeficiente: sin coeficiente ${nombres}${extra}.`);
+        throw new https_1.HttpsError("failed-precondition", `No se puede generar por ${termino}: sin ${termino} ${nombres}${extra}.`);
     }
     const suma = activas.reduce((acc, u) => acc + u.coefficient, 0);
     if (Math.abs(suma - 100) > exports.TOLERANCIA_SUMA) {
-        throw new https_1.HttpsError("failed-precondition", `La suma de coeficientes es ${suma.toFixed(6)}% y debe ser 100%. Corrige el reparto antes de generar.`);
+        throw new https_1.HttpsError("failed-precondition", `La suma de ${termino === "alícuota" ? "alícuotas" : `${termino}s`} es ${suma.toFixed(6)}% y debe ser 100%. Corrige el reparto antes de generar.`);
     }
     // R5: el cargo necesita a quién emitirse. Responsable designado o primer
     // propietario; sin ninguno, la unidad bloquea la corrida y se nombra.
@@ -131,7 +140,8 @@ async function generarCorridaPorCoeficiente(input, uid) {
             ownerIds: data.ownerIds,
         };
     });
-    const reparto = repartirPorCoeficiente(input.totalAmount, unidades, currency);
+    const tenantData = tenantSnap.data();
+    const reparto = repartirPorCoeficiente(input.totalAmount, unidades, currency, (0, vocabulario_pais_1.terminoCoeficiente)(tenantData.country));
     if (input.dryRun) {
         return { ok: true, dryRun: true, ...reparto };
     }
