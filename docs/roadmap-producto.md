@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.15 |
-| **Fecha** | 22 de agosto de 2026, tarde |
-| **Estado** | **El expediente de Albert se CERRÓ entero y `PLAT-003` arrancó.** El intercambio terminó en nueve documentos, el **alta del tenant `vivaru` está ejecutada** y **A1 está publicado en producción de Albert** — ya no hay nada bloqueado por ellos, y **los dos equipos avanzan por separado a propósito**. Del lado del código: la **validación de `crmRef`** y la **entrega 1a de `PLAT-003`**. Y sigue en pie que **la ola A del lote de propiedad horizontal está CONSTRUIDA y en staging.** Cuatro piezas en cinco commits: la corrección de moneda, la auditoría de las callables, las reservas decididas en servidor, la copropiedad y el registro de proveedores. **Desplegado a STAGING el 22 de agosto** —reglas, índices y functions—, con las banderas de coeficiente y proveedores encendidas allí para probarlas. **Producción sigue intacta**: no se ha desplegado nada a `hogaru-1`. Lo anterior —niveles 1, 2 y 3, `FIN-001` completa— sigue en producción sin cambios |
-| **Verificado contra** | **Ejecución, no lectura.** `origin/develop` en `0c0d422`, árbol limpio y remoto releído con `git rev-parse` tras cada push. **1029 pruebas de app y 425 de functions** en esta revisión, los dos typecheck limpios — y el de la app **en 0 errores incluidos `tests/`**, que obligó a corregir `CLAUDE.md`. De la tanda anterior: **168 pruebas de reglas** —estas últimas contra el emulador de Firestore y Storage levantado a mano—, con **46 pruebas nuevas** en esta tanda. Typecheck limpio en `src/` y en `functions/` (con `tsconfig.typecheck.json`, el que sí mira `functions/tests/`) y build de functions limpio. **El reparto por resto mayor se verificó ejecutándolo**, no razonándolo: la suma de las cuotas es exactamente el total en COP, MXN y USD |
+| **Versión** | 0.9.16 |
+| **Fecha** | 22 de agosto de 2026, noche |
+| **Estado** | **`PLAT-003` entró en el código que mueve dinero, por el trozo pequeño.** La entrega **1b-i** —la corrección de la exclusión del libro— está **construida y en staging** (`1635ac2`), **sin bandera**, y es **la única pieza del lote que cambia una cifra visible hoy**. Se partió a propósito de la 1b-ii, que es la que toca `aplicarPago`: la regla no es «las dos juntas», es **la exclusión primero, o a la vez, nunca después**. Sigue en pie que la **ola A del lote de propiedad horizontal está en staging** —moneda, auditoría de callables, reservas en servidor, copropiedad, proveedores, plan de cuentas 1a— y que **el expediente de Albert está cerrado**, con los dos equipos avanzando por separado a propósito. **Producción sigue intacta:** `master` en `d17478d`, sin desplegar nada a `hogaru-1` |
+| **Verificado contra** | **Ejecución y MEDICIÓN contra los dos ambientes, no lectura.** `origin/develop` releído con `git rev-parse` tras cada push. **1035 pruebas de app** y los dos typecheck limpios, con eslint limpio en los ficheros tocados. Las tres pruebas nuevas de la exclusión **se comprobaron en ROJO** con la regla vieja antes de darlas por buenas. Y antes de tocar nada se leyeron `hogaru-1` y `vivaru-staging-02` con dos scripts de solo lectura para saber cuánto movía el cambio: **movía un conjunto de siete, en −1.500**, y lo movía **para corregir un doble conteo que ya existía** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -47,60 +47,39 @@ la fuerza en Fundaciones.
 
 **Qué cambió en esta revisión:**
 
-- **Se pasó de escribir a construir, y la ola A quedó completa.** Cinco commits en
-  `develop`: `formatAmount` por moneda, la auditoría de `PLAT-002`, la primera entrega de
-  `FIX-001`, y los MVP de `PLAT-001` y `FEAT-003`. **El orden declarado se respetó**, y la
-  única pieza que no se revierte con una bandera —la auditoría— fue **sola y en su propio
-  commit**, como decía el plan.
-- **Leer el código antes de construir encontró dos huecos en `PLAT-003` que la revisión
-  cruzada de nueve PRD no vio**, y la razón importa: **los dos viven ENTRE ficheros**.
-  Cotejar documentos contra documentos no los encuentra.
-- **El primero: la semilla de trece no cubría los conceptos de cargo.** Tres de los siete
-  —`multa`, `reparacion`, `parqueadero`— no tenían cuenta, y **`multa` es el ejemplo que usa
-  la propia métrica de éxito de esa PRD**.
-- **El segundo, y es el que rompía dinero: el cambio INTRODUCÍA un doble conteo.** El libro
-  excluye del ingreso los asientos de categoría `alicuota` para no duplicar lo que ya suma
-  Cartera, y eso **funciona por accidente** porque hoy se escribe `alicuota` para todo. Al
-  escribir la cuenta del concepto, una multa dejaba de excluirse y **se contaba dos veces**.
-  La exclusión pasa a mirar el **origen** del asiento, no su categoría.
-- **A Albert se le contestó una recomendación con una medición, no con una opinión.**
-  Proponían alargar la retención del registro de borrado con un buen argumento —el puntero
-  deja de reidentificar cuando el lead muere en Vivaru—. **Se fue a mirar y la premisa no se
-  cumple:** nada borra un lead de nuestro lado. Su argumento no era falso, era
-  **condicional**, y eso convirtió una discusión de criterio en **una condición verificable
-  con un `grep`**, escrita en las dos casas.
-- **Un envoltorio que parecía cosmético era lo que hacía posible validar.** `crmRef` llevaba
-  desde su alta siendo texto libre en dos pantallas con **dos formatos distintos**. Un `uid`
-  pelado no se distingue de otra referencia de la misma forma: sin prefijo, «validar» se
-  quedaba en «comprobar que no está vacío».
-- **Una regla nueva también hay que verificarla contra lo que ya existe.** Se adoptó que el
-  correo del `tenant_admin` no viajara en ningún documento **cuando esa dirección ya llevaba
-  tiempo escrita en uno**. La frase no envejeció: **nació falsa**.
-- **`CLAUDE.md` decía que el typecheck de la app tenía errores preexistentes en `tests/`.**
-  Está en 0. Mantener la excepción dejaba pasar un error nuevo disfrazado de viejo.
-
-**Qué espera decisión tuya:**
-
-1. ~~**El correo del `tenant_admin` para Albert.**~~ **HECHO el 22 de agosto**, y con ello
-   el alta quedó ejecutada. **`REVOPS-001C` ya no espera a nadie.**
-2. ~~**Los dos números de la política de retención.**~~ **HECHOS y aceptados**: 12 y 12, el
-   segundo contado desde la fecha del borrado. Su B3 deja de estar bloqueado por nosotros.
-3. **Qué se hace con los 9 conjuntos incompletos**, y **no son un grupo homogéneo**: los
-   siete marcados como de ejemplo están mal pero son inertes; **los dos sin marcar
-   contaminan las métricas hoy**, y uno de ellos —el de Quito— además muestra la moneda de
-   otro país. El arreglo no corrige hacia atrás.
-4. ~~**Panamá.**~~ **Resuelta el 17 de agosto: a la nevera.** La guía maestra lo tarifa
-   como *reseller* y no tiene a nadie asignado; queda tarifado y en espera, sin consumir
-   atención. **No es una brecha, es una decisión.**
-5. Tenant piloto para la IA visible de PQRS.
-6. Política de retención de `aiAssistance`.
-7. **Dónde viven la agenda y la mensajería**, y **cuál de los dos marcos de precio manda**,
-   el de la guía maestra o el del Documento Rector de Finance. Con un matiz nuevo: Albert
-   confirma que **el motor de mensajería sigue sin compromiso** de construirse, y lo nombra
-   él mismo — sin control de opt-out y frecuencia, **el consentimiento que se acaba de
-   diseñar no tiene quién lo respete al enviar**.
-
----
+- **`PLAT-003` 1b-i construida y en staging** (`1635ac2`): la exclusión que evita el doble
+  conteo del recaudo pasa a mirar el **origen** del asiento y no su categoría. Va **sin
+  bandera** y sola.
+- **La regla de secuencia estaba escrita de una forma que engañaba.** Decía «las dos piezas
+  van en el mismo despliegue», y de ahí se leía «las dos juntas o ninguna». **La regla real es
+  la exclusión primero, o a la vez, nunca después.** Sola es inocua, porque con la bandera
+  apagada todo asiento de cobro es `billingStatement` **y** `alicuota` a la vez. Lo que no
+  puede ocurrir es el orden contrario. Corregido en la PRD §13.
+- **Y aquí está lo que solo aparece al construir: el doble conteo NO era futuro, ya estaba
+  ocurriendo.** Se midieron los dos ambientes antes de tocar nada, y el resultado fue el
+  contrario del esperado: **el seed de demo ya escribe la cuenta del concepto** desde hace
+  tiempo, y su cargo extraordinario está pagado, así que sus 1.500 estaban a la vez en Cartera
+  y en el libro. Las Playas mostraba **129.000 habiendo recaudado 127.500**. La corrección no
+  introduce el defecto: **lo quita**. Los otros trece conjuntos no se movieron un peso.
+- **Los sitios con la exclusión eran TRES, no dos.** El inventario de la PRD, hecho leyendo,
+  nombraba dos. Faltaba el **informe del consejo**, con la forma idéntica y en la tendencia de
+  doce meses que mira el comité. Usaba otros nombres de variable para la misma idea, y por eso
+  no apareció. **La exclusión dejó de ser una condición copiada y pasó a ser un predicado
+  exportado único** — es la segunda vez que este patrón muerde, tras el catálogo de banderas
+  repartido en cuatro sitios.
+- **Regla nueva, R13: el reverso del pago es la misma mina en negativo.** `revertirPago` se
+  excluye hoy por la rama de convivencia; cuando lleve la cuenta del concepto dejará de
+  excluirse y su monto **negativo** entrará en el libro con Cartera ya descontándolo. Va con
+  1b-ii, y no es opcional.
+- **Segunda pasada de sincronización de documentación hecha** (`2ffa894` y su cierre): la wiki
+  cerró tres semanas de desfase con un criterio explícito —**describe lo que corre en
+  PRODUCCIÓN**, y lo que está en staging entra marcado como tal—. Curiosamente esa pasada
+  **predijo por la tarde** la trampa que 1b-i desmintió por la noche, así que se cerró el
+  círculo en la misma jornada.
+- **Los accesos de Notion quedaron documentados con sus identificadores verificados**, y con
+  ellos por qué el roadmap Albert–Vivaru da 404: vive en **otro workspace**, así que no es un
+  permiso que se pueda pedir. Deja de ser un pendiente y pasa a ser un hecho.
+- **Nada de esto está en producción.** `master` sigue en `d17478d`.
 
 ## Cómo se mantiene este documento
 
@@ -612,7 +591,10 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   - `PLAT-002` (auditoría de once callables) va **sola y primero**: es el único cambio del lote
     que **no se revierte con una bandera**.
   - `PLAT-003` va **antes** que `FLOW-002`: **las dos modifican `aplicarPago`, que está en
-    producción y mueve dinero**, y no pueden estar en vuelo a la vez.
+    producción y mueve dinero**, y no pueden estar en vuelo a la vez. **Y dentro de
+    `PLAT-003` hay una segunda secuencia, descubierta al construir:** la corrección de la
+    exclusión del libro (1b-i, ya en staging) va **antes o a la vez** que la escritura de la
+    cuenta del concepto (1b-ii) — **nunca después**, porque eso es desplegar un doble conteo.
   - Antes de todo, corregir `formatAmount`: hoy formatea con **cero decimales para las tres
     monedas**, así que una expensa de `140,40` se muestra como `140` en Ecuador, Panamá y México.
 
@@ -621,7 +603,7 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 | Defecto | Dónde | PRD |
 |---|---|---|
 | **El sobrepago se evapora**: se contabiliza como ingreso y no deja saldo a favor | `functions/src/payments.ts` — `calcularSaldo` | `FLOW-002` |
-| **El concepto del cargo nunca llega al libro**: una multa o una extraordinaria se contabilizan como cuota de administración | `payments.ts:266` y `:578` — `category: "alicuota"` fijo | `PLAT-003` |
+| **El concepto del cargo nunca llega al libro**: una multa o una extraordinaria se contabilizan como cuota de administración | `payments.ts:266` y `:578` — `category: "alicuota"` fijo | `PLAT-003` **1b-ii** (la 1b-i, que prepara el libro para recibirlo, ya está en staging) |
 | **Las reglas de reserva se comprueban solo en el cliente**: 6 de 13 en servidor | `eligibility.ts` + `firestore.rules:558` | `FIX-001` |
 | **El pago no registra a qué cuenta bancaria entró** | `payments.ts:267` — `bankAccountId: null` | `FLOW-002` |
 | **El correo sale sin webhook**: cero entrega, rebotes y quejas | `functions/src/email.ts` | `FLOW-003` |
@@ -998,6 +980,29 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.16 — 22 de agosto de 2026, noche
+
+- **`PLAT-003` 1b-i en staging** (`1635ac2`): la exclusión del doble conteo mira el **origen**
+  del asiento (`sourceType`) y no su categoría. **Sin bandera**, y **la única pieza del lote
+  que cambia una cifra visible hoy**.
+- **La secuencia estaba mal escrita, no mal decidida.** «Las dos en el mismo despliegue» se
+  leía como «juntas o ninguna». Es **la exclusión primero, o a la vez, nunca después**.
+- **Medir antes de tocar dio el resultado contrario al esperado.** Se leyeron los dos
+  ambientes con dos scripts de solo lectura para confirmar que el cambio era inocuo. **No lo
+  era, y por el lado bueno:** el seed de demo ya escribía la cuenta del concepto, así que el
+  doble conteo llevaba tiempo ocurriendo. Las Playas pasa de **129.000 a 127.500**, que es lo
+  que recaudó. Trece conjuntos más, sin mover un peso. **Decisión de David: desplegar tal
+  cual** — con cero clientes reales es el momento más barato.
+- **Los sitios eran tres, no dos.** El tercero era el informe del consejo. La exclusión pasó a
+  ser un **predicado exportado único**: cuando una condición está copiada, el arreglo no es
+  corregir las copias que encontraste, es que deje de haber copias.
+- **R13, nueva:** el reverso del pago es el mismo defecto en negativo, y va con 1b-ii.
+- **Segunda pasada de documentación cerrada** — la wiki, que había predicho esta trampa por la
+  tarde y a la que 1b-i desmintió por la noche.
+- **Accesos de Notion documentados y verificados.** El roadmap Albert–Vivaru da 404 porque
+  está en **otro workspace**: no es un permiso que se pueda pedir, deja de ser un pendiente.
+- **Nada de esto está en producción.** `master` sigue en `d17478d`.
 
 ### 0.9.15 — 22 de agosto de 2026, tarde
 
