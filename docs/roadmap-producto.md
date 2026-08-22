@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.14 |
-| **Fecha** | 22 de agosto de 2026, madrugada |
-| **Estado** | **La ola A del lote de propiedad horizontal está CONSTRUIDA y en staging.** Cuatro piezas en cinco commits: la corrección de moneda, la auditoría de las callables, las reservas decididas en servidor, la copropiedad y el registro de proveedores. **Desplegado a STAGING el 22 de agosto** —reglas, índices y functions—, con las banderas de coeficiente y proveedores encendidas allí para probarlas. **Producción sigue intacta**: no se ha desplegado nada a `hogaru-1`. Lo anterior —niveles 1, 2 y 3, `FIN-001` completa— sigue en producción sin cambios |
-| **Verificado contra** | **Ejecución, no lectura.** `origin/develop` en `6b71bed`, árbol limpio y remoto comprobado con `git rev-parse`. **995 pruebas de app, 399 de functions y 168 de reglas** —estas últimas contra el emulador de Firestore y Storage levantado a mano—, con **46 pruebas nuevas** en esta tanda. Typecheck limpio en `src/` y en `functions/` (con `tsconfig.typecheck.json`, el que sí mira `functions/tests/`) y build de functions limpio. **El reparto por resto mayor se verificó ejecutándolo**, no razonándolo: la suma de las cuotas es exactamente el total en COP, MXN y USD |
+| **Versión** | 0.9.15 |
+| **Fecha** | 22 de agosto de 2026, tarde |
+| **Estado** | **El expediente de Albert se CERRÓ entero y `PLAT-003` arrancó.** El intercambio terminó en nueve documentos, el **alta del tenant `vivaru` está ejecutada** y **A1 está publicado en producción de Albert** — ya no hay nada bloqueado por ellos, y **los dos equipos avanzan por separado a propósito**. Del lado del código: la **validación de `crmRef`** y la **entrega 1a de `PLAT-003`**. Y sigue en pie que **la ola A del lote de propiedad horizontal está CONSTRUIDA y en staging.** Cuatro piezas en cinco commits: la corrección de moneda, la auditoría de las callables, las reservas decididas en servidor, la copropiedad y el registro de proveedores. **Desplegado a STAGING el 22 de agosto** —reglas, índices y functions—, con las banderas de coeficiente y proveedores encendidas allí para probarlas. **Producción sigue intacta**: no se ha desplegado nada a `hogaru-1`. Lo anterior —niveles 1, 2 y 3, `FIN-001` completa— sigue en producción sin cambios |
+| **Verificado contra** | **Ejecución, no lectura.** `origin/develop` en `0c0d422`, árbol limpio y remoto releído con `git rev-parse` tras cada push. **1029 pruebas de app y 425 de functions** en esta revisión, los dos typecheck limpios — y el de la app **en 0 errores incluidos `tests/`**, que obligó a corregir `CLAUDE.md`. De la tanda anterior: **168 pruebas de reglas** —estas últimas contra el emulador de Firestore y Storage levantado a mano—, con **46 pruebas nuevas** en esta tanda. Typecheck limpio en `src/` y en `functions/` (con `tsconfig.typecheck.json`, el que sí mira `functions/tests/`) y build de functions limpio. **El reparto por resto mayor se verificó ejecutándolo**, no razonándolo: la suma de las cuotas es exactamente el total en COP, MXN y USD |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -37,43 +37,39 @@ dependencias y criterio de salida.
   `FIX-001`, y los MVP de `PLAT-001` y `FEAT-003`. **El orden declarado se respetó**, y la
   única pieza que no se revierte con una bandera —la auditoría— fue **sola y en su propio
   commit**, como decía el plan.
-- **La PRD contaba once callables con la comprobación vieja; eran doce.** Lo dijo el
-  `grep`, no el documento. **Un inventario escrito a mano envejece en cuanto alguien añade
-  la siguiente**, y la diferencia solo aparece al construir.
-- **El verdadero bloqueo del multi-conjunto no eran las callables.** Era
-  `assertActiveTenantAdmin` comprobando `users/{uid}.tenantId`, un campo único por persona:
-  con él vivo, la auditoría de las doce guardas no habría servido de nada. **La autoridad
-  del administrador es su membresía**, y el perfil pasó a ser gate de cuenta, no de conjunto.
-- **El reparto de dinero se calcula donde el cliente no puede mentir, y la vista previa la
-  sirve la MISMA llamada.** Es la lección de `FIN-001` aplicada al cobro: si la aritmética
-  de la vista previa y la de la escritura son dos códigos distintos, **acaban discrepando**.
-  Con `dryRun` no hay dos.
-- **La moneda decide los decimales, y eso cambia el reparto, no solo la pantalla.** COP
-  reparte en pesos enteros; MXN y USD en centavos. **Redondear a la unidad equivocada
-  descuadra la corrida entera**, no solo la vista.
-- **`vendors` restringe la LECTURA completa a administración, y no por exceso de celo:**
-  guarda datos bancarios de terceros y **una regla de Firestore no puede filtrar campos**.
-  O se lee el documento entero o no se lee. Y **no tiene borrado desde el cliente**
-  (`delete: if false`): un proveedor con historia se desactiva.
-- **Tres defectos de reserva que nunca funcionaron** salieron al construir `FIX-001`: la
-  exención se buscaba por el campo equivocado, el cupo mensual miraba una colección que no
-  era, y el aforo contaba solo las reservas de la propia unidad. **Estaban escritos, pasaban
-  revisión de lectura, y ninguno hacía lo que decía.**
-- **Las pruebas de reglas volvieron a correr, y con emulador de Storage también.** La
-  primera pasada dio un rojo que no era del código: era la suite de Storage sin su
-  emulador. **Un fallo de entorno se lee igual que un fallo real si no se mira la causa.**
-- **El changelog tenía un hueco: la 0.9.13 subió la versión sin dejar entrada.** Se
-  escribió ahora, para que no queden dos épocas conviviendo sin decir cuál manda.
+- **Leer el código antes de construir encontró dos huecos en `PLAT-003` que la revisión
+  cruzada de nueve PRD no vio**, y la razón importa: **los dos viven ENTRE ficheros**.
+  Cotejar documentos contra documentos no los encuentra.
+- **El primero: la semilla de trece no cubría los conceptos de cargo.** Tres de los siete
+  —`multa`, `reparacion`, `parqueadero`— no tenían cuenta, y **`multa` es el ejemplo que usa
+  la propia métrica de éxito de esa PRD**.
+- **El segundo, y es el que rompía dinero: el cambio INTRODUCÍA un doble conteo.** El libro
+  excluye del ingreso los asientos de categoría `alicuota` para no duplicar lo que ya suma
+  Cartera, y eso **funciona por accidente** porque hoy se escribe `alicuota` para todo. Al
+  escribir la cuenta del concepto, una multa dejaba de excluirse y **se contaba dos veces**.
+  La exclusión pasa a mirar el **origen** del asiento, no su categoría.
+- **A Albert se le contestó una recomendación con una medición, no con una opinión.**
+  Proponían alargar la retención del registro de borrado con un buen argumento —el puntero
+  deja de reidentificar cuando el lead muere en Vivaru—. **Se fue a mirar y la premisa no se
+  cumple:** nada borra un lead de nuestro lado. Su argumento no era falso, era
+  **condicional**, y eso convirtió una discusión de criterio en **una condición verificable
+  con un `grep`**, escrita en las dos casas.
+- **Un envoltorio que parecía cosmético era lo que hacía posible validar.** `crmRef` llevaba
+  desde su alta siendo texto libre en dos pantallas con **dos formatos distintos**. Un `uid`
+  pelado no se distingue de otra referencia de la misma forma: sin prefijo, «validar» se
+  quedaba en «comprobar que no está vacío».
+- **Una regla nueva también hay que verificarla contra lo que ya existe.** Se adoptó que el
+  correo del `tenant_admin` no viajara en ningún documento **cuando esa dirección ya llevaba
+  tiempo escrita en uno**. La frase no envejeció: **nació falsa**.
+- **`CLAUDE.md` decía que el typecheck de la app tenía errores preexistentes en `tests/`.**
+  Está en 0. Mantener la excepción dejaba pasar un error nuevo disfrazado de viejo.
 
 **Qué espera decisión tuya:**
 
-1. **El correo del `tenant_admin` para Albert**, por canal aparte —él pide expresamente
-   que no vaya dentro del documento—. Es un mensaje, y **abre la segunda mitad de
-   `REVOPS-001C`**: sin alta no hay usuario de servicio, y sin esa credencial no hay con
-   qué suscribirse a sus deals.
-2. **Los dos números de la política de retención.** Cuánto vive un deal sin actividad
-   (Albert propone **24 meses** de partida) y cuánto vive el registro de auditoría del
-   borrado (**sin propuesta**). Bloquean cerrar su B3.
+1. ~~**El correo del `tenant_admin` para Albert.**~~ **HECHO el 22 de agosto**, y con ello
+   el alta quedó ejecutada. **`REVOPS-001C` ya no espera a nadie.**
+2. ~~**Los dos números de la política de retención.**~~ **HECHOS y aceptados**: 12 y 12, el
+   segundo contado desde la fecha del borrado. Su B3 deja de estar bloqueado por nosotros.
 3. **Qué se hace con los 9 conjuntos incompletos**, y **no son un grupo homogéneo**: los
    siete marcados como de ejemplo están mal pero son inertes; **los dos sin marcar
    contaminan las métricas hoy**, y uno de ellos —el de Quito— además muestra la moneda de
@@ -876,7 +872,7 @@ roadmap de ninguno de los dos**:
 |---|---|---|
 | **Agenda de demos** | No. Su landing agenda con formulario — **confirmado por ellos** (`RESPUESTA-A-001`, D1) | No |
 | **Motor de mensajería** con consentimiento, supresión y frecuencia | No. Solo plantillas con merge fields — **confirmado por ellos** | No |
-| **Precio de plan** | Planes con límites **informativos que no se aplican**, sin precio — **confirmado por ellos** | **Decidido** en la guía maestra; **no cableado** al producto |
+| **Precio de plan** | Planes con límites **informativos que no se aplican**, sin precio — **confirmado por ellos** | **HECHO y en producción** desde el 20 de agosto. Deja de ser carencia compartida |
 
 Los tres son prerrequisitos del circuito comercial de **ambos productos**. Construirlos
 una vez y compartirlos es, en mi opinión, mejor argumento a favor de integrar que
@@ -987,6 +983,31 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.15 — 22 de agosto de 2026, tarde
+
+- **El expediente de Albert se cerró entero, en un día.** Cuatro documentos más
+  (`RESPUESTA-A-003`, `DECISIONES-A-003`, `RESPUESTA-A-004`, `DECISIONES-A-004`), y el
+  último **declara el intercambio terminado explícitamente** — un intercambio que nadie
+  cierra sigue por inercia. Con él: **alta A5 ejecutada** (tenant `vivaru` activo, usuario
+  de servicio con rol `sales` verificado en tres sitios) y **A1 publicado en producción de
+  Albert**, antes de la ventana que habían comprometido.
+- **Decisión de David: los dos equipos dejan de ir en paralelo.** Albert avanza con su
+  roadmap y Vivaru con el lote de Habitanto. Nada urgente obliga a sincronizarlos.
+- **Retención cerrada por los dos lados: 12 y 12**, con el segundo contado desde la fecha
+  del borrado, y con una **condición de vigilancia escrita en cada casa** para que el
+  número se revise cuando cambie el estado del mundo, no cuando alguien se acuerde.
+- **`crmRef` validado** (`e59f8dc`): módulo con los dos formatos, conectado a las dos
+  pantallas, 20 pruebas. Era el único trabajo de la integración construible sin depender
+  de Albert.
+- **`PRD-V-PLAT-003` pasó a 1.1** con dos huecos corregidos —la semilla incompleta y el
+  doble conteo que el propio cambio habría introducido— y su **entrega 1a construida**
+  (`41eeb9c`): el módulo puro del plan de cuentas, 22 pruebas, y las dos banderas apagadas
+  registradas en los **cuatro** sitios del catálogo.
+- **Primera de tres pasadas de sincronización de documentación** (`1606a5a`): `CLAUDE.md`,
+  el encabezado de `albert-vivaru-integracion.md` —que pasa a **histórico**— y el bloqueo
+  dominante de `roadmap-revops.md`, que ya no existe. Quedan la wiki y Notion.
+- **Nada de esto está en producción.** `master` sigue en `d17478d`.
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
 
