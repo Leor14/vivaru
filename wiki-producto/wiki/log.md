@@ -10,6 +10,35 @@ fecha_actualizacion: 2026-08-22
 
 ---
 
+## [2026-08-22] update | La trampa que esta wiki predijo por la tarde ocurrió por la noche
+
+**Esta entrada existe por una razón poco común: cerrar una predicción escrita hace unas horas.**
+La pasada de la tarde documentó, en [[trampas-conocidas]] y en [[integridad-financiera]] §5, que la
+exclusión del doble conteo iba a romperse cuando `PRD-V-PLAT-003` hiciera que el asiento llevara la
+cuenta de su concepto. Esa misma noche se construyó la corrección (entrega 1b-i), **y construirla
+desmintió dos partes de lo que se había escrito.**
+
+- **Páginas actualizadas: 3** → [[integridad-financiera]] (§5 pasa de futuro a hecho-en-staging, con
+  los tres hallazgos), [[trampas-conocidas]] (dos trampas nuevas), [[estado-modulos]] (1b-i en la
+  tabla de staging).
+- **Trampas nuevas: 2** → **el que ya escribía el valor nuevo no era el código, era el seed**; y
+  **un inventario de dónde está copiada una condición se queda corto**.
+- **Lo que cambió respecto a lo escrito por la tarde:**
+  1. Los sitios con la exclusión eran **tres**, no dos. El tercero, [[reportes|el informe del
+     consejo]], usaba otros nombres para la misma idea y por eso el inventario hecho leyendo no lo
+     vio. La exclusión pasó a ser un **predicado único exportado**.
+  2. El doble conteo **no era futuro: ya estaba ocurriendo** en datos sembrados. Se descubrió al
+     medir los dos ambientes antes de tocar nada. Las Playas mostraba 129.000 habiendo recaudado
+     127.500.
+  3. Apareció una regla nueva, **R13**: el reverso del pago es la misma mina en negativo.
+- **Criterio mantenido:** 1b-i está en `develop`/staging, **no en producción**, y así queda escrito.
+  Es lo único del lote que cambia una cifra visible sin bandera de por medio.
+- **Nota de método:** las tres cosas salieron de **construir y de medir**, no de leer. La wiki de la
+  tarde era todo lo buena que podía ser habiendo leído el código; le faltaba haber corrido contra la
+  base. Ver [[integridad-financiera]] §5.
+
+---
+
 ## [2026-08-22] sync | Tres semanas de construcción que la wiki no tenía
 
 **Este log llevaba parado desde el 1 de agosto**, mientras el producto vivía sus tres semanas más

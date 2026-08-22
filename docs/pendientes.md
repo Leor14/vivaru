@@ -117,18 +117,30 @@ puede ir sola y antes, y así fue: **1b-i está en `1635ac2`** (ver arriba). Lo 
 
 **Nada de esto necesita desplegar functions todavía:** el módulo aún no lo llama nadie.
 
-### Barrido de documentación — pasada 1 de 3 HECHA, quedan dos
+### Barrido de documentación — pasadas 1 y 2 HECHAS, queda una
 
-**Hecha (`1606a5a`):** `CLAUDE.md`, el encabezado de `albert-vivaru-integracion.md` —que
+**Ojo al leer esta sección: estuvo mintiendo unas horas.** La tabla daba la wiki por pendiente
+cuando ya se había hecho, en `2ffa894`, esa misma tarde. **El estado se escribió antes de hacer
+el trabajo y no se volvió a tocar.** Es el mismo defecto que este repositorio ya tiene
+catalogado en otro sitio —una fila que dice «Pendiente» y manda a buscar donde no está—.
+
+**Pasada 1 (`1606a5a`):** `CLAUDE.md`, el encabezado de `albert-vivaru-integracion.md` —que
 pasa a declararse **histórico**— y el bloqueo dominante de `roadmap-revops.md`. Era lo que
 se lee en cada arranque, y sin eso la próxima sesión creía que Albert bloqueaba.
 
-**Pendientes:**
+**Pasada 2 (`2ffa894`, y cerrada esa noche):** la wiki. Tres semanas de desfase cerradas con un
+criterio explícito —**la wiki describe lo que corre en PRODUCCIÓN**, y lo que está en staging
+entra marcado como tal—. Página nueva de Albert, `estado-modulos` partido en dos tablas
+(producción / construido sin desplegar), tres trampas nuevas, y enlaces rotos de 13 a 8.
+**Esa pasada dejó escrita una predicción sobre la exclusión del doble conteo, y unas horas
+después se construyó 1b-i y la desmintió en dos puntos**, así que se cerró el círculo: la wiki
+recoge ya que los sitios eran tres, que el defecto ya ocurría en datos sembrados, y R13.
 
-| # | Qué | Por qué no se hizo hoy |
+**Pendiente:**
+
+| # | Qué | Por qué no se hizo |
 |---|---|---|
-| **2** | **La wiki** (`wiki-producto/wiki/`, sin tocar desde el 17 ago). Cinco páginas mencionan Albert o el CRM, y `decisiones/estado-modulos.md` y `log.md` no saben nada de `FIN-001`, del lote de Habitanto ni del cierre de Albert | Tiene convenciones propias —frontmatter de cinco campos, mínimo ocho wikilinks— así que no es edición trivial |
-| **3** | **Notion.** El repositorio es la fuente de verdad y Notion la vista publicada; la vista está atrasada | La página del roadmap Albert–Vivaru **da 404** con el conector actual: está en otro workspace. Hay que compartirla o pegar el contenido |
+| **3** | **Notion.** El repositorio es la fuente de verdad y Notion la vista publicada; la vista está atrasada | La página del roadmap Albert–Vivaru **da 404** con el conector actual: está en otro workspace. **Hace falta que David la comparta o pegue el contenido** — no se puede resolver desde el repositorio |
 
 **Menor, y de otro repo:** `vivaru-landing` tiene `imagenes langing/` sin trackear y su
 último commit es de mayo. No es de este frente, pero que conste.

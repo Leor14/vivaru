@@ -108,6 +108,7 @@ staging**; en `hogaru-1` **no hay nada de esto**. Casi todo nace además detrás
 | `FEAT-003` — registro de proveedores | `producto-registro-proveedores` | Datos bancarios que el residente no ve nunca |
 | Vocabulario por país | sin bandera | El término lo decide el país del conjunto **y la audiencia** |
 | `PLAT-003` entrega 1a — plan de cuentas | `producto-plan-de-cuentas` · `producto-concepto-al-libro` | Todavía no toca el comando de pago. Ver [[integridad-financiera]] §5 |
+| `PLAT-003` entrega 1b-i — la exclusión mira el origen | **sin bandera** | **Lo único del lote que cambia una cifra hoy:** Las Playas pasa de 129.000 a 127.500, que es lo que recaudó. Corrige un doble conteo que **ya existía** en datos sembrados. Ver [[integridad-financiera]] §5 |
 | Validación de `crmRef` | sin bandera | Ver [[integracion-albert]] |
 
 ## Programa de IA

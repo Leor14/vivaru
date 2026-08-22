@@ -118,8 +118,8 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[absolute-bans]] | Prohibiciones absolutas de diseño y código (bugs si se violan) |
 | [[estado-modulos]] | Estado de módulos SaaS, landing marketing, adquisición y programa de IA (construido, no 0%) |
 | [[roadmap-tecnico]] | Fases GTM 0–4: seguridad, branding, compliance, escalado. **Plan de mayo, no estado actual** |
-| [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions, proyecto activo = producción |
+| [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions, proyecto activo = producción, condiciones escritas contra un valor y **copiadas en más sitios de los que el inventario vio** |
 | [[triaje-auditoria-ux]] | 🆕 Cómo se verifica un reporte externo contra código antes de ejecutarlo |
 | [[torres-canonicas]] | 🆕 Agrupaciones canónicas: normalizeTower, lista por tenant y migración one-off |
-| [[integridad-financiera]] | Reversar en vez de borrar, confirmar cobros y mora real |
+| [[integridad-financiera]] | Reversar en vez de borrar, confirmar cobros, mora real, y **la exclusión que evita el doble conteo** — ya mira el origen del asiento, en staging |
 | [[portafolio-prd]] | 🆕 Dónde viven las PRD y por qué: `docs/prd/funcionales/` y `docs/prd/ia/`, dos skills, una regla |

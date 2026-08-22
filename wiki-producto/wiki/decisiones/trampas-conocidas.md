@@ -325,6 +325,42 @@ concreto en vez de contra la **propiedad** que de verdad importa —aquí, el or
 queda acoplada a que nadie cambie quién produce ese valor. Y ese cambio **no rompe ninguna
 prueba**, porque la prueba también se escribió contra el valor.
 
+**Corregido en staging el 22 de agosto de 2026**, y al corregirlo la trampa enseñó dos cosas más
+de las que tenía escritas.
+
+## El que ya escribía el valor nuevo no era el código: era el seed
+
+La trampa de arriba se escribió en futuro —«el día que el asiento lleve la categoría de verdad»—.
+Antes de corregirla se leyeron los dos ambientes para confirmar que la exclusión vieja y la nueva
+seleccionaban el mismo conjunto de asientos. **No lo hacían.** El seed de demo de Las Playas
+resuelve `category: concept === "administracion" ? "alicuota" : "extraordinaria"`, es decir **ya
+escribe la cuenta del concepto**, y lo lleva haciendo desde antes. Su cargo extraordinario está
+pagado, así que ese importe estaba a la vez en Cartera y en el ingreso del libro: el conjunto
+mostraba 129.000 habiendo recaudado 127.500.
+
+**El defecto que se creía futuro llevaba tiempo ocurriendo, en datos sembrados.** Y no lo vio
+nadie porque los datos de demo se miran para *enseñar el producto*, no para *cuadrar cuentas*.
+
+**Regla: antes de dar por hipotético un defecto que depende de quién escribe un valor, mirar
+TODOS los que lo escriben — y los seeds escriben.** Un `grep` del valor en el código de
+producción no los alcanza si viven en `functions/scripts/`. Ver [[integridad-financiera]] §5 y
+[[banderas-funcionalidad]].
+
+## Un inventario de dónde está copiada una condición se queda corto
+
+La [[portafolio-prd|PRD]] nombraba **dos** sitios con la exclusión. Eran **tres**: faltaba el
+informe del consejo, con la forma idéntica —`ingresos = recaudado + ingresosOtros`— y con el
+agravante de estar en la tendencia de doce meses que mira el comité. Ver [[reportes]].
+
+No fue descuido: **el inventario se hizo leyendo, y leer encuentra lo que se parece a lo que ya
+sabes que buscas**. La tercera copia usaba otros nombres de variable para la misma idea.
+
+**La forma general, y ya es la segunda vez que muerde en este repositorio** —la primera fue el
+catálogo de [[banderas-funcionalidad|banderas]] repartido en cuatro sitios—: **cuando una
+condición está copiada, el arreglo no es corregir las copias que encontraste, es que deje de
+haber copias.** La exclusión pasó a ser un predicado exportado único. Si mañana aparece un cuarto
+sitio, no puede divergir: tiene que importarlo.
+
 ## Una regla nueva también hay que verificarla contra lo que ya existe
 
 Vivaru y Albert acordaron que cierto correo **no viajaría dentro de ningún documento** del

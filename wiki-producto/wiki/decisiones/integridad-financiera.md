@@ -54,27 +54,56 @@ con las dos: cambiarle el número a un papel que alguien ya descargó es peor qu
 formatos. Su pariente sigue abierto: los asientos anteriores a `FIN-001` **no se pueden revertir**
 porque no guardan `operationKey`.
 
-## 5. La exclusión que evita el doble conteo va a cambiar de criterio
+## 5. La exclusión que evita el doble conteo ya cambió de criterio — en staging
 
 **Es la contrapartida de la regla 1, y hay que leerla junto a ella.**
+**Estado: corregido en `develop`/staging el 22 de agosto de 2026. En producción sigue el
+criterio viejo**, porque el lote de [[estado-modulos|propiedad horizontal]] no ha bajado.
 
-`computeFundPosition` excluye del ingreso del Libro los asientos de categoría `alicuota`, porque
+`computeFundPosition` excluía del ingreso del Libro los asientos de categoría `alicuota`, porque
 el recaudo de cuotas ya se cuenta por la vía de [[cartera-campanas|Cartera]], que es la fuente
-completa. Sumar los dos duplicaría.
+completa. Sumar los dos duplica.
 
-**Hoy eso funciona por accidente:** el comando de pago escribe `alicuota` en **todos** los
-asientos de cobro, sea una cuota, una multa o un parqueadero. Así que todo queda excluido y todo
-se cuenta una vez.
+**Eso funcionaba por accidente:** el comando de pago de [[billing|FIN-001]] escribe `alicuota` en
+**todos** los asientos de cobro, sea una cuota, una multa o un parqueadero. Así que todo quedaba
+excluido y todo se contaba una vez.
 
-**`PRD-V-PLAT-003` lo cambia**, y ahí está la trampa: cuando el asiento lleve la cuenta del
-concepto de verdad, una multa **dejará de ser `alicuota`** y entrará en el ingreso del Libro
-mientras sigue contándose en Cartera. **Se contaría dos veces**, y justo en los conjuntos que esa
-PRD dice arreglar.
+**`PRD-V-PLAT-003` lo cambia**, y ahí estaba la trampa: cuando el asiento lleve la cuenta del
+concepto de verdad, una multa **deja de ser `alicuota`** y entra en el ingreso del Libro mientras
+sigue contándose en Cartera. **Se contaría dos veces**, y justo en los conjuntos que esa PRD dice
+arreglar. La corrección es **dejar de mirar la categoría y mirar el ORIGEN del asiento**
+(`sourceType: "billingStatement"`), aceptando la categoría mientras conviven los dos mundos.
+Regla **R12**.
 
-**La corrección es dejar de mirar la categoría y mirar el ORIGEN del asiento** (`sourceType:
-"billingStatement"`). Es lo que el propio comentario del código decía querer; excluir por
-`"alicuota"` era una coincidencia con fecha de caducidad. **Las dos piezas van en el mismo
-despliegue**: separarlas es desplegar el defecto.
+### Tres cosas que solo aparecieron al construirlo
+
+**Los sitios eran tres, no dos.** El inventario, hecho leyendo, nombraba `use-ledger.ts` y
+`financial-statement.ts`. Faltaba el informe del consejo —`use-committee-report.ts`—, con la
+forma idéntica: `ingresos = recaudado + ingresosOtros`, con `recaudado` saliendo de Cartera.
+Por eso la exclusión dejó de ser una condición copiada y pasó a ser **un predicado exportado y
+único**, `esRecaudoDeCartera`. Fue copiarla lo que dejó un sitio fuera del inventario. Ver
+[[reportes]] y [[trampas-conocidas]].
+
+**El defecto ya existía, sembrado.** Antes de tocar nada se leyeron los dos ambientes para
+comprobar que el cambio no movía números. Movía uno: el seed de demo de Las Playas **ya escribe
+la cuenta del concepto** desde antes, y su cargo extraordinario está pagado, así que sus 1.500
+estaban a la vez en `cuotaIncome` y en el ingreso del Libro. El conjunto mostraba 129.000 habiendo
+recaudado 127.500. **El doble conteo que se creía futuro llevaba tiempo ocurriendo**; la
+corrección no lo introduce, lo quita. Los otros trece conjuntos no se movieron un peso.
+
+**El reverso del pago es la misma mina, en negativo** — regla **R13**. `revertirPago` escribe
+`sourceType: "reversal"` y categoría `alicuota`, así que hoy se excluye por la rama de
+convivencia. En cuanto el reverso lleve la cuenta del concepto (R7), dejará de ser las dos cosas:
+su monto **negativo** entrará en el ingreso del Libro mientras Cartera ya lo descontó. Va en el
+mismo incremento que toca `aplicarPago`.
+
+### El orden, que no es el que parecía
+
+Esta página decía «las dos piezas van en el mismo despliegue». **Era cierta a medias y por eso
+engañaba.** Lo que no se puede es desplegarlas **al revés**. La exclusión sola es inocua mientras
+la [[banderas-funcionalidad|bandera]] `producto-concepto-al-libro` esté apagada, porque entonces
+todo asiento de cobro es `billingStatement` **y** `alicuota` a la vez y las dos reglas seleccionan
+el mismo conjunto. **La regla real: la exclusión primero, o a la vez, nunca después.**
 
 ## Relaciones
 
