@@ -18,7 +18,14 @@ en `docs/roadmap-producto.md`.
 | **Fecha** | 20 de agosto de 2026, madrugada |
 | **Base** | Documento Rector REVOPS v1.0 + documentación de Albert CRM + **navegación de la consola desplegada** |
 | **Verificado contra** | Repositorio en `c81e2fe` (`master` = `develop`), proyecto `hogaru-1`, y las cuatro rondas del intercambio con Albert en `docs/prd/albert/`. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md` |
-| **Bloqueo dominante** | **El alta del tenant `vivaru` en Albert (A5), que espera un correo.** Es operación y no desarrollo, pero sin ella no hay usuario de servicio — y **sin esa credencial no hay con qué suscribirse a sus deals**, que es la segunda mitad de `REVOPS-001C` |
+| **Bloqueo dominante** | **NINGUNO por parte de Albert, desde el 22 de agosto de 2026.** El alta A5 **está ejecutada** —tenant `vivaru` activo y usuario de servicio con rol `sales`— y **A1 está publicado en su producción**. La segunda mitad de `REVOPS-001C` **se puede construir cuando se quiera**; lo que falta es trabajo de Vivaru, no espera. Ver `docs/prd/albert/ESTADO-ALBERT.md` |
+
+> **Aviso de vigencia (22 ago 2026).** El cuerpo de este documento se escribió el 20 de
+> agosto y **describe a Albert como estaba entonces**. Sus inventarios de carencias —«no hay
+> webhooks», «no hay integraciones ni claves de API»— siguen siendo ciertos **como
+> descripción de su consola**, pero **ya no describen lo que bloquea a Vivaru**: el encuadre
+> de tenant los volvió irrelevantes. Al leer una fila de este documento que diga que algo
+> espera a Albert, **contrastarla con `ESTADO-ALBERT.md` antes de creerla.**
 
 **Qué cambió en 0.5:** **la señal de vuelta dejó de ser un bloqueo, y este documento
 decía que sí lo era.** `RESPUESTA-A-001` C1 lo cerró el 19 de agosto: siendo tenant de

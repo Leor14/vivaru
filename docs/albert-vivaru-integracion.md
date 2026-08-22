@@ -1,5 +1,16 @@
 # Albert CRM + Vivaru — qué necesita Vivaru que Albert construya
 
+> **DOCUMENTO HISTÓRICO — congelado el 18 de agosto de 2026.** Es el registro de **cómo se
+> tomó la decisión**, y como tal sigue valiendo. **No es el estado.**
+>
+> **Para saber dónde está la integración hoy:
+> [`docs/prd/albert/ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md).**
+>
+> Lo que ocurrió después de que esto se escribiera y lo deja obsoleto: nueve documentos de
+> intercambio (`CONSULTA-A-001` … `DECISIONES-A-004`, cerrado el 22 de agosto), **el alta
+> del tenant `vivaru` ejecutada** y **A1 publicado en producción de Albert**. Las carencias
+> que este documento inventaría se resolvieron, se descartaron o cambiaron de dueño.
+
 Auditoría del documento **«Albert CRM + Vivaru — Observaciones de producto, encaje con
 REVOPS y posibilidades de integración» v1.0**, contrastada con lo que está medido del
 lado de Vivaru y con la navegación propia de la consola de Albert.
