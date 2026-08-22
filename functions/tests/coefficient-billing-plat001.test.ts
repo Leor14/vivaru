@@ -131,3 +131,33 @@ describe("PLAT-001 · el coeficiente viaja congelado en la línea (R8)", () => {
     expect(r.lines.find((l) => l.unitLabel === "B")?.coefficient).toBe(70);
   });
 });
+
+describe("El error habla el idioma del conjunto", () => {
+  /**
+   * Un administrador mexicano cuya ley dice «indiviso» no debe leer un error
+   * sobre «coeficiente»: no es un sinónimo de estilo, es que no reconoce la
+   * palabra y cree que el mensaje va de otra cosa.
+   */
+  it("nombra el término del país en la unidad sin porcentaje", () => {
+    const unidades = [unidad("A", 100), unidad("Lote 7")];
+    expect(() => repartirPorCoeficiente(100, unidades, "MXN", "indiviso")).toThrowError(/sin indiviso/);
+    expect(() => repartirPorCoeficiente(100, unidades, "USD", "alícuota")).toThrowError(/sin alícuota/);
+    expect(() => repartirPorCoeficiente(100, unidades, "COP", "coeficiente")).toThrowError(/sin coeficiente/);
+  });
+
+  it("pluraliza «alícuota» sin la ese del castellano de manual", () => {
+    const descuadrado = [unidad("A", 50), unidad("B", 49.8)];
+    // "alícuotas", no "alícuotas" mal formado ni "alícuotaes".
+    expect(() => repartirPorCoeficiente(100, descuadrado, "USD", "alícuota")).toThrowError(
+      /La suma de alícuotas/,
+    );
+    expect(() => repartirPorCoeficiente(100, descuadrado, "MXN", "indiviso")).toThrowError(
+      /La suma de indivisos/,
+    );
+  });
+
+  it("sin país el término es neutro, nunca el de un país concreto", () => {
+    const unidades = [unidad("A", 100), unidad("Lote 7")];
+    expect(() => repartirPorCoeficiente(100, unidades, "COP")).toThrowError(/sin porcentaje/);
+  });
+});

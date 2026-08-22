@@ -1,6 +1,8 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { terminoCoeficiente } from "./vocabulario-pais";
+
 /**
  * `PRD-V-PLAT-001` — corrida de cobro por coeficiente de copropiedad.
  *
@@ -77,6 +79,14 @@ export function repartirPorCoeficiente(
   total: number,
   unidades: UnidadParaReparto[],
   currency: string,
+  /**
+   * Cómo se llama el coeficiente en el país del conjunto: «coeficiente» en
+   * Colombia, «alícuota» en Ecuador, «indiviso» en México. Los mensajes de
+   * abajo los lee una persona, y decirle «coeficiente» a quien su ley llama
+   * «indiviso» es un error sobre algo que no reconoce. Ver
+   * `functions/src/vocabulario-pais.ts`.
+   */
+  termino = "porcentaje",
 ): ResultadoReparto {
   if (!(total > 0)) {
     throw new HttpsError("invalid-argument", "El total a repartir debe ser mayor que cero.");
@@ -94,7 +104,7 @@ export function repartirPorCoeficiente(
     const extra = sinCoeficiente.length > 5 ? ` y ${sinCoeficiente.length - 5} más` : "";
     throw new HttpsError(
       "failed-precondition",
-      `No se puede generar por coeficiente: sin coeficiente ${nombres}${extra}.`,
+      `No se puede generar por ${termino}: sin ${termino} ${nombres}${extra}.`,
     );
   }
 
@@ -102,7 +112,7 @@ export function repartirPorCoeficiente(
   if (Math.abs(suma - 100) > TOLERANCIA_SUMA) {
     throw new HttpsError(
       "failed-precondition",
-      `La suma de coeficientes es ${suma.toFixed(6)}% y debe ser 100%. Corrige el reparto antes de generar.`,
+      `La suma de ${termino === "alícuota" ? "alícuotas" : `${termino}s`} es ${suma.toFixed(6)}% y debe ser 100%. Corrige el reparto antes de generar.`,
     );
   }
 
@@ -213,7 +223,13 @@ export async function generarCorridaPorCoeficiente(
     };
   });
 
-  const reparto = repartirPorCoeficiente(input.totalAmount, unidades, currency);
+  const tenantData = tenantSnap.data() as { country?: string };
+  const reparto = repartirPorCoeficiente(
+    input.totalAmount,
+    unidades,
+    currency,
+    terminoCoeficiente(tenantData.country),
+  );
 
   if (input.dryRun) {
     return { ok: true, dryRun: true, ...reparto };
