@@ -64,6 +64,22 @@ conteo. Ahí se toca dinero vivo.
 
 **Nada de esto necesita desplegar functions todavía:** el módulo aún no lo llama nadie.
 
+### Barrido de documentación — pasada 1 de 3 HECHA, quedan dos
+
+**Hecha (`1606a5a`):** `CLAUDE.md`, el encabezado de `albert-vivaru-integracion.md` —que
+pasa a declararse **histórico**— y el bloqueo dominante de `roadmap-revops.md`. Era lo que
+se lee en cada arranque, y sin eso la próxima sesión creía que Albert bloqueaba.
+
+**Pendientes:**
+
+| # | Qué | Por qué no se hizo hoy |
+|---|---|---|
+| **2** | **La wiki** (`wiki-producto/wiki/`, sin tocar desde el 17 ago). Cinco páginas mencionan Albert o el CRM, y `decisiones/estado-modulos.md` y `log.md` no saben nada de `FIN-001`, del lote de Habitanto ni del cierre de Albert | Tiene convenciones propias —frontmatter de cinco campos, mínimo ocho wikilinks— así que no es edición trivial |
+| **3** | **Notion.** El repositorio es la fuente de verdad y Notion la vista publicada; la vista está atrasada | La página del roadmap Albert–Vivaru **da 404** con el conector actual: está en otro workspace. Hay que compartirla o pegar el contenido |
+
+**Menor, y de otro repo:** `vivaru-landing` tiene `imagenes langing/` sin trackear y su
+último commit es de mayo. No es de este frente, pero que conste.
+
 ---
 
 ## El contexto de antes (19 ago 2026, madrugada del 20)
