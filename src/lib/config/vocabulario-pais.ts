@@ -23,11 +23,15 @@
  * persona). `src/` no puede importar de `functions/` — rompe el build de App
  * Hosting, ver CLAUDE.md. Si cambias uno, cambia el otro.
  *
- * ⚠️ **Los términos están PENDIENTES DE CONFIRMAR con David** (22 ago 2026).
- * El de Ecuador está verificado contra `docs/inventario-habitanto.md`, que es
- * un producto ecuatoriano y dice «alícuota» dieciséis veces. Los de Colombia y
- * México salen de sus leyes pero no de un usuario real. **Cambiar una palabra
- * debe ser editar una línea de este archivo y nada más.**
+ * **Los tres términos están CONFIRMADOS** (22 ago 2026), cada uno por una vía
+ * distinta: Ecuador contra `docs/inventario-habitanto.md` —un producto
+ * ecuatoriano que dice «alícuota» dieciséis veces—, y México y Colombia por
+ * David, que conoce los mercados.
+ *
+ * **Al abrir un mercado nuevo hay que añadir su término aquí**, igual que su
+ * moneda en `country-currency.ts`. Mientras no esté, cae en los neutros: no
+ * se rompe nada, pero nadie lee su palabra. Y cambiar una palabra debe seguir
+ * siendo **editar una línea de este archivo y nada más**.
  */
 
 export type TerminosPais = {
@@ -124,8 +128,8 @@ export const AYUDA = {
   /**
    * La misma idea para el RESIDENTE. El término legal es el correcto en la
    * escritura y en la pantalla del administrador, pero —confirmado por David
-   * el 22 ago 2026 para México, y vale igual en los otros dos— **el condómino
-   * rara vez usa la palabra**: piensa en la consecuencia, «la cuota». Así que
+   * el 22 ago 2026— **el condómino rara vez usa la palabra**: piensa en la
+   * consecuencia, «la cuota». Vale igual en los tres países. Así que
    * a él se le encabeza con la consecuencia y el término se le ofrece aquí,
    * para que pueda casarlo con su escritura si lo necesita.
    */

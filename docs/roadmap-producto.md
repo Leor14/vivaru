@@ -632,9 +632,13 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   **coeficiente de copropiedad** en Colombia, **alícuota** en Ecuador e **indiviso** en
   México, y son las palabras de sus respectivas leyes, no sinónimos de estilo. **El término
   sigue al conjunto, no al usuario** —la palabra es del inmueble— y eso deja de ser
-  hipótesis con `PLAT-002`. Vive en `src/lib/config/vocabulario-pais.ts`. **Los términos de
-  Colombia y México están pendientes de confirmar con un usuario real**; el de Ecuador está
-  verificado contra el inventario de Habitanto. Y apareció que **un tercer caso no era
+  hipótesis con `PLAT-002`. Vive en `src/lib/config/vocabulario-pais.ts`. **Los tres términos
+  quedaron confirmados el 22 de agosto**: Ecuador contra el inventario de Habitanto, y
+  México y Colombia por David. Y con México llegó el matiz que faltaba: **el término legal
+  es el del administrador, no el del residente** —el condómino rara vez dice «indiviso»,
+  habla de la cuota—, así que en el estado de cuenta se encabeza con la consecuencia y la
+  palabra se ofrece en la ayuda. **El porcentaje además manda sobre el peso del voto en
+  asamblea**, no solo sobre lo que se paga. Y apareció que **un tercer caso no era
   vocabulario sino modelo de datos**: en México la cuenta de un proveedor se identifica por
   **CLABE de 18 dígitos**, no por número y tipo. Se hizo ahora porque la jerga estaba en 4
   archivos y `vendors` tenía cero documentos: mañana sería una migración.
