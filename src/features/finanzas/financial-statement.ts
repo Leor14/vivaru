@@ -12,10 +12,22 @@ export type FinancialStatement = {
   fundBalance: number;
 };
 
+/**
+ * Etiqueta de respaldo para agrupar por `category` cuando el asiento no tiene
+ * `accountCode` (R9). **Los tres últimos ingresos entraron con
+ * `PRD-V-PLAT-003` 1b-ii**: sin ellos, en cuanto `aplicarPago` escribe el
+ * concepto del cargo, el estado financiero muestra la clave en crudo —«multa»,
+ * en minúscula y sin plural— en vez de un nombre. Los nombres son **los mismos
+ * que la semilla del plan de cuentas**, para que encender la bandera no cambie
+ * también el texto.
+ */
 const CATEGORY_LABELS: Record<string, string> = {
   alicuota: "Cuotas de administración",
   extraordinaria: "Cuotas extraordinarias",
   interes_mora: "Intereses de mora",
+  multa: "Multas",
+  reparacion: "Reparaciones a cargo del residente",
+  parqueadero: "Parqueaderos",
   arriendo: "Arriendo de áreas comunes",
   otros_ingresos: "Otros ingresos",
   nomina: "Nómina",

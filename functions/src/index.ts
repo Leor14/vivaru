@@ -36,6 +36,7 @@ import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
   resolveNotificationCopy,
@@ -1098,6 +1099,14 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
     { merge: true },
   );
 
+  // R1 de PRD-V-PLAT-003: todo conjunto nuevo nace con el plan estandar
+  // sembrado. Va SIN bandera y a proposito: las cuentas son inertes hasta que
+  // alguien las lea, y `producto-concepto-al-libro` no puede encenderse sobre un
+  // conjunto que no tiene plan. Sembrar detras de la misma bandera que las usa
+  // seria dejar a los conjuntos creados con la bandera apagada sin plan para
+  // siempre, porque el alta no se repite.
+  const siembra = await sembrarPlanDeCuentas(db, tenantRef.id, request.auth?.uid);
+
   await db.collection("auditLogs").add({
     tenantId: tenantRef.id,
     actorUid: request.auth?.uid,
@@ -1107,6 +1116,7 @@ export const createTenantWorkspace = onCall<CreateTenantWorkspaceInput>(async (r
       country,
       planId: data.planId,
       moduleVariants,
+      cuentasSembradas: siembra.creadas,
     },
     createdAt: now,
   });

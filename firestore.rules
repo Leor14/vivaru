@@ -430,6 +430,46 @@ service cloud.firestore {
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
+    // Plan de cuentas gobernado (PRD-V-PLAT-003).
+    //
+    // El id del documento es DERIVADO del codigo: `{tenantId}_{code}`. Eso es
+    // lo que hace que la unicidad del codigo por conjunto la garantice la BASE
+    // y no una comprobacion previa del cliente, que dos pestanas abiertas ganan
+    // a la vez. Por eso la regla EXIGE que el id coincida: si no lo exigiera, se
+    // podria escribir un documento con `code: "1.1"` bajo cualquier otro id y la
+    // unicidad quedaria en nada.
+    //
+    // R3 y R4 se apoyan en lo mismo: una cuenta de sistema (`systemKey`) no se
+    // borra, y **cambiar el codigo es imposible por construccion** —seria otro
+    // documento—, asi que R4 no necesita una clausula propia: lo que hay que
+    // vetar es que el update MUEVA el codigo dentro del mismo documento.
+    //
+    // Lo que estas reglas NO pueden comprobar es «tiene movimientos», porque
+    // eso exige consultar `ledgerEntries`. Esa parte (R5) vive en la UI y, para
+    // el borrado, en que una cuenta con `systemKey` no se borra nunca.
+    match /chartOfAccounts/{docId} {
+      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && previewModuleWritable(request.resource.data.tenantId)
+        && docId == request.resource.data.tenantId + '_' + request.resource.data.code;
+
+      // El codigo y el conjunto son inmutables; el nombre y el estado, no.
+      allow update: if tenantOperable(request.resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+        && previewModuleWritable(request.resource.data.tenantId)
+        && docId == request.resource.data.tenantId + '_' + request.resource.data.code
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.tenantId == resource.data.tenantId;
+
+      // R3: las cuentas sembradas no se borran. Se desactivan.
+      allow delete: if tenantOperable(resource.data.tenantId)
+        && signedIn() && tenantAdminOrSuper(resource.data.tenantId)
+        && previewModuleWritable(resource.data.tenantId)
+        && !('systemKey' in resource.data);
+    }
+
     match /ledgerEntries/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
       // FIN-001: los asientos que nacen de un pago los escribe SOLO el servidor,

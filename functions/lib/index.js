@@ -61,6 +61,7 @@ const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
+const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
 const http_config_1 = require("./http-config");
@@ -835,6 +836,13 @@ exports.createTenantWorkspace = (0, https_1.onCall)(async (request) => {
         moduleVariants,
         updatedAt: now,
     }, { merge: true });
+    // R1 de PRD-V-PLAT-003: todo conjunto nuevo nace con el plan estandar
+    // sembrado. Va SIN bandera y a proposito: las cuentas son inertes hasta que
+    // alguien las lea, y `producto-concepto-al-libro` no puede encenderse sobre un
+    // conjunto que no tiene plan. Sembrar detras de la misma bandera que las usa
+    // seria dejar a los conjuntos creados con la bandera apagada sin plan para
+    // siempre, porque el alta no se repite.
+    const siembra = await (0, plan_de_cuentas_siembra_1.sembrarPlanDeCuentas)(db, tenantRef.id, request.auth?.uid);
     await db.collection("auditLogs").add({
         tenantId: tenantRef.id,
         actorUid: request.auth?.uid,
@@ -844,6 +852,7 @@ exports.createTenantWorkspace = (0, https_1.onCall)(async (request) => {
             country,
             planId: data.planId,
             moduleVariants,
+            cuentasSembradas: siembra.creadas,
         },
         createdAt: now,
     });

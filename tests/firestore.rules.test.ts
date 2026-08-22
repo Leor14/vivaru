@@ -1609,3 +1609,124 @@ describe("FEAT-003 · proveedores: solo administración, y sin borrado", () => {
     );
   });
 });
+
+describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
+  /**
+   * El id del documento es `{tenantId}_{code}` (PRD §11.1). Esa derivación es
+   * lo ÚNICO que hace que dos pestañas abiertas no puedan crear dos cuentas con
+   * el mismo código: la unicidad la impone la base, no una comprobación previa
+   * que las dos ganan a la vez.
+   *
+   * Por eso la regla exige que el id coincida con el código. Sin esa cláusula la
+   * derivación es decorativa: bastaría escribir `code: "1.1"` bajo cualquier
+   * otro id y habría dos cuentas 1.1 en el mismo conjunto. **Es un fallo que no
+   * da síntoma hasta que alguien suma un informe por código.**
+   */
+  it("un admin crea una cuenta cuyo id coincide con su código", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9"), {
+        tenantId: "tenant-a",
+        code: "1.9",
+        name: "Eventos y salón comunal",
+        type: "ingreso",
+        parentCode: "1",
+        status: "active",
+      }),
+    );
+  });
+
+  it("el mismo código bajo OTRO id queda rechazado — si no, la unicidad no existe", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "otro-id-cualquiera"), {
+        tenantId: "tenant-a",
+        code: "1.9",
+        name: "Eventos, otra vez",
+        type: "ingreso",
+        status: "active",
+      }),
+    );
+  });
+
+  it("un id de otro conjunto con datos de este también se rechaza", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-b_1.9"), {
+        tenantId: "tenant-a",
+        code: "1.9",
+        name: "Colada de conjunto",
+        type: "ingreso",
+        status: "active",
+      }),
+    );
+  });
+
+  it("renombrar y desactivar SÍ se puede: es lo que R3 permite", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9"), {
+        tenantId: "tenant-a",
+        code: "1.9",
+        name: "Salón comunal",
+        type: "ingreso",
+        parentCode: "1",
+        status: "inactive",
+      }),
+    );
+  });
+
+  // R4. Cambiar el código a otro valor dentro del MISMO documento rompería la
+  // derivación: el id seguiría diciendo 1.9 y el dato diría otra cosa.
+  it("mover el código dentro del mismo documento queda bloqueado (R4)", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9"), { code: "1.10" }),
+    );
+  });
+
+  it("una cuenta creada a mano se puede borrar; una de sistema NO (R3)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chartOfAccounts", "tenant-a_1.1"), {
+        tenantId: "tenant-a",
+        code: "1.1",
+        name: "Cuotas de administración",
+        type: "ingreso",
+        parentCode: "1",
+        systemKey: "alicuota",
+        status: "active",
+      });
+    });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.1")));
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9")));
+  });
+
+  it("un residente lee el plan pero no lo toca (CF7)", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(resident.firestore(), "chartOfAccounts", "tenant-a_1.1")));
+    await assertFails(
+      setDoc(doc(resident.firestore(), "chartOfAccounts", "tenant-a_1.5"), {
+        tenantId: "tenant-a",
+        code: "1.5",
+        name: "Intento",
+        type: "ingreso",
+        status: "active",
+      }),
+    );
+  });
+
+  it("un admin de otro conjunto no lee ni escribe este plan", async () => {
+    const foreign = testEnv.authenticatedContext("admin-b", { role: "tenant_admin", tenantId: "tenant-b" });
+    await assertFails(getDoc(doc(foreign.firestore(), "chartOfAccounts", "tenant-a_1.1")));
+    await assertFails(
+      setDoc(doc(foreign.firestore(), "chartOfAccounts", "tenant-a_1.6"), {
+        tenantId: "tenant-a",
+        code: "1.6",
+        name: "Colada",
+        type: "ingreso",
+        status: "active",
+      }),
+    );
+  });
+});

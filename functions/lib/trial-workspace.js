@@ -9,6 +9,7 @@ const https_1 = require("firebase-functions/v2/https");
 const email_1 = require("./email");
 const country_currency_1 = require("./country-currency");
 const trial_seed_1 = require("./trial-seed");
+const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 /**
  * Provisión del ambiente de prueba (Fase 1 del self-service).
  *
@@ -112,6 +113,11 @@ async function provisionTrialWorkspace(input) {
         createdAt: now,
         updatedAt: now,
     }, { merge: true });
+    // R1 de PRD-V-PLAT-003: el plan de cuentas se siembra en LOS DOS caminos de
+    // alta, no solo en el de la consola. Un conjunto de prueba que se convierte en
+    // cliente nunca vuelve a pasar por el alta, así que si aquí no se sembrara,
+    // nacería sin plan y sin forma de repararlo salvo a mano.
+    await (0, plan_de_cuentas_siembra_1.sembrarPlanDeCuentas)(db, tenantId);
     // Variantes de módulo EXPLÍCITAS. Sin esto el ambiente quedaba sin
     // `moduleVariants` y dependía de los defaults implícitos — frágil, y el
     // superadmin no podía ver con qué variante opera. Se fijan las COMPLETAS,

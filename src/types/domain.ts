@@ -273,6 +273,8 @@ export interface BillingStatement {
   period: string;
   /** Concepto del cobro (default: administración). */
   concept?: BillingConcept;
+  /** Cuenta del plan resuelta desde `concept` al generar (`PRD-V-PLAT-003` §7.2). */
+  accountCode?: string;
   /** Liga el cobro a una campaña (lote). null/ausente = cobro individual. */
   campaignId?: string | null;
   amount?: number;
@@ -386,6 +388,8 @@ export interface Expense {
   id: string;
   tenantId: string;
   category: ExpenseCategory;
+  /** Cuenta del plan resuelta desde `category` al registrar (`PRD-V-PLAT-003` §7.2). */
+  accountCode?: string;
   description: string;
   /**
    * Id en `vendors` (PRD-V-FEAT-003). Opcional: los egresos anteriores al
@@ -439,11 +443,22 @@ export interface BankAccount {
 
 export type LedgerEntryType = "ingreso" | "egreso";
 
+/**
+ * Categorías del libro. **`multa`, `reparacion` y `parqueadero` entraron con
+ * `PRD-V-PLAT-003` 1b-ii** y no son cosmética: `category` se sigue escribiendo
+ * junto a `accountCode` (§7.2), así que en cuanto `aplicarPago` escribe el
+ * concepto del cargo el tipo tiene que admitirlo o no compila. Los tres
+ * conceptos existían ya en `BillingConcept`; lo que no existía era su
+ * contrapartida contable.
+ */
 export type LedgerCategory =
   | ExpenseCategory
   | "alicuota"
   | "extraordinaria"
   | "interes_mora"
+  | "multa"
+  | "reparacion"
+  | "parqueadero"
   | "arriendo"
   | "otros_ingresos";
 
@@ -464,9 +479,33 @@ export interface LedgerEntry {
   amount: number;
   concept: string;
   category?: LedgerCategory;
+  /**
+   * Código de la cuenta del plan (`PRD-V-PLAT-003`). **Convive con `category`,
+   * no la sustituye**: los informes leen `accountCode` y, si falta, caen en
+   * `category` (R9). Retirar `category` obligaría a migrar todos los asientos
+   * ya escritos, y §4 dice que no se migran.
+   */
+  accountCode?: string;
   bankAccountId?: string;
   /** Referencia al origen del movimiento. "reversal" = asiento inverso de otro movimiento. */
   sourceType?: "billingStatement" | "expense" | "manual" | "reversal";
+  /**
+   * **R13.** Origen del asiento que este reverso anula. Solo en los de
+   * `sourceType: "reversal"`.
+   *
+   * **Por qué hace falta un campo y no basta con `sourceType`.** Un reverso
+   * pierde el origen de lo que anula: pasa a ser `"reversal"`, sin más. Mientras
+   * todo cobro se escribía como `alicuota` eso daba igual, porque la exclusión
+   * del doble conteo lo atrapaba por la categoría. En cuanto el reverso lleva la
+   * cuenta del concepto —una multa, un parqueadero— **deja de ser las dos
+   * cosas**: ni `billingStatement` ni `alicuota`. Entonces su monto NEGATIVO
+   * entra en el ingreso del libro mientras Cartera ya lo descontó del
+   * `paymentAmount` del cargo, y el ingreso baja dos veces.
+   *
+   * Es el defecto de §2 mirando al revés, y por eso va en el mismo incremento.
+   * Ver `esRecaudoDeCartera` en `src/features/finanzas/financial-statement.ts`.
+   */
+  reversedSourceType?: "billingStatement" | "expense" | "manual";
   sourceId?: string;
   /** Id del asiento inverso que anuló este movimiento (los asientos contables no se borran). */
   reversedByEntryId?: string;
