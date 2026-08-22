@@ -165,6 +165,23 @@ async function assertTenantAdminOrSuper(input) {
     }
     await assertTenantOperable(input.tenantId);
 }
+/**
+ * La autoridad sobre qué conjunto puede operar un admin es SIEMPRE el
+ * documento de membresía (`tenantUsers/{tenantId}_{uid}`), nunca
+ * `users/{uid}.tenantId`. Ese campo es de un solo valor por diseño — "el
+ * último conjunto conocido" — y antes del 21 de agosto de 2026 esta función
+ * además EXIGÍA que coincidiera con el tenant pedido, lo que hacía imposible
+ * que un mismo admin operara más de un conjunto aunque tuviera membresía
+ * válida en ambos. PRD-V-PLAT-002 §11.2 lo llama el bloqueo real: las doce
+ * comparaciones de `request.auth.token.tenantId` alrededor de este
+ * llamador eran redundantes (solo actuaban si el claim estaba presente Y
+ * discrepaba) y se retiraron en el mismo cambio — dejarlas habría vuelto a
+ * bloquear en cuanto existiera una segunda membresía.
+ *
+ * Para un admin de una sola membresía esto no cambia nada: hoy nunca pide
+ * un `tenantId` distinto del suyo, así que la condición retirada nunca lo
+ * afectaba. El cambio es inerte hasta que exista una segunda membresía.
+ */
 async function assertActiveTenantAdmin(tenantId, uid) {
     const membershipRef = db.collection("tenantUsers").doc(`${tenantId}_${uid}`);
     const membershipSnap = await membershipRef.get();
@@ -185,10 +202,9 @@ async function assertActiveTenantAdmin(tenantId, uid) {
     if (!profileSnap.exists) {
         throw new https_1.HttpsError("failed-precondition", "No fue posible validar tu perfil de administrador.");
     }
+    // Gate de cuenta, no de tenant: confirma que el perfil sigue siendo un
+    // admin activo. A qué conjunto pertenece ya lo decidió `membership` arriba.
     const profile = profileSnap.data();
-    if (profile.tenantId !== tenantId) {
-        throw new https_1.HttpsError("permission-denied", "No puedes operar sobre otro tenant.");
-    }
     if (profile.role !== "tenant_admin") {
         throw new https_1.HttpsError("permission-denied", "No tienes permisos para crear usuarios operativos.");
     }
@@ -1029,10 +1045,6 @@ exports.createTenantOperationalUser = (0, https_1.onCall)({
     const operationId = `createTenantOperationalUser_${Date.now()}`;
     try {
         const data = normalizeCreateTenantOperationalUserPayload(request.data);
-        const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-        if (tokenTenantId && tokenTenantId !== data.tenantId) {
-            throw new https_1.HttpsError("permission-denied", "No puedes crear usuarios en otro tenant.");
-        }
         const actor = await assertActiveTenantAdmin(data.tenantId, request.auth.uid);
         const targetTenantId = actor.tenantId;
         const tenantRef = db.collection("tenants").doc(targetTenantId);
@@ -1140,10 +1152,6 @@ exports.setOperationalUserStatus = (0, https_1.onCall)({ cors: http_config_1.cal
     if (!tenantId || !targetUid || (status !== "active" && status !== "inactive")) {
         throw new https_1.HttpsError("invalid-argument", "tenantId, uid y status (active|inactive) son requeridos.");
     }
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId) {
-        throw new https_1.HttpsError("permission-denied", "No puedes gestionar usuarios de otro tenant.");
-    }
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const targetTenantId = actor.tenantId;
     // No puedes desactivarte a ti mismo (evita auto-lockout).
@@ -1214,10 +1222,6 @@ exports.updateOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callab
     if (role !== undefined) {
         assertOperationalRole(role);
     }
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId) {
-        throw new https_1.HttpsError("permission-denied", "No puedes gestionar usuarios de otro tenant.");
-    }
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const targetTenantId = actor.tenantId;
     const membershipRef = db.collection("tenantUsers").doc(`${targetTenantId}_${targetUid}`);
@@ -1281,10 +1285,6 @@ exports.deleteOperationalUser = (0, https_1.onCall)({ cors: http_config_1.callab
     if (!tenantId || !targetUid) {
         throw new https_1.HttpsError("invalid-argument", "tenantId y uid son requeridos.");
     }
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId) {
-        throw new https_1.HttpsError("permission-denied", "No puedes gestionar usuarios de otro tenant.");
-    }
     if (targetUid === request.auth.uid) {
         throw new https_1.HttpsError("failed-precondition", "No puedes eliminar tu propia cuenta.");
     }
@@ -1344,10 +1344,6 @@ exports.revokeResidentAccess = (0, https_1.onCall)({ cors: http_config_1.callabl
     if (!tenantId) {
         throw new https_1.HttpsError("invalid-argument", "tenantId es requerido.");
     }
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId) {
-        throw new https_1.HttpsError("permission-denied", "No puedes gestionar residentes de otro conjunto.");
-    }
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const resultado = await (0, resident_access_1.revocarAccesoDeResidente)({ tenantId: actor.tenantId, personId: normalizeText(request.data?.personId) }, request.auth.uid);
     // Solo se audita cuando de verdad había una cuenta que cerrar: anotar los
@@ -1373,10 +1369,6 @@ exports.createDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callabl
     const description = request.data?.description !== undefined ? normalizeText(request.data.description) : "";
     if (!tenantId || !name) {
         throw new https_1.HttpsError("invalid-argument", "tenantId y name son requeridos.");
-    }
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId) {
-        throw new https_1.HttpsError("permission-denied", "No puedes crear carpetas en otro tenant.");
     }
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const targetTenantId = actor.tenantId;
@@ -1480,9 +1472,6 @@ exports.ensureSystemFolder = (0, https_1.onCall)({ cors: http_config_1.callableC
     const systemKey = normalizeText(request.data?.systemKey);
     if (!tenantId || !systemKey)
         throw new https_1.HttpsError("invalid-argument", "tenantId y systemKey requeridos.");
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId)
-        throw new https_1.HttpsError("permission-denied", "Tenant incorrecto.");
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const folderId = await ensureSystemFolderImpl(actor.tenantId, request.auth.uid, systemKey);
     return { folderId };
@@ -1494,9 +1483,6 @@ exports.ensureCommunicationsFolder = (0, https_1.onCall)({ cors: http_config_1.c
     const tenantId = normalizeText(request.data?.tenantId);
     if (!tenantId)
         throw new https_1.HttpsError("invalid-argument", "tenantId requerido.");
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId)
-        throw new https_1.HttpsError("permission-denied", "Tenant incorrecto.");
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const folderId = await ensureSystemFolderImpl(actor.tenantId, request.auth.uid, "communications");
     return { folderId };
@@ -1522,9 +1508,6 @@ exports.renameDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callabl
         throw new https_1.HttpsError("invalid-argument", "El nombre no puede estar vacío.");
     if (color !== undefined && !FOLDER_COLORS.includes(color))
         throw new https_1.HttpsError("invalid-argument", "Color no permitido.");
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId)
-        throw new https_1.HttpsError("permission-denied", "Tenant incorrecto.");
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const ref = db.collection("documentFolders").doc(folderId);
     const snap = await ref.get();
@@ -1553,9 +1536,6 @@ exports.deleteDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callabl
     const folderId = normalizeText(request.data?.folderId);
     if (!tenantId || !folderId)
         throw new https_1.HttpsError("invalid-argument", "tenantId y folderId son requeridos.");
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId)
-        throw new https_1.HttpsError("permission-denied", "Tenant incorrecto.");
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const ref = db.collection("documentFolders").doc(folderId);
     const snap = await ref.get();
@@ -1595,9 +1575,6 @@ exports.moveDocumentFolder = (0, https_1.onCall)({ cors: http_config_1.callableC
     const targetParentId = request.data?.targetParentId ? normalizeText(request.data.targetParentId) : null;
     if (!tenantId || !folderId)
         throw new https_1.HttpsError("invalid-argument", "tenantId y folderId son requeridos.");
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId)
-        throw new https_1.HttpsError("permission-denied", "Tenant incorrecto.");
     const actor = await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const targetTenantId = actor.tenantId;
     const snap = await db.collection("documentFolders").where("tenantId", "==", targetTenantId).get();
@@ -2554,9 +2531,6 @@ exports.notifyResidentReceipt = (0, https_1.onCall)({ cors: http_config_1.callab
     if (!tenantId || !unitId || (kind !== "adjusted" && kind !== "rejected")) {
         throw new https_1.HttpsError("invalid-argument", "tenantId, unitId y kind son requeridos.");
     }
-    const tokenTenantId = normalizeText(request.auth.token?.tenantId);
-    if (tokenTenantId && tokenTenantId !== tenantId)
-        throw new https_1.HttpsError("permission-denied", "Tenant incorrecto.");
     await assertActiveTenantAdmin(tenantId, request.auth.uid);
     const residentUids = await listResidentUidsByUnit(tenantId, unitId);
     if (residentUids.length === 0)
