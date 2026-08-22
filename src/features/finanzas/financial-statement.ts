@@ -60,14 +60,26 @@ export function categoryLabel(category: string): string {
  *
  * Excluir por origen sobrevive a cualquier concepto futuro. Regla **R12**.
  *
- * La rama de `"alicuota"` es la **convivencia**: los asientos ya escritos —y
- * los que se sigan escribiendo mientras la bandera `producto-concepto-al-libro`
- * esté apagada— no llevan `sourceType` fiable en todos los casos, y el reverso
- * de un pago se guarda como `sourceType: "reversal"`. No se puede quitar hasta
- * que el reverso arrastre el origen del asiento que anula.
+ * **El reverso cuenta igual que lo que anula (R13).** Un reverso pierde el
+ * origen al nacer —pasa a `sourceType: "reversal"`—, así que sin
+ * `reversedSourceType` un reverso de multa no sería ni `billingStatement` ni
+ * `alicuota`: su monto **negativo** entraría en el ingreso del libro mientras
+ * Cartera ya lo descontó del cargo, y el ingreso bajaría dos veces. Es el mismo
+ * defecto mirando al revés.
+ *
+ * La rama de `"alicuota"` es la **convivencia**: cubre todo lo escrito antes de
+ * que existiera `reversedSourceType`, y lo que se siga escribiendo mientras
+ * `producto-concepto-al-libro` esté apagada. No se puede quitar mientras queden
+ * asientos viejos, y §4 dice que no se migran.
  */
-export function esRecaudoDeCartera(entry: Pick<LedgerEntry, "sourceType" | "category">): boolean {
-  return entry.sourceType === "billingStatement" || entry.category === "alicuota";
+export function esRecaudoDeCartera(
+  entry: Pick<LedgerEntry, "sourceType" | "reversedSourceType" | "category">,
+): boolean {
+  return (
+    entry.sourceType === "billingStatement" ||
+    entry.reversedSourceType === "billingStatement" ||
+    entry.category === "alicuota"
+  );
 }
 
 /**

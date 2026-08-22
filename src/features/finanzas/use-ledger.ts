@@ -100,7 +100,8 @@ export async function deleteLedgerEntry(id: string) {
  * NEGATIVO) y marcando el original con `reversedByEntryId`. El monto negativo
  * — en vez de tipo opuesto — mantiene simétricas todas las agregaciones
  * (`computeFundPosition` y la exclusión de `esRecaudoDeCartera` aplican igual
- * al original y a su reverso, porque el reverso copia su categoría).
+ * al original y a su reverso, porque el reverso copia su categoría, su cuenta
+ * y —R13— el origen de lo que anula).
  * Convención contable: nunca borrar, siempre anular.
  */
 export async function reverseLedgerEntry(
@@ -123,8 +124,13 @@ export async function reverseLedgerEntry(
     amount: -Math.abs(entry.amount),
     concept: `Reverso: ${entry.concept}`,
     category: entry.category ?? null,
+    accountCode: entry.accountCode ?? null,
     bankAccountId: entry.bankAccountId ?? null,
     sourceType: "reversal",
+    // R13, y aquí hace falta por lo mismo que en `revertirPago`: este camino
+    // también puede anular un asiento nacido de un cargo, y al hacerlo le
+    // borraría el origen. Ver `esRecaudoDeCartera`.
+    reversedSourceType: entry.sourceType ?? null,
     sourceId: entry.id,
     reconciled: false,
   });

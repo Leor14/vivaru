@@ -2,6 +2,12 @@ import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { construirRecibo, type PerfilFiscal } from "./comprobante";
+import { isFeatureEnabled } from "./feature-flags";
+import {
+  categoriaParaConcepto,
+  cuentaParaConcepto,
+  descripcionDeCobro,
+} from "./plan-de-cuentas";
 
 /**
  * `FIN-001` — aplicación de pagos: un solo comando, transaccional e idempotente.
@@ -55,6 +61,12 @@ type CuotaDoc = {
   unitId?: string;
   unitLabel?: string;
   period?: string;
+  /**
+   * Concepto del cargo (`BillingConcept`). **Estaba aquí desde siempre y este
+   * módulo no lo leía**: por eso el asiento decía `alicuota` pasara lo que
+   * pasara. Es el defecto grande de `PRD-V-PLAT-003` §2.
+   */
+  concept?: string;
 };
 
 export type AplicarPagoInput = {
@@ -99,6 +111,18 @@ export type AplicarPagoResultado = {
    */
   voucherId?: string;
   voucherCode?: string;
+  /**
+   * **R8.** El concepto del cargo no tenía cuenta equivalente y el asiento cayó
+   * en `otros_ingresos`. El dinero no se pierde nunca, pero **hay que avisar**:
+   * un conjunto que empieza a cobrar un concepto nuevo tiene que enterarse de
+   * que su recaudo se está apilando en «Otros ingresos» en vez de descubrirlo
+   * meses después cuadrando el estado financiero.
+   *
+   * Va aquí y no en un `logger.warn` a secas porque un aviso que solo existe en
+   * los logs no lo lee el administrador, que es de quien es el problema.
+   * Llevarlo hasta la pantalla es de la entrega 2; el dato ya viaja.
+   */
+  cayoEnOtrosIngresos?: boolean;
 };
 
 /** Datos del conjunto que el recibo congela al emitirse. */
@@ -186,6 +210,13 @@ export async function aplicarPago(
 
   const hoy = new Date().toISOString().slice(0, 10);
 
+  // La bandera se resuelve AQUÍ, fuera de la transacción, y no dentro. Dos
+  // razones: `isFeatureEnabled` hace su propia lectura, que no sería
+  // transaccional y por tanto mentiría sobre estar dentro; y una transacción de
+  // Firestore **se reintenta**, así que leerla dentro la releería en cada
+  // reintento sin que eso aporte nada.
+  const conceptoAlLibro = await isFeatureEnabled("producto-concepto-al-libro", tenantId);
+
   return firestore.runTransaction(async (tx) => {
     // ── Lecturas, todas antes de escribir ────────────────────────────────────
     const opSnap = await tx.get(opRef);
@@ -253,9 +284,30 @@ export async function aplicarPago(
     const pagadoDespues = pagadoAntes + monto;
     const { balance, status } = calcularSaldo(cobrado, pagadoDespues, cuota.dueDate, hoy);
 
+    // ── La cuenta del concepto (R6) ──────────────────────────────────────────
+    //
+    // Hasta el 22 de agosto de 2026 aquí había un `category: "alicuota"` fijo, y
+    // el `concept` del cargo —que lleva existiendo desde siempre en el mismo
+    // documento que se acaba de leer— no se miraba. Una multa, una cuota
+    // extraordinaria o un parqueadero se contabilizaban todos como cuota de
+    // administración, así que **el estado financiero de cualquier conjunto que
+    // cobrara algo distinto de la cuota estaba mal**.
+    //
+    // Se escriben las TRES cosas coherentes o ninguna: el código de cuenta, la
+    // categoría equivalente —que se sigue escribiendo, §7.2— y la descripción,
+    // que también estaba cableada a «alícuota». Dejar la descripción vieja con
+    // la cuenta nueva sería un asiento que se contradice a sí mismo.
+    const resolucion = cuentaParaConcepto(cuota.concept);
+
+    // R8: un concepto sin cuenta equivalente cae en `otros_ingresos` y **se
+    // avisa**. Nunca se descarta. El aviso viaja en la respuesta del callable, y
+    // por eso `porDefecto` no se traga aquí en silencio.
+    const cayoEnOtrosIngresos = conceptoAlLibro && resolucion.porDefecto;
+
     // ── Escrituras ───────────────────────────────────────────────────────────
     const ledgerRef = firestore.collection("ledgerEntries").doc();
-    const concepto = `Pago de alícuota ${cuota.period ?? ""} — ${cuota.unitLabel ?? ""}`.trim();
+    const queSeCobra = conceptoAlLibro ? descripcionDeCobro(cuota.concept) : "alícuota";
+    const concepto = `Pago de ${queSeCobra} ${cuota.period ?? ""} — ${cuota.unitLabel ?? ""}`.trim();
 
     tx.set(ledgerRef, {
       tenantId,
@@ -263,7 +315,12 @@ export async function aplicarPago(
       date: fecha,
       amount: monto,
       concept: concepto,
-      category: "alicuota",
+      category: conceptoAlLibro ? categoriaParaConcepto(cuota.concept) : "alicuota",
+      // Con la bandera apagada NO se escribe `accountCode`, y no es un detalle:
+      // R9 dice que los informes agrupan por el código y solo caen en la
+      // categoría si falta. Escribirlo ya cambiaría lo que se muestra, que es
+      // justo lo que la bandera existe para gobernar.
+      ...(conceptoAlLibro ? { accountCode: resolucion.code } : {}),
       bankAccountId: null,
       sourceType: "billingStatement",
       // El asiento guarda SU clave de operación. Sin esto la reversión no es
@@ -375,6 +432,7 @@ export async function aplicarPago(
       balance,
       status,
       ...(voucherId ? { voucherId, voucherCode } : {}),
+      ...(cayoEnOtrosIngresos ? { cayoEnOtrosIngresos: true } : {}),
     };
   });
 }
@@ -568,6 +626,31 @@ export async function revertirPago(
     const conceptoOriginal =
       (asientoSnap?.data() as { concept?: string } | undefined)?.concept ?? `Pago ${statementId}`;
 
+    // ── R7 y R13: el reverso hereda del asiento que anula ────────────────────
+    //
+    // **R7 — la misma cuenta.** Si el reverso cayera en otra, la reversión no
+    // anularía nada: dejaría un positivo en una cuenta y un negativo en otra, y
+    // las dos mentirían. Se COPIA del original en vez de volver a resolverla
+    // desde el concepto, porque el cargo pudo cambiar de concepto entre el pago
+    // y su reversión, y lo que hay que deshacer es el asiento que se escribió,
+    // no el que se escribiría hoy.
+    //
+    // **R13 — el reverso arrastra el ORIGEN de lo que anula.** Y esto no es
+    // adorno: un reverso pierde su origen al nacer (`sourceType: "reversal"`).
+    // Mientras todo cobro se escribía como `alicuota`, la exclusión que evita el
+    // doble conteo lo atrapaba por la categoría. En cuanto el reverso lleva la
+    // cuenta del concepto —una multa— **deja de ser las dos cosas**: ni
+    // `billingStatement` ni `alicuota`. Entonces su monto NEGATIVO entra en el
+    // ingreso del libro mientras Cartera ya lo descontó del `paymentAmount` de
+    // la cuota, y el ingreso baja dos veces.
+    //
+    // Es el defecto de §2 mirando al revés, y por eso viaja en este mismo
+    // incremento. Sin R13, encender `producto-concepto-al-libro` arregla el
+    // cobro y rompe la reversión.
+    const asientoOriginal = asientoSnap?.data() as
+      | { category?: string; accountCode?: string; sourceType?: string }
+      | undefined;
+
     tx.set(reversoRef, {
       tenantId,
       type: "ingreso",
@@ -575,9 +658,20 @@ export async function revertirPago(
       // Negativo, no tipo opuesto: misma convención que `reverseLedgerEntry`.
       amount: -Math.abs(monto),
       concept: `Reverso: ${conceptoOriginal}`,
-      category: "alicuota",
+      // El respaldo a `"alicuota"` conserva exactamente lo que hacía antes para
+      // los asientos viejos, que no tienen categoría propia.
+      category: asientoOriginal?.category ?? "alicuota",
+      ...(asientoOriginal?.accountCode ? { accountCode: asientoOriginal.accountCode } : {}),
       bankAccountId: null,
       sourceType: "reversal",
+      // R13. Se escribe SIEMPRE, con bandera o sin ella: hoy no cambia nada
+      // —el reverso ya se excluye por su categoría— y el día que la bandera se
+      // encienda tiene que estar ya en los asientos, no empezar a escribirse
+      // entonces. Un campo de seguridad que aparece a la vez que el peligro
+      // llega tarde para todo lo escrito en medio.
+      ...(asientoOriginal?.sourceType && asientoOriginal.sourceType !== "reversal"
+        ? { reversedSourceType: asientoOriginal.sourceType }
+        : { reversedSourceType: "billingStatement" }),
       sourceId: op.ledgerEntryId ?? statementId,
       reversalReason: motivo,
       reconciled: false,

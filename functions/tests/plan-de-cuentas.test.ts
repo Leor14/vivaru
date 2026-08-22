@@ -5,8 +5,11 @@ import {
   CUENTA_OTROS_INGRESOS,
   SEMILLA_PLAN_DE_CUENTAS,
   codigoPadreDe,
+  categoriaParaConcepto,
   cuentaParaConcepto,
+  cuentaPorCodigo,
   cuentaPorSystemKey,
+  descripcionDeCobro,
   docIdDeCuenta,
   validarCodigoDeCuenta,
 } from "../src/plan-de-cuentas";
@@ -163,5 +166,78 @@ describe("docIdDeCuenta — la unicidad la garantiza la base, no el cliente", ()
 
   it("dos conjuntos pueden tener el mismo código sin chocar", () => {
     expect(docIdDeCuenta("a", "1.1")).not.toBe(docIdDeCuenta("b", "1.1"));
+  });
+});
+
+describe("categoriaParaConcepto — la categoría y el código no pueden separarse", () => {
+  /**
+   * `category` NO se retira al llegar `accountCode` (PRD §7.2): los informes
+   * agrupan por el código y solo caen en la categoría si falta (R9). Así que al
+   * cobrar hay que escribir **las dos coherentes**, y quien las separe deja un
+   * asiento que dice dos cosas distintas según quién lo lea.
+   */
+  it("cada concepto resuelve a la categoría de SU cuenta", () => {
+    expect(categoriaParaConcepto("multa")).toBe("multa");
+    expect(categoriaParaConcepto("extraordinaria")).toBe("extraordinaria");
+    expect(categoriaParaConcepto("parqueadero")).toBe("parqueadero");
+    expect(categoriaParaConcepto("reparacion")).toBe("reparacion");
+    expect(categoriaParaConcepto("interes_mora")).toBe("interes_mora");
+  });
+
+  // CA12. La trampa de R11: `administracion` existe en los dos vocabularios y
+  // significa cosas opuestas. Como cargo es INGRESO; como categoría del libro es
+  // el gasto de administración.
+  it("el cargo `administracion` cae en la categoría de INGRESO, no en la de egreso", () => {
+    expect(categoriaParaConcepto("administracion")).toBe("alicuota");
+    expect(categoriaParaConcepto("administracion")).not.toBe("administracion");
+  });
+
+  it("un cargo sin concepto es una cuota de administración", () => {
+    expect(categoriaParaConcepto(undefined)).toBe("alicuota");
+    expect(categoriaParaConcepto(null)).toBe("alicuota");
+  });
+
+  it("`otro` va a otros ingresos, no a la categoría de egreso `otros`", () => {
+    expect(categoriaParaConcepto("otro")).toBe("otros_ingresos");
+  });
+
+  it("un concepto inventado cae en otros ingresos (R8)", () => {
+    expect(categoriaParaConcepto("mudanza")).toBe("otros_ingresos");
+  });
+
+  // La categoría y el código tienen que apuntar a la MISMA cuenta para los siete
+  // conceptos. Si divergen, el estado financiero muestra una cosa y el informe
+  // por código otra, y nada falla.
+  it("categoría y código coinciden en cuenta para los siete conceptos", () => {
+    for (const concepto of CONCEPTOS_DE_CARGO) {
+      const { code } = cuentaParaConcepto(concepto);
+      expect(cuentaPorCodigo(code)?.systemKey).toBe(categoriaParaConcepto(concepto));
+    }
+  });
+});
+
+describe("descripcionDeCobro — el texto no puede contradecir a la cuenta", () => {
+  /**
+   * El texto del asiento estaba cableado a «alícuota»: un cobro de multa decía
+   * «Pago de alícuota mayo — T2-203». Mientras la categoría también mentía era
+   * coherente; en cuanto el asiento cae en la cuenta de multas, el texto se
+   * queda contradiciendo a su propia cuenta.
+   */
+  it("nombra lo que se cobra, en minúscula y singular", () => {
+    expect(descripcionDeCobro("multa")).toBe("multa");
+    expect(descripcionDeCobro("extraordinaria")).toBe("cuota extraordinaria");
+    expect(descripcionDeCobro("reparacion")).toBe("reparación");
+  });
+
+  // El texto de siempre para el caso de siempre: la inmensa mayoría de los
+  // cobros son cuota ordinaria, y su asiento no debe cambiar de redacción.
+  it("la cuota ordinaria sigue diciendo «alícuota»", () => {
+    expect(descripcionDeCobro("administracion")).toBe("alícuota");
+    expect(descripcionDeCobro(undefined)).toBe("alícuota");
+  });
+
+  it("un concepto desconocido se nombra «cargo», nunca vacío", () => {
+    expect(descripcionDeCobro("mudanza")).toBe("cargo");
+    expect(descripcionDeCobro("")).toBe("alícuota");
   });
 });

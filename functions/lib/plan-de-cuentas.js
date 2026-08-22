@@ -42,6 +42,9 @@ exports.codigoPadreDe = codigoPadreDe;
 exports.docIdDeCuenta = docIdDeCuenta;
 exports.cuentaParaConcepto = cuentaParaConcepto;
 exports.cuentaPorSystemKey = cuentaPorSystemKey;
+exports.cuentaPorCodigo = cuentaPorCodigo;
+exports.categoriaParaConcepto = categoriaParaConcepto;
+exports.descripcionDeCobro = descripcionDeCobro;
 /** Los siete conceptos de cargo. Copia deliberada de `BillingConcept` de `src/types/domain.ts`. */
 exports.CONCEPTOS_DE_CARGO = [
     "administracion",
@@ -158,4 +161,51 @@ function cuentaParaConcepto(concepto) {
 /** La cuenta sembrada que corresponde a una categoría del libro, o `undefined`. */
 function cuentaPorSystemKey(systemKey) {
     return exports.SEMILLA_PLAN_DE_CUENTAS.find((c) => c.systemKey === systemKey);
+}
+/** La cuenta sembrada de un código, o `undefined` si el código no es de la semilla. */
+function cuentaPorCodigo(code) {
+    return exports.SEMILLA_PLAN_DE_CUENTAS.find((c) => c.code === code);
+}
+/**
+ * La categoría del libro que corresponde al concepto de un cargo — es decir, el
+ * `systemKey` de su cuenta.
+ *
+ * **`category` no se retira al llegar `accountCode`** (PRD §7.2): los informes
+ * leen el código y, si falta, caen en la categoría (R9), y retirarla obligaría a
+ * migrar todos los asientos ya escritos. Así que al escribir el concepto hay que
+ * escribir **las dos cosas coherentes**, y esta función es la que impide que se
+ * separen.
+ *
+ * Devuelve `otros_ingresos` para lo que no tenga cuenta sembrada, que es el
+ * mismo destino que R8 le da al código.
+ */
+function categoriaParaConcepto(concepto) {
+    const { code } = cuentaParaConcepto(concepto);
+    return cuentaPorCodigo(code)?.systemKey ?? "otros_ingresos";
+}
+/**
+ * Cómo se nombra el cobro en la descripción del asiento y del recibo.
+ *
+ * Existe porque el texto estaba **cableado a «alícuota»**: un asiento de multa
+ * decía «Pago de alícuota mayo — T2-203». Mientras la categoría también decía
+ * `alicuota` era coherente aunque fuese falso; en cuanto el asiento cae en la
+ * cuenta de multas, el texto se queda contradiciendo a su propia cuenta.
+ *
+ * Son frases en minúscula y en singular porque se insertan dentro de «Pago de
+ * …», no son títulos. Los nombres de las CUENTAS son otra cosa y viven en la
+ * semilla, en plural.
+ */
+const DESCRIPCION_DE_COBRO = {
+    administracion: "alícuota",
+    extraordinaria: "cuota extraordinaria",
+    multa: "multa",
+    interes_mora: "intereses de mora",
+    parqueadero: "parqueadero",
+    reparacion: "reparación",
+    otro: "cargo",
+};
+function descripcionDeCobro(concepto) {
+    if (!concepto)
+        return DESCRIPCION_DE_COBRO.administracion;
+    return DESCRIPCION_DE_COBRO[concepto] ?? DESCRIPCION_DE_COBRO.otro;
 }
