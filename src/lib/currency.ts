@@ -33,12 +33,25 @@ const LOCALE_MAP: Record<AppCurrency, string> = {
   USD: "en-US",
 };
 
+/**
+ * Decimales por moneda. COP no los usa en la práctica (su centavo no
+ * circula); MXN y USD sí, y truncarlos no es redondeo, es dato equivocado:
+ * una expensa real de 140,40 se mostraba como 140. Ver PRD-V-PLAT-001 D3 —
+ * cerrada el 21 de agosto de 2026 — de donde sale esta corrección.
+ */
+const FRACTION_DIGITS: Record<AppCurrency, number> = {
+  COP: 0,
+  MXN: 2,
+  USD: 2,
+};
+
 export function formatAmount(value: number, currency: AppCurrency = "COP"): string {
+  const digits = FRACTION_DIGITS[currency];
   return new Intl.NumberFormat(LOCALE_MAP[currency], {
     style: "currency",
     currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
   }).format(value);
 }
 
