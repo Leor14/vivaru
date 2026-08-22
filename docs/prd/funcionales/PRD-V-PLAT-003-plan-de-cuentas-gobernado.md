@@ -136,7 +136,7 @@ despliegue, y que **el asiento diga la verdad sobre qué se cobró**.
 2. **Códigos gobernados**: formato validado, únicos por conjunto e **inmutables una vez usados**.
 3. **Semilla** con las categorías actuales ligadas por `systemKey`, **más las cuentas de ingreso
    que los conceptos de cargo necesitan y hoy no existen** (§8 R11). No son trece: son
-   **dieciséis**.
+   **dieciséis con `systemKey`**, más las dos cuentas padre — **18 documentos**.
 4. **Un solo catálogo de etiquetas**, y el fin de los dos mapas que discrepan.
 5. **El concepto del cargo llega al asiento** al cobrar y al revertir.
 6. Estado financiero **agrupado por cuenta**, con jerarquía.
@@ -192,7 +192,7 @@ que va a haber.
 **Y no viaja sola: con ella va la corrección de la exclusión del libro (§2).** Escribir la cuenta
 del concepto sin arreglar `use-ledger.ts:220` **duplica el ingreso** de todo cargo que no sea la
 cuota ordinaria. **Las dos van en el mismo despliegue y detrás de la misma bandera**
-(`concept-to-ledger`): separarlas es desplegar el doble conteo y llamarlo incremento.
+(`producto-concepto-al-libro`): separarlas es desplegar el doble conteo y llamarlo incremento.
 
 ### 5.3 Casos límite
 
@@ -293,7 +293,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 
 | # | Criterio |
 |---|---|
-| CA1 | Un conjunto nuevo nace con las **dieciséis** cuentas sembradas, y **los siete conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`) |
+| CA1 | Un conjunto nuevo nace con las **dieciséis** cuentas de `systemKey` sembradas (18 documentos con los dos padres), y **los siete conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`) |
 | CA2 | El administrador crea una cuenta con código válido y la usa en un egreso |
 | CA3 | **Cobrar un cargo de concepto `multa` escribe un asiento en la cuenta de multas, no en cuotas de administración** |
 | CA4 | Revertir ese pago escribe el negativo **en la misma cuenta** |
@@ -303,7 +303,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 | CA8 | Un asiento antiguo sin `accountCode` sigue apareciendo, agrupado por su `category` |
 | CA9 | Un concepto sin cuenta equivalente cae en `otros_ingresos` y **avisa** |
 | CA10 | El anticipo aparece en su propia cuenta y **suma al ingreso del período** |
-| CA11 | **Un conjunto con cuota, multa y parqueadero cobrados muestra el ingreso total IGUAL antes y después de encender `concept-to-ledger`** — cambia el reparto, no la suma |
+| CA11 | **Un conjunto con cuota, multa y parqueadero cobrados muestra el ingreso total IGUAL antes y después de encender `producto-concepto-al-libro`** — cambia el reparto, no la suma |
 | CA12 | Cobrar un cargo de concepto `administracion` escribe en la cuenta de ingreso `alicuota`, no en la de egreso «Administración» |
 
 ### Deben fallar
@@ -345,8 +345,15 @@ Bloque nuevo para `chartOfAccounts`, con el id derivado de §11.1. **Debe impedi
 - **Índices:** `chartOfAccounts` por `tenantId` + `type` + `status`; `ledgerEntries` por
   `tenantId` + `accountCode` + `date`.
 - **Jobs:** ninguno. **Los asientos históricos no se migran** (§4).
-- **Banderas:** `chart-of-accounts` (editar el plan) y **`concept-to-ledger`** (§5.2), separadas
-  a propósito: la segunda cambia lo que muestra el estado financiero y merece encenderse sola.
+- **Banderas:** `producto-plan-de-cuentas` (editar el plan) y **`producto-concepto-al-libro`**
+  (§5.2), separadas a propósito: la segunda cambia lo que muestra el estado financiero y merece
+  encenderse sola.
+  **Renombradas al construir (1.1):** la PRD las llamaba `chart-of-accounts` y
+  `concept-to-ledger`, y el catálogo exige `<area>-<capacidad>` en castellano —lo dice
+  `src/lib/feature-flags/catalog.ts`—. Gana el código (regla 6 del portafolio).
+  **Y van registradas en los CUATRO sitios del catálogo**, no en dos: tocar solo los dos
+  primeros deja la bandera imposible de encender, sin síntoma. Ya pasó con las tres banderas de
+  producto de agosto de 2026.
 
 ### 11.4 Qué habilita
 
@@ -373,7 +380,7 @@ condominios.
 
 1. **Reglas** — `chartOfAccounts` con id derivado.
 2. **Functions** — semilla en el alta; `accountCode` en `aplicarPago` y `revertirPago`, **detrás
-   de `concept-to-ledger`**.
+   de `producto-concepto-al-libro`**.
    **En el mismo incremento, y no en otro:** la corrección de la exclusión del libro (§2, R12).
    El front que lee y la función que escribe cambian a la vez porque **el defecto vive entre los
    dos**.
@@ -385,14 +392,14 @@ condominios.
 |---|---|
 | Edición del plan | **Sí**, por bandera |
 | Semilla | **Sí** mientras no se use: las cuentas quedan inertes |
-| **`concept-to-ledger`** | **Sí por bandera para los asientos futuros. No para los ya escritos** con la cuenta correcta — y **no se quieren revertir**: son los correctos |
+| **`producto-concepto-al-libro`** | **Sí por bandera para los asientos futuros. No para los ya escritos** con la cuenta correcta — y **no se quieren revertir**: son los correctos |
 
 ### Validación
 
 | Dónde | Qué |
 |---|---|
 | **Staging** | Todo, con un conjunto que tenga cuota, extraordinaria y multa cobradas |
-| **Producción** | Que el estado financiero de los nueve conjuntos de prueba **cambie como se espera** al encender `concept-to-ledger`, y no de otra forma |
+| **Producción** | Que el estado financiero de los nueve conjuntos de prueba **cambie como se espera** al encender `producto-concepto-al-libro`, y no de otra forma |
 
 ### Story Map
 

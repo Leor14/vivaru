@@ -65,6 +65,8 @@ export type FeatureFlagKey =
   | "producto-reservas-servidor"
   | "producto-cobro-por-coeficiente"
   | "producto-registro-proveedores"
+  | "producto-plan-de-cuentas"
+  | "producto-concepto-al-libro"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -215,6 +217,31 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FEAT-003 — registro de proveedores y beneficiarios",
     alApagar:
       "Desaparecen el botón de gestión y el selector del formulario de egreso. El nombre a mano sigue funcionando — nunca se retira — y los egresos ya ligados conservan su vendorId sin efecto.",
+  },
+  "producto-plan-de-cuentas": {
+    key: "producto-plan-de-cuentas",
+    area: "producto",
+    label: "Plan de cuentas del conjunto",
+    description:
+      "Deja al administrador crear, renombrar y desactivar cuentas de su propio plan. No afecta a en qué cuenta cae el dinero: de eso se ocupa `producto-concepto-al-libro`.",
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-003",
+    alApagar:
+      "El plan sembrado sigue ahí y los informes lo siguen usando. Solo desaparece la edición.",
+  },
+  "producto-concepto-al-libro": {
+    key: "producto-concepto-al-libro",
+    area: "producto",
+    label: "El concepto del cargo llega al libro",
+    description:
+      "Al cobrar, el asiento lleva la cuenta del concepto del cargo en vez de «alicuota» fijo — y el libro deja de contar dos veces lo que Cartera ya suma.",
+    // Nace apagada y va SOLA en su despliegue: cambia lo que el administrador
+    // ve en el estado financiero. No es un error nuevo, es el viejo dejando de
+    // ocurrir (PRD §5.2), pero hay que poder encenderlo mirando.
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-003 §5.2",
+    alApagar:
+      "Todo asiento NUEVO vuelve a escribirse como «alicuota» y el recaudo se vuelve a ver junto. Los ya escritos con su cuenta correcta se quedan — y no se quieren revertir: son los correctos.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

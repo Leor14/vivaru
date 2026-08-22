@@ -111,6 +111,24 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-plan-de-cuentas",
+    area: "producto",
+    label: "Plan de cuentas del conjunto",
+    origen: "PRD-V-PLAT-003",
+    // Nace apagada: capacidad nueva. La semilla del plan se crea igual, así que
+    // apagarla no deja al conjunto sin cuentas.
+    enabled: false,
+  },
+  {
+    key: "producto-concepto-al-libro",
+    area: "producto",
+    label: "El concepto del cargo llega al libro",
+    origen: "PRD-V-PLAT-003 §5.2",
+    // Nace apagada y se enciende SOLA, mirando: cambia el estado financiero de
+    // todo conjunto que cobre algo distinto de la cuota.
+    enabled: false,
+  },
+  {
     key: "operacion-app-check-monitor",
     area: "operacion",
     label: "App Check en modo monitor",

@@ -46,6 +46,8 @@ export type FeatureFlagKey =
   | "producto-reservas-servidor"
   | "producto-cobro-por-coeficiente"
   | "producto-registro-proveedores"
+  | "producto-plan-de-cuentas"
+  | "producto-concepto-al-libro"
   | "operacion-app-check-monitor";
 
 /**
@@ -71,6 +73,11 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   // Apagada = sin botón de generar por coeficiente; la corrida plana sigue.
   "producto-cobro-por-coeficiente": false,
   "producto-registro-proveedores": false,
+  // Apagada = el plan sembrado se ve y no se edita.
+  "producto-plan-de-cuentas": false,
+  // Apagada = `aplicarPago` sigue escribiendo "alicuota" fijo, como hasta hoy.
+  // Encenderla cambia lo que muestra el estado financiero; ver el catálogo en `src/`.
+  "producto-concepto-al-libro": false,
   // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
   "operacion-app-check-monitor": true,

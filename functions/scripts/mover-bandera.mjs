@@ -37,6 +37,8 @@ const CLAVES = [
   "producto-reservas-servidor",
   "producto-cobro-por-coeficiente",
   "producto-registro-proveedores",
+  "producto-plan-de-cuentas",
+  "producto-concepto-al-libro",
   "operacion-app-check-monitor",
 ];
 
