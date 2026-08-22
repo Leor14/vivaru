@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `committee` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 y D2 cerradas por David el 21 de agosto de 2026 |
+| **Estado** | **Lista para desarrollo** — versión **1.1**. D1 y D2 cerradas el 21 ago 2026. **La 1.1 (22 ago) corrige dos huecos que salieron al leer el código antes de construir: la semilla no cubría los conceptos de cargo (§2) y el cambio introducía un doble conteo (§2 y §5.2)** |
 | **Dependencias** | Ninguna. **Habilita** el consolidado entre conjuntos de `PRD-V-PLAT-002`. **Secuencia obligatoria: va ANTES que `PRD-V-FLOW-002`** — las dos modifican `aplicarPago` y no pueden estar en vuelo a la vez |
 | **Riesgo** | **Alto.** Toca la categoría de todos los asientos del libro |
 | **Reversibilidad** | **Parcial.** La corrección de §5.2 **cambia lo que muestra el estado financiero** y no se deshace con una bandera (§13) |
@@ -61,6 +61,40 @@ functions/src/payments.ts:578   category: "alicuota",      ← revertirPago
 - El reparto de `PRD-V-FLOW-001` se contabilizará como cuota de administración.
 - El consolidado entre conjuntos de `PRD-V-PLAT-002` **sumaría categorías falsas**.
 
+### El defecto que este cambio INTRODUCIRÍA — descubierto el 22 de agosto de 2026
+
+**Hoy el libro no cuenta dos veces el recaudo, y funciona por accidente.**
+
+```
+src/features/finanzas/use-ledger.ts:220
+  if (entry.category !== "alicuota") ledgerIncome += entry.amount;
+
+src/app/(admin)/admin/finanzas/page.tsx:125
+  cuotaIncome = statements.reduce((sum, s) => sum + (s.paymentAmount ?? 0), 0)
+```
+
+`cuotaIncome` suma el pagado de **todos** los cargos, sin mirar el concepto —multas y
+parqueaderos incluidos—. Y el libro excluye del ingreso los asientos de categoría
+`alicuota`, «para no duplicar». Como `aplicarPago` escribe `alicuota` **para todo**, hoy todo
+queda excluido y se cuenta exactamente una vez.
+
+**En cuanto R6 escriba la cuenta del concepto, esa exclusión deja de morder.** Un asiento de
+`multa` ya no es `alicuota`, así que **entra en `ledgerIncome`** — y sigue estando en
+`cuotaIncome`. **Se cuenta dos veces.** Y ocurre precisamente en los conjuntos que cobran algo
+distinto de la cuota, que son los que esta PRD dice arreglar.
+
+**La corrección no es parchear la lista de exclusión: es dejar de mirar la categoría.** El
+propio comentario del código dice la intención —*«se cuenta vía `cuotaIncome`, derivado de
+Cartera, fuente completa»*—, así que lo que hay que excluir es **lo que viene de un cargo**,
+no lo que se llama de cierta forma. Los asientos de cobro llevan `sourceType:
+"billingStatement"`. Excluir por origen sobrevive a cualquier concepto futuro; excluir por
+`"alicuota"` era una coincidencia que iba a durar hasta hoy.
+
+**Por qué no estaba escrito:** R10 demuestra que sí se conocía la exclusión, pero razonaba
+sobre el anticipo **desapareciendo** del libro. El caso simétrico —los demás conceptos
+**apareciendo dos veces**— no se miró. Es la misma forma de error que este repositorio ya tiene
+catalogada: una frase cierta que deja de serlo al cambiar lo que hay debajo.
+
 ### Baseline
 
 | Indicador | Hoy |
@@ -100,7 +134,9 @@ despliegue, y que **el asiento diga la verdad sobre qué se cobró**.
 
 1. **Plan de cuentas por conjunto**: código, nombre, tipo (ingreso/egreso), cuenta padre, estado.
 2. **Códigos gobernados**: formato validado, únicos por conjunto e **inmutables una vez usados**.
-3. **Semilla** con las trece categorías actuales, ligadas por `systemKey` a los valores de hoy.
+3. **Semilla** con las categorías actuales ligadas por `systemKey`, **más las cuentas de ingreso
+   que los conceptos de cargo necesitan y hoy no existen** (§8 R11). No son trece: son
+   **dieciséis**.
 4. **Un solo catálogo de etiquetas**, y el fin de los dos mapas que discrepan.
 5. **El concepto del cargo llega al asiento** al cobrar y al revertir.
 6. Estado financiero **agrupado por cuenta**, con jerarquía.
@@ -153,6 +189,11 @@ de `alicuota` fijo.
 **Con cero clientes reales, el «antes» son nueve conjuntos de prueba.** Es el momento más barato
 que va a haber.
 
+**Y no viaja sola: con ella va la corrección de la exclusión del libro (§2).** Escribir la cuenta
+del concepto sin arreglar `use-ledger.ts:220` **duplica el ingreso** de todo cargo que no sea la
+cuota ordinaria. **Las dos van en el mismo despliegue y detrás de la misma bandera**
+(`concept-to-ledger`): separarlas es desplegar el doble conteo y llamarlo incremento.
+
 ### 5.3 Casos límite
 
 | Caso | Comportamiento |
@@ -197,6 +238,8 @@ apuntando al vacío.
 | `BillingStatement` | `+ accountCode?: string` | Se resuelve desde `concept` al generar |
 | `Expense` | `+ accountCode?: string` | Se resuelve desde `category` al registrar |
 | `aplicarPago` / `revertirPago` | Dejan de escribir `"alicuota"` fijo | **Escriben la cuenta del cargo.** §5.2 |
+| `LedgerCategory` (`src/types/domain.ts:442`) | **+ `multa`, `reparacion`, `parqueadero`** | Consecuencia forzosa: `category` se sigue escribiendo, así que si `aplicarPago` escribe el concepto, el tipo tiene que admitirlo o no compila |
+| `use-ledger.ts:220` · `financial-statement.ts` | **La exclusión pasa a mirar el origen**, no la categoría | Sin esto, el cambio **duplica el ingreso** (§2). Durante la convivencia se excluye por `sourceType === "billingStatement"` **o** `category === "alicuota"`, que cubre lo histórico |
 | Mapas de etiquetas | Los dos se sustituyen por el nombre de la cuenta | Fin de la discrepancia de §2 |
 
 **`category` no se retira.** Retirarlo obligaría a migrar todos los asientos existentes y a tocar
@@ -228,6 +271,13 @@ El plan de cuentas **no contiene datos personales**. Fuera de la política de re
 | **R9** | Un informe agrupa por `accountCode`; si el asiento no lo tiene, usa `category` |
 | **R10** | El anticipo de `PRD-V-FLOW-002` usa **su propia cuenta** y **nunca se excluye del libro** como se excluye `alicuota` |
 
+| **R11** | El mapa **`BillingConcept` → cuenta es explícito y vive en un solo sitio.** Dos resoluciones no son obvias y hay que escribirlas: el cargo `administracion` va a la cuenta de **ingreso** `alicuota` —no a la de egreso homónima— y el cargo `otro` va a `otros_ingresos`. Las tres que hoy no tienen cuenta (`multa`, `reparacion`, `parqueadero`) **se siembran**, no caen en R8 |
+| **R12** | La exclusión que evita el doble conteo mira el **origen** del asiento (`sourceType === "billingStatement"`), no su categoría. Durante la convivencia acepta también `category === "alicuota"` para lo histórico |
+
+**R8 no es la red del mapa incompleto.** Si los conceptos conocidos cayeran en `otros_ingresos`,
+la métrica de éxito de §2 fallaría el primer día — `multa` es justo el ejemplo que usa. R8 es
+para lo que alguien añada después, no para lo que ya sabemos que existe.
+
 **R7 importa más de lo que parece:** si el reverso cayera en otra cuenta, la reversión no
 anularía nada — dejaría un positivo en una y un negativo en otra.
 
@@ -243,7 +293,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 
 | # | Criterio |
 |---|---|
-| CA1 | Un conjunto nuevo nace con las trece cuentas sembradas |
+| CA1 | Un conjunto nuevo nace con las **dieciséis** cuentas sembradas, y **los siete conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`) |
 | CA2 | El administrador crea una cuenta con código válido y la usa en un egreso |
 | CA3 | **Cobrar un cargo de concepto `multa` escribe un asiento en la cuenta de multas, no en cuotas de administración** |
 | CA4 | Revertir ese pago escribe el negativo **en la misma cuenta** |
@@ -253,6 +303,8 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 | CA8 | Un asiento antiguo sin `accountCode` sigue apareciendo, agrupado por su `category` |
 | CA9 | Un concepto sin cuenta equivalente cae en `otros_ingresos` y **avisa** |
 | CA10 | El anticipo aparece en su propia cuenta y **suma al ingreso del período** |
+| CA11 | **Un conjunto con cuota, multa y parqueadero cobrados muestra el ingreso total IGUAL antes y después de encender `concept-to-ledger`** — cambia el reparto, no la suma |
+| CA12 | Cobrar un cargo de concepto `administracion` escribe en la cuenta de ingreso `alicuota`, no en la de egreso «Administración» |
 
 ### Deben fallar
 
@@ -267,6 +319,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 | CF7 | Un residente abre el plan de cuentas → **denegado** |
 | CF8 | Editar el plan en `trial` → **bloqueado por la matriz de prueba** |
 | CF9 | Consulta de `chartOfAccounts` sin `where("tenantId")` → **denegada entera** |
+| CF10 | Un asiento originado en un cargo **no puede sumarse a `ledgerIncome`** — si aparece ahí, el ingreso está duplicado |
 
 ## 11. Arquitectura y dependencias
 
@@ -311,6 +364,7 @@ condominios.
 | El plan se ensucia como el de Habitanto | Códigos duplicados, puntos de más | R2, R3, R4 y CF1–CF5. **Es el objetivo declarado del diseño** |
 | Un concepto se pierde al no tener cuenta | Ingreso sin clasificar | R8: cae en `otros_ingresos` **y avisa** |
 | Convivencia `category` / `accountCode` que se olvida y diverge | Informes inconsistentes | R9 define la precedencia; CA8 la prueba |
+| **Doble conteo del recaudo** al dejar de escribir `alicuota` | Ingreso total inflado tras encender la bandera | **R12**: excluir por origen y no por categoría. **CA11** lo prueba comparando la suma antes y después. Las dos piezas van en el mismo despliegue (§5.2) |
 | Coste | — | **Nulo** |
 
 ## 13. Despliegue, rollback y Story Map
@@ -320,6 +374,9 @@ condominios.
 1. **Reglas** — `chartOfAccounts` con id derivado.
 2. **Functions** — semilla en el alta; `accountCode` en `aplicarPago` y `revertirPago`, **detrás
    de `concept-to-ledger`**.
+   **En el mismo incremento, y no en otro:** la corrección de la exclusión del libro (§2, R12).
+   El front que lee y la función que escribe cambian a la vez porque **el defecto vive entre los
+   dos**.
 3. **Front** — plan de cuentas, selector en egreso y cargo, informes por cuenta.
 
 ### Rollback
@@ -387,9 +444,16 @@ obliga a decidir quién puede editarlo y qué pasa con un conjunto que se va de 
 | **G1 Valor** | ✅ Baseline y métrica en §2 |
 | **G2 Datos y permisos** | ✅ Definidos. Unicidad garantizada por la base, no por el cliente |
 | **G3 Riesgo** | ⚠️ **Parcial.** Hay banderas y precedencia de lectura, pero §5.2 **cambia lo que ve el usuario** y eso no se revierte del todo. **Se acepta porque hoy no hay ni un cliente real** |
-| **G4 Aceptación** | ✅ 10 que pasan, 9 que deben fallar |
+| **G4 Aceptación** | ✅ **12 que pasan, 10 que deben fallar** (1.1: CA11 y CF10 cierran el doble conteo, CA12 la colisión de `administracion`) |
 | **G5 Operación** | ✅ El administrador mantiene su plan; el superadmin gobierna la semilla. **Nadie tiene que operar esto a diario** |
 | **G6 Escala** | ✅ Decenas de cuentas por conjunto |
 
 **Lista para desarrollo**, con el riesgo de G3 aceptado explícitamente: §5.2 cambia lo que ve el
 usuario, y hoy el «antes» son nueve conjuntos de prueba.
+
+**Nota de la 1.1 (22 ago 2026), que vale más que los dos arreglos:** las dos correcciones salieron
+de **leer el código antes de construir**, no de una revisión del documento. La 1.0 pasó una
+revisión cruzada contra las otras ocho PRD y ninguna de las dos apareció, porque las dos viven
+**entre** ficheros —el mapa de conceptos entre dos vocabularios, y el doble conteo entre la
+función que escribe y la pantalla que lee—. Un documento cotejado contra otros documentos no
+encuentra eso.
