@@ -2,8 +2,10 @@
 
 > Documento **vivo**: se reescribe, no se acumula. Es el sitio donde mirar para retomar
 > sin releer los cuatro documentos del intercambio.
-> **Actualizado: 21 de agosto de 2026** — los dos números de retención ya están decididos
-> (§4.2). Lo que queda de ellos es comunicarlos, no pensarlos.
+> **Actualizado: 22 de agosto de 2026** — los dos números de retención están decididos
+> (§4.2) y lo que queda de ellos es comunicarlos, no pensarlos. Añadido §4.0 con el
+> estado del código medido, que **reordena lo técnico**: el freno de la invariante va
+> dentro del empuje, no antes.
 
 ---
 
@@ -141,6 +143,27 @@ selector cerrado. No hay que rehacerlo. Verificado leyendo el código.
 ## 4. Lo que le toca a VIVARU
 
 Esto es la deuda real, y toda es nuestra.
+
+### 4.0 · El estado del código, verificado el 22 de agosto de 2026
+
+Antes de planificar, lo que hay **medido con `grep`, no supuesto**:
+
+| Pieza | En el código |
+|---|---|
+| Empuje de leads a Albert (`submitDemoLead`) | **Cero apariciones.** El endpoint es de Albert y está disponible —el expediente dice bien «Vivaru **podría** empujar»—, pero **nosotros no lo llamamos desde ningún sitio** |
+| `externalRef.leadId` (Vivaru → Albert) | **Cero apariciones** |
+| `crmRef` (Albert → Vivaru) | **16 apariciones**, texto libre sin validar, en el catálogo de comerciales y en leads |
+
+**Lo que esto reordena, y no es menor:** el freno de §4.1 vigila que **nunca creemos un
+deal sin contacto**, pero **hoy no creamos deals en absoluto**. Construirlo solo no
+guarda nada. **Va dentro del empuje, en el mismo commit** — es una condición de esa
+pieza, no una tarea suelta que la preceda. La lista de «lo primero mañana» lo pone como
+punto 3 independiente y **así leído lleva a construir un guardián sin puerta**.
+
+**Y el orden real de lo técnico queda:** primero el alta (A5, que depende del correo),
+porque sin credencial no hay suscripción; después el empuje **con** su freno y sus dos
+referencias cruzadas; y la lectura en vivo de `deals` cuando exista el usuario de
+servicio.
 
 ### 4.1 · Una promesa que hoy no vigila nadie
 
