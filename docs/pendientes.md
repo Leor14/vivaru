@@ -6,11 +6,12 @@ commiteada**. Antes, esa misma tarde, se cerró entero el expediente de Albert.
 
 ## LO PRIMERO AL ABRIR SESIÓN (22 ago 2026, noche)
 
-**`develop` local = `1635ac2` — COMMITEADO PERO NO EMPUJADO.** El push lo bloqueó el
-clasificador de auto mode, no un fallo de git. `origin/develop` sigue en `2ffa894`.
-**Lo primero al abrir sesión es empujarlo y releer el remoto**; hasta entonces 1b-i vive
-solo en esta máquina y no está ni en staging.
+**`develop` = `aa34067`, y `origin/develop` releído, no supuesto.** 1b-i está en staging.
 `master` sigue en `d17478d`: **nada de esto está en producción.**
+
+**Pendiente de validar a mano en staging** (es lo que ninguna prueba contesta): que el Libro y
+fondos de `conjunto-las-playas` muestre **127.500** y no 129.000, y que los otros conjuntos no
+se hayan movido.
 
 ### `PLAT-003` 1b-i — la exclusión del libro, HECHA (`1635ac2`)
 
