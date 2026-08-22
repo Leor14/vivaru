@@ -18,6 +18,9 @@ import {
   type VendorItem,
 } from "@/features/finanzas/use-vendors";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { AYUDA } from "@/lib/config/vocabulario-pais";
+import { HelpTip } from "@/components/shared/help-tip";
 
 const CATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "", label: "Sin categoría por defecto" },
@@ -65,6 +68,7 @@ export function VendorRegistryDialog({
   vendors: VendorItem[];
   onClose: () => void;
 }) {
+  const vocab = useTenantVocabulary();
   const [editing, setEditing] = useState<VendorItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -106,6 +110,18 @@ export function VendorRegistryDialog({
     const duplicate = findDuplicateTaxId(vendors, values.taxId, editing?.id);
     if (duplicate) {
       toast.error(`Ya existe un registro con esa identificación: ${duplicate.legalName}.`);
+      return;
+    }
+
+    // En México la cuenta se identifica por CLABE de 18 dígitos, y una CLABE
+    // corta no es un dato incompleto: es una transferencia que se va a
+    // rechazar. Se valida aquí porque depende del país del conjunto y el
+    // esquema de zod es estático.
+    const cuenta = values.accountNumber?.trim();
+    if (cuenta && vocab.identificadorCuenta.maxLength && cuenta.replace(/\s/g, "").length !== vocab.identificadorCuenta.maxLength) {
+      toast.error(
+        `La ${vocab.identificadorCuenta.label} debe tener ${vocab.identificadorCuenta.maxLength} dígitos.`,
+      );
       return;
     }
 
@@ -245,22 +261,35 @@ export function VendorRegistryDialog({
           </div>
 
           <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] p-3">
-            <p className="text-xs font-medium text-[var(--slate-700)]">Datos bancarios — dónde se le paga. Nunca visibles para residentes.</p>
+            <p className="inline-flex items-center gap-1 text-xs font-medium text-[var(--slate-700)]">
+              Datos bancarios — dónde se le paga. Nunca visibles para residentes.
+              <HelpTip text={AYUDA.datosBancarios} />
+            </p>
             <div className="mt-2 grid gap-3 md:grid-cols-3">
               <label className="text-sm text-[var(--slate-700)]">
                 Banco
                 <Input className="mt-1" {...form.register("bankName")} placeholder="Opcional" />
               </label>
               <label className="text-sm text-[var(--slate-700)]">
-                Nº de cuenta
-                <Input className="mt-1" {...form.register("accountNumber")} placeholder="Opcional" />
+                {vocab.identificadorCuenta.label}
+                <Input
+                  className="mt-1"
+                  inputMode={vocab.identificadorCuenta.maxLength ? "numeric" : "text"}
+                  maxLength={vocab.identificadorCuenta.maxLength}
+                  {...form.register("accountNumber")}
+                  placeholder={vocab.identificadorCuenta.placeholder}
+                />
               </label>
               <label className="text-sm text-[var(--slate-700)]">
                 Tipo de cuenta
+                {/* Las etiquetas cambian por país; los VALORES guardados no
+                    —«corriente»/«ahorros»—, para que el dato siga significando
+                    lo mismo si el conjunto cambia de país o se lee desde otro. */}
                 <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("accountType")}>
                   <option value="">—</option>
-                  <option value="corriente">Corriente</option>
-                  <option value="ahorros">Ahorros</option>
+                  {vocab.tiposCuenta.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
                 </select>
               </label>
             </div>
