@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.13 |
-| **Fecha** | 21 de agosto de 2026, noche |
-| **Estado** | **Niveles 1, 2 y 3 EN PRODUCCIÓN, validados a mano y comprobados leyéndolos.** Lo construido el 19 se desplegó la madrugada del 20: **el hueco de acceso al borrar un residente queda cerrado en producción** —era el que arrastraba la radiografía desde el 13 de agosto— y todo conjunto creado desde ahora nace con su país y su moneda correctos. **Y llegó `RESPUESTA-A-002` de Albert**, que nos da la razón en las dos contradicciones sin regatear. **El intercambio con Albert ya no tiene preguntas abiertas**: lo que falta es un correo de David y tres piezas nuestras |
-| **Verificado contra** | **Producción leída directamente, no deducida.** Repositorio en `c81e2fe` (`master` = `develop` = `origin/master`). `revokeResidentAccess` y `createTenantWorkspace` vivas en `hogaru-1`, y **el permiso de invocación de la nueva leído en IAM** (`allUsers` + `run.invoker`). **El front verificado descargando los chunks de `/login`** —marcador nuevo presente, control viejo presente, símbolo inventado ausente—, nunca por la fecha del backend, que marca que arrancó y no que terminó. **994 pruebas de app y 349 de functions**, typecheck limpio en `src/` y en `functions/`. Los 9 conjuntos releídos con credenciales renovadas: `plans` con **0 documentos**, **6 sin moneda y 4 sin país**, y **dos sin marcar como de ejemplo** |
+| **Versión** | 0.9.14 |
+| **Fecha** | 22 de agosto de 2026, madrugada |
+| **Estado** | **La ola A del lote de propiedad horizontal está CONSTRUIDA y en staging.** Cuatro piezas en cinco commits: la corrección de moneda, la auditoría de las callables, las reservas decididas en servidor, la copropiedad y el registro de proveedores. **Producción sigue intacta**: todo lo nuevo nace detrás de banderas apagadas y las functions no se han desplegado. Lo anterior —niveles 1, 2 y 3, `FIN-001` completa— sigue en producción sin cambios |
+| **Verificado contra** | **Ejecución, no lectura.** `origin/develop` en `6b71bed`, árbol limpio y remoto comprobado con `git rev-parse`. **995 pruebas de app, 399 de functions y 168 de reglas** —estas últimas contra el emulador de Firestore y Storage levantado a mano—, con **46 pruebas nuevas** en esta tanda. Typecheck limpio en `src/` y en `functions/` (con `tsconfig.typecheck.json`, el que sí mira `functions/tests/`) y build de functions limpio. **El reparto por resto mayor se verificó ejecutándolo**, no razonándolo: la suma de las cuotas es exactamente el total en COP, MXN y USD |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Detalle por frente.** Este documento es el tablero. El detalle vive en:
@@ -32,68 +32,38 @@ dependencias y criterio de salida.
 
 **Qué cambió en esta revisión:**
 
-- **`FIN-001` queda CERRADA de verdad y validada en producción.** Su criterio de salida
-  decía «cumplido salvo el voucher»: ahora **el recibo se emite dentro de la transacción
-  del pago y el reverso lo anula**. Las dos cosas estaban bloqueadas por la misma frase
-  —«eso es meterse en lo fiscal»— que la decisión de alcance invalidó el mismo día. **Una
-  decisión de producto cerró un defecto técnico que llevaba semanas descrito.**
-- **Se retiró el contador de secuenciales.** No solo era un número: era una transacción
-  sobre un único documento por conjunto, o sea que **serializaba todos sus pagos**.
-  Meterlo dentro de la transacción del pago habría empeorado la contención en la
-  escritura más importante del sistema. El recibo lleva un código no correlativo.
-- **Tres defectos salieron de MIRAR, no de probar**, y ninguna suite los habría cazado:
-  el administrador no tenía dónde ver los recibos que emite; el pie del PDF anulado decía
-  «conserve este comprobante como soporte de su pago»; y los recibos anteriores al cambio
-  salían como «No. undefined». **Cuando se construye algo que alguien mira, alguien tiene
-  que mirarlo.**
-- **Y la forma general del tercero, que vuelve:** un cambio de forma **no migra lo que ya
-  está escrito**. Los recibos viejos se leen con respaldo en vez de migrarse —cambiarle el
-  número a un papel descargado es peor—, y los asientos sin `operationKey` siguen siendo
-  el mismo caso, abierto.
-- **LO FISCAL SALE DEL ALCANCE, y con ello el módulo financiero deja de estar
-  congelado.** Decisión de David: **Vivaru no maneja temas fiscales** — la factura la
-  emite el cliente, en los tres países. No es nueva, es la de `FIN-001` sin su «de
-  momento». **El frente del SRI de Ecuador, bloqueado desde junio esperando a un experto
-  externo, deja de bloquear porque deja de hacer falta.**
-- **Y al ir a mirarlo apareció que «congelado» nunca fue el estado del módulo.** Era la
-  etiqueta del frente fiscal, puesta en la fila que todo el mundo lee primero. `FIN-000`
-  y `FIN-001` están en producción; el expediente de conciliación **no lo bloquea nadie**;
-  y las fases de IA y piloto esperan **clientes**, no personas. Tres situaciones
-  distintas debajo de una sola palabra. Ver `docs/roadmap-finance.md` §5.
-- **Lo construido el 19 está en producción, y con ello se cierra el hueco de acceso más
-  antiguo abierto.** Borrar a un residente ya le quita el acceso de verdad: la radiografía
-  del 13 de agosto lo nombró, el arreglo se escribió el 19 y **hasta la madrugada del 20
-  siguió vivo para clientes**. David lo validó a mano en staging —borró al residente y la
-  otra ventana lo echó al refrescar— porque **ninguna prueba puede contestar eso**.
-- **El orden de despliegue fue el NORMAL**, functions antes que front, porque las dos
-  funciones **conceden** permiso. Se invierte solo cuando la regla restringe, como en
-  `FIN-001`. Son dos casos con la misma forma y sentido opuesto: conviene decidir el orden
-  preguntando qué hace la pieza, no repitiendo el del despliegue anterior.
-- **La trampa de `run.invoker` no mordió, y no fue suerte:** la función nueva ya nacía
-  declarando su acceso público. Mirarlo antes de desplegar una callable nueva ahorra un
-  «error interno» sin pista.
-- **Llegó `RESPUESTA-A-002` de Albert**, y nos da la razón en las dos contradicciones sin
-  regatear: el consentimiento vive **solo en el contacto**, y la del deal huérfano se
-  cierra **por nuestro lado** en vez de romperle el esquema a sus usuarios actuales. El
-  expediente completo pasa a tener documento propio: `docs/prd/albert/ESTADO-ALBERT.md`.
-- **La segunda mitad de `REVOPS-001C` NUNCA estuvo bloqueada, y tres documentos decían que
-  sí.** `RESPUESTA-A-001` ya lo había cerrado el 19: siendo tenant de Albert, Vivaru se
-  suscribe en vivo a sus deals. **La frase era cierta mientras Vivaru fuese un tercero y
-  murió al volverse tenant** — y ese tipo de muerte no deja commit ni prueba en rojo, solo
-  una frase obsoleta. Corregido aquí, en `roadmap-revops.md` y en `pendientes.md`.
-- **Una dependencia se cae por dejar de necesitarla, no solo porque alguien la construya.**
-  Es la lección de método de la revisión, y el corolario operativo es concreto: cuando
-  cambie el encuadre de una integración, **releer los bloqueos escritos bajo el encuadre
-  viejo** antes de seguir.
-- **Dos deudas nuevas que nos pone la respuesta de Albert.** La invariante «siempre contacto
-  antes que deal» dejó de ser regla de esquema y pasó a ser **promesa nuestra que hoy no
-  vigila nadie**; y la política de retención necesita **dos números, no uno** —el del deal
-  inactivo y el del registro de auditoría del borrado—.
-- **Los 9 conjuntos releídos, y aparecieron dos cosas que nadie había anotado.** Hay un
-  conjunto **en Quito** sin país ni moneda: como la lectura defaultea a `COP`, **un conjunto
-  ecuatoriano se está leyendo en pesos colombianos**. Y **dos de los nueve no están marcados
-  como de ejemplo**, así que **siguen contando como reales en cualquier métrica** — que es
-  exactamente lo que ya mintió dos veces.
+- **Se pasó de escribir a construir, y la ola A quedó completa.** Cinco commits en
+  `develop`: `formatAmount` por moneda, la auditoría de `PLAT-002`, la primera entrega de
+  `FIX-001`, y los MVP de `PLAT-001` y `FEAT-003`. **El orden declarado se respetó**, y la
+  única pieza que no se revierte con una bandera —la auditoría— fue **sola y en su propio
+  commit**, como decía el plan.
+- **La PRD contaba once callables con la comprobación vieja; eran doce.** Lo dijo el
+  `grep`, no el documento. **Un inventario escrito a mano envejece en cuanto alguien añade
+  la siguiente**, y la diferencia solo aparece al construir.
+- **El verdadero bloqueo del multi-conjunto no eran las callables.** Era
+  `assertActiveTenantAdmin` comprobando `users/{uid}.tenantId`, un campo único por persona:
+  con él vivo, la auditoría de las doce guardas no habría servido de nada. **La autoridad
+  del administrador es su membresía**, y el perfil pasó a ser gate de cuenta, no de conjunto.
+- **El reparto de dinero se calcula donde el cliente no puede mentir, y la vista previa la
+  sirve la MISMA llamada.** Es la lección de `FIN-001` aplicada al cobro: si la aritmética
+  de la vista previa y la de la escritura son dos códigos distintos, **acaban discrepando**.
+  Con `dryRun` no hay dos.
+- **La moneda decide los decimales, y eso cambia el reparto, no solo la pantalla.** COP
+  reparte en pesos enteros; MXN y USD en centavos. **Redondear a la unidad equivocada
+  descuadra la corrida entera**, no solo la vista.
+- **`vendors` restringe la LECTURA completa a administración, y no por exceso de celo:**
+  guarda datos bancarios de terceros y **una regla de Firestore no puede filtrar campos**.
+  O se lee el documento entero o no se lee. Y **no tiene borrado desde el cliente**
+  (`delete: if false`): un proveedor con historia se desactiva.
+- **Tres defectos de reserva que nunca funcionaron** salieron al construir `FIX-001`: la
+  exención se buscaba por el campo equivocado, el cupo mensual miraba una colección que no
+  era, y el aforo contaba solo las reservas de la propia unidad. **Estaban escritos, pasaban
+  revisión de lectura, y ninguno hacía lo que decía.**
+- **Las pruebas de reglas volvieron a correr, y con emulador de Storage también.** La
+  primera pasada dio un rojo que no era del código: era la suite de Storage sin su
+  emulador. **Un fallo de entorno se lee igual que un fallo real si no se mira la causa.**
+- **El changelog tenía un hueco: la 0.9.13 subió la versión sin dejar entrada.** Se
+  escribió ahora, para que no queden dos épocas conviviendo sin decir cuál manda.
 
 **Qué espera decisión tuya:**
 
@@ -615,8 +585,10 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `PH-001` — Propiedad horizontal: el lote derivado de Habitanto
 
-- **Estado:** 🟢 **Nueve PRD escritas y listas para desarrollo** (21 ago 2026). Ninguna
-  construida. · **Frente:** Producto · **Dependencia:** ninguna externa
+- **Estado:** 🟢 **Ola A construida y en staging** (22 ago 2026). Cuatro de las nueve con
+  MVP en `develop` —`formatAmount`, `PLAT-002` entrega 1, `FIX-001` entrega 1, `PLAT-001` y
+  `FEAT-003`—, **todas tras banderas apagadas y sin desplegar functions**. Quedan las olas B
+  y C. · **Frente:** Producto · **Dependencia:** ninguna externa
 - **Origen:** inventario de Habitanto en cinco pasadas (`docs/inventario-habitanto.md`) y
   contraste contra nuestro código, no contra nuestros documentos. De ahí salieron **108
   candidatos** priorizados (`docs/prd/candidatos-prd-desde-habitanto.md`), y de esos, **once
@@ -655,6 +627,11 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 - **Criterio de salida:** las nueve construidas en el orden declarado, con la primera entrega de
   `FIX-001` desplegada sola y verificada **escribiendo contra la base**, no desde la interfaz.
+- **Avance al 22 de agosto de 2026:** ola A **completa en staging** (`83aea4f`, `5219758`,
+  `20e4f28`, `626e5f6`, `996de59`). **Ola B pendiente y es la que toca el dinero**:
+  `PLAT-003` → `FLOW-002` → `FLOW-001`, en ese orden estricto porque las dos primeras
+  modifican `aplicarPago`, que está vivo en producción. Ola C después: `FEAT-004`,
+  `FLOW-003`, y las segundas entregas de `PLAT-002` y `FIX-001`.
 
 #### `PH-002` — Lo que espera al primer pago real
 
@@ -994,6 +971,51 @@ fecha de revisión.
 ## Changelog
 
 > **Lo más nuevo primero.** Cada entrada dice **por qué** cambió y **contra qué se verificó** — nunca qué líneas se movieron, que para eso está el diff de git.
+
+### 0.9.14 — 22 de agosto de 2026, madrugada
+
+**Por qué: la ola A del lote de propiedad horizontal pasó de PRD a código.** Cinco commits
+en `develop`, todos tras banderas apagadas y **sin desplegar functions**: producción no se
+tocó.
+
+**Contra qué se verificó:** ejecución, no lectura. `origin/develop` en `6b71bed` comprobado
+con `git rev-parse`; **995 pruebas de app, 399 de functions y 168 de reglas** contra el
+emulador levantado a mano, con 46 nuevas; typecheck y build limpios en los dos árboles. El
+reparto por resto mayor se comprobó **ejecutándolo** en las tres monedas.
+
+**Lo que se aprendió construyendo, que no estaba en las PRD:**
+
+- La PRD contaba **once** callables con la comprobación vieja; el `grep` encontró **doce**.
+- El bloqueo real del multi-conjunto no eran las guardas de token, sino
+  `assertActiveTenantAdmin` mirando un campo único por persona.
+- **Tres reglas de reserva nunca funcionaron** —exención, cupo mensual y aforo—, y las tres
+  pasaban cualquier revisión de lectura.
+- Un rojo en la suite de reglas resultó ser **el emulador de Storage sin levantar**, no el
+  código.
+
+### 0.9.13 — 21 de agosto de 2026, noche
+
+> Entrada escrita el 22 de agosto: la revisión 0.9.13 **subió la versión sin dejar
+> constancia aquí**. Se completa para que el changelog no tenga huecos.
+
+**Por qué: se inventarió Habitanto y de ahí salió un lote de trabajo con orden propio.**
+Cinco pasadas de lectura **estrictamente de solo lectura** sobre una plataforma de terceros
+con datos personales reales: se registró estructura y comportamiento, nunca nombres, cédulas
+ni saldos individuales.
+
+**Contra qué se verificó:** cada candidato se contrastó **contra nuestro código**, no contra
+nuestros documentos. De ahí **108 candidatos** priorizados y **once PRD**: nueve escritas y
+dos en espera de disparador.
+
+**Lo que la revisión cruzada corrigió, y es lo más valioso de la entrada:**
+
+- **Dos huecos que el inventario daba por buenos ya existían** en Vivaru: la compuerta de
+  morosos en reservas —que además es **más fina** que la de Habitanto, porque tiene exención
+  por unidad— y la bandeja de notificaciones.
+- Un hallazgo de portafolio: **el rol `committee` solo alcanza `/admin/documents`**, así que
+  lo que ocho PRD le asignan es intención declarada, no capacidad.
+- La `alicuota` de Vivaru **no es un coeficiente**, es una categoría del libro: la corrida
+  masiva cobraba **el mismo importe a todas las unidades**.
 
 ### 0.9.12 — 20 de agosto de 2026, tarde
 
