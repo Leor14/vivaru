@@ -18,7 +18,7 @@ dependencias y criterio de salida.
 |---|---|
 | **Versión** | 0.9.14 |
 | **Fecha** | 22 de agosto de 2026, madrugada |
-| **Estado** | **La ola A del lote de propiedad horizontal está CONSTRUIDA y en staging.** Cuatro piezas en cinco commits: la corrección de moneda, la auditoría de las callables, las reservas decididas en servidor, la copropiedad y el registro de proveedores. **Producción sigue intacta**: todo lo nuevo nace detrás de banderas apagadas y las functions no se han desplegado. Lo anterior —niveles 1, 2 y 3, `FIN-001` completa— sigue en producción sin cambios |
+| **Estado** | **La ola A del lote de propiedad horizontal está CONSTRUIDA y en staging.** Cuatro piezas en cinco commits: la corrección de moneda, la auditoría de las callables, las reservas decididas en servidor, la copropiedad y el registro de proveedores. **Desplegado a STAGING el 22 de agosto** —reglas, índices y functions—, con las banderas de coeficiente y proveedores encendidas allí para probarlas. **Producción sigue intacta**: no se ha desplegado nada a `hogaru-1`. Lo anterior —niveles 1, 2 y 3, `FIN-001` completa— sigue en producción sin cambios |
 | **Verificado contra** | **Ejecución, no lectura.** `origin/develop` en `6b71bed`, árbol limpio y remoto comprobado con `git rev-parse`. **995 pruebas de app, 399 de functions y 168 de reglas** —estas últimas contra el emulador de Firestore y Storage levantado a mano—, con **46 pruebas nuevas** en esta tanda. Typecheck limpio en `src/` y en `functions/` (con `tsconfig.typecheck.json`, el que sí mira `functions/tests/`) y build de functions limpio. **El reparto por resto mayor se verificó ejecutándolo**, no razonándolo: la suma de las cuotas es exactamente el total en COP, MXN y USD |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -627,8 +627,11 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 - **Criterio de salida:** las nueve construidas en el orden declarado, con la primera entrega de
   `FIX-001` desplegada sola y verificada **escribiendo contra la base**, no desde la interfaz.
-- **Avance al 22 de agosto de 2026:** ola A **completa en staging** (`83aea4f`, `5219758`,
-  `20e4f28`, `626e5f6`, `996de59`). **Ola B pendiente y es la que toca el dinero**:
+- **Avance al 22 de agosto de 2026:** ola A **construida y DESPLEGADA a staging** (`83aea4f`,
+  `5219758`, `20e4f28`, `626e5f6`, `996de59`, más `b0b7347` y `9840d43` de despliegue).
+  Reglas, índices y functions vivas en `vivaru-staging-02`; banderas de coeficiente y
+  proveedores **encendidas allí**, la de reservas **apagada a propósito** porque sustituye un
+  camino que hoy funciona. **En producción no se ha desplegado nada.** **Ola B pendiente y es la que toca el dinero**:
   `PLAT-003` → `FLOW-002` → `FLOW-001`, en ese orden estricto porque las dos primeras
   modifican `aplicarPago`, que está vivo en producción. Ola C después: `FEAT-004`,
   `FLOW-003`, y las segundas entregas de `PLAT-002` y `FIX-001`.
@@ -974,9 +977,9 @@ fecha de revisión.
 
 ### 0.9.14 — 22 de agosto de 2026, madrugada
 
-**Por qué: la ola A del lote de propiedad horizontal pasó de PRD a código.** Cinco commits
-en `develop`, todos tras banderas apagadas y **sin desplegar functions**: producción no se
-tocó.
+**Por qué: la ola A del lote de propiedad horizontal pasó de PRD a código, y se desplegó a
+staging.** Siete commits en `develop`. **Producción no se tocó**: el despliegue fue a
+`vivaru-staging-02`, y en `hogaru-1` no se ha subido nada.
 
 **Contra qué se verificó:** ejecución, no lectura. `origin/develop` en `6b71bed` comprobado
 con `git rev-parse`; **995 pruebas de app, 399 de functions y 168 de reglas** contra el
@@ -992,6 +995,20 @@ reparto por resto mayor se comprobó **ejecutándolo** en las tres monedas.
   pasaban cualquier revisión de lectura.
 - Un rojo en la suite de reglas resultó ser **el emulador de Storage sin levantar**, no el
   código.
+- **El catálogo de banderas vive en CUATRO sitios, no en dos** —los dos catálogos más el
+  sembrador y el movedor—, y las tres banderas de producto solo estaban en dos. **No daba
+  error**: la bandera ausente defaultea a `false`, así que la capacidad quedaba bien
+  apagada y simplemente **no había forma de encenderla nunca**. Apareció al ir a hacerlo en
+  staging, después de desplegar.
+- **Desplegar sin recompilar habría subido un catálogo distinto del fuente:** `lib/` se
+  había quedado sin la última bandera porque se corrió `typecheck` y no `build`. **No hay
+  predeploy build que lo cace** — la recompilación es del que despliega.
+
+**Lo desplegado en staging, verificado leyendo:** las dos callables nuevas contestan
+**401 con el texto de nuestro propio código** al llamarlas sin token —lo que prueba de un
+tiro que IAM deja pasar, que la función se ejecuta y que el binario es el nuevo—; los dos
+índices compuestos de `reservations` existen; y el estado de las banderas se comprobó con
+una lectura independiente, no con lo que imprimió el script que las movió.
 
 ### 0.9.13 — 21 de agosto de 2026, noche
 
