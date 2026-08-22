@@ -627,6 +627,17 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 - **Criterio de salida:** las nueve construidas en el orden declarado, con la primera entrega de
   `FIX-001` desplegada sola y verificada **escribiendo contra la base**, no desde la interfaz.
+- **Vocabulario por país (22 ago 2026), a petición de David.** El producto hablaba
+  ecuatoriano-colombiano en pantallas que ve México: el porcentaje de la unidad es
+  **coeficiente de copropiedad** en Colombia, **alícuota** en Ecuador e **indiviso** en
+  México, y son las palabras de sus respectivas leyes, no sinónimos de estilo. **El término
+  sigue al conjunto, no al usuario** —la palabra es del inmueble— y eso deja de ser
+  hipótesis con `PLAT-002`. Vive en `src/lib/config/vocabulario-pais.ts`. **Los términos de
+  Colombia y México están pendientes de confirmar con un usuario real**; el de Ecuador está
+  verificado contra el inventario de Habitanto. Y apareció que **un tercer caso no era
+  vocabulario sino modelo de datos**: en México la cuenta de un proveedor se identifica por
+  **CLABE de 18 dígitos**, no por número y tipo. Se hizo ahora porque la jerga estaba en 4
+  archivos y `vendors` tenía cero documentos: mañana sería una migración.
 - **Avance al 22 de agosto de 2026:** ola A **construida y DESPLEGADA a staging** (`83aea4f`,
   `5219758`, `20e4f28`, `626e5f6`, `996de59`, más `b0b7347` y `9840d43` de despliegue).
   Reglas, índices y functions vivas en `vivaru-staging-02`; banderas de coeficiente y
