@@ -115,16 +115,53 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
   el estado — está congelado en el 18 de agosto, antes del intercambio.
 - **Roadmap REVOPS (activación comercial):** `docs/roadmap-revops.md` — base de la épica transversal. Adapta el Documento Rector REVOPS v1.0 con la línea base medida (5 leads, cero convertidos), las cuatro capacidades que ya existían, y el CRM identificado: es **Albert CRM**, producto propio. **Vivaru es TENANT suyo**, y eso cambia la integración entera: se empujan leads hoy, y **la señal de vuelta NO hay que construirla** — siendo tenant, Vivaru se suscribe en vivo (`onSnapshot`) a `tenants/vivaru/deals`, porque sus reglas conceden lectura a todos los roles del tenant. Este archivo decía «no tiene webhooks, así que hay que construirla» y **quedó obsoleto el 19 de agosto de 2026**, al hacernos tenant. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md`.
 - **Roadmap financiero:** `docs/roadmap-finance.md` — **el módulo ya arrancó**: F0 y F0b en producción. Adapta el Documento Rector v2 (Word) con la verificación contra código y ambientes: el mapa de rutas de pago, los cuatro defectos nombrados, y la línea base medida (cero datos propios). Su §5 explica por qué el frente fiscal salió del alcance.
-- **Bitácora de lo construido:** base de Notion **Construido — bitácora de Vivaru**
-  (`app.notion.com/p/0bdb213a53274fe2bcc7bd9b4fa1510a`), una fila por entrega con frente,
-  ambiente, bandera y commit. **El roadmap dice qué se va a hacer y por qué; la bitácora dice
-  qué existe y dónde corre.** Se actualiza en la misma pasada que el roadmap.
+- **Bitácora de lo construido:** base de Notion **Construido — bitácora de Vivaru**, una fila
+  por entrega con frente, ambiente, bandera y commit. **El roadmap dice qué se va a hacer y por
+  qué; la bitácora dice qué existe y dónde corre.** Se actualiza en la misma pasada que el
+  roadmap. Identificadores en la tabla de accesos de abajo.
 - **Roadmap de producto:** `docs/roadmap-producto.md` — **el repositorio es la fuente
   de verdad; la copia de Notion es la vista publicada.** Tres zonas con reglas
   distintas: el estado se REESCRIBE arriba, el cuerpo se EDITA en su sitio, y solo el
   changelog acumula (lo nuevo primero). **Nunca añadir «actualización del …» al final
   del cuerpo**: obliga a bajar y deja dos épocas conviviendo sin decir cuál manda —
   el defecto que tenía `wiki/modulos/pqrs.md` desde mayo de 2026.
+
+### Accesos de Notion — verificados el 22 de agosto de 2026
+
+**Estos dos abren con el conector. La página de Albert NO, y no hay que volver a intentarlo.**
+Se comprobó fetchando cada uno, no de memoria.
+
+| Qué | Tipo | Identificador |
+|---|---|---|
+| **Roadmap de Producto Vivaru** | página | `3bf1acebfa098051b602e4c6c60b3c90` |
+| **Construido — bitácora de Vivaru** | base de datos | `0bdb213a53274fe2bcc7bd9b4fa1510a` |
+| ↳ su fuente de datos (para `update_data_source` / `query_data_sources`) | data source | `collection://80e46f50-50c9-4b85-ad7a-c80259cfd57d` |
+
+**Por qué la de Albert da 404 y no es un problema de permisos que se pueda pedir:** el conector
+está autenticado contra el workspace **`David Carmona's Space`**
+(`6e71aceb-fa09-8151-8468-0003e5d11a28`, usuario `david.macar.18@gmail.com`). El roadmap
+Albert–Vivaru vive en **otro workspace**, así que no se alcanza desde aquí por mucho que se
+reintente. **Si hace falta su contenido, lo pega David.** Esta línea existe para no volver a
+gastar una sesión descubriéndolo.
+
+**Las cuatro vistas de la bitácora**, porque la que se abre por defecto no es la útil:
+
+| Vista | Para qué | Id |
+|---|---|---|
+| `Bitácora — lo más reciente arriba` | **la de leer**, por fecha descendente | `view://3c41aceb-fa09-810c-83f9-000c710938e9` |
+| `Esperando producción` | filtra `Estado = En staging`. **Es la lista del lote sin desplegar** | `view://3c41aceb-fa09-81f2-b4a1-000c946772cf` |
+| `Por frente` | tablero agrupado por frente | `view://3c41aceb-fa09-819a-854e-000c1a19a93f` |
+| `Default view` | tabla sin ordenar — **es la que abre el enlace que se comparte** | `view://0784a920-935e-4a21-93ed-758106d68ba6` |
+
+**Esquema de la bitácora** (los nombres tienen que ir exactos al escribir filas):
+`Entrega` (título) · `Frente` (select, 9 opciones, incluida **Propiedad horizontal**) ·
+`Estado` (select: **En producción · En staging · Sin desplegar**) · `Fecha` (fecha) ·
+`Bandera` (texto, «Sin bandera» = ya afecta a todos) · `Commit` (texto) · `Origen` (texto) ·
+`Qué cambió` (texto, en lenguaje de resultado).
+
+**Al editar páginas de Notion**, `update_page` con `update_content` quirúrgico: copiar las
+cadenas **del fetch**, no del repositorio, porque no coinciden carácter a carácter.
+
 - **Plan de auth (go-live):** `Hogaru/Producto/seguridad y accesos/Vivaru_Plan_Remediacion_Auth_GoLive.md`.
 - **Módulo financiero/SRI:** `Hogaru/Producto/modulo  financiero - contable/` (Modelo fundacional, F1, F2 con las 6 preguntas del spike) + `Hogaru/Vivaru_Planning_Modulo_Financiero.md`.
 

@@ -141,7 +141,14 @@ recoge ya que los sitios eran tres, que el defecto ya ocurría en datos sembrado
 
 | # | Qué | Por qué no se hizo |
 |---|---|---|
-| **3** | **Notion.** El repositorio es la fuente de verdad y Notion la vista publicada; la vista está atrasada | La página del roadmap Albert–Vivaru **da 404** con el conector actual: está en otro workspace. **Hace falta que David la comparta o pegue el contenido** — no se puede resolver desde el repositorio |
+| **3** | **Notion.** El repositorio es la fuente de verdad y Notion la vista publicada; la vista está atrasada | **Desbloqueado el 22 ago por la noche:** David pasó los dos enlaces que sí hacen falta y **están verificados y documentados en `CLAUDE.md`** (roadmap `3bf1acebfa098051b602e4c6c60b3c90` y bitácora `0bdb213a53274fe2bcc7bd9b4fa1510a`). Lo que queda es escribir: el cuerpo del roadmap y **una fila nueva en la bitácora para 1b-i** (`Frente: Propiedad horizontal`, `Estado: En staging`, `Bandera: Sin bandera`, `Commit: 1635ac2`) |
+
+**Y una cosa que NO hay que volver a intentar:** el roadmap Albert–Vivaru **da 404 y seguirá
+dándolo**. El conector está autenticado contra el workspace `David Carmona's Space`
+(`david.macar.18@gmail.com`) y esa página vive en **otro workspace**. No es un permiso que se
+pueda pedir sobre la página. **Si hace falta su contenido, lo pega David.** Comprobado
+fetchando `self`, no deducido. Los identificadores y las cuatro vistas de la bitácora están en
+`CLAUDE.md`, sección «Accesos de Notion».
 
 **Menor, y de otro repo:** `vivaru-landing` tiene `imagenes langing/` sin trackear y su
 último commit es de mayo. No es de este frente, pero que conste.
