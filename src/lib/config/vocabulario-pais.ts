@@ -104,6 +104,11 @@ export function terminosDePais(country: string | undefined): TerminosPais {
   return POR_PAIS[country.toUpperCase()] ?? NEUTRO;
 }
 
+/** Los términos viven en minúscula porque casi siempre van dentro de una frase. */
+export function capitalizar(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 /**
  * Textos de ayuda. Explican **mecanismo**, que es igual en los tres países, y
  * de paso **nombran las palabras de los otros** — así quien conoce otro

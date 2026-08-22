@@ -2,6 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { HelpTip } from "@/components/shared/help-tip";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { AYUDA, capitalizar } from "@/lib/config/vocabulario-pais";
 import { Building2, FilterX, KeyRound, Search, Upload, UserCheck, UserPlus, Users2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -126,6 +129,8 @@ export default function AdminResidentsPage() {
   /** Lista canónica de agrupaciones del tenant (tenantSettings.agrupaciones). */
   const [tenantAgrupaciones, setTenantAgrupaciones] = useState<string[] | null>(null);
   /** true cuando el usuario elige "+ Nueva agrupación…" en el modal de unidad. */
+  // El conjunto decide cómo se llaman sus cosas, no el usuario que mira.
+  const vocab = useTenantVocabulary();
   const [customTower, setCustomTower] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<
     Array<{
@@ -1495,12 +1500,18 @@ export default function AdminResidentsPage() {
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <label className="text-sm text-[var(--slate-700)]">
-                Coeficiente de copropiedad (%)
+                <span className="inline-flex items-center gap-1">
+                  {capitalizar(vocab.coeficiente)} (%)
+                  <HelpTip text={AYUDA.coeficiente} />
+                </span>
                 <Input className="mt-1" inputMode="decimal" {...unitForm.register("coefficient")} placeholder="Ej: 1.769387" />
                 {unitForm.formState.errors.coefficient ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.coefficient.message}</p> : null}
               </label>
               <label className="text-sm text-[var(--slate-700)]">
-                Valor de expensa mensual
+                <span className="inline-flex items-center gap-1">
+                  Valor de {vocab.cuotaMensual}
+                  <HelpTip text={AYUDA.cuotaMensual} />
+                </span>
                 <Input className="mt-1" inputMode="decimal" {...unitForm.register("monthlyFeeAmount")} placeholder="Ej: 140.40" />
                 {unitForm.formState.errors.monthlyFeeAmount ? <p className="mt-1 text-xs text-[var(--danger-700)]">{unitForm.formState.errors.monthlyFeeAmount.message}</p> : null}
               </label>

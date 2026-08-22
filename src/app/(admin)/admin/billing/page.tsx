@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { CoefficientCampaignDialog } from "@/components/features/billing/CoefficientCampaignDialog";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
 import * as XLSX from "xlsx";
 
 import { ChartContainer } from "@/components/features/admin/dashboard/chart-container";
@@ -226,6 +227,7 @@ function AdminBillingPageContent() {
   const [chargeMode, setChargeMode] = useState<"individual" | "batch">("individual");
   const [coefficientDialogOpen, setCoefficientDialogOpen] = useState(false);
   const cobroPorCoeficiente = useFeatureFlag("producto-cobro-por-coeficiente");
+  const vocab = useTenantVocabulary();
   const [scheduledFor, setScheduledFor] = useState("");
   const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
   const [createResult, setCreateResult] = useState<string | null>(null);
@@ -1363,7 +1365,7 @@ function AdminBillingPageContent() {
           </div>
           {cobroPorCoeficiente ? (
             <Button type="button" variant="outline" onClick={() => setCoefficientDialogOpen(true)}>
-              Generar por coeficiente
+              Generar por {vocab.coeficienteCorto}
             </Button>
           ) : null}
           <label className="text-sm text-[var(--slate-700)]">
@@ -2339,7 +2341,7 @@ function AdminBillingPageContent() {
           open={coefficientDialogOpen}
           tenantId={user.tenantId}
           onClose={() => setCoefficientDialogOpen(false)}
-          onCreated={() => setCreateResult("Corrida por coeficiente generada. Revisa las cuotas en la tabla y la campaña en “Campañas de cobro”.")}
+          onCreated={() => setCreateResult(`Corrida por ${vocab.coeficienteCorto} generada. Revisa las cuotas en la tabla y la campaña en “Campañas de cobro”.`)}
         />
       ) : null}
     </section>

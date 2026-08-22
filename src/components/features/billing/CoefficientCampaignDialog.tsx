@@ -11,6 +11,9 @@ import {
   type CoefficientCampaignLine,
 } from "@/lib/firebase/callables";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { AYUDA, capitalizar } from "@/lib/config/vocabulario-pais";
+import { HelpTip } from "@/components/shared/help-tip";
 import { BILLING_CONCEPTS, billingConceptLabel } from "@/features/billing/use-billing-statements";
 
 /**
@@ -35,6 +38,7 @@ export function CoefficientCampaignDialog({
   onCreated: () => void;
 }) {
   const { formatAmount } = useTenantCurrency();
+  const vocab = useTenantVocabulary();
   const [total, setTotal] = useState("");
   const [concept, setConcept] = useState("administracion");
   const [period, setPeriod] = useState(() => new Date().toISOString().slice(0, 7));
@@ -117,14 +121,20 @@ export function CoefficientCampaignDialog({
   return (
     <Modal
       open={open}
-      title="Generar cuotas por coeficiente"
+      title=""
+      header={
+        <h3 className="inline-flex items-center gap-1.5 text-lg font-semibold text-[var(--slate-900)]">
+          Generar cuotas por {vocab.coeficienteCorto}
+          <HelpTip text={AYUDA.corridaPorCoeficiente} />
+        </h3>
+      }
       onClose={() => {
         reset();
         onClose();
       }}
     >
       <p className="text-sm text-[var(--slate-600)]">
-        Reparte un total entre las unidades activas según su coeficiente de copropiedad. Primero
+        Reparte un total entre las unidades activas según su {vocab.coeficiente}. Primero
         calcula la vista previa; nada se genera hasta que confirmes.
       </p>
 
@@ -159,7 +169,7 @@ export function CoefficientCampaignDialog({
         <div className="mt-4">
           <div className="flex items-baseline justify-between">
             <p className="text-sm font-medium text-[var(--slate-900)]">
-              Vista previa: {preview.lines.length} unidades · suma de coeficientes {preview.coefficientSum.toFixed(6)}%
+              Vista previa: {preview.lines.length} unidades · suma: {preview.coefficientSum.toFixed(6)}%
             </p>
             <p className="text-sm font-semibold text-[var(--slate-900)]">Total {formatAmount(preview.total)}</p>
           </div>
@@ -168,7 +178,7 @@ export function CoefficientCampaignDialog({
               <thead className="sticky top-0 bg-[var(--slate-50)] text-left text-xs text-[var(--slate-600)]">
                 <tr>
                   <th className="px-3 py-2">Unidad</th>
-                  <th className="px-3 py-2 text-right">Coeficiente</th>
+                  <th className="px-3 py-2 text-right">{capitalizar(vocab.coeficienteCorto)}</th>
                   <th className="px-3 py-2 text-right">Cuota</th>
                 </tr>
               </thead>

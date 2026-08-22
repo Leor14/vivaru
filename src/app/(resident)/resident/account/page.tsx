@@ -18,12 +18,15 @@ import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { db, storage } from "@/lib/firebase/client";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { capitalizar } from "@/lib/config/vocabulario-pais";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ResidentAccountPage() {
   const { user } = useAuth();
   const { formatAmount } = useTenantCurrency();
+  const vocab = useTenantVocabulary();
   const { items, loading } = useBillingStatements(user?.tenantId, user?.unitId);
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId, user?.unitId);
 
@@ -183,13 +186,13 @@ export default function ResidentAccountPage() {
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2 text-xs text-[var(--slate-600)]">
           {unitOwnership.coefficient != null ? (
             <span>
-              Coeficiente de copropiedad de tu unidad:{" "}
+              {capitalizar(vocab.coeficiente)} de tu unidad:{" "}
               <span className="font-medium text-[var(--slate-900)]">{unitOwnership.coefficient}%</span>
             </span>
           ) : null}
           {unitOwnership.monthlyFeeAmount != null ? (
             <span>
-              Expensa mensual:{" "}
+              {capitalizar(vocab.cuotaMensual)}:{" "}
               <span className="font-medium text-[var(--slate-900)]">{formatAmount(unitOwnership.monthlyFeeAmount)}</span>
             </span>
           ) : null}
