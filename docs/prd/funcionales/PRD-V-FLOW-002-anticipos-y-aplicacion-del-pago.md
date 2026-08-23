@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **NO lista para desarrollo — versión 1.1, 23 de agosto de 2026 (tarde).** Decía «lista» y lo estaba el 21, pero **el producto se movió debajo**: §7.4 describe una exclusión que ya no existe, **R4 no basta** y **D-C nombra uno de los dos defectos que hay**. Las tres correcciones están marcadas abajo como «CORREGIDO 23 ago». Los tres defectos medidos (D-A, D-B, D-C) **siguen vigentes**, verificados contra el código; sus números de línea sí cambiaron. D1 y D2 siguen cerradas |
+| **Estado** | **Lista para desarrollo — versión 1.2, 23 de agosto de 2026 (noche).** La 1.1 marcó tres correcciones y las dejó abiertas; **esta las resuelve**, con la decisión tomada en cada una y la regla que faltaba escrita (R14–R16). Releída contra el código el 23 de agosto: los tres defectos (D-A, D-B, D-C) **siguen vigentes**. **Las referencias de línea se han sustituido por nombres de símbolo**: en dos versiones seguidas los números caducaron en menos de un día, y un número desplazado manda a leer el sitio equivocado con la confianza de estar en el correcto. D1 y D2 siguen cerradas |
 | **Dependencias** | **Secuencia obligatoria: `PRD-V-PLAT-003` va ANTES.** Las dos modifican `aplicarPago`, que está en producción — aquella cambia **qué valor** escribe en la categoría, esta cambia **su firma**. **No pueden estar en vuelo a la vez.** Si esta va primero, añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | **Riesgo** | **Alto.** Modifica `aplicarPago`, que está **en producción y mueve dinero real** |
 | **Reversibilidad** | **Parcial.** El anticipo y el reparto se apagan con bandera; el cambio de firma de `aplicarPago` no (§13) |
@@ -34,10 +34,10 @@ guarda.
 
 | Qué | Dónde | Comportamiento |
 |---|---|---|
-| Aplicar un pago | `aplicarPago`, línea 156 | Recibe **un** `statementId` y **un** `amount` |
-| Aritmética del saldo | `calcularSaldo`, línea 115 | `balance = max(0, cobrado − pagado)` |
+| Aplicar un pago | `aplicarPago` | Recibe **un** `statementId` y **un** `amount` |
+| Aritmética del saldo | `calcularSaldo` | `balance = max(0, cobrado − pagado)` |
 | Idempotencia | `operationKey` | Un reintento no duplica el pago ni el recibo |
-| Recibo | Línea 296 | **Se emite dentro de la misma transacción** (`FIN-001`, cerrada el 20 ago 2026) |
+| Recibo | dentro de `aplicarPago` | **Se emite dentro de la misma transacción** (`FIN-001`, cerrada el 20 ago 2026) |
 | Reversión | `revertirPago`, línea 459 | Asiento negativo + `paymentAmount` restaurado |
 | Espejo en el cliente | `computeBalanceStatus` en `src/features/finanzas/use-payments.ts` | Duplicado a propósito; **manda el del servidor** |
 
@@ -55,15 +55,21 @@ cuatro meses son cuatro operaciones manuales, cada una con su recibo.
 **D-C · El pago no sabe a qué cuenta entró.** El asiento se escribe con `bankAccountId: null`
 fijo. La conciliación tiene que adivinar por importe y fecha.
 
-> **CORREGIDO 23 ago 2026 — hay DOS, no uno.** El que esta PRD nombraba está en
-> `functions/src/payments.ts:324` (decía 267). El segundo está en **`revertirPago`
-> (`payments.ts:665`)** y no aparecía. Arreglar solo el primero deja **el reverso sin cuenta
-> bancaria**, justo en la operación que más importa cuadrar. El reverso debería copiar la del
-> original, igual que ya copia la categoría (R7) y el origen (R13).
+> **RESUELTO en la 1.2 — son DOS, y el reverso copia la del original.** Verificado el 23 de
+> agosto: en todo `functions/src/payments.ts` hay **exactamente dos** `bankAccountId: null`, uno
+> en `aplicarPago` y otro en `revertirPago`. La 1.0 nombraba solo el primero; la 1.1 nombró el
+> segundo con un número de línea que **ya está desplazado otra vez**. Por eso esta versión no da
+> números: se buscan por nombre de función.
 >
-> **Las tres referencias de línea de §2 están desplazadas:** `calcularSaldo` está en **139**
-> (decía 115) y `aplicarPago` en **180** (decía 156). Los tres defectos **siguen vigentes**,
-> verificados leyendo el código el 23 de agosto.
+> **La decisión.** El reverso **copia el `bankAccountId` del asiento que anula**, igual que ya
+> copia `category` y `accountCode` y deriva `reversedSourceType` (R7, R13). No lo vuelve a
+> resolver, por la misma razón que da R7 para la cuenta contable: hay que deshacer **el asiento
+> que se escribió**, no el que se escribiría hoy. Si el reverso cayera en otra cuenta bancaria,
+> la conciliación vería un positivo en una y un negativo en otra, y **las dos estarían mal**.
+>
+> No cuesta una lectura extra: `revertirPago` ya lee el asiento original para copiarle la
+> cuenta contable. Cuando no hay asiento que leer —pagos anteriores a `FIN-001`— se queda en
+> `null`: **no se inventa una cuenta bancaria que nunca se registró.**
 
 ### Baseline
 
@@ -228,23 +234,26 @@ Un documento por cruce: `tenantId`, `advanceId`, `statementId`, `amount`, `date`
 |---|---|---|
 | `AplicarPagoInput` | `statementId` → **`allocations: { statementId, amount }[]`** | **Cambio de firma.** Ver §13 |
 | `AplicarPagoInput` | `+ bankAccountId?: string` | Corrige D-C |
-| Asiento del pago | `bankAccountId: null` → **el recibido** | `functions/src/payments.ts:267` |
-| `LedgerCategory` | `+ "anticipo"` | `src/types/domain.ts:435` |
+| Asiento del pago | `bankAccountId: null` → **el recibido** | En `aplicarPago` |
+| Asiento del reverso | `bankAccountId: null` → **el del asiento que anula** | En `revertirPago`. **Es el segundo de los dos**, y la 1.0 no lo nombraba |
+| `LedgerCategory` | `+ "anticipo"` | `src/types/domain.ts` |
+| `LedgerEntry.sourceType` | `+ "advance"` | Hoy admite cuatro valores. Ver §7.4 |
+| `LedgerEntry.reversedSourceType` | `+ "advance"` | **La 1.1 no lo nombraba.** `revertirPago` copia el origen del asiento anulado sin condición: sin esto, revertir un pago que generó anticipo **no compila** |
+| `PaymentVoucher.sourceType` | **Sin cambios** | Es otro enum, de tres valores. El recibo cubre el pago entero —lo aplicado más el anticipo— y sigue siendo `"billingStatement"`. **Se dice aquí para que nadie lo amplíe «por simetría»** |
 | `PaymentReceipt` | `+ bankAccountId?: string` | El residente indica a qué cuenta pagó |
-| `BillingStatement` | Sin cambios | |
-| `calcularSaldo` | **Sin cambios** | Sigue siendo la verdad del saldo de un cargo |
+| `BillingStatement` | **`+ advanceAppliedAmount?: number`** | **Cambió respecto de la 1.1, que decía «sin cambios».** Lo escribe **solo el servidor**. Ver R4 y §11.3 |
+| `calcularSaldo` / `computeBalanceStatus` | **`pagado = paymentAmount + advanceAppliedAmount`** | **Cambió respecto de la 1.1, que decía «sin cambios».** Es el par de espejos más delicado del módulo: §11.3 |
+| Plan de cuentas (`PLAT-003`) | `+ systemKey` `anticipo` | Sin él, la línea del anticipo queda etiquetada por su categoría mientras el resto del estado habla en códigos — el problema del «1.3» que ya describe `etiquetaDe` |
 
-### 7.4 La integración que hay que hacer bien
+### 7.4 La trampa de la herencia, y cómo se evita
 
-> **CORREGIDO 23 ago 2026 — esta sección describía el producto de antes.** Lo de abajo era
-> cierto hasta el 22 de agosto y **hoy no lo es**. Se conserva el aviso porque la trampa no
-> desapareció: **cambió de forma**, y la nueva es peor.
+> **RESUELTO en la 1.2.** La 1.1 describió bien el problema y dejó sin decidir el nombre y el
+> alcance del cambio. Aquí se cierran los dos.
 
 **La exclusión ya NO mira la categoría: mira el ORIGEN del asiento.** Vive en
-`esRecaudoDeCartera` (`src/features/finanzas/financial-statement.ts:171`) y pregunta por
-`sourceType === "billingStatement"`, por `reversedSourceType` (R13) y, solo como convivencia,
-por `category === "alicuota"`. Las referencias a `use-ledger.ts:220` y a
-`financial-statement.ts:16` **ya no apuntan a nada**.
+`esRecaudoDeCartera`, duplicada a propósito en `src/features/finanzas/financial-statement.ts` y
+en `functions/src/payments.ts`, y pregunta por `sourceType === "billingStatement"`, por
+`reversedSourceType` (R13) y, solo como convivencia, por `category === "alicuota"`.
 
 **La trampa pasó de OMISIÓN a HERENCIA, y eso invierte quién tiene que actuar.**
 
@@ -253,21 +262,38 @@ por `category === "alicuota"`. Las referencias a `use-ledger.ts:220` y a
 | Cómo se caía | Añadiendo `anticipo` a una lista de exclusión | **No haciendo nada** |
 | Cómo se evitaba | No haciendo nada | **Actuando a propósito** |
 
-El asiento del anticipo nace **dentro de `aplicarPago`** (§11.1: «dentro de la misma
-transacción del pago»), y ahí se escribe `sourceType: "billingStatement"`
-(`functions/src/payments.ts:325`). Si lo hereda —que es lo que pasa si nadie lo piensa—
-**queda excluido del libro aunque su `category` diga `anticipo`**, sin que nadie escriba esa
-palabra en ninguna lista.
+El asiento del anticipo nace **dentro de `aplicarPago`** (§11.1: «dentro de la misma transacción
+del pago»), y ahí se escribe `sourceType: "billingStatement"`. Si lo hereda —que es lo que pasa
+si nadie lo piensa— **queda excluido del libro aunque su `category` diga `anticipo`**, sin que
+nadie escriba esa palabra en ninguna lista.
 
 **Y aquí es peor que con la multa:** el anticipo **no está en `cuotaIncome`**, porque
 `repartirRecaudo` suma `paymentAmount` de los cargos y un anticipo por definición no es de
 ningún cargo. Se descuenta de un lado **sin estar sumado en el otro**. Desaparece.
 
-**Consecuencia de diseño que esta PRD no tomó:** el asiento del anticipo necesita su **propio
-`sourceType`**, y `LedgerEntry.sourceType` (`src/types/domain.ts:516`) hoy solo admite
-`"billingStatement" | "expense" | "manual" | "reversal"`. Hay que ampliarlo, y la ampliación
-tiene que llegar **a los dos espejos** — `src/` y `functions/src/payments.ts`, donde vive
-`esRecaudoDeCartera` desde el 23 de agosto.
+#### La decisión: `sourceType: "advance"`
+
+**El nombre.** El enum habla inglés (`billingStatement`, `expense`, `manual`, `reversal`);
+`category` habla español y se queda en `"anticipo"`. La colección ya se llama `advances`.
+
+**Qué se amplía, y qué no.** La 1.1 decía que la ampliación tiene que llegar «a los dos
+espejos». **No es exacto, y la diferencia importa:** el espejo de `functions/` recibe
+`sourceType?: string` —suelto, sin tipar—, así que `"advance"` ya cae fuera de las tres ramas y
+`esRecaudoDeCartera` devuelve `false`, que es justo lo que pide CA7. **El predicado no cambia en
+ninguno de los dos.** Lo que se amplía son dos líneas de tipo, las dos en
+`src/types/domain.ts`: `LedgerEntry.sourceType` y `LedgerEntry.reversedSourceType` (§7.3).
+
+**El peligro real no es olvidar la ampliación** —eso no compila—, **sino que alguien añada
+`category === "anticipo"` a la exclusión por analogía con `alicuota`.** Eso sí compila, pasa las
+suites de hoy, y resucita la trampa entera. Ampliar el tipo es inerte; lo que hace que la
+decisión aguante es el guardián:
+
+- Un caso en **las dos** suites:
+  `esRecaudoDeCartera({ sourceType: "advance", category: "anticipo" })` → `false`.
+- **El guardián de texto que ya existe no bastaría.**
+  `functions/tests/informe-mensual-exclusion.test.ts` solo comprueba que las tres ramas
+  *estén* en el cuerpo de `src/`; no ve una cuarta añadida a uno de los dos espejos. Se amplía
+  para exigir además que ese cuerpo **no contenga** la cadena `"anticipo"`.
 
 ---
 
@@ -300,7 +326,7 @@ unidad, y pierde el vínculo personal — igual que ya hace `anonymizeExpiredVou
 | **R1** | **Lo aplicado a cargos más el anticipo generado es exactamente igual al importe pagado.** Ni un céntimo se pierde ni se inventa |
 | **R2** | Si el pago supera el total de los cargos seleccionados, el sobrante **se convierte en anticipo de esa unidad**, siempre |
 | **R3** | Un anticipo de importe cero **no se crea** |
-| **R4** | **Cruzar un anticipo no crea asiento de libro.** El ingreso se registró al recibirlo. **⚠ CORREGIDO 23 ago: R4 es cierta y NO BASTA.** Cruzar **sube `paymentAmount` del cargo** (§5.2), y `cuotaIncome` es exactamente la suma de esos `paymentAmount` (`repartirRecaudo`, sin filtro de fecha). Así que cruzar un anticipo de 60 **sube el ingreso en 60 al instante**, sin crear ningún asiento: contado al entrar (R5) y otra vez al cruzarlo, vía Cartera. **CA6 pasaría en verde con el estado financiero mal.** Esta PRD vigila el doble conteo solo por el lado del libro, y la otra mitad no pasa por el libro. Es el mismo error de encuadre de la entrega 1b-iii de `PLAT-003`: «escribir la cuenta era necesario y NO era suficiente». **Hace falta una regla que cubra el lado de Cartera** |
+| **R4** | **Cruzar un anticipo no crea asiento de libro Y NO TOCA `paymentAmount`.** Lo primero ya estaba y es cierto: el ingreso se registró al recibirlo (R5). Lo segundo es lo que faltaba, y es la mitad que **no pasa por el libro**: `cuotaIncome` es exactamente la suma de los `paymentAmount` (`repartirRecaudo`, sin filtro de fecha), así que subirlo al cruzar contaría el anticipo dos veces —al entrar y al cruzarlo— **sin crear ningún asiento, con CA6 en verde y el estado financiero mal**. El cruce sube **`advanceAppliedAmount`**, campo nuevo del cargo que **solo escribe el servidor**, y `calcularSaldo` pasa a sumar los dos. Con eso `cuotaIncome` sigue siendo *el dinero que entró por Cartera* y el del anticipo entró por el libro: **ninguno de los dos puede ver al otro**, y el invariante deja de depender de que cinco sitios recuerden restar |
 | **R5** | El asiento de entrada de un anticipo lleva `category: "anticipo"` y **cuenta como ingreso del período** |
 | **R6** | Un anticipo solo se cruza contra cargos de **su misma unidad** |
 | **R7** | El reparto por defecto va del cargo **más antiguo por vencimiento** al más nuevo; el administrador puede cambiarlo, y la suma debe cuadrar con el importe |
@@ -309,6 +335,9 @@ unidad, y pierde el vínculo personal — igual que ya hace `anonymizeExpiredVou
 | **R10** | La idempotencia por `operationKey` se conserva sin cambios, y **cubre también el anticipo generado**: un reintento no crea un segundo anticipo |
 | **R12** | Si `PRD-V-PLAT-003` ya está construida, el anticipo usa **su cuenta del plan**, no un valor de enum. Ver la secuencia declarada en el encabezado |
 | **R11** | Todo pago registra la cuenta bancaria a la que entró, salvo efectivo |
+| **R14** | **El cruce de un anticipo no cambia el ingreso del período.** Es un invariante, no una prohibición: el anticipo entra una sola vez, por el libro (R5); el cruce solo cambia **a qué obligación queda imputado**, y no toca ningún sumando del ingreso —ni el del libro ni el de Cartera—. Es lo que mide CA6′ y lo que R4 hace estructuralmente cierto |
+| **R15** | **Revertir un pago cuyo anticipo sigue `open` anula también el anticipo.** Se revierten **los dos** asientos —el del cargo y el del anticipo— y el anticipo pasa a `cancelled` con un motivo automático que nombra la reversión. Sin esto, revertir un pago de 200 deja vivo un saldo a favor de 60 **de un dinero ya devuelto**. R8 cubría solo el anticipo **ya cruzado**, que es el caso raro; este es el normal |
+| **R16** | **El «% de recaudo» se calcula por `amount − balance`, no por `paymentAmount`.** En cuanto existen anticipos, «cuánto dinero entró» y «cuánto de lo facturado está saldado» dejan de ser el mismo número, y el informe responde hoy a los dos con uno solo. Con R4, una unidad que cubre julio con un anticipo de junio saldría al **0% de recaudo con la cuota saldada**. `recaudado` (ingreso) sigue siendo Σ `paymentAmount`; el porcentaje pasa a medir liquidación. Va en este mismo incremento, **o el informe deja de mentir por un lado y empieza a mentir por el otro** |
 
 **R10 es la que evita el peor fallo posible:** que un reintento de red duplique el saldo a favor
 de un residente.
@@ -335,14 +364,18 @@ verificado. **Dos cambios de contenido:**
 | CA3 | Un pago repartido entre tres cargos los deja con los saldos correctos en **una sola operación** |
 | CA4 | La suma de lo aplicado más el anticipo es **exactamente** el importe pagado |
 | CA5 | Cruzar un anticipo de 60 contra un cargo de 140 lo deja con saldo 80 y el anticipo en cero, en `applied` |
-| CA6 | Cruzar **no** crea ningún asiento nuevo en el libro |
-| CA7 | El asiento de entrada del anticipo tiene `category: "anticipo"` y **aparece en el ingreso del período** |
+| CA6′ | **Cruzar un anticipo de 60 no cambia el ingreso.** `buildFinancialStatement` sobre los **mismos datos** antes y después devuelve **el mismo `totalIncome`**. La CA6 de la 1.1 —«no se crea ningún asiento»— se conserva como sub-aserción, **no como la prueba**: medía el mecanismo y pasaría en verde con el estado financiero mal, y la propia 1.1 lo admite |
+| CA7 | El asiento de entrada del anticipo lleva `category: "anticipo"` **y `sourceType: "advance"` propio**, y **aparece en el ingreso del período**: `esRecaudoDeCartera` no lo excluye |
 | CA8 | Un pago sin cargos pendientes se convierte **íntegro** en anticipo |
 | CA9 | Reintentar con la misma `operationKey` devuelve el mismo recibo y **no crea un segundo anticipo** |
 | CA10 | El asiento del pago guarda el `bankAccountId` recibido, no `null` |
 | CA11 | El residente elige la cuenta bancaria al subir su comprobante, y el pago aprobado la conserva |
 | CA12 | Deshacer un cruce devuelve el anticipo a `open` con su remanente |
 | CA13 | El aviso al residente nombra los cargos cubiertos y el saldo a favor si lo hubo |
+| CA14 | Cruzar un anticipo **no cambia el `paymentAmount`** del cargo: sube `advanceAppliedAmount`, y el cargo queda `paid` con `balance` 0 |
+| CA15 | Revertir un pago cuyo anticipo sigue `open` deja **los dos** asientos revertidos y el anticipo en `cancelled` con motivo (R15) |
+| CA16 | Un cargo cubierto íntegramente con anticipo cuenta **0** en el `recaudado` del mes y **100%** en el «% de recaudo» (R16) |
+| CA17 | `esRecaudoDeCartera({ sourceType: "advance", category: "anticipo" })` es `false` **en los dos espejos**, y el guardián de texto falla si el cuerpo de `src/` menciona `"anticipo"` |
 
 ### Deben fallar
 
@@ -358,6 +391,8 @@ verificado. **Dos cambios de contenido:**
 | CF8 | Operar anticipos en un conjunto `suspended` → **denegado** |
 | CF9 | Operar anticipos en `trial` → **bloqueado por la matriz de prueba** |
 | CF10 | Una consulta de `advances` sin `where("tenantId")` → **denegada entera** |
+| CF11 | El cajón de edición manual de un cargo intenta escribir `advanceAppliedAmount` → **denegado por reglas.** Es el campo que sostiene R4, y `paymentAmount` **sí** se escribe hoy desde el navegador (§11.3) |
+| CF12 | Un cruce que dejaría `paymentAmount + advanceAppliedAmount` por encima de lo cobrado → **rechazado**; se limita al saldo (§5.3) |
 
 ## 11. Arquitectura y dependencias
 
@@ -386,12 +421,33 @@ Bloques nuevos para `advances` y `advanceApplications`:
 
 **No pueden caer en `relaxedTenantCollection`** (`firestore.rules:80`).
 
-### 11.3 El espejo que hay que respetar
+**Y un bloque que NO es de las colecciones nuevas, y sin el cual R4 no se sostiene.** En
+`billingStatements`, el cliente **sigue escribiendo** `paymentAmount`, `balance` y `status`
+desde el cajón de edición (§11.3): eso no se quita en esta PRD. Lo que hay que añadir es que
+**`advanceAppliedAmount` no lo pueda tocar nadie desde el cliente** —ni crearlo, ni cambiarlo—,
+porque es el campo que separa el dinero del anticipo del dinero de Cartera. Una regla que
+prohíbe una colección entera es fácil de escribir; **esta prohíbe un campo dentro de un
+documento que por lo demás sigue siendo editable**, y por eso lleva su propio criterio (CF11).
+
+### 11.3 El espejo que hay que respetar — y que esta PRD SÍ modifica
 
 `calcularSaldo` (servidor) y `computeBalanceStatus` (cliente) están duplicados a propósito
-porque `src/` no puede importar de `functions/`. **Esta PRD no los modifica**, pero sí añade
-lógica de reparto: si esa lógica se duplica, se duplica el riesgo. **Recomendación: el reparto
-vive solo en el servidor; el cliente pide la vista previa a la callable en vez de calcularla.**
+porque `src/` no puede importar de `functions/`. **La 1.1 decía que esta PRD no los modifica;
+con R4 sí los modifica**, y es el cambio más delicado del incremento: los dos pasan a calcular
+`pagado = paymentAmount + advanceAppliedAmount`. Se llevan **el mismo guardián de texto** que ya
+tiene `esRecaudoDeCartera`, porque un espejo que se separa en silencio es exactamente lo que
+dejó R12 sin llegar a `functions/` y el informe mensual contando dos veces.
+
+**Y hay un agujero abierto que R4 cierra por diseño.** `actualizarBillingStatement`
+(`src/features/billing/use-billing-statements.ts`) hace un `updateDoc` **directo desde el
+navegador** sobre `billingStatements`, escribiendo `paymentAmount` y `balance` tal cual se los
+da el cajón de edición —sin pasar siquiera por `computeBalanceStatus`—. Si el cruce viviera en
+`paymentAmount`, un administrador editando el cargo a mano **borraría o duplicaría la aplicación
+de un anticipo sin que ningún `advanceApplication` se enterara**. `advanceAppliedAmount` lo
+escribe solo el servidor, y las reglas deben impedir que el cliente lo toque (CF11).
+
+**Lo demás del reparto sigue igual: vive solo en el servidor**; el cliente pide la vista previa
+a la callable en vez de calcularla.
 
 ### 11.4 Índices, jobs y banderas
 
@@ -406,13 +462,16 @@ vive solo en el servidor; el cliente pide la vista previa a la callable en vez d
 
 | Riesgo | Señal | Mitigación |
 |---|---|---|
-| **Duplicar el ingreso** contando el anticipo al recibirlo y al cruzarlo | Ingresos del período inflados | R4 y CA6 |
-| **Hacer desaparecer el anticipo** del estado financiero al copiar el tratamiento de `alicuota` | El estado financiero no cuadra con el banco | §7.4 lo advierte; CA7 lo prueba |
+| **Duplicar el ingreso** contando el anticipo al recibirlo y al cruzarlo | Ingresos del período inflados | **R4 y CA6′.** La CA6 de la 1.1 no lo cazaba: medía el mecanismo, no el total |
+| **Hacer desaparecer el anticipo** heredando `sourceType: "billingStatement"` de `aplicarPago` | El estado financiero no cuadra con el banco | §7.4; CA7 y CA17 lo prueban |
+| Alguien añade `category === "anticipo"` a la exclusión, por analogía con `alicuota` | **Ninguna**: compila y pasa las suites de hoy | El guardián de texto ampliado (§7.4, CA17) |
+| **Una edición manual del cargo pisa un cruce** | Saldo a favor que reaparece o se evapora, sin rastro en `advanceApplications` | `advanceAppliedAmount` solo lo escribe el servidor; CF11 |
+| Los dos espejos de `calcularSaldo` se separan | Cliente y servidor discrepan sobre si un cargo está saldado | Guardián de texto sobre el par (§11.3) |
 | Un reintento crea un segundo anticipo | Saldo a favor duplicado | R10 y CA9 |
 | Se toca `aplicarPago`, que está en producción | Un pago falla o se aplica mal | Cambio de firma **compatible hacia atrás** (§13); pruebas de la ruta de un solo cargo antes de exponer nada |
 | Anticipos que nadie cruza | Dinero parado y residentes que reclaman | Vista de anticipos abiertos; es la herramienta de G5 |
-| Revertir deja el anticipo inconsistente | Descuadre | R8 lo bloquea; CF2 lo prueba |
-| Coste | — | **Nulo.** Dos colecciones y aritmética |
+| Revertir deja el anticipo inconsistente | Descuadre, o saldo a favor de un dinero devuelto | R8 (ya cruzado) y **R15** (`open`); CF2 y CA15 |
+| Coste | — | **Nulo.** Dos colecciones, un campo y aritmética |
 
 ## 13. Despliegue, rollback y Story Map
 
@@ -425,27 +484,37 @@ cambios** mientras se despliega.
 
 ### Orden
 
-1. **Reglas** — `advances` y `advanceApplications`, sin escritura desde cliente.
-2. **Functions** — `aplicarPago` compatible con las dos formas; callables de cruce; categoría
-   `anticipo`; `bankAccountId` en el asiento.
-3. **Front** — reparto, vista de anticipos, saldo del residente, cuenta en el comprobante. Con
-   ambas banderas apagadas.
+1. **Reglas** — `advances` y `advanceApplications`, sin escritura desde cliente, **y el bloqueo
+   de `advanceAppliedAmount` en `billingStatements`** (CF11), que es lo único que protege R4 del
+   cajón de edición manual.
+2. **Functions** — `aplicarPago` compatible con las dos formas; callables de cruce y de deshacer
+   cruce; `sourceType: "advance"` y categoría `anticipo`; `bankAccountId` en **los dos** asientos
+   (pago y reverso); R15 en `revertirPago`; los dos espejos de `calcularSaldo` a la vez.
+3. **Front** — reparto, vista de anticipos, saldo del residente, cuenta en el comprobante, y el
+   «% de recaudo» de R16. Con ambas banderas apagadas.
+
+**El «% de recaudo» (R16) va con el paso 3 y no después.** Es la mitad que no pasa por el libro
+mirada desde el informe: si el cruce deja de inflar el ingreso pero el porcentaje sigue leyendo
+`paymentAmount`, el consejo pasa de ver un ingreso inflado a ver una morosidad inventada.
 
 ### Rollback
 
 | Parte | Reversible |
 |---|---|
 | Reparto y vista de anticipos | **Sí**, por bandera |
-| Categoría `anticipo` en el libro | **Sí** mientras no se cree ninguno |
+| Categoría `anticipo` y `sourceType: "advance"` en el libro | **Sí** mientras no se cree ningún anticipo |
 | **Firma ampliada de `aplicarPago`** | **No con bandera**, pero **es aditiva**: aceptar dos formas no rompe la vieja |
+| **`advanceAppliedAmount` en `calcularSaldo`** | **No con bandera**, y es el que hay que mirar. Es aditivo e inerte **mientras el campo esté ausente o en cero** —que es todo lo escrito hasta hoy—, pero toca el par de espejos: si vuelve atrás, tiene que volver en los dos |
 | **Anticipos ya creados** | **No se borran.** Se anulan con motivo (R9), que es parte del MVP |
 
 ### Validación
 
 | Dónde | Qué |
 |---|---|
-| **Staging** | Todo: sobrepago, reparto, cruce, reversión, idempotencia con reintento forzado, permisos |
+| **Staging** | Todo: sobrepago, reparto, cruce, reversión con anticipo `open` **y** cruzado, idempotencia con reintento forzado, permisos |
 | **Producción** | Que **la ruta de un solo cargo siga comportándose igual**. Es lo único que producción aporta y es lo que más importa |
+| **Por el navegador, con sesión real** | **Obligatorio antes de dar por cerrada la entrega.** Una suite en verde no dice que el producto funcione: 1553 pruebas lo estaban mientras el informe de comité mentía, y los cinco defectos salieron de abrir la pantalla. Lo que hay que mirar: el saldo a favor del residente, el estado financiero antes y después de un cruce, y el «% de recaudo» |
+| **La prueba del «inerte»** | «No cambia nada» es una **predicción**, no un hecho. Se demuestra corriendo `buildFinancialStatement` con la regla vieja y con la nueva **sobre los mismos asientos** y contando cuántos cambian de lado. Si el número no es el esperado, la inercia era falsa |
 
 ### Story Map
 
@@ -487,12 +556,22 @@ invita a pagar lo nuevo y dejar lo viejo vencido, que es justo lo que R7 evita.
 
 | Puerta | Estado |
 |---|---|
-| **G0 Necesidad** | ✅ Los tres defectos están medidos en el código, con archivo y línea |
+| **G0 Necesidad** | ✅ Los tres defectos están medidos en el código, **por nombre de símbolo y no por número de línea**: en dos versiones seguidas los números caducaron en menos de un día |
 | **G1 Valor** | ✅ Baseline y métrica en §2 |
 | **G2 Datos y permisos** | ✅ Colecciones, roles y prohibiciones definidos; escritura solo por servidor |
-| **G3 Riesgo** | ✅ Cambio de firma aditivo, idempotencia conservada, banderas separadas, anulación en el MVP |
-| **G4 Aceptación** | ✅ 13 que pasan, 10 que deben fallar |
+| **G3 Riesgo** | ✅ Cambio de firma aditivo, idempotencia conservada, banderas separadas, anulación en el MVP. **Lo que no tapa una bandera** —el par de espejos de `calcularSaldo`— está nombrado en §13 con su condición de inercia |
+| **G4 Aceptación** | ✅ **17 que pasan, 12 que deben fallar.** CA6 pasó a medir el total y no el mecanismo |
 | **G5 Operación** | ✅ Lo opera el administrador. **La herramienta es la vista de anticipos abiertos**: sin ella, el dinero se queda parado y nadie se entera |
-| **G6 Escala** | ✅ Dos colecciones por conjunto y aritmética. Sin coste externo |
+| **G6 Escala** | ✅ Dos colecciones por conjunto, un campo y aritmética. Sin coste externo |
 
-**Lista para desarrollo.** Las siete puertas superadas y las dos decisiones cerradas.
+**Lista para desarrollo — v1.2.** Las siete puertas superadas, las dos decisiones cerradas y
+**las tres correcciones de la 1.1 resueltas**, con la regla que faltaba escrita (R14–R16).
+
+**Qué cambió respecto de la 1.1, para quien venga de ella.** El asiento del anticipo tiene
+`sourceType: "advance"` propio, y lo que sostiene la decisión es el guardián, no la ampliación
+del tipo (§7.4) · el cruce **no toca `paymentAmount`** sino `advanceAppliedAmount`, lo que
+obliga a modificar el par de espejos `calcularSaldo` / `computeBalanceStatus` que la 1.1 daba
+por intocado (§11.3) · el reverso **copia el `bankAccountId`** del asiento que anula, que es el
+segundo de los dos (§2) · CA6 pasa a medir el total y no el mecanismo · y entran **R15**
+(revertir con el anticipo todavía `open`) y **R16** (el «% de recaudo»), dos huecos que no
+estaban en ninguna versión anterior porque salieron de leer el código, no la PRD.
