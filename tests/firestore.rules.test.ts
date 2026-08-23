@@ -7,7 +7,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, limit, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 
 /**
  * Fecha futura para las reservas. La regla exige `startAt` treinta minutos por
@@ -1700,6 +1700,74 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.1")));
     await assertSucceeds(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9")));
+  });
+
+  /**
+   * **El hueco que dejó pasar un fallo en staging el 23 de agosto de 2026.**
+   *
+   * Todas las pruebas de arriba escriben con `setDoc`. El formulario NO: crea en
+   * una TRANSACCIÓN que lee primero, porque el id es derivado del código y un
+   * `setDoc` sobre un código existente no falla —sobrescribe—, lo que le
+   * cambiaría el nombre a una cuenta de sistema y podría dejarla sin
+   * `systemKey`.
+   *
+   * Y leer un documento que NO existe es otra cosa que leer uno que sí: en las
+   * reglas, `resource` es `null`, así que `resource.data.tenantId` hace fallar
+   * la evaluación entera y el `get` se deniega. El banco estaba verde mientras
+   * la pantalla respondía «No tienes permiso para realizar esta acción» al
+   * crear la primera cuenta.
+   *
+   * **La lección no es que faltara un caso: es que el banco probaba un camino
+   * que el producto no usa.**
+   */
+  it("un admin PUEDE leer una cuenta que todavía no existe — sin esto la transacción no arranca", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      getDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_9.9")),
+    );
+  });
+
+  it("crear por TRANSACCIÓN —el camino real del formulario— funciona", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    const db = admin.firestore();
+    await assertSucceeds(
+      runTransaction(db, async (tx) => {
+        const ref = doc(db, "chartOfAccounts", "tenant-a_1.7");
+        const actual = await tx.get(ref);
+        if (actual.exists()) throw new Error("ya existe");
+        tx.set(ref, {
+          tenantId: "tenant-a",
+          code: "1.7",
+          name: "Arrendamientos",
+          type: "ingreso",
+          parentCode: "1",
+          status: "active",
+        });
+      }),
+    );
+  });
+
+  /**
+   * El límite de la rama nueva, dicho con precisión porque es una concesión
+   * real: `resource == null` **sí** deja saber que un documento no está, en
+   * cualquier conjunto. Lo que no deja es leer uno que sí está. Esa es la misma
+   * frontera que ya aceptan `financialCounters` y `survey_responses`, y lo que
+   * se revela —la ausencia de un id que ya se conocía— no es dato del vecino.
+   */
+  it("la rama nueva no abre la puerta: una cuenta que EXISTE en otro conjunto sigue vetada", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chartOfAccounts", "tenant-b_1.1"), {
+        tenantId: "tenant-b",
+        code: "1.1",
+        name: "Cuotas del vecino",
+        type: "ingreso",
+        parentCode: "1",
+        systemKey: "alicuota",
+        status: "active",
+      });
+    });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-b_1.1")));
   });
 
   it("un residente lee el plan pero no lo toca (CF7)", async () => {

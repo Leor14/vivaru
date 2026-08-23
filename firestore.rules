@@ -448,7 +448,14 @@ service cloud.firestore {
     // eso exige consultar `ledgerEntries`. Esa parte (R5) vive en la UI y, para
     // el borrado, en que una cuenta con `systemKey` no se borra nunca.
     match /chartOfAccounts/{docId} {
-      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+      // `resource == null` cuando el documento NO existe, que es el caso de la
+      // transaccion que crea una cuenta: lee primero para negarse si el codigo
+      // ya esta. Sin esta rama, `resource.data.tenantId` sobre un documento
+      // inexistente hace fallar la evaluacion y el `get` de la transaccion se
+      // deniega — y el formulario responde «No tienes permiso para realizar
+      // esta accion», que no se parece en nada a lo que pasa. La misma rama
+      // esta en `financialCounters` y en `survey_responses`, por lo mismo.
+      allow read: if signedIn() && (resource == null || sameTenant(resource.data.tenantId));
 
       allow create: if tenantOperable(request.resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
