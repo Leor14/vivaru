@@ -3,8 +3,9 @@
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
 Actualizado el **23 de agosto de 2026, de madrugada (segunda pasada)**: entrega 1b completa y
 validada, y **los PASOS 1 y 2 de la entrega 2 en staging** — el cargo y el egreso llevan su
-cuenta, y **el formulario del plan validado a mano en staging** —donde salió un defecto de
-reglas que ninguna prueba veía—. Producción intacta.
+cuenta, el formulario del plan **validado a mano** —donde salió un defecto de reglas que ninguna
+prueba veía— y **el paso 3 construido**: R9, las etiquetas desde el plan, los ingresos por cuenta
+en pantalla y el aviso de R8. Falta mirar el paso 3. Producción intacta.
 
 ## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
@@ -79,7 +80,7 @@ ANTES de sembrar, porque sembrar la congela:
 |---|---|---|
 | **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
 | **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **VALIDADO A MANO en staging, las 6 comprobaciones.** `06edf29` + el arreglo de reglas `0bbf6cf` |
-| **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | Pendiente |
+| **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | **CONSTRUIDO** — `437a52c` + `3b1a643`, en staging. **Sin mirar** |
 | **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
 
 **Paso 1, qué entró** (`8018a3b`): los tipos ya declaraban `accountCode` desde 1b; **lo que no
@@ -241,6 +242,58 @@ la creó como **ingreso**. Eso separa lo que este documento tenía como un solo 
 | **Egreso** — lo que se le paga a la empresa de seguridad | Cae en `proveedores` (`2.4`), que es lo correcto disponible | ¿Cuenta propia `2.9`? Eso toca `ExpenseCategory` y el conteo de CA1 |
 
 **Las dos hay que cerrarlas antes de tocar producción.** Ninguna bloquea ya staging.
+
+### `PLAT-003` paso 3 — R9 y las dos pantallas
+
+**Lo que entró** (`437a52c` y `3b1a643`), todo en staging con `rollout-2026-08-23-012` en
+`SUCCEEDED`. **No toca functions.**
+
+**R9, y la decisión que la regla no resuelve.** «Agrupa por `accountCode`; si no lo tiene, usa
+`category`», leído al pie de la letra, **parte en dos filas lo que es una sola cuenta**: el
+asiento viejo cae en `mantenimiento` y el nuevo en `2.3`, con el mismo nombre y sumando por
+separado. No se arregla migrando —§4 dice que los históricos no se recalculan—, así que la
+categoría se **normaliza** a su código por `systemKey`. CA8 se sigue cumpliendo y además el
+asiento viejo aparece **donde le toca**.
+
+**Encender esto no mueve un solo texto, y no por suerte:** un conjunto sin plan cae en el mapa
+de respaldo como siempre, y un plan recién sembrado trae **los mismos nombres** —se eligieron
+así a propósito—. Lo único que cambia es el **orden**, que pasa a ser el del plan. Los
+subtotales por cuenta padre **no** entran; son otra cosa.
+
+**Y `CATEGORY_LABELS` deja de mandar**, que es lo que hacía **imposible CA6**: renombrar una
+cuenta ya cambia la etiqueta del estado financiero.
+
+**Los ingresos por cuenta ya se ven.** El informe de comité los calculaba y los **tiraba** al
+armar sus métricas (`use-committee-report.ts`), así que el reparto por concepto de la 1b-iii no
+lo enseñaba nadie: solo salía en el Excel. Ahora van con su tabla y su torta, al lado de los
+egresos —que eran el gemelo que ya lo hacía bien, en la misma pantalla—.
+
+**El bloque entra en `WidgetErrorBoundary`.** CLAUDE.md lo exige para toda sección con charts de
+recharts y la torta de egresos llevaba ahí **sin envolver**: sin eso, un fallo del widget tumba
+TODO `/admin` con «No pudimos cargar el workspace».
+
+**El aviso de R8 ya llega a la pantalla.** El servidor lo devolvía desde la 1b-ii y **ni siquiera
+estaba declarado** en el tipo de la respuesta; y una de las dos vías de cobro —aprobar
+comprobante— devolvía `void`, así que no tenía por dónde salir. Va como **aviso y después del
+éxito**, no como error: el cobro se aplicó y el dinero no se perdió.
+
+**Y hay que decir que hoy es casi inalcanzable**, para que nadie lo lea de más: los siete
+conceptos conocidos resuelven a su cuenta propia, así que solo salta con un concepto que alguien
+añada mañana o meta por importación. Es para lo que R8 existe, no una red por si el mapa está
+mal.
+
+**Lo que cazó `exhaustive-deps` y ninguna prueba veía:** faltaba `planInformes` en las
+dependencias del memo del informe, así que **renombrar una cuenta no refrescaba la pantalla** —
+CA6 verde en la prueba y rota en el producto. Es el mismo patrón que este documento repite:
+lo que se mira no es lo que se prueba.
+
+**PENDIENTE: mirarlo.** En staging, `conjunto-las-playas`:
+
+| Dónde | Qué |
+|---|---|
+| Finanzas › Estado financiero (Excel) | Las líneas salen en orden de plan (1.1, 1.2, 1.3…) y **«Multas multiples»** aparece con ese nombre — es CA6 sobre el renombre que ya hiciste |
+| Informes › Resumen financiero | Tabla y torta de **Ingresos por cuenta**, al lado de los egresos |
+| Los dos asientos de la multa | +500 y −500 netean, así que puede que la línea no aparezca; el reparto de Cartera sí |
 
 **Dos cosas de método de esta pasada:**
 
