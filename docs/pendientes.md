@@ -3,8 +3,8 @@
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
 Actualizado el **23 de agosto de 2026, de madrugada (segunda pasada)**: entrega 1b completa y
 validada, y **los PASOS 1 y 2 de la entrega 2 en staging** — el cargo y el egreso llevan su
-cuenta, y el administrador ya puede mantener su plan. `conjunto-las-playas` ya tiene sus 18
-cuentas y la bandera encendida: **falta mirar la pantalla.** Producción intacta.
+cuenta, y **el formulario del plan validado a mano en staging** —donde salió un defecto de
+reglas que ninguna prueba veía—. Producción intacta.
 
 ## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
@@ -19,7 +19,8 @@ cuentas y la bandera encendida: **falta mirar la pantalla.** Producción intacta
 | Front en `d427698` (paso 1) | Procedencia del build: `build-2026-08-23-003`, `commit=d4276986`, `READY`, rollout `SUCCEEDED` |
 | Las 27 functions | `firebase deploy --only functions --project vivaru-staging-02`, y el `updateTime` de las tocadas leído por la API: todas `ACTIVE` a las 02:38 UTC |
 | Front en `6939308` (1b-iii, anterior) | `build-2026-08-22-029` en `READY`, hash `693930891e46…` |
-| Reglas e índices | `firebase deploy --only firestore:rules,firestore:indexes` a `vivaru-staging-02` (sin cambios en esta pasada: las reglas de `billingStatements`, `expenses` y `ledgerEntries` **no validan el juego de claves**, así que un campo nuevo no las toca) |
+| Reglas | **Redesplegadas** con el arreglo de `chartOfAccounts` (`0bbf6cf`). Verificado leyendo el ruleset VIVO por la API de Firebase Rules, no fiándose del «Deploy complete» |
+| Índices | Sin cambios. Las reglas de `billingStatements`, `expenses` y `ledgerEntries` **no validan el juego de claves**, así que el campo nuevo no las toca |
 
 **`producto-concepto-al-libro` está ENCENDIDA en staging, y SOLO en `conjunto-las-playas`**
 (`featureFlagOverrides/conjunto-las-playas`). El valor global sigue sin documento, así que los
@@ -77,7 +78,7 @@ ANTES de sembrar, porque sembrar la congela:
 | # | Paso | Estado |
 |---|---|---|
 | **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
-| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **CONSTRUIDO** — `06edf29`, en staging, con plan sembrado y bandera encendida en `conjunto-las-playas`. **Falta mirarlo** |
+| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **VALIDADO A MANO en staging**, 5 de 6 comprobaciones. `06edf29` + el arreglo de reglas `0bbf6cf`. Falta la del código duplicado |
 | **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | Pendiente |
 | **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
 
@@ -171,11 +172,53 @@ gcloud es `hogaru-1`, que es producción:
 **Al invocarlos, ruta absoluta.** El repositorio es `~/Vivaru_Rep/vivaru/`, no `~/Vivaru_Rep/`,
 y una ruta relativa falla con `MODULE_NOT_FOUND` — que no se parece en nada a lo que es.
 
-**PENDIENTE: mirarlo.** Lo que ninguna prueba contesta — que el árbol salga ordenado con las
-hijas indentadas; que renombrar «Multas» cambie el nombre y **no** el código; que crear la
-`1.9` diga que colgará de «Ingresos»; que la `2.9` **como ingreso** se rechace diciendo por
-qué; que crear otra vez la `1.3` se rechace **sin tocar «Multas»**; y que desactivar «Ingresos»
-avise de que la `1.1` cuelga de ella.
+### Validado a mano en staging — cinco de seis, y un defecto que solo salió mirando
+
+David lo miró el 23 de agosto. **Cinco comprobaciones en verde y una todavía sin correr:**
+
+| Qué | Resultado |
+|---|---|
+| El árbol | 18 cuentas ordenadas, hijas indentadas, marca «estándar» en las 16 de sistema |
+| Renombrar «Multas» → «Multas multiples» | Nombre cambiado, **código `1.3` intacto** y su caja deshabilitada (R3 + R4) |
+| Desactivar la `1.3` | Queda `Inactiva` y sigue en la lista |
+| Crear la `1.9` como ingreso | Anuncia «Colgará de 1 — Ingresos» y la crea |
+| Crear la `2.9` **como ingreso** | Rechazada: «La cuenta 2 es de egresos, así que la 2.9 no puede ser de ingresos» |
+| Desactivar «Ingresos» | «Primero desactiva las cuentas 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, que cuelgan de esta» — y la `1.3` **no** aparece, porque ya estaba inactiva (CF6) |
+| **Crear otra vez la `1.3`** | **SIN CORRER.** Es la que más importa: es el defecto que casi se cuela |
+
+**El defecto que salió, y por qué vale más que el arreglo** (`0bbf6cf`): crear la `1.9` respondía
+**«No tienes permiso para realizar esta acción»**.
+
+No estaba en ninguna regla de escritura. El formulario crea en **transacción, y la transacción
+lee primero**; sobre un documento que **no existe**, `resource` es `null`, así que
+`resource.data.tenantId` hacía fallar la evaluación entera y el `get` se denegaba. El mensaje
+que llega a la pantalla no se parece en nada a lo que pasa.
+
+**El gemelo que lo hace bien estaba en el mismo fichero, dos veces:** `financialCounters`
+(«para que la transacción pueda inicializar el contador») y `survey_responses`, cuyo comentario
+dice literalmente *transaction.get on missing doc*.
+
+**Y el banco de reglas estaba VERDE mientras la pantalla estaba rota.** Las seis pruebas de
+`chartOfAccounts` escriben con `setDoc`; el producto escribe con una transacción. **No faltaba
+un caso: el banco probaba un camino que el producto no usa.** Tres pruebas nuevas, y el
+diagnóstico probado por mutación — con la regla vieja fallan exactamente las dos nuevas y las
+seis viejas siguen verdes.
+
+**Estado de `conjunto-las-playas` tras la prueba**, para que no se lea como un descuadre: **19
+cuentas**, la `1.3` se llama «Multas multiples» y está inactiva, y existe una `1.9` «Cuota de
+vigilancia» creada a mano. Es residuo de validación, no datos rotos.
+
+### La decisión de la vigilancia son DOS, no una
+
+Salió del nombre que David le puso a la cuenta de prueba: la llamó **«Cuota de vigilancia»** y
+la creó como **ingreso**. Eso separa lo que este documento tenía como un solo hueco:
+
+| Lado | Hoy | Qué falta decidir |
+|---|---|---|
+| **Ingreso** — la cuota que se le cobra al residente por vigilancia | No existe en la semilla, ni como concepto de cargo | ¿Cuenta propia, o es una `extraordinaria`/`otro`? Si lleva cuenta, ¿lleva también `BillingConcept`? |
+| **Egreso** — lo que se le paga a la empresa de seguridad | Cae en `proveedores` (`2.4`), que es lo correcto disponible | ¿Cuenta propia `2.9`? Eso toca `ExpenseCategory` y el conteo de CA1 |
+
+**Las dos hay que cerrarlas antes de tocar producción.** Ninguna bloquea ya staging.
 
 **Dos cosas de método de esta pasada:**
 
