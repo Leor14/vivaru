@@ -7,13 +7,33 @@ import { applyPaymentCallable } from "@/lib/firebase/callables";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BillingStatement, PaymentVoucher } from "@/types/domain";
 
-/** Calcula el saldo y estado de una cuota tras aplicar un pago acumulado. */
+/**
+ * Calcula el saldo y estado de una cuota tras aplicar un pago acumulado.
+ *
+ * **Espejo de `calcularSaldo` en `functions/src/payments.ts`**, duplicado a
+ * propósito porque `src/` no puede importar de `functions/`. **Si cambias uno,
+ * cambia el otro** — y el que manda es el del servidor, porque es el que
+ * escribe. Hay un guardián de texto que falla si los dos se separan.
+ *
+ * **Aviso para quien venga a usarla: hoy NO la llama nadie en producción.**
+ * Medido el 23 de agosto de 2026 — solo la referencian su propia prueba y este
+ * fichero. El saldo que se pinta sale del documento, que lo escribió el
+ * servidor. Se mantiene al día igualmente por dos razones: `FLOW-002` la nombra
+ * como el espejo del cliente, y **una función muerta con la aritmética
+ * equivocada es peor que ninguna** — quien la cablee heredaría el defecto sin
+ * saberlo.
+ *
+ * `advanceApplied` es obligatorio a propósito (R4): olvidarlo no compila. Es lo
+ * cubierto con anticipos cruzados, que **no se suma a `paymentAmount`** pero sí
+ * cuenta para saber si la cuota está saldada.
+ */
 export function computeBalanceStatus(
   totalCharged: number,
   paidAmount: number,
+  advanceApplied: number,
   dueDate?: string,
 ): { balance: number; status: BillingStatement["status"] } {
-  const rawBalance = totalCharged - paidAmount;
+  const rawBalance = totalCharged - paidAmount - advanceApplied;
   const balance = rawBalance > 0 ? rawBalance : 0;
   const today = new Date().toISOString().slice(0, 10);
   const status: BillingStatement["status"] =

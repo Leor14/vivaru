@@ -67,6 +67,8 @@ type CuotaDoc = {
    * pasara. Es el defecto grande de `PRD-V-PLAT-003` §2.
    */
   concept?: string;
+  /** `FLOW-002` R4. Lo cubierto con anticipos cruzados, aparte de `paymentAmount`. */
+  advanceAppliedAmount?: number;
 };
 
 export type AplicarPagoInput = {
@@ -152,10 +154,11 @@ type AjustesTenant = { fiscalProfile?: PerfilFiscal | null };
 export function calcularSaldo(
   totalCobrado: number,
   pagado: number,
+  anticipoAplicado: number,
   vencimiento: string | undefined,
   hoy: string,
 ): { balance: number; status: EstadoCuota } {
-  const bruto = totalCobrado - pagado;
+  const bruto = totalCobrado - pagado - anticipoAplicado;
   const balance = bruto > 0 ? bruto : 0;
   const status: EstadoCuota =
     bruto <= 0 ? "paid" : vencimiento && vencimiento < hoy ? "overdue" : "pending";
@@ -365,7 +368,11 @@ export async function aplicarPago(
     const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
     const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
     const pagadoDespues = pagadoAntes + monto;
-    const { balance, status } = calcularSaldo(cobrado, pagadoDespues, cuota.dueDate, hoy);
+    // R4. Lo cubierto con anticipos NO se suma a `paymentAmount` —ver el tipo—,
+    // pero sí cuenta para saber si la cuota está saldada. Ausente en todo lo
+    // escrito antes de `FLOW-002`.
+    const anticipoAplicado = typeof cuota.advanceAppliedAmount === "number" ? cuota.advanceAppliedAmount : 0;
+    const { balance, status } = calcularSaldo(cobrado, pagadoDespues, anticipoAplicado, cuota.dueDate, hoy);
 
     // ── La cuenta del concepto (R6) ──────────────────────────────────────────
     //
@@ -539,11 +546,12 @@ export function saldoTrasRevertir(
   totalCobrado: number,
   pagadoAntes: number,
   montoRevertido: number,
+  anticipoAplicado: number,
   vencimiento: string | undefined,
   hoy: string,
 ): { paymentAmount: number; balance: number; status: EstadoCuota } {
   const pagadoDespues = Math.max(pagadoAntes - montoRevertido, 0);
-  const { balance, status } = calcularSaldo(totalCobrado, pagadoDespues, vencimiento, hoy);
+  const { balance, status } = calcularSaldo(totalCobrado, pagadoDespues, anticipoAplicado, vencimiento, hoy);
   return { paymentAmount: pagadoDespues, balance, status };
 }
 
@@ -704,7 +712,18 @@ export async function revertirPago(
       paymentAmount: pagadoDespues,
       balance,
       status,
-    } = saldoTrasRevertir(cobrado, pagadoAntes, monto, cuota.dueDate, hoy);
+    } = saldoTrasRevertir(
+      cobrado,
+      pagadoAntes,
+      monto,
+      // Revertir un pago NO devuelve el anticipo cruzado: son dos operaciones
+      // distintas y se deshacen por separado (R8 bloquea el caso conflictivo).
+      // Si no se pasara, revertir un pago sobre un cargo cubierto en parte con
+      // anticipo dejaría el saldo inflado por ese importe.
+      typeof cuota.advanceAppliedAmount === "number" ? cuota.advanceAppliedAmount : 0,
+      cuota.dueDate,
+      hoy,
+    );
 
     // ── Escrituras ───────────────────────────────────────────────────────────
     const reversoRef = firestore.collection("ledgerEntries").doc();
