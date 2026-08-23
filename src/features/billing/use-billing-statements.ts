@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { doc, increment, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { codigoDeConcepto } from "@/lib/finanzas/conceptos-de-cargo";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { BillingCampaign, BillingConcept, BillingStatement } from "@/types/domain";
 
@@ -97,6 +98,11 @@ export async function createBillingStatement(input: {
     unitLabel: input.unitLabel,
     period: input.period,
     concept: input.concept ?? "administracion",
+    // §7.2 — la cuenta se resuelve desde el concepto AL GENERAR el cargo, no al
+    // cobrarlo. El cobro ya escribe la suya en el asiento (1b-ii); esta es la
+    // del documento del cargo, y es la que permitirá agrupar cartera por cuenta
+    // sin tener que volver a resolver el concepto en cada pantalla que la lea.
+    accountCode: codigoDeConcepto(input.concept),
     campaignId: input.campaignId ?? null,
     amount: input.amount,
     paymentAmount: input.paymentAmount,

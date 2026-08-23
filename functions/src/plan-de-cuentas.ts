@@ -191,6 +191,38 @@ export function cuentaPorCodigo(code: string): CuentaSembrada | undefined {
   return SEMILLA_PLAN_DE_CUENTAS.find((c) => c.code === code);
 }
 
+/** La cuenta a la que cae un egreso de categoría desconocida — R8, lado egreso. */
+export const CUENTA_OTROS_EGRESOS = "2.8";
+
+/**
+ * §7.2 — la cuenta de un EGRESO, resuelta desde su categoría.
+ *
+ * **No es la simétrica de `cuentaParaConcepto` y no se pueden fusionar.**
+ * `administracion` vive en los dos vocabularios y significa cosas opuestas: como
+ * concepto de cargo es la cuota —un INGRESO, `1.1`— y como categoría de egreso es
+ * el gasto de administración —`2.5`—. Una función única que resolviera «por
+ * nombre» mandaría uno de los dos al lado contrario del libro. Son dos mapas a
+ * propósito, igual que R11 obligó a que el primero fuese explícito.
+ *
+ * Aquí sí se puede resolver por `systemKey`, y no es pereza: los ocho valores de
+ * `ExpenseCategory` son exactamente los `systemKey` de las ocho cuentas de egreso
+ * de la semilla, y **ningún `systemKey` se repite entre ingresos y egresos** —la
+ * cuenta de cuotas lleva `alicuota`, no `administracion`—. El filtro por `type`
+ * existe para que eso deje de ser una coincidencia: si mañana la semilla repitiera
+ * una clave en los dos lados, un egreso caería en una cuenta de ingreso, y esto lo
+ * impide en vez de dejarlo pasar callando.
+ */
+export function cuentaParaCategoriaDeEgreso(
+  categoria: string | undefined | null,
+): ResolucionDeCuenta {
+  if (!categoria) return { code: CUENTA_OTROS_EGRESOS, porDefecto: true };
+  const cuenta = SEMILLA_PLAN_DE_CUENTAS.find(
+    (c) => c.systemKey === categoria && c.type === "egreso",
+  );
+  if (!cuenta) return { code: CUENTA_OTROS_EGRESOS, porDefecto: true };
+  return { code: cuenta.code, porDefecto: false };
+}
+
 /**
  * La categoría del libro que corresponde al concepto de un cargo — es decir, el
  * `systemKey` de su cuenta.

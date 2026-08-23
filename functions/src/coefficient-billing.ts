@@ -1,6 +1,7 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { cuentaParaConcepto } from "./plan-de-cuentas";
 import { terminoCoeficiente } from "./vocabulario-pais";
 
 /**
@@ -272,6 +273,8 @@ export async function generarCorridaPorCoeficiente(
       unitLabel: line.unitLabel,
       period: input.period,
       concept: input.concept ?? "administracion",
+      // §7.2, igual que en la campaña programada y en el alta manual.
+      accountCode: cuentaParaConcepto(input.concept).code,
       campaignId,
       amount: line.amount,
       paymentAmount: 0,

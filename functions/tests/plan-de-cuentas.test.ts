@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   CONCEPTOS_DE_CARGO,
+  CUENTA_OTROS_EGRESOS,
   CUENTA_OTROS_INGRESOS,
   SEMILLA_PLAN_DE_CUENTAS,
   codigoPadreDe,
   categoriaParaConcepto,
   cuentaParaConcepto,
+  cuentaParaCategoriaDeEgreso,
   cuentaPorCodigo,
   cuentaPorSystemKey,
   descripcionDeCobro,
@@ -239,5 +241,70 @@ describe("descripcionDeCobro — el texto no puede contradecir a la cuenta", () 
   it("un concepto desconocido se nombra «cargo», nunca vacío", () => {
     expect(descripcionDeCobro("mudanza")).toBe("cargo");
     expect(descripcionDeCobro("")).toBe("alícuota");
+  });
+});
+
+describe("cuentaParaCategoriaDeEgreso — el otro lado del libro", () => {
+  /**
+   * Este resolvedor NO es la simétrica del de ingresos, y fusionarlos sería el
+   * defecto de R11 mirando al revés: `administracion` vale `1.1` como concepto
+   * de cargo —la cuota, un ingreso— y `2.5` como categoría de egreso. Una sola
+   * función «por nombre» mandaría uno de los dos al lado contrario del libro.
+   */
+  it("`administracion` como EGRESO es 2.5, no la cuenta de cuotas", () => {
+    expect(cuentaParaCategoriaDeEgreso("administracion")).toEqual({
+      code: "2.5",
+      porDefecto: false,
+    });
+    // Y el mismo nombre, por el otro camino, sigue yendo al ingreso.
+    expect(cuentaParaConcepto("administracion").code).toBe("1.1");
+  });
+
+  it("las ocho categorías de egreso resuelven a una cuenta propia, ninguna por defecto", () => {
+    const categorias = [
+      "nomina",
+      "servicios_publicos",
+      "mantenimiento",
+      "proveedores",
+      "administracion",
+      "seguros",
+      "impuestos",
+      "otros",
+    ];
+    const codigos = new Set<string>();
+    for (const categoria of categorias) {
+      const r = cuentaParaCategoriaDeEgreso(categoria);
+      expect(r.porDefecto, `«${categoria}» cayó en la cuenta por defecto`).toBe(false);
+      expect(cuentaPorCodigo(r.code)?.type, `«${categoria}» no apunta a una cuenta de egreso`).toBe(
+        "egreso",
+      );
+      codigos.add(r.code);
+    }
+    // Ocho categorías, ocho cuentas distintas: si dos compartieran, un informe
+    // sumaría dos rubros en una sola línea sin decirlo.
+    expect(codigos.size).toBe(8);
+  });
+
+  it("una categoría desconocida cae en otros EGRESOS y lo dice", () => {
+    // `seguridad` no es una categoría válida y sin embargo estuvo escrita en la
+    // semilla del trial. El resolvedor no la inventa: la manda a 2.8 y avisa.
+    expect(cuentaParaCategoriaDeEgreso("seguridad")).toEqual({
+      code: CUENTA_OTROS_EGRESOS,
+      porDefecto: true,
+    });
+    expect(cuentaParaCategoriaDeEgreso(undefined)).toEqual({
+      code: CUENTA_OTROS_EGRESOS,
+      porDefecto: true,
+    });
+  });
+
+  it("nunca devuelve una cuenta de ingreso, ni siquiera para una clave de ingreso", () => {
+    // `alicuota` es un `systemKey` real, pero de una cuenta de INGRESO. El
+    // filtro por tipo es lo que impide que un egreso acabe ahí.
+    expect(cuentaParaCategoriaDeEgreso("alicuota")).toEqual({
+      code: CUENTA_OTROS_EGRESOS,
+      porDefecto: true,
+    });
+    expect(CUENTA_OTROS_EGRESOS).not.toBe(CUENTA_OTROS_INGRESOS);
   });
 });

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { codigoDeCategoriaDeEgreso } from "@/lib/finanzas/conceptos-de-cargo";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense } from "@/types/domain";
 
@@ -72,6 +73,11 @@ export function useExpenses(tenantId?: string) {
 function normalizeExpensePayload(values: ExpenseFormValues) {
   return {
     category: values.category,
+    // §7.2. Va en el payload normalizado —y no solo en el alta— porque el
+    // egreso PUEDE cambiar de categoría al editarlo: resolverlo únicamente al
+    // crear dejaría la cuenta apuntando a la categoría vieja, que es la forma
+    // silenciosa de que un informe agrupe mal. Aquí las dos se mueven juntas.
+    accountCode: codigoDeCategoriaDeEgreso(values.category),
     description: values.description.trim(),
     vendorName: values.vendorName?.trim() || null,
     vendorTaxId: values.vendorTaxId?.trim() || null,

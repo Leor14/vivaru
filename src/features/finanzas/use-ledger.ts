@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
+import { codigoDeCategoriaDeEgreso } from "@/lib/finanzas/conceptos-de-cargo";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import type { Expense, LedgerEntry } from "@/types/domain";
 
@@ -161,7 +162,21 @@ export function resolveExpenseLedgerAction(input: {
   return hasEntry ? "delete" : "none";
 }
 
-/** Crea el asiento de egreso de un gasto pagado y devuelve su id. */
+/**
+ * Crea el asiento de egreso de un gasto pagado y devuelve su id.
+ *
+ * **Escribe la cuenta junto a la categoría, y por la misma razón que
+ * `aplicarPago`: o van las dos coherentes, o ninguna.** R9 dice que los informes
+ * agrupan por `accountCode` y solo caen en `category` si falta; un asiento de
+ * egreso sin código quedaría para siempre en la rama de respaldo. Hoy eso no se
+ * nota —las ocho categorías de egreso van 1:1 con sus ocho cuentas—, pero deja de
+ * no notarse en cuanto el administrador cree una cuenta de egreso propia.
+ *
+ * No va detrás de `producto-concepto-al-libro`: esa bandera gobierna en qué
+ * cuenta cae el RECAUDO, que es donde estaba el doble conteo. Un egreso no lo
+ * tiene —no lo cuenta Cartera— y su cuenta no cambia lo que hoy muestra ninguna
+ * pantalla, porque nadie lee `accountCode` todavía.
+ */
 export async function createExpenseLedgerEntry(
   tenantId: string,
   userId: string,
@@ -173,6 +188,7 @@ export async function createExpenseLedgerEntry(
     amount: expense.amount,
     concept: expense.description,
     category: expense.category,
+    accountCode: codigoDeCategoriaDeEgreso(expense.category),
     bankAccountId: expense.bankAccountId ?? null,
     sourceType: "expense",
     sourceId: expense.id,
@@ -194,6 +210,8 @@ export async function updateExpenseLedgerEntry(
     amount: expense.amount,
     concept: expense.description,
     category: expense.category,
+    // Se reescribe al editar porque la categoría del egreso puede cambiar.
+    accountCode: codigoDeCategoriaDeEgreso(expense.category),
     bankAccountId: expense.bankAccountId ?? null,
     updatedBy: userId,
     updatedAt: serverTimestamp(),

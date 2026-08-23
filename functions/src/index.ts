@@ -36,6 +36,7 @@ import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import { cuentaParaConcepto } from "./plan-de-cuentas";
 import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
@@ -3268,6 +3269,11 @@ export const publishScheduledCharges = onSchedule({ schedule: "0 8 * * *", secre
         unitLabel: t.unitLabel,
         period,
         concept: s.concept ?? "administracion",
+        // §7.2 — la cuenta del cargo, resuelta al generarlo. Este es uno de los
+        // CUATRO sitios que crean cargos; los otros son el alta manual del front,
+        // el reparto por coeficiente y la semilla del trial. Que fueran cuatro y
+        // no uno es lo que hacía falta contar antes de escribir nada.
+        accountCode: cuentaParaConcepto(s.concept).code,
         campaignId,
         amount,
         paymentAmount: 0,

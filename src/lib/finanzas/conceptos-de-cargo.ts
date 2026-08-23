@@ -1,4 +1,9 @@
-import type { BillingConcept, BillingStatement, LedgerCategory } from "@/types/domain";
+import type {
+  BillingConcept,
+  BillingStatement,
+  ExpenseCategory,
+  LedgerCategory,
+} from "@/types/domain";
 
 /**
  * El reparto del recaudo por concepto (`PRD-V-PLAT-003`, entrega 1b-iii).
@@ -46,6 +51,70 @@ export const CATEGORIA_POR_CONCEPTO: Record<BillingConcept, LedgerCategory> = {
   // `otro` (cargo) no es `otros` (egreso).
   otro: "otros_ingresos",
 };
+
+/** Las dos cuentas de destino de R8, una por lado del libro. */
+export const CUENTA_OTROS_INGRESOS = "1.8";
+export const CUENTA_OTROS_EGRESOS = "2.8";
+
+/**
+ * El mismo mapa de arriba, pero a **código de cuenta** (§7.2, R9).
+ *
+ * Convive con `CATEGORIA_POR_CONCEPTO` en vez de sustituirlo porque los dos se
+ * escriben a la vez y tienen que ser coherentes: el cargo lleva `accountCode`, el
+ * asiento que nace de cobrarlo lleva código **y** categoría, y R9 dice que los
+ * informes leen el código y solo caen en la categoría si falta. Separar los dos
+ * mapas en dos ficheros sería la forma segura de que uno se quedara atrás.
+ *
+ * Espejo de `CUENTA_POR_CONCEPTO` de `functions/src/plan-de-cuentas.ts`, vigilado
+ * por `tests/plan-de-cuentas-espejo.test.ts`.
+ */
+export const CODIGO_POR_CONCEPTO: Record<BillingConcept, string> = {
+  // Como CARGO es la cuota de administración, un INGRESO. La cuenta de egreso
+  // «Administración» es la 2.5, y mandar aquí el recaudo entero de un conjunto
+  // es exactamente lo que R11 existe para impedir.
+  administracion: "1.1",
+  extraordinaria: "1.2",
+  multa: "1.3",
+  interes_mora: "1.4",
+  parqueadero: "1.5",
+  reparacion: "1.6",
+  // `otro` (cargo) no es `otros` (egreso, 2.8).
+  otro: CUENTA_OTROS_INGRESOS,
+};
+
+/**
+ * La cuenta de un cargo. **Un cargo sin concepto es cuota de administración**, que
+ * es el valor por defecto del propio campo: tratarlo como desconocido movería de
+ * cuenta a la mayoría de los cargos que existen hoy.
+ */
+export function codigoDeConcepto(concepto: string | undefined | null): string {
+  if (!concepto) return CODIGO_POR_CONCEPTO.administracion;
+  return CODIGO_POR_CONCEPTO[concepto as BillingConcept] ?? CUENTA_OTROS_INGRESOS;
+}
+
+/**
+ * La cuenta de un egreso, desde su categoría. Espejo de
+ * `cuentaParaCategoriaDeEgreso`.
+ *
+ * **`administracion` vale `2.5` aquí y `1.1` en el mapa de arriba, y las dos son
+ * correctas.** Es la misma palabra en dos vocabularios distintos; por eso son dos
+ * mapas y no uno con una rama.
+ */
+export const CODIGO_POR_CATEGORIA_DE_EGRESO: Record<ExpenseCategory, string> = {
+  nomina: "2.1",
+  servicios_publicos: "2.2",
+  mantenimiento: "2.3",
+  proveedores: "2.4",
+  administracion: "2.5",
+  seguros: "2.6",
+  impuestos: "2.7",
+  otros: CUENTA_OTROS_EGRESOS,
+};
+
+export function codigoDeCategoriaDeEgreso(categoria: string | undefined | null): string {
+  if (!categoria) return CUENTA_OTROS_EGRESOS;
+  return CODIGO_POR_CATEGORIA_DE_EGRESO[categoria as ExpenseCategory] ?? CUENTA_OTROS_EGRESOS;
+}
 
 /** A qué línea del estado financiero va lo recaudado por un cargo. */
 export function categoriaDeConcepto(concepto: string | undefined | null): LedgerCategory {
