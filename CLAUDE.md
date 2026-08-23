@@ -165,7 +165,27 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 - **Plan de auth (go-live):** `Hogaru/Producto/seguridad y accesos/Vivaru_Plan_Remediacion_Auth_GoLive.md`.
 - **Módulo financiero/SRI:** `Hogaru/Producto/modulo  financiero - contable/` (Modelo fundacional, F1, F2 con las 6 preguntas del spike) + `Hogaru/Vivaru_Planning_Modulo_Financiero.md`.
 
-## Estado actual (jun 2026) — tres frentes
+## Estado actual — lo primero, y lo que más cambia
+
+**PRODUCCIÓN AL DÍA (23 ago 2026): `master` = `f16927d`.** Ese día subió el lote entero de
+propiedad horizontal —**67 commits**, olas A y B— en el primer movimiento de `master` desde el 20
+de agosto. Entran `PLAT-002` (auditoría), `FIX-001` e1, `PLAT-001` MVP, `FEAT-003` MVP y
+**`PLAT-003` completa hasta la entrega 2**.
+
+**Estar en producción NO significa que se vea.** Las cinco banderas `producto-*` no tienen
+documento en `featureFlags`, así que resuelven al default del catálogo: apagadas. Lo único que un
+usuario nota son los decimales en MXN/USD, el vocabulario por país, dos opciones nuevas de
+vigilancia en dos selectores, y que **Las Playas pasa de 129.000 a 127.500** — un doble conteo que
+dejó de ocurrir.
+
+**Lo siguiente del plan es `FLOW-002` (anticipos)**, que estaba bloqueada porque ella y
+`PLAT-003` modifican la misma función —`aplicarPago`— y no pueden estar en vuelo a la vez.
+`PLAT-003` aterrizó, así que ya se puede.
+
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.18) y
+`docs/plan-despliegue-ola-ab.md`.
+
+## Estado por frentes (base de junio, con lo que cambió anotado dentro)
 
 **A) Auth + correos (A0–A6) — implementado.** Onboarding por enlace (la cédula dejó de ser credencial), recuperación self-service, cambio de contraseña + política de complejidad, correos de onboarding por **Resend** (`functions/src/email.ts`, desde `noreply@notificaciones.grupovivaru.com`, secret `RESEND_API_KEY`), y página propia `/restablecer` (`src/app/(auth)/restablecer/page.tsx`). **PENDIENTE:** guardar la **URL de acción** en Firebase Console (Authentication → Templates → Personalizar URL de acción = `https://www.grupovivaru.com/restablecer`); dio error por permisos → reintentar con la cuenta **Owner** (`luisEOteroR@gmail.com`). Hasta entonces el enlace abre la página de Firebase en inglés (funciona, no branded). Archivos: `functions/src/index.ts`, `functions/src/password-policy.ts`, `src/features/auth/auth-context.tsx`, `src/lib/firebase/callables.ts`, `middleware.ts`, `firestore.rules`. Utilidad: `functions/scripts/diagnose-user-access.mjs`.
 
@@ -179,7 +199,7 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 **El recibo lo emite el SERVIDOR** desde el 20 de agosto, dentro de la transacción del pago (`functions/src/payments.ts` + `functions/src/comprobante.ts`). Antes lo construía el navegador **después** de aplicar el pago, así que un fallo dejaba **un pago sin recibo**; y revertir no anulaba el recibo, dejaba una tarea manual que nadie perseguía. Las dos cosas estaban bloqueadas por «eso es meterse en lo fiscal», que dejó de ser cierto. Con ello se fue el contador de secuenciales —el recibo lleva un código no correlativo derivado de su id— y la regla de `paymentVouchers` pasó a `create, update: if false`.
 
-**Verificar siempre `git status` al inicio:** parte del último lote (logo + fixes residentes + A6 + wiki) puede estar pendiente de commit/push/deploy.
+**Verificar siempre `git status` al inicio**, y **releer `origin/master` además de `origin/develop`**: desde el 23 de agosto los dos se mueven. Un push sin cambios responde «success».
 
 ## Pruebas de reglas de Firestore (emulador)
 

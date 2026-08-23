@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.17 |
-| **Fecha** | 23 de agosto de 2026, madrugada |
-| **Estado** | **`PLAT-003` entrega 1b COMPLETA y VALIDADA A MANO en staging**, en tres trozos. El defecto grande de la PRD está cerrado: una multa cobrada ya no se contabiliza como cuota de administración, el estado financiero la enseña en su propia línea, y el reverso no resta dos veces. **Comprobado cobrando y revirtiendo dinero de verdad**: 127.500 → 128.000 → 127.500, con el asiento releído en Firestore. La bandera `producto-concepto-al-libro` queda **encendida solo en `conjunto-las-playas` de staging**. **Producción intacta:** `master` en `d17478d` |
-| **Verificado contra** | **Ejecución y MEDICIÓN contra los dos ambientes, no lectura.** `origin/develop` releído con `git rev-parse` tras cada push. **1035 pruebas de app** y los dos typecheck limpios, con eslint limpio en los ficheros tocados. Las tres pruebas nuevas de la exclusión **se comprobaron en ROJO** con la regla vieja antes de darlas por buenas. Y antes de tocar nada se leyeron `hogaru-1` y `vivaru-staging-02` con dos scripts de solo lectura para saber cuánto movía el cambio: **movía un conjunto de siete, en −1.500**, y lo movía **para corregir un doble conteo que ya existía** |
+| **Versión** | 0.9.18 |
+| **Fecha** | 23 de agosto de 2026 |
+| **Estado** | **LAS OLAS A Y B ESTÁN EN PRODUCCIÓN.** `master` pasó de `d17478d` a `f16927d` en un solo movimiento de **67 commits**, el primero desde el 20 de agosto. Entran `PLAT-002` (auditoría), `FIX-001` e1, `PLAT-001` MVP, `FEAT-003` MVP y **`PLAT-003` completa hasta la entrega 2**. **Las cinco banderas de producto siguen apagadas**, así que ningún usuario ve capacidad nueva. Con esto **`PLAT-003` deja de estar en vuelo y `FLOW-002` queda desbloqueada** — era el acoplamiento que impedía seguir |
+| **Verificado contra** | **Lectura de los dos ambientes, no del «Deploy complete».** El ruleset **vivo** por la API de Firebase Rules; **54 índices en `READY`**, esperados antes del front; **70 functions `ACTIVE`** con su `updateTime`; y el rollout de App Hosting en `SUCCEEDED`, recorriendo `nextPageToken` —la lista está paginada y sin ordenar, y leer la primera página da como «más reciente» algo de ayer—. Puerta antes de subir: **1097 pruebas de app, 451 de functions, 183 de reglas con emulador** y los dos typecheck en 0 |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -980,6 +980,32 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.18 — 23 de agosto de 2026
+
+- **Producción se movió.** `master` de `d17478d` a `f16927d`: **67 commits**, las olas A y B
+  enteras. Orden: reglas e índices → functions → front, y **las reglas pudieron ir primero**
+  porque su diff contra producción es **puramente aditivo** —dos bloques nuevos, ninguna regla
+  existente restringida—. La lección de `FIN-001` (reglas al final cuando restringen) no aplicaba.
+- **`PLAT-003` entrega 2 completa**: `accountCode` en cargos y egresos, el formulario del plan
+  —validado a mano, 6 de 6—, **R9** con las etiquetas saliendo del plan, los ingresos por cuenta
+  en el informe de comité, y el aviso de R8.
+- **Dos decisiones cerradas.** **D3**: la vigilancia son **dos** cuentas, no una —`1.9` la cuota
+  que se cobra y `2.9` lo que se paga—, y se vio porque David nombró su cuenta de prueba «Cuota
+  de vigilancia» como ingreso. **D4**: **rango reservado** —la semilla vive en `N.1`–`N.49` y el
+  administrador crea de `N.50`—, que cierra por construcción la colisión de significado.
+- **Cinco defectos, y ninguno salió de una suite en verde.** El `permission-denied` al crear una
+  cuenta (el `read` no admitía documento inexistente, y el gemelo correcto estaba **en el mismo
+  fichero, dos veces**); la dependencia que faltaba en el memo del informe, que dejaba CA6 verde
+  en la prueba y rota en la pantalla; las categorías inventadas de la semilla del trial; el falso
+  positivo del sembrador; y **R9 partiendo en dos filas lo que es una cuenta sin plan sembrado**,
+  que es la condición de producción.
+- **El banco de reglas estaba verde con la pantalla rota**, y esa es la lección de la jornada:
+  sus seis pruebas escribían con `setDoc` y el producto escribe con una **transacción**. No
+  faltaba un caso — **el banco probaba un camino que el producto no usa**.
+- **Y una de honestidad:** se dio `PLAT-003` por inerte en producción y **no lo era del todo**.
+  De los 89 asientos, uno cambia de lado: Las Playas pasa de 129.000 a **127.500**. Es el doble
+  conteo dejando de ocurrir. **Estaba escrito en la wiki desde el 22** y se redescubrió midiendo.
 
 ### 0.9.17 — 23 de agosto de 2026, madrugada
 

@@ -3,7 +3,7 @@ tags: [decision, estado, modulos, backlog]
 tipo: decision
 fuentes: ["BACKLOG.md", "consolidacion-landing-2026", "FIN-001", "lote-habitanto"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-22
+fecha_actualizacion: 2026-08-23
 ---
 
 # Estado de Módulos
@@ -93,23 +93,38 @@ Estado del sitio público (`grupovivaru.com`). Ver [[landing-marketing]] para de
 | Borrar a un residente le quita el acceso | ✅ en producción (19 ago) | Antes seguía dentro con su sesión viva |
 | Integración con Albert CRM | ✅ tenant dado de alta (22 ago) | Ver [[integracion-albert]] |
 
-## Construido y SIN desplegar a producción — el lote de propiedad horizontal
+## El lote de propiedad horizontal — EN PRODUCCIÓN desde el 23 de agosto de 2026
 
-**Esta tabla es la que más fácil se lee mal.** Todo lo de abajo **existe en el código y está en
-staging**; en `hogaru-1` **no hay nada de esto**. Casi todo nace además detrás de una
-[[banderas-funcionalidad|bandera apagada]], así que ni siquiera en staging lo ve un usuario.
+**Esta sección decía «construido y SIN desplegar» hasta el 23 de agosto.** Dejó de ser cierto esa
+madrugada: `master` pasó de `d17478d` a `f16927d` en un solo movimiento de **67 commits**, el
+primero desde el 20 de agosto.
+
+**Casi todo sigue detrás de una [[banderas-funcionalidad|bandera apagada]]**, así que estar en
+producción **no significa que un usuario lo vea**. Las cinco banderas de producto no tienen
+documento en `featureFlags`, de modo que resuelven al default del catálogo.
 
 | Pieza | Bandera | Notas |
 |---|---|---|
-| Decimales por moneda | sin bandera | MXN y USD muestran sus centavos; COP sigue sin ellos |
+| Decimales por moneda | **sin bandera — se ve** | MXN y USD muestran sus centavos; COP sigue sin ellos. De los nueve conjuntos, **tres tienen MXN y solo uno está activo** |
+| Vocabulario por país | **sin bandera — se ve** | El término lo decide el país del conjunto **y la audiencia**. Solo cambia en los cuatro conjuntos que tienen `country` |
 | `PLAT-002` — la autoridad del admin es su membresía | **sin bandera** | **La única del lote que no se revierte apagando nada.** Abre el multi-conjunto |
 | `FIX-001` entrega 1 — reglas de reserva en servidor | `producto-reservas-servidor` | La compuerta de morosos existía y **solo se comprobaba en el cliente**. Ver [[reservaciones]] |
 | `PLAT-001` — coeficiente y cobro por reparto | `producto-cobro-por-coeficiente` | Ver [[cartera-campanas]] |
 | `FEAT-003` — registro de proveedores | `producto-registro-proveedores` | Datos bancarios que el residente no ve nunca |
-| Vocabulario por país | sin bandera | El término lo decide el país del conjunto **y la audiencia** |
-| `PLAT-003` entrega 1a — plan de cuentas | `producto-plan-de-cuentas` · `producto-concepto-al-libro` | Todavía no toca el comando de pago. Ver [[integridad-financiera]] §5 |
-| `PLAT-003` entrega 1b-i — la exclusión mira el origen | **sin bandera** | **Lo único del lote que cambia una cifra hoy:** Las Playas pasa de 129.000 a 127.500, que es lo que recaudó. Corrige un doble conteo que **ya existía** en datos sembrados. Ver [[integridad-financiera]] §5 |
+| `PLAT-003` entregas 1a y 1b | `producto-plan-de-cuentas` · `producto-concepto-al-libro` | El concepto del cargo llega al libro y el recaudo se reparte. Ver [[integridad-financiera]] §5 |
+| `PLAT-003` entrega 2 | las mismas | `accountCode` en cargos y egresos, el formulario del plan, **R9** —los informes agrupan por cuenta y las etiquetas salen del plan— y el aviso de R8 |
+| `PLAT-003` 1b-i — la exclusión mira el origen | **sin bandera — se ve** | **Lo único que cambia una cifra:** Las Playas pasa de 129.000 a 127.500, que es lo que recaudó. Corrige un doble conteo que **ya existía**. Confirmado en producción el 23 de agosto |
 | Validación de `crmRef` | sin bandera | Ver [[integracion-albert]] |
+
+**Una nota de método que esta misma tabla ganó.** La fila del 1b-i **ya decía** que Las Playas
+pasaría de 129.000 a 127.500. Al desplegar, quien lo hizo dio ese cambio por «inerte» y lo
+redescubrió midiendo, como si fuera una sorpresa. **La respuesta estaba escrita aquí desde el
+22.** Es el argumento entero de tener wiki: no sirve de nada si no se lee antes de afirmar.
+
+**Cómo se comprobó que el resto es inerte**, porque «inerte» es una predicción y no un hecho: se
+aplicaron **las dos reglas de exclusión, la vieja y la nueva, sobre los 89 asientos de
+producción**, y se contó cuántos cambian de lado. Cambió **uno**. Comparar el estado financiero
+antes y después no habría probado nada — el «antes» se calcula con el código nuevo.
 
 ## Programa de IA
 
