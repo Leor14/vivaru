@@ -68,6 +68,8 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
     // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
     "producto-anticipos": false,
+    // Apagada = un pago sigue aplicándose a un solo cargo, como hasta hoy.
+    "producto-pago-multiple": false,
     // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
     // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
     "operacion-app-check-monitor": true,

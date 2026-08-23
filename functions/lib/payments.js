@@ -126,7 +126,6 @@ function assertPuedeCobrar(role, tokenTenant, tenantId) {
  */
 async function aplicarPago(input, uid, role, tokenTenant) {
     const tenantId = texto(input.tenantId, "el conjunto");
-    const statementId = texto(input.statementId, "la cuota");
     const operationKey = texto(input.operationKey, "la clave de operación");
     const fecha = texto(input.date, "la fecha");
     assertPuedeCobrar(role, tokenTenant, tenantId);
@@ -134,6 +133,40 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     if (!Number.isFinite(monto) || monto <= 0) {
         throw new https_1.HttpsError("invalid-argument", "El monto del cobro debe ser mayor a cero.");
     }
+    // ── El reparto, normalizado a una lista ────────────────────────────────────
+    //
+    // La forma vieja se convierte en un reparto de una línea. Es lo que evita dos
+    // caminos paralelos para la misma operación: la ruta de un solo cargo —la que
+    // está en producción— pasa exactamente por el mismo código que la nueva, así
+    // que no puede divergir en silencio.
+    const asignaciones = Array.isArray(input.allocations) && input.allocations.length > 0
+        ? input.allocations.map((a) => ({
+            statementId: texto(a?.statementId, "el cargo de una de las líneas"),
+            amount: typeof a?.amount === "number" ? a.amount : NaN,
+        }))
+        : [{ statementId: texto(input.statementId, "la cuota"), amount: monto }];
+    if (asignaciones.some((a) => !Number.isFinite(a.amount) || a.amount <= 0)) {
+        throw new https_1.HttpsError("invalid-argument", "Cada línea del reparto debe ser mayor a cero.");
+    }
+    // Un cargo repetido sumaría dos veces sobre el mismo documento dentro de la
+    // misma transacción, y la segunda escritura pisaría a la primera: el dinero
+    // se perdería sin que nada fallase.
+    if (new Set(asignaciones.map((a) => a.statementId)).size !== asignaciones.length) {
+        throw new https_1.HttpsError("invalid-argument", "Un mismo cargo no puede aparecer dos veces en el reparto.");
+    }
+    // Tope defensivo: una transacción de Firestore tiene un límite de escrituras,
+    // y aquí cada línea escribe dos documentos. Mejor un error claro que el error
+    // opaco del motor a mitad de una operación de dinero.
+    if (asignaciones.length > 40) {
+        throw new https_1.HttpsError("invalid-argument", "Son demasiados cargos para un solo pago.");
+    }
+    // **R7/CF5: la suma del reparto no puede pasarse del importe pagado.** Si es
+    // menor, la diferencia es sobrante y se convierte en anticipo (R2).
+    const sumaAsignada = asignaciones.reduce((s, a) => s + a.amount, 0);
+    if (sumaAsignada > monto) {
+        throw new https_1.HttpsError("invalid-argument", "El reparto suma más que el importe pagado.");
+    }
+    const statementId = asignaciones[0].statementId;
     if (input.source !== "manual" && input.source !== "receipt") {
         throw new https_1.HttpsError("invalid-argument", "Origen de pago inválido.");
     }
@@ -142,7 +175,7 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     }
     const firestore = db();
     const opRef = firestore.collection("paymentOperations").doc(operationKey);
-    const cuotaRef = firestore.collection("billingStatements").doc(statementId);
+    const cuotaRefs = asignaciones.map((a) => firestore.collection("billingStatements").doc(a.statementId));
     const reciboRef = input.receiptId
         ? firestore.collection("paymentReceipts").doc(input.receiptId)
         : null;
@@ -158,6 +191,12 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     // nace ningún anticipo. Se lee aquí arriba, fuera de la transacción, por lo
     // mismo que la otra: una transacción se reintenta, y releerla no aportaría nada.
     const anticipos = await (0, feature_flags_1.isFeatureEnabled)("producto-anticipos", tenantId);
+    // El reparto va por su propia bandera (§11.4). Separadas a propósito: el
+    // reparto puede salir sin los anticipos, pero **no al revés** — sin anticipo,
+    // el sobrante de un reparto volvería a evaporarse.
+    if (asignaciones.length > 1) {
+        await (0, feature_flags_1.assertFeatureEnabled)("producto-pago-multiple", tenantId);
+    }
     return firestore.runTransaction(async (tx) => {
         // ── Lecturas, todas antes de escribir ────────────────────────────────────
         const opSnap = await tx.get(opRef);
@@ -179,15 +218,32 @@ async function aplicarPago(input, uid, role, tokenTenant) {
                 ...(prev.advanceId ? { advanceId: prev.advanceId, advanceAmount: prev.advanceAmount } : {}),
             };
         }
-        const cuotaSnap = await tx.get(cuotaRef);
-        if (!cuotaSnap.exists) {
-            throw new https_1.HttpsError("not-found", "El cobro vinculado ya no existe.");
+        // Todas las cuotas del reparto, en orden. Se leen ANTES de escribir nada:
+        // una transacción de Firestore no admite leer después de escribir, y con
+        // varias líneas la tentación de leer cada una dentro de su vuelta del bucle
+        // es exactamente lo que rompería la transacción.
+        const cuotas = [];
+        for (const ref of cuotaRefs) {
+            const snap = await tx.get(ref);
+            if (!snap.exists) {
+                throw new https_1.HttpsError("not-found", "El cobro vinculado ya no existe.");
+            }
+            const doc = snap.data();
+            // El conjunto de la cuota manda sobre el que diga el llamante: si no
+            // coinciden, alguien está intentando cobrar en un conjunto ajeno.
+            if (doc.tenantId && doc.tenantId !== tenantId) {
+                throw new https_1.HttpsError("permission-denied", "Esa cuota pertenece a otro conjunto.");
+            }
+            cuotas.push(doc);
         }
-        const cuota = cuotaSnap.data();
-        // El conjunto de la cuota manda sobre el que diga el llamante: si no
-        // coinciden, alguien está intentando cobrar en un conjunto ajeno.
-        if (cuota.tenantId && cuota.tenantId !== tenantId) {
-            throw new https_1.HttpsError("permission-denied", "Esa cuota pertenece a otro conjunto.");
+        const cuota = cuotas[0];
+        // **Todas las líneas, de la misma unidad.** Un pago es de alguien que paga
+        // lo de SU unidad, y el sobrante se convierte en anticipo **de esa unidad**
+        // (R2). Repartir entre unidades distintas dejaría un anticipo sin dueño
+        // claro, y el saldo a favor de un residente podría nacer de un pago que
+        // cubrió cargos de un vecino.
+        if (cuotas.some((c) => (c.unitId ?? "") !== (cuota.unitId ?? ""))) {
+            throw new https_1.HttpsError("invalid-argument", "Un pago no puede repartirse entre cargos de unidades distintas.");
         }
         let reciboYaAprobado = false;
         if (reciboRef) {
@@ -245,105 +301,135 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             }
             cuentaBancariaId = bankAccountIdCrudo;
         }
-        // ── Aritmética, en el servidor ───────────────────────────────────────────
-        const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
-        const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
-        // R4. Lo cubierto con anticipos NO se suma a `paymentAmount` —ver el tipo—,
-        // pero sí cuenta para saber si la cuota está saldada. Ausente en todo lo
-        // escrito antes de `FLOW-002`.
-        const anticipoAplicado = typeof cuota.advanceAppliedAmount === "number" ? cuota.advanceAppliedAmount : 0;
-        // ── D-A: el sobrepago deja de evaporarse ─────────────────────────────────
+        // ── Aritmética y escrituras, una vuelta por línea del reparto ────────────
         //
-        // Hasta hoy esto era `pagadoDespues = pagadoAntes + monto` a secas, y
-        // `calcularSaldo` topaba el saldo en cero: pagar 200 sobre una cuota de 140
-        // dejaba la cuota en `paid` con `paymentAmount: 200`, y **los 60 sobrantes
-        // se contabilizaban integros como ingreso de cuotas**. No quedaba saldo a
-        // favor en ninguna parte. El dinero entro y el producto lo olvido.
+        // **D-A: el sobrepago deja de evaporarse.** Hasta hoy esto era
+        // `pagadoDespues = pagadoAntes + monto` a secas, y `calcularSaldo` topaba el
+        // saldo en cero: pagar 200 sobre una cuota de 140 dejaba la cuota en `paid`
+        // con `paymentAmount: 200`, y **los 60 sobrantes se contabilizaban íntegros
+        // como ingreso de cuotas**. No quedaba saldo a favor en ninguna parte. El
+        // dinero entró y el producto lo olvidó.
         //
-        // Ahora al cargo va solo lo que debia y el resto se guarda. Con la bandera
-        // apagada, `deuda` no se mira y el comportamiento es identico al de hoy.
-        const deuda = Math.max(cobrado - pagadoAntes - anticipoAplicado, 0);
-        const aplicadoAlCargo = anticipos ? Math.min(monto, deuda) : monto;
-        const sobrante = monto - aplicadoAlCargo;
-        const pagadoDespues = pagadoAntes + aplicadoAlCargo;
-        const { balance, status } = calcularSaldo(cobrado, pagadoDespues, anticipoAplicado, cuota.dueDate, hoy);
-        // **R1, comprobada y no supuesta:** lo aplicado mas el anticipo es
-        // EXACTAMENTE lo pagado. Si esto salta es un fallo de programacion, no de
-        // datos, y se prefiere abortar la transaccion entera a escribir un reparto
-        // que no cuadra con lo que el residente pago.
-        if (aplicadoAlCargo + sobrante !== monto || aplicadoAlCargo < 0 || sobrante < 0) {
+        // Ahora a cada cargo va solo lo que debía, y lo que sobre —de una línea o de
+        // todas— se guarda como anticipo. Con `producto-anticipos` apagada, `deuda`
+        // no se mira y el comportamiento es idéntico al de hoy.
+        //
+        // **Un asiento POR LÍNEA, y no uno por pago.** Cada cargo lleva su propia
+        // cuenta (R6 de `PLAT-003`): un pago que cubre una cuota y una multa tiene
+        // que dejar el ingreso en las dos cuentas, no elegir una. Un solo asiento
+        // para todo obligaría a inventarse una cuenta común, que es justo el defecto
+        // que `PLAT-003` corrigió.
+        const entradas = [];
+        let totalAplicado = 0;
+        let cayoEnOtrosIngresos = false;
+        let pagadoDespues = 0;
+        let balance = 0;
+        let status = "pending";
+        // El concepto de la primera línea, que es el del recibo cuando el pago va a
+        // un solo cargo — el noventa por ciento de las veces.
+        let conceptoDelRecibo = "";
+        for (let i = 0; i < asignaciones.length; i += 1) {
+            const linea = asignaciones[i];
+            const doc = cuotas[i];
+            const cobrado = typeof doc.amount === "number" ? doc.amount : 0;
+            const pagadoAntes = typeof doc.paymentAmount === "number" ? doc.paymentAmount : 0;
+            // R4. Lo cubierto con anticipos NO se suma a `paymentAmount` —ver el
+            // tipo—, pero sí cuenta para saber si la cuota está saldada.
+            const anticipoAplicado = typeof doc.advanceAppliedAmount === "number" ? doc.advanceAppliedAmount : 0;
+            const deuda = Math.max(cobrado - pagadoAntes - anticipoAplicado, 0);
+            const aplicadoAlCargo = anticipos ? Math.min(linea.amount, deuda) : linea.amount;
+            const pagadoDeLaLinea = pagadoAntes + aplicadoAlCargo;
+            const saldo = calcularSaldo(cobrado, pagadoDeLaLinea, anticipoAplicado, doc.dueDate, hoy);
+            totalAplicado += aplicadoAlCargo;
+            // ── La cuenta del concepto (R6) ────────────────────────────────────────
+            //
+            // Hasta el 22 de agosto de 2026 aquí había un `category: "alicuota"` fijo,
+            // y el `concept` del cargo —que lleva existiendo desde siempre en el mismo
+            // documento que se acaba de leer— no se miraba. Una multa, una cuota
+            // extraordinaria o un parqueadero se contabilizaban todos como cuota de
+            // administración, así que **el estado financiero de cualquier conjunto que
+            // cobrara algo distinto de la cuota estaba mal**.
+            //
+            // Se escriben las TRES cosas coherentes o ninguna: el código de cuenta, la
+            // categoría equivalente —que se sigue escribiendo, §7.2— y la descripción,
+            // que también estaba cableada a «alícuota».
+            const resolucion = (0, plan_de_cuentas_1.cuentaParaConcepto)(doc.concept);
+            // R8: un concepto sin cuenta equivalente cae en `otros_ingresos` y **se
+            // avisa**. Nunca se descarta. Con varias líneas basta que UNA caiga por
+            // defecto para que el aviso viaje: quien cobra tiene que enterarse.
+            if (conceptoAlLibro && resolucion.porDefecto)
+                cayoEnOtrosIngresos = true;
+            const ledgerRef = firestore.collection("ledgerEntries").doc();
+            const queSeCobra = conceptoAlLibro ? (0, plan_de_cuentas_1.descripcionDeCobro)(doc.concept) : "alícuota";
+            const concepto = `Pago de ${queSeCobra} ${doc.period ?? ""} — ${doc.unitLabel ?? ""}`.trim();
+            // Un asiento de importe cero no se escribe: con `producto-anticipos`
+            // encendida, una línea contra un cargo ya saldado aplica 0 y su dinero se
+            // va al anticipo. Una fila de cero en el libro es ruido que nadie sabe
+            // interpretar después.
+            if (aplicadoAlCargo > 0) {
+                tx.set(ledgerRef, {
+                    tenantId,
+                    type: "ingreso",
+                    date: fecha,
+                    // Lo APLICADO al cargo, no lo pagado. El sobrante tiene su propio
+                    // asiento. Este importe no alimenta el ingreso —el asiento se excluye
+                    // por origen, ver `esRecaudoDeCartera`— pero sí es la fila que el
+                    // administrador ve en el libro y la que el reverso refleja. Dejarlo en
+                    // `monto` diría 200 donde Cartera contó 140, y al revertir se
+                    // restarían 200 de un `paymentAmount` que solo subió 140.
+                    amount: aplicadoAlCargo,
+                    concept: concepto,
+                    category: conceptoAlLibro ? (0, plan_de_cuentas_1.categoriaParaConcepto)(doc.concept) : "alicuota",
+                    // Con la bandera apagada NO se escribe `accountCode`, y no es un
+                    // detalle: R9 dice que los informes agrupan por el código y solo caen
+                    // en la categoría si falta.
+                    ...(conceptoAlLibro ? { accountCode: resolucion.code } : {}),
+                    // D-C. `null` cuando no viene: es efectivo, o un cobro registrado sin
+                    // decir por dónde entró. Lo que ya no ocurre es que sea `null` SIEMPRE.
+                    bankAccountId: cuentaBancariaId,
+                    sourceType: "billingStatement",
+                    // El asiento guarda SU clave de operación. Sin esto la reversión no es
+                    // direccionable: la marca de idempotencia sabe cuáles son sus asientos,
+                    // pero el asiento no sabría cuál es su marca.
+                    operationKey,
+                    sourceId: linea.statementId,
+                    reconciled: false,
+                    // Deja ver de qué ruta vino sin tener que cruzar colecciones.
+                    paymentSource: input.source,
+                    ...(input.receiptId ? { receiptId: input.receiptId } : {}),
+                    createdBy: uid,
+                    updatedBy: uid,
+                    createdAt: firestore_1.FieldValue.serverTimestamp(),
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                });
+                entradas.push({ statementId: linea.statementId, ledgerEntryId: ledgerRef.id, amount: aplicadoAlCargo });
+                tx.update(cuotaRefs[i], {
+                    paymentAmount: pagadoDeLaLinea,
+                    balance: saldo.balance,
+                    status: saldo.status,
+                    lastPaymentAt: fecha,
+                    ...(input.receiptId ? { lastReceiptId: input.receiptId } : {}),
+                    updatedBy: uid,
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                });
+            }
+            // El resultado del callable sigue hablando de UN cargo —el primero— para
+            // no romper a quien ya lo consume. El detalle completo va en `allocations`.
+            if (i === 0) {
+                pagadoDespues = pagadoDeLaLinea;
+                balance = saldo.balance;
+                status = saldo.status;
+                conceptoDelRecibo = concepto;
+            }
+        }
+        const sobrante = monto - totalAplicado;
+        // **R1, comprobada y no supuesta:** lo aplicado más el anticipo es
+        // EXACTAMENTE lo pagado. Si esto salta es un fallo de programación, no de
+        // datos, y se prefiere abortar la transacción entera a escribir un reparto
+        // que no cuadra con lo que el residente pagó.
+        if (totalAplicado + sobrante !== monto || totalAplicado < 0 || sobrante < 0) {
             throw new https_1.HttpsError("internal", "El reparto del pago no cuadra con el importe recibido.");
         }
-        // ── La cuenta del concepto (R6) ──────────────────────────────────────────
-        //
-        // Hasta el 22 de agosto de 2026 aquí había un `category: "alicuota"` fijo, y
-        // el `concept` del cargo —que lleva existiendo desde siempre en el mismo
-        // documento que se acaba de leer— no se miraba. Una multa, una cuota
-        // extraordinaria o un parqueadero se contabilizaban todos como cuota de
-        // administración, así que **el estado financiero de cualquier conjunto que
-        // cobrara algo distinto de la cuota estaba mal**.
-        //
-        // Se escriben las TRES cosas coherentes o ninguna: el código de cuenta, la
-        // categoría equivalente —que se sigue escribiendo, §7.2— y la descripción,
-        // que también estaba cableada a «alícuota». Dejar la descripción vieja con
-        // la cuenta nueva sería un asiento que se contradice a sí mismo.
-        const resolucion = (0, plan_de_cuentas_1.cuentaParaConcepto)(cuota.concept);
-        // R8: un concepto sin cuenta equivalente cae en `otros_ingresos` y **se
-        // avisa**. Nunca se descarta. El aviso viaja en la respuesta del callable, y
-        // por eso `porDefecto` no se traga aquí en silencio.
-        const cayoEnOtrosIngresos = conceptoAlLibro && resolucion.porDefecto;
-        // ── Escrituras ───────────────────────────────────────────────────────────
-        const ledgerRef = firestore.collection("ledgerEntries").doc();
-        const queSeCobra = conceptoAlLibro ? (0, plan_de_cuentas_1.descripcionDeCobro)(cuota.concept) : "alícuota";
-        const concepto = `Pago de ${queSeCobra} ${cuota.period ?? ""} — ${cuota.unitLabel ?? ""}`.trim();
-        tx.set(ledgerRef, {
-            tenantId,
-            type: "ingreso",
-            date: fecha,
-            // Lo APLICADO al cargo, no lo pagado. El sobrante tiene su propio asiento.
-            //
-            // Este importe no alimenta el ingreso —el asiento se excluye por origen,
-            // ver `esRecaudoDeCartera`— pero sí es la fila que el administrador ve en
-            // el libro y la que el reverso refleja. Dejarlo en `monto` diria 200
-            // donde Cartera contó 140, y al revertir se restarian 200 de un
-            // `paymentAmount` que solo subio 140.
-            amount: aplicadoAlCargo,
-            concept: concepto,
-            category: conceptoAlLibro ? (0, plan_de_cuentas_1.categoriaParaConcepto)(cuota.concept) : "alicuota",
-            // Con la bandera apagada NO se escribe `accountCode`, y no es un detalle:
-            // R9 dice que los informes agrupan por el código y solo caen en la
-            // categoría si falta. Escribirlo ya cambiaría lo que se muestra, que es
-            // justo lo que la bandera existe para gobernar.
-            ...(conceptoAlLibro ? { accountCode: resolucion.code } : {}),
-            // D-C. `null` cuando no viene: es efectivo, o un cobro registrado sin
-            // decir por dónde entró. Lo que ya no ocurre es que sea `null` SIEMPRE.
-            bankAccountId: cuentaBancariaId,
-            sourceType: "billingStatement",
-            // El asiento guarda SU clave de operación. Sin esto la reversión no es
-            // direccionable: la marca de idempotencia sabe cuál es su asiento, pero
-            // el asiento no sabría cuál es su marca, y la del cobro manual es un UUID
-            // que muere con el formulario. Es el único puente entre la fila que el
-            // administrador ve y el pago que quiere deshacer.
-            operationKey,
-            sourceId: statementId,
-            reconciled: false,
-            // Deja ver de qué ruta vino sin tener que cruzar colecciones.
-            paymentSource: input.source,
-            ...(input.receiptId ? { receiptId: input.receiptId } : {}),
-            createdBy: uid,
-            updatedBy: uid,
-            createdAt: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        });
-        tx.update(cuotaRef, {
-            paymentAmount: pagadoDespues,
-            balance,
-            status,
-            lastPaymentAt: fecha,
-            ...(input.receiptId ? { lastReceiptId: input.receiptId } : {}),
-            updatedBy: uid,
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        });
         // ── El anticipo (R2, R3, R5) ─────────────────────────────────────────────
         //
         // Nace en la MISMA transacción del pago a propósito (§11.1): si se creara
@@ -429,7 +515,13 @@ async function aplicarPago(input, uid, role, tokenTenant) {
                 voucherId: voucherRef.id,
                 issueDate: fecha,
                 amount: monto,
-                concept: concepto,
+                // **Un recibo por PAGO, no por línea.** El residente hizo una
+                // transferencia; darle tres papeles por un movimiento sería contarle su
+                // contabilidad interna. Cuando cubre varios cargos, el concepto lo dice
+                // y el detalle va en el aviso (§9).
+                concept: entradas.length > 1
+                    ? `Pago de ${entradas.length} cargos — ${cuota.unitLabel ?? ""}`.trim()
+                    : conceptoDelRecibo,
                 payer: {
                     name: input.payerName ?? null,
                     taxId: input.payerTaxId ?? null,
@@ -443,7 +535,9 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             tx.set(voucherRef, {
                 ...recibo,
                 tenantId,
-                ledgerEntryId: ledgerRef.id,
+                // El primero. Con varias líneas el recibo no cuelga de un asiento
+                // concreto; el puente completo es `operationKey`, que los ata todos.
+                ...(entradas[0] ? { ledgerEntryId: entradas[0].ledgerEntryId } : {}),
                 operationKey,
                 createdBy: uid,
                 updatedBy: uid,
@@ -472,10 +566,14 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             // Lo que de verdad fue al cargo. `amount` es lo que pagó el residente, y
             // los dos dejan de coincidir en cuanto hay sobrante: sin este campo, la
             // reversión restaría del `paymentAmount` un importe que nunca subió ahí.
-            appliedToStatement: aplicadoAlCargo,
+            appliedToStatement: totalAplicado,
+            // **El reparto entero, que es lo que la reversión necesita para deshacerlo.**
+            // Sin esto el reverso solo sabría de un cargo y un asiento, y un pago
+            // repartido entre tres cuotas se desharía a un tercio.
+            allocations: entradas,
             source: input.source,
             ...(input.receiptId ? { receiptId: input.receiptId } : {}),
-            ledgerEntryId: ledgerRef.id,
+            ...(entradas[0] ? { ledgerEntryId: entradas[0].ledgerEntryId } : {}),
             paymentAmount: pagadoDespues,
             balance,
             status,
@@ -488,7 +586,10 @@ async function aplicarPago(input, uid, role, tokenTenant) {
         return {
             ok: true,
             applied: true,
-            ledgerEntryId: ledgerRef.id,
+            // Se conserva en singular por compatibilidad: es lo que consume el front
+            // de hoy. Con varias líneas es el primero, y el detalle va en `allocations`.
+            ledgerEntryId: entradas[0]?.ledgerEntryId ?? "",
+            allocations: entradas,
             paymentAmount: pagadoDespues,
             balance,
             status,
@@ -596,6 +697,15 @@ async function revertirPago(input, uid, role, tokenTenant) {
         // El respaldo a `amount` es para los pagos anteriores a `FLOW-002`, que no
         // tienen el campo y en los que los dos importes siempre coincidieron.
         const montoDeCartera = typeof op.appliedToStatement === "number" ? op.appliedToStatement : monto;
+        // **El reparto que hay que deshacer, normalizado.**
+        //
+        // Los pagos anteriores a `FLOW-002` no tienen `allocations`: se reconstruye
+        // la línea única desde los campos viejos. Sin este respaldo, revertir un
+        // pago de antes de esta ficha no desharía nada — y son todos los que hay en
+        // producción ahora mismo.
+        const reparto = Array.isArray(op.allocations) && op.allocations.length > 0
+            ? op.allocations
+            : [{ statementId, ledgerEntryId: op.ledgerEntryId ?? "", amount: montoDeCartera }];
         // **R15 — revertir un pago se lleva por delante el anticipo que generó.**
         //
         // Sin esto, revertir un pago de 200 sobre una cuota de 140 devolvería los
@@ -622,16 +732,30 @@ async function revertirPago(input, uid, role, tokenTenant) {
             ? firestore.collection("ledgerEntries").doc(advance.ledgerEntryId)
             : null;
         const advanceLedgerSnap = advanceLedgerRef ? await tx.get(advanceLedgerRef) : null;
-        const cuotaRef = firestore.collection("billingStatements").doc(statementId);
-        const cuotaSnap = await tx.get(cuotaRef);
-        if (!cuotaSnap.exists) {
-            throw new https_1.HttpsError("not-found", "La cuota del pago ya no existe.");
+        // Una cuota y un asiento por línea del reparto. Todas las lecturas antes de
+        // cualquier escritura: la transacción no admite el orden contrario.
+        const lineas = [];
+        for (const linea of reparto) {
+            const cuotaRef = firestore.collection("billingStatements").doc(linea.statementId);
+            const cuotaSnap = await tx.get(cuotaRef);
+            if (!cuotaSnap.exists) {
+                throw new https_1.HttpsError("not-found", "La cuota del pago ya no existe.");
+            }
+            const asientoRef = linea.ledgerEntryId
+                ? firestore.collection("ledgerEntries").doc(linea.ledgerEntryId)
+                : null;
+            const asientoSnap = asientoRef ? await tx.get(asientoRef) : null;
+            lineas.push({
+                statementId: linea.statementId,
+                amount: linea.amount,
+                cuotaRef,
+                cuota: cuotaSnap.data(),
+                asientoRef,
+                asiento: asientoSnap?.data(),
+                asientoExiste: Boolean(asientoSnap?.exists),
+            });
         }
-        const cuota = cuotaSnap.data();
-        const asientoRef = op.ledgerEntryId
-            ? firestore.collection("ledgerEntries").doc(op.ledgerEntryId)
-            : null;
-        const asientoSnap = asientoRef ? await tx.get(asientoRef) : null;
+        const cuota = lineas[0].cuota;
         const reciboRef = op.receiptId
             ? firestore.collection("paymentReceipts").doc(op.receiptId)
             : null;
@@ -647,19 +771,9 @@ async function revertirPago(input, uid, role, tokenTenant) {
             ? firestore.collection("paymentVouchers").doc(op.voucherId)
             : null;
         const voucherSnap = voucherRef ? await tx.get(voucherRef) : null;
-        // ── Aritmética ───────────────────────────────────────────────────────────
-        const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
-        const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
-        const { paymentAmount: pagadoDespues, balance, status, } = saldoTrasRevertir(cobrado, pagadoAntes, montoDeCartera, 
-        // Revertir un pago NO devuelve el anticipo cruzado: son dos operaciones
-        // distintas y se deshacen por separado (R8 bloquea el caso conflictivo).
-        // Si no se pasara, revertir un pago sobre un cargo cubierto en parte con
-        // anticipo dejaría el saldo inflado por ese importe.
-        typeof cuota.advanceAppliedAmount === "number" ? cuota.advanceAppliedAmount : 0, cuota.dueDate, hoy);
-        // ── Escrituras ───────────────────────────────────────────────────────────
-        const reversoRef = firestore.collection("ledgerEntries").doc();
-        const conceptoOriginal = asientoSnap?.data()?.concept ?? `Pago ${statementId}`;
-        // ── R7 y R13: el reverso hereda del asiento que anula ────────────────────
+        // ── Aritmética y escrituras, una vuelta por línea del reparto ────────────
+        //
+        // **R7 y R13: el reverso hereda del asiento que anula.**
         //
         // **R7 — la misma cuenta.** Si el reverso cayera en otra, la reversión no
         // anularía nada: dejaría un positivo en una cuenta y un negativo en otra, y
@@ -668,65 +782,87 @@ async function revertirPago(input, uid, role, tokenTenant) {
         // y su reversión, y lo que hay que deshacer es el asiento que se escribió,
         // no el que se escribiría hoy.
         //
-        // **R13 — el reverso arrastra el ORIGEN de lo que anula.** Y esto no es
-        // adorno: un reverso pierde su origen al nacer (`sourceType: "reversal"`).
-        // Mientras todo cobro se escribía como `alicuota`, la exclusión que evita el
-        // doble conteo lo atrapaba por la categoría. En cuanto el reverso lleva la
-        // cuenta del concepto —una multa— **deja de ser las dos cosas**: ni
-        // `billingStatement` ni `alicuota`. Entonces su monto NEGATIVO entra en el
-        // ingreso del libro mientras Cartera ya lo descontó del `paymentAmount` de
-        // la cuota, y el ingreso baja dos veces.
-        //
-        // Es el defecto de §2 mirando al revés, y por eso viaja en este mismo
-        // incremento. Sin R13, encender `producto-concepto-al-libro` arregla el
-        // cobro y rompe la reversión.
-        const asientoOriginal = asientoSnap?.data();
-        tx.set(reversoRef, {
-            tenantId,
-            type: "ingreso",
-            date: hoy,
-            // Negativo, no tipo opuesto: misma convención que `reverseLedgerEntry`.
-            //
-            // Y del importe DE CARTERA, que es lo que el asiento original escribió:
-            // un reverso por 200 de un asiento de 140 dejaría el par descuadrado en 60
-            // justo en la fila que existe para poder cuadrar.
-            amount: -Math.abs(montoDeCartera),
-            concept: `Reverso: ${conceptoOriginal}`,
-            // El respaldo a `"alicuota"` conserva exactamente lo que hacía antes para
-            // los asientos viejos, que no tienen categoría propia.
-            category: asientoOriginal?.category ?? "alicuota",
-            ...(asientoOriginal?.accountCode ? { accountCode: asientoOriginal.accountCode } : {}),
-            // **D-C, el segundo de los dos.** La PRD nombraba solo el de `aplicarPago`;
-            // arreglar ese y dejar este deja **el reverso sin cuenta bancaria**, justo
-            // en la operación que más importa cuadrar.
-            //
-            // Se COPIA la del asiento que se anula, igual que ya se copian la
-            // categoría (R7) y el origen (R13), y por la misma razón: hay que deshacer
-            // **el asiento que se escribió**, no el que se escribiría hoy. Si el
-            // reverso cayera en otra cuenta, la conciliación vería un positivo en una
-            // y un negativo en otra, y **las dos estarían mal**.
-            //
-            // No cuesta una lectura extra: `asientoSnap` ya está leído aquí arriba.
-            // `null` cuando no hay asiento que leer —pagos anteriores a `FIN-001`—:
-            // no se inventa una cuenta que nunca se registró.
-            bankAccountId: asientoOriginal?.bankAccountId ?? null,
-            sourceType: "reversal",
-            // R13. Se escribe SIEMPRE, con bandera o sin ella: hoy no cambia nada
-            // —el reverso ya se excluye por su categoría— y el día que la bandera se
-            // encienda tiene que estar ya en los asientos, no empezar a escribirse
-            // entonces. Un campo de seguridad que aparece a la vez que el peligro
-            // llega tarde para todo lo escrito en medio.
-            ...(asientoOriginal?.sourceType && asientoOriginal.sourceType !== "reversal"
-                ? { reversedSourceType: asientoOriginal.sourceType }
-                : { reversedSourceType: "billingStatement" }),
-            sourceId: op.ledgerEntryId ?? statementId,
-            reversalReason: motivo,
-            reconciled: false,
-            createdBy: uid,
-            updatedBy: uid,
-            createdAt: firestore_1.FieldValue.serverTimestamp(),
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        });
+        // **R13 — el reverso arrastra el ORIGEN de lo que anula.** Un reverso pierde
+        // su origen al nacer (`sourceType: "reversal"`). Mientras todo cobro se
+        // escribía como `alicuota`, la exclusión que evita el doble conteo lo
+        // atrapaba por la categoría. En cuanto el reverso lleva la cuenta del
+        // concepto —una multa— **deja de ser las dos cosas**: ni `billingStatement`
+        // ni `alicuota`. Entonces su monto NEGATIVO entra en el ingreso del libro
+        // mientras Cartera ya lo descontó del `paymentAmount`, y el ingreso baja dos
+        // veces. Sin R13, encender `producto-concepto-al-libro` arregla el cobro y
+        // rompe la reversión.
+        let pagadoDespues = 0;
+        let balance = 0;
+        let status = "pending";
+        let reversalEntryId = "";
+        for (let i = 0; i < lineas.length; i += 1) {
+            const linea = lineas[i];
+            const cobradoLinea = typeof linea.cuota.amount === "number" ? linea.cuota.amount : 0;
+            const pagadoAntesLinea = typeof linea.cuota.paymentAmount === "number" ? linea.cuota.paymentAmount : 0;
+            const saldo = saldoTrasRevertir(cobradoLinea, pagadoAntesLinea, linea.amount, 
+            // Revertir un pago NO devuelve el anticipo cruzado: son dos operaciones
+            // distintas y se deshacen por separado (R8 bloquea el caso conflictivo).
+            // Si no se pasara, revertir un pago sobre un cargo cubierto en parte con
+            // anticipo dejaría el saldo inflado por ese importe.
+            typeof linea.cuota.advanceAppliedAmount === "number" ? linea.cuota.advanceAppliedAmount : 0, linea.cuota.dueDate, hoy);
+            const reversoRef = firestore.collection("ledgerEntries").doc();
+            const conceptoOriginal = linea.asiento?.concept ?? `Pago ${linea.statementId}`;
+            tx.set(reversoRef, {
+                tenantId,
+                type: "ingreso",
+                date: hoy,
+                // Negativo, no tipo opuesto: misma convención que `reverseLedgerEntry`.
+                // Y del importe DE CARTERA, que es lo que el asiento original escribió.
+                amount: -Math.abs(linea.amount),
+                concept: `Reverso: ${conceptoOriginal}`,
+                // El respaldo a `"alicuota"` conserva exactamente lo que hacía antes
+                // para los asientos viejos, que no tienen categoría propia.
+                category: linea.asiento?.category ?? "alicuota",
+                ...(linea.asiento?.accountCode ? { accountCode: linea.asiento.accountCode } : {}),
+                // **D-C, el segundo de los dos.** Se copia la del asiento que se anula:
+                // si el reverso cayera en otra cuenta, la conciliación vería un positivo
+                // en una y un negativo en otra, y **las dos estarían mal**. `null`
+                // cuando no hay asiento que leer —pagos anteriores a `FIN-001`—: no se
+                // inventa una cuenta que nunca se registró.
+                bankAccountId: linea.asiento?.bankAccountId ?? null,
+                sourceType: "reversal",
+                // R13. Se escribe SIEMPRE, con bandera o sin ella: hoy no cambia nada
+                // —el reverso ya se excluye por su categoría— y el día que la bandera se
+                // encienda tiene que estar ya en los asientos, no empezar a escribirse
+                // entonces. Un campo de seguridad que aparece a la vez que el peligro
+                // llega tarde para todo lo escrito en medio.
+                ...(linea.asiento?.sourceType && linea.asiento.sourceType !== "reversal"
+                    ? { reversedSourceType: linea.asiento.sourceType }
+                    : { reversedSourceType: "billingStatement" }),
+                sourceId: linea.asientoRef?.id ?? linea.statementId,
+                reversalReason: motivo,
+                reconciled: false,
+                createdBy: uid,
+                updatedBy: uid,
+                createdAt: firestore_1.FieldValue.serverTimestamp(),
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            });
+            if (linea.asientoRef && linea.asientoExiste) {
+                tx.update(linea.asientoRef, {
+                    reversedByEntryId: reversoRef.id,
+                    updatedBy: uid,
+                    updatedAt: firestore_1.FieldValue.serverTimestamp(),
+                });
+            }
+            tx.update(linea.cuotaRef, {
+                paymentAmount: saldo.paymentAmount,
+                balance: saldo.balance,
+                status: saldo.status,
+                updatedBy: uid,
+                updatedAt: firestore_1.FieldValue.serverTimestamp(),
+            });
+            if (i === 0) {
+                pagadoDespues = saldo.paymentAmount;
+                balance = saldo.balance;
+                status = saldo.status;
+                reversalEntryId = reversoRef.id;
+            }
+        }
         // ── R15: el anticipo se anula y su asiento se revierte ───────────────────
         //
         // **Y aquí sí se revierte el asiento, al revés que al anular un anticipo a
@@ -779,20 +915,6 @@ async function revertirPago(input, uid, role, tokenTenant) {
                 updatedAt: firestore_1.FieldValue.serverTimestamp(),
             });
         }
-        if (asientoRef && asientoSnap?.exists) {
-            tx.update(asientoRef, {
-                reversedByEntryId: reversoRef.id,
-                updatedBy: uid,
-                updatedAt: firestore_1.FieldValue.serverTimestamp(),
-            });
-        }
-        tx.update(cuotaRef, {
-            paymentAmount: pagadoDespues,
-            balance,
-            status,
-            updatedBy: uid,
-            updatedAt: firestore_1.FieldValue.serverTimestamp(),
-        });
         if (reciboRef && reciboSnap?.exists) {
             tx.update(reciboRef, {
                 status: "rejected",
@@ -831,7 +953,7 @@ async function revertirPago(input, uid, role, tokenTenant) {
             // Lo mismo que el asiento: lo que se deshizo en Cartera.
             amount: -Math.abs(montoDeCartera),
             reason: motivo,
-            reversalEntryId: reversoRef.id,
+            reversalEntryId,
             paymentAmount: pagadoDespues,
             balance,
             status,
@@ -842,7 +964,9 @@ async function revertirPago(input, uid, role, tokenTenant) {
         return {
             ok: true,
             reversed: true,
-            reversalEntryId: reversoRef.id,
+            // El del primer cargo, por lo mismo que en `aplicarPago`: se conserva en
+            // singular para no romper a quien ya lo consume.
+            reversalEntryId,
             paymentAmount: pagadoDespues,
             balance,
             status,

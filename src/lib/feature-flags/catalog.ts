@@ -68,6 +68,7 @@ export type FeatureFlagKey =
   | "producto-plan-de-cuentas"
   | "producto-concepto-al-libro"
   | "producto-anticipos"
+  | "producto-pago-multiple"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -259,6 +260,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-002 §5.1, R2",
     alApagar:
       "Los anticipos ya creados NO se borran: siguen visibles y se pueden cruzar o anular con motivo (R9). Lo que vuelve al comportamiento viejo es el sobrepago NUEVO, que otra vez se contabiliza entero contra la cuota.",
+  },
+  "producto-pago-multiple": {
+    key: "producto-pago-multiple",
+    area: "producto",
+    label: "Un pago cubre varios cargos",
+    description:
+      "Permite repartir un solo pago entre varios cargos de la misma unidad, en una sola operación y con un solo recibo, en vez de registrar uno por cuota.",
+    // Separada de `producto-anticipos` a propósito (§11.4): el reparto puede
+    // salir sin los anticipos, pero **no al revés** — sin anticipo, el sobrante
+    // de un reparto volvería a evaporarse, que es el defecto que FLOW-002 cierra.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-002 §5.1, R7",
+    alApagar:
+      "El servidor deja de aceptar repartos de más de un cargo. Los pagos ya repartidos NO se tocan: siguen aplicados y se revierten con normalidad.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

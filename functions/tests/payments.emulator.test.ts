@@ -61,8 +61,10 @@ async function sembrarCuota(id: string, amount = 140000) {
 }
 
 /** Enciende o apaga `producto-anticipos` para este conjunto, por override. */
-async function bandera(encendida: boolean) {
-  await db.collection("featureFlagOverrides").doc(TENANT).set({ flags: { "producto-anticipos": encendida } });
+async function bandera(encendida: boolean, multiple = true) {
+  await db.collection("featureFlagOverrides").doc(TENANT).set({
+    flags: { "producto-anticipos": encendida, "producto-pago-multiple": multiple },
+  });
 }
 
 /** El ingreso total tal y como lo calcula el producto: Cartera + libro. */
@@ -705,5 +707,165 @@ describe("R9 · anular un anticipo con motivo NO toca el libro", () => {
       { tenantId: TENANT, advanceId, reason: "Dos", operationKey: "anul-t2" },
       ADMIN, ROL, TENANT,
     )).rejects.toThrow(/ya está anulado/i);
+  });
+});
+
+describe("D-B · un pago cubre varios cargos en una sola operación", () => {
+  it("reparte 230 entre dos cuotas y las deja pagadas (CA3)", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-1", 140000);
+    await sembrarCuota("multi-2", 90000);
+
+    const r = await aplicarPago(
+      {
+        tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi", source: "manual",
+        allocations: [{ statementId: "multi-1", amount: 140000 }, { statementId: "multi-2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.allocations).toHaveLength(2);
+    const uno = (await db.collection("billingStatements").doc("multi-1").get()).data()!;
+    const dos = (await db.collection("billingStatements").doc("multi-2").get()).data()!;
+    expect(uno.status).toBe("paid");
+    expect(dos.status).toBe("paid");
+    expect(uno.paymentAmount).toBe(140000);
+    expect(dos.paymentAmount).toBe(90000);
+  });
+
+  /**
+   * **Un asiento POR LÍNEA, no uno por pago.** Cada cargo lleva su propia cuenta
+   * (R6 de `PLAT-003`): un pago que cubre una cuota y una multa tiene que dejar
+   * el ingreso en las dos cuentas, no elegir una.
+   */
+  it("escribe un asiento por cargo, y un solo recibo", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-a1", 140000);
+    await sembrarCuota("multi-a2", 90000);
+    await aplicarPago(
+      {
+        tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-a", source: "manual",
+        allocations: [{ statementId: "multi-a1", amount: 140000 }, { statementId: "multi-a2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    );
+    const asientos = await db.collection("ledgerEntries").where("operationKey", "==", "op-multi-a").get();
+    expect(asientos.size).toBe(2);
+    // El residente hizo UNA transferencia: darle tres papeles por un movimiento
+    // sería contarle nuestra contabilidad interna.
+    expect((await db.collection("paymentVouchers").get()).size).toBe(1);
+  });
+
+  it("lo que sobra del reparto va al anticipo, y R1 se cumple", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-b1", 140000);
+    await sembrarCuota("multi-b2", 90000);
+    const r = await aplicarPago(
+      {
+        tenantId: TENANT, amount: 300000, date: "2026-08-20", operationKey: "op-multi-b", source: "manual",
+        allocations: [{ statementId: "multi-b1", amount: 140000 }, { statementId: "multi-b2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.advanceAmount).toBe(70000);
+    const aplicado = r.allocations!.reduce((s, a) => s + a.amount, 0);
+    expect(aplicado + r.advanceAmount!).toBe(300000);
+    expect((await ingresoTotal()).total).toBe(300000);
+  });
+
+  /**
+   * Un pago es de alguien que paga lo de SU unidad, y el sobrante se convierte
+   * en anticipo **de esa unidad**. Repartir entre unidades distintas dejaría un
+   * anticipo sin dueño claro, y el saldo a favor de un residente podría nacer de
+   * un pago que cubrió cargos de un vecino.
+   */
+  it("no se reparte entre unidades distintas", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-u1", 140000);
+    await db.collection("billingStatements").doc("multi-u2").set({
+      tenantId: TENANT, unitId: "unit-777", unitLabel: "777", period: "2026-08",
+      amount: 90000, paymentAmount: 0, balance: 90000, status: "pending",
+    });
+    await expect(aplicarPago(
+      {
+        tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-u", source: "manual",
+        allocations: [{ statementId: "multi-u1", amount: 140000 }, { statementId: "multi-u2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/unidades distintas/i);
+  });
+
+  // El mismo cargo dos veces sumaría dos veces sobre el mismo documento dentro
+  // de la misma transacción, y la segunda escritura pisaría a la primera: el
+  // dinero se perdería sin que nada fallase.
+  it("un mismo cargo no puede aparecer dos veces", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-d", 140000);
+    await expect(aplicarPago(
+      {
+        tenantId: TENANT, amount: 200000, date: "2026-08-20", operationKey: "op-multi-d", source: "manual",
+        allocations: [{ statementId: "multi-d", amount: 100000 }, { statementId: "multi-d", amount: 100000 }],
+      },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/dos veces/i);
+  });
+
+  /** CF5. */
+  it("un reparto que suma más que lo pagado se rechaza", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-s1", 140000);
+    await sembrarCuota("multi-s2", 90000);
+    await expect(aplicarPago(
+      {
+        tenantId: TENANT, amount: 200000, date: "2026-08-20", operationKey: "op-multi-s", source: "manual",
+        allocations: [{ statementId: "multi-s1", amount: 140000 }, { statementId: "multi-s2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/suma más/i);
+  });
+
+  it("con la bandera del reparto apagada, solo se acepta un cargo", async () => {
+    await bandera(true, false);
+    await sembrarCuota("multi-f1", 140000);
+    await sembrarCuota("multi-f2", 90000);
+    await expect(aplicarPago(
+      {
+        tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-f", source: "manual",
+        allocations: [{ statementId: "multi-f1", amount: 140000 }, { statementId: "multi-f2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow();
+  });
+
+  /**
+   * **El rediseño que arrastraba `allocations[]`.** El reverso conocía UN
+   * asiento: sin esto, un pago repartido entre dos cuotas se desharía a la
+   * mitad — una cuota volvería a deber y la otra se quedaría pagada con un
+   * dinero que ya se devolvió.
+   */
+  it("revertir un pago repartido deshace TODAS sus líneas", async () => {
+    await bandera(true);
+    await sembrarCuota("multi-r1", 140000);
+    await sembrarCuota("multi-r2", 90000);
+    await aplicarPago(
+      {
+        tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-r", source: "manual",
+        allocations: [{ statementId: "multi-r1", amount: 140000 }, { statementId: "multi-r2", amount: 90000 }],
+      },
+      ADMIN, ROL, TENANT,
+    );
+    expect((await ingresoTotal()).total).toBe(230000);
+
+    await revertirPago(
+      { tenantId: TENANT, operationKey: "op-multi-r", reversalKey: "rev-multi-r", reason: "Cobro duplicado" },
+      ADMIN, ROL, TENANT,
+    );
+
+    const uno = (await db.collection("billingStatements").doc("multi-r1").get()).data()!;
+    const dos = (await db.collection("billingStatements").doc("multi-r2").get()).data()!;
+    expect(uno.paymentAmount).toBe(0);
+    expect(dos.paymentAmount).toBe(0);
+    expect(uno.status).toBe("pending");
+    expect(dos.status).toBe("pending");
+    expect((await ingresoTotal()).total).toBe(0);
   });
 });

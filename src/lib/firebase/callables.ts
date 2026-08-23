@@ -639,7 +639,15 @@ export async function replyToSupportTicketCallable(input: {
  */
 export async function applyPaymentCallable(input: {
   tenantId: string;
-  statementId: string;
+  /** El cargo, cuando el pago va a uno solo. Sigue siendo la forma normal. */
+  statementId?: string;
+  /**
+   * **D-B.** El reparto entre varios cargos de la MISMA unidad, en una sola
+   * operación. El cambio de firma es **aditivo**: si llega `statementId` el
+   * servidor lo trata como un reparto de una línea, así que la pantalla de hoy
+   * sigue funcionando sin tocar nada. Va detrás de `producto-pago-multiple`.
+   */
+  allocations?: { statementId: string; amount: number }[];
   amount: number;
   date: string;
   operationKey: string;
