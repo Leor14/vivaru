@@ -124,6 +124,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   parqueadero: "Parqueaderos",
   arriendo: "Arriendo de áreas comunes",
   cuota_vigilancia: "Cuotas de vigilancia",
+  anticipo: "Anticipos de residentes",
   otros_ingresos: "Otros ingresos",
   nomina: "Nómina",
   servicios_publicos: "Servicios públicos",

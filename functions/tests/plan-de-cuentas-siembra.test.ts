@@ -51,12 +51,12 @@ function firestoreDeMentira(existentes: string[] = []) {
 const TENANT = "conjunto-x";
 
 describe("sembrarPlanDeCuentas · conjunto nuevo", () => {
-  it("escribe las 20 cuentas de la semilla", async () => {
+  it("escribe las 21 cuentas de la semilla", async () => {
     const { db, escrituras } = firestoreDeMentira();
     const r = await sembrarPlanDeCuentas(db, TENANT);
-    expect(r.creadas).toBe(20);
+    expect(r.creadas).toBe(21);
     expect(r.creadas).toBe(SEMILLA_PLAN_DE_CUENTAS.length);
-    expect(escrituras).toHaveLength(20);
+    expect(escrituras).toHaveLength(21);
   });
 
   it("el id de cada documento es DERIVADO del código, no aleatorio", async () => {
@@ -84,7 +84,7 @@ describe("sembrarPlanDeCuentas · conjunto nuevo", () => {
     const { db, escrituras } = firestoreDeMentira();
     await sembrarPlanDeCuentas(db, TENANT);
     const conSystemKey = escrituras.filter((e) => e.data.systemKey !== undefined);
-    expect(conSystemKey).toHaveLength(18);
+    expect(conSystemKey).toHaveLength(19);
     const padres = escrituras.filter((e) => e.data.code === "1" || e.data.code === "2");
     expect(padres).toHaveLength(2);
     for (const p of padres) expect(p.data.systemKey).toBeUndefined();
@@ -92,12 +92,12 @@ describe("sembrarPlanDeCuentas · conjunto nuevo", () => {
 });
 
 describe("sembrarPlanDeCuentas · reejecutada sobre un conjunto que ya tiene plan", () => {
-  it("no reescribe nada si ya están las 20", async () => {
+  it("no reescribe nada si ya están las 21", async () => {
     const todas = SEMILLA_PLAN_DE_CUENTAS.map((c) => docIdDeCuenta(TENANT, c.code));
     const { db, escrituras, commits } = firestoreDeMentira(todas);
     const r = await sembrarPlanDeCuentas(db, TENANT);
     expect(r.creadas).toBe(0);
-    expect(r.existentes).toBe(20);
+    expect(r.existentes).toBe(21);
     expect(escrituras).toHaveLength(0);
     // Ni siquiera se commitea un batch vacío.
     expect(commits()).toBe(0);
@@ -109,7 +109,7 @@ describe("sembrarPlanDeCuentas · reejecutada sobre un conjunto que ya tiene pla
   it("respeta una cuenta que ya existe y solo completa las que faltan", async () => {
     const { db, escrituras } = firestoreDeMentira([docIdDeCuenta(TENANT, "1.3")]);
     const r = await sembrarPlanDeCuentas(db, TENANT);
-    expect(r.creadas).toBe(19);
+    expect(r.creadas).toBe(20);
     expect(escrituras.some((e) => e.data.code === "1.3")).toBe(false);
   });
 });
@@ -121,8 +121,8 @@ describe("sembrarPlanDeCuentas · con batch del llamante", () => {
     const { db, escrituras, commits } = firestoreDeMentira();
     const ajeno = { set: (ref: { __id: string }, data: Record<string, unknown>) => escrituras.push({ id: ref.__id, data }) };
     const r = await sembrarPlanDeCuentas(db, TENANT, undefined, ajeno as never);
-    expect(r.creadas).toBe(20);
-    expect(escrituras).toHaveLength(20);
+    expect(r.creadas).toBe(21);
+    expect(escrituras).toHaveLength(21);
     expect(commits()).toBe(0);
   });
 });

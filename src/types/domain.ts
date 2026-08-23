@@ -286,6 +286,29 @@ export interface BillingStatement {
   campaignId?: string | null;
   amount?: number;
   paymentAmount?: number;
+  /**
+   * `FLOW-002` R4. Lo cubierto con anticipos cruzados, **aparte de
+   * `paymentAmount` y a propósito**.
+   *
+   * **Por qué no se suma a `paymentAmount`.** `cuotaIncome` es exactamente la
+   * suma de los `paymentAmount` (`repartirRecaudo`, sin filtro de fecha), y el
+   * anticipo ya entró como ingreso por el libro al recibirlo (R5). Subirlo al
+   * cruzar lo contaría **dos veces sin crear ningún asiento**: el doble conteo
+   * no pasaría por el libro, que es donde CA6 miraba. Manteniéndolos separados,
+   * `cuotaIncome` sigue siendo *el dinero que entró por Cartera* y ninguno de
+   * los dos lados puede ver al otro — sin que cinco sitios tengan que acordarse
+   * de restar.
+   *
+   * **Lo escribe SOLO el servidor**, y las reglas lo vetan al cliente: en
+   * `create` no puede nacer con valor y en `update` tiene que salir igual que
+   * entró. No es celo: `actualizarBillingStatement` hace un `updateDoc` directo
+   * desde el navegador con `paymentAmount` y `balance`, así que un campo
+   * escribible desde el cliente no puede sostener este invariante.
+   *
+   * Ausente o `0` en todo lo escrito antes de `FLOW-002`. `calcularSaldo` y su
+   * espejo `computeBalanceStatus` suman los dos.
+   */
+  advanceAppliedAmount?: number;
   balance: number;
   dueDate?: string;
   status: "pending" | "paid" | "overdue";
@@ -485,6 +508,13 @@ export type LedgerCategory =
    * colisión de `administracion` que R11 previene, y aquí se evita nombrando.
    */
   | "cuota_vigilancia"
+  /**
+   * `FLOW-002`. El saldo a favor que deja un sobrepago. **Es ingreso del mes en
+   * que entra** (D1) y va en su **propia línea** del estado financiero, no
+   * escondido en «Otros ingresos» — por eso tiene cuenta propia (`1.10`) en la
+   * semilla del plan.
+   */
+  | "anticipo"
   | "otros_ingresos";
 
 /** Movimiento del libro de ingresos/egresos. Backbone contable + conciliación. */
@@ -513,7 +543,23 @@ export interface LedgerEntry {
   accountCode?: string;
   bankAccountId?: string;
   /** Referencia al origen del movimiento. "reversal" = asiento inverso de otro movimiento. */
-  sourceType?: "billingStatement" | "expense" | "manual" | "reversal";
+  /**
+   * `FLOW-002`. **`"advance"` es el asiento de ENTRADA de un anticipo**, y tiene
+   * origen propio por una razón muy concreta: ese asiento nace **dentro de
+   * `aplicarPago`**, donde se escribe `sourceType: "billingStatement"`. Si lo
+   * heredara, `esRecaudoDeCartera` lo excluiría del libro —aunque su `category`
+   * diga `anticipo`— y **el anticipo desaparecería**: no está en `cuotaIncome`,
+   * porque `repartirRecaudo` suma el `paymentAmount` de los cargos y un anticipo
+   * por definición no es de ningún cargo. Se descontaría de un lado sin estar
+   * sumado en el otro.
+   *
+   * **Ampliar este tipo es inerte, y ese es el punto.** Olvidarlo no compila, así
+   * que no es el riesgo. El riesgo es que alguien añada `category === "anticipo"`
+   * a la exclusión por analogía con `alicuota`: **eso sí compila y pasa las
+   * suites**. Lo que sostiene la decisión son los guardianes de
+   * `esRecaudoDeCartera`, en los dos espejos.
+   */
+  sourceType?: "billingStatement" | "expense" | "manual" | "reversal" | "advance";
   /**
    * **R13.** Origen del asiento que este reverso anula. Solo en los de
    * `sourceType: "reversal"`.
@@ -530,7 +576,7 @@ export interface LedgerEntry {
    * Es el defecto de §2 mirando al revés, y por eso va en el mismo incremento.
    * Ver `esRecaudoDeCartera` en `src/features/finanzas/financial-statement.ts`.
    */
-  reversedSourceType?: "billingStatement" | "expense" | "manual";
+  reversedSourceType?: "billingStatement" | "expense" | "manual" | "advance";
   sourceId?: string;
   /** Id del asiento inverso que anuló este movimiento (los asientos contables no se borran). */
   reversedByEntryId?: string;
