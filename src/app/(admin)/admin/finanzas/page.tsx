@@ -37,7 +37,7 @@ import {
   watchLedger,
   movimientoEntraAlFondo,
 } from "@/features/finanzas/use-ledger";
-import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
+import { buildFinancialStatement, planParaInformes } from "@/features/finanzas/financial-statement";
 import { useChartOfAccounts } from "@/features/finanzas/use-chart-of-accounts";
 import { ledgerEntrySchema, type LedgerEntryFormValues } from "@/features/finanzas/schemas";
 import { useAuth } from "@/features/auth/auth-context";
@@ -137,16 +137,15 @@ function AdminFinanzasLibroPageContent() {
   // los informes lo seguirán usando aunque esté apagada (ver `alApagar` en el
   // catálogo).
   //
-  // La suscripción va CONDICIONADA a la bandera —pasando `undefined` en vez de
-  // envolver el hook, que no se puede— porque hoy el único que lee el plan es
-  // este diálogo. Con la bandera apagada sería un listener abierto sobre una
-  // colección que nadie mira. Cuando R9 llegue y los informes lean los nombres
-  // de las cuentas, esto tendrá que salir de la bandera: entonces sí hará falta
-  // siempre.
+  // La suscripción va FUERA de la bandera, y esto cambió al llegar R9: el
+  // estado financiero agrupa por cuenta y saca las etiquetas del nombre de la
+  // cuenta, así que el plan hace falta aunque la EDICIÓN esté apagada. Es lo que
+  // dice el catálogo en `alApagar`: «el plan sembrado sigue ahí y los informes
+  // lo siguen usando; solo desaparece la edición».
   const planDeCuentas = useFeatureFlag("producto-plan-de-cuentas");
-  const { accounts: chartAccounts } = useChartOfAccounts(
-    planDeCuentas ? user?.tenantId : undefined,
-  );
+  const { accounts: chartAccounts } = useChartOfAccounts(user?.tenantId);
+  // Sin plan sembrado es `undefined`, y el estado se comporta como siempre.
+  const planInformes = useMemo(() => planParaInformes(chartAccounts), [chartAccounts]);
   const recaudo = useMemo(() => repartirRecaudo(statements), [statements]);
   const cuotaIncome = recaudo.total;
   const cuotaParaEstado = conceptoAlLibro ? recaudo : recaudo.total;
@@ -162,7 +161,7 @@ function AdminFinanzasLibroPageContent() {
   }
 
   function handleExportStatement() {
-    const statement = buildFinancialStatement(entries, cuotaParaEstado);
+    const statement = buildFinancialStatement(entries, cuotaParaEstado, 0, planInformes);
     const rows: (string | number)[][] = [
       ["Estado de ingresos y egresos"],
       [],

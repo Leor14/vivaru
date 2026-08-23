@@ -29,6 +29,7 @@ import { AlertTriangle, BarChart2, Download, FileSpreadsheet, FolderPlus, Printe
 
 import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
+import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
@@ -54,6 +55,9 @@ const PERIOD_OPTIONS: { key: ReportPeriodKey; label: string }[] = [
 const PIE_COLORS = ["#6366f1", "#f59e0b", "#10b981"];
 const CARTERA_COLORS = ["#10b981", "#f59e0b", "#ef4444"]; // al día / pendiente / vencida
 const EXPENSE_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#0ea5e9", "#a855f7", "#64748b"];
+// Paleta propia para los ingresos: si compartieran la de egresos, dos porciones
+// del mismo color en dos tortas contiguas se leerían como el mismo rubro.
+const INCOME_COLORS = ["#2f775f", "#0ea5e9", "#a855f7", "#f59e0b", "#14b8a6", "#6366f1", "#64748b"];
 const BAR_COLOR = "#6366f1";
 const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 function monthShort(period: string): string {
@@ -635,11 +639,53 @@ function AdminReportsPageContent() {
                   <KpiCard label="Resultado neto" value={formatCurrency(report.financial.netResult)} tone={report.financial.netResult >= 0 ? "success" : "danger"} />
                   <KpiCard label="Saldo de fondos" value={formatCurrency(report.financial.fundBalance)} />
                 </div>
+                {/*
+                  Envuelto porque CLAUDE.md lo exige para toda sección que
+                  consuma datos del tenant, «en especial charts de recharts»: el
+                  único error boundary de ruta convierte un fallo de widget en la
+                  pantalla «No pudimos cargar el workspace» para TODO /admin. La
+                  torta de egresos llevaba aquí sin envolver desde antes; entra
+                  ahora porque este incremento le pone otra al lado.
+                */}
+                <WidgetErrorBoundary label="resumen-financiero-por-cuenta">
+                {report.financial.incomeByCategory.length > 0 ? (
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                      <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Ingresos por cuenta</p>
+                      </div>
+                      <div className="divide-y divide-[var(--slate-100)]">
+                        {report.financial.incomeByCategory.map((c) => (
+                          <div key={c.category} className="flex items-center justify-between px-4 py-2 text-sm">
+                            <span className="text-[var(--slate-700)]">{c.label}</span>
+                            <span className="font-semibold text-[var(--slate-900)]">{formatCurrency(c.amount)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Composición de ingresos</p>
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={report.financial.incomeByCategory} dataKey="amount" nameKey="label" cx="50%" cy="50%" outerRadius={56}>
+                              {report.financial.incomeByCategory.map((_, i) => (
+                                <Cell key={i} fill={INCOME_COLORS[i % INCOME_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(value, name) => [formatCurrency(Number(value)), name]} />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 {report.financial.expenseByCategory.length > 0 ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
                       <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por categoría</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por cuenta</p>
                       </div>
                       <div className="divide-y divide-[var(--slate-100)]">
                         {report.financial.expenseByCategory.map((c) => (
@@ -668,6 +714,7 @@ function AdminReportsPageContent() {
                     </div>
                   </div>
                 ) : null}
+                </WidgetErrorBoundary>
               </section>
 
               {/* ── Cartera ── */}

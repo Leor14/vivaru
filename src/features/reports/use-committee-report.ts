@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { fetchTenantCollection } from "@/lib/firebase/realtime-helpers";
 import { computeCollectionSummary, statementChargedAmount } from "@/features/billing/collection";
-import { buildFinancialStatement, esRecaudoDeCartera } from "@/features/finanzas/financial-statement";
+import {
+  buildFinancialStatement,
+  esRecaudoDeCartera,
+  planParaInformes,
+} from "@/features/finanzas/financial-statement";
+import { useChartOfAccounts } from "@/features/finanzas/use-chart-of-accounts";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { categoriaDeConcepto, type RecaudoDeCartera } from "@/lib/finanzas/conceptos-de-cargo";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
@@ -119,6 +124,14 @@ export type CommitteeReport = {
     totalExpenses: number;               // egresos del período
     netResult: number;                   // ingresos - egresos
     fundBalance: number;                 // saldo de fondos actual (acumulado)
+    /**
+     * Los ingresos por cuenta. **Faltaban, y no por descuido de diseño:** el
+     * estado financiero los calculaba desde siempre y este hook los tiraba al
+     * armar `financialMetrics`, así que el reparto por concepto que construyó la
+     * entrega 1b-iii no lo enseñaba NADIE — solo salía en el Excel. Los egresos
+     * sí llegaban, y su tabla y su torta son el gemelo que ya lo hacía bien.
+     */
+    incomeByCategory: Array<{ category: string; label: string; amount: number }>;
     expenseByCategory: Array<{ category: string; label: string; amount: number }>;
   };
 
@@ -241,7 +254,7 @@ const EMPTY: CommitteeReport = {
   tickets: { total: 0, open: 0, inProgress: 0, resolved: 0, byCategory: { pqrs: 0, maintenance: 0, billing: 0 } },
   visitors: { total: 0, byWeek: [], insideNow: 0 },
   reservations: { total: 0, approved: 0, pending: 0, cancelled: 0, byAmenity: [] },
-  financial: { totalIncome: 0, totalExpenses: 0, netResult: 0, fundBalance: 0, expenseByCategory: [] },
+  financial: { totalIncome: 0, totalExpenses: 0, netResult: 0, fundBalance: 0, incomeByCategory: [], expenseByCategory: [] },
   agreements: { total: 0, forSignature: 0, informative: 0, expectedSignatures: 0, signed: 0, pending: 0, signatureRate: 0, items: [] },
   sectionLoading: { billing: true, financial: true, packages: true, tickets: true, visitors: true, reservations: true, agreements: true },
 };
@@ -252,6 +265,12 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
   // distintas del mismo dinero — que es exactamente el problema que esta PRD
   // arregla, reaparecido una pantalla más allá.
   const conceptoAlLibro = useFeatureFlag("producto-concepto-al-libro");
+
+  // R9. El plan hace falta aunque `producto-plan-de-cuentas` esté apagada: esa
+  // bandera gobierna la EDICIÓN, no la lectura de los informes. Sin plan
+  // sembrado sale `undefined` y el informe se comporta como siempre.
+  const { accounts: chartAccounts } = useChartOfAccounts(tenantId);
+  const planInformes = useMemo(() => planParaInformes(chartAccounts), [chartAccounts]);
   const [billing, setBilling] = useState<BillingStatement[]>([]);
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -526,12 +545,18 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       total: totalCollected,
       porCategoria: recaudoPorCategoria as RecaudoDeCartera["porCategoria"],
     };
-    const statement = buildFinancialStatement(periodLedger, conceptoAlLibro ? recaudo : totalCollected);
+    const statement = buildFinancialStatement(
+      periodLedger,
+      conceptoAlLibro ? recaudo : totalCollected,
+      0,
+      planInformes,
+    );
     const financialMetrics = {
       totalIncome: statement.totalIncome,
       totalExpenses: statement.totalExpenses,
       netResult: statement.netResult,
       fundBalance: fundPosition.balance,
+      incomeByCategory: statement.incomeByCategory,
       expenseByCategory: statement.expenseByCategory,
     };
 
@@ -684,7 +709,11 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     };
   }, [billing, packages, tickets, visitors, visitorsInside, reservations, ledger, agreements, agreementSignatures, units, range, error,
     loadingBilling, loadingPackages, loadingTickets, loadingVisitors, loadingReservations, loadingLedger, loadingVisitorsInside,
-    loadingAgreements, loadingAgreementSignatures, loadingUnits, conceptoAlLibro]);
+    loadingAgreements, loadingAgreementSignatures, loadingUnits, conceptoAlLibro,
+    // Sin esto, renombrar una cuenta NO refrescaba el informe hasta que otra
+    // cosa cambiara — o sea, CA6 verde en la prueba y rota en la pantalla. Lo
+    // cazo el aviso de exhaustive-deps, no una prueba.
+    planInformes]);
 
   if (!tenantId) return EMPTY;
   return report;

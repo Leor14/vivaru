@@ -1,3 +1,4 @@
+import { compararCodigos } from "@/lib/finanzas/codigo-de-cuenta";
 import type { RecaudoDeCartera } from "@/lib/finanzas/conceptos-de-cargo";
 import type { LedgerEntry } from "@/types/domain";
 
@@ -12,6 +13,77 @@ export type FinancialStatement = {
   netResult: number;
   fundBalance: number;
 };
+
+/**
+ * El plan de cuentas, reducido a lo que un informe necesita (**R9** y **CA6**).
+ *
+ * ## La decisión que R9 no resuelve, y hay que tomar
+ *
+ * La regla dice «un informe agrupa por `accountCode`; si el asiento no lo tiene,
+ * usa `category`». **Leído al pie de la letra parte en DOS filas lo que es una
+ * sola cuenta:** los asientos escritos antes de `PLAT-003` caen en el cajón
+ * `multa` y los de después en el `1.3`, con el mismo nombre y sumando por
+ * separado. El estado financiero mostraría «Multas» dos veces.
+ *
+ * Y no se puede arreglar migrando: §4 dice que los asientos históricos **no se
+ * recalculan**. Así que la categoría se **normaliza** a su código por
+ * `systemKey`, que es para lo que ese puente existe. CA8 se sigue cumpliendo —el
+ * asiento viejo sigue apareciendo— y además aparece **donde le toca**.
+ *
+ * ## Sin plan, nada cambia
+ *
+ * Un conjunto sin plan sembrado no tiene con qué resolver, así que cae en
+ * `CATEGORY_LABELS` y se comporta como siempre. Y un plan recién sembrado trae
+ * **los mismos nombres** que ese mapa —se eligieron así a propósito—, de modo
+ * que encender esto no mueve un solo texto hasta que alguien renombre una
+ * cuenta. Que es justo lo que pide CA6.
+ */
+export type PlanParaInformes = {
+  /** `systemKey` → código. Es lo que mete a los asientos viejos en el mismo cajón. */
+  codigoPorSystemKey: Map<string, string>;
+  /** código → nombre. Que la etiqueta salga de aquí es lo que hace posible CA6. */
+  nombrePorCodigo: Map<string, string>;
+};
+
+export function planParaInformes(
+  accounts: ReadonlyArray<{ code: string; name: string; systemKey?: string }>,
+): PlanParaInformes | undefined {
+  if (!accounts.length) return undefined;
+  const codigoPorSystemKey = new Map<string, string>();
+  const nombrePorCodigo = new Map<string, string>();
+  for (const cuenta of accounts) {
+    nombrePorCodigo.set(cuenta.code, cuenta.name);
+    if (cuenta.systemKey) codigoPorSystemKey.set(cuenta.systemKey, cuenta.code);
+  }
+  return { codigoPorSystemKey, nombrePorCodigo };
+}
+
+/** El cajón en el que cae un movimiento: su cuenta, o la de su categoría. */
+function cajonDe(
+  accountCode: string | undefined,
+  category: string | undefined,
+  plan: PlanParaInformes | undefined,
+  porDefecto: string,
+): string {
+  if (accountCode) return accountCode;
+  const categoria = category ?? porDefecto;
+  return plan?.codigoPorSystemKey.get(categoria) ?? categoria;
+}
+
+/**
+ * El nombre de una línea. Tres escalones, y el tercero importa: un asiento puede
+ * llevar `accountCode` de un conjunto **sin plan sembrado** —pasa hoy mismo en
+ * staging—, y sin la caída a la categoría la línea se llamaría «1.3».
+ */
+function etiquetaDe(
+  cajon: string,
+  category: string | undefined,
+  plan: PlanParaInformes | undefined,
+): string {
+  const delPlan = plan?.nombrePorCodigo.get(cajon);
+  if (delPlan) return delPlan;
+  return categoryLabel(category ?? cajon);
+}
 
 /**
  * Etiqueta de respaldo para agrupar por `category` cuando el asiento no tiene
@@ -104,34 +176,73 @@ export function buildFinancialStatement(
   entries: LedgerEntry[],
   cuota: number | RecaudoDeCartera,
   openingBalance = 0,
+  plan?: PlanParaInformes,
 ): FinancialStatement {
-  const incomeMap = new Map<string, number>();
-  const expenseMap = new Map<string, number>();
+  // Se guarda la etiqueta junto al monto porque el cajón puede ser un código
+  // (`1.3`) y el nombre venir de la categoría del asiento que cayó en él. Sin
+  // esto habría que volver a recorrer los asientos para saber cómo se llama.
+  const incomeMap = new Map<string, { amount: number; label: string }>();
+  const expenseMap = new Map<string, { amount: number; label: string }>();
+
+  const acumular = (
+    map: Map<string, { amount: number; label: string }>,
+    cajon: string,
+    label: string,
+    amount: number,
+  ) => {
+    const actual = map.get(cajon);
+    // El primero que cae fija la etiqueta: si dos asientos del mismo cajón
+    // traen nombres distintos —uno con plan y otro sin él—, quedarse con el
+    // primero es arbitrario pero estable. Con plan sembrado nunca difieren.
+    map.set(cajon, { amount: (actual?.amount ?? 0) + amount, label: actual?.label ?? label });
+  };
 
   const cuotaIncome = typeof cuota === "number" ? cuota : cuota.total;
   if (typeof cuota === "number") {
-    if (cuotaIncome) incomeMap.set("alicuota", cuotaIncome);
+    if (cuotaIncome) {
+      const cajon = cajonDe(undefined, "alicuota", plan, "alicuota");
+      acumular(incomeMap, cajon, etiquetaDe(cajon, "alicuota", plan), cuotaIncome);
+    }
   } else {
     for (const [categoria, monto] of cuota.porCategoria) {
-      if (monto) incomeMap.set(categoria, (incomeMap.get(categoria) ?? 0) + monto);
+      if (!monto) continue;
+      const cajon = cajonDe(undefined, categoria, plan, "otros_ingresos");
+      acumular(incomeMap, cajon, etiquetaDe(cajon, categoria, plan), monto);
     }
   }
 
   for (const entry of entries) {
     if (entry.type === "ingreso") {
       if (esRecaudoDeCartera(entry)) continue;
-      const key = entry.category ?? "otros_ingresos";
-      incomeMap.set(key, (incomeMap.get(key) ?? 0) + entry.amount);
+      const cajon = cajonDe(entry.accountCode, entry.category, plan, "otros_ingresos");
+      acumular(incomeMap, cajon, etiquetaDe(cajon, entry.category, plan), entry.amount);
     } else if (entry.type === "egreso") {
-      const key = entry.category ?? "otros";
-      expenseMap.set(key, (expenseMap.get(key) ?? 0) + entry.amount);
+      const cajon = cajonDe(entry.accountCode, entry.category, plan, "otros");
+      acumular(expenseMap, cajon, etiquetaDe(cajon, entry.category, plan), entry.amount);
     }
   }
 
-  const toRows = (map: Map<string, number>): CategoryTotal[] =>
+  /**
+   * Orden del plan cuando hay códigos, y por monto cuando no.
+   *
+   * Un contador lee el estado en el orden del plan —1.1, 1.2, 1.3…—, no por
+   * quién recaudó más. Es la parte de «con jerarquía» que da este incremento:
+   * el árbol se ve en el propio código. **Los subtotales por cuenta padre NO
+   * entran aquí**; cambiarían la forma del Excel y del informe, y son otra cosa.
+   *
+   * Un conjunto sin plan no tiene códigos, así que conserva el orden de siempre.
+   */
+  const esCodigo = (k: string) => /^[1-9]\d{0,2}(\.[1-9]\d{0,2})?$/.test(k);
+  const toRows = (map: Map<string, { amount: number; label: string }>): CategoryTotal[] =>
     [...map.entries()]
-      .map(([category, amount]) => ({ category, label: categoryLabel(category), amount }))
-      .sort((a, b) => b.amount - a.amount);
+      .map(([category, { amount, label }]) => ({ category, label, amount }))
+      .sort((a, b) => {
+        const ca = esCodigo(a.category);
+        const cb = esCodigo(b.category);
+        if (ca && cb) return compararCodigos(a.category, b.category);
+        if (ca !== cb) return ca ? -1 : 1;
+        return b.amount - a.amount;
+      });
 
   const incomeByCategory = toRows(incomeMap);
   const expenseByCategory = toRows(expenseMap);
