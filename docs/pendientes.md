@@ -20,20 +20,40 @@ código viejo» que decía esta cabecera hasta hoy **se acabó**.
 **Las cinco banderas `producto-*` siguen apagadas** en producción (sin documento en `featureFlags`).
 Encenderlas es hoy barato —nueve conjuntos, todos de prueba— pero es decisión de David.
 
-## LO SIGUIENTE
+## LO SIGUIENTE — `FLOW-002` VA EN DOS SESIONES, **A** Y LUEGO **B**
 
-**`FLOW-002` (anticipos). Paso 6 de once, desbloqueada, y su PRD YA ESTÁ LISTA.** Pasó a **v1.2**
-(`7dc5f7f`): las tres correcciones que la 1.1 dejó marcadas y abiertas están resueltas, y en el
-camino salieron **dos huecos que ninguna versión anterior tenía**. Se construye en el orden de
-su §13:
+**`FLOW-002` (anticipos). Paso 6 de once, desbloqueada, y su PRD YA ESTÁ LISTA** — v1.2
+(`7dc5f7f`). **El trabajo se parte en dos sesiones y el orden no es negociable: A antes que B.**
+No es burocracia: el paso 3 dibuja en pantalla números que el paso 2 calcula, así que construir
+el front antes deja la pantalla enseñando aritmética sin verificar — que es exactamente cómo el
+informe de comité acabó mintiendo.
 
-| # | Qué | Nota |
+### SESIÓN A — el servidor (pasos 1 y 2 de §13)
+
+**Superficie:** reglas de Firestore y `functions/`. **Ni un fichero de `src/`.**
+
+| # | Qué | La trampa |
 |---|---|---|
-| 1 | **Reglas** | `advances` y `advanceApplications` sin escritura desde cliente, **y el bloqueo de `advanceAppliedAmount` dentro de `billingStatements`** — que es lo único que protege R4 del cajón de edición manual. **No es una colección nueva: es un campo dentro de un documento que el cliente sigue editando** |
-| 2 | **Functions** | `aplicarPago` con las dos formas; callables de cruce y deshacer cruce; `sourceType: "advance"`; `bankAccountId` en **los dos** asientos; R15 en `revertirPago`; **los dos espejos de `calcularSaldo` a la vez** |
-| 3 | **Front** | reparto, vista de anticipos, saldo del residente, cuenta en el comprobante, y el «% de recaudo» de R16. Con las dos banderas apagadas |
+| 1 | **Reglas** | `advances` y `advanceApplications` sin escritura desde cliente — eso es lo fácil. Lo que hay que pensar es el **bloqueo de `advanceAppliedAmount` dentro de `billingStatements`**: **no es una colección nueva, es un campo dentro de un documento que el cliente SIGUE editando**, y es lo único que protege R4 del cajón de edición manual (CF11) |
+| 2 | **Functions** | `aplicarPago` aceptando las dos formas · `sourceType: "advance"` · callables de cruce y deshacer cruce · `bankAccountId` en **los dos** asientos (pago **y** reverso) · **R15** en `revertirPago` · y **los dos espejos de `calcularSaldo` en el mismo commit** |
 
-**Lo que hay que tener presente antes de escribir la primera línea:**
+**A está terminada cuando**, y no antes:
+
+- Typecheck en 0 en la raíz **y** con `npm --prefix functions run typecheck` (es el único que mira `functions/tests/`).
+- Las dos suites en verde, **más los guardianes nuevos**: el caso `sourceType: "advance"` en los dos espejos, y el guardián de texto ampliado.
+- **Verificado en staging contra la base**, no contra la suite: sobrepago, cruce, reversión con el anticipo `open` **y** con el anticipo cruzado, y un reintento forzado con la misma `operationKey`.
+- Las dos banderas siguen apagadas.
+
+### SESIÓN B — el front (paso 3 de §13)
+
+**Superficie:** `src/` y el árbol duplicado de la raíz. Reparto, vista de anticipos, saldo del
+residente, cuenta en el comprobante, y el **«% de recaudo» de R16**.
+
+**B no empieza hasta que A esté verificada en staging.** Y **B se cierra abriendo la pantalla
+por el navegador**, con la sesión de David: es lo que destapó los cinco defectos que 1553
+pruebas en verde no vieron.
+
+### Lo que hay que tener presente ANTES de escribir la primera línea de A
 
 - **El predicado de `esRecaudoDeCartera` NO cambia** en ninguno de los dos espejos. El de
   `functions/` recibe `sourceType?: string` sin tipar. Lo que tiene que llegar a los dos es
@@ -41,15 +61,18 @@ su §13:
 - **Ampliar el tipo es inerte.** El riesgo real es que alguien añada `category === "anticipo"`
   a la exclusión por analogía con `alicuota`: **eso sí compila y pasa las suites de hoy**. El
   guardián de texto hay que ampliarlo, porque solo comprueba que las tres ramas *estén*.
-- **El «% de recaudo» (R16) va en el paso 3, no después.** Si el cruce deja de inflar el ingreso
-  pero el porcentaje sigue leyendo `paymentAmount`, el consejo pasa de ver un ingreso inflado a
-  ver **una morosidad inventada**.
-
+- **El `systemKey` `anticipo` del plan de cuentas entra en A**, no en B. No existe, y sin él la
+  línea del anticipo queda fuera de la numeración del plan.
+- **El «% de recaudo» (R16) va en B, no después.** Si el cruce deja de inflar el ingreso pero el
+  porcentaje sigue leyendo `paymentAmount`, el consejo pasa de ver un ingreso inflado a ver
+  **una morosidad inventada**.
+- **La rama de trabajo es `develop`, y el directorio ya está en ella.** La sesión del 23 la
+  cambió desde `master` a propósito y la dejó así. Comprobarlo igual con `git status`.
 ## LO QUE SIGUE SIN HACERSE, dicho para que no se lea como hecho
 
 | Qué | Nota |
 |---|---|
-| **Empujar `develop`** | `7dc5f7f` está solo en local. Es documentación, no toca producción |
+| **Empujar `develop`** | `7dc5f7f` YA está empujado (lo hizo David). El que queda en local es `c7e0da6`, las cabeceras de estado. Es documentación, no toca producción |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` **no lo usa ninguna consulta**. Borrarlo no es urgente y tiene coste si luego se necesita |
 | Encender las banderas en producción | Ya no duplica el recaudo — eso se arregló hoy. Sigue siendo decisión de David |
 | `FIX-001` entrega 2 | Cierra la regla que deja al residente escribir reservas directo |
