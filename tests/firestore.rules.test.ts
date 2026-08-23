@@ -1617,6 +1617,13 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
    * el mismo código: la unicidad la impone la base, no una comprobación previa
    * que las dos ganan a la vez.
    *
+   * **Los códigos de aquí van del `.50` en adelante desde el 23 de agosto de
+   * 2026**, y no es cosmético: por debajo está el rango que se reserva la
+   * semilla, así que un `1.9` lo rechazaría el RANGO y estas pruebas pasarían
+   * **por el motivo equivocado** — creyendo que prueban la unicidad del id
+   * cuando probarían otra cosa. Un verde por la razón que no es vale menos que
+   * un rojo.
+   *
    * Por eso la regla exige que el id coincida con el código. Sin esa cláusula la
    * derivación es decorativa: bastaría escribir `code: "1.1"` bajo cualquier
    * otro id y habría dos cuentas 1.1 en el mismo conjunto. **Es un fallo que no
@@ -1625,9 +1632,9 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
   it("un admin crea una cuenta cuyo id coincide con su código", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(
-      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9"), {
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.60"), {
         tenantId: "tenant-a",
-        code: "1.9",
+        code: "1.60",
         name: "Eventos y salón comunal",
         type: "ingreso",
         parentCode: "1",
@@ -1641,7 +1648,7 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
     await assertFails(
       setDoc(doc(admin.firestore(), "chartOfAccounts", "otro-id-cualquiera"), {
         tenantId: "tenant-a",
-        code: "1.9",
+        code: "1.60",
         name: "Eventos, otra vez",
         type: "ingreso",
         status: "active",
@@ -1652,9 +1659,9 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
   it("un id de otro conjunto con datos de este también se rechaza", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(
-      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-b_1.9"), {
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-b_1.60"), {
         tenantId: "tenant-a",
-        code: "1.9",
+        code: "1.60",
         name: "Colada de conjunto",
         type: "ingreso",
         status: "active",
@@ -1665,9 +1672,9 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
   it("renombrar y desactivar SÍ se puede: es lo que R3 permite", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(
-      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9"), {
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.60"), {
         tenantId: "tenant-a",
-        code: "1.9",
+        code: "1.60",
         name: "Salón comunal",
         type: "ingreso",
         parentCode: "1",
@@ -1681,7 +1688,7 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
   it("mover el código dentro del mismo documento queda bloqueado (R4)", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(
-      updateDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9"), { code: "1.10" }),
+      updateDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.60"), { code: "1.62" }),
     );
   });
 
@@ -1699,7 +1706,7 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
     });
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.1")));
-    await assertSucceeds(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.9")));
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.60")));
   });
 
   /**
@@ -1732,12 +1739,12 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
     const db = admin.firestore();
     await assertSucceeds(
       runTransaction(db, async (tx) => {
-        const ref = doc(db, "chartOfAccounts", "tenant-a_1.7");
+        const ref = doc(db, "chartOfAccounts", "tenant-a_1.61");
         const actual = await tx.get(ref);
         if (actual.exists()) throw new Error("ya existe");
         tx.set(ref, {
           tenantId: "tenant-a",
-          code: "1.7",
+          code: "1.61",
           name: "Arrendamientos",
           type: "ingreso",
           parentCode: "1",
@@ -1768,6 +1775,96 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
     });
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(getDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-b_1.1")));
+  });
+
+  /**
+   * **El rango reservado.** Va en la regla y no solo en el formulario porque la
+   * siembra escribe con el SDK de admin —que no pasa por las reglas—, así que
+   * esta cláusula solo restringe lo que crea un administrador.
+   *
+   * Cierra la colisión de significado: si un conjunto ya usó la `1.9` y mañana
+   * la semilla reclama esa `1.9`, el sembrador **la salta en silencio** y ese
+   * conjunto se queda con un código que significa otra cosa que en los demás.
+   */
+  it("un admin NO puede crear una cuenta en el rango de la semilla", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.49"), {
+        tenantId: "tenant-a",
+        code: "1.49",
+        name: "Justo debajo del limite",
+        type: "ingreso",
+        parentCode: "1",
+        status: "active",
+      }),
+    );
+  });
+
+  it("y SÍ puede desde la 50 en adelante", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.50"), {
+        tenantId: "tenant-a",
+        code: "1.50",
+        name: "Cuota de piscina",
+        type: "ingreso",
+        parentCode: "1",
+        status: "active",
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_2.999"), {
+        tenantId: "tenant-a",
+        code: "2.999",
+        name: "El tope de arriba",
+        type: "egreso",
+        parentCode: "2",
+        status: "active",
+      }),
+    );
+  });
+
+  // El primer nivel es la estructura del libro. Una tercera raíz no sería ni
+  // ingreso ni egreso, y ningún informe sabría qué hacer con ella.
+  it("un admin no puede crear una cuenta de primer nivel", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_3"), {
+        tenantId: "tenant-a",
+        code: "3",
+        name: "Tercera raiz",
+        type: "ingreso",
+        status: "active",
+      }),
+    );
+  });
+
+  /**
+   * **Lo que el rango NO puede romper.** Renombrar y desactivar una cuenta de
+   * sistema es `update`, no `create`, y R3 lo permite —es la mitad de CA6—. Si
+   * la cláusula del rango se hubiera puesto en `allow create, update`, el
+   * administrador se habría quedado sin poder renombrar ninguna de las veinte
+   * cuentas de su plan, y el síntoma sería un «no tienes permiso» al cambiar un
+   * nombre.
+   */
+  it("renombrar una cuenta de sistema sigue funcionando pese al rango (R3, CA6)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chartOfAccounts", "tenant-a_1.4"), {
+        tenantId: "tenant-a",
+        code: "1.4",
+        name: "Intereses de mora",
+        type: "ingreso",
+        parentCode: "1",
+        systemKey: "interes_mora",
+        status: "active",
+      });
+    });
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "chartOfAccounts", "tenant-a_1.4"), {
+        name: "Intereses moratorios",
+      }),
+    );
   });
 
   it("un residente lee el plan pero no lo toca (CF7)", async () => {

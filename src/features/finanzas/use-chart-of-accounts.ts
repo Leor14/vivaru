@@ -6,9 +6,11 @@ import { doc, runTransaction, serverTimestamp, updateDoc } from "firebase/firest
 import { db } from "@/lib/firebase/client";
 import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
 import {
+  PRIMER_CODIGO_LIBRE,
   codigoPadreDe,
   compararCodigos,
   docIdDeCuenta,
+  esCodigoReservado,
   validarCodigoDeCuenta,
 } from "@/lib/finanzas/codigo-de-cuenta";
 
@@ -116,6 +118,21 @@ export function validarCuentaNueva(
   const formato = validarCodigoDeCuenta(valores.code);
   if (!formato.ok) return formato;
   const code = formato.code;
+
+  // El rango reservado, ANTES de mirar si el código está libre: decir «esa
+  // cuenta ya existe» sobre una que hoy está vacía pero mañana la reclama la
+  // semilla es la respuesta correcta a la pregunta equivocada.
+  if (esCodigoReservado(code)) {
+    const padre = codigoPadreDe(code);
+    return {
+      ok: false,
+      error: padre
+        ? `Los códigos hasta ${padre}.${PRIMER_CODIGO_LIBRE - 1} los reserva el plan estándar. ` +
+          `Usa ${padre}.${PRIMER_CODIGO_LIBRE} o más arriba.`
+        : "Las cuentas de primer nivel son la estructura del libro —Ingresos y Egresos— " +
+          `y no se crean. Cuelga la tuya de una de ellas, como 1.${PRIMER_CODIGO_LIBRE}.`,
+    };
+  }
 
   if (existentes.some((c) => c.code === code)) {
     return { ok: false, error: `Ya existe una cuenta con el código ${code} en este conjunto.` };

@@ -457,10 +457,23 @@ service cloud.firestore {
       // esta en `financialCounters` y en `survey_responses`, por lo mismo.
       allow read: if signedIn() && (resource == null || sameTenant(resource.data.tenantId));
 
+      // El RANGO RESERVADO, y va en la regla y no solo en el formulario a
+      // proposito: la siembra escribe con el SDK de admin, que no pasa por
+      // aqui, asi que esta linea solo restringe lo que crea un administrador.
+      //
+      // `N.50` en adelante. Por debajo se lo reserva la semilla, porque la
+      // siembra no pisa lo que existe: si un conjunto ya uso la 1.9 y manana la
+      // semilla reclama esa 1.9, el sembrador la salta EN SILENCIO y ese
+      // conjunto se queda con un codigo que significa otra cosa que en los
+      // demas — y el consolidado entre conjuntos suma mal.
+      //
+      // Segundo nivel obligatorio: el primer nivel es la estructura del libro
+      // —Ingresos y Egresos— y una tercera raiz no seria ni una cosa ni otra.
       allow create: if tenantOperable(request.resource.data.tenantId)
         && signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
         && previewModuleWritable(request.resource.data.tenantId)
-        && docId == request.resource.data.tenantId + '_' + request.resource.data.code;
+        && docId == request.resource.data.tenantId + '_' + request.resource.data.code
+        && request.resource.data.code.matches('^[1-9][0-9]{0,2}\\.([5-9][0-9]|[1-9][0-9]{2})$');
 
       // El codigo y el conjunto son inmutables; el nombre y el estado, no.
       allow update: if tenantOperable(request.resource.data.tenantId)

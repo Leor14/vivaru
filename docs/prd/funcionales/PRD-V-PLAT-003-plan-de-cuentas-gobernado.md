@@ -489,6 +489,10 @@ y validarlo es trivial. El defecto de Habitanto **no fue elegir el formato: fue 
 
 > **CERRADA el 21 ago 2026 — aceptada la opción A.** Numérico jerárquico validado, dos
 > niveles, único por conjunto e inmutable una vez usado.
+>
+> **AMPLIADA el 23 ago 2026 — rango reservado.** Las cuentas de la semilla viven en
+> `N.1`–`N.49`; **lo que crea un administrador empieza en `N.50`**, y el primer nivel no se
+> crea: es la estructura del libro. Ver D4.
 
 ### D2 · ¿El plan es por conjunto o por administradora?
 
@@ -501,6 +505,50 @@ obliga a decidir quién puede editarlo y qué pasa con un conjunto que se va de 
 
 > **CERRADA el 21 ago 2026 — aceptada.** Plan **por conjunto** en el MVP; compartido entre
 > conjuntos de una administradora en Fase 3.
+
+### D4 · ¿Qué pasa cuando la semilla quiere un código que un conjunto ya usó?
+
+**Descubierto construyendo D3, y por eso está aquí.** La siembra **no pisa lo que existe** —
+correcto, para no borrar un renombre—. Pero eso significa que si un administrador ya usó la
+`1.9` para su «Cuota de piscina» y mañana la semilla reclama esa `1.9` para la vigilancia, el
+sembrador **la salta en silencio**.
+
+Pasó de verdad, en staging, el mismo día: David creó una `1.9` a mano probando el formulario y
+horas después la vigilancia entró en la semilla justo ahí.
+
+**Dos consecuencias que no se ven hasta que duelen:**
+
+1. **El mapa concepto→código apuesta a que todos los conjuntos son iguales.**
+   `CUENTA_POR_CONCEPTO` dice «vigilancia es la 1.9» para todo el mundo, así que en ese
+   conjunto el cargo de vigilancia caería en la cuenta de piscina.
+2. **El consolidado entre conjuntos** de `PRD-V-PLAT-002` Fase 3 agrupa por código: sumar dos
+   `1.9` que significan cosas distintas **da una cifra falsa** — el defecto de Habitanto que
+   esta PRD existe para impedir, reproducido por nuestra propia semilla.
+
+| Opción | Qué implica |
+|---|---|
+| **A — Rango reservado** | La semilla vive en `N.1`–`N.49`; el administrador crea de `N.50` en adelante. La colisión **no puede ocurrir** |
+| B — Detectar y exigir resolución al sembrar | Un chequeo en tiempo de ejecución, que pide intervención humana y que en el alta nunca puede saltar (plan vacío) |
+| C — Que el concepto resuelva a `systemKey` y de ahí al código del conjunto | Lo correcto en abstracto, pero obliga a `aplicarPago` a leer el plan del conjunto dentro de la transacción, y le quita a `plan-de-cuentas.ts` el ser puro |
+
+> **CERRADA el 23 ago 2026 — aceptada la opción A.** Es la misma decisión que el id derivado
+> (§11.1): **que lo garantice la construcción, no un chequeo que alguien puede olvidar.** El
+> precio es que un administrador escriba `1.50` en vez de `1.9`.
+>
+> Va en el formulario **y en la regla de Firestore**, porque la siembra escribe con el SDK de
+> admin y no pasa por las reglas: la cláusula solo restringe lo que crea un administrador. Va
+> solo en `create` — ponerla también en `update` habría dejado al administrador **sin poder
+> renombrar ninguna** de las veinte cuentas de su plan, y R3 y CA6 dependen de eso.
+>
+> **El contrato tiene dos direcciones y las dos están vigiladas:** una prueba impide que el
+> administrador entre en el rango de la semilla, y otra impide que **la semilla se salga del
+> suyo**. La segunda es la que se rompería callando.
+
+**Lo que esto NO resuelve, y hay que escribirlo para `PRD-V-PLAT-002` Fase 3:** el consolidado
+entre conjuntos debe agrupar por **`systemKey`**, nunca por código. El código es la identidad
+**dentro** de un conjunto; el `systemKey` es la identidad **entre** conjuntos. Una cuenta creada
+a mano no tiene `systemKey` — y es correcto que no se consolide: no se puede sumar la «Cuota de
+piscina» de un conjunto con la «Cuota de gimnasio» de otro porque las dos sean la `1.50`.
 
 ### D3 · ¿La vigilancia tiene cuenta propia?
 

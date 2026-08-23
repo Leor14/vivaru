@@ -81,6 +81,26 @@ describe("la semilla", () => {
    * punto de fabricarla: su ingreso lleva `cuota_vigilancia` y su egreso
    * `vigilancia` justo por esto.
    */
+  /**
+   * **La otra mitad del rango reservado.** El formulario y la regla impiden que
+   * un administrador use `N.1`–`N.49`; esto impide que la semilla se salga de
+   * ahi. Sin esta prueba el contrato es una promesa de una sola direccion, y la
+   * que se rompe callando es justo esta: anadir una cuenta 1.50 a la semilla
+   * chocaria con la que un conjunto ya creo, que es el defecto que el rango
+   * existe para cerrar — pero al reves.
+   */
+  it("la semilla se queda DENTRO de su rango: nada por encima de .49", () => {
+    for (const cuenta of SEMILLA_PLAN_DE_CUENTAS) {
+      const punto = cuenta.code.indexOf(".");
+      if (punto === -1) continue; // las dos raices
+      const nivel2 = Number(cuenta.code.slice(punto + 1));
+      expect(
+        nivel2,
+        `«${cuenta.code} ${cuenta.name}» invade el rango del administrador (.50+)`,
+      ).toBeLessThan(50);
+    }
+  });
+
   it("no hay dos cuentas con el mismo systemKey", () => {
     const claves = SEMILLA_PLAN_DE_CUENTAS.filter((c) => c.systemKey).map((c) => c.systemKey);
     expect(new Set(claves).size, `claves repetidas en la semilla: ${claves.join(", ")}`).toBe(

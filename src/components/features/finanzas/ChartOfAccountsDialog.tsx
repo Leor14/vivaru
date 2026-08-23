@@ -17,7 +17,7 @@ import {
   type ChartAccount,
   type TipoDeCuenta,
 } from "@/features/finanzas/use-chart-of-accounts";
-import { codigoPadreDe } from "@/lib/finanzas/codigo-de-cuenta";
+import { PRIMER_CODIGO_LIBRE, codigoPadreDe } from "@/lib/finanzas/codigo-de-cuenta";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 
 /**
@@ -223,7 +223,7 @@ export function ChartOfAccountsDialog({
               value={code}
               disabled={Boolean(editing)}
               onChange={(event) => setCode(event.target.value)}
-              placeholder="1.9"
+              placeholder={`1.${PRIMER_CODIGO_LIBRE}`}
             />
             <p className="mt-1 text-xs text-[var(--slate-500)]">
               {editing
@@ -232,7 +232,7 @@ export function ChartOfAccountsDialog({
                   ? `Colgará de ${cuentaPadre.code} — ${cuentaPadre.name}.`
                   : padre
                     ? `Para crear la ${code.trim()} tiene que existir antes la cuenta ${padre}.`
-                    : "Un nivel (1) o dos (1.2). Sin ceros a la izquierda."}
+                    : `Cuelga de una cuenta existente y va de ${PRIMER_CODIGO_LIBRE} en adelante — los números por debajo los reserva el plan estándar.`}
             </p>
           </div>
 
