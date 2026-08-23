@@ -1,6 +1,7 @@
 "use client";
 
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
+import { ChartOfAccountsDialog } from "@/components/features/finanzas/ChartOfAccountsDialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangle,
@@ -37,6 +38,7 @@ import {
   movimientoEntraAlFondo,
 } from "@/features/finanzas/use-ledger";
 import { buildFinancialStatement } from "@/features/finanzas/financial-statement";
+import { useChartOfAccounts } from "@/features/finanzas/use-chart-of-accounts";
 import { ledgerEntrySchema, type LedgerEntryFormValues } from "@/features/finanzas/schemas";
 import { useAuth } from "@/features/auth/auth-context";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
@@ -60,6 +62,7 @@ function AdminFinanzasLibroPageContent() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeletion, setPendingDeletion] = useState<LedgerEntry | null>(null);
   // FIN-001. Revertir un PAGO no es lo mismo que anular un asiento: hay que
@@ -129,6 +132,21 @@ function AdminFinanzasLibroPageContent() {
   // Encendida, es el MISMO total repartido por concepto, y cada uno tiene su
   // línea. La suma no cambia (CA11): son los mismos cargos, solo agrupados.
   const conceptoAlLibro = useFeatureFlag("producto-concepto-al-libro");
+
+  // Entrega 2. La bandera gobierna SOLO la edición: el plan sembrado sigue ahí y
+  // los informes lo seguirán usando aunque esté apagada (ver `alApagar` en el
+  // catálogo).
+  //
+  // La suscripción va CONDICIONADA a la bandera —pasando `undefined` en vez de
+  // envolver el hook, que no se puede— porque hoy el único que lee el plan es
+  // este diálogo. Con la bandera apagada sería un listener abierto sobre una
+  // colección que nadie mira. Cuando R9 llegue y los informes lean los nombres
+  // de las cuentas, esto tendrá que salir de la bandera: entonces sí hará falta
+  // siempre.
+  const planDeCuentas = useFeatureFlag("producto-plan-de-cuentas");
+  const { accounts: chartAccounts } = useChartOfAccounts(
+    planDeCuentas ? user?.tenantId : undefined,
+  );
   const recaudo = useMemo(() => repartirRecaudo(statements), [statements]);
   const cuotaIncome = recaudo.total;
   const cuotaParaEstado = conceptoAlLibro ? recaudo : recaudo.total;
@@ -350,6 +368,12 @@ function AdminFinanzasLibroPageContent() {
             <FileSpreadsheet className="mr-2 h-4 w-4" />
             Estado financiero
           </Button>
+          {planDeCuentas ? (
+            <Button className="w-full sm:w-auto" variant="outline" onClick={() => setPlanOpen(true)}>
+              <BookOpen className="mr-2 h-4 w-4" />
+              Plan de cuentas
+            </Button>
+          ) : null}
           <Button className="w-full sm:w-auto" onClick={openCreate}>
             <IconBadge tone="mint" className="mr-2">
               <Plus className="h-4 w-4" />
@@ -591,6 +615,16 @@ function AdminFinanzasLibroPageContent() {
           </div>
         </div>
       </Modal>
+
+      {planDeCuentas && user?.tenantId && user?.uid ? (
+        <ChartOfAccountsDialog
+          open={planOpen}
+          tenantId={user.tenantId}
+          userId={user.uid}
+          accounts={chartAccounts}
+          onClose={() => setPlanOpen(false)}
+        />
+      ) : null}
 
       <ConfirmDeleteDialog
         open={Boolean(pendingDeletion)}
