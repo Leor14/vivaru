@@ -91,6 +91,19 @@ export type AplicarPagoInput = {
    */
   payerName?: string | null;
   payerTaxId?: string | null;
+  /**
+   * **D-C, R11.** A qué cuenta bancaria entró el dinero.
+   *
+   * Hasta hoy el asiento se escribía con `bankAccountId: null` **fijo**, así que
+   * la conciliación tenía que adivinar por importe y fecha: dos cuotas iguales
+   * pagadas el mismo día eran indistinguibles. Cero pagos de cero tenían cuenta
+   * identificada, y no porque nadie la escribiera — porque el campo no existía.
+   *
+   * Opcional a propósito: **el efectivo no entra a ninguna cuenta** (R11 dice
+   * «salvo efectivo»), y forzarlo obligaría a inventarse una cuenta falsa, que
+   * es peor que no tener el dato.
+   */
+  bankAccountId?: string | null;
 };
 
 export type AplicarPagoResultado = {
@@ -318,6 +331,36 @@ export async function aplicarPago(
       perfil = (ajustesSnap.data() as AjustesTenant | undefined)?.fiscalProfile ?? null;
     }
 
+    // La cuenta bancaria se COMPROBA, no se copia tal cual.
+    //
+    // El objetivo entero de D-C es que la conciliación deje de adivinar; un id
+    // que no existe, o peor, el de OTRO conjunto, escribiría un asiento que
+    // parece conciliable y no lo es — y eso es peor que el `null` de antes,
+    // porque el `null` al menos se ve. La comprobación de conjunto es la misma
+    // que ya se le hace a la cuota y al comprobante unas líneas más arriba.
+    //
+    // Va aquí, con el resto de lecturas, porque una transacción de Firestore no
+    // admite leer después de escribir.
+    let cuentaBancariaId: string | null = null;
+    const bankAccountIdCrudo = typeof input.bankAccountId === "string" ? input.bankAccountId.trim() : "";
+    if (bankAccountIdCrudo) {
+      const cuentaSnap = await tx.get(firestore.collection("bankAccounts").doc(bankAccountIdCrudo));
+      if (!cuentaSnap.exists) {
+        throw new HttpsError("not-found", "Esa cuenta bancaria no existe.");
+      }
+      const cuentaBancaria = cuentaSnap.data() as { tenantId?: string; active?: boolean };
+      if (cuentaBancaria.tenantId && cuentaBancaria.tenantId !== tenantId) {
+        throw new HttpsError("permission-denied", "Esa cuenta bancaria pertenece a otro conjunto.");
+      }
+      // Una cuenta dada de baja no recibe dinero nuevo. No se bloquea la
+      // reversión de lo que ya entró por ella: el reverso COPIA la del asiento
+      // original y no vuelve a pasar por aquí.
+      if (cuentaBancaria.active === false) {
+        throw new HttpsError("failed-precondition", "Esa cuenta bancaria está inactiva.");
+      }
+      cuentaBancariaId = bankAccountIdCrudo;
+    }
+
     // ── Aritmética, en el servidor ───────────────────────────────────────────
     const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
     const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
@@ -361,7 +404,9 @@ export async function aplicarPago(
       // categoría si falta. Escribirlo ya cambiaría lo que se muestra, que es
       // justo lo que la bandera existe para gobernar.
       ...(conceptoAlLibro ? { accountCode: resolucion.code } : {}),
-      bankAccountId: null,
+      // D-C. `null` cuando no viene: es efectivo, o un cobro registrado sin
+      // decir por dónde entró. Lo que ya no ocurre es que sea `null` SIEMPRE.
+      bankAccountId: cuentaBancariaId,
       sourceType: "billingStatement",
       // El asiento guarda SU clave de operación. Sin esto la reversión no es
       // direccionable: la marca de idempotencia sabe cuál es su asiento, pero
@@ -688,7 +733,7 @@ export async function revertirPago(
     // incremento. Sin R13, encender `producto-concepto-al-libro` arregla el
     // cobro y rompe la reversión.
     const asientoOriginal = asientoSnap?.data() as
-      | { category?: string; accountCode?: string; sourceType?: string }
+      | { category?: string; accountCode?: string; sourceType?: string; bankAccountId?: string | null }
       | undefined;
 
     tx.set(reversoRef, {
@@ -702,7 +747,20 @@ export async function revertirPago(
       // los asientos viejos, que no tienen categoría propia.
       category: asientoOriginal?.category ?? "alicuota",
       ...(asientoOriginal?.accountCode ? { accountCode: asientoOriginal.accountCode } : {}),
-      bankAccountId: null,
+      // **D-C, el segundo de los dos.** La PRD nombraba solo el de `aplicarPago`;
+      // arreglar ese y dejar este deja **el reverso sin cuenta bancaria**, justo
+      // en la operación que más importa cuadrar.
+      //
+      // Se COPIA la del asiento que se anula, igual que ya se copian la
+      // categoría (R7) y el origen (R13), y por la misma razón: hay que deshacer
+      // **el asiento que se escribió**, no el que se escribiría hoy. Si el
+      // reverso cayera en otra cuenta, la conciliación vería un positivo en una
+      // y un negativo en otra, y **las dos estarían mal**.
+      //
+      // No cuesta una lectura extra: `asientoSnap` ya está leído aquí arriba.
+      // `null` cuando no hay asiento que leer —pagos anteriores a `FIN-001`—:
+      // no se inventa una cuenta que nunca se registró.
+      bankAccountId: asientoOriginal?.bankAccountId ?? null,
       sourceType: "reversal",
       // R13. Se escribe SIEMPRE, con bandera o sin ella: hoy no cambia nada
       // —el reverso ya se excluye por su categoría— y el día que la bandera se

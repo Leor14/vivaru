@@ -649,6 +649,12 @@ export async function applyPaymentCallable(input: {
   /** Quién pagó, para el recibo. Solo los usa el cobro manual. */
   payerName?: string | null;
   payerTaxId?: string | null;
+  /**
+   * **D-C.** A qué cuenta bancaria entró el dinero. El servidor comprueba que
+   * exista, que sea de este conjunto y que esté activa; si no viene, el asiento
+   * queda con `null`, que es lo correcto para el efectivo (R11).
+   */
+  bankAccountId?: string | null;
 }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<
