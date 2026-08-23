@@ -2271,6 +2271,7 @@ const BILLING_CONCEPT_LABELS = {
     reparacion: "Reparación / daño",
     interes_mora: "Interés de mora",
     parqueadero: "Parqueadero / amenidad",
+    vigilancia: "Vigilancia / seguridad",
     otro: "Otro",
 };
 // Cobro nuevo individual. Los cobros de una importación masiva (source="import")

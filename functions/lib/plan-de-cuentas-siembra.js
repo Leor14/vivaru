@@ -25,7 +25,7 @@ exports.sembrarPlanDeCuentas = sembrarPlanDeCuentas;
 const firestore_1 = require("firebase-admin/firestore");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 /**
- * Escribe las 18 cuentas del plan estándar del conjunto, saltándose las que ya
+ * Escribe las 20 cuentas del plan estándar del conjunto, saltándose las que ya
  * existan. Devuelve el reparto para poder registrarlo en la auditoría del alta.
  *
  * Si se pasa un `batch`, las escrituras se acumulan en él y **no se hace commit**

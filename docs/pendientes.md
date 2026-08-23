@@ -231,17 +231,51 @@ Cerrarla pide una prueba con emulador que lea un documento existente dentro de l
 cuentas**, la `1.3` se llama «Multas multiples» y está inactiva, y existe una `1.9` «Cuota de
 vigilancia» creada a mano. Es residuo de validación, no datos rotos.
 
-### La decisión de la vigilancia son DOS, no una
+### La vigilancia — D3 CERRADA, las dos aceptadas (`0148bee`)
 
-Salió del nombre que David le puso a la cuenta de prueba: la llamó **«Cuota de vigilancia»** y
-la creó como **ingreso**. Eso separa lo que este documento tenía como un solo hueco:
+Eran **dos** decisiones y no una, y se vio porque David, al probar el formulario, creó a mano
+una cuenta y la llamó «Cuota de vigilancia» — como **ingreso**.
 
-| Lado | Hoy | Qué falta decidir |
-|---|---|---|
-| **Ingreso** — la cuota que se le cobra al residente por vigilancia | No existe en la semilla, ni como concepto de cargo | ¿Cuenta propia, o es una `extraordinaria`/`otro`? Si lleva cuenta, ¿lleva también `BillingConcept`? |
-| **Egreso** — lo que se le paga a la empresa de seguridad | Cae en `proveedores` (`2.4`), que es lo correcto disponible | ¿Cuenta propia `2.9`? Eso toca `ExpenseCategory` y el conteo de CA1 |
+| Lado | Qué quedó |
+|---|---|
+| **Ingreso** — la cuota que se cobra al residente | `1.9 Cuotas de vigilancia`, **con `BillingConcept` propio**. La cuenta sola no servía: sin concepto habría que cobrar como `otro`, que resuelve a «Otros ingresos», y la cuenta nueva se quedaría vacía para siempre |
+| **Egreso** — lo que se le paga a la empresa | `2.9 Vigilancia y seguridad`. Salía de «Proveedores», donde la mayor partida del presupuesto quedaba con los insumos de limpieza |
 
-**Las dos hay que cerrarlas antes de tocar producción.** Ninguna bloquea ya staging.
+**Lo que casi fabrica el defecto que R11 previene:** las dos **NO** comparten `systemKey` —el
+ingreso lleva `cuota_vigilancia` y el egreso `vigilancia`—. `LedgerCategory` incluye a
+`ExpenseCategory`, así que una sola clave haría que `cuentaPorSystemKey` devolviera una u otra
+**según el orden del array**. Prueba nueva que exige que ninguna clave se repita.
+
+**Van detrás de «Otros» (1.9 y 2.9) y leído en orden queda raro.** Renumerar `otros_ingresos`
+saldría gratis hoy —producción no tiene ni un plan sembrado—, y **no se hace**: R3 dice que una
+cuenta de sistema no se renumera y el código ES la identidad. El precio de no renumerar nunca es
+que «Otros» deje de ir al final.
+
+**CA1 se movió con ellas: 18 cuentas con `systemKey` y 20 documentos** (antes 16 y 18).
+Actualizado en la PRD, en los comentarios de la semilla, en el script y en los seis conteos.
+
+**Catorce sitios**, contados antes de escribir. El typecheck encontró tres que el inventario no
+—el esquema de zod y dos mapas de etiquetas—, y por eso se tocó el tipo primero.
+
+### Un hueco NUEVO que abrió esta decisión, y que no es de staging
+
+**La semilla puede reclamar un código que un conjunto ya usó a mano, y lo salta en silencio.**
+Pasó el mismo día: la `1.9` de `conjunto-las-playas` la había creado David probando el
+formulario —«Cuota de vigilancia», sin `systemKey`—, y horas después la vigilancia entró en la
+semilla justo en esa `1.9`. El sembrador **no pisa nada**, que protege los renombres, pero
+**acepta callando una colisión de significado**.
+
+**En producción es peor de lo que parece:** el consolidado entre conjuntos de `PRD-V-PLAT-002`
+Fase 3 agrupa **por código**, así que dos conjuntos con el mismo número significando cosas
+distintas dan una cifra falsa — que es exactamente el defecto que esta PRD existe para impedir.
+
+**Mitigado a medias:** `sembrar-plan-de-cuentas.mjs` ahora lo **denuncia** en vez de dejarlo en
+el conteo. Lo que NO está resuelto es el caso general —qué debe hacer el producto cuando la
+semilla quiere un código ocupado—; hay al menos dos salidas (reservar un rango para las cuentas
+de sistema, o obligar a resolver la colisión antes de sembrar) y ninguna está decidida.
+
+**Y queda una tercera decisión de la misma familia, sin abrir:** el plan estándar es **el mismo
+para México, Colombia y Ecuador**. No se ha mirado si el vocabulario contable difiere por país.
 
 ### `PLAT-003` paso 3 — R9 y las dos pantallas
 
