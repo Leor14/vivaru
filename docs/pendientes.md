@@ -81,7 +81,7 @@ ANTES de sembrar, porque sembrar la congela:
 | **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
 | **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **VALIDADO A MANO en staging, las 6 comprobaciones.** `06edf29` + el arreglo de reglas `0bbf6cf` |
 | **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | **CONSTRUIDO** — `437a52c` + `3b1a643`, en staging. **Sin mirar** |
-| **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
+| **4** | Sembrar en los conjuntos existentes | **DESCARTADO en producción** — ver abajo: 0 planes y 9 conjuntos de prueba, medido. En staging ya está |
 
 **Paso 1, qué entró** (`8018a3b`): los tipos ya declaraban `accountCode` desde 1b; **lo que no
 existía era nadie que lo escribiera**. Ahora se estampa al generar el cargo y al registrar el
@@ -269,13 +269,49 @@ semilla justo en esa `1.9`. El sembrador **no pisa nada**, que protege los renom
 Fase 3 agrupa **por código**, así que dos conjuntos con el mismo número significando cosas
 distintas dan una cifra falsa — que es exactamente el defecto que esta PRD existe para impedir.
 
-**Mitigado a medias:** `sembrar-plan-de-cuentas.mjs` ahora lo **denuncia** en vez de dejarlo en
-el conteo. Lo que NO está resuelto es el caso general —qué debe hacer el producto cuando la
-semilla quiere un código ocupado—; hay al menos dos salidas (reservar un rango para las cuentas
-de sistema, o obligar a resolver la colisión antes de sembrar) y ninguna está decidida.
+**CERRADO — D4, rango reservado (`ad23fc3`).** No se eligió «detectarlo mejor»: se eligió que
+**no pueda ocurrir**. La semilla vive en `N.1`–`N.49` y el administrador crea de `N.50` en
+adelante, así que la semilla puede crecer para siempre sin pisar a nadie. Misma decisión que el
+id derivado: **que lo garantice la construcción, no un chequeo que alguien puede olvidar.**
 
-**Y queda una tercera decisión de la misma familia, sin abrir:** el plan estándar es **el mismo
-para México, Colombia y Ecuador**. No se ha mirado si el vocabulario contable difiere por país.
+Cuatro cosas de esa implementación que no son obvias:
+
+1. **La comprobación NO va en `validarCodigoDeCuenta`.** Aquella dice si el código está bien
+   FORMADO, y las veinte cuentas de la semilla lo están. Mezclarlas haría que la propia semilla
+   no pasara su validador.
+2. **Va también en la regla**, porque la siembra escribe con el SDK de admin y no pasa por las
+   reglas. Desplegada y **verificada leyendo el ruleset vivo**, no el «Deploy complete».
+3. **Solo en `create`.** En `update` habría dejado al administrador **sin poder renombrar
+   ninguna** de las veinte cuentas — R3 y CA6 dependen de eso, y el síntoma habría sido «no
+   tienes permiso» al cambiar un nombre. Hay prueba que lo fija.
+4. **El primer nivel no se crea:** el libro tiene dos lados y una tercera raíz no sería ni una
+   cosa ni otra.
+
+**Y el contrato tiene dos direcciones, las dos vigiladas:** una prueba impide que el
+administrador entre en el rango de la semilla, y otra impide que **la semilla se salga del
+suyo**. La segunda es la que se rompería callando.
+
+**Cuatro pruebas de reglas anteriores usaban `1.9` y `1.7` y se movieron al rango libre.** No es
+cosmético: el rango las habría rechazado y **habrían pasado por el motivo equivocado**, creyendo
+probar la unicidad del id. Un verde por la razón que no es vale menos que un rojo.
+
+**Lo que esto NO resuelve, y queda escrito para `PRD-V-PLAT-002` Fase 3:** el consolidado entre
+conjuntos debe agrupar por **`systemKey`**, nunca por código. El código es la identidad DENTRO
+de un conjunto; el `systemKey`, ENTRE conjuntos.
+
+### Lo que se decidió NO hacer, y por qué (medido)
+
+**El paso 4 en producción — sembrar los nueve conjuntos que ya existen — no se hace.** Medido el
+23 de agosto leyendo `hogaru-1`: **0 documentos en `chartOfAccounts` y 9 conjuntos**, y por sus
+nombres son todos de prueba (`Tenant E2E Resident Password`, dos `expired`, uno `suspended`).
+Todo conjunto nuevo nace sembrado desde la 1b, así que sembrar esos nueve es **trabajo sin
+lector**, y encima congelaría sus renombres antes de que exista un cliente real que los
+renombre. Si alguno pasa a ser real, se siembra ese: el script existe y es idempotente.
+
+**El plan por país queda APARCADO a propósito.** El plan estándar es el mismo para México,
+Colombia y Ecuador y no se ha mirado si el vocabulario contable difiere. Con cero clientes
+reales la decisión se toma mejor cuando llegue el primero de cada país y su contador diga cómo
+llama a las cosas. Existe `src/lib/config/vocabulario-pais.ts` para cuando toque.
 
 ### `PLAT-003` paso 3 — R9 y las dos pantallas
 
