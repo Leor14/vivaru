@@ -89,6 +89,14 @@ export function RecordPaymentModal({ open, statement, onClose }: RecordPaymentMo
       });
       setCreatedVoucher({ id: result.voucherId, code: result.voucherCode });
       toast.success(`Cobro registrado. Recibo ${result.voucherCode}.`);
+      // R8. Va DESPUÉS del éxito y como aviso, no como error: el cobro se
+      // aplicó y el dinero no se perdió —cayó en «Otros ingresos»—. Decirlo
+      // como fallo haría dudar de un pago que está bien.
+      if (result.cayoEnOtrosIngresos) {
+        toast.warning(
+          "El concepto de este cargo no tiene cuenta en el plan, así que el ingreso quedó en «Otros ingresos». Créale su cuenta si vas a cobrarlo seguido.",
+        );
+      }
     } catch (error) {
       toastFirebaseError(error);
     } finally {

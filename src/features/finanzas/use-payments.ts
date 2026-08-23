@@ -110,7 +110,13 @@ export async function recordPayment(
   tenantId: string,
   userId: string,
   input: RecordPaymentInput,
-): Promise<{ voucherId: string; ledgerEntryId: string; voucherCode: string }> {
+): Promise<{
+  voucherId: string;
+  ledgerEntryId: string;
+  voucherCode: string;
+  /** R8 — el concepto no tenía cuenta y el asiento cayó en «Otros ingresos». */
+  cayoEnOtrosIngresos: boolean;
+}> {
   if (input.amount <= 0) {
     throw new Error("El monto del cobro debe ser mayor a cero.");
   }
@@ -137,5 +143,6 @@ export async function recordPayment(
     voucherId: aplicado.voucherId,
     ledgerEntryId: aplicado.ledgerEntryId,
     voucherCode: aplicado.voucherCode,
+    cayoEnOtrosIngresos: aplicado.cayoEnOtrosIngresos === true,
   };
 }

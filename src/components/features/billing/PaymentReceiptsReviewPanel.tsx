@@ -110,7 +110,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
     }
     setPendingActionId(receipt.id);
     try {
-      await approveReceiptAndRegisterPayment({
+      const aplicado = await approveReceiptAndRegisterPayment({
         tenantId,
         receiptId: receipt.id,
         statementId: receipt.statementId,
@@ -123,6 +123,12 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
         operationKey: `receipt:${receipt.id}`,
       });
       toast.success("Pago registrado y comprobante aprobado.");
+      // R8, igual que en el cobro manual: aviso, no error. El pago quedó bien.
+      if (aplicado.cayoEnOtrosIngresos) {
+        toast.warning(
+          "El concepto de este cargo no tiene cuenta en el plan, así que el ingreso quedó en «Otros ingresos». Créale su cuenta si vas a cobrarlo seguido.",
+        );
+      }
       void archiveReceipt(receipt);
 
       // Si el monto se ajustó respecto a lo declarado y el admin lo pidió, avisar al residente.

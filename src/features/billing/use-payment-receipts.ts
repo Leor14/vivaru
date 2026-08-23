@@ -115,7 +115,7 @@ export async function approveReceiptAndRegisterPayment(input: {
    * contra el doble cobro no sirve de nada.
    */
   operationKey: string;
-}): Promise<void> {
+}): Promise<{ cayoEnOtrosIngresos: boolean }> {
   // Ya no escribe nada directamente. Antes actualizaba la cuota y marcaba el
   // comprobante en un batch —atómico entre esos dos, sí— pero **no tocaba el
   // libro contable**: el dinero se movía en cartera y nunca llegaba a la
@@ -124,7 +124,7 @@ export async function approveReceiptAndRegisterPayment(input: {
   //
   // Ahora el servidor hace las tres cosas en una transacción. Ver
   // `functions/src/payments.ts`.
-  await applyPaymentCallable({
+  const aplicado = await applyPaymentCallable({
     tenantId: input.tenantId,
     statementId: input.statementId,
     amount: input.amount,
@@ -134,6 +134,9 @@ export async function approveReceiptAndRegisterPayment(input: {
     receiptId: input.receiptId,
     ...(input.reviewerName ? { reviewerName: input.reviewerName } : {}),
   });
+
+  // R8. Esta vía devolvía `void`, así que el aviso no tenía por dónde salir.
+  return { cayoEnOtrosIngresos: aplicado.cayoEnOtrosIngresos === true };
 }
 
 /**

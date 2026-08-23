@@ -668,6 +668,22 @@ export async function applyPaymentCallable(input: {
        */
       voucherId?: string;
       voucherCode?: string;
+      /**
+       * **R8.** `true` cuando el concepto del cargo no tenía cuenta equivalente
+       * y el asiento cayó en «Otros ingresos». El servidor lo devuelve desde la
+       * 1b-ii; hasta el 23 de agosto de 2026 **ni siquiera estaba declarado
+       * aquí**, así que el dato llegaba al navegador y moría en el tipo.
+       *
+       * No es un error: R8 dice que un concepto desconocido **nunca se
+       * descarta**. Es un aviso, y por eso el servidor lo distingue en vez de
+       * tragárselo — un ingreso mal clasificado no se nota hasta que alguien
+       * cuadra el estado financiero y le sobra dinero en «Otros».
+       *
+       * Solo puede venir con la bandera `producto-concepto-al-libro` encendida:
+       * apagada, todo asiento se escribe como `alicuota` y no hay resolución
+       * que pueda caer por defecto.
+       */
+      cayoEnOtrosIngresos?: boolean;
     }
   >(functions, "applyPayment");
   return executeCallable(callable, input, "No fue posible registrar el cobro.");
