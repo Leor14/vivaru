@@ -53,10 +53,39 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 | [PRD-V-FLOW-001 — Prorrateo de un gasto entre las unidades](funcionales/PRD-V-FLOW-001-prorrateo-de-un-gasto-entre-unidades.md) | **Lista para desarrollo** (1.0, 21 ago 2026) — **secuencia: después de `PLAT-001`** | Tanda 2. Une egreso y cartera, que hoy **no se hablan**: no existe puente `Expense`→`BillingStatement`. Incluye **anular una corrida entera**, que hoy tampoco existe. **Bloqueada por `PRD-V-PLAT-001`**. Cerradas: concepto elegido de los siete existentes con `extraordinaria` por defecto (**sin ampliar `BillingConcept`**) · reparto a subconjunto fuera del MVP |
 | [PRD-V-FLOW-002 — Anticipos y aplicación del pago a varios cargos](funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Tanda 2. Tres defectos medidos en `functions/src/payments.ts`: **el sobrepago se evapora** (`balance = max(0, cobrado − pagado)`, y el excedente se contabiliza como ingreso sin dejar saldo a favor), **un pago solo aplica a un cargo**, y **el asiento se escribe con `bankAccountId: null` fijo**. El cambio de firma de `aplicarPago` es **aditivo** para no romper producción. Cerradas: el anticipo es ingreso del mes en que entra, **en su propia línea** · la imputación la decide la administración. **Trampa documentada**: si `anticipo` se excluye del libro como se excluye `alicuota` (`use-ledger.ts:220`), el anticipo desaparece del estado financiero |
 | [PRD-V-FEAT-003 — Registro de proveedores y beneficiarios](funcionales/PRD-V-FEAT-003-registro-de-proveedores.md) | **En desarrollo** — **MVP construido y en staging** (`996de59`, 21 ago): colección `vendors` con lectura solo de administración y `delete: if false` (5 pruebas de reglas), registro con datos bancarios y categoría por defecto, selector en el egreso con copia congelada. Bandera `producto-registro-proveedores` APAGADA. Falta fase 2 (vincular egresos viejos, estado de cuenta por proveedor, descarga de soportes) | Tanda 3. Hoy **el proveedor no existe como entidad**: `Expense.vendorName` es texto libre y se reteclea en cada egreso. Añade registro, **datos bancarios**, categoría por defecto y estado de cuenta por proveedor. **Restricción dura**: los datos bancarios de un tercero no se muestran al residente nunca. Cerrada: un solo registro con `type` obligatorio; los de tipo `empleado` entran en la política de retención |
-| [PRD-V-PLAT-003 — Plan de cuentas gobernado y el concepto que llega al libro](funcionales/PRD-V-PLAT-003-plan-de-cuentas-gobernado.md) | **Lista para desarrollo** (**1.1**, 22 ago 2026) | Tanda 3. **La 1.1 corrige dos huecos hallados al leer el código antes de construir: la semilla de trece no cubría tres de los siete conceptos de cargo —`multa` incluida, que es el ejemplo de su propia métrica de éxito— y escribir la cuenta del concepto **duplicaba el ingreso**, porque la exclusión de `use-ledger.ts:220` mira `category === "alicuota"` y `cuotaIncome` ya suma todos los cargos. La exclusión pasa a mirar el origen del asiento. Dos problemas medidos: el vocabulario contable vive **en ocho ficheros** con dos mapas de etiquetas que ya discrepan, y **`aplicarPago`/`revertirPago` escriben `category: "alicuota"` fijo** (`payments.ts` 266 y 578) — una multa, una extraordinaria o un parqueadero se contabilizan todos como cuota de administración. **Habilita el consolidado entre conjuntos de `PLAT-002`.** Cerradas: código numérico jerárquico validado e inmutable una vez usado · plan por conjunto en el MVP. **Alcance movido**: la bitácora transversal de anulaciones pasa a Fase 2 de esta PRD y las notas de crédito/débito, al backlog |
+| [PRD-V-PLAT-003 — Plan de cuentas gobernado y el concepto que llega al libro](funcionales/PRD-V-PLAT-003-plan-de-cuentas-gobernado.md) | **En desarrollo** — **entregas 1b y 2 COMPLETAS y en staging** (23 ago 2026). 1b validada a mano por David con números; la entrega 2 son `accountCode` en cargo y egreso, el formulario del plan (validado a mano, 6/6), R9 con las etiquetas saliendo del plan, los ingresos por cuenta en el informe de comité y el aviso de R8. **Sin desplegar a producción**, que es lo que desbloquea `FLOW-002`. Dos decisiones nuevas cerradas: **D3** (la vigilancia son dos cuentas, `1.9` ingreso y `2.9` egreso) y **D4** (rango reservado: la semilla vive en `N.1`–`N.49`, el administrador crea de `N.50`). CA1 pasa a **18 cuentas con `systemKey` y 20 documentos** | Tanda 3. **La 1.1 corrige dos huecos hallados al leer el código antes de construir: la semilla de trece no cubría tres de los siete conceptos de cargo —`multa` incluida, que es el ejemplo de su propia métrica de éxito— y escribir la cuenta del concepto **duplicaba el ingreso**, porque la exclusión de `use-ledger.ts:220` mira `category === "alicuota"` y `cuotaIncome` ya suma todos los cargos. La exclusión pasa a mirar el origen del asiento. Dos problemas medidos: el vocabulario contable vive **en ocho ficheros** con dos mapas de etiquetas que ya discrepan, y **`aplicarPago`/`revertirPago` escriben `category: "alicuota"` fijo** (`payments.ts` 266 y 578) — una multa, una extraordinaria o un parqueadero se contabilizan todos como cuota de administración. **Habilita el consolidado entre conjuntos de `PLAT-002`.** Cerradas: código numérico jerárquico validado e inmutable una vez usado · plan por conjunto en el MVP. **Alcance movido**: la bitácora transversal de anulaciones pasa a Fase 2 de esta PRD y las notas de crédito/débito, al backlog |
 | [PRD-V-FEAT-004 — Estado de cuenta de la unidad y certificado de paz y salvo](funcionales/PRD-V-FEAT-004-estado-de-cuenta-y-paz-y-salvo.md) | **Lista para desarrollo** (1.0, 21 ago 2026) | Tanda 4. Hay PDF de recibo (`recibo-pdf.ts`) y **ninguno de estado de cuenta**; «certificado» solo aparece en los textos legales, referido al borrado de datos. **La condición «saldo cero» se evalúa en el servidor**: es el ejemplo de libro de por qué existe la frontera cliente/callable. Cerrada: el residente emite el suyo; el interruptor por conjunto para restringirlo queda fuera del MVP |
 | [PRD-V-FLOW-003 — Cobranza que llega: entrega medida y calendario del conjunto](funcionales/PRD-V-FLOW-003-cobranza-que-llega.md) | **Lista para desarrollo** (1.0, 21 ago 2026) — **el adjunto del estado de cuenta necesita `FEAT-004`** | Tanda 4. **El correo sale por la API de Resend sin webhook**: cero medición de entrega, rebotes y quejas. El calendario de cobranza está en el despliegue, no en manos del conjunto. **Corrige una suposición nuestra**: la bandeja de notificaciones en producto **ya existe** (colección `notifications`); lo que hay es un componente muerto con cuatro notificaciones inventadas, que se borra. Cerradas: ciclo mínimo de **7 días** (Habitanto permite 1) · «sin confirmar» a las 48 h · la lista de rebotes vive tras un **aviso persistente en el panel del administrador** |
 | [PRD-V-FIX-001 — Las reglas de reserva se cumplen en el servidor](funcionales/PRD-V-FIX-001-reglas-de-reserva-en-servidor.md) | **En desarrollo** — **entrega 1 construida y en staging** (`20e4f28`, 21 ago): callable con las trece reglas, 28 pruebas, bandera `producto-reservas-servidor` APAGADA, y tres defectos del cliente corregidos de paso (la exención por doc id, el cupo sobre la colección real, el aforo contra todas las unidades). **La regla de Firestore sigue abierta a propósito** — se cierra en el paso 4, tras verificar. Entrega 2 (política por área) sin empezar | Tanda 4. **Defecto encontrado leyendo el código:** la compuerta de morosos **ya existe** (`eligibility.ts`, con exención por unidad) pero **se comprueba solo en el cliente**, y `firestore.rules:558` no valida ni la mora ni los límites del área. **6 de 13 reglas se verifican en servidor.** No se arregla solo en reglas: seis exigen contar reservas y una regla de Firestore no cuenta. Cerrada: **entrega 1** = cumplimiento en servidor sin cambiar nada visible; **entrega 2** = política por área. Nunca en el mismo despliegue |
+
+### Dónde va el portafolio (23 ago 2026)
+
+**Trece PRD escritas y versionadas aquí**, más cuatro de IA que siguen en Drive.
+
+| Carpeta | Escritas | Reparto |
+|---|---|---|
+| `funcionales/` | **11** | `FEAT` 4 · `FLOW` 3 · `PLAT` 3 · `FIX` 1 · `OPS` 0 |
+| `ia/` | **1** versionada (+4 en Drive, sin migrar) | `FEAT` 1 |
+| `albert/` | **1** | `OPS` 1 |
+
+**Las once funcionales, por estado:** 2 productivas · **5 construidas y en staging** ·
+4 listas para desarrollo sin empezar.
+
+**El plan de construcción son once pasos en tres olas. Van cinco**, y los cinco están en
+staging: **ninguno en producción**.
+
+**Lo que falta por ESCRIBIR**, que es otra pregunta:
+
+| Qué | Por qué no está |
+|---|---|
+| **`PRD-V-PLAT-004` — Alcance del rol Consejo** | Candidato identificado en la revisión cruzada. **Ocho PRD le dan capacidades al consejo que hoy no puede alcanzar**: `canAccessPath` lo deja solo en `/admin/documents`. No bloquea a ninguna |
+| **Cierre de conciliación** (D1–D4 del inventario, un P0) | En espera de disparador: no se construye hasta el primer mes con pagos reales |
+| **Mora y pronto pago** | En espera de disparador: no se puede calibrar sin cartera real |
+| **`REVOPS-000`** | Lo único que le falta a `PRD-A-OPS-001` para el canal asistido |
+| Las cuatro PRD de IA que viven en Drive | Migrarlas a `ia/`. Mientras tanto su alcance no está versionado — justo lo que este README argumenta en su primera línea |
+
+**Cobertura del inventario:** 108 candidatos en 14 categorías, 15 de ellos P0. El lote de nueve
+PRD cubre los P0 salvo el cierre de conciliación, que está en espera a propósito.
 
 ### Orden de construcción del lote de Habitanto
 
@@ -76,22 +105,26 @@ la unidad que el producto muestra. **Cambia el render de todos los importes en e
 
 | # | PRD | Por qué aquí |
 |---|---|---|
-| 1 | **`PLAT-002` · auditoría de las once callables** | Va **sola y primero**. Es el único cambio del lote que **no se revierte con una bandera** |
-| 2 | **`FIX-001` · entrega 1** | Corrección de una regla de negocio que hoy solo vive en el cliente. **No cambia nada visible** |
-| 3 | **`PLAT-001` · copropiedad** | Base de la que dependen catorce candidatos |
-| 4 | **`FEAT-003` · proveedores** | Independiente de todo lo demás |
+| 1 | **`PLAT-002` · auditoría de las once callables** ✅ **en staging** | Va **sola y primero**. Es el único cambio del lote que **no se revierte con una bandera** |
+| 2 | **`FIX-001` · entrega 1** ✅ **en staging** | Corrección de una regla de negocio que hoy solo vive en el cliente. **No cambia nada visible** |
+| 3 | **`PLAT-001` · copropiedad** ✅ **MVP en staging** | Base de la que dependen catorce candidatos |
+| 4 | **`FEAT-003` · proveedores** ✅ **MVP en staging** | Independiente de todo lo demás |
 
 #### Ola B — contabilidad
 
 | # | PRD | Por qué en este orden |
 |---|---|---|
-| 5 | **`PLAT-003` · plan de cuentas** | **Antes que `FLOW-002`.** Si va después, `FLOW-002` añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
+| 5 | **`PLAT-003` · plan de cuentas** ✅ **en staging** | **Antes que `FLOW-002`.** Si va después, `FLOW-002` añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | 6 | **`FLOW-002` · anticipos** | Después del 5 |
 | 7 | **`FLOW-001` · prorrateo** | Necesita `PLAT-001` |
 
 > **`PLAT-003` y `FLOW-002` modifican la misma función: `aplicarPago`, que está en producción y
 > mueve dinero.** `PLAT-003` cambia **qué valor** escribe en la categoría; `FLOW-002` cambia **su
 > firma**. **No pueden estar en vuelo a la vez.**
+>
+> **Estado al 23 de agosto de 2026: `PLAT-003` está EN VUELO** —completa en staging, sin
+> desplegar a producción—. Así que **`FLOW-002` no arranca todavía**, y lo que la desbloquea no
+> es escribir más: es **aterrizar `PLAT-003` en producción**.
 
 #### Ola C — lo que se ve
 
