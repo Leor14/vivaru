@@ -24,6 +24,7 @@ import {
 } from "./support";
 import {
   aplicarPago,
+  esRecaudoDeCartera,
   revertirPago,
   type AplicarPagoInput,
   type RevertirPagoInput,
@@ -3571,8 +3572,12 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
     const billedAll = stmts.reduce((a, s) => a + (s.amount ?? 0), 0);
     const overdueAmt = stmts.filter((s) => s.status === "overdue").reduce((a, s) => a + (s.balance ?? 0), 0);
     const ledSnap = await db.collection("ledgerEntries").where("tenantId", "==", tenantId).get();
-    const monthLed = ledSnap.docs.map((d) => d.data() as { type?: string; category?: string; date?: string; amount?: number }).filter((e) => (e.date ?? "").slice(0, 7) === prevMonth);
-    const ingresosOtros = monthLed.filter((e) => e.type === "ingreso" && e.category !== "alicuota").reduce((a, e) => a + (e.amount ?? 0), 0);
+    const monthLed = ledSnap.docs.map((d) => d.data() as { type?: string; category?: string; sourceType?: string; reversedSourceType?: string; date?: string; amount?: number }).filter((e) => (e.date ?? "").slice(0, 7) === prevMonth);
+    // R12/R13: se descuenta por ORIGEN, no por categoría. Hasta el 23 de agosto
+    // de 2026 esto preguntaba `category !== "alicuota"` y **contaba dos veces**
+    // todo cargo que no fuera la cuota: `recaudado` ya lo trae de Cartera. Ver
+    // `esRecaudoDeCartera` en `payments.ts`, que es su espejo de `src/`.
+    const ingresosOtros = monthLed.filter((e) => e.type === "ingreso" && !esRecaudoDeCartera(e)).reduce((a, e) => a + (e.amount ?? 0), 0);
     const egresos = monthLed.filter((e) => e.type === "egreso").reduce((a, e) => a + (e.amount ?? 0), 0);
     const ingresos = recaudado + ingresosOtros;
     await archiveXlsx({

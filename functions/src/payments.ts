@@ -149,6 +149,46 @@ export function calcularSaldo(
   return { balance, status };
 }
 
+/**
+ * Si un asiento de ingreso **ya viene contado por Cartera** y por tanto no debe
+ * volver a sumarse desde el libro.
+ *
+ * Espejo de `esRecaudoDeCartera` en `src/features/finanzas/financial-statement.ts`,
+ * duplicado a propósito porque `functions/` y `src/` no pueden importarse entre
+ * sí (ver CLAUDE.md). **Si cambias una, cambia la otra** — igual que
+ * `calcularSaldo` / `computeBalanceStatus`.
+ *
+ * Vive aquí, al lado de `aplicarPago` y `revertirPago`, porque los dos campos
+ * que lee —`sourceType` y `reversedSourceType`— **se escriben en este mismo
+ * fichero**. Quien cambie cómo se estampan ve la regla que los interpreta.
+ *
+ * **Por qué hizo falta:** R12 se aplicó en `src/` el 22 de agosto de 2026 y
+ * **nunca llegó a `functions/`**. El informe automático mensual
+ * (`monthlyFinancialArchive`) siguió preguntando `category !== "alicuota"`, así
+ * que todo cargo cobrado con una categoría distinta de la cuota —una
+ * extraordinaria, una multa— entraba en `ingresosOtros` **y** seguía dentro del
+ * recaudo de Cartera: contado dos veces. Medido el 23 de agosto sobre datos
+ * reales en LOS DOS ambientes: Las Playas daba 129.000 en el informe automático
+ * y 127.500 en pantalla. Es el mismo doble conteo que la pantalla ya había
+ * matado, vivo en el PDF que se archiva solo cada mes.
+ *
+ * **Y no dependía de la bandera:** los asientos sembrados llevan su categoría
+ * real sin pasar por `aplicarPago`, así que ya estaba ocurriendo.
+ */
+export function esRecaudoDeCartera(entry: {
+  sourceType?: string;
+  reversedSourceType?: string;
+  category?: string;
+}): boolean {
+  return (
+    entry.sourceType === "billingStatement" ||
+    entry.reversedSourceType === "billingStatement" ||
+    // Convivencia: cubre lo escrito antes de que existiera `reversedSourceType`
+    // y lo que se siga escribiendo con `producto-concepto-al-libro` apagada.
+    entry.category === "alicuota"
+  );
+}
+
 function texto(valor: unknown, campo: string): string {
   const out = typeof valor === "string" ? valor.trim() : "";
   if (!out) throw new HttpsError("invalid-argument", `Falta ${campo}.`);

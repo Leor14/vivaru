@@ -2872,7 +2872,11 @@ exports.monthlyFinancialArchive = (0, scheduler_1.onSchedule)({ schedule: "0 6 1
             const overdueAmt = stmts.filter((s) => s.status === "overdue").reduce((a, s) => a + (s.balance ?? 0), 0);
             const ledSnap = await db.collection("ledgerEntries").where("tenantId", "==", tenantId).get();
             const monthLed = ledSnap.docs.map((d) => d.data()).filter((e) => (e.date ?? "").slice(0, 7) === prevMonth);
-            const ingresosOtros = monthLed.filter((e) => e.type === "ingreso" && e.category !== "alicuota").reduce((a, e) => a + (e.amount ?? 0), 0);
+            // R12/R13: se descuenta por ORIGEN, no por categoría. Hasta el 23 de agosto
+            // de 2026 esto preguntaba `category !== "alicuota"` y **contaba dos veces**
+            // todo cargo que no fuera la cuota: `recaudado` ya lo trae de Cartera. Ver
+            // `esRecaudoDeCartera` en `payments.ts`, que es su espejo de `src/`.
+            const ingresosOtros = monthLed.filter((e) => e.type === "ingreso" && !(0, payments_1.esRecaudoDeCartera)(e)).reduce((a, e) => a + (e.amount ?? 0), 0);
             const egresos = monthLed.filter((e) => e.type === "egreso").reduce((a, e) => a + (e.amount ?? 0), 0);
             const ingresos = recaudado + ingresosOtros;
             await archiveXlsx({

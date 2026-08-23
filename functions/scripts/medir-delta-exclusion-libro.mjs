@@ -1,14 +1,26 @@
-// SOLO LECTURA: cuánto mueve, por conjunto, la corrección de la exclusión (R12).
+// SOLO LECTURA: cuanto se desvia el INFORME AUTOMATICO mensual del estado
+// financiero de pantalla, por usar una regla de exclusion distinta.
 //
-// Reproduce las dos reglas —la vieja (`category !== "alicuota"`) y la nueva
-// (`sourceType !== "billingStatement" && category !== "alicuota"`)— sobre los
-// datos reales y compara el ingreso del libro y el total de ingresos.
+// Reproduce las DOS reglas que conviven HOY, sobre los mismos asientos:
 //
-// `cuotaIncome` se calcula igual que la página de Finanzas: la suma de
-// `paymentAmount` de TODOS los cargos del conjunto (`src/app/(admin)/admin/
-// finanzas/page.tsx:125`), sin mirar el concepto.
+//   A) La del job `monthlyFinancialArchive` (functions/src/index.ts:3575):
+//      `category !== "alicuota"`. Es la regla VIEJA — R12 nunca llego aqui.
 //
-// Solo imprime agregados por conjunto. Ningún concepto, unidad ni residente.
+//   B) La de `esRecaudoDeCartera` (src/features/finanzas/financial-statement.ts:171),
+//      que mira el ORIGEN y arrastra el reverso (R12 + R13).
+//
+// Este script comparaba antes la regla vieja contra una version de la nueva
+// SIN `reversedSourceType`, que es una regla que **no existe en ningun sitio**:
+// se escribio antes de R13. Medir contra una regla imaginaria no dice nada.
+//
+// Lo que importa no es la diferencia de totales sino **cuantos asientos caen de
+// lado distinto**: comparar antes/despues no prueba que una regla sea inerte,
+// aplicar las dos sobre los mismos datos si.
+//
+// `cuotaIncome` se calcula igual que la pagina de Finanzas: la suma de
+// `paymentAmount` de TODOS los cargos del conjunto, sin mirar el concepto.
+//
+// Solo imprime agregados por conjunto. Ningun concepto, unidad ni residente.
 //
 // Uso: node functions/scripts/medir-delta-exclusion-libro.mjs <projectId>
 
@@ -24,8 +36,13 @@ if (!projectId) {
 initializeApp({ credential: applicationDefault(), projectId });
 const db = getFirestore();
 
-const vieja = (e) => e.category === "alicuota";
-const nueva = (e) => e.sourceType === "billingStatement" || e.category === "alicuota";
+// A) la del job de functions, que solo mira la categoria.
+const reglaJob = (e) => e.category === "alicuota";
+// B) la de pantalla: origen, reverso y la rama de convivencia.
+const reglaPantalla = (e) =>
+  e.sourceType === "billingStatement" ||
+  e.reversedSourceType === "billingStatement" ||
+  e.category === "alicuota";
 
 const [ledgerSnap, billingSnap, tenantsSnap] = await Promise.all([
   db.collection("ledgerEntries").get(),
@@ -39,7 +56,7 @@ for (const t of tenantsSnap.docs) esEjemplo.set(t.id, t.data().isExample === tru
 const porTenant = new Map();
 const bucket = (tid) => {
   if (!porTenant.has(tid)) {
-    porTenant.set(tid, { cuotaIncome: 0, ledgerVieja: 0, ledgerNueva: 0, asientosQueCambian: 0 });
+    porTenant.set(tid, { cuotaIncome: 0, ledgerJob: 0, ledgerPantalla: 0, asientosQueCambian: 0 });
   }
   return porTenant.get(tid);
 };
@@ -54,33 +71,33 @@ for (const doc of ledgerSnap.docs) {
   if (d.type !== "ingreso") continue;
   const b = bucket(d.tenantId ?? "(sin tenantId)");
   const monto = typeof d.amount === "number" ? d.amount : 0;
-  if (!vieja(d)) b.ledgerVieja += monto;
-  if (!nueva(d)) b.ledgerNueva += monto;
-  if (vieja(d) !== nueva(d)) b.asientosQueCambian += 1;
+  if (!reglaJob(d)) b.ledgerJob += monto;
+  if (!reglaPantalla(d)) b.ledgerPantalla += monto;
+  if (reglaJob(d) !== reglaPantalla(d)) b.asientosQueCambian += 1;
 }
 
 const fmt = (n) => n.toLocaleString("es-CO", { maximumFractionDigits: 0 });
 
 console.log(`\nProyecto: ${projectId}\n`);
-console.log("Conjunto".padEnd(28) + "cuotaIncome".padStart(14) + "totalAntes".padStart(14) + "totalDespués".padStart(14) + "delta".padStart(12) + "  asientos");
+console.log("Conjunto".padEnd(28) + "cuotaIncome".padStart(14) + "informeJob".padStart(14) + "pantalla".padStart(14) + "delta".padStart(12) + "  asientos");
 console.log("─".repeat(96));
 
 let conCambio = 0;
 for (const [tid, b] of [...porTenant.entries()].sort()) {
-  const antes = b.cuotaIncome + b.ledgerVieja;
-  const despues = b.cuotaIncome + b.ledgerNueva;
-  const delta = despues - antes;
+  const informeJob = b.cuotaIncome + b.ledgerJob;
+  const pantalla = b.cuotaIncome + b.ledgerPantalla;
+  const delta = pantalla - informeJob;
   if (delta !== 0) conCambio += 1;
   const marca = esEjemplo.get(tid) ? " (ejemplo)" : "";
   const linea =
     (tid + marca).padEnd(28) +
     fmt(b.cuotaIncome).padStart(14) +
-    fmt(antes).padStart(14) +
-    fmt(despues).padStart(14) +
+    fmt(informeJob).padStart(14) +
+    fmt(pantalla).padStart(14) +
     (delta === 0 ? "—" : fmt(delta)).padStart(12) +
     "  " + (b.asientosQueCambian || "");
   console.log(delta === 0 ? linea : `${linea}  ←`);
 }
 
 console.log("─".repeat(96));
-console.log(`\nConjuntos cuyo total de ingresos cambia: ${conCambio} de ${porTenant.size}\n`);
+console.log(`\nConjuntos donde el informe automatico NO coincide con la pantalla: ${conCambio} de ${porTenant.size}\n`);
