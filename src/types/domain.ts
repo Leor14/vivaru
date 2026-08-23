@@ -263,6 +263,13 @@ export type BillingConcept =
   | "reparacion"
   | "interes_mora"
   | "parqueadero"
+  /**
+   * La cuota de vigilancia (decisión de David, 23 ago 2026). **Entró como
+   * concepto propio y no como `otro` por una razón concreta:** `otro` resuelve
+   * a «Otros ingresos», así que crear una cuenta de vigilancia sin este
+   * concepto la habría dejado vacía para siempre. La cuenta sola no bastaba.
+   */
+  | "vigilancia"
   | "otro";
 
 export interface BillingStatement {
@@ -377,6 +384,16 @@ export type ExpenseCategory =
   | "administracion"
   | "seguros"
   | "impuestos"
+  /**
+   * Lo que se le paga a la empresa de seguridad. Hasta el 23 de agosto de 2026
+   * caía en `proveedores`, que dejaba **la mayor partida del presupuesto de un
+   * conjunto** mezclada con los insumos de limpieza.
+   *
+   * Ojo: esta clave es del EGRESO. El ingreso equivalente —la cuota que se le
+   * cobra al residente— es el `BillingConcept` `vigilancia` y su categoría de
+   * libro es `cuota_vigilancia`. Son dos claves distintas a propósito.
+   */
+  | "vigilancia"
   | "otros";
 
 export type PaymentMethod = "transferencia" | "cheque" | "efectivo" | "otro";
@@ -460,6 +477,14 @@ export type LedgerCategory =
   | "reparacion"
   | "parqueadero"
   | "arriendo"
+  /**
+   * El INGRESO por vigilancia. Se llama distinto que la categoría de egreso
+   * `vigilancia` **a propósito**: `LedgerCategory` incluye a `ExpenseCategory`,
+   * así que una sola clave para los dos lados haría que `cuentaPorSystemKey`
+   * devolviera la de ingreso o la de egreso según el orden del array. Es la
+   * colisión de `administracion` que R11 previene, y aquí se evita nombrando.
+   */
+  | "cuota_vigilancia"
   | "otros_ingresos";
 
 /** Movimiento del libro de ingresos/egresos. Backbone contable + conciliación. */

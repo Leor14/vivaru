@@ -198,15 +198,15 @@ export async function seedTrialWorkspace(tenantId: string, currency = "MXN"): Pr
   // y «seguridad» en crudo y minúscula, porque `categoryLabel` devuelve la clave
   // cuando no la conoce. Y sin arreglarlo no hay cuenta que estampar.
   //
-  // `vigilancia` va a `proveedores` porque es un servicio contratado, no porque el
-  // plan tenga una cuenta propia para ella: NO la tiene. Es la mayor partida de un
-  // conjunto real y merece decisión antes de sembrar (ver docs/pendientes.md).
-  // `trial-seed-categorias.test.ts` vigila que no se vuelva a inventar una.
+  // `vigilancia` YA tiene cuenta propia (2.9), decidido por David el 23 de agosto
+  // de 2026. Estuvo unas horas en `proveedores` porque era lo correcto disponible
+  // mientras el plan no la tenía. `trial-seed-categorias.test.ts` vigila que no se
+  // vuelva a inventar una categoría que no existe.
   const gastos = [
     { local: "energia", category: "servicios_publicos", description: "Energía áreas comunes", vendor: "Comisión de Electricidad", amount: 1_250_000 },
     { local: "agua", category: "servicios_publicos", description: "Suministro de agua", vendor: "Servicio de Aguas", amount: 640_000 },
     { local: "aseo", category: "mantenimiento", description: "Aseo y limpieza", vendor: "Servicios Integrales", amount: 900_000 },
-    { local: "vigilancia", category: "proveedores", description: "Vigilancia y portería", vendor: "Seguridad Total", amount: 2_100_000 },
+    { local: "vigilancia", category: "vigilancia", description: "Vigilancia y portería", vendor: "Seguridad Total", amount: 2_100_000 },
   ];
   let expenseCount = 0;
   let ledgerCount = 0;

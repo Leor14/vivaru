@@ -45,6 +45,7 @@ const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   administracion: "Administración",
   seguros: "Seguros",
   impuestos: "Impuestos",
+  vigilancia: "Vigilancia y seguridad",
   otros: "Otros",
 };
 

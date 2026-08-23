@@ -16,6 +16,7 @@ export const BILLING_CONCEPTS: { value: BillingConcept; label: string }[] = [
   { value: "reparacion", label: "Reparación / daño" },
   { value: "interes_mora", label: "Interés de mora" },
   { value: "parqueadero", label: "Parqueadero / amenidad" },
+  { value: "vigilancia", label: "Vigilancia / seguridad" },
   { value: "otro", label: "Otro" },
 ];
 

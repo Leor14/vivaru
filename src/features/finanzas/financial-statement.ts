@@ -102,6 +102,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   reparacion: "Reparaciones a cargo del residente",
   parqueadero: "Parqueaderos",
   arriendo: "Arriendo de áreas comunes",
+  cuota_vigilancia: "Cuotas de vigilancia",
   otros_ingresos: "Otros ingresos",
   nomina: "Nómina",
   servicios_publicos: "Servicios públicos",
@@ -110,6 +111,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   administracion: "Administración",
   seguros: "Seguros",
   impuestos: "Impuestos",
+  vigilancia: "Vigilancia y seguridad",
   otros: "Otros",
 };
 

@@ -65,9 +65,37 @@ describe("validarCodigoDeCuenta — el defecto de Habitanto fue no validar", () 
 });
 
 describe("la semilla", () => {
-  it("son 18 documentos: 16 cuentas con systemKey y 2 padres", () => {
-    expect(SEMILLA_PLAN_DE_CUENTAS).toHaveLength(18);
-    expect(SEMILLA_PLAN_DE_CUENTAS.filter((c) => c.systemKey)).toHaveLength(16);
+  // Fueron 16+2 hasta el 23 de agosto de 2026; la vigilancia sumó dos cuentas,
+  // una por lado del libro (1.9 ingreso, 2.9 egreso). CA1 se movió con ellas.
+  it("son 20 documentos: 18 cuentas con systemKey y 2 padres", () => {
+    expect(SEMILLA_PLAN_DE_CUENTAS).toHaveLength(20);
+    expect(SEMILLA_PLAN_DE_CUENTAS.filter((c) => c.systemKey)).toHaveLength(18);
+  });
+
+  /**
+   * **Ninguna clave se repite entre los dos lados del libro**, y esto no es una
+   * comprobación de higiene: `cuentaPorSystemKey` recorre el array y devuelve la
+   * primera que encuentre, así que dos cuentas con la misma clave harían que un
+   * egreso acabase en una cuenta de ingreso según el ORDEN del array. Es la
+   * colisión de `administracion` que R11 previene, y la vigilancia estuvo a
+   * punto de fabricarla: su ingreso lleva `cuota_vigilancia` y su egreso
+   * `vigilancia` justo por esto.
+   */
+  it("no hay dos cuentas con el mismo systemKey", () => {
+    const claves = SEMILLA_PLAN_DE_CUENTAS.filter((c) => c.systemKey).map((c) => c.systemKey);
+    expect(new Set(claves).size, `claves repetidas en la semilla: ${claves.join(", ")}`).toBe(
+      claves.length,
+    );
+  });
+
+  it("la vigilancia tiene sus DOS cuentas, una por lado, y no comparten clave", () => {
+    const ingreso = cuentaPorCodigo("1.9");
+    const egreso = cuentaPorCodigo("2.9");
+    expect(ingreso).toMatchObject({ type: "ingreso", systemKey: "cuota_vigilancia" });
+    expect(egreso).toMatchObject({ type: "egreso", systemKey: "vigilancia" });
+    // El cargo va al ingreso; el gasto, al egreso. Nunca cruzados.
+    expect(cuentaParaConcepto("vigilancia").code).toBe("1.9");
+    expect(cuentaParaCategoriaDeEgreso("vigilancia").code).toBe("2.9");
   });
 
   it("no pierde ninguna de las 13 categorías que el libro ya usaba", () => {
@@ -260,7 +288,7 @@ describe("cuentaParaCategoriaDeEgreso — el otro lado del libro", () => {
     expect(cuentaParaConcepto("administracion").code).toBe("1.1");
   });
 
-  it("las ocho categorías de egreso resuelven a una cuenta propia, ninguna por defecto", () => {
+  it("las nueve categorías de egreso resuelven a una cuenta propia, ninguna por defecto", () => {
     const categorias = [
       "nomina",
       "servicios_publicos",
@@ -269,6 +297,7 @@ describe("cuentaParaCategoriaDeEgreso — el otro lado del libro", () => {
       "administracion",
       "seguros",
       "impuestos",
+      "vigilancia",
       "otros",
     ];
     const codigos = new Set<string>();
@@ -280,14 +309,15 @@ describe("cuentaParaCategoriaDeEgreso — el otro lado del libro", () => {
       );
       codigos.add(r.code);
     }
-    // Ocho categorías, ocho cuentas distintas: si dos compartieran, un informe
+    // Nueve categorías, nueve cuentas distintas: si dos compartieran, un informe
     // sumaría dos rubros en una sola línea sin decirlo.
-    expect(codigos.size).toBe(8);
+    expect(codigos.size).toBe(9);
   });
 
   it("una categoría desconocida cae en otros EGRESOS y lo dice", () => {
     // `seguridad` no es una categoría válida y sin embargo estuvo escrita en la
-    // semilla del trial. El resolvedor no la inventa: la manda a 2.8 y avisa.
+    // semilla del trial. Sigue sin serlo: la que existe se llama `vigilancia`,
+    // y el resolvedor no adivina sinónimos. La manda a 2.8 y avisa.
     expect(cuentaParaCategoriaDeEgreso("seguridad")).toEqual({
       code: CUENTA_OTROS_EGRESOS,
       porDefecto: true,

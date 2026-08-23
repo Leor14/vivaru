@@ -33,7 +33,7 @@ export interface ResultadoDeSiembra {
 }
 
 /**
- * Escribe las 18 cuentas del plan estándar del conjunto, saltándose las que ya
+ * Escribe las 20 cuentas del plan estándar del conjunto, saltándose las que ya
  * existan. Devuelve el reparto para poder registrarlo en la auditoría del alta.
  *
  * Si se pasa un `batch`, las escrituras se acumulan en él y **no se hace commit**

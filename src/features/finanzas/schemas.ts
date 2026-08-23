@@ -21,6 +21,7 @@ export const expenseCategoryEnum = z.enum([
   "administracion",
   "seguros",
   "impuestos",
+  "vigilancia",
   "otros",
 ]);
 

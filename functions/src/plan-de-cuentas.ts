@@ -43,6 +43,7 @@ export const CONCEPTOS_DE_CARGO = [
   "reparacion",
   "interes_mora",
   "parqueadero",
+  "vigilancia",
   "otro",
 ] as const;
 
@@ -109,9 +110,15 @@ export function docIdDeCuenta(tenantId: string, code: string): string {
 }
 
 /**
- * La semilla: **16 cuentas con `systemKey`** —las 13 categorías que ya existían
- * más las 3 de ingreso que faltaban— y **2 cuentas padre**, que son estructura.
- * 18 documentos.
+ * La semilla: **18 cuentas con `systemKey`** y **2 cuentas padre**, que son
+ * estructura. 20 documentos.
+ *
+ * Fueron 16 hasta el 23 de agosto de 2026 —las 13 categorías que ya existían más
+ * las 3 de ingreso que faltaban—. Las dos nuevas son la vigilancia, que David
+ * decidió partir en sus dos lados: la cuota que se le cobra al residente (1.9,
+ * ingreso) y lo que se le paga a la empresa (2.9, egreso). Antes la primera no
+ * existía y la segunda caía en «Proveedores», donde la mayor partida del
+ * presupuesto de un conjunto quedaba mezclada con los insumos de limpieza.
  *
  * Los nombres de aquí son los que matan la discrepancia de §2 de la PRD:
  * `financial-statement.ts` decía «Intereses de mora» y `functions/src/index.ts`
@@ -130,6 +137,12 @@ export const SEMILLA_PLAN_DE_CUENTAS: readonly CuentaSembrada[] = [
   { code: "1.6", name: "Reparaciones a cargo del residente", type: "ingreso", parentCode: "1", systemKey: "reparacion" },
   { code: "1.7", name: "Arrendamientos", type: "ingreso", parentCode: "1", systemKey: "arriendo" },
   { code: "1.8", name: "Otros ingresos", type: "ingreso", parentCode: "1", systemKey: "otros_ingresos" },
+  // La cuota de vigilancia (decision de David, 23 ago 2026). Su `systemKey` NO
+  // es "vigilancia": esa la lleva la cuenta de EGRESO 2.9, y repetir la clave
+  // seria fabricar la colision de `administracion` que R11 existe para impedir.
+  // Un `cuentaPorSystemKey("vigilancia")` acabaria devolviendo la de ingreso o
+  // la de egreso segun el orden del array.
+  { code: "1.9", name: "Cuotas de vigilancia", type: "ingreso", parentCode: "1", systemKey: "cuota_vigilancia" },
 
   { code: "2", name: "Egresos", type: "egreso" },
   { code: "2.1", name: "Nómina", type: "egreso", parentCode: "2", systemKey: "nomina" },
@@ -140,7 +153,20 @@ export const SEMILLA_PLAN_DE_CUENTAS: readonly CuentaSembrada[] = [
   { code: "2.6", name: "Seguros", type: "egreso", parentCode: "2", systemKey: "seguros" },
   { code: "2.7", name: "Impuestos", type: "egreso", parentCode: "2", systemKey: "impuestos" },
   { code: "2.8", name: "Otros egresos", type: "egreso", parentCode: "2", systemKey: "otros" },
+  { code: "2.9", name: "Vigilancia y seguridad", type: "egreso", parentCode: "2", systemKey: "vigilancia" },
 ];
+
+/**
+ * **Por que la vigilancia va en la 1.9 y la 2.9, detras de «Otros».**
+ *
+ * Leido en orden queda raro: «Otros ingresos» antes que «Cuotas de vigilancia».
+ * La alternativa era renumerar `otros_ingresos` a 1.9 y meter la vigilancia en
+ * la 1.8 — y hoy saldria gratis, porque en produccion no hay ni un plan
+ * sembrado—. **No se hace, y no por pereza:** R3 dice que una cuenta de sistema
+ * no se renumera, el codigo ES la identidad de la cuenta, y un plan que se
+ * renumera cuando entra un rubro nuevo es exactamente el plan de Habitanto.
+ * El precio de no renumerar nunca es que «Otros» deja de ir al final. Es barato.
+ */
 
 /** La cuenta a la que cae un concepto sin equivalente (R8). */
 export const CUENTA_OTROS_INGRESOS = "1.8";
@@ -159,6 +185,8 @@ export const CUENTA_POR_CONCEPTO: Record<ConceptoDeCargo, string> = {
   interes_mora: "1.4",
   parqueadero: "1.5",
   reparacion: "1.6",
+  vigilancia: "1.9", // ← el CARGO de vigilancia es un INGRESO. El gasto es la 2.9
+
   otro: CUENTA_OTROS_INGRESOS, // ← `otro` (cargo) no es `otros` (egreso, 2.8)
 };
 
@@ -260,6 +288,7 @@ const DESCRIPCION_DE_COBRO: Record<ConceptoDeCargo, string> = {
   interes_mora: "intereses de mora",
   parqueadero: "parqueadero",
   reparacion: "reparación",
+  vigilancia: "cuota de vigilancia",
   otro: "cargo",
 };
 

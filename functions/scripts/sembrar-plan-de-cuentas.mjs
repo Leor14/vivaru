@@ -76,5 +76,5 @@ console.log(`  creadas:        ${resultado.creadas} (respetadas ${resultado.exis
 console.log(`  después:        ${despues.size} en la base, releído`);
 
 const conSystemKey = despues.docs.filter((d) => d.data().systemKey).length;
-console.log(`  con systemKey:  ${conSystemKey}  ← CA1 pide 16, y 18 documentos en total`);
+console.log(`  con systemKey:  ${conSystemKey}  ← CA1 pide 18, y 20 documentos en total`);
 console.log("");

@@ -2864,6 +2864,7 @@ const BILLING_CONCEPT_LABELS: Record<string, string> = {
   reparacion: "Reparación / daño",
   interes_mora: "Interés de mora",
   parqueadero: "Parqueadero / amenidad",
+  vigilancia: "Vigilancia / seguridad",
   otro: "Otro",
 };
 

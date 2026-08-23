@@ -31,6 +31,7 @@ const CATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
   { value: "administracion", label: "Administración" },
   { value: "seguros", label: "Seguros" },
   { value: "impuestos", label: "Impuestos" },
+  { value: "vigilancia", label: "Vigilancia y seguridad" },
   { value: "otros", label: "Otros" },
 ];
 

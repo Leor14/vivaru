@@ -185,7 +185,9 @@ despliegue, y que **el asiento diga la verdad sobre qué se cobró**.
 2. **Códigos gobernados**: formato validado, únicos por conjunto e **inmutables una vez usados**.
 3. **Semilla** con las categorías actuales ligadas por `systemKey`, **más las cuentas de ingreso
    que los conceptos de cargo necesitan y hoy no existen** (§8 R11). No son trece: son
-   **dieciséis con `systemKey`**, más las dos cuentas padre — **18 documentos**.
+   **dieciocho con `systemKey`**, más las dos cuentas padre — **20 documentos**.
+   *(Eran dieciséis y 18 hasta el 23 de agosto de 2026; la vigilancia sumó dos, una por
+   lado del libro — ver D3.)*
 4. **Un solo catálogo de etiquetas**, y el fin de los dos mapas que discrepan.
 5. **El concepto del cargo llega al asiento** al cobrar y al revertir.
 6. Estado financiero **agrupado por cuenta**, con jerarquía.
@@ -207,7 +209,7 @@ despliegue, y que **el asiento diga la verdad sobre qué se cobró**.
 
 ```mermaid
 flowchart TD
-    A[Alta del conjunto] --> B[Se siembra el plan estándar: 13 cuentas de sistema]
+    A[Alta del conjunto] --> B[Se siembra el plan estándar: 18 cuentas de sistema]
     B --> C[Admin abre Finanzas › Plan de cuentas]
     C --> D{¿Qué hace?}
     D -->|Añadir| E[Código, nombre, tipo y cuenta padre]
@@ -343,7 +345,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 
 | # | Criterio |
 |---|---|
-| CA1 | Un conjunto nuevo nace con las **dieciséis** cuentas de `systemKey` sembradas (18 documentos con los dos padres), y **los siete conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`) |
+| CA1 | Un conjunto nuevo nace con las **dieciocho** cuentas de `systemKey` sembradas (20 documentos con los dos padres), y **los ocho conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`) |
 | CA2 | El administrador crea una cuenta con código válido y la usa en un egreso |
 | CA3 | **Cobrar un cargo de concepto `multa` escribe un asiento en la cuenta de multas, no en cuotas de administración** |
 | CA4 | Revertir ese pago escribe el negativo **en la misma cuenta** |
@@ -378,7 +380,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 | Operación | Decisión | Por qué |
 |---|---|---|
 | **Crear, renombrar y desactivar cuentas** | **Cliente directo** | CRUD que las reglas protegen con `tenantAdminOrSuper` + `tenantOperable`. Las validaciones de formato y unicidad viven en el formulario **y** en las reglas |
-| **Sembrar el plan al crear un conjunto** | **Callable** — dentro del alta que ya existe | Escribe trece documentos y debe ser atómico con el alta |
+| **Sembrar el plan al crear un conjunto** | **Callable** — dentro del alta que ya existe | Escribe veinte documentos y debe ser atómico con el alta |
 | **Escribir la cuenta en el asiento** | **Ya es callable** | `aplicarPago` y `revertirPago` lo son. **Solo cambia qué valor escriben** |
 
 **La unicidad del código no puede quedar solo en el cliente.** La regla de Firestore debe
@@ -499,6 +501,38 @@ obliga a decidir quién puede editarlo y qué pasa con un conjunto que se va de 
 
 > **CERRADA el 21 ago 2026 — aceptada.** Plan **por conjunto** en el MVP; compartido entre
 > conjuntos de una administradora en Fase 3.
+
+### D3 · ¿La vigilancia tiene cuenta propia?
+
+Salió al construir la entrega 2, y del sitio menos esperado: **al arreglar la semilla del
+trial**, que escribía `category: "seguridad"` —un valor que no existe en `ExpenseCategory`—.
+Al buscarle su categoría real se vio que el plan **no tenía dónde ponerla**, y que
+«Proveedores» dejaba **la mayor partida del presupuesto de un conjunto** mezclada con los
+insumos de limpieza.
+
+Y son **dos** decisiones, no una. Se vio porque David, al probar el formulario, creó a mano una
+cuenta y la llamó «Cuota de vigilancia» — como **ingreso**:
+
+| Lado | Qué es | Qué costaba |
+|---|---|---|
+| **Ingreso** | La cuota que se le cobra al residente | Cuenta **y** `BillingConcept`. **La cuenta sola no servía:** sin concepto propio habría que cobrar como `otro`, que resuelve a «Otros ingresos», y la cuenta nueva se quedaría vacía para siempre |
+| **Egreso** | Lo que se le paga a la empresa de seguridad | Cuenta y `ExpenseCategory`. Mueve el conteo de CA1 |
+
+> **CERRADA el 23 ago 2026 — las dos aceptadas.** La vigilancia es **concepto de cargo propio**
+> (`1.9 Cuotas de vigilancia`) **y cuenta de egreso propia** (`2.9 Vigilancia y seguridad`).
+
+**Dos consecuencias que hay que leer, porque no son obvias:**
+
+1. **Las dos cuentas NO comparten `systemKey`.** El ingreso lleva `cuota_vigilancia` y el
+   egreso `vigilancia`. `LedgerCategory` incluye a `ExpenseCategory`, así que una sola clave
+   para los dos lados haría que `cuentaPorSystemKey` devolviera una u otra **según el orden del
+   array**. Es exactamente la colisión de `administracion` que R11 previene, y esta decisión
+   estuvo a punto de fabricarla. Hay una prueba que vigila que ninguna clave se repita.
+2. **Van en la 1.9 y la 2.9, detrás de «Otros».** Leído en orden queda raro. La alternativa era
+   renumerar `otros_ingresos` a 1.9, y **hoy saldría gratis** porque en producción no hay ni un
+   plan sembrado. No se hace: **R3 dice que una cuenta de sistema no se renumera**, el código
+   ES la identidad, y un plan que se renumera cuando entra un rubro nuevo es el plan de
+   Habitanto. El precio de no renumerar nunca es que «Otros» deje de ir al final.
 
 **Ninguna decisión abierta.**
 
