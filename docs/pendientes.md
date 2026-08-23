@@ -78,7 +78,7 @@ ANTES de sembrar, porque sembrar la congela:
 | # | Paso | Estado |
 |---|---|---|
 | **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
-| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **VALIDADO A MANO en staging**, 5 de 6 comprobaciones. `06edf29` + el arreglo de reglas `0bbf6cf`. Falta la del código duplicado |
+| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **VALIDADO A MANO en staging, las 6 comprobaciones.** `06edf29` + el arreglo de reglas `0bbf6cf` |
 | **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | Pendiente |
 | **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
 
@@ -172,9 +172,9 @@ gcloud es `hogaru-1`, que es producción:
 **Al invocarlos, ruta absoluta.** El repositorio es `~/Vivaru_Rep/vivaru/`, no `~/Vivaru_Rep/`,
 y una ruta relativa falla con `MODULE_NOT_FOUND` — que no se parece en nada a lo que es.
 
-### Validado a mano en staging — cinco de seis, y un defecto que solo salió mirando
+### Validado a mano en staging — las seis, y un defecto que solo salió mirando
 
-David lo miró el 23 de agosto. **Cinco comprobaciones en verde y una todavía sin correr:**
+David lo miró el 23 de agosto. **Las seis comprobaciones en verde:**
 
 | Qué | Resultado |
 |---|---|
@@ -184,7 +184,7 @@ David lo miró el 23 de agosto. **Cinco comprobaciones en verde y una todavía s
 | Crear la `1.9` como ingreso | Anuncia «Colgará de 1 — Ingresos» y la crea |
 | Crear la `2.9` **como ingreso** | Rechazada: «La cuenta 2 es de egresos, así que la 2.9 no puede ser de ingresos» |
 | Desactivar «Ingresos» | «Primero desactiva las cuentas 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, que cuelgan de esta» — y la `1.3` **no** aparece, porque ya estaba inactiva (CF6) |
-| **Crear otra vez la `1.3`** | **SIN CORRER.** Es la que más importa: es el defecto que casi se cuela |
+| **Crear otra vez la `1.3`** | Rechazada nombrando el código, y **«Multas multiples» intacta** — ver abajo, porque la evidencia no es la obvia |
 
 **El defecto que salió, y por qué vale más que el arreglo** (`0bbf6cf`): crear la `1.9` respondía
 **«No tienes permiso para realizar esta acción»**.
@@ -203,6 +203,28 @@ dice literalmente *transaction.get on missing doc*.
 un caso: el banco probaba un camino que el producto no usa.** Tres pruebas nuevas, y el
 diagnóstico probado por mutación — con la regla vieja fallan exactamente las dos nuevas y las
 seis viejas siguen verdes.
+
+**El código duplicado: la evidencia NO es que el nombre siguiera igual.** David escribió en el
+formulario el mismo texto que la cuenta ya tenía —«Multas multiples»—, así que **una
+sobrescritura habría sido indistinguible mirando el nombre**. Lo que prueba que no la hubo es lo
+que el formulario **no** manda, releído de la base:
+
+| Campo | Quedó | Qué probaría lo contrario |
+|---|---|---|
+| `systemKey` | `multa` | El formulario no lo envía: un `setDoc` lo habría **borrado**, y con él R3 |
+| `status` | `inactive` | El formulario envía `active`: la habría reactivado |
+| `createdBy` | **`sembrar-plan-de-cuentas-cli`** | Un `setDoc` lo habría puesto al uid de David. **El documento sigue teniendo al sembrador como creador** |
+| Cuentas del conjunto | 19 | No nació ningún documento |
+
+**Y lo que esta prueba NO demuestra, dicho para que no se lea de más:** el rechazo lo dio la
+validación del **cliente** (`validarCuentaNueva`), no la transacción — `handleSave` valida antes
+de escribir, así que la transacción ni llegó a correr. Las dos capas emiten **la misma frase**,
+así que el aviso en pantalla no distingue cuál saltó.
+
+La transacción es la guarda de la **carrera** —dos pestañas creando el mismo código a la vez—, y
+esa rama sigue **sin ejercitarse**: la prueba de reglas con transacción cubre el camino feliz.
+Cerrarla pide una prueba con emulador que lea un documento existente dentro de la transacción.
+**Anotado y no hecho.**
 
 **Estado de `conjunto-las-playas` tras la prueba**, para que no se lea como un descuadre: **19
 cuentas**, la `1.3` se llama «Multas multiples» y está inactiva, y existe una `1.9` «Cuota de
