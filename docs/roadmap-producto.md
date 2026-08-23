@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.19 |
-| **Fecha** | 23 de agosto de 2026 (tarde) |
-| **Estado** | **EL INFORME DE COMITÉ MENTÍA, Y ESO CAMBIÓ EL ORDEN DE LA SESIÓN.** Mirar la pantalla de la entrega 2 de `PLAT-003` —la única del lote que nadie había abierto— destapó **cinco defectos** en `/admin/reports`: cuatro de sus lecturas fallaban por índice y la pantalla enseñaba los ceros resultantes como datos. En el mismo conjunto y el mismo día, Finanzas avisaba en rojo de **−$10.300** mientras el informe del consejo decía **+$55.500 y «sin alertas»**: 137.800 de diferencia en el documento que se firma. Los cinco están arreglados y **verificados en staging contra la base**. En producción se desplegaron **solo los 3 índices** (57, antes 54) y el código espera en `develop`: el orden es índices primero, código después, nunca al revés. **`FLOW-002` no arrancó**, y su PRD dice «Lista para desarrollo» cuando **no lo está** — describe una exclusión que ya no existe |
-| **Verificado contra** | **La pantalla, con la sesión abierta en el navegador — no una suite.** Las 1097 pruebas del front y las 456 de functions estaban EN VERDE mientras el informe mentía: el fallo vivía en la forma de la consulta contra un índice que solo existe en la nube, y ninguna prueba unitaria lo alcanza. La causa la dio la consola, al pasar el mensaje de «You can create it here» a «That index is currently building». El doble conteo del job se midió **aplicando las dos reglas a los mismos asientos y contando cuántos cambian de lado**, no comparando antes/después. El despliegue de la function se comprobó por **procedencia del build** (`storageSource.generation`), no por grep |
+| **Versión** | 0.9.20 |
+| **Fecha** | 23 de agosto de 2026 (noche) |
+| **Estado** | **EL CÓDIGO CORRECTIVO ESTÁ EN PRODUCCIÓN Y `FLOW-002` YA PUEDE ARRANCAR.** `master` y `develop` quedaron en `5d6df95` con los 57 índices y el arreglo de los cinco defectos del informe de comité; el rollout `rollout-2026-08-23-002` cerró en `SUCCEEDED`. Con eso **se apagó el reloj del 1 de septiembre**: `monthlyFinancialArchive` ya no archivará otro PDF con doble conteo. Se corrió además el **backfill de `eventDate` en producción** —47 `visitorPasses` y 14 `tickets`, dry-run primero y verificado con un segundo dry-run en cero—, sin el cual Visitantes y PQRS salían en cero en el informe. Y la PRD de `FLOW-002` pasó a **v1.2, lista para desarrollo**: las tres correcciones que la 1.1 dejó marcadas y abiertas están resueltas, **y aparecieron dos huecos más que ninguna versión anterior tenía** |
+| **Verificado contra** | **El código, leído función por función antes de decidir nada.** Las tres correcciones de la 1.1 se releyeron contra `payments.ts`, `financial-statement.ts`, `domain.ts` y `conceptos-de-cargo.ts`, y **dos de las tres resultaron estar dichas de forma inexacta**: la ampliación del enum no tiene que llegar «a los dos espejos» —el de `functions/` no está tipado— y los números de línea de la propia corrección de ayer **ya estaban desplazados otra vez**. El backfill se comprobó con dry-run antes y después, no por lo que dijo el apply |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -47,39 +47,45 @@ la fuerza en Fundaciones.
 
 **Qué cambió en esta revisión:**
 
-- **`PLAT-003` 1b-i construida y en staging** (`1635ac2`): la exclusión que evita el doble
-  conteo del recaudo pasa a mirar el **origen** del asiento y no su categoría. Va **sin
-  bandera** y sola.
-- **La regla de secuencia estaba escrita de una forma que engañaba.** Decía «las dos piezas
-  van en el mismo despliegue», y de ahí se leía «las dos juntas o ninguna». **La regla real es
-  la exclusión primero, o a la vez, nunca después.** Sola es inocua, porque con la bandera
-  apagada todo asiento de cobro es `billingStatement` **y** `alicuota` a la vez. Lo que no
-  puede ocurrir es el orden contrario. Corregido en la PRD §13.
-- **Y aquí está lo que solo aparece al construir: el doble conteo NO era futuro, ya estaba
-  ocurriendo.** Se midieron los dos ambientes antes de tocar nada, y el resultado fue el
-  contrario del esperado: **el seed de demo ya escribe la cuenta del concepto** desde hace
-  tiempo, y su cargo extraordinario está pagado, así que sus 1.500 estaban a la vez en Cartera
-  y en el libro. Las Playas mostraba **129.000 habiendo recaudado 127.500**. La corrección no
-  introduce el defecto: **lo quita**. Los otros trece conjuntos no se movieron un peso.
-- **Los sitios con la exclusión eran TRES, no dos.** El inventario de la PRD, hecho leyendo,
-  nombraba dos. Faltaba el **informe del consejo**, con la forma idéntica y en la tendencia de
-  doce meses que mira el comité. Usaba otros nombres de variable para la misma idea, y por eso
-  no apareció. **La exclusión dejó de ser una condición copiada y pasó a ser un predicado
-  exportado único** — es la segunda vez que este patrón muerde, tras el catálogo de banderas
-  repartido en cuatro sitios.
-- **Regla nueva, R13: el reverso del pago es la misma mina en negativo.** `revertirPago` se
-  excluye hoy por la rama de convivencia; cuando lleve la cuenta del concepto dejará de
-  excluirse y su monto **negativo** entrará en el libro con Cartera ya descontándolo. Va con
-  1b-ii, y no es opcional.
-- **Segunda pasada de sincronización de documentación hecha** (`2ffa894` y su cierre): la wiki
-  cerró tres semanas de desfase con un criterio explícito —**describe lo que corre en
-  PRODUCCIÓN**, y lo que está en staging entra marcado como tal—. Curiosamente esa pasada
-  **predijo por la tarde** la trampa que 1b-i desmintió por la noche, así que se cerró el
-  círculo en la misma jornada.
-- **Los accesos de Notion quedaron documentados con sus identificadores verificados**, y con
-  ellos por qué el roadmap Albert–Vivaru da 404: vive en **otro workspace**, así que no es un
-  permiso que se pueda pedir. Deja de ser un pendiente y pasa a ser un hecho.
-- **Nada de esto está en producción.** `master` sigue en `d17478d`.
+- **El lote correctivo aterrizó en producción**, en el orden que estaba escrito: índices primero
+  —ya iban—, código después. `master` = `develop` = `5d6df95`, rollout `rollout-2026-08-23-002`
+  en `SUCCEEDED`. **Las cinco banderas `producto-*` siguen apagadas**, a propósito.
+- **Backfill de `eventDate` corrido en producción.** 47 `visitorPasses` y 14 `tickets`, con
+  **cero documentos sin fecha resoluble** — que es lo que hacía seguro el apply. Arreglar el
+  índice no llenaba nada: **un campo de filtro por rango tiene que estar poblado en todos los
+  documentos**, y esa es la mitad del defecto 5 que no era código.
+- **`FLOW-002` pasa a v1.2 y queda lista para desarrollo** (`7dc5f7f`, en `develop`). Las tres
+  correcciones resueltas: `sourceType: "advance"` propio para el asiento del anticipo · el cruce
+  sube `advanceAppliedAmount` y **no** `paymentAmount` · el reverso copia el `bankAccountId` del
+  asiento que anula.
+- **Y aquí está lo que solo aparece al leer el código: dos de las tres correcciones de ayer
+  estaban dichas de forma inexacta, y salieron dos huecos nuevos.** La 1.1 pedía ampliar el enum
+  «en los dos espejos»; el espejo de `functions/` recibe `sourceType?: string` **sin tipar**, así
+  que ahí no hay nada que ampliar y **el predicado no cambia en ninguno de los dos**. Lo que
+  tiene que llegar a los dos es **la prueba**, no el tipo.
+- **Ampliar un tipo es inerte; lo que sostiene una decisión es el guardián.** El riesgo real de
+  la trampa de §7.4 no es olvidar el valor nuevo —eso no compila— sino que alguien añada
+  `category === "anticipo"` a la exclusión por analogía con `alicuota`: **eso sí compila y pasa
+  las suites de hoy**. Y el guardián de texto que ya existía no bastaba, porque solo comprueba
+  que las tres ramas *estén*, no que no haya una cuarta.
+- **Un campo escribible desde el cliente no puede sostener un invariante.** `paymentAmount` se
+  escribe hoy con un `updateDoc` **directo desde el navegador** desde el cajón de edición de un
+  cargo. Es lo que decidió la aritmética del cruce: si el anticipo viviera ahí, una edición a
+  mano borraría o duplicaría su aplicación sin que ningún `advanceApplication` se enterara.
+- **Dos huecos nuevos, que no salieron de la PRD sino del código.** `revertirPago` solo conoce
+  **un** asiento, así que revertir un pago cuyo anticipo sigue `open` dejaría vivo un saldo a
+  favor **de un dinero ya devuelto** (R15). Y el «% de recaudo» se calcula sobre `paymentAmount`,
+  así que en cuanto existan anticipos el informe **dejaría de mentir por un lado y empezaría por
+  el otro**: una unidad que cubre julio con un anticipo de junio saldría al 0% con la cuota
+  saldada (R16).
+- **Un criterio de aceptación que mide el mecanismo pasa en verde con el resultado mal.** CA6
+  comprobaba «no se crea asiento» —cierto— y habría dado verde con el estado financiero
+  equivocado. Pasa a medir `totalIncome` **antes y después sobre los mismos datos**, que es la
+  misma disciplina con la que se midió el doble conteo del job.
+- **Los números de línea de una PRD caducan en menos de un día.** La 1.0 daba tres, la 1.1 los
+  corrigió, y hoy **los de la 1.1 ya estaban desplazados**. La v1.2 los sustituye por **nombres
+  de símbolo**. Un número desplazado no falla: manda a leer el sitio equivocado con la
+  confianza de estar en el correcto.
 
 ## Cómo se mantiene este documento
 
@@ -602,10 +608,10 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 | Defecto | Dónde | PRD |
 |---|---|---|
-| **El sobrepago se evapora**: se contabiliza como ingreso y no deja saldo a favor | `functions/src/payments.ts` — `calcularSaldo` | `FLOW-002` |
+| **El sobrepago se evapora**: se contabiliza como ingreso y no deja saldo a favor | `functions/src/payments.ts` — `calcularSaldo` | `FLOW-002` **v1.2, lista** |
 | **El concepto del cargo nunca llega al libro**: una multa o una extraordinaria se contabilizan como cuota de administración | `payments.ts:266` y `:578` — `category: "alicuota"` fijo | `PLAT-003` **1b-ii** (la 1b-i, que prepara el libro para recibirlo, ya está en staging) |
 | **Las reglas de reserva se comprueban solo en el cliente**: 6 de 13 en servidor | `eligibility.ts` + `firestore.rules:558` | `FIX-001` |
-| **El pago no registra a qué cuenta bancaria entró** | `payments.ts:267` — `bankAccountId: null` | `FLOW-002` |
+| **El pago no registra a qué cuenta bancaria entró** | `payments.ts` — `bankAccountId: null` en **`aplicarPago` Y en `revertirPago`**: son **dos**, y la PRD nombraba uno | `FLOW-002` |
 | **El correo sale sin webhook**: cero entrega, rebotes y quejas | `functions/src/email.ts` | `FLOW-003` |
 | **Se cobra el mismo importe a todas las unidades** | `BillingCampaign.unitAmount` | `PLAT-001` |
 | **El proveedor no existe como entidad**: se teclea en cada egreso | `Expense.vendorName` | `FEAT-003` |
@@ -980,6 +986,48 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.20 — 23 de agosto de 2026 (noche)
+
+**El código correctivo llegó a producción y `FLOW-002` quedó lista.** `master` = `develop` =
+`5d6df95`, 57 índices, rollout `rollout-2026-08-23-002` en `SUCCEEDED`. **El reloj del 1 de
+septiembre está apagado.** Backfill de `eventDate` corrido en producción: 47 `visitorPasses` y
+14 `tickets`, cero sin fecha resoluble, verificado con un segundo dry-run en cero.
+
+**La PRD de `FLOW-002` pasa a v1.2** (`7dc5f7f`, en `develop`, sin empujar). Las tres
+correcciones de la 1.1, resueltas:
+
+1. El asiento del anticipo lleva **`sourceType: "advance"` propio**. Corrección a la 1.1: el
+   predicado **no cambia en ninguno de los dos espejos** —el de `functions/` recibe
+   `sourceType?: string` sin tipar—; se amplían dos líneas de tipo en `domain.ts`, y una de
+   ellas (`reversedSourceType`) la 1.1 no la nombraba.
+2. **El cruce no toca `paymentAmount`**: sube `advanceAppliedAmount`, que solo escribe el
+   servidor. Con eso `cuotaIncome` no puede ver el dinero del anticipo, sin que cinco sitios en
+   dos espejos tengan que acordarse de restar. Cuesta lo que la 1.1 daba por intocado:
+   `calcularSaldo` / `computeBalanceStatus` y el contrato de `BillingStatement`.
+3. El reverso **copia el `bankAccountId`** del asiento que anula — el segundo de los dos.
+
+**Tres reglas nuevas y dos huecos que no estaban en ninguna versión anterior.** R14 (el cruce no
+cambia el ingreso del período, como invariante), **R15** (revertir con el anticipo todavía
+`open` dejaba vivo un saldo a favor de un dinero devuelto) y **R16** (el «% de recaudo» pasa a
+`amount − balance`). Las dos últimas salieron de leer el código, no la PRD.
+
+**Cuatro lecciones de método:**
+
+- **Ampliar un tipo es inerte; lo que sostiene la decisión es el guardián.** El riesgo no es
+  olvidar el valor nuevo —no compila— sino añadir `category === "anticipo"` a la exclusión por
+  analogía: eso compila y pasa las suites.
+- **Un campo escribible desde el cliente no puede sostener un invariante.** `paymentAmount` se
+  escribe con un `updateDoc` directo desde el navegador.
+- **Un criterio que mide el mecanismo pasa en verde con el resultado mal.** CA6 comprobaba «no
+  se crea asiento» y habría dado verde con el estado financiero equivocado.
+- **Los números de línea de una PRD caducan en menos de un día.** Sustituidos por nombres de
+  símbolo.
+
+`docs/prd/README.md` se actualizó en la misma pasada: decía «NO lista para desarrollo» y daba
+`PLAT-003` por en vuelo en staging.
+
+
 
 ### 0.9.19 — 23 de agosto de 2026 (tarde)
 

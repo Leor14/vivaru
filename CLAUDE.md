@@ -167,38 +167,38 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**`origin/develop` = `4f3509f`. `origin/master` = `f16927d`.** Releer **los dos**: se mueven por
-separado desde el 23 de agosto. Un push sin cambios responde «success».
+**`origin/develop` = `7dc5f7f`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven
+por separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**.
+Un push sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende
+de la caché local.
 
-**PRODUCCIÓN TIENE ÍNDICES NUEVOS Y CÓDIGO VIEJO, a propósito.** El 23 de agosto por la mañana
-subió el lote de propiedad horizontal (67 commits, olas A y B, `f16927d`). Por la tarde,
-**mirar la pantalla de la entrega 2 de `PLAT-003` —la única del lote que nadie había abierto—
-destapó que el informe de comité no leía medio producto y no lo decía**: cuatro de sus lecturas
-fallaban por índice y enseñaba los ceros como datos. En el mismo conjunto y el mismo día,
-Finanzas avisaba en rojo de **−$10.300** y el informe del consejo decía **+$55.500 y «sin
-alertas»**.
+**PRODUCCIÓN ESTÁ AL DÍA.** El 23 de agosto por la mañana subió el lote de propiedad horizontal
+(67 commits, olas A y B). Por la tarde, **mirar la pantalla de la entrega 2 de `PLAT-003` —la
+única del lote que nadie había abierto— destapó que el informe de comité no leía medio producto
+y no lo decía**: cuatro de sus lecturas fallaban por índice y enseñaba los ceros como datos. En
+el mismo conjunto y el mismo día, Finanzas avisaba en rojo de **−$10.300** y el informe del
+consejo decía **+$55.500 y «sin alertas»**. Los cinco defectos se arreglaron, se verificaron en
+staging contra la base, y **por la noche llegaron a producción** con los 57 índices; rollout
+`rollout-2026-08-23-002` en `SUCCEEDED`. Esta sección decía «índices nuevos y código viejo, a
+propósito»: **ese desajuste se acabó.**
 
-Los cinco defectos están arreglados y **verificados en staging contra la base**. En producción
-se desplegaron **solo los 3 índices** (57, antes 54); el código espera en `develop`.
+**El reloj está apagado.** `monthlyFinancialArchive` corre `0 6 1 * *` y ya no archivará otro
+PDF con doble conteo el 1 de septiembre.
 
-**EL ORDEN ES ÍNDICES PRIMERO, CÓDIGO DESPUÉS — nunca al revés.** Los índices solos son inocuos:
-con el código viejo simplemente esperan. El código sin los índices sería **peor que no hacer
-nada**, porque el aviso nuevo saldría en rojo a todos los administradores.
+**Backfill de `eventDate` corrido en producción** (47 `visitorPasses`, 14 `tickets`, cero sin
+fecha resoluble). Sin él, Visitantes y PQRS salían en cero en el informe de comité: **arreglar
+el índice no llena nada**.
 
-**Hay reloj:** `monthlyFinancialArchive` corre `0 6 1 * *`. Si el arreglo no está antes del 1 de
-septiembre, **archiva otro PDF con doble conteo** para todos los conjuntos.
-
-**Lo siguiente es `FLOW-002` (anticipos)**, desbloqueada desde que `PLAT-003` aterrizó. **Pero su
-PRD decía «Lista para desarrollo» y NO lo está**: describe una exclusión que ya no existe. Tres
-correcciones marcadas dentro (v1.1) — la trampa pasó de omisión a **herencia**, **R4 no basta**
-porque el doble conteo del cruce no pasa por el libro, y **D-C nombra uno de los dos
-`bankAccountId: null`**.
+**Lo siguiente es `FLOW-002` (anticipos), y su PRD YA ESTÁ LISTA** — v1.2, con las tres
+correcciones de la 1.1 resueltas y **dos huecos nuevos** que salieron de leer el código (R15:
+revertir con el anticipo `open` dejaba vivo un saldo a favor de un dinero devuelto; R16: el
+«% de recaudo» pasa a `amount − balance`). Se construye en el orden reglas → functions → front.
 
 **Las cinco banderas `producto-*` siguen apagadas** en producción (sin documento en
 `featureFlags`).
 
-Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.19) y
-`docs/plan-despliegue-ola-ab.md`.
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.20) y
+`docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md`.
 
 ### Lo que ninguna suite puede cazar, y por qué importa aquí
 

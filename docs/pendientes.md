@@ -4,135 +4,101 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 23 de agosto de 2026 (tarde)
+## LO PRIMERO AL ABRIR SESIÓN — 23 de agosto de 2026 (noche)
 
-**`origin/develop` = `9820ed5`. `origin/master` = `f16927d`.** Releer los dos: se mueven por
-separado. Árbol limpio.
+**`origin/develop` = `7dc5f7f`** (la PRD de `FLOW-002` en v1.2, ya empujada).
+**`origin/master` = `5d6df95`.** Releer los dos: se mueven por separado, y esta vez `develop`
+se movió **sin que lo empujara la sesión**. Local `develop` va **un commit por delante
+(`ca12b4d`, las cabeceras de estado) y sin empujar**. Comprobar siempre con `git ls-remote`,
+que no depende de la caché local — es lo que destapó este desfase.
 
-**PRODUCCIÓN TIENE ÍNDICES NUEVOS Y CÓDIGO VIEJO, y ese desajuste es a propósito.** Se
-desplegaron **3 índices** a `hogaru-1` (57 en total, antes 54) y **el código correctivo NO está
-allí**: espera en `develop`. El orden es ese y no el contrario — ver «Lo siguiente».
+**Producción está al día y el reloj está apagado.** El código correctivo del informe de comité
+llegó con los 57 índices; rollout `rollout-2026-08-23-002` en `SUCCEEDED`. `monthlyFinancialArchive`
+corre `0 6 1 * *` y **ya no archivará otro PDF con doble conteo**. El desajuste «índices nuevos,
+código viejo» que decía esta cabecera hasta hoy **se acabó**.
 
-## LO QUE PASÓ ESTA TARDE: el informe del comité mentía
-
-Mirar la pantalla de la entrega 2 de `PLAT-003` —la que nadie había mirado— destapó que **el
-informe de comité no leía medio producto y no lo decía**. En staging, el mismo conjunto y el
-mismo día:
-
-| | `/admin/finanzas` | `/admin/reports` |
-|---|---|---|
-| Egresos | **$137.800** | **$0,00** |
-| Resultado | **−$10.300** | **+$55.500** |
-| Alertas | «Fondo insuficiente», en rojo | «✓ Sin alertas para el comité» |
-
-**137.800 de diferencia, y el que mentía era el documento que firma el consejo.**
-
-**Cinco defectos, no uno.** Los cinco medidos, los cinco arreglados y verificados EN STAGING:
-
-| # | Defecto | Arreglo |
-|---|---|---|
-| 1 | `ledgerEntries` se pedía con `orderBy date desc` y **ese índice nunca existió** | Se quitó el `orderBy`: el orden no lo usaba nadie. Patrón de `watchLedger` |
-| 2 | `visitorPasses`, `tickets` y `committee_agreements` tenían su índice **solo en `ASCENDING`** y el código pide `desc` | Tres índices `DESC` nuevos. `reservations` ya tenía las dos direcciones — el gemelo que lo hacía bien |
-| 3 | El hook ponía `error` y **la página nunca lo pintaba** | Aviso «Informe incompleto», **dentro del bloque imprimible**: el daño es el PDF, no la pantalla |
-| 4 | El job mensual contaba el recaudo **dos veces**: R12 nunca llegó a `functions/` | `esRecaudoDeCartera` exportada desde `payments.ts`, con guardián que compara el espejo **como texto** |
-| 5 | `tickets` y `visitorPasses` **sin `eventDate` poblado** | Backfill corrido en staging (53 + 18 docs) |
-
-**Ninguna prueba podía cazar 1, 2 ni 5**: el fallo estaba en la forma de la consulta contra un
-índice que solo vive en la nube. **1097 pruebas del front y 456 de functions estaban en verde
-mientras el informe mentía.** Salió de MIRAR.
-
-**El resultado en staging, verificado contra la base:**
-
-| | Antes | Ahora |
-|---|---|---|
-| Egresos del período | $0,00 | **$137.800** |
-| Saldo de fondos | $127.500 | **−$10.300** |
-| Visitantes | 0 | **31** (31 medidos en May–Ago) |
-| PQRS | 0 | **14** (14 medidos) |
-| % de firma | 0% | **75%** |
+**Las cinco banderas `producto-*` siguen apagadas** en producción (sin documento en `featureFlags`).
+Encenderlas es hoy barato —nueve conjuntos, todos de prueba— pero es decisión de David.
 
 ## LO SIGUIENTE
 
-**1. Llevar el código correctivo a producción — antes del 1 de septiembre.**
-`monthlyFinancialArchive` corre `0 6 1 * *`. Si el arreglo no está antes, **archiva otro PDF con
-doble conteo** para todos los conjuntos, y esos quedan en Documentos.
+**`FLOW-002` (anticipos). Paso 6 de once, desbloqueada, y su PRD YA ESTÁ LISTA.** Pasó a **v1.2**
+(`7dc5f7f`): las tres correcciones que la 1.1 dejó marcadas y abiertas están resueltas, y en el
+camino salieron **dos huecos que ninguna versión anterior tenía**. Se construye en el orden de
+su §13:
 
-**EL ORDEN NO ES EL INTUITIVO, y ya está a medias a propósito:** los índices van ANTES que el
-código (hecho hoy), nunca después. El código sin los índices sería **peor que no hacer nada**:
-las consultas de `eventDate` seguirían fallando y el aviso nuevo saldría en rojo a todos los
-administradores. Los índices solos son inocuos — con el código viejo simplemente esperan.
+| # | Qué | Nota |
+|---|---|---|
+| 1 | **Reglas** | `advances` y `advanceApplications` sin escritura desde cliente, **y el bloqueo de `advanceAppliedAmount` dentro de `billingStatements`** — que es lo único que protege R4 del cajón de edición manual. **No es una colección nueva: es un campo dentro de un documento que el cliente sigue editando** |
+| 2 | **Functions** | `aplicarPago` con las dos formas; callables de cruce y deshacer cruce; `sourceType: "advance"`; `bankAccountId` en **los dos** asientos; R15 en `revertirPago`; **los dos espejos de `calcularSaldo` a la vez** |
+| 3 | **Front** | reparto, vista de anticipos, saldo del residente, cuenta en el comprobante, y el «% de recaudo» de R16. Con las dos banderas apagadas |
 
-Falta: merge de `develop` a `master`, y después el dry-run del backfill de `eventDate` en
-producción (sin él, Visitantes y PQRS siguen en cero allí).
+**Lo que hay que tener presente antes de escribir la primera línea:**
 
-**2. `FLOW-002` (anticipos).** Paso 6 de once. Desbloqueada desde que `PLAT-003` aterrizó.
-**Su PRD dice «Lista para desarrollo» y hoy NO lo está** — ver la sección siguiente.
-
-## LA PRD DE `FLOW-002` DESCRIBE UN PRODUCTO QUE YA NO EXISTE
-
-Releída contra el código. Tres cosas que hay que corregir **antes** de construir:
-
-**La trampa de §7.4 cambió de forma.** Decía: «si `anticipo` se excluye del libro como
-`alicuota`, desaparece». Hoy la exclusión **no mira la categoría, mira el origen**
-(`esRecaudoDeCartera`). La trampa pasó de **omisión** a **herencia**: antes había que ACTUAR
-para caer en ella; ahora se cae **por defecto** si el asiento del anticipo hereda
-`sourceType: "billingStatement"` de `aplicarPago`, que es donde nace. Y es peor que con la
-multa: el anticipo **no está en `cuotaIncome`**, así que se descuenta sin estar sumado en el
-otro lado. **Ahora hay que actuar para EVITARLA**: el asiento del anticipo necesita su propio
-`sourceType`, y `LedgerEntry.sourceType` solo admite cuatro valores.
-
-**R4 no basta, y CA6 pasaría en verde con el estado financiero mal.** R4 dice que cruzar un
-anticipo no crea asiento, y es cierto. Pero **cruzar sube `paymentAmount` del cargo**, y
-`cuotaIncome` es exactamente la suma de esos `paymentAmount` (`repartirRecaudo`, sin filtro de
-fecha). Así que cruzar un anticipo de 60 **sube el ingreso en 60 al instante**, sin crear ningún
-asiento: contado una vez al entrar (R5) y otra al cruzarlo, vía Cartera. **La PRD vigila el
-doble conteo solo por el lado del libro, y la otra mitad no pasa por el libro.** Es el mismo
-error de encuadre de la 1b-iii: «escribir la cuenta era necesario y NO era suficiente».
-
-**D-C está incompleto.** La PRD nombra un `bankAccountId: null` fijo; hay **dos**. El segundo
-está en `revertirPago` (`payments.ts:665`) y no aparece. Arreglar solo el primero deja el
-reverso sin cuenta, justo en la operación que más importa cuadrar.
-
-Los tres defectos medidos (D-A, D-B, D-C) **siguen vigentes**, verificados contra el código. Las
-líneas de la PRD están desplazadas: `calcularSaldo` está en 139 (no 115), `aplicarPago` en 180
-(no 156), el `bankAccountId` en 324 (no 267).
+- **El predicado de `esRecaudoDeCartera` NO cambia** en ninguno de los dos espejos. El de
+  `functions/` recibe `sourceType?: string` sin tipar. Lo que tiene que llegar a los dos es
+  **la prueba**, no el tipo.
+- **Ampliar el tipo es inerte.** El riesgo real es que alguien añada `category === "anticipo"`
+  a la exclusión por analogía con `alicuota`: **eso sí compila y pasa las suites de hoy**. El
+  guardián de texto hay que ampliarlo, porque solo comprueba que las tres ramas *estén*.
+- **El «% de recaudo» (R16) va en el paso 3, no después.** Si el cruce deja de inflar el ingreso
+  pero el porcentaje sigue leyendo `paymentAmount`, el consejo pasa de ver un ingreso inflado a
+  ver **una morosidad inventada**.
 
 ## LO QUE SIGUE SIN HACERSE, dicho para que no se lea como hecho
 
 | Qué | Nota |
 |---|---|
-| **El código correctivo en producción** | Índices sí, código no. Ver «Lo siguiente» |
-| **Backfill de `eventDate` en producción** | Hecho en staging. En producción, dry-run primero |
-| El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` **no lo usa ninguna consulta**. Se añadió el que no hacía falta y faltaba el que sí. Borrarlo no es urgente y tiene coste si luego se necesita |
-| Encender las banderas en producción | Hoy es barato: nueve conjuntos, todos de prueba. **Ya no es gratis del todo**: hasta hoy el job mensual duplicaba el recaudo al encenderlas |
+| **Empujar `develop`** | `7dc5f7f` está solo en local. Es documentación, no toca producción |
+| El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` **no lo usa ninguna consulta**. Borrarlo no es urgente y tiene coste si luego se necesita |
+| Encender las banderas en producción | Ya no duplica el recaudo — eso se arregló hoy. Sigue siendo decisión de David |
 | `FIX-001` entrega 2 | Cierra la regla que deja al residente escribir reservas directo |
-| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
+| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`, así que **sus filas en la tabla de roles de `FLOW-002` son intención declarada, no capacidad disponible** |
 | La carrera de la transacción del plan | La guarda existe y **no está ejercitada** |
 | El plan de cuentas por país | Aparcado a propósito |
-| **La cuenta de vigilancia en la semilla** | Decisión de David pendiente ANTES de sembrar en producción: sembrar congela la ausencia |
+| **`systemKey` `anticipo` en el plan de cuentas** | **Nuevo hoy.** No existe, y sin él la línea del anticipo queda etiquetada por su categoría mientras el resto del estado habla en códigos. Es una adición al catálogo de `PLAT-003`, y sin ella D1 de `FLOW-002` no cumple lo que prometió |
+| **La cuenta de vigilancia en la semilla** | Decisión de David ANTES de sembrar en producción: sembrar congela la ausencia |
 
 ## QUÉ HACE FALTA DE DAVID
 
-**1. Autorizar el merge a `master`.** Es lo único que separa el arreglo de producción, y hay
-nueve días de reloj.
+**Ninguna decisión bloquea el paso 1 de `FLOW-002`.** Las cuatro correcciones de la PRD se
+cerraron con él el 23 por la noche.
 
-**2. Tres credenciales caducan POR SEPARADO**, y hoy caducaron las tres:
+**1. ¿Se empuja `develop`?** Un commit de documentación esperando. No toca producción.
+
+**2. Decisiones abiertas, ninguna urgente:** encender las banderas · escribir `PLAT-004` · el
+plan de cuentas por país · la cuenta de vigilancia en la semilla.
+
+**3. Tres credenciales caducan POR SEPARADO**, y el 23 caducaron las tres:
 `gcloud auth application-default login` (leer Firestore con los scripts), `firebase login
---reauth` (índices, despliegues) y `gcloud auth login` (el CLI, que sigue caducado y no hizo
-falta). El síntoma del primero es `invalid_rapt`, que **parece un error de código**.
-
-**3. Acceso al navegador: ya no hace falta pedirlo.** Esta tarde se validó todo entrando por
-Chrome con la sesión de David abierta —CA6, los cinco defectos, el antes y el después—. **Es lo
-que cambió el ritmo de la sesión**, y es repetible.
-
-**4. Decisiones abiertas, ninguna urgente:** encender las banderas · escribir `PLAT-004` · el
-plan de cuentas por país · la cuenta de vigilancia.
+--reauth` (índices, despliegues) y `gcloud auth login` (el CLI). El síntoma del primero es
+`invalid_rapt`, que **parece un error de código**. Las de ADC estaban vivas esta noche: el
+backfill de producción corrió con ellas.
 
 ### Lo que NO hace falta pedir
 
+- **Acceso al navegador.** Entrar por Chrome con la sesión de David abierta funciona y es
+  repetible. Es lo que destapó los cinco defectos que 1553 pruebas en verde no vieron.
 - **El roadmap Albert–Vivaru de Notion.** Da 404 y seguirá dándolo: vive en otro workspace.
 - **Nada de Albert.** Expediente cerrado desde el 22 de agosto.
 
+## LAS CUATRO LECCIONES DE MÉTODO DE ESTA JORNADA
+
+Van aquí y no en el historial porque **aplican a lo siguiente que se escriba**, no a lo que ya
+pasó.
+
+1. **Ampliar un tipo es inerte; lo que sostiene una decisión es el guardián.** Lo que no
+   compila no da miedo. Lo que compila y pasa las suites, sí.
+2. **Un campo escribible desde el cliente no puede sostener un invariante.** `paymentAmount` se
+   escribe con un `updateDoc` **directo desde el navegador**. Fue el argumento que decidió la
+   aritmética entera del cruce.
+3. **Un criterio de aceptación que mide el MECANISMO pasa en verde con el RESULTADO mal.** CA6
+   comprobaba «no se crea asiento» —cierto— y habría dado verde con el estado financiero
+   equivocado. Un CA se escribe sobre el número que importa, no sobre el paso que lo produce.
+4. **Los números de línea de un documento caducan en menos de un día.** La 1.0 daba tres, la 1.1
+   los corrigió, y hoy los de la 1.1 ya estaban desplazados. **Nombres de símbolo, no números.**
+   Un número desplazado no falla: manda a leer el sitio equivocado con la confianza de estar en
+   el correcto.
 ---
 
 # Historial — jornada del 23 de agosto
