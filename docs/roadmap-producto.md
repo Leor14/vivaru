@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.16 |
-| **Fecha** | 22 de agosto de 2026, noche |
-| **Estado** | **`PLAT-003` entró en el código que mueve dinero, por el trozo pequeño.** La entrega **1b-i** —la corrección de la exclusión del libro— está **construida y en staging** (`1635ac2`), **sin bandera**, y es **la única pieza del lote que cambia una cifra visible hoy**. Se partió a propósito de la 1b-ii, que es la que toca `aplicarPago`: la regla no es «las dos juntas», es **la exclusión primero, o a la vez, nunca después**. Sigue en pie que la **ola A del lote de propiedad horizontal está en staging** —moneda, auditoría de callables, reservas en servidor, copropiedad, proveedores, plan de cuentas 1a— y que **el expediente de Albert está cerrado**, con los dos equipos avanzando por separado a propósito. **Producción sigue intacta:** `master` en `d17478d`, sin desplegar nada a `hogaru-1` |
+| **Versión** | 0.9.17 |
+| **Fecha** | 23 de agosto de 2026, madrugada |
+| **Estado** | **`PLAT-003` entrega 1b COMPLETA y VALIDADA A MANO en staging**, en tres trozos. El defecto grande de la PRD está cerrado: una multa cobrada ya no se contabiliza como cuota de administración, el estado financiero la enseña en su propia línea, y el reverso no resta dos veces. **Comprobado cobrando y revirtiendo dinero de verdad**: 127.500 → 128.000 → 127.500, con el asiento releído en Firestore. La bandera `producto-concepto-al-libro` queda **encendida solo en `conjunto-las-playas` de staging**. **Producción intacta:** `master` en `d17478d` |
 | **Verificado contra** | **Ejecución y MEDICIÓN contra los dos ambientes, no lectura.** `origin/develop` releído con `git rev-parse` tras cada push. **1035 pruebas de app** y los dos typecheck limpios, con eslint limpio en los ficheros tocados. Las tres pruebas nuevas de la exclusión **se comprobaron en ROJO** con la regla vieja antes de darlas por buenas. Y antes de tocar nada se leyeron `hogaru-1` y `vivaru-staging-02` con dos scripts de solo lectura para saber cuánto movía el cambio: **movía un conjunto de siete, en −1.500**, y lo movía **para corregir un doble conteo que ya existía** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -980,6 +980,22 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.17 — 23 de agosto de 2026, madrugada
+
+- **`PLAT-003` 1b completa** (`9f53a80`, `ee310d6`, `6939308`) y **validada a mano en staging**.
+- **El defecto grande de la PRD, cerrado:** `aplicarPago` escribía `alicuota` fijo sin mirar el
+  concepto del cargo, que llevaba existiendo en el mismo documento que ya leía.
+- **1b-iii salió al ir a validar la 1b-ii, y es la lección de la jornada: escribir la cuenta era
+  necesario y NO era suficiente.** Los asientos de cobro están excluidos a propósito, así que la
+  cuenta recién escrita **no la mostraba nadie**. El reparto tenía que salir de Cartera.
+- **R13 probado con dinero real:** cobrar la multa subió el total a 128.000 y revertirla lo
+  devolvió a **127.500 exacto**. Sin el origen arrastrado habrían sido 127.000.
+- **Tres trampas de despliegue:** App Hosting no lanzó rollout solo (hubo que forzarlo),
+  `functions:list` falla con el alias del proyecto, y el CLI de `gcloud` caduca aparte de la ADC.
+- **Y una de método:** el grep del bundle falló **incluyendo su control**, lo que delató que la
+  medición era mala y no el despliegue. La verificación buena fue la **procedencia del build**.
+- **Nada de esto está en producción.**
 
 ### 0.9.16 — 22 de agosto de 2026, noche
 

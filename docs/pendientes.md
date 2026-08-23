@@ -1,122 +1,94 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el **22 de agosto de 2026, noche**: `PLAT-003` **entrega 1b-i construida y
-commiteada**. Antes, esa misma tarde, se cerró entero el expediente de Albert.
+Actualizado el **23 de agosto de 2026, madrugada**: **`PLAT-003` entrega 1b COMPLETA y
+VALIDADA A MANO en staging**, en tres trozos (1b-i, 1b-ii, 1b-iii). Producción intacta.
 
-## LO PRIMERO AL ABRIR SESIÓN (22 ago 2026, noche)
+## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
-**`develop` = `aa34067`, y `origin/develop` releído, no supuesto.** 1b-i está en staging.
-`master` sigue en `d17478d`: **nada de esto está en producción.**
+**`develop` = `6939308`, empujado y con `origin/develop` releído.** Árbol limpio.
+**`master` sigue en `d17478d`: nada de `PLAT-003` está en producción.**
 
-**Pendiente de validar a mano en staging** (es lo que ninguna prueba contesta): que el Libro y
-fondos de `conjunto-las-playas` muestre **127.500** y no 129.000, y que los otros conjuntos no
-se hayan movido.
+**Lo desplegado en staging, y cómo se comprobó** (leído, no deducido):
 
-### `PLAT-003` 1b-i — la exclusión del libro, HECHA (`1635ac2`)
+| Pieza | Cómo se verificó |
+|---|---|
+| Front en `6939308` | Procedencia del build de App Hosting: `build-2026-08-22-029` en `READY`, hash `693930891e46…` |
+| `applyPayment` · `revertPayment` · `createTenantWorkspace` | `updateTime` leído por la API de Cloud Functions, las tres `ACTIVE` |
+| Reglas e índices | `firebase deploy --only firestore:rules,firestore:indexes` a `vivaru-staging-02` |
 
-El trozo pequeño y seguro: **solo** la corrección de la exclusión, sin tocar `aplicarPago`.
-La regla R12 pasa a mirar el **origen** del asiento (`sourceType === "billingStatement"`) y
-no su categoría. **Va sin bandera**, porque con la bandera apagada todo asiento de cobro es
-las dos cosas a la vez.
+**`producto-concepto-al-libro` está ENCENDIDA en staging, y SOLO en `conjunto-las-playas`**
+(`featureFlagOverrides/conjunto-las-playas`). El valor global sigue sin documento, así que los
+otros siete conjuntos de staging y **todo producción** siguen apagados por el default del
+catálogo. Se deja encendida a propósito: es la evidencia viva de que funciona.
 
-**La regla de orden, escrita como es y no como se venía leyendo:** no es «las dos juntas»,
-es **la exclusión primero, o a la vez, nunca después**. Escribir la cuenta del concepto y
-arreglar la exclusión luego es desplegar el doble conteo. §13 de la PRD ya lo dice así.
+### `PLAT-003` 1b — las tres entregas, y por qué fueron tres
 
-**Dos cosas que encontró construir, y que leer no había visto:**
+**1b-i (`1635ac2`) — la exclusión del libro mira el ORIGEN.** Regla R12. Sin bandera. Se pudo
+desplegar sola porque con la bandera apagada todo asiento de cobro es `billingStatement` **y**
+`alicuota` a la vez. **La regla de orden no es «las dos juntas»: es la exclusión primero, o a
+la vez, nunca después.**
 
-1. **Los sitios eran TRES, no dos.** Faltaba `use-committee-report.ts:623`, con la forma
-   idéntica —`ingresos = recaudado + ingresosOtros`— en la tendencia de doce meses del
-   consejo. Ahora la exclusión es **un predicado exportado**, `esRecaudoDeCartera`, y no la
-   misma línea copiada. Fue copiarla lo que dejó un sitio fuera del inventario.
-2. **El reverso del pago es la misma mina, en negativo** — regla **R13**, nueva. Hoy
-   `revertirPago` escribe `sourceType: "reversal"` + `alicuota` y se excluye por la segunda
-   rama; en cuanto R7 le ponga la cuenta del concepto dejará de excluirse y su monto
-   negativo entrará en el libro con Cartera ya descontándolo. **R13 va en 1b-ii**, con R6 y
-   R7. No se puede olvidar: es el mismo defecto que esta entrega arregla, mirando al revés.
+**1b-ii (`9f53a80` + `ee310d6`) — el concepto del cargo llega al libro.** El defecto grande de
+la PRD. `aplicarPago` escribía `category: "alicuota"` FIJO sin mirar el `concept` del cargo,
+que llevaba existiendo desde siempre en el mismo documento que ya leía. Ahora escribe
+`accountCode`, la categoría equivalente y la descripción, **las tres coherentes o ninguna**.
+Más R7 (el reverso copia la cuenta del original) y R13 (el reverso arrastra el origen).
 
-**El tripwire de la medición saltó, y con el signo contrario al esperado.** Se leyeron los
-dos ambientes antes de tocar nada (`functions/scripts/auditar-exclusion-libro.mjs` y
-`medir-delta-exclusion-libro.mjs`, los dos de solo lectura). Sí existe un asiento
-`billingStatement` con categoría distinta de `alicuota` —en producción **y** en staging, con
-el mismo id— y lo siembra `seed-data-playas.mjs:248`, **que ya escribe la cuenta del concepto
-desde antes**. Su cargo está pagado, así que sus 1.500 están hoy en `cuotaIncome` y en
-`ledgerIncome` a la vez: **el doble conteo que la PRD decía que este cambio introduciría ya
-existía**. Esto lo quita. `conjunto-las-playas` pasa de 129.000 a 127.500 —lo que Cartera dice
-que recaudó— y los otros trece conjuntos no se mueven. **David decidió desplegarlo tal cual**
-(22 ago): con cero clientes reales es el momento más barato.
+**1b-iii (`6939308`) — el recaudo se reparte por concepto.** Salió al ir a validar la 1b-ii:
+**escribir la cuenta era necesario y NO era suficiente.** Los asientos de cobro están excluidos
+a propósito, así que la cuenta recién escrita **no la mostraba nadie**. El reparto sale de
+Cartera —la fuente completa— y por construcción la suma no cambia.
 
-**Sin cambios en `functions/`:** 1b-i no necesita recompilar ni desplegar functions. Es front,
-y en staging entra por el push a `develop`.
+### Validación a mano en staging — HECHA, y con números
 
-**Lo siguiente es 1b-ii**, y ahí sí se toca dinero vivo: `accountCode` en `aplicarPago` y
-`revertirPago`, R13, la semilla en el alta y las reglas con id derivado, todo detrás de
-`producto-concepto-al-libro`.
+David cobró la multa de 500 de `T2-203` y luego la revirtió. Comprobado en el Excel **y**
+releyendo Firestore:
 
-**Un descuadre suelto, de otro frente:** `conjunto-las-playas` está marcado `isExample` en
-producción y **no** en staging. Descuadra cualquier volumetría que descuente lo sembrado —el
-mismo error que ya infló el baseline dos veces en agosto—. Anotado a propósito y **no
-corregido**: es una escritura en staging fuera del alcance de una sesión de dinero vivo.
+| Momento | Estado financiero | En la base |
+|---|---|---|
+| Antes | 126.000 + 1.500 = **127.500**, dos líneas | — |
+| Tras cobrar | + **Multas 500** = **128.000**, tres líneas | asiento con `accountCode: "1.3"`, `category: "multa"`, concepto «Pago de multa 2026-06 — T2-203» |
+| Tras revertir | vuelve a **127.500** | reverso con `reversedSourceType: "billingStatement"`, misma cuenta, −500; cargo a `overdue`; recibo `anulado: true` |
 
-### Albert dejó de ser un frente abierto, y los dos equipos van por separado a propósito
+**El 127.500 del final es la prueba de R13.** Sin el origen arrastrado habrían sido 127.000:
+el reverso habría restado dos veces. Y el 128.000 del medio prueba que el doble conteo está
+muerto — si viviera, el total habría subido 1.000 y no 500.
 
-**Decisión de David:** Albert avanza con su roadmap y Vivaru con el lote de Habitanto. No
-hay nada urgente que obligue a sincronizarlos. El estado vive, como siempre, en
-[`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md) — **ir ahí, no a los nueve documentos.**
+### Lo que NO está hecho, dicho para que no se lea como hecho
 
-Lo que cambió en un día: el intercambio se **cerró** (A-003 y A-004 nuestros, A-003 y A-004
-suyos), el **alta A5 está ejecutada** —tenant `vivaru` activo, usuario de servicio con rol
-`sales` verificado en tres sitios— y **A1 está publicado en producción**, antes de la
-ventana que habían comprometido.
+| Qué | Por qué importa |
+|---|---|
+| `accountCode` en `BillingStatement` y `Expense` | §7.2 lo pide. No es hueco de corrección: sin código los informes agrupan por categoría (R9) y los egresos no entran en el doble conteo |
+| El aviso de **R8** en pantalla | Cuando un concepto cae en `otros_ingresos`, el dato ya viaja en la respuesta del callable. Nadie lo enseña todavía |
+| **El estado financiero solo existe como Excel** | `incomeByCategory` solo se usa en la exportación. La métrica de éxito de la PRD vive hoy en una hoja de cálculo, no en una pantalla |
+| Ningún conjunto EXISTENTE tiene plan sembrado | La semilla corre al crear. Encender `producto-plan-de-cuentas` en un conjunto viejo enseñaría un plan vacío |
 
-**Lo único que hay que preguntarles antes de construir el empuje** está en `ESTADO-ALBERT`
-§4.4, y es una línea: su prueba de que A1 está publicado enseña **su web desplegada**, y
-nosotros no escribimos por su web sino con el SDK cliente directo a Firestore. Falta saber
-qué valida nuestras escrituras: las reglas, o solo su app.
+**Por qué NO se sembró el plan en los conjuntos que ya existen, aunque se pudo:** la siembra no
+pisa lo que existe —correcto, para no borrar renombres—, y eso significa que **sembrar ahora
+congela la semilla**. Si la entrega 2 corrige un código o un nombre, los ya sembrados se quedan
+con el viejo y los nuevos nacen con el nuevo: divergencia silenciosa. **Se siembra cuando la
+semilla esté cerrada**, con la entrega 2.
 
-**Y una decisión de David que hay que leer como provisional, no como definitiva:** el
-usuario de servicio quedó sobre un **buzón de desarrollo compartido** en vez de una
-dirección propia, porque no hay alias de correo en Albert. `ESTADO-ALBERT` §4.5 tiene lo
-que se acepta al elegirlo — incluido que **es la misma identidad con la que se opera el CLI
-de Firebase de Vivaru**, comprobado con `firebase login:list`.
+### Tres trampas de esta sesión que conviene no volver a pisar
 
-### Credenciales del alta — SIN guardar todavía, y es deliberado
+1. **App Hosting no desplegó solo.** Tres commits se quedaron sin rollout casi una hora. Hubo
+   que forzarlo: `firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha>`.
+   **Un push verde no es un despliegue**: hay que mirar los rollouts.
+2. **`firebase functions:list --project staging` falla con el alias** de `.firebaserc` y
+   funciona con el project id completo. Se lee como que el despliegue falló.
+3. **`gcloud` CLI y la ADC caducan por separado.** El CLI pidió reautenticación con la ADC
+   viva; el `updateTime` se leyó por la API de Cloud Functions usando la ADC.
 
-La contraseña del usuario de servicio **no está en Secret Manager** y las dos credenciales
-**no se han reseteado**. Aplazado por David: **nada lee ese secreto todavía** —cero cableado
-de Albert en `functions/src`— así que un secreto vacío no rompe nada. Los pasos, en
-`ESTADO-ALBERT` §4.6. **Ojo: el enlace de reset del `tenant_admin` es de vida corta y el
-que se mandó el 22 probablemente ya caducó.**
+**Y una de método, que casi cuela:** al comprobar el bundle desplegado, ni el marcador nuevo ni
+**el control** aparecieron. Sin el control se habría concluido «no llegó» por el motivo
+equivocado — lo que fallaba era la medición (los chunks de finanzas están detrás de auth). La
+verificación buena fue **la procedencia del build**, no el grep de cadenas.
 
-### `PLAT-003` arrancó, y leer el código antes de construir encontró dos huecos
+### Un descuadre suelto, de otro frente
 
-La PRD pasó a **1.1**. Los dos hallazgos, en `PRD-V-PLAT-003` §2 y §8:
-
-1. **La semilla de trece no cubría los conceptos de cargo.** Tres de los siete —`multa`,
-   `reparacion`, `parqueadero`— no tenían cuenta, y `multa` es el ejemplo de la métrica de
-   éxito de la propia PRD. Además el cargo `administracion` colisiona con el egreso
-   homónimo y tiene que resolver a la cuenta de **ingreso**.
-2. **El cambio introducía un doble conteo.** `use-ledger.ts:220` excluye del ingreso los
-   asientos de categoría `alicuota` para no duplicar lo que ya suma Cartera. Hoy funciona
-   por accidente, porque `aplicarPago` escribe `alicuota` para todo. En cuanto se escriba
-   la cuenta del concepto, una multa deja de excluirse y **se cuenta dos veces**.
-
-**Lo que hay construido (entrega 1a, `41eeb9c`):** el módulo puro
-`functions/src/plan-de-cuentas.ts` —formato del código, semilla de 18 documentos, mapa
-concepto→cuenta— con 22 pruebas, y las dos banderas **apagadas** y registradas en los
-cuatro sitios del catálogo.
-
-**~~Lo siguiente es la entrega 1b~~ — 1b se partió en dos, y la primera mitad ya está hecha.**
-Esta línea decía que la corrección de la exclusión y `accountCode` iban «las dos en el mismo
-despliegue, porque separarlas es desplegar el doble conteo». **Era cierta a medias y por eso
-engañaba:** lo que no se puede es desplegarlas **al revés**. La exclusión sola es inocua —con
-la bandera apagada todo asiento de cobro es `billingStatement` **y** `alicuota`—, así que
-puede ir sola y antes, y así fue: **1b-i está en `1635ac2`** (ver arriba). Lo que queda es
-**1b-ii**: reglas con id derivado, la semilla dentro del alta, y `accountCode` en
-`aplicarPago`/`revertirPago` con **R13**. Ahí se toca dinero vivo.
-
-**Nada de esto necesita desplegar functions todavía:** el módulo aún no lo llama nadie.
+`conjunto-las-playas` está marcado `isExample` en producción y **no** en staging. Descuadra
+cualquier volumetría que descuente lo sembrado. Anotado y **no corregido** a propósito.
 
 ### Barrido de documentación — pasadas 1 y 2 HECHAS, queda una
 
