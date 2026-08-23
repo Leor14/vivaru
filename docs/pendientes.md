@@ -1,50 +1,112 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el **23 de agosto de 2026, de madrugada (segunda pasada)**: entrega 1b completa y
-validada, y **los PASOS 1 y 2 de la entrega 2 en staging** — el cargo y el egreso llevan su
-cuenta, el formulario del plan **validado a mano** —donde salió un defecto de reglas que ninguna
-prueba veía— y **el paso 3 construido**: R9, las etiquetas desde el plan, los ingresos por cuenta
-en pantalla y el aviso de R8. Falta mirar el paso 3. Producción intacta.
+**Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
+Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
+## LO PRIMERO AL ABRIR SESIÓN — 23 de agosto de 2026
 
-**`develop` = `f16927d`, empujado y con `origin/develop` releído.** Árbol limpio.
+**`origin/master` = `f16927d`.** `origin/develop` va por delante **solo en documentación**.
+Árbol limpio. **Desde hoy se mueven los DOS**: releer los dos con `git rev-parse`.
 
-## PRODUCCIÓN SE MOVIÓ — 23 ago 2026, `master` = `f16927d`
+**PRODUCCIÓN SE MOVIÓ.** Las olas A y B están desplegadas: **67 commits**, el primer movimiento
+de `master` desde el 20 de agosto. Entran `PLAT-002` (auditoría), `FIX-001` e1, `PLAT-001` MVP,
+`FEAT-003` MVP y **`PLAT-003` completa hasta la entrega 2**. Plan y verificación pieza por pieza
+en [`plan-despliegue-ola-ab.md`](plan-despliegue-ola-ab.md).
 
-**Las olas A y B están en producción.** 67 commits, el primer movimiento de `master` desde el 20
-de agosto. Detalle y verificación pieza por pieza en
-[`docs/plan-despliegue-ola-ab.md`](plan-despliegue-ola-ab.md).
+**Estar en producción NO significa que se vea.** Las cinco banderas `producto-*` no tienen
+documento en `featureFlags`, así que resuelven al default del catálogo: apagadas.
 
-**Las cinco banderas de producto siguen apagadas** —sin documento en `featureFlags`, resuelven al
-default del catálogo—, así que ninguna capacidad nueva se ve.
+**Lo único que un usuario nota** — las cuatro cosas sin bandera:
 
-**Lo único que cambió de verdad, y yo lo había dado por inerte:** de los 89 asientos de
-producción, **uno cambia de lado** con la exclusión del doble conteo. `conjunto-las-playas` pasa
-de **129.000 a 127.500** de ingreso total: ese 1.500 de cuota extraordinaria se contaba dos veces.
-**Es el error viejo dejando de ocurrir**, no uno nuevo.
-
-**Y la lección de método:** «inerte» era una predicción. Comparar el estado antes y después **no
-prueba nada** cuando el «antes» ya se calculó con el código nuevo. Lo que lo prueba es aplicar
-**las dos reglas sobre los mismos asientos** y contar cuántos cambian de lado.
-**`master` sigue en `d17478d`: nada de `PLAT-003` está en producción.**
-
-**Lo desplegado en staging, y cómo se comprobó** (leído, no deducido):
-
-| Pieza | Cómo se verificó |
+| Qué | A quién |
 |---|---|
-| Front en `06edf29` | `rollout-2026-08-23-004` en `SUCCEEDED`. Lo disparó App Hosting solo |
-| Front en `d427698` (paso 1) | Procedencia del build: `build-2026-08-23-003`, `commit=d4276986`, `READY`, rollout `SUCCEEDED` |
-| Las 27 functions | `firebase deploy --only functions --project vivaru-staging-02`, y el `updateTime` de las tocadas leído por la API: todas `ACTIVE` a las 02:38 UTC |
-| Front en `6939308` (1b-iii, anterior) | `build-2026-08-22-029` en `READY`, hash `693930891e46…` |
-| Reglas | **Redesplegadas** con el arreglo de `chartOfAccounts` (`0bbf6cf`). Verificado leyendo el ruleset VIVO por la API de Firebase Rules, no fiándose del «Deploy complete» |
-| Índices | Sin cambios. Las reglas de `billingStatements`, `expenses` y `ledgerEntries` **no validan el juego de claves**, así que el campo nuevo no las toca |
+| Decimales en MXN/USD | Tres conjuntos tienen MXN; **solo uno está activo** |
+| Vocabulario por país | Los cuatro que tienen `country` |
+| Dos opciones nuevas de vigilancia en dos selectores | Todos. Aditivo |
+| `conjunto-las-playas` pasa de **129.000 a 127.500** | Un doble conteo que dejó de ocurrir |
 
-**`producto-concepto-al-libro` está ENCENDIDA en staging, y SOLO en `conjunto-las-playas`**
-(`featureFlagOverrides/conjunto-las-playas`). El valor global sigue sin documento, así que los
-otros siete conjuntos de staging y **todo producción** siguen apagados por el default del
-catálogo. Se deja encendida a propósito: es la evidencia viva de que funciona.
+**Y la quinta, invisible pero irreversible:** la auditoría de `PLAT-002`. **Es la única del lote
+que no se apaga con una bandera.**
+
+## LO SIGUIENTE
+
+**`FLOW-002` (anticipos).** Es el paso 6 de los once del plan —van cinco— y estaba bloqueada
+porque ella y `PLAT-003` modifican **la misma función**, `aplicarPago`, y no pueden estar en
+vuelo a la vez. `PLAT-003` aterrizó, así que ya se puede.
+
+**Su PRD advierte de una trampa que ahora se lee mejor:** si `anticipo` se excluyera del libro
+como se excluía `alicuota`, el anticipo **desaparecería** del estado financiero. Hoy la exclusión
+mira el **origen** del asiento, no la categoría — así que esa trampa concreta cambió de forma, y
+hay que releerla con eso en la mano.
+
+## LO QUE SIGUE SIN HACERSE, dicho para que no se lea como hecho
+
+| Qué | Nota |
+|---|---|
+| **Nadie ha mirado la pantalla** de la entrega 2 | El estado financiero por cuenta y los ingresos en el informe de comité. Está en producción con banderas apagadas, así que no corre prisa |
+| Encender las banderas en producción | Decisión aparte, y hoy es barata: nueve conjuntos, todos de prueba |
+| `FIX-001` entrega 2 | Cierra la regla que hoy deja al residente escribir reservas directo. No antes de que la bandera lleve tiempo encendida **sin escrituras directas**, comprobado contra la base |
+| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`: lo que ocho PRD le asignan es intención, no capacidad |
+| La carrera de la transacción del plan | Dos pestañas creando el mismo código a la vez. La guarda existe y **no está ejercitada** |
+| El plan de cuentas por país | Aparcado a propósito: se decide con el primer cliente de cada país |
+
+## QUÉ HACE FALTA DE DAVID PARA QUE LA PRÓXIMA SESIÓN CORRA BIEN
+
+Ordenado por lo que más frena si falta.
+
+### 1. Mirar la pantalla — o dar acceso para mirarla
+
+**Es lo que más rinde y lo único que un agente no puede hacer solo hoy.** De los cinco defectos
+del 23 de agosto, **ninguno salió de una suite en verde**: salieron de mirar, de preparar un
+despliegue y de un aviso de lint. Dos ejemplos de la jornada:
+
+- El formulario del plan respondía «No tienes permiso» al crear una cuenta, con **seis pruebas de
+  reglas en verde**.
+- Renombrar una cuenta no refrescaba el informe —CA6 verde en la prueba y rota en la pantalla— y
+  lo cazó `exhaustive-deps`, no una prueba.
+
+**Dos salidas, y cualquiera vale:** David mira y pega lo que ve (una captura basta, como se hizo
+hoy), **o** concede acceso a la plataforma para que el agente navegue. La segunda cambia el ritmo
+de todas las sesiones siguientes; la primera funciona y es la de hoy.
+
+### 2. Tres decisiones, ninguna urgente
+
+| Decisión | Contexto para tomarla |
+|---|---|
+| **¿Se encienden las banderas en producción?** | Hoy es barato: nueve conjuntos, **todos de prueba**. Es la ventana que se cierra sola cuando llegue el primer cliente real |
+| **¿Se escribe `PRD-V-PLAT-004` (rol Consejo)?** | Ocho PRD le dan capacidades al consejo que **hoy no puede alcanzar**. No bloquea a ninguna, pero las ocho arrastran una promesa que el producto no cumple |
+| **El plan de cuentas por país** | Aparcado a propósito. Se decide con el primer cliente de México, Colombia o Ecuador, y su contador |
+
+### 3. Permisos y credenciales — dos cosas que frenaron hoy
+
+- **El clasificador de permisos bloqueó dos escrituras a Firestore de staging** hechas con los
+  scripts del repositorio (sembrar el plan, borrarlo). El agente tuvo que pasarle los comandos a
+  David. Si conviene que las haga solo, hay que **añadir una regla de permiso de Bash** para esos
+  scripts. **Leer nunca se bloqueó**, ni el despliegue.
+- **`gcloud auth application-default login`** caduca **aparte** del CLI de `gcloud`. El síntoma es
+  `invalid_rapt`, que **parece un error de código**. Si una sesión empieza sin poder leer los
+  ambientes, es esto.
+
+### 4. Un pendiente de consola que lleva meses, y no es de este frente
+
+**La URL de acción de Firebase Auth** (Authentication → Templates → `https://www.grupovivaru.com/restablecer`)
+sigue sin guardarse: dio error de permisos y **hay que reintentarlo con la cuenta Owner**
+(`luisEOteroR@gmail.com`). Hasta entonces el enlace de recuperación abre la página de Firebase en
+inglés — funciona, pero no es de Vivaru. Está en `CLAUDE.md` desde junio.
+
+### Lo que NO hace falta pedir
+
+- **El roadmap Albert–Vivaru de Notion.** Da 404 y seguirá dándolo: vive en otro workspace. No es
+  un permiso que se pueda pedir sobre la página. Si hace falta su contenido, lo pega David.
+- **Nada de Albert.** El expediente está cerrado desde el 22 de agosto y los dos equipos avanzan
+  por separado a propósito.
+
+---
+
+# Historial — jornada del 23 de agosto
+
+Lo de aquí abajo es **cómo se llegó al estado de arriba**, no estado vigente.
 
 ### `PLAT-003` 1b — las tres entregas, y por qué fueron tres
 
