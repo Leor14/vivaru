@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.18 |
-| **Fecha** | 23 de agosto de 2026 |
-| **Estado** | **LAS OLAS A Y B ESTÁN EN PRODUCCIÓN.** `master` pasó de `d17478d` a `f16927d` en un solo movimiento de **67 commits**, el primero desde el 20 de agosto. Entran `PLAT-002` (auditoría), `FIX-001` e1, `PLAT-001` MVP, `FEAT-003` MVP y **`PLAT-003` completa hasta la entrega 2**. **Las cinco banderas de producto siguen apagadas**, así que ningún usuario ve capacidad nueva. Con esto **`PLAT-003` deja de estar en vuelo y `FLOW-002` queda desbloqueada** — era el acoplamiento que impedía seguir |
-| **Verificado contra** | **Lectura de los dos ambientes, no del «Deploy complete».** El ruleset **vivo** por la API de Firebase Rules; **54 índices en `READY`**, esperados antes del front; **70 functions `ACTIVE`** con su `updateTime`; y el rollout de App Hosting en `SUCCEEDED`, recorriendo `nextPageToken` —la lista está paginada y sin ordenar, y leer la primera página da como «más reciente» algo de ayer—. Puerta antes de subir: **1097 pruebas de app, 451 de functions, 183 de reglas con emulador** y los dos typecheck en 0 |
+| **Versión** | 0.9.19 |
+| **Fecha** | 23 de agosto de 2026 (tarde) |
+| **Estado** | **EL INFORME DE COMITÉ MENTÍA, Y ESO CAMBIÓ EL ORDEN DE LA SESIÓN.** Mirar la pantalla de la entrega 2 de `PLAT-003` —la única del lote que nadie había abierto— destapó **cinco defectos** en `/admin/reports`: cuatro de sus lecturas fallaban por índice y la pantalla enseñaba los ceros resultantes como datos. En el mismo conjunto y el mismo día, Finanzas avisaba en rojo de **−$10.300** mientras el informe del consejo decía **+$55.500 y «sin alertas»**: 137.800 de diferencia en el documento que se firma. Los cinco están arreglados y **verificados en staging contra la base**. En producción se desplegaron **solo los 3 índices** (57, antes 54) y el código espera en `develop`: el orden es índices primero, código después, nunca al revés. **`FLOW-002` no arrancó**, y su PRD dice «Lista para desarrollo» cuando **no lo está** — describe una exclusión que ya no existe |
+| **Verificado contra** | **La pantalla, con la sesión abierta en el navegador — no una suite.** Las 1097 pruebas del front y las 456 de functions estaban EN VERDE mientras el informe mentía: el fallo vivía en la forma de la consulta contra un índice que solo existe en la nube, y ninguna prueba unitaria lo alcanza. La causa la dio la consola, al pasar el mensaje de «You can create it here» a «That index is currently building». El doble conteo del job se midió **aplicando las dos reglas a los mismos asientos y contando cuántos cambian de lado**, no comparando antes/después. El despliegue de la function se comprobó por **procedencia del build** (`storageSource.generation`), no por grep |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -980,6 +980,32 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.19 — 23 de agosto de 2026 (tarde)
+
+**El informe de comité no leía medio producto y no lo decía.** Cinco defectos, encontrados por
+MIRAR la pantalla que el lote de la mañana dejó en producción sin abrir.
+
+- **Cuatro consultas fallaban por índice**, no una: `ledgerEntries`, `visitorPasses`, `tickets`
+  y `committee_agreements`. Sus ceros se leían como datos.
+- **Dos causas distintas.** `ledgerEntries` pedía un `orderBy date desc` cuyo índice **nunca
+  existió**; se quitó el `orderBy`, porque el orden **no lo usaba nadie**. Los otros tres tenían
+  su índice **solo en `ASCENDING`** mientras el código pide `desc` — `reservations` recorre el
+  mismo camino y funciona porque tiene **las dos direcciones**.
+- **El hook detectaba el fallo y la página nunca lo pintaba.** El aviso nuevo va **dentro del
+  bloque imprimible**: el daño no es la pantalla, es llevarse el PDF a la asamblea.
+- **R12 nunca llegó a `functions/`.** El job mensual contaba el recaudo dos veces; medido en los
+  dos ambientes, −1.500 en Las Playas. **No dependía de la bandera.**
+- **`tickets` y `visitorPasses` sin `eventDate`.** Backfill en staging: visitantes 0 → 31,
+  PQRS 0 → 14, cuadrando con lo medido en la base.
+
+**Producción quedó a medias a propósito:** 3 índices desplegados, código en `develop`. Al revés
+sería peor que no hacer nada — el aviso saldría en rojo a todos los administradores.
+
+**`FLOW-002` sigue sin arrancar, y su PRD necesita corrección antes:** la trampa de §7.4 pasó de
+omisión a **herencia** (ahora hay que actuar para EVITARLA), **R4 no basta** porque el doble
+conteo del cruce no pasa por el libro sino por `cuotaIncome`, y **D-C nombra un
+`bankAccountId: null` de los dos que hay**.
 
 ### 0.9.18 — 23 de agosto de 2026
 

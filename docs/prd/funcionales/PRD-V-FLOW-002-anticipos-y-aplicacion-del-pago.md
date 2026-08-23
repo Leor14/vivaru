@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 y D2 cerradas por David el 21 de agosto de 2026 |
+| **Estado** | **NO lista para desarrollo — versión 1.1, 23 de agosto de 2026 (tarde).** Decía «lista» y lo estaba el 21, pero **el producto se movió debajo**: §7.4 describe una exclusión que ya no existe, **R4 no basta** y **D-C nombra uno de los dos defectos que hay**. Las tres correcciones están marcadas abajo como «CORREGIDO 23 ago». Los tres defectos medidos (D-A, D-B, D-C) **siguen vigentes**, verificados contra el código; sus números de línea sí cambiaron. D1 y D2 siguen cerradas |
 | **Dependencias** | **Secuencia obligatoria: `PRD-V-PLAT-003` va ANTES.** Las dos modifican `aplicarPago`, que está en producción — aquella cambia **qué valor** escribe en la categoría, esta cambia **su firma**. **No pueden estar en vuelo a la vez.** Si esta va primero, añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | **Riesgo** | **Alto.** Modifica `aplicarPago`, que está **en producción y mueve dinero real** |
 | **Reversibilidad** | **Parcial.** El anticipo y el reparto se apagan con bandera; el cambio de firma de `aplicarPago` no (§13) |
@@ -53,7 +53,17 @@ ingreso del período** con `category: "alicuota"`. No hay saldo a favor ni oblig
 cuatro meses son cuatro operaciones manuales, cada una con su recibo.
 
 **D-C · El pago no sabe a qué cuenta entró.** El asiento se escribe con `bankAccountId: null`
-fijo (línea 267). La conciliación tiene que adivinar por importe y fecha.
+fijo. La conciliación tiene que adivinar por importe y fecha.
+
+> **CORREGIDO 23 ago 2026 — hay DOS, no uno.** El que esta PRD nombraba está en
+> `functions/src/payments.ts:324` (decía 267). El segundo está en **`revertirPago`
+> (`payments.ts:665`)** y no aparecía. Arreglar solo el primero deja **el reverso sin cuenta
+> bancaria**, justo en la operación que más importa cuadrar. El reverso debería copiar la del
+> original, igual que ya copia la categoría (R7) y el origen (R13).
+>
+> **Las tres referencias de línea de §2 están desplazadas:** `calcularSaldo` está en **139**
+> (decía 115) y `aplicarPago` en **180** (decía 156). Los tres defectos **siguen vigentes**,
+> verificados leyendo el código el 23 de agosto.
 
 ### Baseline
 
@@ -226,13 +236,49 @@ Un documento por cruce: `tenantId`, `advanceId`, `statementId`, `amount`, `date`
 
 ### 7.4 La integración que hay que hacer bien
 
+> **CORREGIDO 23 ago 2026 — esta sección describía el producto de antes.** Lo de abajo era
+> cierto hasta el 22 de agosto y **hoy no lo es**. Se conserva el aviso porque la trampa no
+> desapareció: **cambió de forma**, y la nueva es peor.
+
+**La exclusión ya NO mira la categoría: mira el ORIGEN del asiento.** Vive en
+`esRecaudoDeCartera` (`src/features/finanzas/financial-statement.ts:171`) y pregunta por
+`sourceType === "billingStatement"`, por `reversedSourceType` (R13) y, solo como convivencia,
+por `category === "alicuota"`. Las referencias a `use-ledger.ts:220` y a
+`financial-statement.ts:16` **ya no apuntan a nada**.
+
+**La trampa pasó de OMISIÓN a HERENCIA, y eso invierte quién tiene que actuar.**
+
+| | Antes | Ahora |
+|---|---|---|
+| Cómo se caía | Añadiendo `anticipo` a una lista de exclusión | **No haciendo nada** |
+| Cómo se evitaba | No haciendo nada | **Actuando a propósito** |
+
+El asiento del anticipo nace **dentro de `aplicarPago`** (§11.1: «dentro de la misma
+transacción del pago»), y ahí se escribe `sourceType: "billingStatement"`
+(`functions/src/payments.ts:325`). Si lo hereda —que es lo que pasa si nadie lo piensa—
+**queda excluido del libro aunque su `category` diga `anticipo`**, sin que nadie escriba esa
+palabra en ninguna lista.
+
+**Y aquí es peor que con la multa:** el anticipo **no está en `cuotaIncome`**, porque
+`repartirRecaudo` suma `paymentAmount` de los cargos y un anticipo por definición no es de
+ningún cargo. Se descuenta de un lado **sin estar sumado en el otro**. Desaparece.
+
+**Consecuencia de diseño que esta PRD no tomó:** el asiento del anticipo necesita su **propio
+`sourceType`**, y `LedgerEntry.sourceType` (`src/types/domain.ts:516`) hoy solo admite
+`"billingStatement" | "expense" | "manual" | "reversal"`. Hay que ampliarlo, y la ampliación
+tiene que llegar **a los dos espejos** — `src/` y `functions/src/payments.ts`, donde vive
+`esRecaudoDeCartera` desde el 23 de agosto.
+
+---
+
+<details>
+<summary>Texto original de la 1.0, conservado para saber de dónde viene el aviso</summary>
+
 `src/features/finanzas/use-ledger.ts:220` **excluye la categoría `alicuota`** del ingreso del
 libro, porque ese ingreso se cuenta aparte vía `cuotaIncome`. La categoría **`anticipo` no debe
 excluirse**: es dinero que entró y **no** está contado en ningún cargo.
 
-**Si se copia el tratamiento de `alicuota`, el anticipo desaparece del estado financiero** — que
-es exactamente el defecto D-A trasladado a otro sitio. Lo mismo en
-`src/features/finanzas/financial-statement.ts:16` y en su gemelo de `functions/`.
+</details>
 
 ### 7.5 Multi-tenancy y ciclo de vida
 
@@ -254,7 +300,7 @@ unidad, y pierde el vínculo personal — igual que ya hace `anonymizeExpiredVou
 | **R1** | **Lo aplicado a cargos más el anticipo generado es exactamente igual al importe pagado.** Ni un céntimo se pierde ni se inventa |
 | **R2** | Si el pago supera el total de los cargos seleccionados, el sobrante **se convierte en anticipo de esa unidad**, siempre |
 | **R3** | Un anticipo de importe cero **no se crea** |
-| **R4** | **Cruzar un anticipo no crea asiento de libro.** El ingreso se registró al recibirlo |
+| **R4** | **Cruzar un anticipo no crea asiento de libro.** El ingreso se registró al recibirlo. **⚠ CORREGIDO 23 ago: R4 es cierta y NO BASTA.** Cruzar **sube `paymentAmount` del cargo** (§5.2), y `cuotaIncome` es exactamente la suma de esos `paymentAmount` (`repartirRecaudo`, sin filtro de fecha). Así que cruzar un anticipo de 60 **sube el ingreso en 60 al instante**, sin crear ningún asiento: contado al entrar (R5) y otra vez al cruzarlo, vía Cartera. **CA6 pasaría en verde con el estado financiero mal.** Esta PRD vigila el doble conteo solo por el lado del libro, y la otra mitad no pasa por el libro. Es el mismo error de encuadre de la entrega 1b-iii de `PLAT-003`: «escribir la cuenta era necesario y NO era suficiente». **Hace falta una regla que cubra el lado de Cartera** |
 | **R5** | El asiento de entrada de un anticipo lleva `category: "anticipo"` y **cuenta como ingreso del período** |
 | **R6** | Un anticipo solo se cruza contra cargos de **su misma unidad** |
 | **R7** | El reparto por defecto va del cargo **más antiguo por vencimiento** al más nuevo; el administrador puede cambiarlo, y la suma debe cuadrar con el importe |

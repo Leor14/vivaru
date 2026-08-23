@@ -4,109 +4,175 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 23 de agosto de 2026
+## LO PRIMERO AL ABRIR SESIÓN — 23 de agosto de 2026 (tarde)
 
-**`origin/master` = `f16927d`.** `origin/develop` va por delante **solo en documentación**.
-Árbol limpio. **Desde hoy se mueven los DOS**: releer los dos con `git rev-parse`.
+**`origin/develop` = `9820ed5`. `origin/master` = `f16927d`.** Releer los dos: se mueven por
+separado. Árbol limpio.
 
-**PRODUCCIÓN SE MOVIÓ.** Las olas A y B están desplegadas: **67 commits**, el primer movimiento
-de `master` desde el 20 de agosto. Entran `PLAT-002` (auditoría), `FIX-001` e1, `PLAT-001` MVP,
-`FEAT-003` MVP y **`PLAT-003` completa hasta la entrega 2**. Plan y verificación pieza por pieza
-en [`plan-despliegue-ola-ab.md`](plan-despliegue-ola-ab.md).
+**PRODUCCIÓN TIENE ÍNDICES NUEVOS Y CÓDIGO VIEJO, y ese desajuste es a propósito.** Se
+desplegaron **3 índices** a `hogaru-1` (57 en total, antes 54) y **el código correctivo NO está
+allí**: espera en `develop`. El orden es ese y no el contrario — ver «Lo siguiente».
 
-**Estar en producción NO significa que se vea.** Las cinco banderas `producto-*` no tienen
-documento en `featureFlags`, así que resuelven al default del catálogo: apagadas.
+## LO QUE PASÓ ESTA TARDE: el informe del comité mentía
 
-**Lo único que un usuario nota** — las cuatro cosas sin bandera:
+Mirar la pantalla de la entrega 2 de `PLAT-003` —la que nadie había mirado— destapó que **el
+informe de comité no leía medio producto y no lo decía**. En staging, el mismo conjunto y el
+mismo día:
 
-| Qué | A quién |
-|---|---|
-| Decimales en MXN/USD | Tres conjuntos tienen MXN; **solo uno está activo** |
-| Vocabulario por país | Los cuatro que tienen `country` |
-| Dos opciones nuevas de vigilancia en dos selectores | Todos. Aditivo |
-| `conjunto-las-playas` pasa de **129.000 a 127.500** | Un doble conteo que dejó de ocurrir |
+| | `/admin/finanzas` | `/admin/reports` |
+|---|---|---|
+| Egresos | **$137.800** | **$0,00** |
+| Resultado | **−$10.300** | **+$55.500** |
+| Alertas | «Fondo insuficiente», en rojo | «✓ Sin alertas para el comité» |
 
-**Y la quinta, invisible pero irreversible:** la auditoría de `PLAT-002`. **Es la única del lote
-que no se apaga con una bandera.**
+**137.800 de diferencia, y el que mentía era el documento que firma el consejo.**
+
+**Cinco defectos, no uno.** Los cinco medidos, los cinco arreglados y verificados EN STAGING:
+
+| # | Defecto | Arreglo |
+|---|---|---|
+| 1 | `ledgerEntries` se pedía con `orderBy date desc` y **ese índice nunca existió** | Se quitó el `orderBy`: el orden no lo usaba nadie. Patrón de `watchLedger` |
+| 2 | `visitorPasses`, `tickets` y `committee_agreements` tenían su índice **solo en `ASCENDING`** y el código pide `desc` | Tres índices `DESC` nuevos. `reservations` ya tenía las dos direcciones — el gemelo que lo hacía bien |
+| 3 | El hook ponía `error` y **la página nunca lo pintaba** | Aviso «Informe incompleto», **dentro del bloque imprimible**: el daño es el PDF, no la pantalla |
+| 4 | El job mensual contaba el recaudo **dos veces**: R12 nunca llegó a `functions/` | `esRecaudoDeCartera` exportada desde `payments.ts`, con guardián que compara el espejo **como texto** |
+| 5 | `tickets` y `visitorPasses` **sin `eventDate` poblado** | Backfill corrido en staging (53 + 18 docs) |
+
+**Ninguna prueba podía cazar 1, 2 ni 5**: el fallo estaba en la forma de la consulta contra un
+índice que solo vive en la nube. **1097 pruebas del front y 456 de functions estaban en verde
+mientras el informe mentía.** Salió de MIRAR.
+
+**El resultado en staging, verificado contra la base:**
+
+| | Antes | Ahora |
+|---|---|---|
+| Egresos del período | $0,00 | **$137.800** |
+| Saldo de fondos | $127.500 | **−$10.300** |
+| Visitantes | 0 | **31** (31 medidos en May–Ago) |
+| PQRS | 0 | **14** (14 medidos) |
+| % de firma | 0% | **75%** |
 
 ## LO SIGUIENTE
 
-**`FLOW-002` (anticipos).** Es el paso 6 de los once del plan —van cinco— y estaba bloqueada
-porque ella y `PLAT-003` modifican **la misma función**, `aplicarPago`, y no pueden estar en
-vuelo a la vez. `PLAT-003` aterrizó, así que ya se puede.
+**1. Llevar el código correctivo a producción — antes del 1 de septiembre.**
+`monthlyFinancialArchive` corre `0 6 1 * *`. Si el arreglo no está antes, **archiva otro PDF con
+doble conteo** para todos los conjuntos, y esos quedan en Documentos.
 
-**Su PRD advierte de una trampa que ahora se lee mejor:** si `anticipo` se excluyera del libro
-como se excluía `alicuota`, el anticipo **desaparecería** del estado financiero. Hoy la exclusión
-mira el **origen** del asiento, no la categoría — así que esa trampa concreta cambió de forma, y
-hay que releerla con eso en la mano.
+**EL ORDEN NO ES EL INTUITIVO, y ya está a medias a propósito:** los índices van ANTES que el
+código (hecho hoy), nunca después. El código sin los índices sería **peor que no hacer nada**:
+las consultas de `eventDate` seguirían fallando y el aviso nuevo saldría en rojo a todos los
+administradores. Los índices solos son inocuos — con el código viejo simplemente esperan.
+
+Falta: merge de `develop` a `master`, y después el dry-run del backfill de `eventDate` en
+producción (sin él, Visitantes y PQRS siguen en cero allí).
+
+**2. `FLOW-002` (anticipos).** Paso 6 de once. Desbloqueada desde que `PLAT-003` aterrizó.
+**Su PRD dice «Lista para desarrollo» y hoy NO lo está** — ver la sección siguiente.
+
+## LA PRD DE `FLOW-002` DESCRIBE UN PRODUCTO QUE YA NO EXISTE
+
+Releída contra el código. Tres cosas que hay que corregir **antes** de construir:
+
+**La trampa de §7.4 cambió de forma.** Decía: «si `anticipo` se excluye del libro como
+`alicuota`, desaparece». Hoy la exclusión **no mira la categoría, mira el origen**
+(`esRecaudoDeCartera`). La trampa pasó de **omisión** a **herencia**: antes había que ACTUAR
+para caer en ella; ahora se cae **por defecto** si el asiento del anticipo hereda
+`sourceType: "billingStatement"` de `aplicarPago`, que es donde nace. Y es peor que con la
+multa: el anticipo **no está en `cuotaIncome`**, así que se descuenta sin estar sumado en el
+otro lado. **Ahora hay que actuar para EVITARLA**: el asiento del anticipo necesita su propio
+`sourceType`, y `LedgerEntry.sourceType` solo admite cuatro valores.
+
+**R4 no basta, y CA6 pasaría en verde con el estado financiero mal.** R4 dice que cruzar un
+anticipo no crea asiento, y es cierto. Pero **cruzar sube `paymentAmount` del cargo**, y
+`cuotaIncome` es exactamente la suma de esos `paymentAmount` (`repartirRecaudo`, sin filtro de
+fecha). Así que cruzar un anticipo de 60 **sube el ingreso en 60 al instante**, sin crear ningún
+asiento: contado una vez al entrar (R5) y otra al cruzarlo, vía Cartera. **La PRD vigila el
+doble conteo solo por el lado del libro, y la otra mitad no pasa por el libro.** Es el mismo
+error de encuadre de la 1b-iii: «escribir la cuenta era necesario y NO era suficiente».
+
+**D-C está incompleto.** La PRD nombra un `bankAccountId: null` fijo; hay **dos**. El segundo
+está en `revertirPago` (`payments.ts:665`) y no aparece. Arreglar solo el primero deja el
+reverso sin cuenta, justo en la operación que más importa cuadrar.
+
+Los tres defectos medidos (D-A, D-B, D-C) **siguen vigentes**, verificados contra el código. Las
+líneas de la PRD están desplazadas: `calcularSaldo` está en 139 (no 115), `aplicarPago` en 180
+(no 156), el `bankAccountId` en 324 (no 267).
 
 ## LO QUE SIGUE SIN HACERSE, dicho para que no se lea como hecho
 
 | Qué | Nota |
 |---|---|
-| **Nadie ha mirado la pantalla** de la entrega 2 | El estado financiero por cuenta y los ingresos en el informe de comité. Está en producción con banderas apagadas, así que no corre prisa |
-| Encender las banderas en producción | Decisión aparte, y hoy es barata: nueve conjuntos, todos de prueba |
-| `FIX-001` entrega 2 | Cierra la regla que hoy deja al residente escribir reservas directo. No antes de que la bandera lleve tiempo encendida **sin escrituras directas**, comprobado contra la base |
-| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`: lo que ocho PRD le asignan es intención, no capacidad |
-| La carrera de la transacción del plan | Dos pestañas creando el mismo código a la vez. La guarda existe y **no está ejercitada** |
-| El plan de cuentas por país | Aparcado a propósito: se decide con el primer cliente de cada país |
+| **El código correctivo en producción** | Índices sí, código no. Ver «Lo siguiente» |
+| **Backfill de `eventDate` en producción** | Hecho en staging. En producción, dry-run primero |
+| El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` **no lo usa ninguna consulta**. Se añadió el que no hacía falta y faltaba el que sí. Borrarlo no es urgente y tiene coste si luego se necesita |
+| Encender las banderas en producción | Hoy es barato: nueve conjuntos, todos de prueba. **Ya no es gratis del todo**: hasta hoy el job mensual duplicaba el recaudo al encenderlas |
+| `FIX-001` entrega 2 | Cierra la regla que deja al residente escribir reservas directo |
+| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
+| La carrera de la transacción del plan | La guarda existe y **no está ejercitada** |
+| El plan de cuentas por país | Aparcado a propósito |
+| **La cuenta de vigilancia en la semilla** | Decisión de David pendiente ANTES de sembrar en producción: sembrar congela la ausencia |
 
-## QUÉ HACE FALTA DE DAVID PARA QUE LA PRÓXIMA SESIÓN CORRA BIEN
+## QUÉ HACE FALTA DE DAVID
 
-Ordenado por lo que más frena si falta.
+**1. Autorizar el merge a `master`.** Es lo único que separa el arreglo de producción, y hay
+nueve días de reloj.
 
-### 1. Mirar la pantalla — o dar acceso para mirarla
+**2. Tres credenciales caducan POR SEPARADO**, y hoy caducaron las tres:
+`gcloud auth application-default login` (leer Firestore con los scripts), `firebase login
+--reauth` (índices, despliegues) y `gcloud auth login` (el CLI, que sigue caducado y no hizo
+falta). El síntoma del primero es `invalid_rapt`, que **parece un error de código**.
 
-**Es lo que más rinde y lo único que un agente no puede hacer solo hoy.** De los cinco defectos
-del 23 de agosto, **ninguno salió de una suite en verde**: salieron de mirar, de preparar un
-despliegue y de un aviso de lint. Dos ejemplos de la jornada:
+**3. Acceso al navegador: ya no hace falta pedirlo.** Esta tarde se validó todo entrando por
+Chrome con la sesión de David abierta —CA6, los cinco defectos, el antes y el después—. **Es lo
+que cambió el ritmo de la sesión**, y es repetible.
 
-- El formulario del plan respondía «No tienes permiso» al crear una cuenta, con **seis pruebas de
-  reglas en verde**.
-- Renombrar una cuenta no refrescaba el informe —CA6 verde en la prueba y rota en la pantalla— y
-  lo cazó `exhaustive-deps`, no una prueba.
-
-**Dos salidas, y cualquiera vale:** David mira y pega lo que ve (una captura basta, como se hizo
-hoy), **o** concede acceso a la plataforma para que el agente navegue. La segunda cambia el ritmo
-de todas las sesiones siguientes; la primera funciona y es la de hoy.
-
-### 2. Tres decisiones, ninguna urgente
-
-| Decisión | Contexto para tomarla |
-|---|---|
-| **¿Se encienden las banderas en producción?** | Hoy es barato: nueve conjuntos, **todos de prueba**. Es la ventana que se cierra sola cuando llegue el primer cliente real |
-| **¿Se escribe `PRD-V-PLAT-004` (rol Consejo)?** | Ocho PRD le dan capacidades al consejo que **hoy no puede alcanzar**. No bloquea a ninguna, pero las ocho arrastran una promesa que el producto no cumple |
-| **El plan de cuentas por país** | Aparcado a propósito. Se decide con el primer cliente de México, Colombia o Ecuador, y su contador |
-
-### 3. Permisos y credenciales — dos cosas que frenaron hoy
-
-- **El clasificador de permisos bloqueó dos escrituras a Firestore de staging** hechas con los
-  scripts del repositorio (sembrar el plan, borrarlo). El agente tuvo que pasarle los comandos a
-  David. Si conviene que las haga solo, hay que **añadir una regla de permiso de Bash** para esos
-  scripts. **Leer nunca se bloqueó**, ni el despliegue.
-- **`gcloud auth application-default login`** caduca **aparte** del CLI de `gcloud`. El síntoma es
-  `invalid_rapt`, que **parece un error de código**. Si una sesión empieza sin poder leer los
-  ambientes, es esto.
-
-### 4. Un pendiente de consola que lleva meses, y no es de este frente
-
-**La URL de acción de Firebase Auth** (Authentication → Templates → `https://www.grupovivaru.com/restablecer`)
-sigue sin guardarse: dio error de permisos y **hay que reintentarlo con la cuenta Owner**
-(`luisEOteroR@gmail.com`). Hasta entonces el enlace de recuperación abre la página de Firebase en
-inglés — funciona, pero no es de Vivaru. Está en `CLAUDE.md` desde junio.
+**4. Decisiones abiertas, ninguna urgente:** encender las banderas · escribir `PLAT-004` · el
+plan de cuentas por país · la cuenta de vigilancia.
 
 ### Lo que NO hace falta pedir
 
-- **El roadmap Albert–Vivaru de Notion.** Da 404 y seguirá dándolo: vive en otro workspace. No es
-  un permiso que se pueda pedir sobre la página. Si hace falta su contenido, lo pega David.
-- **Nada de Albert.** El expediente está cerrado desde el 22 de agosto y los dos equipos avanzan
-  por separado a propósito.
+- **El roadmap Albert–Vivaru de Notion.** Da 404 y seguirá dándolo: vive en otro workspace.
+- **Nada de Albert.** Expediente cerrado desde el 22 de agosto.
 
 ---
 
 # Historial — jornada del 23 de agosto
 
 Lo de aquí abajo es **cómo se llegó al estado de arriba**, no estado vigente.
+
+### La tarde — cómo se encontró lo del informe, y qué enseñó el método
+
+**El orden que lo destapó.** La sesión iba a empezar `FLOW-002`. Se decidió mirar antes la
+pantalla de la entrega 2 —que estaba en producción sin que nadie la hubiera visto— **no por
+higiene, sino porque `FLOW-002` tiene que enseñar el anticipo en esa misma superficie**: si
+estaba rota, se habría construido encima sin saberlo.
+
+**Cinco correcciones de rumbo, todas por medir:**
+
+1. Se dijo que el defecto era «el libro no carga». **Eran cuatro consultas**, no una: también
+   visitantes, PQRS y acuerdos.
+2. Se dijo que «los índices del repositorio nunca se desplegaron». **Falso**: estaban
+   desplegados, pero **solo en `ASCENDING`** y el código pide `desc`. Lo desmintió leer los
+   índices reales de los dos ambientes, no el JSON.
+3. Se dio por hecho que la cuenta seguía renombrada y se dedujo que **CA6 estaba roto**. David
+   la había restaurado. CA6 se probó después, entrando al navegador, y **pasa**.
+4. La espera a que los índices se construyeran se hizo con una condición que **no medía lo que
+   creía**: `firestore:indexes` los lista aunque estén en `CREATING`. Lo delató que el error
+   siguiera saliendo.
+5. Se dijo que el doble conteo del job era «un bloqueador de encender la bandera». **Ya estaba
+   ocurriendo**: los asientos sembrados llevan su categoría real sin pasar por `aplicarPago`.
+
+**Lo que el navegador cambió.** Con la sesión de David abierta en Chrome se validó todo de
+punta a punta: el defecto, CA6, el antes y el después de los cinco arreglos. La consola dio la
+prueba dura —el mensaje pasó de «You can create it here» a «That index is currently building»—,
+que es lo que convirtió la hipótesis en causa.
+
+**Y la medición se hizo como toca:** aplicando la regla vieja y la nueva **sobre los mismos
+asientos** y contando cuántos caen de lado distinto, no comparando antes/después. Las Playas:
+−1.500 y 3 asientos en staging, −1.500 y 1 en producción. El script que ya existía medía contra
+una regla **que no existe en ningún sitio** —se escribió antes de R13—, y se corrigió.
+
+**Se verificó por procedencia, no por grep:** el despliegue de la function se comprobó con
+`storageSource.generation`, que dio la hora exacta de subida.
 
 ### `PLAT-003` 1b — las tres entregas, y por qué fueron tres
 
