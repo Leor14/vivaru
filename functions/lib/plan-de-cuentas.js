@@ -36,7 +36,7 @@
  * Firestore, no de una constante.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CUENTA_OTROS_EGRESOS = exports.CUENTA_POR_CONCEPTO = exports.CUENTA_OTROS_INGRESOS = exports.SEMILLA_PLAN_DE_CUENTAS = exports.CONCEPTOS_DE_CARGO = void 0;
+exports.CUENTA_OTROS_EGRESOS = exports.CUENTA_POR_CONCEPTO = exports.CUENTA_ANTICIPO = exports.CUENTA_OTROS_INGRESOS = exports.SEMILLA_PLAN_DE_CUENTAS = exports.CONCEPTOS_DE_CARGO = void 0;
 exports.validarCodigoDeCuenta = validarCodigoDeCuenta;
 exports.codigoPadreDe = codigoPadreDe;
 exports.docIdDeCuenta = docIdDeCuenta;
@@ -97,8 +97,8 @@ function docIdDeCuenta(tenantId, code) {
     return `${tenantId}_${code}`;
 }
 /**
- * La semilla: **18 cuentas con `systemKey`** y **2 cuentas padre**, que son
- * estructura. 20 documentos.
+ * La semilla: **19 cuentas con `systemKey`** y **2 cuentas padre**, que son
+ * estructura. 21 documentos.
  *
  * Fueron 16 hasta el 23 de agosto de 2026 —las 13 categorías que ya existían más
  * las 3 de ingreso que faltaban—. Las dos nuevas son la vigilancia, que David
@@ -130,6 +130,15 @@ exports.SEMILLA_PLAN_DE_CUENTAS = [
     // Un `cuentaPorSystemKey("vigilancia")` acabaria devolviendo la de ingreso o
     // la de egreso segun el orden del array.
     { code: "1.9", name: "Cuotas de vigilancia", type: "ingreso", parentCode: "1", systemKey: "cuota_vigilancia" },
+    // El anticipo (FLOW-002). Va en cuenta PROPIA y no en «Otros ingresos» porque
+    // D1 prometio que el saldo a favor se presenta en su propia linea: un mes con
+    // muchos anticipos muestra mas ingreso del que corresponde a sus cuotas, y
+    // esconderlo dentro de otro cajon es justo lo que hace ilegible ese mes.
+    //
+    // Sin esta fila el asiento del anticipo cae en `cajonDe(..., "anticipo", ...)`
+    // sin codigo, y en un conjunto CON plan sembrado su linea quedaria etiquetada
+    // por la categoria mientras el resto del estado habla en codigos.
+    { code: "1.10", name: "Anticipos de residentes", type: "ingreso", parentCode: "1", systemKey: "anticipo" },
     { code: "2", name: "Egresos", type: "egreso" },
     { code: "2.1", name: "Nómina", type: "egreso", parentCode: "2", systemKey: "nomina" },
     { code: "2.2", name: "Servicios públicos", type: "egreso", parentCode: "2", systemKey: "servicios_publicos" },
@@ -154,6 +163,12 @@ exports.SEMILLA_PLAN_DE_CUENTAS = [
  */
 /** La cuenta a la que cae un concepto sin equivalente (R8). */
 exports.CUENTA_OTROS_INGRESOS = "1.8";
+/**
+ * `FLOW-002`. La cuenta del anticipo. Se nombra aquí y no se teclea en
+ * `payments.ts` porque el código de una cuenta es un dato del plan: escribirlo a
+ * mano en otro fichero es cómo empiezan las discrepancias que R11 previene.
+ */
+exports.CUENTA_ANTICIPO = "1.10";
 /**
  * R11 — el mapa, explícito y en un solo sitio.
  *

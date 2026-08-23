@@ -23,6 +23,12 @@ import {
   updateSupportTicket as updateSupportTicketImpl,
 } from "./support";
 import {
+  cruzarAnticipo,
+  deshacerCruce,
+  type CruzarAnticipoInput,
+  type DeshacerCruceInput,
+} from "./advances";
+import {
   aplicarPago,
   esRecaudoDeCartera,
   revertirPago,
@@ -4193,6 +4199,65 @@ export const generateCoefficientCampaign = onCall<GenerarCorridaInput>(
       });
     }
 
+    return resultado;
+  },
+);
+
+// ── FLOW-002 · anticipos ─────────────────────────────────────────────────────
+//
+// La lógica vive en `advances.ts`. Las dos van por callable y no por escritura
+// directa porque tocan tres colecciones a la vez dentro de una transacción, y
+// porque las reglas de Firestore no dejan al cliente escribir ni una de ellas:
+// es dinero.
+export const applyAdvance = onCall<CruzarAnticipoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const resultado = await cruzarAnticipo(
+      request.data,
+      uid,
+      request.auth?.token?.role,
+      request.auth?.token?.tenantId,
+    );
+
+    // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
+    // genera una segunda entrada. Misma regla que `applyPayment`.
+    if (resultado.applied) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "apply_advance", {
+        advanceId: request.data?.advanceId,
+        statementId: request.data?.statementId,
+        // Lo APLICADO, no lo pedido: §5.3 lo limita al saldo del cargo, y la
+        // auditoría tiene que decir lo que pasó, no lo que se intentó.
+        appliedAmount: resultado.appliedAmount,
+        applicationId: resultado.applicationId,
+      });
+    }
+    return resultado;
+  },
+);
+
+export const undoAdvanceApplication = onCall<DeshacerCruceInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const resultado = await deshacerCruce(
+      request.data,
+      uid,
+      request.auth?.token?.role,
+      request.auth?.token?.tenantId,
+    );
+
+    if (resultado.reversed) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "undo_advance_application", {
+        applicationId: request.data?.applicationId,
+        reason: request.data?.reason,
+        remaining: resultado.remaining,
+      });
+    }
     return resultado;
   },
 );

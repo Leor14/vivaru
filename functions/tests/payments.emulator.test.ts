@@ -7,6 +7,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { esRecaudoDeCartera, aplicarPago, revertirPago } from "../src/payments";
+import { cruzarAnticipo, deshacerCruce } from "../src/advances";
 
 /**
  * `aplicarPago` y `revertirPago` **contra una base de verdad**.
@@ -77,7 +78,7 @@ async function ingresoTotal() {
 }
 
 beforeEach(async () => {
-  for (const c of ["billingStatements", "ledgerEntries", "paymentOperations", "paymentVouchers", "bankAccounts", "tenantSettings", "advances", "featureFlagOverrides"]) {
+  for (const c of ["billingStatements", "ledgerEntries", "paymentOperations", "paymentVouchers", "bankAccounts", "tenantSettings", "advances", "advanceApplications", "featureFlagOverrides"]) {
     await limpiar(c);
   }
   await db.collection("bankAccounts").doc("cta-bancolombia").set({
@@ -389,5 +390,215 @@ describe("R15 · revertir un pago con anticipo se BLOQUEA, no se adivina", () =>
     );
     expect(r.reversed).toBe(true);
     expect(r.paymentAmount).toBe(0);
+  });
+});
+
+/** Crea un anticipo de `sobrante` cobrando de más sobre una cuota auxiliar. */
+async function anticipoDe(sobrante: number, sufijo: string) {
+  await sembrarCuota(`cuota-origen-${sufijo}`, 100000);
+  const r = await aplicarPago(
+    { tenantId: TENANT, statementId: `cuota-origen-${sufijo}`, amount: 100000 + sobrante, date: "2026-08-20", operationKey: `op-origen-${sufijo}`, source: "manual" },
+    ADMIN, ROL, TENANT,
+  );
+  return r.advanceId!;
+}
+
+describe("R4 · cruzar un anticipo no mueve dinero", () => {
+  it("de 60 contra un cargo de 140 lo deja en 80, y el anticipo en cero y `applied` (CA5)", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "ca5");
+    await sembrarCuota("cuota-ca5", 140000);
+
+    const r = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-ca5", amount: 60000, date: "2026-08-21", operationKey: "cruce-ca5" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.appliedAmount).toBe(60000);
+    expect(r.balance).toBe(80000);
+    expect(r.remaining).toBe(0);
+    expect(r.advanceStatus).toBe("applied");
+
+    const cuota = (await db.collection("billingStatements").doc("cuota-ca5").get()).data()!;
+    expect(cuota.advanceAppliedAmount).toBe(60000);
+    // **La otra mitad de R4**: `paymentAmount` no se toca. Es lo que impide que
+    // `cuotaIncome` —que es exactamente su suma— cuente el anticipo dos veces.
+    expect(cuota.paymentAmount).toBe(0);
+  });
+
+  it("no crea ningún asiento nuevo en el libro (CA6)", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "ca6");
+    await sembrarCuota("cuota-ca6", 140000);
+    const antes = (await db.collection("ledgerEntries").get()).size;
+
+    await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-ca6", amount: 60000, date: "2026-08-21", operationKey: "cruce-ca6" },
+      ADMIN, ROL, TENANT,
+    );
+    expect((await db.collection("ledgerEntries").get()).size).toBe(antes);
+  });
+
+  /**
+   * **CA6′ — el criterio que la v1.1 no tenía, y sin el cual todo lo demás
+   * pasaría en verde con el estado financiero mal.**
+   *
+   * CA6 comprueba el MECANISMO («no se crea asiento») y es cierto. Pero cruzar
+   * subiría `paymentAmount`, y `cuotaIncome` es exactamente la suma de esos
+   * `paymentAmount`: el anticipo se contaría al entrar y otra vez al cruzarlo,
+   * **sin crear ningún asiento**. El doble conteo no pasa por el libro, que es
+   * donde CA6 miraba.
+   *
+   * Esto mide el NÚMERO: el ingreso total antes y después del cruce, sobre los
+   * mismos datos. Tiene que ser idéntico.
+   */
+  it("el ingreso total del conjunto NO cambia al cruzar", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "inv");
+    await sembrarCuota("cuota-inv2", 140000);
+
+    const antes = await ingresoTotal();
+    await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-inv2", amount: 60000, date: "2026-08-21", operationKey: "cruce-inv" },
+      ADMIN, ROL, TENANT,
+    );
+    const despues = await ingresoTotal();
+
+    expect(despues.total).toBe(antes.total);
+    // Y no por casualidad: ninguno de los dos sumandos se movió.
+    expect(despues.cuotaIncome).toBe(antes.cuotaIncome);
+    expect(despues.ledgerIncome).toBe(antes.ledgerIncome);
+  });
+
+  /**
+   * **R6/CF1.** Sin esto, el saldo a favor de una unidad podría pagar la deuda
+   * de otra: el dinero de un residente saldaría la cuota de un vecino sin que
+   * ninguno de los dos se entere.
+   */
+  it("contra un cargo de OTRA unidad se deniega (CF1)", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "cf1");
+    await db.collection("billingStatements").doc("cuota-otra-unidad").set({
+      tenantId: TENANT, unitId: "unit-999", unitLabel: "999", period: "2026-08",
+      amount: 140000, paymentAmount: 0, balance: 140000, status: "pending",
+    });
+    await expect(cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-otra-unidad", amount: 60000, date: "2026-08-21", operationKey: "cruce-cf1" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/otra unidad/i);
+  });
+
+  // §5.3: se limita al saldo del cargo y el resto sigue en el anticipo. No se
+  // rechaza — quien cruza suele querer «lo que haga falta».
+  it("cruzar más que el saldo del cargo se limita, y el resto queda en el anticipo", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(200000, "cap");
+    await sembrarCuota("cuota-cap", 140000);
+
+    const r = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-cap", amount: 200000, date: "2026-08-21", operationKey: "cruce-cap" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.appliedAmount).toBe(140000);
+    expect(r.remaining).toBe(60000);
+    expect(r.advanceStatus).toBe("open");
+    expect(r.status).toBe("paid");
+  });
+
+  it("contra un cargo ya saldado no hace nada y lo dice", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "sal");
+    await sembrarCuota("cuota-saldada", 140000);
+    await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-saldada", amount: 140000, date: "2026-08-20", operationKey: "op-saldada", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    await expect(cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-saldada", amount: 60000, date: "2026-08-21", operationKey: "cruce-sal" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/saldo pendiente/i);
+  });
+
+  it("reintentar el cruce con la misma clave no lo aplica dos veces", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "idem");
+    await sembrarCuota("cuota-idem", 140000);
+    const uno = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-idem", amount: 60000, date: "2026-08-21", operationKey: "cruce-idem" },
+      ADMIN, ROL, TENANT,
+    );
+    const dos = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-idem", amount: 60000, date: "2026-08-21", operationKey: "cruce-idem" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(dos.applied).toBe(false);
+    expect(dos.applicationId).toBe(uno.applicationId);
+    expect((await db.collection("advanceApplications").get()).size).toBe(1);
+  });
+
+  it("con la bandera apagada no se puede cruzar", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "off");
+    await sembrarCuota("cuota-off2", 140000);
+    await bandera(false);
+    await expect(cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-off2", amount: 60000, date: "2026-08-21", operationKey: "cruce-off" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow();
+  });
+});
+
+describe("CA12 · deshacer un cruce devuelve el anticipo a `open` con su remanente", () => {
+  it("lo devuelve entero y el cargo vuelve a deber", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "ca12");
+    await sembrarCuota("cuota-ca12", 140000);
+    const cruce = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-ca12", amount: 60000, date: "2026-08-21", operationKey: "cruce-ca12" },
+      ADMIN, ROL, TENANT,
+    );
+
+    const r = await deshacerCruce(
+      { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-ca12", reason: "Imputado por error" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.remaining).toBe(60000);
+    expect(r.advanceStatus).toBe("open");
+    expect(r.balance).toBe(140000);
+
+    const cuota = (await db.collection("billingStatements").doc("cuota-ca12").get()).data()!;
+    expect(cuota.advanceAppliedAmount).toBe(0);
+    expect(cuota.status).toBe("pending");
+  });
+
+  // Deshacer tampoco mueve dinero: es el cruce al revés.
+  it("deshacer tampoco cambia el ingreso total", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "inv3");
+    await sembrarCuota("cuota-inv3", 140000);
+    const antes = await ingresoTotal();
+    const cruce = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-inv3", amount: 60000, date: "2026-08-21", operationKey: "cruce-inv3" },
+      ADMIN, ROL, TENANT,
+    );
+    await deshacerCruce(
+      { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-inv3" },
+      ADMIN, ROL, TENANT,
+    );
+    expect((await ingresoTotal()).total).toBe(antes.total);
+  });
+
+  it("no se puede deshacer dos veces", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "dos");
+    await sembrarCuota("cuota-dos", 140000);
+    const cruce = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-dos", amount: 60000, date: "2026-08-21", operationKey: "cruce-dos" },
+      ADMIN, ROL, TENANT,
+    );
+    await deshacerCruce({ tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-dos-1" }, ADMIN, ROL, TENANT);
+    await expect(deshacerCruce(
+      { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-dos-2" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/ya se deshizo/i);
   });
 });

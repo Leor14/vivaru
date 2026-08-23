@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.undoAdvanceApplication = exports.applyAdvance = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -55,6 +55,7 @@ const country_currency_1 = require("./country-currency");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
 const support_1 = require("./support");
+const advances_1 = require("./advances");
 const payments_1 = require("./payments");
 const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
@@ -3341,6 +3342,45 @@ exports.generateCoefficientCampaign = (0, https_1.onCall)({ cors: http_config_1.
             period: data.period,
             totalDistributed: resultado.total,
             unitCount: resultado.lines.length,
+        });
+    }
+    return resultado;
+});
+// ── FLOW-002 · anticipos ─────────────────────────────────────────────────────
+//
+// La lógica vive en `advances.ts`. Las dos van por callable y no por escritura
+// directa porque tocan tres colecciones a la vez dentro de una transacción, y
+// porque las reglas de Firestore no dejan al cliente escribir ni una de ellas:
+// es dinero.
+exports.applyAdvance = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, advances_1.cruzarAnticipo)(request.data, uid, request.auth?.token?.role, request.auth?.token?.tenantId);
+    // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
+    // genera una segunda entrada. Misma regla que `applyPayment`.
+    if (resultado.applied) {
+        await writeAuditLog(request.data?.tenantId ?? "", uid, "apply_advance", {
+            advanceId: request.data?.advanceId,
+            statementId: request.data?.statementId,
+            // Lo APLICADO, no lo pedido: §5.3 lo limita al saldo del cargo, y la
+            // auditoría tiene que decir lo que pasó, no lo que se intentó.
+            appliedAmount: resultado.appliedAmount,
+            applicationId: resultado.applicationId,
+        });
+    }
+    return resultado;
+});
+exports.undoAdvanceApplication = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, advances_1.deshacerCruce)(request.data, uid, request.auth?.token?.role, request.auth?.token?.tenantId);
+    if (resultado.reversed) {
+        await writeAuditLog(request.data?.tenantId ?? "", uid, "undo_advance_application", {
+            applicationId: request.data?.applicationId,
+            reason: request.data?.reason,
+            remaining: resultado.remaining,
         });
     }
     return resultado;

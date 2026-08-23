@@ -65,6 +65,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Apagada = `aplicarPago` sigue escribiendo "alicuota" fijo, como hasta hoy.
     // Encenderla cambia lo que muestra el estado financiero; ver el catálogo en `src/`.
     "producto-concepto-al-libro": false,
+    // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
+    // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
+    "producto-anticipos": false,
     // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
     // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
     "operacion-app-check-monitor": true,
