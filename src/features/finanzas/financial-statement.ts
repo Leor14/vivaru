@@ -58,16 +58,37 @@ export function planParaInformes(
   return { codigoPorSystemKey, nombrePorCodigo };
 }
 
-/** El cajón en el que cae un movimiento: su cuenta, o la de su categoría. */
+/**
+ * El cajón en el que cae un movimiento: su cuenta, o la de su categoría.
+ *
+ * **El código manda SOLO si el plan sabe nombrarlo.** Un código que nadie puede
+ * nombrar no es un cajón: es un número.
+ *
+ * Esa condición no estaba en la primera versión y era un defecto de los que solo
+ * se ven en el ambiente equivocado. **Sin plan sembrado** —la condición de
+ * producción, y la de siete de los ocho conjuntos de staging— un egreso viejo
+ * caía en `mantenimiento` y uno nuevo, que ya lleva `accountCode`, en `2.3`: dos
+ * filas **con la misma etiqueta «Mantenimiento»**. Justo el defecto que R9 se
+ * diseñó para evitar, entrando por la puerta de atrás.
+ *
+ * Se le escapó a la prueba de «sin plan» porque tenía **un solo asiento**, y
+ * hace falta la mezcla de uno viejo y uno nuevo para que se parta.
+ */
 function cajonDe(
   accountCode: string | undefined,
   category: string | undefined,
   plan: PlanParaInformes | undefined,
   porDefecto: string,
 ): string {
+  if (accountCode && plan?.nombrePorCodigo.has(accountCode)) return accountCode;
+  // Sin plan que lo nombre, manda la categoría — que es lo que los asientos
+  // viejos tienen y lo único que los dos comparten.
+  if (category) return plan?.codigoPorSystemKey.get(category) ?? category;
   if (accountCode) return accountCode;
-  const categoria = category ?? porDefecto;
-  return plan?.codigoPorSystemKey.get(categoria) ?? categoria;
+  // El caso por defecto se normaliza igual que una categoría cualquiera, o un
+  // ingreso manual sin categoría caería en `otros_ingresos` mientras el resto
+  // del estado ya habla en códigos.
+  return plan?.codigoPorSystemKey.get(porDefecto) ?? porDefecto;
 }
 
 /**

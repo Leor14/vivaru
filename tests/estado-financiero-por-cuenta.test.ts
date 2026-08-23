@@ -97,7 +97,60 @@ describe("R9 — agrupa por cuenta, y cae en la categoría si no la hay", () => 
       0,
     );
     expect(st.expenseByCategory[0].label).toBe("Mantenimiento");
-    expect(st.expenseByCategory[0].category).toBe("2.3");
+    // Sin plan, el cajón es la CATEGORÍA y no el código: un código que nadie
+    // puede nombrar no es un cajón, es un número. Ver la prueba de abajo.
+    expect(st.expenseByCategory[0].category).toBe("mantenimiento");
+  });
+
+  /**
+   * **El defecto que esta prueba existe para que no vuelva**, encontrado el 23
+   * de agosto de 2026 al preparar el despliegue a producción y no al escribir el
+   * código.
+   *
+   * Sin plan sembrado —**la condición de producción**, y la de siete de los ocho
+   * conjuntos de staging— un egreso viejo caía en `mantenimiento` y uno nuevo,
+   * que ya lleva `accountCode` desde el paso 1, en `2.3`: **dos filas con la
+   * misma etiqueta «Mantenimiento»**. El defecto que R9 se diseñó para evitar,
+   * entrando por la puerta de atrás.
+   *
+   * **Y se le escapó a la prueba de «sin plan» de arriba porque tenía UN SOLO
+   * asiento.** Hace falta la mezcla de uno viejo y uno nuevo para que se parta:
+   * una prueba de un caso no puede ver un defecto de agrupación.
+   */
+  it("SIN PLAN, el asiento viejo y el nuevo de la misma categoría siguen en UNA fila", () => {
+    const st = buildFinancialStatement(
+      [
+        asiento({ id: "viejo", type: "egreso", amount: 100, category: "mantenimiento" }),
+        asiento({ id: "nuevo", type: "egreso", amount: 50, category: "mantenimiento", accountCode: "2.3" }),
+      ],
+      0,
+    );
+    expect(st.expenseByCategory).toHaveLength(1);
+    expect(st.expenseByCategory[0]).toEqual({
+      category: "mantenimiento",
+      label: "Mantenimiento",
+      amount: 150,
+    });
+  });
+
+  /**
+   * El mismo caso con un plan que **no conoce ese código** —pasó en staging: la
+   * `1.3` tenía asientos antes de que el plan se sembrara—. El código sigue sin
+   * poder nombrarse, así que manda la categoría igual.
+   */
+  it("con un plan que no conoce el código, tampoco se parte", () => {
+    const planIncompleto = planParaInformes([{ code: "9", name: "Otra cosa" }]);
+    const st = buildFinancialStatement(
+      [
+        asiento({ id: "viejo", amount: 100, category: "multa" }),
+        asiento({ id: "nuevo", amount: 500, category: "multa", accountCode: "1.3" }),
+      ],
+      0,
+      0,
+      planIncompleto,
+    );
+    expect(st.incomeByCategory).toHaveLength(1);
+    expect(st.incomeByCategory[0].amount).toBe(600);
   });
 
   /**
