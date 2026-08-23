@@ -23,8 +23,10 @@ import {
   updateSupportTicket as updateSupportTicketImpl,
 } from "./support";
 import {
+  anularAnticipo,
   cruzarAnticipo,
   deshacerCruce,
+  type AnularAnticipoInput,
   type CruzarAnticipoInput,
   type DeshacerCruceInput,
 } from "./advances";
@@ -4256,6 +4258,31 @@ export const undoAdvanceApplication = onCall<DeshacerCruceInput>(
         applicationId: request.data?.applicationId,
         reason: request.data?.reason,
         remaining: resultado.remaining,
+      });
+    }
+    return resultado;
+  },
+);
+
+export const cancelAdvance = onCall<AnularAnticipoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const resultado = await anularAnticipo(
+      request.data,
+      uid,
+      request.auth?.token?.role,
+      request.auth?.token?.tenantId,
+    );
+
+    // El motivo va al registro de auditoría a propósito: es la única forma de
+    // saber después por qué el saldo a favor de un residente dejó de existir.
+    if (resultado.cancelled) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "cancel_advance", {
+        advanceId: request.data?.advanceId,
+        reason: request.data?.reason,
       });
     }
     return resultado;

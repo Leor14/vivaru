@@ -7,7 +7,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 import { esRecaudoDeCartera, aplicarPago, revertirPago } from "../src/payments";
-import { cruzarAnticipo, deshacerCruce } from "../src/advances";
+import { anularAnticipo, cruzarAnticipo, deshacerCruce } from "../src/advances";
 
 /**
  * `aplicarPago` y `revertirPago` **contra una base de verdad**.
@@ -355,24 +355,61 @@ describe("§7.4 · el asiento del anticipo NO hereda el origen del cobro", () =>
   });
 });
 
-describe("R15 · revertir un pago con anticipo se BLOQUEA, no se adivina", () => {
+describe("R15 · revertir un pago se lleva por delante el anticipo que generó", () => {
   /**
-   * Todavía no está construido revertir el anticipo junto con el pago (va en
-   * 2.5). Dejar pasar la reversión escribiría el descuadre: el residente
-   * conservaría un saldo a favor **de un dinero ya devuelto**. Se bloquea con un
-   * mensaje que dice qué hacer.
+   * **Sin esto, revertir un pago de 200 sobre una cuota de 140 devolvería los
+   * 140 y dejaría vivo un saldo a favor de 60 de un dinero ya devuelto**: el
+   * residente conservaría un crédito por dinero que tiene otra vez en el
+   * bolsillo. No estaba escrito en ninguna versión de la PRD; salió de leer el
+   * código. R8 cubría solo el anticipo YA CRUZADO, que es el caso raro.
    */
-  it("lo dice y no lo hace", async () => {
+  it("anula el anticipo y devuelve el ingreso a cero", async () => {
     await bandera(true);
     await sembrarCuota("cuota-r15", 140000);
-    await aplicarPago(
+    const pago = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r15", amount: 200000, date: "2026-08-20", operationKey: "op-r15", source: "manual" },
       ADMIN, ROL, TENANT,
     );
-    await expect(revertirPago(
-      { tenantId: TENANT, operationKey: "op-r15", reversalKey: "rev-r15", reason: "Error" },
+    expect((await ingresoTotal()).total).toBe(200000);
+
+    const r = await revertirPago(
+      { tenantId: TENANT, operationKey: "op-r15", reversalKey: "rev-r15", reason: "Cobro duplicado" },
       ADMIN, ROL, TENANT,
-    )).rejects.toThrow(/saldo a favor/i);
+    );
+    expect(r.reversed).toBe(true);
+    expect(r.paymentAmount).toBe(0);
+
+    const adv = (await db.collection("advances").doc(pago.advanceId!).get()).data()!;
+    expect(adv.status).toBe("cancelled");
+    expect(adv.remaining).toBe(0);
+    expect(adv.cancellationReason).toMatch(/Cobro duplicado/);
+
+    // **La comprobación que importa: el dinero se fue del todo.** 140 por
+    // Cartera y 60 por el libro, los dos deshechos.
+    expect((await ingresoTotal()).total).toBe(0);
+  });
+
+  /**
+   * **R8.** Deshacer los cruces aquí sería tocar cargos que el llamante no
+   * nombró —y que pueden ser de otros períodos— dentro de una transacción que
+   * él cree que afecta a una sola cuota.
+   */
+  it("si el anticipo ya se cruzó contra otro cargo, se bloquea (CF2)", async () => {
+    await bandera(true);
+    await sembrarCuota("cuota-r8", 140000);
+    const pago = await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-r8", amount: 200000, date: "2026-08-20", operationKey: "op-r8", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    await sembrarCuota("cuota-r8-otra", 90000);
+    await cruzarAnticipo(
+      { tenantId: TENANT, advanceId: pago.advanceId!, statementId: "cuota-r8-otra", amount: 60000, date: "2026-08-21", operationKey: "cruce-r8" },
+      ADMIN, ROL, TENANT,
+    );
+    await expect(revertirPago(
+      { tenantId: TENANT, operationKey: "op-r8", reversalKey: "rev-r8", reason: "Error" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/deshacer esos cruces/i);
   });
 
   // Un pago SIN anticipo se sigue revirtiendo con normalidad: el bloqueo mira el
@@ -600,5 +637,73 @@ describe("CA12 · deshacer un cruce devuelve el anticipo a `open` con su remanen
       { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-dos-2" },
       ADMIN, ROL, TENANT,
     )).rejects.toThrow(/ya se deshizo/i);
+  });
+});
+
+
+describe("R9 · anular un anticipo con motivo NO toca el libro", () => {
+  /**
+   * **Anular y revertir el pago son cosas distintas, y la diferencia está en
+   * dónde queda el dinero.**
+   *
+   * Revertir el pago lo devuelve entero, así que allí el asiento del anticipo sí
+   * se revierte (R15). Anular es otra cosa: el dinero entró y se queda en el
+   * conjunto —lo que desaparece es el crédito de esa unidad—, y devolverlo es un
+   * egreso que §4 deja fuera de esta ficha a propósito. Ese ingreso ocurrió, así
+   * que el libro no se toca.
+   */
+  it("el anticipo queda anulado y el ingreso del conjunto NO baja", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "r9");
+    const antes = await ingresoTotal();
+
+    const r = await anularAnticipo(
+      { tenantId: TENANT, advanceId, reason: "El residente renuncia al saldo", operationKey: "anul-r9" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.cancelled).toBe(true);
+
+    const adv = (await db.collection("advances").doc(advanceId).get()).data()!;
+    expect(adv.status).toBe("cancelled");
+    expect(adv.cancellationReason).toBe("El residente renuncia al saldo");
+    // Queda registro: importe, fecha y unidad siguen ahí. Un crédito que se
+    // esfuma sin rastro es justo lo que esta ficha existe para evitar.
+    expect(adv.amount).toBe(60000);
+    expect((await ingresoTotal()).total).toBe(antes.total);
+  });
+
+  /** CF4: sin motivo, rechazado. La cadena de espacios cuenta como sin motivo. */
+  it("sin motivo se rechaza", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "cf4");
+    await expect(anularAnticipo(
+      { tenantId: TENANT, advanceId, reason: "   ", operationKey: "anul-cf4" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/motivo/i);
+  });
+
+  /** CF3: uno parcialmente cruzado dejaría cargos saldados con algo que ya no existe. */
+  it("uno parcialmente cruzado se rechaza", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "cf3");
+    await sembrarCuota("cuota-cf3", 140000);
+    await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-cf3", amount: 20000, date: "2026-08-21", operationKey: "cruce-cf3" },
+      ADMIN, ROL, TENANT,
+    );
+    await expect(anularAnticipo(
+      { tenantId: TENANT, advanceId, reason: "Da igual", operationKey: "anul-cf3" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/deshacer esos cruces/i);
+  });
+
+  it("no se anula dos veces: `cancelled` es terminal", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(60000, "term");
+    await anularAnticipo({ tenantId: TENANT, advanceId, reason: "Uno", operationKey: "anul-t1" }, ADMIN, ROL, TENANT);
+    await expect(anularAnticipo(
+      { tenantId: TENANT, advanceId, reason: "Dos", operationKey: "anul-t2" },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/ya está anulado/i);
   });
 });

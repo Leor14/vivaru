@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cruzarAnticipo = cruzarAnticipo;
 exports.deshacerCruce = deshacerCruce;
+exports.anularAnticipo = anularAnticipo;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const feature_flags_1 = require("./feature-flags");
@@ -284,6 +285,74 @@ async function deshacerCruce(input, uid, role, tokenTenant) {
             balance,
             status,
         };
+    });
+}
+/**
+ * **R9 — anula un anticipo con motivo.** Terminal: de `cancelled` no se sale.
+ *
+ * **Anular NO es lo mismo que revertir el pago que lo creó, y la diferencia está
+ * en dónde queda el dinero.** Revertir el pago lo devuelve entero, así que allí
+ * el asiento del anticipo SÍ se revierte (R15, en `payments.ts`). Anular es otra
+ * cosa: el dinero entró y se queda en el conjunto —lo que desaparece es el
+ * crédito de esa unidad—, y **devolverlo es un egreso, que §4 deja fuera de esta
+ * ficha a propósito**. Por eso aquí no se toca el libro: ese ingreso ocurrió.
+ *
+ * Queda registro por los dos lados: el anticipo conserva importe, fecha y unidad
+ * con su motivo, y su asiento sigue en el libro. Un crédito que se esfuma sin
+ * rastro sería justo lo que esta ficha existe para evitar.
+ *
+ * **CF3: solo con el remanente intacto.** Anular uno parcialmente cruzado
+ * dejaría cargos saldados con un anticipo que ya no existe. Primero se deshacen
+ * los cruces.
+ */
+async function anularAnticipo(input, uid, role, tokenTenant) {
+    const tenantId = texto(input.tenantId, "el conjunto");
+    const advanceId = texto(input.advanceId, "el anticipo");
+    const operationKey = texto(input.operationKey, "la clave de operación");
+    // CF4. Va por `texto`, que rechaza también la cadena de espacios: un motivo en
+    // blanco es lo mismo que no tener motivo, y se cuela solo si nadie lo mira.
+    const motivo = texto(input.reason, "el motivo de la anulación");
+    assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
+    const firestore = db();
+    const opRef = firestore.collection("paymentOperations").doc(`${tenantId}_${operationKey}`);
+    return firestore.runTransaction(async (tx) => {
+        const opSnap = await tx.get(opRef);
+        if (opSnap.exists)
+            return { ok: true, cancelled: false };
+        const advanceRef = firestore.collection("advances").doc(advanceId);
+        const advanceSnap = await tx.get(advanceRef);
+        if (!advanceSnap.exists)
+            throw new https_1.HttpsError("not-found", "Ese anticipo ya no existe.");
+        const advance = advanceSnap.data();
+        if (advance.tenantId && advance.tenantId !== tenantId) {
+            throw new https_1.HttpsError("permission-denied", "Ese anticipo pertenece a otro conjunto.");
+        }
+        if (advance.status === "cancelled") {
+            throw new https_1.HttpsError("failed-precondition", "Ese anticipo ya está anulado.");
+        }
+        // CF3.
+        if ((advance.remaining ?? 0) !== (advance.amount ?? 0)) {
+            throw new https_1.HttpsError("failed-precondition", "Ese anticipo ya se aplicó a algún cargo. Primero hay que deshacer esos cruces.");
+        }
+        tx.update(advanceRef, {
+            status: "cancelled",
+            remaining: 0,
+            cancelledAt: firestore_1.FieldValue.serverTimestamp(),
+            cancelledBy: uid,
+            cancellationReason: motivo,
+            updatedBy: uid,
+            updatedAt: firestore_1.FieldValue.serverTimestamp(),
+        });
+        tx.set(opRef, {
+            tenantId,
+            kind: "advance_cancellation",
+            advanceId,
+            reason: motivo,
+            actorUid: uid,
+            createdAt: firestore_1.Timestamp.now(),
+        });
+        return { ok: true, cancelled: true };
     });
 }
 /**

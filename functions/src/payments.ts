@@ -816,22 +816,40 @@ export async function revertirPago(
     // tienen el campo y en los que los dos importes siempre coincidieron.
     const montoDeCartera = typeof op.appliedToStatement === "number" ? op.appliedToStatement : monto;
 
-    // **R15, que esta entrega todavía no implementa: se BLOQUEA, no se adivina.**
+    // **R15 — revertir un pago se lleva por delante el anticipo que generó.**
     //
-    // Revertir un pago que dejó anticipo tiene que revertir además el asiento
-    // del anticipo y anular el anticipo con motivo; si no, el residente conserva
-    // un saldo a favor **de un dinero ya devuelto**. Mientras eso no esté
-    // construido, dejar pasar la reversión escribiría ese descuadre en la base.
+    // Sin esto, revertir un pago de 200 sobre una cuota de 140 devolvería los
+    // 140 y **dejaría vivo un saldo a favor de 60 de un dinero ya devuelto**: el
+    // residente conservaría un crédito por dinero que tiene otra vez en el
+    // bolsillo. R8 cubría solo el anticipo YA CRUZADO, que es el caso raro; este
+    // es el normal, y no estaba escrito en ninguna versión de la PRD.
+    const advanceRef = op.advanceId ? firestore.collection("advances").doc(op.advanceId) : null;
+    const advanceSnap = advanceRef ? await tx.get(advanceRef) : null;
+    const advance = advanceSnap?.data() as
+      | { amount?: number; remaining?: number; status?: string; ledgerEntryId?: string }
+      | undefined;
+
+    // **R8: no se revierte un pago cuyo anticipo tenga cruces vigentes.**
     //
-    // Hoy es inalcanzable en producción: sin la bandera `producto-anticipos` no
-    // existe ningún pago con anticipo. Es una red para el orden de despliegue,
-    // no una limitación que alguien vaya a encontrarse.
-    if (op.advanceId) {
+    // Deshacerlos aquí sería tocar cargos que el llamante no nombró —y que
+    // pueden ser de otros períodos— dentro de una transacción que él cree que
+    // afecta a una sola cuota. Se bloquea y se dice qué hacer: primero se
+    // deshacen los cruces, y entonces se revierte.
+    const anticipoCruzado =
+      advance !== undefined && (advance.remaining ?? 0) < (advance.amount ?? 0);
+    if (anticipoCruzado) {
       throw new HttpsError(
         "failed-precondition",
-        "Ese pago generó un saldo a favor. Primero hay que anular el anticipo.",
+        "El saldo a favor de ese pago ya se aplicó a otros cargos. Primero hay que deshacer esos cruces.",
       );
     }
+
+    // Su asiento se lee AQUÍ, con el resto: la transacción no admite leer
+    // después de escribir, y el reverso necesita copiarle la cuenta bancaria.
+    const advanceLedgerRef = advance?.ledgerEntryId
+      ? firestore.collection("ledgerEntries").doc(advance.ledgerEntryId)
+      : null;
+    const advanceLedgerSnap = advanceLedgerRef ? await tx.get(advanceLedgerRef) : null;
 
     const cuotaRef = firestore.collection("billingStatements").doc(statementId);
     const cuotaSnap = await tx.get(cuotaRef);
@@ -958,6 +976,63 @@ export async function revertirPago(
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
+
+    // ── R15: el anticipo se anula y su asiento se revierte ───────────────────
+    //
+    // **Y aquí sí se revierte el asiento, al revés que al anular un anticipo a
+    // secas (R9).** Son dos cosas distintas: anular deja el dinero dentro del
+    // conjunto —lo que desaparece es el crédito de esa unidad, y devolverlo es
+    // un egreso aparte (§4)—; revertir el pago devuelve el dinero entero. Si no
+    // se revirtiera, el libro seguiría diciendo que entraron esos 60.
+    //
+    // El reverso lleva `reversedSourceType: "advance"`, así que
+    // `esRecaudoDeCartera` NO lo excluye y su importe negativo baja el ingreso
+    // del período. Es la simetría exacta de la entrada.
+    if (advanceRef && advance) {
+      const advanceOriginal = advanceLedgerSnap?.data() as
+        | { category?: string; accountCode?: string; bankAccountId?: string | null }
+        | undefined;
+
+      if (advanceLedgerRef && advanceLedgerSnap?.exists) {
+        const reversoAnticipoRef = firestore.collection("ledgerEntries").doc();
+        tx.set(reversoAnticipoRef, {
+          tenantId,
+          type: "ingreso",
+          date: hoy,
+          amount: -Math.abs(advance.amount ?? 0),
+          concept: `Reverso de anticipo: ${cuota.unitLabel ?? ""}`.trim(),
+          category: advanceOriginal?.category ?? "anticipo",
+          ...(advanceOriginal?.accountCode ? { accountCode: advanceOriginal.accountCode } : {}),
+          bankAccountId: advanceOriginal?.bankAccountId ?? null,
+          sourceType: "reversal",
+          reversedSourceType: "advance",
+          sourceId: advance.ledgerEntryId ?? "",
+          reversalReason: motivo,
+          reconciled: false,
+          createdBy: uid,
+          updatedBy: uid,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        tx.update(advanceLedgerRef, {
+          reversedByEntryId: reversoAnticipoRef.id,
+          updatedBy: uid,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+
+      // El anticipo no se borra: se anula con motivo, igual que R9. Los
+      // registros contables no se borran nunca en este repositorio.
+      tx.update(advanceRef, {
+        status: "cancelled",
+        remaining: 0,
+        cancelledAt: FieldValue.serverTimestamp(),
+        cancelledBy: uid,
+        cancellationReason: `Se revirtió el pago que lo generó: ${motivo}`,
+        updatedBy: uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
 
     if (asientoRef && asientoSnap?.exists) {
       tx.update(asientoRef, {
