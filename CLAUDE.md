@@ -167,23 +167,64 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**PRODUCCIÓN AL DÍA (23 ago 2026): `master` = `f16927d`.** Ese día subió el lote entero de
-propiedad horizontal —**67 commits**, olas A y B— en el primer movimiento de `master` desde el 20
-de agosto. Entran `PLAT-002` (auditoría), `FIX-001` e1, `PLAT-001` MVP, `FEAT-003` MVP y
-**`PLAT-003` completa hasta la entrega 2**.
+**`origin/develop` = `4f3509f`. `origin/master` = `f16927d`.** Releer **los dos**: se mueven por
+separado desde el 23 de agosto. Un push sin cambios responde «success».
 
-**Estar en producción NO significa que se vea.** Las cinco banderas `producto-*` no tienen
-documento en `featureFlags`, así que resuelven al default del catálogo: apagadas. Lo único que un
-usuario nota son los decimales en MXN/USD, el vocabulario por país, dos opciones nuevas de
-vigilancia en dos selectores, y que **Las Playas pasa de 129.000 a 127.500** — un doble conteo que
-dejó de ocurrir.
+**PRODUCCIÓN TIENE ÍNDICES NUEVOS Y CÓDIGO VIEJO, a propósito.** El 23 de agosto por la mañana
+subió el lote de propiedad horizontal (67 commits, olas A y B, `f16927d`). Por la tarde,
+**mirar la pantalla de la entrega 2 de `PLAT-003` —la única del lote que nadie había abierto—
+destapó que el informe de comité no leía medio producto y no lo decía**: cuatro de sus lecturas
+fallaban por índice y enseñaba los ceros como datos. En el mismo conjunto y el mismo día,
+Finanzas avisaba en rojo de **−$10.300** y el informe del consejo decía **+$55.500 y «sin
+alertas»**.
 
-**Lo siguiente del plan es `FLOW-002` (anticipos)**, que estaba bloqueada porque ella y
-`PLAT-003` modifican la misma función —`aplicarPago`— y no pueden estar en vuelo a la vez.
-`PLAT-003` aterrizó, así que ya se puede.
+Los cinco defectos están arreglados y **verificados en staging contra la base**. En producción
+se desplegaron **solo los 3 índices** (57, antes 54); el código espera en `develop`.
 
-Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.18) y
+**EL ORDEN ES ÍNDICES PRIMERO, CÓDIGO DESPUÉS — nunca al revés.** Los índices solos son inocuos:
+con el código viejo simplemente esperan. El código sin los índices sería **peor que no hacer
+nada**, porque el aviso nuevo saldría en rojo a todos los administradores.
+
+**Hay reloj:** `monthlyFinancialArchive` corre `0 6 1 * *`. Si el arreglo no está antes del 1 de
+septiembre, **archiva otro PDF con doble conteo** para todos los conjuntos.
+
+**Lo siguiente es `FLOW-002` (anticipos)**, desbloqueada desde que `PLAT-003` aterrizó. **Pero su
+PRD decía «Lista para desarrollo» y NO lo está**: describe una exclusión que ya no existe. Tres
+correcciones marcadas dentro (v1.1) — la trampa pasó de omisión a **herencia**, **R4 no basta**
+porque el doble conteo del cruce no pasa por el libro, y **D-C nombra uno de los dos
+`bankAccountId: null`**.
+
+**Las cinco banderas `producto-*` siguen apagadas** en producción (sin documento en
+`featureFlags`).
+
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.19) y
 `docs/plan-despliegue-ola-ab.md`.
+
+### Lo que ninguna suite puede cazar, y por qué importa aquí
+
+**1097 pruebas del front y 456 de functions estaban EN VERDE mientras el informe mentía.** No es
+un fallo del banco: el defecto vivía en **la forma de la consulta contra un índice que solo
+existe en la nube**, y ninguna prueba unitaria lo alcanza. La regla que sale de esto:
+
+- **Una consulta con `orderByField` necesita su índice compuesto, Y EN LA DIRECCIÓN QUE PIDE.**
+  Tener `(tenantId, campo ASC)` no sirve para un `orderBy campo desc`. `reservations` tiene las
+  dos direcciones y funciona; `visitorPasses`, `tickets` y `committee_agreements` tenían solo
+  ASC y fallaban. **Antes de añadir un `orderByField`, comprobar el índice en las dos.**
+- **El patrón que no depende de índices es `watchLedger`**: pedir sin ordenar y ordenar en
+  memoria. Es lo que hace `/admin/finanzas`, y por eso fue el único que nunca se rompió.
+- **Un `catch` que deja la lista vacía convierte un fallo ruidoso en un dato falso.** Si una
+  pantalla puede fallar a medias, tiene que **decirlo en pantalla y en el PDF**.
+- **Un campo de filtro por rango debe estar poblado en todos los documentos.** Arreglar el
+  índice de `eventDate` no llenó nada hasta correr `functions/scripts/backfill-event-date.mjs`.
+
+**Validar entrando por el navegador funciona y es repetible.** Con la sesión de David abierta en
+Chrome se comprobó el defecto, CA6 y el antes/después de los cinco arreglos. **Es lo que cambió
+el ritmo de esa sesión**, y ya no hace falta pedir acceso aparte.
+
+**Tres credenciales caducan POR SEPARADO** y el 23 de agosto caducaron las tres:
+`gcloud auth application-default login` (leer Firestore con los scripts, síntoma `invalid_rapt`,
+que **parece un error de código**), `firebase login --reauth` (índices y despliegues) y
+`gcloud auth login` (el CLI).
 
 ## Estado por frentes (base de junio, con lo que cambió anotado dentro)
 
