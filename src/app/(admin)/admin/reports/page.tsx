@@ -574,6 +574,31 @@ function AdminReportsPageContent() {
 
           <div className="space-y-6">
 
+              {/*
+                El hook lleva desde siempre poniendo este `error` cuando una de sus
+                lecturas falla, y **esta página nunca lo leía**. El 23 de agosto de
+                2026 cuatro consultas del informe reventaban por índices ausentes
+                —`ledgerEntries`, `visitorPasses`, `tickets` y `committee_agreements`—
+                y la pantalla enseñaba «Egresos $0», «PQRS 0» y «✓ Sin alertas para
+                el comité» **sin una sola señal**. Un informe que no cargó era
+                indistinguible de un conjunto sin movimiento.
+
+                Va DENTRO del bloque imprimible y sin `no-print` a propósito: el daño
+                no es que el administrador lo vea mal en pantalla, es que se lleve el
+                PDF a la asamblea. Si el informe está incompleto, el papel lo dice.
+              */}
+              {report.error ? (
+                <div className="flex items-start gap-2 rounded-xl border border-[#e2b6b6] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+                  <span>
+                    <strong>Informe incompleto.</strong> {report.error} Los totales que
+                    aparecen abajo pueden estar por debajo de lo real —incluidos egresos,
+                    visitantes y PQRS—, así que <strong>no uses este documento para
+                    aprobar cuentas</strong> hasta que cargue completo.
+                  </span>
+                </div>
+              ) : null}
+
               {/* ── Período label ── */}
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold text-[var(--slate-800)]">{periodLabel}</span>

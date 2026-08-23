@@ -333,7 +333,24 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     }
 
     load<BillingStatement>("billingStatements", { orderByField: "period", orderDirection: "desc" }, setBilling, setLoadingBilling);
-    load<LedgerEntry>("ledgerEntries", { orderByField: "date", orderDirection: "desc" }, setLedger, setLoadingLedger);
+    // SIN `orderBy`, y no es un descuido: `where tenantId == X orderBy date desc`
+    // exige un índice compuesto `(tenantId, date)` que NUNCA ha existido —el único
+    // de `ledgerEntries` es `(tenantId, accountCode, date)`, que no sirve para esta
+    // consulta porque `accountCode` va en medio sin restringir—. La consulta fallaba
+    // entera, el `catch` dejaba `ledger` en `[]`, y el informe del comité enseñaba
+    // **egresos $0 y un saldo de fondos sin restar nada**: el 23 de agosto de 2026
+    // decía «+$55.500 y sin alertas» mientras Finanzas, en la misma pantalla y el
+    // mismo día, avisaba en rojo de **−$10.300**.
+    //
+    // El orden aquí no lo usaba NADIE: los cuatro consumidores de `ledger` son un
+    // `computeFundPosition` y tres `filter`+`reduce`, y `buildFinancialStatement`
+    // ordena por su cuenta. Se pedía un índice para nada.
+    //
+    // Se quita en vez de añadir el índice porque es el patrón de `watchLedger`
+    // —el gemelo de `/admin/finanzas` que lleva todo este tiempo funcionando—:
+    // pedir sin ordenar y ordenar en memoria no depende de ningún índice que
+    // alguien pueda olvidar.
+    load<LedgerEntry>("ledgerEntries", undefined, setLedger, setLoadingLedger);
     load<PackageItem>("packages", { orderByField: "arrivedAt", orderDirection: "desc" }, setPackages, setLoadingPackages);
     load<VisitorPass>("visitorPasses", { equals: [{ field: "status", value: "inside" }] }, setVisitorsInside, setLoadingVisitorsInside);
     load<CommitteeAgreementSignature>("committee_agreement_signatures", undefined, setAgreementSignatures, setLoadingAgreementSignatures);
