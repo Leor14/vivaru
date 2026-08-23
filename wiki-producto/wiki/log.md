@@ -3,10 +3,41 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-22
+fecha_actualizacion: 2026-08-23
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-08-23] update | Producción se movió, y esta wiki ya sabía lo que iba a pasar
+
+**El lote entero de propiedad horizontal bajó a producción** — 67 commits, `master` de `d17478d`
+a `f16927d`, el primer movimiento desde el 20 de agosto. Con él, `PRD-V-PLAT-003` completa hasta
+su entrega 2.
+
+- **Páginas actualizadas: 3** → [[estado-modulos]] (la tabla «construido y SIN desplegar» pasa a
+  «EN PRODUCCIÓN», separando lo que está tras bandera de lo que se ve), [[integridad-financiera]]
+  (§5 pasa de staging a producción, con la medición) e [[index]].
+- **Lo construido en la jornada:** la entrega 2 de `PLAT-003` —`accountCode` en cargos y egresos,
+  el formulario del plan validado a mano, **R9** con las etiquetas saliendo del plan, los ingresos
+  por cuenta en el informe de comité y el aviso de R8— y dos decisiones nuevas: **D3**, la
+  vigilancia son **dos** cuentas y no una; **D4**, el **rango reservado** que impide por
+  construcción que la semilla y un administrador se peleen por el mismo número.
+
+**Y la entrada existe sobre todo por esto, que es incómodo y por eso vale la pena escribirlo:**
+la tabla de [[estado-modulos]] **ya decía** —desde el 22— que Las Playas pasaría de 129.000 a
+127.500 al bajar la exclusión nueva. Al desplegar, quien lo hizo **dio ese cambio por inerte** y
+lo redescubrió midiendo, como si fuera una sorpresa. **La respuesta llevaba un día escrita aquí.**
+
+Es el argumento entero de tener wiki, dicho al revés: **no sirve de nada si no se lee antes de
+afirmar**. Y es la tercera vez en dos días que algo escrito aquí se ignora o se desmiente al
+construir — las otras dos están en la entrada de abajo.
+
+**Cinco defectos en la jornada y ninguno salió de una suite en verde.** El más instructivo: el
+banco de pruebas de reglas estaba **verde mientras la pantalla estaba rota**, porque sus pruebas
+escribían con `setDoc` y el producto escribe con una **transacción**. No faltaba un caso — **el
+banco probaba un camino que el producto no usa**. Está en [[trampas-conocidas]].
 
 ---
 

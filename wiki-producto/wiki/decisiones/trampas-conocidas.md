@@ -3,12 +3,28 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-22
+fecha_actualizacion: 2026-08-23
 ---
 
 # Trampas Conocidas
 
 Errores que han ocurrido o que tienen alta probabilidad de ocurrir durante el desarrollo. Documentados para no repetirlos.
+
+## El banco de pruebas puede estar VERDE probando un camino que el producto no usa
+
+**La más cara del 23 de agosto de 2026, y la más fácil de repetir.** `chartOfAccounts` tenía seis pruebas de reglas en verde y el formulario respondía «No tienes permiso» al crear la primera cuenta. Ninguna prueba lo veía porque **todas escribían con `setDoc`**, y el producto crea en una **transacción** —lee primero, para no sobrescribir una cuenta existente—. Leer un documento que **no existe** es otra cosa que leer uno que sí: en las reglas `resource` es `null`, así que `resource.data.tenantId` hace fallar la evaluación entera y el `get` se deniega. No faltaba un caso: **el banco probaba un camino distinto del real**. Regla: al escribir pruebas de reglas, usar **la misma primitiva que usa el producto** —transacción, batch o escritura suelta—. Ver [[integridad-financiera]].
+
+## Regla de lectura sin la rama `resource == null`: la transacción no arranca
+
+Consecuencia de la anterior, y ya pasó tres veces. Toda colección que se lea **dentro de una transacción** necesita `allow read: if signedIn() && (resource == null || ...)`, porque una transacción que crea lee primero un documento que todavía no existe. Sin esa rama, el error que llega a la pantalla es `permission-denied` — que se lee como «no eres administrador» y **no** como «el documento no está». `financialCounters` y `survey_responses` ya la llevaban; `chartOfAccounts` no, y costó una sesión de diagnóstico. **El gemelo correcto estaba en el mismo fichero, dos veces.**
+
+## La lista de rollouts de App Hosting está PAGINADA y sin ordenar
+
+`firebase apphosting` no tiene comando para listarlos, así que se consulta la API. **Devuelve 100 por página y NO viene ordenada**: leer solo la primera y ordenarla da como «más reciente» un rollout de ayer, y de ahí sale un «App Hosting no desplegó solo» que es falso. Hay que recorrer `nextPageToken` hasta el final. Con 325 rollouts, la diferencia entre las dos lecturas fue un día entero. Y **la verificación buena de un despliegue es la procedencia del build** —su commit y el estado del rollout—, no un grep de cadenas en el bundle: los chunks de las rutas autenticadas no se descargan sin sesión.
+
+## «Inerte» es una predicción, y comparar antes/después no la prueba
+
+Al desplegar un cambio que dices que no mueve nada, la comprobación obvia —calcular el estado antes y después— **no prueba nada si el «antes» ya se calcula con el código nuevo**. Lo que lo prueba es aplicar **las dos reglas, la vieja y la nueva, sobre los mismos datos** y contar cuántos registros cambian de lado. El 23 de agosto de 2026 esa medición encontró **uno de 89** que la comparación habría dado por inerte.
 
 ## Un widget que falla tumba todo /admin (sin aislamiento)
 

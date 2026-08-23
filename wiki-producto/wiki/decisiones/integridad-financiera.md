@@ -3,7 +3,7 @@ tags: [decision, finanzas, contabilidad, auditoria]
 tipo: decision
 fuentes: ["sesion-auditoria-ux-2026-07", "FIN-001", "PRD-V-PLAT-003"]
 fecha_creacion: 2026-07-03
-fecha_actualizacion: 2026-08-22
+fecha_actualizacion: 2026-08-23
 ---
 
 # Integridad Financiera — Reversos, Confirmaciones y Mora Real
@@ -54,11 +54,20 @@ con las dos: cambiarle el número a un papel que alguien ya descargó es peor qu
 formatos. Su pariente sigue abierto: los asientos anteriores a `FIN-001` **no se pueden revertir**
 porque no guardan `operationKey`.
 
-## 5. La exclusión que evita el doble conteo ya cambió de criterio — en staging
+## 5. La exclusión que evita el doble conteo mira el ORIGEN — en producción
 
 **Es la contrapartida de la regla 1, y hay que leerla junto a ella.**
-**Estado: corregido en `develop`/staging el 22 de agosto de 2026. En producción sigue el
-criterio viejo**, porque el lote de [[estado-modulos|propiedad horizontal]] no ha bajado.
+**Estado: EN PRODUCCIÓN desde el 23 de agosto de 2026.** Esta sección decía «en staging, en
+producción sigue el criterio viejo» hasta ese día.
+
+**Y se midió lo que movió, en vez de suponerlo.** De los **89 asientos de producción**, la regla
+vieja y la nueva seleccionan el mismo conjunto salvo **uno**: un ingreso de 1.500 en
+`conjunto-las-playas` con categoría `extraordinaria` y origen `billingStatement`. Ese conjunto
+pasa de mostrar **129.000 a 127.500** — el doble conteo dejando de ocurrir.
+
+**La forma de medirlo importa más que la cifra.** Comparar el estado financiero antes y después
+**no prueba nada** cuando el «antes» ya se calcula con el código nuevo. Lo que lo prueba es
+aplicar **las dos reglas sobre los mismos asientos** y contar cuántos cambian de lado.
 
 `computeFundPosition` excluía del ingreso del Libro los asientos de categoría `alicuota`, porque
 el recaudo de cuotas ya se cuenta por la vía de [[cartera-campanas|Cartera]], que es la fuente

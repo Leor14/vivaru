@@ -3,7 +3,7 @@ tags: [indice, navegacion]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06", "estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-22
+fecha_actualizacion: 2026-08-23
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -121,5 +121,5 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[trampas-conocidas]] | Errores recurrentes: Tailwind v4, CORS de callables, unitId doc-id, deploy de functions, proyecto activo = producción, condiciones escritas contra un valor y **copiadas en más sitios de los que el inventario vio** |
 | [[triaje-auditoria-ux]] | 🆕 Cómo se verifica un reporte externo contra código antes de ejecutarlo |
 | [[torres-canonicas]] | 🆕 Agrupaciones canónicas: normalizeTower, lista por tenant y migración one-off |
-| [[integridad-financiera]] | Reversar en vez de borrar, confirmar cobros, mora real, y **la exclusión que evita el doble conteo** — ya mira el origen del asiento, en staging |
+| [[integridad-financiera]] | Reversar en vez de borrar, confirmar cobros, mora real, y **la exclusión que evita el doble conteo** — mira el origen del asiento, **en producción desde el 23 ago 2026** |
 | [[portafolio-prd]] | 🆕 Dónde viven las PRD y por qué: `docs/prd/funcionales/` y `docs/prd/ia/`, dos skills, una regla |
