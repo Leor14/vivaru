@@ -1,5 +1,31 @@
 # Plan de despliegue a producción — olas A y B
 
+> ## ✅ EJECUTADO el 23 de agosto de 2026. `master` = `f16927d`
+>
+> | Pieza | Verificado leyendo |
+> |---|---|
+> | Reglas e índices | Ruleset **vivo** leído por la API: los bloques `chartOfAccounts` y `vendors`, la rama `resource == null` y el rango reservado. **54 índices en `READY`**, esperados antes del front |
+> | Functions | **70 vivas, todas `ACTIVE`**, con `updateTime` de la tanda. Presentes las nuevas: `generateCoefficientCampaign`, `createReservationRequest` |
+> | Front | `rollout-2026-08-23-001` en `SUCCEEDED`, `build-2026-08-23-001` en `READY` desde `master`. App Hosting disparó solo |
+> | Banderas | Las cinco de producto **sin documento** en `featureFlags`, así que resuelven al default del catálogo: apagadas. Solo las de IA encendidas, como estaba documentado |
+>
+> ### Lo que este documento decía mal, corregido con el dato
+>
+> Decía que **todo lo de `PLAT-003` era inerte**. **No lo era del todo, y se midió:** de los 89
+> asientos de producción, **uno cambia de lado** con la exclusión nueva — un ingreso de 1.500 en
+> `conjunto-las-playas` con `category: extraordinaria` y origen `billingStatement`.
+>
+> **`conjunto-las-playas` pasa de mostrar 129.000 a 127.500 de ingreso total.** Ese 1.500 se
+> estaba contando **dos veces**: en Cartera y otra vez en el libro. **No es un error nuevo: es el
+> viejo dejando de ocurrir** —§5.2 de la PRD lo anticipa con esas palabras—, y 127.500 es el mismo
+> número que David validó a mano en staging.
+>
+> La lección no es el 1.500: es que **«inerte» era una predicción y había que medirla**. La
+> medición correcta no fue comparar el estado antes y después —el «antes» ya se había calculado
+> con el código nuevo, así que no probaba nada—, sino **aplicar las dos reglas, la vieja y la
+> nueva, sobre los mismos asientos** y contar cuántos cambian de lado.
+
+
 **Esto no es «subir `PLAT-003`».** `develop` lleva **67 commits** por delante de `master`, y
 `master` no se ha movido desde el 20 de agosto (`d17478d`). Empujar `develop` a `master` despliega
 **la ola A entera y la mitad de la B**, no una PRD.

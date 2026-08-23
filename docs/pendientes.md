@@ -9,7 +9,25 @@ en pantalla y el aviso de R8. Falta mirar el paso 3. Producción intacta.
 
 ## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
-**`develop` = `06edf29`, empujado y con `origin/develop` releído.** Árbol limpio.
+**`develop` = `f16927d`, empujado y con `origin/develop` releído.** Árbol limpio.
+
+## PRODUCCIÓN SE MOVIÓ — 23 ago 2026, `master` = `f16927d`
+
+**Las olas A y B están en producción.** 67 commits, el primer movimiento de `master` desde el 20
+de agosto. Detalle y verificación pieza por pieza en
+[`docs/plan-despliegue-ola-ab.md`](plan-despliegue-ola-ab.md).
+
+**Las cinco banderas de producto siguen apagadas** —sin documento en `featureFlags`, resuelven al
+default del catálogo—, así que ninguna capacidad nueva se ve.
+
+**Lo único que cambió de verdad, y yo lo había dado por inerte:** de los 89 asientos de
+producción, **uno cambia de lado** con la exclusión del doble conteo. `conjunto-las-playas` pasa
+de **129.000 a 127.500** de ingreso total: ese 1.500 de cuota extraordinaria se contaba dos veces.
+**Es el error viejo dejando de ocurrir**, no uno nuevo.
+
+**Y la lección de método:** «inerte» era una predicción. Comparar el estado antes y después **no
+prueba nada** cuando el «antes» ya se calculó con el código nuevo. Lo que lo prueba es aplicar
+**las dos reglas sobre los mismos asientos** y contar cuántos cambian de lado.
 **`master` sigue en `d17478d`: nada de `PLAT-003` está en producción.**
 
 **Lo desplegado en staging, y cómo se comprobó** (leído, no deducido):
