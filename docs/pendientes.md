@@ -2,19 +2,21 @@
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
 Actualizado el **23 de agosto de 2026, de madrugada (segunda pasada)**: entrega 1b completa y
-validada, y **el PASO 1 de la entrega 2 en staging** — el cargo y el egreso ya llevan su
-cuenta. Producción intacta.
+validada, y **los PASOS 1 y 2 de la entrega 2 en staging** — el cargo y el egreso llevan su
+cuenta, y el administrador ya puede mantener su plan. **Falta validarlo a mano, y hay un
+requisito previo: en staging NO hay ni una cuenta sembrada.** Producción intacta.
 
 ## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
-**`develop` = `d427698`, empujado y con `origin/develop` releído.** Árbol limpio.
+**`develop` = `06edf29`, empujado y con `origin/develop` releído.** Árbol limpio.
 **`master` sigue en `d17478d`: nada de `PLAT-003` está en producción.**
 
 **Lo desplegado en staging, y cómo se comprobó** (leído, no deducido):
 
 | Pieza | Cómo se verificó |
 |---|---|
-| Front en `d427698` | Procedencia del build: `build-2026-08-23-003`, `commit=d4276986`, `READY`, y su rollout en `SUCCEEDED` |
+| Front en `06edf29` | `rollout-2026-08-23-004` en `SUCCEEDED`. Lo disparó App Hosting solo |
+| Front en `d427698` (paso 1) | Procedencia del build: `build-2026-08-23-003`, `commit=d4276986`, `READY`, rollout `SUCCEEDED` |
 | Las 27 functions | `firebase deploy --only functions --project vivaru-staging-02`, y el `updateTime` de las tocadas leído por la API: todas `ACTIVE` a las 02:38 UTC |
 | Front en `6939308` (1b-iii, anterior) | `build-2026-08-22-029` en `READY`, hash `693930891e46…` |
 | Reglas e índices | `firebase deploy --only firestore:rules,firestore:indexes` a `vivaru-staging-02` (sin cambios en esta pasada: las reglas de `billingStatements`, `expenses` y `ledgerEntries` **no validan el juego de claves**, así que un campo nuevo no las toca) |
@@ -75,7 +77,7 @@ ANTES de sembrar, porque sembrar la congela:
 | # | Paso | Estado |
 |---|---|---|
 | **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
-| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | Pendiente. Última superficie que puede renombrar o renumerar |
+| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **CONSTRUIDO** — `06edf29`, en staging. **SIN validar a mano** |
 | **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | Pendiente |
 | **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
 
@@ -108,6 +110,46 @@ La semilla del trial la manda hoy a `proveedores`, que es lo correcto disponible
 correcto a secas. Añadir la cuenta mueve la semilla y el conteo de CA1 (16 cuentas con
 `systemKey`, 18 documentos) y obliga a tocar `ExpenseCategory`. **Sembrar antes de decidirlo
 congela la ausencia.**
+
+**Paso 2, qué entró** (`06edf29`): diálogo «Plan de cuentas» dentro de Finanzas › Libro y
+fondos, detrás de `producto-plan-de-cuentas`. Se copió el patrón del **registro de
+proveedores**, que es el gemelo exacto —CRUD con bandera dentro de Finanzas—; la barra lateral
+**no sabe de banderas**, así que una ruta propia habría enseñado el enlace a todo el mundo.
+
+**Tres acciones y ninguna más: añadir, renombrar, desactivar**, que son las tres del flujo de
+§5.1. **No hay borrado, y no es una omisión:** R5 dice que una cuenta con movimientos se
+desactiva, y las reglas **no pueden comprobar** si los tiene —exige consultar `ledgerEntries`—.
+Sin botón de borrar, CF3 y CF4 son inalcanzables desde la interfaz.
+
+**Lo que casi se cuela, y es lo más importante de este paso:** crear una cuenta con `setDoc`
+**no falla si el código ya existe: sobrescribe**, porque el id es derivado del código. Y la
+regla de `update` lo dejaría pasar —el `code` coincide consigo mismo—, así que «crear la 1.3»
+le habría cambiado el nombre a la cuenta de multas y podría haberla dejado **sin `systemKey`**,
+que es justo lo que R3 protege. Va en **transacción**: lee y se niega si ya está.
+
+**El padre se deduce del código, no se elige.** La jerarquía vive en el propio código (D1,
+opción A); un selector de cuenta padre dejaría colgar la `1.3` de la `2`.
+
+### PARA VALIDAR EL PASO 2 HACE FALTA ESTO PRIMERO
+
+**En staging no hay NI UNA cuenta sembrada** — medido: la colección `chartOfAccounts` de
+`vivaru-staging-02` tiene **0 documentos**. La semilla corre al crear el conjunto y **los ocho
+conjuntos de staging son anteriores** a esa capacidad. Con el plan vacío el diálogo abre, lo
+dice y deja el botón «Nueva» apagado: no hay nada que mirar.
+
+**La salida limpia es crear un conjunto nuevo en staging**, no sembrar uno viejo:
+
+- Las **dos** altas siembran, comprobado en el código — la normal
+  (`createTenantWorkspace`, `index.ts:1109`) y la del trial
+  (`provisionTrialWorkspace`, `trial-workspace.ts:170`).
+- Un conjunto nuevo valida además **CA1** de paso: 18 documentos, 16 con `systemKey`.
+- Y **no toca la decisión aplazada**: lo que congela la semilla es sembrar conjuntos que ya
+  existen. Un conjunto nuevo de staging nace con la semilla del día y es desechable.
+
+**Qué mirar**, que es lo que ninguna prueba contesta: que el árbol salga ordenado y con las
+hijas indentadas; que renombrar «Multas» cambie el nombre y **no** el código; que crear la
+`1.9` cuelgue sola de «Ingresos»; que la `2.9` **como ingreso** se rechace diciendo por qué; y
+que desactivar «Ingresos» avise de que la `1.1` cuelga de ella.
 
 **Dos cosas de método de esta pasada:**
 
