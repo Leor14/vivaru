@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EXAMPLE_TAG = void 0;
 exports.seedTrialWorkspace = seedTrialWorkspace;
 const firestore_1 = require("firebase-admin/firestore");
+const plan_de_cuentas_1 = require("./plan-de-cuentas");
 /**
  * Siembra del ambiente de prueba (Fase 1 del self-service).
  *
@@ -151,6 +152,7 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
                 unitLabel: unit.label,
                 period,
                 concept: "administracion",
+                accountCode: (0, plan_de_cuentas_1.cuentaParaConcepto)("administracion").code,
                 amount: MONTHLY_FEE,
                 paymentAmount,
                 balance,
@@ -174,11 +176,22 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
         isExample: true,
     });
     stats.bankAccounts = 1;
+    // Las categorías tienen que ser valores de `ExpenseCategory` (`src/types/domain.ts`).
+    // Hasta hoy dos no lo eran —`servicios` y `seguridad`— y el `set()` de esta
+    // semilla no está tipado, así que compilaba y se escribía igual. El daño se veía
+    // en pantalla: el estado financiero de todo conjunto de trial mostraba «servicios»
+    // y «seguridad» en crudo y minúscula, porque `categoryLabel` devuelve la clave
+    // cuando no la conoce. Y sin arreglarlo no hay cuenta que estampar.
+    //
+    // `vigilancia` va a `proveedores` porque es un servicio contratado, no porque el
+    // plan tenga una cuenta propia para ella: NO la tiene. Es la mayor partida de un
+    // conjunto real y merece decisión antes de sembrar (ver docs/pendientes.md).
+    // `trial-seed-categorias.test.ts` vigila que no se vuelva a inventar una.
     const gastos = [
-        { local: "energia", category: "servicios", description: "Energía áreas comunes", vendor: "Comisión de Electricidad", amount: 1_250_000 },
-        { local: "agua", category: "servicios", description: "Suministro de agua", vendor: "Servicio de Aguas", amount: 640_000 },
+        { local: "energia", category: "servicios_publicos", description: "Energía áreas comunes", vendor: "Comisión de Electricidad", amount: 1_250_000 },
+        { local: "agua", category: "servicios_publicos", description: "Suministro de agua", vendor: "Servicio de Aguas", amount: 640_000 },
         { local: "aseo", category: "mantenimiento", description: "Aseo y limpieza", vendor: "Servicios Integrales", amount: 900_000 },
-        { local: "vigilancia", category: "seguridad", description: "Vigilancia y portería", vendor: "Seguridad Total", amount: 2_100_000 },
+        { local: "vigilancia", category: "proveedores", description: "Vigilancia y portería", vendor: "Seguridad Total", amount: 2_100_000 },
     ];
     let expenseCount = 0;
     let ledgerCount = 0;
@@ -189,6 +202,7 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
             const issue = dateStr(-(m * 30 + 5));
             await set("expenses", id(`exp-${local}`), {
                 category: g.category,
+                accountCode: (0, plan_de_cuentas_1.cuentaParaCategoriaDeEgreso)(g.category).code,
                 description: g.description,
                 vendorName: g.vendor,
                 amount: g.amount,
@@ -207,6 +221,7 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
                     amount: g.amount,
                     concept: g.description,
                     category: g.category,
+                    accountCode: (0, plan_de_cuentas_1.cuentaParaCategoriaDeEgreso)(g.category).code,
                     bankAccountId,
                     sourceType: "expense",
                     sourceId: id(`exp-${local}`),

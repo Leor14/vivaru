@@ -1,21 +1,23 @@
 # Pendientes
 
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
-Actualizado el **23 de agosto de 2026, madrugada**: **`PLAT-003` entrega 1b COMPLETA y
-VALIDADA A MANO en staging**, en tres trozos (1b-i, 1b-ii, 1b-iii). Producción intacta.
+Actualizado el **23 de agosto de 2026, de madrugada (segunda pasada)**: entrega 1b completa y
+validada, y **el PASO 1 de la entrega 2 en staging** — el cargo y el egreso ya llevan su
+cuenta. Producción intacta.
 
 ## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
-**`develop` = `6939308`, empujado y con `origin/develop` releído.** Árbol limpio.
+**`develop` = `d427698`, empujado y con `origin/develop` releído.** Árbol limpio.
 **`master` sigue en `d17478d`: nada de `PLAT-003` está en producción.**
 
 **Lo desplegado en staging, y cómo se comprobó** (leído, no deducido):
 
 | Pieza | Cómo se verificó |
 |---|---|
-| Front en `6939308` | Procedencia del build de App Hosting: `build-2026-08-22-029` en `READY`, hash `693930891e46…` |
-| `applyPayment` · `revertPayment` · `createTenantWorkspace` | `updateTime` leído por la API de Cloud Functions, las tres `ACTIVE` |
-| Reglas e índices | `firebase deploy --only firestore:rules,firestore:indexes` a `vivaru-staging-02` |
+| Front en `d427698` | Procedencia del build: `build-2026-08-23-003`, `commit=d4276986`, `READY`, y su rollout en `SUCCEEDED` |
+| Las 27 functions | `firebase deploy --only functions --project vivaru-staging-02`, y el `updateTime` de las tocadas leído por la API: todas `ACTIVE` a las 02:38 UTC |
+| Front en `6939308` (1b-iii, anterior) | `build-2026-08-22-029` en `READY`, hash `693930891e46…` |
+| Reglas e índices | `firebase deploy --only firestore:rules,firestore:indexes` a `vivaru-staging-02` (sin cambios en esta pasada: las reglas de `billingStatements`, `expenses` y `ledgerEntries` **no validan el juego de claves**, así que un campo nuevo no las toca) |
 
 **`producto-concepto-al-libro` está ENCENDIDA en staging, y SOLO en `conjunto-las-playas`**
 (`featureFlagOverrides/conjunto-las-playas`). El valor global sigue sin documento, así que los
@@ -59,10 +61,69 @@ muerto — si viviera, el total habría subido 1.000 y no 500.
 
 | Qué | Por qué importa |
 |---|---|
-| `accountCode` en `BillingStatement` y `Expense` | §7.2 lo pide. No es hueco de corrección: sin código los informes agrupan por categoría (R9) y los egresos no entran en el doble conteo |
-| El aviso de **R8** en pantalla | Cuando un concepto cae en `otros_ingresos`, el dato ya viaja en la respuesta del callable. Nadie lo enseña todavía |
-| **El estado financiero solo existe como Excel** | `incomeByCategory` solo se usa en la exportación. La métrica de éxito de la PRD vive hoy en una hoja de cálculo, no en una pantalla |
+| ~~`accountCode` en `BillingStatement` y `Expense`~~ | **HECHO el 23 ago (paso 1 de la entrega 2), en staging.** Ver la sección siguiente |
+| El aviso de **R8** en pantalla | Cuando un concepto cae en `otros_ingresos`, el dato ya viaja en la respuesta del callable — `cayoEnOtrosIngresos`—, pero **ni siquiera está declarado** en el tipo de respuesta de `applyPaymentCallable` (`src/lib/firebase/callables.ts`). Nadie lo enseña |
+| **R9 no está implementada en NINGÚN sitio** | Descubierto el 23 ago al ordenar la entrega 2, y no estaba en esta lista. `buildFinancialStatement` agrupa **solo por `category`** y nunca mira `accountCode`; las etiquetas salen de `CATEGORY_LABELS`, un mapa cableado en `financial-statement.ts` que es **uno de los dos que la PRD quería matar** (§2). Mientras siga así, **CA6 es imposible**: renombrar una cuenta no cambia nada en pantalla |
+| **El estado financiero solo existe como Excel** | `incomeByCategory` alimenta **dos** consumidores, no uno: la exportación XLSX de `/admin/finanzas` **y** el informe de comité. Pero el informe se queda con los totales y `expenseByCategory` y **tira `incomeByCategory`** (`use-committee-report.ts:530`). O sea: **el gemelo que lo hace bien ya existe** —los egresos por categoría ya se pintan en tabla y torta en `/admin/reports`— y a los ingresos solo les faltan las líneas que los lleven hasta ahí. **No hace falta una pantalla nueva** |
 | Ningún conjunto EXISTENTE tiene plan sembrado | La semilla corre al crear. Encender `producto-plan-de-cuentas` en un conjunto viejo enseñaría un plan vacío |
+
+### `PLAT-003` entrega 2 — el orden, y el paso 1 ya en staging
+
+**El orden lo decide una dependencia, no el gusto.** Todo lo que pueda mover la semilla va
+ANTES de sembrar, porque sembrar la congela:
+
+| # | Paso | Estado |
+|---|---|---|
+| **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
+| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | Pendiente. Última superficie que puede renombrar o renumerar |
+| **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | Pendiente |
+| **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
+
+**Paso 1, qué entró** (`8018a3b`): los tipos ya declaraban `accountCode` desde 1b; **lo que no
+existía era nadie que lo escribiera**. Ahora se estampa al generar el cargo y al registrar el
+egreso.
+
+**Los cargos se crean en CUATRO sitios, no en uno** —el alta manual del front, la campaña
+programada de `index.ts`, el reparto por coeficiente y la semilla del trial—. Contarlos antes
+de escribir es la lección de los tres sitios de la exclusión y las cuatro copias del catálogo
+de banderas. **Va sin bandera a propósito:** nadie lee `accountCode` todavía (R9 no existe),
+así que es inerte; ponerlo tras `producto-concepto-al-libro` solo abriría un hueco de cargos
+sin código que habría que rellenar después.
+
+**El resolvedor de egresos NO es la simétrica del de ingresos, y no se pueden fusionar.**
+`administracion` vale `1.1` como concepto de cargo —la cuota, un ingreso— y `2.5` como
+categoría de egreso. Es la trampa de R11 mirando al otro lado, y tiene prueba propia.
+
+**Un defecto que salió al construir** (`d427698`): `trial-seed.ts` escribía
+`category: "servicios"` y `category: "seguridad"` en `expenses` **y** en `ledgerEntries`.
+Ninguna de las dos es un valor de `ExpenseCategory`; compilaba porque el `set()` de la semilla
+no está tipado. **No era latente: se veía** — el estado financiero de todo conjunto de trial
+mostraba «servicios» y «seguridad» en crudo y minúscula, dos de sus cuatro partidas. Arreglado,
+y con guardián nuevo (`functions/tests/trial-seed-categorias.test.ts`) que lee el fichero como
+texto, porque el typecheck no puede cazarlo.
+
+**DECISIÓN PENDIENTE DE DAVID, y hay que tomarla ANTES del paso 4:** el plan estándar **no
+tiene cuenta de vigilancia**, que en un conjunto real es la mayor partida del presupuesto.
+La semilla del trial la manda hoy a `proveedores`, que es lo correcto disponible y no lo
+correcto a secas. Añadir la cuenta mueve la semilla y el conteo de CA1 (16 cuentas con
+`systemKey`, 18 documentos) y obliga a tocar `ExpenseCategory`. **Sembrar antes de decidirlo
+congela la ausencia.**
+
+**Dos cosas de método de esta pasada:**
+
+1. **La lista de rollouts de App Hosting está PAGINADA y NO ordenada.** Leer la primera página
+   —100 de 325— y ordenarla da como «más reciente» algo de ayer, y de ahí se concluye «no
+   desplegó solo» y se fuerza un rollout que sobraba. **Hay que recorrer `nextPageToken` hasta
+   el final.** Con el método correcto: el 23 App Hosting **sí** desplegó solo, dos veces
+   (`rollout-2026-08-23-001` y `-002`, a las 02:25 y 02:32 UTC, que corresponden exactamente a
+   los dos pushes). Eso **no desmiente** lo del 22 —aquel día de verdad no salió—; lo que
+   corrige es **cómo se mira**.
+2. **`publishScheduledCharges` falló el deploy y NO estaba roto.** El error fue
+   «Failed to get the IAM Policy… / Unable to set the invoker». Leído en vez de supuesto:
+   la función está `ACTIVE` con `updateTime` de la misma tanda, su servicio conserva el binding
+   `roles/run.invoker` para la cuenta de cómputo, y el job de Cloud Scheduler sigue `ENABLED`
+   con su `0 8 * * *`. **Lo que falló fue leer el IAM, no escribirlo.** Es justo la función que
+   lleva el cambio de cargos, así que darla por caída habría parado el paso entero.
 
 **Por qué NO se sembró el plan en los conjuntos que ya existen, aunque se pudo:** la siembra no
 pisa lo que existe —correcto, para no borrar renombres—, y eso significa que **sembrar ahora

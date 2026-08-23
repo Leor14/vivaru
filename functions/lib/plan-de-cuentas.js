@@ -36,13 +36,14 @@
  * Firestore, no de una constante.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CUENTA_POR_CONCEPTO = exports.CUENTA_OTROS_INGRESOS = exports.SEMILLA_PLAN_DE_CUENTAS = exports.CONCEPTOS_DE_CARGO = void 0;
+exports.CUENTA_OTROS_EGRESOS = exports.CUENTA_POR_CONCEPTO = exports.CUENTA_OTROS_INGRESOS = exports.SEMILLA_PLAN_DE_CUENTAS = exports.CONCEPTOS_DE_CARGO = void 0;
 exports.validarCodigoDeCuenta = validarCodigoDeCuenta;
 exports.codigoPadreDe = codigoPadreDe;
 exports.docIdDeCuenta = docIdDeCuenta;
 exports.cuentaParaConcepto = cuentaParaConcepto;
 exports.cuentaPorSystemKey = cuentaPorSystemKey;
 exports.cuentaPorCodigo = cuentaPorCodigo;
+exports.cuentaParaCategoriaDeEgreso = cuentaParaCategoriaDeEgreso;
 exports.categoriaParaConcepto = categoriaParaConcepto;
 exports.descripcionDeCobro = descripcionDeCobro;
 /** Los siete conceptos de cargo. Copia deliberada de `BillingConcept` de `src/types/domain.ts`. */
@@ -165,6 +166,34 @@ function cuentaPorSystemKey(systemKey) {
 /** La cuenta sembrada de un código, o `undefined` si el código no es de la semilla. */
 function cuentaPorCodigo(code) {
     return exports.SEMILLA_PLAN_DE_CUENTAS.find((c) => c.code === code);
+}
+/** La cuenta a la que cae un egreso de categoría desconocida — R8, lado egreso. */
+exports.CUENTA_OTROS_EGRESOS = "2.8";
+/**
+ * §7.2 — la cuenta de un EGRESO, resuelta desde su categoría.
+ *
+ * **No es la simétrica de `cuentaParaConcepto` y no se pueden fusionar.**
+ * `administracion` vive en los dos vocabularios y significa cosas opuestas: como
+ * concepto de cargo es la cuota —un INGRESO, `1.1`— y como categoría de egreso es
+ * el gasto de administración —`2.5`—. Una función única que resolviera «por
+ * nombre» mandaría uno de los dos al lado contrario del libro. Son dos mapas a
+ * propósito, igual que R11 obligó a que el primero fuese explícito.
+ *
+ * Aquí sí se puede resolver por `systemKey`, y no es pereza: los ocho valores de
+ * `ExpenseCategory` son exactamente los `systemKey` de las ocho cuentas de egreso
+ * de la semilla, y **ningún `systemKey` se repite entre ingresos y egresos** —la
+ * cuenta de cuotas lleva `alicuota`, no `administracion`—. El filtro por `type`
+ * existe para que eso deje de ser una coincidencia: si mañana la semilla repitiera
+ * una clave en los dos lados, un egreso caería en una cuenta de ingreso, y esto lo
+ * impide en vez de dejarlo pasar callando.
+ */
+function cuentaParaCategoriaDeEgreso(categoria) {
+    if (!categoria)
+        return { code: exports.CUENTA_OTROS_EGRESOS, porDefecto: true };
+    const cuenta = exports.SEMILLA_PLAN_DE_CUENTAS.find((c) => c.systemKey === categoria && c.type === "egreso");
+    if (!cuenta)
+        return { code: exports.CUENTA_OTROS_EGRESOS, porDefecto: true };
+    return { code: cuenta.code, porDefecto: false };
 }
 /**
  * La categoría del libro que corresponde al concepto de un cargo — es decir, el

@@ -61,6 +61,7 @@ const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
+const plan_de_cuentas_1 = require("./plan-de-cuentas");
 const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
@@ -2609,6 +2610,11 @@ exports.publishScheduledCharges = (0, scheduler_1.onSchedule)({ schedule: "0 8 *
                 unitLabel: t.unitLabel,
                 period,
                 concept: s.concept ?? "administracion",
+                // §7.2 — la cuenta del cargo, resuelta al generarlo. Este es uno de los
+                // CUATRO sitios que crean cargos; los otros son el alta manual del front,
+                // el reparto por coeficiente y la semilla del trial. Que fueran cuatro y
+                // no uno es lo que hacía falta contar antes de escribir nada.
+                accountCode: (0, plan_de_cuentas_1.cuentaParaConcepto)(s.concept).code,
                 campaignId,
                 amount,
                 paymentAmount: 0,

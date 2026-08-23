@@ -5,6 +5,7 @@ exports.repartirPorCoeficiente = repartirPorCoeficiente;
 exports.generarCorridaPorCoeficiente = generarCorridaPorCoeficiente;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const plan_de_cuentas_1 = require("./plan-de-cuentas");
 const vocabulario_pais_1 = require("./vocabulario-pais");
 /**
  * `PRD-V-PLAT-001` — corrida de cobro por coeficiente de copropiedad.
@@ -180,6 +181,8 @@ async function generarCorridaPorCoeficiente(input, uid) {
             unitLabel: line.unitLabel,
             period: input.period,
             concept: input.concept ?? "administracion",
+            // §7.2, igual que en la campaña programada y en el alta manual.
+            accountCode: (0, plan_de_cuentas_1.cuentaParaConcepto)(input.concept).code,
             campaignId,
             amount: line.amount,
             paymentAmount: 0,
