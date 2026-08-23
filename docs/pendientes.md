@@ -357,13 +357,59 @@ dependencias del memo del informe, así que **renombrar una cuenta no refrescaba
 CA6 verde en la prueba y rota en el producto. Es el mismo patrón que este documento repite:
 lo que se mira no es lo que se prueba.
 
-**PENDIENTE: mirarlo.** En staging, `conjunto-las-playas`:
+### El defecto del paso 3 que solo aparecía en producción (`607a12e`)
+
+**Salió al preparar el despliegue a producción, no al escribir el código.** El paso 3 hacía que
+el código mandara **siempre que existiera**. Sin plan sembrado —**la condición de producción**, y
+la de siete de los ocho conjuntos de staging— un egreso viejo caía en `mantenimiento` y uno
+nuevo, que ya lleva `accountCode` desde el paso 1, en `2.3`: **dos filas con la misma etiqueta
+«Mantenimiento»**. El defecto que R9 se diseñó para evitar, por la puerta de atrás.
+
+La regla correcta es más estrecha: **el código manda solo si el plan sabe nombrarlo.** Un código
+que nadie puede nombrar no es un cajón, es un número.
+
+**Por qué se escapó, que importa más que el arreglo:** la prueba de «sin plan» existía y estaba
+verde, pero tenía **un solo asiento**. Un defecto de AGRUPACIÓN no se ve con un caso.
+
+### Verificado contra los datos REALES de staging (23 ago)
+
+No es lo mismo que mirar la pantalla —eso sigue pendiente—, pero es el motor real corriendo
+sobre los 55 asientos y los 50 cargos de `conjunto-las-playas`:
+
+| Escenario | Ingresos | Total |
+|---|---|---|
+| Todo apagado (como producción hoy) | una línea, «Cuotas de administración» | **127.500** |
+| Solo `concepto-al-libro` | 126.000 cuota + 1.500 extraordinaria | **127.500** |
+| Bandera + plan (como está staging) | `1.1` 126.000 + `1.2` 1.500 | **127.500** |
+
+**El total no se mueve en ninguno de los tres: es CA11 sobre datos reales**, y coincide con el
+127.500 que David midió a mano validando la 1b. Con plan, los egresos pasan a salir en orden de
+plan —`2.1, 2.2, 2.3, 2.4, 2.6`— en vez de por monto. Las multas no aparecen porque sus dos
+asientos netean a cero, como debía ser.
+
+**Y el defecto de arriba, probado sobre esos mismos datos:** ningún egreso de staging lleva
+`accountCode` todavía, así que se añadió uno como los que escribirá el paso 1 a partir de ahora.
+Con el arreglo da **una** fila «Mantenimiento» de 11.000 (9.800 + 1.200). Sin él habrían sido dos.
+
+**Lo que esto NO verifica, dicho para que no se lea de más:** que los componentes lo pinten, que
+la torta aparezca, que el Excel lo escriba y que el aviso de R8 salga. Eso solo se sabe mirando.
+
+### Limpieza de staging — HECHA
+
+| Qué | Estado |
+|---|---|
+| La `1.9` hecha a mano | Borrada y resembrada: ahora es `Cuotas de vigilancia` con `systemKey`, creada por el sembrador |
+| La `2.9` | Sembrada |
+| El plan | **20 cuentas, 18 con `systemKey`**, releído de la base |
+| La `1.3` | Devuelta a «Multas» y activa. Los 11 campos del documento idénticos antes y después: el `updateMask` no arrastró nada |
+
+**PENDIENTE: mirar la pantalla.** En staging, `conjunto-las-playas`:
 
 | Dónde | Qué |
 |---|---|
-| Finanzas › Estado financiero (Excel) | Las líneas salen en orden de plan (1.1, 1.2, 1.3…) y **«Multas multiples»** aparece con ese nombre — es CA6 sobre el renombre que ya hiciste |
+| Finanzas › Estado financiero (Excel) | Las líneas en orden de plan, y los egresos como `2.1, 2.2, 2.3, 2.4, 2.6` |
 | Informes › Resumen financiero | Tabla y torta de **Ingresos por cuenta**, al lado de los egresos |
-| Los dos asientos de la multa | +500 y −500 netean, así que puede que la línea no aparezca; el reparto de Cartera sí |
+| Finanzas › Plan de cuentas | Renombrar una cuenta y ver que el nombre cambia **en el estado financiero** — es CA6, y es lo único que ninguna prueba puede contestar |
 
 **Dos cosas de método de esta pasada:**
 
