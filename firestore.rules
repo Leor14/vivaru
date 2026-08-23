@@ -367,13 +367,74 @@ service cloud.firestore {
       ));
     }
 
+    // `advanceAppliedAmount` (FLOW-002 R4) lo escribe SOLO el servidor, y esta es
+    // la unica cosa que lo protege.
+    //
+    // No es una coleccion nueva: es un CAMPO dentro de un documento que el
+    // cliente sigue editando. `actualizarBillingStatement`
+    // (src/features/billing/use-billing-statements.ts) hace un `updateDoc`
+    // directo desde el navegador con `paymentAmount` y `balance` tal cual se los
+    // da el cajon de edicion. Si lo cruzado con anticipo viviera en
+    // `paymentAmount`, una edicion a mano lo borraria o lo duplicaria **sin que
+    // ningun `advanceApplication` se enterase**, y el saldo a favor de un
+    // residente cambiaria sin rastro.
+    //
+    // Por eso vive en su propio campo y por eso el campo se veta aqui: en
+    // `create` no puede nacer con valor, y en `update` tiene que salir igual que
+    // entro. El `.get(...,0)` cubre los documentos anteriores a FLOW-002, que no
+    // lo tienen — sin el, toda edicion de un cargo viejo quedaria denegada.
     match /billingStatements/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      // `create` y `update` van JUNTAS, como estaban. Separarlas parecia mas
+      // legible y costo una hora: cada `setDoc` evalua las dos ramas, y
+      // `tenantOperable` + `tenantAdminOrSuper` + `previewModuleWritable` hacen
+      // varios `get()` cada una. Al duplicarse se pasa el limite de accesos a
+      // documentos por peticion, y la regla devuelve **error de evaluacion**.
+      // Denegaba igual, asi que las pruebas pasaban EN VERDE por el motivo
+      // equivocado — solo se vio leyendo el log del emulador.
+      //
+      // El guardian va dentro: en `create` (`resource == null`) el campo tiene
+      // que valer cero o no estar; en `update` tiene que salir igual que entro.
+      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && request.resource.data.get('advanceAppliedAmount', 0) == (resource == null ? 0 : resource.data.get('advanceAppliedAmount', 0));
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
+    }
+
+    // ── Anticipos (FLOW-002) ───────────────────────────────────
+    //
+    // Es dinero, y TODA su creacion pasa por callable dentro de una transaccion.
+    // El cliente no escribe ni una: sin escritura desde aqui, un saldo a favor
+    // no se puede fabricar ni retocar desde el navegador.
+    //
+    // No estan —y no pueden estar— en `relaxedTenantCollection`: ese match
+    // generico concede escritura al `tenant_admin` de cualquier coleccion que
+    // liste, que es exactamente lo contrario de lo que hace falta aqui.
+    //
+    // La lectura NO usa `sameTenant`: eso incluiria a la porteria, que segun la
+    // PRD no ve nada de esto. Se nombran los tres roles que si.
+    match /advances/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        tenantRole(resource.data.tenantId, 'committee') ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create, update, delete: if false;
+    }
+
+    // El cruce de un anticipo contra un cargo. Lleva `unitId` copiado del
+    // anticipo **para que esta regla se pueda escribir**: sin el, «el residente
+    // solo ve los de su unidad» no seria expresable y habria que cerrarle la
+    // coleccion entera. Es denormalizacion con un motivo, no por comodidad.
+    match /advanceApplications/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        tenantRole(resource.data.tenantId, 'committee') ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create, update, delete: if false;
     }
 
     // Cobros programados (F3): solo admin; el cron los publica con Admin SDK.
@@ -498,8 +559,16 @@ service cloud.firestore {
       // cartera se enterase — que es exactamente la incoherencia que la ficha
       // cierra. Los movimientos manuales (egresos, ajustes, reversos) siguen
       // escribiendose desde la consola: esta regla solo veta los de origen pago.
+      //
+      // FLOW-002: `advance` entra en el mismo veto. El asiento de entrada de un
+      // anticipo nace dentro de la transaccion de `aplicarPago`, igual que el
+      // del cobro, y cuenta como ingreso del periodo (R5). Si el cliente pudiera
+      // crearlo, podria inflar el ingreso del conjunto inventandose un anticipo
+      // que nadie pago. Va aqui y no solo en la coleccion `advances` porque son
+      // dos escrituras distintas: vetar una y dejar la otra abierta deja el
+      // libro cuadrando con un dinero que no existe.
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
-        && request.resource.data.get('sourceType', '') != 'billingStatement';
+        && !(request.resource.data.get('sourceType', '') in ['billingStatement', 'advance']);
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 

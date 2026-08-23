@@ -314,6 +314,52 @@ beforeAll(async () => {
       createdBy: "admin-1",
     });
 
+    // FLOW-002. Un cargo que YA lleva anticipo aplicado: sirve para comprobar
+    // que el administrador puede seguir editandolo mientras no toque ese campo.
+    await setDoc(doc(db, "billingStatements", "bill-con-anticipo"), {
+      tenantId: "tenant-a",
+      unitId: "unit-t2-503",
+      unitLabel: "T2-503",
+      period: "2026-04",
+      amount: 140000,
+      paymentAmount: 0,
+      advanceAppliedAmount: 60000,
+      balance: 80000,
+      status: "pending",
+      createdBy: "admin-1",
+    });
+
+    await setDoc(doc(db, "tenantUsers", "tenant-a_committee-1"), {
+      uid: "committee-1",
+      tenantId: "tenant-a",
+      role: "committee",
+      unitId: "unit-t1-101",
+    });
+
+    await setDoc(doc(db, "advances", "adv-1"), {
+      tenantId: "tenant-a",
+      unitId: "unit-t2-503",
+      unitLabel: "T2-503",
+      amount: 60000,
+      remaining: 60000,
+      origin: "overpayment",
+      status: "open",
+      date: "2026-04-01",
+      sourceOperationKey: "op-1",
+      ledgerEntryId: "le-adv-1",
+    });
+
+    await setDoc(doc(db, "advanceApplications", "advapp-1"), {
+      tenantId: "tenant-a",
+      advanceId: "adv-1",
+      statementId: "bill-con-anticipo",
+      unitId: "unit-t2-503",
+      amount: 60000,
+      date: "2026-04-05",
+      operationKey: "op-cruce-1",
+      createdBy: "admin-1",
+    });
+
     await setDoc(doc(db, "documents", "doc-1"), {
       tenantId: "tenant-a",
       title: "Reglamento interno.pdf",
@@ -1891,6 +1937,227 @@ describe("PLAT-003 · plan de cuentas: el id derivado es la unicidad", () => {
         name: "Colada",
         type: "ingreso",
         status: "active",
+      }),
+    );
+  });
+});
+
+describe("FLOW-002 · anticipos: el cliente lee, el servidor escribe", () => {
+  /**
+   * Un anticipo es dinero. Toda su creación pasa por callable dentro de una
+   * transacción, así que desde el navegador **no se escribe ni una**: ni el
+   * administrador, ni el superadmin. Es la misma decisión que `FIN-001` tomó
+   * para los asientos de pago, por la misma razón.
+   */
+  it("un admin NO puede crear un anticipo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "advances", "adv-a-mano"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        amount: 999000,
+        remaining: 999000,
+        origin: "manual",
+        status: "open",
+      }),
+    );
+  });
+
+  it("ni el superadmin — la vía es la callable, no el rol", async () => {
+    const sa = testEnv.authenticatedContext("super-1", { role: "superadmin" });
+    await assertFails(
+      setDoc(doc(sa.firestore(), "advances", "adv-super"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        amount: 999000,
+        remaining: 999000,
+        origin: "manual",
+        status: "open",
+      }),
+    );
+  });
+
+  it("tampoco se puede retocar el remanente de uno que ya existe", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(updateDoc(doc(admin.firestore(), "advances", "adv-1"), { remaining: 999000 }));
+  });
+
+  it("ni borrarlo: un anticipo se anula con motivo (R9), no se borra", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "advances", "adv-1")));
+  });
+
+  it("el administrador sí lo lee", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "advances", "adv-1")));
+  });
+
+  it("el consejo lo lee: es el total de anticipos del conjunto", async () => {
+    const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(com.firestore(), "advances", "adv-1")));
+  });
+
+  it("el residente lee el de SU unidad", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(res.firestore(), "advances", "adv-1")));
+  });
+
+  // CF7. Es la fila de la tabla de roles que más importa: el saldo a favor de
+  // una unidad dice cuánto dinero tiene guardado un vecino.
+  it("un residente NO ve el anticipo de otra unidad", async () => {
+    const res = testEnv.authenticatedContext("resident-2", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(res.firestore(), "advances", "adv-1")));
+  });
+
+  // La lectura no usa `sameTenant` justamente por esto: la portería es miembro
+  // del conjunto y no tiene nada que hacer aquí.
+  it("la portería no ve nada", async () => {
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(guard.firestore(), "advances", "adv-1")));
+  });
+
+  it("un residente de otro conjunto tampoco", async () => {
+    const otro = testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-b" });
+    await assertFails(getDoc(doc(otro.firestore(), "advances", "adv-1")));
+  });
+
+  // El cruce lleva `unitId` copiado del anticipo para que esta regla se pueda
+  // escribir. Sin ese campo habría que cerrarle la colección entera al residente.
+  it("el cruce lo lee el residente de su unidad, y no el de otra", async () => {
+    const suyo = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(suyo.firestore(), "advanceApplications", "advapp-1")));
+    const ajeno = testEnv.authenticatedContext("resident-2", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(ajeno.firestore(), "advanceApplications", "advapp-1")));
+  });
+
+  it("nadie crea un cruce desde el cliente", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "advanceApplications", "advapp-a-mano"), {
+        tenantId: "tenant-a",
+        advanceId: "adv-1",
+        statementId: "bill-1",
+        unitId: "unit-t2-503",
+        amount: 60000,
+      }),
+    );
+  });
+});
+
+describe("FLOW-002 · `advanceAppliedAmount` es del servidor, dentro de un documento que no lo es", () => {
+  /**
+   * **Esta es la regla que sostiene R4**, y es rara a propósito: no protege una
+   * colección, protege **un campo** dentro de un documento que el cliente sigue
+   * editando con normalidad.
+   *
+   * `actualizarBillingStatement` hace un `updateDoc` directo desde el navegador
+   * con `paymentAmount` y `balance`. Si lo cruzado con anticipo viviera en
+   * `paymentAmount`, una edición a mano lo borraría o lo duplicaría **sin que
+   * ningún `advanceApplication` se enterase**. Por eso vive aparte, y por eso
+   * el campo se veta aquí.
+   */
+  it("el administrador sigue editando el cargo con normalidad", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-1"), { paymentAmount: 50000, balance: 70000 }),
+    );
+  });
+
+  it("y también uno que YA lleva anticipo, mientras no toque ese campo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-con-anticipo"), { paymentAmount: 10000 }),
+    );
+  });
+
+  // CF11.
+  it("pero NO puede cambiar `advanceAppliedAmount`", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-con-anticipo"), { advanceAppliedAmount: 0 }),
+    );
+  });
+
+  it("ni subirlo, que es la otra mitad del mismo agujero", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-con-anticipo"), { advanceAppliedAmount: 999000 }),
+    );
+  });
+
+  it("ni estrenarlo en un cargo que no lo tenía", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-1"), { advanceAppliedAmount: 60000 }),
+    );
+  });
+
+  it("ni crear un cargo que nazca con anticipo aplicado", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "billingStatements", "bill-nace-con-anticipo"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        period: "2026-05",
+        amount: 140000,
+        advanceAppliedAmount: 140000,
+        balance: 0,
+        status: "paid",
+      }),
+    );
+  });
+
+  // Crear con el campo en cero (o ausente) tiene que seguir funcionando, o el
+  // alta normal de un cargo quedaría denegada por un campo que no usa.
+  it("crear un cargo normal sigue funcionando", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "billingStatements", "bill-normal"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        period: "2026-05",
+        amount: 140000,
+        balance: 140000,
+        status: "pending",
+      }),
+    );
+  });
+});
+
+describe("FLOW-002 · el asiento del anticipo tampoco lo escribe el cliente", () => {
+  /**
+   * Va en el mismo veto que `billingStatement` y no solo en la colección
+   * `advances`, porque **son dos escrituras distintas**: vetar una y dejar la
+   * otra abierta permitiría inflar el ingreso del conjunto con un anticipo que
+   * nadie pagó, y el libro cuadraría con un dinero que no existe.
+   */
+  it("un admin NO puede crear el asiento de entrada de un anticipo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-anticipo-a-mano"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        amount: 60000,
+        date: "2026-04-01",
+        concept: "Anticipo inventado",
+        category: "anticipo",
+        sourceType: "advance",
+      }),
+    );
+  });
+
+  // La regla veta el ORIGEN, no la categoría: si vetara `category: "anticipo"`
+  // seguiría dejando pasar el mismo asiento sin categoría.
+  it("y el veto es por origen, no por categoría", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-anticipo-sin-categoria"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        amount: 60000,
+        date: "2026-04-01",
+        concept: "Anticipo inventado",
+        sourceType: "advance",
       }),
     );
   });
