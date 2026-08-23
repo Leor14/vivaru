@@ -3,8 +3,8 @@
 Índice de traspaso, no resumen. Cada línea apunta a dónde está el detalle.
 Actualizado el **23 de agosto de 2026, de madrugada (segunda pasada)**: entrega 1b completa y
 validada, y **los PASOS 1 y 2 de la entrega 2 en staging** — el cargo y el egreso llevan su
-cuenta, y el administrador ya puede mantener su plan. **Falta validarlo a mano, y hay un
-requisito previo: en staging NO hay ni una cuenta sembrada.** Producción intacta.
+cuenta, y el administrador ya puede mantener su plan. `conjunto-las-playas` ya tiene sus 18
+cuentas y la bandera encendida: **falta mirar la pantalla.** Producción intacta.
 
 ## LO PRIMERO AL ABRIR SESIÓN (23 ago 2026, madrugada)
 
@@ -77,7 +77,7 @@ ANTES de sembrar, porque sembrar la congela:
 | # | Paso | Estado |
 |---|---|---|
 | **1** | `accountCode` en `BillingStatement` y `Expense` | **HECHO** — `8018a3b` + `d427698`, en staging |
-| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **CONSTRUIDO** — `06edf29`, en staging. **SIN validar a mano** |
+| **2** | El formulario del plan de cuentas (`producto-plan-de-cuentas`) | **CONSTRUIDO** — `06edf29`, en staging, con plan sembrado y bandera encendida en `conjunto-las-playas`. **Falta mirarlo** |
 | **3** | Las pantallas: aviso de R8, **R9**, etiquetas desde el nombre de la cuenta, ingresos por cuenta en el informe de comité | Pendiente |
 | **4** | Sembrar en los conjuntos existentes | Pendiente, y **solo después de validar 1–3 a mano** |
 
@@ -130,26 +130,52 @@ que es justo lo que R3 protege. Va en **transacción**: lee y se niega si ya est
 **El padre se deduce del código, no se elige.** La jerarquía vive en el propio código (D1,
 opción A); un selector de cuenta padre dejaría colgar la `1.3` de la `2`.
 
-### PARA VALIDAR EL PASO 2 HACE FALTA ESTO PRIMERO
+### `conjunto-las-playas` ya tiene plan y bandera — listo para mirar
 
-**En staging no hay NI UNA cuenta sembrada** — medido: la colección `chartOfAccounts` de
-`vivaru-staging-02` tiene **0 documentos**. La semilla corre al crear el conjunto y **los ocho
-conjuntos de staging son anteriores** a esa capacidad. Con el plan vacío el diálogo abre, lo
-dice y deja el botón «Nueva» apagado: no hay nada que mirar.
+**El punto de partida era cero:** `chartOfAccounts` de `vivaru-staging-02` tenía **0
+documentos** en todo el proyecto. La semilla corre al crear el conjunto y **los ocho conjuntos
+de staging son anteriores** a esa capacidad, así que el diálogo abría vacío y no había nada que
+validar.
 
-**La salida limpia es crear un conjunto nuevo en staging**, no sembrar uno viejo:
+**Sembrado el 23 de agosto en `conjunto-las-playas`, y verificado leyendo la base:**
 
-- Las **dos** altas siembran, comprobado en el código — la normal
-  (`createTenantWorkspace`, `index.ts:1109`) y la del trial
-  (`provisionTrialWorkspace`, `trial-workspace.ts:170`).
-- Un conjunto nuevo valida además **CA1** de paso: 18 documentos, 16 con `systemKey`.
-- Y **no toca la decisión aplazada**: lo que congela la semilla es sembrar conjuntos que ya
-  existen. Un conjunto nuevo de staging nace con la semilla del día y es desechable.
+| Comprobación | Resultado |
+|---|---|
+| Documentos | **18** |
+| Con `systemKey` | **16** ← es CA1, medido sobre la base y no sobre el documento |
+| Ids derivados (`{tenantId}_{code}`) | **todos correctos** — de esto depende que el formulario pueda escribir; un id mal formado da `permission-denied`, que se lee como «no tienes permiso» |
+| Las dos cuentas padre | sin `systemKey`, que es lo correcto: son estructura |
+| `producto-plan-de-cuentas` | **ENCENDIDA** solo en este conjunto, y `producto-concepto-al-libro` sigue encendida |
 
-**Qué mirar**, que es lo que ninguna prueba contesta: que el árbol salga ordenado y con las
+**Y el plan cuadra con los datos que ya había.** Los dos únicos asientos con `accountCode` del
+conjunto son los de la validación a mano de la 1b: `1.3 · multa · +500` y su reverso `−500`,
+«Pago de multa 2026-06 — T2-203». La cuenta `1.3` existe ahora como «Multas» con
+`systemKey: multa` — la cuenta y la categoría coherentes, en datos reales y no en una prueba.
+
+**Un matiz que corrige lo escrito más arriba:** sembrar **no** bloquea añadir la cuenta de
+vigilancia después. La siembra lee primero y solo escribe lo que falta, así que una cuenta
+nueva entra al volver a correrla. Lo que congela son **los renombres y los renúmeros**. Por eso
+sembrar staging para poder mirar la pantalla es barato, y sembrar producción antes de cerrar la
+semilla sigue sin serlo.
+
+**Herramientas nuevas** (`cc284d2`), las dos con el projectId obligatorio porque el activo de
+gcloud es `hogaru-1`, que es producción:
+
+- `functions/scripts/sembrar-plan-de-cuentas.mjs` — **importa la semilla compilada de
+  `functions/lib/`**, así que corre el mismo código que el alta. Simula por defecto; hay que
+  pedirle `--escribir`.
+- `functions/scripts/mover-bandera-de-conjunto.mjs` — la override POR CONJUNTO.
+  `mover-bandera.mjs` no servía: escribe el valor **global**, que en staging afecta a los ocho.
+  La override del 22 de agosto la había escrito un script suelto sin commitear (`override-cli`).
+
+**Al invocarlos, ruta absoluta.** El repositorio es `~/Vivaru_Rep/vivaru/`, no `~/Vivaru_Rep/`,
+y una ruta relativa falla con `MODULE_NOT_FOUND` — que no se parece en nada a lo que es.
+
+**PENDIENTE: mirarlo.** Lo que ninguna prueba contesta — que el árbol salga ordenado con las
 hijas indentadas; que renombrar «Multas» cambie el nombre y **no** el código; que crear la
-`1.9` cuelgue sola de «Ingresos»; que la `2.9` **como ingreso** se rechace diciendo por qué; y
-que desactivar «Ingresos» avise de que la `1.1` cuelga de ella.
+`1.9` diga que colgará de «Ingresos»; que la `2.9` **como ingreso** se rechace diciendo por
+qué; que crear otra vez la `1.3` se rechace **sin tocar «Multas»**; y que desactivar «Ingresos»
+avise de que la `1.1` cuelga de ella.
 
 **Dos cosas de método de esta pasada:**
 
