@@ -181,6 +181,13 @@ export const SEMILLA_PLAN_DE_CUENTAS: readonly CuentaSembrada[] = [
 export const CUENTA_OTROS_INGRESOS = "1.8";
 
 /**
+ * `FLOW-002`. La cuenta del anticipo. Se nombra aquí y no se teclea en
+ * `payments.ts` porque el código de una cuenta es un dato del plan: escribirlo a
+ * mano en otro fichero es cómo empiezan las discrepancias que R11 previene.
+ */
+export const CUENTA_ANTICIPO = "1.10";
+
+/**
  * R11 — el mapa, explícito y en un solo sitio.
  *
  * Las dos filas marcadas son las que no se pueden deducir del nombre. Si algún

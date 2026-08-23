@@ -67,6 +67,7 @@ export type FeatureFlagKey =
   | "producto-registro-proveedores"
   | "producto-plan-de-cuentas"
   | "producto-concepto-al-libro"
+  | "producto-anticipos"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -242,6 +243,22 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-PLAT-003 §5.2",
     alApagar:
       "Todo asiento NUEVO vuelve a escribirse como «alicuota» y el recaudo se vuelve a ver junto. Los ya escritos con su cuenta correcta se quedan — y no se quieren revertir: son los correctos.",
+  },
+  "producto-anticipos": {
+    key: "producto-anticipos",
+    area: "producto",
+    label: "El sobrepago deja saldo a favor",
+    description:
+      "Cuando alguien paga más de lo que debe, el excedente se guarda como anticipo de la unidad en vez de contarse entero como pago de la cuota.",
+    // Nace apagada porque CAMBIA UN NÚMERO QUE YA SE MIRA: hoy un pago de 200
+    // sobre una cuota de 140 deja `paymentAmount: 200`, y con la bandera
+    // encendida deja 140 más un anticipo de 60. El dinero total es el mismo —lo
+    // exige R1— pero el recaudo de Cartera baja en el importe del sobrante, que
+    // pasa a contarse por el libro. Hay que poder encenderlo mirando.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-002 §5.1, R2",
+    alApagar:
+      "Los anticipos ya creados NO se borran: siguen visibles y se pueden cruzar o anular con motivo (R9). Lo que vuelve al comportamiento viejo es el sobrepago NUEVO, que otra vez se contabiliza entero contra la cuota.",
   },
   "operacion-app-check-monitor": {
     key: "operacion-app-check-monitor",

@@ -4,6 +4,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { construirRecibo, type PerfilFiscal } from "./comprobante";
 import { isFeatureEnabled } from "./feature-flags";
 import {
+  CUENTA_ANTICIPO,
   categoriaParaConcepto,
   cuentaParaConcepto,
   descripcionDeCobro,
@@ -126,6 +127,17 @@ export type AplicarPagoResultado = {
    */
   voucherId?: string;
   voucherCode?: string;
+  /**
+   * **R2/R3.** El anticipo que dejó el sobrepago, si lo hubo. Ausente cuando el
+   * pago no sobró nada — **un anticipo de cero no se crea**.
+   *
+   * En un reintento con la misma clave vuelve el MISMO anticipo, no uno nuevo
+   * (R10): sale de la marca de idempotencia. Duplicar el saldo a favor de un
+   * residente por un reintento de red es el peor fallo que esta ficha puede
+   * tener, y por eso viaja por la misma vía que el recibo.
+   */
+  advanceId?: string;
+  advanceAmount?: number;
   /**
    * **R8.** El concepto del cargo no tenía cuenta equivalente y el asiento cayó
    * en `otros_ingresos`. El dinero no se pierde nunca, pero **hay que avisar**:
@@ -272,6 +284,11 @@ export async function aplicarPago(
   // Firestore **se reintenta**, así que leerla dentro la releería en cada
   // reintento sin que eso aporte nada.
   const conceptoAlLibro = await isFeatureEnabled("producto-concepto-al-libro", tenantId);
+  // R2. Apagada, el sobrepago se sigue contabilizando entero contra la cuota,
+  // exactamente como hasta hoy: `sobrante` queda en cero por construcción y no
+  // nace ningún anticipo. Se lee aquí arriba, fuera de la transacción, por lo
+  // mismo que la otra: una transacción se reintenta, y releerla no aportaría nada.
+  const anticipos = await isFeatureEnabled("producto-anticipos", tenantId);
 
   return firestore.runTransaction(async (tx) => {
     // ── Lecturas, todas antes de escribir ────────────────────────────────────
@@ -279,7 +296,11 @@ export async function aplicarPago(
     if (opSnap.exists) {
       // Ya se aplicó con esta clave. Se devuelve el mismo resultado sin volver a
       // tocar nada: es lo que convierte un reintento en algo inofensivo.
-      const prev = opSnap.data() as Partial<AplicarPagoResultado> & { ledgerEntryId?: string };
+      const prev = opSnap.data() as Partial<AplicarPagoResultado> & {
+        ledgerEntryId?: string;
+        advanceId?: string;
+        advanceAmount?: number;
+      };
       return {
         ok: true as const,
         applied: false,
@@ -290,6 +311,8 @@ export async function aplicarPago(
         // El recibo del intento original, no uno nuevo: un reintento no debe
         // multiplicar recibos de un pago que ya existe.
         ...(prev.voucherId ? { voucherId: prev.voucherId, voucherCode: prev.voucherCode } : {}),
+        // R10. El anticipo del intento original, no uno nuevo.
+        ...(prev.advanceId ? { advanceId: prev.advanceId, advanceAmount: prev.advanceAmount } : {}),
       };
     }
 
@@ -367,12 +390,34 @@ export async function aplicarPago(
     // ── Aritmética, en el servidor ───────────────────────────────────────────
     const cobrado = typeof cuota.amount === "number" ? cuota.amount : 0;
     const pagadoAntes = typeof cuota.paymentAmount === "number" ? cuota.paymentAmount : 0;
-    const pagadoDespues = pagadoAntes + monto;
     // R4. Lo cubierto con anticipos NO se suma a `paymentAmount` —ver el tipo—,
     // pero sí cuenta para saber si la cuota está saldada. Ausente en todo lo
     // escrito antes de `FLOW-002`.
     const anticipoAplicado = typeof cuota.advanceAppliedAmount === "number" ? cuota.advanceAppliedAmount : 0;
+
+    // ── D-A: el sobrepago deja de evaporarse ─────────────────────────────────
+    //
+    // Hasta hoy esto era `pagadoDespues = pagadoAntes + monto` a secas, y
+    // `calcularSaldo` topaba el saldo en cero: pagar 200 sobre una cuota de 140
+    // dejaba la cuota en `paid` con `paymentAmount: 200`, y **los 60 sobrantes
+    // se contabilizaban integros como ingreso de cuotas**. No quedaba saldo a
+    // favor en ninguna parte. El dinero entro y el producto lo olvido.
+    //
+    // Ahora al cargo va solo lo que debia y el resto se guarda. Con la bandera
+    // apagada, `deuda` no se mira y el comportamiento es identico al de hoy.
+    const deuda = Math.max(cobrado - pagadoAntes - anticipoAplicado, 0);
+    const aplicadoAlCargo = anticipos ? Math.min(monto, deuda) : monto;
+    const sobrante = monto - aplicadoAlCargo;
+    const pagadoDespues = pagadoAntes + aplicadoAlCargo;
     const { balance, status } = calcularSaldo(cobrado, pagadoDespues, anticipoAplicado, cuota.dueDate, hoy);
+
+    // **R1, comprobada y no supuesta:** lo aplicado mas el anticipo es
+    // EXACTAMENTE lo pagado. Si esto salta es un fallo de programacion, no de
+    // datos, y se prefiere abortar la transaccion entera a escribir un reparto
+    // que no cuadra con lo que el residente pago.
+    if (aplicadoAlCargo + sobrante !== monto || aplicadoAlCargo < 0 || sobrante < 0) {
+      throw new HttpsError("internal", "El reparto del pago no cuadra con el importe recibido.");
+    }
 
     // ── La cuenta del concepto (R6) ──────────────────────────────────────────
     //
@@ -403,7 +448,14 @@ export async function aplicarPago(
       tenantId,
       type: "ingreso",
       date: fecha,
-      amount: monto,
+      // Lo APLICADO al cargo, no lo pagado. El sobrante tiene su propio asiento.
+      //
+      // Este importe no alimenta el ingreso —el asiento se excluye por origen,
+      // ver `esRecaudoDeCartera`— pero sí es la fila que el administrador ve en
+      // el libro y la que el reverso refleja. Dejarlo en `monto` diria 200
+      // donde Cartera contó 140, y al revertir se restarian 200 de un
+      // `paymentAmount` que solo subio 140.
+      amount: aplicadoAlCargo,
       concept: concepto,
       category: conceptoAlLibro ? categoriaParaConcepto(cuota.concept) : "alicuota",
       // Con la bandera apagada NO se escribe `accountCode`, y no es un detalle:
@@ -441,6 +493,74 @@ export async function aplicarPago(
       updatedBy: uid,
       updatedAt: FieldValue.serverTimestamp(),
     });
+
+    // ── El anticipo (R2, R3, R5) ─────────────────────────────────────────────
+    //
+    // Nace en la MISMA transacción del pago a propósito (§11.1): si se creara
+    // aparte, un fallo entre las dos operaciones dejaría dinero sin registrar —
+    // exactamente el hueco que `FIN-001` cerró para el recibo.
+    let advanceId: string | undefined;
+    // **R3: un anticipo de importe cero no se crea.** No es cosmética: una lista
+    // de anticipos llena de ceros es una lista que nadie mira, y la vista de
+    // anticipos abiertos es la herramienta de G5.
+    if (sobrante > 0) {
+      const advanceRef = firestore.collection("advances").doc();
+      const anticipoLedgerRef = firestore.collection("ledgerEntries").doc();
+
+      // **R5 y §7.4, y es LA línea de esta ficha.**
+      //
+      // `sourceType: "advance"`, NO `"billingStatement"`. Este asiento nace
+      // dentro de `aplicarPago`, donde el del cobro se escribe con
+      // `billingStatement`; heredarlo —que es lo que pasa si nadie lo piensa—
+      // haría que `esRecaudoDeCartera` lo excluyera del libro **aunque su
+      // categoría diga `anticipo`**, y el anticipo desapareceria: no está en
+      // `cuotaIncome`, porque eso suma `paymentAmount` de cargos y un anticipo
+      // no es de ningún cargo. Se descontaría de un lado sin estar sumado en el
+      // otro.
+      //
+      // Con origen propio, `esRecaudoDeCartera` devuelve `false` y el importe
+      // entra en el ingreso del período (CA7), en su propia línea (D1).
+      tx.set(anticipoLedgerRef, {
+        tenantId,
+        type: "ingreso",
+        date: fecha,
+        amount: sobrante,
+        concept: `Anticipo de ${cuota.unitLabel ?? "la unidad"}`.trim(),
+        category: "anticipo",
+        // Misma bandera que el resto de cuentas: apagada no se escribe código, y
+        // los informes caen en la categoría (R9).
+        ...(conceptoAlLibro ? { accountCode: CUENTA_ANTICIPO } : {}),
+        bankAccountId: cuentaBancariaId,
+        sourceType: "advance",
+        operationKey,
+        sourceId: advanceRef.id,
+        reconciled: false,
+        paymentSource: input.source,
+        createdBy: uid,
+        updatedBy: uid,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      tx.set(advanceRef, {
+        tenantId,
+        unitId: cuota.unitId ?? "",
+        unitLabel: cuota.unitLabel ?? "",
+        amount: sobrante,
+        remaining: sobrante,
+        origin: "overpayment",
+        sourceOperationKey: operationKey,
+        ledgerEntryId: anticipoLedgerRef.id,
+        date: fecha,
+        status: "open",
+        createdBy: uid,
+        updatedBy: uid,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      advanceId = advanceRef.id;
+    }
 
     // ── El recibo, DENTRO de la misma transacción ────────────────────────────
     //
@@ -505,6 +625,10 @@ export async function aplicarPago(
       tenantId,
       statementId,
       amount: monto,
+      // Lo que de verdad fue al cargo. `amount` es lo que pagó el residente, y
+      // los dos dejan de coincidir en cuanto hay sobrante: sin este campo, la
+      // reversión restaría del `paymentAmount` un importe que nunca subió ahí.
+      appliedToStatement: aplicadoAlCargo,
       source: input.source,
       ...(input.receiptId ? { receiptId: input.receiptId } : {}),
       ledgerEntryId: ledgerRef.id,
@@ -512,6 +636,8 @@ export async function aplicarPago(
       balance,
       status,
       ...(voucherId ? { voucherId, voucherCode } : {}),
+      // R10: el reintento devuelve ESTE anticipo, no crea otro.
+      ...(advanceId ? { advanceId, advanceAmount: sobrante } : {}),
       actorUid: uid,
       createdAt: Timestamp.now(),
     });
@@ -524,6 +650,7 @@ export async function aplicarPago(
       balance,
       status,
       ...(voucherId ? { voucherId, voucherCode } : {}),
+      ...(advanceId ? { advanceId, advanceAmount: sobrante } : {}),
       ...(cayoEnOtrosIngresos ? { cayoEnOtrosIngresos: true } : {}),
     };
   });
@@ -656,6 +783,8 @@ export async function revertirPago(
       tenantId?: string;
       statementId?: string;
       amount?: number;
+      appliedToStatement?: number;
+      advanceId?: string;
       ledgerEntryId?: string;
       receiptId?: string;
       voucherId?: string;
@@ -674,6 +803,34 @@ export async function revertirPago(
     const statementId = op.statementId ?? "";
     if (!statementId || monto <= 0) {
       throw new HttpsError("failed-precondition", "El pago original está incompleto y no se puede revertir.");
+    }
+
+    // **Lo que se le quita a la cuota es lo que se le puso**, que deja de ser
+    // `op.amount` en cuanto el pago dejó sobrante: un pago de 200 sobre una
+    // cuota de 140 subió `paymentAmount` en 140, no en 200. Restar `amount` a
+    // ciegas dejaría el pagado en cero cuando debería quedar en 60 —o en
+    // negativo, que `saldoTrasRevertir` tapa con su `max(…, 0)` y entonces el
+    // descuadre se vuelve invisible—.
+    //
+    // El respaldo a `amount` es para los pagos anteriores a `FLOW-002`, que no
+    // tienen el campo y en los que los dos importes siempre coincidieron.
+    const montoDeCartera = typeof op.appliedToStatement === "number" ? op.appliedToStatement : monto;
+
+    // **R15, que esta entrega todavía no implementa: se BLOQUEA, no se adivina.**
+    //
+    // Revertir un pago que dejó anticipo tiene que revertir además el asiento
+    // del anticipo y anular el anticipo con motivo; si no, el residente conserva
+    // un saldo a favor **de un dinero ya devuelto**. Mientras eso no esté
+    // construido, dejar pasar la reversión escribiría ese descuadre en la base.
+    //
+    // Hoy es inalcanzable en producción: sin la bandera `producto-anticipos` no
+    // existe ningún pago con anticipo. Es una red para el orden de despliegue,
+    // no una limitación que alguien vaya a encontrarse.
+    if (op.advanceId) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Ese pago generó un saldo a favor. Primero hay que anular el anticipo.",
+      );
     }
 
     const cuotaRef = firestore.collection("billingStatements").doc(statementId);
@@ -715,7 +872,7 @@ export async function revertirPago(
     } = saldoTrasRevertir(
       cobrado,
       pagadoAntes,
-      monto,
+      montoDeCartera,
       // Revertir un pago NO devuelve el anticipo cruzado: son dos operaciones
       // distintas y se deshacen por separado (R8 bloquea el caso conflictivo).
       // Si no se pasara, revertir un pago sobre un cargo cubierto en parte con
@@ -760,7 +917,11 @@ export async function revertirPago(
       type: "ingreso",
       date: hoy,
       // Negativo, no tipo opuesto: misma convención que `reverseLedgerEntry`.
-      amount: -Math.abs(monto),
+      //
+      // Y del importe DE CARTERA, que es lo que el asiento original escribió:
+      // un reverso por 200 de un asiento de 140 dejaría el par descuadrado en 60
+      // justo en la fila que existe para poder cuadrar.
+      amount: -Math.abs(montoDeCartera),
       concept: `Reverso: ${conceptoOriginal}`,
       // El respaldo a `"alicuota"` conserva exactamente lo que hacía antes para
       // los asientos viejos, que no tienen categoría propia.
@@ -852,7 +1013,8 @@ export async function revertirPago(
       kind: "reversal",
       reversesOperationKey: operationKey,
       statementId,
-      amount: -Math.abs(monto),
+      // Lo mismo que el asiento: lo que se deshizo en Cartera.
+      amount: -Math.abs(montoDeCartera),
       reason: motivo,
       reversalEntryId: reversoRef.id,
       paymentAmount: pagadoDespues,
