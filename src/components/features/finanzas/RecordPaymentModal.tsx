@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { watchPeople, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
-import { aplicarAjustes, deudaDelCargo, repartoCuadra, type LineaDeReparto } from "@/features/billing/reparto";
+import {
+  aplicarAjustes,
+  deudaDelCargo,
+  ordenarParaMostrar,
+  repartoCuadra,
+  type LineaDeReparto,
+} from "@/features/billing/reparto";
 import { previewPaymentAllocationCallable } from "@/lib/firebase/callables";
 import { watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
@@ -106,7 +112,14 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
    */
   const cargosDeLaUnidad = useMemo(() => {
     if (!statement) return [];
-    return statements.filter((s) => s.unitId === statement.unitId && (s.id === statement.id || deudaDelCargo(s) > 0));
+    // Ordenados del más antiguo al más nuevo **para que la lista diga lo mismo
+    // que su propio rótulo**: sin esto salían en el orden en que los devolvió
+    // Firestore —el más nuevo arriba— justo debajo de «se reparte del más
+    // antiguo al más nuevo». Es presentación; el orden que cuenta lo decide el
+    // servidor.
+    return ordenarParaMostrar(
+      statements.filter((s) => s.unitId === statement.unitId && (s.id === statement.id || deudaDelCargo(s) > 0)),
+    );
   }, [statement, statements]);
 
   const marcados = useMemo(
@@ -353,16 +366,29 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                             </span>
                           </label>
                           {marcado ? (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              className="w-32"
-                              value={ajustes[cargo.id] ?? (linea ? String(linea.amount) : "")}
-                              onChange={(event) =>
-                                setAjustes((actual) => ({ ...actual, [cargo.id]: event.target.value }))
-                              }
-                            />
+                            <span className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className="w-32"
+                                placeholder="0"
+                                value={ajustes[cargo.id] ?? (linea ? String(linea.amount) : "")}
+                                onChange={(event) =>
+                                  setAjustes((actual) => ({ ...actual, [cargo.id]: event.target.value }))
+                                }
+                              />
+                              {/* Un cargo marcado al que el reparto no le dio
+                                  nada dejaba la casilla en blanco, y una casilla
+                                  en blanco parece esperar que la rellenes. No
+                                  espera nada: es que el dinero se acabó en los
+                                  cargos más antiguos. */}
+                              {!linea && !ajustes[cargo.id] ? (
+                                <span className="text-xs text-[var(--slate-500)]">
+                                  el importe se agotó en los anteriores
+                                </span>
+                              ) : null}
+                            </span>
                           ) : null}
                         </li>
                       );
