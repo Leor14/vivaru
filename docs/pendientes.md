@@ -56,27 +56,52 @@ overrides; kill switch maestro en `Normal`. Y las cinco del lote —`producto-co
 **PRODUCCIÓN NO TIENE NI UN CLIENTE REAL, y ya no queda nada por confirmar.** Los nueve conjuntos
 son de demostración o prueba interna.
 
-## TRES ÍNDICES QUE FALTAN EN PRODUCCIÓN — salieron de mirar la consola del navegador
+## CUATRO ÍNDICES QUE FALTABAN EN PRODUCCIÓN — puestos el 24 de agosto (tarde)
 
-**No los causó el despliegue del 24**: el delta `70136b9..1a9e022` no toca `firestore.indexes.json`
-ni ninguna de las tres colecciones. Y `--only firestore:rules` **no despliega índices**, así que
-tampoco se arreglaron de paso.
+**Salieron de mirar la consola del navegador, no de una suite.** Las 1161 pruebas del front
+estaban en verde mientras tres de estas consultas fallaban en producción. No los causó el
+despliegue del 24: el delta `70136b9..1a9e022` no toca `firestore.indexes.json` ni ninguna de las
+colecciones. Y **`--only firestore:rules` NO despliega índices**, así que tampoco se arreglaron de
+paso.
 
-| Colección | Índice que pide | Quién lo dispara |
-|---|---|---|
-| `notifications` | `(userId ASC, createdAt DESC)` | La campana, para **cualquier cuenta sin conjunto** — el superadmin. Con conjunto sí hay índice, `(userId, tenantId, createdAt)`, y **no sirve** porque `tenantId` va en medio |
-| `billingReminderJobs` | `(status, tenantId, scheduledFor)` | `/admin/billing`, en cada carga |
-| `billingSchedules` | `(status, tenantId, scheduledFor)` | `/admin/billing`, en cada carga |
+| Colección | Índice | Quién lo dispara | Cómo se vio |
+|---|---|---|---|
+| `notifications` | `(userId ASC, createdAt DESC)` | La campana, para **cualquier cuenta sin conjunto** — el superadmin | Consola, en `/superadmin/flags` |
+| `billingReminderJobs` | `(status, tenantId, scheduledFor)` ASC | `/admin/billing`, en cada carga | Consola, tres veces en tres cargas |
+| `billingSchedules` | `(status, tenantId, scheduledFor)` ASC | `/admin/billing`, en cada carga | Consola, tres veces en tres cargas |
+| `documents` | `(tenantId ASC, uploadedAt DESC)` | **`/resident/documents`** | **NO se vio: salió del barrido** |
 
-**Los dos últimos estaban anotados como «faltan en staging». Faltan TAMBIÉN en producción**, vistos
-fallar tres veces en tres cargas distintas de `www.grupovivaru.com/admin/billing`. Los tres se
-arreglan en una pasada: `firebase deploy --only firestore:indexes --project hogaru-1`.
+**Los dos de billing no tenían NI UN índice declarado** para su colección, y estaban anotados como
+«faltan en staging»: faltaban también en producción.
 
-Es la lección de siempre —**un `orderByField` necesita su índice compuesto, y en la dirección que
-pide**— con una vuelta nueva: **un campo OPCIONAL en el `where` son dos consultas, y cada una
-necesita el suyo**. Lo bueno es que el `catch` de notificaciones **avisa en pantalla** («No fue
-posible cargar las notificaciones») en vez de dejar una lista vacía que se lea como «no tienes
-ninguna».
+**Las especificaciones no se adivinaron.** Se decodificaron del propio parámetro `create_composite`
+del enlace que da el error —cada campo es `\x1a <len> \x0a <len_nombre> <nombre> \x10 <orden>`,
+con 1 = ASC y 2 = DESC— y se cotejaron con la forma real de cada consulta.
+
+### Lo que enseñó, y es lo que hay que llevarse
+
+**1. Un campo OPCIONAL en el `where` son DOS consultas, y cada una necesita su índice.** La campana
+filtra por `tenantId` solo si existe: con conjunto usa `(userId, tenantId, createdAt)` y funciona;
+**sin conjunto pide `(userId, createdAt desc)`**, y el compuesto de tres **no puede suplirlo**
+porque `tenantId` va en medio.
+
+**2. Una consulta solo falla en la pantalla que la usa, y el navegador solo ve el rol que tenga la
+sesión abierta.** `useDocuments` parecía sana porque `/admin/documents` **no la usa**: la usa
+`/resident/documents`. Se encontró **cruzando el código contra el fichero de índices**, no mirando.
+Mirar con un solo rol no cubre esto.
+
+**3. El error CAMBIA cuando aciertas la definición.** Pasa de «You can create it here» a **«That
+index is currently building and cannot be used yet»**. Ese cambio es la confirmación de que el
+índice casa con la consulta; después hay que esperar (fueron unos cinco minutos) y recargar **con
+la consola limpia**, porque se acumulan.
+
+### Lo que queda de esta auditoría
+
+**Solo se cruzaron las consultas que pasan por `subscribeTenantCollection`** — 10, de las que
+faltaban 4. **Las que construyen `query(...)` a mano NO se comprobaron:** un barrido con regex no
+casó con cómo está escrito el código y se descartó en vez de darlo por bueno. Quedan unas ocho, y
+una de ellas —`src/features/admin/services.ts:419`— ordena por un **campo dinámico**, así que
+necesita un índice por cada valor que reciba.
 
 ## LA REVISIÓN ADVERSARIAL ESTÁ CERRADA
 
@@ -110,7 +135,7 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
-| **Los tres índices que faltan en producción** | `notifications`, `billingReminderJobs` y `billingSchedules`. Ver la tabla de arriba. Una sola pasada de `--only firestore:indexes` |
+| **Auditar los índices de las consultas escritas a mano** | Las que pasan por `subscribeTenantCollection` ya están cruzadas y sus 4 huecos, tapados. Faltan ~8 que construyen `query(...)` directo, una de ellas con campo de orden **dinámico**. Ver la sección de arriba |
 
 ## QUÉ HACE FALTA DE DAVID
 
