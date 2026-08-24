@@ -20,6 +20,11 @@ en `docs/roadmap-producto.md`.
 | **Verificado contra** | Repositorio en `c81e2fe` (`master` = `develop`), proyecto `hogaru-1`, y las cuatro rondas del intercambio con Albert en `docs/prd/albert/`. Estado vivo del expediente: `docs/prd/albert/ESTADO-ALBERT.md` |
 | **Bloqueo dominante** | **NINGUNO por parte de Albert, desde el 22 de agosto de 2026.** El alta A5 **está ejecutada** —tenant `vivaru` activo y usuario de servicio con rol `sales`— y **A1 está publicado en su producción**. La segunda mitad de `REVOPS-001C` **se puede construir cuando se quiera**; lo que falta es trabajo de Vivaru, no espera. Ver `docs/prd/albert/ESTADO-ALBERT.md` |
 
+> **Aviso de vigencia (actualizado el 24 ago 2026).** Lo único que le queda a este frente que se
+> pueda hacer **hoy y sin cliente** es la **segunda mitad de `REVOPS-001C`** —enterarse de que un
+> deal se ganó, suscribiéndose a `tenants/vivaru/deals`—, y **ya no espera a nadie**: el alta A5
+> está ejecutada desde el 22. Todo lo demás de REVOPS espera el nivel 0, que no es ingeniería.
+>
 > **Aviso de vigencia (22 ago 2026).** El cuerpo de este documento se escribió el 20 de
 > agosto y **describe a Albert como estaba entonces**. Sus inventarios de carencias —«no hay
 > webhooks», «no hay integraciones ni claves de API»— siguen siendo ciertos **como

@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.23 |
-| **Fecha** | 24 de agosto de 2026 (madrugada, cierre de sesión) |
-| **Estado** | **`FLOW-002` ESTÁ EN PRODUCCIÓN** (`master` = `origin/develop` = `70136b9`), con `producto-anticipos` encendida **solo en el conjunto de demostración**. La sesión B cerró el front y, encadenado, los dos cabos de `functions/`: el arreglo de `writeAuditLog` y la vista previa del reparto en el servidor. **Trece criterios verificados en pantalla contra la base real**, CA6′ incluido y medido en producción. **Lo que NO está construido y ningún documento registraba: §9 y CA13** —el aviso al residente no nombra los cargos cubiertos ni el saldo a favor—. Y **36 sospechas sin verificar** de una revisión adversarial cuya fase de jueces se cayó: `docs/revision-flow-002-por-verificar.md` |
+| **Versión** | 0.9.24 |
+| **Fecha** | 24 de agosto de 2026 (mañana) |
+| **Estado** | **TODO EL LOTE DE HABITANTO ESTÁ EN PRODUCCIÓN, Y APAGADO.** Ola A, `PLAT-003` y `FLOW-002` viven en `master`; **en `featureFlags` de `hogaru-1` no existe ni un documento `producto-*`** y el único override es `conjunto-las-playas: {producto-anticipos: true}` — leído de los dos proyectos, no supuesto. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **De las 37 sospechas de la revisión adversarial quedan 20**: las dos «gordas» se triaron y **las dos eran ciertas** (el anticipo nacía con la bandera apagada y congelado; `bankAccounts` estaba abierta a la portería). **Lo que sigue sin construirse de `FLOW-002`: §9/CA13, CF8 y `personId`.** Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **La pantalla, en los dos portales y en los dos ambientes.** Y produjo lo que ninguna suite vio: **tres defectos**. Dos de mensajería y auditoría —uno de ellos abortaba la llamada con el dinero ya movido— y uno de aritmética que salió de revisar lo ya desplegado: **dos guardianes rechazaban cobros CORRECTOS con centavos**, invisible porque COP no tiene decimales y todas las pruebas de sobrepago usaban enteros. La lección que dejan los tres: **un camino de dinero no termina en el `commit`** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -585,10 +585,10 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `PH-001` — Propiedad horizontal: el lote derivado de Habitanto
 
-- **Estado:** 🟢 **Ola A construida y en staging** (22 ago 2026). Cuatro de las nueve con
-  MVP en `develop` —`formatAmount`, `PLAT-002` entrega 1, `FIX-001` entrega 1, `PLAT-001` y
-  `FEAT-003`—, **todas tras banderas apagadas y sin desplegar functions**. Quedan las olas B
-  y C. · **Frente:** Producto · **Dependencia:** ninguna externa
+- **Estado:** 🟢 **Ola A y ola B EN PRODUCCIÓN, con las banderas apagadas** (24 ago 2026).
+  Siete de las nueve viven en `master`: `formatAmount`, `PLAT-002` entrega 1, `FIX-001`
+  entrega 1, `PLAT-001`, `FEAT-003`, `PLAT-003` y `FLOW-002`. **Queda `FLOW-001` de la ola B
+  y la ola C entera.** · **Frente:** Producto · **Dependencia:** ninguna externa
 - **Origen:** inventario de Habitanto en cinco pasadas (`docs/inventario-habitanto.md`) y
   contraste contra nuestro código, no contra nuestros documentos. De ahí salieron **108
   candidatos** priorizados (`docs/prd/candidatos-prd-desde-habitanto.md`), y de esos, **once
@@ -645,14 +645,20 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   vocabulario sino modelo de datos**: en México la cuenta de un proveedor se identifica por
   **CLABE de 18 dígitos**, no por número y tipo. Se hizo ahora porque la jerga estaba en 4
   archivos y `vendors` tenía cero documentos: mañana sería una migración.
-- **Avance al 22 de agosto de 2026:** ola A **construida y DESPLEGADA a staging** (`83aea4f`,
-  `5219758`, `20e4f28`, `626e5f6`, `996de59`, más `b0b7347` y `9840d43` de despliegue).
-  Reglas, índices y functions vivas en `vivaru-staging-02`; banderas de coeficiente y
-  proveedores **encendidas allí**, la de reservas **apagada a propósito** porque sustituye un
-  camino que hoy funciona. **En producción no se ha desplegado nada.** **Ola B pendiente y es la que toca el dinero**:
-  `PLAT-003` → `FLOW-002` → `FLOW-001`, en ese orden estricto porque las dos primeras
-  modifican `aplicarPago`, que está vivo en producción. Ola C después: `FEAT-004`,
+- **Avance al 24 de agosto de 2026: el lote está EN PRODUCCIÓN y APAGADO.** Esta viñeta decía
+  «en producción no se ha desplegado nada» y **quedó falsa el 23 de agosto**; se corrige en su
+  sitio porque apilar una actualización debajo deja dos épocas conviviendo. Ola A entró el 23
+  (`5d6df95`) y `FLOW-002` el 24. **Comprobado contra `origin/master` con `git cat-file`, no
+  contra este documento.**
+  **Y el estado de las banderas se leyó de los dos proyectos:** en `hogaru-1` **no existe ni un
+  documento `producto-*`** en `featureFlags` —así que todas caen al valor por defecto, que es
+  apagado— y el único override es `conjunto-las-playas: {producto-anticipos: true}`. En staging
+  hay coeficiente, proveedores y reservas encendidas, y `conjunto-las-playas` con las cuatro del
+  dinero.
+  **De la ola B queda `FLOW-001`** (necesita `PLAT-001`, que ya está). Ola C después: `FEAT-004`,
   `FLOW-003`, y las segundas entregas de `PLAT-002` y `FIX-001`.
+  **Lo siguiente de este frente no es construir, es encender**, de una en una y mirando — la
+  regla de orden sobre `aplicarPago` ya no aplica porque no queda nada en vuelo sobre ella.
 
 #### `PH-002` — Lo que espera al primer pago real
 
@@ -989,6 +995,37 @@ fecha de revisión.
 
 ---
 
+## Changelog
+
+### 0.9.24 — 24 de agosto de 2026 (mañana)
+
+**Triaje de las dos sospechas «gordas» de `FLOW-002`: las dos eran ciertas, y las dos se
+corrigieron.** Reproducidas contra el emulador antes de tocar nada, que era la instrucción.
+
+- **El anticipo nacía con `producto-anticipos` APAGADA** cuando el reparto sumaba menos que lo
+  pagado, **y nacía congelado**: las tres callables de `advances.ts` exigen la bandera, así que
+  ese dinero no se podía cruzar, ni anular, ni ver. El comentario del código decía que el
+  sobrante queda en cero «por construcción» y era cierto **solo para la forma vieja**, que
+  resulta ser la única que probaba el banco. Ahora se rechaza el cobro.
+- **`bankAccounts` estaba abierta a `tenantMember`**, o sea a la portería y al consejo, cuando
+  la PRD §3 le da al `security_guard` «Nada / no puede Acceder». Corregido a
+  `tenantRole(..., 'resident')`.
+
+**La lección, porque es la misma en las dos: el punto ciego estaba escrito en el propio banco de
+pruebas.** El test de «con la bandera apagada no cambia un solo número» usaba la forma que no
+puede fallar; el test «ni el consejo, ni la portería» existía **solo para
+`bankAccountBalances`**, y para la cuenta en sí nadie hizo la pregunta. **Al revisar una guarda,
+buscar la forma que las pruebas NO ejercitan.**
+
+**Y un documento operativo puede llevarte solo al defecto:** el runbook autorizaba encender
+`producto-pago-multiple` sola prediciendo que el sobrante «vuelve a evaporarse». No se
+evaporaba, se congelaba — y **el rollback documentado era esa misma combinación**. Corregido.
+
+**Se corrigió también lo que este documento daba por cierto y no lo era:** `PH-001` decía «en
+producción no se ha desplegado nada» dos días después de que el lote entrara. **El estado real,
+medido:** todo el lote está en producción y **apagado**, y en `featureFlags` de `hogaru-1` no
+existe ni un documento `producto-*`.
+
 ### 0.9.21 — 24 de agosto de 2026 (madrugada)
 
 **`FLOW-002`: todo el servidor construido y verificado contra la base.** Ocho incrementos en
@@ -1015,7 +1052,6 @@ revertir el pago que lo creó **sí**. §4 excluye devolver el dinero porque es 
 PRD, así que anular deja el dinero en el conjunto y lo que desaparece es el crédito de la unidad.
 
 
-## Changelog
 
 ### 0.9.20 — 23 de agosto de 2026 (noche)
 

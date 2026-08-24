@@ -21,6 +21,13 @@ porqué está en `docs/roadmap-producto.md`.
 | **Verificado contra** | Repositorio en `c81e2fe` y proyecto `hogaru-1` (producción). `FIN-000` y `FIN-001` leídas como desplegadas y validadas; `ReconciliationCase` buscado en el código: **cero apariciones**; `realSriTransport` buscado: **no existe**, solo el stub |
 | **Estado del módulo** | **NO congelado. La etiqueta era falsa y esta revisión la retira.** F0 y F0b están **en producción**; F1 es lo siguiente y **no lo bloquea nadie**; F2 y F3 esperan clientes, no personas. **Y el frente fiscal deja de bloquear porque sale del alcance** — ver §5 |
 
+> **Vigencia al 24 de agosto de 2026.** El cuerpo se verificó contra `c81e2fe` y **sigue siendo
+> cierto en lo suyo**: F0 y F0b en producción, F1 sin bloqueo, F2 y F3 esperando clientes. Lo que
+> ha cambiado desde entonces es **de fuera de este documento**: entró el lote de propiedad
+> horizontal —`PLAT-003` y `FLOW-002` incluidos— y `aplicarPago` ya no tiene la firma que aquí se
+> describe. **`FIN-002` (=F1) es hoy el frente de ingeniería más grande que se puede abrir sin un
+> cliente real.** Estado vivo del lote: `docs/prd/README.md`.
+
 **Qué cambió en esta revisión:**
 
 - **Lo fiscal sale del alcance por decisión de David**, y con ello **el módulo deja de
