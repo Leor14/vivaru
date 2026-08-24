@@ -2013,9 +2013,28 @@ describe("FLOW-002 · anticipos: el cliente lee, el servidor escribe", () => {
     await assertSucceeds(getDoc(doc(admin.firestore(), "advances", "adv-1")));
   });
 
-  it("el consejo lo lee: es el total de anticipos del conjunto", async () => {
+  /**
+   * **El consejo NO lo lee, y el nombre que tenía esta prueba era el defecto.**
+   *
+   * Se llamaba «es el total de anticipos del conjunto» mientras leía **un
+   * anticipo suelto**, con su `unitId` y su `unitLabel`. Eso no es un total: es
+   * detalle financiero POR UNIDAD —quién tiene saldo a favor y cuánto—, y el
+   * resto del modelo se lo niega al consejo, empezando por `billingStatements`.
+   *
+   * La PRD §3 le concede un agregado, y **una regla de Firestore no sabe
+   * agregar**: o concede el documento entero o no concede nada. Se cierra hasta
+   * que `PRD-V-PLAT-004` decida qué pantallas ve el consejo y con qué dato.
+   * Cerrarlo hoy no rompe nada: `canAccessPath` lo deja solo en
+   * `/admin/documents`. Decisión de David, 24 de agosto de 2026.
+   */
+  it("el consejo NO lo lee: sería detalle por unidad, no el total que le da la PRD", async () => {
     const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
-    await assertSucceeds(getDoc(doc(com.firestore(), "advances", "adv-1")));
+    await assertFails(getDoc(doc(com.firestore(), "advances", "adv-1")));
+  });
+
+  it("ni el cruce, que lleva el `unitId` copiado", async () => {
+    const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(com.firestore(), "advanceApplications", "advapp-1")));
   });
 
   it("el residente lee el de SU unidad", async () => {

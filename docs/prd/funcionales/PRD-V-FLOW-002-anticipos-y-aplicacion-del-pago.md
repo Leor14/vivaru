@@ -89,10 +89,18 @@ lo pagado.
 |---|---|---|---|
 | `tenant_admin` | Anticipos abiertos de su conjunto y el saldo de cada unidad | Registrar un pago repartiéndolo entre varios cargos; cruzar un anticipo contra un cargo; anular un anticipo con motivo | Cruzar un anticipo de una unidad contra el cargo de **otra** (§8, R6). Revertir un pago cuyo anticipo ya fue cruzado (R8). Operar si el conjunto está `suspended` o `expired` |
 | `resident` | **Su** saldo a favor y de qué pago viene | Consultarlo. **Indicar a qué cuenta bancaria pagó** al subir su comprobante | Cruzar ni anular nada. Ver el anticipo de otra unidad |
-| `committee` | Total de anticipos del conjunto | Consultar y exportar | Operar |
+| `committee` | **Nada todavía.** La PRD le asigna «el total de anticipos del conjunto» y eso **no está construido**: una regla de Firestore no sabe agregar —o concede el documento entero o no concede nada—, y el documento entero lleva `unitId` y `unitLabel`, o sea detalle POR UNIDAD, que es justo lo que esta tabla NO le da. Se le cerró la lectura el 24 de agosto de 2026 (decisión de David) y **el total se construye en `PRD-V-PLAT-004`** | Consultar y exportar, cuando exista el agregado | Operar. Ver el saldo a favor de una unidad concreta |
 | `security_guard` | Nada | — | Acceder |
 | `superadmin` | Todo | Todo, incluida la corrección de un anticipo mal creado | — |
 
+> **Actualización — 24 ago 2026.** La frase de abajo decía que a nivel de reglas el consejo **sí
+> puede leer**, y era cierta: leía `advances` y `advanceApplications` con su `unitId` y su
+> `unitLabel`. **Eso no era el total que esta tabla le concede, era detalle por unidad**, y el
+> resto del modelo se lo niega —no puede leer `billingStatements`—. Salió del triaje de la revisión
+> adversarial. **Se le cerró la lectura**, que hoy no rompe nada porque sigue sin poder navegar a
+> ninguna pantalla que las use, y **el agregado pasa a `PLAT-004`**: fijar la forma de ese dato sin
+> saber qué pantalla lo consume es construir una migración futura.
+>
 > **Nota de portafolio — 21 ago 2026.** Lo que esta PRD asigna al rol `committee` **hoy no es
 > alcanzable**: `canAccessPath` (`src/lib/auth/routing.ts:28`) lo deja **solo en
 > `/admin/documents`**. A nivel de reglas **sí puede leer** —es miembro del conjunto— así que

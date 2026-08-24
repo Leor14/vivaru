@@ -196,7 +196,7 @@ del programa de IA se calculó sobre esa cuenta.
 **Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
 que haya un cliente — lo que cambia es a quién le pasa hoy.
 
-**`docs/revision-flow-002-por-verificar.md` está CERRADO.** Se triaron las 37: **35 eran ciertas y están corregidas**, una se descartó con números y **una espera decisión de David** —el detalle por unidad que el consejo lee de `advances`—. Antes decía que quedaban 16
+**`docs/revision-flow-002-por-verificar.md` está CERRADO DEL TODO.** Se triaron las 37: **36 eran ciertas y están resueltas** —la última con una decisión de David: al consejo se le retiró la lectura de `advances`, que era detalle por unidad y no el total que le da la PRD, y el agregado pasa a `PLAT-004`— y **una se descartó** con números. No queda ninguna abierta. Antes decía que quedaban 16
 sospechas y NINGUNA de gravedad alta.** Salen de una revisión adversarial de lo desplegado cuya
 fase de jueces se cayó por sobrecarga de API. **No son defectos: son hipótesis con un solo par de
 ojos** — pero **las seis triadas el 24 de agosto eran ciertas las seis**: el anticipo nacía con la

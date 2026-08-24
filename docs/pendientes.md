@@ -22,7 +22,7 @@ y `Queretarock 229` tampoco lo son —David, 24 de agosto—. Bromelias ya está
 
 ## LO PRIMERO DE LA SIGUIENTE SESIÓN
 
-**`docs/revision-flow-002-por-verificar.md` — CERRADO. Las 37 triadas: 35 ciertas y corregidas, 1 descartada, 1 esperando decisión tuya.** Revisión
+**`docs/revision-flow-002-por-verificar.md` — CERRADO DEL TODO. Las 37 triadas: 36 ciertas y resueltas, 1 descartada. No queda ninguna abierta.** Revisión
 adversarial de todo lo desplegado, con seis lentes y tres jueces por hallazgo; **la fase de jueces
 se cayó** (59 de 117 agentes con `529`). **No son defectos: son hipótesis con un solo par de ojos.**
 Doce eran de documentación y ya estaban corregidas.
@@ -61,11 +61,11 @@ invisible porque COP no tiene decimales y **todas las pruebas de sobrepago usaba
 
 | Qué | Nota |
 |---|---|
-| ~~**1. Triar las sospechas**~~ **HECHO** | Las 37 cerradas. **35 eran ciertas.** La única descartada es el polvo del sobrante (`aMoneda` ya lo había matado). **La única abierta espera decisión tuya:** el consejo lee `advances` con `unitId` y `unitLabel`, o sea detalle financiero POR UNIDAD, cuando la PRD §3 le da un total del conjunto — y una regla de Firestore no sabe agregar. Tres salidas: cerrarle la lectura (hoy no rompe nada), construir un agregado, o aceptar el detalle y corregir la PRD |
+| ~~**1. Triar las sospechas**~~ **HECHO, y cerrado** | Las 37 triadas: **36 eran ciertas** y están resueltas; la única descartada es el polvo del sobrante, que `aMoneda` ya había matado. La última se cerró **con una decisión tuya**: al consejo se le retira la lectura de `advances` —era detalle por unidad, no el total que le da la PRD— y **el agregado pasa a `PLAT-004`** |
 | **2. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden sigue siendo uno cada vez, mirando |
 | **3. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
-| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
+| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`. **Y desde el 24 de agosto arrastra una deuda concreta:** se le retiró la lectura de `advances` porque era detalle por unidad, así que **el «total de anticipos del conjunto» que la PRD de `FLOW-002` le promete no existe**. Una regla no sabe agregar: hay que construir el agregado, y esta PRD es donde se decide qué pantallas ve y con qué dato |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
 | Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules`. Anteriores a esta sesión |

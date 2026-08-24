@@ -414,11 +414,25 @@ service cloud.firestore {
     // liste, que es exactamente lo contrario de lo que hace falta aqui.
     //
     // La lectura NO usa `sameTenant`: eso incluiria a la porteria, que segun la
-    // PRD no ve nada de esto. Se nombran los tres roles que si.
+    // PRD no ve nada de esto. Se nombran los roles que si.
+    //
+    // **Y el CONSEJO tampoco, desde el 24 de agosto de 2026.** Estaba nombrado
+    // aqui, y eso le daba el documento ENTERO —con `unitId` y `unitLabel`—, o sea
+    // **detalle financiero POR UNIDAD**: quien tiene saldo a favor y cuanto. El
+    // resto del modelo se lo niega, empezando por `billingStatements`, que no
+    // puede leer. Lo que la PRD §3 le concede es «el total de anticipos del
+    // conjunto», un AGREGADO, y **una regla de Firestore no sabe agregar**: o
+    // concede el documento entero o no concede nada.
+    //
+    // Se cierra, y hoy no rompe nada: `canAccessPath` deja al consejo solo en
+    // `/admin/documents`, y los unicos consumidores de estas colecciones son
+    // `/admin/billing` (administracion) y `/resident/account` (residente). El
+    // total que la PRD le promete se construira en `PRD-V-PLAT-004`, que es donde
+    // se decide que pantallas ve — hacerlo antes es fijar la forma de un dato sin
+    // saber quien lo consume. Se revierte con una linea.
     match /advances/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        tenantRole(resource.data.tenantId, 'committee') ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
       allow create, update, delete: if false;
@@ -428,10 +442,11 @@ service cloud.firestore {
     // anticipo **para que esta regla se pueda escribir**: sin el, «el residente
     // solo ve los de su unidad» no seria expresable y habria que cerrarle la
     // coleccion entera. Es denormalizacion con un motivo, no por comodidad.
+    // El consejo tampoco, por lo mismo que en `advances`: el cruce lleva `unitId`
+    // copiado, asi que concederlo es conceder detalle por unidad.
     match /advanceApplications/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        tenantRole(resource.data.tenantId, 'committee') ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
       allow create, update, delete: if false;

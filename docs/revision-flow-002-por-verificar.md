@@ -1,9 +1,10 @@
-# Revisión de `FLOW-002` — CERRADA: 36 de 37 resueltas, 1 espera decisión
+# Revisión de `FLOW-002` — CERRADA: 36 ciertas y resueltas, 1 descartada
 
-> **CERRADA el 24 de agosto de 2026.** Las 37 se triaron: **35 eran ciertas y están corregidas**,
-> **una se descartó** con números —el polvo del sobrante, que `aMoneda` ya había matado— y **una
-> espera decisión de David**: el detalle por unidad que el consejo lee de `advances`. Este
-> documento se conserva como registro de cómo se triaron, no como lista de trabajo.
+> **CERRADA del todo el 24 de agosto de 2026.** Las 37 se triaron: **36 eran ciertas y están
+> resueltas** —35 con código y la última con una decisión de David, cerrarle la lectura al consejo—
+> y **una se descartó** con números: el polvo del sobrante, que `aMoneda` ya había matado. **No
+> queda ninguna abierta.** Este documento se conserva como registro de cómo se triaron, no como
+> lista de trabajo.
 
 **Lo que había que leer antes de tocar una** — y se conserva porque la advertencia era buena aunque
 el resultado la desmintiera: esta lista NO era una lista de defectos, sino de **sospechas sin
@@ -35,7 +36,7 @@ una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada c
 ## Cómo acabó, y las cinco cosas que enseñó
 
 **El recuento final:** 12 de documentación (ciertas), 23 de código ciertas y corregidas, 1
-descartada, 1 esperando decisión. Cinco se midieron con números en vez de razonarlas.
+resuelta por decisión de producto, 1 descartada. Cinco se midieron con números en vez de razonarlas.
 
 1. **El punto ciego estaba escrito en el propio banco de pruebas, tres veces.** El test de «con la
    bandera apagada no cambia un solo número» usaba la forma que no puede fallar; «ni el consejo, ni
@@ -200,9 +201,9 @@ Ahora dicen que se lea `git ls-remote`.
   `docs/pendientes.md` · `### Lo que hizo falta y la PRD no preveía → «El orden de despliegue importa…»`
 - ~~**§7.5 y CF8 prometen que un conjunto suspendido queda en solo lectura, y las callables de anticipos no miran el estado del conjunto**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `§7.5 Multi-tenancy y ciclo de vida / CF8`
-- ~~**El consejo gana detalle financiero POR UNIDAD que el resto del modelo le niega, y sin bandera**~~ · **CONFIRMADA — ESPERA DECISIÓN DE DAVID**
+- ~~**El consejo gana detalle financiero POR UNIDAD que el resto del modelo le niega, y sin bandera**~~ · **RESUELTA** el 24 ago 2026, por decisión de David
   `vivaru/firestore.rules` · `match /advances/{docId} y match /advanceApplications/{docId} — la cláusula tenantRole(resource.data.tenantId, 'committee') del allow read`
-  **El hecho es cierto:** el consejo NO puede leer `billingStatements` (solo administración y el residente de su unidad), pero sí `advances` y `advanceApplications`, que llevan `unitId` y `unitLabel` — así que sabe qué unidad tiene saldo a favor y cuánto. La PRD §3 le da «Total de anticipos del conjunto», que es un agregado, **y una regla de Firestore no sabe agregar**. Las salidas son tres y ninguna es obvia: cerrarle la lectura (hoy no rompe nada, porque `canAccessPath` lo deja solo en `/admin/documents`), construir un documento agregado, o aceptar el detalle y corregir la PRD. **Es la única de las 37 que queda abierta.**
+  **El hecho es cierto:** el consejo NO puede leer `billingStatements` (solo administración y el residente de su unidad), pero sí `advances` y `advanceApplications`, que llevan `unitId` y `unitLabel` — así que sabe qué unidad tiene saldo a favor y cuánto. La PRD §3 le da «Total de anticipos del conjunto», que es un agregado, **y una regla de Firestore no sabe agregar**. Las salidas son tres y ninguna es obvia: cerrarle la lectura (hoy no rompe nada, porque `canAccessPath` lo deja solo en `/admin/documents`), construir un documento agregado, o aceptar el detalle y corregir la PRD. **Decisión de David, 24 de agosto: se le CIERRA la lectura**, que hoy no rompe nada —`canAccessPath` lo deja solo en `/admin/documents`, y los únicos consumidores de estas colecciones son `/admin/billing` y `/resident/account`—, y **el total pasa a `PRD-V-PLAT-004`**, que es donde se decide qué pantallas ve. Construir el agregado hoy sería fijar la forma de un dato sin saber quién lo consume. Se revierte con una línea de reglas. La PRD §3 queda anotada para que no prometa lo que no da.
 - ~~**bankAccounts se abrió a TODOS los miembros, no solo a los residentes: la portería lee las cuentas del conjunto**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `vivaru/firestore.rules` · `match /bankAccounts/{docId} — la rama (tenantMember(resource.data.tenantId) && resource.data.active == true) del allow read`
   **Era cierta, y la sospecha acertó también el motivo:** incoherencia dentro del mismo cambio. El
