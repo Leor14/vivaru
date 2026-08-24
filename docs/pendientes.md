@@ -108,11 +108,10 @@ ya confirmado**. Mitigado desde el cliente mandando siempre `statementId` (`ebcf
 
 ## QUÉ HACE FALTA DE DAVID
 
-**1. Una decisión contable que tomé y conviene que revises.** Anular un anticipo (R9) **no baja
-el ingreso**; revertir el pago que lo creó (R15) **sí**. El razonamiento: §4 excluye devolver el
-dinero porque es un egreso de otra PRD, así que anular deja el dinero dentro del conjunto y lo
-que desaparece es el crédito de esa unidad. Si prefieres que anular también revierta el asiento,
-son pocas líneas — pero entonces el estado financiero diría que entraron 140 con 200 en el banco.
+**1. Nada. La decisión contable está cerrada** (24 ago): anular un anticipo **no baja el
+ingreso**, revertir el pago **sí**. Escrita como **D3** en la PRD, con la razón buena —el libro es
+de caja, y anular no saca un peso del banco— y con la advertencia que se deriva: **anular no es
+devolver**.
 
 **2. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
 `PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.

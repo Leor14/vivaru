@@ -126,7 +126,7 @@ de repetir la operación una vez por cuota.
 
 | Excluido | Por qué |
 |---|---|
-| **Devolver el dinero de un anticipo** | Es un egreso, no un movimiento de cartera. PRD del lado del gasto |
+| **Devolver el dinero de un anticipo** | Es un egreso, no un movimiento de cartera. PRD del lado del gasto. **Y anular (R9) no es esto**: ver D3 |
 | **Bandeja de ingresos no identificados** | Backlog `D5`. Un anticipo tiene dueño; un ingreso no identificado, no. **Son problemas distintos y mezclarlos confunde los dos** |
 | **Intereses sobre el saldo a favor** | Nadie los paga en este mercado |
 | **Caducidad del anticipo** | Requiere decisión legal por país. Anotado, fuera del MVP |
@@ -331,7 +331,7 @@ unidad, y pierde el vínculo personal — igual que ya hace `anonymizeExpiredVou
 | **R6** | Un anticipo solo se cruza contra cargos de **su misma unidad** |
 | **R7** | El reparto por defecto va del cargo **más antiguo por vencimiento** al más nuevo; el administrador puede cambiarlo, y la suma debe cuadrar con el importe |
 | **R8** | **No se revierte un pago cuyo anticipo tenga cruces VIGENTES.** Primero se deshacen los cruces. **⚠ CORREGIDO 24 ago, contra la base:** se construyó preguntando `remaining < amount`, que parece significar «tiene cruces» y **no lo es** — anular un anticipo (R9) pone `remaining` a cero **sin haber cruzado nada**, así que un anticipo anulado bloqueaba una reversión legítima. Se pregunta por los `advanceApplications` sin deshacer. Hizo falta encadenar cinco operaciones —pagar, cruzar, descruzar, anular, revertir— para que apareciera: **ninguna prueba unitaria llegaba tan lejos** |
-| **R9** | Anular un anticipo exige motivo y **solo es posible si su remanente está intacto** |
+| **R9** | Anular un anticipo exige motivo y **solo es posible si su remanente está intacto**. **Anular NO es devolver, y NO baja el ingreso** — ver D3 |
 | **R10** | La idempotencia por `operationKey` se conserva sin cambios, y **cubre también el anticipo generado**: un reintento no crea un segundo anticipo |
 | **R12** | Si `PRD-V-PLAT-003` ya está construida, el anticipo usa **su cuenta del plan**, no un valor de enum. Ver la secuencia declarada en el encabezado |
 | **R11** | Todo pago registra la cuenta bancaria a la que entró, salvo efectivo |
@@ -541,6 +541,29 @@ escondiéndolo (§7.4).
 > **CERRADA el 21 ago 2026 — aceptada.** El anticipo es ingreso del mes en que entra, en su
 > propia línea del estado financiero. **Nunca excluido como `alicuota`** (§7.4).
 
+### D3 · ¿Anular un anticipo debe bajar el ingreso del período?
+
+> **CERRADA el 24 ago 2026 — NO lo baja.** Confirmada por David.
+
+**El libro de Vivaru es de caja** (D1): reconoce ingreso cuando el dinero se mueve. El dinero del
+anticipo entró al banco cuando se recibió, y **anular el crédito de una unidad no saca un peso de
+ahí**. Si el asiento se revirtiera, el libro diría que hay menos dinero del que hay — y descuadrar
+contra el extracto es peor que la incomodidad de que un ingreso ya no tenga cuota asociada.
+
+**Por qué R15 es distinto y no es una inconsistencia.** Revertir el pago que creó el anticipo sí
+revierte los dos asientos, porque allí el dinero **no está**: fue un error, una transferencia
+devuelta, un cargo revertido. La asimetría es la diferencia entre «el dinero se quedó» y «el
+dinero no llegó», no dos criterios distintos.
+
+> En partida doble sería al revés —el anticipo sería un pasivo y anularlo reconocería ingreso—,
+> pero D1 ya cerró que este libro no lo es.
+
+**Y de aquí sale la advertencia que hay que repetir: ANULAR NO ES DEVOLVER.** Si la
+administración devuelve el dinero en efectivo y anula el anticipo «para reflejarlo», **el libro se
+queda contando dinero que ya no tiene**, porque el egreso de la devolución no existe todavía
+—§4 lo deja fuera a propósito—. El diálogo de anulación lo avisa en pantalla desde la sesión B;
+esta ficha lo dice ahora también, que es donde se mira antes de construir encima.
+
 ### D2 · ¿Puede el residente elegir a qué cargos se aplica su pago?
 
 **Recomendación: no en el MVP.** El residente indica cuánto y a qué cuenta pagó; **quién decide
@@ -550,7 +573,7 @@ invita a pagar lo nuevo y dejar lo viejo vencido, que es justo lo que R7 evita.
 > **CERRADA el 21 ago 2026 — aceptada.** El residente indica **cuánto** y **a qué cuenta**
 > pagó; la **imputación la decide la administración**, con el reparto de R7 por defecto.
 
-**Ninguna decisión abierta.**
+**Ninguna decisión abierta.** D1, D2 y D3 cerradas.
 
 ## 15. Puertas
 
