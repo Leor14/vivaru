@@ -247,6 +247,96 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     expect(r.paymentAmount + (r.advanceAmount ?? 0)).toBe(200000);
   });
 
+  /**
+   * **EL DINERO CON CENTAVOS, que es MXN y USD** (`FRACTION_DIGITS` en
+   * `coefficient-billing.ts`: COP 0, MXN 2, USD 2).
+   *
+   * Todas las pruebas de sobrepago de arriba usan importes ENTEROS, y ese es
+   * justo el caso que no falla: con enteros la aritmética de coma flotante no
+   * pierde nada. Con dos decimales sí, y el guardián de R1 —que comparaba con
+   * `!==` exacto— **abortaba la transacción entera de un cobro correcto**:
+   * `35.16 + (400.42 − 35.16) = 400.41999999999996`, que no es `400.42`.
+   *
+   * No era un fallo raro: medido, le pasa a más del 2 % de los sobrepagos con
+   * dos decimales. Y era irrecuperable — el `throw` ocurre ANTES de escribir la
+   * marca de idempotencia, así que reintentar da exactamente lo mismo.
+   *
+   * `conjunto-las-playas` es MXN, así que esto estaba al alcance en producción
+   * en cuanto se encendió la bandera.
+   */
+  it("un sobrepago con CENTAVOS se aplica, y el anticipo no arrastra basura decimal", async () => {
+    await bandera(true);
+    await sembrarCuota("cuota-cent", 35.16);
+    const r = await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-cent", amount: 400.42, date: "2026-08-24", operationKey: "op-cent", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.paymentAmount).toBe(35.16);
+    expect(r.status).toBe("paid");
+    expect(r.advanceAmount).toBe(365.26);
+    const adv = await db.collection("advances").doc(r.advanceId!).get();
+    expect(adv.data()).toMatchObject({ amount: 365.26, remaining: 365.26 });
+  });
+
+  /**
+   * **La segunda trampa de coma flotante, que es OTRA.** La de arriba está en la
+   * SUMA (`35.16 + 365.26 !== 400.42`); esta está en la RESTA: una cuota de
+   * 3.898,12 pagada con 6.440,73 deja `2542.6099999999997`, y ese número se
+   * escribía tal cual en el anticipo y se arrastraba en cada cruce.
+   *
+   * **Se separa en su propia prueba porque falsando se vio que la otra no la
+   * cubría:** quitar el redondeo del sobrante dejaba las 45 en verde, porque
+   * `400.42 − 35.16` da limpio. Una prueba que pasa con el código roto no
+   * vigila nada, y solo se sabe rompiéndolo a propósito.
+   */
+  it("el anticipo no arrastra basura decimal de la RESTA", async () => {
+    await bandera(true);
+    await sembrarCuota("cuota-resta", 3898.12);
+    const r = await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-resta", amount: 6440.73, date: "2026-08-24", operationKey: "op-resta", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.advanceAmount).toBe(2542.61);
+    const adv = await db.collection("advances").doc(r.advanceId!).get();
+    expect(adv.data()).toMatchObject({ amount: 2542.61, remaining: 2542.61 });
+    // R1 al céntimo: lo aplicado más el anticipo es lo pagado.
+    expect(r.paymentAmount + r.advanceAmount!).toBe(6440.73);
+  });
+
+  /**
+   * **El otro guardián, y falla mucho más.** `sumaAsignada > monto` rechazaba un
+   * reparto EXACTO en centavos porque la suma de los dobles se pasa por 1e-12:
+   * `1243.79 + 4619.14 + 1683.14 = 7546.070000000001`. Medido: el 13 % de los
+   * repartos exactos de tres líneas con centavos.
+   */
+  it("un reparto EXACTO en centavos no se rechaza por el redondeo", async () => {
+    await bandera(true);
+    await sembrarCuota("cent-1", 1243.79);
+    await sembrarCuota("cent-2", 4619.14);
+    await sembrarCuota("cent-3", 1683.14);
+    const r = await aplicarPago(
+      {
+        tenantId: TENANT,
+        amount: 7546.07,
+        allocations: [
+          { statementId: "cent-1", amount: 1243.79 },
+          { statementId: "cent-2", amount: 4619.14 },
+          { statementId: "cent-3", amount: 1683.14 },
+        ],
+        date: "2026-08-24", operationKey: "op-cent-rep", source: "manual",
+      },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.applied).toBe(true);
+    // Cubre los tres exactamente: no sobra nada, así que no nace anticipo (R3).
+    expect(r.advanceAmount).toBeUndefined();
+    for (const id of ["cent-1", "cent-2", "cent-3"]) {
+      const c = (await db.collection("billingStatements").doc(id).get()).data()!;
+      expect(c.balance).toBe(0);
+      expect(c.status).toBe("paid");
+    }
+  });
+
   /** **R3**: un anticipo de importe cero no se crea. */
   it("pagar el importe exacto NO crea un anticipo de cero", async () => {
     await bandera(true);
