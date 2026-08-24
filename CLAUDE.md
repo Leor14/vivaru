@@ -218,6 +218,10 @@ recordar nada; al añadir una escritura NUEVA fuera de una transacción, sí.**
 **El reparto sugerido (R7) lo calcula el servidor** (`previewPaymentAllocation`), no el navegador.
 `src/features/billing/reparto.ts` conserva solo lo que es de la pantalla.
 
+**Los dos cabos están EN PRODUCCIÓN** desde el 24 de agosto por la noche (`master` = `b30b229`):
+functions primero y front después, sin migración ni reglas esta vez —se comprobó que el diff de
+`firestore.rules` contra producción estaba vacío antes de empezar—.
+
 Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` y
 `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` (v1.4).
 

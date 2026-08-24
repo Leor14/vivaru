@@ -102,13 +102,52 @@ que dije antes: ese fichero NO se borró entero**, y no debía.
 | Qué | Nota |
 |---|---|
 | **1. Encender `producto-anticipos`, un conjunto cada vez** | **Es lo único que convierte el trabajo en producto.** Todo lo desplegado es inerte hasta esto. Decisión de David, y antes va el cobro de prueba de un solo cargo |
-| **2. `FIX-001` entrega 2** | Cierra la regla que deja al residente **escribir reservas directo**. Es el hueco de seguridad más viejo que queda abierto |
-| **3. Llevar a producción los dos cabos** | `writeAuditLog` y la vista previa están en `develop` y en staging. A producción van con el mismo orden de siempre: functions primero, front después. **Sin migración ni reglas esta vez** |
+| **2. `FIX-001` — abrir la puerta del paso 3** | Ver abajo. **No es escribir código: es encender una bandera y esperar.** El instrumento ya existe |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
 | Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules` piden compuesto y salen en consola. Son anteriores a esta sesión |
+
+## `FIX-001` — DÓNDE ESTÁ, Y POR QUÉ NO SE PUEDE TERMINAR HOY
+
+**Medido el 24 de agosto de 2026, no supuesto.** Los pasos 1 y 2 de su §13 están hechos: la
+callable `createReservationRequest` existe y el front la usa detrás de
+`producto-reservas-servidor`. Falta el paso 3 —la puerta— y el 4 —cerrar la regla—.
+
+**El paso 3 no es código.** Dice: «con la bandera encendida en todos los conjuntos, comprobar que
+ninguna reserva se crea ya por escritura directa». Eso exige encender y **dejar pasar tiempo**.
+
+**Lo que sí faltaba y ya existe: el instrumento.** `scripts/verificar-reservas-por-servidor.mjs`
+convierte la puerta en un número. Y el número **no es «cuántas no llevan marca»**: el
+administrador crea reservas por escritura directa y **va a seguir haciéndolo** —el paso 4 solo
+retira la rama del RESIDENTE—, así que contarlas bloquearía la puerta para siempre. El script
+separa las tres: por servidor, del administrador, y **de residente por escritura directa**, que
+son las únicas que bloquean.
+
+```
+node scripts/verificar-reservas-por-servidor.mjs hogaru-1 <día en que se encendió>
+```
+
+**El «desde» no es opcional en la práctica.** Sin él cuenta la historia: hoy salen 42 reservas de
+residente por escritura directa en producción, todas anteriores a que la bandera existiera. La
+puerta se mide desde el encendido.
+
+**Estado de la bandera:** encendida en **staging** (24 ago); **apagada en producción**, sin
+override en ningún conjunto.
+
+**El orden que queda, y el 4 es irreversible con bandera:**
+
+1. Probar en staging que una reserva de residente sale con `createdVia: "callable"`. **Necesita
+   una sesión de residente en staging.**
+2. Encender `producto-reservas-servidor` en producción.
+3. Dejar pasar tiempo y correr el script con el «desde». Cuando diga **PUERTA ABIERTA**, y no
+   antes.
+4. Retirar de `firestore.rules` la rama del residente en `create` de `reservations` —la que
+   empieza en `residentOwnUnit(...)`, dejando la de `tenantAdminOrSuper`— y desplegar.
+
+> **Invertir 3 y 4 deja a todos los residentes sin poder reservar**, y no se arregla con una
+> bandera: hay que volver a desplegar las reglas anteriores.
 
 ## QUÉ HACE FALTA DE DAVID
 
