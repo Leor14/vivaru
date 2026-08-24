@@ -114,6 +114,45 @@ casó con cómo está escrito el código y se descartó en vez de darlo por buen
 una de ellas —`src/features/admin/services.ts:419`— ordena por un **campo dinámico**, así que
 necesita un índice por cada valor que reciba.
 
+## EL RESIDENTE NO VEÍA NINGÚN DOCUMENTO — arreglado el 24 (tarde)
+
+**Salió de verificar el cuarto índice, y es más grande que el índice.** La pantalla decía «Sin
+documentos» y eso **no era un dato: era un fallo mudo**.
+
+| Medida, contra la base de producción | |
+|---|---|
+| `documents` de `conjunto-las-playas` | **8** |
+| la misma consulta con `orderBy("uploadedAt","desc")` | **0** |
+| en todo el proyecto | 39 documentos, **38 sin `uploadedAt`** |
+
+**Un `orderBy` DESCARTA los documentos que no traen el campo**, y la subida real
+(`subirDocumento`, `features/admin/services.ts`) escribe `createdAt`, nunca `uploadedAt`.
+
+**El gemelo que lo hacía bien estaba en el mismo repositorio:** `watchDocuments`, del lado del
+administrador, pide **sin orden y ordena en memoria** — por eso `/admin/documents` sí veía los
+ocho. Es el patrón de `watchLedger`, el único que no depende de índices, y es lo que hace ahora el
+residente.
+
+**Y el tipo era parte del defecto.** `TenantDocument` declaraba `title`, `category`, `audience`,
+`uploadedAt` y `url`: **los cinco inexistentes en los documentos reales**. La pantalla pintaba
+`item.title`, así que aunque la consulta hubiera devuelto filas, habrían salido **en blanco**.
+Corregido, y borrado el código muerto que sostenía el esquema fantasma (`createDocument`, 0
+llamadores; `demoTenantDocuments`, 0 usos).
+
+**No abre nada nuevo:** `storage.rules` ya pone `documents` entre las carpetas compartidas
+(`miembro(tenantId)`) y la regla de Firestore concede el documento a `sameTenant`. Lo único que
+cambia es que la pantalla enseñe lo que las reglas ya conceden.
+
+**Y el índice `documents (tenantId, uploadedAt DESC)` que se añadió esa misma tarde queda muerto**
+con este arreglo: retirado del fichero. Falta quitarlo de los dos ambientes — se hace **después**
+de que el front nuevo esté sirviendo, no antes, o el front viejo vuelve a fallar.
+
+> **El guardián se falsó, y la falsación encontró una prueba floja.** Al reintroducir el defecto se
+> pusieron rojas dos de las seis — y una tercera, que decía vigilar el campo fantasma, **se quedó
+> verde con el código roto**: buscaba `orderBy("uploadedAt"` y el defecto real tiene la forma
+> `{ orderByField: "uploadedAt" }`. Reescrita. **Si romper el código no la pone roja, no vigila lo
+> que dice vigilar.**
+
 ## LA REVISIÓN ADVERSARIAL ESTÁ CERRADA
 
 **`docs/revision-flow-002-por-verificar.md` — las 37 triadas: 36 eran ciertas y están resueltas, 1

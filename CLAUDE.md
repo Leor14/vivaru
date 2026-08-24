@@ -277,6 +277,12 @@ existe en la nube**, y ninguna prueba unitaria lo alcanza. La regla que sale de 
   memoria. Es lo que hace `/admin/finanzas`, y por eso fue el único que nunca se rompió.
 - **Un `catch` que deja la lista vacía convierte un fallo ruidoso en un dato falso.** Si una
   pantalla puede fallar a medias, tiene que **decirlo en pantalla y en el PDF**.
+- **Y un `orderBy` DESCARTA los documentos que no traen ese campo — sin error, sin aviso.** No
+  hace falta un `catch` para que una lista mienta. La de documentos del residente ordenaba por
+  `uploadedAt`, que **la subida real nunca escribe** (38 de 39 no lo tenían), y enseñaba «Sin
+  documentos» teniendo ocho. **Antes de ordenar por un campo, comprobar que TODOS los documentos
+  lo traen** — y si no, el patrón bueno es pedir sin orden y ordenar en memoria, como
+  `watchDocuments` y `watchLedger`. Corregido el 24 de agosto de 2026.
 - **Un campo de filtro por rango debe estar poblado en todos los documentos.** Arreglar el
   índice de `eventDate` no llenó nada hasta correr `functions/scripts/backfill-event-date.mjs`.
 
