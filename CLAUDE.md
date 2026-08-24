@@ -186,12 +186,10 @@ conjuntos de `hogaru-1` son de demostración o de prueba interna: David confirm�
 wiki de IA y la memoria hablaban de «dos conjuntos reales» contándolos a los dos, y la volumetría
 del programa de IA se calculó sobre esa cuenta.
 
-> **Queda un comando por correr.** `Queretarock` está en la lista de
-> `functions/scripts/marcar-conjuntos-de-ejemplo.mjs` pero **sin marcar en producción**: la
-> credencial de `gcloud auth application-default` caducó a mitad de la ejecución (`invalid_rapt`).
-> El script es idempotente:
-> `gcloud auth application-default login` y después
-> `node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1 --escribir`.
+> **Los nueve conjuntos están marcados como de ejemplo (24 ago 2026).** `Queretarock` era el
+> último que faltaba y ya está: `node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1`
+> responde «No hay nada que marcar», y el script lista **0 conjuntos sin clasificar**. La ADC no
+> estaba caducada, al contrario de lo que decía esta nota: lo que fallaba era otra credencial.
 
 **Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
 que haya un cliente — lo que cambia es a quién le pasa hoy.

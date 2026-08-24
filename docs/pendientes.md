@@ -114,10 +114,10 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 
 ## QUÉ HACE FALTA DE DAVID
 
-**1. Un comando, cuando renueves la credencial:**
-`node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1 --escribir`, para terminar de
-marcar `Queretarock`. No cambia nada del producto: solo deja de contarse como cliente en la
-volumetría.
+**1. Tres filas que borrar en la bitácora de Notion** — dos duplicadas marcadas
+`[DUPLICADA — BORRAR]` y una en blanco («New page», los ocho campos vacíos). **El conector de
+Notion no tiene operación de papelera**: su única herramienta de mover reasigna el padre y no
+acepta la papelera como destino. Se borran a mano, tres clics cada una.
 
 **2. Decisiones abiertas, ninguna urgente:** escribir `PLAT-004` · el plan de cuentas por país · la
 cuenta de vigilancia.
@@ -130,6 +130,12 @@ cuenta de vigilancia.
 - **La revisión adversarial de `FLOW-002`.** Cerrada del todo.
 - **Si la jornada del 24 está desplegada.** Lo está, y §13 se comprobó con números en producción.
 - **`CF12`, `computeBalanceStatus`, la decisión contable R9/R15 (cerrada como D3).**
+- **Marcar `Queretarock` como conjunto de ejemplo.** Hecho el 24 de agosto de 2026: los nueve
+  están marcados y el script dice «No hay nada que marcar», con **0 conjuntos sin clasificar**.
+- **Si la credencial ADC está caducada.** No lo estaba. Lo que no responde es
+  `gcloud auth print-access-token`, que es **otra** (`gcloud auth login`, la del CLI). Los
+  scripts `.mjs` usan ADC y funcionan. **Comprobarlo corriendo el script en seco**, no
+  deduciéndolo de otro comando.
 
 ## LAS LECCIONES DE MÉTODO
 
