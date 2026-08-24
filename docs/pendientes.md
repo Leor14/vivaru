@@ -97,12 +97,10 @@ ya confirmado**. Mitigado desde el cliente mandando siempre `statementId` (`ebcf
 
 | Qué | Nota |
 |---|---|
-| **El arreglo de `writeAuditLog`** | Arriba. Es de `functions/` y es lo primero |
-| **La vista previa del reparto, al servidor** | §11.3. Hoy la propone el navegador (`src/features/billing/reparto.ts`, puro y probado) y el servidor sigue decidiendo — topa cada línea al saldo. Cuando exista la callable, ese fichero se borra entero |
-| `FLOW-002` en producción | Ni el código ni las banderas. Orden: **migrar saldos → reglas → functions → front** |
+| **1. Encender `producto-anticipos`, un conjunto cada vez** | **Es lo único que convierte el trabajo en producto.** Todo lo desplegado es inerte hasta esto. Decisión de David, y antes va el cobro de prueba de un solo cargo |
+| **2. La sesión de `functions/`: los dos cabos de `FLOW-002`** | **Son uno, no dos**: el arreglo de `writeAuditLog` y la callable de vista previa del reparto (§11.3) viven en la misma superficie. Hacerlos juntos evita dos despliegues de functions. Al cerrar el segundo, `src/features/billing/reparto.ts` **se borra entero** |
+| **3. `FIX-001` entrega 2** | Cierra la regla que deja al residente **escribir reservas directo**. Es el hueco de seguridad más viejo que queda abierto |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
-| Encender las banderas `producto-*` en producción | Sigue siendo decisión de David |
-| `FIX-001` entrega 2 | Cierra la regla que deja al residente escribir reservas directo |
 | `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
