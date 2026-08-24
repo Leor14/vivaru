@@ -18,7 +18,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { toast } from "sonner";
-import { normalizeFirebaseError, toastFirebaseError } from "@/lib/utils/error-handler";
+import { CallableError, normalizeFirebaseError, toastFirebaseError } from "@/lib/utils/error-handler";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -62,6 +62,42 @@ const ROOT = path.resolve(__dirname, "..");
 // ═══════════════════════════════════════════════════════════════════════════
 // BLOQUE 1 — normalizeFirebaseError() y toastFirebaseError()
 // ═══════════════════════════════════════════════════════════════════════════
+
+describe("CallableError — el mensaje del servidor llega a la pantalla", () => {
+  /**
+   * **El defecto, medido en staging el 24 de agosto de 2026.** El servidor
+   * devolvía «Ese cruce ya se deshizo», `executeCallable` lo componía bien y lo
+   * envolvía en un `Error` plano; aquí se tiraba, porque un `Error` plano no
+   * tiene `code` y caía en el genérico. En pantalla se leía «Ocurrió un error
+   * inesperado». Afectaba a TODAS las llamadas del producto.
+   *
+   * No lo cazó ninguna suite: las pruebas comprobaban que el servidor lanza el
+   * error correcto, y nadie miraba qué se pintaba.
+   */
+  it("respeta el mensaje ya escrito para leerse", () => {
+    expect(normalizeFirebaseError(new CallableError("Ese cruce ya se deshizo."))).toBe("Ese cruce ya se deshizo.");
+  });
+
+  it("y llega al toast, que es donde se veía el genérico", () => {
+    toastFirebaseError(new CallableError("Primero deshaz el cruce del 24 de agosto."));
+    expect(toast.error).toHaveBeenCalledWith("Primero deshaz el cruce del 24 de agosto.");
+  });
+
+  /**
+   * **Un `Error` a secas NO pasa**, y esa es la mitad que hace segura la
+   * excepción: el texto de una excepción interna enseñado al administrador es
+   * peor que no enseñar nada. Solo pasan los marcados como escritos para leerse.
+   */
+  it("un Error normal sigue cayendo en el genérico", () => {
+    expect(normalizeFirebaseError(new Error("TypeError: undefined is not a function"))).toBe(
+      "Ocurrió un error inesperado. Intenta de nuevo.",
+    );
+  });
+
+  it("un CallableError sin mensaje tampoco inventa nada", () => {
+    expect(normalizeFirebaseError(new CallableError(""))).toBe("Ocurrió un error inesperado. Intenta de nuevo.");
+  });
+});
 
 describe("normalizeFirebaseError()", () => {
   describe("known codes — without namespace prefix", () => {

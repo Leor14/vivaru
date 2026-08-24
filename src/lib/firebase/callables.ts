@@ -1,7 +1,7 @@
 import { httpsCallable } from "firebase/functions";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { normalizeFirebaseError } from "@/lib/utils/error-handler";
+import { CallableError, normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, functions } from "@/lib/firebase/client";
 // Solo el tipo: `import type` se borra al compilar, así que el módulo puro de
@@ -202,7 +202,7 @@ export async function createTrialWorkspaceCallable(input: {
     const response = await callable(input);
     return response.data;
   } catch (error) {
-    throw new Error(normalizeCallableError(error, "No fue posible crear tu ambiente de prueba. Intenta de nuevo."));
+    throw new CallableError(normalizeCallableError(error, "No fue posible crear tu ambiente de prueba. Intenta de nuevo."));
   }
 }
 
@@ -526,7 +526,7 @@ export async function activateAccountCallable(input: { token: string; password: 
     const result = await callable(input);
     return result.data;
   } catch (error) {
-    throw new Error(normalizeCallableError(error, "No fue posible activar la cuenta."));
+    throw new CallableError(normalizeCallableError(error, "No fue posible activar la cuenta."));
   }
 }
 
@@ -574,7 +574,10 @@ async function executeCallable<TInput, TResult>(
     if (process.env.NODE_ENV !== "production") {
       console.error("[callable] request failed", { input, error });
     }
-    throw new Error(normalizeCallableError(error, fallbackMessage));
+    // `CallableError` y no `Error`: es lo que le dice a `normalizeFirebaseError`
+    // que este mensaje ya está escrito para leerse y no debe sustituirlo por el
+    // genérico. Ver el defecto que documenta esa clase.
+    throw new CallableError(normalizeCallableError(error, fallbackMessage));
   }
 }
 
