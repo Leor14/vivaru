@@ -3,6 +3,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import {
+  CATEGORIAS_SOLO_ADMINISTRACION,
+  CATEGORIAS_VISIBLES_PARA_RESIDENTE,
+  elResidentePuedeVer,
+} from "@/features/documents/use-documents";
+
 /**
  * **La lista de documentos del residente enseñaba cero teniendo ocho.**
  *
@@ -88,5 +94,63 @@ describe("documentos · la pantalla pinta un campo que existe", () => {
     const pagina = codigo(path.resolve("src/app/(resident)/resident/documents/page.tsx"));
     expect(pagina).toMatch(/item\.fileName/);
     expect(pagina).not.toMatch(/item\.title/);
+  });
+});
+
+/**
+ * **El residente no puede ver los archivos financieros.**
+ *
+ * `documents` mezcla el reglamento y las actas con lo que genera
+ * `monthlyFinancialArchive`, y eso lleva detalle POR UNIDAD: la hoja «Morosos»
+ * del histórico de cartera y los «mayores deudores» del reporte de comité. En
+ * producción, de 39 documentos, **32 son de esos dos tipos**.
+ *
+ * Es la misma clase que se cerró el 24 de agosto en `FLOW-002`, cuando al
+ * consejo se le retiró `advances` por dar detalle por unidad en vez del
+ * agregado. Aquí entraba por otra puerta.
+ */
+describe("documentos · el residente no ve lo financiero", () => {
+  it("esconde el histórico de cartera y el reporte de comité", () => {
+    expect(elResidentePuedeVer({ category: "financiero" })).toBe(false);
+    expect(elResidentePuedeVer({ category: "reporte" })).toBe(false);
+    expect(elResidentePuedeVer({ category: "comprobante" })).toBe(false);
+  });
+
+  it("y sí enseña lo que la página promete", () => {
+    expect(elResidentePuedeVer({ category: "otro" })).toBe(true);
+    expect(elResidentePuedeVer({ category: "reglamento" })).toBe(true);
+    expect(elResidentePuedeVer({ category: "asamblea" })).toBe(true);
+    expect(elResidentePuedeVer({ category: "comunicado" })).toBe(true);
+  });
+
+  it("un documento SIN categoría no se enseña: no se sabe qué es", () => {
+    expect(elResidentePuedeVer({})).toBe(false);
+    expect(elResidentePuedeVer({ category: undefined })).toBe(false);
+  });
+
+  /**
+   * **Que la taxonomía no crezca en silencio.** El día que alguien añada una
+   * categoría a `DocumentCategory` y no la clasifique, esta prueba se pone roja
+   * en vez de dejar que el producto decida por omisión.
+   */
+  it("toda la taxonomía está clasificada: ni una categoría sin decidir", () => {
+    const servicios = fs.readFileSync(path.resolve("src/features/admin/services.ts"), "utf8");
+    const union = servicios.slice(servicios.indexOf("export type DocumentCategory"));
+    const taxonomia = (union.slice(0, union.indexOf(";")).match(/"([a-z]+)"/g) ?? []).map((c) => c.replaceAll('"', ""));
+
+    expect(taxonomia.length).toBeGreaterThan(5);
+    const clasificadas = new Set<string>([
+      ...CATEGORIAS_VISIBLES_PARA_RESIDENTE,
+      ...CATEGORIAS_SOLO_ADMINISTRACION,
+    ]);
+    const sinDecidir = taxonomia.filter((c) => !clasificadas.has(c));
+    expect(sinDecidir).toEqual([]);
+  });
+
+  it("ninguna categoría está en las dos listas a la vez", () => {
+    const solapadas = CATEGORIAS_VISIBLES_PARA_RESIDENTE.filter((c) =>
+      (CATEGORIAS_SOLO_ADMINISTRACION as readonly string[]).includes(c),
+    );
+    expect(solapadas).toEqual([]);
   });
 });

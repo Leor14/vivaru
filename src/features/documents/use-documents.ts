@@ -8,6 +8,53 @@ import type { TenantDocument } from "@/types/domain";
 import { toLocalDate } from "@/utils/date";
 
 /**
+ * **Qué documentos ve el residente, por categoría.**
+ *
+ * `documents` es UNA colección con contenido mezclado: el reglamento y las
+ * actas conviven con los archivos que genera `monthlyFinancialArchive`. Y esos
+ * llevan **detalle financiero por unidad** — la hoja «Morosos» del histórico de
+ * cartera dice qué unidad debe y cuánto, y el reporte de comité trae «mayores
+ * deudores». Sin filtro, cualquier residente se los descarga.
+ *
+ * **ESTO NO ES UNA FRONTERA DE SEGURIDAD, y no hay que confundirlo con una.**
+ * `firestore.rules` concede `documents` a `sameTenant` y `storage.rules` pone la
+ * carpeta entre las compartidas: con esas reglas, un residente puede leer el
+ * documento y su `fileUrl` sin pasar por esta pantalla. Esto es un paliativo que
+ * honra lo que la página dice que muestra, mientras se decide la regla.
+ *
+ * **Lista BLANCA a propósito.** Con lista negra, una categoría nueva se
+ * publicaría sola el día que alguien la añada; con blanca, como mucho se esconde
+ * algo, que se nota y se corrige. Un documento sin categoría tampoco se enseña:
+ * no se sabe qué es. El guardián de `tests/documentos-residente.test.ts`
+ * comprueba que toda la taxonomía esté clasificada, para que no crezca en
+ * silencio.
+ */
+export const CATEGORIAS_VISIBLES_PARA_RESIDENTE = [
+  "asamblea",
+  "comunicado",
+  "acuerdo",
+  "reglamento",
+  "plano",
+  "memoria",
+  "otro",
+] as const;
+
+/** Las de administración. Ninguna llega al portal del residente. */
+export const CATEGORIAS_SOLO_ADMINISTRACION = [
+  "financiero",
+  "reporte",
+  "comprobante",
+  "contrato",
+  "legal",
+] as const;
+
+const VISIBLES = new Set<string>(CATEGORIAS_VISIBLES_PARA_RESIDENTE);
+
+export function elResidentePuedeVer(doc: { category?: string }): boolean {
+  return typeof doc.category === "string" && VISIBLES.has(doc.category);
+}
+
+/**
  * Documentos del conjunto, para el portal del residente.
  *
  * **Se piden SIN `orderBy` y se ordenan en memoria.** Es el patrón de
@@ -50,11 +97,13 @@ export function useDocuments(tenantId?: string) {
   // final en vez de desaparecer, que es justo el defecto que esto corrige.
   const ordenados = useMemo(
     () =>
-      [...items].sort((a, b) => {
-        const fa = toLocalDate(a.createdAt)?.getTime() ?? -Infinity;
-        const fb = toLocalDate(b.createdAt)?.getTime() ?? -Infinity;
-        return fb - fa;
-      }),
+      items
+        .filter(elResidentePuedeVer)
+        .sort((a, b) => {
+          const fa = toLocalDate(a.createdAt)?.getTime() ?? -Infinity;
+          const fb = toLocalDate(b.createdAt)?.getTime() ?? -Infinity;
+          return fb - fa;
+        }),
     [items],
   );
 
