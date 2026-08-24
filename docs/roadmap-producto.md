@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.21 |
-| **Fecha** | 24 de agosto de 2026 (madrugada) |
-| **Estado** | **`FLOW-002` TIENE TODO SU SERVIDOR CONSTRUIDO Y VERIFICADO CONTRA LA BASE.** Ocho incrementos en `develop` (`7937900`) cierran los tres defectos de la PRD: el sobrepago deja saldo a favor (D-A), un pago cubre varios cargos (D-B) y el asiento guarda a qué cuenta entró el dinero —en los **dos** sitios, pago y reverso (D-C)—. Con ellos, el ciclo de vida del anticipo completo: nace, se cruza, se descruza, se anula y se va con su pago. **Staging desplegado con las dos banderas encendidas y 25 comprobaciones en verde contra la base real.** **Producción no se ha tocado.** Lo siguiente es la **sesión B, el front**, que es otra superficie |
-| **Verificado contra** | **La base de un ambiente real, con un recorrido largo — no con la suite.** Las 74 pruebas de emulador corren contra datos que se inventa la propia prueba; el script de verificación corre la misma lógica desplegada contra el plan sembrado, las banderas resueltas por override y las cuentas bancarias de verdad. **Encontró un defecto que la suite no veía** (R8). Y cada incremento se probó **por falsación**: rompiendo el código a propósito y comprobando que se pusieran rojas exactamente las pruebas que debían |
+| **Versión** | 0.9.22 |
+| **Fecha** | 24 de agosto de 2026 (noche) |
+| **Estado** | **`FLOW-002` ESTÁ CONSTRUIDA ENTERA: servidor y front.** La sesión B (`develop` = `ebcfbc2`) cierra el paso 3 del §13 — vista de anticipos con cruce, deshacer y anulación; reparto entre varios cargos con la propuesta de R7 editable; saldo a favor en el portal del residente; cuenta bancaria en el cobro y en el comprobante; y el «% de recaudo» de R16, que **mide liquidación y ya no ingreso**. **Producción no se ha tocado**, y las banderas siguen apagadas allí. Hizo falta un cambio de alcance que la PRD no preveía: `bankAccounts` era solo-administrador y CA11 no se podía construir sin abrirlo, así que **el saldo inicial salió del documento** a `bankAccountBalances` — decisión de David— porque las reglas conceden el documento entero |
+| **Verificado contra** | **La pantalla, entrando por el navegador con una sesión real — no la suite.** Un sobrepago de 800 sobre 500 dejó 300 a favor; cruzar 300 contra un cargo de 200 aplicó 200 y lo dijo (CF12); el cargo quedó saldado con **abono cero** (CA14) y el mes marcó **100 % de recaudo** (CA16, R16); un reparto de 400 entre dos cargos dejó 150 + 200 y 50 a favor (R1). **Y destapó dos defectos que 1150 pruebas en verde no veían**: ningún mensaje de error del servidor llegaba a la pantalla, y un reparto aplicaba el dinero y devolvía error —porque la auditoría se escribe FUERA de la transacción y reventaba con un campo `undefined`—. Lo único no mirado es el portal del residente: hace falta una sesión de residente |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -47,6 +47,20 @@ la fuerza en Fundaciones.
 
 **Qué cambió en esta revisión:**
 
+- **`FLOW-002`, el front (sesión B), en siete incrementos.** El saldo inicial fuera del documento
+  de la cuenta · tipos, callables y el reparto de R7 en un módulo puro · el «% de recaudo» de R16
+  · la vista de anticipos · el reparto y la cuenta bancaria en el cobro · el saldo a favor del
+  residente · y los dos defectos que salieron de mirar. **Todo detrás de las mismas dos banderas
+  apagadas.**
+- **El «% de recaudo» dejó de responder a dos preguntas con un número.** «Cuánto dinero entró» y
+  «cuánto de lo facturado está saldado» se separan en cuanto existen anticipos: una unidad que
+  cubre julio con un anticipo de junio salía al **0 % con la cuota saldada**. El porcentaje pasa a
+  medir liquidación; el recaudado sigue siendo el dinero que entró. Cupo en un solo sitio porque
+  VIV-1103 ya había unificado la fórmula.
+- **Un error puede ocurrir DESPUÉS de que la escritura cuaje**, y los dos defectos de la sesión
+  son ese mismo animal: la operación de dinero se confirma y algo posterior falla, así que la
+  pantalla miente en la dirección más cara. **Al revisar un camino de dinero hay que mirar qué
+  pasa después del `commit`, no solo dentro.**
 - **`FLOW-002`, todo el servidor, en ocho incrementos.** Reglas · tipos y cuenta `1.10` ·
   `bankAccountId` en los dos asientos · los dos espejos de `calcularSaldo` · el anticipo por
   sobrepago · cruce y descruce · R15 y R9 · el reparto a varios cargos. **Todo detrás de dos

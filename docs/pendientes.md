@@ -4,63 +4,71 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 24 de agosto de 2026 (madrugada)
+## LO PRIMERO AL ABRIR SESIÓN — 24 de agosto de 2026 (noche)
 
-**`origin/develop` = `7937900`. `origin/master` = `5d6df95`.** Releer los dos: se mueven por
-separado, y **el 23 `develop` se movió dos veces sin que lo empujara la sesión**. Comprobar con
-`git ls-remote`, que no depende de la caché local. Árbol limpio.
+**`origin/develop` = `ebcfbc2`. `origin/master` = `5d6df95`.** Releer los dos: se mueven por
+separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árbol limpio.
 
-**LA SESIÓN A DE `FLOW-002` ESTÁ TERMINADA Y VERIFICADA CONTRA LA BASE.** Ocho incrementos, todo
-el servidor de anticipos: reglas, tipos, `bankAccountId` en los dos asientos, los dos espejos de
-`calcularSaldo`, el anticipo por sobrepago, cruce y descruce, R15 y R9, y el reparto a varios
-cargos con su reverso de N líneas. **Los tres defectos de la PRD —D-A, D-B, D-C— corregidos.**
-
-**Staging tiene todo desplegado y las dos banderas encendidas** en `conjunto-las-playas`
-(`producto-anticipos` y `producto-pago-multiple`). **25 comprobaciones en verde contra la base
-real**, con `functions/scripts/verificar-anticipos.mjs`, y **cero restos**: el script borra sus
-documentos y se comprobó uno a uno.
+**`FLOW-002` ESTÁ CONSTRUIDA ENTERA — servidor (sesión A) y front (sesión B).** El paso 3 del
+§13 está hecho: vista de anticipos con cruce, deshacer y anulación; reparto entre varios cargos
+con la propuesta de R7 editable; saldo a favor en el portal del residente; cuenta bancaria en el
+cobro y en el comprobante; y el «% de recaudo» de R16, que **mide liquidación y ya no ingreso**.
 
 **PRODUCCIÓN NO SE HA TOCADO.** `master` sigue en `5d6df95` y sus banderas `producto-*` siguen
 apagadas. El código de `FLOW-002` **no está allí**.
 
-## LO SIGUIENTE — SESIÓN B, el front
+### Lo que hizo falta y la PRD no preveía
 
-**Superficie:** `src/` y el árbol duplicado de la raíz. **Ni un fichero de `functions/`.**
+**`bankAccounts` era solo-administrador, así que CA11 no se podía construir.** Las reglas de
+Firestore conceden el documento entero —no se pueden ocultar campos—, así que abrir esa lectura
+con `openingBalance` dentro le habría enseñado a cada residente con cuánto dinero abrió cada
+cuenta el conjunto. **Decisión de David (24 ago): sacar el saldo del documento**, a
+`bankAccountBalances`, y abrir `bankAccounts` a los miembros pero solo las cuentas activas.
+Salió mucho más barato de lo estimado: `openingBalance` **no lo leía nadie**.
+
+**El orden de despliegue importa y ya está escrito en el script.** Migrar ANTES de desplegar las
+reglas; al revés queda una ventana en la que el saldo se lee. En staging ya está hecho y
+verificado contra la base (0 cuentas con el campo, 5 documentos de saldo).
+**En producción está PENDIENTE, y va antes que las reglas.**
+
+## LO QUE ENCONTRÓ MIRAR, Y NINGUNA SUITE VEÍA
+
+**1. El mensaje del servidor no llegaba a la pantalla. Ninguno.** `executeCallable` componía el
+texto bien y lo envolvía en un `Error` plano; `normalizeFirebaseError` busca `error.code`, no lo
+encontraba y devolvía «Ocurrió un error inesperado». **Afectaba a TODAS las llamadas del
+producto**, no solo a los anticipos. Cerrado con `CallableError` (`fe839f7`). Duele especialmente
+aquí: CF1–CF4 y R8 existen para DECIR qué bloquea, y todos se veían igual.
+
+**2. Un reparto aplicaba el dinero y devolvía error.** `applyPayment` audita FUERA de la
+transacción y `writeAuditLog` escribía `statementId: undefined`; `initializeApp()` corre sin
+`ignoreUndefinedProperties`, Firestore rechaza la escritura y la callable revienta **con el pago
+ya confirmado**. Mitigado desde el cliente mandando siempre `statementId` (`ebcfbc2`).
+
+> **EL ARREGLO DE VERDAD SIGUE PENDIENTE Y VA EN `functions/`.** El agujero está abierto para
+> cualquiera que llame con `allocations` a secas, y **el patrón es general**: cualquier
+> `writeAuditLog` con un campo opcional ausente revienta igual, siempre después de haber
+> escrito. Dos opciones: `initializeApp({ ignoreUndefinedProperties: true })`, o limpiar el
+> metadata en `writeAuditLog`. **La segunda es la buena** — la primera esconde el mismo error en
+> todas las escrituras del proyecto. Conviene barrer las demás llamadas a `writeAuditLog`
+> buscando campos opcionales.
+
+## LO SIGUIENTE
 
 | Qué | Nota |
 |---|---|
-| Vista de anticipos abiertos | **Es la herramienta de G5.** Sin ella el dinero se queda parado y nadie se entera |
-| Saldo a favor del residente | CA2. Lo ve en su portal, y de qué pago viene |
-| Reparto entre varios cargos | El servidor ya lo acepta; falta la pantalla y el reparto sugerido de R7 |
-| Cuenta bancaria en el pago y en el comprobante | CA10 y CA11. El servidor ya la valida |
-| **El «% de recaudo» de R16** | `amount − balance`, no `paymentAmount`. **Va con el paso 3, no después** |
-
-**B se cierra abriendo la pantalla por el navegador**, con la sesión de David — no con la suite.
-
-### Tres cosas que la sesión A dejó anotadas y no resueltas
-
-| Qué | Por qué importa |
-|---|---|
-| **La vista previa del reparto no existe** | §11.3 recomienda que el cliente la pida al servidor en vez de calcularla. Hoy el orden de R7 —del más antiguo al más nuevo— lo decide quien llame. Si la B lo calcula en el navegador, se duplica la aritmética del dinero |
-| **`CF12` de la PRD se contradice** | Dice «rechazado» y «se limita al saldo» en la misma línea. **Manda §5.3: se limita**, y así está construido. Hay que reescribir el criterio |
-| **`computeBalanceStatus` no lo usa nadie** | Medido en todo el repositorio. Está al día con la aritmética nueva, pero es decisión abierta: cablearlo en la B o borrarlo |
-
-## LO QUE SIGUE SIN HACERSE, dicho para que no se lea como hecho
-
-| Qué | Nota |
-|---|---|
-| **`FLOW-002` en producción** | Ni el código ni las banderas. Va después de la sesión B, y el orden es reglas → functions → front |
+| **El arreglo de `writeAuditLog`** | Arriba. Es de `functions/` y es lo primero |
+| **La vista previa del reparto, al servidor** | §11.3. Hoy la propone el navegador (`src/features/billing/reparto.ts`, puro y probado) y el servidor sigue decidiendo — topa cada línea al saldo. Cuando exista la callable, ese fichero se borra entero |
+| **El portal del residente, sin mirar** | Es lo único de la sesión B **no validado por navegador**: hace falta una sesión de residente y el agente no teclea contraseñas. Las reglas sí están probadas con el emulador, con la forma de consulta real |
+| `FLOW-002` en producción | Ni el código ni las banderas. Orden: **migrar saldos → reglas → functions → front** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | Encender las banderas `producto-*` en producción | Sigue siendo decisión de David |
 | `FIX-001` entrega 2 | Cierra la regla que deja al residente escribir reservas directo |
-| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` — y `FLOW-002` ya le da lectura de anticipos en las reglas, así que **la intención declarada creció otra vez** |
+| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
-| El plan de cuentas por país | Aparcado a propósito |
-| La cuenta de vigilancia en la semilla | Decisión de David ANTES de sembrar en producción |
+| El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
+| Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules` piden compuesto y salen en consola. Son anteriores a esta sesión |
 
 ## QUÉ HACE FALTA DE DAVID
-
-**Nada bloquea la sesión B.**
 
 **1. Una decisión contable que tomé y conviene que revises.** Anular un anticipo (R9) **no baja
 el ingreso**; revertir el pago que lo creó (R15) **sí**. El razonamiento: §4 excluye devolver el
@@ -68,32 +76,41 @@ dinero porque es un egreso de otra PRD, así que anular deja el dinero dentro de
 que desaparece es el crédito de esa unidad. Si prefieres que anular también revierta el asiento,
 son pocas líneas — pero entonces el estado financiero diría que entraron 140 con 200 en el banco.
 
-**2. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
-`PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia · qué hacer con
-`computeBalanceStatus`.
+**2. Mirar el portal del residente**, o darme una forma de entrar que no sea teclear una clave.
 
-### Lo que NO hace falta pedir
+**3. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
+`PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.
+
+### Lo que YA NO hay que pedir ni volver a mirar
 
 - **Acceso al navegador.** Entrar por Chrome con la sesión de David funciona y es repetible.
 - **El roadmap Albert–Vivaru de Notion.** Da 404: vive en otro workspace.
+- **`CF12`.** La nota decía «se contradice, hay que reescribirlo»: **ya estaba reescrito** en la
+  v1.3, en el mismo commit que escribió la nota (`e63aef4`).
+- **`computeBalanceStatus`.** Era «cablearlo o borrarlo»: **cableado**, lo usa `deudaDelCargo`.
 
-## LAS LECCIONES DE MÉTODO, que aplican a lo siguiente que se escriba
+## LAS LECCIONES DE MÉTODO
 
-**Las cuatro del 23 siguen vigentes** —el guardián sostiene la decisión, un campo escribible por
-el cliente no sostiene un invariante, un criterio que mide el mecanismo pasa en verde con el
-resultado mal, y los números de línea caducan en un día—. **La sesión A añadió tres:**
+**Siguen vigentes las del 23 y las tres de la sesión A** —el guardián sostiene la decisión; un
+campo escribible por el cliente no sostiene un invariante; un criterio que mide el mecanismo pasa
+en verde con el resultado mal; los números de línea caducan en un día; la suite no encadena; un
+verde no vale sin falsación; el typecheck no ve los `.mjs`—. **La sesión B añade cuatro:**
 
-1. **La suite no ENCADENA.** El defecto de R8 necesitó cinco operaciones seguidas —pagar,
-   cruzar, descruzar, anular, revertir— para aparecer. Cada tramo estaba probado y bien; lo que
-   fallaba era la secuencia. Verificar contra la base con un recorrido largo encuentra lo que
-   ninguna prueba unitaria alcanza.
-2. **Un verde no vale sin falsación.** Cada incremento de la A se probó rompiendo el código a
-   propósito y comprobando que se pusieran rojas **exactamente** las pruebas que debían. Dos
-   veces salvó de un verde falso: el `evaluation error` de las reglas y CA6 pasando con el
-   ingreso inflado.
-3. **El typecheck no ve los `.mjs`.** El catálogo de banderas vive en cuatro sitios y **dos son
-   scripts**. Decir «las cuatro cuadran» mirando el compilador es decirlo de dos. Se comprueba
-   con `grep`, no con `tsc`.
+1. **Un error puede ocurrir DESPUÉS de que la escritura cuaje.** Los dos defectos de hoy son el
+   mismo animal: la operación de dinero se confirma y algo posterior —una auditoría, una
+   traducción de mensaje— falla, así que la pantalla miente en la dirección más cara. **Al
+   revisar un camino de dinero, mirar qué pasa después del `commit`, no solo dentro.**
+2. **Una prueba de reglas que pide documento a documento no prueba la pantalla.** Firestore
+   evalúa la consulta contra la regla **sin ejecutarla**: puede fallar entera aunque cada
+   documento se lea bien. Las de esta sesión ejercen la forma exacta de consulta del producto.
+3. **Un guardián de texto hay que falsarlo, o vigila lo que no crees.** El extractor de cuerpos
+   leía la lista de campos del parámetro en vez del código: habría pasado en verde para siempre.
+4. **Una conclusión correcta sobre la mitad de un caso es una conclusión falsa.** Vi que la
+   auditoría lee `statementId` y deduje bien qué mandar con un cargo; la otra mitad —que con
+   reparto ese campo se queda en `undefined` y ROMPE la escritura— no la vi leyendo. La vio la
+   pantalla.
+
+
 ---
 
 # Historial — jornada del 23 de agosto

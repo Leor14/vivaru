@@ -92,6 +92,8 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
 - **`unitId` de personas = doc id de la unidad, no el slug.** Usar el slug hace `updateDoc(units/<slug>)` sobre un doc inexistente → `permission-denied` engañoso ("No tienes permiso").
 - **Árbol duplicado en la raíz:** además de `src/`, hay `components/` y `features/` en la RAÍZ del repo. El portal residente importa de la raíz (p. ej. `components/features/resident/ResidentSecuritySection.tsx`, `features/resident/schemas.ts`). Verificar de cuál se importa antes de editar.
 - **Aislar widgets/tableros con `WidgetErrorBoundary`** (`src/components/shared/widget-error-boundary.tsx`): toda sección de dashboard/tablero que consuma datos del tenant —en especial charts de **recharts**— debe ir envuelta, para que un fallo de un widget NO tumbe toda la ruta `/admin` (su `error.tsx` muestra "No pudimos cargar el workspace"). El único error boundary de ruta convierte cualquier throw de un widget en una pantalla de error global.
+- **`writeAuditLog` revienta con un campo `undefined`, y audita FUERA de la transacción.** `initializeApp()` corre sin `ignoreUndefinedProperties`, así que un campo opcional ausente en el `metadata` hace que Firestore rechace la escritura **después de que la operación haya cuajado**: el dinero se mueve y la callable devuelve error. Pasó con `applyPayment` y un reparto (24 ago 2026). Al añadir un campo opcional al metadata de una auditoría, mandarlo siempre o limpiarlo antes.
+- **Una consulta de `bankAccounts` que no haga un administrador TIENE que filtrar `active == true`.** Desde `FLOW-002` la lectura está abierta a los miembros del conjunto pero solo para cuentas activas, y Firestore evalúa la consulta contra la regla **sin ejecutarla**: sin ese `where` se rechaza entera aunque todas estuvieran activas. El saldo inicial vive aparte, en `bankAccountBalances`, y ese sí es solo-administrador.
 - **Tenant siempre con `currency` válido** (`COP`|`MXN`|`USD`): cualquier alta/seed de un tenant debe escribir `currency`; los formateadores (`Intl.NumberFormat`, `useTenantCurrency`) deben defaultear a un valor válido y nunca recibir `undefined`.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
@@ -167,31 +169,35 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**`origin/develop` = `7937900`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven por
+**`origin/develop` = `ebcfbc2`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven por
 separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**. Un push
 sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende de la caché.
 
-**`FLOW-002` (anticipos): la SESIÓN A —todo el servidor— está terminada y verificada contra la
-base.** Ocho incrementos en `develop`: reglas de `advances`/`advanceApplications` y el veto de
-`advanceAppliedAmount`, los tipos y la cuenta `1.10`, `bankAccountId` en los **dos** asientos, los
-dos espejos de `calcularSaldo`, el anticipo por sobrepago, cruce y descruce, R15 y R9, y el
-reparto a varios cargos con su reverso de N líneas. **Los tres defectos —D-A, D-B, D-C—
-corregidos.** Lo siguiente es la **sesión B: el front**, que es otra superficie.
+**`FLOW-002` (anticipos) está CONSTRUIDA ENTERA: servidor y front.** La sesión A dejó el
+servidor; la B (24 ago) dejó el paso 3 del §13 — vista de anticipos con cruce, deshacer y
+anulación; reparto entre varios cargos con la propuesta de R7 editable; saldo a favor del
+residente; cuenta bancaria en el cobro y en el comprobante; y el «% de recaudo» de R16, que
+**mide liquidación y ya no ingreso**. Todo verificado por navegador contra staging salvo el
+portal del residente, que necesita una sesión de residente.
 
-**Staging desplegado y con las dos banderas encendidas** en `conjunto-las-playas`
-(`producto-anticipos`, `producto-pago-multiple`). **25 comprobaciones en verde contra la base
-real** con `functions/scripts/verificar-anticipos.mjs` — un script no destructivo que corre la
-misma lógica que está desplegada, crea sus documentos, los usa y los borra.
+**`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo leen
+ahora **todos los miembros del conjunto, pero solo las cuentas activas** — lo pide CA11, para que
+el residente diga a qué cuenta pagó. Para poder abrirlo, `openingBalance` **salió del documento**
+a `bankAccountBalances/{idDeLaCuenta}`, que sigue siendo solo-administrador: las reglas conceden
+el documento entero y no se pueden ocultar campos. **Una consulta de cuentas hecha por alguien
+que no es administrador TIENE que filtrar `active == true`**, o Firestore la rechaza entera.
 
 **PRODUCCIÓN NO TIENE `FLOW-002`.** `master` en `5d6df95`, y las cinco banderas `producto-*`
-siguen apagadas allí (sin documento en `featureFlags`).
+siguen apagadas allí. El orden para llevarla: **migrar saldos → reglas → functions → front**
+(`scripts/mover-saldo-inicial-de-cuentas.mjs` va ANTES de las reglas, y lo explica dentro).
 
-**El reloj del 1 de septiembre está apagado** desde el 23: el código correctivo del informe de
-comité y los 57 índices están en producción, y `monthlyFinancialArchive` ya no archiva un PDF con
-doble conteo.
+**Dos defectos abiertos que encontró mirar la pantalla, no la suite.** El del mensaje de error ya
+está cerrado (`CallableError`); el de `writeAuditLog` está **mitigado desde el cliente y NO
+arreglado** — audita fuera de la transacción y revienta con un campo `undefined`, así que la
+operación cuaja y la llamada devuelve error. Detalle y arreglo propuesto en `docs/pendientes.md`.
 
-Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.21) y
-`docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md`.
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` y
+`docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` (v1.4).
 
 ### Lo que ninguna suite puede cazar, y por qué importa aquí
 
