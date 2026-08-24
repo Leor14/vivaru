@@ -169,7 +169,7 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**`origin/develop` = `ebcfbc2`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven por
+**`origin/develop` = `a25b77d`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven por
 separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**. Un push
 sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende de la caché.
 

@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 24 de agosto de 2026 (noche)
 
-**`origin/develop` = `ebcfbc2`. `origin/master` = `5d6df95`.** Releer los dos: se mueven por
+**`origin/develop` = `a25b77d`. `origin/master` = `5d6df95`.** Releer los dos: se mueven por
 separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árbol limpio.
 
 **`FLOW-002` ESTÁ CONSTRUIDA ENTERA — servidor (sesión A) y front (sesión B).** El paso 3 del
