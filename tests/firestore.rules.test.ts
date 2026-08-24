@@ -2051,6 +2051,60 @@ describe("FLOW-002 · anticipos: el cliente lee, el servidor escribe", () => {
     await assertFails(getDoc(doc(ajeno.firestore(), "advanceApplications", "advapp-1")));
   });
 
+  /**
+   * **La CONSULTA, que es lo que hace la pantalla.** Las pruebas de arriba piden
+   * documento a documento, y el panel de anticipos no hace eso: lanza una
+   * consulta. Firestore la evalúa contra la regla **sin ejecutarla**, así que una
+   * consulta puede fallar entera aunque cada documento por separado se lea bien.
+   * Es el mismo agujero que dejó seis pruebas de reglas en verde con la pantalla
+   * rota, porque escribían con `setDoc` y el producto usaba una transacción.
+   */
+  it("el administrador consulta los anticipos de su conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      getDocs(query(collection(admin.firestore(), "advances"), where("tenantId", "==", "tenant-a"))),
+    );
+    await assertSucceeds(
+      getDocs(query(collection(admin.firestore(), "advanceApplications"), where("tenantId", "==", "tenant-a"))),
+    );
+  });
+
+  /**
+   * CF10 y CF7 en forma de consulta. El residente **tiene que** filtrar por su
+   * unidad: sin ese `where`, la consulta se rechaza entera aunque el resultado
+   * fuese a ser el mismo, y el portal se quedaría sin saldo a favor con un
+   * `permission-denied` que parece un fallo de sesión.
+   */
+  it("el residente consulta CON el filtro de su unidad, y sin él se le rechaza entera", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(res.firestore(), "advances"),
+          where("tenantId", "==", "tenant-a"),
+          where("unitId", "==", "unit-t2-503"),
+        ),
+      ),
+    );
+    await assertFails(
+      getDocs(query(collection(res.firestore(), "advances"), where("tenantId", "==", "tenant-a"))),
+    );
+  });
+
+  // Y no le vale filtrar por la unidad de OTRO, que es el intento evidente.
+  it("ni filtrando por la unidad de un vecino", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      getDocs(
+        query(
+          collection(res.firestore(), "advances"),
+          where("tenantId", "==", "tenant-a"),
+          where("unitId", "==", "unit-t1-101"),
+        ),
+      ),
+    );
+  });
+
   it("nadie crea un cruce desde el cliente", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(

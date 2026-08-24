@@ -68,6 +68,7 @@ import { PeriodFilter } from "@/components/features/finanzas/period-filter";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
 import { TableroCarousel } from "@/components/features/finanzas/tablero-carousel";
 import { Dialog } from "@/components/ui/dialog";
+import { AdvancesPanel } from "@/components/features/billing/AdvancesPanel";
 import { PaymentReceiptsReviewPanel } from "@/components/features/billing/PaymentReceiptsReviewPanel";
 import { createCommunication, createDocumentRecord } from "@/features/admin/services";
 import { storage } from "@/lib/firebase/client";
@@ -243,6 +244,10 @@ function AdminBillingPageContent() {
   const [chargeMode, setChargeMode] = useState<"individual" | "batch">("individual");
   const [coefficientDialogOpen, setCoefficientDialogOpen] = useState(false);
   const cobroPorCoeficiente = useFeatureFlag("producto-cobro-por-coeficiente");
+  // FLOW-002. La bandera esconde la vista, no la protege: quien manda es
+  // `assertFeatureEnabled` en el servidor. Aqui solo evita ensenar una seccion
+  // que no puede operar.
+  const anticipos = useFeatureFlag("producto-anticipos");
   const vocab = useTenantVocabulary();
   const [scheduledFor, setScheduledFor] = useState("");
   const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
@@ -1323,6 +1328,15 @@ function AdminBillingPageContent() {
           />
         </TableroCarousel>
       </div>
+
+      {anticipos ? (
+        // Envuelto como todo lo que consume datos del conjunto: sin el, un fallo
+        // leyendo anticipos tumba la ruta /admin entera y el administrador ve
+        // «No pudimos cargar el workspace» en vez de perder una seccion.
+        <WidgetErrorBoundary label="los anticipos">
+          <AdvancesPanel tenantId={user?.tenantId} statements={items} formatAmount={formatAmount} />
+        </WidgetErrorBoundary>
+      ) : null}
 
       <WidgetErrorBoundary label="la revisión de comprobantes">
         <PaymentReceiptsReviewPanel
