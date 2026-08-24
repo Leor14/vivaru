@@ -179,8 +179,12 @@ anulación; reparto entre varios cargos con la propuesta de R7 editable; saldo a
 residente; cuenta bancaria en el cobro y en el comprobante; y el «% de recaudo» de R16, que
 **mide liquidación y ya no ingreso**. **Verificado por navegador contra staging, los dos
 portales** — el del residente con una sesión suya el 24 por la noche: el saldo a favor suma sus
-anticipos y **no el de la vecina**, y el comprobante se escribió con la cuenta que eligió. Queda
-sin mirar una sola fila: el panel de revisión del administrador enseñando esa cuenta declarada.
+anticipos y **no el de la vecina**, y el comprobante se escribió con la cuenta que eligió, que al
+aprobarla llega al asiento. **No queda nada sin mirar.**
+
+**Al probar aprobaciones de comprobante en staging, usar una unidad sin residente vinculado**
+(`t1-101`, `t1-102` y `t2-201` sí lo tienen; las demás no): aprobar crea un recibo y
+`onPaymentVoucherCreated` manda correo a los residentes de esa unidad.
 
 **`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo leen
 ahora **todos los miembros del conjunto, pero solo las cuentas activas** — lo pide CA11, para que

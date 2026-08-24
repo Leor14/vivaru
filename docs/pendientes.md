@@ -50,9 +50,18 @@ diálogo de archivos del sistema, que el agente no puede manejar, así que el ar
 el `input` y el comprobante salió **sin `statementId`**. Ese enlace es anterior a esta entrega y
 no se tocó. Si alguien quiere cerrarlo, se hace a mano en dos clics.
 
-**Sigue sin mirar la otra mitad de CA11:** el panel de revisión del administrador enseñando «El
-residente dice que pagó a …» y llevando esa cuenta al asiento al aprobar. Necesita volver a la
-sesión de administrador. El dato ya está escrito; lo que falta es ver la fila.
+**Y la otra mitad de CA11 también, volviendo a la sesión de administrador:** la fila enseña «El
+residente dice que pagó a Cuenta operativa» y el selector viene preseleccionado con lo declarado;
+al aprobar, **el asiento guarda `bankAccountId` con `paymentSource: receipt`** — que es justo la
+ruta que antes escribía `null` SIEMPRE. **D-C queda cerrado de punta a punta.**
+
+**No queda nada de `FLOW-002` sin mirar.** Diez criterios comprobados en pantalla contra la base
+real: CA1, CA2, CA3, CA8, CA10, CA11, CA12, CA14, CA16, CF5, CF7 y CF12.
+
+**Una precaución que hay que repetir al probar aprobaciones:** aprobar un comprobante crea un
+recibo, y `onPaymentVoucherCreated` **manda correo a los residentes de esa unidad**. Se usó
+`T2-203`, que no tiene ninguno vinculado. Las unidades con residente en staging son `t1-101`,
+`t1-102` y `t2-201`; las demás no.
 
 ## LO QUE ENCONTRÓ MIRAR, Y NINGUNA SUITE VEÍA
 
@@ -98,11 +107,7 @@ dinero porque es un egreso de otra PRD, así que anular deja el dinero dentro de
 que desaparece es el crédito de esa unidad. Si prefieres que anular también revierta el asiento,
 son pocas líneas — pero entonces el estado financiero diría que entraron 140 con 200 en el banco.
 
-**2. Un vistazo de treinta segundos con la sesión de administrador:** aprobar un comprobante que
-traiga cuenta declarada, para ver la fila «El residente dice que pagó a …» y que el asiento la
-conserve. Es la única mitad de CA11 sin mirar.
-
-**3. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
+**2. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
 `PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.
 
 ### Lo que YA NO hay que pedir ni volver a mirar
