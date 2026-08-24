@@ -14,11 +14,22 @@ separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árb
 con la propuesta de R7 editable; saldo a favor en el portal del residente; cuenta bancaria en el
 cobro y en el comprobante; y el «% de recaudo» de R16, que **mide liquidación y ya no ingreso**.
 
-**Y ESTÁ EN PRODUCCIÓN desde esta noche, con las banderas APAGADAS.** Los cuatro pasos en orden,
-verificando entre cada uno: saldos migrados (4 cuentas, `Por migrar: 0` al recomprobar), reglas
-desplegadas, functions desplegadas con las tres callables nuevas vivas, y el front por `master`.
-**Cero banderas `producto-*` y cero overrides**, leído con `scripts/leer-banderas.mjs` antes de
-functions y no supuesto.
+**Y ESTÁ EN PRODUCCIÓN, con `producto-anticipos` ENCENDIDA en el conjunto de demostración.** Los
+cuatro pasos del despliegue en orden, más los dos cabos (auditoría y vista previa) desplegados
+después. Y lo único que producción aporta, **hecho**:
+
+| Comprobado en producción, en pantalla | Resultado |
+|---|---|
+| La ruta de un solo cargo, con banderas apagadas (§13) | Recibo `REC-FB58FX`, asiento con `banco=bank-playas-001` —antes siempre `null`— y auditoría escrita |
+| Sobrepago de 300 sobre un cargo de 200 | Recibo `REC-H7NTB9` y **100 a favor**; **dos** asientos, uno `billingStatement` y uno con `sourceType: advance` propio (§7.4) |
+| **CA6′ · cruzar no cambia el ingreso** | Cuotas $128.200 y otros ingresos $100 **idénticos antes y después**; 56 movimientos, ninguno nuevo |
+| **CA14 · el cruce no toca `paymentAmount`** | facturado 150 · **pagado 0** · anticipo 100 · saldo 50, y **ningún asiento** contra ese cargo |
+
+**Los datos de prueba se limpiaron** —doce documentos y la multa de T2-203 restaurada a su estado
+original—, comprobado con `scripts/radiografia-de-un-pago.mjs`.
+
+**La auditoría del primer cobro es además la prueba del arreglo:** esa llamada lleva `advanceId` y
+`advanceAmount` en `undefined`, así que **antes de hoy habría reventado** con el pago ya hecho.
 
 **Encender las banderas es otra decisión, va una cada vez y es de David.** Runbook completo en
 `docs/despliegue-flow-002-produccion.md`.
@@ -133,16 +144,26 @@ node scripts/verificar-reservas-por-servidor.mjs hogaru-1 <día en que se encend
 residente por escritura directa en producción, todas anteriores a que la bandera existiera. La
 puerta se mide desde el encendido.
 
-**Estado de la bandera:** encendida en **staging** (24 ago); **apagada en producción**, sin
-override en ningún conjunto.
+**VERIFICADO EN STAGING el 24 de agosto por la noche, con una sesión de residente.** Bandera
+encendida, reserva creada desde el portal («Reserva creada en estado pendiente», Alberca, 26 ago
+10:00–11:00) y el instrumento dice **PUERTA ABIERTA**: 1 reserva en el rango, **por el servidor**,
+cero por escritura directa. La reserva se deja ahí a propósito: es la evidencia.
+
+**En producción la bandera sigue APAGADA, y encenderla es decisión de David.** No es por
+prudencia genérica: el modo de fallo es que **ningún residente pueda reservar**, y la callable
+lleva UN uso real en toda su vida. Se apaga con la bandera al instante, pero mientras esté mal
+nadie reserva. Producción tiene un solo cliente activo (`Conjunto Bromelias`).
+
+**Lo que yo recomendaría:** encenderla primero **solo en `conjunto-las-playas`** (demo, con
+override), hacer una reserva de residente allí, y solo entonces la global — que es lo que el paso
+3 necesita, porque la puerta se mide con todos los conjuntos dentro.
 
 **El orden que queda, y el 4 es irreversible con bandera:**
 
-1. Probar en staging que una reserva de residente sale con `createdVia: "callable"`. **Necesita
-   una sesión de residente en staging.**
-2. Encender `producto-reservas-servidor` en producción.
-3. Dejar pasar tiempo y correr el script con el «desde». Cuando diga **PUERTA ABIERTA**, y no
-   antes.
+1. ~~Probar en staging.~~ **Hecho.**
+2. Encender en producción: demo primero, luego global.
+3. Dejar pasar tiempo y correr el instrumento con el «desde» del encendido. Cuando diga **PUERTA
+   ABIERTA**, y no antes.
 4. Retirar de `firestore.rules` la rama del residente en `create` de `reservations` —la que
    empieza en `residentOwnUnit(...)`, dejando la de `tenantAdminOrSuper`— y desplegar.
 
