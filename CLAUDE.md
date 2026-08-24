@@ -180,12 +180,21 @@ en producción**.
 R16 midiendo liquidación, y los dos cabos de `functions/` —`writeAuditLog` y la vista previa del
 reparto—. Trece criterios verificados en pantalla contra la base real.
 
-**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL.** Los nueve conjuntos son de demostración o de prueba.
-**`Conjunto Bromelias` tampoco es cliente** —confirmado por David el 24 de agosto de 2026, y hasta
-entonces el roadmap, la wiki de IA y la memoria lo contaban como uno de «dos conjuntos reales»—.
-Queda `queretarock-229-fc4c57`, `expired` y **sin confirmar**: hasta que se confirme, no se puede
-afirmar ni que haya cero ni que haya uno. Esto **baja el riesgo de encender banderas, no lo
-elimina**: el modo de fallo es el mismo el día que haya un cliente.
+**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL. Ninguno, y ya no queda nada por confirmar.** Los nueve
+conjuntos de `hogaru-1` son de demostración o de prueba interna: David confirmó el 24 de agosto de
+2026 que **`Conjunto Bromelias` y `Queretarock 229` tampoco lo son**. Hasta entonces el roadmap, la
+wiki de IA y la memoria hablaban de «dos conjuntos reales» contándolos a los dos, y la volumetría
+del programa de IA se calculó sobre esa cuenta.
+
+> **Queda un comando por correr.** `Queretarock` está en la lista de
+> `functions/scripts/marcar-conjuntos-de-ejemplo.mjs` pero **sin marcar en producción**: la
+> credencial de `gcloud auth application-default` caducó a mitad de la ejecución (`invalid_rapt`).
+> El script es idempotente:
+> `gcloud auth application-default login` y después
+> `node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1 --escribir`.
+
+**Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
+que haya un cliente — lo que cambia es a quién le pasa hoy.
 
 **LO PRIMERO DE LA SIGUIENTE SESIÓN: `docs/revision-flow-002-por-verificar.md`.** 36 sospechas de
 una revisión adversarial de lo desplegado cuya fase de jueces se cayó por sobrecarga de API. **No

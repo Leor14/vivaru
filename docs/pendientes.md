@@ -14,9 +14,11 @@ buscado: **`master` = lo que corre en producción**.
 `conjunto-las-playas`** por override; la global sigue apagada. Servidor, front, R16 y los dos cabos
 de `functions/`.
 
-**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL.** `Conjunto Bromelias` tampoco lo es —confirmado por
-David el 24 de agosto— y ya está marcado como `isExample`. Queda `queretarock-229-fc4c57`,
-`expired` y **sin confirmar**. Esto baja el riesgo de encender banderas; **no lo elimina**.
+**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL, y ya no queda nada por confirmar.** `Conjunto Bromelias`
+y `Queretarock 229` tampoco lo son —David, 24 de agosto—. Bromelias ya está marcado `isExample`;
+**Queretarock está en la lista del script pero sin marcar**, porque la credencial caducó a mitad
+(`invalid_rapt`). El script es idempotente: `gcloud auth application-default login` y luego
+`node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1 --escribir`.
 
 ## LO PRIMERO DE LA SIGUIENTE SESIÓN
 
@@ -54,8 +56,10 @@ invisible porque COP no tiene decimales y **todas las pruebas de sobrepago usaba
 
 ## QUÉ HACE FALTA DE DAVID
 
-**1. Confirmar si `queretarock-229-fc4c57` es cliente o no.** Es lo único que separa «producción no
-tiene clientes» de «tiene uno», y esa frase es la premisa de casi todas las decisiones de riesgo.
+**1. Un comando, cuando renueves la credencial:**
+`node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1 --escribir`, para terminar de
+marcar `Queretarock`. No cambia nada del producto: solo deja de contarse como cliente en la
+volumetría.
 
 **2. Decisiones abiertas, ninguna urgente:** encender las banderas más allá del demo · escribir
 `PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.
