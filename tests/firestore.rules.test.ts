@@ -431,6 +431,27 @@ beforeAll(async () => {
       updatedBy: "resident-2",
     });
 
+    // FLOW-002 CA11: las cuentas del conjunto, y el saldo inicial FUERA de
+    // ellas. Una activa y una de baja, que son los dos lados de la regla nueva.
+    await setDoc(doc(db, "bankAccounts", "bank-a-activa"), {
+      tenantId: "tenant-a",
+      label: "Cuenta operativa",
+      bankName: "Bancolombia",
+      accountNumber: "****4821",
+      active: true,
+    });
+    await setDoc(doc(db, "bankAccounts", "bank-a-baja"), {
+      tenantId: "tenant-a",
+      label: "Cuenta antigua",
+      bankName: "Davivienda",
+      accountNumber: "****1200",
+      active: false,
+    });
+    await setDoc(doc(db, "bankAccountBalances", "bank-a-activa"), {
+      tenantId: "tenant-a",
+      openingBalance: 85000,
+    });
+
     // REVOPS-001E: un lead y un comercial para probar la propiedad comercial.
     await setDoc(doc(db, "leads", "lead-1"), {
       origen: "demo",
@@ -2159,6 +2180,93 @@ describe("FLOW-002 · el asiento del anticipo tampoco lo escribe el cliente", ()
         concept: "Anticipo inventado",
         sourceType: "advance",
       }),
+    );
+  });
+});
+
+describe("FLOW-002 CA11 · las cuentas se abren al residente; el saldo no", () => {
+  /**
+   * El residente tiene que poder decir a qué cuenta pagó, así que tiene que
+   * poder leer las cuentas. Hasta el 24 de agosto de 2026 esto era
+   * solo-administrador.
+   *
+   * **Y por eso el saldo inicial ya no vive ahí.** Las reglas conceden el
+   * documento entero; no hay forma de enseñar el número de cuenta y esconder el
+   * saldo dentro del mismo documento. El número de cuenta sí puede verlo: es a
+   * donde transfiere.
+   */
+  it("el residente lee una cuenta ACTIVA de su conjunto", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(res.firestore(), "bankAccounts", "bank-a-activa")));
+  });
+
+  // Una cuenta dada de baja no recibe dinero nuevo, así que nadie fuera de la
+  // administración tiene por qué verla.
+  it("no lee una dada de baja", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(res.firestore(), "bankAccounts", "bank-a-baja")));
+  });
+
+  it("el administrador las lee todas, activa y de baja", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "bankAccounts", "bank-a-activa")));
+    await assertSucceeds(getDoc(doc(admin.firestore(), "bankAccounts", "bank-a-baja")));
+  });
+
+  it("un residente de otro conjunto no lee ninguna", async () => {
+    const otro = testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-b" });
+    await assertFails(getDoc(doc(otro.firestore(), "bankAccounts", "bank-a-activa")));
+  });
+
+  /**
+   * **Esta es la prueba de la que depende toda la decisión.** Si el saldo se
+   * pudiera leer desde el portal del residente, abrir `bankAccounts` habría
+   * sido un error y no una migración.
+   */
+  it("el residente NO lee el saldo inicial", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(res.firestore(), "bankAccountBalances", "bank-a-activa")));
+  });
+
+  it("ni el consejo, ni la portería", async () => {
+    const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(com.firestore(), "bankAccountBalances", "bank-a-activa")));
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(guard.firestore(), "bankAccountBalances", "bank-a-activa")));
+  });
+
+  it("el administrador sí lo lee y lo escribe", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "bankAccountBalances", "bank-a-activa")));
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "bankAccountBalances", "bank-a-activa"), {
+        tenantId: "tenant-a",
+        openingBalance: 90000,
+      }),
+    );
+  });
+
+  /**
+   * **La consulta, no el documento.** El producto no pide las cuentas de una en
+   * una: `watchActiveBankAccounts` lanza una consulta, y Firestore la evalúa
+   * contra la regla **sin ejecutarla**. Una consulta sin `where("active")` se
+   * rechaza entera aunque todas las cuentas estuvieran activas — así que si esto
+   * no se prueba con la forma exacta que usa la pantalla, la pantalla sale rota
+   * con las pruebas en verde.
+   */
+  it("la consulta del residente pasa CON el filtro de activas y falla sin él", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    const cuentas = collection(res.firestore(), "bankAccounts");
+    await assertSucceeds(
+      getDocs(query(cuentas, where("tenantId", "==", "tenant-a"), where("active", "==", true))),
+    );
+    await assertFails(getDocs(query(cuentas, where("tenantId", "==", "tenant-a"))));
+  });
+
+  it("la del administrador pasa sin filtro: las ve todas", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      getDocs(query(collection(admin.firestore(), "bankAccounts"), where("tenantId", "==", "tenant-a"))),
     );
   });
 });

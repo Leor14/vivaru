@@ -48,6 +48,14 @@ export function subscribeTenantCollection<T extends { id: string }>(
     orderByField?: string;
     orderDirection?: "asc" | "desc";
     equals?: Array<{ field: string; value: string }>;
+    /**
+     * Igualdad contra un booleano. Va aparte de `equals` porque aquel tipa el
+     * valor como `string`, y `where("active", "==", "true")` no encuentra nada
+     * —compara contra la cadena— sin que Firestore se queje: devuelve cero
+     * documentos, que se lee como «no hay cuentas» y no como «la consulta está
+     * mal escrita».
+     */
+    equalsBoolean?: Array<{ field: string; value: boolean }>;
   },
 ) {
   if (!db) return null;
@@ -55,6 +63,11 @@ export function subscribeTenantCollection<T extends { id: string }>(
   const constraints: QueryConstraint[] = [where("tenantId", "==", tenantId)];
   if (options?.equals?.length) {
     for (const filter of options.equals) {
+      constraints.push(where(filter.field, "==", filter.value));
+    }
+  }
+  if (options?.equalsBoolean?.length) {
+    for (const filter of options.equalsBoolean) {
       constraints.push(where(filter.field, "==", filter.value));
     }
   }

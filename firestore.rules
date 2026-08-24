@@ -479,7 +479,33 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // `FLOW-002` CA11 — el residente elige a que cuenta pago, asi que tiene que
+    // poder LEER las cuentas del conjunto. Hasta el 24 de agosto de 2026 esto
+    // era solo-administrador.
+    //
+    // Se abre a los miembros, y SOLO las cuentas activas: una cuenta dada de
+    // baja no recibe dinero nuevo, asi que nadie fuera de la administracion
+    // tiene por que verla. El administrador las sigue viendo todas.
+    //
+    // **Lo que hizo falta para poder abrirlo:** el saldo inicial se saco de este
+    // documento a `bankAccountBalances` (aqui abajo). Las reglas conceden el
+    // documento ENTERO —no se pueden ocultar campos—, asi que abrir la lectura
+    // con el saldo dentro le habria ensenado al residente con cuanto dinero
+    // abrio cada cuenta el conjunto. El numero de cuenta si puede verlo: es a
+    // donde transfiere.
     match /bankAccounts/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (tenantMember(resource.data.tenantId) && resource.data.active == true)
+      );
+      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
+    }
+
+    // El saldo inicial de cada cuenta, fuera del documento de la cuenta. El id
+    // del documento es el de la cuenta. Solo la administracion: es exactamente
+    // el dato que no podia quedarse arriba.
+    match /bankAccountBalances/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));

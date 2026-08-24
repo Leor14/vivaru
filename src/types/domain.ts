@@ -472,12 +472,34 @@ export interface BankAccount {
   accountNumber?: string;
   accountType?: "corriente" | "ahorros";
   currency?: AppCurrency;
-  /** Saldo inicial registrado al dar de alta la cuenta. */
-  openingBalance?: number;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;
+  updatedBy?: string;
+}
+
+/**
+ * El saldo inicial de una cuenta bancaria, **fuera del documento de la cuenta**.
+ *
+ * Vivía en `BankAccount.openingBalance` hasta el 24 de agosto de 2026, y se sacó
+ * por una razón de acceso, no de modelo: `FLOW-002` CA11 necesita que el
+ * residente elija a qué cuenta pagó, y para eso tiene que poder LEER las cuentas
+ * del conjunto. Las reglas de Firestore conceden o niegan el documento entero
+ * —no se pueden ocultar campos—, así que abrir la lectura con el saldo dentro le
+ * enseñaría al residente con cuánto dinero abrió cada cuenta el conjunto. El
+ * número de cuenta sí puede verlo: es a donde transfiere. El saldo no.
+ *
+ * El id del documento **es el de la cuenta**, para que la correspondencia no
+ * dependa de una consulta.
+ */
+export interface BankAccountBalance {
+  /** El id de la cuenta bancaria a la que pertenece. */
+  id: string;
+  tenantId: string;
+  /** Saldo inicial registrado al dar de alta la cuenta. */
+  openingBalance: number;
+  updatedAt?: string;
   updatedBy?: string;
 }
 
