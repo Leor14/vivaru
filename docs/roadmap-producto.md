@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.24 |
-| **Fecha** | 24 de agosto de 2026 (mañana) |
-| **Estado** | **TODO EL LOTE DE HABITANTO ESTÁ EN PRODUCCIÓN, Y APAGADO.** Ola A, `PLAT-003` y `FLOW-002` viven en `master`; **en `featureFlags` de `hogaru-1` no existe ni un documento `producto-*`** y el único override es `conjunto-las-playas: {producto-anticipos: true}` — leído de los dos proyectos, no supuesto. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **De las 37 sospechas de la revisión adversarial quedan 20**: las dos «gordas» se triaron y **las dos eran ciertas** (el anticipo nacía con la bandera apagada y congelado; `bankAccounts` estaba abierta a la portería). **Lo que sigue sin construirse de `FLOW-002`: §9/CA13, CF8 y `personId`.** Los remotos se leen con `git ls-remote`, no de aquí |
+| **Versión** | 0.9.25 |
+| **Fecha** | 24 de agosto de 2026 (tarde) |
+| **Estado** | **LA REVISIÓN ADVERSARIAL DE `FLOW-002` ESTÁ CERRADA: de 37 sospechas, 36 eran ciertas y están resueltas y 1 se descartó.** Se reprodujo cada una antes de tocarla y cinco se midieron con números. **Lo desplegado en producción NO ha cambiado: los cuatro commits del triaje están en `develop`** y tocan reglas, functions y front, en ese orden. **Y probando una regla apareció lo que no estaba en la lista: la conciliación no podía casar ni un pago** —desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingStatement"` y el veto los rechazaba—; corregido. **TODO EL LOTE DE HABITANTO SIGUE EN PRODUCCIÓN Y APAGADO.** Ola A, `PLAT-003` y `FLOW-002` viven en `master`; **en `featureFlags` de `hogaru-1` no existe ni un documento `producto-*`** y el único override es `conjunto-las-playas: {producto-anticipos: true}` — leído de los dos proyectos, no supuesto. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **De las 37 sospechas de la revisión adversarial quedan 20**: las dos «gordas» se triaron y **las dos eran ciertas** (el anticipo nacía con la bandera apagada y congelado; `bankAccounts` estaba abierta a la portería). **Lo que sigue sin construirse de `FLOW-002`: §9/CA13, CF8 y `personId`.** Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **La pantalla, en los dos portales y en los dos ambientes.** Y produjo lo que ninguna suite vio: **tres defectos**. Dos de mensajería y auditoría —uno de ellos abortaba la llamada con el dinero ya movido— y uno de aritmética que salió de revisar lo ya desplegado: **dos guardianes rechazaban cobros CORRECTOS con centavos**, invisible porque COP no tiene decimales y todas las pruebas de sobrepago usaban enteros. La lección que dejan los tres: **un camino de dinero no termina en el `commit`** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -996,6 +996,38 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.25 — 24 de agosto de 2026 (tarde)
+
+**La revisión adversarial de `FLOW-002` queda CERRADA: de 37 sospechas, 36 eran ciertas.** La
+predicción del propio documento —que la mitad se descartarían, «un descarte por cada
+confirmación»— falló por completo. La única descartada fue el polvo del sobrante, y estaba muerta
+desde antes: la mató `aMoneda` al arreglar los guardianes de R1, sin que nadie lo buscara.
+
+**Lo que salió del triaje y NO era una sospecha.** Probando contra el emulador si el veto de
+`sourceType` protegía el asiento de un anticipo apareció el problema contrario y más caro: **la
+conciliación no podía casar ni un pago.** En un `update` con merge Firestore evalúa el documento
+**resultante**, que conserva el `sourceType`, y la regla lo vetaba — y desde `FIN-001` todos los
+asientos de cobro nacen con `sourceType: "billingStatement"`. La pantalla de conciliación existe
+para eso y no podía hacerlo.
+
+**Dos defectos de dinero que solo aparecen con centavos, y se midieron.** Barriendo 20.000
+combinaciones: **3,0 %** de los anticipos cruzados y descruzados quedaban imposibles de anular
+—CF3 comparaba con `!==` sobre coma flotante— y **2,1 %** de los cruces dejaban el cargo
+«pendiente» con un saldo de 3,5e-15 que se pinta como 0,00. Leer el código no da esos números.
+
+**Tres «% recaudo» con la fórmula vieja, en tres sitios distintos.** El informe automático mensual
+(en tres lugares dentro de él), la tabla de campañas de `/admin/billing` —conviviendo con un
+StatTile del mismo nombre y distinta fórmula— y el histórico que exporta esa misma pantalla. Es la
+tercera vez que una regla se aplica en `src/` y no llega a `functions/`: R12 primero, **R16 un día
+después**. Ahora hay tres espejos vigilados.
+
+**Y una decisión de producto:** al consejo se le retira la lectura de `advances`. Lo que tenía era
+detalle financiero **por unidad**, y lo que la PRD le concede es un agregado que **una regla de
+Firestore no sabe calcular**. El total pasa a `PLAT-004`, que es donde se decide qué pantallas ve.
+
+**Producción sin tocar.** Los cuatro commits están en `develop` y su despliegue son tres piezas en
+orden: reglas → functions → front.
 
 ### 0.9.24 — 24 de agosto de 2026 (mañana)
 

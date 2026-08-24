@@ -4,72 +4,72 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (tarde)
 
-**Leer los remotos con `git ls-remote`, no de aquí.** Esta cabecera llevaba los commits a mano y se
-quedó corta tres veces en una noche. Al cerrar, `master` y `develop` iban iguales, que es el estado
-buscado: **`master` = lo que corre en producción**.
+**Leer los remotos con `git ls-remote`, no de aquí.** Esta cabecera llevó los commits a mano y se
+quedó corta tres veces en una noche. Al cerrar, **`develop` va por delante de `master`**: lleva la
+jornada de triaje, que **no está en producción**.
 
-**`FLOW-002` ESTÁ EN PRODUCCIÓN**, con `producto-anticipos` encendida **solo en
-`conjunto-las-playas`** por override; la global sigue apagada. Servidor, front, R16 y los dos cabos
-de `functions/`.
+**`FLOW-002` está EN PRODUCCIÓN** con `producto-anticipos` encendida **solo en
+`conjunto-las-playas`** por override. Y con ella, **todo el lote de Habitanto**: ola A, `PLAT-003`
+y `FLOW-002`, los siete pasos, **todos apagados**. Comprobado leyendo las banderas de los dos
+proyectos: en `hogaru-1` **no existe ni un documento `producto-*`** en `featureFlags`, así que
+todas caen al valor por defecto.
 
-**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL, y ya no queda nada por confirmar.** `Conjunto Bromelias`
-y `Queretarock 229` tampoco lo son —David, 24 de agosto—. Bromelias ya está marcado `isExample`;
-**Queretarock está en la lista del script pero sin marcar**, porque la credencial caducó a mitad
-(`invalid_rapt`). El script es idempotente: `gcloud auth application-default login` y luego
-`node functions/scripts/marcar-conjuntos-de-ejemplo.mjs hogaru-1 --escribir`.
+> **LO QUE FALTA PARA CERRAR `PH-001` YA NO ES CONSTRUIR: ES ENCENDER**, de una en una y mirando.
+> Queda `FLOW-001` de la ola B y la ola C entera, pero el trabajo desplegado y dormido es el grueso.
 
-## LO PRIMERO DE LA SIGUIENTE SESIÓN
+**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL, y ya no queda nada por confirmar.** Los nueve conjuntos
+son de demostración o prueba interna.
 
-**`docs/revision-flow-002-por-verificar.md` — CERRADO DEL TODO. Las 37 triadas: 36 ciertas y resueltas, 1 descartada. No queda ninguna abierta.** Revisión
-adversarial de todo lo desplegado, con seis lentes y tres jueces por hallazgo; **la fase de jueces
-se cayó** (59 de 117 agentes con `529`). **No son defectos: son hipótesis con un solo par de ojos.**
-Doce eran de documentación y ya estaban corregidas.
+## LO QUE HAY EN `develop` Y NO EN PRODUCCIÓN
 
-**Las dos «gordas» se triaron el 24 de agosto y las DOS eran ciertas** — reproducidas contra el
-emulador antes de tocar nada, corregidas, con pruebas de regresión y falsadas rompiendo el código a
-propósito:
+**Cuatro commits de la jornada del 24, sin desplegar.** Cierran la revisión adversarial entera y
+tocan **servidor, reglas y front**, así que el despliegue son tres piezas y no una:
 
-- **El anticipo nacía con `producto-anticipos` apagada** si el reparto sumaba menos que lo pagado,
-  y **nacía congelado** (las tres callables de `advances.ts` exigen la bandera). El comentario
-  decía «cero por construcción» y era cierto **solo para la forma vieja**, que es la única que
-  probaba el banco. Ahora se rechaza el cobro. Ojo: en las listas **aparece dos veces**, en ALTA y
-  en MEDIA.
-- **`bankAccounts` estaba abierta a `tenantMember`**, o sea también a la **portería** y al
-  **consejo**, a los que la PRD (§3) no les da nada. Corregido a `tenantRole(..., 'resident')`.
+| Pieza | Cómo va | Ojo |
+|---|---|---|
+| **Reglas** | `firebase deploy --only firestore:rules` | Cierran `bankAccounts` al residente (fuera portería y consejo), cierran `advances` al consejo, y **arreglan que la conciliación no pudiera casar ningún pago** |
+| **Functions** | recompilar y `firebase deploy --only functions --project hogaru-1` | **No hay predeploy build.** Llevan el redondeo del saldo, CF3 con tolerancia, el reverso sin asiento de cero y el chequeo de conjunto en la idempotencia |
+| **Front** | push a `master` (App Hosting) | Los tres «% recaudo» que discrepaban, el modal de cobro y el panel de comprobantes |
 
-**No estaban disparadas en producción, y se comprobó leyendo las banderas de los dos ambientes:**
-`producto-pago-multiple` no tiene ni documento ni override en `hogaru-1`. Lo que sí llevaba a la
-combinación mala era **el runbook** —autorizaba encender múltiple sola— y **el rollback
-documentado**. Los dos corregidos.
+**El orden no es indiferente:** reglas y functions **antes** que el front, porque el front ya asume
+el comportamiento nuevo. Y las reglas van solas primero: son las que arreglan la conciliación.
 
-El único que llegó a tener sus tres votos era real y está **corregido y desplegado**: dos guardianes
-de `aplicarPago` rechazaban cobros **correctos** con centavos. El de R1 era una tautología —solo
-saltaba cuando NO había defecto— y abortaba la transacción sin dejar marca de idempotencia. Era
-invisible porque COP no tiene decimales y **todas las pruebas de sobrepago usaban enteros**.
+## LA REVISIÓN ADVERSARIAL ESTÁ CERRADA
+
+**`docs/revision-flow-002-por-verificar.md` — las 37 triadas: 36 eran ciertas y están resueltas, 1
+se descartó.** No queda ninguna abierta. Se reprodujo cada una antes de tocarla, y cinco se
+midieron con números en vez de razonarlas.
+
+**Lo que salió de ahí y NO estaba en la lista:** probando el veto de `sourceType` contra el
+emulador apareció que **la conciliación no podía casar ni un pago**. En un `update` con merge
+Firestore evalúa el documento *resultante*, que conserva el `sourceType`, y la regla lo vetaba —y
+desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingStatement"`. Corregido.
 
 ## LO QUE NO ESTÁ HECHO DE `FLOW-002`, dicho para que no se lea como cerrada
 
 | Qué | Dónde | Nota |
 |---|---|---|
-| **§9 y CA13** | `functions/` | El aviso al residente **no nombra los cargos cubiertos ni el saldo a favor**: sigue siendo el `billing_receipt` con `{período, conjunto}`. **Ningún documento lo registraba** — al contrario, esta cabecera llegó a decir «no queda nada sin mirar», y CA13 no se miró porque no existe |
-| **CF8** | `functions/src/advances.ts` y `payments.ts` | Ninguno llama a `assertTenantOperable`, y las callables usan el Admin SDK, que **no pasa por las reglas** — donde vive `tenantOperable`. Un conjunto `suspended` puede cobrar y cruzar. **Es anterior a la ficha**; esta la amplía a tres operaciones |
-| **`personId` del anticipo** | `functions/src/advances.ts` | No lo escribe nadie, y §7.6 construye una regla de retención encima. O se escribe, o §7.6 se corrige |
+| **§9 y CA13** | `functions/` | El aviso al residente **no nombra los cargos cubiertos ni el saldo a favor**: sigue siendo el `billing_receipt` con `{período, conjunto}`. CA13 no se miró **porque no existe** |
+| **CF8** | `functions/src/advances.ts` y `payments.ts` | Ninguno llama a `assertTenantOperable`, y las callables usan el Admin SDK, que **no pasa por las reglas** — donde vive `tenantOperable`. Un conjunto `suspended` puede cobrar y cruzar. **Es anterior a la ficha** |
+| **`personId` del anticipo** | `functions/src/advances.ts` | No lo escribe nadie, y §7.6 construye una retención encima. O se escribe, o §7.6 se corrige |
+| **El total de anticipos del consejo** | `PLAT-004` | Decisión del 24 ago: se le **retiró** la lectura de `advances` porque era detalle por unidad. El agregado que la PRD le promete **no existe**, y una regla no sabe calcularlo |
 
 ## LO SIGUIENTE, en orden
 
 | Qué | Nota |
 |---|---|
-| ~~**1. Triar las sospechas**~~ **HECHO, y cerrado** | Las 37 triadas: **36 eran ciertas** y están resueltas; la única descartada es el polvo del sobrante, que `aMoneda` ya había matado. La última se cerró **con una decisión tuya**: al consejo se le retira la lectura de `advances` —era detalle por unidad, no el total que le da la PRD— y **el agregado pasa a `PLAT-004`** |
-| **2. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden sigue siendo uno cada vez, mirando |
-| **3. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
+| **1. Desplegar lo del 24** | Reglas → functions → front, en ese orden. Ver la tabla de arriba |
+| **2. `FIN-002` — expediente y conciliación determinística** | **Es el frente de ingeniería más grande que se puede abrir sin un cliente real**, y ya no lo bloquea nadie. Detalle en `docs/roadmap-finance.md` §7 (es su F1). Arranca con una pieza recién arreglada por debajo: la conciliación ya puede casar pagos |
+| **3. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden es **uno cada vez, mirando** |
+| **4. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
+| `FLOW-001` (prorrateo) y la ola C | Lo que queda por construir del lote. `FLOW-001` necesita `PLAT-001`, que ya está |
+| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`, **y arrastra la deuda del total de anticipos** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
-| `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`. **Y desde el 24 de agosto arrastra una deuda concreta:** se le retiró la lectura de `advances` porque era detalle por unidad, así que **el «total de anticipos del conjunto» que la PRD de `FLOW-002` le promete no existe**. Una regla no sabe agregar: hay que construir el agregado, y esta PRD es donde se decide qué pantallas ve y con qué dato |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
 | Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules`. Anteriores a esta sesión |
-| **La semilla de trial escribe `openingBalance` dentro de `bankAccounts`** | `functions/src/trial-seed.ts`. Es el campo que la migración sacó de ahí; escribe `0`, así que no filtra nada, pero vuelve a poner el campo donde ya no debe estar |
 
 ## QUÉ HACE FALTA DE DAVID
 
@@ -78,19 +78,41 @@ invisible porque COP no tiene decimales y **todas las pruebas de sobrepago usaba
 marcar `Queretarock`. No cambia nada del producto: solo deja de contarse como cliente en la
 volumetría.
 
-**2. Decisiones abiertas, ninguna urgente:** encender las banderas más allá del demo · escribir
-`PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.
+**2. Decidir si se despliega la jornada del 24**, y con ella si se encienden banderas.
+
+**3. Decisiones abiertas, ninguna urgente:** escribir `PLAT-004` · el plan de cuentas por país · la
+cuenta de vigilancia.
 
 ### Lo que YA NO hay que pedir ni volver a mirar
 
 - **Acceso al navegador.** Funciona con la sesión de David, y él cambia de rol si se le pide. El
   límite: **solo se ve el rol que tenga la sesión abierta**, y son excluyentes por origen.
 - **El roadmap Albert–Vivaru de Notion.** Da 404: vive en otro workspace.
+- **La revisión adversarial de `FLOW-002`.** Cerrada del todo.
 - **`CF12`, `computeBalanceStatus`, la decisión contable R9/R15 (cerrada como D3).**
 
 ## LAS LECCIONES DE MÉTODO
 
-**Siguen vigentes las del 23 y las tres de la sesión A.** La B añade cinco:
+**Las cinco del triaje del 24 (tarde), que son las más caras de olvidar:**
+
+1. **El punto ciego suele estar escrito en el propio banco de pruebas.** Tres veces en un día: el
+   test de «con la bandera apagada no cambia un solo número» usaba la forma que **no puede fallar**;
+   «ni el consejo, ni la portería» existía solo para `bankAccountBalances` y nadie hizo la misma
+   pregunta sobre la cuenta; y las pruebas de `aplicarAjustes` solo ajustaban cargos que la
+   propuesta ya incluía. **Al revisar una guarda, buscar la forma que las pruebas NO ejercitan.**
+2. **Probar una regla contra el emulador encuentra lo que leerla no ve, y EN LAS DOS DIRECCIONES.**
+   Comprobando que el veto de `sourceType` dejaba pisar un asiento apareció el problema contrario y
+   más caro: la conciliación no podía casar ni un pago. **`updateDoc` es merge y la regla ve el
+   documento resultante; `setDoc` no lo es.**
+3. **El dinero con centavos hay que MEDIRLO, no razonarlo.** Seis muestras a mano no encontraron
+   nada; barrer 20.000 combinaciones convirtió dos sospechas en porcentajes (3,0 % y 2,1 %).
+4. **Un espejo que se queda atrás no duele hasta que alguien lee el documento.** R12 se aplicó en
+   `src/` y no llegó a `functions/`; **R16 repitió la historia exacta un día después.** Al aplicar
+   una regla de negocio, buscar su espejo **en la misma pasada** y dejarla vigilada.
+5. **Descartar también es un resultado, y se anota.** El polvo del sobrante ya estaba muerto: lo
+   mató `aMoneda` sin que nadie lo buscara.
+
+**Siguen vigentes las del 23 y las tres de la sesión A.** La B añadió cinco:
 
 1. **Un error puede ocurrir DESPUÉS de que la escritura cuaje.** Los dos primeros defectos de la
    sesión son el mismo animal: la operación de dinero se confirma y algo posterior falla —una

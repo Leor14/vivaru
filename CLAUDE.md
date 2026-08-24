@@ -233,7 +233,13 @@ encendida en staging y **apagada en producción**. El instrumento de la puerta e
 `scripts/verificar-reservas-por-servidor.mjs`, y el paso 4 —cerrar la rama del residente en las
 reglas— **no se revierte con bandera**.
 
-Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.23),
+**LO QUE HAY EN `develop` Y NO EN PRODUCCIÓN (24 ago, tarde).** Cuatro commits que cierran la
+revisión adversarial y tocan **reglas, functions y front**. El despliegue son tres piezas **en este
+orden**: `firebase deploy --only firestore:rules` → recompilar y desplegar functions → push a
+`master`. Las reglas van primero porque son las que **arreglan que la conciliación no pudiera casar
+ningún pago**; el front ya asume el comportamiento nuevo.
+
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.25),
 `docs/despliegue-flow-002-produccion.md` y la PRD (v1.5).
 
 ### Lo que ninguna suite puede cazar, y por qué importa aquí
