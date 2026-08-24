@@ -2362,3 +2362,100 @@ describe("FLOW-002 CA11 · las cuentas se abren al residente; el saldo no", () =
     );
   });
 });
+
+describe("FLOW-002 · el asiento de origen pago se protege en LAS DOS direcciones", () => {
+  /**
+   * Salió del triaje del 24 de agosto de 2026. El veto miraba solo el documento
+   * entrante, y eso dejaba un hueco y un bloqueo, los dos encontrados probando
+   * contra el emulador y ninguno visible leyendo la regla.
+   */
+  async function sembrarAsiento(id: string, sourceType: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "ledgerEntries", id), {
+        tenantId: "tenant-a", type: "ingreso", date: "2026-08-24", amount: 60000,
+        concept: "Anticipo de 101", category: "anticipo", sourceType,
+        sourceId: "s-1", operationKey: "op-1", reconciled: false,
+      });
+    });
+  }
+
+  /**
+   * **El hueco.** Un `setDoc` sin `merge` omitiendo `sourceType` pasaba el veto,
+   * porque el documento entrante no lo traía. Se podía pisar el importe del
+   * asiento que sostiene un saldo a favor y borrar su origen.
+   */
+  it("no se puede SOBRESCRIBIR entero el asiento de un anticipo", async () => {
+    await sembrarAsiento("le-adv-sobrescribir", "advance");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-adv-sobrescribir"), {
+        tenantId: "tenant-a", type: "ingreso", date: "2026-08-24", amount: 1, concept: "pisado",
+      }),
+    );
+  });
+
+  it("ni el de un cobro", async () => {
+    await sembrarAsiento("le-cobro-sobrescribir", "billingStatement");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "ledgerEntries", "le-cobro-sobrescribir"), {
+        tenantId: "tenant-a", type: "ingreso", date: "2026-08-24", amount: 1, concept: "pisado",
+      }),
+    );
+  });
+
+  /**
+   * **Y el bloqueo, que es la contraparte imprescindible.** En un `update` con
+   * merge Firestore evalúa el documento RESULTANTE, que sí conserva el
+   * `sourceType`, así que la regla vieja denegaba marcar conciliado un asiento de
+   * pago. Como desde `FIN-001` **todos** los asientos de cobro nacen con
+   * `sourceType: "billingStatement"`, la conciliación no podía casar ni un pago.
+   */
+  it("SÍ se puede marcar conciliado un asiento de cobro, que es lo que hace la conciliación", async () => {
+    await sembrarAsiento("le-cobro-conciliar", "billingStatement");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "ledgerEntries", "le-cobro-conciliar"), {
+        reconciled: true, bankStatementLineId: "bl-1", reconciledAt: "2026-08-24",
+      }),
+    );
+  });
+
+  it("y también el de un anticipo", async () => {
+    await sembrarAsiento("le-adv-conciliar", "advance");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "ledgerEntries", "le-adv-conciliar"), {
+        reconciled: false, bankStatementLineId: null, reconciledAt: null,
+      }),
+    );
+  });
+
+  /** Pero solo la conciliación: el importe sigue sin poder tocarse. */
+  it("lo que NO se puede es cambiarle el importe de paso", async () => {
+    await sembrarAsiento("le-adv-importe", "advance");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "ledgerEntries", "le-adv-importe"), {
+        reconciled: true, amount: 999999,
+      }),
+    );
+  });
+
+  /** Ni borrarlo: se anula con su reverso, que lo escribe el servidor. */
+  it("no se puede BORRAR el asiento de un anticipo", async () => {
+    await sembrarAsiento("le-adv-borrar", "advance");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "ledgerEntries", "le-adv-borrar")));
+  });
+
+  /** Y la contraparte: un movimiento manual se sigue borrando y editando. */
+  it("un movimiento manual sigue siendo editable y borrable", async () => {
+    await sembrarAsiento("le-manual-triaje", "");
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "ledgerEntries", "le-manual-triaje"), { amount: 12345 }),
+    );
+    await assertSucceeds(deleteDoc(doc(admin.firestore(), "ledgerEntries", "le-manual-triaje")));
+  });
+});

@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TOLERANCIA_MONEDA = void 0;
 exports.calcularSaldo = calcularSaldo;
+exports.aMoneda = aMoneda;
 exports.esRecaudoDeCartera = esRecaudoDeCartera;
 exports.montoFacturadoDelCargo = montoFacturadoDelCargo;
 exports.montoLiquidadoDelCargo = montoLiquidadoDelCargo;
@@ -64,7 +66,13 @@ const db = () => (0, firestore_1.getFirestore)();
  * el que manda es este, porque es el que escribe.
  */
 function calcularSaldo(totalCobrado, pagado, anticipoAplicado, vencimiento, hoy) {
-    const bruto = totalCobrado - pagado - anticipoAplicado;
+    // **Se redondea al céntimo, y por eso existe `aMoneda`.** Las tres restas
+    // arrastran basura: cruzar un anticipo que cubre la deuda ENTERA dejaba
+    // `bruto` en ~1e-14 en vez de 0, así que el cargo se quedaba en `pending` con
+    // un saldo que la pantalla formatea como **0,00** — pendiente de nada. Medido
+    // el 24 de agosto de 2026: 426 de 20.000 combinaciones con centavos, un 2,1 %.
+    // Con COP, que es entero, esto no cambia ni un resultado.
+    const bruto = aMoneda(totalCobrado - pagado - anticipoAplicado);
     const balance = bruto > 0 ? bruto : 0;
     const status = bruto <= 0 ? "paid" : vencimiento && vencimiento < hoy ? "overdue" : "pending";
     return { balance, status };
@@ -95,7 +103,7 @@ function aMoneda(valor) {
  * es del orden de 1e-9. Comparar con `!==` o con `>` a secas confunde las dos
  * cosas y rechaza cobros correctos.
  */
-const TOLERANCIA_MONEDA = 0.005;
+exports.TOLERANCIA_MONEDA = 0.005;
 /**
  * Si un asiento de ingreso **ya viene contado por Cartera** y por tanto no debe
  * volver a sumarse desde el libro.
@@ -332,7 +340,7 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     // que un reparto que cuadra al céntimo se leía como «suma más que el importe».
     // Medido: el 13 % de los repartos de tres líneas con centavos. Con enteros
     // —COP— nunca pasa, y por eso no se vio antes.
-    if (sumaAsignada > monto + TOLERANCIA_MONEDA) {
+    if (sumaAsignada > monto + exports.TOLERANCIA_MONEDA) {
         throw new https_1.HttpsError("invalid-argument", "El reparto suma más que el importe pagado.");
     }
     const statementId = asignaciones[0].statementId;
@@ -388,13 +396,25 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     //
     // La forma vieja no pasa por aquí: su línea única vale `monto`. Y la tolerancia
     // es la de siempre — sin ella esto rechazaría repartos exactos con centavos.
-    if (!anticipos && sumaAsignada < monto - TOLERANCIA_MONEDA) {
+    if (!anticipos && sumaAsignada < monto - exports.TOLERANCIA_MONEDA) {
         throw new https_1.HttpsError("invalid-argument", "El reparto suma menos que el importe pagado. Ajusta las líneas o enciende los anticipos para guardar la diferencia como saldo a favor.");
     }
     return firestore.runTransaction(async (tx) => {
         // ── Lecturas, todas antes de escribir ────────────────────────────────────
         const opSnap = await tx.get(opRef);
         if (opSnap.exists) {
+            // **La clave de idempotencia NO lleva el conjunto** —`advances.ts` sí se lo
+            // pone, y es el gemelo que lo hace bien—, así que dos conjuntos comparten
+            // espacio de claves. No se puede cambiar el id del documento sin dejar
+            // inalcanzables las marcas ya escritas en producción, y con ellas la
+            // reversión de todos los pagos anteriores. Lo que sí se puede, y es lo que
+            // faltaba, es **comprobar el conjunto antes de devolver el resultado**: sin
+            // esto, quien acierte una clave ajena recibe el recibo y los importes de
+            // otro conjunto, y su propio cobro se da por hecho sin haberse aplicado.
+            const dueño = opSnap.data().tenantId;
+            if (dueño && dueño !== tenantId) {
+                throw new https_1.HttpsError("permission-denied", "Esa clave de operación pertenece a otro conjunto.");
+            }
             // Ya se aplicó con esta clave. Se devuelve el mismo resultado sin volver a
             // tocar nada: es lo que convierte un reintento en algo inofensivo.
             const prev = opSnap.data();
@@ -637,8 +657,8 @@ async function aplicarPago(input, uid, role, tokenTenant) {
         // importe distinto del que se acumuló, esto lo caza. Y con tolerancia, para
         // no volver a confundir un céntimo con el ruido del último bit.
         const escrito = aMoneda(entradas.reduce((suma, e) => suma + e.amount, 0));
-        if (Math.abs(escrito - totalAplicado) > TOLERANCIA_MONEDA ||
-            Math.abs(escrito + sobrante - monto) > TOLERANCIA_MONEDA ||
+        if (Math.abs(escrito - totalAplicado) > exports.TOLERANCIA_MONEDA ||
+            Math.abs(escrito + sobrante - monto) > exports.TOLERANCIA_MONEDA ||
             totalAplicado < 0 ||
             sobrante < 0) {
             throw new https_1.HttpsError("internal", "El reparto del pago no cuadra con el importe recibido.");
@@ -881,6 +901,11 @@ async function revertirPago(input, uid, role, tokenTenant) {
         // ── Lecturas ─────────────────────────────────────────────────────────────
         const revSnap = await tx.get(revRef);
         if (revSnap.exists) {
+            // Mismo motivo que en `aplicarPago`: la clave no lleva el conjunto.
+            const dueñoRev = revSnap.data().tenantId;
+            if (dueñoRev && dueñoRev !== tenantId) {
+                throw new https_1.HttpsError("permission-denied", "Esa clave de reversión pertenece a otro conjunto.");
+            }
             const prev = revSnap.data();
             return {
                 ok: true,
@@ -1042,6 +1067,22 @@ async function revertirPago(input, uid, role, tokenTenant) {
             // Si no se pasara, revertir un pago sobre un cargo cubierto en parte con
             // anticipo dejaría el saldo inflado por ese importe.
             typeof linea.cuota.advanceAppliedAmount === "number" ? linea.cuota.advanceAppliedAmount : 0, linea.cuota.dueDate, hoy);
+            // **Un reverso de importe cero no se escribe.** Un pago que se fue ENTERO a
+            // anticipo —CA8, no había cargos pendientes— guarda `allocations: []` y
+            // `appliedToStatement: 0`, así que el respaldo de más arriba fabrica una
+            // línea de cero contra la cuota original. Revertirlo dejaba en el libro un
+            // `ingreso: 0` con categoría «alicuota»: una fila que no dice nada y que
+            // ensucia la conciliación. El dinero de ese pago se revierte donde de
+            // verdad está, en el asiento del anticipo (R15, aquí abajo).
+            // Es la misma regla que ya aplica `aplicarPago` con `aplicadoAlCargo > 0`.
+            if (linea.amount <= 0) {
+                if (i === 0) {
+                    pagadoDespues = saldo.paymentAmount;
+                    balance = saldo.balance;
+                    status = saldo.status;
+                }
+                continue;
+            }
             const reversoRef = firestore.collection("ledgerEntries").doc();
             const conceptoOriginal = linea.asiento?.concept ?? `Pago ${linea.statementId}`;
             tx.set(reversoRef, {

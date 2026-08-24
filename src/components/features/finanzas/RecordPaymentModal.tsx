@@ -12,8 +12,8 @@ import {
   aplicarAjustes,
   avisoDelSobrante,
   deudaDelCargo,
+  motivoDeNoCuadrar,
   ordenarParaMostrar,
-  repartoCuadra,
   type EstadoPropuesta,
   type LineaDeReparto,
 } from "@/features/billing/reparto";
@@ -82,6 +82,21 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
     return watchPeople(user.tenantId, setPeople, () => setPeople([]));
   }, [user?.tenantId]);
 
+  /**
+   * **Las personas, en una `ref`, y no en las dependencias del reset.**
+   *
+   * `people` viene de una suscripción viva: cualquier cambio en cualquier persona
+   * del conjunto —otro administrador editando un teléfono— devolvía un array
+   * nuevo, el efecto de reset se volvía a ejecutar y **borraba el formulario
+   * abierto**, incluido el importe ya escrito. Y peor: ponía `createdVoucher` a
+   * `null`, así que a quien estuviera mirando el recibo recién emitido se lo
+   * quitaba de la pantalla. Solo se usan para prellenar quién paga al ABRIR.
+   */
+  const peopleRef = useRef<PersonItem[]>([]);
+  useEffect(() => {
+    peopleRef.current = people;
+  }, [people]);
+
   useEffect(() => {
     if (!user?.tenantId) return;
     return watchBankAccounts(user.tenantId, setCuentas, () => setCuentas([]));
@@ -92,7 +107,7 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
       setAmount(String(statement.balance > 0 ? statement.balance : ""));
       setDate(today());
       // Prellenar nombre y cédula desde el residente de la unidad (prioriza propietario).
-      const unitPeople = people.filter((p) => p.unitId === statement.unitId);
+      const unitPeople = peopleRef.current.filter((p) => p.unitId === statement.unitId);
       const holder = unitPeople.find((p) => p.roleType === "owner_occupant") ?? unitPeople[0];
       setPayerName(holder?.fullName ?? "");
       setPayerTaxId(holder?.documentNumber ?? "");
@@ -100,8 +115,15 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
       setSeleccion([statement.id]);
       setAjustes({});
       setBankAccountId("");
+      // #11 — estos tres tampoco se limpiaban, y sobrevivían al cierre: al
+      // reabrir para otro cobro se pintaba el sobrante del anterior y
+      // «Calculando…» podía quedarse encendido para siempre.
+      setSugerido([]);
+      setSobranteSeraAnticipo(false);
+      setCalculando(false);
+      setEstadoPropuesta("pendiente");
     }
-  }, [open, statement, people]);
+  }, [open, statement]);
 
   useEffect(() => {
     if (open) operationKey.current = crypto.randomUUID();
@@ -163,6 +185,11 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
     if (!open || !user?.tenantId || !statement || !importeValido || marcados.length === 0) {
       setSugerido([]);
       setEstadoPropuesta("pendiente");
+      // **Y se apaga el indicador.** Esta rama devolvía sin tocarlo: si alguien
+      // borraba el importe mientras había una propuesta en vuelo, la limpieza del
+      // efecto anterior mataba la llamada —y con ella su `finally`— y
+      // «Calculando…» se quedaba encendido sin nada calculándose.
+      setCalculando(false);
       return;
     }
     let vigente = true;
@@ -204,12 +231,25 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
   const reparto = useMemo(() => aplicarAjustes(sugerido, importe, ajustes), [sugerido, importe, ajustes]);
 
   const hayAjustes = Object.values(ajustes).some((v) => v.trim() !== "");
-  const cuadra = !hayAjustes || repartoCuadra(reparto.lineas, importe);
+  // #12 — el motivo, no solo el sí/no: el aviso decía «suma más que el importe»
+  // también cuando el problema era una línea en cero, y el reparto sumaba menos.
+  const motivo = hayAjustes ? motivoDeNoCuadrar(reparto.lineas, importe) : null;
+  const cuadra = motivo === null;
   // **La misma condicion que decide si viaja `allocations`** (ver el envio mas
   // abajo). Se nombra aqui porque de ella depende que pasa con el sobrante, y
   // tenerla escrita dos veces con formas distintas es como la pantalla acabo
   // prometiendo lo contrario de lo que hacia el servidor.
   const vaPorReparto = pagoMultiple && reparto.lineas.length > 1;
+  /**
+   * **#3 — la propuesta que hay en pantalla puede ser la ANTERIOR.**
+   *
+   * Al desmarcar un cargo, el efecto vuelve a pedir la propuesta pero conserva la
+   * de antes a propósito, para no parpadear a cero mientras alguien escribe. Con
+   * el botón activo durante ese hueco —400 ms de respiro más el viaje de red— se
+   * podía registrar el reparto viejo, **imputando dinero a un cargo que se acababa
+   * de quitar**. Se espera a que la propuesta corresponda a lo que hay marcado.
+   */
+  const esperandoPropuesta = pagoMultiple && marcados.length > 1 && estadoPropuesta === "pendiente";
   // **Qué se le puede decir al administrador sobre el sobrante**, decidido por
   // una función pura y probada en vez de por un ternario anidado en el JSX.
   // Incluye el caso que la pantalla contaba al revés: mientras la propuesta no ha
@@ -243,14 +283,24 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
       return;
     }
     if (!cuadra) {
-      toast.error("El reparto suma más que el importe pagado. Ajusta las líneas.");
+      toast.error(
+        motivo === "linea-no-positiva"
+          ? "Hay una línea del reparto en cero o negativa. Cada cargo tiene que llevar un importe mayor que cero."
+          : "El reparto suma más que el importe pagado. Ajusta las líneas.",
+      );
+      return;
+    }
+    if (esperandoPropuesta) {
+      toast.error("Todavía se está calculando el reparto. Espera un momento y vuelve a intentarlo.");
       return;
     }
     setSubmitting(true);
     try {
       const result = await recordPayment(user.tenantId, user.uid, {
         statement,
-        allocations: pagoMultiple && reparto.lineas.length > 1 ? reparto.lineas : undefined,
+        // Solo con la propuesta recibida: una lista heredada de la selección
+        // anterior repartiría el dinero entre cargos que ya no están marcados.
+        allocations: vaPorReparto && estadoPropuesta === "recibida" ? reparto.lineas : undefined,
         amount: parsed,
         date,
         bankAccountId: bankAccountId || null,
@@ -435,7 +485,12 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                     })}
                   </ul>
 
-                  {!cuadra ? (
+                  {motivo === "linea-no-positiva" ? (
+                    <p className="mt-2 rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                      Hay una línea en cero o negativa. Cada cargo del reparto tiene que llevar un importe mayor que
+                      cero; si no quieres cubrirlo, desmárcalo.
+                    </p>
+                  ) : motivo === "suma-mayor" ? (
                     <p className="mt-2 rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
                       El reparto suma más que el importe pagado. Puede sumar menos —lo que sobre queda a favor de la
                       unidad—, pero no más.
@@ -501,10 +556,10 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                 <Button
                   className="w-full sm:w-auto"
                   type="button"
-                  disabled={submitting || !cuadra || sobranteSinDestino}
+                  disabled={submitting || !cuadra || sobranteSinDestino || esperandoPropuesta}
                   onClick={() => void handleSubmit()}
                 >
-                  {submitting ? "Registrando..." : "Registrar y emitir recibo"}
+                  {submitting ? "Registrando..." : esperandoPropuesta ? "Calculando el reparto..." : "Registrar y emitir recibo"}
                 </Button>
               </div>
             </>

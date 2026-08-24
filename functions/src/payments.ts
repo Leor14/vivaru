@@ -203,7 +203,13 @@ export function calcularSaldo(
   vencimiento: string | undefined,
   hoy: string,
 ): { balance: number; status: EstadoCuota } {
-  const bruto = totalCobrado - pagado - anticipoAplicado;
+  // **Se redondea al céntimo, y por eso existe `aMoneda`.** Las tres restas
+  // arrastran basura: cruzar un anticipo que cubre la deuda ENTERA dejaba
+  // `bruto` en ~1e-14 en vez de 0, así que el cargo se quedaba en `pending` con
+  // un saldo que la pantalla formatea como **0,00** — pendiente de nada. Medido
+  // el 24 de agosto de 2026: 426 de 20.000 combinaciones con centavos, un 2,1 %.
+  // Con COP, que es entero, esto no cambia ni un resultado.
+  const bruto = aMoneda(totalCobrado - pagado - anticipoAplicado);
   const balance = bruto > 0 ? bruto : 0;
   const status: EstadoCuota =
     bruto <= 0 ? "paid" : vencimiento && vencimiento < hoy ? "overdue" : "pending";
@@ -226,7 +232,7 @@ export function calcularSaldo(
  * para MXN y USD es exactamente su céntimo. Leer la moneda del conjunto aquí
  * añadiría una lectura y una forma de equivocarse sin cambiar ni un resultado.
  */
-function aMoneda(valor: number): number {
+export function aMoneda(valor: number): number {
   return Math.round(valor * 100) / 100;
 }
 
@@ -237,7 +243,7 @@ function aMoneda(valor: number): number {
  * es del orden de 1e-9. Comparar con `!==` o con `>` a secas confunde las dos
  * cosas y rechaza cobros correctos.
  */
-const TOLERANCIA_MONEDA = 0.005;
+export const TOLERANCIA_MONEDA = 0.005;
 
 /**
  * Si un asiento de ingreso **ya viene contado por Cartera** y por tanto no debe
@@ -633,6 +639,18 @@ export async function aplicarPago(
     // ── Lecturas, todas antes de escribir ────────────────────────────────────
     const opSnap = await tx.get(opRef);
     if (opSnap.exists) {
+      // **La clave de idempotencia NO lleva el conjunto** —`advances.ts` sí se lo
+      // pone, y es el gemelo que lo hace bien—, así que dos conjuntos comparten
+      // espacio de claves. No se puede cambiar el id del documento sin dejar
+      // inalcanzables las marcas ya escritas en producción, y con ellas la
+      // reversión de todos los pagos anteriores. Lo que sí se puede, y es lo que
+      // faltaba, es **comprobar el conjunto antes de devolver el resultado**: sin
+      // esto, quien acierte una clave ajena recibe el recibo y los importes de
+      // otro conjunto, y su propio cobro se da por hecho sin haberse aplicado.
+      const dueño = (opSnap.data() as { tenantId?: string }).tenantId;
+      if (dueño && dueño !== tenantId) {
+        throw new HttpsError("permission-denied", "Esa clave de operación pertenece a otro conjunto.");
+      }
       // Ya se aplicó con esta clave. Se devuelve el mismo resultado sin volver a
       // tocar nada: es lo que convierte un reintento en algo inofensivo.
       const prev = opSnap.data() as Partial<AplicarPagoResultado> & {
@@ -1196,6 +1214,11 @@ export async function revertirPago(
     // ── Lecturas ─────────────────────────────────────────────────────────────
     const revSnap = await tx.get(revRef);
     if (revSnap.exists) {
+      // Mismo motivo que en `aplicarPago`: la clave no lleva el conjunto.
+      const dueñoRev = (revSnap.data() as { tenantId?: string }).tenantId;
+      if (dueñoRev && dueñoRev !== tenantId) {
+        throw new HttpsError("permission-denied", "Esa clave de reversión pertenece a otro conjunto.");
+      }
       const prev = revSnap.data() as Partial<RevertirPagoResultado>;
       return {
         ok: true as const,
@@ -1402,6 +1425,23 @@ export async function revertirPago(
         linea.cuota.dueDate,
         hoy,
       );
+
+      // **Un reverso de importe cero no se escribe.** Un pago que se fue ENTERO a
+      // anticipo —CA8, no había cargos pendientes— guarda `allocations: []` y
+      // `appliedToStatement: 0`, así que el respaldo de más arriba fabrica una
+      // línea de cero contra la cuota original. Revertirlo dejaba en el libro un
+      // `ingreso: 0` con categoría «alicuota»: una fila que no dice nada y que
+      // ensucia la conciliación. El dinero de ese pago se revierte donde de
+      // verdad está, en el asiento del anticipo (R15, aquí abajo).
+      // Es la misma regla que ya aplica `aplicarPago` con `aplicadoAlCargo > 0`.
+      if (linea.amount <= 0) {
+        if (i === 0) {
+          pagadoDespues = saldo.paymentAmount;
+          balance = saldo.balance;
+          status = saldo.status;
+        }
+        continue;
+      }
 
       const reversoRef = firestore.collection("ledgerEntries").doc();
       const conceptoOriginal = linea.asiento?.concept ?? `Pago ${linea.statementId}`;

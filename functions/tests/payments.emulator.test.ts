@@ -1085,3 +1085,115 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
     expect((await ingresoTotal()).total).toBe(0);
   });
 });
+
+describe("Triaje del 24 ago 2026 · el dinero con centavos, otra vez", () => {
+  /**
+   * **#14 — cruzar un anticipo cubriendo la deuda ENTERA deja el cargo saldado.**
+   *
+   * `calcularSaldo` decidía sobre `cobrado − pagado − cruzado` sin redondear, y
+   * las tres restas arrastran basura: el cargo se quedaba en `pending` con un
+   * saldo de ~3,5e-15 que la pantalla pinta como **0,00**. Pendiente de nada.
+   * Medido antes de arreglarlo: **426 de 20.000 combinaciones con centavos**.
+   */
+  it("cruzar la deuda entera con centavos deja el cargo en `paid` y no en «pendiente 0,00»", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(500, "c14");
+    await db.collection("billingStatements").doc("cuota-c14").set({
+      tenantId: TENANT, unitId: "unit-101", unitLabel: "101", period: "2026-08",
+      concept: "administracion", amount: 32.95, paymentAmount: 7.91, advanceAppliedAmount: 6.01,
+      balance: 19.03, dueDate: "2026-08-31", status: "pending",
+    });
+    await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-c14", amount: 100, date: "2026-08-21", operationKey: "cruce-c14" },
+      ADMIN, ROL, TENANT,
+    );
+    const cargo = await db.collection("billingStatements").doc("cuota-c14").get();
+    expect(cargo.data()?.balance).toBe(0);
+    expect(cargo.data()?.status).toBe("paid");
+  });
+
+  /**
+   * **#7 — CF3: un anticipo cruzado y DESCRUZADO se tiene que poder anular.**
+   *
+   * `remaining + monto` no devuelve el importe de partida con centavos —21,99
+   * cruzado 3,74 y descruzado daba 21,990000000000002— y CF3 comparaba con
+   * `!==`, así que se negaba a anularlo diciendo que «ya se aplicó a algún
+   * cargo». Mentira, y sin salida: deshacer el cruce era justo lo que se acababa
+   * de hacer. Medido: **603 de 20.000, un 3,0 %**.
+   */
+  it("anticipo con centavos cruzado y descruzado: se puede anular", async () => {
+    await bandera(true);
+    const advanceId = await anticipoDe(21.99, "c7");
+    await sembrarCuota("cuota-c7", 3.74);
+    const cruce = await cruzarAnticipo(
+      { tenantId: TENANT, advanceId, statementId: "cuota-c7", amount: 3.74, date: "2026-08-21", operationKey: "cruce-c7" },
+      ADMIN, ROL, TENANT,
+    );
+    await deshacerCruce(
+      { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "descruce-c7" },
+      ADMIN, ROL, TENANT,
+    );
+    const tras = await db.collection("advances").doc(advanceId).get();
+    expect(tras.data()?.remaining).toBe(tras.data()?.amount);
+    await expect(anularAnticipo(
+      { tenantId: TENANT, advanceId, reason: "prueba", operationKey: "anula-c7" },
+      ADMIN, ROL, TENANT,
+    )).resolves.toMatchObject({ ok: true });
+  });
+
+  /**
+   * **#13 — revertir un pago que se fue ENTERO a anticipo.**
+   *
+   * Un pago sin cargos pendientes (CA8) guarda `allocations: []` y
+   * `appliedToStatement: 0`, así que el respaldo del reverso fabricaba una línea
+   * de cero y escribía en el libro un `ingreso: 0` con categoría «alicuota». Una
+   * fila que no dice nada y que ensucia la conciliación. El dinero de ese pago
+   * se revierte donde de verdad está: en el asiento del anticipo (R15).
+   */
+  it("revertirlo no deja un asiento de importe cero en el libro", async () => {
+    await bandera(true);
+    await sembrarCuota("cuota-c13", 140000);
+    await db.collection("billingStatements").doc("cuota-c13").update({ paymentAmount: 140000, balance: 0, status: "paid" });
+    await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-c13", amount: 50000, date: "2026-08-20", operationKey: "op-c13", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    await revertirPago(
+      { tenantId: TENANT, operationKey: "op-c13", reversalKey: "rev-c13", reason: "prueba" },
+      ADMIN, ROL, TENANT,
+    );
+    const libro = await db.collection("ledgerEntries").get();
+    expect(libro.docs.filter((d) => (d.data().amount ?? 0) === 0)).toHaveLength(0);
+    // Y la contraparte: el dinero SÍ se revirtió, por su propio asiento.
+    const anticipos = libro.docs.map((d) => d.data()).filter((e) => e.category === "anticipo");
+    expect(anticipos.map((e) => e.amount).sort((a, b) => a - b)).toEqual([-50000, 50000]);
+  });
+
+  /**
+   * **#6 — la clave de idempotencia no lleva el conjunto.**
+   *
+   * `advances.ts` prefija sus claves con el `tenantId` y `payments.ts` no: es el
+   * gemelo que lo hace bien. No se puede cambiar el id del documento sin dejar
+   * inalcanzables las marcas ya escritas —y con ellas la reversión de todos los
+   * pagos que hay en producción—, así que lo que se comprueba es el conjunto
+   * antes de devolver el resultado. Sin esto, quien acierte una clave ajena
+   * recibe el recibo de otro conjunto y su propio cobro se da por hecho.
+   */
+  it("una clave de otro conjunto no devuelve su resultado: se rechaza", async () => {
+    await bandera(true);
+    await sembrarCuota("cuota-c6", 140000);
+    await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-c6", amount: 140000, date: "2026-08-20", operationKey: "op-c6", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    await db.collection("billingStatements").doc("cuota-c6-ajena").set({
+      tenantId: OTRO_TENANT, unitId: "unit-9", unitLabel: "9", period: "2026-08",
+      concept: "administracion", amount: 10000, paymentAmount: 0, balance: 10000,
+      dueDate: "2026-08-31", status: "pending",
+    });
+    await expect(aplicarPago(
+      { tenantId: OTRO_TENANT, statementId: "cuota-c6-ajena", amount: 10000, date: "2026-08-20", operationKey: "op-c6", source: "manual" },
+      ADMIN, ROL, OTRO_TENANT,
+    )).rejects.toThrow(/pertenece a otro conjunto/);
+  });
+});

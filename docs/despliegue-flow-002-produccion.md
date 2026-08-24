@@ -128,4 +128,4 @@ telemetría— y qué pasa si eso falla.
 - **§9 y CA13 no están construidos:** el aviso al residente no nombra los cargos cubiertos ni el
   saldo a favor.
 - **CF8 no se cumple:** las callables no comprueban si el conjunto está `suspended`.
-- **Quedan 16 sospechas sin verificar, ninguna de gravedad alta:** `docs/revision-flow-002-por-verificar.md`. Las seis triadas el 24 de agosto **eran ciertas las seis**.
+- **La revisión adversarial está CERRADA:** `docs/revision-flow-002-por-verificar.md`. De 37, **35 eran ciertas y están corregidas**, una se descartó con números y una espera decisión.

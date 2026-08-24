@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   aplicarAjustes,
   avisoDelSobrante,
+  motivoDeNoCuadrar,
   deudaDelCargo,
   repartoCuadra,
   type CargoParaReparto,
@@ -257,5 +258,39 @@ describe("crucesVigentes — R8", () => {
 
   it("un anticipo anulado sin cruces no tiene ninguno vigente", () => {
     expect(crucesVigentes([cruce({ id: "y", reversedAt: "2026-08-03" })], "adv-1")).toEqual([]);
+  });
+});
+
+describe("motivoDeNoCuadrar — el mensaje tiene que decir el problema que hay", () => {
+  /**
+   * **REPRO.** `repartoCuadra` devuelve `false` por dos motivos y la pantalla
+   * enseñaba el mismo aviso para los dos: «suma más que el importe pagado»
+   * delante de un reparto que sumaba MENOS y solo tenía una línea en cero.
+   */
+  it("una línea en cero no es «suma más que el importe»", () => {
+    expect(motivoDeNoCuadrar([{ statementId: "a", amount: 0 }, { statementId: "b", amount: 10 }], 100))
+      .toBe("linea-no-positiva");
+  });
+
+  it("una línea negativa, igual", () => {
+    expect(motivoDeNoCuadrar([{ statementId: "a", amount: -5 }], 100)).toBe("linea-no-positiva");
+  });
+
+  it("pasarse del importe sí es «suma más»", () => {
+    expect(motivoDeNoCuadrar([{ statementId: "a", amount: 150 }], 100)).toBe("suma-mayor");
+  });
+
+  it("un reparto que cuadra no tiene motivo", () => {
+    expect(motivoDeNoCuadrar([{ statementId: "a", amount: 60 }, { statementId: "b", amount: 40 }], 100)).toBeNull();
+  });
+
+  /** Y la tolerancia sigue: un reparto exacto con centavos no es «suma más». */
+  it("un reparto exacto con centavos no se lee como que se pasa", () => {
+    const lineas = [
+      { statementId: "a", amount: 1243.79 },
+      { statementId: "b", amount: 4619.14 },
+      { statementId: "c", amount: 1683.14 },
+    ];
+    expect(motivoDeNoCuadrar(lineas, 7546.07)).toBeNull();
   });
 });

@@ -85,8 +85,32 @@ export function ordenarParaMostrar<T extends CargoParaReparto>(cargos: readonly 
  * para recibir un error es peor que un botón desactivado con el motivo escrito.
  */
 export function repartoCuadra(lineas: readonly LineaDeReparto[], importe: number): boolean {
+  return motivoDeNoCuadrar(lineas, importe) === null;
+}
+
+/**
+ * **Por qué NO cuadra**, que no es lo mismo que si cuadra.
+ *
+ * `repartoCuadra` devuelve `false` por dos motivos distintos —una línea en cero
+ * o negativa, y la suma pasándose del importe— y la pantalla enseñaba el segundo
+ * mensaje para los dos: «el reparto suma más que el importe pagado» delante de
+ * un reparto que sumaba MENOS. Quien lo lee busca el error donde no está.
+ *
+ * Se separa aquí y no en el componente para que el motivo se pueda probar sin
+ * pintar nada.
+ */
+export type MotivoDeNoCuadrar = "linea-no-positiva" | "suma-mayor";
+
+export function motivoDeNoCuadrar(
+  lineas: readonly LineaDeReparto[],
+  importe: number,
+): MotivoDeNoCuadrar | null {
+  if (!lineas.every((l) => numero(l.amount) > 0)) return "linea-no-positiva";
   const suma = lineas.reduce((s, l) => s + numero(l.amount), 0);
-  return lineas.every((l) => numero(l.amount) > 0) && suma <= numero(importe) + 0.005;
+  // La tolerancia es la de siempre: sin ella, un reparto exacto con centavos
+  // —`1243.79 + 4619.14 + 1683.14`— se lee como que se pasa.
+  if (suma > numero(importe) + 0.005) return "suma-mayor";
+  return null;
 }
 
 /**

@@ -121,8 +121,11 @@ async function cruzarAnticipo(input, uid, role, tokenTenant) {
         if (aplicado <= 0) {
             throw new https_1.HttpsError("failed-precondition", "Ese cargo no tiene saldo pendiente que cubrir.");
         }
-        const cruzadoDespues = cruzadoAntes + aplicado;
-        const remanenteDespues = remanente - aplicado;
+        // **Redondeados al céntimo.** Sin esto, cruzar la deuda entera dejaba el
+        // cargo en `pending` con un saldo de ~1e-14 —que se pinta como 0,00— y el
+        // remanente del anticipo arrastraba basura que después impedía anularlo.
+        const cruzadoDespues = (0, payments_1.aMoneda)(cruzadoAntes + aplicado);
+        const remanenteDespues = (0, payments_1.aMoneda)(remanente - aplicado);
         const { balance, status } = (0, payments_1.calcularSaldo)(cobrado, pagado, cruzadoDespues, cuota.dueDate, hoyDe(fecha));
         const advanceStatus = remanenteDespues <= 0 ? "applied" : "open";
         // ── Escrituras ───────────────────────────────────────────────────────────
@@ -239,8 +242,13 @@ async function deshacerCruce(input, uid, role, tokenTenant) {
         // El mismo `max(…, 0)` que `saldoTrasRevertir`, por el mismo motivo: si
         // alguien tocó el cargo por otra vía, restar a ciegas dejaría un cruzado
         // NEGATIVO, que se lee como que el conjunto le debe dinero al residente.
-        const cruzadoDespues = Math.max(cruzadoAntes - monto, 0);
-        const remanenteDespues = (typeof advance.remaining === "number" ? advance.remaining : 0) + monto;
+        const cruzadoDespues = (0, payments_1.aMoneda)(Math.max(cruzadoAntes - monto, 0));
+        // **Redondeado, o el anticipo no vuelve a su importe original.** Deshacer un
+        // cruce hacía `remaining + monto` a pelo, y con centavos eso no devuelve el
+        // valor de partida: 21,99 cruzado 3,74 y descruzado daba 21,990000000000002.
+        // Después CF3 comparaba con `!==` y se negaba a anularlo diciendo que «ya se
+        // aplicó a algún cargo», que era mentira. Medido: 603 de 20.000, un 3,0 %.
+        const remanenteDespues = (0, payments_1.aMoneda)((typeof advance.remaining === "number" ? advance.remaining : 0) + monto);
         const { balance, status } = (0, payments_1.calcularSaldo)(cobrado, pagado, cruzadoDespues, cuota.dueDate, hoyDe(undefined));
         // **El anticipo vuelve a `open`, no a lo que fuera.** Un anticipo con
         // remanente es `open` por definición (§6), y deshacer un cruce siempre deja
@@ -331,8 +339,13 @@ async function anularAnticipo(input, uid, role, tokenTenant) {
         if (advance.status === "cancelled") {
             throw new https_1.HttpsError("failed-precondition", "Ese anticipo ya está anulado.");
         }
-        // CF3.
-        if ((advance.remaining ?? 0) !== (advance.amount ?? 0)) {
+        // **CF3, con tolerancia y no con `!==`.** La igualdad exacta sobre dinero en
+        // coma flotante es la misma trampa que ya costó cobros en `aplicarPago`: un
+        // anticipo cruzado y descruzado volvía a su importe con un residuo de 1e-15 y
+        // esta guarda lo declaraba «ya aplicado». El redondeo de arriba lo evita a
+        // partir de ahora; la tolerancia rescata además a los que ya están escritos
+        // así en la base. Media unidad mínima: por debajo de eso no puede ser dinero.
+        if (Math.abs((advance.remaining ?? 0) - (advance.amount ?? 0)) > payments_1.TOLERANCIA_MONEDA) {
             throw new https_1.HttpsError("failed-precondition", "Ese anticipo ya se aplicó a algún cargo. Primero hay que deshacer esos cruces.");
         }
         tx.update(advanceRef, {

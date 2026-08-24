@@ -106,6 +106,47 @@ function KpiCard({
   );
 }
 
+/**
+ * Tooltip del gráfico de recaudo — **existe para que la línea y las barras dejen
+ * de contradecirse.**
+ *
+ * Las barras son `facturado` y `recaudado`; la línea es el «% recaudo», que desde
+ * `FLOW-002` R16 mide **liquidación** y no ingreso. Un mes en el que una unidad
+ * cubre su cuota con un anticipo de otro mes deja la barra verde corta y la línea
+ * al 100 %, y con el tooltip por defecto no había forma de entender por qué. Se
+ * enseña lo saldado con anticipos **solo cuando los dos números se separan**:
+ * repetir dos cifras iguales invita a buscarles la diferencia.
+ */
+function RecaudoTooltip({
+  active,
+  payload,
+  label,
+  formatCurrency,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: { facturado: number; recaudado: number; liquidado: number; collectionRate: number } }>;
+  label?: string;
+  formatCurrency: (v: number) => string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const { facturado, recaudado, liquidado, collectionRate } = payload[0].payload;
+  const pendiente = Math.max(facturado - liquidado, 0);
+  return (
+    <div className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-xs shadow-sm">
+      <p className="font-semibold text-[var(--slate-800)]">{label ? monthShort(String(label)) : ""}</p>
+      <div className="mt-1 space-y-0.5 text-[var(--slate-700)]">
+        <p className="flex justify-between gap-4"><span>Facturado</span><span className="font-semibold">{formatCurrency(facturado)}</span></p>
+        <p className="flex justify-between gap-4"><span>Recaudado</span><span className="font-semibold">{formatCurrency(recaudado)}</span></p>
+        {liquidado !== recaudado ? (
+          <p className="flex justify-between gap-4"><span>Saldado con anticipos</span><span className="font-semibold">{formatCurrency(Math.max(liquidado - recaudado, 0))}</span></p>
+        ) : null}
+        <p className="flex justify-between gap-4"><span>Pendiente</span><span className="font-semibold">{formatCurrency(pendiente)}</span></p>
+        <p className="flex justify-between gap-4"><span>% recaudo</span><span className="font-semibold">{collectionRate}%</span></p>
+      </div>
+    </div>
+  );
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   // El Reporte de Comité es un documento formal (se imprime, se archiva y se firma):
   // los encabezados van sin emojis. Si el título llega con un símbolo/emoji al inicio
@@ -852,7 +893,14 @@ function AdminReportsPageContent() {
                             <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                             <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={44} />
                             <YAxis yAxisId="rate" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={36} />
-                            <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(value, name) => (name === "% recaudo" ? [`${value}%`, name] : [formatCurrency(Number(value)), name])} labelFormatter={(label) => monthShort(String(label))} />
+                            {/* **El tooltip expone LO LIQUIDADO** (R16). Las barras
+                                pintan facturado y recaudado, pero la línea del
+                                porcentaje mide lo que dejó de deberse: un mes
+                                saldado con anticipos deja la barra verde corta y la
+                                línea al 100 %, y sin este dato no hay forma de
+                                reconciliarlos. Mismo remedio que el gráfico de
+                                Cartera, que ya lo hacía. */}
+                            <Tooltip content={<RecaudoTooltip formatCurrency={formatCurrency} />} />
                             <Bar dataKey="facturado" name="Facturado" fill="#cbd5e1" radius={[3, 3, 0, 0]} />
                             <Bar dataKey="recaudado" name="Recaudado" fill="#10b981" radius={[3, 3, 0, 0]} />
                             <Line yAxisId="rate" dataKey="collectionRate" name="% recaudo" stroke="#6366f1" dot={false} strokeWidth={2} />

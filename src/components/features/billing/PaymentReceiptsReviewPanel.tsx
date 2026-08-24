@@ -92,7 +92,25 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
    */
   function cuentaElegida(receipt: PaymentReceipt): string {
     if (receipt.id in cuentas) return cuentas[receipt.id];
-    return receipt.bankAccountId ?? "";
+    // **La cuenta que declaró el residente puede estar DADA DE BAJA.**
+    //
+    // El desplegable solo ofrece las activas, así que un id inactivo no casaba
+    // con ninguna opción y el select salía en blanco —como si nadie hubiera
+    // declarado nada—; y si el revisor no lo tocaba, se enviaba igualmente y el
+    // servidor rechazaba el cobro con «esa cuenta bancaria está inactiva», un
+    // error sin causa visible en pantalla. Aquí no se preselecciona, y debajo se
+    // dice por qué: la decisión de a qué cuenta imputarlo vuelve a quien aprueba.
+    const declarada = receipt.bankAccountId ?? "";
+    if (!declarada) return "";
+    return bankAccountsActivas.some((c) => c.id === declarada) ? declarada : "";
+  }
+
+  /** La cuenta declarada por el residente que ya no está activa, si la hay. */
+  function cuentaDeBaja(receipt: PaymentReceipt) {
+    const declarada = receipt.bankAccountId ?? "";
+    if (!declarada || receipt.id in cuentas) return null;
+    if (bankAccountsActivas.some((c) => c.id === declarada)) return null;
+    return bankAccounts.find((c) => c.id === declarada) ?? null;
   }
 
   /** Monto de referencia para detectar ajuste: lo declarado por el residente o el saldo. */
@@ -344,6 +362,12 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                                   </option>
                                 ))}
                               </select>
+                            ) : null}
+                            {cuentaDeBaja(receipt) ? (
+                              <p className="w-full text-xs text-[#9c4631]">
+                                El residente dijo que pagó a «{cuentaDeBaja(receipt)?.label}», que está dada de baja.
+                                Elige a qué cuenta entró el dinero.
+                              </p>
                             ) : null}
                             <Button
                               type="button"

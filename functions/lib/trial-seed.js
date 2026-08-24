@@ -171,10 +171,16 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
         accountNumber: "0000000000",
         accountType: "corriente",
         currency,
-        openingBalance: 0,
+        // **`openingBalance` NO va aquí.** `FLOW-002` lo sacó a `bankAccountBalances`
+        // para poder abrir la lectura de `bankAccounts` al residente: las reglas
+        // conceden el documento entero y no se pueden ocultar campos, así que dejarlo
+        // dentro enseñaría con cuánto dinero abrió cada cuenta el conjunto. Escribía
+        // un cero, que no filtra nada, pero devolvía el campo al sitio del que la
+        // migración lo había sacado — y la siguiente semilla ya no sería un cero.
         active: true,
         isExample: true,
     });
+    await set("bankAccountBalances", bankAccountId, { openingBalance: 0, isExample: true });
     stats.bankAccounts = 1;
     // Las categorías tienen que ser valores de `ExpenseCategory` (`src/types/domain.ts`).
     // Hasta hoy dos no lo eran —`servicios` y `seguridad`— y el `set()` de esta

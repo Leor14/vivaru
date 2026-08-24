@@ -118,6 +118,22 @@ describe("§11.3 · `calcularSaldo` y `computeBalanceStatus` no se pueden separa
   });
 
   /**
+   * **Y los dos REDONDEAN al céntimo antes de decidir.** Sin esto, cruzar un
+   * anticipo que cubre la deuda entera deja el cargo en `pending` con un saldo
+   * de ~1e-14 —que se pinta como 0,00—, porque `bruto <= 0` no se cumple por
+   * un residuo de coma flotante. Medido: 2,1 % de las combinaciones con
+   * centavos. Con COP, que es entero, no cambia ni un resultado.
+   */
+  it("los dos redondean el bruto al céntimo antes de decidir el estado", () => {
+    expect(servidor).toContain("aMoneda(totalCobrado-pagado-anticipoAplicado)");
+    // 32,95 de cargo, 7,91 pagados y 25,04 cubiertos con anticipo: la resta da
+    // 3,55e-15 en coma flotante, y sin redondeo el cargo se queda «pendiente».
+    const r = computeBalanceStatus(32.95, 7.91, 6.01 + (32.95 - 7.91 - 6.01));
+    expect(r.balance).toBe(0);
+    expect(r.status).toBe("paid");
+  });
+
+  /**
    * **`paid` se decide por el BRUTO, no por el saldo topado.** Con el topado, un
    * sobrepago daría `balance: 0` y la rama de vencimiento nunca se alcanzaría —
    * mismo resultado hoy, pero por accidente. El servidor lo escribe así y el
@@ -232,6 +248,27 @@ describe("R16 · el «% de recaudo» del informe automático mide lo mismo que l
     expect(cuerpo).toContain("Math.round((v.l/v.f)*100)");
     expect(cuerpo).not.toContain("Math.round((recaudado/facturado)*100)");
     expect(cuerpo).not.toContain("Math.round((v.r/v.f)*100)");
+  });
+
+  /**
+   * **Y los otros dos «% recaudo» que había con la fórmula vieja.** Salieron del
+   * triaje del 24 de agosto: en `/admin/billing` convivían dos con el MISMO
+   * rótulo y distinta fórmula —el de la tabla de campañas y el StatTile—, y el
+   * reporte de comité pintaba una línea que contradecía a sus propias barras
+   * porque no exponía lo liquidado.
+   */
+  it("el «% recaudo» de la tabla de campañas mide liquidación", () => {
+    const RUTA = path.resolve("src/app/(admin)/admin/billing/page.tsx");
+    const cuerpo = esqueleto(fs.readFileSync(RUTA, "utf8"));
+    expect(cuerpo).toContain("acc+statementSettledAmount(s)");
+    expect(cuerpo).toContain("Math.round((liquidado/emitido)*100)");
+    expect(cuerpo).not.toContain("Math.round((recaudado/emitido)*100)");
+  });
+
+  it("el reporte de comité expone lo liquidado, para que la línea y las barras se puedan cuadrar", () => {
+    const RUTA = path.resolve("src/features/reports/use-committee-report.ts");
+    const cuerpo = esqueleto(fs.readFileSync(RUTA, "utf8"));
+    expect(cuerpo).toContain("liquidado:monthCollection.settled");
   });
 
   /** Y su gemelo manual, que produce un fichero con el mismo nombre y columnas. */

@@ -110,6 +110,14 @@ export type CommitteeReport = {
       period: string;        // YYYY-MM
       facturado: number;
       recaudado: number;
+      /**
+       * Lo que dejó de deberse (`FLOW-002` R16). **Es el numerador de
+       * `collectionRate`**, y por eso tiene que viajar: las barras pintan
+       * `facturado` y `recaudado`, y sin este número la línea del porcentaje
+       * contradice a las barras sin que nada en pantalla lo explique — un mes
+       * saldado con anticipos deja la barra verde corta y la línea al 100 %.
+       */
+      liquidado: number;
       collectionRate: number;
       vencido: number;
       ingresos: number;
@@ -694,6 +702,7 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
         period,
         facturado,
         recaudado,
+        liquidado: monthCollection.settled,
         collectionRate: Math.round(monthCollection.rate),
         vencido,
         ingresos,

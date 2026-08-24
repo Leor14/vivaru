@@ -33,7 +33,11 @@ export function computeBalanceStatus(
   advanceApplied: number,
   dueDate?: string,
 ): { balance: number; status: BillingStatement["status"] } {
-  const rawBalance = totalCharged - paidAmount - advanceApplied;
+  // **Redondeado al céntimo, igual que `calcularSaldo` en el servidor.** Las
+  // tres restas arrastran basura: cruzar un anticipo que cubre la deuda entera
+  // dejaba `rawBalance` en ~1e-14, y el cargo se quedaba `pending` con un saldo
+  // que la pantalla pinta como 0,00. **Si cambias una, cambia la otra.**
+  const rawBalance = Math.round((totalCharged - paidAmount - advanceApplied) * 100) / 100;
   const balance = rawBalance > 0 ? rawBalance : 0;
   const today = new Date().toISOString().slice(0, 10);
   const status: BillingStatement["status"] =

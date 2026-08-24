@@ -546,8 +546,14 @@ function AdminBillingPageContent() {
   const campaignRows = useMemo(() => {
     const rows = campaigns.map((c) => {
       const stmts = items.filter((s) => s.campaignId === c.id);
-      const emitido = stmts.reduce((acc, s) => acc + (s.amount ?? 0), 0);
-      const recaudado = stmts.reduce((acc, s) => acc + (s.paymentAmount ?? 0), 0);
+      const emitido = stmts.reduce((acc, s) => acc + statementChargedAmount(s), 0);
+      const recaudado = stmts.reduce((acc, s) => acc + Math.max(s.paymentAmount ?? 0, 0), 0);
+      // **R16, y por la fórmula única.** El «% recaudo» de esta tabla se
+      // calculaba `recaudado / emitido` mientras el StatTile de la MISMA pantalla,
+      // con el mismo rótulo, mide liquidación: dos porcentajes distintos con el
+      // mismo nombre a un palmo el uno del otro. Aquí manda la liquidación, que
+      // es lo que responde «cuánto de esta campaña ha dejado de deberse».
+      const liquidado = stmts.reduce((acc, s) => acc + statementSettledAmount(s), 0);
       const pendiente = stmts.reduce((acc, s) => acc + (s.balance ?? 0), 0);
       const pendientes = stmts.filter((s) => (s.balance ?? 0) > 0);
       const pendientesUnitIds = pendientes.map((s) => s.unitId);
@@ -555,8 +561,8 @@ function AdminBillingPageContent() {
       const unitCount = stmts.length || c.unitCount || 0;
       const paidCount = stmts.filter((s) => (s.balance ?? 0) <= 0).length;
       const reminders = stmts.reduce((acc, s) => acc + (s.reminderCount ?? 0), 0);
-      const pct = emitido > 0 ? Math.round((recaudado / emitido) * 100) : 0;
-      return { c, emitido, recaudado, pendiente, pendientesUnitIds, pendientesStatementIds, unitCount, paidCount, reminders, pct };
+      const pct = emitido > 0 ? Math.round((liquidado / emitido) * 100) : 0;
+      return { c, emitido, recaudado, liquidado, pendiente, pendientesUnitIds, pendientesStatementIds, unitCount, paidCount, reminders, pct };
     });
     // Mantenimiento (administración) primero; dentro, el orden por sentAt desc del hook.
     return rows.sort((a, b) => (a.c.concept === "administracion" ? 0 : 1) - (b.c.concept === "administracion" ? 0 : 1));
@@ -1270,7 +1276,10 @@ function AdminBillingPageContent() {
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatTile tone="blue" label="Cobrado" value={formatAmount(trendSummary.totalCharged)} />
           <StatTile tone="green" label="Recaudado" value={formatAmount(trendSummary.totalCollected)} />
-          <StatTile tone="amber" label="Brecha" value={formatAmount(trendSummary.gap)} />
+          {/* «Pendiente», no «Brecha»: el tooltip del gráfico de al lado ya
+              llamaba así a este MISMO número, y dos nombres para una cifra
+              invitan a buscarles la diferencia. */}
+          <StatTile tone="amber" label="Pendiente" value={formatAmount(trendSummary.gap)} />
           <StatTile tone="blue" label="% recaudo" value={`${trendSummary.collectionRate.toFixed(1)}%`} />
         </div>
 
