@@ -91,9 +91,24 @@ export async function fetchPaymentVoucher(voucherId: string): Promise<PaymentVou
 }
 
 export type RecordPaymentInput = {
+  /**
+   * El cargo del cobro. **Sigue siendo la forma normal**: cobrar una cuota es lo
+   * que se hace el noventa por ciento de las veces.
+   */
   statement: BillingStatement;
+  /**
+   * **D-B.** El reparto, cuando el pago cubre VARIOS cargos de la misma unidad.
+   * Ausente o de una sola línea = la ruta de siempre.
+   */
+  allocations?: { statementId: string; amount: number }[];
   amount: number;
   date: string;
+  /**
+   * **D-C, R11.** A qué cuenta bancaria entró el dinero. Opcional a propósito:
+   * el efectivo no entra a ninguna, y forzarlo obligaría a inventarse una cuenta
+   * falsa, que es peor que no tener el dato.
+   */
+  bankAccountId?: string | null;
   payerName?: string | null;
   /**
    * Documento de quien paga. **Opcional en los tres países** desde el 20 de
@@ -136,20 +151,29 @@ export async function recordPayment(
   voucherCode: string;
   /** R8 — el concepto no tenía cuenta y el asiento cayó en «Otros ingresos». */
   cayoEnOtrosIngresos: boolean;
+  /** R2/R3 — lo que sobró quedó como saldo a favor. Ausente si no sobró nada. */
+  advanceAmount?: number;
 }> {
   if (input.amount <= 0) {
     throw new Error("El monto del cobro debe ser mayor a cero.");
   }
 
+  // **Con un solo cargo se manda `statementId`, no un reparto de una línea.**
+  // El servidor normaliza las dos formas al mismo código, así que daría igual
+  // para la aritmética; lo que NO da igual es la auditoría: `applyPayment`
+  // registra `request.data.statementId`, y mandar solo `allocations` dejaría la
+  // entrada de auditoría sin decir qué cargo se cobró.
+  const varios = (input.allocations?.length ?? 0) > 1;
   const aplicado = await applyPaymentCallable({
     tenantId,
-    statementId: input.statement.id,
+    ...(varios ? { allocations: input.allocations } : { statementId: input.statement.id }),
     amount: input.amount,
     date: input.date,
     operationKey: input.operationKey,
     source: "manual",
     payerName: input.payerName ?? null,
     payerTaxId: input.payerTaxId ?? null,
+    bankAccountId: input.bankAccountId ?? null,
   });
 
   // El recibo llega del servidor. Si no viniera, el pago SÍ se aplicó —eso ya
@@ -164,5 +188,9 @@ export async function recordPayment(
     ledgerEntryId: aplicado.ledgerEntryId,
     voucherCode: aplicado.voucherCode,
     cayoEnOtrosIngresos: aplicado.cayoEnOtrosIngresos === true,
+    // Del servidor y no de una resta local: un reintento con la misma clave
+    // devuelve el MISMO anticipo (R10), y restar aquí lo recalcularía como si
+    // fuera nuevo.
+    advanceAmount: aplicado.advanceAmount,
   };
 }

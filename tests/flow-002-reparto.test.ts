@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   deudaDelCargo,
   ordenarPorAntiguedad,
+  repartirConAjustes,
   repartirPago,
   repartoCuadra,
   type CargoParaReparto,
@@ -138,6 +139,54 @@ describe("repartirPago — la propuesta que ve el administrador", () => {
   it("un importe de cero o negativo no propone nada", () => {
     expect(repartirPago([junio], 0)).toEqual({ lineas: [], sobrante: 0 });
     expect(repartirPago([junio], -5)).toEqual({ lineas: [], sobrante: 0 });
+  });
+});
+
+describe("repartirConAjustes — lo que de verdad se envía", () => {
+  const junio = cargo({ id: "junio", amount: 100_000, dueDate: "2026-06-05" });
+  const julio = cargo({ id: "julio", amount: 100_000, dueDate: "2026-07-05" });
+
+  it("sin ajustes es exactamente la propuesta de R7", () => {
+    expect(repartirConAjustes([junio, julio], 150_000, {})).toEqual(repartirPago([junio, julio], 150_000));
+  });
+
+  /**
+   * **Una casilla vacía no es un cero: significa «deja la sugerencia».**
+   * Tratarla como cero borraría la línea en cuanto alguien seleccionara y
+   * borrara el contenido de la casilla para reescribirlo, y el dinero de esa
+   * cuota se iría al sobrante sin que nadie lo pidiera.
+   */
+  it("una casilla vacía deja la sugerencia, no la pone a cero", () => {
+    const r = repartirConAjustes([junio, julio], 150_000, { junio: "", julio: "   " });
+    expect(r.lineas).toEqual([
+      { statementId: "junio", amount: 100_000 },
+      { statementId: "julio", amount: 50_000 },
+    ]);
+    expect(r.sobrante).toBe(0);
+  });
+
+  it("un ajuste manda sobre la sugerencia, y el resto se recalcula al sobrante", () => {
+    const r = repartirConAjustes([junio, julio], 150_000, { junio: "20000" });
+    expect(r.lineas).toEqual([
+      { statementId: "junio", amount: 20_000 },
+      { statementId: "julio", amount: 50_000 },
+    ]);
+    // 150.000 − 20.000 − 50.000. Lo que el administrador libera de un cargo no
+    // se reparte solo al siguiente: queda a favor de la unidad, que es lo que
+    // el servidor va a hacer con ello.
+    expect(r.sobrante).toBe(80_000);
+  });
+
+  it("un ajuste que se pasa deja el sobrante en cero, no en negativo", () => {
+    const r = repartirConAjustes([junio], 50_000, { junio: "90000" });
+    expect(r.sobrante).toBe(0);
+    expect(repartoCuadra(r.lineas, 50_000)).toBe(false);
+  });
+
+  it("basura escrita en la casilla vale cero y la deja detectable por repartoCuadra", () => {
+    const r = repartirConAjustes([junio], 100_000, { junio: "abc" });
+    expect(r.lineas).toEqual([{ statementId: "junio", amount: 0 }]);
+    expect(repartoCuadra(r.lineas, 100_000)).toBe(false);
   });
 });
 

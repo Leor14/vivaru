@@ -44,6 +44,7 @@ export type Reparto = {
   sobrante: number;
 };
 
+/** Acepta también las cadenas que escribe el formulario. `""` y basura → 0. */
 function numero(valor: unknown): number {
   const n = typeof valor === "number" ? valor : Number(valor ?? 0);
   return Number.isFinite(n) ? n : 0;
@@ -112,6 +113,39 @@ export function repartirPago(cargos: readonly CargoParaReparto[], importe: numbe
   }
 
   return { lineas, sobrante: restante };
+}
+
+/**
+ * El reparto que de verdad se envía: la propuesta de R7 con lo que el
+ * administrador haya escrito a mano **por encima**.
+ *
+ * **Vive aquí y no en el formulario porque es aritmética de dinero.** Calcularlo
+ * dentro del componente lo dejaría sin poder probarse salvo pintando la
+ * pantalla, y el sobrante que sale de esta resta es el que se convierte en
+ * saldo a favor de un residente.
+ *
+ * Un ajuste **vacío no es un cero**: significa «deja la sugerencia». Tratarlo
+ * como cero borraría la línea en cuanto alguien seleccionara y deseleccionara el
+ * contenido de la casilla.
+ */
+export function repartirConAjustes(
+  cargos: readonly CargoParaReparto[],
+  importe: number,
+  ajustes: Readonly<Record<string, string>>,
+): Reparto {
+  const sugerido = repartirPago(cargos, importe);
+  const lineas = cargos
+    .map((cargo) => {
+      const ajuste = ajustes[cargo.id];
+      if (ajuste !== undefined && ajuste.trim() !== "") {
+        return { statementId: cargo.id, amount: numero(ajuste) };
+      }
+      return sugerido.lineas.find((l) => l.statementId === cargo.id) ?? null;
+    })
+    .filter((l): l is LineaDeReparto => l !== null);
+
+  const asignado = lineas.reduce((s, l) => s + l.amount, 0);
+  return { lineas, sobrante: Math.max(numero(importe) - asignado, 0) };
 }
 
 /**

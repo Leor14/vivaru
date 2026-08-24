@@ -2290,6 +2290,7 @@ function AdminBillingPageContent() {
       <RecordPaymentModal
         open={Boolean(paymentTarget)}
         statement={paymentTarget}
+        statements={items}
         onClose={() => setPaymentTarget(null)}
       />
 
