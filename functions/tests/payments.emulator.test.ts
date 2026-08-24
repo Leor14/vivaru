@@ -392,6 +392,37 @@ describe("R15 · revertir un pago se lleva por delante el anticipo que generó",
   });
 
   /**
+   * **El defecto que la suite no vio y sí vio la base.**
+   *
+   * R8 preguntaba `remaining < amount`, que parecía lo mismo que «tiene cruces»
+   * y no lo es: **anular un anticipo (R9) pone `remaining` a cero sin haber
+   * cruzado nada**, así que un anticipo anulado se leía como cruzado y
+   * bloqueaba una reversión legítima. Hacía falta encadenar cinco operaciones
+   * —pagar, cruzar, descruzar, anular, revertir— para que apareciera, y ninguna
+   * prueba unitaria llegaba tan lejos.
+   */
+  it("un anticipo ANULADO no bloquea la reversión: anular no es cruzar", async () => {
+    await bandera(true);
+    await sembrarCuota("cuota-anul-rev", 140000);
+    const pago = await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-anul-rev", amount: 200000, date: "2026-08-20", operationKey: "op-anul-rev", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    await anularAnticipo(
+      { tenantId: TENANT, advanceId: pago.advanceId!, reason: "El residente renuncia", operationKey: "anul-antes-rev" },
+      ADMIN, ROL, TENANT,
+    );
+    const r = await revertirPago(
+      { tenantId: TENANT, operationKey: "op-anul-rev", reversalKey: "rev-anul", reason: "Cobro duplicado" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.reversed).toBe(true);
+    // El dinero se va del todo: el anticipo estaba anulado pero su ingreso
+    // seguía contado, y revertir el pago lo devuelve.
+    expect((await ingresoTotal()).total).toBe(0);
+  });
+
+  /**
    * **R8.** Deshacer los cruces aquí sería tocar cargos que el llamante no
    * nombró —y que pueden ser de otros períodos— dentro de una transacción que
    * él cree que afecta a una sola cuota.

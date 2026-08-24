@@ -716,14 +716,30 @@ async function revertirPago(input, uid, role, tokenTenant) {
         const advanceRef = op.advanceId ? firestore.collection("advances").doc(op.advanceId) : null;
         const advanceSnap = advanceRef ? await tx.get(advanceRef) : null;
         const advance = advanceSnap?.data();
-        // **R8: no se revierte un pago cuyo anticipo tenga cruces vigentes.**
+        // **R8: no se revierte un pago cuyo anticipo tenga cruces VIGENTES.**
         //
         // Deshacerlos aquí sería tocar cargos que el llamante no nombró —y que
         // pueden ser de otros períodos— dentro de una transacción que él cree que
         // afecta a una sola cuota. Se bloquea y se dice qué hacer: primero se
         // deshacen los cruces, y entonces se revierte.
-        const anticipoCruzado = advance !== undefined && (advance.remaining ?? 0) < (advance.amount ?? 0);
-        if (anticipoCruzado) {
+        //
+        // **Se preguntan los cruces, no el remanente.** Esto era
+        // `remaining < amount`, que parecía lo mismo y no lo es: **anular un
+        // anticipo (R9) pone `remaining` a cero sin haber cruzado nada**, así que un
+        // anticipo anulado se leía como «cruzado» y bloqueaba una reversión
+        // perfectamente legítima. Lo destapó verificar contra la base con una
+        // secuencia larga —pagar, cruzar, descruzar, anular, revertir—; ninguna
+        // prueba unitaria encadenaba las cinco.
+        //
+        // La consulta va DENTRO de la transacción, con el resto de lecturas, y se
+        // filtra en memoria: `reversedAt` está AUSENTE en los cruces vivos, y un
+        // `where("reversedAt", "==", null)` no encuentra un campo que no existe —
+        // habría devuelto cero cruces siempre, que es la peor forma de estar mal.
+        const crucesSnap = op.advanceId
+            ? await tx.get(firestore.collection("advanceApplications").where("advanceId", "==", op.advanceId))
+            : null;
+        const cruceVigente = (crucesSnap?.docs ?? []).some((d) => !d.data().reversedAt);
+        if (cruceVigente) {
             throw new https_1.HttpsError("failed-precondition", "El saldo a favor de ese pago ya se aplicó a otros cargos. Primero hay que deshacer esos cruces.");
         }
         // Su asiento se lee AQUÍ, con el resto: la transacción no admite leer
