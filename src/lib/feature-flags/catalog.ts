@@ -259,7 +259,7 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     defaultEnabled: false,
     origen: "PRD-V-FLOW-002 §5.1, R2",
     alApagar:
-      "Los anticipos ya creados NO se borran: siguen visibles y se pueden cruzar o anular con motivo (R9). Lo que vuelve al comportamiento viejo es el sobrepago NUEVO, que otra vez se contabiliza entero contra la cuota.",
+      "Los anticipos ya creados NO se borran y SIGUEN VISIBLES, pero dejan de poder cruzarse y anularse hasta volver a encenderla: el servidor exige la bandera también para esas dos operaciones. Lo que vuelve al comportamiento viejo es el sobrepago NUEVO, que otra vez se contabiliza entero contra la cuota.",
   },
   "producto-pago-multiple": {
     key: "producto-pago-multiple",

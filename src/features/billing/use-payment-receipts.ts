@@ -115,6 +115,14 @@ export async function approveReceiptAndRegisterPayment(input: {
    * contra el doble cobro no sirve de nada.
    */
   operationKey: string;
+  /**
+   * `FLOW-002` CA11 — a qué cuenta entró el dinero. Sale de lo que **declaró el
+   * residente** al subir el comprobante, y el administrador puede cambiarlo
+   * antes de aprobar: lo que llega al asiento es lo que él confirma, no lo que
+   * dijo quien paga. El servidor comprueba que exista, que sea de este conjunto
+   * y que esté activa.
+   */
+  bankAccountId?: string | null;
 }): Promise<{ cayoEnOtrosIngresos: boolean }> {
   // Ya no escribe nada directamente. Antes actualizaba la cuota y marcaba el
   // comprobante en un batch —atómico entre esos dos, sí— pero **no tocaba el
@@ -132,6 +140,7 @@ export async function approveReceiptAndRegisterPayment(input: {
     operationKey: input.operationKey,
     source: "receipt",
     receiptId: input.receiptId,
+    bankAccountId: input.bankAccountId ?? null,
     ...(input.reviewerName ? { reviewerName: input.reviewerName } : {}),
   });
 

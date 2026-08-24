@@ -139,10 +139,11 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
 
   function alternar(id: string) {
     setSeleccion((actual) => (actual.includes(id) ? actual.filter((x) => x !== id) : [...actual, id]));
-    setAjustes((actual) => {
-      const { [id]: _fuera, ...resto } = actual;
-      return resto;
-    });
+    // Al marcar o desmarcar se olvida lo que se hubiera escrito a mano en esa
+    // línea: el reparto se vuelve a proponer, y conservar un ajuste de un cargo
+    // que ya no está seleccionado dejaría un importe fantasma esperando a que
+    // alguien lo volviera a marcar.
+    setAjustes((actual) => Object.fromEntries(Object.entries(actual).filter(([clave]) => clave !== id)));
   }
 
   async function handleSubmit() {

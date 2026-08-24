@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, ExternalLink, FileText, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { approveReceiptAndRegisterPayment, usePaymentReceipts, updateReceiptStatus } from "@/features/billing/use-payment-receipts";
+import { watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { createDocumentRecord } from "@/features/admin/services";
 import { ensureSystemFolderCallable, notifyResidentReceiptCallable } from "@/lib/firebase/callables";
-import type { BillingStatement, PaymentReceipt } from "@/types/domain";
+import type { BankAccount, BillingStatement, PaymentReceipt } from "@/types/domain";
 
 type Props = {
   tenantId?: string;
@@ -53,12 +54,22 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [notifyAdjust, setNotifyAdjust] = useState<Record<string, boolean>>({});
   const [notifyOnReject, setNotifyOnReject] = useState(true);
+  /** Lo que el REVISOR elige, cuando corrige lo que declaró el residente. */
+  const [cuentas, setCuentas] = useState<Record<string, string>>({});
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    return watchBankAccounts(tenantId, setBankAccounts, () => setBankAccounts([]));
+  }, [tenantId]);
 
   const statementsById = useMemo(() => {
     const map = new Map<string, BillingStatement>();
     for (const s of statements ?? []) map.set(s.id, s);
     return map;
   }, [statements]);
+
+  const bankAccountsActivas = useMemo(() => bankAccounts.filter((c) => c.active !== false), [bankAccounts]);
 
   const pendingReceipts = useMemo(
     () => items.filter((receipt) => receipt.status === "pending"),
@@ -70,6 +81,18 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
     if (receipt.amount != null) return String(receipt.amount);
     const stmt = receipt.statementId ? statementsById.get(receipt.statementId) : undefined;
     return stmt ? String(stmt.balance ?? "") : "";
+  }
+
+  /**
+   * `FLOW-002` CA11 — la cuenta que va a ir al asiento.
+   *
+   * Por defecto, **lo que declaró el residente**; si el revisor la cambia, manda
+   * la suya. Es una declaración de quien paga, no un hecho comprobado, y quien
+   * responde del asiento es quien aprueba.
+   */
+  function cuentaElegida(receipt: PaymentReceipt): string {
+    if (receipt.id in cuentas) return cuentas[receipt.id];
+    return receipt.bankAccountId ?? "";
   }
 
   /** Monto de referencia para detectar ajuste: lo declarado por el residente o el saldo. */
@@ -121,6 +144,9 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
         // así un doble clic o un reintento de red no cobra dos veces. Si el
         // primer intento falla no queda marca, y el reintento sí aplica.
         operationKey: `receipt:${receipt.id}`,
+        // CA11. Lo que declaró el residente, salvo que el revisor lo haya
+        // cambiado. Quien responde del asiento es él, no quien pagó.
+        bankAccountId: cuentaElegida(receipt) || null,
       });
       toast.success("Pago registrado y comprobante aprobado.");
       // R8, igual que en el cobro manual: aviso, no error. El pago quedó bien.
@@ -304,6 +330,21 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               placeholder="Monto"
                               aria-label="Monto pagado"
                             />
+                            {bankAccountsActivas.length > 0 ? (
+                              <select
+                                value={cuentaElegida(receipt)}
+                                onChange={(e) => setCuentas((prev) => ({ ...prev, [receipt.id]: e.target.value }))}
+                                className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)]"
+                                aria-label="Cuenta bancaria a la que entró el pago"
+                              >
+                                <option value="">Sin cuenta</option>
+                                {bankAccountsActivas.map((cuenta) => (
+                                  <option key={cuenta.id} value={cuenta.id}>
+                                    {cuenta.label}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
                             <Button
                               type="button"
                               onClick={() => handleApproveAndRegister(receipt)}
@@ -314,6 +355,15 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               Aprobar y registrar
                             </Button>
                           </div>
+                          {/* Que la cuenta la dijo el residente hay que verlo:
+                              es una declaración suya, y aprobar sin mirarla la
+                              convierte en un hecho contable. */}
+                          {receipt.bankAccountId && !(receipt.id in cuentas) ? (
+                            <span className="text-[11px] text-[var(--slate-500)]">
+                              El residente dice que pagó a{" "}
+                              {bankAccounts.find((c) => c.id === receipt.bankAccountId)?.label ?? "una cuenta que ya no existe"}
+                            </span>
+                          ) : null}
                           {amountDiffers ? (
                             <label className="flex items-center gap-1 text-[11px] text-[var(--slate-600)]">
                               <input

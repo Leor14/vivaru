@@ -244,10 +244,6 @@ function AdminBillingPageContent() {
   const [chargeMode, setChargeMode] = useState<"individual" | "batch">("individual");
   const [coefficientDialogOpen, setCoefficientDialogOpen] = useState(false);
   const cobroPorCoeficiente = useFeatureFlag("producto-cobro-por-coeficiente");
-  // FLOW-002. La bandera esconde la vista, no la protege: quien manda es
-  // `assertFeatureEnabled` en el servidor. Aqui solo evita ensenar una seccion
-  // que no puede operar.
-  const anticipos = useFeatureFlag("producto-anticipos");
   const vocab = useTenantVocabulary();
   const [scheduledFor, setScheduledFor] = useState("");
   const [excludedUnits, setExcludedUnits] = useState<Set<string>>(new Set());
@@ -1329,14 +1325,14 @@ function AdminBillingPageContent() {
         </TableroCarousel>
       </div>
 
-      {anticipos ? (
-        // Envuelto como todo lo que consume datos del conjunto: sin el, un fallo
-        // leyendo anticipos tumba la ruta /admin entera y el administrador ve
-        // «No pudimos cargar el workspace» en vez de perder una seccion.
-        <WidgetErrorBoundary label="los anticipos">
-          <AdvancesPanel tenantId={user?.tenantId} statements={items} formatAmount={formatAmount} />
-        </WidgetErrorBoundary>
-      ) : null}
+      {/* Envuelto como todo lo que consume datos del conjunto: sin el, un fallo
+          leyendo anticipos tumba la ruta /admin entera y el administrador ve
+          «No pudimos cargar el workspace» en vez de perder una seccion.
+          Quien decide si se pinta es el panel, no la bandera: apagarla no puede
+          esconder dinero que ya existe. */}
+      <WidgetErrorBoundary label="los anticipos">
+        <AdvancesPanel tenantId={user?.tenantId} statements={items} formatAmount={formatAmount} />
+      </WidgetErrorBoundary>
 
       <WidgetErrorBoundary label="la revisión de comprobantes">
         <PaymentReceiptsReviewPanel

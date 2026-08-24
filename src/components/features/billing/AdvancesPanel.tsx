@@ -20,6 +20,7 @@ import {
   undoAdvanceApplicationCallable,
   useAdvances,
 } from "@/features/finanzas/use-advances";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Advance, AdvanceApplication, BillingStatement } from "@/types/domain";
 
@@ -56,6 +57,17 @@ const ETIQUETA_ORIGEN: Record<Advance["origin"], string> = {
 
 export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
   const { items, aplicaciones, loading, error } = useAdvances(tenantId);
+  /**
+   * La bandera decide si se puede OPERAR, no si se ve.
+   *
+   * El servidor la exige también para cruzar y anular, así que apagada esas dos
+   * fallarían — pero **esconder la sección escondería dinero que existe**, y
+   * apagar un interruptor no puede hacer desaparecer el saldo a favor de un
+   * residente de la pantalla de quien responde por él. Así que: con anticipos
+   * en la base la sección se ve siempre, y sin ellos y con la bandera apagada
+   * —que es toda la producción de hoy— no se pinta nada.
+   */
+  const puedeOperar = useFeatureFlag("producto-anticipos");
 
   const [cruzando, setCruzando] = useState<Advance | null>(null);
   const [anulando, setAnulando] = useState<Advance | null>(null);
@@ -90,6 +102,7 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
   }
 
   if (!tenantId) return null;
+  if (!puedeOperar && items.length === 0 && !error) return null;
 
   return (
     <Card>
@@ -114,6 +127,13 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
         // segundo es el que hace que alguien cobre dos veces.
         <p className="mt-4 rounded-xl border border-[#f0d6d2] bg-[#fff6f4] px-3 py-2 text-sm text-[#9c4631]">
           No pudimos cargar los anticipos: {error}
+        </p>
+      ) : null}
+
+      {!puedeOperar && items.length > 0 ? (
+        <p className="mt-4 rounded-xl border border-[#eee0c1] bg-[#fff8e8] px-3 py-2 text-sm text-[#936b24]">
+          Los anticipos están apagados en este conjunto: este dinero se ve, pero no se puede cruzar ni anular hasta
+          volver a encenderlos.
         </p>
       ) : null}
 
@@ -193,7 +213,7 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
                   </ul>
                 ) : null}
 
-                {esAbierto ? (
+                {esAbierto && puedeOperar ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" onClick={() => setCruzando(anticipo)}>
                       <IconBadge tone="mint" className="mr-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
 import { applyPaymentCallable } from "@/lib/firebase/callables";

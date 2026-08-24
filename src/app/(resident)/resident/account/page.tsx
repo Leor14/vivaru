@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { BillingHeroCard } from "@/components/features/billing/BillingHeroCard";
 import { BillingPeriodCard } from "@/components/features/billing/BillingPeriodCard";
+import { ResidentAdvancesCard } from "@/components/features/finanzas/ResidentAdvancesCard";
 import { ResidentVouchersCard } from "@/components/features/finanzas/ResidentVouchersCard";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
+import { watchActiveBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { db, storage } from "@/lib/firebase/client";
+import type { BankAccount } from "@/types/domain";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
@@ -39,11 +42,35 @@ export default function ResidentAccountPage() {
   // F1: el residente confirma el monto antes de enviar el comprobante.
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [declaredAmount, setDeclaredAmount] = useState("");
+  /**
+   * `FLOW-002` CA11 — a qué cuenta dice el residente que pagó.
+   *
+   * Es una **declaración**, no un hecho: quien la escribe es quien paga. El
+   * administrador la ve al revisar y puede cambiarla antes de aprobar. Sin ella,
+   * la conciliación tenía que adivinar por importe y fecha, y dos cuotas iguales
+   * pagadas el mismo día eran indistinguibles.
+   */
+  const [declaredBankAccountId, setDeclaredBankAccountId] = useState("");
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
 
   // Copropiedad de la unidad propia (PLAT-001, CA7): el residente ve su
   // coeficiente y su expensa — R9: solo los suyos; la regla de units ya
   // permite leer a cualquier miembro del conjunto.
   const [unitOwnership, setUnitOwnership] = useState<{ coefficient?: number; monthlyFeeAmount?: number } | null>(null);
+
+  /**
+   * Las cuentas del conjunto, para poder decir a cuál se pagó.
+   *
+   * **Solo las activas, y el filtro es lo que hace pasar la regla**: Firestore
+   * evalúa la consulta contra la regla sin ejecutarla, así que sin ese `where`
+   * se rechazaría entera. Un fallo aquí deja la lista vacía y el selector
+   * escondido — el comprobante se sigue pudiendo subir sin cuenta, que es
+   * exactamente lo que pasaba hasta hoy.
+   */
+  useEffect(() => {
+    if (!user?.tenantId) return;
+    return watchActiveBankAccounts(user.tenantId, setBankAccounts, () => setBankAccounts([]));
+  }, [user?.tenantId]);
 
   useEffect(() => {
     if (!db || !user?.unitId) return;
@@ -83,12 +110,14 @@ export default function ResidentAccountPage() {
     // Pre-llena el monto con el saldo del período para que el residente lo confirme/ajuste.
     const stmt = items.find((i) => i.id === pendingStatementId.current);
     setDeclaredAmount(stmt && stmt.balance ? String(stmt.balance) : "");
+    setDeclaredBankAccountId("");
     setPendingFile(file);
   }
 
   function cancelUpload() {
     setPendingFile(null);
     setDeclaredAmount("");
+    setDeclaredBankAccountId("");
     pendingStatementId.current = null;
   }
 
@@ -140,11 +169,15 @@ export default function ResidentAccountPage() {
         status: "pending",
         // statementId links this receipt to a specific billing period
         ...(statementId ? { statementId } : {}),
+        // CA11. Ausente si no la eligió: un campo vacío y «no lo dijo» tienen
+        // que verse distinto para quien revisa.
+        ...(declaredBankAccountId ? { bankAccountId: declaredBankAccountId } : {}),
       });
 
       toast.success("Comprobante enviado. El administrador lo revisará pronto.");
       setPendingFile(null);
       setDeclaredAmount("");
+      setDeclaredBankAccountId("");
     } catch {
       toast.error("No fue posible subir el comprobante. Intenta de nuevo.");
     } finally {
@@ -172,6 +205,13 @@ export default function ResidentAccountPage() {
         className="hidden"
         onChange={handleFileChange}
       />
+
+      {/* CA2 — el saldo a favor va ARRIBA del estado de cuenta y no al final:
+          es lo primero que cambia la lectura de todo lo de abajo. Si no hay
+          ninguno, no se pinta nada. */}
+      <div className="mt-4">
+        <ResidentAdvancesCard tenantId={user?.tenantId} unitId={user?.unitId} formatAmount={formatAmount} />
+      </div>
 
       {/* Hero card — situación financiera */}
       {loading ? (
@@ -268,6 +308,26 @@ export default function ResidentAccountPage() {
               autoFocus
             />
           </label>
+          {bankAccounts.length > 0 ? (
+            <label className="mt-3 block text-xs font-medium text-[var(--slate-700)]">
+              ¿A qué cuenta pagaste?
+              <select
+                value={declaredBankAccountId}
+                onChange={(e) => setDeclaredBankAccountId(e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              >
+                <option value="">No estoy seguro</option>
+                {bankAccounts.map((cuenta) => (
+                  <option key={cuenta.id} value={cuenta.id}>
+                    {cuenta.label} · {cuenta.bankName}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block font-normal text-[var(--slate-500)]">
+                Decirlo ayuda a que tu pago se identifique más rápido. Si no lo recuerdas, déjalo en blanco.
+              </span>
+            </label>
+          ) : null}
           <p className="mt-2 truncate text-xs text-[var(--slate-500)]">Archivo: {pendingFile.name}</p>
           <div className="mt-5 flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={cancelUpload} disabled={uploading}>
