@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo — versión 1.2, 23 de agosto de 2026 (noche).** La 1.1 marcó tres correcciones y las dejó abiertas; **esta las resuelve**, con la decisión tomada en cada una y la regla que faltaba escrita (R14–R16). Releída contra el código el 23 de agosto: los tres defectos (D-A, D-B, D-C) **siguen vigentes**. **Las referencias de línea se han sustituido por nombres de símbolo**: en dos versiones seguidas los números caducaron en menos de un día, y un número desplazado manda a leer el sitio equivocado con la confianza de estar en el correcto. D1 y D2 siguen cerradas |
+| **Estado** | **EN DESARROLLO — versión 1.3, 24 de agosto de 2026. TODO EL SERVIDOR CONSTRUIDO Y VERIFICADO CONTRA LA BASE** (`develop` = `7937900`): los tres defectos cerrados, el ciclo de vida del anticipo completo, staging desplegado con las dos banderas encendidas y 25 comprobaciones en verde. **Falta el FRONT** (§13 paso 3), que va en sesión aparte. Dos correcciones nuevas nacidas de construir: **R8** miraba el remanente en vez de los cruces, y **CF12** se contradecía. Y tres cosas que la PRD no traía y hubo que decidir: todas las líneas de un reparto son de la misma unidad, un cargo no se repite en el reparto, y hay tope de líneas. Lo que sigue de la 1.2: **versión 1.2, 23 de agosto de 2026 (noche).** La 1.1 marcó tres correcciones y las dejó abiertas; **esta las resuelve**, con la decisión tomada en cada una y la regla que faltaba escrita (R14–R16). Releída contra el código el 23 de agosto: los tres defectos (D-A, D-B, D-C) **siguen vigentes**. **Las referencias de línea se han sustituido por nombres de símbolo**: en dos versiones seguidas los números caducaron en menos de un día, y un número desplazado manda a leer el sitio equivocado con la confianza de estar en el correcto. D1 y D2 siguen cerradas |
 | **Dependencias** | **Secuencia obligatoria: `PRD-V-PLAT-003` va ANTES.** Las dos modifican `aplicarPago`, que está en producción — aquella cambia **qué valor** escribe en la categoría, esta cambia **su firma**. **No pueden estar en vuelo a la vez.** Si esta va primero, añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | **Riesgo** | **Alto.** Modifica `aplicarPago`, que está **en producción y mueve dinero real** |
 | **Reversibilidad** | **Parcial.** El anticipo y el reparto se apagan con bandera; el cambio de firma de `aplicarPago` no (§13) |
@@ -330,7 +330,7 @@ unidad, y pierde el vínculo personal — igual que ya hace `anonymizeExpiredVou
 | **R5** | El asiento de entrada de un anticipo lleva `category: "anticipo"` y **cuenta como ingreso del período** |
 | **R6** | Un anticipo solo se cruza contra cargos de **su misma unidad** |
 | **R7** | El reparto por defecto va del cargo **más antiguo por vencimiento** al más nuevo; el administrador puede cambiarlo, y la suma debe cuadrar con el importe |
-| **R8** | **No se revierte un pago cuyo anticipo tenga cruces vigentes.** Primero se deshacen los cruces |
+| **R8** | **No se revierte un pago cuyo anticipo tenga cruces VIGENTES.** Primero se deshacen los cruces. **⚠ CORREGIDO 24 ago, contra la base:** se construyó preguntando `remaining < amount`, que parece significar «tiene cruces» y **no lo es** — anular un anticipo (R9) pone `remaining` a cero **sin haber cruzado nada**, así que un anticipo anulado bloqueaba una reversión legítima. Se pregunta por los `advanceApplications` sin deshacer. Hizo falta encadenar cinco operaciones —pagar, cruzar, descruzar, anular, revertir— para que apareciera: **ninguna prueba unitaria llegaba tan lejos** |
 | **R9** | Anular un anticipo exige motivo y **solo es posible si su remanente está intacto** |
 | **R10** | La idempotencia por `operationKey` se conserva sin cambios, y **cubre también el anticipo generado**: un reintento no crea un segundo anticipo |
 | **R12** | Si `PRD-V-PLAT-003` ya está construida, el anticipo usa **su cuenta del plan**, no un valor de enum. Ver la secuencia declarada en el encabezado |
@@ -392,7 +392,7 @@ verificado. **Dos cambios de contenido:**
 | CF9 | Operar anticipos en `trial` → **bloqueado por la matriz de prueba** |
 | CF10 | Una consulta de `advances` sin `where("tenantId")` → **denegada entera** |
 | CF11 | El cajón de edición manual de un cargo intenta escribir `advanceAppliedAmount` → **denegado por reglas.** Es el campo que sostiene R4, y `paymentAmount` **sí** se escribe hoy desde el navegador (§11.3) |
-| CF12 | Un cruce que dejaría `paymentAmount + advanceAppliedAmount` por encima de lo cobrado → **rechazado**; se limita al saldo (§5.3) |
+| CF12 | Un cruce mayor que el saldo del cargo **NO se rechaza: se limita al saldo**, y el resto sigue en el anticipo (§5.3). La v1.2 decía las dos cosas en la misma línea; manda §5.3, y así está construido. Lo que sí se rechaza es cruzar contra un cargo **sin saldo pendiente**, que no es un límite sino una operación sin efecto |
 
 ## 11. Arquitectura y dependencias
 

@@ -167,37 +167,30 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**`origin/develop` = `7dc5f7f`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven
-por separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**.
-Un push sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende
-de la caché local.
+**`origin/develop` = `7937900`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven por
+separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**. Un push
+sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende de la caché.
 
-**PRODUCCIÓN ESTÁ AL DÍA.** El 23 de agosto por la mañana subió el lote de propiedad horizontal
-(67 commits, olas A y B). Por la tarde, **mirar la pantalla de la entrega 2 de `PLAT-003` —la
-única del lote que nadie había abierto— destapó que el informe de comité no leía medio producto
-y no lo decía**: cuatro de sus lecturas fallaban por índice y enseñaba los ceros como datos. En
-el mismo conjunto y el mismo día, Finanzas avisaba en rojo de **−$10.300** y el informe del
-consejo decía **+$55.500 y «sin alertas»**. Los cinco defectos se arreglaron, se verificaron en
-staging contra la base, y **por la noche llegaron a producción** con los 57 índices; rollout
-`rollout-2026-08-23-002` en `SUCCEEDED`. Esta sección decía «índices nuevos y código viejo, a
-propósito»: **ese desajuste se acabó.**
+**`FLOW-002` (anticipos): la SESIÓN A —todo el servidor— está terminada y verificada contra la
+base.** Ocho incrementos en `develop`: reglas de `advances`/`advanceApplications` y el veto de
+`advanceAppliedAmount`, los tipos y la cuenta `1.10`, `bankAccountId` en los **dos** asientos, los
+dos espejos de `calcularSaldo`, el anticipo por sobrepago, cruce y descruce, R15 y R9, y el
+reparto a varios cargos con su reverso de N líneas. **Los tres defectos —D-A, D-B, D-C—
+corregidos.** Lo siguiente es la **sesión B: el front**, que es otra superficie.
 
-**El reloj está apagado.** `monthlyFinancialArchive` corre `0 6 1 * *` y ya no archivará otro
-PDF con doble conteo el 1 de septiembre.
+**Staging desplegado y con las dos banderas encendidas** en `conjunto-las-playas`
+(`producto-anticipos`, `producto-pago-multiple`). **25 comprobaciones en verde contra la base
+real** con `functions/scripts/verificar-anticipos.mjs` — un script no destructivo que corre la
+misma lógica que está desplegada, crea sus documentos, los usa y los borra.
 
-**Backfill de `eventDate` corrido en producción** (47 `visitorPasses`, 14 `tickets`, cero sin
-fecha resoluble). Sin él, Visitantes y PQRS salían en cero en el informe de comité: **arreglar
-el índice no llena nada**.
+**PRODUCCIÓN NO TIENE `FLOW-002`.** `master` en `5d6df95`, y las cinco banderas `producto-*`
+siguen apagadas allí (sin documento en `featureFlags`).
 
-**Lo siguiente es `FLOW-002` (anticipos), y su PRD YA ESTÁ LISTA** — v1.2, con las tres
-correcciones de la 1.1 resueltas y **dos huecos nuevos** que salieron de leer el código (R15:
-revertir con el anticipo `open` dejaba vivo un saldo a favor de un dinero devuelto; R16: el
-«% de recaudo» pasa a `amount − balance`). Se construye en el orden reglas → functions → front.
+**El reloj del 1 de septiembre está apagado** desde el 23: el código correctivo del informe de
+comité y los 57 índices están en producción, y `monthlyFinancialArchive` ya no archiva un PDF con
+doble conteo.
 
-**Las cinco banderas `producto-*` siguen apagadas** en producción (sin documento en
-`featureFlags`).
-
-Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.20) y
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.21) y
 `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md`.
 
 ### Lo que ninguna suite puede cazar, y por qué importa aquí

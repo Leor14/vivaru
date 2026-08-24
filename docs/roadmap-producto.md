@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.20 |
-| **Fecha** | 23 de agosto de 2026 (noche) |
-| **Estado** | **EL CÓDIGO CORRECTIVO ESTÁ EN PRODUCCIÓN Y `FLOW-002` YA PUEDE ARRANCAR.** `master` y `develop` quedaron en `5d6df95` con los 57 índices y el arreglo de los cinco defectos del informe de comité; el rollout `rollout-2026-08-23-002` cerró en `SUCCEEDED`. Con eso **se apagó el reloj del 1 de septiembre**: `monthlyFinancialArchive` ya no archivará otro PDF con doble conteo. Se corrió además el **backfill de `eventDate` en producción** —47 `visitorPasses` y 14 `tickets`, dry-run primero y verificado con un segundo dry-run en cero—, sin el cual Visitantes y PQRS salían en cero en el informe. Y la PRD de `FLOW-002` pasó a **v1.2, lista para desarrollo**: las tres correcciones que la 1.1 dejó marcadas y abiertas están resueltas, **y aparecieron dos huecos más que ninguna versión anterior tenía** |
-| **Verificado contra** | **El código, leído función por función antes de decidir nada.** Las tres correcciones de la 1.1 se releyeron contra `payments.ts`, `financial-statement.ts`, `domain.ts` y `conceptos-de-cargo.ts`, y **dos de las tres resultaron estar dichas de forma inexacta**: la ampliación del enum no tiene que llegar «a los dos espejos» —el de `functions/` no está tipado— y los números de línea de la propia corrección de ayer **ya estaban desplazados otra vez**. El backfill se comprobó con dry-run antes y después, no por lo que dijo el apply |
+| **Versión** | 0.9.21 |
+| **Fecha** | 24 de agosto de 2026 (madrugada) |
+| **Estado** | **`FLOW-002` TIENE TODO SU SERVIDOR CONSTRUIDO Y VERIFICADO CONTRA LA BASE.** Ocho incrementos en `develop` (`7937900`) cierran los tres defectos de la PRD: el sobrepago deja saldo a favor (D-A), un pago cubre varios cargos (D-B) y el asiento guarda a qué cuenta entró el dinero —en los **dos** sitios, pago y reverso (D-C)—. Con ellos, el ciclo de vida del anticipo completo: nace, se cruza, se descruza, se anula y se va con su pago. **Staging desplegado con las dos banderas encendidas y 25 comprobaciones en verde contra la base real.** **Producción no se ha tocado.** Lo siguiente es la **sesión B, el front**, que es otra superficie |
+| **Verificado contra** | **La base de un ambiente real, con un recorrido largo — no con la suite.** Las 74 pruebas de emulador corren contra datos que se inventa la propia prueba; el script de verificación corre la misma lógica desplegada contra el plan sembrado, las banderas resueltas por override y las cuentas bancarias de verdad. **Encontró un defecto que la suite no veía** (R8). Y cada incremento se probó **por falsación**: rompiendo el código a propósito y comprobando que se pusieran rojas exactamente las pruebas que debían |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -47,46 +47,36 @@ la fuerza en Fundaciones.
 
 **Qué cambió en esta revisión:**
 
-- **El lote correctivo aterrizó en producción**, en el orden que estaba escrito: índices primero
-  —ya iban—, código después. `master` = `develop` = `5d6df95`, rollout `rollout-2026-08-23-002`
-  en `SUCCEEDED`. **Las cinco banderas `producto-*` siguen apagadas**, a propósito.
-- **Backfill de `eventDate` corrido en producción.** 47 `visitorPasses` y 14 `tickets`, con
-  **cero documentos sin fecha resoluble** — que es lo que hacía seguro el apply. Arreglar el
-  índice no llenaba nada: **un campo de filtro por rango tiene que estar poblado en todos los
-  documentos**, y esa es la mitad del defecto 5 que no era código.
-- **`FLOW-002` pasa a v1.2 y queda lista para desarrollo** (`7dc5f7f`, en `develop`). Las tres
-  correcciones resueltas: `sourceType: "advance"` propio para el asiento del anticipo · el cruce
-  sube `advanceAppliedAmount` y **no** `paymentAmount` · el reverso copia el `bankAccountId` del
-  asiento que anula.
-- **Y aquí está lo que solo aparece al leer el código: dos de las tres correcciones de ayer
-  estaban dichas de forma inexacta, y salieron dos huecos nuevos.** La 1.1 pedía ampliar el enum
-  «en los dos espejos»; el espejo de `functions/` recibe `sourceType?: string` **sin tipar**, así
-  que ahí no hay nada que ampliar y **el predicado no cambia en ninguno de los dos**. Lo que
-  tiene que llegar a los dos es **la prueba**, no el tipo.
-- **Ampliar un tipo es inerte; lo que sostiene una decisión es el guardián.** El riesgo real de
-  la trampa de §7.4 no es olvidar el valor nuevo —eso no compila— sino que alguien añada
-  `category === "anticipo"` a la exclusión por analogía con `alicuota`: **eso sí compila y pasa
-  las suites de hoy**. Y el guardián de texto que ya existía no bastaba, porque solo comprueba
-  que las tres ramas *estén*, no que no haya una cuarta.
-- **Un campo escribible desde el cliente no puede sostener un invariante.** `paymentAmount` se
-  escribe hoy con un `updateDoc` **directo desde el navegador** desde el cajón de edición de un
-  cargo. Es lo que decidió la aritmética del cruce: si el anticipo viviera ahí, una edición a
-  mano borraría o duplicaría su aplicación sin que ningún `advanceApplication` se enterara.
-- **Dos huecos nuevos, que no salieron de la PRD sino del código.** `revertirPago` solo conoce
-  **un** asiento, así que revertir un pago cuyo anticipo sigue `open` dejaría vivo un saldo a
-  favor **de un dinero ya devuelto** (R15). Y el «% de recaudo» se calcula sobre `paymentAmount`,
-  así que en cuanto existan anticipos el informe **dejaría de mentir por un lado y empezaría por
-  el otro**: una unidad que cubre julio con un anticipo de junio saldría al 0% con la cuota
-  saldada (R16).
-- **Un criterio de aceptación que mide el mecanismo pasa en verde con el resultado mal.** CA6
-  comprobaba «no se crea asiento» —cierto— y habría dado verde con el estado financiero
-  equivocado. Pasa a medir `totalIncome` **antes y después sobre los mismos datos**, que es la
-  misma disciplina con la que se midió el doble conteo del job.
-- **Los números de línea de una PRD caducan en menos de un día.** La 1.0 daba tres, la 1.1 los
-  corrigió, y hoy **los de la 1.1 ya estaban desplazados**. La v1.2 los sustituye por **nombres
-  de símbolo**. Un número desplazado no falla: manda a leer el sitio equivocado con la
-  confianza de estar en el correcto.
-
+- **`FLOW-002`, todo el servidor, en ocho incrementos.** Reglas · tipos y cuenta `1.10` ·
+  `bankAccountId` en los dos asientos · los dos espejos de `calcularSaldo` · el anticipo por
+  sobrepago · cruce y descruce · R15 y R9 · el reparto a varios cargos. **Todo detrás de dos
+  banderas apagadas** (`producto-anticipos`, `producto-pago-multiple`).
+- **La suite no ENCADENA, y ahí estaba el defecto.** R8 bloqueaba la reversión mirando
+  `remaining < amount`, que parecía significar «tiene cruces» y no lo es: **anular un anticipo
+  pone `remaining` a cero sin haber cruzado nada**. Hizo falta encadenar **cinco** operaciones
+  —pagar, cruzar, descruzar, anular, revertir— para que apareciera. Cada tramo estaba probado y
+  bien; lo que fallaba era la secuencia.
+- **CA6′ demostrada, no argumentada.** Se mutó el código para que el cruce subiera
+  `paymentAmount` —la trampa que destapó la v1.1— y se pusieron rojas cuatro pruebas. **La que
+  NO falló fue CA6**, «no crea ningún asiento»: pasó en verde con el ingreso inflado en 60.000.
+  Si se hubiera construido con la PRD v1.1, esto salía a producción con la suite en verde.
+- **Un verde no vale sin falsación.** Salvó dos veces de un verde falso: un `evaluation error`
+  en las reglas que denegaba por fallar en vez de por decidir —150 pruebas en verde por el motivo
+  equivocado— y la CA6 de arriba.
+- **El typecheck no ve los `.mjs`.** El catálogo de banderas vive en cuatro sitios y **dos son
+  scripts**. Se dijo «las cuatro cuadran» mirando el compilador, que solo veía dos: las banderas
+  nuevas habrían sido rechazadas como typo al intentar encenderlas — el mismo defecto que ya
+  mordió en agosto.
+- **Tres validaciones que no estaban en la PRD y salieron de escribir el código:** todas las
+  líneas de un reparto tienen que ser de la misma unidad —si no, el anticipo no tiene dueño—; un
+  mismo cargo no puede aparecer dos veces —la segunda escritura pisaría a la primera y **el
+  dinero se perdería sin que nada fallase**—; y hay un tope de líneas, porque el límite de
+  escrituras de una transacción no se descubre a mitad de una operación de dinero.
+- **Y dos huecos que tampoco estaban:** revertir un pago dejaba vivo el anticipo (R15) y el
+  reverso conocía **un solo asiento**, así que un pago repartido se deshacía a la mitad.
+- **Herramienta nueva:** `functions/scripts/verificar-anticipos.mjs`, no destructivo y con
+  limpieza de emergencia. Sirve igual para producción. **Lo que no prueba** —el camino del
+  callable: sesión, CORS y reglas— se mira por el navegador cuando haya pantalla.
 ## Cómo se mantiene este documento
 
 Tres zonas con reglas distintas. Es lo que evita que un documento acabe describiendo
@@ -984,6 +974,32 @@ fecha de revisión.
 - **Después de cada decisión:** registrar qué cambió y por qué.
 
 ---
+
+### 0.9.21 — 24 de agosto de 2026 (madrugada)
+
+**`FLOW-002`: todo el servidor construido y verificado contra la base.** Ocho incrementos en
+`develop` (`7937900`), los tres defectos de la PRD cerrados —D-A, D-B, D-C— y el ciclo de vida
+del anticipo completo. Staging desplegado con las dos banderas encendidas en
+`conjunto-las-playas`; 25 comprobaciones en verde contra la base real y cero restos.
+**Producción sin tocar.**
+
+**El defecto que salió de la base y no de la suite.** R8 preguntaba `remaining < amount`, que
+parecía lo mismo que «tiene cruces vigentes» y no lo es: anular un anticipo (R9) pone `remaining`
+a cero sin haber cruzado nada, así que un anticipo anulado bloqueaba una reversión legítima.
+Necesitó cinco operaciones encadenadas para aparecer.
+
+**Tres lecciones de método nuevas**, que se suman a las cuatro de la 0.9.20:
+
+- **La suite no encadena.** Cada tramo puede estar probado y bien, y la secuencia estar rota.
+- **Un verde no vale sin falsación.** Salvó dos veces: un `evaluation error` en las reglas que
+  denegaba por fallar en vez de por decidir, y CA6 pasando con el ingreso inflado en 60.000.
+- **El typecheck no ve los `.mjs`.** Dos de los cuatro sitios del catálogo de banderas son
+  scripts. «Las cuatro cuadran» dicho desde el compilador es dicho de dos.
+
+**Una decisión contable que conviene revisar:** anular un anticipo **no baja el ingreso** y
+revertir el pago que lo creó **sí**. §4 excluye devolver el dinero porque es un egreso de otra
+PRD, así que anular deja el dinero en el conjunto y lo que desaparece es el crédito de la unidad.
+
 
 ## Changelog
 
