@@ -112,6 +112,79 @@ export function aplicarAjustes(
       ? { statementId: linea.statementId, amount: numero(ajuste) }
       : linea;
   });
+  // **Un ajuste sobre un cargo que la propuesta NO incluye también viaja.**
+  //
+  // Hasta el 24 de agosto de 2026 esto solo recorría `sugerido`, así que lo
+  // escrito sobre un cargo sin línea propuesta **se tiraba en silencio**: la
+  // pantalla pinta la casilla para todo cargo marcado —tenga línea o no, porque
+  // cuando el importe se agotó en los anteriores no la hay—, de modo que el
+  // producto ofrecía el gesto y después lo ignoraba. El administrador veía su
+  // número escrito, el botón activo, y el cargo salía sin cobrar.
+  //
+  // Se añade al final, que es donde le toca: la propuesta va del más antiguo al
+  // más nuevo (R7) y un cargo sin línea es, por construcción, posterior a los
+  // que sí la tienen.
+  //
+  // **Vacío y cero no crean línea.** Vacío significa «deja la sugerencia», y
+  // aquí no hay sugerencia que dejar; y el servidor rechaza toda línea que no
+  // sea mayor que cero, así que crearla convertiría un cero inofensivo en un
+  // cobro rechazado entero.
+  const yaPropuestos = new Set(sugerido.map((l) => l.statementId));
+  for (const [statementId, ajuste] of Object.entries(ajustes)) {
+    if (yaPropuestos.has(statementId)) continue;
+    if (ajuste === undefined || ajuste.trim() === "") continue;
+    const amount = numero(ajuste);
+    if (amount <= 0) continue;
+    lineas.push({ statementId, amount });
+  }
   const asignado = lineas.reduce((s, l) => s + l.amount, 0);
   return { lineas, sobrante: Math.max(numero(importe) - asignado, 0) };
+}
+
+/** En qué punto está la propuesta de reparto que sirve el servidor. */
+export type EstadoPropuesta = "pendiente" | "recibida" | "error";
+
+/**
+ * Qué se le puede decir al administrador sobre el sobrante — **y cuándo no se
+ * le puede decir nada**.
+ *
+ * Existe porque la pantalla lo dijo mal. El sobrante se calcula contra la
+ * propuesta del servidor, y **antes de que llegue la propuesta la lista está
+ * vacía**, así que el sobrante es el importe ENTERO: al abrir el cobro, durante
+ * el viaje de red, la pantalla anunciaba «Sobran $140.000: quedarán como saldo a
+ * favor de la unidad» sobre un pago que no dejaba ni un peso a favor. Y si la
+ * llamada fallaba, `sugerido` se quedaba vacío **para siempre** y el aviso se
+ * quedaba puesto.
+ *
+ * **Una lista vacía es un estado legítimo** —CA8: un pago sin cargos pendientes
+ * se convierte íntegro en anticipo—, así que «está vacía» no distingue «todavía
+ * no ha llegado» de «no hay nada que proponer». Por eso hace falta el estado
+ * explícito y no basta con mirar la longitud.
+ */
+export type AvisoDelSobrante =
+  | { tipo: "ninguno" }
+  | { tipo: "calculando" }
+  | { tipo: "error" }
+  | { tipo: "a-favor"; sobrante: number }
+  | { tipo: "contra-el-cargo"; sobrante: number }
+  | { tipo: "sin-destino"; sobrante: number };
+
+export function avisoDelSobrante(args: {
+  estado: EstadoPropuesta;
+  sobrante: number;
+  /** Lo que responde el servidor: si la bandera de anticipos está encendida. */
+  seraAnticipo: boolean;
+  /** Si este envío va a llevar `allocations` (reparto entre varios cargos). */
+  vaPorReparto: boolean;
+}): AvisoDelSobrante {
+  if (args.estado === "error") return { tipo: "error" };
+  if (args.estado === "pendiente") return { tipo: "calculando" };
+  if (!(args.sobrante > 0)) return { tipo: "ninguno" };
+  if (args.seraAnticipo) return { tipo: "a-favor", sobrante: args.sobrante };
+  // Sin anticipos, un reparto que no llega al importe lo rechaza el servidor:
+  // no hay dónde guardar la diferencia. Por la ruta de un solo cargo sí se
+  // contabiliza entera contra él, que es el comportamiento de siempre.
+  return args.vaPorReparto
+    ? { tipo: "sin-destino", sobrante: args.sobrante }
+    : { tipo: "contra-el-cargo", sobrante: args.sobrante };
 }

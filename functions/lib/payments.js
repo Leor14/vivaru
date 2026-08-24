@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.calcularSaldo = calcularSaldo;
 exports.esRecaudoDeCartera = esRecaudoDeCartera;
+exports.montoFacturadoDelCargo = montoFacturadoDelCargo;
+exports.montoLiquidadoDelCargo = montoLiquidadoDelCargo;
 exports.ordenarPorAntiguedad = ordenarPorAntiguedad;
 exports.deudaDelCargo = deudaDelCargo;
 exports.repartirPorAntiguedad = repartirPorAntiguedad;
@@ -126,6 +128,48 @@ function esRecaudoDeCartera(entry) {
         // Convivencia: cubre lo escrito antes de que existiera `reversedSourceType`
         // y lo que se siga escribiendo con `producto-concepto-al-libro` apagada.
         entry.category === "alicuota");
+}
+/**
+ * Lo FACTURADO de un cargo, con el respaldo para registros legados sin `amount`.
+ *
+ * Espejo de `statementChargedAmount` en `src/features/billing/collection.ts`.
+ * **Si cambias una, cambia la otra.**
+ */
+function montoFacturadoDelCargo(cargo) {
+    const n = (v) => {
+        const x = typeof v === "number" ? v : Number(v ?? 0);
+        return Number.isFinite(x) ? x : 0;
+    };
+    const amount = n(cargo.amount);
+    if (amount > 0)
+        return amount;
+    return Math.max(n(cargo.balance) + n(cargo.paymentAmount) + n(cargo.advanceAppliedAmount), 0);
+}
+/**
+ * Lo LIQUIDADO de un cargo: cuánto de lo facturado ha dejado de deberse, venga
+ * de donde venga el dinero. **Es el numerador del «% de recaudo» (R16), y no es
+ * lo recaudado.**
+ *
+ * Espejo de `statementSettledAmount` en `src/features/billing/collection.ts`.
+ * **Si cambias una, cambia la otra.**
+ *
+ * **Por qué hizo falta, y es la misma historia que `esRecaudoDeCartera` cuenta
+ * justo arriba con R12:** R16 se aplicó en `src/` el 24 de agosto de 2026 y
+ * **nunca llegó a `functions/`**. El informe automático mensual
+ * (`monthlyFinancialArchive`) siguió calculando el porcentaje como
+ * `Σ paymentAmount / Σ amount`, que es la fórmula que R16 vino a sustituir: una
+ * unidad que cubre julio con un anticipo de junio sale al **0 % con la cuota
+ * saldada**, porque el cruce no toca `paymentAmount` a propósito (R4). Así que
+ * el documento que se archiva solo cada mes contradice a la pantalla.
+ *
+ * Se calcula `facturado − saldo`, y **no** `pagado + anticipo`: con un sobrepago
+ * viejo —de los anteriores a `FLOW-002`, con `paymentAmount: 200` sobre un cargo
+ * de 140— el segundo pasaría del 100 %.
+ */
+function montoLiquidadoDelCargo(cargo) {
+    const facturado = montoFacturadoDelCargo(cargo);
+    const saldo = Math.max(typeof cargo.balance === "number" ? cargo.balance : 0, 0);
+    return Math.min(Math.max(facturado - saldo, 0), facturado);
 }
 function texto(valor, campo) {
     const out = typeof valor === "string" ? valor.trim() : "";

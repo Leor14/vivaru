@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { statementChargedAmount, statementSettledAmount } from "@/features/billing/collection";
 import { esRecaudoDeCartera } from "@/features/finanzas/financial-statement";
 import { computeBalanceStatus } from "@/features/finanzas/use-payments";
 
@@ -175,5 +176,70 @@ describe("CA17 · el anticipo NO se excluye del libro, y nadie puede añadirlo �
   // único que caza que alguien añada una rama en un lado y no en el otro.
   it("los dos cuerpos son el mismo cuerpo", () => {
     expect(cuerpoCliente).toBe(cuerpoServidor);
+  });
+});
+
+describe("R16 · el «% de recaudo» del informe automático mide lo mismo que la pantalla", () => {
+  const fuentePagos = fs.readFileSync(PAGOS, "utf8");
+  const INDEX = path.resolve("functions/src/index.ts");
+  const fuenteIndex = fs.readFileSync(INDEX, "utf8");
+
+  /**
+   * **El tercer espejo, y nació de que el segundo ya había fallado igual.**
+   *
+   * R12 se aplicó en `src/` y no llegó a `functions/`, y el informe mensual
+   * contó dos veces durante un día con las suites en verde. **R16 repitió la
+   * historia**: el porcentaje pasó a medir liquidación en `src/` el 24 de agosto
+   * de 2026 y el archivo automático siguió calculando `Σ paymentAmount / Σ
+   * amount`. Una unidad que cubre julio con un anticipo de junio sale al 0 % con
+   * la cuota saldada, porque el cruce no toca `paymentAmount` a propósito (R4).
+   */
+  it("el servidor calcula lo liquidado como facturado menos saldo, igual que `src/`", () => {
+    const servidor = esqueleto(cuerpoDeFuncion(fuentePagos, "export function montoLiquidadoDelCargo", PAGOS));
+    expect(servidor).toContain("Math.max(facturado-saldo,0)");
+
+    const RUTA_SRC = path.resolve("src/features/billing/collection.ts");
+    const cliente = esqueleto(
+      cuerpoDeFuncion(fs.readFileSync(RUTA_SRC, "utf8"), "export function statementSettledAmount", RUTA_SRC),
+    );
+    expect(cliente).toContain("Math.max(charged-balance,0)");
+  });
+
+  /**
+   * **Y el de `src/`, ejercitado con el caso que lo motiva:** un cargo de 140.000
+   * cubierto entero con un anticipo cruzado. `paymentAmount` es cero —el cruce no
+   * lo toca— y sin embargo no se debe nada.
+   */
+  it("un cargo saldado con un anticipo está liquidado al 100 %, con paymentAmount en cero", () => {
+    const cargo = { amount: 140_000, paymentAmount: 0, advanceAppliedAmount: 140_000, balance: 0 };
+    expect(statementSettledAmount(cargo)).toBe(140_000);
+    expect(statementChargedAmount(cargo)).toBe(140_000);
+  });
+
+  /** Un sobrepago viejo no puede pasar del 100 %: por eso se resta el saldo. */
+  it("un sobrepago anterior a FLOW-002 no pasa del 100 %", () => {
+    expect(statementSettledAmount({ amount: 140_000, paymentAmount: 200_000, balance: 0 })).toBe(140_000);
+  });
+
+  /**
+   * **El guardián que impide que el informe automático se vuelva a quedar atrás.**
+   * Qué lo pondría rojo de verdad: que alguien devuelva el porcentaje a
+   * `recaudado`, que es exactamente lo que había hasta el 24 de agosto de 2026.
+   */
+  it("`monthlyFinancialArchive` calcula los dos porcentajes sobre lo LIQUIDADO", () => {
+    const cuerpo = esqueleto(fuenteIndex);
+    expect(cuerpo).toContain("Math.round((liquidado/facturado)*100)");
+    expect(cuerpo).toContain("Math.round((v.l/v.f)*100)");
+    expect(cuerpo).not.toContain("Math.round((recaudado/facturado)*100)");
+    expect(cuerpo).not.toContain("Math.round((v.r/v.f)*100)");
+  });
+
+  /** Y su gemelo manual, que produce un fichero con el mismo nombre y columnas. */
+  it("el histórico que exporta /admin/billing usa la fórmula única, no la suya", () => {
+    const RUTA = path.resolve("src/app/(admin)/admin/billing/page.tsx");
+    const cuerpo = esqueleto(fs.readFileSync(RUTA, "utf8"));
+    expect(cuerpo).toContain("e.liquidado+=statementSettledAmount(s)");
+    expect(cuerpo).toContain("Math.round((v.liquidado/v.facturado)*100)");
+    expect(cuerpo).not.toContain("Math.round((v.recaudado/v.facturado)*100)");
   });
 });

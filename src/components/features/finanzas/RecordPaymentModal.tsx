@@ -10,9 +10,11 @@ import { watchPeople, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
 import {
   aplicarAjustes,
+  avisoDelSobrante,
   deudaDelCargo,
   ordenarParaMostrar,
   repartoCuadra,
+  type EstadoPropuesta,
   type LineaDeReparto,
 } from "@/features/billing/reparto";
 import { previewPaymentAllocationCallable } from "@/lib/firebase/callables";
@@ -146,15 +148,28 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
   const [sugerido, setSugerido] = useState<LineaDeReparto[]>([]);
   const [sobranteSeraAnticipo, setSobranteSeraAnticipo] = useState(false);
   const [calculando, setCalculando] = useState(false);
+  /**
+   * **En qué punto está la propuesta, dicho explícitamente.**
+   *
+   * No se puede deducir de `sugerido.length`: una propuesta vacía es un estado
+   * legítimo —CA8, el pago que se va íntegro a anticipo— y era indistinguible de
+   * «todavía no ha llegado». Por eso la pantalla anunciaba el importe entero como
+   * saldo a favor durante el viaje de red, y para siempre si la llamada fallaba.
+   */
+  const [estadoPropuesta, setEstadoPropuesta] = useState<EstadoPropuesta>("pendiente");
 
   const clavesMarcadas = marcados.map((c) => c.id).join(",");
   useEffect(() => {
     if (!open || !user?.tenantId || !statement || !importeValido || marcados.length === 0) {
       setSugerido([]);
+      setEstadoPropuesta("pendiente");
       return;
     }
     let vigente = true;
     setCalculando(true);
+    // Vuelve a «pendiente» en cuanto cambia lo que se pide: la propuesta que hay
+    // en pantalla ya no corresponde al importe nuevo.
+    setEstadoPropuesta("pendiente");
     const t = setTimeout(() => {
       void previewPaymentAllocationCallable({
         tenantId: user.tenantId as string,
@@ -166,9 +181,14 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
           if (!vigente) return;
           setSugerido(res.lineas.map((l) => ({ statementId: l.statementId, amount: l.amount })));
           setSobranteSeraAnticipo(res.sobranteSeraAnticipo);
+          setEstadoPropuesta("recibida");
         })
         .catch(() => {
-          if (vigente) setSugerido([]);
+          if (!vigente) return;
+          setSugerido([]);
+          // **El fallo se dice.** Antes se tragaba, y la pantalla se quedaba con
+          // el sobrante entero anunciado como saldo a favor indefinidamente.
+          setEstadoPropuesta("error");
         })
         .finally(() => {
           if (vigente) setCalculando(false);
@@ -190,11 +210,21 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
   // tenerla escrita dos veces con formas distintas es como la pantalla acabo
   // prometiendo lo contrario de lo que hacia el servidor.
   const vaPorReparto = pagoMultiple && reparto.lineas.length > 1;
+  // **Qué se le puede decir al administrador sobre el sobrante**, decidido por
+  // una función pura y probada en vez de por un ternario anidado en el JSX.
+  // Incluye el caso que la pantalla contaba al revés: mientras la propuesta no ha
+  // llegado, el sobrante es el importe entero y no significa nada.
+  const aviso = avisoDelSobrante({
+    estado: estadoPropuesta,
+    sobrante: reparto.sobrante,
+    seraAnticipo: sobranteSeraAnticipo,
+    vaPorReparto,
+  });
   // Con los anticipos apagados, un reparto que no llega al importe **se rechaza
   // en el servidor**: sin anticipos no hay donde guardar la diferencia. Se
   // bloquea aqui para que el administrador lo vea antes de enviar y no en un
   // error rojo despues.
-  const sobranteSinDestino = vaPorReparto && !sobranteSeraAnticipo && reparto.sobrante > 0;
+  const sobranteSinDestino = aviso.tipo === "sin-destino";
 
   function alternar(id: string) {
     setSeleccion((actual) => (actual.includes(id) ? actual.filter((x) => x !== id) : [...actual, id]));
@@ -421,13 +451,26 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                   como el servidor la resuelve, con overrides incluidos. La
                   pantalla no puede prometer un saldo a favor que la bandera
                   apagada no va a crear. */}
-              {cuadra && reparto.sobrante > 0 ? (
+              {cuadra && aviso.tipo === "error" ? (
+                <p className="rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                  No pudimos calcular el reparto. Puedes registrar el cobro contra este cargo, pero
+                  revisa después a qué quedó aplicado.
+                </p>
+              ) : null}
+
+              {cuadra && (aviso.tipo === "a-favor" || aviso.tipo === "contra-el-cargo") ? (
                 <p className="rounded-lg border border-[#d6ede4] bg-[#f1fbf7] px-2 py-1 text-xs text-[#2f775f]">
-                  {sobranteSeraAnticipo
-                    ? `Sobran ${formatAmount(reparto.sobrante)}: quedarán como saldo a favor de la unidad.`
-                    : sobranteSinDestino
-                      ? `Sobran ${formatAmount(reparto.sobrante)} y no hay dónde guardarlos: al repartir el pago entre varios cargos, con los anticipos apagados, la diferencia no se contabiliza en ninguna parte. Ajusta las líneas hasta sumar el importe, o enciende los anticipos.`
-                      : `Sobran ${formatAmount(reparto.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
+                  {aviso.tipo === "a-favor"
+                    ? `Sobran ${formatAmount(aviso.sobrante)}: quedarán como saldo a favor de la unidad.`
+                    : `Sobran ${formatAmount(aviso.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
+                </p>
+              ) : null}
+
+              {cuadra && aviso.tipo === "sin-destino" ? (
+                <p className="rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                  Sobran {formatAmount(aviso.sobrante)} y no hay dónde guardarlos: al repartir el pago
+                  entre varios cargos, con los anticipos apagados, la diferencia no se contabiliza en
+                  ninguna parte. Ajusta las líneas hasta sumar el importe, o enciende los anticipos.
                 </p>
               ) : null}
 

@@ -1,4 +1,4 @@
-# Revisión de `FLOW-002` — 20 sospechas sin verificar (de 37)
+# Revisión de `FLOW-002` — 16 sospechas sin verificar (de 37)
 
 **Léelo entero antes de tocar uno.** Esta lista NO es una lista de defectos: es una lista de
 **sospechas sin confirmar**, y tratarla como si fuera lo primero es la forma más rápida de
@@ -20,7 +20,7 @@ todos eran jueces. Solo **un** hallazgo llegó a tener sus tres votos:
 > con su hermano `sumaAsignada > monto`. Ver `functions/src/payments.ts` → `aMoneda` y
 > `TOLERANCIA_MONEDA`.
 
-**Quedan 20 con un solo par de ojos** — doce eran de documentación y se verificaron y resolvieron el 24 de agosto (ver la sección de abajo). Un hallazgo de un solo revisor sin refutar es
+**Quedan 16 con un solo par de ojos** — doce eran de documentación y se verificaron y resolvieron el 24 de agosto (ver la sección de abajo). Un hallazgo de un solo revisor sin refutar es
 una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada confirmación.
 
 ## Las dos «gordas»: verificadas el 24 de agosto, y las DOS eran ciertas
@@ -74,13 +74,33 @@ noche**, y una sesión que reescribe cuatro cabeceras a mano termina con las cua
 cortas tres veces en una noche, y una cabecera que hay que actualizar en cada push acaba mintiendo.
 Ahora dicen que se lea `git ls-remote`.
 
-### Sospechas de gravedad ALTA (3 sin verificar)
-- **El informe mensual automático sigue con la fórmula vieja del «% de recaudo»**
+### Sospechas de gravedad ALTA — **ninguna sin verificar**
+- ~~**El informe mensual automático sigue con la fórmula vieja del «% de recaudo»**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `functions/src/index.ts` · `monthlyFinancialArchive`
-- **El ajuste a mano de un cargo sin línea propuesta se acepta en pantalla y se tira al enviar**
+  **Era cierta, y eran TRES sitios**: el XLSX del histórico de cartera, y el resumen del comité en
+  XLSX y en PDF. Los tres calculaban `Σ paymentAmount / Σ amount`, que es justo la fórmula que R16
+  sustituyó. **Es la misma historia que el comentario de `esRecaudoDeCartera` ya cuenta con R12:**
+  la regla se aplicó en `src/` y nunca llegó a `functions/`. Corregido con un espejo nuevo
+  (`montoLiquidadoDelCargo` / `montoFacturadoDelCargo`) y una prueba que lo vigila. **Y con el
+  gemelo**: `handleSaveCarteraHistory` producía un fichero con el mismo nombre y las mismas
+  columnas con el otro número dentro.
+- ~~**El ajuste a mano de un cargo sin línea propuesta se acepta en pantalla y se tira al enviar**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `src/features/billing/reparto.ts (y su uso en src/components/features/finanzas/RecordPaymentModal.tsx)` · `aplicarAjustes / RecordPaymentModal (bloque de líneas editables)`
-- **La pantalla anuncia el importe entero como sobrante mientras la vista previa no ha llegado, y para siempre si falla**
+  **Era cierta.** La pantalla pinta la casilla para **todo** cargo marcado —tenga línea propuesta o
+  no— y `aplicarAjustes` recorría solo `sugerido`, así que lo escrito sobre un cargo sin línea no
+  llegaba a `lineas`: el administrador veía su número, el botón activo, y el cargo salía sin
+  cobrar. Ahora se añade al final. **Vacío y cero siguen sin crear línea**, y esa contraparte
+  también está probada: el servidor rechaza toda línea que no sea mayor que cero.
+- ~~**La pantalla anuncia el importe entero como sobrante mientras la vista previa no ha llegado, y para siempre si falla**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `src/components/features/finanzas/RecordPaymentModal.tsx` · `RecordPaymentModal — bloque `{cuadra && reparto.sobrante > 0 ? ... : null}` junto con `aplicarAjustes``
+  **Era cierta, y las dos mitades.** El sobrante se calcula contra la propuesta del servidor, y
+  antes de que llegue la lista está vacía: al abrir el cobro, durante el viaje de red, la pantalla
+  anunciaba «Sobran $140.000: quedarán como saldo a favor» sobre un pago que no dejaba nada a
+  favor. Y el `.catch` dejaba `sugerido` vacío **sin decirlo**, así que el aviso se quedaba puesto.
+  **Lo que lo hacía difícil: una propuesta vacía es un estado legítimo** —CA8, el pago que se va
+  íntegro a anticipo—, así que «la lista está vacía» no servía como señal. Corregido con un estado
+  explícito (`EstadoPropuesta`) y una función pura probada, `avisoDelSobrante`; el fallo ahora se
+  dice en pantalla.
 - ~~**El anticipo se crea aunque `producto-anticipos` esté apagada**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `functions/src/payments.ts` · `aplicarPago — el bloque `if (sobrante > 0)``
   **Era cierta.** El comentario decía que con la bandera apagada `sobrante` queda en cero «por
@@ -102,8 +122,13 @@ Ahora dicen que se lea `git ls-remote`.
   `CLAUDE.md` · `## Estado actual — lo primero, y lo que más cambia (primer párrafo)`
 
 ### Sospechas de gravedad MEDIA
-- **El «Histórico de cartera» que exporta /admin/billing contradice el «% recaudo» de su propia pantalla**
+- ~~**El «Histórico de cartera» que exporta /admin/billing contradice el «% recaudo» de su propia pantalla**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `src/app/(admin)/admin/billing/page.tsx` · `handleSaveCarteraHistory`
+  **Era cierta, y es el gemelo del hallazgo ALTA de arriba**: mismo nombre de fichero, mismas
+  columnas, misma fórmula vieja. Se arreglaron los dos a la vez porque arreglar uno solo dejaría
+  dos versiones del mismo documento discrepando. Ahora los dos usan la fórmula única de
+  `collection.ts` y exponen **recaudado y liquidado por separado**, que son dos preguntas
+  distintas.
 - **En /admin/billing conviven dos «% recaudo» con el mismo rótulo y distinta fórmula**
   `src/app/(admin)/admin/billing/page.tsx` · `campaignRows`
 - **El reporte de comité pinta una línea de «% recaudo» que contradice sus propias barras y no expone lo liquidado**

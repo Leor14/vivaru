@@ -196,12 +196,14 @@ del programa de IA se calculó sobre esa cuenta.
 **Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
 que haya un cliente — lo que cambia es a quién le pasa hoy.
 
-**LO PRIMERO DE LA SIGUIENTE SESIÓN: `docs/revision-flow-002-por-verificar.md`, donde quedan 20
-sospechas.** Salen de una revisión adversarial de lo desplegado cuya fase de jueces se cayó por
-sobrecarga de API. **No son defectos: son hipótesis con un solo par de ojos.** **Las dos «gordas»
-se triaron el 24 de agosto y las DOS eran ciertas** —el anticipo nacía con la bandera apagada y
-congelado, y `bankAccounts` estaba abierta a la portería—; quedan **tres de gravedad alta**, las
-tres sobre el «% de recaudo» y el modal de cobro. El otro que llegó a tener sus tres votos también
+**LO PRIMERO DE LA SIGUIENTE SESIÓN: `docs/revision-flow-002-por-verificar.md`, donde quedan 16
+sospechas y NINGUNA de gravedad alta.** Salen de una revisión adversarial de lo desplegado cuya
+fase de jueces se cayó por sobrecarga de API. **No son defectos: son hipótesis con un solo par de
+ojos** — pero **las seis triadas el 24 de agosto eran ciertas las seis**: el anticipo nacía con la
+bandera apagada y congelado, `bankAccounts` estaba abierta a la portería, el informe automático
+mensual seguía con la fórmula vieja del «% de recaudo» **en tres sitios** más su gemelo manual, el
+ajuste a mano de un cargo sin línea propuesta se tiraba al enviar, y la pantalla anunciaba el
+importe entero como sobrante mientras la vista previa no había llegado. El otro que llegó a tener sus tres votos también
 era real y está corregido: dos guardianes de `aplicarPago` rechazaban cobros **correctos** con
 centavos. Ver `aMoneda` y `TOLERANCIA_MONEDA` en `functions/src/payments.ts`.
 

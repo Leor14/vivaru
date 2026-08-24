@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { CoefficientCampaignDialog } from "@/components/features/billing/CoefficientCampaignDialog";
+import { statementChargedAmount, statementSettledAmount } from "@/features/billing/collection";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
 import * as XLSX from "xlsx";
@@ -782,23 +783,34 @@ function AdminBillingPageContent() {
     if (!tid || !uid || !storage) return;
     setSavingHistory(true);
     try {
-      // Recaudo por período (esperado vs cobrado).
-      const byPeriod = new Map<string, { facturado: number; recaudado: number; pendiente: number }>();
+      // Recaudo por período (esperado vs cobrado vs liquidado).
+      //
+      // **R16, y por la fórmula única.** Hasta el 24 de agosto de 2026 este
+      // export calculaba el porcentaje como `Σ paymentAmount / Σ amount` —la
+      // fórmula que R16 sustituyó— así que **contradecía al «% recaudo» de su
+      // propia pantalla**, que ya mide liquidación. Y su gemelo, el archivo
+      // automático mensual de `monthlyFinancialArchive`, producía un fichero con
+      // el mismo nombre y las mismas columnas con el otro número dentro.
+      //
+      // Se exponen los DOS: «recaudado» es el dinero que entró y «liquidado» es
+      // lo que dejó de deberse. En cuanto hay anticipos cruzados no son lo mismo.
+      const byPeriod = new Map<string, { facturado: number; recaudado: number; liquidado: number; pendiente: number }>();
       for (const s of items) {
-        const e = byPeriod.get(s.period) ?? { facturado: 0, recaudado: 0, pendiente: 0 };
-        e.facturado += s.amount ?? 0;
-        e.recaudado += s.paymentAmount ?? 0;
+        const e = byPeriod.get(s.period) ?? { facturado: 0, recaudado: 0, liquidado: 0, pendiente: 0 };
+        e.facturado += statementChargedAmount(s);
+        e.recaudado += Math.max(s.paymentAmount ?? 0, 0);
+        e.liquidado += statementSettledAmount(s);
         e.pendiente += s.balance ?? 0;
         byPeriod.set(s.period, e);
       }
       const periodRows = Array.from(byPeriod.entries())
         .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-        .map(([period, v]) => [period, v.facturado, v.recaudado, v.facturado > 0 ? `${Math.round((v.recaudado / v.facturado) * 100)}%` : "0%", v.pendiente]);
+        .map(([period, v]) => [period, v.facturado, v.recaudado, v.liquidado, v.facturado > 0 ? `${Math.round((v.liquidado / v.facturado) * 100)}%` : "0%", v.pendiente]);
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(
         wb,
-        XLSX.utils.aoa_to_sheet([["Período", "Facturado (esperado)", "Recaudado", "% recaudo", "Pendiente"], ...periodRows]),
+        XLSX.utils.aoa_to_sheet([["Período", "Facturado (esperado)", "Recaudado", "Liquidado", "% recaudo", "Pendiente"], ...periodRows]),
         "Recaudo por período",
       );
       XLSX.utils.book_append_sheet(

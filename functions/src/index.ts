@@ -34,6 +34,8 @@ import { limpiarMetadata } from "./audit";
 import {
   aplicarPago,
   esRecaudoDeCartera,
+  montoFacturadoDelCargo,
+  montoLiquidadoDelCargo,
   revertirPago,
   vistaPreviaReparto,
   type AplicarPagoInput,
@@ -3549,19 +3551,29 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
     try {
     const bsSnap = await db.collection("billingStatements").where("tenantId", "==", tenantId).get();
     if (bsSnap.empty) continue;
-    const stmts = bsSnap.docs.map((d) => d.data() as { period?: string; amount?: number; paymentAmount?: number; balance?: number; status?: string; unitId?: string; unitLabel?: string });
+    const stmts = bsSnap.docs.map((d) => d.data() as { period?: string; amount?: number; paymentAmount?: number; advanceAppliedAmount?: number; balance?: number; status?: string; unitId?: string; unitLabel?: string });
 
     // ── Histórico de cartera (recaudo por período + morosos) ──
-    const byPeriod = new Map<string, { f: number; r: number; p: number }>();
+    // **R16: el «% de recaudo» mide LIQUIDACIÓN, no ingreso.** Hasta el 24 de
+    // agosto de 2026 esto era `Σ paymentAmount / Σ amount`, la fórmula que R16
+    // sustituyó en `src/` sin llegar aquí — el mismo camino que ya recorrió R12.
+    // Se exponen los dos números porque son dos preguntas distintas: «cuánto
+    // dinero entró» (recaudado) y «cuánto de lo facturado dejó de deberse»
+    // (liquidado). Enseñar solo uno con un porcentaje calculado sobre el otro es
+    // lo que hacía ilegible el documento.
+    const byPeriod = new Map<string, { f: number; r: number; l: number; p: number }>();
     for (const s of stmts) {
       const k = s.period ?? "";
       if (!k) continue;
-      const e = byPeriod.get(k) ?? { f: 0, r: 0, p: 0 };
-      e.f += s.amount ?? 0; e.r += s.paymentAmount ?? 0; e.p += s.balance ?? 0;
+      const e = byPeriod.get(k) ?? { f: 0, r: 0, l: 0, p: 0 };
+      e.f += montoFacturadoDelCargo(s);
+      e.r += Math.max(s.paymentAmount ?? 0, 0);
+      e.l += montoLiquidadoDelCargo(s);
+      e.p += s.balance ?? 0;
       byPeriod.set(k, e);
     }
     const periodRows = Array.from(byPeriod.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1))
-      .map(([k, v]) => [k, v.f, v.r, v.f > 0 ? `${Math.round((v.r / v.f) * 100)}%` : "0%", v.p]);
+      .map(([k, v]) => [k, v.f, v.r, v.l, v.f > 0 ? `${Math.round((v.l / v.f) * 100)}%` : "0%", v.p]);
     const byUnit = new Map<string, { label: string; deuda: number; periodos: Set<string> }>();
     for (const s of stmts) {
       if ((s.balance ?? 0) <= 0) continue;
@@ -3574,7 +3586,7 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
     await archiveXlsx({
       tenantId, systemKey: "cartera_history", fileName: `Historico-cartera-${stamp}.xlsx`,
       sheets: [
-        { name: "Recaudo por período", rows: [["Período", "Facturado (esperado)", "Recaudado", "% recaudo", "Pendiente"], ...periodRows] },
+        { name: "Recaudo por período", rows: [["Período", "Facturado (esperado)", "Recaudado", "Liquidado", "% recaudo", "Pendiente"], ...periodRows] },
         { name: "Morosos", rows: [["Unidad", "Deuda total", "# períodos"], ...morososRows] },
       ],
       description: `Histórico de cartera al ${stamp} (automático)`, source: "cartera_history", sourceId: stamp, category: "financiero",
@@ -3582,9 +3594,12 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
 
     // ── Reporte de comité: resumen financiero del mes anterior ──
     const bsMonth = stmts.filter((s) => s.period === prevMonth);
-    const facturado = bsMonth.reduce((a, s) => a + (s.amount ?? 0), 0);
-    const recaudado = bsMonth.reduce((a, s) => a + (s.paymentAmount ?? 0), 0);
-    const billedAll = stmts.reduce((a, s) => a + (s.amount ?? 0), 0);
+    const facturado = bsMonth.reduce((a, s) => a + montoFacturadoDelCargo(s), 0);
+    const recaudado = bsMonth.reduce((a, s) => a + Math.max(s.paymentAmount ?? 0, 0), 0);
+    // R16. El porcentaje va sobre esto, no sobre `recaudado`. Los dos coinciden
+    // mientras no haya anticipos cruzados; en cuanto los hay, dejan de hacerlo.
+    const liquidado = bsMonth.reduce((a, s) => a + montoLiquidadoDelCargo(s), 0);
+    const billedAll = stmts.reduce((a, s) => a + montoFacturadoDelCargo(s), 0);
     const overdueAmt = stmts.filter((s) => s.status === "overdue").reduce((a, s) => a + (s.balance ?? 0), 0);
     const ledSnap = await db.collection("ledgerEntries").where("tenantId", "==", tenantId).get();
     const monthLed = ledSnap.docs.map((d) => d.data() as { type?: string; category?: string; sourceType?: string; reversedSourceType?: string; date?: string; amount?: number }).filter((e) => (e.date ?? "").slice(0, 7) === prevMonth);
@@ -3602,7 +3617,8 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
         [],
         ["Facturado del mes", facturado],
         ["Recaudado del mes", recaudado],
-        ["% de recaudo", facturado > 0 ? `${Math.round((recaudado / facturado) * 100)}%` : "0%"],
+        ["Liquidado del mes", liquidado],
+        ["% de recaudo", facturado > 0 ? `${Math.round((liquidado / facturado) * 100)}%` : "0%"],
         ["Índice de morosidad (monto, acum.)", billedAll > 0 ? `${Math.round((overdueAmt / billedAll) * 100)}%` : "0%"],
         ["Ingresos del mes", ingresos],
         ["Egresos del mes", egresos],
@@ -3618,7 +3634,8 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
       buffer: await buildSummaryPdf("Reporte de comité — Resumen mensual", `${prevMonth} · generado automáticamente`, [
         ["Facturado del mes", formatMoney(facturado)],
         ["Recaudado del mes", formatMoney(recaudado)],
-        ["% de recaudo", facturado > 0 ? `${Math.round((recaudado / facturado) * 100)}%` : "0%"],
+        ["Liquidado del mes", formatMoney(liquidado)],
+        ["% de recaudo", facturado > 0 ? `${Math.round((liquidado / facturado) * 100)}%` : "0%"],
         ["Índice de morosidad (monto, acum.)", billedAll > 0 ? `${Math.round((overdueAmt / billedAll) * 100)}%` : "0%"],
         ["Ingresos del mes", formatMoney(ingresos)],
         ["Egresos del mes", formatMoney(egresos)],

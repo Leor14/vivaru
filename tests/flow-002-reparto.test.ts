@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   aplicarAjustes,
+  avisoDelSobrante,
   deudaDelCargo,
   repartoCuadra,
   type CargoParaReparto,
@@ -44,6 +45,51 @@ describe("deudaDelCargo — qué cargos ofrecer, y cuánto debe cada uno", () =>
   });
 });
 
+describe("avisoDelSobrante — la pantalla no puede anunciar lo que todavía no sabe", () => {
+  /**
+   * **REPRO del defecto que motiva esta función.** El sobrante se calcula contra
+   * la propuesta del servidor, y antes de que llegue la lista está VACÍA, así que
+   * el sobrante es el importe entero. Al abrir el cobro, durante el viaje de red,
+   * la pantalla anunciaba que el pago completo quedaría como saldo a favor.
+   */
+  it("mientras la propuesta no ha llegado NO anuncia sobrante, aunque el sobrante sea todo", () => {
+    expect(avisoDelSobrante({ estado: "pendiente", sobrante: 140_000, seraAnticipo: true, vaPorReparto: false }))
+      .toEqual({ tipo: "calculando" });
+  });
+
+  /** Y si la llamada falla, `sugerido` se quedaba vacío para siempre con el aviso puesto. */
+  it("si la propuesta falla lo dice, en vez de dejar el aviso viejo colgado", () => {
+    expect(avisoDelSobrante({ estado: "error", sobrante: 140_000, seraAnticipo: true, vaPorReparto: false }))
+      .toEqual({ tipo: "error" });
+  });
+
+  /**
+   * **La contraparte imprescindible: una propuesta vacía RECIBIDA sí anuncia.**
+   * Es CA8 —un pago sin cargos pendientes se convierte íntegro en anticipo—, y es
+   * exactamente por lo que «la lista está vacía» no servía como señal.
+   */
+  it("recibida y vacía sí anuncia: es CA8, no es que no haya llegado", () => {
+    expect(avisoDelSobrante({ estado: "recibida", sobrante: 140_000, seraAnticipo: true, vaPorReparto: false }))
+      .toEqual({ tipo: "a-favor", sobrante: 140_000 });
+  });
+
+  it("sin sobrante no dice nada", () => {
+    expect(avisoDelSobrante({ estado: "recibida", sobrante: 0, seraAnticipo: true, vaPorReparto: false }))
+      .toEqual({ tipo: "ninguno" });
+  });
+
+  it("con anticipos apagados y un solo cargo, el sobrante va contra el cargo", () => {
+    expect(avisoDelSobrante({ estado: "recibida", sobrante: 60_000, seraAnticipo: false, vaPorReparto: false }))
+      .toEqual({ tipo: "contra-el-cargo", sobrante: 60_000 });
+  });
+
+  /** Con anticipos apagados y reparto, el servidor lo rechaza: no hay dónde guardarlo. */
+  it("con anticipos apagados y reparto, avisa de que no hay destino", () => {
+    expect(avisoDelSobrante({ estado: "recibida", sobrante: 60_000, seraAnticipo: false, vaPorReparto: true }))
+      .toEqual({ tipo: "sin-destino", sobrante: 60_000 });
+  });
+});
+
 describe("aplicarAjustes — lo escrito a mano encima de lo que propuso el servidor", () => {
   const sugerido = [
     { statementId: "junio", amount: 100_000 },
@@ -81,6 +127,37 @@ describe("aplicarAjustes — lo escrito a mano encima de lo que propuso el servi
     const r = aplicarAjustes([{ statementId: "junio", amount: 50_000 }], 50_000, { junio: "90000" });
     expect(r.sobrante).toBe(0);
     expect(repartoCuadra(r.lineas, 50_000)).toBe(false);
+  });
+
+  /**
+   * **REPRO — el ajuste de un cargo SIN línea propuesta.** La pantalla pinta la
+   * casilla para **todo** cargo marcado, tenga línea o no —cuando el importe se
+   * agotó en los anteriores no la hay—, así que escribir ahí es un gesto que el
+   * producto ofrece. Y `aplicarAjustes` recorre `sugerido`: lo escrito sobre un
+   * cargo que no está en la propuesta **no aparece en `lineas`**, así que se
+   * acepta en pantalla y se tira al enviar.
+   */
+  it("un ajuste sobre un cargo que la propuesta no incluye TIENE que viajar", () => {
+    const r = aplicarAjustes(sugerido, 200_000, { agosto: "40000" });
+    expect(r.lineas).toEqual([
+      { statementId: "junio", amount: 100_000 },
+      { statementId: "julio", amount: 50_000 },
+      { statementId: "agosto", amount: 40_000 },
+    ]);
+    expect(r.sobrante).toBe(10_000);
+  });
+
+  /** Una casilla vacía sobre un cargo sin línea sigue sin crear línea: no es un cero. */
+  it("una casilla vacía sobre un cargo sin línea no inventa una línea", () => {
+    const r = aplicarAjustes(sugerido, 150_000, { agosto: "   " });
+    expect(r.lineas).toEqual(sugerido);
+    expect(r.sobrante).toBe(0);
+  });
+
+  /** Ni un cero: el servidor rechaza toda línea que no sea mayor que cero. */
+  it("un cero sobre un cargo sin línea tampoco crea línea", () => {
+    const r = aplicarAjustes(sugerido, 150_000, { agosto: "0" });
+    expect(r.lineas).toEqual(sugerido);
   });
 
   it("basura escrita en la casilla vale cero y queda detectable por repartoCuadra", () => {
