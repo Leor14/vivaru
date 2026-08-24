@@ -42,6 +42,15 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 
 ## Estado del portafolio
 
+> **Qué significa «EN PRODUCCIÓN» en esta tabla, desde el 24 de agosto de 2026.** Significaba «el
+> código está desplegado», y eso dejó marcar `FLOW-002` como productiva con **tres criterios de su
+> propia ficha sin construir** —§9/CA13, `CF8` y `personId`—, uno de ellos de dinero. **La regla
+> nueva: una PRD no se marca EN PRODUCCIÓN hasta que todos sus criterios están cumplidos o movidos
+> explícitamente a Fase 2.** Y la columna de estado distingue **tres cosas que antes se leían
+> igual**: (a) Fase 2 aplazada al escribir la ficha —la PRD está cerrada—, (b) MVP a medias, y
+> (c) criterios del alcance entregado sin construir, que es la que no debería existir.
+
+
 ### Funcionales
 
 | PRD | Estado | Nota |

@@ -200,6 +200,18 @@ del programa de IA se calculó sobre esa cuenta.
 > responde «No hay nada que marcar», y el script lista **0 conjuntos sin clasificar**. La ADC no
 > estaba caducada, al contrario de lo que decía esta nota: lo que fallaba era otra credencial.
 
+**EL CRITERIO DE PRIORIZACIÓN CAMBIÓ EL 24 DE AGOSTO DE 2026: cerrar frentes antes que abrirlos.**
+Lo fijó David. La cola empezaba por `FIN-002` porque era el frente de ingeniería más grande
+abordable sin clientes; con el criterio nuevo, abrirlo teniendo cuatro a medias es justo lo que no
+hay que hacer, y **baja al final**. El orden vive en `docs/pendientes.md`, y el frente 1 —encender
+las seis banderas del lote, que **no lleva código**— tiene runbook propio en
+`docs/encender-el-lote-habitanto.md`.
+
+**Y una regla que sale de ahí:** una PRD **no se marca «EN PRODUCCIÓN» hasta que sus criterios
+están cumplidos o movidos explícitamente a Fase 2**. Hoy esa etiqueta significa «el código está
+desplegado», que no es lo mismo — así se marcó `FLOW-002` con tres criterios propios sin cumplir,
+uno de ellos de dinero (`CF8`: un conjunto `suspended` puede cobrar y cruzar).
+
 **Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
 que haya un cliente — lo que cambia es a quién le pasa hoy.
 

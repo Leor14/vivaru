@@ -212,19 +212,55 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 | **`personId` del anticipo** | `functions/src/advances.ts` | No lo escribe nadie, y §7.6 construye una retención encima. O se escribe, o §7.6 se corrige |
 | **El total de anticipos del consejo** | `PLAT-004` | Decisión del 24 ago: se le **retiró** la lectura de `advances` porque era detalle por unidad. El agregado que la PRD le promete **no existe**, y una regla no sabe calcularlo |
 
-## LO SIGUIENTE, en orden
+## LO SIGUIENTE — CERRAR FRENTES, NO ABRIRLOS (decidido con David el 24 ago 2026)
+
+**El criterio cambió, y con él el orden.** Hasta hoy la cola empezaba por `FIN-002` porque era el
+frente de ingeniería más grande abordable sin clientes. **David fijó otro criterio: cerrar lo
+abierto antes de extender.** Con ese criterio, abrir el frente más grande del tablero teniendo
+cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al final**.
+
+| # | Frente | Qué significa CERRADO | Coste |
+|---|---|---|---|
+| **1** | **`PH-001` — encender el lote** | Las **seis banderas** encendidas globalmente, de una en una y mirando. Runbook: **`docs/encender-el-lote-habitanto.md`** | **CERO código** |
+| **2** | **`FLOW-002` de verdad** | **CF8 primero, que es dinero**; luego `personId`; luego §9/CA13. O se construyen, o §7.5 y §7.6 dejan de prometerlos | Bajo–medio |
+| **3** | **`FIX-001` completo** | Encender `producto-reservas-servidor` → observar sin escrituras directas → **cerrar la regla (paso 4, sin vuelta atrás)** → entrega 2 | Medio, con espera |
+| **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias de verdad** | Medio |
+| **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) | Alto — es construir |
+| **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
+
+**Por qué el 1 va primero:** siete pasos construidos, probados y desplegados que **hoy no le sirven
+a nadie porque están dormidos**. Es el mejor retorno del tablero y no cuesta una línea.
+
+### Por qué «falta» algo en casi toda PRD — son TRES cosas distintas
+
+El índice de PRD las mezcla en la misma celda, y por eso todo parece a medias cuando no lo está.
+
+| Categoría | Cuáles | ¿Cerrada? |
+|---|---|---|
+| **(a) Fase 2 aplazada a propósito** | `PLAT-001`, `PLAT-003`, `FEAT-003` | **SÍ.** El alcance se sacó al escribir la ficha, no después |
+| **(b) MVP a medias** | `PLAT-002` (entrega 2), `FIX-001` (pasos 2–4) | **NO.** Trabajo comprometido sin hacer |
+| **(c) Criterios del alcance ENTREGADO, sin construir** | `FLOW-002`: §9/CA13, **CF8**, `personId` | **NO — y esta categoría no debería existir** |
+
+> **REGLA NUEVA, para que (c) no se repita:** una PRD **no se marca «EN PRODUCCIÓN» hasta que todos
+> sus criterios están cumplidos o movidos explícitamente a Fase 2**. Hoy «en producción» significa
+> «el código está desplegado», que no es lo mismo — y así se marcó `FLOW-002` con tres criterios
+> propios sin cumplir, uno de ellos **de dinero**.
+
+**CF8, dicho claro:** un conjunto `suspended` —un cliente que dejó de pagar— **puede hoy cobrar y
+cruzar anticipos**, porque las callables usan el Admin SDK y no pasan por las reglas, que es donde
+vive `tenantOperable`. Es anterior a `FLOW-002` (viene de `FIN-001`), pero la ficha lo amplió a
+tres operaciones más.
+
+### Lo que no entra en los seis frentes
 
 | Qué | Nota |
 |---|---|
-| **1. `FIN-002` — expediente y conciliación determinística** | **Es el frente de ingeniería más grande que se puede abrir sin un cliente real**, y ya no lo bloquea nadie. Detalle en `docs/roadmap-finance.md` §7 (es su F1). Arranca con una pieza recién arreglada por debajo: la conciliación ya puede casar pagos |
-| **2. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden es **uno cada vez, mirando** |
-| **3. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
-| `FLOW-001` (prorrateo) y la ola C | Lo que queda por construir del lote. `FLOW-001` necesita `PLAT-001`, que ya está |
 | `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`, **y arrastra la deuda del total de anticipos** |
-| El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
+| **Auditar los índices de las consultas escritas a mano** | Las del helper ya están cruzadas y sus 4 huecos tapados. Faltan ~8 con `query(...)` directo, una con campo de orden **dinámico** |
+| El índice muerto de `ledgerEntries`, y el de `documents` | Ninguno lo usa una consulta. Borrarlos pide `--force`, que arrasa con todo lo que no esté en el fichero |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
-| **Auditar los índices de las consultas escritas a mano** | Las que pasan por `subscribeTenantCollection` ya están cruzadas y sus 4 huecos, tapados. Faltan ~8 que construyen `query(...)` directo, una de ellas con campo de orden **dinámico**. Ver la sección de arriba |
+| Portar seis entradas de changelog a Notion | Su estado sí está al día; el changelog va por detrás |
 
 ## QUÉ HACE FALTA DE DAVID
 
