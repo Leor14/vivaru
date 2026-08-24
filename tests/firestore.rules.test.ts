@@ -447,6 +447,35 @@ beforeAll(async () => {
       accountNumber: "****1200",
       active: false,
     });
+    // Documentos: la coleccion mezcla lo compartible con los archivos que
+    // genera `monthlyFinancialArchive`, y esos llevan detalle POR UNIDAD.
+    await setDoc(doc(db, "documents", "doc-a-reglamento"), {
+      tenantId: "tenant-a",
+      fileName: "Reglamento-interno.pdf",
+      category: "reglamento",
+    });
+    await setDoc(doc(db, "documents", "doc-a-acta"), {
+      tenantId: "tenant-a",
+      fileName: "Acta-asamblea.pdf",
+      category: "otro",
+    });
+    await setDoc(doc(db, "documents", "doc-a-cartera"), {
+      tenantId: "tenant-a",
+      fileName: "Historico-cartera.xlsx",
+      category: "financiero",
+      source: "cartera_history",
+    });
+    await setDoc(doc(db, "documents", "doc-a-reporte"), {
+      tenantId: "tenant-a",
+      fileName: "Reporte-Comite.pdf",
+      category: "reporte",
+      source: "committee_report",
+    });
+    await setDoc(doc(db, "documents", "doc-a-sin-categoria"), {
+      tenantId: "tenant-a",
+      fileName: "Suelto.pdf",
+    });
+
     await setDoc(doc(db, "bankAccountBalances", "bank-a-activa"), {
       tenantId: "tenant-a",
       openingBalance: 85000,
@@ -2476,5 +2505,109 @@ describe("FLOW-002 · el asiento de origen pago se protege en LAS DOS direccione
       updateDoc(doc(admin.firestore(), "ledgerEntries", "le-manual-triaje"), { amount: 12345 }),
     );
     await assertSucceeds(deleteDoc(doc(admin.firestore(), "ledgerEntries", "le-manual-triaje")));
+  });
+});
+
+describe("documentos · el residente no alcanza los archivos financieros", () => {
+  /**
+   * `documents` es UNA coleccion con contenido mezclado. Hasta el 24 de agosto
+   * de 2026 la regla era `sameTenant`, o sea todo el mundo del conjunto: el
+   * residente y la PORTERIA. Y el documento guarda un `fileUrl` con token de
+   * descarga, que **se salta las reglas de Storage** — asi que tener cerrada la
+   * carpeta financiera alli no protegia nada.
+   */
+  it("el residente lee lo compartible", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(res.firestore(), "documents", "doc-a-reglamento")));
+    await assertSucceeds(getDoc(doc(res.firestore(), "documents", "doc-a-acta")));
+  });
+
+  it("y NO lee el historico de cartera ni el reporte de comite", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(res.firestore(), "documents", "doc-a-cartera")));
+    await assertFails(getDoc(doc(res.firestore(), "documents", "doc-a-reporte")));
+  });
+
+  // Lista BLANCA: un documento sin categoria no se sabe que es, asi que no pasa.
+  it("un documento sin categoria tampoco", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(res.firestore(), "documents", "doc-a-sin-categoria")));
+  });
+
+  /**
+   * **La prueba que decide si la pantalla carga.** Firestore evalua la consulta
+   * contra la regla SIN ejecutarla: pedir la coleccion sin nombrar las
+   * categorias se rechaza entera aunque todos los documentos fueran
+   * compartibles. Es la trampa de `bankAccounts` y su `active == true`.
+   */
+  it("la consulta del residente SIN filtrar por categoria se rechaza entera", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      getDocs(query(collection(res.firestore(), "documents"), where("tenantId", "==", "tenant-a"))),
+    );
+  });
+
+  it("y CON el filtro `in` sobre las compartibles, funciona", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(res.firestore(), "documents"),
+          where("tenantId", "==", "tenant-a"),
+          where("category", "in", ["asamblea", "comunicado", "acuerdo", "reglamento", "plano", "memoria", "otro"]),
+        ),
+      ),
+    );
+  });
+
+  /**
+   * **Esta no se podia razonar, habia que medirla.** El flujo del reglamento
+   * (`features/regulations/services.ts`) consulta con `category == "reglamento"`,
+   * una IGUALDAD contra una regla escrita con `in`. Si Firestore no dedujera que
+   * la igualdad prueba la pertenencia, ese flujo se romperia al desplegar.
+   */
+  it("y la consulta del reglamento, que usa `==` contra una regla con `in`, tambien", async () => {
+    const res = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(res.firestore(), "documents"),
+          where("tenantId", "==", "tenant-a"),
+          where("category", "==", "reglamento"),
+        ),
+      ),
+    );
+  });
+
+  /**
+   * El consejo conserva TODO, y no es una concesion nueva: `canAccessPath` le
+   * deja solo en `/admin/documents`, esa pantalla consulta sin filtrar, y los
+   * reportes de comite son suyos. Cerrarle por categoria lo dejaria sin su
+   * unica pantalla.
+   */
+  it("el consejo lee todo, incluido lo financiero", async () => {
+    const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(com.firestore(), "documents", "doc-a-cartera")));
+    await assertSucceeds(getDoc(doc(com.firestore(), "documents", "doc-a-reglamento")));
+    await assertSucceeds(
+      getDocs(query(collection(com.firestore(), "documents"), where("tenantId", "==", "tenant-a"))),
+    );
+  });
+
+  it("el administrador tambien", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "documents", "doc-a-cartera")));
+  });
+
+  // Ninguna pantalla de /guard lee esta coleccion, y la regla ya no se la da.
+  it("la porteria no lee NINGUNO, ni el compartible", async () => {
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(guard.firestore(), "documents", "doc-a-reglamento")));
+    await assertFails(getDoc(doc(guard.firestore(), "documents", "doc-a-cartera")));
+  });
+
+  it("un residente de otro conjunto no lee ninguno", async () => {
+    const otro = testEnv.authenticatedContext("resident-3", { role: "resident", tenantId: "tenant-b" });
+    await assertFails(getDoc(doc(otro.firestore(), "documents", "doc-a-reglamento")));
   });
 });

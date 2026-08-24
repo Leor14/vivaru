@@ -56,6 +56,14 @@ export function subscribeTenantCollection<T extends { id: string }>(
      * mal escrita».
      */
     equalsBoolean?: Array<{ field: string; value: boolean }>;
+    /**
+     * Filtro `in` sobre un campo. **Existe porque una regla que restringe por
+     * el valor de un campo OBLIGA a la consulta a filtrar por él**: Firestore
+     * evalúa la consulta contra la regla **sin ejecutarla**, así que sin este
+     * `where` rechaza la consulta ENTERA aunque todos los documentos
+     * cumplieran. Es la misma trampa de `bankAccounts` y su `active == true`.
+     */
+    oneOf?: { field: string; values: readonly string[] };
   },
 ) {
   if (!db) return null;
@@ -70,6 +78,10 @@ export function subscribeTenantCollection<T extends { id: string }>(
     for (const filter of options.equalsBoolean) {
       constraints.push(where(filter.field, "==", filter.value));
     }
+  }
+
+  if (options?.oneOf && options.oneOf.values.length > 0) {
+    constraints.push(where(options.oneOf.field, "in", [...options.oneOf.values]));
   }
 
   if (options?.orderByField) {

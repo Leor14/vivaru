@@ -85,6 +85,12 @@ export function useDocuments(tenantId?: string) {
         setLoading(false);
       },
       () => setLoading(false),
+      // **El `where` no es opcional, es lo que la REGLA exige.** Firestore
+      // evalúa la consulta contra la regla sin ejecutarla: si la regla concede
+      // al residente solo estas categorías y la consulta no las nombra, la
+      // rechaza entera. El filtro en memoria de abajo se queda como segunda
+      // línea, por si las dos listas se separan algún día.
+      { oneOf: { field: "category", values: CATEGORIAS_VISIBLES_PARA_RESIDENTE } },
     );
 
     return () => {

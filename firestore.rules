@@ -681,8 +681,44 @@ service cloud.firestore {
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
+    // Repositorio documental del conjunto. **Una sola coleccion con contenido
+    // mezclado**: el reglamento y las actas conviven con lo que archiva
+    // `monthlyFinancialArchive`, y eso lleva DETALLE POR UNIDAD —la hoja
+    // «Morosos» del historico de cartera dice que unidad debe y cuanto, y el
+    // reporte de comite trae «mayores deudores»—. De 39 documentos en
+    // produccion, 32 son de esos dos tipos.
+    //
+    // **Hasta el 24 de agosto de 2026 esto era `sameTenant`**, o sea CUALQUIER
+    // miembro: el residente y tambien la PORTERIA. Y no era teorico: el
+    // documento guarda un `fileUrl` con `firebaseStorageDownloadTokens`, y un
+    // enlace con token **se salta las reglas de Storage**, asi que la carpeta
+    // financiera estando cerrada en `storage.rules` no protegia nada mientras
+    // se pudiera leer el documento. Es el mismo animal que `bankAccounts` esa
+    // misma manana.
+    //
+    // Se nombran los roles, como en `advances` y `bankAccounts`:
+    // - **Administracion y superadmin:** todo.
+    // - **Consejo:** todo, y no es una concesion nueva. `canAccessPath` le deja
+    //   SOLO en `/admin/documents`, esa pantalla consulta sin filtrar por
+    //   categoria, y los reportes de comite son precisamente suyos. Cerrarle por
+    //   categoria le rechazaria la consulta entera y lo dejaria sin su unica
+    //   pantalla.
+    // - **Residente:** solo las categorias compartibles. Es LISTA BLANCA: con
+    //   lista negra, una categoria nueva se publicaria sola.
+    // - **Porteria:** nada. Ninguna pantalla de `/guard` lee esta coleccion.
+    //
+    // **La consulta del residente TIENE que filtrar por `category`**, o Firestore
+    // la rechaza entera aunque todos los documentos fueran compartibles: evalua
+    // la consulta contra la regla **sin ejecutarla**. Lo hace
+    // `features/documents/use-documents.ts` con un `where in` sobre esta misma
+    // lista. Si las dos se separan, la pantalla deja de cargar.
     match /documents/{docId} {
-      allow read: if signedIn() && sameTenant(resource.data.tenantId);
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        tenantRole(resource.data.tenantId, 'committee') ||
+        (tenantRole(resource.data.tenantId, 'resident') &&
+          resource.data.get('category', '') in ['asamblea', 'comunicado', 'acuerdo', 'reglamento', 'plano', 'memoria', 'otro'])
+      );
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
