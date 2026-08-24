@@ -169,7 +169,7 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**`origin/develop` = `c4f556f`. `origin/master` = `0aa668a`.** Releer **los dos**: se mueven por
+**Leer los dos remotos con `git ls-remote`, no de aquí.** Esta línea llevaba un número de commit y se quedó corta tres veces en una sola noche: una cabecera que se actualiza a mano en cada push acaba mintiendo. Se mueven por separado, y un push sin cambios responde «success». Releer **los dos**: se mueven por
 separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**. Un push
 sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende de la caché.
 
@@ -207,6 +207,14 @@ El runbook, con lo que va sin bandera y lo que hay que comprobar entre pasos, es
 
 **Lo único que producción aporta y sigue pendiente:** un cobro real de un solo cargo, para ver que
 esa ruta se comporta igual (§13). **Lo hace David** — es dinero en la cartera de un cliente.
+
+**HAY 36 SOSPECHAS SIN VERIFICAR, y son lo primero que hay que mirar:**
+`docs/revision-flow-002-por-verificar.md`. Salen de una revisión adversarial de todo lo que se
+desplegó el 24 de agosto cuya fase de jueces se cayó, así que **son hipótesis, no defectos** —
+nueve de gravedad alta. El único que sí se verificó estaba en la aritmética del dinero y ya está
+corregido: dos guardianes rechazaban cobros CORRECTOS con centavos, y era invisible porque COP no
+tiene decimales y todas las pruebas usaban enteros. Ver `aMoneda` y `TOLERANCIA_MONEDA` en
+`functions/src/payments.ts`.
 
 **Los dos defectos que encontró mirar la pantalla están cerrados en la raíz**, y el segundo deja
 una regla: **`writeAuditLog` audita FUERA de la transacción**, así que si revienta lo hace con el

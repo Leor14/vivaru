@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 24 de agosto de 2026 (noche)
 
-**`origin/develop` = `c4f556f`. `origin/master` = `0aa668a`.** Releer los dos: se mueven por
+**`origin/develop` y `origin/master` — leerlos con `git ls-remote`, no de aquí: esta cabecera se quedó corta tres veces en una noche.** Releer los dos: se mueven por
 separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árbol limpio.
 
 **`FLOW-002` ESTÁ CONSTRUIDA ENTERA — servidor (sesión A) y front (sesión B).** El paso 3 del
@@ -107,6 +107,21 @@ escritura **con el pago ya hecho**. Cerrado en la raíz con `limpiarMetadata`
 de vivir en el navegador. En `src/features/billing/reparto.ts` queda solo lo que es de la pantalla
 —qué cargos ofrecer, validar lo editado a mano, aplicarlo sobre la propuesta—. **Corrección de lo
 que dije antes: ese fichero NO se borró entero**, y no debía.
+
+## PUNTO DE CORTE — 24 de agosto de 2026, madrugada
+
+**Se cortó por reloj, no por estado limpio**, y conviene decirlo. La sesión empezó siendo la B de
+`FLOW-002` y acabó llevándola a producción, cerrando dos cabos y arreglando un defecto de dinero
+que salió de revisar. Cada paso se justificaba solo; la suma fue demasiado larga.
+
+**Lo que queda cerrado y verificado:** `FLOW-002` en producción con la bandera encendida en el
+conjunto de demostración, los dos cabos desplegados, y el defecto de coma flotante corregido con
+prueba en rojo primero y cuatro falsaciones. Árbol limpio, `develop` y `master` empujados.
+
+**Lo que queda ABIERTO y es lo primero de la próxima sesión:**
+**`docs/revision-flow-002-por-verificar.md`** — 36 sospechas de una revisión adversarial cuya fase
+de jueces se cayó por sobrecarga de API. **No son defectos: son hipótesis con un solo par de
+ojos.** Nueve de gravedad alta. Dos, si se confirman, son mías de esta noche.
 
 ## LO SIGUIENTE
 

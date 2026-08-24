@@ -68,6 +68,33 @@ function calcularSaldo(totalCobrado, pagado, anticipoAplicado, vencimiento, hoy)
     return { balance, status };
 }
 /**
+ * Redondea un importe a la unidad mínima del dinero, y **existe porque el dinero
+ * en coma flotante no cuadra consigo mismo**.
+ *
+ * `35.16 + (400.42 − 35.16)` da `400.41999999999996`. Con importes enteros —COP,
+ * que tiene cero decimales— eso no pasa nunca, y por eso el defecto vivió
+ * escondido: **todas las pruebas de sobrepago usaban enteros**. Con MXN y USD,
+ * que tienen dos (`FRACTION_DIGITS` en `coefficient-billing.ts`), le pasa a más
+ * del 2 % de los sobrepagos.
+ *
+ * **Se redondea a DOS decimales y no a los de la moneda del conjunto**, a
+ * propósito: dos es la precisión más fina que admite cualquiera de las tres
+ * monedas, así que para COP —que ya trae enteros— es una operación sin efecto, y
+ * para MXN y USD es exactamente su céntimo. Leer la moneda del conjunto aquí
+ * añadiría una lectura y una forma de equivocarse sin cambiar ni un resultado.
+ */
+function aMoneda(valor) {
+    return Math.round(valor * 100) / 100;
+}
+/**
+ * Media unidad mínima. Es el margen por debajo del cual una diferencia **no
+ * puede ser dinero de verdad**: la discrepancia real más pequeña posible es un
+ * céntimo (0,01), y el ruido de la coma flotante sobre importes de este tamaño
+ * es del orden de 1e-9. Comparar con `!==` o con `>` a secas confunde las dos
+ * cosas y rechaza cobros correctos.
+ */
+const TOLERANCIA_MONEDA = 0.005;
+/**
  * Si un asiento de ingreso **ya viene contado por Cartera** y por tanto no debe
  * volver a sumarse desde el libro.
  *
@@ -256,7 +283,12 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     // **R7/CF5: la suma del reparto no puede pasarse del importe pagado.** Si es
     // menor, la diferencia es sobrante y se convierte en anticipo (R2).
     const sumaAsignada = asignaciones.reduce((s, a) => s + a.amount, 0);
-    if (sumaAsignada > monto) {
+    // **La tolerancia no es laxitud: sin ella esto rechaza repartos EXACTOS.**
+    // `1243.79 + 4619.14 + 1683.14` suma `7546.070000000001` en coma flotante, así
+    // que un reparto que cuadra al céntimo se leía como «suma más que el importe».
+    // Medido: el 13 % de los repartos de tres líneas con centavos. Con enteros
+    // —COP— nunca pasa, y por eso no se vio antes.
+    if (sumaAsignada > monto + TOLERANCIA_MONEDA) {
         throw new https_1.HttpsError("invalid-argument", "El reparto suma más que el importe pagado.");
     }
     const statementId = asignaciones[0].statementId;
@@ -429,11 +461,14 @@ async function aplicarPago(input, uid, role, tokenTenant) {
             // R4. Lo cubierto con anticipos NO se suma a `paymentAmount` —ver el
             // tipo—, pero sí cuenta para saber si la cuota está saldada.
             const anticipoAplicado = typeof doc.advanceAppliedAmount === "number" ? doc.advanceAppliedAmount : 0;
-            const deuda = Math.max(cobrado - pagadoAntes - anticipoAplicado, 0);
-            const aplicadoAlCargo = anticipos ? Math.min(linea.amount, deuda) : linea.amount;
-            const pagadoDeLaLinea = pagadoAntes + aplicadoAlCargo;
+            // Se redondea la deuda y lo aplicado: las tres restas de arriba arrastran
+            // basura decimal con centavos, y esa basura acaba escrita en el cargo y en
+            // el asiento. Con COP, que es entero, no cambia nada.
+            const deuda = aMoneda(Math.max(cobrado - pagadoAntes - anticipoAplicado, 0));
+            const aplicadoAlCargo = aMoneda(anticipos ? Math.min(linea.amount, deuda) : linea.amount);
+            const pagadoDeLaLinea = aMoneda(pagadoAntes + aplicadoAlCargo);
             const saldo = calcularSaldo(cobrado, pagadoDeLaLinea, anticipoAplicado, doc.dueDate, hoy);
-            totalAplicado += aplicadoAlCargo;
+            totalAplicado = aMoneda(totalAplicado + aplicadoAlCargo);
             // ── La cuenta del concepto (R6) ────────────────────────────────────────
             //
             // Hasta el 22 de agosto de 2026 aquí había un `category: "alicuota"` fijo,
@@ -515,12 +550,28 @@ async function aplicarPago(input, uid, role, tokenTenant) {
                 conceptoDelRecibo = concepto;
             }
         }
-        const sobrante = monto - totalAplicado;
-        // **R1, comprobada y no supuesta:** lo aplicado más el anticipo es
-        // EXACTAMENTE lo pagado. Si esto salta es un fallo de programación, no de
-        // datos, y se prefiere abortar la transacción entera a escribir un reparto
-        // que no cuadra con lo que el residente pagó.
-        if (totalAplicado + sobrante !== monto || totalAplicado < 0 || sobrante < 0) {
+        const sobrante = aMoneda(monto - totalAplicado);
+        // **R1, comprobada contra lo que se ESCRIBIÓ y no contra sí misma.**
+        //
+        // Aquí había `totalAplicado + sobrante !== monto`, y era una tautología:
+        // `sobrante` se define justo encima como `monto - totalAplicado`, así que en
+        // aritmética exacta esa condición **no puede ser cierta**. No medía R1: lo
+        // único capaz de dispararla era el error de coma flotante, es decir, saltaba
+        // exactamente cuando NO había defecto — y abortaba la transacción entera de
+        // un cobro correcto, sin dejar marca de idempotencia, así que reintentar
+        // daba lo mismo. Un guardián que solo se activa en el caso bueno es peor que
+        // ninguno: cuesta cobros y no cubre nada.
+        //
+        // Lo que sí comprueba R1 es que **lo escrito en los cargos** más el anticipo
+        // sea lo pagado. `entradas` es lo que de verdad se registró línea a línea, y
+        // se suma aparte de `totalAplicado`: si una línea se escribiera con un
+        // importe distinto del que se acumuló, esto lo caza. Y con tolerancia, para
+        // no volver a confundir un céntimo con el ruido del último bit.
+        const escrito = aMoneda(entradas.reduce((suma, e) => suma + e.amount, 0));
+        if (Math.abs(escrito - totalAplicado) > TOLERANCIA_MONEDA ||
+            Math.abs(escrito + sobrante - monto) > TOLERANCIA_MONEDA ||
+            totalAplicado < 0 ||
+            sobrante < 0) {
             throw new https_1.HttpsError("internal", "El reparto del pago no cuadra con el importe recibido.");
         }
         // ── El anticipo (R2, R3, R5) ─────────────────────────────────────────────
