@@ -35,8 +35,10 @@ import {
   aplicarPago,
   esRecaudoDeCartera,
   revertirPago,
+  vistaPreviaReparto,
   type AplicarPagoInput,
   type RevertirPagoInput,
+  type VistaPreviaRepartoInput,
 } from "./payments";
 import {
   revocarAccesoDeResidente,
@@ -4291,6 +4293,26 @@ export const cancelAdvance = onCall<AnularAnticipoInput>(
       });
     }
     return resultado;
+  },
+);
+
+/**
+ * **`FLOW-002` §11.3 — la vista previa del reparto (R7).**
+ *
+ * De solo lectura: no escribe nada y **no lleva auditoría**, porque no hay nada
+ * que auditar. Tampoco va detrás de bandera: lo que la bandera gobierna es
+ * aplicar el reparto, no proponerlo.
+ *
+ * Existe para que **el orden en que se imputa el dinero de alguien deje de ser
+ * una decisión del navegador**. `aplicarPago` topa cada línea al saldo del cargo
+ * mire lo que mire la pantalla, así que nunca fue un problema de confianza; era
+ * que una regla de negocio vivía donde el servidor no puede garantizarla.
+ */
+export const previewPaymentAllocation = onCall<VistaPreviaRepartoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    return vistaPreviaReparto(request.data, request.auth?.token?.role, request.auth?.token?.tenantId);
   },
 );
 

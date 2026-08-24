@@ -760,6 +760,49 @@ export async function revertPaymentCallable(input: {
   return executeCallable(callable, input, "No fue posible revertir el pago.");
 }
 
+/**
+ * **`FLOW-002` §11.3 — el reparto sugerido, calculado por el SERVIDOR.**
+ *
+ * De solo lectura: no aplica nada, propone. Lo que devuelve es una sugerencia
+ * que el administrador puede editar línea a línea antes de confirmar; quien
+ * decide de verdad sigue siendo `aplicarPago`, que topa cada línea al saldo del
+ * cargo mire lo que mire la pantalla.
+ *
+ * **Estaba en el navegador hasta el 24 de agosto de 2026**, y se movió porque el
+ * ORDEN en que se imputa el dinero de alguien (R7, del más antiguo al más nuevo)
+ * es una regla de negocio: en el cliente, ni el servidor puede garantizarla ni
+ * la hereda el próximo que llame a la API.
+ *
+ * `sobranteSeraAnticipo` dice si la bandera está encendida, para que la pantalla
+ * no prometa un saldo a favor que no se va a crear.
+ */
+export async function previewPaymentAllocationCallable(input: {
+  tenantId: string;
+  unitId: string;
+  amount: number;
+  /** Los cargos a considerar. Sin esto, todos los de la unidad con deuda. */
+  statementIds?: string[];
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    typeof input,
+    {
+      ok: true;
+      lineas: Array<{
+        statementId: string;
+        amount: number;
+        period?: string;
+        concept?: string;
+        unitLabel?: string;
+        deuda: number;
+      }>;
+      sobrante: number;
+      sobranteSeraAnticipo: boolean;
+    }
+  >(functions, "previewPaymentAllocation");
+  return executeCallable(callable, input, "No fue posible calcular el reparto.");
+}
+
 // ── FLOW-002 · anticipos ─────────────────────────────────────────────────────
 //
 // Las tres van por callable y no por escritura directa porque tocan

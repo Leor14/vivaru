@@ -8,12 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { watchPeople, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
-import {
-  deudaDelCargo,
-  ordenarPorAntiguedad,
-  repartirConAjustes,
-  repartoCuadra,
-} from "@/features/billing/reparto";
+import { aplicarAjustes, deudaDelCargo, repartoCuadra, type LineaDeReparto } from "@/features/billing/reparto";
+import { previewPaymentAllocationCallable } from "@/lib/firebase/callables";
 import { watchBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { renderReciboPdf } from "@/features/finanzas/comprobante/recibo-pdf";
 import { fetchPaymentVoucher, recordPayment } from "@/features/finanzas/use-payments";
@@ -40,7 +36,6 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
   const { user } = useAuth();
   const { formatAmount } = useTenantCurrency();
   const pagoMultiple = useFeatureFlag("producto-pago-multiple");
-  const anticipos = useFeatureFlag("producto-anticipos");
 
   const [people, setPeople] = useState<PersonItem[]>([]);
   const [cuentas, setCuentas] = useState<BankAccount[]>([]);
@@ -104,12 +99,14 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
     if (open) operationKey.current = crypto.randomUUID();
   }, [open, statement?.id]);
 
-  /** Los otros cargos con deuda de la MISMA unidad, del más antiguo al más nuevo (R7). */
+  /**
+   * Los cargos que se OFRECEN para marcar: los de la MISMA unidad con deuda, más
+   * aquel desde el que se abrió el cobro. Decidir qué enseñar es de la pantalla;
+   * el ORDEN en que se reparte ya no —lo trae la propuesta del servidor.
+   */
   const cargosDeLaUnidad = useMemo(() => {
     if (!statement) return [];
-    return ordenarPorAntiguedad(
-      statements.filter((s) => s.unitId === statement.unitId && (s.id === statement.id || deudaDelCargo(s) > 0)),
-    );
+    return statements.filter((s) => s.unitId === statement.unitId && (s.id === statement.id || deudaDelCargo(s) > 0));
   }, [statement, statements]);
 
   const marcados = useMemo(
@@ -121,18 +118,57 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
   const importeValido = Number.isFinite(importe) && importe > 0;
 
   /**
-   * La propuesta de R7 sobre lo marcado, con lo ajustado a mano por encima.
+   * **La propuesta la calcula el SERVIDOR** (§11.3): R7 —el orden y la
+   * aritmética— dejó de vivir aquí el 24 de agosto de 2026.
    *
-   * **Lo que se envía sale de aquí y no de lo que se pinta.** Dos formas de
-   * calcular el mismo número acaban discrepando, y aquí el número es dinero.
+   * Se pide al abrir y cuando cambian el importe o lo marcado, con un respiro de
+   * 400 ms: pedirla por tecla sería un viaje de red por dígito. Mientras llega,
+   * se conserva la anterior en vez de vaciarla — parpadear la propuesta a cero
+   * mientras alguien escribe es peor que enseñarla un momento desactualizada.
+   *
+   * Si la llamada falla, `sugerido` queda vacío y no se propone nada: **no hay
+   * plan B que calcule el reparto en el navegador**, que es justo lo que se vino
+   * a quitar.
    */
-  const reparto = useMemo(
-    () =>
-      importeValido && marcados.length > 0
-        ? repartirConAjustes(marcados, importe, ajustes)
-        : { lineas: [], sobrante: 0 },
-    [ajustes, importe, importeValido, marcados],
-  );
+  const [sugerido, setSugerido] = useState<LineaDeReparto[]>([]);
+  const [sobranteSeraAnticipo, setSobranteSeraAnticipo] = useState(false);
+  const [calculando, setCalculando] = useState(false);
+
+  const clavesMarcadas = marcados.map((c) => c.id).join(",");
+  useEffect(() => {
+    if (!open || !user?.tenantId || !statement || !importeValido || marcados.length === 0) {
+      setSugerido([]);
+      return;
+    }
+    let vigente = true;
+    setCalculando(true);
+    const t = setTimeout(() => {
+      void previewPaymentAllocationCallable({
+        tenantId: user.tenantId as string,
+        unitId: statement.unitId,
+        amount: importe,
+        statementIds: clavesMarcadas ? clavesMarcadas.split(",") : [],
+      })
+        .then((res) => {
+          if (!vigente) return;
+          setSugerido(res.lineas.map((l) => ({ statementId: l.statementId, amount: l.amount })));
+          setSobranteSeraAnticipo(res.sobranteSeraAnticipo);
+        })
+        .catch(() => {
+          if (vigente) setSugerido([]);
+        })
+        .finally(() => {
+          if (vigente) setCalculando(false);
+        });
+    }, 400);
+    return () => {
+      vigente = false;
+      clearTimeout(t);
+    };
+  }, [open, user?.tenantId, statement, importe, importeValido, marcados.length, clavesMarcadas]);
+
+  /** Lo que se envía: la propuesta del servidor con lo que se tocó a mano encima. */
+  const reparto = useMemo(() => aplicarAjustes(sugerido, importe, ajustes), [sugerido, importe, ajustes]);
 
   const hayAjustes = Object.values(ajustes).some((v) => v.trim() !== "");
   const cuadra = !hayAjustes || repartoCuadra(reparto.lineas, importe);
@@ -291,6 +327,10 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                   <p className="text-sm font-medium text-[var(--slate-800)]">¿Qué cargos cubre este pago?</p>
                   <p className="mt-1 text-xs text-[var(--slate-500)]">
                     Se reparte del más antiguo al más nuevo. Puedes ajustar cada línea a mano.
+                    {/* El reparto lo propone el servidor, así que hay un viaje de
+                        red por medio. Decirlo evita que un importe recién escrito
+                        parezca que no hizo nada. */}
+                    {calculando ? <span className="ml-1 text-[var(--slate-400)]">Calculando…</span> : null}
                   </p>
                   <ul className="mt-2 space-y-1">
                     {cargosDeLaUnidad.map((cargo) => {
@@ -336,29 +376,22 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                     </p>
                   ) : null}
 
-                  {cuadra && reparto.sobrante > 0 ? (
-                    <p className="mt-2 rounded-lg border border-[#d6ede4] bg-[#f1fbf7] px-2 py-1 text-xs text-[#2f775f]">
-                      {anticipos
-                        ? `Sobran ${formatAmount(reparto.sobrante)}: quedarán como saldo a favor de la unidad.`
-                        : `Sobran ${formatAmount(reparto.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
-                    </p>
-                  ) : null}
                 </div>
               ) : null}
 
-              {/* Sin reparto pero con anticipos: el sobrante del cargo único
-                  también hay que anunciarlo, que es CA1 mirado desde la
-                  pantalla. */}
-              {!(pagoMultiple && cargosDeLaUnidad.length > 1) && anticipos && importeValido
-                ? (() => {
-                    const sobra = importe - deudaDelCargo(statement);
-                    return sobra > 0 ? (
-                      <p className="rounded-lg border border-[#d6ede4] bg-[#f1fbf7] px-2 py-1 text-xs text-[#2f775f]">
-                        Sobran {formatAmount(sobra)}: quedarán como saldo a favor de la unidad.
-                      </p>
-                    ) : null;
-                  })()
-                : null}
+              {/* **Un solo mensaje para los dos casos, y los dos números vienen
+                  del servidor**: el sobrante sale de la vista previa —no de una
+                  resta local— y si va a quedar a favor lo dice la bandera tal
+                  como el servidor la resuelve, con overrides incluidos. La
+                  pantalla no puede prometer un saldo a favor que la bandera
+                  apagada no va a crear. */}
+              {cuadra && reparto.sobrante > 0 ? (
+                <p className="rounded-lg border border-[#d6ede4] bg-[#f1fbf7] px-2 py-1 text-xs text-[#2f775f]">
+                  {sobranteSeraAnticipo
+                    ? `Sobran ${formatAmount(reparto.sobrante)}: quedarán como saldo a favor de la unidad.`
+                    : `Sobran ${formatAmount(reparto.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
+                </p>
+              ) : null}
 
               <div>
                 <label className="mb-1 block text-sm text-[var(--slate-700)]">

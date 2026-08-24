@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  aplicarAjustes,
   deudaDelCargo,
-  ordenarPorAntiguedad,
-  repartirConAjustes,
-  repartirPago,
   repartoCuadra,
   type CargoParaReparto,
 } from "@/features/billing/reparto";
@@ -18,15 +16,21 @@ const cargo = (over: Partial<CargoParaReparto> & { id: string }): CargoParaRepar
   ...over,
 });
 
-describe("deudaDelCargo — lo que falta para saldar", () => {
+/**
+ * **Lo que queda del reparto en el cliente.** R7 —el orden y la aritmética de la
+ * propuesta— se mudó al servidor el 24 de agosto de 2026 (§11.3), y sus pruebas
+ * viven ahora en `functions/tests/reparto-r7.test.ts`. Aquí solo lo que es de la
+ * pantalla: qué cargos ofrecer, y validar lo que el administrador editó a mano.
+ */
+describe("deudaDelCargo — qué cargos ofrecer, y cuánto debe cada uno", () => {
   it("descuenta lo pagado", () => {
     expect(deudaDelCargo(cargo({ id: "a", amount: 140_000, paymentAmount: 40_000 }))).toBe(100_000);
   });
 
   /**
    * R4. Lo cubierto con anticipos NO está en `paymentAmount` y sí salda. Si esta
-   * resta se hubiera escrito a mano en la pantalla, el cargo saldado con
-   * anticipo saldría con deuda y el reparto le mandaría dinero otra vez.
+   * resta se hubiera escrito a mano, un cargo saldado con anticipo se seguiría
+   * ofreciendo como pendiente.
    */
   it("lo cubierto con un anticipo cruzado también salda", () => {
     expect(deudaDelCargo(cargo({ id: "a", amount: 140_000, advanceAppliedAmount: 140_000 }))).toBe(0);
@@ -40,151 +44,47 @@ describe("deudaDelCargo — lo que falta para saldar", () => {
   });
 });
 
-describe("ordenarPorAntiguedad — R7", () => {
-  it("del vencimiento más antiguo al más nuevo", () => {
-    const orden = ordenarPorAntiguedad([
-      cargo({ id: "c", dueDate: "2026-08-05" }),
-      cargo({ id: "a", dueDate: "2026-06-05" }),
-      cargo({ id: "b", dueDate: "2026-07-05" }),
-    ]).map((c) => c.id);
-    expect(orden).toEqual(["a", "b", "c"]);
-  });
+describe("aplicarAjustes — lo escrito a mano encima de lo que propuso el servidor", () => {
+  const sugerido = [
+    { statementId: "junio", amount: 100_000 },
+    { statementId: "julio", amount: 50_000 },
+  ];
 
-  // Mismo criterio que `computeStatementStatus` usa para la mora. Separarse
-  // dejaría un cargo «vencido» en una pantalla y «el más nuevo» en la siguiente.
-  it("un cargo sin vencimiento cae a su período", () => {
-    const orden = ordenarPorAntiguedad([
-      cargo({ id: "julio", period: "2026-07" }),
-      cargo({ id: "junio", period: "2026-06" }),
-    ]).map((c) => c.id);
-    expect(orden).toEqual(["junio", "julio"]);
-  });
-
-  /**
-   * Sin desempate, dos cargos del mismo mes se ordenarían según cómo los
-   * devolviera Firestore y la propuesta cambiaría entre dos aperturas del mismo
-   * formulario sin que nadie tocara nada.
-   */
-  it("desempata por id, así que el orden no cambia entre dos aperturas", () => {
-    const entrada = [cargo({ id: "z", period: "2026-06" }), cargo({ id: "a", period: "2026-06" })];
-    expect(ordenarPorAntiguedad(entrada).map((c) => c.id)).toEqual(["a", "z"]);
-    expect(ordenarPorAntiguedad([...entrada].reverse()).map((c) => c.id)).toEqual(["a", "z"]);
-  });
-
-  it("no muta lo que recibe", () => {
-    const entrada = [cargo({ id: "b", period: "2026-07" }), cargo({ id: "a", period: "2026-06" })];
-    ordenarPorAntiguedad(entrada);
-    expect(entrada.map((c) => c.id)).toEqual(["b", "a"]);
-  });
-});
-
-describe("repartirPago — la propuesta que ve el administrador", () => {
-  const junio = cargo({ id: "junio", amount: 100_000, dueDate: "2026-06-05" });
-  const julio = cargo({ id: "julio", amount: 100_000, dueDate: "2026-07-05" });
-  const agosto = cargo({ id: "agosto", amount: 100_000, dueDate: "2026-08-05" });
-
-  // CA3.
-  it("cubre tres cargos en una sola operación, del más viejo al más nuevo", () => {
-    const r = repartirPago([agosto, junio, julio], 300_000);
-    expect(r.lineas).toEqual([
-      { statementId: "junio", amount: 100_000 },
-      { statementId: "julio", amount: 100_000 },
-      { statementId: "agosto", amount: 100_000 },
-    ]);
-    expect(r.sobrante).toBe(0);
-  });
-
-  it("lo que no alcanza se queda en el más antiguo, y el resto no recibe nada", () => {
-    const r = repartirPago([junio, julio], 60_000);
-    expect(r.lineas).toEqual([{ statementId: "junio", amount: 60_000 }]);
-    expect(r.sobrante).toBe(0);
-  });
-
-  // CA1/R2: lo que sobra no se evapora, sale nombrado como sobrante.
-  it("lo que sobra sale aparte, no repartido de más", () => {
-    const r = repartirPago([cargo({ id: "j", amount: 140_000, dueDate: "2026-06-05" })], 200_000);
-    expect(r.lineas).toEqual([{ statementId: "j", amount: 140_000 }]);
-    expect(r.sobrante).toBe(60_000);
-  });
-
-  // CA8.
-  it("un pago sin cargos pendientes es sobrante entero", () => {
-    const saldado = cargo({ id: "s", amount: 100_000, paymentAmount: 100_000, dueDate: "2026-06-05" });
-    const r = repartirPago([saldado], 50_000);
-    expect(r.lineas).toEqual([]);
-    expect(r.sobrante).toBe(50_000);
-    expect(repartirPago([], 50_000)).toEqual({ lineas: [], sobrante: 50_000 });
-  });
-
-  /**
-   * Un cargo saldado no genera línea NI DE CERO. El servidor no escribe asientos
-   * de importe cero, y una fila de cero en la vista previa haría creer que ese
-   * cargo recibió algo.
-   */
-  it("un cargo ya saldado se salta, no aparece con cero", () => {
-    const saldado = cargo({ id: "saldado", amount: 100_000, advanceAppliedAmount: 100_000, dueDate: "2026-05-05" });
-    const r = repartirPago([saldado, junio], 100_000);
-    expect(r.lineas).toEqual([{ statementId: "junio", amount: 100_000 }]);
-  });
-
-  // R1: ni un céntimo se pierde ni se inventa.
-  it("lo repartido más el sobrante es exactamente lo pagado", () => {
-    for (const importe of [1, 99_999, 100_000, 250_000, 1_000_000]) {
-      const r = repartirPago([junio, julio, agosto], importe);
-      const suma = r.lineas.reduce((s, l) => s + l.amount, 0);
-      expect(suma + r.sobrante).toBe(importe);
-    }
-  });
-
-  it("un importe de cero o negativo no propone nada", () => {
-    expect(repartirPago([junio], 0)).toEqual({ lineas: [], sobrante: 0 });
-    expect(repartirPago([junio], -5)).toEqual({ lineas: [], sobrante: 0 });
-  });
-});
-
-describe("repartirConAjustes — lo que de verdad se envía", () => {
-  const junio = cargo({ id: "junio", amount: 100_000, dueDate: "2026-06-05" });
-  const julio = cargo({ id: "julio", amount: 100_000, dueDate: "2026-07-05" });
-
-  it("sin ajustes es exactamente la propuesta de R7", () => {
-    expect(repartirConAjustes([junio, julio], 150_000, {})).toEqual(repartirPago([junio, julio], 150_000));
+  it("sin ajustes devuelve la propuesta tal cual", () => {
+    expect(aplicarAjustes(sugerido, 150_000, {})).toEqual({ lineas: sugerido, sobrante: 0 });
   });
 
   /**
    * **Una casilla vacía no es un cero: significa «deja la sugerencia».**
    * Tratarla como cero borraría la línea en cuanto alguien seleccionara y
-   * borrara el contenido de la casilla para reescribirlo, y el dinero de esa
-   * cuota se iría al sobrante sin que nadie lo pidiera.
+   * borrara el contenido para reescribirlo, y el dinero de esa cuota se iría al
+   * sobrante sin que nadie lo pidiera.
    */
   it("una casilla vacía deja la sugerencia, no la pone a cero", () => {
-    const r = repartirConAjustes([junio, julio], 150_000, { junio: "", julio: "   " });
-    expect(r.lineas).toEqual([
-      { statementId: "junio", amount: 100_000 },
-      { statementId: "julio", amount: 50_000 },
-    ]);
+    const r = aplicarAjustes(sugerido, 150_000, { junio: "", julio: "   " });
+    expect(r.lineas).toEqual(sugerido);
     expect(r.sobrante).toBe(0);
   });
 
-  it("un ajuste manda sobre la sugerencia, y el resto se recalcula al sobrante", () => {
-    const r = repartirConAjustes([junio, julio], 150_000, { junio: "20000" });
+  it("un ajuste manda sobre la sugerencia, y lo que libera queda a favor", () => {
+    const r = aplicarAjustes(sugerido, 150_000, { junio: "20000" });
     expect(r.lineas).toEqual([
       { statementId: "junio", amount: 20_000 },
       { statementId: "julio", amount: 50_000 },
     ]);
-    // 150.000 − 20.000 − 50.000. Lo que el administrador libera de un cargo no
-    // se reparte solo al siguiente: queda a favor de la unidad, que es lo que
-    // el servidor va a hacer con ello.
+    // **No se reparte solo al siguiente cargo**: queda como sobrante, que es lo
+    // que el servidor va a hacer con ello.
     expect(r.sobrante).toBe(80_000);
   });
 
   it("un ajuste que se pasa deja el sobrante en cero, no en negativo", () => {
-    const r = repartirConAjustes([junio], 50_000, { junio: "90000" });
+    const r = aplicarAjustes([{ statementId: "junio", amount: 50_000 }], 50_000, { junio: "90000" });
     expect(r.sobrante).toBe(0);
     expect(repartoCuadra(r.lineas, 50_000)).toBe(false);
   });
 
-  it("basura escrita en la casilla vale cero y la deja detectable por repartoCuadra", () => {
-    const r = repartirConAjustes([junio], 100_000, { junio: "abc" });
+  it("basura escrita en la casilla vale cero y queda detectable por repartoCuadra", () => {
+    const r = aplicarAjustes([{ statementId: "junio", amount: 100_000 }], 100_000, { junio: "abc" });
     expect(r.lineas).toEqual([{ statementId: "junio", amount: 0 }]);
     expect(repartoCuadra(r.lineas, 100_000)).toBe(false);
   });

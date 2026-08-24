@@ -11,7 +11,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
-import { deudaDelCargo, ordenarPorAntiguedad } from "@/features/billing/reparto";
+import { deudaDelCargo, ordenarParaMostrar } from "@/features/billing/reparto";
 import {
   applyAdvanceCallable,
   cancelAdvanceCallable,
@@ -287,9 +287,9 @@ function CruzarAnticipoModal({
 
   const candidatos = useMemo(() => {
     if (!anticipo) return [];
-    // Del más antiguo al más nuevo, igual que el reparto de un pago (R7): el
-    // orden en que un contador espera imputar.
-    return ordenarPorAntiguedad(
+    // Del más antiguo al más nuevo, que es el orden en que un contador espera
+    // imputar. Aquí es solo presentación: quien cruza elige un cargo explícito.
+    return ordenarParaMostrar(
       statements.filter((s) => s.unitId === anticipo.unitId && deudaDelCargo(s) > 0),
     );
   }, [anticipo, statements]);

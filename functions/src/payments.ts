@@ -271,6 +271,155 @@ function assertPuedeCobrar(role: unknown, tokenTenant: unknown, tenantId: string
   }
 }
 
+// ── R7 · el reparto sugerido ─────────────────────────────────────────────────
+//
+// **Esto vivía en el navegador y se trajo aquí el 24 de agosto de 2026**, que es
+// lo que recomienda §11.3 de `PRD-V-FLOW-002`: el cliente pide la vista previa
+// en vez de calcularla. No era un problema de confianza —`aplicarPago` topa cada
+// línea al saldo del cargo, mire lo que mire la pantalla— sino de sitio: el
+// ORDEN en que se imputa el dinero de alguien es una regla de negocio, y una
+// regla de negocio en el navegador es una regla que el servidor no puede
+// garantizar y que el próximo cliente de la API no hereda.
+
+/** Lo mínimo de un cargo para poder repartir sobre él. */
+export type CargoParaReparto = {
+  id: string;
+  amount?: number;
+  paymentAmount?: number;
+  advanceAppliedAmount?: number;
+  dueDate?: string;
+  period?: string;
+};
+
+export type VistaPreviaReparto = {
+  lineas: AsignacionDePago[];
+  /** Lo que no cabe en ningún cargo. Con `producto-anticipos`, será anticipo (R2). */
+  sobrante: number;
+};
+
+/**
+ * Ordena del cargo **más antiguo por vencimiento** al más nuevo (R7).
+ *
+ * Un cargo **sin `dueDate` cae a su período**, que es `YYYY-MM`: es el mismo
+ * criterio con el que se decide la mora, y separarse de él dejaría un cargo
+ * «vencido» en una pantalla y «el más nuevo» en la siguiente. El desempate por
+ * `id` no es estética: sin él, dos cargos del mismo mes se ordenarían según cómo
+ * los devolviera Firestore, y la propuesta cambiaría entre dos llamadas
+ * idénticas sin que nadie hubiera tocado nada.
+ */
+export function ordenarPorAntiguedad<T extends CargoParaReparto>(cargos: readonly T[]): T[] {
+  const clave = (c: CargoParaReparto) => c.dueDate ?? (c.period ? `${c.period}-01` : "9999-12-31");
+  return [...cargos].sort((a, b) => clave(a).localeCompare(clave(b)) || a.id.localeCompare(b.id));
+}
+
+/** Lo que le falta a un cargo para quedar saldado, según `calcularSaldo`. */
+export function deudaDelCargo(cargo: CargoParaReparto, hoy: string): number {
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  return calcularSaldo(n(cargo.amount), n(cargo.paymentAmount), n(cargo.advanceAppliedAmount), cargo.dueDate, hoy)
+    .balance;
+}
+
+/**
+ * Reparte `importe` entre `cargos`, del más antiguo al más nuevo (R7).
+ *
+ * **Un cargo sin deuda no genera línea, ni siquiera de cero**: `aplicarPago` no
+ * escribe asientos de importe cero, y una línea de cero en la vista previa haría
+ * creer que ese cargo recibió algo. Un pago que no cabe en ninguno sale con
+ * `lineas: []` y todo en `sobrante`, que es CA8.
+ */
+export function repartirPorAntiguedad(
+  cargos: readonly CargoParaReparto[],
+  importe: number,
+  hoy: string,
+): VistaPreviaReparto {
+  let restante = typeof importe === "number" && Number.isFinite(importe) ? importe : 0;
+  if (restante <= 0) return { lineas: [], sobrante: 0 };
+
+  const lineas: AsignacionDePago[] = [];
+  for (const cargo of ordenarPorAntiguedad(cargos)) {
+    if (restante <= 0) break;
+    const deuda = deudaDelCargo(cargo, hoy);
+    if (deuda <= 0) continue;
+    const aplicar = Math.min(restante, deuda);
+    lineas.push({ statementId: cargo.id, amount: aplicar });
+    restante -= aplicar;
+  }
+  return { lineas, sobrante: restante };
+}
+
+export type VistaPreviaRepartoInput = {
+  tenantId: string;
+  unitId: string;
+  amount: number;
+  /**
+   * Los cargos a considerar. Si no viene, se toman **todos los de la unidad con
+   * deuda**, que es lo que la pantalla necesita al abrirse.
+   */
+  statementIds?: string[];
+};
+
+export type VistaPreviaRepartoResultado = {
+  ok: true;
+  lineas: Array<AsignacionDePago & { period?: string; concept?: string; deuda: number; unitLabel?: string }>;
+  sobrante: number;
+  /** Con `producto-anticipos` apagada el sobrante NO queda a favor: se avisa. */
+  sobranteSeraAnticipo: boolean;
+};
+
+/**
+ * **Calcula la vista previa del reparto. No escribe nada.**
+ *
+ * Devuelve también `period`, `concept` y `deuda` de cada línea para que la
+ * pantalla pueda pintarla sin una segunda lectura, y `sobranteSeraAnticipo`
+ * para que no prometa un saldo a favor que la bandera apagada no va a crear.
+ */
+export async function vistaPreviaReparto(
+  input: VistaPreviaRepartoInput,
+  role: unknown,
+  tokenTenant: unknown,
+): Promise<VistaPreviaRepartoResultado> {
+  const tenantId = texto(input.tenantId, "el conjunto");
+  const unitId = texto(input.unitId, "la unidad");
+  assertPuedeCobrar(role, tokenTenant, tenantId);
+
+  const monto = typeof input.amount === "number" ? input.amount : NaN;
+  if (!Number.isFinite(monto) || monto <= 0) {
+    throw new HttpsError("invalid-argument", "El monto del cobro debe ser mayor a cero.");
+  }
+
+  const firestore = db();
+  const snap = await firestore
+    .collection("billingStatements")
+    .where("tenantId", "==", tenantId)
+    .where("unitId", "==", unitId)
+    .get();
+
+  const pedidos = Array.isArray(input.statementIds) ? new Set(input.statementIds) : null;
+  const cargos = snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<CargoParaReparto, "id"> & { concept?: string; unitLabel?: string }) }))
+    .filter((c) => (pedidos ? pedidos.has(c.id) : true));
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const reparto = repartirPorAntiguedad(cargos, monto, hoy);
+  const porId = new Map(cargos.map((c) => [c.id, c]));
+
+  return {
+    ok: true as const,
+    lineas: reparto.lineas.map((l) => {
+      const c = porId.get(l.statementId);
+      return {
+        ...l,
+        period: c?.period,
+        concept: c?.concept,
+        unitLabel: c?.unitLabel,
+        deuda: c ? deudaDelCargo(c, hoy) : 0,
+      };
+    }),
+    sobrante: reparto.sobrante,
+    sobranteSeraAnticipo: await isFeatureEnabled("producto-anticipos", tenantId),
+  };
+}
+
 /**
  * Aplica un pago sobre una cuota. Transaccional e idempotente.
  *
