@@ -71,6 +71,17 @@ paso.
 | `billingSchedules` | `(status, tenantId, scheduledFor)` ASC | `/admin/billing`, en cada carga | Consola, tres veces en tres cargas |
 | `documents` | `(tenantId ASC, uploadedAt DESC)` | **`/resident/documents`** | **NO se vio: salió del barrido** |
 
+**Desplegados en LOS DOS ambientes**, y comprobado que los tres cuentan igual: `hogaru-1` 61,
+`vivaru-staging-02` 61, fichero 61. Staging estaba en 57 y le faltaban **los mismos cuatro** —
+llevaba desde antes anotado como «faltan dos índices en staging» y eran cuatro—. Antes de
+desplegar allí se comprobó que **ningún índice suyo estuviera fuera del fichero**, porque
+`--only firestore:indexes` puede proponer borrados: eran cero, así que no había nada que perder.
+
+> **Un índice se puede desplegar directo a producción; reglas, functions y front NO.** Un índice
+> es aditivo: no toca datos, no cambia el comportamiento de ninguna consulta que ya funcionaba, y
+> deshacerlo es borrarlo. Además **el fallo solo se ve donde están los datos** — estos errores
+> vivían en la consola de producción, y pasar por staging no habría demostrado nada sobre ella.
+
 **Los dos de billing no tenían NI UN índice declarado** para su colección, y estaban anotados como
 «faltan en staging»: faltaban también en producción.
 
