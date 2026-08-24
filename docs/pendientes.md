@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 24 de agosto de 2026 (noche)
 
-**`origin/develop` = `a25b77d`. `origin/master` = `5d6df95`.** Releer los dos: se mueven por
+**`origin/develop` = `c4f556f`. `origin/master` = `0aa668a`.** Releer los dos: se mueven por
 separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árbol limpio.
 
 **`FLOW-002` ESTÁ CONSTRUIDA ENTERA — servidor (sesión A) y front (sesión B).** El paso 3 del
@@ -14,8 +14,17 @@ separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árb
 con la propuesta de R7 editable; saldo a favor en el portal del residente; cuenta bancaria en el
 cobro y en el comprobante; y el «% de recaudo» de R16, que **mide liquidación y ya no ingreso**.
 
-**PRODUCCIÓN NO SE HA TOCADO.** `master` sigue en `5d6df95` y sus banderas `producto-*` siguen
-apagadas. El código de `FLOW-002` **no está allí**.
+**Y ESTÁ EN PRODUCCIÓN desde esta noche, con las banderas APAGADAS.** Los cuatro pasos en orden,
+verificando entre cada uno: saldos migrados (4 cuentas, `Por migrar: 0` al recomprobar), reglas
+desplegadas, functions desplegadas con las tres callables nuevas vivas, y el front por `master`.
+**Cero banderas `producto-*` y cero overrides**, leído con `scripts/leer-banderas.mjs` antes de
+functions y no supuesto.
+
+**Encender las banderas es otra decisión, va una cada vez y es de David.** Runbook completo en
+`docs/despliegue-flow-002-produccion.md`.
+
+**Lo único que producción aporta y falta:** un cobro real de un solo cargo (§13). Lo hace David:
+es dinero en la cartera de un cliente y esa firma no es del agente.
 
 ### Lo que hizo falta y la PRD no preveía
 

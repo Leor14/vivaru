@@ -169,7 +169,7 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**`origin/develop` = `a25b77d`. `origin/master` = `5d6df95`.** Releer **los dos**: se mueven por
+**`origin/develop` = `c4f556f`. `origin/master` = `0aa668a`.** Releer **los dos**: se mueven por
 separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**. Un push
 sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende de la caché.
 
@@ -193,9 +193,20 @@ a `bankAccountBalances/{idDeLaCuenta}`, que sigue siendo solo-administrador: las
 el documento entero y no se pueden ocultar campos. **Una consulta de cuentas hecha por alguien
 que no es administrador TIENE que filtrar `active == true`**, o Firestore la rechaza entera.
 
-**PRODUCCIÓN NO TIENE `FLOW-002`.** `master` en `5d6df95`, y las cinco banderas `producto-*`
-siguen apagadas allí. El orden para llevarla: **migrar saldos → reglas → functions → front**
-(`scripts/mover-saldo-inicial-de-cuentas.mjs` va ANTES de las reglas, y lo explica dentro).
+**`FLOW-002` ESTÁ EN PRODUCCIÓN desde el 24 de agosto de 2026, con las banderas APAGADAS.** Los
+cuatro pasos corridos y verificados en orden: saldos migrados (4 cuentas, `Por migrar: 0`),
+reglas desplegadas, functions desplegadas —`applyAdvance`, `cancelAdvance` y
+`undoAdvanceApplication` vivas— y el front por `master`. **Cero banderas `producto-*` y cero
+overrides en producción**, comprobado con `scripts/leer-banderas.mjs` justo antes de functions:
+con ellas apagadas `aplicarPago` se comporta exactamente como antes.
+
+**Encenderlas es otra decisión y va una cada vez, mirando.** `producto-anticipos` cambia un
+número que ya se mira: un pago de 200 sobre una cuota de 140 deja de dejar `paymentAmount: 200`.
+El runbook, con lo que va sin bandera y lo que hay que comprobar entre pasos, está en
+`docs/despliegue-flow-002-produccion.md`.
+
+**Lo único que producción aporta y sigue pendiente:** un cobro real de un solo cargo, para ver que
+esa ruta se comporta igual (§13). **Lo hace David** — es dinero en la cartera de un cliente.
 
 **Dos defectos abiertos que encontró mirar la pantalla, no la suite.** El del mensaje de error ya
 está cerrado (`CallableError`); el de `writeAuditLog` está **mitigado desde el cliente y NO
