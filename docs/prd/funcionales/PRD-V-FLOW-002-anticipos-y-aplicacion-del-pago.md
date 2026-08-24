@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **EN PRODUCCIÓN desde el 24 de agosto de 2026, CON LAS BANDERAS APAGADAS** (`master` = `0aa668a`). Servidor (sesión A) y front (sesión B) construidos, y los cuatro pasos de §13 corridos en orden con verificación entre cada uno — con **un paso nuevo delante**: migrar el saldo inicial de las cuentas bancarias, porque CA11 obligó a abrir `bankAccounts` a los miembros y las reglas conceden el documento entero. **Doce criterios verificados en pantalla contra la base real** de staging: CA1, CA2, CA3, CA8, CA10, CA11, CA12, CA14, CA16, CF5, CF7 y CF12. **Encender las banderas es otra decisión, va una cada vez y es de David.** Lo único que falta y solo produce producción: un cobro real de un solo cargo, para ver que esa ruta no cambió. **Dos defectos salieron de mirar la pantalla y ninguna suite los veía**: ningún mensaje de error del servidor llegaba al usuario, y un reparto aplicaba el dinero y devolvía error porque la auditoría se escribe fuera de la transacción — el segundo está **mitigado desde el cliente y no arreglado**, y el arreglo va en `functions/`. **Resueltas:** `computeBalanceStatus` está cableado (lo usa `deudaDelCargo`) y CF12 se reescribió en la 1.3. **Abierta:** §11.3 recomienda que la vista previa del reparto la calcule el servidor; hoy la propone el navegador y el servidor sigue decidiendo. Las referencias de línea se sustituyeron por nombres de símbolo: los números caducaron en menos de un día dos versiones seguidas. D1 y D2 cerradas |
+| **Estado** | **EN PRODUCCIÓN desde el 24 de agosto de 2026, con `producto-anticipos` ENCENDIDA SOLO en el conjunto de demostración** (`master` = `origin/develop` = `70136b9`). Servidor, front y los dos cabos de `functions/` desplegados; el «% de recaudo» de R16 mide liquidación. **Verificado en pantalla contra la base real:** CA1, CA2, CA3, CA6′, CA8, CA10, CA11, CA12, CA14, CA16, CF5, CF7 y CF12 — el más importante es CA6′, medido en producción: cruzar 100 dejó cuotas e ingresos **idénticos** y el libro con los mismos 56 movimientos. **LO QUE NO ESTÁ CONSTRUIDO, y hasta el 24 de agosto ningún documento lo decía: §9 y CA13** — el aviso al residente no nombra los cargos cubiertos ni el saldo a favor; sigue siendo el `billing_receipt` de siempre con `{período, conjunto}`. **Corregido de la 1.4:** decía que la vista previa del reparto seguía «abierta» y ya la calcula el servidor (`previewPaymentAllocation`), y daba por vivo el defecto de `writeAuditLog`, que está cerrado en la raíz (`limpiarMetadata`). **Y un defecto de dinero que salió de revisar lo desplegado:** dos guardianes de `aplicarPago` rechazaban cobros CORRECTOS con centavos —el de R1 era una tautología que solo saltaba cuando no había defecto—; corregido con `aMoneda` y `TOLERANCIA_MONEDA`. Era invisible porque COP no tiene decimales y todas las pruebas usaban enteros. **36 sospechas más sin verificar** en `docs/revision-flow-002-por-verificar.md`. D1, D2 y D3 cerradas |
 | **Dependencias** | **Secuencia obligatoria: `PRD-V-PLAT-003` va ANTES.** Las dos modifican `aplicarPago`, que está en producción — aquella cambia **qué valor** escribe en la categoría, esta cambia **su firma**. **No pueden estar en vuelo a la vez.** Si esta va primero, añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | **Riesgo** | **Alto.** Modifica `aplicarPago`, que está **en producción y mueve dinero real** |
 | **Reversibilidad** | **Parcial.** El anticipo y el reparto se apagan con bandera; el cambio de firma de `aplicarPago` no (§13). **Y el saldo inicial mudado tampoco**: volver atrás exige devolver `openingBalance` a `bankAccounts` ANTES de revertir las reglas |
@@ -211,7 +211,7 @@ se modifica**.
 |---|---|---|---|
 | `tenantId` | `string` | **Sí** | Servidor |
 | `unitId` / `unitLabel` | `string` | Sí | Servidor |
-| `personId` | `string` | No | Servidor — quién pagó |
+| `personId` | `string` | No | **NADIE lo escribe hoy** (medido el 24 ago 2026 en `payments.ts` y `advances.ts`). La ficha decía «Servidor — quién pagó» y §7.6 construye una regla de retención encima. O se escribe, o §7.6 se corrige: hoy la promesa de anonimizar al titular conservando el anticipo **no tiene sobre qué apoyarse** |
 | `amount` | `number` | Sí | Servidor — importe original |
 | `remaining` | `number` | Sí | Servidor — saldo por aplicar |
 | `origin` | `"overpayment" \| "manual"` | Sí | Servidor |
@@ -344,6 +344,16 @@ de un residente.
 
 ## 9. Notificaciones y correo
 
+> **NO CONSTRUIDO, medido el 24 de agosto de 2026.** El aviso que sale hoy es el
+> `billing_receipt` de siempre, y lo dispara `onPaymentVoucherCreated` con `{período, conjunto}`
+> y nada más: **no nombra los cargos cubiertos ni el saldo a favor**. Los dos cambios de contenido
+> de esta sección, y con ellos **CA13**, siguen sin hacerse.
+>
+> **Y hasta hoy ningún documento lo registraba** — al contrario, `docs/pendientes.md` llegó a
+> decir «no queda nada de `FLOW-002` sin mirar», que era falso: CA13 no se miró porque no existe.
+> Un criterio de aceptación que nadie construyó y nadie anotó es la forma más silenciosa de que
+> una ficha se dé por cerrada sin estarlo.
+
 Se reutiliza el aviso de pago recibido, por `functions/src/email.ts` con el remitente
 verificado. **Dos cambios de contenido:**
 
@@ -388,7 +398,7 @@ verificado. **Dos cambios de contenido:**
 | CF5 | Un reparto manual cuya suma ≠ importe pagado → **rechazado** |
 | CF6 | Un residente intenta cruzar su anticipo → **denegado** |
 | CF7 | Un residente ve el anticipo de otra unidad → **denegado** |
-| CF8 | Operar anticipos en un conjunto `suspended` → **denegado** |
+| CF8 | Operar anticipos en un conjunto `suspended` → **denegado**. **NO SE CUMPLE, medido el 24 ago 2026:** ni `advances.ts` ni `payments.ts` llaman a `assertTenantOperable`, y las callables usan el Admin SDK, que **no pasa por las reglas** — donde sí está el `tenantOperable`. Un conjunto suspendido puede hoy cobrar y cruzar por callable. **Es anterior a esta ficha** —`aplicarPago` nunca lo comprobó, desde `FIN-001`— pero esta la amplía a tres operaciones más. Decidir: o se añade la guarda, o §7.5 deja de prometerlo |
 | CF9 | Operar anticipos en `trial` → **bloqueado por la matriz de prueba** |
 | CF10 | Una consulta de `advances` sin `where("tenantId")` → **denegada entera** |
 | CF11 | El cajón de edición manual de un cargo intenta escribir `advanceAppliedAmount` → **denegado por reglas.** Es el campo que sostiene R4, y `paymentAmount` **sí** se escribe hoy desde el navegador (§11.3) |
@@ -451,10 +461,15 @@ a la callable en vez de calcularla.
 
 ### 11.4 Índices, jobs y banderas
 
-- **Índices:** `advances` por `tenantId` + `unitId` + `status`; `advanceApplications` por
-  `tenantId` + `advanceId`.
+- **Índices: NINGUNO, y es una decisión que cambió respecto a esta misma línea.** La 1.0 pedía
+  `advances` por `tenantId` + `unitId` + `status` y `advanceApplications` por `tenantId` +
+  `advanceId`. **No se crearon y no hacen falta:** las consultas del cliente
+  (`src/features/finanzas/use-advances.ts`) piden **sin `orderBy`** y ordenan en memoria, que es el
+  patrón de `watchLedger`. Un índice compuesto se necesita para ordenar o filtrar por rango, no
+  para igualdades. Se dejó así a propósito: la dirección de un `orderBy` contra un índice que solo
+  existe en la nube es lo que tuvo cuatro pantallas rotas con 1553 pruebas en verde.
 - **Jobs:** ninguno. **Un anticipo no caduca solo** (§4).
-- **Banderas:** `advances` (anticipo y cruce) y `multi-statement-payment` (reparto). Separadas
+- **Banderas:** `producto-anticipos` (anticipo y cruce) y `producto-pago-multiple` (reparto). **La 1.0 las llamaba `advances` y `multi-statement-payment`, y ninguna de las dos existió nunca**: el catálogo real las nombra con el prefijo `producto-`, y quien buscara las de la ficha no habría encontrado nada. Separadas
   a propósito: el reparto puede salir sin los anticipos, pero **no al revés** — sin anticipo, el
   sobrante volvería a evaporarse.
 

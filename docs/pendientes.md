@@ -4,226 +4,89 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 24 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026
 
-**`origin/develop` y `origin/master` — leerlos con `git ls-remote`, no de aquí: esta cabecera se quedó corta tres veces en una noche.** Releer los dos: se mueven por
-separado. Comprobar con `git ls-remote`, que no depende de la caché local. Árbol limpio.
+**Leer los remotos con `git ls-remote`, no de aquí.** Esta cabecera llevaba los commits a mano y se
+quedó corta tres veces en una noche. Al cerrar, `master` y `develop` iban iguales, que es el estado
+buscado: **`master` = lo que corre en producción**.
 
-**`FLOW-002` ESTÁ CONSTRUIDA ENTERA — servidor (sesión A) y front (sesión B).** El paso 3 del
-§13 está hecho: vista de anticipos con cruce, deshacer y anulación; reparto entre varios cargos
-con la propuesta de R7 editable; saldo a favor en el portal del residente; cuenta bancaria en el
-cobro y en el comprobante; y el «% de recaudo» de R16, que **mide liquidación y ya no ingreso**.
+**`FLOW-002` ESTÁ EN PRODUCCIÓN**, con `producto-anticipos` encendida **solo en
+`conjunto-las-playas`** por override; la global sigue apagada. Servidor, front, R16 y los dos cabos
+de `functions/`.
 
-**Y ESTÁ EN PRODUCCIÓN, con `producto-anticipos` ENCENDIDA en el conjunto de demostración.** Los
-cuatro pasos del despliegue en orden, más los dos cabos (auditoría y vista previa) desplegados
-después. Y lo único que producción aporta, **hecho**:
+**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL.** `Conjunto Bromelias` tampoco lo es —confirmado por
+David el 24 de agosto— y ya está marcado como `isExample`. Queda `queretarock-229-fc4c57`,
+`expired` y **sin confirmar**. Esto baja el riesgo de encender banderas; **no lo elimina**.
 
-| Comprobado en producción, en pantalla | Resultado |
-|---|---|
-| La ruta de un solo cargo, con banderas apagadas (§13) | Recibo `REC-FB58FX`, asiento con `banco=bank-playas-001` —antes siempre `null`— y auditoría escrita |
-| Sobrepago de 300 sobre un cargo de 200 | Recibo `REC-H7NTB9` y **100 a favor**; **dos** asientos, uno `billingStatement` y uno con `sourceType: advance` propio (§7.4) |
-| **CA6′ · cruzar no cambia el ingreso** | Cuotas $128.200 y otros ingresos $100 **idénticos antes y después**; 56 movimientos, ninguno nuevo |
-| **CA14 · el cruce no toca `paymentAmount`** | facturado 150 · **pagado 0** · anticipo 100 · saldo 50, y **ningún asiento** contra ese cargo |
+## LO PRIMERO DE LA SIGUIENTE SESIÓN
 
-**Los datos de prueba se limpiaron** —doce documentos y la multa de T2-203 restaurada a su estado
-original—, comprobado con `scripts/radiografia-de-un-pago.mjs`.
+**`docs/revision-flow-002-por-verificar.md` — 36 sospechas SIN VERIFICAR.** Revisión adversarial de
+todo lo desplegado, con seis lentes y tres jueces por hallazgo; **la fase de jueces se cayó** (59 de
+117 agentes con `529`). **No son defectos: son hipótesis con un solo par de ojos**, nueve de
+gravedad alta. Doce eran de documentación y **ya están corregidas** en esta pasada.
 
-**La auditoría del primer cobro es además la prueba del arreglo:** esa llamada lleva `advanceId` y
-`advanceAmount` en `undefined`, así que **antes de hoy habría reventado** con el pago ya hecho.
+El único que llegó a tener sus tres votos era real y está **corregido y desplegado**: dos guardianes
+de `aplicarPago` rechazaban cobros **correctos** con centavos. El de R1 era una tautología —solo
+saltaba cuando NO había defecto— y abortaba la transacción sin dejar marca de idempotencia. Era
+invisible porque COP no tiene decimales y **todas las pruebas de sobrepago usaban enteros**.
 
-**Encender las banderas es otra decisión, va una cada vez y es de David.** Runbook completo en
-`docs/despliegue-flow-002-produccion.md`.
+## LO QUE NO ESTÁ HECHO DE `FLOW-002`, dicho para que no se lea como cerrada
 
-**Lo único que producción aporta y falta:** un cobro real de un solo cargo (§13). Lo hace David:
-es dinero en la cartera de un cliente y esa firma no es del agente.
+| Qué | Dónde | Nota |
+|---|---|---|
+| **§9 y CA13** | `functions/` | El aviso al residente **no nombra los cargos cubiertos ni el saldo a favor**: sigue siendo el `billing_receipt` con `{período, conjunto}`. **Ningún documento lo registraba** — al contrario, esta cabecera llegó a decir «no queda nada sin mirar», y CA13 no se miró porque no existe |
+| **CF8** | `functions/src/advances.ts` y `payments.ts` | Ninguno llama a `assertTenantOperable`, y las callables usan el Admin SDK, que **no pasa por las reglas** — donde vive `tenantOperable`. Un conjunto `suspended` puede cobrar y cruzar. **Es anterior a la ficha**; esta la amplía a tres operaciones |
+| **`personId` del anticipo** | `functions/src/advances.ts` | No lo escribe nadie, y §7.6 construye una regla de retención encima. O se escribe, o §7.6 se corrige |
 
-### Lo que hizo falta y la PRD no preveía
-
-**`bankAccounts` era solo-administrador, así que CA11 no se podía construir.** Las reglas de
-Firestore conceden el documento entero —no se pueden ocultar campos—, así que abrir esa lectura
-con `openingBalance` dentro le habría enseñado a cada residente con cuánto dinero abrió cada
-cuenta el conjunto. **Decisión de David (24 ago): sacar el saldo del documento**, a
-`bankAccountBalances`, y abrir `bankAccounts` a los miembros pero solo las cuentas activas.
-Salió mucho más barato de lo estimado: `openingBalance` **no lo leía nadie**.
-
-**El orden de despliegue importa y ya está escrito en el script.** Migrar ANTES de desplegar las
-reglas; al revés queda una ventana en la que el saldo se lee. En staging ya está hecho y
-verificado contra la base (0 cuentas con el campo, 5 documentos de saldo).
-**En producción está PENDIENTE, y va antes que las reglas.**
-
-## EL PORTAL DEL RESIDENTE — VALIDADO (24 ago, noche)
-
-David abrió una sesión de residente y con eso se cerró lo último que faltaba. Con dos anticipos
-suyos y uno de una vecina sembrados en `T1-101`:
-
-- **CA2 pasa, y con la parte que importa: «Tienes $75.000 a favor»** es la suma de los DOS suyos
-  y **no incluye los 99.000 de la vecina** — CF7 visto en pantalla, no solo en las reglas.
-- **Dice de dónde viene cada uno** («Del pago del 2026-08-20») y el parcialmente cruzado avisa de
-  lo ya usado («ya se aplicaron $25.000 a cuotas anteriores»).
-- Sin anticipos la tarjeta **no se pinta**. Comprobado antes y después de limpiar.
-- **CA11 pasa: el residente LEE las cuentas** —el selector se rellenó, que es la prueba de que la
-  migración y las reglas nuevas funcionan— y el comprobante quedó escrito con
-  `bankAccountId: bank-playas-001`.
-
-**Lo que NO se pudo ejercitar, y no es del producto:** el botón «Subir comprobante» abre el
-diálogo de archivos del sistema, que el agente no puede manejar, así que el archivo se inyectó en
-el `input` y el comprobante salió **sin `statementId`**. Ese enlace es anterior a esta entrega y
-no se tocó. Si alguien quiere cerrarlo, se hace a mano en dos clics.
-
-**Y la otra mitad de CA11 también, volviendo a la sesión de administrador:** la fila enseña «El
-residente dice que pagó a Cuenta operativa» y el selector viene preseleccionado con lo declarado;
-al aprobar, **el asiento guarda `bankAccountId` con `paymentSource: receipt`** — que es justo la
-ruta que antes escribía `null` SIEMPRE. **D-C queda cerrado de punta a punta.**
-
-**No queda nada de `FLOW-002` sin mirar.** Diez criterios comprobados en pantalla contra la base
-real: CA1, CA2, CA3, CA8, CA10, CA11, CA12, CA14, CA16, CF5, CF7 y CF12.
-
-**Una precaución que hay que repetir al probar aprobaciones:** aprobar un comprobante crea un
-recibo, y `onPaymentVoucherCreated` **manda correo a los residentes de esa unidad**. Se usó
-`T2-203`, que no tiene ninguno vinculado. Las unidades con residente en staging son `t1-101`,
-`t1-102` y `t2-201`; las demás no.
-
-## LOS DOS DEFECTOS QUE ENCONTRÓ MIRAR — **cerrados en la raíz**
-
-**1. Ningún mensaje de error del servidor llegaba a la pantalla.** `executeCallable` componía el
-texto bien y lo envolvía en un `Error` plano; `normalizeFirebaseError` busca `error.code`, no lo
-encontraba y devolvía «Ocurrió un error inesperado». **Afectaba a TODAS las llamadas del
-producto.** Cerrado con `CallableError` (`fe839f7`).
-
-**2. Una operación de dinero cuajaba y la llamada devolvía error.** `writeAuditLog` audita FUERA
-de la transacción y escribía el metadata tal cual; `initializeApp()` corre sin
-`ignoreUndefinedProperties`, así que un campo opcional ausente hacía que Firestore rechazara la
-escritura **con el pago ya hecho**. Cerrado en la raíz con `limpiarMetadata`
-(`functions/src/audit.ts`).
-
-> **Mordió dos veces el mismo día y solo se cazó la segunda.** La primera fue
-> `undoAdvanceApplication`, cuyo `reason` es opcional: el cruce se deshacía y la pantalla decía
-> «error inesperado». **Se diagnosticó mal** —se atribuyó a un doble clic— y lo desmintió medir la
-> auditoría de staging: hay `apply_advance` y **no hay `undo_advance_application`**. Una auditoría
-> que no se escribió es invisible: no hay error en ningún sitio, simplemente falta la fila.
-> Para volver a mirar eso existe `scripts/leer-auditoria.mjs`.
-
-**Y la vista previa del reparto está en el servidor** (§11.3, `previewPaymentAllocation`): R7 dejó
-de vivir en el navegador. En `src/features/billing/reparto.ts` queda solo lo que es de la pantalla
-—qué cargos ofrecer, validar lo editado a mano, aplicarlo sobre la propuesta—. **Corrección de lo
-que dije antes: ese fichero NO se borró entero**, y no debía.
-
-## PUNTO DE CORTE — 24 de agosto de 2026, madrugada
-
-**Se cortó por reloj, no por estado limpio**, y conviene decirlo. La sesión empezó siendo la B de
-`FLOW-002` y acabó llevándola a producción, cerrando dos cabos y arreglando un defecto de dinero
-que salió de revisar. Cada paso se justificaba solo; la suma fue demasiado larga.
-
-**Lo que queda cerrado y verificado:** `FLOW-002` en producción con la bandera encendida en el
-conjunto de demostración, los dos cabos desplegados, y el defecto de coma flotante corregido con
-prueba en rojo primero y cuatro falsaciones. Árbol limpio, `develop` y `master` empujados.
-
-**Lo que queda ABIERTO y es lo primero de la próxima sesión:**
-**`docs/revision-flow-002-por-verificar.md`** — 36 sospechas de una revisión adversarial cuya fase
-de jueces se cayó por sobrecarga de API. **No son defectos: son hipótesis con un solo par de
-ojos.** Nueve de gravedad alta. Dos, si se confirman, son mías de esta noche.
-
-## LO SIGUIENTE
+## LO SIGUIENTE, en orden
 
 | Qué | Nota |
 |---|---|
-| **1. Encender `producto-anticipos`, un conjunto cada vez** | **Es lo único que convierte el trabajo en producto.** Todo lo desplegado es inerte hasta esto. Decisión de David, y antes va el cobro de prueba de un solo cargo |
-| **2. `FIX-001` — abrir la puerta del paso 3** | Ver abajo. **No es escribir código: es encender una bandera y esperar.** El instrumento ya existe |
+| **1. Triar las 36 sospechas** | Reproducir antes de arreglar. Las dos que más pesan si son ciertas: que el anticipo se cree con la bandera apagada, y que `bankAccounts` se haya abierto a **la portería** y no solo al residente — esa sería una incoherencia mía, porque el comentario de la regla de `advances` dice que la portería no ve nada |
+| **2. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden sigue siendo uno cada vez, mirando |
+| **3. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
-| Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules` piden compuesto y salen en consola. Son anteriores a esta sesión |
-
-## `FIX-001` — DÓNDE ESTÁ, Y POR QUÉ NO SE PUEDE TERMINAR HOY
-
-**Medido el 24 de agosto de 2026, no supuesto.** Los pasos 1 y 2 de su §13 están hechos: la
-callable `createReservationRequest` existe y el front la usa detrás de
-`producto-reservas-servidor`. Falta el paso 3 —la puerta— y el 4 —cerrar la regla—.
-
-**El paso 3 no es código.** Dice: «con la bandera encendida en todos los conjuntos, comprobar que
-ninguna reserva se crea ya por escritura directa». Eso exige encender y **dejar pasar tiempo**.
-
-**Lo que sí faltaba y ya existe: el instrumento.** `scripts/verificar-reservas-por-servidor.mjs`
-convierte la puerta en un número. Y el número **no es «cuántas no llevan marca»**: el
-administrador crea reservas por escritura directa y **va a seguir haciéndolo** —el paso 4 solo
-retira la rama del RESIDENTE—, así que contarlas bloquearía la puerta para siempre. El script
-separa las tres: por servidor, del administrador, y **de residente por escritura directa**, que
-son las únicas que bloquean.
-
-```
-node scripts/verificar-reservas-por-servidor.mjs hogaru-1 <día en que se encendió>
-```
-
-**El «desde» no es opcional en la práctica.** Sin él cuenta la historia: hoy salen 42 reservas de
-residente por escritura directa en producción, todas anteriores a que la bandera existiera. La
-puerta se mide desde el encendido.
-
-**VERIFICADO EN STAGING el 24 de agosto por la noche, con una sesión de residente.** Bandera
-encendida, reserva creada desde el portal («Reserva creada en estado pendiente», Alberca, 26 ago
-10:00–11:00) y el instrumento dice **PUERTA ABIERTA**: 1 reserva en el rango, **por el servidor**,
-cero por escritura directa. La reserva se deja ahí a propósito: es la evidencia.
-
-**En producción la bandera sigue APAGADA, y encenderla es decisión de David.** No es por
-prudencia genérica: el modo de fallo es que **ningún residente pueda reservar**, y la callable
-lleva UN uso real en toda su vida. Se apaga con la bandera al instante, pero mientras esté mal
-nadie reserva. Producción tiene un solo cliente activo (`Conjunto Bromelias`).
-
-**Lo que yo recomendaría:** encenderla primero **solo en `conjunto-las-playas`** (demo, con
-override), hacer una reserva de residente allí, y solo entonces la global — que es lo que el paso
-3 necesita, porque la puerta se mide con todos los conjuntos dentro.
-
-**El orden que queda, y el 4 es irreversible con bandera:**
-
-1. ~~Probar en staging.~~ **Hecho.**
-2. Encender en producción: demo primero, luego global.
-3. Dejar pasar tiempo y correr el instrumento con el «desde» del encendido. Cuando diga **PUERTA
-   ABIERTA**, y no antes.
-4. Retirar de `firestore.rules` la rama del residente en `create` de `reservations` —la que
-   empieza en `residentOwnUnit(...)`, dejando la de `tenantAdminOrSuper`— y desplegar.
-
-> **Invertir 3 y 4 deja a todos los residentes sin poder reservar**, y no se arregla con una
-> bandera: hay que volver a desplegar las reglas anteriores.
+| Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules`. Anteriores a esta sesión |
+| **La semilla de trial escribe `openingBalance` dentro de `bankAccounts`** | `functions/src/trial-seed.ts`. Es el campo que la migración sacó de ahí; escribe `0`, así que no filtra nada, pero vuelve a poner el campo donde ya no debe estar |
 
 ## QUÉ HACE FALTA DE DAVID
 
-**1. Nada. La decisión contable está cerrada** (24 ago): anular un anticipo **no baja el
-ingreso**, revertir el pago **sí**. Escrita como **D3** en la PRD, con la razón buena —el libro es
-de caja, y anular no saca un peso del banco— y con la advertencia que se deriva: **anular no es
-devolver**.
+**1. Confirmar si `queretarock-229-fc4c57` es cliente o no.** Es lo único que separa «producción no
+tiene clientes» de «tiene uno», y esa frase es la premisa de casi todas las decisiones de riesgo.
 
-**2. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
+**2. Decisiones abiertas, ninguna urgente:** encender las banderas más allá del demo · escribir
 `PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.
 
 ### Lo que YA NO hay que pedir ni volver a mirar
 
-- **Acceso al navegador.** Entrar por Chrome con la sesión de David funciona y es repetible.
+- **Acceso al navegador.** Funciona con la sesión de David, y él cambia de rol si se le pide. El
+  límite: **solo se ve el rol que tenga la sesión abierta**, y son excluyentes por origen.
 - **El roadmap Albert–Vivaru de Notion.** Da 404: vive en otro workspace.
-- **`CF12`.** La nota decía «se contradice, hay que reescribirlo»: **ya estaba reescrito** en la
-  v1.3, en el mismo commit que escribió la nota (`e63aef4`).
-- **`computeBalanceStatus`.** Era «cablearlo o borrarlo»: **cableado**, lo usa `deudaDelCargo`.
+- **`CF12`, `computeBalanceStatus`, la decisión contable R9/R15 (cerrada como D3).**
 
 ## LAS LECCIONES DE MÉTODO
 
-**Siguen vigentes las del 23 y las tres de la sesión A** —el guardián sostiene la decisión; un
-campo escribible por el cliente no sostiene un invariante; un criterio que mide el mecanismo pasa
-en verde con el resultado mal; los números de línea caducan en un día; la suite no encadena; un
-verde no vale sin falsación; el typecheck no ve los `.mjs`—. **La sesión B añade cuatro:**
+**Siguen vigentes las del 23 y las tres de la sesión A.** La B añade cinco:
 
-1. **Un error puede ocurrir DESPUÉS de que la escritura cuaje.** Los dos defectos de hoy son el
-   mismo animal: la operación de dinero se confirma y algo posterior —una auditoría, una
-   traducción de mensaje— falla, así que la pantalla miente en la dirección más cara. **Al
-   revisar un camino de dinero, mirar qué pasa después del `commit`, no solo dentro.**
-2. **Una prueba de reglas que pide documento a documento no prueba la pantalla.** Firestore
-   evalúa la consulta contra la regla **sin ejecutarla**: puede fallar entera aunque cada
-   documento se lea bien. Las de esta sesión ejercen la forma exacta de consulta del producto.
-3. **Un guardián de texto hay que falsarlo, o vigila lo que no crees.** El extractor de cuerpos
-   leía la lista de campos del parámetro en vez del código: habría pasado en verde para siempre.
-4. **Una conclusión correcta sobre la mitad de un caso es una conclusión falsa.** Vi que la
-   auditoría lee `statementId` y deduje bien qué mandar con un cargo; la otra mitad —que con
-   reparto ese campo se queda en `undefined` y ROMPE la escritura— no la vi leyendo. La vio la
-   pantalla.
-
+1. **Un error puede ocurrir DESPUÉS de que la escritura cuaje.** Los dos primeros defectos de la
+   sesión son el mismo animal: la operación de dinero se confirma y algo posterior falla —una
+   auditoría, una traducción de mensaje—, así que la pantalla miente en la dirección más cara. **Al
+   revisar un camino de dinero, mirar qué corre después del `commit`, no solo dentro.**
+2. **Un guardián que solo se activa cuando NO hay defecto es peor que ninguno.** El de R1 comparaba
+   una variable consigo misma: no medía nada y costaba cobros. Al escribir una comprobación,
+   preguntarse **qué la haría fallar de verdad** — si no hay respuesta, no es una comprobación.
+3. **El dinero entero esconde los defectos del dinero con centavos.** COP tiene cero decimales, así
+   que la coma flotante no pierde nada y **todas las pruebas de sobrepago usaban enteros**. Una
+   prueba de dinero sin céntimos no prueba el dinero.
+4. **Una prueba de reglas que pide documento a documento no prueba la pantalla.** Firestore evalúa
+   la consulta contra la regla **sin ejecutarla**.
+5. **La falsación encuentra pruebas flojas, no solo código roto.** Dos veces en esta sesión: un
+   guardián de texto que leía la lista de campos en vez del código, y una prueba que pasaba con el
+   redondeo quitado porque su caso concreto daba limpio. **Si romper el código no la pone roja, no
+   vigila lo que dice vigilar.**
 
 ---
 
@@ -1205,7 +1068,7 @@ porque producción **no tiene desplegada `asistirTicketPqrs`**.
 **Qué pasará al encender las banderas: nada, y es lo esperado.** De los 9 conjuntos de
 producción, **7 están marcados `isExample=true`** —incluidos los dos que tienen
 los 20 tickets, `conjunto-las-playas` (14) y `tenant-santa-maria` (6)—. Los dos
-reales, Bromelias y Queretarock, tienen **cero tickets**. La sombra queda armada
+que entonces se creían reales —Bromelias y Queretarock— tienen **cero tickets**. (Y Bromelias tampoco es cliente: David lo confirmó el 24 ago 2026.). La sombra queda armada
 para el primer ticket de verdad, que es justo lo que F4 persigue. El filtro no
 discrimina conjuntos: descarta datos de mentira.
 
@@ -2000,7 +1863,7 @@ que se contaba)—. La lista vive en
 
 **Quedan dos conjuntos reales, y esto es todo lo que hay:**
 
-| | Conjunto Bromelias (activo) | Queretarock 229 (trial) |
+| | Conjunto Bromelias (activo — **NO es cliente**, confirmado 24 ago 2026) | Queretarock 229 (trial) |
 |---|---|---|
 | Unidades propias | 1 | **0** (6 sembradas por el trial) |
 | Personas propias | 1 | **0** (6 sembradas) |

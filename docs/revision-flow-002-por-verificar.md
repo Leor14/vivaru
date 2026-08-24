@@ -1,4 +1,4 @@
-# Revisión de `FLOW-002` — 36 hallazgos SIN VERIFICAR
+# Revisión de `FLOW-002` — 24 sospechas sin verificar (de 37)
 
 **Léelo entero antes de tocar uno.** Esta lista NO es una lista de defectos: es una lista de
 **sospechas sin confirmar**, y tratarla como si fuera lo primero es la forma más rápida de
@@ -20,7 +20,7 @@ todos eran jueces. Solo **un** hallazgo llegó a tener sus tres votos:
 > con su hermano `sumaAsignada > monto`. Ver `functions/src/payments.ts` → `aMoneda` y
 > `TOLERANCIA_MONEDA`.
 
-**Los otros 36 llegan con un solo par de ojos.** Un hallazgo de un solo revisor sin refutar es
+**Quedan 24 con un solo par de ojos** — doce eran de documentación y se verificaron y resolvieron el 24 de agosto (ver la sección de abajo). Un hallazgo de un solo revisor sin refutar es
 una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada confirmación.
 
 ## Cómo trabajarlos
@@ -39,6 +39,25 @@ una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada c
    la sesión y se puede reanudar: los agentes con prompt sin cambios responden de la caché, así
    que solo se re-ejecutan los jueces que se cayeron.
 
+## Las doce de documentación: verificadas y resueltas el 24 de agosto de 2026
+
+Aparecen tachadas más abajo. **Se verificaron leyendo, que es lo que las hacía baratas**, y las doce
+eran ciertas — lo cual dice algo del revisor de esa lente y también de mí: **las escribí yo esa misma
+noche**, y una sesión que reescribe cuatro cabeceras a mano termina con las cuatro pisándose.
+
+**Tres no eran de redacción y se quedan como pendientes de código**, ahora sí registradas en
+`docs/pendientes.md` y en la PRD:
+
+- **§9 y CA13 no están construidos** — el aviso al residente no nombra los cargos cubiertos ni el
+  saldo a favor. Y el documento decía «no queda nada sin mirar»: CA13 no se miró **porque no existe**.
+- **CF8 no se cumple** — las callables no comprueban si el conjunto está `suspended`, y usan el Admin
+  SDK, que no pasa por las reglas. Anterior a la ficha; esta lo amplía.
+- **`personId` del anticipo no lo escribe nadie**, y §7.6 construye una retención encima.
+
+**Y de las cabeceras salió una decisión:** dejan de llevar el número de commit a mano. Se quedaron
+cortas tres veces en una noche, y una cabecera que hay que actualizar en cada push acaba mintiendo.
+Ahora dicen que se lea `git ls-remote`.
+
 ### Sospechas de gravedad ALTA (9 sin verificar)
 - **El informe mensual automático sigue con la fórmula vieja del «% de recaudo»**
   `functions/src/index.ts` · `monthlyFinancialArchive`
@@ -48,15 +67,15 @@ una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada c
   `src/components/features/finanzas/RecordPaymentModal.tsx` · `RecordPaymentModal — bloque `{cuadra && reparto.sobrante > 0 ? ... : null}` junto con `aplicarAjustes``
 - **El anticipo se crea aunque `producto-anticipos` esté apagada**
   `functions/src/payments.ts` · `aplicarPago — el bloque `if (sobrante > 0)``
-- **El roadmap dice «Producción no se ha tocado» y FLOW-002 está en producción**
+- ~~**El roadmap dice «Producción no se ha tocado» y FLOW-002 está en producción**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/roadmap-producto.md` · `## Estado de esta revisión → fila «Estado» (v0.9.22, 24 ago)`
-- **La PRD deja como «Abierta» la vista previa del reparto, que ya la calcula el servidor**
+- ~~**La PRD deja como «Abierta» la vista previa del reparto, que ya la calcula el servidor**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `Tabla de cabecera → fila «Estado» («**Abierta:** §11.3 …»)`
-- **La PRD y el runbook dan por vivo el defecto de writeAuditLog, que está corregido y desplegado**
+- ~~**La PRD y el runbook dan por vivo el defecto de writeAuditLog, que está corregido y desplegado**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/despliegue-flow-002-produccion.md` · `## Un hueco conocido que NO bloquea esto`
-- **El índice de PRD dice que falta el front de FLOW-002 y que producción está sin tocar**
+- ~~**El índice de PRD dice que falta el front de FLOW-002 y que producción está sin tocar**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/README.md` · `Tabla de PRD funcionales → fila «PRD-V-FLOW-002 — Anticipos y aplicación del pago a varios cargos»`
-- **Las cabeceras de CLAUDE.md y pendientes.md dan commits que ya no son los de los remotos**
+- ~~**Las cabeceras de CLAUDE.md y pendientes.md dan commits que ya no son los de los remotos**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `CLAUDE.md` · `## Estado actual — lo primero, y lo que más cambia (primer párrafo)`
 
 ### Sospechas de gravedad MEDIA
@@ -80,13 +99,13 @@ una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada c
   `functions/src/advances.ts` · `anularAnticipo — `if ((advance.remaining ?? 0) !== (advance.amount ?? 0)) throw failed-precondition("Ese anticipo ya se aplicó a algún cargo…")``
 - **`sobrante > 0` sin umbral crea anticipos y asientos de polvo (~1e-13)**
   `functions/src/payments.ts` · `aplicarPago — la guarda `if (sobrante > 0)` que decide crear `advances` + el `ledgerEntries` de `category: "anticipo"``
-- **La PRD nombra dos banderas que no existen**
+- ~~**La PRD nombra dos banderas que no existen**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `§11.4 Índices, jobs y banderas → viñeta «Banderas»`
-- **CA13 y §9 (el aviso con los cargos cubiertos y el saldo a favor) no están construidos y ningún documento lo registra**
+- ~~**CA13 y §9 (el aviso con los cargos cubiertos y el saldo a favor) no están construidos y ningún documento lo registra**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/pendientes.md` · `«No queda nada de `FLOW-002` sin mirar.» (sección «EL PORTAL DEL RESIDENTE — VALIDADO»)`
-- **pendientes.md declara pendiente en producción la migración de saldos que su propia cabecera da por hecha**
+- ~~**pendientes.md declara pendiente en producción la migración de saldos que su propia cabecera da por hecha**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/pendientes.md` · `### Lo que hizo falta y la PRD no preveía → «El orden de despliegue importa…»`
-- **§7.5 y CF8 prometen que un conjunto suspendido queda en solo lectura, y las callables de anticipos no miran el estado del conjunto**
+- ~~**§7.5 y CF8 prometen que un conjunto suspendido queda en solo lectura, y las callables de anticipos no miran el estado del conjunto**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `§7.5 Multi-tenancy y ciclo de vida / CF8`
 - **El consejo gana detalle financiero POR UNIDAD que el resto del modelo le niega, y sin bandera**
   `vivaru/firestore.rules` · `match /advances/{docId} y match /advanceApplications/{docId} — la cláusula tenantRole(resource.data.tenantId, 'committee') del allow read`
@@ -104,11 +123,11 @@ una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada c
   `functions/src/payments.ts` · `revertirPago — el respaldo `const reparto = Array.isArray(op.allocations) && op.allocations.length > 0 ? … : [{ statementId, ledgerEntryId, amount: montoDeCartera }]``
 - **Cruzar un anticipo cubriendo la deuda entera puede dejar el cargo en «pendiente» con saldo de 0,00**
   `functions/src/advances.ts` · `cruzarAnticipo — `const cruzadoDespues = cruzadoAntes + aplicado` pasado a `calcularSaldo` (cuyo umbral es `bruto > 0`, en functions/src/payments.ts)`
-- **§11.4 declara dos índices compuestos que no se crearon y que el código dice no necesitar**
+- ~~**§11.4 declara dos índices compuestos que no se crearon y que el código dice no necesitar**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `§11.4 Índices, jobs y banderas → viñeta «Índices»`
-- **El contrato de datos dice que el servidor escribe personId en el anticipo, y nadie lo escribe**
+- ~~**El contrato de datos dice que el servidor escribe personId en el anticipo, y nadie lo escribe**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `§7.1 Colección nueva: `advances` (fila `personId`) y §7.6 Retención y borrado`
-- **El runbook describe un delta a producción que no es el que se desplegó**
+- ~~**El runbook describe un delta a producción que no es el que se desplegó**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/despliegue-flow-002-produccion.md` · `Cabecera («`origin/develop` = `218383b` · `origin/master` = `5d6df95`»)`
 - **El veto de sourceType no protege el asiento del anticipo frente a una sobrescritura completa**
   `vivaru/firestore.rules` · `match /ledgerEntries/{docId} — allow create, update con !(request.resource.data.get('sourceType','') in ['billingStatement','advance'])`

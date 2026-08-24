@@ -21,7 +21,7 @@ fecha_actualizacion: 2026-08-17
 
 La plataforma (`PLAT-001`) está **en producción desde el 15 de agosto**, y el modo sombra de PQRS **desde el 17**. Esta página resume el marco; el detalle paso a paso vive en `docs/hoja-de-ruta-ia.md`.
 
-> **Lo que NO hay que confundir:** infraestructura desplegada no es funcionalidad en uso. Ningún cliente real ha usado ninguna capacidad asistida — producción tiene dos conjuntos reales, **0 tickets y 1 comunicación de marzo**. El programa está limitado por materia prima comercial, no por ingeniería.
+> **Lo que NO hay que confundir:** infraestructura desplegada no es funcionalidad en uso. Ningún cliente real ha usado ninguna capacidad asistida — producción **no tiene ni un conjunto real**: la cifra de «dos» contaba `Bromelias` y `Queretarock`, y David confirmó el 24 de agosto de 2026 que Bromelias tampoco es cliente (Queretarock está `expired` y sin confirmar). **0 tickets y 1 comunicación de marzo**. El programa está limitado por materia prima comercial, no por ingeniería.
 
 ## La decisión ejecutiva
 

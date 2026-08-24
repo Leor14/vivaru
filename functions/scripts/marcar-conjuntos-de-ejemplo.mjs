@@ -65,6 +65,12 @@ const DEMO = [
   // que aportaba una comunicación «real» a la volumetría: al descontarlo, las
   // comunicaciones reales de producción pasan de 2 a 1.
   { id: "pXHEn5iWKWgX4sDF9tVp", origen: "conjunto de pruebas · confirmado por David, 14 ago 2026" },
+  // **Lo que este script avisaba que podía pasar, y pasó.** Estuvo meses en «los
+  // otros conjuntos» de abajo, y la documentación —el roadmap, la wiki de IA y
+  // la memoria— lo daba por CLIENTE REAL: la volumetría hablaba de «dos
+  // conjuntos reales» contándolo. No lo era. Con esto, producción no tiene ni
+  // uno.
+  { id: "6PmHBr6DB8WNVMznz8O8", origen: "Conjunto Bromelias · confirmado por David, 24 ago 2026" },
 ];
 
 initializeApp({ credential: applicationDefault(), projectId });

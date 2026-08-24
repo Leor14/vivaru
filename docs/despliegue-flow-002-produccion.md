@@ -4,8 +4,17 @@
 orden **no es el habitual de tres pasos**: hay uno nuevo delante, y hacerlo después deja una
 ventana en la que un residente lee el saldo del conjunto.
 
-`origin/develop` = `218383b` · `origin/master` = `5d6df95` (producción). **No divergen**: `master`
-es ancestro estricto, así que el delta es exactamente `FLOW-002` A + B.
+`master` = `origin/develop` = `70136b9`, y **eso ya es lo que corre en producción**: los cuatro pasos
+de abajo se ejecutaron el 24 de agosto de 2026, y después dos despliegues más de `functions/`.
+
+> **Este runbook pasó de plan a REGISTRO.** Se conserva porque el orden que describe es el que hay
+> que repetir en cualquier ambiente nuevo, y porque el paso 1 —el que no es obvio— se olvidaría.
+
+**Lo que se desplegó de verdad, y no fue exactamente el delta que este documento anunciaba:**
+además de `FLOW-002` A y B fueron los scripts de lectura, el arreglo de `writeAuditLog`, la
+callable de vista previa y el arreglo de los dos guardianes de coma flotante. Se anota porque la
+cabecera decía «el delta es exactamente `FLOW-002` A + B» y dejó de ser cierto en cuanto la sesión
+siguió.
 
 ## Lo que va SIN bandera, y hay que saberlo antes de empezar
 
@@ -84,9 +93,26 @@ pago de 200 sobre una cuota de 140 deja de dejar `paymentAmount: 200` y pasa a d
 anticipo de 60—. `producto-pago-multiple` puede ir sola o después; sin la primera, el sobrante de
 un reparto vuelve a evaporarse.
 
-## Un hueco conocido que NO bloquea esto
+## Dos huecos que YA ESTÁN CERRADOS — se dejan escritos porque enseñan algo
 
-`writeAuditLog` audita **fuera** de la transacción y revienta con un campo `undefined`, dejando la
-operación hecha y la llamada en error. Está **mitigado desde el cliente** —siempre se manda
-`statementId`— así que la aplicación no lo dispara. Sigue abierto para cualquier otro llamante y
-el arreglo va en `functions/`. Detalle en `docs/pendientes.md`.
+**`writeAuditLog` reventaba con un campo `undefined`**, y como audita **fuera** de la transacción,
+lo hacía con el dinero ya movido. **Cerrado en la raíz** con `limpiarMetadata`
+(`functions/src/audit.ts`), no con `ignoreUndefinedProperties: true` — aquello lo taparía de un
+plumazo y a la vez escondería el mismo fallo en todas las escrituras del proyecto.
+
+**Dos guardianes de `aplicarPago` rechazaban cobros CORRECTOS con centavos.** El de R1 era una
+tautología: `sobrante` se define como `monto − totalAplicado`, así que la comparación no podía ser
+cierta salvo por el error de coma flotante — **saltaba exactamente cuando no había defecto**, y
+abortaba la transacción sin dejar marca de idempotencia. Cerrado con `aMoneda` y
+`TOLERANCIA_MONEDA`.
+
+**La lección que dejan los dos, y que aplica al siguiente ambiente:** un camino de dinero no
+termina en el `commit`. Al revisar uno, listar qué corre **después** —auditoría, correo,
+telemetría— y qué pasa si eso falla.
+
+## Lo que queda pendiente de verdad
+
+- **§9 y CA13 no están construidos:** el aviso al residente no nombra los cargos cubiertos ni el
+  saldo a favor.
+- **CF8 no se cumple:** las callables no comprueban si el conjunto está `suspended`.
+- **36 sospechas sin verificar:** `docs/revision-flow-002-por-verificar.md`.

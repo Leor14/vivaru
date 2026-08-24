@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.22 |
-| **Fecha** | 24 de agosto de 2026 (noche) |
-| **Estado** | **`FLOW-002` ESTÁ CONSTRUIDA ENTERA: servidor y front.** La sesión B (`master` = `0aa668a`) cierra el paso 3 del §13 — vista de anticipos con cruce, deshacer y anulación; reparto entre varios cargos con la propuesta de R7 editable; saldo a favor en el portal del residente; cuenta bancaria en el cobro y en el comprobante; y el «% de recaudo» de R16, que **mide liquidación y ya no ingreso**. **Producción no se ha tocado**, y las banderas siguen apagadas allí. Hizo falta un cambio de alcance que la PRD no preveía: `bankAccounts` era solo-administrador y CA11 no se podía construir sin abrirlo, así que **el saldo inicial salió del documento** a `bankAccountBalances` — decisión de David— porque las reglas conceden el documento entero |
-| **Verificado contra** | **La pantalla, entrando por el navegador con una sesión real — no la suite.** Un sobrepago de 800 sobre 500 dejó 300 a favor; cruzar 300 contra un cargo de 200 aplicó 200 y lo dijo (CF12); el cargo quedó saldado con **abono cero** (CA14) y el mes marcó **100 % de recaudo** (CA16, R16); un reparto de 400 entre dos cargos dejó 150 + 200 y 50 a favor (R1). **Y destapó dos defectos que 1150 pruebas en verde no veían**: ningún mensaje de error del servidor llegaba a la pantalla, y un reparto aplicaba el dinero y devolvía error —porque la auditoría se escribe FUERA de la transacción y reventaba con un campo `undefined`—. **El portal del residente también, con una sesión suya**: el saldo a favor suma sus dos anticipos y **no el de la vecina** (CA2 y CF7 en pantalla), y el comprobante se escribió con la cuenta que eligió (CA11) — lo que prueba que la migración del saldo y las reglas nuevas funcionan; y al aprobar ese comprobante **el asiento guarda la cuenta**, que es la ruta que antes escribía `null` siempre. **No queda nada de la ficha sin mirar** |
+| **Versión** | 0.9.23 |
+| **Fecha** | 24 de agosto de 2026 (madrugada, cierre de sesión) |
+| **Estado** | **`FLOW-002` ESTÁ EN PRODUCCIÓN** (`master` = `origin/develop` = `70136b9`), con `producto-anticipos` encendida **solo en el conjunto de demostración**. La sesión B cerró el front y, encadenado, los dos cabos de `functions/`: el arreglo de `writeAuditLog` y la vista previa del reparto en el servidor. **Trece criterios verificados en pantalla contra la base real**, CA6′ incluido y medido en producción. **Lo que NO está construido y ningún documento registraba: §9 y CA13** —el aviso al residente no nombra los cargos cubiertos ni el saldo a favor—. Y **36 sospechas sin verificar** de una revisión adversarial cuya fase de jueces se cayó: `docs/revision-flow-002-por-verificar.md` |
+| **Verificado contra** | **La pantalla, en los dos portales y en los dos ambientes.** Y produjo lo que ninguna suite vio: **tres defectos**. Dos de mensajería y auditoría —uno de ellos abortaba la llamada con el dinero ya movido— y uno de aritmética que salió de revisar lo ya desplegado: **dos guardianes rechazaban cobros CORRECTOS con centavos**, invisible porque COP no tiene decimales y todas las pruebas de sobrepago usaban enteros. La lección que dejan los tres: **un camino de dinero no termina en el `commit`** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -174,7 +174,7 @@ fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 des
 | **1** | ✅ **COMPLETO** — `REVOPS-001E` · `REVOPS-001A` · `SUP-001` · `FIN-000`, los cuatro en producción | Bajo | El dato no se reconstruye después. **Ya no caduca** |
 | **2** | ✅ **COMPLETO** — `FIN-001` en producción (19 ago 2026) | Alto | El trial protege; la conversión no |
 | **3** | ✅ **CONSTRUIDO** — cablear el precio, primera mitad de `REVOPS-001C` (19 ago 2026) | Medio | Hace falta al convertir, no al probar |
-| **4** | Todo lo demás | — | Espera al primer cliente real |
+| **4** | Todo lo demás | — | Espera al primer cliente real. **Sigue sin haberlo: David confirmó el 24 ago 2026 que `Conjunto Bromelias` tampoco es cliente** |
 
 **El horizonte y el nivel no son lo mismo, y conviene no confundirlos.** Una iniciativa
 puede estar en `AHORA` por dependencia —está lista para hacerse— y en el **nivel 4** por

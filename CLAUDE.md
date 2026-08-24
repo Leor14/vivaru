@@ -169,69 +169,55 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 ## Estado actual — lo primero, y lo que más cambia
 
-**Leer los dos remotos con `git ls-remote`, no de aquí.** Esta línea llevaba un número de commit y se quedó corta tres veces en una sola noche: una cabecera que se actualiza a mano en cada push acaba mintiendo. Se mueven por separado, y un push sin cambios responde «success». Releer **los dos**: se mueven por
-separado desde el 23 de agosto, y **no siempre los mueve la sesión que está trabajando**. Un push
-sin cambios responde «success», así que comprobar con `git ls-remote`, que no depende de la caché.
+**Leer los dos remotos con `git ls-remote`, no de aquí.** Esta línea llevaba el número de commit a
+mano y se quedó corta **tres veces en una sola noche**: una cabecera que hay que actualizar en cada
+push acaba mintiendo. Se mueven por separado y un push sin cambios responde «success». Al cierre
+del 24 de agosto de 2026 los dos iban iguales, y eso es lo normal buscado: **`master` = lo que hay
+en producción**.
 
-**`FLOW-002` (anticipos) está CONSTRUIDA ENTERA: servidor y front.** La sesión A dejó el
-servidor; la B (24 ago) dejó el paso 3 del §13 — vista de anticipos con cruce, deshacer y
-anulación; reparto entre varios cargos con la propuesta de R7 editable; saldo a favor del
-residente; cuenta bancaria en el cobro y en el comprobante; y el «% de recaudo» de R16, que
-**mide liquidación y ya no ingreso**. **Verificado por navegador contra staging, los dos
-portales** — el del residente con una sesión suya el 24 por la noche: el saldo a favor suma sus
-anticipos y **no el de la vecina**, y el comprobante se escribió con la cuenta que eligió, que al
-aprobarla llega al asiento. **No queda nada sin mirar.**
+**`FLOW-002` (anticipos) ESTÁ EN PRODUCCIÓN**, con `producto-anticipos` encendida **solo en
+`conjunto-las-playas`** (override; la global sigue apagada). Servidor, front, el «% de recaudo» de
+R16 midiendo liquidación, y los dos cabos de `functions/` —`writeAuditLog` y la vista previa del
+reparto—. Trece criterios verificados en pantalla contra la base real.
 
-**Al probar aprobaciones de comprobante en staging, usar una unidad sin residente vinculado**
-(`t1-101`, `t1-102` y `t2-201` sí lo tienen; las demás no): aprobar crea un recibo y
-`onPaymentVoucherCreated` manda correo a los residentes de esa unidad.
+**PRODUCCIÓN NO TIENE NI UN CLIENTE REAL.** Los nueve conjuntos son de demostración o de prueba.
+**`Conjunto Bromelias` tampoco es cliente** —confirmado por David el 24 de agosto de 2026, y hasta
+entonces el roadmap, la wiki de IA y la memoria lo contaban como uno de «dos conjuntos reales»—.
+Queda `queretarock-229-fc4c57`, `expired` y **sin confirmar**: hasta que se confirme, no se puede
+afirmar ni que haya cero ni que haya uno. Esto **baja el riesgo de encender banderas, no lo
+elimina**: el modo de fallo es el mismo el día que haya un cliente.
 
-**`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo leen
-ahora **todos los miembros del conjunto, pero solo las cuentas activas** — lo pide CA11, para que
-el residente diga a qué cuenta pagó. Para poder abrirlo, `openingBalance` **salió del documento**
-a `bankAccountBalances/{idDeLaCuenta}`, que sigue siendo solo-administrador: las reglas conceden
-el documento entero y no se pueden ocultar campos. **Una consulta de cuentas hecha por alguien
-que no es administrador TIENE que filtrar `active == true`**, o Firestore la rechaza entera.
+**LO PRIMERO DE LA SIGUIENTE SESIÓN: `docs/revision-flow-002-por-verificar.md`.** 36 sospechas de
+una revisión adversarial de lo desplegado cuya fase de jueces se cayó por sobrecarga de API. **No
+son defectos: son hipótesis con un solo par de ojos**, nueve de gravedad alta. El único que sí llegó
+a tener sus tres votos era real y ya está corregido: dos guardianes de `aplicarPago` rechazaban
+cobros **correctos** con centavos. Ver `aMoneda` y `TOLERANCIA_MONEDA` en `functions/src/payments.ts`.
 
-**`FLOW-002` ESTÁ EN PRODUCCIÓN desde el 24 de agosto de 2026, con las banderas APAGADAS.** Los
-cuatro pasos corridos y verificados en orden: saldos migrados (4 cuentas, `Por migrar: 0`),
-reglas desplegadas, functions desplegadas —`applyAdvance`, `cancelAdvance` y
-`undoAdvanceApplication` vivas— y el front por `master`. **Cero banderas `producto-*` y cero
-overrides en producción**, comprobado con `scripts/leer-banderas.mjs` justo antes de functions:
-con ellas apagadas `aplicarPago` se comporta exactamente como antes.
+**Y tres cosas de `FLOW-002` que NO están hechas, dichas para que no se lea como cerrada:**
 
-**Encenderlas es otra decisión y va una cada vez, mirando.** `producto-anticipos` cambia un
-número que ya se mira: un pago de 200 sobre una cuota de 140 deja de dejar `paymentAmount: 200`.
-El runbook, con lo que va sin bandera y lo que hay que comprobar entre pasos, está en
-`docs/despliegue-flow-002-produccion.md`.
+- **§9 y CA13 no están construidos.** El aviso al residente no nombra los cargos cubiertos ni el
+  saldo a favor. Ningún documento lo registraba hasta hoy — al contrario, `pendientes.md` llegó a
+  decir «no queda nada sin mirar», y CA13 no se miró porque no existe.
+- **CF8 no se cumple.** Ni `advances.ts` ni `payments.ts` llaman a `assertTenantOperable`, y las
+  callables usan el Admin SDK, que **no pasa por las reglas** — que es donde vive `tenantOperable`.
+  Un conjunto `suspended` puede cobrar y cruzar. Es anterior a la ficha, que lo amplía.
+- **`personId` del anticipo no lo escribe nadie**, y §7.6 construye una regla de retención encima.
 
-**Lo único que producción aporta y sigue pendiente:** un cobro real de un solo cargo, para ver que
-esa ruta se comporta igual (§13). **Lo hace David** — es dinero en la cartera de un cliente.
+**`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo leen ahora
+**los miembros del conjunto, y solo las cuentas activas** — lo pide CA11. Para poder abrirlo,
+`openingBalance` **salió del documento** a `bankAccountBalances/{idDeLaCuenta}`, que sigue siendo
+solo-administrador: las reglas conceden el documento entero y no se pueden ocultar campos. **Una
+consulta de cuentas hecha por alguien que no es administrador TIENE que filtrar `active == true`**,
+o Firestore la rechaza entera. Y **el rollback no es solo apagar banderas**: volver atrás exige
+devolver `openingBalance` a `bankAccounts` ANTES de revertir las reglas.
 
-**HAY 36 SOSPECHAS SIN VERIFICAR, y son lo primero que hay que mirar:**
-`docs/revision-flow-002-por-verificar.md`. Salen de una revisión adversarial de todo lo que se
-desplegó el 24 de agosto cuya fase de jueces se cayó, así que **son hipótesis, no defectos** —
-nueve de gravedad alta. El único que sí se verificó estaba en la aritmética del dinero y ya está
-corregido: dos guardianes rechazaban cobros CORRECTOS con centavos, y era invisible porque COP no
-tiene decimales y todas las pruebas usaban enteros. Ver `aMoneda` y `TOLERANCIA_MONEDA` en
-`functions/src/payments.ts`.
+**`FIX-001`: los pasos 1 y 2 hechos, la puerta del 3 verificada en staging.** `producto-reservas-servidor`
+encendida en staging y **apagada en producción**. El instrumento de la puerta es
+`scripts/verificar-reservas-por-servidor.mjs`, y el paso 4 —cerrar la rama del residente en las
+reglas— **no se revierte con bandera**.
 
-**Los dos defectos que encontró mirar la pantalla están cerrados en la raíz**, y el segundo deja
-una regla: **`writeAuditLog` audita FUERA de la transacción**, así que si revienta lo hace con el
-dinero ya movido. Un campo `undefined` en el metadata lo reventaba —Firestore lo rechaza, porque
-`initializeApp()` corre sin `ignoreUndefinedProperties`—; ahora `limpiarMetadata`
-(`functions/src/audit.ts`) los quita. **Al añadir un campo opcional a una auditoría, no hace falta
-recordar nada; al añadir una escritura NUEVA fuera de una transacción, sí.**
-
-**El reparto sugerido (R7) lo calcula el servidor** (`previewPaymentAllocation`), no el navegador.
-`src/features/billing/reparto.ts` conserva solo lo que es de la pantalla.
-
-**Los dos cabos están EN PRODUCCIÓN** desde el 24 de agosto por la noche (`master` = `b30b229`):
-functions primero y front después, sin migración ni reglas esta vez —se comprobó que el diff de
-`firestore.rules` contra producción estaba vacío antes de empezar—.
-
-Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` y
-`docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` (v1.4).
+Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.23),
+`docs/despliegue-flow-002-produccion.md` y la PRD (v1.5).
 
 ### Lo que ninguna suite puede cazar, y por qué importa aquí
 
