@@ -322,6 +322,75 @@ export interface BillingStatement {
   updatedBy?: string;
 }
 
+/**
+ * `FLOW-002` — el saldo a favor de una unidad.
+ *
+ * **Lo escribe SOLO el servidor**, siempre dentro de la transacción del pago que
+ * lo genera o de la callable que lo cruza. Las reglas no dejan al cliente crear,
+ * cambiar ni borrar ni uno: es dinero, y un saldo a favor que se pudiera
+ * fabricar desde el navegador no sería un saldo a favor.
+ *
+ * **Un anticipo nunca se borra.** De `open` sale a `applied` cuando se agota o a
+ * `cancelled` cuando se anula con motivo (R9), y `cancelled` es terminal. Lo que
+ * pasó con el dinero de un residente tiene que quedar legible después.
+ */
+export interface Advance {
+  id: string;
+  tenantId: string;
+  unitId: string;
+  unitLabel?: string;
+  /** Quién pagó. Puede faltar: la cuota es de la UNIDAD, no de la persona. */
+  personId?: string;
+  /** Importe original con el que nació. No cambia nunca. */
+  amount: number;
+  /** Lo que queda por aplicar. Baja al cruzar y sube al deshacer un cruce. */
+  remaining: number;
+  origin: "overpayment" | "manual";
+  /** Puente al pago que lo creó — es su `operationKey`, no un id de documento. */
+  sourceOperationKey?: string;
+  /** El asiento de su entrada de dinero (R5). */
+  ledgerEntryId?: string;
+  /** ISO `YYYY-MM-DD`. */
+  date: string;
+  status: "open" | "applied" | "cancelled";
+  cancelledAt?: string;
+  cancelledBy?: string;
+  /** Obligatorio si está `cancelled` (R9, CF4). Sin él no se puede auditar. */
+  cancellationReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * `FLOW-002` — un cruce: cuánto de un anticipo se aplicó a qué cargo.
+ *
+ * **Existe para que un cruce se pueda deshacer sin adivinar cuánto se aplicó a
+ * qué.** Sin este documento, deshacer obligaría a reconstruir la aritmética
+ * desde el estado final, que es justo donde se pierden los céntimos.
+ *
+ * Lleva `unitId` copiado del anticipo, y no por comodidad: sin él, «el residente
+ * solo ve los de su unidad» no sería expresable en las reglas y habría que
+ * cerrarle la colección entera.
+ */
+export interface AdvanceApplication {
+  id: string;
+  tenantId: string;
+  advanceId: string;
+  statementId: string;
+  /** Denormalizado desde el anticipo para que la regla de lectura exista. */
+  unitId: string;
+  amount: number;
+  /** ISO `YYYY-MM-DD`. */
+  date: string;
+  operationKey?: string;
+  createdBy?: string;
+  createdAt?: string;
+  /** Presente cuando el cruce se deshizo. Un cruce deshecho NO se borra. */
+  reversedAt?: string;
+  reversedBy?: string;
+  reversalReason?: string;
+}
+
 /** Campaña de cobro = una corrida de lote (inmediata o programada al publicarse). */
 export interface BillingCampaign {
   id: string;
@@ -352,6 +421,16 @@ export interface PaymentReceipt {
   statementId?: string;
   /** Monto declarado por el residente al subir el comprobante */
   amount?: number;
+  /**
+   * `FLOW-002` CA11 — a qué cuenta bancaria dice el residente que pagó.
+   *
+   * Es una **declaración**, no un hecho comprobado: quien la escribe es quien
+   * paga. El administrador la ve al revisar el comprobante y puede cambiarla
+   * antes de aprobar; lo que llega al asiento es lo que él confirma. Sin esto,
+   * la conciliación tenía que adivinar por importe y fecha, y dos cuotas iguales
+   * pagadas el mismo día eran indistinguibles.
+   */
+  bankAccountId?: string;
   reviewedAt?: string;
   reviewedBy?: string;
   reviewedByName?: string;

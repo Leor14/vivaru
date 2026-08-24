@@ -683,6 +683,22 @@ export async function applyPaymentCallable(input: {
       voucherId?: string;
       voucherCode?: string;
       /**
+       * **D-B.** Una entrada por cargo cubierto, con su asiento y su importe.
+       * Con un solo cargo trae una. Es lo que permite enseñar en pantalla a qué
+       * fue cada peso sin volver a leer la cartera.
+       */
+      allocations?: { statementId: string; ledgerEntryId: string; amount: number }[];
+      /**
+       * **R2/R3.** El anticipo que dejó el sobrepago, si lo hubo. **Ausente
+       * cuando el pago no sobró nada**: un anticipo de cero no se crea.
+       *
+       * Llevaba viajando desde la sesión A y **no estaba declarado aquí**, así
+       * que llegaba al navegador y moría en el tipo — exactamente lo que le pasó
+       * a `cayoEnOtrosIngresos` hasta el 23 de agosto de 2026.
+       */
+      advanceId?: string;
+      advanceAmount?: number;
+      /**
        * **R8.** `true` cuando el concepto del cargo no tenía cuenta equivalente
        * y el asiento cayó en «Otros ingresos». El servidor lo devuelve desde la
        * 1b-ii; hasta el 23 de agosto de 2026 **ni siquiera estaba declarado
@@ -739,6 +755,113 @@ export async function revertPaymentCallable(input: {
     }
   >(functions, "revertPayment");
   return executeCallable(callable, input, "No fue posible revertir el pago.");
+}
+
+// ── FLOW-002 · anticipos ─────────────────────────────────────────────────────
+//
+// Las tres van por callable y no por escritura directa porque tocan
+// `advances`, `advanceApplications` y `billingStatements` a la vez dentro de una
+// transacción, y porque las reglas no dejan al cliente escribir ni una: es
+// dinero. Leer anticipos sí es directo — ver `use-advances.ts`.
+
+/**
+ * **Cruza un anticipo contra un cargo (R6).**
+ *
+ * `amount` es lo que se PIDE aplicar, no necesariamente lo que se aplica: §5.3
+ * lo limita al saldo del cargo y devuelve el resto al anticipo, así que la
+ * pantalla tiene que enseñar `appliedAmount` y no el importe que envió. Un cruce
+ * mayor que el saldo **no se rechaza**; lo que se rechaza es cruzar contra un
+ * cargo ya saldado, que no es un límite sino una operación sin efecto (CF12).
+ *
+ * **Cruzar no mueve dinero**: no se escribe ningún asiento de libro y no se toca
+ * `paymentAmount`. El ingreso se registró cuando el anticipo entró (R5). Lo
+ * cruzado sube `advanceAppliedAmount`, que solo escribe el servidor (R4).
+ *
+ * `operationKey` es la idempotencia: la genera quien llama y **la repite en los
+ * reintentos**. Una clave nueva por intento anula la protección.
+ */
+export async function applyAdvanceCallable(input: {
+  tenantId: string;
+  advanceId: string;
+  statementId: string;
+  amount: number;
+  /** ISO `YYYY-MM-DD`. */
+  date: string;
+  operationKey: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    typeof input,
+    {
+      ok: true;
+      /** `false` si ya estaba cruzado con esa clave: fue un reintento. */
+      applied: boolean;
+      applicationId: string;
+      /** Lo que de verdad se aplicó, que puede ser menos de lo pedido (§5.3). */
+      appliedAmount: number;
+      remaining: number;
+      advanceStatus: "open" | "applied" | "cancelled";
+      balance: number;
+      status: "paid" | "overdue" | "pending";
+    }
+  >(functions, "applyAdvance");
+  return executeCallable(callable, input, "No fue posible cruzar el anticipo.");
+}
+
+/**
+ * **Deshace un cruce (CA12).** El anticipo vuelve a `open` con su remanente.
+ *
+ * Se identifica por el CRUCE, no por el anticipo: un anticipo puede tener
+ * varios, y deshacer «el del anticipo» sería ambiguo.
+ *
+ * `operationKey` es la de ESTA operación y **tiene que ser distinta** de la del
+ * cruce; si no, la marca del cruce se confundiría con la de su reverso.
+ */
+export async function undoAdvanceApplicationCallable(input: {
+  tenantId: string;
+  applicationId: string;
+  operationKey: string;
+  reason?: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    typeof input,
+    {
+      ok: true;
+      reversed: boolean;
+      remaining: number;
+      advanceStatus: "open" | "applied" | "cancelled";
+      balance: number;
+      status: "paid" | "overdue" | "pending";
+    }
+  >(functions, "undoAdvanceApplication");
+  return executeCallable(callable, input, "No fue posible deshacer el cruce.");
+}
+
+/**
+ * **Anula un anticipo con motivo (R9).** Terminal: de `cancelled` no se sale.
+ *
+ * `reason` es obligatorio y el servidor lo exige (CF4). Va al registro de
+ * auditoría: es la única forma de saber después por qué el saldo a favor de un
+ * residente dejó de existir.
+ *
+ * **Solo si el remanente está intacto.** Un anticipo parcialmente cruzado se
+ * rechaza (CF3): primero se deshacen los cruces.
+ *
+ * **Anular NO devuelve el dinero y NO baja el ingreso.** El dinero entró y se
+ * queda en el conjunto; lo que desaparece es el crédito de esa unidad.
+ * Devolverlo es un egreso, y §4 lo deja fuera de esta ficha a propósito.
+ * Revertir el PAGO que lo creó es otra cosa y sí revierte los dos asientos (R15).
+ */
+export async function cancelAdvanceCallable(input: {
+  tenantId: string;
+  advanceId: string;
+  reason: string;
+  operationKey: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true; cancelled: boolean }>(functions, "cancelAdvance");
+  return executeCallable(callable, input, "No fue posible anular el anticipo.");
 }
 
 export async function updateSupportTicketStatusCallable(input: {
