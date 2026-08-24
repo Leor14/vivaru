@@ -31,6 +31,29 @@ reglas; al revés queda una ventana en la que el saldo se lee. En staging ya est
 verificado contra la base (0 cuentas con el campo, 5 documentos de saldo).
 **En producción está PENDIENTE, y va antes que las reglas.**
 
+## EL PORTAL DEL RESIDENTE — VALIDADO (24 ago, noche)
+
+David abrió una sesión de residente y con eso se cerró lo último que faltaba. Con dos anticipos
+suyos y uno de una vecina sembrados en `T1-101`:
+
+- **CA2 pasa, y con la parte que importa: «Tienes $75.000 a favor»** es la suma de los DOS suyos
+  y **no incluye los 99.000 de la vecina** — CF7 visto en pantalla, no solo en las reglas.
+- **Dice de dónde viene cada uno** («Del pago del 2026-08-20») y el parcialmente cruzado avisa de
+  lo ya usado («ya se aplicaron $25.000 a cuotas anteriores»).
+- Sin anticipos la tarjeta **no se pinta**. Comprobado antes y después de limpiar.
+- **CA11 pasa: el residente LEE las cuentas** —el selector se rellenó, que es la prueba de que la
+  migración y las reglas nuevas funcionan— y el comprobante quedó escrito con
+  `bankAccountId: bank-playas-001`.
+
+**Lo que NO se pudo ejercitar, y no es del producto:** el botón «Subir comprobante» abre el
+diálogo de archivos del sistema, que el agente no puede manejar, así que el archivo se inyectó en
+el `input` y el comprobante salió **sin `statementId`**. Ese enlace es anterior a esta entrega y
+no se tocó. Si alguien quiere cerrarlo, se hace a mano en dos clics.
+
+**Sigue sin mirar la otra mitad de CA11:** el panel de revisión del administrador enseñando «El
+residente dice que pagó a …» y llevando esa cuenta al asiento al aprobar. Necesita volver a la
+sesión de administrador. El dato ya está escrito; lo que falta es ver la fila.
+
 ## LO QUE ENCONTRÓ MIRAR, Y NINGUNA SUITE VEÍA
 
 **1. El mensaje del servidor no llegaba a la pantalla. Ninguno.** `executeCallable` componía el
@@ -58,7 +81,6 @@ ya confirmado**. Mitigado desde el cliente mandando siempre `statementId` (`ebcf
 |---|---|
 | **El arreglo de `writeAuditLog`** | Arriba. Es de `functions/` y es lo primero |
 | **La vista previa del reparto, al servidor** | §11.3. Hoy la propone el navegador (`src/features/billing/reparto.ts`, puro y probado) y el servidor sigue decidiendo — topa cada línea al saldo. Cuando exista la callable, ese fichero se borra entero |
-| **El portal del residente, sin mirar** | Es lo único de la sesión B **no validado por navegador**: hace falta una sesión de residente y el agente no teclea contraseñas. Las reglas sí están probadas con el emulador, con la forma de consulta real |
 | `FLOW-002` en producción | Ni el código ni las banderas. Orden: **migrar saldos → reglas → functions → front** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | Encender las banderas `producto-*` en producción | Sigue siendo decisión de David |
@@ -76,7 +98,9 @@ dinero porque es un egreso de otra PRD, así que anular deja el dinero dentro de
 que desaparece es el crédito de esa unidad. Si prefieres que anular también revierta el asiento,
 son pocas líneas — pero entonces el estado financiero diría que entraron 140 con 200 en el banco.
 
-**2. Mirar el portal del residente**, o darme una forma de entrar que no sea teclear una clave.
+**2. Un vistazo de treinta segundos con la sesión de administrador:** aprobar un comprobante que
+traiga cuenta declarada, para ver la fila «El residente dice que pagó a …» y que el asiento la
+conserve. Es la única mitad de CA11 sin mirar.
 
 **3. Decisiones abiertas, ninguna urgente:** encender las banderas en producción · escribir
 `PLAT-004` · el plan de cuentas por país · la cuenta de vigilancia.

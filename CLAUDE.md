@@ -177,8 +177,10 @@ sin cambios responde «success», así que comprobar con `git ls-remote`, que no
 servidor; la B (24 ago) dejó el paso 3 del §13 — vista de anticipos con cruce, deshacer y
 anulación; reparto entre varios cargos con la propuesta de R7 editable; saldo a favor del
 residente; cuenta bancaria en el cobro y en el comprobante; y el «% de recaudo» de R16, que
-**mide liquidación y ya no ingreso**. Todo verificado por navegador contra staging salvo el
-portal del residente, que necesita una sesión de residente.
+**mide liquidación y ya no ingreso**. **Verificado por navegador contra staging, los dos
+portales** — el del residente con una sesión suya el 24 por la noche: el saldo a favor suma sus
+anticipos y **no el de la vecina**, y el comprobante se escribió con la cuenta que eligió. Queda
+sin mirar una sola fila: el panel de revisión del administrador enseñando esa cuenta declarada.
 
 **`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo leen
 ahora **todos los miembros del conjunto, pero solo las cuentas activas** — lo pide CA11, para que
