@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.26 |
-| **Fecha** | 24 de agosto de 2026 (noche) |
-| **Estado** | **LA JORNADA DEL 24 ESTÁ EN PRODUCCIÓN.** Los cuatro commits del triaje salieron en tres piezas y en orden —reglas → functions → front— y **cada una se verificó en vez de creerle al «Deploy complete»**: 227 pruebas de reglas contra el emulador (las que `npm test` excluye), las 74 functions comparadas por nombre con el árbol en cero tras compilar, y el front por **la huella del bundle** (`6a944c17` → `2bc73d04`), porque este CLI no tiene `apphosting:rollouts:list` y un grep encontraría la cadena en las dos versiones. **§13 comprobado en producción con números anotados antes**: un cobro del saldo exacto sobre `T2-203` movió los seis números predichos y **dejó los anticipos en $0**, que es la medida que prueba que la ruta de un solo cargo no cambió. **LA REVISIÓN ADVERSARIAL DE `FLOW-002` ESTÁ CERRADA: de 37 sospechas, 36 eran ciertas y están resueltas y 1 se descartó** — este campo decía a la vez «cerrada» y «quedan 20», que no podían ser las dos. **TODO EL LOTE DE HABITANTO SIGUE EN PRODUCCIÓN Y APAGADO**, leído en `/superadmin/flags`, no supuesto: `producto-anticipos` apagada en global con un único override (`conjunto-las-playas`), `producto-pago-multiple` apagada y sin overrides, kill switch maestro en `Normal`. **Ojo: caer al default del catálogo NO es sinónimo de apagada** — `producto-importacion-masiva` cae al default y ese default es Encendida. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **Sin construir de `FLOW-002`: §9/CA13, CF8 y `personId`.** **Y hay tres índices que faltan en producción** (`notifications`, `billingReminderJobs`, `billingSchedules`), anteriores a este despliegue y no arreglados por él: `--only firestore:rules` no despliega índices. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, entrando por el navegador y midiendo.** No solo que desplegara: se anotaron los números ANTES (53 movimientos, $127.500 de ingresos por cuotas, −$10.300 de fondos, $18.500 pendientes, $0 de anticipos) y se comprobó uno a uno que salieran los seis predichos. **Y mirar la consola produjo lo que ninguna suite ve: tres índices ausentes en producción**, dos de ellos anotados hasta hoy como «faltan en staging». La lección que dejan: **un campo opcional en el `where` son dos consultas, y cada una necesita su índice** |
+| **Versión** | 0.9.27 |
+| **Fecha** | 24 de agosto de 2026 (cierre) |
+| **Estado** | **LA JORNADA DEL 24 ESTÁ EN PRODUCCIÓN, VERIFICADA PIEZA POR PIEZA**, en el orden que exige un despliegue mixto: reglas → functions → front. Y **§13 comprobado en producción con los números anotados ANTES**: un cobro del saldo exacto sobre `T2-203` movió los seis predichos y dejó los anticipos en $0, que es la medida que prueba que la ruta de un solo cargo no cambió. **LA REVISIÓN ADVERSARIAL DE `FLOW-002` ESTÁ CERRADA**: de 37 sospechas, 36 ciertas y resueltas, 1 descartada. **TODO EL LOTE DE HABITANTO SIGUE EN PRODUCCIÓN Y APAGADO**, leído en `/superadmin/flags`: `producto-anticipos` con un único override (`conjunto-las-playas`), `producto-pago-multiple` sin ninguno, kill switch maestro en `Normal`. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **Sin construir de `FLOW-002`: §9/CA13, CF8 y `personId`.** **LA TARDE AÑADIÓ UN FRENTE QUE NADIE HABÍA MIRADO: los índices.** Faltaban CUATRO en producción —`notifications`, `billingReminderJobs`, `billingSchedules` y `documents`—, tres vistos en la consola del navegador y **uno que no se veía**, encontrado cruzando el código contra el fichero. Puestos en los dos ambientes. **Y el cuarto destapó un defecto mayor y una sobre-concesión:** la lista de documentos del residente llevaba tiempo diciendo «Sin documentos» teniendo ocho —ordenaba por un campo que la subida real nunca escribe— y, al arreglarla, seis de esos ocho resultaron ser archivos financieros con **la mora unidad por unidad** (32 de 39 en todo el proyecto). Cerrado con regla por rol y categoría, consulta filtrando en el servidor e índice propio; la **portería** perdió de paso un acceso que tenía por `sameTenant`. **PRODUCCIÓN SIGUE SIN UN SOLO CLIENTE REAL** y ya no queda nada por confirmar: los nueve conjuntos están marcados como de ejemplo. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, entrando por el navegador y midiendo, con los cuatro roles.** No solo que desplegara: se anotaron los números ANTES y se comprobó uno a uno que salieran los predichos. **Y mirar la consola produjo lo que ninguna suite ve** — 1172 pruebas de front y 237 de reglas estaban en verde mientras cuatro consultas fallaban en producción y una pantalla entera mentía. Las reglas nuevas se **falsaron**: al revertirlas se ponen rojas exactamente las restrictivas. La lección de la tarde: **un `orderBy` descarta los documentos que no traen el campo, sin error y sin aviso — no hace falta un `catch` para que una lista mienta** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -996,6 +996,32 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.27 — 24 de agosto de 2026 (cierre)
+
+- **§13 comprobado en producción con números anotados antes de tocar nada.** Cobro del saldo
+  exacto sobre `T2-203`: los seis números predichos salieron, y los anticipos se quedaron en $0
+  con la bandera encendida en ese conjunto.
+- **Cuatro índices compuestos que faltaban en producción**, puestos también en staging. Tres se
+  vieron en la consola del navegador; **el cuarto no se veía** y salió de cruzar las diez consultas
+  ordenadas del helper contra `firestore.indexes.json`. Las especificaciones se decodificaron del
+  parámetro `create_composite` del propio error, no se adivinaron.
+- **La lista de documentos del residente no mostraba NINGUNO**, teniendo ocho. Ordenaba por
+  `uploadedAt`, que la subida real nunca escribe: 38 de 39 documentos no lo tenían, y **un
+  `orderBy` descarta los que no traen el campo**. Arreglado con el patrón del gemelo que ya lo
+  hacía bien —`watchDocuments`, sin orden y ordenando en memoria—, y corregido el tipo, que
+  declaraba cinco campos inexistentes.
+- **Y al arreglarlo apareció una sobre-concesión que la lista vacía tapaba:** seis de los ocho eran
+  archivos de `monthlyFinancialArchive` con detalle **por unidad** —quién debe y cuánto—. Cerrado
+  con la **opción A**: regla que nombra roles (administración y consejo todo; residente lista
+  blanca de categorías; **portería nada**, que entraba por `sameTenant`), consulta filtrando por
+  categoría en el servidor, e índice `(tenantId, category)`. Desplegado en el orden que exige una
+  regla restrictiva: índice → front → regla.
+- **`Queretarock` marcado como conjunto de ejemplo.** Los nueve están marcados y no queda ninguno
+  sin clasificar. La credencial que se daba por caducada **no lo estaba**: era otra.
+- Corregidas tres afirmaciones muertas: «lo que hay en `develop` y no en producción», «caer al
+  valor por defecto» leído como «apagada», y los índices anotados como «faltan en staging» cuando
+  faltaban también en producción.
 
 ### 0.9.26 — 24 de agosto de 2026 (noche)
 

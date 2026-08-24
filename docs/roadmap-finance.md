@@ -27,6 +27,15 @@ porqué está en `docs/roadmap-producto.md`.
 > horizontal —`PLAT-003` y `FLOW-002` incluidos— y `aplicarPago` ya no tiene la firma que aquí se
 > describe. **`FIN-002` (=F1) es hoy el frente de ingeniería más grande que se puede abrir sin un
 > cliente real.** Estado vivo del lote: `docs/prd/README.md`.
+>
+> **Y arranca con una pieza recién arreglada por debajo (24 ago 2026, tarde): la conciliación
+> vuelve a poder casar pagos.** No podía con ninguno, y no era un caso raro: en un `update` con
+> merge Firestore evalúa el documento **resultante**, que conserva el `sourceType`, y el veto de
+> `ledgerEntries` lo rechazaba — así que **desde `FIN-001`, cuando todos los asientos de cobro
+> nacen con `sourceType: "billingStatement"`, la pantalla de conciliación no podía marcar
+> conciliado ni un solo asiento**. Apareció probando la regla contra el emulador en la dirección
+> contraria a la que se buscaba. Cualquier estimación de `FIN-002` hecha antes del 24 asumía una
+> conciliación que en realidad estaba muerta.
 
 **Qué cambió en esta revisión:**
 

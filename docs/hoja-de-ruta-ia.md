@@ -1551,9 +1551,14 @@ piloto y modo sombra corriendo en producción.
 
 **Lo que sigue NO es código, y conviene no disfrazarlo de código:**
 
-1. **Tickets reales.** La sombra está armada y no tiene nada que clasificar:
-   producción tiene dos conjuntos reales con cero tickets. Las dos puertas de G7
-   se cobran contra pares que solo existen si entra trabajo de verdad. Esto lo
+1. **Tickets reales.** La sombra está armada y no tiene nada que clasificar.
+   **Y es peor de lo que decía esta línea hasta el 24 de agosto de 2026, que
+   hablaba de «dos conjuntos reales con cero tickets»: NO HAY NINGUNO.** David
+   confirmó ese día que `Conjunto Bromelias` y `Queretarock 229` tampoco son
+   clientes, así que los nueve conjuntos de producción son de demostración o
+   prueba interna. **La volumetría de este programa se calculó sobre esa cuenta
+   equivocada** y hay que rehacerla cuando haya con qué. Las dos puertas de G7 se
+   cobran contra pares que solo existen si entra trabajo de verdad. Esto lo
    desbloquea vender y activar conjuntos, no el programa de IA.
 2. **La línea base de H2′ en comunicaciones**, que lleva tres sesiones sin
    tomarse y ya gastó dos administradores. Hacen falta veinte minutos con una
