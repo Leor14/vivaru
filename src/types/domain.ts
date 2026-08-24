@@ -438,15 +438,39 @@ export interface PaymentReceipt {
   rejectedReason?: string;
 }
 
+/**
+ * Documento del repositorio del conjunto, **con la forma que de verdad escribe
+ * la subida** (`subirDocumento` y `registrarDocumentoSubido` en
+ * `features/admin/services.ts`).
+ *
+ * **Este tipo declaraba `title`, `category`, `audience`, `uploadedAt` y `url`, y
+ * ninguno de esos cinco existe en los documentos reales.** De los 39 de
+ * producción, 38 no tenían `uploadedAt`. Con esa mentira encima, la lista del
+ * residente ordenaba en el servidor por un campo ausente —y un `orderBy`
+ * DESCARTA los documentos que no lo traen—, así que la pantalla decía «Sin
+ * documentos» teniendo ocho. Corregido el 24 de agosto de 2026.
+ *
+ * Su gemelo es `DocumentItem` en `features/admin/services.ts`, que ya modelaba
+ * la forma buena. Existen los dos a propósito: importar aquel arrastraría su
+ * módulo entero —Storage y subidas— al bundle del residente. **Si cambia la
+ * forma, hay que tocar los dos.**
+ */
 export interface TenantDocument {
   id: string;
   tenantId: string;
-  title: string;
-  category: "reglamento" | "acta" | "circular";
-  audience: "all" | "admins";
-  uploadedAt: string;
-  url?: string;
+  fileName: string;
+  description?: string;
+  fileUrl?: string;
+  storagePath?: string;
+  category?: string;
+  folderId?: string | null;
+  uploadedBy?: string;
+  uploadedByName?: string;
+  fileSize?: number;
+  contentType?: string;
   createdBy?: string;
+  /** Llega como `Timestamp` de Firestore sin convertir. Usar `toLocalDate`. */
+  createdAt?: unknown;
 }
 
 // ─────────────────────────────────────────────────────────────

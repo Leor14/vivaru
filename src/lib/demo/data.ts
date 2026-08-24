@@ -5,7 +5,6 @@ import type {
   Reservation,
   SessionUser,
   Tenant,
-  TenantDocument,
   Ticket,
   VisitorPass,
 } from "@/types/domain";
@@ -221,23 +220,3 @@ export const demoBillingStatements: BillingStatement[] = [
   },
 ];
 
-export const demoTenantDocuments: TenantDocument[] = [
-  {
-    id: "doc-1",
-    tenantId: "tenant-santa-maria",
-    title: "Reglamento de propiedad horizontal.pdf",
-    category: "reglamento",
-    audience: "all",
-    uploadedAt: "2026-02-05T10:00:00.000Z",
-    createdBy: "usr-admin-1",
-  },
-  {
-    id: "doc-2",
-    tenantId: "tenant-santa-maria",
-    title: "Acta asamblea ordinaria 2025.pdf",
-    category: "acta",
-    audience: "all",
-    uploadedAt: "2026-01-29T14:20:00.000Z",
-    createdBy: "usr-admin-1",
-  },
-];

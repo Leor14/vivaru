@@ -5,6 +5,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useDocuments } from "@/features/documents/use-documents";
+import { formatDateSafe } from "@/utils/date";
 
 export default function ResidentDocumentsPage() {
   const { user } = useAuth();
@@ -30,11 +31,32 @@ export default function ResidentDocumentsPage() {
             description="Aún no hay documentos publicados para tu conjunto."
           />
         ) : null}
-        {items.map((item) => (
-          <li key={item.id} className="rounded-xl border border-[var(--slate-200)] p-3">
-            {item.title}
-          </li>
-        ))}
+        {items.map((item) => {
+          // El nombre del fichero es lo único que TODO documento trae. Esta lista
+          // pintaba `item.title`, que no existe en ninguno: aunque la consulta
+          // hubiera devuelto filas, habrían salido en blanco.
+          const fecha = formatDateSafe(item.createdAt);
+          return (
+            <li key={item.id} className="rounded-xl border border-[var(--slate-200)] p-3">
+              {item.fileUrl ? (
+                <a
+                  href={item.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-[var(--brand-700)] underline-offset-2 hover:underline"
+                >
+                  {item.fileName}
+                </a>
+              ) : (
+                <span className="font-medium">{item.fileName}</span>
+              )}
+              {item.description ? (
+                <p className="mt-1 text-[var(--slate-500)]">{item.description}</p>
+              ) : null}
+              {fecha ? <p className="mt-1 text-xs text-[var(--slate-500)]">{fecha}</p> : null}
+            </li>
+          );
+        })}
       </ul>
     </Card>
   );
