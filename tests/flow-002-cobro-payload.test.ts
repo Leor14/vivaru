@@ -4,7 +4,13 @@ vi.mock("@/lib/firebase/client", () => ({ db: {} }));
 vi.mock("@/lib/firebase/realtime-helpers", () => ({ subscribeTenantCollection: vi.fn() }));
 vi.mock("firebase/firestore", () => ({ doc: vi.fn(), getDoc: vi.fn() }));
 
-const applyPaymentCallable = vi.fn(async () => ({
+/**
+ * El parámetro va TIPADO a propósito. Con `vi.fn(async () => ...)` TypeScript
+ * infiere la tupla de argumentos como `[]`, así que leer `mock.calls[0][0]`
+ * —que es justo lo que estas pruebas miran— no compila. Y el gate de este
+ * repositorio es 0 errores **incluidos `tests/`**.
+ */
+const applyPaymentCallable = vi.fn(async (_input: Record<string, unknown>) => ({
   ok: true as const,
   applied: true,
   ledgerEntryId: "led-1",
@@ -14,7 +20,9 @@ const applyPaymentCallable = vi.fn(async () => ({
   voucherId: "v-1",
   voucherCode: "REC-1",
 }));
-vi.mock("@/lib/firebase/callables", () => ({ applyPaymentCallable: (i: unknown) => applyPaymentCallable(i as never) }));
+vi.mock("@/lib/firebase/callables", () => ({
+  applyPaymentCallable: (input: Record<string, unknown>) => applyPaymentCallable(input),
+}));
 
 import { recordPayment } from "@/features/finanzas/use-payments";
 import type { BillingStatement } from "@/types/domain";
@@ -40,7 +48,7 @@ const cargo: BillingStatement = {
 describe("recordPayment — el sobre que se manda al servidor", () => {
   beforeEach(() => applyPaymentCallable.mockClear());
 
-  const payload = () => applyPaymentCallable.mock.calls[0][0] as Record<string, unknown>;
+  const payload = () => applyPaymentCallable.mock.calls[0][0];
 
   it("un solo cargo va por `statementId` y sin reparto", async () => {
     await recordPayment("t", "u", { statement: cargo, amount: 200, date: "2026-08-24", operationKey: "k1" });
