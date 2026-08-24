@@ -2317,6 +2317,44 @@ describe("FLOW-002 CA11 · las cuentas se abren al residente; el saldo no", () =
     await assertFails(getDocs(query(cuentas, where("tenantId", "==", "tenant-a"))));
   });
 
+  /**
+   * **La portería NO entra, y esta prueba es la que lo sostiene.**
+   *
+   * Hasta el 24 de agosto de 2026 la rama decía `tenantMember`, que incluye a
+   * cualquiera con documento en `tenantUsers` — la portería entre ellos. La PRD
+   * (§3) le da al `security_guard` «Nada / no puede Acceder», y el comentario de
+   * la regla de `advances` evita `sameTenant` diciendo exactamente eso: era una
+   * incoherencia dentro del mismo cambio.
+   *
+   * El punto ciego estaba aquí: existía «ni el consejo, ni la portería», pero
+   * **solo para `bankAccountBalances`**. Para la cuenta en sí nadie preguntó.
+   */
+  it("la portería NO lee una cuenta activa", async () => {
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(guard.firestore(), "bankAccounts", "bank-a-activa")));
+  });
+
+  /**
+   * Y tampoco por consulta. Va aparte del documento a propósito: Firestore
+   * evalúa la consulta contra la regla **sin ejecutarla**, así que una y otra
+   * son preguntas distintas — la lección del 24 de agosto, aplicada al revés.
+   */
+  it("ni las consulta en bloque, ni con el filtro de activas", async () => {
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    const cuentas = collection(guard.firestore(), "bankAccounts");
+    await assertFails(
+      getDocs(query(cuentas, where("tenantId", "==", "tenant-a"), where("active", "==", true))),
+    );
+    await assertFails(getDocs(query(cuentas, where("tenantId", "==", "tenant-a"))));
+  });
+
+  // El consejo tampoco: la PRD no le da cuentas bancarias, y `tenantMember` se
+  // las daba de propina.
+  it("el consejo tampoco lee las cuentas", async () => {
+    const com = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(com.firestore(), "bankAccounts", "bank-a-activa")));
+  });
+
   it("la del administrador pasa sin filtro: las ve todas", async () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertSucceeds(

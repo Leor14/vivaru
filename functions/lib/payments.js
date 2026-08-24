@@ -322,6 +322,31 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     if (asignaciones.length > 1) {
         await (0, feature_flags_1.assertFeatureEnabled)("producto-pago-multiple", tenantId);
     }
+    // **Sin anticipos, el reparto tiene que sumar EXACTAMENTE lo pagado.**
+    //
+    // Aquí arriba decía que con la bandera apagada `sobrante` queda en cero «por
+    // construcción», y era cierto **solo para la forma vieja**: ahí la única línea
+    // vale `monto` y la resta da cero sola. En cuanto llega un `allocations` que
+    // suma menos —que R7 permite a propósito, porque la diferencia es sobrante—,
+    // `sobrante > 0` y el bloque de más abajo creaba un anticipo **con los
+    // anticipos apagados**. Y nacía congelado: las tres callables de `advances.ts`
+    // sí exigen la bandera, así que ese dinero no se podía cruzar, ni anular, ni
+    // ver. Medido con el emulador el 24 de agosto de 2026: dos cargos de 70.000 y
+    // un pago de 200.000 con `producto-pago-multiple` encendida dejaban un
+    // anticipo de 60.000 inoperable, mientras la pantalla prometía que esos 60.000
+    // se contabilizarían **contra el cargo**.
+    //
+    // Se rechaza en vez de absorberlo: contabilizar el sobrante contra el cargo
+    // reintroduciría la evaporación que esta ficha vino a cerrar, y dejar nacer el
+    // anticipo convertiría la bandera en un interruptor que no apaga nada. Con
+    // anticipos apagados no hay saldo a favor, así que un reparto que no llega al
+    // importe es un error de captura, y se dice.
+    //
+    // La forma vieja no pasa por aquí: su línea única vale `monto`. Y la tolerancia
+    // es la de siempre — sin ella esto rechazaría repartos exactos con centavos.
+    if (!anticipos && sumaAsignada < monto - TOLERANCIA_MONEDA) {
+        throw new https_1.HttpsError("invalid-argument", "El reparto suma menos que el importe pagado. Ajusta las líneas o enciende los anticipos para guardar la diferencia como saldo a favor.");
+    }
     return firestore.runTransaction(async (tx) => {
         // ── Lecturas, todas antes de escribir ────────────────────────────────────
         const opSnap = await tx.get(opRef);
@@ -580,6 +605,14 @@ async function aplicarPago(input, uid, role, tokenTenant) {
         // aparte, un fallo entre las dos operaciones dejaría dinero sin registrar —
         // exactamente el hueco que `FIN-001` cerró para el recibo.
         let advanceId;
+        // **El invariante que sostiene la bandera.** El guardián de entrada ya
+        // impide llegar aquí con sobrante y los anticipos apagados; esto es lo que
+        // hace que siga siendo verdad si mañana aparece otro camino que reduzca
+        // `totalAplicado`. Qué lo pondría rojo de verdad: cualquier cambio que
+        // vuelva a permitir un reparto por debajo del importe con la bandera off.
+        if (!anticipos && sobrante > 0) {
+            throw new https_1.HttpsError("internal", "No se puede crear un saldo a favor con los anticipos apagados.");
+        }
         // **R3: un anticipo de importe cero no se crea.** No es cosmética: una lista
         // de anticipos llena de ceros es una lista que nadie mira, y la vista de
         // anticipos abiertos es la herramienta de G5.

@@ -93,7 +93,7 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
 - **Árbol duplicado en la raíz:** además de `src/`, hay `components/` y `features/` en la RAÍZ del repo. El portal residente importa de la raíz (p. ej. `components/features/resident/ResidentSecuritySection.tsx`, `features/resident/schemas.ts`). Verificar de cuál se importa antes de editar.
 - **Aislar widgets/tableros con `WidgetErrorBoundary`** (`src/components/shared/widget-error-boundary.tsx`): toda sección de dashboard/tablero que consuma datos del tenant —en especial charts de **recharts**— debe ir envuelta, para que un fallo de un widget NO tumbe toda la ruta `/admin` (su `error.tsx` muestra "No pudimos cargar el workspace"). El único error boundary de ruta convierte cualquier throw de un widget en una pantalla de error global.
 - **`writeAuditLog` revienta con un campo `undefined`, y audita FUERA de la transacción.** `initializeApp()` corre sin `ignoreUndefinedProperties`, así que un campo opcional ausente en el `metadata` hace que Firestore rechace la escritura **después de que la operación haya cuajado**: el dinero se mueve y la callable devuelve error. Pasó con `applyPayment` y un reparto (24 ago 2026). Al añadir un campo opcional al metadata de una auditoría, mandarlo siempre o limpiarlo antes.
-- **Una consulta de `bankAccounts` que no haga un administrador TIENE que filtrar `active == true`.** Desde `FLOW-002` la lectura está abierta a los miembros del conjunto pero solo para cuentas activas, y Firestore evalúa la consulta contra la regla **sin ejecutarla**: sin ese `where` se rechaza entera aunque todas estuvieran activas. El saldo inicial vive aparte, en `bankAccountBalances`, y ese sí es solo-administrador.
+- **Una consulta de `bankAccounts` que no haga un administrador TIENE que filtrar `active == true`.** Desde `FLOW-002` la lectura está abierta **al residente** —no a «los miembros»— y solo para cuentas activas, y Firestore evalúa la consulta contra la regla **sin ejecutarla**: sin ese `where` se rechaza entera aunque todas estuvieran activas. El saldo inicial vive aparte, en `bankAccountBalances`, y ese sí es solo-administrador. **La rama decía `tenantMember` hasta el 24 de agosto de 2026, y eso incluía a la portería y al consejo**: la PRD (§3) le da al `security_guard` «Nada / no puede Acceder», y la regla de `advances` evita `sameTenant` diciendo exactamente eso. Corregido a `tenantRole(..., 'resident')`.
 - **Tenant siempre con `currency` válido** (`COP`|`MXN`|`USD`): cualquier alta/seed de un tenant debe escribir `currency`; los formateadores (`Intl.NumberFormat`, `useTenantCurrency`) deben defaultear a un valor válido y nunca recibir `undefined`.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
@@ -196,7 +196,7 @@ del programa de IA se calculó sobre esa cuenta.
 **Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
 que haya un cliente — lo que cambia es a quién le pasa hoy.
 
-**LO PRIMERO DE LA SIGUIENTE SESIÓN: `docs/revision-flow-002-por-verificar.md`.** 36 sospechas de
+**LO PRIMERO DE LA SIGUIENTE SESIÓN: `docs/revision-flow-002-por-verificar.md`.** Las 36 sospechas de
 una revisión adversarial de lo desplegado cuya fase de jueces se cayó por sobrecarga de API. **No
 son defectos: son hipótesis con un solo par de ojos**, nueve de gravedad alta. El único que sí llegó
 a tener sus tres votos era real y ya está corregido: dos guardianes de `aplicarPago` rechazaban
@@ -212,8 +212,11 @@ cobros **correctos** con centavos. Ver `aMoneda` y `TOLERANCIA_MONEDA` en `funct
   Un conjunto `suspended` puede cobrar y cruzar. Es anterior a la ficha, que lo amplía.
 - **`personId` del anticipo no lo escribe nadie**, y §7.6 construye una regla de retención encima.
 
-**`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo leen ahora
-**los miembros del conjunto, y solo las cuentas activas** — lo pide CA11. Para poder abrirlo,
+**`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo lee ahora
+**el residente, y solo las cuentas activas** — lo pide CA11. Esta línea decía «los miembros del
+conjunto», que era literal: la regla usaba `tenantMember` y con ella entraban **la portería y el
+consejo**, a los que la PRD no les da nada de esto. Reproducido contra el emulador y corregido el
+24 de agosto de 2026. Para poder abrirlo,
 `openingBalance` **salió del documento** a `bankAccountBalances/{idDeLaCuenta}`, que sigue siendo
 solo-administrador: las reglas conceden el documento entero y no se pueden ocultar campos. **Una
 consulta de cuentas hecha por alguien que no es administrador TIENE que filtrar `active == true`**,

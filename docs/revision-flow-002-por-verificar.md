@@ -1,4 +1,4 @@
-# Revisión de `FLOW-002` — 24 sospechas sin verificar (de 37)
+# Revisión de `FLOW-002` — 20 sospechas sin verificar (de 37)
 
 **Léelo entero antes de tocar uno.** Esta lista NO es una lista de defectos: es una lista de
 **sospechas sin confirmar**, y tratarla como si fuera lo primero es la forma más rápida de
@@ -20,8 +20,26 @@ todos eran jueces. Solo **un** hallazgo llegó a tener sus tres votos:
 > con su hermano `sumaAsignada > monto`. Ver `functions/src/payments.ts` → `aMoneda` y
 > `TOLERANCIA_MONEDA`.
 
-**Quedan 24 con un solo par de ojos** — doce eran de documentación y se verificaron y resolvieron el 24 de agosto (ver la sección de abajo). Un hallazgo de un solo revisor sin refutar es
+**Quedan 20 con un solo par de ojos** — doce eran de documentación y se verificaron y resolvieron el 24 de agosto (ver la sección de abajo). Un hallazgo de un solo revisor sin refutar es
 una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada confirmación.
+
+## Las dos «gordas»: verificadas el 24 de agosto, y las DOS eran ciertas
+
+**Se reprodujeron antes de tocar nada, y las dos se sostuvieron.** Detalle en cada entrada tachada
+más abajo; lo que hay que llevarse:
+
+- **El anticipo con la bandera apagada era real, y aparece DOS VECES en las listas** (una en ALTA y
+  otra en MEDIA, por lentes distintas). Al contar cuántas quedan, no son dos hallazgos.
+- **`bankAccounts` abierta a la portería era real**, y la sospecha acertó también el diagnóstico:
+  incoherencia con el comentario de la regla de `advances`.
+- **Estaba viva pero dormida.** Se leyeron las banderas de los dos ambientes en vez de suponerlas:
+  en producción `producto-pago-multiple` no tiene ni documento ni override, así que la combinación
+  peligrosa no se daba. **Se daba al seguir el runbook**, que autorizaba encender múltiple sola, y
+  **al hacer el rollback documentado**. Las dos cosas están corregidas.
+- **El método que las cazó, en las dos, fue el mismo:** buscar la forma que el banco de pruebas
+  NO ejercita. El test de «bandera apagada» usaba la forma vieja; el de «ni el consejo, ni la
+  portería» existía solo para `bankAccountBalances`. **El punto ciego estaba escrito en el propio
+  banco.**
 
 ## Cómo trabajarlos
 
@@ -31,10 +49,8 @@ una hipótesis: este mismo ejercicio produjo, con jueces, un descarte por cada c
 2. **Los de documentación son los más baratos y los más probables**, porque los escribí yo hoy y
    la sesión terminó con cuatro cabeceras que se pisan entre sí. Empieza por ahí: son verificables
    leyendo, sin ambigüedad.
-3. **Ojo con dos que, si son reales, son de las gordas:** que el anticipo se cree con la bandera
-   apagada, y que `bankAccounts` se haya abierto a la portería y no solo al residente. La segunda
-   es de mi cambio de esta noche, y el comentario de la regla de `advances` dice explícitamente
-   que la portería no debe ver nada — así que si es cierta, es una incoherencia mía.
+3. ~~**Ojo con dos que, si son reales, son de las gordas.**~~ **HECHO el 24 de agosto: las dos eran
+   ciertas y están corregidas** — ver la sección de arriba. No hay que volver a mirarlas.
 4. **Vuelve a correr la revisión con los jueces.** El script está en el directorio de workflows de
    la sesión y se puede reanudar: los agentes con prompt sin cambios responden de la caché, así
    que solo se re-ejecutan los jueces que se cayeron.
@@ -58,15 +74,22 @@ noche**, y una sesión que reescribe cuatro cabeceras a mano termina con las cua
 cortas tres veces en una noche, y una cabecera que hay que actualizar en cada push acaba mintiendo.
 Ahora dicen que se lea `git ls-remote`.
 
-### Sospechas de gravedad ALTA (9 sin verificar)
+### Sospechas de gravedad ALTA (3 sin verificar)
 - **El informe mensual automático sigue con la fórmula vieja del «% de recaudo»**
   `functions/src/index.ts` · `monthlyFinancialArchive`
 - **El ajuste a mano de un cargo sin línea propuesta se acepta en pantalla y se tira al enviar**
   `src/features/billing/reparto.ts (y su uso en src/components/features/finanzas/RecordPaymentModal.tsx)` · `aplicarAjustes / RecordPaymentModal (bloque de líneas editables)`
 - **La pantalla anuncia el importe entero como sobrante mientras la vista previa no ha llegado, y para siempre si falla**
   `src/components/features/finanzas/RecordPaymentModal.tsx` · `RecordPaymentModal — bloque `{cuadra && reparto.sobrante > 0 ? ... : null}` junto con `aplicarAjustes``
-- **El anticipo se crea aunque `producto-anticipos` esté apagada**
+- ~~**El anticipo se crea aunque `producto-anticipos` esté apagada**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `functions/src/payments.ts` · `aplicarPago — el bloque `if (sobrante > 0)``
+  **Era cierta.** El comentario decía que con la bandera apagada `sobrante` queda en cero «por
+  construcción», y lo era **solo para la forma vieja** (`statementId` + `amount`), que es la única
+  que probaba el banco. Con `allocations` sumando menos que lo pagado —cosa que R7 permite a
+  propósito— nacía el anticipo. Medido con el emulador: dos cargos de 70.000 y un pago de 200.000
+  con `producto-pago-multiple` encendida dejaban un anticipo de 60.000 **inoperable**. Arreglado
+  rechazando el cobro (`invalid-argument`), con un invariante dentro de la transacción y el botón
+  bloqueado en la pantalla.
 - ~~**El roadmap dice «Producción no se ha tocado» y FLOW-002 está en producción**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
   `docs/roadmap-producto.md` · `## Estado de esta revisión → fila «Estado» (v0.9.22, 24 ago)`
 - ~~**La PRD deja como «Abierta» la vista previa del reparto, que ya la calcula el servidor**~~ · **VERIFICADA Y RESUELTA** el 24 ago 2026
@@ -93,8 +116,12 @@ Ahora dicen que se lea `git ls-remote`.
   `src/components/features/billing/PaymentReceiptsReviewPanel.tsx` · `PaymentReceiptsReviewPanel — `cuentaElegida` y el `<select>` alimentado por `bankAccountsActivas``
 - **Las claves de idempotencia de pagos no llevan el conjunto, y el atajo idempotente no comprueba el tenant**
   `functions/src/payments.ts` · `aplicarPago y revertirPago — `opRef`/`revRef` y sus salidas tempranas `if (opSnap.exists)` / `if (revSnap.exists)``
-- **Se crea un anticipo con `producto-anticipos` APAGADA, y nace congelado**
+- ~~**Se crea un anticipo con `producto-anticipos` APAGADA, y nace congelado**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `functions/src/payments.ts` · `aplicarPago — `if (sobrante > 0) { … tx.set(advanceRef, …) }`, sin guarda de la bandera `anticipos``
+  **Es la misma que la de gravedad ALTA, contada dos veces** por dos lentes distintas — conviene
+  saberlo al contar cuántas quedan. Y la parte de «nace congelado» también se comprobó: las tres
+  callables de `advances.ts` exigen la bandera, así que ese anticipo no se podía cruzar, ni anular,
+  ni deshacer.
 - **CF3 compara `remaining` y `amount` con igualdad exacta: un anticipo cruzado y descruzado ya no se puede anular**
   `functions/src/advances.ts` · `anularAnticipo — `if ((advance.remaining ?? 0) !== (advance.amount ?? 0)) throw failed-precondition("Ese anticipo ya se aplicó a algún cargo…")``
 - **`sobrante > 0` sin umbral crea anticipos y asientos de polvo (~1e-13)**
@@ -109,8 +136,15 @@ Ahora dicen que se lea `git ls-remote`.
   `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` · `§7.5 Multi-tenancy y ciclo de vida / CF8`
 - **El consejo gana detalle financiero POR UNIDAD que el resto del modelo le niega, y sin bandera**
   `vivaru/firestore.rules` · `match /advances/{docId} y match /advanceApplications/{docId} — la cláusula tenantRole(resource.data.tenantId, 'committee') del allow read`
-- **bankAccounts se abrió a TODOS los miembros, no solo a los residentes: la portería lee las cuentas del conjunto**
+- ~~**bankAccounts se abrió a TODOS los miembros, no solo a los residentes: la portería lee las cuentas del conjunto**~~ · **REPRODUCIDA Y CORREGIDA** el 24 ago 2026
   `vivaru/firestore.rules` · `match /bankAccounts/{docId} — la rama (tenantMember(resource.data.tenantId) && resource.data.active == true) del allow read`
+  **Era cierta, y la sospecha acertó también el motivo:** incoherencia dentro del mismo cambio. El
+  comentario de la regla de `advances`, veinte líneas más arriba, evita `sameTenant` diciendo que
+  «eso incluiría a la portería, que según la PRD no ve nada de esto» — y `tenantMember` es
+  exactamente eso. Reproducido contra el emulador: la portería leía el documento **y** podía
+  consultar la colección en bloque. El consejo también entraba de propina. Corregido a
+  `tenantRole(..., 'resident')`. Ninguna pantalla de `/guard` la usaba: el único consumidor de
+  `watchActiveBankAccounts` es el portal del residente.
 
 ### Sospechas de gravedad BAJA
 - **El StatTile «Brecha» conserva el rótulo que el tooltip de su propio gráfico renombró a «Pendiente»**

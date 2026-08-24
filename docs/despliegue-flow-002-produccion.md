@@ -90,8 +90,21 @@ que la cuota, el asiento y el recibo salen como siempre. Si hay que usar un conj
 
 Y va **una cada vez**, mirando. `producto-anticipos` primero: cambia un número que ya se mira —un
 pago de 200 sobre una cuota de 140 deja de dejar `paymentAmount: 200` y pasa a dejar 140 más un
-anticipo de 60—. `producto-pago-multiple` puede ir sola o después; sin la primera, el sobrante de
-un reparto vuelve a evaporarse.
+anticipo de 60—.
+
+**`producto-pago-multiple` puede ir sola, y esta línea decía por qué de forma equivocada.** Decía
+que «sin la primera, el sobrante de un reparto vuelve a evaporarse». **No se evaporaba: se
+congelaba.** Con múltiple encendida y anticipos apagada, `aplicarPago` creaba un anticipo que
+ninguna de las tres callables de `advances.ts` podía cruzar ni anular —todas exigen la bandera—,
+así que ese dinero quedaba fuera de alcance mientras la pantalla prometía que se contabilizaba
+contra el cargo. Reproducido con el emulador el 24 de agosto de 2026: dos cargos de 70.000 y un
+pago de 200.000 dejaban un anticipo de 60.000 inoperable.
+
+**Corregido el 24 de agosto:** con los anticipos apagados, un reparto que no llega al importe se
+**rechaza** —`invalid-argument`, y el botón de la pantalla se bloquea antes de enviar—. Así que
+múltiple puede ir sola: lo que no se puede, con anticipos apagados, es repartir un pago que deje
+sobrante. **Y ojo al rollback:** apagar solo `producto-anticipos` donde múltiple esté encendida era
+exactamente la combinación mala; hoy ya no crea nada, rechaza.
 
 ## Dos huecos que YA ESTÁN CERRADOS — se dejan escritos porque enseñan algo
 

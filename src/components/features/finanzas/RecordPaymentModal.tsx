@@ -185,6 +185,16 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
 
   const hayAjustes = Object.values(ajustes).some((v) => v.trim() !== "");
   const cuadra = !hayAjustes || repartoCuadra(reparto.lineas, importe);
+  // **La misma condicion que decide si viaja `allocations`** (ver el envio mas
+  // abajo). Se nombra aqui porque de ella depende que pasa con el sobrante, y
+  // tenerla escrita dos veces con formas distintas es como la pantalla acabo
+  // prometiendo lo contrario de lo que hacia el servidor.
+  const vaPorReparto = pagoMultiple && reparto.lineas.length > 1;
+  // Con los anticipos apagados, un reparto que no llega al importe **se rechaza
+  // en el servidor**: sin anticipos no hay donde guardar la diferencia. Se
+  // bloquea aqui para que el administrador lo vea antes de enviar y no en un
+  // error rojo despues.
+  const sobranteSinDestino = vaPorReparto && !sobranteSeraAnticipo && reparto.sobrante > 0;
 
   function alternar(id: string) {
     setSeleccion((actual) => (actual.includes(id) ? actual.filter((x) => x !== id) : [...actual, id]));
@@ -415,7 +425,9 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                 <p className="rounded-lg border border-[#d6ede4] bg-[#f1fbf7] px-2 py-1 text-xs text-[#2f775f]">
                   {sobranteSeraAnticipo
                     ? `Sobran ${formatAmount(reparto.sobrante)}: quedarán como saldo a favor de la unidad.`
-                    : `Sobran ${formatAmount(reparto.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
+                    : sobranteSinDestino
+                      ? `Sobran ${formatAmount(reparto.sobrante)} y no hay dónde guardarlos: al repartir el pago entre varios cargos, con los anticipos apagados, la diferencia no se contabiliza en ninguna parte. Ajusta las líneas hasta sumar el importe, o enciende los anticipos.`
+                      : `Sobran ${formatAmount(reparto.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
                 </p>
               ) : null}
 
@@ -446,7 +458,7 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                 <Button
                   className="w-full sm:w-auto"
                   type="button"
-                  disabled={submitting || !cuadra}
+                  disabled={submitting || !cuadra || sobranteSinDestino}
                   onClick={() => void handleSubmit()}
                 >
                   {submitting ? "Registrando..." : "Registrar y emitir recibo"}

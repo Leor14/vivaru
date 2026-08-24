@@ -220,6 +220,101 @@ describe("D-A · con la bandera APAGADA no cambia un solo número", () => {
   });
 });
 
+describe("D-A · con la bandera apagada NO puede nacer un anticipo por la puerta del reparto", () => {
+  /**
+   * **El agujero que tapa esto.** La prueba de arriba usa la forma vieja
+   * —`statementId` + `amount`—, donde la única línea vale `monto` y el sobrante
+   * sale cero solo. Por eso el comentario de `aplicarPago` podía decir «cero por
+   * construcción» y ser cierto: **nadie había probado la otra forma**.
+   *
+   * Con `allocations` que sumen menos que lo pagado —cosa que R7 permite a
+   * propósito— `sobrante > 0`, y el bloque del anticipo no miraba la bandera.
+   * Medido el 24 de agosto de 2026 antes de arreglarlo: nacía un anticipo de
+   * 60.000 **inoperable**, porque las tres callables de `advances.ts` sí exigen
+   * la bandera. Y la pantalla, con anticipos apagados, prometía justo lo
+   * contrario: que esos 60.000 se contabilizaban contra el cargo.
+   */
+  it("una sola línea por debajo del importe se rechaza, y no deja anticipo", async () => {
+    await bandera(false, false);
+    await sembrarCuota("cuota-off-1", 140000);
+    await expect(aplicarPago(
+      {
+        tenantId: TENANT, statementId: "cuota-off-1", amount: 200000, date: "2026-08-24",
+        operationKey: "op-off-1", source: "manual",
+        allocations: [{ statementId: "cuota-off-1", amount: 50000 }],
+      },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/suma menos que el importe pagado/);
+    expect((await db.collection("advances").get()).size).toBe(0);
+  });
+
+  /**
+   * **El caso alcanzable desde la pantalla**, que es el que importa: el front
+   * solo manda `allocations` con `producto-pago-multiple` encendida y más de una
+   * línea. Esa combinación —múltiple ON, anticipos OFF— es la que el runbook
+   * autorizaba explícitamente, y la que el rollback produce al apagar solo los
+   * anticipos.
+   */
+  it("múltiple ON + anticipos OFF: el reparto que no llega al importe se rechaza", async () => {
+    await bandera(false, true);
+    await sembrarCuota("cuota-off-2", 70000);
+    await sembrarCuota("cuota-off-3", 70000);
+    await expect(aplicarPago(
+      {
+        tenantId: TENANT, statementId: "cuota-off-2", amount: 200000, date: "2026-08-24",
+        operationKey: "op-off-2", source: "manual",
+        allocations: [
+          { statementId: "cuota-off-2", amount: 70000 },
+          { statementId: "cuota-off-3", amount: 70000 },
+        ],
+      },
+      ADMIN, ROL, TENANT,
+    )).rejects.toThrow(/suma menos que el importe pagado/);
+    expect((await db.collection("advances").get()).size).toBe(0);
+    // Y no se ha movido nada a medias: los cargos siguen intactos.
+    expect((await db.collection("billingStatements").doc("cuota-off-2").get()).data()?.paymentAmount).toBe(0);
+    expect((await db.collection("ledgerEntries").get()).size).toBe(0);
+  });
+
+  /**
+   * **La contraparte imprescindible: el guardián no puede haber roto lo bueno.**
+   * Un reparto que SÍ cuadra tiene que seguir pasando con la bandera apagada, y
+   * con centavos — que es donde el hermano de este guardián rechazaba cobros
+   * correctos.
+   */
+  it("un reparto que cuadra sigue pasando con la bandera apagada, también con centavos", async () => {
+    await bandera(false, true);
+    await sembrarCuota("cuota-off-4", 1243.79);
+    await sembrarCuota("cuota-off-5", 4619.14);
+    const r = await aplicarPago(
+      {
+        tenantId: TENANT, statementId: "cuota-off-4", amount: 5862.93, date: "2026-08-24",
+        operationKey: "op-off-3", source: "manual",
+        allocations: [
+          { statementId: "cuota-off-4", amount: 1243.79 },
+          { statementId: "cuota-off-5", amount: 4619.14 },
+        ],
+      },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.advanceId).toBeUndefined();
+    expect((await db.collection("advances").get()).size).toBe(0);
+  });
+
+  /** Y la forma vieja no pasa por el guardián nuevo: su línea única vale `monto`. */
+  it("la forma vieja sigue contabilizando el sobrepago entero contra la cuota", async () => {
+    await bandera(false, false);
+    await sembrarCuota("cuota-off-6", 140000);
+    const r = await aplicarPago(
+      { tenantId: TENANT, statementId: "cuota-off-6", amount: 200000, date: "2026-08-24", operationKey: "op-off-4", source: "manual" },
+      ADMIN, ROL, TENANT,
+    );
+    expect(r.paymentAmount).toBe(200000);
+    expect(r.advanceId).toBeUndefined();
+    expect((await db.collection("advances").get()).size).toBe(0);
+  });
+});
+
 describe("D-A · el sobrepago deja de evaporarse", () => {
   it("pagar 200 sobre 140 deja la cuota pagada y un anticipo de 60 (CA1)", async () => {
     await bandera(true);

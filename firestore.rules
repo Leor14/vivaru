@@ -483,9 +483,20 @@ service cloud.firestore {
     // poder LEER las cuentas del conjunto. Hasta el 24 de agosto de 2026 esto
     // era solo-administrador.
     //
-    // Se abre a los miembros, y SOLO las cuentas activas: una cuenta dada de
+    // Se abre al RESIDENTE, y SOLO las cuentas activas: una cuenta dada de
     // baja no recibe dinero nuevo, asi que nadie fuera de la administracion
     // tiene por que verla. El administrador las sigue viendo todas.
+    //
+    // **Al residente por su rol, NO con `tenantMember`.** Hasta el 24 de agosto
+    // de 2026 esta rama decia `tenantMember`, que es cualquiera con documento en
+    // `tenantUsers` — y ahi dentro esta la PORTERIA. La PRD de `FLOW-002` (§3)
+    // le da al `security_guard` «Nada / no puede Acceder», y la regla de
+    // `advances`, veinte lineas mas arriba, evita `sameTenant` diciendo
+    // exactamente eso. Era una incoherencia dentro del mismo cambio: reproducida
+    // contra el emulador, la porteria leia el documento Y podia consultar la
+    // coleccion en bloque. Ninguna pantalla de `/guard` la necesita: el unico
+    // consumidor de `watchActiveBankAccounts` es el portal del residente.
+    // El consejo tampoco entra: la PRD no le da cuentas bancarias.
     //
     // **Lo que hizo falta para poder abrirlo:** el saldo inicial se saco de este
     // documento a `bankAccountBalances` (aqui abajo). Las reglas conceden el
@@ -496,7 +507,7 @@ service cloud.firestore {
     match /bankAccounts/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||
-        (tenantMember(resource.data.tenantId) && resource.data.active == true)
+        (tenantRole(resource.data.tenantId, 'resident') && resource.data.active == true)
       );
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));

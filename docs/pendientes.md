@@ -22,10 +22,27 @@ y `Queretarock 229` tampoco lo son —David, 24 de agosto—. Bromelias ya está
 
 ## LO PRIMERO DE LA SIGUIENTE SESIÓN
 
-**`docs/revision-flow-002-por-verificar.md` — 36 sospechas SIN VERIFICAR.** Revisión adversarial de
-todo lo desplegado, con seis lentes y tres jueces por hallazgo; **la fase de jueces se cayó** (59 de
-117 agentes con `529`). **No son defectos: son hipótesis con un solo par de ojos**, nueve de
-gravedad alta. Doce eran de documentación y **ya están corregidas** en esta pasada.
+**`docs/revision-flow-002-por-verificar.md` — quedan 20 sospechas SIN VERIFICAR.** Revisión
+adversarial de todo lo desplegado, con seis lentes y tres jueces por hallazgo; **la fase de jueces
+se cayó** (59 de 117 agentes con `529`). **No son defectos: son hipótesis con un solo par de ojos.**
+Doce eran de documentación y ya estaban corregidas.
+
+**Las dos «gordas» se triaron el 24 de agosto y las DOS eran ciertas** — reproducidas contra el
+emulador antes de tocar nada, corregidas, con pruebas de regresión y falsadas rompiendo el código a
+propósito:
+
+- **El anticipo nacía con `producto-anticipos` apagada** si el reparto sumaba menos que lo pagado,
+  y **nacía congelado** (las tres callables de `advances.ts` exigen la bandera). El comentario
+  decía «cero por construcción» y era cierto **solo para la forma vieja**, que es la única que
+  probaba el banco. Ahora se rechaza el cobro. Ojo: en las listas **aparece dos veces**, en ALTA y
+  en MEDIA.
+- **`bankAccounts` estaba abierta a `tenantMember`**, o sea también a la **portería** y al
+  **consejo**, a los que la PRD (§3) no les da nada. Corregido a `tenantRole(..., 'resident')`.
+
+**No estaban disparadas en producción, y se comprobó leyendo las banderas de los dos ambientes:**
+`producto-pago-multiple` no tiene ni documento ni override en `hogaru-1`. Lo que sí llevaba a la
+combinación mala era **el runbook** —autorizaba encender múltiple sola— y **el rollback
+documentado**. Los dos corregidos.
 
 El único que llegó a tener sus tres votos era real y está **corregido y desplegado**: dos guardianes
 de `aplicarPago` rechazaban cobros **correctos** con centavos. El de R1 era una tautología —solo
@@ -44,7 +61,7 @@ invisible porque COP no tiene decimales y **todas las pruebas de sobrepago usaba
 
 | Qué | Nota |
 |---|---|
-| **1. Triar las 36 sospechas** | Reproducir antes de arreglar. Las dos que más pesan si son ciertas: que el anticipo se cree con la bandera apagada, y que `bankAccounts` se haya abierto a **la portería** y no solo al residente — esa sería una incoherencia mía, porque el comentario de la regla de `advances` dice que la portería no ve nada |
+| **1. Triar las 20 sospechas que quedan** | Reproducir antes de arreglar. **Las dos «gordas» ya están hechas** (ver arriba). De lo que queda, lo más gordo son las tres de gravedad ALTA: el informe mensual con la fórmula vieja del «% de recaudo», el ajuste a mano que se acepta en pantalla y se tira al enviar, y la pantalla que anuncia el importe entero como sobrante mientras la vista previa no ha llegado |
 | **2. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden sigue siendo uno cada vez, mirando |
 | **3. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
