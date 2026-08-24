@@ -54,7 +54,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useGuidedAction } from "@/features/onboarding/guided-action";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
 import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
-import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
+import { buildBillingTrend, getBillingPeriods, type BillingTrendPoint } from "@/features/billing/billing-trend";
 import { BILLING_CONCEPTS, billingConceptLabel, cancelBillingSchedule, cancelReminderJob, createBillingCampaign, createBillingSchedule, createBillingStatement, createReminderJob, incrementReminderCount, setCampaignStatus, setStatementsArchived, updateBillingStatement, useBillingCampaigns, useBillingSchedules, useBillingStatements, useReminderJobs } from "@/features/billing/use-billing-statements";
 import { backfillApprovedReceipts, usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { ensureSystemFolderCallable, notifyBillingBatchCallable, sendBillingReminderCallable } from "@/lib/firebase/callables";
@@ -160,16 +160,23 @@ function BillingTrendTooltip({
   formatAmount,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number; name: string }>;
+  payload?: Array<{ payload: BillingTrendPoint }>;
   label?: string;
   formatAmount: (v: number) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  const charged = payload.find((item) => item.name === "Cobrado")?.value ?? 0;
-  const collected = payload.find((item) => item.name === "Recaudado")?.value ?? 0;
-  const rate = payload.find((item) => item.name === "% recaudo")?.value ?? (charged > 0 ? (collected / charged) * 100 : 0);
-  const gap = Math.max(charged - collected, 0);
+  // Del DATO, no del nombre de la serie. Casar por nombre solo alcanzaba lo que
+  // estuviera pintado, así que lo liquidado —que no es una barra— no tenía por
+  // dónde llegar, y el `?? collected / charged` de reserva era justo la fórmula
+  // que R16 vino a quitar: habría enseñado un porcentaje distinto del de la
+  // línea, y solo a veces.
+  const { totalCharged: charged, totalCollected: collected, totalSettled: settled } = payload[0].payload;
+  const rate = charged > 0 ? (settled / charged) * 100 : 0;
+  // Lo que SIGUE DEBIÉNDOSE, que es `charged - settled` y no `charged - collected`.
+  // Con la resta vieja, una cuota saldada con un anticipo aparecía como brecha
+  // al mismo tiempo que la línea marcaba el 100 %.
+  const gap = Math.max(charged - settled, 0);
 
   return (
     <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
@@ -183,8 +190,17 @@ function BillingTrendTooltip({
           <span>Recaudado</span>
           <span className="font-semibold text-[#2f775f]">{formatAmount(collected)}</span>
         </p>
+        {settled !== collected ? (
+          // Solo aparece cuando los dos números se separan, que es cuando hay
+          // anticipos cruzados. Enseñar siempre dos cifras iguales invita a
+          // buscarles la diferencia.
+          <p className="flex items-center justify-between gap-3">
+            <span>Saldado con anticipos</span>
+            <span className="font-semibold text-[#2f775f]">{formatAmount(Math.max(settled - collected, 0))}</span>
+          </p>
+        ) : null}
         <p className="flex items-center justify-between gap-3">
-          <span>Brecha</span>
+          <span>Pendiente</span>
           <span className="font-semibold text-[#936b24]">{formatAmount(gap)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
@@ -460,17 +476,21 @@ function AdminBillingPageContent() {
   const trendSummary = useMemo(() => {
     const totalCharged = chartTrend.reduce((sum, item) => sum + item.totalCharged, 0);
     const totalCollected = chartTrend.reduce((sum, item) => sum + item.totalCollected, 0);
-    const gap = Math.max(totalCharged - totalCollected, 0);
-    const collectionRate = totalCharged > 0 ? (totalCollected / totalCharged) * 100 : 0;
+    const totalSettled = chartTrend.reduce((sum, item) => sum + item.totalSettled, 0);
+    // R16. La brecha es lo que sigue debiéndose —facturado menos liquidado—, y
+    // el porcentaje mide liquidación. Con la resta vieja, una cuota saldada con
+    // un anticipo contaba como brecha y como recaudo bajo a la vez.
+    const gap = Math.max(totalCharged - totalSettled, 0);
+    const collectionRate = totalCharged > 0 ? (totalSettled / totalCharged) * 100 : 0;
 
-    return { totalCharged, totalCollected, gap, collectionRate };
+    return { totalCharged, totalCollected, totalSettled, gap, collectionRate };
   }, [chartTrend]);
 
   const chartData = useMemo(
     () =>
       chartTrend.map((item) => ({
         ...item,
-        collectionRate: item.totalCharged > 0 ? (item.totalCollected / item.totalCharged) * 100 : 0,
+        collectionRate: item.totalCharged > 0 ? (item.totalSettled / item.totalCharged) * 100 : 0,
       })),
     [chartTrend],
   );

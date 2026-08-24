@@ -1,10 +1,22 @@
-import { statementChargedAmount, statementCollectedAmount } from "@/features/billing/collection";
+import {
+  statementChargedAmount,
+  statementCollectedAmount,
+  statementSettledAmount,
+} from "@/features/billing/collection";
 import type { BillingStatement } from "@/types/domain";
 
 export type BillingTrendPoint = {
   period: string;
   totalCharged: number;
+  /** El dinero que entró. Es lo que se pinta como «recaudado» en las barras. */
   totalCollected: number;
+  /**
+   * Lo que dejó de deberse (`FLOW-002` R16). **Es el numerador del «% recaudo»**,
+   * y no `totalCollected`: en cuanto hay anticipos los dos dejan de ser el mismo
+   * número, y una unidad que cubre julio con un anticipo de junio saldría al 0 %
+   * con la cuota saldada.
+   */
+  totalSettled: number;
 };
 
 function toNumber(value: unknown) {
@@ -53,13 +65,15 @@ export function buildBillingTrend(
     if (fromPeriod && period < fromPeriod) return;
     if (toPeriod && period > toPeriod) return;
 
-    // Fórmula única de facturado/recaudado (src/features/billing/collection.ts).
+    // Fórmula única de facturado/recaudado/liquidado (src/features/billing/collection.ts).
     const collected = statementCollectedAmount(statement);
     const charged = statementChargedAmount(statement);
+    const settled = statementSettledAmount(statement);
 
-    const current = grouped.get(period) ?? { period, totalCharged: 0, totalCollected: 0 };
+    const current = grouped.get(period) ?? { period, totalCharged: 0, totalCollected: 0, totalSettled: 0 };
     current.totalCharged += charged;
     current.totalCollected += collected;
+    current.totalSettled += settled;
     grouped.set(period, current);
   });
 

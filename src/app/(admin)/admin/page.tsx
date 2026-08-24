@@ -39,7 +39,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
-import { buildBillingTrend, getBillingPeriods } from "@/features/billing/billing-trend";
+import { buildBillingTrend, getBillingPeriods, type BillingTrendPoint } from "@/features/billing/billing-trend";
 import { computeCollectionSummary } from "@/features/billing/collection";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { computeStatementStatus } from "@/features/billing/statement-status";
@@ -170,16 +170,23 @@ function BillingTrendTooltip({
   formatAmount,
 }: {
   active?: boolean;
-  payload?: Array<{ value: number; name: string; color: string }>;
+  payload?: Array<{ payload: BillingTrendPoint }>;
   label?: string;
   formatAmount: (v: number) => string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  const charged = payload.find((item) => item.name === "Cobrado")?.value ?? 0;
-  const collected = payload.find((item) => item.name === "Recaudado")?.value ?? 0;
-  const rate = payload.find((item) => item.name === "% recaudo")?.value ?? (charged > 0 ? (collected / charged) * 100 : 0);
-  const gap = Math.max(charged - collected, 0);
+  // Del DATO, no del nombre de la serie. Casar por nombre solo alcanzaba lo que
+  // estuviera pintado, así que lo liquidado —que no es una barra— no tenía por
+  // dónde llegar, y el `?? collected / charged` de reserva era justo la fórmula
+  // que R16 vino a quitar: habría enseñado un porcentaje distinto del de la
+  // línea, y solo a veces.
+  const { totalCharged: charged, totalCollected: collected, totalSettled: settled } = payload[0].payload;
+  const rate = charged > 0 ? (settled / charged) * 100 : 0;
+  // Lo que SIGUE DEBIÉNDOSE, que es `charged - settled` y no `charged - collected`.
+  // Con la resta vieja, una cuota saldada con un anticipo aparecía como brecha
+  // al mismo tiempo que la línea marcaba el 100 %.
+  const gap = Math.max(charged - settled, 0);
 
   return (
     <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
@@ -193,8 +200,17 @@ function BillingTrendTooltip({
           <span>Recaudado</span>
           <span className="font-semibold text-[#2f775f]">{formatAmount(collected)}</span>
         </p>
+        {settled !== collected ? (
+          // Solo aparece cuando los dos números se separan, que es cuando hay
+          // anticipos cruzados. Enseñar siempre dos cifras iguales invita a
+          // buscarles la diferencia.
+          <p className="flex items-center justify-between gap-3">
+            <span>Saldado con anticipos</span>
+            <span className="font-semibold text-[#2f775f]">{formatAmount(Math.max(settled - collected, 0))}</span>
+          </p>
+        ) : null}
         <p className="flex items-center justify-between gap-3">
-          <span>Brecha</span>
+          <span>Pendiente</span>
           <span className="font-semibold text-[#936b24]">{formatAmount(gap)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
@@ -343,8 +359,9 @@ export default function AdminDashboardPage() {
     () =>
       monthlyBilling.map((item) => ({
         ...item,
-        gap: Math.max(item.totalCharged - item.totalCollected, 0),
-        collectionRate: item.totalCharged > 0 ? (item.totalCollected / item.totalCharged) * 100 : 0,
+        gap: Math.max(item.totalCharged - item.totalSettled, 0),
+        // R16: liquidado sobre facturado, no recaudado sobre facturado.
+        collectionRate: item.totalCharged > 0 ? (item.totalSettled / item.totalCharged) * 100 : 0,
       })),
     [monthlyBilling],
   );
@@ -453,7 +470,9 @@ export default function AdminDashboardPage() {
       insight: getTrendInsight(recaudoPeriod, recaudoComparison, "vs mes anterior"),
       tone: "success" as const,
       href: "/admin/billing",
-      help: `Porcentaje de la cartera del ${recaudoLabel} que ya fue recaudada. Un 80% o más es saludable.`,
+      // R16: mide lo SALDADO, no lo cobrado. Una cuota cubierta con un
+      // anticipo cuenta aquí al 100 % aunque su dinero entrara otro mes.
+      help: `Porcentaje de la cartera del ${recaudoLabel} que ya está saldada, con pagos o con anticipos aplicados. Un 80% o más es saludable.`,
     },
     {
       label: isToday ? "Visitantes hoy" : "Visitantes",
