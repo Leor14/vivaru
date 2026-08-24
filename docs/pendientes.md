@@ -153,6 +153,45 @@ de que el front nuevo esté sirviendo, no antes, o el front viejo vuelve a falla
 > `{ orderByField: "uploadedAt" }`. Reescrita. **Si romper el código no la pone roja, no vigila lo
 > que dice vigilar.**
 
+## Y CON ÉL, UNA SOBRE-CONCESIÓN QUE LA LISTA VACÍA TAPABA — cerrada (opción A)
+
+**Al arreglar la lista aparecieron los documentos que nadie veía, y seis de los ocho eran archivos
+financieros automáticos.** El histórico de cartera lleva una hoja «Morosos» con **unidad, deuda y
+períodos**; el reporte de comité, «mayores deudores». **En todo el proyecto son 32 de 39.** Es la
+misma clase que se cerró esa mañana en `FLOW-002` con `advances`: detalle por unidad, por otra
+puerta.
+
+**`storage.rules` ya estaba bien, y daba igual.** Los archivos van a `cartera-history/` y
+`committee-reports/`, las dos en `carpetasFinancieras()` —solo administración—. Pero
+`archiveBuffer` guarda en el documento un `fileUrl` con `firebaseStorageDownloadTokens`, y **un
+enlace con token se salta las reglas de Storage**. Mientras se pudiera leer el documento, la
+carpeta cerrada no protegía nada. **Por eso la palanca es la regla de Firestore.**
+
+**La regla nombra roles**, como `advances` y `bankAccounts`:
+
+| Rol | Qué ve | Por qué |
+|---|---|---|
+| Administración y superadmin | Todo | — |
+| **Consejo** | **Todo** | `canAccessPath` le deja SOLO en `/admin/documents`, esa pantalla consulta sin filtrar por categoría, y los reportes de comité son suyos. Cerrarle por categoría lo dejaría sin su única pantalla |
+| Residente | Lista **blanca** de categorías compartibles | Con lista negra, una categoría nueva se publicaría sola |
+| **Portería** | **Nada** | Entraba por `sameTenant`. Ninguna pantalla de `/guard` lee la colección |
+
+**Y la consulta del residente filtra por categoría EN EL SERVIDOR**, no solo en memoria: sin ese
+`where`, Firestore rechaza la consulta entera aunque todos los documentos fueran compartibles. Es
+la trampa de `bankAccounts` y su `active == true`. Opción `oneOf` nueva en
+`subscribeTenantCollection`, e índice `(tenantId, category)`.
+
+**Desplegado en el orden que exige una regla restrictiva:** índice → front que ya filtra → regla.
+Al revés, la pantalla deja de cargar hasta que termine el rollout. Es la lección de `FIN-001`.
+
+> **237 pruebas de reglas, y falsadas:** al volver la regla a `sameTenant` se ponen rojas **cuatro**,
+> y son exactamente las cuatro restrictivas. Una hubo que MEDIRLA porque no se podía razonar: el
+> flujo del reglamento consulta con `category == "reglamento"`, una **igualdad contra una regla
+> escrita con `in`**. Funciona — si no, se habría roto en producción.
+
+**Lo que NO cierra esto:** un `fileUrl` con token sigue siendo un enlace público para quien ya lo
+tenga. Cerrar la lectura del documento impide **descubrirlo**; no revoca los que ya circulen.
+
 ## LA REVISIÓN ADVERSARIAL ESTÁ CERRADA
 
 **`docs/revision-flow-002-por-verificar.md` — las 37 triadas: 36 eran ciertas y están resueltas, 1

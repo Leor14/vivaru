@@ -93,6 +93,15 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
 - **Árbol duplicado en la raíz:** además de `src/`, hay `components/` y `features/` en la RAÍZ del repo. El portal residente importa de la raíz (p. ej. `components/features/resident/ResidentSecuritySection.tsx`, `features/resident/schemas.ts`). Verificar de cuál se importa antes de editar.
 - **Aislar widgets/tableros con `WidgetErrorBoundary`** (`src/components/shared/widget-error-boundary.tsx`): toda sección de dashboard/tablero que consuma datos del tenant —en especial charts de **recharts**— debe ir envuelta, para que un fallo de un widget NO tumbe toda la ruta `/admin` (su `error.tsx` muestra "No pudimos cargar el workspace"). El único error boundary de ruta convierte cualquier throw de un widget en una pantalla de error global.
 - **`writeAuditLog` revienta con un campo `undefined`, y audita FUERA de la transacción.** `initializeApp()` corre sin `ignoreUndefinedProperties`, así que un campo opcional ausente en el `metadata` hace que Firestore rechace la escritura **después de que la operación haya cuajado**: el dinero se mueve y la callable devuelve error. Pasó con `applyPayment` y un reparto (24 ago 2026). Al añadir un campo opcional al metadata de una auditoría, mandarlo siempre o limpiarlo antes.
+- **Y una consulta de `documents` que haga un RESIDENTE tiene que filtrar por `category`**, por lo
+  mismo. Desde el 24 de agosto de 2026 la regla le concede solo una lista blanca de categorías
+  compartibles: los archivos de `monthlyFinancialArchive` —`financiero` y `reporte`— llevan
+  **detalle por unidad** (la hoja «Morosos» dice quién debe y cuánto) y eran **32 de los 39**
+  documentos de producción. **El consejo conserva todo**, porque `/admin/documents` es su única
+  pantalla y consulta sin filtrar; **la portería pierde el acceso**, que tenía por `sameTenant`.
+  Ojo con el mecanismo: `storage.rules` ya cerraba esas carpetas, pero el documento guarda un
+  `fileUrl` con token de descarga que **se salta Storage**, así que la regla de Firestore era la
+  única palanca.
 - **Una consulta de `bankAccounts` que no haga un administrador TIENE que filtrar `active == true`.** Desde `FLOW-002` la lectura está abierta **al residente** —no a «los miembros»— y solo para cuentas activas, y Firestore evalúa la consulta contra la regla **sin ejecutarla**: sin ese `where` se rechaza entera aunque todas estuvieran activas. El saldo inicial vive aparte, en `bankAccountBalances`, y ese sí es solo-administrador. **La rama decía `tenantMember` hasta el 24 de agosto de 2026, y eso incluía a la portería y al consejo**: la PRD (§3) le da al `security_guard` «Nada / no puede Acceder», y la regla de `advances` evita `sameTenant` diciendo exactamente eso. Corregido a `tenantRole(..., 'resident')`.
 - **Tenant siempre con `currency` válido** (`COP`|`MXN`|`USD`): cualquier alta/seed de un tenant debe escribir `currency`; los formateadores (`Intl.NumberFormat`, `useTenantCurrency`) deben defaultear a un valor válido y nunca recibir `undefined`.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
