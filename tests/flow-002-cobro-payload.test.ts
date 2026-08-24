@@ -57,20 +57,17 @@ describe("recordPayment — el sobre que se manda al servidor", () => {
   });
 
   /**
-   * **`statementId` va SIEMPRE, también con reparto — y no es cosmético.**
+   * **`statementId` va SIEMPRE, también con reparto**, y es el cargo desde el
+   * que se abrió el cobro: la auditoría lo registra como ancla de la operación.
    *
-   * `applyPayment` audita FUERA de la transacción, y `writeAuditLog` escribe el
-   * campo tal cual. `initializeApp()` corre sin `ignoreUndefinedProperties`, así
-   * que un `statementId: undefined` hace que Firestore rechace la escritura y la
-   * callable reviente **con el pago ya confirmado**: en pantalla sale un error
-   * sobre un cobro que sí entró, y si quien opera cierra el formulario y
-   * reintenta, la clave de idempotencia es otra y cobra dos veces.
-   *
-   * Medido en staging el 24 de agosto de 2026 con un reparto real: 150 + 200 y
-   * un anticipo de 50 escritos correctamente, y «Ocurrió un error inesperado»
-   * en pantalla.
+   * Nació como parche de un defecto —sin él `writeAuditLog` recibía `undefined`,
+   * Firestore rechazaba la escritura y la callable reventaba **con el pago ya
+   * confirmado**, medido en staging con un reparto real de 400—. Ese agujero
+   * está cerrado en la raíz (`limpiarMetadata`, en `functions/src/audit.ts`),
+   * así que esto ya no es un parche; pero el ancla sigue haciendo falta, y el
+   * detalle de a qué fue cada peso lo escribe el servidor desde el resultado.
    */
-  it("con reparto también, o la auditoría revienta DESPUÉS de cobrar", async () => {
+  it("con reparto también: es el cargo desde el que se abrió el cobro", async () => {
     await recordPayment("t", "u", {
       statement: cargo,
       allocations: [

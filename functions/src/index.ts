@@ -30,6 +30,7 @@ import {
   type CruzarAnticipoInput,
   type DeshacerCruceInput,
 } from "./advances";
+import { limpiarMetadata } from "./audit";
 import {
   aplicarPago,
   esRecaudoDeCartera,
@@ -356,12 +357,16 @@ async function assertActiveTenantAdmin(tenantId: string, uid: string) {
   return { tenantId };
 }
 
+/**
+ * Escribe una entrada de auditoría. **Nunca debe tumbar la operación que
+ * audita**: ver `limpiarMetadata`.
+ */
 async function writeAuditLog(tenantId: string, actorUid: string | undefined, action: string, metadata: Record<string, unknown>) {
   await db.collection("auditLogs").add({
     tenantId,
     actorUid: actorUid ?? "unknown",
     action,
-    metadata,
+    metadata: limpiarMetadata(metadata),
     createdAt: Timestamp.now(),
   });
 }
@@ -4308,11 +4313,25 @@ export const applyPayment = onCall<AplicarPagoInput>(
     // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
     // genera una segunda entrada, que si no el registro contaría dos cobros.
     if (resultado.applied) {
+      // Se audita **lo que el servidor hizo**, no lo que le pidieron. Con un
+      // reparto, `request.data.statementId` es como mucho el cargo desde el que
+      // se abrió el formulario: una entrada que dijera «statementId: X, amount:
+      // 400» cuando 400 se repartieron entre X e Y **describe mal la operación**
+      // justo en el caso que más falta hace poder reconstruir.
+      //
+      // `allocations` solo se escribe cuando hay más de una línea: con una, ya
+      // lo dicen `statementId` y `amount`, y repetirlo sería ruido.
+      const reparto = resultado.allocations ?? [];
       await writeAuditLog(request.data?.tenantId ?? "", uid, "apply_payment", {
-        statementId: request.data?.statementId,
+        statementId: request.data?.statementId ?? reparto[0]?.statementId,
         amount: request.data?.amount,
         source: request.data?.source,
         ledgerEntryId: resultado.ledgerEntryId,
+        ...(reparto.length > 1 ? { allocations: reparto } : {}),
+        // R2/R3: si el pago dejó saldo a favor, la auditoría tiene que decirlo.
+        // Sin esto, un anticipo aparece en `advances` sin nada que lo explique.
+        advanceId: resultado.advanceId,
+        advanceAmount: resultado.advanceAmount,
       });
     }
     return resultado;

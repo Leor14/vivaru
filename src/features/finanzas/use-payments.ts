@@ -158,26 +158,16 @@ export async function recordPayment(
     throw new Error("El monto del cobro debe ser mayor a cero.");
   }
 
-  // **`statementId` va SIEMPRE, también con reparto.** Para la aritmética es
-  // inerte —si llegan `allocations`, el servidor las usa y no mira este campo—,
-  // y hace falta por dos razones, la segunda encontrada haciendo un reparto
-  // real en staging el 24 de agosto de 2026:
+  // **`statementId` va SIEMPRE, también con reparto**, y para la aritmética es
+  // inerte: si llegan `allocations`, el servidor las usa y no mira este campo.
   //
-  // 1. La auditoría registra `request.data.statementId`, así que sin él la
-  //    entrada no diría qué cargo se cobró.
-  //
-  // 2. **Y sin él la llamada FALLA después de haber cobrado.** `applyPayment`
-  //    audita FUERA de la transacción, y `writeAuditLog` hace un `add()` con el
-  //    campo tal cual: `initializeApp()` corre sin `ignoreUndefinedProperties`,
-  //    así que Firestore rechaza el `undefined` y la callable revienta **con el
-  //    pago ya confirmado**. En pantalla se ve un error sobre un cobro que sí
-  //    entró; si quien opera cierra el formulario y reintenta, la clave de
-  //    idempotencia es otra y **cobra dos veces**.
-  //
-  //    Esto de aquí lo evita, pero **no es el arreglo**: el agujero sigue
-  //    abierto para cualquiera que llame con `allocations` a secas. El arreglo
-  //    va en `functions/` —que esta entrega no toca— y está anotado en
-  //    `docs/pendientes.md`.
+  // Nació como parche de un defecto —sin él la auditoría reventaba **después**
+  // de haber cobrado— y ese agujero **ya está cerrado en la raíz**
+  // (`limpiarMetadata`, en `functions/src/audit.ts`). Se conserva por la razón
+  // que siempre tuvo: es **el cargo desde el que se abrió el cobro**, y la
+  // auditoría lo registra como ancla de la operación. El detalle de a qué fue
+  // cada peso lo escribe ahora el servidor desde el resultado, que es quien lo
+  // sabe de verdad.
   const varios = (input.allocations?.length ?? 0) > 1;
   const aplicado = await applyPaymentCallable({
     tenantId,
