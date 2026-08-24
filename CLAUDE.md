@@ -171,9 +171,9 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 
 **Leer los dos remotos con `git ls-remote`, no de aquí.** Esta línea llevaba el número de commit a
 mano y se quedó corta **tres veces en una sola noche**: una cabecera que hay que actualizar en cada
-push acaba mintiendo. Se mueven por separado y un push sin cambios responde «success». Al cierre
-del 24 de agosto de 2026 los dos iban iguales, y eso es lo normal buscado: **`master` = lo que hay
-en producción**.
+push acaba mintiendo. Se mueven por separado y un push sin cambios responde «success». **`master`
+= lo que hay en producción**, y eso es lo normal buscado; entre despliegues `develop` va por
+delante, que también es normal.
 
 **`FLOW-002` (anticipos) ESTÁ EN PRODUCCIÓN**, con `producto-anticipos` encendida **solo en
 `conjunto-las-playas`** (override; la global sigue apagada). Servidor, front, el «% de recaudo» de
@@ -233,11 +233,26 @@ encendida en staging y **apagada en producción**. El instrumento de la puerta e
 `scripts/verificar-reservas-por-servidor.mjs`, y el paso 4 —cerrar la rama del residente en las
 reglas— **no se revierte con bandera**.
 
-**LO QUE HAY EN `develop` Y NO EN PRODUCCIÓN (24 ago, tarde).** Cuatro commits que cierran la
-revisión adversarial y tocan **reglas, functions y front**. El despliegue son tres piezas **en este
-orden**: `firebase deploy --only firestore:rules` → recompilar y desplegar functions → push a
-`master`. Las reglas van primero porque son las que **arreglan que la conciliación no pudiera casar
-ningún pago**; el front ya asume el comportamiento nuevo.
+**LA JORNADA DEL 24 ESTÁ DESPLEGADA (24 ago, noche).** Los cuatro commits que cierran la revisión
+adversarial salieron en las tres piezas y **en este orden**: `firebase deploy --only
+firestore:rules` → recompilar y desplegar functions → push a `master`. Las reglas fueron primero
+porque son las que **arreglan que la conciliación no pudiera casar ningún pago**; el front ya
+asumía el comportamiento nuevo. **Este orden se repite en cualquier ambiente nuevo.**
+
+**Y se verificó, pieza por pieza, en vez de creerle al «Deploy complete».** Las reglas con las 227
+pruebas de `npm run test:rules:all` —que `npm test` **excluye**—; las functions comparando por
+nombre las 74 desplegadas contra `index.ts`, con el árbol en cero tras `run build`; y el front con
+**la huella del bundle**, porque este CLI **no tiene `apphosting:rollouts:list`**: los chunks de
+`/_next/static/` cambiaron de `6a944c17` a `2bc73d04` siete minutos después del push. La huella es
+mejor que un grep — **un grep encuentra la cadena en las dos versiones**.
+
+**§13 comprobado en producción con números anotados antes**, no razonado: un cobro del saldo exacto
+sobre `T2-203` movió los seis que tenía que mover y **dejó los anticipos en $0**, que es la medida
+que prueba que la ruta de un solo cargo no cambió. Detalle en `docs/pendientes.md`.
+
+> **Un cobro normal MANDA CORREO.** El recibo nace dentro de la transacción, así que `applyPayment`
+> crea el `paymentVouchers` y eso enciende `onPaymentVoucherCreated`, que notifica **a los
+> residentes de la unidad pagadora**. Antes de cobrar en un conjunto, mirar a qué direcciones.
 
 Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.25),
 `docs/despliegue-flow-002-produccion.md` y la PRD (v1.5).
@@ -252,6 +267,14 @@ existe en la nube**, y ninguna prueba unitaria lo alcanza. La regla que sale de 
   Tener `(tenantId, campo ASC)` no sirve para un `orderBy campo desc`. `reservations` tiene las
   dos direcciones y funciona; `visitorPasses`, `tickets` y `committee_agreements` tenían solo
   ASC y fallaban. **Antes de añadir un `orderByField`, comprobar el índice en las dos.**
+- **Y un campo OPCIONAL en el `where` son DOS consultas, cada una con su índice.** La campana de
+  notificaciones filtra por `tenantId` solo si existe: con conjunto usa
+  `(userId, tenantId, createdAt)` y funciona; **sin conjunto —el superadmin— pide
+  `(userId, createdAt desc)`, que no existe**, y ese índice compuesto no puede suplirlo porque
+  `tenantId` va en medio. Al 24 de agosto de 2026 faltan **tres** índices en producción:
+  `notifications`, `billingReminderJobs` y `billingSchedules` — los dos últimos estaban anotados
+  como «faltan en staging» y faltan también aquí. **`--only firestore:rules` NO despliega
+  índices.**
 - **El patrón que no depende de índices es `watchLedger`**: pedir sin ordenar y ordenar en
   memoria. Es lo que hace `/admin/finanzas`, y por eso fue el único que nunca se rompió.
 - **Un `catch` que deja la lista vacía convierte un fallo ruidoso en un dato falso.** Si una

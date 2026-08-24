@@ -4,17 +4,51 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (tarde)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (noche)
 
 **Leer los remotos con `git ls-remote`, no de aquí.** Esta cabecera llevó los commits a mano y se
-quedó corta tres veces en una noche. Al cerrar, **`develop` va por delante de `master`**: lleva la
-jornada de triaje, que **no está en producción**.
+quedó corta tres veces en una noche. Al cerrar, **`master` = lo que corre en producción**, y
+`develop` va por delante **solo con el commit de documentación de este cierre**: no queda código
+sin desplegar.
 
-**`FLOW-002` está EN PRODUCCIÓN** con `producto-anticipos` encendida **solo en
-`conjunto-las-playas`** por override. Y con ella, **todo el lote de Habitanto**: ola A, `PLAT-003`
-y `FLOW-002`, los siete pasos, **todos apagados**. Comprobado leyendo las banderas de los dos
-proyectos: en `hogaru-1` **no existe ni un documento `producto-*`** en `featureFlags`, así que
-todas caen al valor por defecto.
+**LA JORNADA DEL 24 ESTÁ DESPLEGADA.** Las tres piezas salieron en orden —reglas → functions →
+front— y cada una se comprobó, no se dio por buena:
+
+| Pieza | Cómo se comprobó |
+|---|---|
+| **Reglas** | `released rules to cloud.firestore`, y **227 pruebas de reglas en verde** contra el emulador sobre el mismo fichero. Ojo: `npm test` las EXCLUYE — hay que correr `npm run test:rules:all` aparte |
+| **Functions** | **Ninguna función del código se quedó fuera** (74 desplegadas, comparadas por nombre contra `index.ts`). Dos toparon con `HTTP 429` de cuota por minuto y **reintentaron solas** hasta `✔`. El `lib/` commiteado sale byte a byte de compilar `src/`: tras `run build` el árbol quedó en cero cambios |
+| **Front** | `70136b9..1a9e022`, remoto releído con `git ls-remote`. La procedencia se midió con **la huella del bundle**: los chunks de `/_next/static/` pasaron de `6a944c17` a `2bc73d04` siete minutos después del push, y el `Updated Date` del backend saltó a las 12:42 |
+
+> **Este CLI no tiene `apphosting:rollouts:list`** — solo `backends:*`, `secrets:*` y
+> `rollouts:create`. Para saber si el front nuevo está sirviendo, la huella de los chunks es lo
+> que hay, y es **mejor que un grep**: un grep encuentra la cadena en las dos versiones.
+
+**§13 VERIFICADO EN PRODUCCIÓN, CON NÚMEROS ANOTADOS ANTES.** Se cobró T2-203 (multa de jun 2026,
+$500, **el saldo exacto**) en `conjunto-las-playas`, y salieron los seis números predichos: el
+cargo a Saldo $0 / Al día, el libro de **53 a 54** movimientos, ingresos por cuotas de $127.500 a
+**$128.000**, saldo de fondos de −$10.300 a **−$9.800**, cartera pendiente de $18.500 a
+**$18.000**, y **anticipos quieto en $0**. Ese último es el que de verdad prueba §13: la bandera
+está encendida en ese conjunto, así que si el camino nuevo se colara donde no debe, ahí habría
+rastro. Recibo `REC-SAJU3D`. **El cobro se dejó puesto** — revertirlo dejaría el pago Y su reverso
+en el libro, más sucio que un pago limpio.
+
+> **Un cobro normal MANDA CORREO.** Desde `FIN-001` el recibo nace dentro de la transacción, así
+> que `applyPayment` crea el `paymentVouchers` y eso enciende `onPaymentVoucherCreated`, que
+> notifica **a los residentes de la unidad pagadora**. En Las Playas esas direcciones son alias de
+> David (`david.macar.18+resN@hotmail.com`), no de terceros — comprobarlo **antes** de cobrar en
+> cualquier otro conjunto.
+
+**LAS BANDERAS, LEÍDAS EN `/superadmin/flags` DE PRODUCCIÓN.** `producto-anticipos` apagada en
+global con **un único override, `conjunto-las-playas`**; `producto-pago-multiple` apagada y sin
+overrides; kill switch maestro en `Normal`. Y las cinco del lote —`producto-cobro-por-coeficiente`,
+`producto-plan-de-cuentas`, `producto-concepto-al-libro`, `producto-registro-proveedores`,
+`producto-reservas-servidor`— **apagadas**.
+
+> **Esta cabecera decía «en `hogaru-1` no existe ni un documento `producto-*`, así que todas caen
+> al valor por defecto», y eso se leía como «todas apagadas». No lo son:**
+> `producto-importacion-masiva` cae al default del catálogo y **ese default es Encendida**. Caer al
+> valor por defecto no es sinónimo de estar apagada.
 
 > **LO QUE FALTA PARA CERRAR `PH-001` YA NO ES CONSTRUIR: ES ENCENDER**, de una en una y mirando.
 > Queda `FLOW-001` de la ola B y la ola C entera, pero el trabajo desplegado y dormido es el grueso.
@@ -22,19 +56,27 @@ todas caen al valor por defecto.
 **PRODUCCIÓN NO TIENE NI UN CLIENTE REAL, y ya no queda nada por confirmar.** Los nueve conjuntos
 son de demostración o prueba interna.
 
-## LO QUE HAY EN `develop` Y NO EN PRODUCCIÓN
+## TRES ÍNDICES QUE FALTAN EN PRODUCCIÓN — salieron de mirar la consola del navegador
 
-**Cuatro commits de la jornada del 24, sin desplegar.** Cierran la revisión adversarial entera y
-tocan **servidor, reglas y front**, así que el despliegue son tres piezas y no una:
+**No los causó el despliegue del 24**: el delta `70136b9..1a9e022` no toca `firestore.indexes.json`
+ni ninguna de las tres colecciones. Y `--only firestore:rules` **no despliega índices**, así que
+tampoco se arreglaron de paso.
 
-| Pieza | Cómo va | Ojo |
+| Colección | Índice que pide | Quién lo dispara |
 |---|---|---|
-| **Reglas** | `firebase deploy --only firestore:rules` | Cierran `bankAccounts` al residente (fuera portería y consejo), cierran `advances` al consejo, y **arreglan que la conciliación no pudiera casar ningún pago** |
-| **Functions** | recompilar y `firebase deploy --only functions --project hogaru-1` | **No hay predeploy build.** Llevan el redondeo del saldo, CF3 con tolerancia, el reverso sin asiento de cero y el chequeo de conjunto en la idempotencia |
-| **Front** | push a `master` (App Hosting) | Los tres «% recaudo» que discrepaban, el modal de cobro y el panel de comprobantes |
+| `notifications` | `(userId ASC, createdAt DESC)` | La campana, para **cualquier cuenta sin conjunto** — el superadmin. Con conjunto sí hay índice, `(userId, tenantId, createdAt)`, y **no sirve** porque `tenantId` va en medio |
+| `billingReminderJobs` | `(status, tenantId, scheduledFor)` | `/admin/billing`, en cada carga |
+| `billingSchedules` | `(status, tenantId, scheduledFor)` | `/admin/billing`, en cada carga |
 
-**El orden no es indiferente:** reglas y functions **antes** que el front, porque el front ya asume
-el comportamiento nuevo. Y las reglas van solas primero: son las que arreglan la conciliación.
+**Los dos últimos estaban anotados como «faltan en staging». Faltan TAMBIÉN en producción**, vistos
+fallar tres veces en tres cargas distintas de `www.grupovivaru.com/admin/billing`. Los tres se
+arreglan en una pasada: `firebase deploy --only firestore:indexes --project hogaru-1`.
+
+Es la lección de siempre —**un `orderByField` necesita su índice compuesto, y en la dirección que
+pide**— con una vuelta nueva: **un campo OPCIONAL en el `where` son dos consultas, y cada una
+necesita el suyo**. Lo bueno es que el `catch` de notificaciones **avisa en pantalla** («No fue
+posible cargar las notificaciones») en vez de dejar una lista vacía que se lea como «no tienes
+ninguna».
 
 ## LA REVISIÓN ADVERSARIAL ESTÁ CERRADA
 
@@ -60,16 +102,15 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 
 | Qué | Nota |
 |---|---|
-| **1. Desplegar lo del 24** | Reglas → functions → front, en ese orden. Ver la tabla de arriba |
-| **2. `FIN-002` — expediente y conciliación determinística** | **Es el frente de ingeniería más grande que se puede abrir sin un cliente real**, y ya no lo bloquea nadie. Detalle en `docs/roadmap-finance.md` §7 (es su F1). Arranca con una pieza recién arreglada por debajo: la conciliación ya puede casar pagos |
-| **3. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden es **uno cada vez, mirando** |
-| **4. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
+| **1. `FIN-002` — expediente y conciliación determinística** | **Es el frente de ingeniería más grande que se puede abrir sin un cliente real**, y ya no lo bloquea nadie. Detalle en `docs/roadmap-finance.md` §7 (es su F1). Arranca con una pieza recién arreglada por debajo: la conciliación ya puede casar pagos |
+| **2. Encender `producto-anticipos` más allá del demo** | Decisión de David. Con cero clientes reales el riesgo es bajo, pero el orden es **uno cada vez, mirando** |
+| **3. `FIX-001`, pasos 2 a 4** | La puerta del 3 está verificada en staging. En producción la bandera sigue apagada. **El paso 4 no se revierte con bandera** |
 | `FLOW-001` (prorrateo) y la ola C | Lo que queda por construir del lote. `FLOW-001` necesita `PLAT-001`, que ya está |
 | `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents`, **y arrastra la deuda del total de anticipos** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
 | El plan de cuentas por país · la cuenta de vigilancia en la semilla | Aparcados a propósito |
-| Dos índices que faltan en staging | `billingReminderJobs` y `billingSchedules`. Anteriores a esta sesión |
+| **Los tres índices que faltan en producción** | `notifications`, `billingReminderJobs` y `billingSchedules`. Ver la tabla de arriba. Una sola pasada de `--only firestore:indexes` |
 
 ## QUÉ HACE FALTA DE DAVID
 
@@ -78,9 +119,7 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 marcar `Queretarock`. No cambia nada del producto: solo deja de contarse como cliente en la
 volumetría.
 
-**2. Decidir si se despliega la jornada del 24**, y con ella si se encienden banderas.
-
-**3. Decisiones abiertas, ninguna urgente:** escribir `PLAT-004` · el plan de cuentas por país · la
+**2. Decisiones abiertas, ninguna urgente:** escribir `PLAT-004` · el plan de cuentas por país · la
 cuenta de vigilancia.
 
 ### Lo que YA NO hay que pedir ni volver a mirar
@@ -89,6 +128,7 @@ cuenta de vigilancia.
   límite: **solo se ve el rol que tenga la sesión abierta**, y son excluyentes por origen.
 - **El roadmap Albert–Vivaru de Notion.** Da 404: vive en otro workspace.
 - **La revisión adversarial de `FLOW-002`.** Cerrada del todo.
+- **Si la jornada del 24 está desplegada.** Lo está, y §13 se comprobó con números en producción.
 - **`CF12`, `computeBalanceStatus`, la decisión contable R9/R15 (cerrada como D3).**
 
 ## LAS LECCIONES DE MÉTODO

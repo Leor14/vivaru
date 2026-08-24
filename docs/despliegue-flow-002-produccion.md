@@ -4,8 +4,15 @@
 orden **no es el habitual de tres pasos**: hay uno nuevo delante, y hacerlo después deja una
 ventana en la que un residente lee el saldo del conjunto.
 
-`master` = `origin/develop` = `70136b9`, y **eso ya es lo que corre en producción**: los cuatro pasos
-de abajo se ejecutaron el 24 de agosto de 2026, y después dos despliegues más de `functions/`.
+Los cuatro pasos de abajo se ejecutaron el 24 de agosto de 2026 (`70136b9`), y después dos
+despliegues más de `functions/`. **Esa ya NO es la punta**: la noche del 24 salió una segunda
+tanda, `1a9e022`, con el cierre de la revisión adversarial. **Leer la punta con `git ls-remote`, no
+de aquí** — este documento llevó el commit a mano y por eso esta línea llegó a mentir.
+
+> **El paso 1 no se repite.** Mover el saldo inicial de `bankAccounts` a `bankAccountBalances` ya
+> se hizo y el script es idempotente, pero la segunda tanda **no lo necesitó**: fueron tres piezas
+> (reglas → functions → front), no cuatro. Quien lea esto buscando el guion de un despliegue
+> cualquiera: los pasos 2, 3 y 4 son el ciclo normal; el 1 fue de esta migración concreta.
 
 > **Este runbook pasó de plan a REGISTRO.** Se conserva porque el orden que describe es el que hay
 > que repetir en cualquier ambiente nuevo, y porque el paso 1 —el que no es obvio— se olvidaría.

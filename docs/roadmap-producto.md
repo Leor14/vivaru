@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.25 |
-| **Fecha** | 24 de agosto de 2026 (tarde) |
-| **Estado** | **LA REVISIÓN ADVERSARIAL DE `FLOW-002` ESTÁ CERRADA: de 37 sospechas, 36 eran ciertas y están resueltas y 1 se descartó.** Se reprodujo cada una antes de tocarla y cinco se midieron con números. **Lo desplegado en producción NO ha cambiado: los cuatro commits del triaje están en `develop`** y tocan reglas, functions y front, en ese orden. **Y probando una regla apareció lo que no estaba en la lista: la conciliación no podía casar ni un pago** —desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingStatement"` y el veto los rechazaba—; corregido. **TODO EL LOTE DE HABITANTO SIGUE EN PRODUCCIÓN Y APAGADO.** Ola A, `PLAT-003` y `FLOW-002` viven en `master`; **en `featureFlags` de `hogaru-1` no existe ni un documento `producto-*`** y el único override es `conjunto-las-playas: {producto-anticipos: true}` — leído de los dos proyectos, no supuesto. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **De las 37 sospechas de la revisión adversarial quedan 20**: las dos «gordas» se triaron y **las dos eran ciertas** (el anticipo nacía con la bandera apagada y congelado; `bankAccounts` estaba abierta a la portería). **Lo que sigue sin construirse de `FLOW-002`: §9/CA13, CF8 y `personId`.** Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **La pantalla, en los dos portales y en los dos ambientes.** Y produjo lo que ninguna suite vio: **tres defectos**. Dos de mensajería y auditoría —uno de ellos abortaba la llamada con el dinero ya movido— y uno de aritmética que salió de revisar lo ya desplegado: **dos guardianes rechazaban cobros CORRECTOS con centavos**, invisible porque COP no tiene decimales y todas las pruebas de sobrepago usaban enteros. La lección que dejan los tres: **un camino de dinero no termina en el `commit`** |
+| **Versión** | 0.9.26 |
+| **Fecha** | 24 de agosto de 2026 (noche) |
+| **Estado** | **LA JORNADA DEL 24 ESTÁ EN PRODUCCIÓN.** Los cuatro commits del triaje salieron en tres piezas y en orden —reglas → functions → front— y **cada una se verificó en vez de creerle al «Deploy complete»**: 227 pruebas de reglas contra el emulador (las que `npm test` excluye), las 74 functions comparadas por nombre con el árbol en cero tras compilar, y el front por **la huella del bundle** (`6a944c17` → `2bc73d04`), porque este CLI no tiene `apphosting:rollouts:list` y un grep encontraría la cadena en las dos versiones. **§13 comprobado en producción con números anotados antes**: un cobro del saldo exacto sobre `T2-203` movió los seis números predichos y **dejó los anticipos en $0**, que es la medida que prueba que la ruta de un solo cargo no cambió. **LA REVISIÓN ADVERSARIAL DE `FLOW-002` ESTÁ CERRADA: de 37 sospechas, 36 eran ciertas y están resueltas y 1 se descartó** — este campo decía a la vez «cerrada» y «quedan 20», que no podían ser las dos. **TODO EL LOTE DE HABITANTO SIGUE EN PRODUCCIÓN Y APAGADO**, leído en `/superadmin/flags`, no supuesto: `producto-anticipos` apagada en global con un único override (`conjunto-las-playas`), `producto-pago-multiple` apagada y sin overrides, kill switch maestro en `Normal`. **Ojo: caer al default del catálogo NO es sinónimo de apagada** — `producto-importacion-masiva` cae al default y ese default es Encendida. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **Sin construir de `FLOW-002`: §9/CA13, CF8 y `personId`.** **Y hay tres índices que faltan en producción** (`notifications`, `billingReminderJobs`, `billingSchedules`), anteriores a este despliegue y no arreglados por él: `--only firestore:rules` no despliega índices. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, entrando por el navegador y midiendo.** No solo que desplegara: se anotaron los números ANTES (53 movimientos, $127.500 de ingresos por cuotas, −$10.300 de fondos, $18.500 pendientes, $0 de anticipos) y se comprobó uno a uno que salieran los seis predichos. **Y mirar la consola produjo lo que ninguna suite ve: tres índices ausentes en producción**, dos de ellos anotados hasta hoy como «faltan en staging». La lección que dejan: **un campo opcional en el `where` son dos consultas, y cada una necesita su índice** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -996,6 +996,29 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.26 — 24 de agosto de 2026 (noche)
+
+- **La jornada del 24 se desplegó a producción en tres piezas y en orden**: reglas
+  (`firebase deploy --only firestore:rules`), functions (recompilando antes — no hay predeploy
+  build; dos funciones toparon con cuota por minuto y reintentaron solas) y front (push a `master`,
+  `70136b9..1a9e022`). Con ello, la conciliación **ya puede casar pagos** en producción,
+  `bankAccounts` queda cerrada a la portería y `advances` al consejo.
+- **Se verificó cada pieza en vez de aceptar el «Deploy complete»**: 227 pruebas de reglas contra
+  el emulador —las que `npm test` excluye y hay que correr con `npm run test:rules:all`—, las 74
+  functions comparadas por nombre contra `index.ts`, y el front por la **huella del bundle**, ya
+  que este CLI no tiene `apphosting:rollouts:list`.
+- **§13 comprobado en producción con números anotados antes de tocar nada.** Cobro del saldo exacto
+  sobre `T2-203` en `conjunto-las-playas`: los seis números predichos salieron, y **los anticipos
+  se quedaron en $0** con la bandera encendida en ese conjunto — que es lo que prueba que la ruta
+  de un solo cargo no cambió de comportamiento.
+- **Corregido que «caer al valor por defecto» se leyera como «apagada».** No lo es:
+  `producto-importacion-masiva` cae al default del catálogo y ese default es **Encendida**.
+- **Corregida la contradicción interna del campo Estado**, que decía a la vez que la revisión
+  adversarial estaba cerrada y que «quedan 20» sospechas.
+- **Anotados tres índices ausentes en producción** (`notifications`, `billingReminderJobs`,
+  `billingSchedules`). Los dos últimos figuraban como «faltan en staging»: faltan también en
+  producción. No los causó este despliegue, y `--only firestore:rules` no los arregla.
 
 ### 0.9.25 — 24 de agosto de 2026 (tarde)
 
