@@ -208,10 +208,15 @@ El runbook, con lo que va sin bandera y lo que hay que comprobar entre pasos, es
 **Lo único que producción aporta y sigue pendiente:** un cobro real de un solo cargo, para ver que
 esa ruta se comporta igual (§13). **Lo hace David** — es dinero en la cartera de un cliente.
 
-**Dos defectos abiertos que encontró mirar la pantalla, no la suite.** El del mensaje de error ya
-está cerrado (`CallableError`); el de `writeAuditLog` está **mitigado desde el cliente y NO
-arreglado** — audita fuera de la transacción y revienta con un campo `undefined`, así que la
-operación cuaja y la llamada devuelve error. Detalle y arreglo propuesto en `docs/pendientes.md`.
+**Los dos defectos que encontró mirar la pantalla están cerrados en la raíz**, y el segundo deja
+una regla: **`writeAuditLog` audita FUERA de la transacción**, así que si revienta lo hace con el
+dinero ya movido. Un campo `undefined` en el metadata lo reventaba —Firestore lo rechaza, porque
+`initializeApp()` corre sin `ignoreUndefinedProperties`—; ahora `limpiarMetadata`
+(`functions/src/audit.ts`) los quita. **Al añadir un campo opcional a una auditoría, no hace falta
+recordar nada; al añadir una escritura NUEVA fuera de una transacción, sí.**
+
+**El reparto sugerido (R7) lo calcula el servidor** (`previewPaymentAllocation`), no el navegador.
+`src/features/billing/reparto.ts` conserva solo lo que es de la pantalla.
 
 Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` y
 `docs/prd/funcionales/PRD-V-FLOW-002-anticipos-y-aplicacion-del-pago.md` (v1.4).

@@ -72,34 +72,38 @@ recibo, y `onPaymentVoucherCreated` **manda correo a los residentes de esa unida
 `T2-203`, que no tiene ninguno vinculado. Las unidades con residente en staging son `t1-101`,
 `t1-102` y `t2-201`; las demás no.
 
-## LO QUE ENCONTRÓ MIRAR, Y NINGUNA SUITE VEÍA
+## LOS DOS DEFECTOS QUE ENCONTRÓ MIRAR — **cerrados en la raíz**
 
-**1. El mensaje del servidor no llegaba a la pantalla. Ninguno.** `executeCallable` componía el
+**1. Ningún mensaje de error del servidor llegaba a la pantalla.** `executeCallable` componía el
 texto bien y lo envolvía en un `Error` plano; `normalizeFirebaseError` busca `error.code`, no lo
 encontraba y devolvía «Ocurrió un error inesperado». **Afectaba a TODAS las llamadas del
-producto**, no solo a los anticipos. Cerrado con `CallableError` (`fe839f7`). Duele especialmente
-aquí: CF1–CF4 y R8 existen para DECIR qué bloquea, y todos se veían igual.
+producto.** Cerrado con `CallableError` (`fe839f7`).
 
-**2. Un reparto aplicaba el dinero y devolvía error.** `applyPayment` audita FUERA de la
-transacción y `writeAuditLog` escribía `statementId: undefined`; `initializeApp()` corre sin
-`ignoreUndefinedProperties`, Firestore rechaza la escritura y la callable revienta **con el pago
-ya confirmado**. Mitigado desde el cliente mandando siempre `statementId` (`ebcfbc2`).
+**2. Una operación de dinero cuajaba y la llamada devolvía error.** `writeAuditLog` audita FUERA
+de la transacción y escribía el metadata tal cual; `initializeApp()` corre sin
+`ignoreUndefinedProperties`, así que un campo opcional ausente hacía que Firestore rechazara la
+escritura **con el pago ya hecho**. Cerrado en la raíz con `limpiarMetadata`
+(`functions/src/audit.ts`).
 
-> **EL ARREGLO DE VERDAD SIGUE PENDIENTE Y VA EN `functions/`.** El agujero está abierto para
-> cualquiera que llame con `allocations` a secas, y **el patrón es general**: cualquier
-> `writeAuditLog` con un campo opcional ausente revienta igual, siempre después de haber
-> escrito. Dos opciones: `initializeApp({ ignoreUndefinedProperties: true })`, o limpiar el
-> metadata en `writeAuditLog`. **La segunda es la buena** — la primera esconde el mismo error en
-> todas las escrituras del proyecto. Conviene barrer las demás llamadas a `writeAuditLog`
-> buscando campos opcionales.
+> **Mordió dos veces el mismo día y solo se cazó la segunda.** La primera fue
+> `undoAdvanceApplication`, cuyo `reason` es opcional: el cruce se deshacía y la pantalla decía
+> «error inesperado». **Se diagnosticó mal** —se atribuyó a un doble clic— y lo desmintió medir la
+> auditoría de staging: hay `apply_advance` y **no hay `undo_advance_application`**. Una auditoría
+> que no se escribió es invisible: no hay error en ningún sitio, simplemente falta la fila.
+> Para volver a mirar eso existe `scripts/leer-auditoria.mjs`.
+
+**Y la vista previa del reparto está en el servidor** (§11.3, `previewPaymentAllocation`): R7 dejó
+de vivir en el navegador. En `src/features/billing/reparto.ts` queda solo lo que es de la pantalla
+—qué cargos ofrecer, validar lo editado a mano, aplicarlo sobre la propuesta—. **Corrección de lo
+que dije antes: ese fichero NO se borró entero**, y no debía.
 
 ## LO SIGUIENTE
 
 | Qué | Nota |
 |---|---|
 | **1. Encender `producto-anticipos`, un conjunto cada vez** | **Es lo único que convierte el trabajo en producto.** Todo lo desplegado es inerte hasta esto. Decisión de David, y antes va el cobro de prueba de un solo cargo |
-| **2. La sesión de `functions/`: los dos cabos de `FLOW-002`** | **Son uno, no dos**: el arreglo de `writeAuditLog` y la callable de vista previa del reparto (§11.3) viven en la misma superficie. Hacerlos juntos evita dos despliegues de functions. Al cerrar el segundo, `src/features/billing/reparto.ts` **se borra entero** |
-| **3. `FIX-001` entrega 2** | Cierra la regla que deja al residente **escribir reservas directo**. Es el hueco de seguridad más viejo que queda abierto |
+| **2. `FIX-001` entrega 2** | Cierra la regla que deja al residente **escribir reservas directo**. Es el hueco de seguridad más viejo que queda abierto |
+| **3. Llevar a producción los dos cabos** | `writeAuditLog` y la vista previa están en `develop` y en staging. A producción van con el mismo orden de siempre: functions primero, front después. **Sin migración ni reglas esta vez** |
 | El índice muerto de `ledgerEntries` | `(tenantId, accountCode, date)` no lo usa ninguna consulta. Borrarlo no es urgente |
 | `PRD-V-PLAT-004`, sin escribir | El rol `committee` solo alcanza `/admin/documents` |
 | La carrera de la transacción del plan | La guarda existe y no está ejercitada |
