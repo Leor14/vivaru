@@ -68,6 +68,12 @@ import {
   type AnularCorridaInput,
   type RepartirEgresoInput,
 } from "./expense-distribution";
+import {
+  anularPazYSalvo,
+  emitirPazYSalvo,
+  type AnularPazYSalvoInput,
+  type EmitirPazYSalvoInput,
+} from "./clearance-certificates";
 import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
@@ -4304,6 +4310,109 @@ export const generateCoefficientCampaign = onCall<GenerarCorridaInput>(
         period: data.period,
         totalDistributed: resultado.total,
         unitCount: resultado.lines.length,
+      });
+    }
+
+    return resultado;
+  },
+);
+
+// ── FEAT-004 · certificado de paz y salvo ────────────────────────────────────
+//
+// **Emitir va por callable y consultar el estado de cuenta NO** (§11.1), y la
+// diferencia es toda la ficha: el estado de cuenta es lectura de dos colecciones
+// que las reglas ya protegen, mientras que **la condición «saldo cero» del paz y
+// salvo no la puede evaluar el cliente**. Este papel se enseña en una notaría.
+//
+// **`emitClearanceCertificate` la puede llamar el RESIDENTE**, y es deliberado
+// (§3): si su unidad está al día, el documento es una consecuencia aritmética y
+// no una concesión del administrador. Por eso aquí NO va `assertActiveTenantAdmin`
+// sino la comprobación de que quien pide es admin del conjunto **o** residente de
+// ESA unidad — que es lo que dice R9.
+
+async function assertAdminOrResidentDeLaUnidad(tenantId: string, unitId: string, uid: string) {
+  const snap = await db.collection("tenantUsers").doc(`${tenantId}_${uid}`).get();
+  if (!snap.exists) throw new HttpsError("permission-denied", "No perteneces a este conjunto.");
+
+  const m = snap.data() as { role?: string; status?: string; tenantId?: string; unitId?: string };
+  if (m.tenantId !== tenantId) throw new HttpsError("permission-denied", "No puedes operar sobre otro conjunto.");
+  if ((m.status ?? "active") !== "active") throw new HttpsError("failed-precondition", "Tu usuario está inactivo.");
+
+  if (m.role === "tenant_admin" || m.role === "admin_tenant") return;
+  // R9/CF2 · el residente solo alcanza SU unidad. La membresía es la autoridad,
+  // no lo que mande el cliente: `unitId` viaja en la petición y aquí se compara
+  // contra el documento, nunca al revés.
+  if (m.role === "resident" && m.unitId === unitId) return;
+
+  throw new HttpsError("permission-denied", "No puedes pedir el paz y salvo de otra unidad.");
+}
+
+export const emitClearanceCertificate = onCall<EmitirPazYSalvoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.unitId || !data.issueDate || !data.operationKey) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para emitir el paz y salvo.");
+    }
+
+    await assertAdminOrResidentDeLaUnidad(data.tenantId, normalizeText(data.unitId), uid);
+    await assertTenantOperable(data.tenantId);
+    await assertTenantContratado(data.tenantId);
+    await assertFeatureEnabled("producto-estado-de-cuenta", data.tenantId);
+
+    const resultado = await emitirPazYSalvo(
+      {
+        tenantId: data.tenantId,
+        unitId: normalizeText(data.unitId),
+        unitLabel: normalizeText(data.unitLabel) || undefined,
+        issueDate: normalizeText(data.issueDate),
+        operationKey: normalizeText(data.operationKey),
+      },
+      uid,
+    );
+
+    if (resultado.created) {
+      await writeAuditLog(data.tenantId, uid, "emit_clearance_certificate", {
+        certificateId: resultado.certificateId,
+        unitId: data.unitId,
+        code: resultado.code,
+        creditBalance: resultado.creditBalance,
+      });
+    }
+
+    return resultado;
+  },
+);
+
+export const cancelClearanceCertificate = onCall<AnularPazYSalvoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.certificateId) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para anular el certificado.");
+    }
+
+    // Anular es de administración: un residente no retira un documento del
+    // conjunto. Y **la bandera no se comprueba**, por lo mismo que en el
+    // reparto: apagarla no puede dejar certificados vivos sin forma de retirarlos.
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    await assertTenantOperable(data.tenantId);
+
+    const resultado = await anularPazYSalvo(
+      { tenantId: data.tenantId, certificateId: normalizeText(data.certificateId), reason: data.reason },
+      uid,
+    );
+
+    if (!resultado.alreadyCancelled) {
+      await writeAuditLog(data.tenantId, uid, "cancel_clearance_certificate", {
+        certificateId: resultado.certificateId,
+        reason: data.reason,
       });
     }
 

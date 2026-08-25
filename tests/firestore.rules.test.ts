@@ -346,6 +346,18 @@ beforeAll(async () => {
       createdBy: "admin-1",
     });
 
+    // FEAT-004. Un certificado de la unidad del residente `resident-1`.
+    await setDoc(doc(db, "clearanceCertificates", "pys-1"), {
+      tenantId: "tenant-a",
+      unitId: "unit-t2-503",
+      unitLabel: "T2-503",
+      issuedAt: "2026-08-25",
+      asOfDate: "2026-08-25",
+      code: "PYS-ABC234",
+      balanceAtIssue: 0,
+      status: "emitido",
+    });
+
     await setDoc(doc(db, "tenantUsers", "tenant-a_committee-1"), {
       uid: "committee-1",
       tenantId: "tenant-a",
@@ -2732,6 +2744,63 @@ describe("PLAT-002 · el último conjunto usado no es una autorización", () => 
  * superadmin sería una segunda puerta al mismo sitio, y la lección de `CF8` es
  * que las dos puertas se olvidan por separado.
  */
+describe("FEAT-004 · el paz y salvo lo escribe SOLO el servidor", () => {
+  /**
+   * **La condición del documento es «saldo cero», y el cliente no la evalúa.**
+   * Si pudiera crear el certificado, cualquiera se emitiría uno debiendo — y
+   * este papel se enseña ante un tercero, no dentro de la aplicación. Por eso la
+   * escritura está cerrada del todo, incluso al administrador: las dos callables
+   * usan Admin SDK, que no evalúa estas reglas, así que abrirla aquí sería una
+   * segunda puerta al mismo sitio. Es la lección de `CF8`.
+   */
+  it("el administrador lee los de su conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "clearanceCertificates", "pys-1")));
+  });
+
+  it("R9 · el residente lee el de SU unidad", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(resident.firestore(), "clearanceCertificates", "pys-1")));
+  });
+
+  it("el consejo también lo lee: el certificado no dice nada personal", async () => {
+    const committee = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(committee.firestore(), "clearanceCertificates", "pys-1")));
+  });
+
+  it("CF3 · un guarda NO lo alcanza", async () => {
+    const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(guard.firestore(), "clearanceCertificates", "pys-1")));
+  });
+
+  it("y NADIE lo crea desde el cliente — ni el administrador", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "clearanceCertificates", "pys-falso"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        issuedAt: "2026-08-25",
+        asOfDate: "2026-08-25",
+        code: "PYS-FALSO2",
+        balanceAtIssue: 0,
+        status: "emitido",
+      }),
+    );
+  });
+
+  it("ni lo anula a mano: eso es `cancelClearanceCertificate`, que exige motivo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "clearanceCertificates", "pys-1"), { status: "anulado" }),
+    );
+  });
+
+  it("ni lo borra, que es como se perdería el rastro de un papel que ya salió", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "clearanceCertificates", "pys-1")));
+  });
+});
+
 describe("FLOW-001 · el sello del prorrateo y la anulación los escribe SOLO el servidor", () => {
   /**
    * **Dos vetos de campo dentro de un documento que el cliente sigue editando**,

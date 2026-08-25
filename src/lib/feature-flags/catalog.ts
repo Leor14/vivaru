@@ -71,6 +71,7 @@ export type FeatureFlagKey =
   | "producto-pago-multiple"
   | "producto-multiconjunto"
   | "producto-prorrateo-de-gastos"
+  | "producto-estado-de-cuenta"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -207,6 +208,18 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-001 §11.3 — prorrateo de un gasto entre las unidades",
     alApagar:
       "Desaparece «Repartir entre unidades» del egreso. **Lo ya repartido NO se deshace**: los cargos creados siguen vivos y se cobran. Para deshacerlos hay que anular la corrida ANTES de apagarla, porque apagada tampoco se puede anular. Un cargo con pagos aplicados no se anula en lote en ningún caso: eso es `revertirPago`.",
+  },
+  "producto-estado-de-cuenta": {
+    key: "producto-estado-de-cuenta",
+    area: "producto",
+    label: "Estado de cuenta y paz y salvo",
+    description:
+      "El residente descarga el estado de cuenta de su unidad y, si está al día, emite su propio certificado de paz y salvo sin pedírselo al administrador.",
+    // Nace APAGADA: el paz y salvo es un documento que se usa ante terceros.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-004 §11.3 — estado de cuenta y paz y salvo",
+    alApagar:
+      "Desaparecen la descarga del estado de cuenta y la emisión del certificado. **Los certificados ya emitidos NO se retiran**: siguen vivos y descargables, y para retirarlos hay que anularlos ANTES de apagarla —anular sigue funcionando con la bandera apagada, justo para no dejar papeles sin forma de retirarlos—.",
   },
   "producto-reservas-servidor": {
     key: "producto-reservas-servidor",

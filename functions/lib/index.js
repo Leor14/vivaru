@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -71,6 +71,7 @@ const aviso_recibo_1 = require("./aviso-recibo");
 const vocabulario_pais_1 = require("./vocabulario-pais");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 const expense_distribution_1 = require("./expense-distribution");
+const clearance_certificates_1 = require("./clearance-certificates");
 const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
@@ -3412,6 +3413,87 @@ exports.generateCoefficientCampaign = (0, https_1.onCall)({ cors: http_config_1.
             period: data.period,
             totalDistributed: resultado.total,
             unitCount: resultado.lines.length,
+        });
+    }
+    return resultado;
+});
+// ── FEAT-004 · certificado de paz y salvo ────────────────────────────────────
+//
+// **Emitir va por callable y consultar el estado de cuenta NO** (§11.1), y la
+// diferencia es toda la ficha: el estado de cuenta es lectura de dos colecciones
+// que las reglas ya protegen, mientras que **la condición «saldo cero» del paz y
+// salvo no la puede evaluar el cliente**. Este papel se enseña en una notaría.
+//
+// **`emitClearanceCertificate` la puede llamar el RESIDENTE**, y es deliberado
+// (§3): si su unidad está al día, el documento es una consecuencia aritmética y
+// no una concesión del administrador. Por eso aquí NO va `assertActiveTenantAdmin`
+// sino la comprobación de que quien pide es admin del conjunto **o** residente de
+// ESA unidad — que es lo que dice R9.
+async function assertAdminOrResidentDeLaUnidad(tenantId, unitId, uid) {
+    const snap = await db.collection("tenantUsers").doc(`${tenantId}_${uid}`).get();
+    if (!snap.exists)
+        throw new https_1.HttpsError("permission-denied", "No perteneces a este conjunto.");
+    const m = snap.data();
+    if (m.tenantId !== tenantId)
+        throw new https_1.HttpsError("permission-denied", "No puedes operar sobre otro conjunto.");
+    if ((m.status ?? "active") !== "active")
+        throw new https_1.HttpsError("failed-precondition", "Tu usuario está inactivo.");
+    if (m.role === "tenant_admin" || m.role === "admin_tenant")
+        return;
+    // R9/CF2 · el residente solo alcanza SU unidad. La membresía es la autoridad,
+    // no lo que mande el cliente: `unitId` viaja en la petición y aquí se compara
+    // contra el documento, nunca al revés.
+    if (m.role === "resident" && m.unitId === unitId)
+        return;
+    throw new https_1.HttpsError("permission-denied", "No puedes pedir el paz y salvo de otra unidad.");
+}
+exports.emitClearanceCertificate = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.unitId || !data.issueDate || !data.operationKey) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para emitir el paz y salvo.");
+    }
+    await assertAdminOrResidentDeLaUnidad(data.tenantId, normalizeText(data.unitId), uid);
+    await (0, tenant_status_1.assertTenantOperable)(data.tenantId);
+    await (0, tenant_status_1.assertTenantContratado)(data.tenantId);
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-estado-de-cuenta", data.tenantId);
+    const resultado = await (0, clearance_certificates_1.emitirPazYSalvo)({
+        tenantId: data.tenantId,
+        unitId: normalizeText(data.unitId),
+        unitLabel: normalizeText(data.unitLabel) || undefined,
+        issueDate: normalizeText(data.issueDate),
+        operationKey: normalizeText(data.operationKey),
+    }, uid);
+    if (resultado.created) {
+        await writeAuditLog(data.tenantId, uid, "emit_clearance_certificate", {
+            certificateId: resultado.certificateId,
+            unitId: data.unitId,
+            code: resultado.code,
+            creditBalance: resultado.creditBalance,
+        });
+    }
+    return resultado;
+});
+exports.cancelClearanceCertificate = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.certificateId) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para anular el certificado.");
+    }
+    // Anular es de administración: un residente no retira un documento del
+    // conjunto. Y **la bandera no se comprueba**, por lo mismo que en el
+    // reparto: apagarla no puede dejar certificados vivos sin forma de retirarlos.
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    await (0, tenant_status_1.assertTenantOperable)(data.tenantId);
+    const resultado = await (0, clearance_certificates_1.anularPazYSalvo)({ tenantId: data.tenantId, certificateId: normalizeText(data.certificateId), reason: data.reason }, uid);
+    if (!resultado.alreadyCancelled) {
+        await writeAuditLog(data.tenantId, uid, "cancel_clearance_certificate", {
+            certificateId: resultado.certificateId,
+            reason: data.reason,
         });
     }
     return resultado;

@@ -83,6 +83,8 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "producto-multiconjunto": false,
     // Apagada = no se puede repartir un egreso. Ver el catálogo en `src/`.
     "producto-prorrateo-de-gastos": false,
+    // Apagada = sin estado de cuenta ni paz y salvo. Ver el catálogo en `src/`.
+    "producto-estado-de-cuenta": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */

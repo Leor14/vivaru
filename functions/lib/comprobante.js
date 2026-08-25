@@ -39,10 +39,10 @@ exports.construirRecibo = construirRecibo;
  * etiqueta para que una persona pueda nombrar su recibo. Dos etiquetas iguales en
  * el mismo conjunto serían improbables y, sobre todo, inofensivas.
  */
-function codigoDesdeId(voucherId) {
+function codigoDesdeId(voucherId, prefijo = "REC") {
     const limpio = voucherId.toUpperCase().replace(/[OI0L1]/g, "");
     const base = (limpio + voucherId.toUpperCase().replace(/[^A-Z0-9]/g, "")).slice(0, 6);
-    return `REC-${base.padEnd(6, "X")}`;
+    return `${prefijo}-${base.padEnd(6, "X")}`;
 }
 /**
  * Construye el recibo. Función pura: sin I/O, para poder probarla sin emulador.

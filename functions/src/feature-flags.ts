@@ -59,6 +59,7 @@ export type FeatureFlagKey =
   | "producto-pago-multiple"
   | "producto-multiconjunto"
   | "producto-prorrateo-de-gastos"
+  | "producto-estado-de-cuenta"
   | "operacion-app-check-monitor";
 
 /**
@@ -100,6 +101,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-multiconjunto": false,
   // Apagada = no se puede repartir un egreso. Ver el catálogo en `src/`.
   "producto-prorrateo-de-gastos": false,
+  // Apagada = sin estado de cuenta ni paz y salvo. Ver el catálogo en `src/`.
+  "producto-estado-de-cuenta": false,
   "operacion-app-check-monitor": true,
 };
 

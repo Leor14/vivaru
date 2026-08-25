@@ -1011,6 +1011,29 @@ service cloud.firestore {
       allow write: if superadmin();
     }
 
+    // ─── Certificados de paz y salvo (PRD-V-FEAT-004 §11.2) ──────────────────
+    //
+    // **Lectura para tres, escritura para NADIE desde el cliente.** Las escriben
+    // dos callables con Admin SDK, que no evalúa estas reglas — así que dejarlas
+    // abiertas al administrador sería una segunda puerta al mismo sitio, y la
+    // lección de `CF8` es que las dos se olvidan por separado.
+    //
+    // **Y aquí importa más que en otros sitios:** la única condición de este
+    // documento es «saldo cero». Si el cliente pudiera crearlo, cualquiera se
+    // emitiría un paz y salvo debiendo — un papel que se enseña en una notaría.
+    //
+    // R9 · el residente alcanza los de SU unidad, con el mismo `residentOwnUnit`
+    // que ya gobierna sus cargos. El consejo lee los del conjunto: el
+    // certificado no dice nada personal, solo si una unidad debe.
+    match /clearanceCertificates/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        tenantRole(resource.data.tenantId, 'committee') ||
+        residentOwnUnit(resource.data.tenantId, resource.data.unitId)
+      );
+      allow create, update, delete: if false;
+    }
+
     // ─── Empresas administradoras (PRD-V-PLAT-002 §7.1) ───────────────────────
     //
     // **Bloque explícito, y no cae en `relaxedTenantCollection`**: esta colección

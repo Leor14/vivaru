@@ -129,6 +129,14 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-estado-de-cuenta",
+    area: "producto",
+    label: "Estado de cuenta y paz y salvo",
+    origen: "FEAT-004",
+    // Nace apagada: el paz y salvo se usa ante terceros.
+    enabled: false,
+  },
+  {
     key: "producto-prorrateo-de-gastos",
     area: "producto",
     label: "Repartir un gasto entre las unidades",
