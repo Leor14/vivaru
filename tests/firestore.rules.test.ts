@@ -967,9 +967,18 @@ describe("Firestore Rules - HOGARU", () => {
     await assertFails(getDoc(doc(resident.firestore(), "amenities", "am-inactive")));
   });
 
-  it("permite crear reserva de residente con amenidad activa de su tenant", async () => {
+  /**
+   * **`PRD-V-FIX-001` paso 4, invertida el 24 de agosto de 2026.** Esta prueba
+   * decía «permite» y era correcta hasta ese día: el residente creaba la reserva
+   * por escritura directa y la regla solo validaba **quién y dónde**, no cuánto,
+   * cuándo ni si debe. Ahora pasa por `createReservationRequest`.
+   *
+   * El caso es el que ANTES funcionaba —amenidad activa, su unidad, `startAt`
+   * con margen—, para que lo que se mide sea el cierre y no otra cosa.
+   */
+  it("BLOQUEA crear reserva de residente por escritura directa, aunque todo lo demás esté bien", async () => {
     const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(resident.firestore(), "reservations", "res-1"), {
         tenantId: "tenant-a",
         unitId: "unit-t2-503",
@@ -985,6 +994,34 @@ describe("Firestore Rules - HOGARU", () => {
         createdBy: "resident-1",
         // La regla exige `startAt` con 30 minutos de margen. La app sí lo manda
         // (`use-reservations.ts`); al test se le había quedado sin actualizar.
+        startAt: manana(),
+      }),
+    );
+  });
+
+  /**
+   * **La prueba que distingue «cerrado para el residente» de «cerrado para
+   * todos», y no existía.** Tras el paso 4, las dos de abajo —«amenidad de otro
+   * tenant» e «inactiva»— pasan **por el motivo equivocado**: al residente le
+   * falla todo, así que ya no miden lo suyo. Sin esta, romper también la rama
+   * del administrador dejaría la suite entera en verde.
+   */
+  it("el tenant_admin SÍ conserva su escritura directa tras el paso 4", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "reservations", "res-admin-1"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        unitLabel: "T2-503",
+        amenityId: "am-1",
+        amenity: "Salon social",
+        date: "2026-03-20",
+        startTime: "18:00",
+        endTime: "20:00",
+        slot: "18:00 - 20:00",
+        exclusiveUse: false,
+        status: "pending",
+        createdBy: "admin-1",
         startAt: manana(),
       }),
     );

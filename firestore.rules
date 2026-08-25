@@ -812,17 +812,37 @@ service cloud.firestore {
         securityGuardRole(resource.data.tenantId) ||
         residentOwnUnit(resource.data.tenantId, resource.data.unitId)
       );
-      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && (
-        tenantAdminOrSuper(request.resource.data.tenantId) ||
-        (
-          residentOwnUnit(request.resource.data.tenantId, request.resource.data.unitId) &&
-          request.resource.data.createdBy == request.auth.uid &&
-          amenityReservableForTenant(request.resource.data.tenantId, request.resource.data.amenityId) &&
-          request.resource.data.amenity == amenityDoc(request.resource.data.amenityId).data.name &&
-          request.resource.data.startAt is timestamp &&
-          request.resource.data.startAt >= (request.time + duration.value(30, 'm'))
-        )
-      ));
+      // **`PRD-V-FIX-001` paso 4 — la rama del RESIDENTE se retiro el 24 de
+      // agosto de 2026, y es el unico paso de la ficha SIN VUELTA ATRAS con
+      // bandera.**
+      //
+      // Un residente ya no crea reservas desde el cliente: pasa por
+      // `createReservationRequest`. El motivo no es de exposicion de datos sino
+      // de regla de negocio — **la regla validaba quien y donde, no cuanto,
+      // cuando ni si debe**. Seis de las trece reglas exigen CONTAR reservas
+      // (cupo mensual, aforo por turno, solapamiento) y una regla de Firestore
+      // no cuenta; la compuerta de morosos vivia solo en el navegador, asi que
+      // un moroso podia reservar el salon social escribiendo directo, que es
+      // exactamente lo que la funcionalidad existia para impedir.
+      //
+      // **El administrador CONSERVA su rama**, a proposito: reserva a nombre de
+      // cualquier unidad y no pasa por la compuerta.
+      //
+      // Las validaciones que estaban aqui no se han perdido — se replican en la
+      // callable (`functions/src/reservations.ts`), porque siguen siendo ciertas
+      // y son baratas.
+      //
+      // **Se cerro con la puerta de §13 medida, no supuesta:**
+      // `scripts/verificar-reservas-por-servidor.mjs` sobre produccion daba
+      // `1 servidor · 0 admin · 0 residente` — y ese 1 se genero a proposito
+      // reservando desde el portal del residente, porque **una puerta que se
+      // abre sobre un conjunto VACIO no verifica nada**: con cero clientes
+      // reales, «ningun residente escribio directo» se cumple solo.
+      //
+      // Rollback: volver a desplegar las reglas anteriores. No hay interruptor.
+      allow create: if tenantOperable(request.resource.data.tenantId) && (
+        signedIn() && tenantAdminOrSuper(request.resource.data.tenantId)
+      );
 
       // Tenant admins and superadmin can fully manage reservations.
       allow update: if tenantOperable(resource.data.tenantId) && (signedIn() && sameTenant(resource.data.tenantId) && (
