@@ -56,6 +56,19 @@ export const planCreateSchema = z.object({
 
 export const planUpdateSchema = planCreateSchema.omit({ id: true });
 
+export const managementCompanyCreateSchema = z.object({
+  name: z.string().min(2, "El nombre es obligatorio"),
+  // ISO-3166-1 alfa-2. El país gobierna la moneda y la tarifa, igual que en el
+  // conjunto: dejarlo libre daría «Colombia», «CO» y «col» en la misma tabla.
+  country: z.string().length(2, "Usa el código de dos letras (CO, MX, EC)"),
+  taxId: z.string().optional(),
+  contactEmail: z.string().email("Correo inválido").optional().or(z.literal("")),
+  contactPhone: z.string().optional(),
+  status: z.enum(["active", "inactive"]),
+});
+
+export type ManagementCompanyInput = z.infer<typeof managementCompanyCreateSchema>;
+
 export type TenantCreateInput = z.infer<typeof tenantCreateSchema>;
 export type TenantUpdateInput = z.infer<typeof tenantUpdateSchema>;
 export type AdminCreateInput = z.infer<typeof adminCreateSchema>;

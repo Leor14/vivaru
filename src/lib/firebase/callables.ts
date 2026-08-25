@@ -527,6 +527,49 @@ export async function logClientErrorCallable(input: {
   return result.data;
 }
 
+/**
+ * **`PLAT-002` §7.1 — la empresa administradora.** Solo superadmin (G5): quien
+ * la crea es el equipo de Vivaru, en el alta comercial.
+ *
+ * No manda `tenantId` y aquí sí es correcto: la administradora vive POR ENCIMA
+ * del conjunto, así que no hay conjunto activo que valga.
+ */
+export async function saveManagementCompanyCallable(input: {
+  id?: string;
+  name: string;
+  taxId?: string;
+  country: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  status: "active" | "inactive";
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true; id: string; conjuntosRenombrados: number }>(
+    functions,
+    "saveManagementCompany",
+  );
+  return executeCallable(callable, input, "No pudimos guardar la administradora.");
+}
+
+/**
+ * Asocia o desasocia un conjunto. `managementCompanyId: null` lo deja suelto.
+ *
+ * **Mover un conjunto de una administradora a otra se RECHAZA** (R5): hay que
+ * desasociarlo primero. Ese segundo paso es el que da la oportunidad de darse
+ * cuenta de que se están pasando conjuntos de dueño.
+ */
+export async function setTenantManagementCompanyCallable(input: {
+  tenantId: string;
+  managementCompanyId: string | null;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: true; cambiado: boolean }>(
+    functions,
+    "setTenantManagementCompany",
+  );
+  return executeCallable(callable, input, "No pudimos cambiar la administradora del conjunto.");
+}
+
 // Onboarding por invitación (Opción B). getAccountInvite valida sin consumir.
 export async function getAccountInviteCallable(token: string) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");

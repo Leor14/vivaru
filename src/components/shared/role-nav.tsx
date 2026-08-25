@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils/cn";
 const iconByHref: Record<string, ComponentType<{ className?: string }>> = {
   "/superadmin": ShieldCheck,
   "/superadmin/tenants": Building2,
+  "/superadmin/administradoras": Building2,
   "/superadmin/leads": UserPlus,
   "/superadmin/plans": Wallet,
   "/superadmin/metrics": BarChart2,

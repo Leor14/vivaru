@@ -68,6 +68,9 @@ export interface TenantWorkspaceItem {
   convertedAt?: string;
   /** Quién vendió este conjunto (REVOPS-001E). Id en `salesReps`. */
   vendedorId?: string;
+  /** Administradora del conjunto (`PLAT-002` §7.2). Ausente = conjunto suelto. */
+  managementCompanyId?: string;
+  managementCompanyName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -119,6 +122,8 @@ export function watchTenants(
           leadId: typeof data.leadId === "string" ? data.leadId : undefined,
           convertedAt: typeof data.convertedAt === "string" ? data.convertedAt : undefined,
           vendedorId: typeof data.vendedorId === "string" ? data.vendedorId : undefined,
+          managementCompanyId: typeof data.managementCompanyId === "string" ? data.managementCompanyId : undefined,
+          managementCompanyName: typeof data.managementCompanyName === "string" ? data.managementCompanyName : undefined,
           createdAt: toIsoString(data.createdAt),
           updatedAt: toIsoString(data.updatedAt),
         } as TenantWorkspaceItem;
@@ -237,6 +242,54 @@ export async function extendTrial(tenantId: string, days: number) {
     trialEndsAt: next.toISOString(),
     updatedAt: serverTimestamp(),
   });
+}
+
+export interface ManagementCompanyItem {
+  id: string;
+  name: string;
+  taxId: string | null;
+  country: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  status: "active" | "inactive";
+}
+
+/**
+ * Las administradoras. **Solo el superadmin puede leer esta colección**
+ * (`PLAT-002` §7.1): lleva identificación fiscal y contacto de la empresa, y no
+ * es para todo el que tenga sesión. Lo que ven los miembros del conjunto es el
+ * NOMBRE, desnormalizado en `tenants.managementCompanyName`.
+ *
+ * Se ordena en memoria y no con `orderBy`: un `orderBy` DESCARTA en silencio
+ * los documentos que no traen el campo, y ya costó una pantalla vacía con ocho
+ * documentos dentro.
+ */
+export function watchManagementCompanies(
+  onData: (items: ManagementCompanyItem[]) => void,
+  onError: (message: string) => void,
+) {
+  const firestore = assertDb();
+  return onSnapshot(
+    collection(firestore, "managementCompanies"),
+    (snapshot) => {
+      const items = snapshot.docs
+        .map((docItem) => {
+          const data = docItem.data() as Record<string, unknown>;
+          return {
+            id: docItem.id,
+            name: typeof data.name === "string" ? data.name : docItem.id,
+            taxId: typeof data.taxId === "string" ? data.taxId : null,
+            country: typeof data.country === "string" ? data.country : "—",
+            contactEmail: typeof data.contactEmail === "string" ? data.contactEmail : null,
+            contactPhone: typeof data.contactPhone === "string" ? data.contactPhone : null,
+            status: data.status === "inactive" ? ("inactive" as const) : ("active" as const),
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, "es-CO"));
+      onData(items);
+    },
+    (error) => onError(error.message),
+  );
 }
 
 export function watchPlans(onData: (items: PlanWorkspaceItem[]) => void, onError: (message: string) => void) {
