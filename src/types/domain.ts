@@ -19,12 +19,56 @@ export function isTenantWritable(status: TenantStatus | undefined | null): boole
   return WRITABLE_TENANT_STATUSES.includes(status);
 }
 
+/**
+ * Empresa administradora — la entidad por encima del conjunto
+ * (`PRD-V-PLAT-002` §7.1).
+ *
+ * **No lleva `tenantId`**, porque vive por encima. No es la primera colección
+ * sin él —`tenants`, `users`, `plans` y `featureFlags` tampoco— pero sí la
+ * primera que **agrupa conjuntos**, y por eso su regla no se parece a ninguna.
+ *
+ * **Solo la lee el superadmin.** §7.1 pedía «lectura para los miembros de un
+ * conjunto asociado» y eso **no se puede expresar** en reglas de Firestore: no
+ * hay forma de preguntar «¿existe un conjunto asociado a esta administradora
+ * donde yo sea miembro?» sin iterar, y no se puede iterar. Abrirla a
+ * `signedIn()` habría sido lo cómodo y expone `taxId`, correo y teléfono a
+ * cualquier residente de cualquier conjunto de la plataforma. Así que se cierra
+ * al superadmin y **el nombre se desnormaliza en `tenants`**, que los miembros
+ * ya pueden leer: es lo único que el producto necesita enseñarles (§4.8).
+ */
+export interface ManagementCompany {
+  id: string;
+  name: string;
+  taxId?: string;
+  /** ISO-3166-1 alfa-2. */
+  country: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  /** `inactive` NO suspende sus conjuntos: cada uno conserva su `TenantStatus` (§6, R4). */
+  status: "active" | "inactive";
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+}
+
 export interface Tenant {
   id: string;
   name: string;
   nit?: string;
   city: string;
   status: TenantStatus;
+  /**
+   * Administradora del conjunto. **Ausente = conjunto suelto**, que es el caso
+   * de todos los actuales y funciona exactamente igual (§5.3). Un conjunto
+   * pertenece a lo sumo a UNA (R5), y por eso es un campo y no una lista.
+   */
+  managementCompanyId?: string;
+  /**
+   * Copia del nombre de la administradora, para que los miembros del conjunto
+   * puedan verlo sin abrir el registro —que es solo-superadmin—. Lo mantiene al
+   * día la callable que renombra o asocia; **nadie más debe escribirlo**.
+   */
+  managementCompanyName?: string;
   planId: string;
   onboardingStatus: "not_started" | "in_progress" | "completed";
   /**

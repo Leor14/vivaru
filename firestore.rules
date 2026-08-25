@@ -987,6 +987,30 @@ service cloud.firestore {
       allow write: if superadmin();
     }
 
+    // ─── Empresas administradoras (PRD-V-PLAT-002 §7.1) ───────────────────────
+    //
+    // **Bloque explícito, y no cae en `relaxedTenantCollection`**: esta colección
+    // NO lleva `tenantId` porque vive por encima del conjunto, así que ninguna
+    // de las reglas de conjunto la sabría proteger.
+    //
+    // **Lectura solo superadmin, y es MÁS estricto de lo que pedía la ficha.**
+    // §7.1 decía «lectura para los miembros de un conjunto asociado», y eso no
+    // se puede expresar aquí: haría falta preguntar «¿existe un conjunto con
+    // esta administradora donde yo sea miembro?», y las reglas no iteran. La
+    // salida cómoda era `signedIn()`, que expone `taxId`, correo y teléfono de
+    // la empresa a cualquier residente de cualquier conjunto. En su lugar el
+    // NOMBRE se desnormaliza en `tenants` —que los miembros ya leen— y el
+    // registro se cierra.
+    //
+    // **Escritura cerrada al cliente**, no «solo superadmin»: la hacen dos
+    // callables con Admin SDK, que NO evalúa estas reglas. Dejarla abierta al
+    // superadmin sería una segunda puerta al mismo sitio, y la lección de `CF8`
+    // es justamente que las dos puertas se olvidan por separado.
+    match /managementCompanies/{companyId} {
+      allow read: if superadmin();
+      allow create, update, delete: if false;
+    }
+
     // ─── Banderas de funcionalidad y kill switch (Paso 1.1 del programa de IA) ─
     //
     // Dos colecciones, y la separación es de seguridad, no de estilo:

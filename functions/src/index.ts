@@ -50,6 +50,12 @@ import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import {
+  asociarConjunto,
+  guardarAdministradora,
+  type AltaAdministradoraInput,
+  type AsociarConjuntoInput,
+} from "./management-companies";
 import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantOperable } from "./tenant-status";
 import { frasesDelRecibo } from "./aviso-recibo";
@@ -4527,6 +4533,44 @@ export { registrarFeedbackIa } from "./ai/feedback-gateway";
 // servidor lee el ticket y resuelve la variante. Si la mandara el navegador,
 // `variante` —lo que decide la puerta dura de nulls en `buzon_simple`— la
 // estaría afirmando el cliente.
+/**
+ * **`PLAT-002` §7.1 — la empresa administradora.** Las dos van por callable y
+ * solo superadmin: es el alta comercial (G5). La lógica vive en
+ * `management-companies.ts`; aquí se expone, se valida la sesión y se deja el
+ * rastro de auditoría.
+ */
+export const saveManagementCompany = onCall<AltaAdministradoraInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    assertSuperadmin(request.auth);
+    const uid = request.auth!.uid;
+    const resultado = await guardarAdministradora(request.data, uid);
+    await writeAuditLog("", uid, "save_management_company", {
+      managementCompanyId: resultado.id,
+      // Cuántos conjuntos se renombraron de rebote. Sin esto, un renombrado que
+      // toque quince conjuntos no deja rastro de haberlo hecho.
+      conjuntosRenombrados: resultado.conjuntosRenombrados,
+    });
+    return resultado;
+  },
+);
+
+export const setTenantManagementCompany = onCall<AsociarConjuntoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    assertSuperadmin(request.auth);
+    const uid = request.auth!.uid;
+    const resultado = await asociarConjunto(request.data);
+    // Solo se audita si de verdad cambió: pedir lo que ya está no es un hecho.
+    if (resultado.cambiado) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "set_tenant_management_company", {
+        managementCompanyId: request.data?.managementCompanyId ?? null,
+      });
+    }
+    return resultado;
+  },
+);
+
 export { asistirTicketPqrs } from "./ai/pqrs-gateway";
 export { registrarImportacion } from "./import/gateway";
 

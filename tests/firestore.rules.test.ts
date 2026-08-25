@@ -2705,3 +2705,51 @@ describe("PLAT-002 · el último conjunto usado no es una autorización", () => 
     );
   });
 });
+
+/**
+ * **`PLAT-002` §7.1 — el registro de administradoras.**
+ *
+ * Dos cosas que probar, y la segunda es la que suele olvidarse: que **nadie**
+ * escriba desde el cliente, ni siquiera el superadmin. Las dos callables van con
+ * Admin SDK, que no evalúa estas reglas; dejar la escritura abierta al
+ * superadmin sería una segunda puerta al mismo sitio, y la lección de `CF8` es
+ * que las dos puertas se olvidan por separado.
+ */
+describe("PLAT-002 · managementCompanies: solo superadmin lee, y nadie escribe", () => {
+  const sa = () => testEnv.authenticatedContext("super-1", { role: "superadmin" });
+  const adminA = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+  const residenteA = () => testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+
+  it("el superadmin lee el registro", async () => {
+    await assertSucceeds(getDoc(doc(sa().firestore(), "managementCompanies", "adm-1")));
+  });
+
+  /**
+   * §7.1 pedía «lectura para los miembros de un conjunto asociado» y eso NO se
+   * puede expresar aquí: haría falta iterar conjuntos. Se cerró al superadmin y
+   * el NOMBRE se desnormalizó en `tenants`, que los miembros ya leen. Estas dos
+   * fijan la decisión: el registro lleva `taxId`, correo y teléfono, y no es
+   * para todo el que tenga sesión.
+   */
+  it("un administrador de conjunto NO lo lee", async () => {
+    await assertFails(getDoc(doc(adminA().firestore(), "managementCompanies", "adm-1")));
+  });
+
+  it("y un residente tampoco", async () => {
+    await assertFails(getDoc(doc(residenteA().firestore(), "managementCompanies", "adm-1")));
+  });
+
+  it("NADIE escribe desde el cliente — ni el superadmin", async () => {
+    await assertFails(
+      setDoc(doc(sa().firestore(), "managementCompanies", "adm-nueva"), {
+        name: "Administra S.A.",
+        country: "CO",
+        status: "active",
+      }),
+    );
+  });
+
+  it("ni borra", async () => {
+    await assertFails(deleteDoc(doc(sa().firestore(), "managementCompanies", "adm-1")));
+  });
+});
