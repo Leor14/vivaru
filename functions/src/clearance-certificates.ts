@@ -122,16 +122,50 @@ export async function emitirPazYSalvo(
 
   const claves = [...new Set([input.unitId, claveAlterna].filter(Boolean))] as string[];
 
-  const cargosPorClave = await Promise.all(
-    claves.map((clave) =>
+  /**
+   * **Y una TERCERA vía: la etiqueta.** Hay cargos cuyo `unitId` no casa con
+   * ninguna unidad — ni por id ni por campo. Medido en producción el 25 de
+   * agosto de 2026: `tenant-santa-maria` tiene la unidad `u-t1-101` con sus
+   * cargos **partidos en dos claves**, `u-t1-101` (4 cargos, 3.360.000) y
+   * `unit-t1-101` (5 cargos, **3.580.000**), y esta última no existe como
+   * unidad. La deuda real de T1-101 es 6.940.000 y cualquier consulta por clave
+   * enseña menos de la mitad.
+   *
+   * Lo único que ata esos cargos a su unidad es `unitLabel`. Buscar también por
+   * ahí **incluye de más antes que de menos**, y para un documento que AFIRMA
+   * esa es la dirección segura: negarse a certificar a alguien que sí está al
+   * día se arregla mirando; certificar al que debe, no.
+   */
+  const etiqueta = input.unitLabel ?? (await firestore.collection("units").doc(claves[0]).get()).data()?.displayName;
+
+  const consultas = claves.map((clave) =>
+    firestore
+      .collection("billingStatements")
+      .where("tenantId", "==", input.tenantId)
+      .where("unitId", "==", clave)
+      .get(),
+  );
+  if (etiqueta) {
+    consultas.push(
       firestore
         .collection("billingStatements")
         .where("tenantId", "==", input.tenantId)
-        .where("unitId", "==", clave)
+        .where("unitLabel", "==", etiqueta)
         .get(),
-    ),
-  );
-  const cargosSnap = { docs: cargosPorClave.flatMap((snap) => snap.docs) };
+    );
+  }
+
+  const cargosPorClave = await Promise.all(consultas);
+  // Un cargo puede venir por dos consultas a la vez —clave Y etiqueta—: contarlo
+  // dos veces duplicaría el saldo e impediría emitir a quien sí está al día.
+  const vistos = new Set<string>();
+  const cargosSnap = {
+    docs: cargosPorClave.flatMap((snap) => snap.docs).filter((d) => {
+      if (vistos.has(d.id)) return false;
+      vistos.add(d.id);
+      return true;
+    }),
+  };
 
   // R5 · un cargo anulado no cuenta. Y su `balance` ya es cero, así que esto es
   // el segundo de los dos caminos que lo dejan fuera: el estado y el saldo.

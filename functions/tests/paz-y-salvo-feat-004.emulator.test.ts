@@ -178,6 +178,35 @@ describe("FEAT-004 · las DOS claves de unidad", () => {
   });
 });
 
+describe("FEAT-004 · el cargo HUERFANO, que no casa con ninguna unidad", () => {
+  /**
+   * Medido en producción: `tenant-santa-maria` tiene la unidad `u-t1-101` con
+   * sus cargos partidos en DOS claves —`u-t1-101` (3.360.000) y `unit-t1-101`
+   * (3.580.000)— y la segunda no existe como unidad, ni por id ni por campo. La
+   * deuda real de T1-101 es 6.940.000 y cualquier consulta por clave enseña
+   * menos de la mitad.
+   *
+   * Lo único que ata esos cargos a su unidad es la ETIQUETA.
+   */
+  it("una deuda con `unitId` huérfano pero la MISMA etiqueta bloquea igual", async () => {
+    await db.collection("units").doc(U).set({ tenantId: T, unitId: U, displayName: "101", status: "active" });
+    await sembrarCargo("porClave", { balance: 0 });
+    // Ni id ni campo: solo comparte etiqueta, como los cinco de produccion.
+    await sembrarCargo("huerfano", { balance: 640_000, unitId: "clave-que-no-existe", period: "2026-05" });
+
+    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/640000/);
+  });
+
+  it("y un cargo que llega por DOS vías no se cuenta dos veces", async () => {
+    // Si se duplicara, un saldo de 0 seguiria siendo 0 y no se notaria; el caso
+    // que lo delata es uno con saldo, que se contaria por clave Y por etiqueta.
+    await db.collection("units").doc(U).set({ tenantId: T, unitId: U, displayName: "101", status: "active" });
+    await sembrarCargo("porLasDos", { balance: 50_000, period: "2026-06" });
+
+    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/pendiente de 50000/);
+  });
+});
+
 describe("FEAT-004 · lo que NO debe emitirse", () => {
   it("CF1 · con saldo pendiente NO se emite, y se dice cuánto y desde cuándo", async () => {
     await sembrarCargo("c1", { balance: 60_000, period: "2026-03" });
