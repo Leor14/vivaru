@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.27 |
-| **Fecha** | 24 de agosto de 2026 (cierre) |
-| **Estado** | **LA JORNADA DEL 24 ESTÁ EN PRODUCCIÓN, VERIFICADA PIEZA POR PIEZA**, en el orden que exige un despliegue mixto: reglas → functions → front. Y **§13 comprobado en producción con los números anotados ANTES**: un cobro del saldo exacto sobre `T2-203` movió los seis predichos y dejó los anticipos en $0, que es la medida que prueba que la ruta de un solo cargo no cambió. **LA REVISIÓN ADVERSARIAL DE `FLOW-002` ESTÁ CERRADA**: de 37 sospechas, 36 ciertas y resueltas, 1 descartada. **TODO EL LOTE DE HABITANTO SIGUE EN PRODUCCIÓN Y APAGADO**, leído en `/superadmin/flags`: `producto-anticipos` con un único override (`conjunto-las-playas`), `producto-pago-multiple` sin ninguno, kill switch maestro en `Normal`. **Lo que falta para cerrar `PH-001` ya no es construir: es encender, de uno en uno y mirando.** Queda `FLOW-001` de la ola B y la ola C entera. **Sin construir de `FLOW-002`: §9/CA13, CF8 y `personId`.** **LA TARDE AÑADIÓ UN FRENTE QUE NADIE HABÍA MIRADO: los índices.** Faltaban CUATRO en producción —`notifications`, `billingReminderJobs`, `billingSchedules` y `documents`—, tres vistos en la consola del navegador y **uno que no se veía**, encontrado cruzando el código contra el fichero. Puestos en los dos ambientes. **Y el cuarto destapó un defecto mayor y una sobre-concesión:** la lista de documentos del residente llevaba tiempo diciendo «Sin documentos» teniendo ocho —ordenaba por un campo que la subida real nunca escribe— y, al arreglarla, seis de esos ocho resultaron ser archivos financieros con **la mora unidad por unidad** (32 de 39 en todo el proyecto). Cerrado con regla por rol y categoría, consulta filtrando en el servidor e índice propio; la **portería** perdió de paso un acceso que tenía por `sameTenant`. **PRODUCCIÓN SIGUE SIN UN SOLO CLIENTE REAL** y ya no queda nada por confirmar: los nueve conjuntos están marcados como de ejemplo. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, entrando por el navegador y midiendo, con los cuatro roles.** No solo que desplegara: se anotaron los números ANTES y se comprobó uno a uno que salieran los predichos. **Y mirar la consola produjo lo que ninguna suite ve** — 1172 pruebas de front y 237 de reglas estaban en verde mientras cuatro consultas fallaban en producción y una pantalla entera mentía. Las reglas nuevas se **falsaron**: al revertirlas se ponen rojas exactamente las restrictivas. La lección de la tarde: **un `orderBy` descarta los documentos que no traen el campo, sin error y sin aviso — no hace falta un `catch` para que una lista mienta** |
+| **Versión** | 0.9.28 |
+| **Fecha** | 24 de agosto de 2026 (cierre de noche) |
+| **Estado** | **`FLOW-002` ESTÁ CERRADA ENTERA: ya no le queda ningún criterio propio sin cumplir.** Los tres que le faltaban cayeron esta noche. **`CF8` era de dinero y se reprodujo primero con dinero de verdad**: con la sesión del administrador de un conjunto `suspended` se cobraron $2.120.000 y el producto no opuso nada, porque `tenantOperable` vivía solo en las reglas de Firestore y **las callables van con Admin SDK, que no las evalúa**. El contraste que lo resume: el producto ya se negaba a **facturarle** a un cliente suspendido y le dejaba **cobrar**. Corregido, desplegado y verificado en el mismo conjunto. **§9 y CA13 construidos**: el aviso del recibo nombra los cargos cubiertos y el saldo a favor, con el término de cuota **del país del conjunto**; verificado con un cobro real que salió carácter por carácter lo predicho. **Y `personId` se RETIRÓ del contrato en vez de construirse** (decisión de David): el anticipo es de la **unidad** y no lleva ningún dato personal, y §7.6 describía mal su propio precedente. **EL LOTE DE HABITANTO ESTÁ ENCENDIDO** —las seis banderas, globalmente, en los nueve conjuntos y sin overrides—, así que lo que le queda a `PH-001` **vuelve a ser construir**: `FLOW-001` de la ola B y la ola C entera. Esta celda decía «sigue en producción y APAGADO» y «lo que falta ya no es construir, es encender»: las dos cosas quedaron obsoletas. **Y esta noche se ejecutó el PRIMER SOBREPAGO de producción**, que verificó de paso R4 y CA7. **PRODUCCIÓN SIGUE SIN UN SOLO CLIENTE REAL.** Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, entrando por el navegador y moviendo dinero de verdad en los conjuntos de ejemplo.** Los dos cambios se reprodujeron ANTES de tocar código y se midieron DESPUÉS contra números anotados de antemano. **Y se falsaron**: se rompió el arreglo de `CF8` a propósito en cuatro variantes y cada una tumbó exactamente las pruebas que debía y ninguna más. **La lección de la noche: una regla de Firestore no protege lo que escribe una callable** — cada vez que una regla sea la única palanca de un invariante, hay que preguntarse quién más escribe eso. **Y la segunda: la prueba de la costura cazó un defecto que las trece pruebas puras no podían ver** — el aviso leía un id que no existe y habría salido igual que antes, sin error y con todo en verde |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -996,6 +996,34 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.28 — 24 de agosto de 2026 (cierre de noche)
+
+- **`FLOW-002` cerrada entera.** Los tres criterios que le quedaban —`CF8`, `§9/CA13` y
+  `personId`— se cerraron el mismo día: dos construidos y uno **retirado del contrato**. La
+  categoría «criterios del alcance entregado, sin construir» queda vacía.
+- **`CF8`: un conjunto suspendido podía cobrar y cruzar anticipos, y ya no.** Reproducido en
+  producción con un cobro real de $2.120.000 antes de tocar nada. La causa no era que faltara la
+  comprobación: `assertTenantOperable` ya existía y funcionaba, pero era **privada de `index.ts`**
+  y por eso inalcanzable sin import circular. Sale a `tenant-status.ts` y la llaman los dos
+  guardianes de dinero. El superadmin sigue pasando, a propósito: es quien reactiva.
+- **`§9` y `CA13`: el aviso del recibo dice qué cubrió el pago y qué quedó a favor.** No hizo falta
+  cambiar ningún esquema. Verificado con un cobro real que salió **carácter por carácter lo
+  predicho**, y con el término de cuota del **país del conjunto** —«cuota de mantenimiento» en
+  México, no «alícuota»—.
+- **`personId` retirado en vez de construido.** El anticipo es de la **unidad** (R2, R6,
+  `residentOwnUnit`) y no lleva ningún dato personal; §7.6 describía mal su propio precedente
+  —`anonymizeExpiredVouchers` no usa vínculo con persona—. Escribirlo habría metido PII donde no
+  la hay.
+- **El primer sobrepago de producción**, que verificó de propina **R4** —el recaudado sube solo lo
+  que fue al cargo— y **CA7** —el asiento del anticipo nace con `sourceType: "advance"`—.
+- **Tres guardianes nuevos, todos falsados.** Las trece pruebas de `CF8`; el que vigila que los dos
+  catálogos de avisos no divergan, que llevaba desde siempre pedido en un comentario y no existía;
+  y el de la costura entre lo que escribe el pago y lo que lee el aviso, que **cazó un defecto en
+  el código de producción** que ninguna prueba pura podía ver.
+- **Y una trampa de método:** las suites de emulador corrían en paralelo contra un solo emulador y
+  se borraban los datos entre sí, dando fallos fantasma que cambiaban de sitio entre corridas. Se
+  detectó **por medir la línea base antes de culpar al cambio propio**.
 
 ### 0.9.27 — 24 de agosto de 2026 (cierre)
 
