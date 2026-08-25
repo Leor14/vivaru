@@ -69,7 +69,17 @@ async function runFeedback(request) {
     const db = (0, firestore_1.getFirestore)();
     const uid = typeof request.auth?.uid === "string" ? request.auth.uid : undefined;
     const claims = request.auth?.token;
-    const claimTenantId = typeof claims?.tenantId === "string" ? claims.tenantId : undefined;
+    // El conjunto sobre el que se pide escribir, resuelto con la MISMA función
+    // que usa la decisión (`PLAT-002` §7.4: el claim ya no es el conjunto activo).
+    // No concede nada: la membresía se lee de este conjunto, así que pedir uno
+    // ajeno acaba en `sin_membresia` — y aquí eso importa más que en ningún sitio,
+    // porque estas filas son la evidencia con la que se decide el producto.
+    const tenantSolicitado = (0, authorize_1.conjuntoPedido)({
+        appCheckPresent: request.app != null,
+        uid,
+        claims,
+        data: request.data,
+    });
     // Los roles salen del catálogo, no escritos a mano: quien puede pedir la
     // asistencia es quien puede contar qué hizo con ella. Si mañana cambian ahí,
     // cambian aquí solos.
@@ -84,10 +94,10 @@ async function runFeedback(request) {
         return { ok: false, code: "invalid-argument", message: "Esa operación no existe.", reason: "operacion_desconocida" };
     }
     const [membershipSnap, appCheckMonitor] = await Promise.all([
-        uid && claimTenantId
-            ? db.collection("tenantUsers").doc(`${claimTenantId}_${uid}`).get()
+        uid && tenantSolicitado
+            ? db.collection("tenantUsers").doc(`${tenantSolicitado}_${uid}`).get()
             : Promise.resolve(null),
-        (0, feature_flags_1.resolveFeatureFlag)(APP_CHECK_MONITOR_FLAG, claimTenantId),
+        (0, feature_flags_1.resolveFeatureFlag)(APP_CHECK_MONITOR_FLAG, tenantSolicitado),
     ]);
     const membership = membershipSnap && membershipSnap.exists ? membershipSnap.data() : null;
     const decision = (0, authorize_1.authorizeFeedbackCall)({ appCheckPresent: request.app != null, uid, claims, data: request.data }, { membership, appCheckMonitor: appCheckMonitor.enabled, allowedRoles: operacion.allowedRoles });

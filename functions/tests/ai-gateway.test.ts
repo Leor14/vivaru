@@ -47,27 +47,72 @@ function env(overrides: Partial<GatewayEnvironment> = {}): GatewayEnvironment {
   };
 }
 
-describe("el conjunto sale de la sesión, nunca de la petición", () => {
-  it("rechaza un tenantId ajeno en el cuerpo de la petición", () => {
-    // LA prueba del Paso 1.2.
+/**
+ * **Este bloque se llamaba «el conjunto sale de la sesión, nunca de la
+ * petición» y cambió de contrato el 25 de agosto de 2026**, no de exigencia.
+ *
+ * El Paso 1.2 rechazaba el conjunto del cuerpo aunque acertara. Eso valía
+ * mientras la sesión tuviera uno solo. Con el selector de `PLAT-002` el claim
+ * pasó a ser «el último conjunto conocido», así que rechazarlo dejaba a la IA
+ * trabajando sobre el conjunto equivocado: denegando lo que sí se administra y
+ * cargando cuota a otro cliente.
+ *
+ * Lo que protegía nunca fue el rechazo, fue **la membresía**. Así que el
+ * conjunto se acepta y la membresía decide — y la prueba que importa sigue
+ * siendo la misma pregunta: **¿puede alguien alcanzar un conjunto que no es
+ * suyo?** La respuesta tiene que seguir siendo no.
+ */
+describe("el conjunto se acepta de la petición, y lo decide la membresía", () => {
+  it("un tenantId AJENO en el cuerpo no concede nada", () => {
+    // LA prueba, en su forma nueva. `gateway.ts` lee la membresía DEL conjunto
+    // pedido, así que pedir uno ajeno llega aquí sin membresía.
     const decision = authorizeGatewayCall(
       caller({ data: { operationKey: OPERACION!.key, tenantId: AJENO } }),
-      env(),
+      env({ membership: null }),
     );
 
     expect(decision.ok).toBe(false);
-    expect(decision).toMatchObject({ code: "invalid-argument", reason: "tenant_en_la_peticion" });
+    expect(decision).toMatchObject({ code: "permission-denied", reason: "sin_membresia" });
   });
 
-  it("rechaza también un tenantId que COINCIDE con el de la sesión", () => {
-    // Aceptarlo «porque acertó» es la costumbre que abre la puerta: el día que
-    // una comprobación se olvide, el cliente ya estaba mandando el conjunto.
+  /**
+   * El caso retorcido, y el que de verdad prueba que la membresía manda: el
+   * cuerpo pide `AJENO` y el entorno trae —por el motivo que sea— la membresía
+   * de OTRO conjunto. Tiene que denegar. Sin esta, bastaría con que alguien
+   * dejara de pasar la membresía del conjunto pedido para abrir la puerta.
+   */
+  it("y una membresía de otro conjunto tampoco lo concede", () => {
     const decision = authorizeGatewayCall(
-      caller({ data: { operationKey: OPERACION!.key, tenantId: CONJUNTO } }),
+      caller({ data: { operationKey: OPERACION!.key, tenantId: AJENO } }),
+      env({ membership: { tenantId: CONJUNTO, role: "tenant_admin", status: "active" } }),
+    );
+
+    expect(decision).toMatchObject({ ok: false, reason: "membresia_de_otro_conjunto" });
+  });
+
+  /**
+   * **El cuerpo GANA al claim, y por eso el claim aquí dice otro conjunto.**
+   *
+   * Escrita primero con claim y cuerpo diciendo lo mismo, pasaba en verde con
+   * la implementación rota —la que ignora el cuerpo—, o sea que no medía nada.
+   * Es el caso real de la administradora: entró en A, cambió a B, y su token
+   * sigue diciendo A.
+   */
+  it("el conjunto del CUERPO gana al del claim cuando hay membresía en él", () => {
+    const decision = authorizeGatewayCall(
+      caller({
+        claims: { tenantId: AJENO, role: "tenant_admin" },
+        data: { operationKey: OPERACION!.key, tenantId: CONJUNTO },
+      }),
       env(),
     );
 
-    expect(decision).toMatchObject({ ok: false, reason: "tenant_en_la_peticion" });
+    expect(decision).toMatchObject({ ok: true, tenantId: CONJUNTO });
+  });
+
+  it("sin conjunto en el cuerpo se usa el del claim — el comportamiento de siempre", () => {
+    const decision = authorizeGatewayCall(caller(), env());
+    expect(decision).toMatchObject({ ok: true, tenantId: CONJUNTO });
   });
 
   it("concede usando el conjunto de los claims y devuelve la operación resuelta", () => {
@@ -250,12 +295,15 @@ describe("orden de las comprobaciones", () => {
     ).toMatchObject({ reason: "capacidad_apagada" });
   });
 
-  it("el conjunto en la petición se rechaza antes de mirar la membresía", () => {
+  it("el conjunto de la petición se comprueba CONTRA la membresía, no se rechaza", () => {
+    // El claim dice CONJUNTO y el cuerpo pide AJENO: si el cuerpo se ignorara,
+    // la membresía de CONJUNTO concedería y esto pasaría por el motivo
+    // equivocado. Por eso el entorno trae la membresía de CONJUNTO, no `null`.
     expect(
       authorizeGatewayCall(
         caller({ data: { operationKey: OPERACION!.key, tenantId: AJENO } }),
-        env({ membership: null }),
+        env({ membership: { tenantId: CONJUNTO, role: "tenant_admin", status: "active" } }),
       ),
-    ).toMatchObject({ reason: "tenant_en_la_peticion" });
+    ).toMatchObject({ reason: "membresia_de_otro_conjunto" });
   });
 });

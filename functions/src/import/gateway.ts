@@ -3,6 +3,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 
 import { callableCorsOrigins } from "../http-config";
+import { esMiembroDelConjunto } from "../tenant-membership";
 import {
   RegistroInvalido,
   normalizarRegistro,
@@ -30,12 +31,33 @@ export const registrarImportacion = onCall(
       throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
 
-    // El conjunto sale de la sesión, nunca del cuerpo: si el navegador pudiera
-    // decir a qué conjunto pertenece la medición, podría atribuirle intentos a
-    // otro. Es la misma regla que la puerta de IA.
+    // **El conjunto se acepta del cuerpo, y se COMPRUEBA.** Este comentario
+    // decía lo contrario —«sale de la sesión, nunca del cuerpo»— y era correcto
+    // mientras el claim fuera el conjunto en el que se trabaja. Con el selector
+    // de `PLAT-002` el claim pasó a significar «el último conjunto conocido»
+    // (§7.4), así que confiar en él **atribuye la medición al conjunto
+    // equivocado sin que nadie manipule nada**: quien administra A y B, parado
+    // en B, dejaba sus importaciones contadas en A. Las métricas con las que se
+    // decide el producto mezclaban dos clientes.
+    //
+    // Lo que hacía seguro al claim no era venir del token, era estar
+    // verificado. Se conserva eso y se cambia la fuente: si el cuerpo trae un
+    // conjunto, vale **solo si hay membresía en él**. Sin cuerpo, el claim,
+    // que es el comportamiento de siempre.
     const claims = request.auth?.token as Record<string, unknown> | undefined;
-    const tenantId = typeof claims?.tenantId === "string" ? claims.tenantId : "";
     const role = claims?.role;
+    const delClaim = typeof claims?.tenantId === "string" ? claims.tenantId : "";
+    const pedido = typeof (request.data as { tenantId?: unknown } | undefined)?.tenantId === "string"
+      ? ((request.data as { tenantId: string }).tenantId)
+      : "";
+
+    let tenantId = delClaim;
+    if (pedido && pedido !== delClaim) {
+      if (!(await esMiembroDelConjunto(pedido, uid))) {
+        throw new HttpsError("permission-denied", "No perteneces a ese conjunto.");
+      }
+      tenantId = pedido;
+    }
 
     if (!tenantId && role !== "superadmin") {
       throw new HttpsError("permission-denied", "Tu sesión no pertenece a ningún conjunto.");

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.conjuntoPedido = conjuntoPedido;
 exports.authorizeGatewayCall = authorizeGatewayCall;
 exports.authorizeFeedbackCall = authorizeFeedbackCall;
 /**
@@ -14,6 +15,25 @@ exports.authorizeFeedbackCall = authorizeFeedbackCall;
  */
 function asString(value) {
     return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+/**
+ * Sobre qué conjunto se pide trabajar: el del cuerpo si viene, y si no el del
+ * claim.
+ *
+ * **Vive aquí y se exporta a propósito.** `gateway.ts` tiene que leer la
+ * membresía y las banderas DEL MISMO conjunto que esta decisión va a autorizar;
+ * si cada uno lo dedujera por su cuenta, el día que uno cambie se autorizaría
+ * un conjunto y se leerían las banderas de otro, sin error y sin síntoma.
+ *
+ * Devolverlo NO es concederlo: quien llama sigue teniendo que comprobar la
+ * membresía en él.
+ */
+function conjuntoPedido(caller) {
+    const data = caller.data;
+    const delCuerpo = data && typeof data === "object" && !Array.isArray(data)
+        ? asString(data.tenantId)
+        : undefined;
+    return delCuerpo ?? asString(caller.claims?.tenantId);
 }
 /**
  * Orden de las comprobaciones, y el porqué de que sea este:
@@ -53,20 +73,14 @@ function authorizeGatewayCall(caller, env) {
             message: "Debes iniciar sesión para usar esta función.",
         };
     }
-    // El cliente no manda el conjunto. Si lo manda, se rechaza aunque coincida:
-    // aceptarlo «porque acertó» es exactamente la costumbre que abre la puerta.
+    // El conjunto sobre el que se trabaja: el del cuerpo si viene, si no el del
+    // claim. Lo que decide no es de dónde sale, es que haya membresía en él — y
+    // eso se comprueba tres líneas más abajo, contra el documento que `gateway.ts`
+    // leyó de ESTE mismo conjunto.
     const data = caller.data;
-    if (data && typeof data === "object" && !Array.isArray(data) && "tenantId" in data) {
-        return {
-            ok: false,
-            code: "invalid-argument",
-            reason: "tenant_en_la_peticion",
-            message: "Esta operación no recibe el conjunto: se toma de tu sesión.",
-        };
-    }
-    const claimTenantId = asString(caller.claims?.tenantId);
+    const tenantId = conjuntoPedido(caller);
     const claimRole = asString(caller.claims?.role);
-    if (!claimTenantId || !claimRole) {
+    if (!tenantId || !claimRole) {
         return {
             ok: false,
             code: "permission-denied",
@@ -86,7 +100,7 @@ function authorizeGatewayCall(caller, env) {
             message: "Tu usuario ya no pertenece a este conjunto.",
         };
     }
-    if (asString(membership.tenantId) !== claimTenantId) {
+    if (asString(membership.tenantId) !== tenantId) {
         return {
             ok: false,
             code: "permission-denied",
@@ -147,7 +161,7 @@ function authorizeGatewayCall(caller, env) {
             message: "Tu rol no puede usar esta función.",
         };
     }
-    return { ok: true, uid, tenantId: claimTenantId, role, operation };
+    return { ok: true, uid, tenantId, role, operation };
 }
 /**
  * Autoriza el registro de feedback del borrador asistido (Paso 2.5).
@@ -178,21 +192,13 @@ function authorizeFeedbackCall(caller, env) {
     if (!uid) {
         return { ok: false, code: "unauthenticated", reason: "sin_sesion", message: "Debes iniciar sesión." };
     }
-    // El conjunto sale de la sesión también aquí. Aceptarlo del cliente en el
-    // endpoint «de métricas» sería la grieta obvia: escribir filas en el conjunto
-    // del vecino es contaminar la evidencia con la que se decide el producto.
-    const data = caller.data;
-    if (data && typeof data === "object" && !Array.isArray(data) && "tenantId" in data) {
-        return {
-            ok: false,
-            code: "invalid-argument",
-            reason: "tenant_en_la_peticion",
-            message: "Esta operación no recibe el conjunto: se toma de tu sesión.",
-        };
-    }
-    const claimTenantId = asString(caller.claims?.tenantId);
+    // Mismo criterio que la puerta principal, y aquí importa más: escribir filas
+    // de métricas en el conjunto del vecino contamina la evidencia con la que se
+    // decide el producto. Por eso NO basta con aceptar el conjunto del cuerpo —
+    // hace falta la membresía, que es lo que se comprueba justo debajo.
+    const tenantId = conjuntoPedido(caller);
     const claimRole = asString(caller.claims?.role);
-    if (!claimTenantId || !claimRole) {
+    if (!tenantId || !claimRole) {
         return {
             ok: false,
             code: "permission-denied",
@@ -209,7 +215,7 @@ function authorizeFeedbackCall(caller, env) {
             message: "Tu usuario ya no pertenece a este conjunto.",
         };
     }
-    if (asString(membership.tenantId) !== claimTenantId) {
+    if (asString(membership.tenantId) !== tenantId) {
         return {
             ok: false,
             code: "permission-denied",
@@ -234,5 +240,5 @@ function authorizeFeedbackCall(caller, env) {
             message: "Tu rol no puede usar esta función.",
         };
     }
-    return { ok: true, uid, tenantId: claimTenantId, role };
+    return { ok: true, uid, tenantId, role };
 }

@@ -43,3 +43,33 @@ export async function esAdminActivoDelConjunto(tenantId: string, uid: string): P
   // y que el resto del producto: hay membresías anteriores al campo.
   return (membresia.status ?? "active") === "active";
 }
+
+/**
+ * ¿Es `uid` miembro del conjunto `tenantId`, con el rol que sea?
+ *
+ * El gemelo sin rol de `esAdminActivoDelConjunto`, para lo que solo necesita
+ * saber **si la persona pertenece al conjunto**: atribuir una medición, archivar
+ * un error, elegir el conjunto sobre el que trabaja una operación asistida.
+ *
+ * Existe porque el claim del token dejó de servir para eso. Antes de `PLAT-002`
+ * el claim y el conjunto activo eran siempre el mismo valor, así que media
+ * docena de sitios lo usaban como sinónimo de «dónde está trabajando esta
+ * persona». Con el selector pueden diferir, y esos sitios pasan a mentir **sin
+ * aviso y sin error**: la medición se le carga a otro cliente y el error se
+ * archiva en un conjunto donde nunca ocurrió.
+ *
+ * **La membresía no autoriza aquí, identifica.** Quien llame con esto sigue
+ * teniendo que comprobar el rol si lo que hace lo necesita.
+ */
+export async function esMiembroDelConjunto(tenantId: string, uid: string): Promise<boolean> {
+  if (!tenantId || !uid) return false;
+
+  const snap = await getFirestore().collection("tenantUsers").doc(`${tenantId}_${uid}`).get();
+  if (!snap.exists) return false;
+
+  const membresia = snap.data() as { status?: string; tenantId?: string } | undefined;
+  if (!membresia) return false;
+  if (membresia.tenantId !== tenantId) return false;
+
+  return (membresia.status ?? "active") === "active";
+}

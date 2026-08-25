@@ -4,7 +4,7 @@ import * as logger from "firebase-functions/logger";
 
 import { callableCorsOrigins } from "../http-config";
 import { resolveFeatureFlag } from "../feature-flags";
-import { authorizeFeedbackCall, type GatewayMembership } from "./authorize";
+import { authorizeFeedbackCall, conjuntoPedido, type GatewayMembership } from "./authorize";
 import { findOperation } from "./catalog";
 import { feedbackSchema, recordAiFeedback } from "./feedback";
 
@@ -48,7 +48,18 @@ export async function runFeedback(request: FeedbackRequest): Promise<FeedbackOut
 
   const uid = typeof request.auth?.uid === "string" ? request.auth.uid : undefined;
   const claims = request.auth?.token;
-  const claimTenantId = typeof claims?.tenantId === "string" ? claims.tenantId : undefined;
+
+  // El conjunto sobre el que se pide escribir, resuelto con la MISMA función
+  // que usa la decisión (`PLAT-002` §7.4: el claim ya no es el conjunto activo).
+  // No concede nada: la membresía se lee de este conjunto, así que pedir uno
+  // ajeno acaba en `sin_membresia` — y aquí eso importa más que en ningún sitio,
+  // porque estas filas son la evidencia con la que se decide el producto.
+  const tenantSolicitado = conjuntoPedido({
+    appCheckPresent: request.app != null,
+    uid,
+    claims,
+    data: request.data,
+  });
 
   // Los roles salen del catálogo, no escritos a mano: quien puede pedir la
   // asistencia es quien puede contar qué hizo con ella. Si mañana cambian ahí,
@@ -65,10 +76,10 @@ export async function runFeedback(request: FeedbackRequest): Promise<FeedbackOut
   }
 
   const [membershipSnap, appCheckMonitor] = await Promise.all([
-    uid && claimTenantId
-      ? db.collection("tenantUsers").doc(`${claimTenantId}_${uid}`).get()
+    uid && tenantSolicitado
+      ? db.collection("tenantUsers").doc(`${tenantSolicitado}_${uid}`).get()
       : Promise.resolve(null),
-    resolveFeatureFlag(APP_CHECK_MONITOR_FLAG, claimTenantId),
+    resolveFeatureFlag(APP_CHECK_MONITOR_FLAG, tenantSolicitado),
   ]);
 
   const membership: GatewayMembership | null =

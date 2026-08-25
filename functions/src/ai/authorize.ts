@@ -9,9 +9,22 @@ import type { OperationDefinition } from "./catalog";
  * función pura se prueba entera —incluidos los casos que nadie provoca a mano—
  * sin levantar emuladores ni fabricar sesiones.
  *
- * **La regla que sostiene todo el paso: el conjunto sale de la sesión.** El
- * cliente no lo manda; si lo manda, se rechaza aunque acierte. No es que no le
- * creamos: es que no le preguntamos.
+ * **La regla que sostiene todo el paso: el conjunto se COMPRUEBA.**
+ *
+ * Decía «sale de la sesión: el cliente no lo manda, y si lo manda se rechaza
+ * aunque acierte». Eso valía mientras la sesión tuviera un solo conjunto. Desde
+ * `PRD-V-PLAT-002` una persona puede administrar varios y cambiar entre ellos
+ * sin volver a autenticarse, y **el claim no puede seguirla**: pasó a significar
+ * «el último conjunto conocido» (§7.4). Rechazar el conjunto del cuerpo dejaba
+ * a la IA trabajando sobre el conjunto equivocado — denegando lo que sí se
+ * administra, y cargando cuota y telemetría a OTRO cliente.
+ *
+ * Lo que hacía seguro al claim nunca fue venir del token: era estar verificado
+ * contra la membresía, que es lo que esta función ya hacía justo después. Así
+ * que el conjunto se acepta del cuerpo y **la membresía sigue siendo la única
+ * autoridad**. Es exactamente el movimiento que hicieron las seis callables del
+ * dinero (§11.2). Sin conjunto en el cuerpo se usa el claim, que es el
+ * comportamiento de siempre.
  */
 
 /** Códigos de `HttpsError` que puede devolver la puerta. */
@@ -26,7 +39,6 @@ export type GatewayErrorCode =
 export type GatewayDenialReason =
   | "app_check_ausente"
   | "sin_sesion"
-  | "tenant_en_la_peticion"
   | "claims_incompletos"
   | "sin_membresia"
   | "membresia_inactiva"
@@ -105,6 +117,27 @@ function asString(value: unknown): string | undefined {
 }
 
 /**
+ * Sobre qué conjunto se pide trabajar: el del cuerpo si viene, y si no el del
+ * claim.
+ *
+ * **Vive aquí y se exporta a propósito.** `gateway.ts` tiene que leer la
+ * membresía y las banderas DEL MISMO conjunto que esta decisión va a autorizar;
+ * si cada uno lo dedujera por su cuenta, el día que uno cambie se autorizaría
+ * un conjunto y se leerían las banderas de otro, sin error y sin síntoma.
+ *
+ * Devolverlo NO es concederlo: quien llama sigue teniendo que comprobar la
+ * membresía en él.
+ */
+export function conjuntoPedido(caller: GatewayCaller): string | undefined {
+  const data = caller.data;
+  const delCuerpo =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? asString((data as { tenantId?: unknown }).tenantId)
+      : undefined;
+  return delCuerpo ?? asString(caller.claims?.tenantId);
+}
+
+/**
  * Orden de las comprobaciones, y el porqué de que sea este:
  *
  *  1. **App Check** — antes que nada: ¿esto viene de la aplicación o de un
@@ -144,21 +177,14 @@ export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironm
     };
   }
 
-  // El cliente no manda el conjunto. Si lo manda, se rechaza aunque coincida:
-  // aceptarlo «porque acertó» es exactamente la costumbre que abre la puerta.
+  // El conjunto sobre el que se trabaja: el del cuerpo si viene, si no el del
+  // claim. Lo que decide no es de dónde sale, es que haya membresía en él — y
+  // eso se comprueba tres líneas más abajo, contra el documento que `gateway.ts`
+  // leyó de ESTE mismo conjunto.
   const data = caller.data;
-  if (data && typeof data === "object" && !Array.isArray(data) && "tenantId" in (data as object)) {
-    return {
-      ok: false,
-      code: "invalid-argument",
-      reason: "tenant_en_la_peticion",
-      message: "Esta operación no recibe el conjunto: se toma de tu sesión.",
-    };
-  }
-
-  const claimTenantId = asString(caller.claims?.tenantId);
+  const tenantId = conjuntoPedido(caller);
   const claimRole = asString(caller.claims?.role);
-  if (!claimTenantId || !claimRole) {
+  if (!tenantId || !claimRole) {
     return {
       ok: false,
       code: "permission-denied",
@@ -180,7 +206,7 @@ export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironm
     };
   }
 
-  if (asString(membership.tenantId) !== claimTenantId) {
+  if (asString(membership.tenantId) !== tenantId) {
     return {
       ok: false,
       code: "permission-denied",
@@ -248,7 +274,7 @@ export function authorizeGatewayCall(caller: GatewayCaller, env: GatewayEnvironm
     };
   }
 
-  return { ok: true, uid, tenantId: claimTenantId, role, operation };
+  return { ok: true, uid, tenantId, role, operation };
 }
 
 /** Igual que un permiso de la puerta, pero sin operación: aquí no se ejecuta nada. */
@@ -292,22 +318,13 @@ export function authorizeFeedbackCall(caller: GatewayCaller, env: FeedbackEnviro
     return { ok: false, code: "unauthenticated", reason: "sin_sesion", message: "Debes iniciar sesión." };
   }
 
-  // El conjunto sale de la sesión también aquí. Aceptarlo del cliente en el
-  // endpoint «de métricas» sería la grieta obvia: escribir filas en el conjunto
-  // del vecino es contaminar la evidencia con la que se decide el producto.
-  const data = caller.data;
-  if (data && typeof data === "object" && !Array.isArray(data) && "tenantId" in (data as object)) {
-    return {
-      ok: false,
-      code: "invalid-argument",
-      reason: "tenant_en_la_peticion",
-      message: "Esta operación no recibe el conjunto: se toma de tu sesión.",
-    };
-  }
-
-  const claimTenantId = asString(caller.claims?.tenantId);
+  // Mismo criterio que la puerta principal, y aquí importa más: escribir filas
+  // de métricas en el conjunto del vecino contamina la evidencia con la que se
+  // decide el producto. Por eso NO basta con aceptar el conjunto del cuerpo —
+  // hace falta la membresía, que es lo que se comprueba justo debajo.
+  const tenantId = conjuntoPedido(caller);
   const claimRole = asString(caller.claims?.role);
-  if (!claimTenantId || !claimRole) {
+  if (!tenantId || !claimRole) {
     return {
       ok: false,
       code: "permission-denied",
@@ -326,7 +343,7 @@ export function authorizeFeedbackCall(caller: GatewayCaller, env: FeedbackEnviro
     };
   }
 
-  if (asString(membership.tenantId) !== claimTenantId) {
+  if (asString(membership.tenantId) !== tenantId) {
     return {
       ok: false,
       code: "permission-denied",
@@ -354,5 +371,5 @@ export function authorizeFeedbackCall(caller: GatewayCaller, env: FeedbackEnviro
     };
   }
 
-  return { ok: true, uid, tenantId: claimTenantId, role };
+  return { ok: true, uid, tenantId, role };
 }

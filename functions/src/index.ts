@@ -50,6 +50,7 @@ import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantOperable } from "./tenant-status";
 import { frasesDelRecibo } from "./aviso-recibo";
 import { terminoCuotaMensual } from "./vocabulario-pais";
@@ -3723,6 +3724,14 @@ type LogClientErrorInput = {
   context?: string;
   url?: string;
   severity?: "error" | "warning";
+  /**
+   * El conjunto ACTIVO de quien reporta. `PLAT-002`: el claim del token dejó de
+   * servir para esto —pasó a significar «el último conjunto conocido» (§7.4)—,
+   * así que un administrador con dos membresías archivaba sus errores en el
+   * conjunto equivocado y quien fuera a diagnosticar los buscaría donde nunca
+   * ocurrieron. Se comprueba contra la membresía antes de creerlo.
+   */
+  tenantId?: string;
 };
 
 export const logClientError = onCall<LogClientErrorInput>(
@@ -3732,6 +3741,18 @@ export const logClientError = onCall<LogClientErrorInput>(
     if (!message) return { ok: false };
 
     const severity = request.data?.severity === "warning" ? "warning" : "error";
+
+    // El conjunto pedido solo vale con membresía detrás; si no, el del claim,
+    // que es el comportamiento de siempre. Un error archivado bajo un conjunto
+    // ajeno no concede nada, pero manda a alguien a buscar donde no hay nada.
+    const uidReportante = request.auth?.uid;
+    const tenantDelClaim = normalizeText(request.auth?.token?.tenantId) || null;
+    const tenantPedido = normalizeText(request.data?.tenantId);
+    const tenantId =
+      tenantPedido && uidReportante && (await esMiembroDelConjunto(tenantPedido, uidReportante))
+        ? tenantPedido
+        : tenantDelClaim;
+
     await db.collection("errorLogs").add({
       message,
       stack: normalizeText(request.data?.stack).slice(0, 8000) || null,
@@ -3739,7 +3760,7 @@ export const logClientError = onCall<LogClientErrorInput>(
       url: normalizeText(request.data?.url).slice(0, 500) || null,
       severity,
       uid: request.auth?.uid ?? null,
-      tenantId: normalizeText(request.auth?.token?.tenantId) || null,
+      tenantId,
       role: normalizeText(request.auth?.token?.role) || null,
       createdAt: FieldValue.serverTimestamp(),
     });

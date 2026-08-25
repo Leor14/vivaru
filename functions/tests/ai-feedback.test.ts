@@ -40,15 +40,44 @@ describe("el conjunto sale de la sesión, también en métricas", () => {
     if (d.ok) expect(d.tenantId).toBe("t1");
   });
 
-  it("RECHAZA que el cliente mande el conjunto, aunque acierte", () => {
-    // Aceptarlo «porque coincide» es la costumbre que abre el agujero el día
-    // que una comprobación se olvide.
+  /**
+   * **Cambió el contrato el 25 de agosto de 2026, no la exigencia.** Rechazar
+   * el conjunto del cuerpo dejó de valer con el selector de `PLAT-002`: el
+   * claim ya no dice dónde se está trabajando. Lo que protege sigue siendo la
+   * membresía, y aquí importa más que en ningún sitio — estas filas son la
+   * evidencia con la que se decide el producto, y escribirlas en el conjunto
+   * del vecino la contamina.
+   */
+  it("acepta el conjunto del cuerpo, y GANA al del claim", () => {
+    // El claim dice otro conjunto a propósito: con claim y cuerpo iguales, esto
+    // pasaría en verde con una implementación que ignorase el cuerpo.
     const d = authorizeFeedbackCall(
-      llamante({ data: { operationKey: "comunicaciones-redactar", tenantId: "t1" } }),
+      llamante({
+        claims: { tenantId: "conjunto-viejo", role: "tenant_admin" },
+        data: { operationKey: "comunicaciones-redactar", tenantId: "t1" },
+      }),
+      entorno(),
+    );
+    expect(d.ok).toBe(true);
+    if (d.ok) expect(d.tenantId).toBe("t1");
+  });
+
+  it("y NO lo acepta cuando no la hay: escribir en el conjunto del vecino sigue cerrado", () => {
+    const d = authorizeFeedbackCall(
+      llamante({ data: { operationKey: "comunicaciones-redactar", tenantId: "conjunto-ajeno" } }),
+      entorno({ membership: null }),
+    );
+    expect(d.ok).toBe(false);
+    if (!d.ok) expect(d.reason).toBe("sin_membresia");
+  });
+
+  it("ni aunque llegue la membresía de OTRO conjunto", () => {
+    const d = authorizeFeedbackCall(
+      llamante({ data: { operationKey: "comunicaciones-redactar", tenantId: "conjunto-ajeno" } }),
       entorno(),
     );
     expect(d.ok).toBe(false);
-    if (!d.ok) expect(d.reason).toBe("tenant_en_la_peticion");
+    if (!d.ok) expect(d.reason).toBe("membresia_de_otro_conjunto");
   });
 
   it("manda la membresía, no el token", () => {

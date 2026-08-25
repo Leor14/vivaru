@@ -77,20 +77,32 @@ async function runGateway(request, deps = {}) {
     const now = deps.now ?? new Date();
     const uid = typeof request.auth?.uid === "string" ? request.auth.uid : undefined;
     const claims = request.auth?.token;
-    const claimTenantId = typeof claims?.tenantId === "string" ? claims.tenantId : undefined;
     // Buscar la operación en el catálogo NO es confiar en el cliente: la clave es
-    // una etiqueta para consultar una tabla estática, no una autoridad. Todo lo
-    // que decide permisos —conjunto, rol— sigue saliendo de la sesión.
+    // una etiqueta para consultar una tabla estática, no una autoridad. El rol
+    // sigue saliendo de la membresía, y el conjunto se comprueba contra ella.
     const payload = (request.data ?? {});
     const operation = (0, catalog_1.findOperation)(payload.operationKey);
+    /**
+     * **El conjunto sobre el que se trabaja, no el del claim** (`PLAT-002` §7.4).
+     *
+     * Sale de `conjuntoPedido`, que es la MISMA función que usa la decisión. No
+     * es ceremonia: aquí se leen la membresía y las tres banderas, y si este
+     * fichero dedujera el conjunto por su cuenta bastaría con que uno de los dos
+     * cambiara para autorizar un conjunto y leer las banderas de otro — sin error
+     * y sin síntoma.
+     *
+     * Que el conjunto venga del cuerpo no concede nada: la membresía se lee de
+     * ESE conjunto, así que pedir uno ajeno devuelve `sin_membresia`.
+     */
+    const tenantSolicitado = (0, authorize_1.conjuntoPedido)({ appCheckPresent: request.app != null, uid, claims, data: request.data });
     // Todo lo que necesita la decisión, pedido a la vez.
     const [membershipSnap, gateway, appCheckMonitor, operationFlag] = await Promise.all([
-        uid && claimTenantId
-            ? db.collection("tenantUsers").doc(`${claimTenantId}_${uid}`).get()
+        uid && tenantSolicitado
+            ? db.collection("tenantUsers").doc(`${tenantSolicitado}_${uid}`).get()
             : Promise.resolve(null),
-        (0, feature_flags_1.resolveFeatureFlag)(GATEWAY_FLAG, claimTenantId),
-        (0, feature_flags_1.resolveFeatureFlag)(APP_CHECK_MONITOR_FLAG, claimTenantId),
-        operation ? (0, feature_flags_1.resolveFeatureFlag)(operation.flag, claimTenantId) : Promise.resolve(null),
+        (0, feature_flags_1.resolveFeatureFlag)(GATEWAY_FLAG, tenantSolicitado),
+        (0, feature_flags_1.resolveFeatureFlag)(APP_CHECK_MONITOR_FLAG, tenantSolicitado),
+        operation ? (0, feature_flags_1.resolveFeatureFlag)(operation.flag, tenantSolicitado) : Promise.resolve(null),
     ]);
     const membership = membershipSnap && membershipSnap.exists ? membershipSnap.data() : null;
     const appCheckPresent = request.app != null;
@@ -107,7 +119,10 @@ async function runGateway(request, deps = {}) {
     if (!appCheckPresent && appCheckMonitor.enabled) {
         logger.info("ai-gateway: llamada sin App Check (modo monitor)", {
             uid,
-            tenantId: claimTenantId,
+            // El solicitado: este rastro se escribe ANTES de saber si se concede, y
+            // decir el concedido aquí obligaría a no registrar los rechazos, que son
+            // justo los que hay que mirar antes de apagar el modo monitor.
+            tenantId: tenantSolicitado,
             permitida: decision.ok,
         });
     }
@@ -115,9 +130,14 @@ async function runGateway(request, deps = {}) {
         logger.warn("ai-gateway: rechazada", { reason: decision.reason, uid });
         return { ok: false, code: decision.code, message: decision.message, reason: decision.reason };
     }
-    // A partir de aquí, `tenantId` es SIEMPRE el de la sesión. Es el único que
-    // toca los contadores de cuota y la telemetría — lo que mandara el cliente ya
-    // provocó un rechazo mucho antes.
+    // A partir de aquí `tenantId` es el CONCEDIDO, no el solicitado: sale de la
+    // decisión, que solo lo devuelve tras comprobar la membresía en él. Es el
+    // único que toca los contadores de cuota y la telemetría.
+    //
+    // Este comentario decía «es SIEMPRE el de la sesión, lo que mandara el
+    // cliente ya provocó un rechazo mucho antes». Dejó de ser cierto con el
+    // selector de conjunto: ahora el cliente SÍ dice cuál, y lo que lo hace
+    // seguro es la membresía, no el rechazo.
     const { operation: op, tenantId, uid: actorUid } = decision;
     // Hay operaciones cuya entrada NO la manda el cliente: la arma el servidor a
     // partir de un identificador. Cuando hay armador, lo que viniera en

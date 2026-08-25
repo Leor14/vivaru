@@ -99,7 +99,15 @@ beforeEach(async () => {
 });
 
 describe("G3 · ¿puede un conjunto ejecutar como otro?", () => {
-  it("rechaza el tenantId ajeno en la petición, y ni siquiera cobra cuota", async () => {
+  /**
+   * **La garantía de esta prueba no cambió el 25 de agosto de 2026; el motivo
+   * sí.** Antes el conjunto del cuerpo se rechazaba de plano
+   * (`tenant_en_la_peticion`); desde `PLAT-002` se acepta y se comprueba contra
+   * la membresía, así que pedir uno ajeno acaba en `sin_membresia`. Lo que la
+   * prueba vigila —que no se pueda ejecutar como otro conjunto, ni cobrarle
+   * cuota— es exactamente lo mismo, y por eso el cuerpo no se toca.
+   */
+  it("un tenantId ajeno en la petición no ejecuta, y ni siquiera cobra cuota", async () => {
     const propio = nuevoConjunto();
     const ajeno = nuevoConjunto();
     await sembrarAdmin(propio);
@@ -109,7 +117,7 @@ describe("G3 · ¿puede un conjunto ejecutar como otro?", () => {
       { provider: proveedorBueno() },
     );
 
-    expect(outcome).toMatchObject({ ok: false, reason: "tenant_en_la_peticion" });
+    expect(outcome).toMatchObject({ ok: false, reason: "sin_membresia" });
 
     // Y no dejó rastro en ninguno de los dos conjuntos.
     const ids = counterIds(OPERACION, propio, "admin-1");
@@ -133,6 +141,36 @@ describe("G3 · ¿puede un conjunto ejecutar como otro?", () => {
     const filas = await filasDeUso(tenantId);
     expect(filas).toHaveLength(1);
     expect(filas[0]).toMatchObject({ tenantId, uid: "admin-1", operationKey: OPERACION, outcome: "ok" });
+  });
+
+  /**
+   * **El caso que `PLAT-002` hace posible y que antes no existía.** La
+   * administradora tiene membresía en DOS conjuntos y su claim dice el primero;
+   * pide trabajar en el segundo. Antes esto se rechazaba de plano y la IA
+   * quedaba inservible en todo conjunto que no fuera el del claim.
+   */
+  it("con membresía en el conjunto pedido SÍ ejecuta, aunque el claim diga otro", async () => {
+    const delClaim = nuevoConjunto();
+    const activo = nuevoConjunto();
+    await sembrarAdmin(delClaim);
+    await sembrarAdmin(activo);
+
+    const outcome = await runGateway(
+      peticion(delClaim, "admin-1", { operationKey: OPERACION, input: ENTRADA, tenantId: activo }),
+      { provider: proveedorBueno() },
+    );
+
+    expect(outcome.ok).toBe(true);
+
+    // Y la cuota y la telemetría se cargan al conjunto ACTIVO, no al del claim:
+    // es la mitad del defecto que esto arregla — la otra era no poder ejecutar.
+    const ids = counterIds(OPERACION, activo, "admin-1");
+    expect((await db.collection(AI_QUOTA_COLLECTION).doc(ids.conjuntoDia).get()).data()).toMatchObject({
+      tenantId: activo,
+      count: 1,
+    });
+    expect(await filasDeUso(activo)).toHaveLength(1);
+    expect(await filasDeUso(delClaim)).toHaveLength(0);
   });
 
   it("un usuario sin membresía en el conjunto de sus claims no pasa", async () => {

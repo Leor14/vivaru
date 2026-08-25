@@ -63,6 +63,7 @@ const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
+const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
 const aviso_recibo_1 = require("./aviso-recibo");
 const vocabulario_pais_1 = require("./vocabulario-pais");
@@ -2991,6 +2992,15 @@ exports.logClientError = (0, https_1.onCall)({ cors: http_config_1.callableCorsO
     if (!message)
         return { ok: false };
     const severity = request.data?.severity === "warning" ? "warning" : "error";
+    // El conjunto pedido solo vale con membresía detrás; si no, el del claim,
+    // que es el comportamiento de siempre. Un error archivado bajo un conjunto
+    // ajeno no concede nada, pero manda a alguien a buscar donde no hay nada.
+    const uidReportante = request.auth?.uid;
+    const tenantDelClaim = normalizeText(request.auth?.token?.tenantId) || null;
+    const tenantPedido = normalizeText(request.data?.tenantId);
+    const tenantId = tenantPedido && uidReportante && (await (0, tenant_membership_1.esMiembroDelConjunto)(tenantPedido, uidReportante))
+        ? tenantPedido
+        : tenantDelClaim;
     await db.collection("errorLogs").add({
         message,
         stack: normalizeText(request.data?.stack).slice(0, 8000) || null,
@@ -2998,7 +3008,7 @@ exports.logClientError = (0, https_1.onCall)({ cors: http_config_1.callableCorsO
         url: normalizeText(request.data?.url).slice(0, 500) || null,
         severity,
         uid: request.auth?.uid ?? null,
-        tenantId: normalizeText(request.auth?.token?.tenantId) || null,
+        tenantId,
         role: normalizeText(request.auth?.token?.role) || null,
         createdAt: firestore_1.FieldValue.serverTimestamp(),
     });

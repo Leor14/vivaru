@@ -100,11 +100,24 @@ export async function runAsistirTicketPqrs(request: AsistirPqrsRequest): Promise
   // contrato con un campo que solo usa una operación.
   const recorteRef: { valor: RecorteEntrada | null } = { valor: null };
 
+  // El conjunto ACTIVO sí se reenvía, y la distinción importa: `input` es lo
+  // que la IA va a leer —y por eso lo arma el servidor—, mientras que
+  // `tenantId` es ENRUTADO: dice sobre qué conjunto se pide trabajar. Desde
+  // `PLAT-002` el claim ya no lo dice, así que descartarlo dejaba la asistencia
+  // resolviendo el ticket contra el conjunto equivocado — y devolviendo «no
+  // encontramos ese ticket» sobre uno que sí se administra.
+  //
+  // No concede nada: `runGateway` lee la membresía DE ese conjunto.
+  const tenantSolicitado = (request.data as { tenantId?: unknown } | undefined)?.tenantId;
+
   const gatewayRequest: GatewayRequest = {
     app: request.app,
     auth: request.auth,
     // Sin `input`: lo arma el servidor. Lo que mandara el cliente se descarta.
-    data: { operationKey: OPERACION },
+    data: {
+      operationKey: OPERACION,
+      ...(typeof tenantSolicitado === "string" && tenantSolicitado ? { tenantId: tenantSolicitado } : {}),
+    },
   };
 
   const outcome = await runGateway(gatewayRequest, {

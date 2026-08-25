@@ -4,6 +4,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { CallableError, normalizeFirebaseError } from "@/lib/utils/error-handler";
 
 import { auth, functions } from "@/lib/firebase/client";
+import { loadSession } from "@/lib/auth/session";
 // Solo el tipo: `import type` se borra al compilar, así que el módulo puro de
 // datos faltantes no arrastra Firebase a quien lo pruebe.
 import type { DatoFaltante } from "@/lib/ai/datos-faltantes";
@@ -491,6 +492,21 @@ export async function completeResidentPasswordChangeCallable(input: CompleteResi
   return executeCallable(callable, input, "No fue posible completar el cambio obligatorio de contrasena.");
 }
 
+/**
+ * El conjunto en el que la persona está trabajando AHORA.
+ *
+ * `PLAT-002` partió en dos lo que antes era un solo valor: el claim del token
+ * pasó a significar «el último conjunto conocido» (§7.4) y el conjunto activo
+ * vive en la sesión, porque puede cambiarlo el selector sin volver a
+ * autenticarse. Todo lo que el servidor resolvía leyendo el claim tiene que
+ * recibirlo desde aquí — y **comprobarlo contra la membresía**, que es lo que
+ * lo hace seguro. Devolver `undefined` es válido: el servidor cae al claim,
+ * que es el comportamiento de siempre.
+ */
+function conjuntoActivo(): string | undefined {
+  return loadSession()?.tenantId;
+}
+
 // G4 · Observabilidad: envío best-effort de errores del cliente. No usa
 // executeCallable (no debe mostrar toasts ni propagar si el log falla).
 export async function logClientErrorCallable(input: {
@@ -501,8 +517,13 @@ export async function logClientErrorCallable(input: {
   severity?: "error" | "warning";
 }) {
   if (!functions) return { ok: false };
-  const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "logClientError");
-  const result = await callable(input);
+  // El conjunto ACTIVO viaja aquí, no en el claim (`PLAT-002` §7.4). El
+  // servidor lo comprueba contra la membresía antes de creerlo: mandarlo mal no
+  // concede nada, y no mandarlo archivaba el error en el conjunto equivocado.
+  // Se lee de la sesión y no se pide en cada sitio de llamada, que son muchos.
+  const cuerpo = { ...input, tenantId: conjuntoActivo() };
+  const callable = httpsCallable<typeof cuerpo, { ok: boolean }>(functions, "logClientError");
+  const result = await callable(cuerpo);
   return result.data;
 }
 
@@ -1002,9 +1023,12 @@ export interface RedactarComunicacionInput {
 /**
  * Pide un borrador asistido de comunicación (Paso 2.5).
  *
- * **No manda `tenantId`, y no es un olvido.** La puerta rechaza cualquier
- * llamada que lo traiga en el cuerpo *aunque coincida* con el de la sesión: el
- * conjunto sale del token y de la membresía, nunca del cliente (Paso 1.2).
+ * **Manda el `tenantId` ACTIVO, y el servidor lo comprueba contra la
+ * membresía.** Este comentario decía lo contrario —«la puerta rechaza cualquier
+ * llamada que lo traiga, aunque coincida»— y era correcto hasta el selector de
+ * `PLAT-002`: desde entonces el claim significa «el último conjunto conocido»,
+ * así que no mandarlo dejaba a la IA trabajando sobre el conjunto equivocado.
+ * Lo que protege no es el rechazo, es la membresía.
  *
  * Tampoco manda audiencia, torres, unidades, vigencia ni estado. No están en el
  * esquema de entrada del catálogo, así que no hay forma de que la IA los toque.
@@ -1016,12 +1040,12 @@ export interface RedactarComunicacionInput {
 export async function redactarComunicacionCallable(input: RedactarComunicacionInput) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<
-    { operationKey: string; input: RedactarComunicacionInput },
+    { operationKey: string; input: RedactarComunicacionInput; tenantId?: string },
     RedactarComunicacionResult
   >(functions, "aiInvoke");
   return executeCallable(
     callable,
-    { operationKey: "comunicaciones-redactar", input },
+    { operationKey: "comunicaciones-redactar", input, tenantId: conjuntoActivo() },
     "No pudimos preparar el borrador. Puedes continuar con el proceso manual.",
   );
 }
@@ -1088,15 +1112,20 @@ export interface AsistirTicketPqrsResult {
  * (nulls siempre), así que dejar que la afirme el navegador sería poner una
  * puerta de producto en manos del cliente.
  *
- * Tampoco manda `tenantId`: sale de la sesión, igual que en el resto de la
- * plataforma de IA. Cuando falla, el mensaje ya viene escrito para la persona.
+ * Sí manda `tenantId`, y solo eso: el conjunto ACTIVO, que el servidor
+ * comprueba contra la membresía. Decía «sale de la sesión» y con el selector de
+ * `PLAT-002` la sesión dejó de caber en el claim. Cuando falla, el mensaje ya
+ * viene escrito para la persona.
  */
 export async function asistirTicketPqrsCallable(ticketId: string) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
-  const callable = httpsCallable<{ ticketId: string }, AsistirTicketPqrsResult>(functions, "asistirTicketPqrs");
+  const callable = httpsCallable<{ ticketId: string; tenantId?: string }, AsistirTicketPqrsResult>(
+    functions,
+    "asistirTicketPqrs",
+  );
   return executeCallable(
     callable,
-    { ticketId },
+    { ticketId, tenantId: conjuntoActivo() },
     "No pudimos preparar la asistencia. Puedes atender el ticket a mano, como siempre.",
   );
 }
@@ -1151,8 +1180,9 @@ export async function registrarFeedbackIaCallable(
 ): Promise<{ ok: boolean }> {
   if (!functions) return { ok: false };
   try {
-    const callable = httpsCallable<typeof input, { ok: true }>(functions, "registrarFeedbackIa");
-    const result = await callable(input);
+    const cuerpo = { ...input, tenantId: conjuntoActivo() };
+    const callable = httpsCallable<typeof cuerpo, { ok: true }>(functions, "registrarFeedbackIa");
+    const result = await callable(cuerpo);
     return result.data;
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
@@ -1169,7 +1199,10 @@ export async function registrarFeedbackIaCallable(
  * importación ya ocurrió y enseñar un error sería mentirle a la persona sobre
  * lo que pasó con sus datos. Devuelve `ok: false` y sigue.
  *
- * No manda `tenantId`: sale de la sesión en el servidor.
+ * **Manda el `tenantId` ACTIVO**, y el servidor lo comprueba contra la
+ * membresía. Antes salía del claim del servidor; desde el selector de
+ * `PLAT-002` el claim ya no es el conjunto en el que se trabaja, así que la
+ * medición se le cargaba a otro cliente.
  */
 export async function registrarImportacionCallable(input: {
   /** Une el inicio y el fin de un mismo intento. */
@@ -1188,8 +1221,9 @@ export async function registrarImportacionCallable(input: {
 }): Promise<{ ok: boolean }> {
   if (!functions) return { ok: false };
   try {
-    const callable = httpsCallable<typeof input, { ok: boolean }>(functions, "registrarImportacion");
-    const result = await callable(input);
+    const cuerpo = { ...input, tenantId: conjuntoActivo() };
+    const callable = httpsCallable<typeof cuerpo, { ok: boolean }>(functions, "registrarImportacion");
+    const result = await callable(cuerpo);
     return { ok: Boolean(result.data?.ok) };
   } catch {
     return { ok: false };
