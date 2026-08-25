@@ -43,6 +43,10 @@ cobro sale en **UTC** (a partir de las 7 de la tarde se fecha mañana, y afecta 
 recibo); el aviso de reparto fallido **invita a cobrar igual** cuando ya no se puede; y
 `Privada Las Playas` **no tiene `currency`**, que CLAUDE.md prohíbe.
 
+**PERO HAY UN HUECO MAYOR QUE NINGÚN FRENTE RECOGÍA: tres banderas encendidas no producen nada,
+porque la tabla que alimentan está VACÍA en producción.** Coeficiente `0/88`, proveedores `0`,
+cuentas del plan `0`. Sección propia más abajo. **Encender no es lo mismo que poner en uso.**
+
 ---
 
 ## EL CIERRE ANTERIOR — 25 de agosto de 2026 (madrugada)
@@ -352,6 +356,39 @@ lo puede deshacer un superadmin.
 - **`Privada Las Playas` no tiene campo `currency`**, que CLAUDE.md prohíbe expresamente. No rompe
   —`useTenantCurrency` cae a `COP`— pero pinta en pesos colombianos las cuentas de un conjunto de
   Ciudad de México, y su recibo lleva dentro `issuerCountry: MX`.
+
+## TRES BANDERAS ENCENDIDAS QUE NO PRODUCEN NADA — el hueco es el DATO (24 ago 2026)
+
+**Encender no es lo mismo que poner en uso, y esto no estaba en ninguna lista.** Medido resolviendo
+las banderas con `functions/lib/feature-flags.js` y contando documentos en producción:
+
+| Capacidad | Bandera | Dato en producción |
+|---|---|---|
+| **Cobro por coeficiente** (`PLAT-001`) | encendida | **0 de 88 unidades** tienen coeficiente |
+| **Registro de proveedores** (`FEAT-003`) | encendida | **0 proveedores** registrados |
+| **Plan de cuentas** (`PLAT-003`) | encendidas las dos | **0 cuentas sembradas** — staging tiene 20 |
+
+**La causa del tercero está localizada:** el plan **solo se siembra al CREAR un conjunto**
+(`sembrarPlanDeCuentas` desde `createTenantWorkspace` en `index.ts:1103` y desde
+`trial-workspace.ts:170`), y **los nueve conjuntos de producción son anteriores a la
+funcionalidad**. Nunca hubo un backfill. Existe el script `functions/scripts/sembrar-plan-de-cuentas.mjs`.
+
+> **No rompe nada, y conviene decirlo con precisión para no asustar.** Un asiento puede llevar
+> `accountCode` de un conjunto sin plan: `cajonDe` y `etiquetaDe`
+> (`src/features/finanzas/financial-statement.ts`) caen a la categoría, y el caso está documentado
+> ahí mismo. **Comprobado el 24 de agosto**: el cobro de prueba escribió `accountCode: "1.3"` con
+> `chartOfAccounts` vacío y el informe lo nombra igual. Lo que pasa no es que se rompa: es que la
+> capacidad **no aporta nada todavía**.
+
+**Es el mismo patrón que ya se conocía del coeficiente**, y resulta que son **tres**, no uno. La
+lección de método: [[una-bandera-no-siempre-es-el-freno]] decía que una bandera puede no ser el
+freno; esto añade que **encenderla puede no ser el arranque**. Antes de contar una capacidad como
+entregada, preguntar **cuántas filas tiene la tabla que alimenta**.
+
+**Coste de cerrarlo:** el plan de cuentas es correr un script sobre nueve conjuntos. Los otros dos
+son captura de datos —coeficientes por unidad y alta de proveedores—, que **no es trabajo de
+ingeniería sino de contenido**, y sin clientes reales solo tiene sentido para que la demostración
+enseñe algo.
 
 ## LO SIGUIENTE — CERRAR FRENTES, NO ABRIRLOS (decidido con David el 24 ago 2026)
 
