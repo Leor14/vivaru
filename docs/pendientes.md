@@ -6,46 +6,90 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (noche)
 
-**`CF8` ESTÁ CERRADO Y EN PRODUCCIÓN** (`9f75083`). Un conjunto `suspended` o `expired` ya no puede
-cobrar, revertir, cruzar, descruzar ni anular anticipos, ni pedir la vista previa del reparto. **Se
-reprodujo primero con dinero de verdad** —cobro de $2.120.000 en `Privada Las Playas`, recibo
-`REC-HDFW4R`— y se verificó después por el navegador en ese mismo conjunto. Detalle completo en su
-sección, más abajo.
+**TRES FRENTES CERRADOS EN UNA JORNADA. De los seis del tablero quedan tres, y ninguno es el 1, 2
+ni el 3.** Todo lo de abajo está **desplegado y verificado en producción**, no solo commiteado.
 
-> **Lo que hay que llevarse de ahí, en una frase:** el producto ya se negaba a **facturarle** a un
-> conjunto suspendido y le dejaba **cobrar**, porque facturar es escritura del cliente y pasa por
-> las reglas, y cobrar va por callable con Admin SDK, que **no las evalúa**. Cada vez que una regla
-> de Firestore sea la única palanca de un invariante, hay que preguntarse **quién más escribe eso**.
+| Frente | Qué se cerró |
+|---|---|
+| ~~1 · `PH-001` encender~~ | Las seis banderas globales (25 ago). Cero código |
+| ~~2 · `FLOW-002` de verdad~~ | **`CF8`** (`9f75083`) · **§9/CA13** (`c05b274`) · **`personId` retirado del contrato** |
+| ~~3 · `FIX-001`~~ | **MVP completo** (`a67088c`): bandera encendida y **regla del residente cerrada** |
 
-**Y EL FRENTE 2 ESTÁ CERRADO ENTERO.** Los otros dos criterios cayeron el mismo día:
+**Y una capacidad que estaba encendida sobre una tabla vacía:** el **plan de cuentas sembrado en
+los nueve** (`8986df9`) — de `0` a **189** documentos, 21 por conjunto.
 
-- **§9 y CA13 CONSTRUIDOS Y VERIFICADOS EN PRODUCCIÓN** (`c05b274`). El aviso del recibo ya nombra
-  los cargos cubiertos y el saldo a favor. Medido con un cobro real en `conjunto-las-playas`: un
-  pago de $5.000 sobre un cargo de $3.000 dejó el aviso diciendo, **carácter por carácter lo
-  predicho**: «Se generó el recibo de tu pago de Agosto de 2026. **Cubrió la cuota de mantenimiento
-  de agosto de 2026. Te quedó un saldo a favor de $2.000.**» — el término **mexicano**, que es el
-  país del conjunto, no «alícuota».
-- **`personId` RETIRADO del contrato**, no construido (decisión de David). §7.1 y §7.6 de la PRD
-  reescritas: el anticipo es de la **unidad** y no lleva ningún dato personal, y §7.6 describía mal
-  su propio precedente —`anonymizeExpiredVouchers` no usa vínculo con persona, pone a `null`
-  `payerName`/`payerTaxId` del **recibo**—. Escribirlo habría metido PII donde no la hay.
+### Lo que hay que llevarse, y son tres frases
 
-> **Y fue el PRIMER sobrepago que se ejecuta en producción.** Con él se verificaron de paso R4
-> —el recaudado subió **$3.000, no $5.000**: solo cuenta lo que fue al cargo— y **CA7**: el asiento
-> del anticipo nació con `sourceType: "advance"` y `category: "anticipo"`, en su propia línea. El
-> libro pasó de 54 a 56 movimientos y la cartera se quedó **igual**, en $18.000.
+1. **Una regla de Firestore NO protege lo que escribe una callable.** El Admin SDK no las evalúa.
+   Por eso el producto se negaba a **facturarle** a un conjunto suspendido y le dejaba **cobrar**
+   (`CF8`). Cada vez que una regla sea la única palanca de un invariante: **¿quién más escribe eso?**
+2. **Encender no es poner en uso.** Tres banderas estaban activas sobre tablas vacías. Antes de
+   contar una capacidad como entregada: **¿cuántas filas tiene la tabla que alimenta?**
+3. **Una puerta que se abre sobre un conjunto VACÍO no verifica nada.** El verificador de `FIX-001`
+   decía «abierta» con cero reservas. Antes de cruzar una puerta: **¿sobre cuántos casos se abre?**
 
-**Lo único que `FLOW-002` ya no persigue es el total de anticipos del consejo, que vive en
-`PLAT-004`.**
+### El estado de producción, medido al cerrar (no leído de un documento)
 
-**Y tres cosas menores encontradas de paso, con chip propio y sin construir:** la fecha contable del
-cobro sale en **UTC** (a partir de las 7 de la tarde se fecha mañana, y afecta al asiento y al
-recibo); el aviso de reparto fallido **invita a cobrar igual** cuando ya no se puede; y
-`Privada Las Playas` **no tiene `currency`**, que CLAUDE.md prohíbe.
+```
+BANDERAS   las OCHO encendidas en los nueve conjuntos, sin overrides
+           (incluida producto-reservas-servidor, encendida hoy)
+DATOS      cuentas del plan .......... 189   ← sembrado hoy
+           unidades con coeficiente ... 0 de 88   ← sigue vacío
+           proveedores ................ 0        ← sigue vacío
+CONJUNTOS  9, de los cuales 3 NO operables (1 suspended, 2 expired)
+CLIENTES   cero. Los nueve son de demostración o prueba interna
+```
 
-**PERO HAY UN HUECO MAYOR QUE NINGÚN FRENTE RECOGÍA: tres banderas encendidas no producen nada,
-porque la tabla que alimentan está VACÍA en producción.** Coeficiente `0/88`, proveedores `0`,
-cuentas del plan `0`. Sección propia más abajo. **Encender no es lo mismo que poner en uso.**
+**Los dos huecos de dato que quedan NO son ingeniería**: capturar coeficientes de 88 unidades y dar
+de alta proveedores. Sin clientes reales solo sirven para que la demostración enseñe algo.
+
+### Lo que queda del tablero
+
+| # | Frente | Qué significa CERRADO |
+|---|---|---|
+| **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias que queda** |
+| **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) |
+| **6** | **`FIN-002`** | Expediente y conciliación determinística |
+
+Más la **entrega 2 de `FIX-001`** (política por área), que la ficha sitúa en Fase 2, no en el MVP.
+
+### Cuatro defectos anotados y sin construir — cada uno con su chip
+
+**Solo el primero toca dinero.**
+
+1. **La fecha contable del cobro sale en UTC.** `new Date().toISOString().slice(0,10)` en
+   `src/app/(admin)/admin/billing/page.tsx:240`: a partir de las ~19:00 hora local devuelve **el día
+   siguiente**, y eso llega al asiento del libro y al recibo emitido. Los cobros de §13 y los de hoy
+   probablemente lo arrastran.
+2. **El contador de cupo del residente consulta una ruta vacía.**
+   `resident/reservations/page.tsx:208` cuenta contra `tenants/{id}/reservations`, una subcolección
+   **que no existe** — los datos están en la raíz—; las reglas la deniegan y un `.catch` se lo traga.
+   **Nunca ha funcionado.** El cupo sí se hace cumplir en el servidor, así que es lo que el
+   residente VE, no lo que puede hacer.
+3. **El aviso de reparto fallido invita a cobrar igual** cuando el conjunto está suspendido y el
+   servidor va a rechazarlo. Hay que distinguir `failed-precondition` del fallo transitorio.
+4. **Dos esquemas de id en `paymentOperations`**: los pagos SIN prefijo de conjunto, los anticipos
+   CON él. Ya causó un fallo silencioso al construir CA13. Migrar los ids **no es trivial**: son la
+   marca de idempotencia de pagos ya aplicados.
+
+### Cinco cosas que dejé puestas en producción a propósito
+
+Son de conjuntos de demostración y están ahí como evidencia fechada. **No son basura que limpiar.**
+
+- **`Privada Las Playas`** (suspendido): cobro de $2.120.000 en PA-101, recibo `REC-HDFW4R`.
+  **Ojo: `revertPayment` es una de las seis de CF8, así que ahora solo lo deshace un superadmin.**
+- **`conjunto-las-playas`**: cargo de $3.000 en T1-101 (período 2026-08), cobrado con $5.000 →
+  **anticipo de $2.000 abierto**, y el aviso de CA13 en la campana del residente.
+- **`conjunto-las-playas`**: dos reservas del residente T1-101 —Alberca 27-ago **cancelada**,
+  Gimnasio 28-ago **pendiente**—, las dos con `createdVia: "callable"`. Son la evidencia de la
+  puerta de `FIX-001`.
+
+### Y una que NO está comprobada, dicha para que no se herede como cierta
+
+**No se sabe si las reglas frenan CREAR un cargo en un conjunto suspendido.** Lo afirmé leyendo el
+código —`createTenantDocument` es escritura directa del cliente y pasa por `tenantOperable`— pero
+**no lo medí**: el intento se quedó en un diálogo de confirmación que no llegué a completar. Es
+lectura de código, no medición.
 
 ---
 

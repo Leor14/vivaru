@@ -216,7 +216,18 @@ en pantalla contra la base real.
 `producto-anticipos`, `producto-pago-multiple`), sin overrides y sin kill switches. **Se verificó
 resolviendo con `functions/lib/feature-flags.js` compilado**, no leyendo documentos: la precedencia
 —kill switch maestro, kill switch propio, override, global, default— no se lee de un campo.
-`producto-reservas-servidor` sigue **apagada**: es el frente 3 y no es un interruptor.
+**Y `producto-reservas-servidor` también, desde el 24 de agosto**: son **ocho** las encendidas en
+los nueve conjuntos, sin overrides. Esta línea decía que seguía apagada porque «es el frente 3 y no
+es un interruptor» — cierto entonces: encenderla era el paso 3, y detrás venía el 4, que cierra la
+regla y no vuelve atrás. Los dos están hechos.
+
+**PERO ENCENDER NO ES PONER EN USO, y esto costó descubrirlo.** Tres capacidades estaban activas
+sobre tablas **vacías** en producción. El plan de cuentas se sembró el 24 (`0` → **189**
+documentos, 21 por conjunto); **siguen vacíos el coeficiente (`0` de `88` unidades) y los
+proveedores (`0`)**, y eso no es ingeniería sino captura de datos. La causa del primero es del tipo
+que se repite: **el plan solo se siembra al CREAR un conjunto**, y los nueve son anteriores a la
+funcionalidad — nunca hubo backfill. **Antes de contar una capacidad como entregada, preguntar
+cuántas filas tiene la tabla que alimenta.**
 
 **PRODUCCIÓN NO TIENE NI UN CLIENTE REAL. Ninguno, y ya no queda nada por confirmar.** Los nueve
 conjuntos de `hogaru-1` son de demostración o de prueba interna: David confirmó el 24 de agosto de
@@ -300,10 +311,18 @@ consulta de cuentas hecha por alguien que no es administrador TIENE que filtrar 
 o Firestore la rechaza entera. Y **el rollback no es solo apagar banderas**: volver atrás exige
 devolver `openingBalance` a `bankAccounts` ANTES de revertir las reglas.
 
-**`FIX-001`: los pasos 1 y 2 hechos, la puerta del 3 verificada en staging.** `producto-reservas-servidor`
-encendida en staging y **apagada en producción**. El instrumento de la puerta es
-`scripts/verificar-reservas-por-servidor.mjs`, y el paso 4 —cerrar la rama del residente en las
-reglas— **no se revierte con bandera**.
+**`FIX-001`: EL MVP ESTÁ COMPLETO Y EN PRODUCCIÓN** (24 ago 2026, `a67088c`).
+`producto-reservas-servidor` **encendida en los nueve** y **la rama del residente RETIRADA del
+`create` de `reservations`**: un residente ya no crea por escritura directa, pasa por
+`createReservationRequest`. El administrador conserva la suya y el residente sigue cancelando la
+propia (la rama de `update` no se tocó). **El paso 4 no se revierte con bandera**: el rollback es
+redesplegar las reglas anteriores. Queda la entrega 2 (política por área), que es Fase 2.
+
+> **Y cómo se cruzó la puerta, porque la lección vale más que el paso.** El instrumento es
+> `scripts/verificar-reservas-por-servidor.mjs`, y recién encendida la bandera dijo **«PUERTA
+> ABIERTA» sobre CERO reservas** — con cero clientes reales esa condición se cumple sola. **Una
+> puerta que se abre sobre un conjunto vacío no verifica nada.** Se le dio contenido reservando a
+> propósito desde el portal del residente en producción, y entonces sí midió.
 
 **LA JORNADA DEL 24 ESTÁ DESPLEGADA (24 ago, noche).** Los cuatro commits que cierran la revisión
 adversarial salieron en las tres piezas y **en este orden**: `firebase deploy --only
