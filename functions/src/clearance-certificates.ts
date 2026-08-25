@@ -83,11 +83,39 @@ export async function emitirPazYSalvo(
     };
   }
 
-  const cargosSnap = await firestore
-    .collection("billingStatements")
-    .where("tenantId", "==", input.tenantId)
-    .where("unitId", "==", input.unitId)
-    .get();
+  /**
+   * **La unidad se busca por SUS DOS CLAVES, y esto no es celo.**
+   *
+   * En `billingStatements` conviven dos convenciones de `unitId`: el id del
+   * documento de la unidad —lo que devuelve `repartirPorCoeficiente` y lo que
+   * guarda `tenantUsers.unitId`— y el campo `unitId` de la unidad, que es un
+   * slug. Medido el 25 de agosto de 2026: en **producción**, 197 cargos por id
+   * y 19 por campo, con **tres conjuntos que tienen las dos a la vez**
+   * (`tenant-santa-maria` 96/3, `queretarock` 16/8, `residencial-qintilab`
+   * 16/8).
+   *
+   * Consultar por una sola clave dejaría fuera la deuda escrita con la otra, y
+   * este documento **afirma que no hay ninguna**. Sería certificar al día a
+   * quien debe — en un papel que se enseña ante un tercero. Cualquier otra
+   * pantalla que se equivoque aquí pinta un número corto; esta miente.
+   *
+   * El arreglo de fondo es unificar el dato, y no es de esta ficha. Mientras
+   * tanto el certificado mira las dos, que es lo único que lo hace cierto.
+   */
+  const unitSnap = await firestore.collection("units").doc(input.unitId).get();
+  const claveAlterna = (unitSnap.data() as { unitId?: string } | undefined)?.unitId;
+  const claves = [...new Set([input.unitId, claveAlterna].filter(Boolean))] as string[];
+
+  const cargosPorClave = await Promise.all(
+    claves.map((clave) =>
+      firestore
+        .collection("billingStatements")
+        .where("tenantId", "==", input.tenantId)
+        .where("unitId", "==", clave)
+        .get(),
+    ),
+  );
+  const cargosSnap = { docs: cargosPorClave.flatMap((snap) => snap.docs) };
 
   // R5 · un cargo anulado no cuenta. Y su `balance` ya es cero, así que esto es
   // el segundo de los dos caminos que lo dejan fuera: el estado y el saldo.

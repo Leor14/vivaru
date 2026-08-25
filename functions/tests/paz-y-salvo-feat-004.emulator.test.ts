@@ -65,7 +65,7 @@ const entrada = (extra: Partial<Parameters<typeof emitirPazYSalvo>[0]> = {}) => 
 });
 
 beforeEach(async () => {
-  for (const c of ["billingStatements", "clearanceCertificates", "advances"]) await limpiar(c);
+  for (const c of ["billingStatements", "clearanceCertificates", "advances", "units"]) await limpiar(c);
 });
 
 describe("FEAT-004 · emitir el paz y salvo", () => {
@@ -134,6 +134,33 @@ describe("FEAT-004 · emitir el paz y salvo", () => {
   it("el saldo de OTRA unidad no cuenta — si contara, nadie al día podría emitirlo", async () => {
     await sembrarCargo("mia", { balance: 0 });
     await sembrarCargo("vecina", { balance: 900_000, unitId: "otra-unidad" });
+
+    const r = await emitirPazYSalvo(entrada(), UID);
+    expect(r.created).toBe(true);
+  });
+});
+
+describe("FEAT-004 · las DOS claves de unidad", () => {
+  /**
+   * En `billingStatements` conviven el id del documento de la unidad y su campo
+   * `unitId`, que es un slug. Medido en producción: 197 cargos por id y 19 por
+   * campo, con TRES conjuntos que tienen las dos. Mirar solo una dejaría fuera
+   * la deuda escrita con la otra — y este documento afirma que no hay ninguna.
+   */
+  it("una deuda escrita con la clave ALTERNA bloquea igual: si no, se certifica al día a quien debe", async () => {
+    await db.collection("units").doc(U).set({ tenantId: T, unitId: "slug-101", displayName: "101", status: "active" });
+    // Al día por el id del documento…
+    await sembrarCargo("porId", { balance: 0 });
+    // …y debiendo por el slug, que es como estan escritos los cargos viejos.
+    await sembrarCargo("porSlug", { balance: 75_000, unitId: "slug-101", period: "2026-02" });
+
+    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/75000/);
+  });
+
+  it("y con las dos claves en cero SÍ se emite — la guarda no puede quedarse pegada", async () => {
+    await db.collection("units").doc(U).set({ tenantId: T, unitId: "slug-101", displayName: "101", status: "active" });
+    await sembrarCargo("porId", { balance: 0 });
+    await sembrarCargo("porSlug", { balance: 0, unitId: "slug-101", period: "2026-02" });
 
     const r = await emitirPazYSalvo(entrada(), UID);
     expect(r.created).toBe(true);
