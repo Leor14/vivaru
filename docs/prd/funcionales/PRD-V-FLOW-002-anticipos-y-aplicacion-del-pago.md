@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **EN PRODUCCIÓN desde el 24 de agosto de 2026, con `producto-anticipos` ENCENDIDA SOLO en el conjunto de demostración** (los commits se leen con `git ls-remote`, no de aquí: esta cabecera se quedó corta tres veces en una noche). Servidor, front y los dos cabos de `functions/` desplegados; el «% de recaudo» de R16 mide liquidación. **Verificado en pantalla contra la base real:** CA1, CA2, CA3, CA6′, CA8, CA10, CA11, CA12, CA14, CA16, CF5, CF7 y CF12 — el más importante es CA6′, medido en producción: cruzar 100 dejó cuotas e ingresos **idénticos** y el libro con los mismos 56 movimientos. **LO QUE NO ESTÁ CONSTRUIDO, y hasta el 24 de agosto ningún documento lo decía: §9 y CA13** — el aviso al residente no nombra los cargos cubiertos ni el saldo a favor; sigue siendo el `billing_receipt` de siempre con `{período, conjunto}`. **Corregido de la 1.4:** decía que la vista previa del reparto seguía «abierta» y ya la calcula el servidor (`previewPaymentAllocation`), y daba por vivo el defecto de `writeAuditLog`, que está cerrado en la raíz (`limpiarMetadata`). **Y un defecto de dinero que salió de revisar lo desplegado:** dos guardianes de `aplicarPago` rechazaban cobros CORRECTOS con centavos —el de R1 era una tautología que solo saltaba cuando no había defecto—; corregido con `aMoneda` y `TOLERANCIA_MONEDA`. Era invisible porque COP no tiene decimales y todas las pruebas usaban enteros. **La revisión adversarial está CERRADA** (`docs/revision-flow-002-por-verificar.md`): de 37 sospechas, **35 eran ciertas y están corregidas**, una se descartó y una espera decisión —el detalle por unidad que el consejo lee de `advances`—. D1, D2 y D3 cerradas |
+| **Estado** | **EN PRODUCCIÓN, y desde el 24 de agosto de 2026 con TODOS sus criterios cumplidos.** `producto-anticipos` está **encendida globalmente en los nueve conjuntos** —el override del conjunto de demostración se retiró al poner la global—. Los commits se leen con `git ls-remote`, no de aquí: esta cabecera se quedó corta tres veces en una noche. **Verificado en pantalla contra la base real:** CA1, CA2, CA3, CA6′, CA8, CA10, CA11, CA12, CA14, CA16, CF5, CF7 y CF12 — el más importante es CA6′, medido en producción: cruzar 100 dejó cuotas e ingresos **idénticos** y el libro con los mismos 56 movimientos. **LOS TRES QUE FALTABAN SE CERRARON EL 24 DE AGOSTO**, y esta celda decía lo contrario: **CF8** —un conjunto `suspended` podía cobrar y cruzar— reproducido con dinero real y corregido (`assertTenantOperable` en las seis callables); **§9 y CA13** construidos, el aviso ya nombra los cargos cubiertos y el saldo a favor; y **`personId` RETIRADO del contrato**, porque el anticipo es de la unidad y no lleva ningún dato personal (ver §7.6). **Corregido de la 1.4:** decía que la vista previa del reparto seguía «abierta» y ya la calcula el servidor (`previewPaymentAllocation`), y daba por vivo el defecto de `writeAuditLog`, que está cerrado en la raíz (`limpiarMetadata`). **Y un defecto de dinero que salió de revisar lo desplegado:** dos guardianes de `aplicarPago` rechazaban cobros CORRECTOS con centavos —el de R1 era una tautología que solo saltaba cuando no había defecto—; corregido con `aMoneda` y `TOLERANCIA_MONEDA`. Era invisible porque COP no tiene decimales y todas las pruebas usaban enteros. **La revisión adversarial está CERRADA** (`docs/revision-flow-002-por-verificar.md`): de 37 sospechas, **36 eran ciertas y están resueltas** —la última con la decisión de retirarle al consejo la lectura de `advances`, que pasa a `PLAT-004`— y **una se descartó** con números. Esta celda decía «35 y una espera decisión»: la decisión se tomó. D1, D2 y D3 cerradas. **Lo único que esta ficha ya no persigue es el total de anticipos del consejo, que vive en `PLAT-004`** |
 | **Dependencias** | **Secuencia obligatoria: `PRD-V-PLAT-003` va ANTES.** Las dos modifican `aplicarPago`, que está en producción — aquella cambia **qué valor** escribe en la categoría, esta cambia **su firma**. **No pueden estar en vuelo a la vez.** Si esta va primero, añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | **Riesgo** | **Alto.** Modifica `aplicarPago`, que está **en producción y mueve dinero real** |
 | **Reversibilidad** | **Parcial.** El anticipo y el reparto se apagan con bandera; el cambio de firma de `aplicarPago` no (§13). **Y el saldo inicial mudado tampoco**: volver atrás exige devolver `openingBalance` a `bankAccounts` ANTES de revertir las reglas |
@@ -219,7 +219,7 @@ se modifica**.
 |---|---|---|---|
 | `tenantId` | `string` | **Sí** | Servidor |
 | `unitId` / `unitLabel` | `string` | Sí | Servidor |
-| `personId` | `string` | No | **NADIE lo escribe hoy** (medido el 24 ago 2026 en `payments.ts` y `advances.ts`). La ficha decía «Servidor — quién pagó» y §7.6 construye una regla de retención encima. O se escribe, o §7.6 se corrige: hoy la promesa de anonimizar al titular conservando el anticipo **no tiene sobre qué apoyarse** |
+| ~~`personId`~~ | — | — | **RETIRADO del contrato el 24 de agosto de 2026, con decisión de David.** No existía, y **no debe existir**: ver §7.6 |
 | `amount` | `number` | Sí | Servidor — importe original |
 | `remaining` | `number` | Sí | Servidor — saldo por aplicar |
 | `origin` | `"overpayment" \| "manual"` | Sí | Servidor |
@@ -324,8 +324,34 @@ excluirse**: es dinero que entró y **no** está contado en ningún cargo.
 ### 7.6 Retención y borrado
 
 El anticipo es un registro contable del conjunto: **no caduca con la retención de 12 meses**.
-`personId` sí apunta a una persona: al anonimizarla, el anticipo conserva importe, fecha y
-unidad, y pierde el vínculo personal — igual que ya hace `anonymizeExpiredVouchersDaily`.
+
+**Y no hay nada que anonimizar en él, porque no lleva ningún dato personal.** Lo que escribe
+`aplicarPago` es `tenantId`, `unitId`/`unitLabel`, importes, fechas, estado y `createdBy` — que es
+**el administrador que registró el cobro**, no quien pagó.
+
+> **Esta sección decía otra cosa hasta el 24 de agosto de 2026, y estaba equivocada en tres
+> niveles.** Decía: «`personId` sí apunta a una persona: al anonimizarla, el anticipo conserva
+> importe, fecha y unidad, y pierde el vínculo personal — igual que ya hace
+> `anonymizeExpiredVouchersDaily`». Verificado contra el código:
+>
+> 1. **`personId` no existía**, así que la regla no tenía sobre qué apoyarse.
+> 2. **Describía mal su propio precedente.** `anonymizeExpiredVouchers` (`data-retention.ts`) **no
+>    usa ningún vínculo con persona**: pone a `null` los campos `payerTaxId` y `payerName` **del
+>    recibo**, que es donde vive el dato personal. No anonimiza por enlace, borra el texto.
+> 3. **El anticipo es de la UNIDAD, no de una persona** — lo dicen R2 («el sobrante se convierte en
+>    anticipo **de esa unidad**, siempre») y R6, y el residente lo ve por `residentOwnUnit`, que
+>    filtra por unidad. `personId` no tenía ningún consumidor.
+>
+> **Decisión de David (24 ago 2026): no se escribe, se corrige la ficha.** Añadirlo metería un dato
+> personal en un registro que hoy no tiene ninguno y crearía una obligación de retención donde no
+> la hay. Además no se podría rellenar de forma fiable: el cobro manual pide «Nombre del pagador»
+> como **texto libre**, no un selector de `people`; solo la ruta del comprobante del residente
+> podría resolver una persona, y un enlace personal a medias es peor que ninguno.
+
+**Dónde sí está la identidad de quien paga, y ya caduca:** en `paymentVouchers.payerName` y
+`payerTaxId`, que `anonymizeExpiredVouchersDaily` limpia a los 12 meses. La cadena es coherente
+tal cual: el pago deja **un recibo con PII que caduca** y **un anticipo contable que no caduca
+porque no tiene nada personal**.
 
 ## 8. Reglas de negocio
 
@@ -352,15 +378,31 @@ de un residente.
 
 ## 9. Notificaciones y correo
 
-> **NO CONSTRUIDO, medido el 24 de agosto de 2026.** El aviso que sale hoy es el
-> `billing_receipt` de siempre, y lo dispara `onPaymentVoucherCreated` con `{período, conjunto}`
-> y nada más: **no nombra los cargos cubiertos ni el saldo a favor**. Los dos cambios de contenido
-> de esta sección, y con ellos **CA13**, siguen sin hacerse.
+> **CONSTRUIDO el 24 de agosto de 2026.** Los dos cambios de contenido están hechos y **CA13 se
+> cumple**: `billing_receipt` lleva dos variables nuevas, `{cargos}` y `{saldoAFavor}`, que rellena
+> `onPaymentVoucherCreated` leyendo la operación de pago. Lógica de texto en
+> `functions/src/aviso-recibo.ts`.
 >
-> **Y hasta hoy ningún documento lo registraba** — al contrario, `docs/pendientes.md` llegó a
-> decir «no queda nada de `FLOW-002` sin mirar», que era falso: CA13 no se miró porque no existe.
-> Un criterio de aceptación que nadie construyó y nadie anotó es la forma más silenciosa de que
-> una ficha se dé por cerrada sin estarlo.
+> **Estuvo sin construir y sin anotar en ningún sitio** — al contrario, `docs/pendientes.md` llegó
+> a decir «no queda nada de `FLOW-002` sin mirar», que era falso: CA13 no se miró **porque no
+> existía**. Un criterio de aceptación que nadie construyó y nadie anotó es la forma más silenciosa
+> de que una ficha se dé por cerrada sin estarlo.
+
+**Tres decisiones de la implementación, porque ninguna es obvia:**
+
+1. **No hizo falta cambiar ningún esquema.** `paymentOperations` ya guarda el reparto entero
+   (`allocations`) y el sobrante (`advanceAmount`) —los escribe `aplicarPago` porque la reversión
+   los necesita— y el recibo lleva su `operationKey`. **Ojo con el id: el de un pago va SIN prefijo
+   de conjunto** (`doc(operationKey)`), al revés que los tres de `advances.ts`. Escrito con el
+   prefijo, el aviso salía igual que antes **sin error y con las pruebas unitarias en verde**.
+2. **Cada variable lleva la ORACIÓN entera, no el dato.** `interpolate` borra el token vacío pero
+   **no el conectivo que lo rodea**: un «…y te quedó un saldo a favor de {saldoAFavor}» dejaría
+   «…de.» en la mayoría de los pagos, que no dejan sobrante.
+3. **La cuota ordinaria se nombra con el vocabulario del PAÍS.** `descripcionDeCobro` devuelve
+   «alícuota» para los tres mercados —correcto en el concepto del asiento, que lo lee la
+   administración— pero un condómino de Ciudad de México dice «cuota de mantenimiento». Se usa
+   `terminoCuotaMensual` (`vocabulario-pais.ts`). Y **el artículo va por concepto**: sin eso salía
+   «la parqueadero».
 
 Se reutiliza el aviso de pago recibido, por `functions/src/email.ts` con el remitente
 verificado. **Dos cambios de contenido:**

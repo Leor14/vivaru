@@ -51,6 +51,8 @@ import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coeffi
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import { assertTenantOperable } from "./tenant-status";
+import { frasesDelRecibo } from "./aviso-recibo";
+import { terminoCuotaMensual } from "./vocabulario-pais";
 import { cuentaParaConcepto } from "./plan-de-cuentas";
 import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -3363,20 +3365,92 @@ export const onPaymentVoucherCreated = onDocumentCreated({ document: "paymentVou
   if (data.tenantId && data.payerUnitId) {
     const residentUids = await listResidentUidsByUnit(data.tenantId, data.payerUnitId);
     if (residentUids.length > 0) {
-      const [override, conjunto] = await Promise.all([
+      const [override, conjunto, detalle] = await Promise.all([
         getTenantNotificationOverride(data.tenantId, "billing_receipt"),
         getTenantName(data.tenantId),
+        detalleDelRecibo(data.tenantId, data.operationKey),
       ]);
       await deliverResidentNotifications(
         "billing_receipt",
         data.tenantId,
         residentUids,
-        { período: formatPeriodFromDate(data.issueDate), conjunto },
+        { período: formatPeriodFromDate(data.issueDate), conjunto, ...detalle },
         override,
       );
     }
   }
 });
+
+/**
+ * `PRD-V-FLOW-002` §9 y **CA13** — qué cubrió el pago y qué quedó a favor.
+ *
+ * **No hace falta ampliar el recibo ni el esquema de nada.** La marca de
+ * idempotencia `paymentOperations/{tenantId}_{operationKey}` ya guarda el
+ * reparto entero (`allocations`) y el sobrante (`advanceAmount`) —los escribe
+ * `aplicarPago` porque la REVERSIÓN los necesita— y el recibo lleva su
+ * `operationKey`. Aquí solo se leen.
+ *
+ * **Degrada en silencio y a propósito.** Si falta la operación, o los cargos ya
+ * no existen, el aviso sale como salía antes: decir menos es aceptable, no
+ * enviarlo no lo es. Un `throw` aquí dejaría al residente sin aviso de un pago
+ * que sí ocurrió, y esto corre FUERA de la transacción.
+ */
+async function detalleDelRecibo(
+  tenantId: string,
+  operationKey: unknown,
+): Promise<{ cargos: string; saldoAFavor: string }> {
+  const vacio = { cargos: "", saldoAFavor: "" };
+  const clave = normalizeText(operationKey as string | undefined);
+  if (!clave) return vacio;
+
+  try {
+    // **El id NO lleva prefijo de conjunto, y esto es una trampa medida.**
+    // `aplicarPago` guarda en `doc(operationKey)` a secas, mientras las tres de
+    // `advances.ts` usan `doc(`${tenantId}_${operationKey}`)`. Dos esquemas en la
+    // misma colección. Escrito con el prefijo, esta lectura no encontraba nada
+    // **y el aviso salía igual que antes, en silencio y con las pruebas puras en
+    // verde**: lo cazó la prueba de la costura, no el typecheck.
+    const opSnap = await db.collection("paymentOperations").doc(clave).get();
+    if (!opSnap.exists) return vacio;
+    const op = opSnap.data() as {
+      tenantId?: string;
+      allocations?: Array<{ statementId?: string }>;
+      statementId?: string;
+      advanceAmount?: number;
+    };
+
+    // Y como el id no está aislado por conjunto, se comprueba a mano: sin esto,
+    // una `operationKey` repetida entre conjuntos nombraría en un correo los
+    // cargos de otro.
+    if (op.tenantId && op.tenantId !== tenantId) return vacio;
+
+    // Con una sola línea, `allocations` y `statementId` dicen lo mismo; con
+    // varias, solo `allocations` lo dice entero. El `filter` evita un `getAll`
+    // con una referencia vacía, que lanza.
+    const ids = (op.allocations ?? []).map((a) => a?.statementId).filter((id): id is string => Boolean(id));
+    const idsUnicos = Array.from(new Set(ids.length > 0 ? ids : [op.statementId].filter(Boolean) as string[]));
+
+    const cargos =
+      idsUnicos.length > 0
+        ? (await db.getAll(...idsUnicos.map((id) => db.collection("billingStatements").doc(id))))
+            .filter((snap) => snap.exists)
+            .map((snap) => snap.data() as { concept?: string; period?: string })
+        : [];
+
+    const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+    const country = (tenantSnap.data() as { country?: string } | undefined)?.country;
+
+    return frasesDelRecibo({
+      cargos,
+      saldoAFavor: typeof op.advanceAmount === "number" ? op.advanceAmount : 0,
+      terminoCuota: terminoCuotaMensual(country),
+      formatMoney,
+    });
+  } catch (error) {
+    console.error("[billing_receipt] no se pudo detallar el recibo", { tenantId, error });
+    return vacio;
+  }
+}
 
 // ── F4 · Notificaciones de publicaciones del admin ────────────────────────────
 

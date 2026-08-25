@@ -64,6 +64,8 @@ const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
 const tenant_status_1 = require("./tenant-status");
+const aviso_recibo_1 = require("./aviso-recibo");
+const vocabulario_pais_1 = require("./vocabulario-pais");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 const trial_workspace_1 = require("./trial-workspace");
@@ -2686,14 +2688,74 @@ exports.onPaymentVoucherCreated = (0, firestore_2.onDocumentCreated)({ document:
     if (data.tenantId && data.payerUnitId) {
         const residentUids = await listResidentUidsByUnit(data.tenantId, data.payerUnitId);
         if (residentUids.length > 0) {
-            const [override, conjunto] = await Promise.all([
+            const [override, conjunto, detalle] = await Promise.all([
                 getTenantNotificationOverride(data.tenantId, "billing_receipt"),
                 getTenantName(data.tenantId),
+                detalleDelRecibo(data.tenantId, data.operationKey),
             ]);
-            await deliverResidentNotifications("billing_receipt", data.tenantId, residentUids, { período: formatPeriodFromDate(data.issueDate), conjunto }, override);
+            await deliverResidentNotifications("billing_receipt", data.tenantId, residentUids, { período: formatPeriodFromDate(data.issueDate), conjunto, ...detalle }, override);
         }
     }
 });
+/**
+ * `PRD-V-FLOW-002` §9 y **CA13** — qué cubrió el pago y qué quedó a favor.
+ *
+ * **No hace falta ampliar el recibo ni el esquema de nada.** La marca de
+ * idempotencia `paymentOperations/{tenantId}_{operationKey}` ya guarda el
+ * reparto entero (`allocations`) y el sobrante (`advanceAmount`) —los escribe
+ * `aplicarPago` porque la REVERSIÓN los necesita— y el recibo lleva su
+ * `operationKey`. Aquí solo se leen.
+ *
+ * **Degrada en silencio y a propósito.** Si falta la operación, o los cargos ya
+ * no existen, el aviso sale como salía antes: decir menos es aceptable, no
+ * enviarlo no lo es. Un `throw` aquí dejaría al residente sin aviso de un pago
+ * que sí ocurrió, y esto corre FUERA de la transacción.
+ */
+async function detalleDelRecibo(tenantId, operationKey) {
+    const vacio = { cargos: "", saldoAFavor: "" };
+    const clave = normalizeText(operationKey);
+    if (!clave)
+        return vacio;
+    try {
+        // **El id NO lleva prefijo de conjunto, y esto es una trampa medida.**
+        // `aplicarPago` guarda en `doc(operationKey)` a secas, mientras las tres de
+        // `advances.ts` usan `doc(`${tenantId}_${operationKey}`)`. Dos esquemas en la
+        // misma colección. Escrito con el prefijo, esta lectura no encontraba nada
+        // **y el aviso salía igual que antes, en silencio y con las pruebas puras en
+        // verde**: lo cazó la prueba de la costura, no el typecheck.
+        const opSnap = await db.collection("paymentOperations").doc(clave).get();
+        if (!opSnap.exists)
+            return vacio;
+        const op = opSnap.data();
+        // Y como el id no está aislado por conjunto, se comprueba a mano: sin esto,
+        // una `operationKey` repetida entre conjuntos nombraría en un correo los
+        // cargos de otro.
+        if (op.tenantId && op.tenantId !== tenantId)
+            return vacio;
+        // Con una sola línea, `allocations` y `statementId` dicen lo mismo; con
+        // varias, solo `allocations` lo dice entero. El `filter` evita un `getAll`
+        // con una referencia vacía, que lanza.
+        const ids = (op.allocations ?? []).map((a) => a?.statementId).filter((id) => Boolean(id));
+        const idsUnicos = Array.from(new Set(ids.length > 0 ? ids : [op.statementId].filter(Boolean)));
+        const cargos = idsUnicos.length > 0
+            ? (await db.getAll(...idsUnicos.map((id) => db.collection("billingStatements").doc(id))))
+                .filter((snap) => snap.exists)
+                .map((snap) => snap.data())
+            : [];
+        const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+        const country = tenantSnap.data()?.country;
+        return (0, aviso_recibo_1.frasesDelRecibo)({
+            cargos,
+            saldoAFavor: typeof op.advanceAmount === "number" ? op.advanceAmount : 0,
+            terminoCuota: (0, vocabulario_pais_1.terminoCuotaMensual)(country),
+            formatMoney,
+        });
+    }
+    catch (error) {
+        console.error("[billing_receipt] no se pudo detallar el recibo", { tenantId, error });
+        return vacio;
+    }
+}
 // ── F4 · Notificaciones de publicaciones del admin ────────────────────────────
 // Reglamento nuevo: al subir un documento de categoría "reglamento" (el flujo de
 // carga lo deja activo), notifica a todos los residentes para que lo firmen.

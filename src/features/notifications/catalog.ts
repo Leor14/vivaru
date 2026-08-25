@@ -45,6 +45,19 @@ const CONJUNTO: NotificationVariable = { name: "conjunto", example: "Conjunto La
 const UNIDAD: NotificationVariable = { name: "unidad", example: "Torre 1 - 301", required: false };
 const PERIODO: NotificationVariable = { name: "período", example: "junio 2026", required: true };
 const MONTO: NotificationVariable = { name: "monto", example: "$250.000", required: true };
+// Las dos de CA13 (`PRD-V-FLOW-002` §9). **Opcionales las dos**, y su ejemplo
+// lleva la oración completa a propósito: es lo que ve el administrador en este
+// editor, y tiene que entender que ahí entra una frase, no un número.
+const CARGOS: NotificationVariable = {
+  name: "cargos",
+  example: "Cubrió la cuota de administración de agosto de 2026 y la multa de junio de 2026.",
+  required: false,
+};
+const SALDO_A_FAVOR: NotificationVariable = {
+  name: "saldoAFavor",
+  example: "Te quedó un saldo a favor de $60.000.",
+  required: false,
+};
 const ASUNTO: NotificationVariable = { name: "asunto", example: "Fuga en el pasillo", required: false };
 const AMENIDAD: NotificationVariable = { name: "amenidad", example: "Salón social", required: false };
 const FECHA: NotificationVariable = { name: "fecha", example: "12/06/2026", required: false };
@@ -92,11 +105,11 @@ export const NOTIFICATION_CATALOG: NotificationTemplateDef[] = [
     label: "Recibo disponible",
     relevance: "baja",
     emailDefault: false,
-    variables: [PERIODO, CONJUNTO],
+    variables: [PERIODO, CARGOS, SALDO_A_FAVOR, CONJUNTO],
     title: "Tu recibo está disponible",
-    body: "Se generó el recibo de tu pago de {período}.",
+    body: "Se generó el recibo de tu pago de {período}. {cargos} {saldoAFavor}",
     emailSubject: "Tu recibo de {período} está disponible — {conjunto}",
-    emailBody: "Se generó el recibo de tu pago de {período}. Ingresa para descargarlo.",
+    emailBody: "Se generó el recibo de tu pago de {período}. {cargos} {saldoAFavor} Ingresa para descargarlo.",
   },
   {
     key: "billing_reminder",

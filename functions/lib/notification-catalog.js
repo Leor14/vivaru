@@ -16,6 +16,19 @@ const CONJUNTO = { name: "conjunto", example: "Conjunto Las Palmas", required: f
 const UNIDAD = { name: "unidad", example: "Torre 1 - 301", required: false };
 const PERIODO = { name: "período", example: "junio 2026", required: true };
 const MONTO = { name: "monto", example: "$250.000", required: true };
+// Las dos de CA13. **Opcionales las dos**, y su ejemplo lleva la oración
+// completa a propósito: es lo que ve el administrador en el editor de copys, y
+// tiene que entender que ahí entra una frase, no un número.
+const CARGOS = {
+    name: "cargos",
+    example: "Cubrió la cuota de administración de agosto de 2026 y la multa de junio de 2026.",
+    required: false,
+};
+const SALDO_A_FAVOR = {
+    name: "saldoAFavor",
+    example: "Te quedó un saldo a favor de $60.000.",
+    required: false,
+};
 exports.NOTIFICATION_CATALOG = {
     billing_new: {
         type: "billing",
@@ -50,16 +63,25 @@ exports.NOTIFICATION_CATALOG = {
         emailSubject: "Tienes cartera en mora — {conjunto}",
         emailBody: "Tu unidad {unidad} tiene cartera vencida. Ingresa a tu portal para ponerte al día.",
     },
+    // **§9 y CA13 de `PRD-V-FLOW-002`.** El aviso decía que el recibo existe y
+    // nada más. Ahora nombra los cargos cubiertos y el saldo a favor, que es la
+    // llamada al administrador más barata de evitar: quien paga de más y no
+    // recibe confirmación del sobrante, llama.
+    //
+    // **`cargos` y `saldoAFavor` llevan la ORACIÓN entera, no el dato.** Ver
+    // `aviso-recibo.ts`: `interpolate` borra el token vacío pero no el conectivo
+    // que lo rodea, así que un «…de {saldoAFavor}» dejaría «…de.» en la mayoría de
+    // los pagos, que no dejan sobrante.
     billing_receipt: {
         type: "billing",
         link: "/resident/account",
         relevance: "baja",
         emailDefault: false,
-        variables: [PERIODO, CONJUNTO],
+        variables: [PERIODO, CARGOS, SALDO_A_FAVOR, CONJUNTO],
         title: "Tu recibo está disponible",
-        body: "Se generó el recibo de tu pago de {período}.",
+        body: "Se generó el recibo de tu pago de {período}. {cargos} {saldoAFavor}",
         emailSubject: "Tu recibo de {período} está disponible — {conjunto}",
-        emailBody: "Se generó el recibo de tu pago de {período}. Ingresa para descargarlo.",
+        emailBody: "Se generó el recibo de tu pago de {período}. {cargos} {saldoAFavor} Ingresa para descargarlo.",
     },
     billing_reminder: {
         type: "billing",

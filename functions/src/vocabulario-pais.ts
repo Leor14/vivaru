@@ -28,3 +28,32 @@ export function terminoCoeficiente(country: string | undefined): string {
   if (!country) return NEUTRO;
   return POR_PAIS[country.toUpperCase()] ?? NEUTRO;
 }
+
+/**
+ * Cómo se llama la cuota ordinaria mensual, por país. Espejo de `cuotaMensual`
+ * en `src/lib/config/vocabulario-pais.ts`.
+ *
+ * **Existe porque el aviso del recibo lo lee un RESIDENTE** (§9 y CA13 de
+ * `PRD-V-FLOW-002`), y el servidor es quien lo redacta. Sin esto habría que
+ * tirar de `descripcionDeCobro`, que devuelve **«alícuota» para los tres
+ * países**: es la palabra ecuatoriana, y un condómino de Ciudad de México no la
+ * usa —dice «cuota de mantenimiento»—. Aquello es correcto donde está, en el
+ * concepto del asiento del libro, que lo lee la administración; en un correo al
+ * residente sería justo el defecto que documenta la decisión del 22 de agosto de
+ * 2026.
+ *
+ * Ecuador dice «alícuota mensual» a propósito: su ley usa la misma palabra para
+ * el porcentaje y para la cuota, así que aquí se desambigua.
+ */
+const CUOTA_MENSUAL_POR_PAIS: Record<string, string> = {
+  CO: "cuota de administración",
+  EC: "alícuota mensual",
+  MX: "cuota de mantenimiento",
+};
+
+const CUOTA_MENSUAL_NEUTRO = "cuota mensual";
+
+export function terminoCuotaMensual(country: string | undefined): string {
+  if (!country) return CUOTA_MENSUAL_NEUTRO;
+  return CUOTA_MENSUAL_POR_PAIS[country.toUpperCase()] ?? CUOTA_MENSUAL_NEUTRO;
+}
