@@ -157,6 +157,17 @@ describe("FEAT-004 · las DOS claves de unidad", () => {
     await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/75000/);
   });
 
+  it("y AL REVÉS: pidiéndolo con el slug, la deuda del id del documento también bloquea", async () => {
+    // La primera version de esta guarda solo servia en un sentido: con el slug,
+    // `units/{slug}` no existe y la clave alterna salia vacia. El agujero que
+    // pretendia cerrar seguia abierto por el otro lado.
+    await db.collection("units").doc(U).set({ tenantId: T, unitId: "slug-101", displayName: "101", status: "active" });
+    await sembrarCargo("porId", { balance: 90_000, period: "2026-03" });
+    await sembrarCargo("porSlug", { balance: 0, unitId: "slug-101" });
+
+    await expect(emitirPazYSalvo(entrada({ unitId: "slug-101" }), UID)).rejects.toThrow(/90000/);
+  });
+
   it("y con las dos claves en cero SÍ se emite — la guarda no puede quedarse pegada", async () => {
     await db.collection("units").doc(U).set({ tenantId: T, unitId: "slug-101", displayName: "101", status: "active" });
     await sembrarCargo("porId", { balance: 0 });

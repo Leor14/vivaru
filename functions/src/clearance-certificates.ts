@@ -102,8 +102,24 @@ export async function emitirPazYSalvo(
    * El arreglo de fondo es unificar el dato, y no es de esta ficha. Mientras
    * tanto el certificado mira las dos, que es lo único que lo hace cierto.
    */
-  const unitSnap = await firestore.collection("units").doc(input.unitId).get();
-  const claveAlterna = (unitSnap.data() as { unitId?: string } | undefined)?.unitId;
+  // Se resuelve en LAS DOS DIRECCIONES, porque la petición puede traer
+  // cualquiera de las dos claves y la primera versión de esto solo servía si
+  // traía el id del documento: con el slug, `units/{slug}` no existe, la clave
+  // alterna salía vacía y volvíamos a mirar una sola — el mismo agujero que
+  // pretendía cerrar.
+  const porId = await firestore.collection("units").doc(input.unitId).get();
+  let claveAlterna = (porId.data() as { unitId?: string } | undefined)?.unitId;
+
+  if (!porId.exists) {
+    const porCampo = await firestore
+      .collection("units")
+      .where("tenantId", "==", input.tenantId)
+      .where("unitId", "==", input.unitId)
+      .limit(1)
+      .get();
+    claveAlterna = porCampo.docs[0]?.id;
+  }
+
   const claves = [...new Set([input.unitId, claveAlterna].filter(Boolean))] as string[];
 
   const cargosPorClave = await Promise.all(

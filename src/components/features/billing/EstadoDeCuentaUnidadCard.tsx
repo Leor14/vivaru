@@ -49,21 +49,57 @@ export function EstadoDeCuentaUnidadCard({
   // por unidad, y el lote los necesita todos. Pedirlos por unidad obligaría a
   // una suscripción por cada una al emitir en lote.
   const { items: anticipos } = useAdvances(tenantId);
-  const { items: certificados } = useClearanceCertificates(tenantId, unitId || undefined);
   const [motivo, setMotivo] = useState("");
   const [anulando, setAnulando] = useState<string | null>(null);
   const [lote, setLote] = useState(false);
 
+  /**
+   * **Se agrupa por ETIQUETA, no por `unitId`, y esto no es cosmético.**
+   *
+   * En `billingStatements` conviven dos convenciones de `unitId` —el id del
+   * documento de la unidad y su campo `unitId`, que es un slug—. Medido el 25
+   * de agosto de 2026: en producción 197 cargos por id y 19 por campo, con tres
+   * conjuntos que tienen las dos. Agrupando por `unitId`, **la misma unidad
+   * aparecía dos veces en el selector y su estado de cuenta salía partido**: se
+   * vio en staging, donde seis unidades ofrecían «12 estados de cuenta».
+   *
+   * Partido, el saldo final del documento deja de coincidir con la cartera —
+   * que es R2, la regla que la ficha llama «la que hace confiable el documento».
+   *
+   * La etiqueta es lo único estable entre las dos claves. El arreglo de fondo es
+   * unificar el dato y no es de esta ficha; agrupar aquí es lo que hace que el
+   * papel diga la verdad mientras tanto.
+   */
   const unidades = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of items) if (s.unitId) map.set(s.unitId, s.unitLabel || s.unitId);
-    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1], "es-CO"));
+    const map = new Map<string, { label: string; claves: string[] }>();
+    for (const s of items) {
+      if (!s.unitId) continue;
+      const label = s.unitLabel || s.unitId;
+      const e = map.get(label) ?? { label, claves: [] };
+      if (!e.claves.includes(s.unitId)) e.claves.push(s.unitId);
+      map.set(label, e);
+    }
+    return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, "es-CO"));
   }, [items]);
 
-  const deLaUnidad = useMemo(() => items.filter((s) => s.unitId === unitId), [items, unitId]);
+  const seleccionada = unidades.find((u) => u.label === unitId);
+  const deLaUnidad = useMemo(
+    () => (seleccionada ? items.filter((s) => seleccionada.claves.includes(s.unitId)) : []),
+    [items, seleccionada],
+  );
   const estado = useMemo(() => construirEstadoDeCuenta(deLaUnidad), [deLaUnidad]);
-  const etiqueta = unidades.find(([id]) => id === unitId)?.[1] ?? unitId;
-  const aFavor = saldoAFavor(anticipos, unitId || undefined);
+  const etiqueta = seleccionada?.label ?? unitId;
+  /**
+   * A la callable se le manda **el id del documento** cuando se conoce: el
+   * servidor resuelve la otra clave sea cual sea la que reciba, pero el id es el
+   * que `tenantUsers.unitId` guarda y por tanto el que ata el certificado a lo
+   * que ve el residente.
+   */
+  const claveParaCallable = seleccionada?.claves.find((c) => c.includes("--")) ?? seleccionada?.claves[0] ?? "";
+  const { items: certificados } = useClearanceCertificates(tenantId, claveParaCallable || undefined);
+  const aFavor = seleccionada
+    ? seleccionada.claves.reduce((total, c) => total + saldoAFavor(anticipos, c), 0)
+    : 0;
 
   function hoy() {
     const d = new Date();
@@ -86,20 +122,20 @@ export function EstadoDeCuentaUnidadCard({
   }
 
   async function emitir() {
-    if (!tenantId || !unitId) return;
+    if (!tenantId || !claveParaCallable) return;
     setEmitiendo(true);
     try {
       const issueDate = hoy();
       const r = await emitClearanceCertificateCallable({
         tenantId,
-        unitId,
+        unitId: claveParaCallable,
         unitLabel: etiqueta,
         issueDate,
         // Misma clave que usa el residente: **una emisión por unidad y día**. Si
         // el administrador y el residente usaran claves distintas, pedirlo los
         // dos el mismo día crearía dos certificados del mismo hecho, con códigos
         // distintos y los dos válidos.
-        operationKey: `pys-${unitId}-${issueDate}`,
+        operationKey: `pys-${claveParaCallable}-${issueDate}`,
       });
       await renderPazYSalvoPdf(
         {
@@ -134,7 +170,7 @@ export function EstadoDeCuentaUnidadCard({
     try {
       const emitidoEl = hoy();
       const paquete = unidades
-        .map(([id, label]) => ({ id, label, propios: items.filter((s) => s.unitId === id) }))
+        .map((u) => ({ ...u, propios: items.filter((s) => u.claves.includes(s.unitId)) }))
         .filter((u) => u.propios.length > 0)
         .map((u) => ({
           estado: construirEstadoDeCuenta(u.propios),
@@ -142,7 +178,7 @@ export function EstadoDeCuentaUnidadCard({
             conjunto: tenantName ?? "",
             unidad: u.label,
             emitidoEl,
-            saldoAFavor: saldoAFavor(anticipos, u.id),
+            saldoAFavor: u.claves.reduce((total, c) => total + saldoAFavor(anticipos, c), 0),
           },
         }));
       await renderEstadosDeCuentaEnLotePdf(paquete, tenantName ?? "", emitidoEl, formatAmount);
@@ -204,9 +240,9 @@ export function EstadoDeCuentaUnidadCard({
           onChange={(event) => setUnitId(event.target.value)}
         >
           <option value="">Selecciona una unidad</option>
-          {unidades.map(([id, label]) => (
-            <option key={id} value={id}>
-              {label}
+          {unidades.map((u) => (
+            <option key={u.label} value={u.label}>
+              {u.label}
             </option>
           ))}
         </select>
