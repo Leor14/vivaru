@@ -130,8 +130,11 @@ const CATALOGO = [
   },
   {
     key: "producto-prorrateo-de-gastos",
+    area: "producto",
+    label: "Repartir un gasto entre las unidades",
+    origen: "FLOW-001",
+    // Nace apagada: crea decenas de cargos de dinero real en una operación.
     enabled: false,
-    description: "Repartir un egreso entre las unidades por coeficiente (PRD-V-FLOW-001).",
   },
   {
     key: "producto-multiconjunto",
