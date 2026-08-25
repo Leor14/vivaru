@@ -81,6 +81,29 @@ El landing vive en **`/`**; `/mx` redirige allí. (Estaba escrito al revés hast
 el 17 de agosto de 2026; el landing salió a la raíz en `9dca506` y esta línea no
 se actualizó. Comprobado con `curl -L` contra producción, no de memoria.)
 
+## El orden de despliegue no es fijo: depende de lo que haga el cambio
+
+El de siempre es **reglas → functions → front**. Se invierte cuando la pieza restringe o cuando
+una versión vieja rechaza lo que manda la nueva. En `PLAT-002` (25 ago 2026) fue
+**functions → front → reglas**, por dos motivos distintos:
+
+1. **Functions ANTES que el front**, porque el front nuevo manda `tenantId` en las llamadas de IA
+   y **las functions viejas lo RECHAZAN** (`tenant_en_la_peticion`). Al revés, la IA queda rota
+   entera en la ventana intermedia.
+2. **Las reglas AL FINAL**, porque restringen: `storage.rules` pasó a exigir membresía donde antes
+   bastaba el claim.
+
+**Antes de desplegar una regla que restringe, medir el radio**: cuántos usuarios pierden acceso.
+Ese día salió cero en los dos proyectos (44 de 44 en staging, 39 de 39 en producción), y por eso
+se pudo desplegar sin ventana de mantenimiento.
+
+**El backend de App Hosting de STAGING no vigila ninguna rama** — su `codebase` no trae campo
+`branch`—, así que **empujar no despliega el front**. Hay que crear el rollout a mano:
+
+```bash
+firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha> --force --project vivaru-staging-02
+```
+
 ## Metodología
 
 critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/` — este último con `npm --prefix functions run typecheck`, que es el que mira también `functions/tests/`. Mensajes de commit semánticos. Despliegue del front por push a `master`; functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
@@ -102,6 +125,24 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   conjunto suspendido para reactivarlo— y **el estado del conjunto se comprueba al final, después
   del rol**: al revés, a un no-miembro se le respondería «el período de prueba terminó» en vez de
   «no tienes permiso», filtrando el estado comercial de un cliente.
+- **EL CATÁLOGO DE BANDERAS VIVE EN CINCO SITIOS, y su propia cabecera decía cuatro.** Los dos
+  scripts se declaran «el cuarto» **cada uno**, contando listas distintas: `mover-bandera.mjs`
+  enciende **global** y `mover-bandera-de-conjunto.mjs` enciende **por conjunto**. Añadir una
+  bandera tocando solo cuatro la deja **imposible de encender por conjunto** — que es la vía del
+  canario con la que se encendió el lote de Habitanto. Pasó con `producto-multiconjunto` el 25 de
+  agosto de 2026, siguiendo al pie de la letra un comentario que estaba mal. **El grep va sobre
+  una clave que ya funcione** (`grep -rln "producto-anticipos" functions/scripts src`), nunca
+  sobre la lista escrita.
+- **UNA REGLA DE STORAGE NO ES UNA REGLA DE FIRESTORE. Son DOS ficheros.** `firestore.rules`
+  resuelve por membresía y `storage.rules` resolvía por **claim** (`delConjunto`), que es la base
+  de `miembro`, `admin` y `porteria` — todas sus rutas. Con el selector de conjunto de
+  `PLAT-002`, cambiar de conjunto dejaba Firestore abierto y **Storage cerrado entero**. La ficha
+  había concluido «las reglas no necesitan un cambio» tras leer **uno solo**. **Cuando una
+  conclusión empieza con un plural —«las reglas», «los catálogos», «las callables»— hay que contar
+  cuántos son antes de firmarla.**
+- **Y las reglas de Storage que leen Firestore (`firestore.exists`/`get`) NO se pueden dar por
+  buenas con el emulador**: el emulador no es el servicio. Al 25 de agosto de 2026 esa
+  verificación **sigue abierta** — ver la cabecera de `docs/pendientes.md`.
 - **Las pruebas de emulador van de una en una** (`fileParallelism: false` en
   `functions/vitest.emulator.config.mts`). El emulador es UNO y cada `beforeEach` limpia colecciones
   **globales**, así que en paralelo las suites se borran los datos entre sí: da **fallos fantasma

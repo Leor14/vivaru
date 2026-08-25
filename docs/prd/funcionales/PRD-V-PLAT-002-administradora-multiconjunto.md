@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` que lleva más de un conjunto |
 | **Usuarios secundarios** | `superadmin` · `resident` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 y G5 cerradas por David el 21 de agosto de 2026. **La auditoría de las once callables de §11.2 es la primera tarea del MVP** |
+| **Estado** | **EN STAGING, validada en pantalla** — versión 1.1 (25 ago 2026). §11.2 completa (eran **dieciocho** sitios, no once) · sesión con varias membresías, `lastActiveTenantId` y **selector** construidos y verificados por navegador con una cuenta de seis conjuntos: CA2, CA3, CA4, CA5, CA10 y **un cobro real en el segundo conjunto**. **Falta el paso 3** (entidad `managementCompanies` y sus dos callables) y **queda una medición abierta sobre `storage.rules`** — ver §11.3 y la cabecera de `docs/pendientes.md`. **En producción NO hay nada de esto** y la bandera está apagada |
 | **Dependencias** | **Ninguna para el MVP.** La consolidación financiera depende del plan de cuentas gobernado (§4) |
 | **Riesgo** | **Alto.** Toca la resolución de identidad. Un error aquí es un error de permisos |
 | **Reversibilidad** | **Parcial.** El selector y la entidad son reversibles; el cambio en las once callables de §11.2 **no se revierte apagando una bandera** |
@@ -324,30 +324,80 @@ conjunto activo, y elegir mal no da acceso a nada.
 
 ### 11.2 El cambio que no es reversible con una bandera
 
-Las **once** comparaciones de O4 deben pasar de *«el conjunto pedido debe ser igual al del
-token»* a *«el llamante debe ser miembro del conjunto pedido»*.
+Las comparaciones de O4 deben pasar de *«el conjunto pedido debe ser igual al del token»* a
+*«el llamante debe ser miembro del conjunto pedido»*.
+
+> **CORRECCIÓN (25 ago 2026): eran DIECIOCHO, no once.** Esta sección decía «las once» y listaba
+> líneas de `index.ts`, así que la auditoría de `5219758` buscó ahí y retiró **doce**. Quedaron
+> **seis** haciendo lo mismo en `functions/src/payments.ts:378` (`assertPuedeCobrar`) y
+> `functions/src/advances.ts:112` (`assertPuedeOperarAnticipos`) — **las seis del dinero**:
+> `applyPayment`, `revertPayment`, `previewPaymentAllocation`, `applyAdvance`,
+> `undoAdvanceApplication` y `cancelAdvance`.
+>
+> Y eran **más duras** que las retiradas: aquellas decían `if (claim && claim !== pedido)` —
+> inertes sin claim—; estas, `claim !== pedido` a secas.
+>
+> **El alcance de una auditoría se define por PATRÓN, no por fichero.** El grep bueno no era «las
+> líneas que cita la ficha», era `grep -rn "tokenTenant" functions/src`. Cerrado en `dbb3f29`.
 
 En el sitio revisado (`index.ts:1349`) la comprobación de membresía **ya existe justo después**
 (`assertActiveTenantAdmin`), así que la guarda del claim es redundante y puede retirarse sin
 perder seguridad. **Hay que verificar sitio por sitio que esa comprobación existe**, y añadirla
 donde no.
 
+> **Y en las seis del dinero NO existía.** La comparación con el claim era lo ÚNICO que ataba al
+> llamante con el conjunto, así que borrarla a secas habría dejado a cualquier `tenant_admin`
+> cobrar en cualquier conjunto. **Antes de retirar una guarda, la pregunta es qué otra cosa
+> sostiene el invariante** — y si la respuesta es «ninguna», el arreglo es sustituir, no borrar.
+
 **Es trabajo de auditoría, no de diseño, y es el mayor riesgo de esta PRD.**
 
-### 11.3 Reglas de Firestore
+### 11.3 Reglas — y son DOS ficheros, no uno
+
+> **CORRECCIÓN (25 ago 2026).** Esta sección se titulaba «Reglas de Firestore» y concluía que las
+> reglas no necesitaban un cambio. **Es falso, y el error fue el singular.** Hay dos ficheros de
+> reglas: `firestore.rules` **sí** resolvía por membresía —de ahí la conclusión— y
+> `storage.rules` **no**: su `delConjunto()` comparaba `request.auth.token.tenantId == tenantId`,
+> y esa función es la base de `miembro`, `admin` y `porteria`, o sea de **todas** sus rutas.
+>
+> Consecuencia con el selector encendido: cambiar de conjunto dejaba **Firestore abierto y Storage
+> cerrado entero** —documentos, comprobantes, notas de portería y evidencia de soporte—, sin más
+> síntoma que un error de permisos.
+>
+> Lo encontró una **revisión adversarial**, no las suites: 59 pruebas de Storage pasaban porque
+> ninguna ejercía a un administrador operando un conjunto distinto del de su claim.
+>
+> **Cuando una conclusión empieza con un plural —«las reglas», «los catálogos», «las
+> callables»— hay que contar cuántos son antes de firmarla.** Ese mismo día el plural falló tres
+> veces: dos ficheros de reglas, cinco sitios de catálogo de banderas, y dieciocho comparaciones
+> del claim donde esta ficha decía once.
 
 | Qué | Cambio |
 |---|---|
-| Colecciones de conjunto | **Ninguno.** Ya resuelven por membresía |
+| Colecciones de conjunto (`firestore.rules`) | **Ninguno.** Ya resuelven por membresía |
+| **`storage.rules`** | **SÍ cambia.** `delConjunto` pasa a `firestore.exists(tenantUsers/{tenantId}_{uid})`, y **el rol sale de la membresía**, no del token: la misma persona puede administrar un conjunto y ser residente de otro. El superadmin sigue saliendo del token, porque no tiene membresía en ninguno |
 | `managementCompanies` | **Bloque nuevo y explícito**: lectura para miembros de un conjunto asociado, escritura solo superadmin. **No puede caer en `relaxedTenantCollection`** |
 | `tenants` | Sin cambio: `managementCompanyId` queda cubierto por la regla existente |
+
+> **ABIERTO al cerrar el 25 de agosto:** el cambio de `storage.rules` usa **reglas entre
+> servicios**, y **no se pudo verificar en el servicio real** — el emulador no es el servicio.
+> Subir un documento en staging falla, y falla también en el conjunto donde el claim y el activo
+> coinciden. La bisección quedó a medias. **Detalle y siguiente paso en la cabecera de
+> `docs/pendientes.md`.** Si resulta que las reglas entre servicios no sirven, la alternativa es
+> **emitir el claim al cambiar de conjunto**, que arregla esto de raíz pero **rompe el
+> multipestaña**.
 
 ### 11.4 Índices, jobs y banderas
 
 - **Índice nuevo:** `tenantUsers` por `uid`, para listar las membresías de una persona.
 - **Jobs:** ninguno.
-- **Bandera:** `multi-tenant-admin`, que gobierna **el selector y la vista de cartera**. **No
-  gobierna §11.2**, que se despliega antes y es compatible hacia atrás.
+- **Bandera:** `producto-multiconjunto`, que gobierna **el selector**. **No gobierna §11.2**, que
+  se despliega antes y es compatible hacia atrás.
+  > Esta ficha la llamaba `multi-tenant-admin`. Se renombró al construirla: las dieciséis
+  > existentes llevan prefijo de área y `FeatureFlagArea` lo exige. **Y vive en CINCO sitios, no
+  > en cuatro**: el catálogo del cliente, el del servidor, el sembrador, el movedor global y el
+  > movedor **por conjunto**. Nació sin el quinto, así que se podía encender para todos pero no
+  > para uno solo — que es la vía del canario. Corregido en `ccc78e1`.
 
 ## 12. Riesgos y mitigaciones
 
@@ -393,11 +443,17 @@ solo eso, con el selector aún apagado y sin ningún usuario afectado.
 
 ### Story Map
 
-**MVP** — membresías múltiples en sesión · selector con último usado · las once callables ·
-entidad administradora y asociación desde superadmin.
+**MVP** — ~~membresías múltiples en sesión~~ ✅ · ~~selector con último usado~~ ✅ ·
+~~las once callables~~ ✅ (**eran dieciocho**) · entidad administradora y asociación desde
+superadmin **← lo único del MVP que queda**.
 
 **Fase 2** — vista de cartera con indicadores operativos · el residente ve su administradora ·
 registro de cambios de conjunto.
+
+> **Ojo al leer otros documentos:** la cabecera de `docs/pendientes.md` describía el frente 4 como
+> «selector **y vista de cartera**», pero **la vista es Fase 2 según este Story Map**, no MVP. Y si
+> se construye necesita otro nombre: **«Cartera» ya es `/admin/billing`** en la barra lateral
+> (`admin-sidebar.tsx:76`), y CA3 usa la palabra con ese otro significado.
 
 **Fase 3** — consolidado entre conjuntos, **cuando exista el plan de cuentas gobernado**.
 

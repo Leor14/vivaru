@@ -4,94 +4,120 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026
 
-**TRES FRENTES CERRADOS EN UNA JORNADA. De los seis del tablero quedan tres, y ninguno es el 1, 2
-ni el 3.** Todo lo de abajo está **desplegado y verificado en producción**, no solo commiteado.
+**EL FRENTE 4 ESTÁ CONSTRUIDO Y VALIDADO EN PANTALLA. Queda UNA medición sin hacer, y hasta
+tenerla el repositorio y staging NO COINCIDEN.** Empezar por ahí.
 
-| Frente | Qué se cerró |
-|---|---|
-| ~~1 · `PH-001` encender~~ | Las seis banderas globales (25 ago). Cero código |
-| ~~2 · `FLOW-002` de verdad~~ | **`CF8`** (`9f75083`) · **§9/CA13** (`c05b274`) · **`personId` retirado del contrato** |
-| ~~3 · `FIX-001`~~ | **MVP completo** (`a67088c`): bandera encendida y **regla del residente cerrada** |
-
-**Y una capacidad que estaba encendida sobre una tabla vacía:** el **plan de cuentas sembrado en
-los nueve** (`8986df9`) — de `0` a **189** documentos, 21 por conjunto.
-
-### Lo que hay que llevarse, y son tres frases
-
-1. **Una regla de Firestore NO protege lo que escribe una callable.** El Admin SDK no las evalúa.
-   Por eso el producto se negaba a **facturarle** a un conjunto suspendido y le dejaba **cobrar**
-   (`CF8`). Cada vez que una regla sea la única palanca de un invariante: **¿quién más escribe eso?**
-2. **Encender no es poner en uso.** Tres banderas estaban activas sobre tablas vacías. Antes de
-   contar una capacidad como entregada: **¿cuántas filas tiene la tabla que alimenta?**
-3. **Una puerta que se abre sobre un conjunto VACÍO no verifica nada.** El verificador de `FIX-001`
-   decía «abierta» con cero reservas. Antes de cruzar una puerta: **¿sobre cuántos casos se abre?**
-
-### El estado de producción, medido al cerrar (no leído de un documento)
+### ⚠ Lo primero de lo primero: staging no es lo que dice el repositorio
 
 ```
-BANDERAS   las OCHO encendidas en los nueve conjuntos, sin overrides
-           (incluida producto-reservas-servidor, encendida hoy)
-DATOS      cuentas del plan .......... 189   ← sembrado hoy
-           unidades con coeficiente ... 0 de 88   ← sigue vacío
-           proveedores ................ 0        ← sigue vacío
-CONJUNTOS  9, de los cuales 3 NO operables (1 suspended, 2 expired)
-CLIENTES   cero. Los nueve son de demostración o prueba interna
+repositorio (841a8ac)   storage.rules = por MEMBRESÍA   ← lo commiteado
+staging desplegado      storage.rules = por CLAIM       ← montaje de una bisección SIN CERRAR
+producción (887e778)    nada de esta jornada
 ```
 
-**Los dos huecos de dato que quedan NO son ingeniería**: capturar coeficientes de 88 unidades y dar
-de alta proveedores. Sin clientes reales solo sirven para que la demostración enseñe algo.
+**Por qué está así.** Al validar por navegador, **subir un documento falla en staging** — y falla
+en los DOS conjuntos, incluido aquel donde el claim y el conjunto activo coinciden. Ni el objeto
+en Storage ni la fila en `documents`. Se montó una bisección (devolver las reglas al claim y
+repetir la subida) y **no se pudo cerrar**: el entorno bloqueó la subida de archivos por
+navegador. Las reglas viejas quedaron desplegadas porque son el comportamiento anterior y son
+seguras: nadie pierde acceso.
 
-### Lo que queda del tablero
+**La medición que falta, y es de veinte segundos:** entrar en staging → Documentos → subir
+cualquier archivo con descripción.
 
-| # | Frente | Qué significa CERRADO |
+| Resultado | Qué significa | Qué hacer |
 |---|---|---|
-| **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias que queda** |
-| **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) |
-| **6** | **`FIN-002`** | Expediente y conciliación determinística |
+| **Sube bien** | Las reglas entre servicios NO funcionan en el servicio real | Rehacer: **emitir el claim al cambiar de conjunto** (plan B, abajo) |
+| **Vuelve a fallar** | Las reglas quedan absueltas; el fallo es otro | Desplegar `storage.rules` del repositorio y perseguir la subida aparte |
 
-Más la **entrega 2 de `FIX-001`** (política por área), que la ficha sitúa en Fase 2, no en el MVP.
+> **Lo que ya se descartó**, para no repetirlo: el agente de reglas SÍ tiene su rol
+> (`roles/firebaserules.system`), así que el permiso entre servicios está concedido — eso
+> **debilita** la hipótesis de que las reglas sean la causa. Las denegaciones de Storage **no se
+> registran** en Cloud Logging. Y la última subida con éxito en staging fue del **24 de agosto**,
+> anterior a todo lo de esta jornada.
 
-### Cuatro defectos anotados y sin construir — cada uno con su chip
+**Plan B, si toca:** una callable que verifique la membresía y llame a `setCustomUserClaims`, más
+un refresco forzado del token en `switchTenant`. Con eso el claim **sigue** al conjunto activo y
+`storage.rules` puede quedarse por claim. **Su precio, que es real: rompe el multipestaña** —el
+claim es uno por usuario, así que dos pestañas en conjuntos distintos se pisan—. El plan A
+(membresía) no tiene ese problema. Por eso no se eligió a ciegas.
 
-**Solo el primero toca dinero.**
+### Lo que SÍ está cerrado del frente 4
 
-1. **La fecha contable del cobro sale en UTC.** `new Date().toISOString().slice(0,10)` en
-   `src/app/(admin)/admin/billing/page.tsx:240`: a partir de las ~19:00 hora local devuelve **el día
-   siguiente**, y eso llega al asiento del libro y al recibo emitido. Los cobros de §13 y los de hoy
-   probablemente lo arrastran.
-2. **El contador de cupo del residente consulta una ruta vacía.**
-   `resident/reservations/page.tsx:208` cuenta contra `tenants/{id}/reservations`, una subcolección
-   **que no existe** — los datos están en la raíz—; las reglas la deniegan y un `.catch` se lo traga.
-   **Nunca ha funcionado.** El cupo sí se hace cumplir en el servidor, así que es lo que el
-   residente VE, no lo que puede hacer.
-3. **El aviso de reparto fallido invita a cobrar igual** cuando el conjunto está suspendido y el
-   servidor va a rechazarlo. Hay que distinguir `failed-precondition` del fallo transitorio.
-4. **Dos esquemas de id en `paymentOperations`**: los pagos SIN prefijo de conjunto, los anticipos
-   CON él. Ya causó un fallo silencioso al construir CA13. Migrar los ids **no es trivial**: son la
-   marca de idempotencia de pagos ya aplicados.
+**`PLAT-002` entrega 2 está construida, desplegada en staging y validada por navegador con la
+sesión real.** Ocho commits, de `dbb3f29` a `841a8ac`.
 
-### Cinco cosas que dejé puestas en producción a propósito
+| Criterio | Cómo se comprobó |
+|---|---|
+| **CA2** | El selector con «6 conjuntos» y buscador |
+| **CA10** | Los dos vencidos marcados «Prueba vencida · solo lectura» |
+| **CA3/CA4** | Al cambiar de conjunto **no sobrevivió un número**: cartera 18.500 → 2.680.000, PQRS 7 → 4, alertas 21 → 7 |
+| **CA5** | Recarga completa y sigue en el conjunto nuevo, aunque el perfil diga el viejo |
+| **La ruta del dinero** | **Cobro de $430.000 en el SEGUNDO conjunto**, recibo `REC-MBZ5EY`. Con el código anterior era `permission-denied` |
 
-Son de conjuntos de demostración y están ahí como evidencia fechada. **No son basura que limpiar.**
+El cobro se verificó contra la base, no contra la pantalla: saldo del conjunto −430.000 exacto,
+`overdue` → `paid`, un asiento, un recibo, y **cero anticipos** (el pago fue exacto).
 
-- **`Privada Las Playas`** (suspendido): cobro de $2.120.000 en PA-101, recibo `REC-HDFW4R`.
-  **Ojo: `revertPayment` es una de las seis de CF8, así que ahora solo lo deshace un superadmin.**
-- **`conjunto-las-playas`**: cargo de $3.000 en T1-101 (período 2026-08), cobrado con $5.000 →
-  **anticipo de $2.000 abierto**, y el aviso de CA13 en la campana del residente.
-- **`conjunto-las-playas`**: dos reservas del residente T1-101 —Alberca 27-ago **cancelada**,
-  Gimnasio 28-ago **pendiente**—, las dos con `createdVia: "callable"`. Son la evidencia de la
-  puerta de `FIX-001`.
+**CA1 no se vio en pantalla** y queda dicho: haría falta entrar como otro administrador y no hay
+credenciales. Lo que sí está medido es que los otros nueve siguen con una membresía y que el
+componente devuelve `null` por debajo de dos. Es construcción, no observación.
 
-### Y una que NO está comprobada, dicha para que no se herede como cierta
+### Lo que cambió respecto a lo que decía la ficha
 
-**No se sabe si las reglas frenan CREAR un cargo en un conjunto suspendido.** Lo afirmé leyendo el
-código —`createTenantDocument` es escritura directa del cliente y pasa por `tenantOperable`— pero
-**no lo medí**: el intento se quedó en un diálogo de confirmación que no llegué a completar. Es
-lectura de código, no medición.
+**La auditoría de §11.2 estaba a medias y nadie lo sabía.** `5219758` retiró doce comparaciones
+del claim en `index.ts` porque ahí las situaba la ficha. **Quedaban SEIS más**, en `payments.ts` y
+`advances.ts` — las del dinero. Son **dieciocho sitios**, no once. Y eran más duras que las
+retiradas: aquellas eran inertes sin claim, estas no. Cerrado en `dbb3f29`.
+
+**Y §11.3 de la ficha ES FALSA tal como está escrita.** Dice «las reglas no necesitan un cambio».
+**Hay DOS ficheros de reglas** y `storage.rules` iba por claim. Corregido en la ficha.
+
+### Cinco hallazgos de una revisión adversarial, todos cerrados
+
+Quince hallazgos, **diez refutados por los propios refutadores**, cinco en pie. Cuatro eran el
+mismo defecto: el claim seguía siendo autoridad fuera de la ruta del dinero.
+
+| Commit | Qué |
+|---|---|
+| `ccc78e1` | **La bandera no se podía encender POR CONJUNTO** — el catálogo vive en **CINCO** sitios y la cabecera decía cuatro |
+| `23f03b1` | **`storage.rules` por membresía** — el de la bisección sin cerrar |
+| `92fe050` | **El verificador de anticipos**, regresión propia: de 0 de 25 a **25 de 25** |
+| `841a8ac` | **La puerta de IA y dos telemetrías** dejan de mirar el claim |
+
+### El orden de despliegue de esto NO es el documentado
+
+`CLAUDE.md` dice reglas → functions → front. **Para este cambio es functions → front → reglas**, y
+por dos motivos distintos:
+
+1. **Functions antes que front**, porque el front nuevo manda `tenantId` en las llamadas de IA y
+   **las functions viejas lo RECHAZAN** (`tenant_en_la_peticion`). Desplegar el front primero
+   rompe la IA entera en la ventana intermedia.
+2. **Las reglas al final**, porque restringen.
+
+Antes de tocar Storage se midió el radio: **cero usuarios perderían acceso** en los dos proyectos
+(44 de 44 en staging, 39 de 39 en producción tienen su documento de membresía).
+
+### Lo que queda del frente 4, sin construir
+
+El **paso 3**: la entidad `managementCompanies` con su regla y sus dos callables de superadmin, y
+la **vista de conjuntos** — que la ficha sitúa en **Fase 2**, no en el MVP, aunque la cabecera
+anterior la contaba como parte del frente. Y si se construye, **necesita otro nombre**:
+«Cartera» ya es `/admin/billing`.
+
+### Tres cosas del entorno que costaron tiempo hoy
+
+- **El backend de staging NO vigila ninguna rama.** Su `codebase` no trae campo `branch`, así que
+  empujar **no despliega el front**: hay que crear el rollout a mano con
+  `firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha> --force`.
+- **Las tres credenciales caducaron en cascada** a mitad de sesión, cada una por su lado: `gcloud`
+  CLI, el CLI de Firebase durante un rollout, y la ADC.
+- **Salieron rollouts duplicados del mismo commit** dos veces. Inofensivo, pero explica por qué el
+  bundle cambia antes de que termine el comando propio.
 
 ---
+
 
 ## EL CIERRE ANTERIOR — 25 de agosto de 2026 (madrugada)
 
