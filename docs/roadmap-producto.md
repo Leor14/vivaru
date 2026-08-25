@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.28 |
-| **Fecha** | 24 de agosto de 2026 (cierre de noche) |
-| **Estado** | **`FLOW-002` ESTÁ CERRADA ENTERA: ya no le queda ningún criterio propio sin cumplir.** Los tres que le faltaban cayeron esta noche. **`CF8` era de dinero y se reprodujo primero con dinero de verdad**: con la sesión del administrador de un conjunto `suspended` se cobraron $2.120.000 y el producto no opuso nada, porque `tenantOperable` vivía solo en las reglas de Firestore y **las callables van con Admin SDK, que no las evalúa**. El contraste que lo resume: el producto ya se negaba a **facturarle** a un cliente suspendido y le dejaba **cobrar**. Corregido, desplegado y verificado en el mismo conjunto. **§9 y CA13 construidos**: el aviso del recibo nombra los cargos cubiertos y el saldo a favor, con el término de cuota **del país del conjunto**; verificado con un cobro real que salió carácter por carácter lo predicho. **Y `personId` se RETIRÓ del contrato en vez de construirse** (decisión de David): el anticipo es de la **unidad** y no lleva ningún dato personal, y §7.6 describía mal su propio precedente. **EL LOTE DE HABITANTO ESTÁ ENCENDIDO** —las seis banderas, globalmente, en los nueve conjuntos y sin overrides—, así que lo que le queda a `PH-001` **vuelve a ser construir**: `FLOW-001` de la ola B y la ola C entera. Esta celda decía «sigue en producción y APAGADO» y «lo que falta ya no es construir, es encender»: las dos cosas quedaron obsoletas. **Y esta noche se ejecutó el PRIMER SOBREPAGO de producción**, que verificó de paso R4 y CA7. **PRODUCCIÓN SIGUE SIN UN SOLO CLIENTE REAL.** Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, entrando por el navegador y moviendo dinero de verdad en los conjuntos de ejemplo.** Los dos cambios se reprodujeron ANTES de tocar código y se midieron DESPUÉS contra números anotados de antemano. **Y se falsaron**: se rompió el arreglo de `CF8` a propósito en cuatro variantes y cada una tumbó exactamente las pruebas que debía y ninguna más. **La lección de la noche: una regla de Firestore no protege lo que escribe una callable** — cada vez que una regla sea la única palanca de un invariante, hay que preguntarse quién más escribe eso. **Y la segunda: la prueba de la costura cazó un defecto que las trece pruebas puras no podían ver** — el aviso leía un id que no existe y habría salido igual que antes, sin error y con todo en verde |
+| **Versión** | 0.9.29 |
+| **Fecha** | 25 de agosto de 2026 (cierre) |
+| **Estado** | **`PLAT-002` TIENE SU MVP COMPLETO Y EN STAGING**, verificado por navegador de punta a punta: una cuenta con **seis conjuntos** cambia entre ellos, **cobra $430.000 en el segundo** y sube un documento ahí. **La ficha estaba mal en dos sitios y eso costó la jornada.** §11.2 decía «las once callables» y **eran DIECIOCHO**: la auditoría de agosto buscó donde la ficha señalaba —`index.ts`— y dejó vivas **las seis del dinero**, en `payments.ts` y `advances.ts`. Y §11.3 decía «las reglas no necesitan un cambio», escrito tras leer **uno de los dos ficheros**: `storage.rules` iba por claim. **La lección que más lejos llega: cuando una conclusión empieza con un plural —«las reglas», «los catálogos», «las callables»— hay que contar cuántos son antes de firmarla.** Ese mismo día el plural falló tres veces: dos ficheros de reglas, **cinco** sitios de catálogo de banderas donde el comentario decía cuatro, y dieciocho comparaciones donde la ficha decía once. **Y una segunda, cara:** las reglas entre servicios de Storage **no funcionan en el servicio real** — pasaron 59 pruebas de emulador falsadas en dos direcciones y **rompieron todas las subidas**. **El emulador no es el servicio**, y es el único mecanismo del repositorio que las pruebas no pueden cubrir. **PRODUCCIÓN NO TIENE NADA DE ESTA JORNADA** y `producto-multiconjunto` está apagada allí: subirlo es la siguiente decisión. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Staging, entrando por el navegador con una sesión real de seis conjuntos.** Cada pieza se comprobó contra su fuente y no contra el «Deploy complete»: las funciones por la API del proyecto (**77 de 77 en `ACTIVE`**), el front por una **cadena que no existía antes** —la huella del bundle no sirve: dos builds del mismo commit dan hashes distintos—, y las reglas por su `released`. **Todo lo dudoso se falsó**: romper la guarda del dinero tumba 8 pruebas en un sentido y 7 en el otro; desactivar R5 tumba exactamente la suya. **Y tres comprobaciones acertaron por accidente y hubo que rehacerlas**: un vigía que contaba un `curl` fallido como «el bundle cambió», un `until` que se disparó con la palabra «Error» dentro de `logClientError`, y tres pruebas nuevas cuyo montaje daba el mismo valor al claim y al conjunto pedido, así que pasaban en verde con la implementación rota. **Toda comprobación nueva necesita un control que se sepa bueno**: sin comparar contra `applyPayment` habría reportado tres callables rotas por un binding que tampoco tiene la que funciona |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -997,6 +997,25 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.29 — 25 de agosto de 2026 (cierre)
+
+- **`PLAT-002` con su MVP completo y en staging**, verificado de punta a punta: selector de
+  conjunto, sesión con varias membresías, la entidad administradora y su consola. Once commits,
+  de `dbb3f29` a `5894001`.
+- **La auditoría de §11.2 estaba a medias y nadie lo sabía.** Eran **dieciocho** comparaciones del
+  claim, no once: la de agosto miró `index.ts` porque ahí las situaba la ficha y dejó vivas **las
+  seis del dinero**. El alcance de una auditoría se define por **patrón**, no por fichero.
+- **Las reglas entre servicios de Storage no funcionan en el servicio real.** Se intentó resolver
+  Storage por membresía, pasó 59 pruebas de emulador falsadas en dos direcciones y **rompió todas
+  las subidas**. Revertido: el claim vuelve a seguir al conjunto activo, re-emitido tras comprobar
+  la membresía, con un precio conocido — **dos pestañas en conjuntos distintos se pisan**.
+- **Una revisión adversarial encontró cinco defectos que las suites no veían**, y **refutó diez de
+  quince**. Cuatro eran el mismo: el claim seguía siendo autoridad fuera de la ruta del dinero
+  (Storage, la puerta de IA y dos telemetrías).
+- **El catálogo de banderas vive en CINCO sitios**, y su propia cabecera decía cuatro. La bandera
+  nueva nació sin poder encenderse **por conjunto**, que es la vía del canario.
+- **Producción sigue sin recibir nada de esto.**
 
 ### 0.9.28 — 24 de agosto de 2026 (cierre de noche)
 
