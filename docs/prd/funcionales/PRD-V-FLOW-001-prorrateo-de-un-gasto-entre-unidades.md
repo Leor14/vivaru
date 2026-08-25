@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 y D2 cerradas por David el 21 de agosto de 2026. **No puede empezar antes que `PRD-V-PLAT-001`** |
+| **Estado** | **MVP COMPLETO Y EN STAGING** — versión 1.1 (25 de agosto de 2026, `728451f`…`abcbaad`). Validado por navegador contra la base: los doce criterios de §10 que aplican al MVP. **NO está en producción, y el motivo es de datos**: 0 de 88 unidades con coeficiente y 74 de 87 sin propietario, así que R2 y R5 bloquean antes de calcular. **Fase 2 sin construir**: reparto por área, reparto a un subconjunto (D2) y exportar el reparto para el acta |
 | **Dependencias** | **`PRD-V-PLAT-001` — bloqueante.** Sin coeficiente por unidad no hay nada que prorratear |
 | **Riesgo** | **Alto.** Crea decenas de cargos de dinero real en una sola operación |
 | **Reversibilidad** | **Total**, y es un requisito del diseño: una corrida se anula entera (§5.3) |
@@ -294,9 +294,19 @@ Anular la corrida es **también callable**, por lo mismo: es una escritura en lo
 
 ### 11.2 Reglas de Firestore
 
-Sin cambios de estructura. `billingCampaigns` y `billingStatements` ya están cubiertas. Lo que
-sí hay que hacer: **cerrar la escritura directa de `billingStatements` con `campaignId` de
-reparto**, para que nadie pueda crear a mano un cargo que finja venir de un prorrateo.
+Sin cambios de estructura. `billingCampaigns` y `billingStatements` ya están cubiertas.
+
+> **CORREGIDO AL CONSTRUIR (25 ago 2026).** Esta sección pedía «cerrar la escritura directa con
+> `campaignId` de reparto», y **esa comprobación no se puede hacer**: saber si un `campaignId` es
+> de un reparto exige LEER la corrida, y la regla de `billingStatements` lleva dentro un aviso
+> ganado a pulso —separar `create` de `update` costó una hora— de que **un acceso más la lleva al
+> límite y devuelve error de evaluación**. Denegaría igual, y las pruebas pasarían en verde por el
+> motivo equivocado.
+>
+> El guardián mira **campos del propio documento**, que son accesos al mapa de la petición y no a
+> la base: `sourceExpenseId` no lo pone el cliente, y `status: 'cancelled'`, `cancelledBy` y
+> `cancellationReason` tampoco. Este segundo veto **no estaba pedido aquí y hacía falta**: sin él
+> un `updateDoc` directo se salta R7 —ningún cargo con pagos— y R8 —el motivo—.
 
 ### 11.3 Índices, jobs y banderas
 
@@ -326,6 +336,17 @@ garantía de que el reparto cuadre. **Esta PRD no puede empezar antes.**
 ### Orden
 
 **Reglas → functions → front.** Aquí las reglas sí cambian (§11.2), así que van primero.
+
+> **Y el motivo hay que decirlo bien, porque el que estaba escrito era el equivocado.** La regla
+> de §11.2 **restringe**, y la regla de la casa es que una restrictiva va DESPUÉS del código que
+> dejó de necesitarla. Aquí puede ir primero por una razón concreta y comprobada: **ningún código
+> del cliente crea `billingStatements`** —solo hace `updateDoc`—, así que el veto nace inerte.
+> Si eso cambia, el orden cambia con ello.
+
+> **Falta una guarda que las reglas no pueden dar, y va en la callable:** `assertTenantContratado`.
+> `assertTenantOperable` admite `trial` mientras que `previewModuleWritable` lo veta, y una
+> callable escribe con Admin SDK sin evaluar reglas — así que sin ella CF8 quedaba abierto por
+> callable. Ver §7.3, que lo pide **sin excepción**.
 
 ### Rollback
 

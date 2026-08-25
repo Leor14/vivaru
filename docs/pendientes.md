@@ -4,7 +4,125 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026 (tarde)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026 (noche)
+
+**EL MVP DE `FLOW-001` ESTÁ CONSTRUIDO, DESPLEGADO EN STAGING Y VALIDADO POR NAVEGADOR.**
+Repartir un egreso entre las unidades, con vista previa, trazabilidad en los dos sentidos y
+anulación de la corrida entera. Nueve commits, de `728451f` a `abcbaad`.
+
+**En producción NO hay nada de esto, y es deliberado — ver la decisión de abajo.**
+
+### Lo que de verdad costó no fue el reparto: fue que la tabla estaba vacía
+
+`producto-cobro-por-coeficiente` llevaba encendida en los nueve conjuntos desde la madrugada del
+25 **sin poder generar ni una corrida**. No era la bandera. `repartirPorCoeficiente` exige dos
+cosas y ninguna estaba en los datos:
+
+| Requisito | Producción, medido |
+|---|---|
+| **R2** · coeficiente en toda unidad activa, sumando 100 | **0 de 88.** Ni `coefficient` ni `area` existían como campo |
+| **R5** · responsable de cobro **o** propietario | **74 de 87 activas sin ninguno de los dos** |
+
+El segundo no estaba anotado en ninguna parte y es el que de verdad bloquea: con el coeficiente
+puesto y sin responsable, la corrida sigue sin salir.
+
+**Instrumento nuevo: `functions/scripts/preparar-conjunto-para-prorrateo.mjs`.** Mide los dos y
+los cierra; por defecto solo mide. **Los propietarios no se inventan: se enlazan** —cada `people`
+ya trae su `unitId` y lo que faltaba era el enlace de vuelta—, y **un arrendatario no se convierte
+en propietario**: a quién se le cobra es decisión de negocio y no la toma un script.
+
+### El gemelo hizo la mitad del trabajo
+
+`functions/src/coefficient-billing.ts` (de `PLAT-001`, en producción) ya repartía por coeficiente
+con resto mayor, y **ya escribía cuatro de los seis campos que la ficha presenta como nuevos** —
+`distributionBasis`, `totalDistributed`, `distributionBasisValue` y `roundingAdjustment`—, que
+además **`src/types/domain.ts` no declaraba**: el front no podía leerlos con tipos.
+
+Lo que faltaba era el puente y el deshacer, no el cálculo. Reescribir la aritmética habría
+duplicado el riesgo del dinero para no aprender nada.
+
+### Cinco cosas que la ficha decía y el código desmintió
+
+1. **§11.2 pedía una comprobación imposible.** «Cerrar la escritura con `campaignId` de reparto»
+   exige LEER la corrida, y esa regla lleva dentro un aviso ganado a pulso: un acceso más la
+   lleva al límite y devuelve **error de evaluación**, que deniega igual y deja las pruebas en
+   verde por el motivo equivocado. El guardián mira campos del propio documento.
+2. **Faltaba una guarda, y era `CF8` otra vez.** `assertTenantOperable` **admite `trial`**;
+   la regla `previewModuleWritable` lo **veta**. Una callable escribe con Admin SDK y no evalúa
+   reglas, así que la puerta cerrada por regla quedaba abierta por callable. De ahí nace
+   `assertTenantContratado`.
+3. **La bandera se comprueba EN EL SERVIDOR**, al revés que la del coeficiente —que por eso «no
+   es el freno, es solo el botón»—. **Al anular NO se comprueba**, a propósito: apagarla no puede
+   dejar cargos vivos sin forma de deshacerlos.
+4. **El estado `cancelled` va con `balance = 0`, y no es redundancia.** Seis sitios usan
+   `status !== "paid"` como «debe» y `totalCharged` suma sin mirar estado. El compilador cazó
+   **uno solo**; los otros cinco eran silenciosos.
+5. **§13 dice reglas → functions → front y aquí sí valía**, pero no por lo que dice: la regla
+   restringe, y solo es inerte porque **ningún código del cliente crea `billingStatements`**.
+
+### Dos defectos que ninguna suite vio
+
+**El reintento idempotente chocaba con la guarda de R5.** La corrida del primer intento contaba
+como «ya repartido», así que un doble clic recibía «este egreso ya se repartió — confirma que
+quieres repartirlo otra vez» en lugar de la corrida que ya existía. Lo encontró una prueba.
+
+**El aviso de doble cobro estaba apagado en el 37% de los egresos reales.** De 130 egresos entre
+los dos proyectos, **48 llevan una categoría que ya no existe en `ExpenseCategory`** —`servicios`
+y `seguridad`, los nombres viejos de `servicios_publicos` y `vigilancia`—. Se descubrió mirando
+los datos del conjunto donde iba a validarse, no en ninguna suite. **Un aviso que no salta no da
+error ni rojo: solo deja un cobro doble que nadie previno.**
+
+### Validado por navegador, contra la base y no contra la pantalla
+
+En `cliente-convertido-08011856-421616` de staging, con la sesión real:
+
+| Criterio | Qué se vio |
+|---|---|
+| **CA6/CA7** | La previa calculó 6 líneas y cancelar dejó **0 corridas y 0 cargos** |
+| **CA10** | El aviso saltó con categoría `servicios` — confirma que el arreglo llegó desplegado |
+| **CA1/CA2** | 6 cargos sumando **exactamente 640.000**: cuatro a 106.667 con residuo, dos a 106.666 |
+| **CA3/CA5** | Base congelada en cada cargo; los seis alcanzables desde la factura |
+| **R6** | **Cero asientos de libro** creados por el reparto |
+| **R5/CA8** | «Ya se repartió (1 corrida)», anular deshabilitado sin motivo; y 6/6 anulados con saldo 0, motivo y autor, **importes intactos** |
+
+**Y salió un defecto que solo se ve mirando:** el diálogo se abría **en blanco** unos segundos con
+el botón diciendo «Repartir entre 0 unidades». Eso no se lee como «cargando», se lee como «este
+conjunto no tiene unidades» — una de las tres cosas que el diálogo existe para distinguir.
+
+> **Evidencia fechada, dejada a propósito en staging:** en ese conjunto quedan 6 coeficientes y 6
+> propietarios sembrados, y el egreso de agua con una corrida **anulada** dentro. Carolina tiene
+> ahí una membresía creada para validar; se quita con `--retirar` del sembrador de membresías.
+
+### LA DECISIÓN: `FLOW-001` NO sube a producción todavía, y el motivo es de datos
+
+**Por el criterio del 24 —desplegado y apagado cuenta como abierto— subirlo no cerraría nada.**
+Y hay algo más duro: **ahí no puede correr aunque se encienda.** Con 0 de 88 unidades con
+coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea por R2 y por R5 antes de
+calcular. Sería **la cuarta capacidad viva sobre una tabla vacía**.
+
+La decisión viaja con el primer cliente o la primera demostración que la necesite, y entonces va
+acompañada de sembrar sus datos — que es lo que de verdad la enciende.
+
+### Lo siguiente
+
+**La ola B queda hecha en ingeniería.** Lo que sigue del frente 5 es **`FEAT-004` — estado de
+cuenta y paz y salvo**, y tiene una ventaja sobre `FLOW-001`: se apoya en la cartera, que **sí
+tiene datos**, así que se puede validar sin sembrar nada. `FLOW-003` va después porque su adjunto
+depende de ella. El frente 6 (`FIN-002`) sigue al final.
+
+### Dos cosas anotadas que no se tocaron
+
+- **48 de 130 egresos con categoría fuera del tipo.** Hoy solo se ve como **columna Categoría
+  vacía** en la lista de egresos. **No ensucia el libro**, y eso está medido: ningún egreso tiene
+  `accountCode` en ninguno de los dos ambientes. Se volverá real el día que algo resuelva cuenta
+  desde la categoría.
+- **`Expense.accountCode` está en CERO en los dos ambientes** —52 de 52 y 78 de 78— y la ficha de
+  `PLAT-003` §7.2 dice que se resuelve al registrar. Otra capacidad que no está poblando. Solo se
+  contó; no se miró más allá.
+
+---
+
+## EL CIERRE DE LA TARDE — `PLAT-002` a producción (25 de agosto de 2026)
 
 **`PLAT-002` ESTÁ EN PRODUCCIÓN.** El frente 4 dejó de ser una decisión pendiente: se desplegó
 la tarde del 25 y se verificó pieza por pieza **contra su fuente**, no contra el «Deploy
@@ -473,11 +591,15 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 | ~~**2**~~ | ~~**`FLOW-002` de verdad**~~ | **CERRADO ENTERO el 24 de agosto de 2026.** CF8 (`9f75083`), §9/CA13 (`c05b274`) y `personId` retirado del contrato. Lo único que le quedaba fuera —el total de anticipos del consejo— vive en `PLAT-004` | — |
 | ~~**3**~~ | ~~**`FIX-001` completo**~~ | **MVP CERRADO el 24 de agosto de 2026** (`a67088c`): bandera encendida en los nueve, puerta medida **con contenido**, y la rama del residente retirada del `create`. Queda solo la **entrega 2** (política por área), que es Fase 2 de la ficha, no MVP | — |
 | ~~**4**~~ | ~~**`PLAT-002` entrega 2**~~ | **MVP CERRADO el 25 de agosto de 2026** (`dbb3f29`…`5894001`): el selector, la sesión con varias membresías, la entidad administradora y su consola. **En staging, verificado por navegador de punta a punta.** La vista de cartera NO entraba — el Story Map la sitúa en Fase 2. Detalle en la cabecera | — |
-| **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) | Alto — es construir |
+| **5** | **Olas B y C** | **La ola B queda hecha**: `FLOW-001` construido, desplegado en staging y validado por navegador el 25 de agosto (`728451f`…`abcbaad`). **No sube a producción**, y el motivo es de datos: con 0 de 88 unidades con coeficiente y 74 de 87 sin propietario, ahí no puede correr aunque se encienda. Queda la ola C: `FEAT-004` (paz y salvo) y luego `FLOW-003` (cobranza), cuyo adjunto depende de ella | Alto — es construir |
 | **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
 
-**Con el 4 cerrado quedan DOS, y los dos son construir.** El 5 (olas B y C) y el 6 (`FIN-002`).
-Más la decisión que no es de ingeniería: **subir `PLAT-002` a producción**.
+**`PLAT-002` YA ESTÁ EN PRODUCCIÓN** desde la tarde del 25 (`e41affa`), así que esa decisión
+dejó de estar pendiente. **Del 5 queda la ola C**, y el 6 (`FIN-002`) sigue al final.
+
+> **La decisión que sí queda abierta es otra, y no es de ingeniería: cuándo sube `FLOW-001`.**
+> No se pospone por prudencia sino porque **producción no tiene los datos que exige** — y
+> subirlo apagado no cerraría nada, por el criterio de esta misma sección.
 
 **El 1 fue primero y salió como se esperaba:** eran siete pasos construidos, probados y desplegados
 que no le servían a nadie por estar dormidos. **Después se abrió `FLOW-002` de verdad**, empezando
