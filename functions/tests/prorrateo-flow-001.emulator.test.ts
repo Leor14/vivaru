@@ -239,9 +239,19 @@ describe("FLOW-001 · repartir un egreso", () => {
     await sembrarCuatroUnidades();
     await sembrarEgreso("gasto-1");
 
+    // **Se mide el DELTA, no el total.** Esta prueba afirmaba que
+    // `ledgerEntries` estaba vacía, y `ledgerEntries` es de todos: otro fichero
+    // de la suite deja asientos suyos. Corriendo sola pasaba —la colección
+    // estaba vacía por casualidad— y **pasaba por el motivo equivocado**: no
+    // demostraba nada sobre `repartirEgreso`. En la suite entera se cayó.
+    //
+    // Limpiarla en el `beforeEach` habría sido peor: es compartida, y borrarla
+    // desde aquí puede tirar lo que otro fichero está usando.
+    const antes = (await db.collection("ledgerEntries").get()).size;
+
     await repartirEgreso(entrada(), UID);
 
-    expect((await db.collection("ledgerEntries").get()).size).toBe(0);
+    expect((await db.collection("ledgerEntries").get()).size).toBe(antes);
   });
 
   it("idempotencia · dos confirmaciones con la misma clave crean UNA corrida", async () => {
