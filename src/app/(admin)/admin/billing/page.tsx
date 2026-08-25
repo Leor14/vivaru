@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import { CoefficientCampaignDialog } from "@/components/features/billing/CoefficientCampaignDialog";
+import { EstadoDeCuentaUnidadCard } from "@/components/features/billing/EstadoDeCuentaUnidadCard";
 import { statementChargedAmount, statementSettledAmount } from "@/features/billing/collection";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
@@ -220,6 +221,7 @@ function AdminBillingPageContent() {
   const soloConsulta = useModuleVariant(user?.tenantId, "finance") === "solo_consulta";
   const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const { items, loading, error } = useBillingStatements(user?.tenantId);
+  const estadoDeCuentaActivo = useFeatureFlag("producto-estado-de-cuenta");
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId);
   const { items: scheduledCharges } = useBillingSchedules(user?.tenantId);
   const { items: campaigns } = useBillingCampaigns(user?.tenantId);
@@ -1604,6 +1606,19 @@ function AdminBillingPageContent() {
         {catalogUnitsError ? <p className="mt-3 text-xs text-[var(--danger-700)]">{catalogUnitsError}</p> : null}
       </Card>
       )}
+
+      {/* `FEAT-004` · el estado de cuenta de UNA unidad, detrás de su bandera.
+          Se ofrece también en `solo_consulta`: los dos documentos son lectura
+          —el certificado lo escribe el servidor, no esta pantalla— y negárselos
+          a quien solo consulta sería quitarle justo lo que puede hacer. */}
+      {estadoDeCuentaActivo && !loading && items.length > 0 ? (
+        <EstadoDeCuentaUnidadCard
+          tenantId={user?.tenantId}
+          tenantName={user?.tenantName}
+          items={items}
+          formatAmount={formatAmount}
+        />
+      ) : null}
 
       {!soloConsulta && scheduledCharges.length > 0 ? (
         <Card className="soft-panel">
