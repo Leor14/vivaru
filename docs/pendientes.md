@@ -4,7 +4,17 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026 (madrugada)
+
+**EL LOTE ESTÁ ENCENDIDO. `PH-001` ya no tiene nada dormido.** Las **seis banderas** del frente 1
+se encendieron globalmente la madrugada del 25, **una a una y mirando**, y **no costó una línea de
+código**: `develop` sigue en `ed95829`. El runbook
+`docs/encender-el-lote-habitanto.md` lleva dentro lo que pasó de verdad en cada una.
+
+> **Lo que se encendió NO se puede dar por probado en su camino de escritura.** Se verificó que
+> **nada se rompió** y que **cada capacidad aparece donde debía**; no se registró ningún pago ni se
+> generó ninguna corrida. Decisión de David: **sin cobro de prueba**. El único camino de escritura
+> probado en producción sigue siendo el del 24 (§13, T2-203).
 
 **Leer los remotos con `git ls-remote`, no de aquí.** Esta cabecera llevó los commits a mano y se
 quedó corta tres veces en una noche. Al cerrar, **`master` = lo que corre en producción**, y
@@ -39,19 +49,32 @@ en el libro, más sucio que un pago limpio.
 > David (`david.macar.18+resN@hotmail.com`), no de terceros — comprobarlo **antes** de cobrar en
 > cualquier otro conjunto.
 
-**LAS BANDERAS, LEÍDAS EN `/superadmin/flags` DE PRODUCCIÓN.** `producto-anticipos` apagada en
-global con **un único override, `conjunto-las-playas`**; `producto-pago-multiple` apagada y sin
-overrides; kill switch maestro en `Normal`. Y las cinco del lote —`producto-cobro-por-coeficiente`,
-`producto-plan-de-cuentas`, `producto-concepto-al-libro`, `producto-registro-proveedores`,
-`producto-reservas-servidor`— **apagadas**.
+**LAS BANDERAS, RESUELTAS CON EL CÓDIGO DEL SERVIDOR.** No leídas de `/superadmin/flags` ni de los
+documentos: se importó `functions/lib/feature-flags.js` compilado y se corrió `isFeatureEnabled()`
+sobre los **nueve conjuntos**. Es la única forma de saber qué ve el producto, porque la precedencia
+—kill switch maestro, kill switch de la bandera, override, global, default— no se lee de un campo.
 
-> **Esta cabecera decía «en `hogaru-1` no existe ni un documento `producto-*`, así que todas caen
-> al valor por defecto», y eso se leía como «todas apagadas». No lo son:**
-> `producto-importacion-masiva` cae al default del catálogo y **ese default es Encendida**. Caer al
-> valor por defecto no es sinónimo de estar apagada.
+| Bandera | Los nueve conjuntos |
+|---|---|
+| `producto-plan-de-cuentas` · `producto-registro-proveedores` · `producto-cobro-por-coeficiente` | **encendidas** |
+| `producto-concepto-al-libro` · `producto-anticipos` · `producto-pago-multiple` | **encendidas** |
+| `producto-importacion-masiva` | encendida (default del catálogo) |
+| `producto-reservas-servidor` | **apagada** — es el frente 3, y no es un interruptor |
 
-> **LO QUE FALTA PARA CERRAR `PH-001` YA NO ES CONSTRUIR: ES ENCENDER**, de una en una y mirando.
-> Queda `FLOW-001` de la ola B y la ola C entera, pero el trabajo desplegado y dormido es el grueso.
+**Sin overrides.** El de `conjunto-las-playas` se retiró al hacer `producto-anticipos` global, y el
+documento quedó con `flags: {}` — eso es normal al borrar un campo, no un residuo. Kill switch
+maestro en `false` y ninguna bandera con kill switch propio.
+
+> **El orden importó, y una precedencia lo explica: el override manda sobre la global.** Se puso
+> primero la global y **después** se quitó el override. Al revés, Las Playas —el único conjunto
+> donde los anticipos estaban validados— se habría quedado sin la capacidad unos segundos.
+
+> **Caer al valor por defecto no es sinónimo de estar apagada:** `producto-importacion-masiva` no
+> tiene documento y su default es **Encendida**.
+
+> **ENCENDER YA ESTÁ HECHO (25 ago 2026).** Esta línea decía «lo que falta para cerrar `PH-001` ya
+> no es construir: es encender». Encendido está: las seis, en los nueve conjuntos. **Lo que queda de
+> `PH-001` vuelve a ser construir** — `FLOW-001` de la ola B y la ola C entera.
 
 **PRODUCCIÓN NO TIENE NI UN CLIENTE REAL, y ya no queda nada por confirmar.** Los nueve conjuntos
 son de demostración o prueba interna.
@@ -221,15 +244,23 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 
 | # | Frente | Qué significa CERRADO | Coste |
 |---|---|---|---|
-| **1** | **`PH-001` — encender el lote** | Las **seis banderas** encendidas globalmente, de una en una y mirando. Runbook: **`docs/encender-el-lote-habitanto.md`** | **CERO código** |
+| ~~**1**~~ | ~~**`PH-001` — encender el lote**~~ | **HECHO el 25 de agosto de 2026.** Las seis encendidas globalmente en los nueve conjuntos, una a una y mirando, y el override retirado. Costó **cero código**. Detalle en `docs/encender-el-lote-habitanto.md` | — |
 | **2** | **`FLOW-002` de verdad** | **CF8 primero, que es dinero**; luego `personId`; luego §9/CA13. O se construyen, o §7.5 y §7.6 dejan de prometerlos | Bajo–medio |
 | **3** | **`FIX-001` completo** | Encender `producto-reservas-servidor` → observar sin escrituras directas → **cerrar la regla (paso 4, sin vuelta atrás)** → entrega 2 | Medio, con espera |
 | **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias de verdad** | Medio |
 | **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) | Alto — es construir |
 | **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
 
-**Por qué el 1 va primero:** siete pasos construidos, probados y desplegados que **hoy no le sirven
-a nadie porque están dormidos**. Es el mejor retorno del tablero y no cuesta una línea.
+**El 1 fue primero y salió como se esperaba:** eran siete pasos construidos, probados y desplegados
+que no le servían a nadie por estar dormidos. **El siguiente en la cola es ahora `FLOW-002` de
+verdad**, empezando por `CF8`, que es dinero.
+
+> **Lo que enseñó encender, y no estaba previsto.** Ninguna de las seis rompió nada, pero **tres de
+> las comprobaciones del runbook no se podían hacer tal como estaban escritas**, y eso se supo
+> mirando el código antes de encender, no después. La más útil: la bandera del coeficiente
+> **no la comprueba el servidor** —`generateCoefficientCampaign` solo valida que seas
+> administrador activo—, así que **no es el freno; es solo el botón**. El freno real es que la
+> corrida exige coeficientes, y **cero de las 88 unidades de producción tienen uno**.
 
 ### Por qué «falta» algo en casi toda PRD — son TRES cosas distintas
 
@@ -446,12 +477,28 @@ mostraba «servicios» y «seguridad» en crudo y minúscula, dos de sus cuatro 
 y con guardián nuevo (`functions/tests/trial-seed-categorias.test.ts`) que lee el fichero como
 texto, porque el typecheck no puede cazarlo.
 
-**DECISIÓN PENDIENTE DE DAVID, y hay que tomarla ANTES del paso 4:** el plan estándar **no
-tiene cuenta de vigilancia**, que en un conjunto real es la mayor partida del presupuesto.
-La semilla del trial la manda hoy a `proveedores`, que es lo correcto disponible y no lo
-correcto a secas. Añadir la cuenta mueve la semilla y el conteo de CA1 (16 cuentas con
-`systemKey`, 18 documentos) y obliga a tocar `ExpenseCategory`. **Sembrar antes de decidirlo
-congela la ausencia.**
+**LA CUENTA DE VIGILANCIA YA ESTÁ DECIDIDA Y CONSTRUIDA — este párrafo decía lo contrario hasta
+el 25 de agosto de 2026.** David la decidió el **23 de agosto**, y el código lo lleva desde
+entonces; el documento se quedó atrás y presentaba como bloqueo algo que ya no lo era. Lo
+encontró encender la bandera 2: el formulario de egresos ofrecía «Vigilancia y seguridad» como
+categoría, que según este párrafo no debía existir.
+
+Lo que hay hoy, medido sobre el código y no sobre el documento:
+
+| Qué decía | Qué hay |
+|---|---|
+| «el plan estándar no tiene cuenta de vigilancia» | **Dos**: `1.9 Cuotas de vigilancia` (ingreso, `systemKey: cuota_vigilancia`) y `2.9 Vigilancia y seguridad` (egreso, `systemKey: vigilancia`) |
+| «obliga a tocar `ExpenseCategory`» | Ya está tocado — la clave existe, fechada el 23 de agosto |
+| «CA1: 16 cuentas con `systemKey`, 18 documentos» | **19 con `systemKey`, 21 cuentas** |
+
+**Las dos claves son distintas a propósito y no se pueden fusionar:** el CARGO de vigilancia es
+un **ingreso** (`cuota_vigilancia`, la 1.9) y el GASTO es la 2.9. Es la misma trampa de
+`administracion`, mirando al otro lado.
+
+> **La lección, que vale más que el arreglo:** el documento no envejeció por descuido, envejeció
+> porque **la decisión se tomó en el código y nadie volvió aquí**. Es el mismo patrón que ya
+> mordió con «Vivaru no tiene política de retención» mientras tres ventanas de 12 meses corrían
+> cada noche. **Antes de tratar algo como bloqueo, mirar el código.**
 
 **Paso 2, qué entró** (`06edf29`): diálogo «Plan de cuentas» dentro de Finanzas › Libro y
 fondos, detrás de `producto-plan-de-cuentas`. Se copió el patrón del **registro de

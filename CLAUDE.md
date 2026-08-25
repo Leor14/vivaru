@@ -184,10 +184,22 @@ push acaba mintiendo. Se mueven por separado y un push sin cambios responde «su
 = lo que hay en producción**, y eso es lo normal buscado; entre despliegues `develop` va por
 delante, que también es normal.
 
-**`FLOW-002` (anticipos) ESTÁ EN PRODUCCIÓN**, con `producto-anticipos` encendida **solo en
-`conjunto-las-playas`** (override; la global sigue apagada). Servidor, front, el «% de recaudo» de
-R16 midiendo liquidación, y los dos cabos de `functions/` —`writeAuditLog` y la vista previa del
-reparto—. Trece criterios verificados en pantalla contra la base real.
+**`FLOW-002` (anticipos) ESTÁ EN PRODUCCIÓN Y ENCENDIDO EN LOS NUEVE CONJUNTOS** desde la madrugada
+del 25 de agosto de 2026. Servidor, front, el «% de recaudo» de R16 midiendo liquidación, y los dos
+cabos de `functions/` —`writeAuditLog` y la vista previa del reparto—. Trece criterios verificados
+en pantalla contra la base real.
+
+> **Esta línea decía «encendida solo en `conjunto-las-playas` (override; la global sigue apagada)»
+> y quedó obsoleta al encender el lote.** El override **se retiró** al poner la global: dejar una
+> excepción cuando la global dice lo mismo es ruido que alguien acabará leyendo como una diferencia.
+> El documento del override sigue existiendo con `flags: {}` — es lo normal al borrar un campo.
+
+**LAS SEIS BANDERAS DEL LOTE ESTÁN ENCENDIDAS** (`producto-plan-de-cuentas`,
+`producto-registro-proveedores`, `producto-cobro-por-coeficiente`, `producto-concepto-al-libro`,
+`producto-anticipos`, `producto-pago-multiple`), sin overrides y sin kill switches. **Se verificó
+resolviendo con `functions/lib/feature-flags.js` compilado**, no leyendo documentos: la precedencia
+—kill switch maestro, kill switch propio, override, global, default— no se lee de un campo.
+`producto-reservas-servidor` sigue **apagada**: es el frente 3 y no es un interruptor.
 
 **PRODUCCIÓN NO TIENE NI UN CLIENTE REAL. Ninguno, y ya no queda nada por confirmar.** Los nueve
 conjuntos de `hogaru-1` son de demostración o de prueba interna: David confirmó el 24 de agosto de
@@ -203,9 +215,13 @@ del programa de IA se calculó sobre esa cuenta.
 **EL CRITERIO DE PRIORIZACIÓN CAMBIÓ EL 24 DE AGOSTO DE 2026: cerrar frentes antes que abrirlos.**
 Lo fijó David. La cola empezaba por `FIN-002` porque era el frente de ingeniería más grande
 abordable sin clientes; con el criterio nuevo, abrirlo teniendo cuatro a medias es justo lo que no
-hay que hacer, y **baja al final**. El orden vive en `docs/pendientes.md`, y el frente 1 —encender
-las seis banderas del lote, que **no lleva código**— tiene runbook propio en
-`docs/encender-el-lote-habitanto.md`.
+hay que hacer, y **baja al final**. El orden vive en `docs/pendientes.md`.
+
+**El frente 1 —encender las seis banderas— está HECHO** (25 ago 2026), y costó **cero código**. Su
+runbook, `docs/encender-el-lote-habitanto.md`, lleva dentro lo que se vio en cada una y **tres
+correcciones a lo que él mismo decía**: la comprobación de la bandera 1 no se podía hacer como
+estaba escrita, la del coeficiente **no la comprueba el servidor**, y la de anticipos no baja ningún
+recaudo el día que se enciende. **El siguiente es `FLOW-002` de verdad, empezando por `CF8`.**
 
 **Y una regla que sale de ahí:** una PRD **no se marca «EN PRODUCCIÓN» hasta que sus criterios
 están cumplidos o movidos explícitamente a Fase 2**. Hoy esa etiqueta significa «el código está
