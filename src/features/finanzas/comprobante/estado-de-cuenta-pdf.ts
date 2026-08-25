@@ -27,14 +27,22 @@ export type CabeceraEstadoDeCuenta = {
   saldoAFavor?: number;
 };
 
-export async function renderEstadoDeCuentaPdf(
+/**
+ * Dibuja UN estado de cuenta en el documento ya abierto, empezando en `y`.
+ *
+ * **Está separado del `render` para que el lote no sea un segundo generador.**
+ * §11.3 prohíbe una segunda forma de hacer PDF, y eso vale también dentro de
+ * este fichero: si el lote dibujara por su cuenta, los dos formatos divergirían
+ * a la primera corrección que alguien hiciera en uno solo.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function dibujarEstadoDeCuenta(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  docpdf: any,
   estado: EstadoDeCuenta,
   cabecera: CabeceraEstadoDeCuenta,
   formatMoney: (value: number) => string,
-): Promise<void> {
-  const { jsPDF } = await import("jspdf");
-  const docpdf = new jsPDF({ unit: "pt", format: "a4" });
-
+): void {
   const left = 48;
   const right = 548;
   const salto = 18;
@@ -148,5 +156,58 @@ export async function renderEstadoDeCuentaPdf(
     y,
   );
 
+}
+
+/** Un estado de cuenta, un archivo. */
+export async function renderEstadoDeCuentaPdf(
+  estado: EstadoDeCuenta,
+  cabecera: CabeceraEstadoDeCuenta,
+  formatMoney: (value: number) => string,
+): Promise<void> {
+  const { jsPDF } = await import("jspdf");
+  const docpdf = new jsPDF({ unit: "pt", format: "a4" });
+  dibujarEstadoDeCuenta(docpdf, estado, cabecera, formatMoney);
   docpdf.save(`estado-de-cuenta-${cabecera.unidad}-${cabecera.emitidoEl}.pdf`);
+}
+
+/**
+ * CA8 · la emisión en LOTE: un estado de cuenta por unidad, **en un solo
+ * archivo con una unidad por página**.
+ *
+ * **Por qué no son N ficheros en Storage, que es lo que decía §11.1.** Esa vía
+ * exige generar los PDF en el servidor, y el generador es `jspdf` en el
+ * navegador: llevarlo allí obliga a una SEGUNDA implementación del PDF, que es
+ * justo lo que §11.3 prohíbe — y dos generadores divergen a la primera
+ * corrección que se haga en uno solo.
+ *
+ * **Y guardarlos contradiría §7.1**, que decide a propósito que el estado de
+ * cuenta NO se persiste, «porque guardarlo crearía una segunda verdad que puede
+ * discrepar de la primera». Guardar su PDF es guardarlo.
+ *
+ * Un archivo también es mejor de usar: el administrador acaba con algo que
+ * imprime de una vez, en vez de con N descargas que tiene que juntar.
+ *
+ * El límite es que el navegador dibuja todas las páginas en memoria. Con los
+ * conjuntos que existen —25 unidades el mayor— no se nota; cuando se note será
+ * porque hay un cliente que lo justifica, y entonces se decide con ese dato.
+ */
+export async function renderEstadosDeCuentaEnLotePdf(
+  unidades: Array<{ estado: EstadoDeCuenta; cabecera: CabeceraEstadoDeCuenta }>,
+  nombreConjunto: string,
+  emitidoEl: string,
+  formatMoney: (value: number) => string,
+): Promise<void> {
+  if (unidades.length === 0) throw new Error("No hay unidades con movimientos para emitir.");
+
+  const { jsPDF } = await import("jspdf");
+  const docpdf = new jsPDF({ unit: "pt", format: "a4" });
+
+  unidades.forEach((u, i) => {
+    // Una unidad por página, y la primera no abre página nueva: si no, el PDF
+    // sale con una hoja en blanco delante.
+    if (i > 0) docpdf.addPage();
+    dibujarEstadoDeCuenta(docpdf, u.estado, u.cabecera, formatMoney);
+  });
+
+  docpdf.save(`estados-de-cuenta-${nombreConjunto || "conjunto"}-${emitidoEl}.pdf`);
 }

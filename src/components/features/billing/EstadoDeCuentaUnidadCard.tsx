@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { construirEstadoDeCuenta } from "@/features/billing/estado-de-cuenta";
 import { useClearanceCertificates } from "@/features/billing/use-clearance-certificates";
-import { renderEstadoDeCuentaPdf } from "@/features/finanzas/comprobante/estado-de-cuenta-pdf";
+import {
+  renderEstadoDeCuentaPdf,
+  renderEstadosDeCuentaEnLotePdf,
+} from "@/features/finanzas/comprobante/estado-de-cuenta-pdf";
 import { renderPazYSalvoPdf } from "@/features/finanzas/comprobante/paz-y-salvo-pdf";
 import { saldoAFavor, useAdvances } from "@/features/finanzas/use-advances";
 import { Input } from "@/components/ui/input";
@@ -42,10 +45,14 @@ export function EstadoDeCuentaUnidadCard({
   const [unitId, setUnitId] = useState("");
   const [emitiendo, setEmitiendo] = useState(false);
   const [descargando, setDescargando] = useState(false);
-  const { items: anticipos } = useAdvances(tenantId, unitId || undefined);
+  // Los anticipos del CONJUNTO entero, no de la unidad: `saldoAFavor` ya filtra
+  // por unidad, y el lote los necesita todos. Pedirlos por unidad obligaría a
+  // una suscripción por cada una al emitir en lote.
+  const { items: anticipos } = useAdvances(tenantId);
   const { items: certificados } = useClearanceCertificates(tenantId, unitId || undefined);
   const [motivo, setMotivo] = useState("");
   const [anulando, setAnulando] = useState<string | null>(null);
+  const [lote, setLote] = useState(false);
 
   const unidades = useMemo(() => {
     const map = new Map<string, string>();
@@ -114,6 +121,39 @@ export function EstadoDeCuentaUnidadCard({
     }
   }
 
+  /**
+   * CA8 · un estado de cuenta por unidad, en un solo archivo.
+   *
+   * **Solo las unidades con movimientos.** Una hoja que dice «esta unidad no
+   * tiene movimientos» no le sirve a nadie y alarga el documento; la unidad sin
+   * historia se consulta de una en una, que es donde tiene sentido preguntarlo.
+   */
+  async function emitirLote() {
+    if (unidades.length === 0) return;
+    setLote(true);
+    try {
+      const emitidoEl = hoy();
+      const paquete = unidades
+        .map(([id, label]) => ({ id, label, propios: items.filter((s) => s.unitId === id) }))
+        .filter((u) => u.propios.length > 0)
+        .map((u) => ({
+          estado: construirEstadoDeCuenta(u.propios),
+          cabecera: {
+            conjunto: tenantName ?? "",
+            unidad: u.label,
+            emitidoEl,
+            saldoAFavor: saldoAFavor(anticipos, u.id),
+          },
+        }));
+      await renderEstadosDeCuentaEnLotePdf(paquete, tenantName ?? "", emitidoEl, formatAmount);
+      toast.success(`${paquete.length} estados de cuenta en un archivo.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible emitir el lote.");
+    } finally {
+      setLote(false);
+    }
+  }
+
   async function anular(certificateId: string) {
     if (!tenantId || !motivo.trim()) return;
     setAnulando(certificateId);
@@ -171,6 +211,15 @@ export function EstadoDeCuentaUnidadCard({
           ))}
         </select>
       </label>
+
+      {/* El lote va junto al selector y NO dentro de la rama de la unidad: es una
+          acción del conjunto, y esconderla hasta elegir una unidad la haría
+          parecer de esa unidad. */}
+      <div className="mt-2">
+        <Button type="button" variant="outline" disabled={lote || unidades.length === 0} onClick={() => void emitirLote()}>
+          {lote ? "Generando…" : `Descargar los ${unidades.length} estados de cuenta`}
+        </Button>
+      </div>
 
       {unitId ? (
         <>
