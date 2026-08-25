@@ -17,7 +17,26 @@ sección, más abajo.
 > las reglas, y cobrar va por callable con Admin SDK, que **no las evalúa**. Cada vez que una regla
 > de Firestore sea la única palanca de un invariante, hay que preguntarse **quién más escribe eso**.
 
-**Del frente 2 quedan `personId` y §9/CA13.** Ninguno es dinero.
+**Y EL FRENTE 2 ESTÁ CERRADO ENTERO.** Los otros dos criterios cayeron el mismo día:
+
+- **§9 y CA13 CONSTRUIDOS Y VERIFICADOS EN PRODUCCIÓN** (`c05b274`). El aviso del recibo ya nombra
+  los cargos cubiertos y el saldo a favor. Medido con un cobro real en `conjunto-las-playas`: un
+  pago de $5.000 sobre un cargo de $3.000 dejó el aviso diciendo, **carácter por carácter lo
+  predicho**: «Se generó el recibo de tu pago de Agosto de 2026. **Cubrió la cuota de mantenimiento
+  de agosto de 2026. Te quedó un saldo a favor de $2.000.**» — el término **mexicano**, que es el
+  país del conjunto, no «alícuota».
+- **`personId` RETIRADO del contrato**, no construido (decisión de David). §7.1 y §7.6 de la PRD
+  reescritas: el anticipo es de la **unidad** y no lleva ningún dato personal, y §7.6 describía mal
+  su propio precedente —`anonymizeExpiredVouchers` no usa vínculo con persona, pone a `null`
+  `payerName`/`payerTaxId` del **recibo**—. Escribirlo habría metido PII donde no la hay.
+
+> **Y fue el PRIMER sobrepago que se ejecuta en producción.** Con él se verificaron de paso R4
+> —el recaudado subió **$3.000, no $5.000**: solo cuenta lo que fue al cargo— y **CA7**: el asiento
+> del anticipo nació con `sourceType: "advance"` y `category: "anticipo"`, en su propia línea. El
+> libro pasó de 54 a 56 movimientos y la cartera se quedó **igual**, en $18.000.
+
+**Lo único que `FLOW-002` ya no persigue es el total de anticipos del consejo, que vive en
+`PLAT-004`.**
 
 **Y tres cosas menores encontradas de paso, con chip propio y sin construir:** la fecha contable del
 cobro sale en **UTC** (a partir de las 7 de la tarde se fecha mañana, y afecta al asiento y al
@@ -252,9 +271,9 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 
 | Qué | Dónde | Nota |
 |---|---|---|
-| **§9 y CA13** | `functions/` | El aviso al residente **no nombra los cargos cubiertos ni el saldo a favor**: sigue siendo el `billing_receipt` con `{período, conjunto}`. CA13 no se miró **porque no existe** |
+| ~~**§9 y CA13**~~ | ~~`functions/`~~ | **HECHO Y EN PRODUCCIÓN el 24 de agosto de 2026** (`c05b274`). El aviso nombra los cargos y el saldo a favor, con el término de cuota **del país del conjunto**. Verificado con un cobro real |
 | ~~**CF8**~~ | ~~`functions/src/advances.ts` y `payments.ts`~~ | **HECHO Y EN PRODUCCIÓN el 24 de agosto de 2026** (`9f75083`). Detalle abajo |
-| **`personId` del anticipo** | `functions/src/advances.ts` | No lo escribe nadie, y §7.6 construye una retención encima. O se escribe, o §7.6 se corrige |
+| ~~**`personId` del anticipo**~~ | ~~`functions/src/advances.ts`~~ | **RETIRADO del contrato** el 24 de agosto de 2026, con decisión de David: el anticipo es de la unidad y no lleva ningún dato personal. §7.1 y §7.6 reescritas |
 | **El total de anticipos del consejo** | `PLAT-004` | Decisión del 24 ago: se le **retiró** la lectura de `advances` porque era detalle por unidad. El agregado que la PRD le promete **no existe**, y una regla no sabe calcularlo |
 
 ### CF8 — CERRADO EN PRODUCCIÓN (24 ago 2026, `9f75083`)
@@ -344,7 +363,7 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 | # | Frente | Qué significa CERRADO | Coste |
 |---|---|---|---|
 | ~~**1**~~ | ~~**`PH-001` — encender el lote**~~ | **HECHO el 25 de agosto de 2026.** Las seis encendidas globalmente en los nueve conjuntos, una a una y mirando, y el override retirado. Costó **cero código**. Detalle en `docs/encender-el-lote-habitanto.md` | — |
-| **2** | **`FLOW-002` de verdad** | ~~CF8~~ **HECHO y en producción** (`9f75083`). Quedan **`personId`** y **§9/CA13**: o se construyen, o §7.5 y §7.6 dejan de prometerlos | Bajo–medio |
+| ~~**2**~~ | ~~**`FLOW-002` de verdad**~~ | **CERRADO ENTERO el 24 de agosto de 2026.** CF8 (`9f75083`), §9/CA13 (`c05b274`) y `personId` retirado del contrato. Lo único que le quedaba fuera —el total de anticipos del consejo— vive en `PLAT-004` | — |
 | **3** | **`FIX-001` completo** | Encender `producto-reservas-servidor` → observar sin escrituras directas → **cerrar la regla (paso 4, sin vuelta atrás)** → entrega 2 | Medio, con espera |
 | **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias de verdad** | Medio |
 | **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) | Alto — es construir |
@@ -369,7 +388,7 @@ El índice de PRD las mezcla en la misma celda, y por eso todo parece a medias c
 |---|---|---|
 | **(a) Fase 2 aplazada a propósito** | `PLAT-001`, `PLAT-003`, `FEAT-003` | **SÍ.** El alcance se sacó al escribir la ficha, no después |
 | **(b) MVP a medias** | `PLAT-002` (entrega 2), `FIX-001` (pasos 2–4) | **NO.** Trabajo comprometido sin hacer |
-| **(c) Criterios del alcance ENTREGADO, sin construir** | `FLOW-002`: §9/CA13 y `personId`. **CF8 salió de aquí el 24 de agosto**, cerrado y en producción | **NO — y esta categoría no debería existir** |
+| **(c) Criterios del alcance ENTREGADO, sin construir** | **VACÍA desde el 24 de agosto de 2026.** Los tres de `FLOW-002` —CF8, §9/CA13 y `personId`— se cerraron ese día: dos construidos y uno retirado del contrato | **SÍ, y esta categoría no debería volver a llenarse** |
 
 > **REGLA NUEVA, para que (c) no se repita:** una PRD **no se marca «EN PRODUCCIÓN» hasta que todos
 > sus criterios están cumplidos o movidos explícitamente a Fase 2**. Hoy «en producción» significa

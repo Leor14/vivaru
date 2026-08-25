@@ -265,15 +265,29 @@ importe entero como sobrante mientras la vista previa no había llegado. El otro
 era real y está corregido: dos guardianes de `aplicarPago` rechazaban cobros **correctos** con
 centavos. Ver `aMoneda` y `TOLERANCIA_MONEDA` en `functions/src/payments.ts`.
 
-**Y tres cosas de `FLOW-002` que NO están hechas, dichas para que no se lea como cerrada:**
+**`FLOW-002` ESTÁ CERRADA ENTERA desde el 24 de agosto de 2026.** Esta sección listaba tres
+criterios sin cumplir; los tres cayeron el mismo día:
 
-- **§9 y CA13 no están construidos.** El aviso al residente no nombra los cargos cubiertos ni el
-  saldo a favor. Ningún documento lo registraba hasta hoy — al contrario, `pendientes.md` llegó a
-  decir «no queda nada sin mirar», y CA13 no se miró porque no existe.
-- ~~**CF8 no se cumple.**~~ **CF8 ESTÁ CERRADO Y EN PRODUCCIÓN** desde el 24 de agosto de 2026
-  (`9f75083`). Ver la trampa de más arriba: `assertTenantOperable` vive ahora en
+- **CF8** (`9f75083`) — ver la trampa de más arriba: `assertTenantOperable` vive ahora en
   `functions/src/tenant-status.ts` y la llaman los dos guardianes locales.
-- **`personId` del anticipo no lo escribe nadie**, y §7.6 construye una regla de retención encima.
+- **§9 y CA13** (`c05b274`) — el aviso del recibo nombra los cargos cubiertos y el saldo a favor.
+  Lógica de texto en `functions/src/aviso-recibo.ts`. **Dos trampas que dejó:** el id de una
+  operación de PAGO en `paymentOperations` va **sin prefijo de conjunto** (al revés que las tres de
+  `advances.ts`), y escribirlo con prefijo dejaba el aviso degradando **en silencio** con las
+  pruebas unitarias en verde; y **cada variable del catálogo lleva la oración entera**, porque
+  `interpolate` borra el token vacío pero no el conectivo que lo rodea.
+- **`personId` RETIRADO del contrato**, no construido. El anticipo es de la **unidad** y no lleva
+  ningún dato personal; la PII de quien paga vive en `paymentVouchers` y ya caduca a los 12 meses.
+
+**Lo único que `FLOW-002` ya no persigue es el total de anticipos del consejo, en `PLAT-004`.**
+
+> **El primer sobrepago de producción se ejecutó ese día**, verificando de paso R4 —el recaudado
+> sube solo lo que fue al cargo— y **CA7**: el asiento del anticipo nace con `sourceType: "advance"`.
+
+**Y el catálogo de avisos tiene por fin guardián.** Vive duplicado en `functions/` y en `src/`, su
+cabecera lleva desde siempre diciendo «las cadenas deben mantenerse en sincronía» y **nada lo
+comprobaba**. Ahora sí (`functions/tests/notification-catalog-espejo.test.ts`), comparando como
+texto porque los dos lados no pueden importarse.
 
 **`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo lee ahora
 **el residente, y solo las cuentas activas** — lo pide CA11. Esta línea decía «los miembros del
