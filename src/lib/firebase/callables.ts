@@ -237,6 +237,66 @@ export async function cancelDistributionCallable(input: CancelDistributionInput)
   return executeCallable(callable, input, "No fue posible anular la corrida.");
 }
 
+/**
+ * `PRD-V-FEAT-004` — el certificado de paz y salvo.
+ *
+ * **Va por callable y el estado de cuenta no**, y la diferencia es toda la
+ * ficha: la única condición de este documento es «saldo cero», y esa **no la
+ * puede evaluar el cliente**. Un navegador manipulado emitiría uno falso, y
+ * este papel se enseña ante un tercero.
+ *
+ * **La puede llamar el RESIDENTE de la unidad**, no solo la administración: si
+ * está al día, el documento es una consecuencia aritmética y no una concesión.
+ */
+export type EmitClearanceCertificateInput = {
+  tenantId: string;
+  unitId: string;
+  unitLabel?: string;
+  /** `YYYY-MM-DD`. La pone la pantalla: el servidor no inventa qué día es hoy. */
+  issueDate: string;
+  operationKey: string;
+};
+
+export type EmitClearanceCertificateResult = {
+  ok: true;
+  certificateId: string;
+  code: string;
+  created: boolean;
+  balanceAtIssue: number;
+  creditBalance: number;
+};
+
+export async function emitClearanceCertificateCallable(input: EmitClearanceCertificateInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<EmitClearanceCertificateInput, EmitClearanceCertificateResult>(
+    functions,
+    "emitClearanceCertificate",
+  );
+  return executeCallable(callable, input, "No fue posible emitir el paz y salvo.");
+}
+
+export type CancelClearanceCertificateInput = {
+  tenantId: string;
+  certificateId: string;
+  /** R8 · obligatorio. */
+  reason: string;
+};
+
+export async function cancelClearanceCertificateCallable(input: CancelClearanceCertificateInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<CancelClearanceCertificateInput, { ok: true; certificateId: string; alreadyCancelled: boolean }>(
+    functions,
+    "cancelClearanceCertificate",
+  );
+  return executeCallable(callable, input, "No fue posible anular el certificado.");
+}
+
 export type RegisterWalkInVisitInput = {
   tenantId: string;
   unitId: string;

@@ -17,6 +17,9 @@ import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
 import { construirEstadoDeCuenta } from "@/features/billing/estado-de-cuenta";
 import { renderEstadoDeCuentaPdf } from "@/features/finanzas/comprobante/estado-de-cuenta-pdf";
+import { renderPazYSalvoPdf } from "@/features/finanzas/comprobante/paz-y-salvo-pdf";
+import { emitClearanceCertificateCallable } from "@/lib/firebase/callables";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { saldoAFavor, useAdvances } from "@/features/finanzas/use-advances";
 import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { watchActiveBankAccounts } from "@/features/finanzas/use-bank-accounts";
@@ -37,6 +40,54 @@ export default function ResidentAccountPage() {
   const { items, loading } = useBillingStatements(user?.tenantId, user?.unitId);
   const { items: anticipos } = useAdvances(user?.tenantId, user?.unitId);
   const [descargando, setDescargando] = useState(false);
+  const [emitiendo, setEmitiendo] = useState(false);
+  const estadoDeCuenta = useFeatureFlag("producto-estado-de-cuenta");
+
+  /**
+   * `FEAT-004` CA4/CA7 · el residente emite su propio paz y salvo.
+   *
+   * **La condición «saldo cero» NO se comprueba aquí.** Se manda la petición y
+   * el servidor decide: si el cliente decidiera, un navegador manipulado se
+   * emitiría uno debiendo. Por eso el botón se ofrece siempre que la bandera
+   * esté encendida —también con saldo— y el «no» llega del servidor con el
+   * importe y el período, que es la respuesta útil.
+   */
+  async function emitirPazYSalvo() {
+    if (!user?.tenantId || !user?.unitId) return;
+    setEmitiendo(true);
+    try {
+      const hoy = new Date();
+      const issueDate = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
+      const r = await emitClearanceCertificateCallable({
+        tenantId: user.tenantId,
+        unitId: user.unitId,
+        unitLabel: user.unitLabel,
+        issueDate,
+        // Una emisión por unidad y día: repetir el botón el mismo día devuelve
+        // el MISMO certificado en vez de llenar el histórico del conjunto de
+        // papeles idénticos con códigos distintos.
+        operationKey: `pys-${user.unitId}-${issueDate}`,
+      });
+      await renderPazYSalvoPdf(
+        {
+          code: r.code,
+          unidad: user.unitLabel ?? user.unitId,
+          conjunto: user.tenantName ?? "",
+          asOfDate: issueDate,
+          issuedAt: issueDate,
+          creditBalance: r.creditBalance,
+        },
+        formatAmount,
+      );
+      toast.success(r.created ? `Paz y salvo emitido: ${r.code}` : `Ya tenías uno de hoy: ${r.code}`);
+    } catch (error) {
+      // El servidor nombra el saldo y desde qué período. Ese texto ES la
+      // respuesta: sustituirlo por uno genérico tiraría lo único accionable.
+      toast.error(error instanceof Error ? error.message : "No fue posible emitir el paz y salvo.");
+    } finally {
+      setEmitiendo(false);
+    }
+  }
 
   /**
    * `FEAT-004` CA7 · el residente descarga su estado de cuenta **sin pedírselo
@@ -283,13 +334,22 @@ export default function ResidentAccountPage() {
         </div>
       ) : null}
 
-      {/* `FEAT-004` · la descarga va aquí, encima de los movimientos que resume.
-          No se ofrece con la lista vacía: un PDF sin una sola línea no es un
-          documento, es una pregunta al administrador. */}
-      {!loading && items.length > 0 ? (
-        <div className="mt-4 flex justify-end">
+      {/* `FEAT-004` · los dos documentos van aquí, encima de los movimientos que
+          resumen, y los DOS detrás de la misma bandera — que es lo que su
+          catálogo promete al apagarla.
+
+          No se ofrecen con la lista vacía: un estado de cuenta sin una sola
+          línea no es un documento, es una pregunta al administrador. El paz y
+          salvo de una unidad sin movimientos SÍ se puede emitir (CA6), pero se
+          pide desde la cartera del administrador, no desde una pantalla que el
+          residente ve en blanco. */}
+      {!loading && items.length > 0 && estadoDeCuenta ? (
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" disabled={descargando} onClick={() => void descargarEstadoDeCuenta()}>
             {descargando ? "Generando…" : "Descargar estado de cuenta"}
+          </Button>
+          <Button type="button" disabled={emitiendo} onClick={() => void emitirPazYSalvo()}>
+            {emitiendo ? "Emitiendo…" : "Paz y salvo"}
           </Button>
         </div>
       ) : null}
