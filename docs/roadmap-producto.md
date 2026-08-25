@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.29 |
-| **Fecha** | 25 de agosto de 2026 (cierre) |
-| **Estado** | **`PLAT-002` TIENE SU MVP COMPLETO Y EN STAGING**, verificado por navegador de punta a punta: una cuenta con **seis conjuntos** cambia entre ellos, **cobra $430.000 en el segundo** y sube un documento ahí. **La ficha estaba mal en dos sitios y eso costó la jornada.** §11.2 decía «las once callables» y **eran DIECIOCHO**: la auditoría de agosto buscó donde la ficha señalaba —`index.ts`— y dejó vivas **las seis del dinero**, en `payments.ts` y `advances.ts`. Y §11.3 decía «las reglas no necesitan un cambio», escrito tras leer **uno de los dos ficheros**: `storage.rules` iba por claim. **La lección que más lejos llega: cuando una conclusión empieza con un plural —«las reglas», «los catálogos», «las callables»— hay que contar cuántos son antes de firmarla.** Ese mismo día el plural falló tres veces: dos ficheros de reglas, **cinco** sitios de catálogo de banderas donde el comentario decía cuatro, y dieciocho comparaciones donde la ficha decía once. **Y una segunda, cara:** las reglas entre servicios de Storage **no funcionan en el servicio real** — pasaron 59 pruebas de emulador falsadas en dos direcciones y **rompieron todas las subidas**. **El emulador no es el servicio**, y es el único mecanismo del repositorio que las pruebas no pueden cubrir. **PRODUCCIÓN NO TIENE NADA DE ESTA JORNADA** y `producto-multiconjunto` está apagada allí: subirlo es la siguiente decisión. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Versión** | 0.9.30 |
+| **Fecha** | 25 de agosto de 2026 (cierre de la tarde) |
+| **Estado** | **`PLAT-002` ESTÁ EN PRODUCCIÓN** desde la tarde del 25 (`e41affa`), y con él **el frente 4 queda cerrado y desplegado**. El orden fue functions → reglas → front, y de las dos razones documentadas para invertirlo **solo aplicaba una**: el delta de `storage.rules` contra producción eran **solo comentarios**, así que no se desplegó. Se comprobó pieza por pieza contra su fuente —77 functions `ACTIVE`, el ruleset vivo **diferenciado contra el fichero** con 0 líneas de diff, y el front por **procedencia del build**—. **El radio del cambio de autoridad se midió con el predicado REAL y salió 0**; el que estaba anotado era más laxo. **`master` NO es el registro de lo desplegado salvo para el front**: el ruleset anterior salía de un commit que nunca llegó a esa rama. **Falta observar CA1** y nadie tiene dos membresías, así que la bandera —apagada, y sin documento— no enseñaría nada aún. Antes de esto: **`PLAT-002` TENÍA SU MVP COMPLETO Y EN STAGING**, verificado por navegador de punta a punta: una cuenta con **seis conjuntos** cambia entre ellos, **cobra $430.000 en el segundo** y sube un documento ahí. **La ficha estaba mal en dos sitios y eso costó la jornada.** §11.2 decía «las once callables» y **eran DIECIOCHO**: la auditoría de agosto buscó donde la ficha señalaba —`index.ts`— y dejó vivas **las seis del dinero**, en `payments.ts` y `advances.ts`. Y §11.3 decía «las reglas no necesitan un cambio», escrito tras leer **uno de los dos ficheros**: `storage.rules` iba por claim. **La lección que más lejos llega: cuando una conclusión empieza con un plural —«las reglas», «los catálogos», «las callables»— hay que contar cuántos son antes de firmarla.** Ese mismo día el plural falló tres veces: dos ficheros de reglas, **cinco** sitios de catálogo de banderas donde el comentario decía cuatro, y dieciocho comparaciones donde la ficha decía once. **Y una segunda, cara:** las reglas entre servicios de Storage **no funcionan en el servicio real** — pasaron 59 pruebas de emulador falsadas en dos direcciones y **rompieron todas las subidas**. **El emulador no es el servicio**, y es el único mecanismo del repositorio que las pruebas no pueden cubrir. **PRODUCCIÓN NO TIENE NADA DE ESTA JORNADA** y `producto-multiconjunto` está apagada allí: subirlo es la siguiente decisión. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Staging, entrando por el navegador con una sesión real de seis conjuntos.** Cada pieza se comprobó contra su fuente y no contra el «Deploy complete»: las funciones por la API del proyecto (**77 de 77 en `ACTIVE`**), el front por una **cadena que no existía antes** —la huella del bundle no sirve: dos builds del mismo commit dan hashes distintos—, y las reglas por su `released`. **Todo lo dudoso se falsó**: romper la guarda del dinero tumba 8 pruebas en un sentido y 7 en el otro; desactivar R5 tumba exactamente la suya. **Y tres comprobaciones acertaron por accidente y hubo que rehacerlas**: un vigía que contaba un `curl` fallido como «el bundle cambió», un `until` que se disparó con la palabra «Error» dentro de `logClientError`, y tres pruebas nuevas cuyo montaje daba el mismo valor al claim y al conjunto pedido, así que pasaban en verde con la implementación rota. **Toda comprobación nueva necesita un control que se sepa bueno**: sin comparar contra `applyPayment` habría reportado tres callables rotas por un binding que tampoco tiene la que funciona |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -997,6 +997,17 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.30 — 25 de agosto de 2026 (cierre de la tarde)
+
+- **`PLAT-002` EN PRODUCCIÓN** (`e41affa`). Functions → reglas → front, verificado contra su fuente:
+  77 en `ACTIVE`, ruleset con 0 líneas de diff contra el fichero, `storage.rules` sin desplegar
+  (su delta eran comentarios) y el build del front identificado por su `commitMessage`.
+  **Radio 0** con el predicado real (`medir-radio-membresias.mjs`, instrumento nuevo).
+  La bandera sigue apagada y sin documento; **CA1 sigue sin observarse**.
+- **Dos correcciones de método:** la ausencia del campo `branch` en el backend **no** prueba que
+  no despliegue solo —producción sí se dispara con el push, y se lee del rollout, no del backend—;
+  y la lista de rollouts **está paginada y sin ordenar**, trampa que mordió otra vez.
 
 ### 0.9.29 — 25 de agosto de 2026 (cierre)
 

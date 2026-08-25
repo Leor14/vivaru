@@ -4,151 +4,107 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026 (tarde)
 
-**EL FRENTE 4 ESTÁ CERRADO.** El MVP entero de `PLAT-002`: construido, desplegado en staging y
-verificado por navegador de punta a punta, incluida la subida de un documento en el **segundo**
-conjunto. **En producción no hay nada de esto**, y esa es la siguiente decisión.
+**`PLAT-002` ESTÁ EN PRODUCCIÓN.** El frente 4 dejó de ser una decisión pendiente: se desplegó
+la tarde del 25 y se verificó pieza por pieza **contra su fuente**, no contra el «Deploy
+complete». `develop` = `master` = `e41affa`.
 
-### La medición se hizo, y salió al revés de lo que yo apostaba
+| Pieza | Cómo se comprobó | Resultado |
+|---|---|---|
+| **functions** | API de Cloud Functions | **77 en `ACTIVE`**, las tres nuevas a las 19:24:46. Comparadas **por nombre** contra `index.ts`: no falta ninguna |
+| **`firestore.rules`** | El ruleset vivo **diferenciado contra el fichero** | Publicado 19:33:49 · **0 líneas de diff** |
+| **`storage.rules`** | `updateTime` del release | **Intacto en el 19 de agosto** — no se desplegó, y era lo correcto |
+| **front** | **Procedencia del build**, no grep | `rollout-2026-08-25-002` → `SUCCEEDED`, build `READY` desde `master` con el mensaje de `e41affa` |
 
-**Las reglas entre servicios de Storage NO funcionan en el servicio real.** Se midió con una
-bisección: con `storage.rules` por claim, subir un documento en staging **funciona** (14 → 15
-documentos y el objeto en el bucket); con las de membresía **no sube nada**, y falla también en
-el conjunto donde el claim y el activo coinciden.
+**El orden fue functions → reglas → front**, y de las dos razones documentadas para invertirlo
+**solo una aplicaba**. La de las functions sí: el front nuevo manda `tenantId` en las llamadas de
+IA y las viejas lo rechazan con `tenant_en_la_peticion`. La otra no: `CLAUDE.md` decía «las reglas
+al final porque `storage.rules` restringe», y **el delta de `storage.rules` contra producción eran
+solo comentarios**. La restricción se vivió en staging y se revirtió allí; a producción nunca
+llegó. Por eso las reglas pudieron ir en medio, que además evita la ventana en que la consola de
+administradoras no podría leer nada.
 
-**Y lo hacían con 59 pruebas de esa suite en verde, falsadas en dos direcciones.** (Hoy son 54: cinco se fueron con la reversión al plan B.) Corren contra
-el emulador, y **el emulador no es el servicio**. Es el único mecanismo de este repositorio que
-las pruebas no pueden cubrir. Queda escrito dentro de `storage.rules`: antes de volver a
-intentarlo, subir un archivo de verdad.
+> **La comprobación que lo destapó, y vale para siempre: diferenciar el ruleset DESPLEGADO contra
+> el fichero del repo.** `git diff origin/master..origin/develop` **no** es el delta que vas a
+> desplegar — da de más (cosas ya vivas) y puede dar de menos (lo desplegado a mano). Se lee por
+> la API de Firebase Rules con la ADC; no hay comando del CLI. Ese diff fue el que decidió **no
+> desplegar `storage.rules` en absoluto**.
 
-**Resuelto con el plan B** (`493c454`): `storage.rules` vuelve a mirar el claim, y el claim
-**sigue** al conjunto activo — `switchActiveTenant` lo re-emite, y solo tras comprobar la
-membresía. El claim no vuelve a ser la autoridad: quien decide sigue siendo la membresía, ahora
-dentro de la propia callable.
+### `master` NO es el registro de lo desplegado, salvo para el front
 
-> **El precio, que es real y hay que saberlo: dos pestañas en conjuntos distintos se pisan.** El
-> claim es uno por usuario, así que la última que cambie gana y la otra empieza a recibir
-> denegaciones de Storage. Por eso el plan A se intentó primero. Está dicho en los tres sitios
-> donde alguien lo buscará: `storage.rules`, la callable y `switchTenant`.
+Medido: el ruleset vivo antes de esta jornada tenía `updateTime` = 24 ago 22:56, **el minuto
+exacto de `a67088c`** (`FIX-001` paso 4), un commit que **nunca llegó a `master`**. Las reglas y
+las functions se despliegan desde el árbol de trabajo, no desde una rama. Solo el front sale de
+`master`, porque el backend de producción sí se dispara con el push.
 
-**El repositorio y staging vuelven a coincidir** en las reglas de Storage.
+### El radio se midió con el predicado REAL, y el que estaba anotado era más laxo
 
-### Lo que SÍ está cerrado del frente 4
+Decía «39 de 39 tienen su documento de membresía». El predicado que corre
+(`functions/src/tenant-membership.ts`) exige además que el id sea `{tenantId}_{uid}`, que el
+campo `tenantId` **concuerde con el id**, rol de administrador y estado activo. Un documento
+heredado con el id y el campo discrepando pasa el conteo viejo y falla el predicado — y es la
+ruta del dinero.
 
-**`PLAT-002` entrega 2 está construida, desplegada en staging y validada por navegador con la
-sesión real.** Ocho commits, de `dbb3f29` a `841a8ac`.
+**Instrumento nuevo, solo lectura: `functions/scripts/medir-radio-membresias.mjs`.** Resultado:
+**radio 0 en los dos proyectos** —producción 39 con conjunto (9 admin), staging 44 (10 admin)— y
+**cero ids desalineados** en los 40 y 49 documentos de `tenantUsers`. Staging se corrió **primero,
+como control**, porque sus 44 ya se conocían.
 
-| Criterio | Cómo se comprobó |
-|---|---|
-| **CA2** | El selector con «6 conjuntos» y buscador |
-| **CA10** | Los dos vencidos marcados «Prueba vencida · solo lectura» |
-| **CA3/CA4** | Al cambiar de conjunto **no sobrevivió un número**: cartera 18.500 → 2.680.000, PQRS 7 → 4, alertas 21 → 7 |
-| **CA5** | Recarga completa y sigue en el conjunto nuevo, aunque el perfil diga el viejo |
-| **La ruta del dinero** | **Cobro de $430.000 en el SEGUNDO conjunto**, recibo `REC-MBZ5EY`. Con el código anterior era `permission-denied` |
+### Lo que el despliegue NO consigue, y hay que decirlo
 
-El cobro se verificó contra la base, no contra la pantalla: saldo del conjunto −430.000 exacto,
-`overdue` → `paid`, un asiento, un recibo, y **cero anticipos** (el pago fue exacto).
+**No se ve nada todavía.** `producto-multiconjunto` está **apagada**, y su documento **ni siquiera
+existe** en producción: resuelve por `default_catalogo`. Para encenderla algún día hacen falta dos
+pasos, en este orden: `seed-feature-flags.mjs` y luego `mover-bandera.mjs` en **GLOBAL** — el
+propio catálogo explica por qué esta no se mueve por conjunto.
 
-**CA1 no se vio en pantalla** y queda dicho: haría falta entrar como otro administrador y no hay
-credenciales. Lo que sí está medido es que los otros nueve siguen con una membresía y que el
-componente devuelve `null` por debajo de dos. Es construcción, no observación.
+**Y aunque se encienda, no la vería nadie:** el selector se pinta con **dos membresías o más** y
+en producción no hay ninguna persona con dos. Por eso **CA1 sigue sin observarse**: haría falta
+entrar como otro administrador y no hay credenciales. Está medido por construcción —los nueve
+siguen con una membresía y el componente devuelve `null` por debajo de dos—, que **no es lo
+mismo que haberlo visto**.
 
-### Lo que cambió respecto a lo que decía la ficha
+> **La evidencia de la validación se dejó puesta EN STAGING a propósito, y no es basura que
+> limpiar.** El documento `prueba-plat002.txt` en El Nogal y otro igual en Las Playas —el de la
+> bisección de Storage—, más el cobro de $430.000 en T2-204 con recibo `REC-MBZ5EY`. Es lo único
+> que demuestra que el claim re-emitido llega a las reglas de Storage.
 
-**La auditoría de §11.2 estaba a medias y nadie lo sabía.** `5219758` retiró doce comparaciones
-del claim en `index.ts` porque ahí las situaba la ficha. **Quedaban SEIS más**, en `payments.ts` y
-`advances.ts` — las del dinero. Son **dieciocho sitios**, no once. Y eran más duras que las
-retiradas: aquellas eran inertes sin claim, estas no. Cerrado en `dbb3f29`.
+> **El precio de la solución de Storage, que sigue vigente: dos pestañas en conjuntos distintos
+> se pisan.** El claim es uno por usuario, así que la última que cambie gana y la otra empieza a
+> recibir denegaciones. Está dicho en `storage.rules`, en la callable y en `switchTenant`.
 
-**Y §11.3 de la ficha ES FALSA tal como está escrita.** Dice «las reglas no necesitan un cambio».
-**Hay DOS ficheros de reglas** y `storage.rules` iba por claim. Corregido en la ficha.
+### Dos inferencias falsas de la jornada, las dos cazadas midiendo
 
-### Cinco hallazgos de una revisión adversarial, todos cerrados
+**1. La ausencia del campo `branch` no prueba que no despliegue solo.** El backend de producción
+**no** trae `branch` en su `codebase` —igual que el de staging— y de ahí se dedujo que el push no
+desplegaría el front. Falso: había rollout **treinta segundos después del push**, y su build
+llevaba `branch: "master"`. La distinción real sigue en pie —staging hay que dispararlo a mano,
+producción no— pero **se lee del rollout, no del backend**. El `updateTime` del backend tampoco
+se movió con este despliegue: no sirve de señal.
 
-Quince hallazgos, **diez refutados por los propios refutadores**, cinco en pie. Cuatro eran el
-mismo defecto: el claim seguía siendo autoridad fuera de la ruta del dinero.
+**2. La lista de rollouts está paginada y NO viene ordenada**, y la trampa mordió otra vez —en el
+propio vigía escrito para seguir el despliegue—. Con `pageSize=5` y sin recorrer `nextPageToken`,
+el «más reciente» salió del **11 de junio**. **Paginar siempre y ordenar por `createTime`
+después**; un `pageSize` pequeño no es atajo. Y `source.codebase.commit` puede venir **vacío**:
+el que identifica el build sin ambigüedad es `commitMessage`.
 
-| Commit | Qué |
-|---|---|
-| `ccc78e1` | **La bandera no se podía encender POR CONJUNTO** — el catálogo vive en **CINCO** sitios y la cabecera decía cuatro |
-| `23f03b1` | **`storage.rules` por membresía** — el de la bisección sin cerrar |
-| `92fe050` | **El verificador de anticipos**, regresión propia: de 0 de 25 a **25 de 25** |
-| `841a8ac` | **La puerta de IA y dos telemetrías** dejan de mirar el claim |
+### Dos líneas que decían algo falso, corregidas en `e41affa`
 
-### El orden de despliegue de esto NO es el documentado
+- La tabla del lote daba **`producto-reservas-servidor` por apagada** y va **9/9**. Era falsa ya
+  al escribirse: `FIX-001` la encendió la víspera. Resuelto con `resolveFeatureFlag`, no leído.
+  Importaba: con esa lectura, desplegar reglas parecía dejar al residente sin poder reservar por
+  ningún camino.
+- El comentario de `storage.rules` citaba **59 pruebas** de su suite y hoy son **54**: cinco se
+  fueron con la reversión al plan B.
 
-`CLAUDE.md` dice reglas → functions → front. **Para este cambio es functions → front → reglas**, y
-por dos motivos distintos:
+### Lo siguiente
 
-1. **Functions antes que front**, porque el front nuevo manda `tenantId` en las llamadas de IA y
-   **las functions viejas lo RECHAZAN** (`tenant_en_la_peticion`). Desplegar el front primero
-   rompe la IA entera en la ventana intermedia.
-2. **Las reglas al final**, porque restringen.
-
-Antes de tocar Storage se midió el radio: **cero usuarios perderían acceso** en los dos proyectos
-(44 de 44 en staging, 39 de 39 en producción tienen su documento de membresía).
-
-### El paso 3 está HECHO — el MVP del Story Map queda completo
-
-`4e3eacc` (servidor) y `3553449` (consola). La entidad `managementCompanies`, sus dos callables
-de superadmin, la asociación conjunto↔administradora y `/superadmin/administradoras` para
-operarlo. 14 pruebas de emulador y 5 de reglas, falsadas.
-
-**Una desviación deliberada de la ficha, y es más estricta.** §7.1 pedía «lectura para los
-miembros de un conjunto asociado» y **eso no se puede expresar** en reglas de Firestore: haría
-falta iterar conjuntos. Se cerró el registro al superadmin —lleva `taxId`, correo y teléfono— y
-**el nombre se desnormaliza en `tenants`**, que los miembros ya leen. Al renombrar, la callable
-lo propaga a sus conjuntos y hay prueba de que lo hace.
-
-**Sin construir, y es Fase 2 según el Story Map:** la vista de cartera con indicadores, que el
-residente vea su administradora, y el registro de cambios de conjunto (R8). Si se construye la
-vista, **necesita otro nombre**: «Cartera» ya es `/admin/billing`.
-
-### Desplegado y verificado de punta a punta
-
-**Staging tiene el frente 4 entero.** El orden fue functions → reglas → front, y cada pieza se
-comprobó contra su fuente, no contra el «Deploy complete»:
-
-| Pieza | Cómo se comprobó |
-|---|---|
-| **functions** | **77 de 77 en `ACTIVE`** por la API del proyecto. Las tres nuevas —`switchActiveTenant`, `saveManagementCompany`, `setTenantManagementCompany`— creadas, y su `serviceConfig` **idéntica a la de `applyPayment`**, que se sabe que funciona |
-| **`firestore.rules`** | `released rules to cloud.firestore`, con el bloque de `managementCompanies` |
-| **`storage.rules`** | La versión por claim, que es la buena |
-| **front** | El bundle contiene la cadena `switchActiveTenant`, que **no existía antes de hoy** |
-
-**Y la prueba que cierra el frente, hecha:** cambiar a `Conjunto Residencial El Nogal` y **subir un
-documento ahí**. Quedó en Firestore bajo ese conjunto y el objeto en
-`tenants/tenant-nogal-bogota/documents/`. Es lo único que demuestra que el claim re-emitido llega
-a las reglas de Storage.
-
-> **Se dejó a propósito en staging**, como evidencia fechada: el documento `prueba-plat002.txt` en
-> El Nogal y otro igual en Las Playas (el de la bisección), más el cobro de $430.000 en T2-204
-> con recibo `REC-MBZ5EY`. No es basura que limpiar.
-
-### Dos comprobaciones que casi me engañan, y valen para la próxima
-
-**El permiso de invocación no se lee en el IAM de Cloud Run.** Las tres callables nuevas salen sin
-binding `roles/run.invoker`… **y `applyPayment` también**, que funciona. Sin comparar contra una
-conocida habría reportado tres callables rotas. **Toda comprobación nueva necesita un control que
-se sepa bueno.**
-
-**Y dos condiciones de parada acertaron por accidente.** Un vigía del bundle que trataba «`curl`
-falló» como «cambió», y un `until` que se disparó con la palabra «Error» dentro de
-`logClientError`. Las dos daban un final falso. **Un patrón de parada laxo es un falso verde.**
-
-### Tres cosas del entorno que costaron tiempo hoy
-
-- **El backend de staging NO vigila ninguna rama.** Su `codebase` no trae campo `branch`, así que
-  empujar **no despliega el front**: hay que crear el rollout a mano con
-  `firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha> --force`.
-- **Las tres credenciales caducaron en cascada** a mitad de sesión, cada una por su lado: `gcloud`
-  CLI, el CLI de Firebase durante un rollout, y la ADC.
-- **Salieron rollouts duplicados del mismo commit** dos veces. Inofensivo, pero explica por qué el
-  bundle cambia antes de que termine el comando propio.
+**Quedan dos frentes y los dos son construir**: el **5** (olas B y C — `FLOW-001` prorrateo,
+`FEAT-004` paz y salvo, `FLOW-003` cobranza) y el **6** (`FIN-002`, expediente y conciliación).
+Por el criterio de David del 24 de agosto —cerrar lo abierto antes de extender— **el 5 va antes
+que el 6**. Ya no queda nada desplegado y apagado que cuente como abierto.
 
 ---
-
 
 ## EL CIERRE ANTERIOR — 25 de agosto de 2026 (madrugada)
 
@@ -591,6 +547,19 @@ cuenta de vigilancia.
   deduciéndolo de otro comando.
 
 ## LAS LECCIONES DE MÉTODO
+
+**Las dos del despliegue de `PLAT-002` (25 ago), que nacieron de casi tragarse un falso final:**
+
+- **Toda comprobación nueva necesita un CONTROL que se sepa bueno.** Las tres callables nuevas
+  salen sin binding `roles/run.invoker` en el IAM de Cloud Run… **y `applyPayment` también**, que
+  se sabe que funciona. Sin comparar contra una conocida se habrían reportado tres callables
+  rotas. Por lo mismo, el instrumento del radio se corrió **antes contra staging**, cuyos 44 ya
+  se conocían.
+- **Un patrón de parada laxo es un falso verde.** Un vigía del bundle trataba «`curl` falló» como
+  «cambió», y un `until` se disparó con la palabra «Error» dentro de `logClientError`. Los dos
+  daban un final falso. Y el 25, el vigía del rollout paró en un rollout **del 11 de junio** por
+  no paginar: **la condición de parada tiene que mirar el objeto correcto, no solo un estado
+  terminal.**
 
 **Las cinco del triaje del 24 (tarde), que son las más caras de olvidar:**
 

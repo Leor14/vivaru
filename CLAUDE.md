@@ -84,18 +84,28 @@ se actualizó. Comprobado con `curl -L` contra producción, no de memoria.)
 ## El orden de despliegue no es fijo: depende de lo que haga el cambio
 
 El de siempre es **reglas → functions → front**. Se invierte cuando la pieza restringe o cuando
-una versión vieja rechaza lo que manda la nueva. En `PLAT-002` (25 ago 2026) fue
-**functions → front → reglas**, por dos motivos distintos:
+una versión vieja rechaza lo que manda la nueva. En `PLAT-002` (25 ago 2026) fue **functions
+→ front → reglas** en staging y **functions → reglas → front** en producción, y la diferencia
+enseña que el orden se decide **por el delta contra ESE ambiente**, no por la ficha:
 
-1. **Functions ANTES que el front**, porque el front nuevo manda `tenantId` en las llamadas de IA
-   y **las functions viejas lo RECHAZAN** (`tenant_en_la_peticion`). Al revés, la IA queda rota
-   entera en la ventana intermedia.
-2. **Las reglas AL FINAL**, porque restringen: `storage.rules` pasó a exigir membresía donde antes
-   bastaba el claim.
+1. **Functions ANTES que el front**, en los dos. El front nuevo manda `tenantId` en las llamadas
+   de IA y **las functions viejas lo RECHAZAN** (`tenant_en_la_peticion`). Al revés, la IA queda
+   rota entera en la ventana intermedia.
+2. **Las reglas al final SOLO en staging**, porque allí `storage.rules` llegó a exigir membresía.
+   **Contra producción ese delta eran solo comentarios** —el intento se revirtió antes de subir—,
+   así que `storage.rules` **no se desplegó** y las reglas pudieron ir en medio, que además evita
+   la ventana en que la consola nueva no podría leer su colección.
+
+> **De ahí la comprobación que hay que hacer siempre: diferenciar el ruleset DESPLEGADO contra el
+> fichero del repo**, no `git diff` entre ramas. Se lee por la API de Firebase Rules con la ADC
+> (no hay comando del CLI). Y por lo mismo, **`master` NO es el registro de lo desplegado salvo
+> para el front**: reglas y functions salen del árbol de trabajo.
 
 **Antes de desplegar una regla que restringe, medir el radio**: cuántos usuarios pierden acceso.
-Ese día salió cero en los dos proyectos (44 de 44 en staging, 39 de 39 en producción), y por eso
-se pudo desplegar sin ventana de mantenimiento.
+Salió cero en los dos proyectos — pero **el conteo bueno no es «tiene documento de membresía»**:
+el predicado real exige además id `{tenantId}_{uid}`, campo `tenantId` concordante, rol de
+administrador y estado activo. Se mide con `functions/scripts/medir-radio-membresias.mjs`, que
+no escribe nada.
 
 **El backend de App Hosting de STAGING no vigila ninguna rama** — su `codebase` no trae campo
 `branch`—, así que **empujar no despliega el front**. Hay que crear el rollout a mano:
@@ -239,8 +249,26 @@ cadenas **del fetch**, no del repositorio, porque no coinciden carácter a cará
 **Leer los dos remotos con `git ls-remote`, no de aquí.** Esta línea llevaba el número de commit a
 mano y se quedó corta **tres veces en una sola noche**: una cabecera que hay que actualizar en cada
 push acaba mintiendo. Se mueven por separado y un push sin cambios responde «success». **`master`
-= lo que hay en producción**, y eso es lo normal buscado; entre despliegues `develop` va por
-delante, que también es normal.
+= lo que hay en producción PARA EL FRONT**, y eso es lo normal buscado; entre despliegues `develop`
+va por delante, que también es normal.
+
+> **Y para reglas y functions `master` NO lo dice**, porque salen del árbol de trabajo con
+> `firebase deploy`, no de una rama. Medido el 25 de agosto: el ruleset vivo venía de `a67088c`,
+> un commit que **nunca llegó a `master`**. Lo desplegado se lee de su servicio — ver el bloque de
+> orden de despliegue.
+
+**`PLAT-002` ESTÁ EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`), y con él
+**el frente 4 queda cerrado y desplegado**: la sesión con varias membresías, el selector, la
+entidad `managementCompanies` con su consola de superadmin, y las **dieciocho** comparaciones del
+claim retiradas —la ruta del dinero resuelve por membresía—. Verificado contra su fuente: 77
+functions en `ACTIVE`, el ruleset vivo con **0 líneas de diff** contra el fichero, y el front por
+**procedencia del build**.
+
+> **Está desplegado y NO se ve.** `producto-multiconjunto` está apagada y **su documento ni
+> siquiera existe** (resuelve por `default_catalogo`); para encenderla, `seed-feature-flags.mjs`
+> primero y `mover-bandera.mjs` en **GLOBAL** después. Y aunque se encienda, el selector se pinta
+> con **dos membresías o más** y en producción **nadie tiene dos**, así que **CA1 sigue sin
+> observarse**: está cumplido por construcción, no visto.
 
 **`FLOW-002` (anticipos) ESTÁ EN PRODUCCIÓN Y ENCENDIDO EN LOS NUEVE CONJUNTOS** desde la madrugada
 del 25 de agosto de 2026. Servidor, front, el «% de recaudo» de R16 midiendo liquidación, y los dos
