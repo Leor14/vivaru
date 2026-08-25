@@ -90,6 +90,23 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
 - **Nunca importar `functions/` desde `src/` o `tests/`** — App Hosting hace `npm ci` solo en la raíz; rompe el `next build`. El cliente invoca Cloud Functions por nombre con `httpsCallable`.
 - **CORS de callables:** `callableCorsOrigins` (en `functions/src/http-config.ts`; salió de `index.ts` en ago 2026 para que lo compartan los módulos nuevos) debe incluir el origen que sirve la app (`https://www.grupovivaru.com`). Síntoma de origen faltante: en logs solo `OPTIONS 204`, en navegador `net::ERR_FAILED`.
 - **`unitId` de personas = doc id de la unidad, no el slug.** Usar el slug hace `updateDoc(units/<slug>)` sobre un doc inexistente → `permission-denied` engañoso ("No tienes permiso").
+- **UNA REGLA DE FIRESTORE NO PROTEGE LO QUE ESCRIBE UNA CALLABLE.** Las callables van con **Admin
+  SDK, que NO evalúa `firestore.rules`**. Cada vez que una regla sea la única palanca de un
+  invariante, la pregunta obligatoria es **quién más escribe eso**. Costó `CF8`: `tenantOperable`
+  vivía solo en las reglas, así que el producto se negaba a **facturarle** a un conjunto suspendido
+  —crear un cargo es escritura directa del cliente— pero le dejaba **cobrar**. Reproducido con
+  dinero de verdad en producción (`Privada Las Playas`, recibo `REC-HDFW4R`) y cerrado el 24 de
+  agosto de 2026. El espejo del servidor es **`functions/src/tenant-status.ts`**
+  (`assertTenantOperable`), y **si cambias uno hay que cambiar el otro**.
+  **Y el orden dentro de un guardián importa:** el superadmin sale primero —necesita operar un
+  conjunto suspendido para reactivarlo— y **el estado del conjunto se comprueba al final, después
+  del rol**: al revés, a un no-miembro se le respondería «el período de prueba terminó» en vez de
+  «no tienes permiso», filtrando el estado comercial de un cliente.
+- **Las pruebas de emulador van de una en una** (`fileParallelism: false` en
+  `functions/vitest.emulator.config.mts`). El emulador es UNO y cada `beforeEach` limpia colecciones
+  **globales**, así que en paralelo las suites se borran los datos entre sí: da **fallos fantasma
+  que cambian de sitio entre corridas**. Antes de culpar a un cambio propio, **medir la línea base**
+  quitando el fichero nuevo.
 - **Árbol duplicado en la raíz:** además de `src/`, hay `components/` y `features/` en la RAÍZ del repo. El portal residente importa de la raíz (p. ej. `components/features/resident/ResidentSecuritySection.tsx`, `features/resident/schemas.ts`). Verificar de cuál se importa antes de editar.
 - **Aislar widgets/tableros con `WidgetErrorBoundary`** (`src/components/shared/widget-error-boundary.tsx`): toda sección de dashboard/tablero que consuma datos del tenant —en especial charts de **recharts**— debe ir envuelta, para que un fallo de un widget NO tumbe toda la ruta `/admin` (su `error.tsx` muestra "No pudimos cargar el workspace"). El único error boundary de ruta convierte cualquier throw de un widget en una pantalla de error global.
 - **`writeAuditLog` revienta con un campo `undefined`, y audita FUERA de la transacción.** `initializeApp()` corre sin `ignoreUndefinedProperties`, así que un campo opcional ausente en el `metadata` hace que Firestore rechace la escritura **después de que la operación haya cuajado**: el dinero se mueve y la callable devuelve error. Pasó con `applyPayment` y un reparto (24 ago 2026). Al añadir un campo opcional al metadata de una auditoría, mandarlo siempre o limpiarlo antes.
@@ -221,12 +238,18 @@ hay que hacer, y **baja al final**. El orden vive en `docs/pendientes.md`.
 runbook, `docs/encender-el-lote-habitanto.md`, lleva dentro lo que se vio en cada una y **tres
 correcciones a lo que él mismo decía**: la comprobación de la bandera 1 no se podía hacer como
 estaba escrita, la del coeficiente **no la comprueba el servidor**, y la de anticipos no baja ningún
-recaudo el día que se enciende. **El siguiente es `FLOW-002` de verdad, empezando por `CF8`.**
+recaudo el día que se enciende. **Después vino `FLOW-002` de verdad, y su `CF8` ya está cerrado.**
+
+**El frente 2 —`FLOW-002` de verdad— arrancó por `CF8`, y `CF8` está CERRADO Y EN PRODUCCIÓN**
+(24 ago 2026, `9f75083`). Se reprodujo primero **con dinero de verdad** sobre un conjunto
+`suspended`, se falsó rompiendo el código a propósito en cuatro variantes, y se verificó por el
+navegador en ese mismo conjunto. Del frente 2 quedan **`personId`** y **§9/CA13**, ninguno de
+dinero. Detalle en `docs/pendientes.md`.
 
 **Y una regla que sale de ahí:** una PRD **no se marca «EN PRODUCCIÓN» hasta que sus criterios
 están cumplidos o movidos explícitamente a Fase 2**. Hoy esa etiqueta significa «el código está
 desplegado», que no es lo mismo — así se marcó `FLOW-002` con tres criterios propios sin cumplir,
-uno de ellos de dinero (`CF8`: un conjunto `suspended` puede cobrar y cruzar).
+**uno de ellos de dinero**, y ese fue `CF8`.
 
 **Esto baja el riesgo de encender banderas; no lo elimina.** El modo de fallo es el mismo el día
 que haya un cliente — lo que cambia es a quién le pasa hoy.
@@ -247,9 +270,9 @@ centavos. Ver `aMoneda` y `TOLERANCIA_MONEDA` en `functions/src/payments.ts`.
 - **§9 y CA13 no están construidos.** El aviso al residente no nombra los cargos cubiertos ni el
   saldo a favor. Ningún documento lo registraba hasta hoy — al contrario, `pendientes.md` llegó a
   decir «no queda nada sin mirar», y CA13 no se miró porque no existe.
-- **CF8 no se cumple.** Ni `advances.ts` ni `payments.ts` llaman a `assertTenantOperable`, y las
-  callables usan el Admin SDK, que **no pasa por las reglas** — que es donde vive `tenantOperable`.
-  Un conjunto `suspended` puede cobrar y cruzar. Es anterior a la ficha, que lo amplía.
+- ~~**CF8 no se cumple.**~~ **CF8 ESTÁ CERRADO Y EN PRODUCCIÓN** desde el 24 de agosto de 2026
+  (`9f75083`). Ver la trampa de más arriba: `assertTenantOperable` vive ahora en
+  `functions/src/tenant-status.ts` y la llaman los dos guardianes locales.
 - **`personId` del anticipo no lo escribe nadie**, y §7.6 construye una regla de retención encima.
 
 **`bankAccounts` cambió de alcance, y eso hay que saberlo antes de tocar finanzas.** Lo lee ahora
@@ -274,9 +297,11 @@ firestore:rules` → recompilar y desplegar functions → push a `master`. Las r
 porque son las que **arreglan que la conciliación no pudiera casar ningún pago**; el front ya
 asumía el comportamiento nuevo. **Este orden se repite en cualquier ambiente nuevo.**
 
-**Y se verificó, pieza por pieza, en vez de creerle al «Deploy complete».** Las reglas con las 227
-pruebas de `npm run test:rules:all` —que `npm test` **excluye**—; las functions comparando por
-nombre las 74 desplegadas contra `index.ts`, con el árbol en cero tras `run build`; y el front con
+**Y se verificó, pieza por pieza, en vez de creerle al «Deploy complete».** Las reglas con las
+pruebas de `npm run test:rules:all`, **que `npm test` EXCLUYE** —eran 227 y son **237** el 24 de
+agosto: este número crece, así que hay que contarlo, no citarlo de aquí—; las functions comparando
+**por nombre** las desplegadas contra `index.ts` (75 y 70 el 24 de agosto; lo que importa no es la
+cifra sino que **no falte ninguna del código**), con el árbol en cero tras `run build`; y el front con
 **la huella del bundle**, porque este CLI **no tiene `apphosting:rollouts:list`**: los chunks de
 `/_next/static/` cambiaron de `6a944c17` a `2bc73d04` siete minutos después del push. La huella es
 mejor que un grep — **un grep encuentra la cadena en las dos versiones**.

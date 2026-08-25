@@ -4,7 +4,29 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026 (madrugada)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 24 de agosto de 2026 (noche)
+
+**`CF8` ESTÁ CERRADO Y EN PRODUCCIÓN** (`9f75083`). Un conjunto `suspended` o `expired` ya no puede
+cobrar, revertir, cruzar, descruzar ni anular anticipos, ni pedir la vista previa del reparto. **Se
+reprodujo primero con dinero de verdad** —cobro de $2.120.000 en `Privada Las Playas`, recibo
+`REC-HDFW4R`— y se verificó después por el navegador en ese mismo conjunto. Detalle completo en su
+sección, más abajo.
+
+> **Lo que hay que llevarse de ahí, en una frase:** el producto ya se negaba a **facturarle** a un
+> conjunto suspendido y le dejaba **cobrar**, porque facturar es escritura del cliente y pasa por
+> las reglas, y cobrar va por callable con Admin SDK, que **no las evalúa**. Cada vez que una regla
+> de Firestore sea la única palanca de un invariante, hay que preguntarse **quién más escribe eso**.
+
+**Del frente 2 quedan `personId` y §9/CA13.** Ninguno es dinero.
+
+**Y tres cosas menores encontradas de paso, con chip propio y sin construir:** la fecha contable del
+cobro sale en **UTC** (a partir de las 7 de la tarde se fecha mañana, y afecta al asiento y al
+recibo); el aviso de reparto fallido **invita a cobrar igual** cuando ya no se puede; y
+`Privada Las Playas` **no tiene `currency`**, que CLAUDE.md prohíbe.
+
+---
+
+## EL CIERRE ANTERIOR — 25 de agosto de 2026 (madrugada)
 
 **EL LOTE ESTÁ ENCENDIDO. `PH-001` ya no tiene nada dormido.** Las **seis banderas** del frente 1
 se encendieron globalmente la madrugada del 25, **una a una y mirando**, y **no costó una línea de
@@ -231,9 +253,86 @@ desde `FIN-001` todos los asientos de cobro nacen con `sourceType: "billingState
 | Qué | Dónde | Nota |
 |---|---|---|
 | **§9 y CA13** | `functions/` | El aviso al residente **no nombra los cargos cubiertos ni el saldo a favor**: sigue siendo el `billing_receipt` con `{período, conjunto}`. CA13 no se miró **porque no existe** |
-| **CF8** | `functions/src/advances.ts` y `payments.ts` | Ninguno llama a `assertTenantOperable`, y las callables usan el Admin SDK, que **no pasa por las reglas** — donde vive `tenantOperable`. Un conjunto `suspended` puede cobrar y cruzar. **Es anterior a la ficha** |
+| ~~**CF8**~~ | ~~`functions/src/advances.ts` y `payments.ts`~~ | **HECHO Y EN PRODUCCIÓN el 24 de agosto de 2026** (`9f75083`). Detalle abajo |
 | **`personId` del anticipo** | `functions/src/advances.ts` | No lo escribe nadie, y §7.6 construye una retención encima. O se escribe, o §7.6 se corrige |
 | **El total de anticipos del consejo** | `PLAT-004` | Decisión del 24 ago: se le **retiró** la lectura de `advances` porque era detalle por unidad. El agregado que la PRD le promete **no existe**, y una regla no sabe calcularlo |
+
+### CF8 — CERRADO EN PRODUCCIÓN (24 ago 2026, `9f75083`)
+
+**Se reprodujo antes de tocar nada, y con dinero de verdad.** Con la sesión del `tenant_admin` de
+`Privada Las Playas` (`pXHEn5iWKWgX4sDF9tVp`, `suspended`) se cobró **$2.120.000** sobre PA-101:
+recibo `REC-HDFW4R`, asiento en el libro, cartera a cero y entrada `apply_payment` en auditoría.
+**El producto no opuso nada.** Los seis números predichos antes de pulsar salieron los seis, y los
+anticipos se quedaron en `0`, que es lo que prueba que no se coló ningún camino nuevo.
+
+**La forma corta del defecto, que es la que hay que recordar:** el producto ya se negaba a
+**facturarle** a un conjunto suspendido —crear un cargo es escritura directa del cliente y sí pasa
+por `tenantOperable` en las reglas— pero le dejaba **cobrar**, porque cobrar va por callable con
+Admin SDK. Y dentro de `index.ts` había un contraste peor: `sendBillingReminder`, que solo **manda
+un correo** recordando que pagues, estaba protegida por **dos** candados de estado
+(`assertTenantAdminOrSuper` → `assertTenantOperable`, y `assertModuleAllowed`); `applyPayment`, que
+mueve el dinero, por **ninguno**.
+
+**No hubo que diseñar nada.** `assertTenantOperable` ya existía y funcionaba: el defecto real era
+que estaba **privada de `index.ts`**, así que `payments.ts` y `advances.ts` no podían llamarla sin
+import circular. Sale a **`functions/src/tenant-status.ts`**, mismo movimiento que
+`callableCorsOrigins` → `http-config.ts`.
+
+**El orden de las tres comprobaciones no es cosmético**, y hay una prueba por cada decisión:
+
+1. **el superadmin sale primero** — necesita operar un conjunto suspendido justamente para
+   reactivarlo; es la salida de emergencia;
+2. rol y conjunto del token;
+3. **el estado del conjunto al FINAL, nunca antes** — si fuera antes, un residente hurgando en un
+   conjunto vencido recibiría «el período de prueba terminó» en vez de «no tienes permiso»,
+   **filtrando el estado comercial de un cliente a quien ni siquiera es miembro**.
+
+**Las seis callables cubiertas**, incluida `previewPaymentAllocation`, que no escribe nada: solo se
+pide la vista previa para cobrar a continuación, así que la pantalla falla temprano con el mensaje
+correcto en vez de dejar rellenar un formulario que va a morir al enviarse.
+
+**Falsado, porque un verde no vale sin falsación.** Se rompió el código a propósito en cuatro
+variantes y cada una tumbó **exactamente** lo que debía y nada más: quitar la comprobación de
+`assertPuedeCobrar` (caen las 5 de pagos, ninguna de anticipos), quitarla de
+`assertPuedeOperarAnticipos` (las 3 de anticipos, ninguna de pagos), invertir el orden (solo la de
+la fuga de estado comercial) y someter al superadmin (solo la de la salida de emergencia).
+
+> **Y el criterio mide el número, no el paso.** «Lanza una excepción» sería cierto y aun así
+> insuficiente: si el guardián fallara *después* de la transacción, el throw ocurriría igual con el
+> cargo ya cobrado. La prueba comprueba que cargo, libro, recibos y anticipos quedan **idénticos**.
+
+**Verificado en el navegador sobre el mismo conjunto**, no solo con la suite: al intentar cobrar de
+nuevo en PA-101 sale **«Este conjunto está suspendido. Contacta a un asesor de Vivaru para
+reactivarlo.»**, y la base no se movió ni un documento.
+
+**El cobro de la reproducción se dejó puesto** (decisión de David), igual que el de T2-203 en §13:
+revertirlo dejaría el pago **y** su reverso en el libro, más sucio que un pago limpio. Ojo, porque
+esto ya no tiene vuelta fácil: **`revertPayment` es una de las seis**, así que ese cobro ahora solo
+lo puede deshacer un superadmin.
+
+> **Un hallazgo del camino que NO era de CF8: las suites de emulador se pisaban entre sí.** Corrían
+> en paralelo contra un solo emulador y cada `beforeEach` limpia colecciones **globales**, así que
+> se borraban los datos mutuamente. Daba **fallos fantasma que cambiaban de sitio entre corridas**
+> —9 y luego 4 sin tocar una línea, y tres de ellos en un fichero que estaba verde—. Se arregló con
+> `fileParallelism: false` en `functions/vitest.emulator.config.mts`. **Se detectó solo porque se
+> midió la línea base ANTES de culpar al cambio propio**; sin eso se habría leído como un defecto
+> del arreglo.
+
+**Lo que queda de esta tanda, anotado como chip aparte y sin construir:**
+
+- **La fecha contable del cobro sale en UTC.** `new Date().toISOString().slice(0, 10)` en
+  `src/app/(admin)/admin/billing/page.tsx:240`: a partir de las ~19:00 hora local devuelve **el día
+  siguiente**. El panel decía «lunes, 24 de agosto» y el asiento, el recibo y el `lastPaymentAt`
+  quedaron con `2026-08-25`. Se ve solo: tras saldar la cartera entera, «% recaudo · Hoy» seguía en
+  `0.0% · Sin actividad`. **Afecta a dinero y al comprobante emitido**, y probablemente el cobro de
+  §13 arrastra lo mismo.
+- **El aviso de reparto fallido invita a cobrar igual.** Cuando la vista previa falla, el diálogo
+  dice «Puedes registrar el cobro contra este cargo». Desde CF8 eso puede ser falso: hay que
+  distinguir `failed-precondition`/`permission-denied` —enseñar el mensaje del servidor y
+  deshabilitar el botón— del fallo transitorio, donde el texto actual sigue valiendo.
+- **`Privada Las Playas` no tiene campo `currency`**, que CLAUDE.md prohíbe expresamente. No rompe
+  —`useTenantCurrency` cae a `COP`— pero pinta en pesos colombianos las cuentas de un conjunto de
+  Ciudad de México, y su recibo lleva dentro `issuerCountry: MX`.
 
 ## LO SIGUIENTE — CERRAR FRENTES, NO ABRIRLOS (decidido con David el 24 ago 2026)
 
@@ -245,15 +344,15 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 | # | Frente | Qué significa CERRADO | Coste |
 |---|---|---|---|
 | ~~**1**~~ | ~~**`PH-001` — encender el lote**~~ | **HECHO el 25 de agosto de 2026.** Las seis encendidas globalmente en los nueve conjuntos, una a una y mirando, y el override retirado. Costó **cero código**. Detalle en `docs/encender-el-lote-habitanto.md` | — |
-| **2** | **`FLOW-002` de verdad** | **CF8 primero, que es dinero**; luego `personId`; luego §9/CA13. O se construyen, o §7.5 y §7.6 dejan de prometerlos | Bajo–medio |
+| **2** | **`FLOW-002` de verdad** | ~~CF8~~ **HECHO y en producción** (`9f75083`). Quedan **`personId`** y **§9/CA13**: o se construyen, o §7.5 y §7.6 dejan de prometerlos | Bajo–medio |
 | **3** | **`FIX-001` completo** | Encender `producto-reservas-servidor` → observar sin escrituras directas → **cerrar la regla (paso 4, sin vuelta atrás)** → entrega 2 | Medio, con espera |
 | **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias de verdad** | Medio |
 | **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) | Alto — es construir |
 | **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
 
 **El 1 fue primero y salió como se esperaba:** eran siete pasos construidos, probados y desplegados
-que no le servían a nadie por estar dormidos. **El siguiente en la cola es ahora `FLOW-002` de
-verdad**, empezando por `CF8`, que es dinero.
+que no le servían a nadie por estar dormidos. **Después se abrió `FLOW-002` de verdad**, empezando
+por `CF8` porque era dinero — y `CF8` **se cerró el mismo 24 de agosto**.
 
 > **Lo que enseñó encender, y no estaba previsto.** Ninguna de las seis rompió nada, pero **tres de
 > las comprobaciones del runbook no se podían hacer tal como estaban escritas**, y eso se supo
@@ -270,17 +369,17 @@ El índice de PRD las mezcla en la misma celda, y por eso todo parece a medias c
 |---|---|---|
 | **(a) Fase 2 aplazada a propósito** | `PLAT-001`, `PLAT-003`, `FEAT-003` | **SÍ.** El alcance se sacó al escribir la ficha, no después |
 | **(b) MVP a medias** | `PLAT-002` (entrega 2), `FIX-001` (pasos 2–4) | **NO.** Trabajo comprometido sin hacer |
-| **(c) Criterios del alcance ENTREGADO, sin construir** | `FLOW-002`: §9/CA13, **CF8**, `personId` | **NO — y esta categoría no debería existir** |
+| **(c) Criterios del alcance ENTREGADO, sin construir** | `FLOW-002`: §9/CA13 y `personId`. **CF8 salió de aquí el 24 de agosto**, cerrado y en producción | **NO — y esta categoría no debería existir** |
 
 > **REGLA NUEVA, para que (c) no se repita:** una PRD **no se marca «EN PRODUCCIÓN» hasta que todos
 > sus criterios están cumplidos o movidos explícitamente a Fase 2**. Hoy «en producción» significa
 > «el código está desplegado», que no es lo mismo — y así se marcó `FLOW-002` con tres criterios
 > propios sin cumplir, uno de ellos **de dinero**.
 
-**CF8, dicho claro:** un conjunto `suspended` —un cliente que dejó de pagar— **puede hoy cobrar y
-cruzar anticipos**, porque las callables usan el Admin SDK y no pasan por las reglas, que es donde
-vive `tenantOperable`. Es anterior a `FLOW-002` (viene de `FIN-001`), pero la ficha lo amplió a
-tres operaciones más.
+**CF8 ya no está abierto.** Decía aquí que un conjunto `suspended` **podía hoy cobrar y cruzar**, y
+era cierto hasta el 24 de agosto de 2026: se reprodujo con dinero de verdad y se cerró el mismo día
+(`9f75083`, en producción). El detalle está arriba, en su propia sección. Era anterior a `FLOW-002`
+—venía de `FIN-001`—, y la ficha solo lo amplió a tres operaciones más.
 
 ### Lo que no entra en los seis frentes
 
