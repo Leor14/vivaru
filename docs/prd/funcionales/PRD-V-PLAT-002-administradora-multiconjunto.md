@@ -444,8 +444,8 @@ solo eso, con el selector aún apagado y sin ningún usuario afectado.
 ### Story Map
 
 **MVP** — ~~membresías múltiples en sesión~~ ✅ · ~~selector con último usado~~ ✅ ·
-~~las once callables~~ ✅ (**eran dieciocho**) · entidad administradora y asociación desde
-superadmin **← lo único del MVP que queda**.
+~~las once callables~~ ✅ (**eran dieciocho**) · ~~entidad administradora y asociación desde
+superadmin~~ ✅ — **el MVP está completo**.
 
 **Fase 2** — vista de cartera con indicadores operativos · el residente ve su administradora ·
 registro de cambios de conjunto.

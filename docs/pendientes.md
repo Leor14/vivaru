@@ -99,12 +99,25 @@ por dos motivos distintos:
 Antes de tocar Storage se midió el radio: **cero usuarios perderían acceso** en los dos proyectos
 (44 de 44 en staging, 39 de 39 en producción tienen su documento de membresía).
 
-### Lo que queda del frente 4, sin construir
+### El paso 3 está HECHO — el MVP del Story Map queda completo
 
-El **paso 3**: la entidad `managementCompanies` con su regla y sus dos callables de superadmin, y
-la **vista de conjuntos** — que la ficha sitúa en **Fase 2**, no en el MVP, aunque la cabecera
-anterior la contaba como parte del frente. Y si se construye, **necesita otro nombre**:
-«Cartera» ya es `/admin/billing`.
+`4e3eacc` (servidor) y `3553449` (consola). La entidad `managementCompanies`, sus dos callables
+de superadmin, la asociación conjunto↔administradora y `/superadmin/administradoras` para
+operarlo. 14 pruebas de emulador y 5 de reglas, falsadas.
+
+**Una desviación deliberada de la ficha, y es más estricta.** §7.1 pedía «lectura para los
+miembros de un conjunto asociado» y **eso no se puede expresar** en reglas de Firestore: haría
+falta iterar conjuntos. Se cerró el registro al superadmin —lleva `taxId`, correo y teléfono— y
+**el nombre se desnormaliza en `tenants`**, que los miembros ya leen. Al renombrar, la callable
+lo propaga a sus conjuntos y hay prueba de que lo hace.
+
+**Sin construir, y es Fase 2 según el Story Map:** la vista de cartera con indicadores, que el
+residente vea su administradora, y el registro de cambios de conjunto (R8). Si se construye la
+vista, **necesita otro nombre**: «Cartera» ya es `/admin/billing`.
+
+**Nada del paso 3 está desplegado todavía**, ni en staging. Las dos callables son nuevas, así que
+al desplegarlas hay que comprobar el permiso de invocación en Cloud Run — una callable nueva nace
+sin él y el síntoma es un «error interno» sin pista.
 
 ### Tres cosas del entorno que costaron tiempo hoy
 
