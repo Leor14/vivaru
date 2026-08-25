@@ -140,15 +140,25 @@ export async function repartirEgreso(
     throw new HttpsError("failed-precondition", "Ese egreso no tiene importe que repartir.");
   }
 
-  // R5 · ¿ya se repartió? Las corridas anuladas NO cuentan: si se anuló, el
-  // egreso vuelve a figurar como no repartido (CA8) y repetirlo es normal.
+  // Idempotencia por clave, mismo patrón que la corrida por coeficiente: el id
+  // de la corrida ES la clave normalizada, así que un reintento la encuentra.
+  const campaignId = `exp_${input.operationKey.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120)}`;
+  const campaignRef = firestore.collection("billingCampaigns").doc(campaignId);
+
+  // R5 · ¿ya se repartió? Tres matices, y los tres salieron de una prueba:
+  //
+  //  · Las corridas **anuladas no cuentan**: si se anuló, el egreso vuelve a
+  //    figurar como no repartido (CA8) y repetirlo es lo normal.
+  //  · **Esta corrida no se cuenta a sí misma.** Sin excluirla, un reintento
+  //    con la MISMA clave se veía en su propio espejo y respondía «este egreso
+  //    ya se repartió»: alarmaba sobre una segunda corrida que no existía.
   const previasSnap = await firestore
     .collection("billingCampaigns")
     .where("tenantId", "==", input.tenantId)
     .where("sourceExpenseId", "==", input.expenseId)
     .get();
   const yaRepartido = previasSnap.docs
-    .filter((d) => (d.data() as { status?: string }).status !== "anulada")
+    .filter((d) => d.id !== campaignId && (d.data() as { status?: string }).status !== "anulada")
     .map((d) => d.id);
 
   const avisoDobleCobro = CATEGORIAS_ORDINARIAS.has(egreso.category ?? "");
@@ -185,22 +195,23 @@ export async function repartirEgreso(
     return { ok: true, dryRun: true, avisoDobleCobro, yaRepartido, ...reparto };
   }
 
-  // R5 · fuera de la vista previa, repetir exige confirmación aparte. Va DESPUÉS
-  // del `dryRun` a propósito: la vista previa tiene que poder enseñar el aviso.
+  // **La idempotencia se resuelve ANTES que la guarda de repetido, y el orden
+  // es el defecto que encontró la prueba.** Al revés, un reintento de la misma
+  // operación —doble clic, reintento de red— chocaba con R5 y devolvía «este
+  // egreso ya se repartió» en lugar de la corrida que ya había creado. Un
+  // reintento de la MISMA operación no es repetir el reparto: es el mismo.
+  const existente = await campaignRef.get();
+  if (existente.exists) {
+    return { ok: true, dryRun: false, campaignId, created: false, avisoDobleCobro, yaRepartido, ...reparto };
+  }
+
+  // R5 · repartir OTRA vez sí exige confirmación aparte. Va DESPUÉS del
+  // `dryRun` a propósito: la vista previa tiene que poder enseñar el aviso.
   if (yaRepartido.length > 0 && !input.confirmarRepetido) {
     throw new HttpsError(
       "failed-precondition",
       `Este egreso ya se repartió (${yaRepartido.length} corrida${yaRepartido.length > 1 ? "s" : ""}). Confirma que quieres repartirlo otra vez.`,
     );
-  }
-
-  // Idempotencia por clave, mismo patrón que la corrida por coeficiente: el id
-  // de la corrida ES la clave normalizada, así que un reintento la encuentra.
-  const campaignId = `exp_${input.operationKey.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 120)}`;
-  const campaignRef = firestore.collection("billingCampaigns").doc(campaignId);
-  const existente = await campaignRef.get();
-  if (existente.exists) {
-    return { ok: true, dryRun: false, campaignId, created: false, avisoDobleCobro, yaRepartido, ...reparto };
   }
 
   const concepto = input.concept ?? "extraordinaria";
