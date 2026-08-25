@@ -6,9 +6,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026
 
-**EL FRENTE 4 ESTÁ COMPLETO: el MVP entero de `PLAT-002`, construido, validado en pantalla y
-con la única incógnita medida.** Lo que queda es desplegar el paso 3 y la vuelta atrás de
-Storage — ver «Qué falta desplegar», abajo.
+**EL FRENTE 4 ESTÁ CERRADO.** El MVP entero de `PLAT-002`: construido, desplegado en staging y
+verificado por navegador de punta a punta, incluida la subida de un documento en el **segundo**
+conjunto. **En producción no hay nada de esto**, y esa es la siguiente decisión.
 
 ### La medición se hizo, y salió al revés de lo que yo apostaba
 
@@ -105,18 +105,37 @@ lo propaga a sus conjuntos y hay prueba de que lo hace.
 residente vea su administradora, y el registro de cambios de conjunto (R8). Si se construye la
 vista, **necesita otro nombre**: «Cartera» ya es `/admin/billing`.
 
-### Qué falta desplegar, y en qué orden
+### Desplegado y verificado de punta a punta
 
-Staging tiene el paso 1 y el 2. **Falta el paso 3 y la vuelta atrás de Storage.**
+**Staging tiene el frente 4 entero.** El orden fue functions → reglas → front, y cada pieza se
+comprobó contra su fuente, no contra el «Deploy complete»:
 
-| # | Pieza | Nota |
-|---|---|---|
-| 1 | **functions** | Trae `switchActiveTenant`, `saveManagementCompany` y `setTenantManagementCompany`. **Las tres son NUEVAS**: comprobar el permiso de invocación en Cloud Run al terminar — nacen sin él y el síntoma es un «error interno» sin ninguna pista. Ya costó una tarde con `aiInvoke` |
-| 2 | **front** | El rollout hay que crearlo a mano; el backend de staging no vigila rama |
-| 3 | **reglas** | `firestore.rules` trae el bloque de `managementCompanies`. **`storage.rules` ya está desplegada** —es la versión por claim, que es la buena— así que este paso solo mueve Firestore |
+| Pieza | Cómo se comprobó |
+|---|---|
+| **functions** | **77 de 77 en `ACTIVE`** por la API del proyecto. Las tres nuevas —`switchActiveTenant`, `saveManagementCompany`, `setTenantManagementCompany`— creadas, y su `serviceConfig` **idéntica a la de `applyPayment`**, que se sabe que funciona |
+| **`firestore.rules`** | `released rules to cloud.firestore`, con el bloque de `managementCompanies` |
+| **`storage.rules`** | La versión por claim, que es la buena |
+| **front** | El bundle contiene la cadena `switchActiveTenant`, que **no existía antes de hoy** |
 
-Y una vez desplegado, la comprobación que cierra el frente: **cambiar de conjunto y subir un
-documento en el segundo**. Es lo único que prueba que el claim re-emitido llega a las reglas.
+**Y la prueba que cierra el frente, hecha:** cambiar a `Conjunto Residencial El Nogal` y **subir un
+documento ahí**. Quedó en Firestore bajo ese conjunto y el objeto en
+`tenants/tenant-nogal-bogota/documents/`. Es lo único que demuestra que el claim re-emitido llega
+a las reglas de Storage.
+
+> **Se dejó a propósito en staging**, como evidencia fechada: el documento `prueba-plat002.txt` en
+> El Nogal y otro igual en Las Playas (el de la bisección), más el cobro de $430.000 en T2-204
+> con recibo `REC-MBZ5EY`. No es basura que limpiar.
+
+### Dos comprobaciones que casi me engañan, y valen para la próxima
+
+**El permiso de invocación no se lee en el IAM de Cloud Run.** Las tres callables nuevas salen sin
+binding `roles/run.invoker`… **y `applyPayment` también**, que funciona. Sin comparar contra una
+conocida habría reportado tres callables rotas. **Toda comprobación nueva necesita un control que
+se sepa bueno.**
+
+**Y dos condiciones de parada acertaron por accidente.** Un vigía del bundle que trataba «`curl`
+falló» como «cambió», y un `until` que se disparó con la palabra «Error» dentro de
+`logClientError`. Las dos daban un final falso. **Un patrón de parada laxo es un falso verde.**
 
 ### Tres cosas del entorno que costaron tiempo hoy
 
