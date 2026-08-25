@@ -37,7 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -66,9 +66,11 @@ const trial_modules_1 = require("./trial-modules");
 const management_companies_1 = require("./management-companies");
 const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
+const feature_flags_1 = require("./feature-flags");
 const aviso_recibo_1 = require("./aviso-recibo");
 const vocabulario_pais_1 = require("./vocabulario-pais");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
+const expense_distribution_1 = require("./expense-distribution");
 const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 const trial_workspace_1 = require("./trial-workspace");
 const notification_catalog_1 = require("./notification-catalog");
@@ -3410,6 +3412,82 @@ exports.generateCoefficientCampaign = (0, https_1.onCall)({ cors: http_config_1.
             period: data.period,
             totalDistributed: resultado.total,
             unitCount: resultado.lines.length,
+        });
+    }
+    return resultado;
+});
+// ── FLOW-001 · prorrateo de un gasto entre las unidades ──────────────────────
+//
+// La lógica vive en `expense-distribution.ts`, y la ARITMÉTICA no vive ahí: la
+// pone `repartirPorCoeficiente`, de `PLAT-001`. Van por callable y no por
+// escritura directa por el motivo de §11.1: el reparto crea decenas de cargos
+// que deben aparecer todos o ninguno, y **si el navegador calculara los
+// importes, un cliente manipulado emitiría los que quisiera**.
+//
+// **Tres guardas, y ninguna sobra:**
+//   · `assertActiveTenantAdmin` — quién.
+//   · `assertTenantContratado`  — CF8/§7.3. NO basta `assertTenantOperable`:
+//     esa admite `trial` y la regla `previewModuleWritable` lo veta. Una
+//     callable no evalúa reglas, así que sin esto la puerta cerrada por regla
+//     quedaría abierta por callable — el defecto de `CF8`, otra vez.
+//   · `assertFeatureEnabled`    — la bandera se comprueba EN EL SERVIDOR. La
+//     corrida por coeficiente no lo hace y por eso su bandera «no es el freno,
+//     es solo el botón»; esta sí frena.
+exports.distributeExpense = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.expenseId || !data.period || !data.operationKey) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para repartir el egreso.");
+    }
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    await (0, tenant_status_1.assertTenantOperable)(data.tenantId);
+    await (0, tenant_status_1.assertTenantContratado)(data.tenantId);
+    await (0, feature_flags_1.assertFeatureEnabled)("producto-prorrateo-de-gastos", data.tenantId);
+    const resultado = await (0, expense_distribution_1.repartirEgreso)({
+        tenantId: data.tenantId,
+        expenseId: normalizeText(data.expenseId),
+        period: normalizeText(data.period),
+        concept: normalizeText(data.concept) || undefined,
+        payerRelation: data.payerRelation,
+        dueDate: normalizeText(data.dueDate) || undefined,
+        dryRun: data.dryRun === true,
+        confirmarRepetido: data.confirmarRepetido === true,
+        operationKey: normalizeText(data.operationKey),
+    }, uid);
+    // Solo se audita lo que escribió de verdad: ni la vista previa ni el
+    // reintento idempotente dejan rastro doble.
+    if (!resultado.dryRun && resultado.created) {
+        await writeAuditLog(data.tenantId, uid, "distribute_expense", {
+            campaignId: resultado.campaignId,
+            expenseId: data.expenseId,
+            totalDistributed: resultado.total,
+            unitCount: resultado.lines.length,
+            repetido: resultado.yaRepartido.length > 0,
+        });
+    }
+    return resultado;
+});
+exports.cancelDistribution = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.campaignId) {
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para anular la corrida.");
+    }
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    await (0, tenant_status_1.assertTenantOperable)(data.tenantId);
+    await (0, tenant_status_1.assertTenantContratado)(data.tenantId);
+    // La bandera NO se comprueba al anular, y es deliberado: apagarla no puede
+    // dejar cargos vivos sin forma de deshacerlos. Se puede anular siempre.
+    const resultado = await (0, expense_distribution_1.anularCorrida)({ tenantId: data.tenantId, campaignId: normalizeText(data.campaignId), reason: data.reason }, uid);
+    if (!resultado.alreadyCancelled) {
+        await writeAuditLog(data.tenantId, uid, "cancel_distribution", {
+            campaignId: resultado.campaignId,
+            cancelled: resultado.cancelled,
+            reason: data.reason,
         });
     }
     return resultado;

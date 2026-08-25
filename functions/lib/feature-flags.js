@@ -81,6 +81,8 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
     // Apagada = sin selector de conjunto. Ver el catálogo en `src/`.
     "producto-multiconjunto": false,
+    // Apagada = no se puede repartir un egreso. Ver el catálogo en `src/`.
+    "producto-prorrateo-de-gastos": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */

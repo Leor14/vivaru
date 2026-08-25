@@ -58,6 +58,7 @@ export type FeatureFlagKey =
   | "producto-anticipos"
   | "producto-pago-multiple"
   | "producto-multiconjunto"
+  | "producto-prorrateo-de-gastos"
   | "operacion-app-check-monitor";
 
 /**
@@ -97,6 +98,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
   // Apagada = sin selector de conjunto. Ver el catálogo en `src/`.
   "producto-multiconjunto": false,
+  // Apagada = no se puede repartir un egreso. Ver el catálogo en `src/`.
+  "producto-prorrateo-de-gastos": false,
   "operacion-app-check-monitor": true,
 };
 

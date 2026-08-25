@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WRITABLE_TENANT_STATUSES = void 0;
+exports.assertTenantContratado = assertTenantContratado;
 exports.assertTenantOperable = assertTenantOperable;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
@@ -27,6 +28,32 @@ const https_1 = require("firebase-functions/v2/https");
  * `callableCorsOrigins` → `http-config.ts`.
  */
 exports.WRITABLE_TENANT_STATUSES = ["active", "trial"];
+/**
+ * ¿El conjunto tiene el módulo CONTRATADO, o lo está viendo en prueba?
+ *
+ * **Existe porque `assertTenantOperable` NO sirve para esto, y la diferencia es
+ * justo la que costó `CF8`.** `WRITABLE_TENANT_STATUSES` incluye `trial` —un
+ * conjunto en prueba opera con normalidad casi todo—, mientras que la regla
+ * `previewModuleWritable` de `firestore.rules` **veta a `trial` y a `expired`**.
+ * Una callable escribe con el Admin SDK y **no evalúa las reglas**, así que
+ * apoyarse solo en ellas deja abierta por callable la puerta que se cerró por
+ * regla. Es literalmente el defecto de `CF8`: el producto se negaba a facturarle
+ * a un conjunto suspendido y le dejaba cobrar.
+ *
+ * `PRD-V-FLOW-001` §7.3 lo pide **sin excepción** para el prorrateo, y da el
+ * motivo: es la operación que más dinero mueve del producto.
+ */
+async function assertTenantContratado(tenantId) {
+    const snap = await (0, firestore_1.getFirestore)().collection("tenants").doc(tenantId).get();
+    if (!snap.exists)
+        return;
+    const status = snap.data()?.status;
+    if (!status || !["trial", "expired"].includes(status))
+        return;
+    throw new https_1.HttpsError("failed-precondition", status === "trial"
+        ? "Este módulo se ve con datos de ejemplo durante la prueba. Contrata para operarlo con datos reales."
+        : "El período de prueba de este conjunto terminó. Contacta a un asesor de Vivaru para reactivarlo.");
+}
 async function assertTenantOperable(tenantId) {
     const snap = await (0, firestore_1.getFirestore)().collection("tenants").doc(tenantId).get();
     if (!snap.exists)

@@ -51,6 +51,7 @@ const CLAVES = [
   "producto-anticipos",
   "producto-pago-multiple",
   "producto-multiconjunto",
+  "producto-prorrateo-de-gastos",
   "operacion-app-check-monitor",
 ];
 

@@ -46,6 +46,16 @@ const STATUS_CONFIG = {
     borderCls: "border-red-200",
     headerBg: "bg-red-50/40",
   },
+  // `FLOW-001`: la corrida que lo generó se anuló. **No dice «Al día»** — eso
+  // afirmaría que se pagó. Gris y sin acento: no hay nada que hacer con él, y
+  // el importe sigue visible porque el cargo conserva lo que llegó a decir.
+  cancelled: {
+    label: "Anulado",
+    badgeCls: "bg-[var(--slate-100)] text-[var(--slate-500)]",
+    dotCls: "bg-[var(--slate-400)]",
+    borderCls: "border-[var(--slate-200)]",
+    headerBg: "",
+  },
 } as const;
 
 // ─── Detail row ───────────────────────────────────────────────────────────────
@@ -99,7 +109,8 @@ export function BillingPeriodCard({
   const [open, setOpen] = useState(defaultOpen);
   const config = STATUS_CONFIG[item.status];
 
-  const hasDebt = item.status !== "paid";
+  // Un cargo anulado no debe nada: `!== "paid"` sin más lo daría por deuda.
+  const hasDebt = item.status !== "paid" && item.status !== "cancelled";
   const periodLabel = formatPeriod(item.period);
 
   return (

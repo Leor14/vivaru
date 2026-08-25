@@ -70,6 +70,7 @@ export type FeatureFlagKey =
   | "producto-anticipos"
   | "producto-pago-multiple"
   | "producto-multiconjunto"
+  | "producto-prorrateo-de-gastos"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -194,6 +195,18 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-PLAT-002 §11.4 — administradora multiconjunto, entrega 2",
     alApagar:
       "Apagada GLOBALMENTE: desaparece el selector y cada quien opera el conjunto que ya tenía; quien tenga varias membresías se queda en la última usada y deja de poder cambiar sin cerrar sesión. Apagarla en UN SOLO conjunto es distinto y peor: quien esté parado en él pierde el selector y no puede volver a los demás sin cerrar sesión —y al reentrar, `lastActiveTenantId` lo devuelve ahí—. Por eso esta bandera se enciende y se apaga GLOBAL.",
+  },
+  "producto-prorrateo-de-gastos": {
+    key: "producto-prorrateo-de-gastos",
+    area: "producto",
+    label: "Repartir un gasto entre las unidades",
+    description:
+      "Desde un egreso registrado, repartirlo entre las unidades activas por coeficiente y generar los cargos, con trazabilidad en los dos sentidos y anulación de la corrida entera.",
+    // Nace APAGADA: crea decenas de cargos de dinero real en una operación.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-001 §11.3 — prorrateo de un gasto entre las unidades",
+    alApagar:
+      "Desaparece «Repartir entre unidades» del egreso. **Lo ya repartido NO se deshace**: los cargos creados siguen vivos y se cobran. Para deshacerlos hay que anular la corrida ANTES de apagarla, porque apagada tampoco se puede anular. Un cargo con pagos aplicados no se anula en lote en ningún caso: eso es `revertirPago`.",
   },
   "producto-reservas-servidor": {
     key: "producto-reservas-servidor",

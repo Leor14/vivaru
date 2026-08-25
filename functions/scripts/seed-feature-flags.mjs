@@ -129,6 +129,11 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-prorrateo-de-gastos",
+    enabled: false,
+    description: "Repartir un egreso entre las unidades por coeficiente (PRD-V-FLOW-001).",
+  },
+  {
     key: "producto-multiconjunto",
     area: "producto",
     label: "Un administrador sobre varios conjuntos",

@@ -78,26 +78,35 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
   const StatusIcon = config.icon;
 
   // Aggregates
-  const totalPendingBalance = items
+  //
+  // **`cancelled` (FLOW-001) se excluye de TODO lo que sea dinero o deuda.**
+  // Estos filtros decían `!== "paid"`, que con un estado nuevo cuenta el cargo
+  // anulado como deuda viva. El anulado además queda con `balance = 0`, así que
+  // la suma saldría bien igualmente; lo que no salía bien es `totalCharged`,
+  // que suma `amount` **sin mirar el estado** — y el importe de un anulado sí
+  // sigue ahí a propósito, porque el cargo conserva lo que llegó a decir.
+  const vivos = items.filter((s) => s.status !== "cancelled");
+
+  const totalPendingBalance = vivos
     .filter((s) => s.status !== "paid")
     .reduce((sum, s) => sum + (s.balance ?? 0), 0);
 
-  const totalCharged = items.reduce((sum, s) => sum + (s.amount ?? 0), 0);
-  const totalPaid = items.reduce((sum, s) => sum + (s.paymentAmount ?? 0), 0);
-  const paidMonths = items.filter((s) => s.status === "paid").length;
+  const totalCharged = vivos.reduce((sum, s) => sum + (s.amount ?? 0), 0);
+  const totalPaid = vivos.reduce((sum, s) => sum + (s.paymentAmount ?? 0), 0);
+  const paidMonths = vivos.filter((s) => s.status === "paid").length;
 
   // Next due date logic:
   // Priority 1 — earliest FUTURE due date (today or later)
   // Priority 2 — if no future dates exist, show the oldest past due date as "Vencido desde"
   const today = new Date().toISOString().slice(0, 10);
-  const unpaidWithDue = items.filter((s) => s.status !== "paid" && s.dueDate);
+  const unpaidWithDue = vivos.filter((s) => s.status !== "paid" && s.dueDate);
   const sortedByDueAsc = [...unpaidWithDue].sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
   const nextFutureDue = sortedByDueAsc.find((s) => s.dueDate! >= today);
   const upcomingDue = nextFutureDue ?? sortedByDueAsc[0];
   const dueLabel = nextFutureDue ? "Próximo vencimiento" : "Vencido desde";
 
   // Most recent overdue period label for context pill
-  const mostRecentPendingPeriod = items
+  const mostRecentPendingPeriod = vivos
     .filter((s) => s.status !== "paid")
     .sort((a, b) => (a.period > b.period ? -1 : 1))[0];
 

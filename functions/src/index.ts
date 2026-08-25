@@ -57,10 +57,17 @@ import {
   type AsociarConjuntoInput,
 } from "./management-companies";
 import { esMiembroDelConjunto } from "./tenant-membership";
-import { assertTenantOperable } from "./tenant-status";
+import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
+import { assertFeatureEnabled } from "./feature-flags";
 import { frasesDelRecibo } from "./aviso-recibo";
 import { terminoCuotaMensual } from "./vocabulario-pais";
 import { cuentaParaConcepto } from "./plan-de-cuentas";
+import {
+  anularCorrida,
+  repartirEgreso,
+  type AnularCorridaInput,
+  type RepartirEgresoInput,
+} from "./expense-distribution";
 import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
 import {
@@ -4297,6 +4304,105 @@ export const generateCoefficientCampaign = onCall<GenerarCorridaInput>(
         period: data.period,
         totalDistributed: resultado.total,
         unitCount: resultado.lines.length,
+      });
+    }
+
+    return resultado;
+  },
+);
+
+// ── FLOW-001 · prorrateo de un gasto entre las unidades ──────────────────────
+//
+// La lógica vive en `expense-distribution.ts`, y la ARITMÉTICA no vive ahí: la
+// pone `repartirPorCoeficiente`, de `PLAT-001`. Van por callable y no por
+// escritura directa por el motivo de §11.1: el reparto crea decenas de cargos
+// que deben aparecer todos o ninguno, y **si el navegador calculara los
+// importes, un cliente manipulado emitiría los que quisiera**.
+//
+// **Tres guardas, y ninguna sobra:**
+//   · `assertActiveTenantAdmin` — quién.
+//   · `assertTenantContratado`  — CF8/§7.3. NO basta `assertTenantOperable`:
+//     esa admite `trial` y la regla `previewModuleWritable` lo veta. Una
+//     callable no evalúa reglas, así que sin esto la puerta cerrada por regla
+//     quedaría abierta por callable — el defecto de `CF8`, otra vez.
+//   · `assertFeatureEnabled`    — la bandera se comprueba EN EL SERVIDOR. La
+//     corrida por coeficiente no lo hace y por eso su bandera «no es el freno,
+//     es solo el botón»; esta sí frena.
+
+export const distributeExpense = onCall<RepartirEgresoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.expenseId || !data.period || !data.operationKey) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para repartir el egreso.");
+    }
+
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    await assertTenantOperable(data.tenantId);
+    await assertTenantContratado(data.tenantId);
+    await assertFeatureEnabled("producto-prorrateo-de-gastos", data.tenantId);
+
+    const resultado = await repartirEgreso(
+      {
+        tenantId: data.tenantId,
+        expenseId: normalizeText(data.expenseId),
+        period: normalizeText(data.period),
+        concept: normalizeText(data.concept) || undefined,
+        payerRelation: data.payerRelation,
+        dueDate: normalizeText(data.dueDate) || undefined,
+        dryRun: data.dryRun === true,
+        confirmarRepetido: data.confirmarRepetido === true,
+        operationKey: normalizeText(data.operationKey),
+      },
+      uid,
+    );
+
+    // Solo se audita lo que escribió de verdad: ni la vista previa ni el
+    // reintento idempotente dejan rastro doble.
+    if (!resultado.dryRun && resultado.created) {
+      await writeAuditLog(data.tenantId, uid, "distribute_expense", {
+        campaignId: resultado.campaignId,
+        expenseId: data.expenseId,
+        totalDistributed: resultado.total,
+        unitCount: resultado.lines.length,
+        repetido: resultado.yaRepartido.length > 0,
+      });
+    }
+
+    return resultado;
+  },
+);
+
+export const cancelDistribution = onCall<AnularCorridaInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const data = request.data;
+    if (!data?.tenantId || !data.campaignId) {
+      throw new HttpsError("invalid-argument", "Datos incompletos para anular la corrida.");
+    }
+
+    await assertActiveTenantAdmin(data.tenantId, uid);
+    await assertTenantOperable(data.tenantId);
+    await assertTenantContratado(data.tenantId);
+    // La bandera NO se comprueba al anular, y es deliberado: apagarla no puede
+    // dejar cargos vivos sin forma de deshacerlos. Se puede anular siempre.
+
+    const resultado = await anularCorrida(
+      { tenantId: data.tenantId, campaignId: normalizeText(data.campaignId), reason: data.reason },
+      uid,
+    );
+
+    if (!resultado.alreadyCancelled) {
+      await writeAuditLog(data.tenantId, uid, "cancel_distribution", {
+        campaignId: resultado.campaignId,
+        cancelled: resultado.cancelled,
+        reason: data.reason,
       });
     }
 

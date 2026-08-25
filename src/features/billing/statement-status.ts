@@ -1,4 +1,4 @@
-export type StatementStatus = "paid" | "pending" | "overdue";
+export type StatementStatus = "paid" | "pending" | "overdue" | "cancelled";
 
 /**
  * Estado de un estado de cuenta de cartera.
@@ -11,11 +11,17 @@ export type StatementStatus = "paid" | "pending" | "overdue";
  * pasado con saldo queda en mora. Antes la mora exigía `dueDate`, así que los
  * cobros registrados sin fecha quedaban como "pendiente" aunque debieran meses.
  * `asOf` se inyecta en pruebas; por defecto usa hoy.
+ *
+ * **`cancelled` (FLOW-001) NO se deriva del saldo, se conserva.** Un cargo
+ * anulado queda con `balance = 0`, y sin esta salida temprana esta función lo
+ * recalcularía como «paid»: diría que se pagó algo que se anuló. Por eso el
+ * estado actual entra como opción y manda sobre la aritmética.
  */
 export function computeStatementStatus(
   balance: number,
-  opts: { dueDate?: string; period?: string; asOf?: string } = {},
+  opts: { dueDate?: string; period?: string; asOf?: string; current?: StatementStatus } = {},
 ): StatementStatus {
+  if (opts.current === "cancelled") return "cancelled";
   if (balance <= 0) return "paid";
   // Hora LOCAL (no UTC): `toISOString` desfasaría el "hoy" cerca de medianoche en
   // zonas != UTC (p. ej. México UTC-6) y marcaría cobros como vencidos un día antes.

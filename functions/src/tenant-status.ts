@@ -25,6 +25,36 @@ import { HttpsError } from "firebase-functions/v2/https";
  */
 export const WRITABLE_TENANT_STATUSES = ["active", "trial"];
 
+/**
+ * ¿El conjunto tiene el módulo CONTRATADO, o lo está viendo en prueba?
+ *
+ * **Existe porque `assertTenantOperable` NO sirve para esto, y la diferencia es
+ * justo la que costó `CF8`.** `WRITABLE_TENANT_STATUSES` incluye `trial` —un
+ * conjunto en prueba opera con normalidad casi todo—, mientras que la regla
+ * `previewModuleWritable` de `firestore.rules` **veta a `trial` y a `expired`**.
+ * Una callable escribe con el Admin SDK y **no evalúa las reglas**, así que
+ * apoyarse solo en ellas deja abierta por callable la puerta que se cerró por
+ * regla. Es literalmente el defecto de `CF8`: el producto se negaba a facturarle
+ * a un conjunto suspendido y le dejaba cobrar.
+ *
+ * `PRD-V-FLOW-001` §7.3 lo pide **sin excepción** para el prorrateo, y da el
+ * motivo: es la operación que más dinero mueve del producto.
+ */
+export async function assertTenantContratado(tenantId: string) {
+  const snap = await getFirestore().collection("tenants").doc(tenantId).get();
+  if (!snap.exists) return;
+
+  const status = (snap.data() as { status?: string } | undefined)?.status;
+  if (!status || !["trial", "expired"].includes(status)) return;
+
+  throw new HttpsError(
+    "failed-precondition",
+    status === "trial"
+      ? "Este módulo se ve con datos de ejemplo durante la prueba. Contrata para operarlo con datos reales."
+      : "El período de prueba de este conjunto terminó. Contacta a un asesor de Vivaru para reactivarlo.",
+  );
+}
+
 export async function assertTenantOperable(tenantId: string) {
   const snap = await getFirestore().collection("tenants").doc(tenantId).get();
   if (!snap.exists) return;

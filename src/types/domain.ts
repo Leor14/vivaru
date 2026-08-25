@@ -356,6 +356,28 @@ export interface BillingStatement {
   accountCode?: string;
   /** Liga el cobro a una campaña (lote). null/ausente = cobro individual. */
   campaignId?: string | null;
+  /**
+   * `FLOW-001` — el egreso que originó este cargo, cuando salió de un
+   * prorrateo. Ausente en un cargo normal. Es la mitad de la trazabilidad de
+   * §4.6: del cargo a su factura. La otra mitad se consulta por este campo.
+   *
+   * **Lo escribe SOLO el servidor.** Las reglas vetan que el cliente cree un
+   * cargo que diga venir de un prorrateo: si no, cualquiera fabrica a mano un
+   * cargo con el sello de una corrida que nunca existió.
+   */
+  sourceExpenseId?: string;
+  /**
+   * El coeficiente —o el área— con el que se calculó este cargo, **congelado**.
+   *
+   * Sin esto un cargo de hace un año no se puede explicar si el coeficiente de
+   * la unidad cambió entre medias: el importe seguiría ahí y el «por qué» no.
+   * Lo escribe la corrida por coeficiente desde `PLAT-001`; **esta interfaz no
+   * lo declaraba y el servidor ya lo escribía**, así que el front no podía
+   * leerlo con tipos.
+   */
+  distributionBasisValue?: number;
+  /** La unidad monetaria de residuo que le tocó por resto mayor, si le tocó. */
+  roundingAdjustment?: number;
   amount?: number;
   paymentAmount?: number;
   /**
@@ -383,7 +405,24 @@ export interface BillingStatement {
   advanceAppliedAmount?: number;
   balance: number;
   dueDate?: string;
-  status: "pending" | "paid" | "overdue";
+  /**
+   * `FLOW-001` añade **`cancelled`**, y va acompañado de `balance = 0` a
+   * propósito — no es cinturón y tirantes.
+   *
+   * **Seis sitios del producto usan `status !== "paid"` como «debe»** y suman
+   * `balance` sobre ese filtro. Un valor nuevo que ellos no conocen los deja
+   * contando el cargo anulado como deuda viva. Poner el balance en cero hace
+   * que **toda suma de dinero salga bien aunque el código no se entere del
+   * status nuevo**; el status hace explícito el porqué para el que sí mire.
+   *
+   * `amount` NO se toca: el cargo anulado conserva lo que llegó a decir. Lo que
+   * se pierde al anular es la deuda, no la historia.
+   */
+  status: "pending" | "paid" | "overdue" | "cancelled";
+  /** Solo si `cancelled`: cuándo, quién y por qué. El motivo es obligatorio. */
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
   lastPaymentAt?: string;
   /** Nº de recordatorios enviados (trazabilidad CRM, C2). */
   reminderCount?: number;
@@ -474,7 +513,31 @@ export interface BillingCampaign {
   source: "immediate" | "scheduled";
   unitCount: number;
   sentAt?: string;
-  status: "vigente" | "cerrada";
+  /**
+   * `FLOW-001` añade **`anulada`**, que es terminal y distinta de `cerrada`:
+   * cerrada significa que sus cargos están pagados o archivados; anulada, que
+   * no se cobran. `BillingCampaign.status` solo admitía las dos primeras y
+   * **cerrar una corrida no anulaba nada**.
+   */
+  status: "vigente" | "cerrada" | "anulada";
+  /**
+   * `PLAT-001` — cómo se repartió. **El servidor ya escribía estos tres campos
+   * desde la corrida por coeficiente y esta interfaz no los declaraba.**
+   */
+  distributionBasis?: "coefficient" | "area";
+  /** Importe repartido. Debe ser igual a la suma de los cargos de la corrida. */
+  totalDistributed?: number;
+  /**
+   * `FLOW-001` — el egreso repartido. Ausente = corrida normal. Es la otra
+   * mitad de la trazabilidad: de la factura a sus cargos.
+   */
+  sourceExpenseId?: string;
+  /** A quién se le cobró el reparto. */
+  payerRelation?: "responsible" | "owner" | "tenant";
+  /** Solo si `anulada`. El motivo es obligatorio (R8). */
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
   createdBy?: string;
 }
 

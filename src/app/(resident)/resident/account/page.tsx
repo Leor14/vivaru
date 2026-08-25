@@ -281,7 +281,7 @@ export default function ResidentAccountPage() {
               onUploadReceipt={uploading ? undefined : handleUploadForStatement}
               isUploading={uploadingFor === item.id}
               receiptStatus={receiptByStatementId.get(item.id)?.status ?? null}
-              defaultOpen={index === 0 && item.status !== "paid"}
+              defaultOpen={index === 0 && item.status !== "paid" && item.status !== "cancelled"}
             />
           </div>
         ))}
