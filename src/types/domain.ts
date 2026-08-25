@@ -428,6 +428,13 @@ export interface BillingStatement {
   reminderCount?: number;
   /** Período cerrado/archivado: fuera de la tabla viva del admin (C4a). No borra datos. */
   archived?: boolean;
+  /**
+   * **Lo escribe el servidor desde siempre y esta interfaz no lo declaraba** —
+   * el mismo hueco que tenían los cuatro campos del reparto—. Está en el 100%
+   * de los cargos de los dos ambientes, y es la última fecha a la que puede
+   * recurrir el estado de cuenta cuando no hay ni `dueDate` ni `period`.
+   */
+  createdAt?: string;
   createdBy?: string;
   updatedAt?: string;
   updatedBy?: string;
