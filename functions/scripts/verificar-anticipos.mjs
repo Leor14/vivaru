@@ -101,6 +101,32 @@ function anota(res) {
   return res;
 }
 
+/**
+ * **La membresía del actor de la verificación.**
+ *
+ * Desde `PLAT-002` §11.2 las seis callables del dinero resuelven por
+ * `tenantUsers/{tenantId}_{uid}` y no por el claim del token. Este script opera
+ * con un uid sintético que no existe en `tenantUsers` en ningún ambiente, así
+ * que **sin esto se caía en el primer `aplicarPago`** con «No tienes permiso
+ * para registrar cobros en este conjunto», antes de la primera comprobación y
+ * sin que ninguno de los veinte asertos llegara a correr.
+ *
+ * Se siembra en vez de subir el rol a `superadmin`, que también pasaría: el
+ * superadmin sale de la guarda ANTES de `assertTenantOperable`, así que este
+ * script dejaría de ejercer el estado del conjunto — que es `CF8` y es lo que
+ * más caro costó.
+ */
+async function sembrarActor() {
+  await db.collection("tenantUsers").doc(`${tenantId}_${UID}`).set({
+    uid: UID,
+    tenantId,
+    role: "tenant_admin",
+    status: "active",
+    fullName: "Verificación automática",
+    seededBy: "verificar-anticipos",
+  });
+}
+
 async function limpiar() {
   // Se borra por CONSULTA y no por la lista en memoria: si el script murió a
   // mitad, la lista está incompleta y los documentos se quedarían para siempre.
@@ -115,6 +141,9 @@ async function limpiar() {
   }
   const vouchers = await db.collection("paymentVouchers").where("tenantId", "==", tenantId).get();
   vouchers.docs.filter((d) => (d.data().operationKey ?? "").includes(P)).forEach((d) => borrar.push(d.ref));
+  // La membresía del actor también es basura de la verificación.
+  const actor = db.collection("tenantUsers").doc(`${tenantId}_${UID}`);
+  if ((await actor.get()).exists) borrar.push(actor);
   for (const ref of borrar) await ref.delete();
   return borrar.length;
 }
@@ -122,12 +151,13 @@ async function limpiar() {
 async function run() {
   console.log(`\n${projectId} · ${tenantId} — verificación de FLOW-002 contra la base\n`);
   await limpiar();
+  await sembrarActor();
 
   console.log("D-A · el sobrepago deja saldo a favor");
   const c1 = await cargo("da", 140000);
   const pago = anota(await aplicarPago(
     { tenantId, statementId: c1, amount: 200000, date: HOY, operationKey: `${P}op-da`, source: "manual" },
-    UID, ROL, tenantId,
+    UID, ROL,
   ));
   comprobar("al cargo van 140.000, no 200.000", pago.paymentAmount, 140000);
   comprobar("nace un anticipo de 60.000", pago.advanceAmount, 60000);
@@ -141,7 +171,7 @@ async function run() {
   console.log("\nR10 · idempotencia");
   const rep = await aplicarPago(
     { tenantId, statementId: c1, amount: 200000, date: HOY, operationKey: `${P}op-da`, source: "manual" },
-    UID, ROL, tenantId,
+    UID, ROL,
   );
   comprobar("un reintento no aplica de nuevo", rep.applied, false);
   comprobar("y devuelve el MISMO anticipo", rep.advanceId, pago.advanceId);
@@ -151,7 +181,7 @@ async function run() {
   const antes = await ingresoDeLaVerificacion();
   const cruce = anota(await cruzarAnticipo(
     { tenantId, advanceId: pago.advanceId, statementId: c2, amount: 60000, date: HOY, operationKey: `${P}op-cruce` },
-    UID, ROL, tenantId,
+    UID, ROL,
   ));
   comprobar("aplica 60.000 al cargo", cruce.appliedAmount, 60000);
   comprobar("el cargo queda debiendo 30.000", cruce.balance, 30000);
@@ -161,24 +191,24 @@ async function run() {
   comprobar("CA6′: el ingreso total NO cambia al cruzar", (await ingresoDeLaVerificacion()).total, antes.total);
 
   console.log("\nCA12 · deshacer el cruce");
-  const undo = await deshacerCruce({ tenantId, applicationId: cruce.applicationId, operationKey: `${P}op-undo` }, UID, ROL, tenantId);
+  const undo = await deshacerCruce({ tenantId, applicationId: cruce.applicationId, operationKey: `${P}op-undo` }, UID, ROL);
   comprobar("el anticipo vuelve a `open` con sus 60.000", [undo.remaining, undo.advanceStatus], [60000, "open"]);
   comprobar("el ingreso sigue sin moverse", (await ingresoDeLaVerificacion()).total, antes.total);
 
   console.log("\nR8 · revertir con el anticipo YA CRUZADO se bloquea");
   const cruce2 = anota(await cruzarAnticipo(
     { tenantId, advanceId: pago.advanceId, statementId: c2, amount: 60000, date: HOY, operationKey: `${P}op-cruce2` },
-    UID, ROL, tenantId,
+    UID, ROL,
   ));
   let bloqueado = false;
   try {
-    await revertirPago({ tenantId, operationKey: `${P}op-da`, reversalKey: `${P}op-rev-x`, reason: "prueba" }, UID, ROL, tenantId);
+    await revertirPago({ tenantId, operationKey: `${P}op-da`, reversalKey: `${P}op-rev-x`, reason: "prueba" }, UID, ROL);
   } catch (e) { bloqueado = /deshacer esos cruces/i.test(e?.message ?? ""); }
   comprobar("bloquea y dice qué hacer", bloqueado, true);
-  await deshacerCruce({ tenantId, applicationId: cruce2.applicationId, operationKey: `${P}op-undo2` }, UID, ROL, tenantId);
+  await deshacerCruce({ tenantId, applicationId: cruce2.applicationId, operationKey: `${P}op-undo2` }, UID, ROL);
 
   console.log("\nR15 · revertir el pago se lleva el anticipo");
-  await revertirPago({ tenantId, operationKey: `${P}op-da`, reversalKey: `${P}op-rev`, reason: "Cobro duplicado" }, UID, ROL, tenantId);
+  await revertirPago({ tenantId, operationKey: `${P}op-da`, reversalKey: `${P}op-rev`, reason: "Cobro duplicado" }, UID, ROL);
   const advTrasRev = (await db.collection("advances").doc(pago.advanceId).get()).data();
   comprobar("el anticipo queda anulado", advTrasRev.status, "cancelled");
   comprobar("el ingreso vuelve a cero", (await ingresoDeLaVerificacion()).total, 0);
@@ -189,7 +219,7 @@ async function run() {
   const multi = anota(await aplicarPago(
     { tenantId, amount: 300000, date: HOY, operationKey: `${P}op-multi`, source: "manual",
       allocations: [{ statementId: m1, amount: 140000 }, { statementId: m2, amount: 90000 }] },
-    UID, ROL, tenantId,
+    UID, ROL,
   ));
   comprobar("dos líneas aplicadas", multi.allocations.length, 2);
   comprobar("y 70.000 al anticipo", multi.advanceAmount, 70000);
@@ -199,15 +229,15 @@ async function run() {
   console.log("\nR9 · anular con motivo");
   let sinMotivo = false;
   try {
-    await anularAnticipo({ tenantId, advanceId: multi.advanceId, reason: "  ", operationKey: `${P}op-anul-x` }, UID, ROL, tenantId);
+    await anularAnticipo({ tenantId, advanceId: multi.advanceId, reason: "  ", operationKey: `${P}op-anul-x` }, UID, ROL);
   } catch { sinMotivo = true; }
   comprobar("sin motivo se rechaza", sinMotivo, true);
   const ingresoAntesDeAnular = (await ingresoDeLaVerificacion()).total;
-  await anularAnticipo({ tenantId, advanceId: multi.advanceId, reason: "Verificación", operationKey: `${P}op-anul` }, UID, ROL, tenantId);
+  await anularAnticipo({ tenantId, advanceId: multi.advanceId, reason: "Verificación", operationKey: `${P}op-anul` }, UID, ROL);
   comprobar("anular NO baja el ingreso (§4: devolver es un egreso)", (await ingresoDeLaVerificacion()).total, ingresoAntesDeAnular);
 
   console.log("\nD-B · revertir el pago repartido");
-  await revertirPago({ tenantId, operationKey: `${P}op-multi`, reversalKey: `${P}op-rev-multi`, reason: "Cobro duplicado" }, UID, ROL, tenantId);
+  await revertirPago({ tenantId, operationKey: `${P}op-multi`, reversalKey: `${P}op-rev-multi`, reason: "Cobro duplicado" }, UID, ROL);
   const r1 = (await db.collection("billingStatements").doc(m1).get()).data();
   const r2 = (await db.collection("billingStatements").doc(m2).get()).data();
   comprobar("las DOS cuotas vuelven a deber", [r1.paymentAmount, r2.paymentAmount], [0, 0]);
