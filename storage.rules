@@ -26,7 +26,8 @@ service firebase.storage {
     // reglas entre servicios, no sube nada, y falla también en el conjunto
     // donde el claim y el activo coinciden.
     //
-    // **Y las 59 pruebas de esta suite pasaban, falsadas en dos direcciones.**
+    // **Y las 59 pruebas que esta suite tenía entonces pasaban, falsadas en dos
+    // direcciones.**
     // Corren contra el emulador, y el emulador **no es el servicio**: es el
     // único mecanismo de este repositorio que las pruebas no pueden cubrir.
     // Antes de volver a intentarlo, subir un archivo de verdad.

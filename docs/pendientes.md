@@ -17,7 +17,7 @@ bisección: con `storage.rules` por claim, subir un documento en staging **funci
 documentos y el objeto en el bucket); con las de membresía **no sube nada**, y falla también en
 el conjunto donde el claim y el activo coinciden.
 
-**Y lo hacían con 59 pruebas de esa suite en verde, falsadas en dos direcciones.** Corren contra
+**Y lo hacían con 59 pruebas de esa suite en verde, falsadas en dos direcciones.** (Hoy son 54: cinco se fueron con la reversión al plan B.) Corren contra
 el emulador, y **el emulador no es el servicio**. Es el único mecanismo de este repositorio que
 las pruebas no pueden cubrir. Queda escrito dentro de `storage.rules`: antes de volver a
 intentarlo, subir un archivo de verdad.
@@ -205,7 +205,7 @@ sobre los **nueve conjuntos**. Es la única forma de saber qué ve el producto, 
 | `producto-plan-de-cuentas` · `producto-registro-proveedores` · `producto-cobro-por-coeficiente` | **encendidas** |
 | `producto-concepto-al-libro` · `producto-anticipos` · `producto-pago-multiple` | **encendidas** |
 | `producto-importacion-masiva` | encendida (default del catálogo) |
-| `producto-reservas-servidor` | **apagada** — es el frente 3, y no es un interruptor |
+| `producto-reservas-servidor` | **encendida** — esta fila decía «apagada» y era falsa ya al escribirse: `FIX-001` la encendió en los nueve el 24 de agosto, la víspera. Medido el 25 con `resolveFeatureFlag`: 9/9 por `valor_global` |
 
 **Sin overrides.** El de `conjunto-las-playas` se retiró al hacer `producto-anticipos` global, y el
 documento quedó con `flags: {}` — eso es normal al borrar un campo, no un residuo. Kill switch
