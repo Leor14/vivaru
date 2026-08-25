@@ -329,6 +329,23 @@ beforeAll(async () => {
       createdBy: "admin-1",
     });
 
+    // FLOW-001. Un cargo que YA viene de un prorrateo: sirve para comprobar que
+    // el administrador puede seguir editandolo mientras no toque su origen.
+    await setDoc(doc(db, "billingStatements", "bill-de-reparto"), {
+      tenantId: "tenant-a",
+      unitId: "unit-t2-503",
+      unitLabel: "T2-503",
+      period: "2026-08",
+      campaignId: "exp_op-1",
+      sourceExpenseId: "gasto-ascensor",
+      amount: 250000,
+      paymentAmount: 0,
+      balance: 250000,
+      distributionBasisValue: 25,
+      status: "pending",
+      createdBy: "admin-1",
+    });
+
     await setDoc(doc(db, "tenantUsers", "tenant-a_committee-1"), {
       uid: "committee-1",
       tenantId: "tenant-a",
@@ -2715,6 +2732,109 @@ describe("PLAT-002 · el último conjunto usado no es una autorización", () => 
  * superadmin sería una segunda puerta al mismo sitio, y la lección de `CF8` es
  * que las dos puertas se olvidan por separado.
  */
+describe("FLOW-001 · el sello del prorrateo y la anulación los escribe SOLO el servidor", () => {
+  /**
+   * **Dos vetos de campo dentro de un documento que el cliente sigue editando**,
+   * igual que `advanceAppliedAmount` de `FLOW-002` y por el mismo motivo: el
+   * administrador hace `updateDoc` directo sobre sus cargos con normalidad.
+   *
+   * **Por qué no se comprueba el `campaignId`.** Sería lo natural —«¿esta
+   * corrida es de un reparto?»— y exige LEER la corrida: otro `get()` dentro de
+   * una regla cuyo propio comentario avisa de que un acceso más la lleva al
+   * límite y la hace fallar con **error de evaluación**. Denegaría igual, y las
+   * pruebas pasarían en verde por el motivo equivocado. Por eso el guardián
+   * mira un campo del propio documento, que no cuesta accesos.
+   *
+   * **Y el control importa tanto como los vetos.** Sin las dos pruebas que
+   * SUCEDEN, retirar la guarda entera dejaría este bloque en verde; y una
+   * guarda de más dejaría al administrador sin poder editar sus cargos, que es
+   * romper cartera para proteger un campo.
+   */
+  it("CONTROL · el administrador sigue creando un cargo normal", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "billingStatements", "bill-normal-flow001"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        period: "2026-08",
+        amount: 100000,
+        balance: 100000,
+        status: "pending",
+      }),
+    );
+  });
+
+  it("CONTROL · y sigue editando uno que vino de un reparto, mientras no toque su origen", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-de-reparto"), {
+        paymentAmount: 50000,
+        balance: 200000,
+      }),
+    );
+  });
+
+  it("pero NO puede crear un cargo con el sello de un reparto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "billingStatements", "bill-falso-reparto"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        period: "2026-08",
+        sourceExpenseId: "gasto-ascensor",
+        amount: 250000,
+        balance: 250000,
+        status: "pending",
+      }),
+    );
+  });
+
+  it("ni estrenarle el sello a un cargo que no venía de ninguno", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-1"), { sourceExpenseId: "gasto-ascensor" }),
+    );
+  });
+
+  it("ni cambiarle la factura de origen a uno que sí venía", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-de-reparto"), { sourceExpenseId: "otra-factura" }),
+    );
+  });
+
+  it("ni ANULAR un cargo a mano: eso es `cancelDistribution`, que comprueba R7 y exige motivo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-de-reparto"), { status: "cancelled", balance: 0 }),
+    );
+  });
+
+  it("ni firmar la anulación con el autor y el motivo que quiera", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "billingStatements", "bill-de-reparto"), {
+        cancelledBy: "otro-admin",
+        cancellationReason: "lo dijo el consejo",
+      }),
+    );
+  });
+
+  it("y un cargo NUEVO tampoco puede nacer anulado", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "billingStatements", "bill-nace-anulado"), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        period: "2026-08",
+        amount: 100000,
+        balance: 0,
+        status: "cancelled",
+      }),
+    );
+  });
+});
+
 describe("PLAT-002 · managementCompanies: solo superadmin lee, y nadie escribe", () => {
   const sa = () => testEnv.authenticatedContext("super-1", { role: "superadmin" });
   const adminA = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });

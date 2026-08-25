@@ -398,8 +398,32 @@ service cloud.firestore {
       //
       // El guardian va dentro: en `create` (`resource == null`) el campo tiene
       // que valer cero o no estar; en `update` tiene que salir igual que entro.
+      //
+      // **`FLOW-001` añade tres guardianes más, con la MISMA forma y por la
+      // misma razón: son accesos al MAPA de la petición, no a la base.**
+      // Comprobar «¿este `campaignId` es de un reparto?» habría exigido leer la
+      // corrida —otro `get()`— y es exactamente lo que el párrafo de arriba dice
+      // que no cabe. Por eso el guardián mira campos del propio documento.
+      //
+      //  1. **`sourceExpenseId` no lo pone el cliente.** Sin esto, cualquier
+      //     administrador fabrica a mano un cargo con el sello de una corrida
+      //     que nunca existió: aparecería colgando de una factura real, con su
+      //     importe, y la trazabilidad de §4.6 mentiría en los dos sentidos.
+      //
+      //  2. **La anulación no se falsifica desde el cliente.** `status:
+      //     'cancelled'`, `cancelledBy` y `cancellationReason` los escribe
+      //     `cancelDistribution`, que es quien comprueba R7 —ningún cargo con
+      //     pagos— y exige el motivo de R8. Un `updateDoc` directo se saltaría
+      //     las dos: dejaría un cargo «anulado» sobre dinero ya cobrado, y con
+      //     el autor que quisiera. **Es la lección de `CF8` al revés**: allí la
+      //     callable escribía lo que la regla vetaba; aquí la regla veta lo que
+      //     solo la callable debe escribir.
       allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
-        && request.resource.data.get('advanceAppliedAmount', 0) == (resource == null ? 0 : resource.data.get('advanceAppliedAmount', 0));
+        && request.resource.data.get('advanceAppliedAmount', 0) == (resource == null ? 0 : resource.data.get('advanceAppliedAmount', 0))
+        && request.resource.data.get('sourceExpenseId', '') == (resource == null ? '' : resource.data.get('sourceExpenseId', ''))
+        && request.resource.data.get('status', '') != 'cancelled'
+        && request.resource.data.get('cancelledBy', '') == (resource == null ? '' : resource.data.get('cancelledBy', ''))
+        && request.resource.data.get('cancellationReason', '') == (resource == null ? '' : resource.data.get('cancellationReason', ''));
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
