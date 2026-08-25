@@ -198,6 +198,19 @@ export function RepartirEgresoModal({
           </p>
         </div>
 
+        {cargando && !previa && !bloqueo ? (
+          // **Sin esto el diálogo se abre en blanco durante unos segundos** y el
+          // botón dice «Repartir entre 0 unidades», que se lee como «este
+          // conjunto no tiene unidades». Visto en staging el 25 de agosto de
+          // 2026: la previa la sirve el servidor y tarda lo que tarda; lo que
+          // no puede es parecer una respuesta.
+          <div className="space-y-2" aria-busy="true">
+            <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--slate-100)]" />
+            <div className="h-24 animate-pulse rounded-xl bg-[var(--slate-100)]" />
+            <p className="text-xs text-[var(--slate-500)]">Calculando el reparto…</p>
+          </div>
+        ) : null}
+
         {bloqueo ? (
           <div className="flex gap-2 rounded-xl border border-[var(--danger-200)] bg-[var(--danger-50)] p-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--danger-700)]" />
@@ -364,7 +377,11 @@ export function RepartirEgresoModal({
             Cancelar
           </Button>
           <Button type="button" disabled={!previa || cargando || guardando} onClick={() => void confirmar()}>
-            {guardando ? "Repartiendo…" : `Repartir entre ${previa?.lines.length ?? 0} unidades`}
+            {guardando
+              ? "Repartiendo…"
+              : previa
+                ? `Repartir entre ${previa.lines.length} unidades`
+                : "Repartir entre unidades"}
           </Button>
         </div>
       </div>
