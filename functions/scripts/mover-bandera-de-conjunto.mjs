@@ -23,9 +23,17 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const [projectId, tenantId, clave, valorCrudo] = process.argv.slice(2);
 
-// Espejo del catálogo. Es el cuarto sitio, y por eso este comentario existe:
-// `functions/src/feature-flags.ts`, `src/lib/feature-flags/catalog.ts`,
-// `mover-bandera.mjs` y este.
+// Espejo del catálogo. Y son CINCO sitios, no cuatro: este comentario decía
+// «el cuarto» y el de `seed-feature-flags.mjs` también, cada uno contando una
+// lista distinta. `producto-multiconjunto` se añadió el 25 de agosto de 2026
+// tocando los otros cuatro y se quedó fuera de aquí — es decir, se pudo
+// encender global pero NO por conjunto, que es la vía del canario con la que se
+// encendió el lote entero de Habitanto. Los cinco:
+//   1. `src/lib/feature-flags/catalog.ts`          — el cliente
+//   2. `functions/src/feature-flags.ts`            — el servidor
+//   3. `functions/scripts/seed-feature-flags.mjs`  — crea los documentos
+//   4. `functions/scripts/mover-bandera.mjs`       — enciende y apaga GLOBAL
+//   5. este                                        — enciende y apaga POR CONJUNTO
 const CLAVES = [
   "ai-gateway",
   "ai-communications-draft",
@@ -42,6 +50,7 @@ const CLAVES = [
   "producto-concepto-al-libro",
   "producto-anticipos",
   "producto-pago-multiple",
+  "producto-multiconjunto",
   "operacion-app-check-monitor",
 ];
 

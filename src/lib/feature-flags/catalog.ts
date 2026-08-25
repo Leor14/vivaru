@@ -193,7 +193,7 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     defaultEnabled: false,
     origen: "PRD-V-PLAT-002 §11.4 — administradora multiconjunto, entrega 2",
     alApagar:
-      "Desaparece el selector de la barra superior y cada quien opera el conjunto que ya tenía. Quien tenga varias membresías se queda en la última usada; no pierde acceso a nada, deja de poder cambiar sin cerrar sesión.",
+      "Apagada GLOBALMENTE: desaparece el selector y cada quien opera el conjunto que ya tenía; quien tenga varias membresías se queda en la última usada y deja de poder cambiar sin cerrar sesión. Apagarla en UN SOLO conjunto es distinto y peor: quien esté parado en él pierde el selector y no puede volver a los demás sin cerrar sesión —y al reentrar, `lastActiveTenantId` lo devuelve ahí—. Por eso esta bandera se enciende y se apaga GLOBAL.",
   },
   "producto-reservas-servidor": {
     key: "producto-reservas-servidor",

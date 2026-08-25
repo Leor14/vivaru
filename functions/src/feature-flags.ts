@@ -17,17 +17,24 @@ import { HttpsError } from "firebase-functions/v2/https";
  * importar de `functions/` (rompe el build de App Hosting, ver CLAUDE.md), así
  * que el catálogo y la precedencia viven duplicados a propósito.
  *
- * **EL CATÁLOGO VIVE EN CUATRO SITIOS, no en dos.** Añadir una bandera y tocar
+ * **EL CATÁLOGO VIVE EN CINCO SITIOS, no en dos.** Añadir una bandera y tocar
  * solo los dos primeros la deja **imposible de encender**: el sembrador no crea
  * su documento y el movedor la rechaza como clave desconocida, así que la
  * capacidad se queda apagada para siempre y sin síntoma visible. Pasó con las
  * tres banderas de producto de agosto de 2026, y se descubrió al ir a
- * encenderlas en staging. Los cuatro:
+ * encenderlas en staging.
+ *
+ * **Esta cabecera decía CUATRO y se dejaba fuera el quinto**, que es el que
+ * enciende POR CONJUNTO. `producto-multiconjunto` nació el 25 de agosto de 2026
+ * con los otros cuatro tocados y ese no: se podía encender global pero no a un
+ * solo conjunto, que es justo la vía del canario con la que se encendió el lote
+ * de Habitanto. Los cinco:
  *
  *   1. `src/lib/feature-flags/catalog.ts`      — el cliente
  *   2. `functions/src/feature-flags.ts`        — el servidor
  *   3. `functions/scripts/seed-feature-flags.mjs` — crea los documentos
- *   4. `functions/scripts/mover-bandera.mjs`   — enciende y apaga
+ *   4. `functions/scripts/mover-bandera.mjs`   — enciende y apaga GLOBAL
+ *   5. `functions/scripts/mover-bandera-de-conjunto.mjs` — POR CONJUNTO
  */
 
 export const FEATURE_FLAGS_COLLECTION = "featureFlags";
