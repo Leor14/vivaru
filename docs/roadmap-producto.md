@@ -645,20 +645,21 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   vocabulario sino modelo de datos**: en México la cuenta de un proveedor se identifica por
   **CLABE de 18 dígitos**, no por número y tipo. Se hizo ahora porque la jerga estaba en 4
   archivos y `vendors` tenía cero documentos: mañana sería una migración.
-- **Avance al 24 de agosto de 2026: el lote está EN PRODUCCIÓN y APAGADO.** Esta viñeta decía
-  «en producción no se ha desplegado nada» y **quedó falsa el 23 de agosto**; se corrige en su
-  sitio porque apilar una actualización debajo deja dos épocas conviviendo. Ola A entró el 23
-  (`5d6df95`) y `FLOW-002` el 24. **Comprobado contra `origin/master` con `git cat-file`, no
-  contra este documento.**
-  **Y el estado de las banderas se leyó de los dos proyectos:** en `hogaru-1` **no existe ni un
-  documento `producto-*`** en `featureFlags` —así que todas caen al valor por defecto, que es
-  apagado— y el único override es `conjunto-las-playas: {producto-anticipos: true}`. En staging
-  hay coeficiente, proveedores y reservas encendidas, y `conjunto-las-playas` con las cuatro del
-  dinero.
+- **Avance al 24 de agosto de 2026: el lote está EN PRODUCCIÓN y ENCENDIDO.** Esta viñeta ha
+  tenido que corregirse **dos veces en su sitio**, y las dos por lo mismo: apilar una
+  actualización debajo dejaría dos épocas conviviendo. Decía «en producción no se ha desplegado
+  nada», que quedó falso el 23 de agosto; y después «EN PRODUCCIÓN y APAGADO», que quedó falso al
+  encender el lote. Ola A entró el 23 (`5d6df95`) y `FLOW-002` el 24.
+  **Las seis banderas están encendidas GLOBALMENTE en los nueve conjuntos y sin overrides** — el
+  de `conjunto-las-playas` se retiró al poner la global, y el orden importó: primero la global,
+  después quitar el override, porque **el override manda sobre la global**. Se resolvió
+  ejecutando `isFeatureEnabled()` con el código compilado del servidor, no leyendo documentos: la
+  precedencia no se lee de un campo. `producto-reservas-servidor` sigue apagada, que es el frente
+  3 y no es un interruptor.
   **De la ola B queda `FLOW-001`** (necesita `PLAT-001`, que ya está). Ola C después: `FEAT-004`,
   `FLOW-003`, y las segundas entregas de `PLAT-002` y `FIX-001`.
-  **Lo siguiente de este frente no es construir, es encender**, de una en una y mirando — la
-  regla de orden sobre `aplicarPago` ya no aplica porque no queda nada en vuelo sobre ella.
+  **Lo siguiente de este frente vuelve a ser construir**: encender ya está hecho. La regla de
+  orden sobre `aplicarPago` no aplica porque no queda nada en vuelo sobre ella.
 
 #### `PH-002` — Lo que espera al primer pago real
 
