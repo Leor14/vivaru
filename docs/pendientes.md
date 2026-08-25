@@ -414,7 +414,7 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 |---|---|---|---|
 | ~~**1**~~ | ~~**`PH-001` — encender el lote**~~ | **HECHO el 25 de agosto de 2026.** Las seis encendidas globalmente en los nueve conjuntos, una a una y mirando, y el override retirado. Costó **cero código**. Detalle en `docs/encender-el-lote-habitanto.md` | — |
 | ~~**2**~~ | ~~**`FLOW-002` de verdad**~~ | **CERRADO ENTERO el 24 de agosto de 2026.** CF8 (`9f75083`), §9/CA13 (`c05b274`) y `personId` retirado del contrato. Lo único que le quedaba fuera —el total de anticipos del consejo— vive en `PLAT-004` | — |
-| **3** | **`FIX-001` completo** | Encender `producto-reservas-servidor` → observar sin escrituras directas → **cerrar la regla (paso 4, sin vuelta atrás)** → entrega 2 | Medio, con espera |
+| ~~**3**~~ | ~~**`FIX-001` completo**~~ | **MVP CERRADO el 24 de agosto de 2026** (`a67088c`): bandera encendida en los nueve, puerta medida **con contenido**, y la rama del residente retirada del `create`. Queda solo la **entrega 2** (política por área), que es Fase 2 de la ficha, no MVP | — |
 | **4** | **`PLAT-002` entrega 2** | Selector de conjunto y vista de cartera. **El único MVP a medias de verdad** | Medio |
 | **5** | **Olas B y C** | `FLOW-001` (prorrateo), `FEAT-004` (paz y salvo), `FLOW-003` (cobranza) | Alto — es construir |
 | **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
