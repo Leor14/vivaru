@@ -157,6 +157,86 @@ export async function generateCoefficientCampaignCallable(input: GenerateCoeffic
   return executeCallable(callable, input, "No fue posible generar la corrida por coeficiente.");
 }
 
+/**
+ * `PRD-V-FLOW-001` — repartir un egreso entre las unidades.
+ *
+ * **La MISMA callable sirve la vista previa y el reparto**, igual que la corrida
+ * por coeficiente y por el mismo motivo de §11.1: si el navegador calculara los
+ * importes, un cliente manipulado emitiría los que quisiera. Aquí solo se dice
+ * QUÉ egreso y CON QUÉ concepto; los importes los calcula el servidor las dos
+ * veces, así que la vista previa no puede diferir de lo que se acaba creando.
+ */
+export type DistributeExpenseInput = {
+  tenantId: string;
+  expenseId: string;
+  period: string;
+  concept?: string;
+  payerRelation?: "responsible" | "owner" | "tenant";
+  dueDate?: string;
+  /** true = solo vista previa, no escribe nada. */
+  dryRun?: boolean;
+  /** R5 · repartir un egreso YA repartido exige decir que sí a sabiendas. */
+  confirmarRepetido?: boolean;
+  operationKey: string;
+};
+
+export type DistributeExpenseResult = {
+  ok: true;
+  dryRun: boolean;
+  campaignId?: string;
+  created?: boolean;
+  lines: CoefficientCampaignLine[];
+  total: number;
+  coefficientSum: number;
+  /** El gasto es ordinario y puede estar ya cubierto por la cuota (§5.2). */
+  avisoDobleCobro: boolean;
+  /** Corridas anteriores VIVAS de este mismo egreso. Las anuladas no cuentan. */
+  yaRepartido: string[];
+};
+
+export async function distributeExpenseCallable(input: DistributeExpenseInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<DistributeExpenseInput, DistributeExpenseResult>(
+    functions,
+    "distributeExpense",
+  );
+  return executeCallable(callable, input, "No fue posible repartir el egreso.");
+}
+
+export type CancelDistributionInput = {
+  tenantId: string;
+  campaignId: string;
+  /** R8 · obligatorio. */
+  reason: string;
+};
+
+export type CancelDistributionResult = {
+  ok: true;
+  campaignId: string;
+  cancelled: number;
+  alreadyCancelled: boolean;
+};
+
+/**
+ * Anula la corrida entera. **No revierte pagos**: una corrida con algún cargo
+ * cobrado la rechaza el servidor nombrando las unidades (R7), y deshacer un
+ * pago es `revertirPago`, que tiene su propia trazabilidad.
+ */
+export async function cancelDistributionCallable(input: CancelDistributionInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+
+  const callable = httpsCallable<CancelDistributionInput, CancelDistributionResult>(
+    functions,
+    "cancelDistribution",
+  );
+  return executeCallable(callable, input, "No fue posible anular la corrida.");
+}
+
 export type RegisterWalkInVisitInput = {
   tenantId: string;
   unitId: string;

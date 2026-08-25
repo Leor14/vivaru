@@ -33,6 +33,7 @@ import { expenseSchema, type ExpenseFormValues } from "@/features/finanzas/schem
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { useVendors } from "@/features/finanzas/use-vendors";
 import { VendorRegistryDialog } from "@/components/features/finanzas/VendorRegistryDialog";
+import { RepartirEgresoModal } from "@/components/features/finanzas/RepartirEgresoModal";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
 import type { Expense, ExpenseCategory, ExpenseStatus } from "@/types/domain";
@@ -104,6 +105,8 @@ export default function AdminEgresosPage() {
   const [dateTo, setDateTo] = useState("");
 
   const registroProveedores = useFeatureFlag("producto-registro-proveedores");
+  const prorrateoDeGastos = useFeatureFlag("producto-prorrateo-de-gastos");
+  const [repartiendo, setRepartiendo] = useState<Expense | null>(null);
   const { vendors } = useVendors(registroProveedores ? user?.tenantId : undefined);
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
 
@@ -421,11 +424,34 @@ export default function AdminEgresosPage() {
                 onView={() => openEdit(item)}
                 onEdit={() => openEdit(item)}
                 onDelete={() => setPendingDeletion(item)}
+                extraItems={
+                  // `FLOW-001` R1 · un egreso anulado no se reparte, y por eso
+                  // no se ofrece: el servidor lo rechaza igualmente, pero
+                  // enseñar una acción que siempre falla no es una guarda, es
+                  // una trampa.
+                  prorrateoDeGastos && item.status !== "anulado"
+                    ? [
+                        {
+                          key: "repartir",
+                          label: "Repartir entre unidades",
+                          onSelect: () => setRepartiendo(item),
+                        },
+                      ]
+                    : []
+                }
               />
             </div>
           )}
         />
       </div>
+
+      <RepartirEgresoModal
+        open={repartiendo !== null}
+        expense={repartiendo}
+        tenantId={user?.tenantId ?? ""}
+        formatAmount={formatAmount}
+        onClose={() => setRepartiendo(null)}
+      />
 
       <Modal open={createOpen} title={editingItem ? "Editar egreso" : "Registrar egreso"} onClose={() => setCreateOpen(false)}>
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
