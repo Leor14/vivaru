@@ -72,6 +72,8 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "producto-pago-multiple": false,
     // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
     // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
+    // Apagada = sin selector de conjunto. Ver el catálogo en `src/`.
+    "producto-multiconjunto": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */

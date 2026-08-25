@@ -2648,3 +2648,60 @@ describe("documentos · el residente no alcanza los archivos financieros", () =>
     await assertFails(getDoc(doc(otro.firestore(), "documents", "doc-a-reglamento")));
   });
 });
+
+/**
+ * **`PLAT-002` — el conjunto activo lo elige el cliente, y elegir mal no abre
+ * nada.**
+ *
+ * Estas dos son las que prueban que el diseño de la administradora es seguro
+ * (§10). El selector no lleva callable detrás: cambiar de conjunto es estado de
+ * sesión, y `users/{uid}.lastActiveTenantId` es **comodidad, no autoridad**.
+ * Que se pueda escribir a mano es correcto **siempre que escribirlo no conceda
+ * nada**, y eso es exactamente lo que se mide aquí.
+ */
+describe("PLAT-002 · el último conjunto usado no es una autorización", () => {
+  const adminA = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+
+  it("un administrador puede anotarse su último conjunto usado", async () => {
+    await assertSucceeds(
+      updateDoc(doc(adminA().firestore(), "users", "admin-1"), { lastActiveTenantId: "tenant-a" }),
+    );
+  });
+
+  /**
+   * **CF3.** Se escribe a mano el conjunto ajeno —la regla lo permite, porque
+   * el campo no gobierna nada— y a continuación se intenta leer ese conjunto.
+   * La lectura tiene que seguir denegada: la autoridad es el documento de
+   * membresía, que `admin-1` no tiene en `tenant-b`.
+   */
+  it("apuntarlo a un conjunto ajeno NO da acceso a ese conjunto", async () => {
+    const db = adminA().firestore();
+    await assertSucceeds(updateDoc(doc(db, "users", "admin-1"), { lastActiveTenantId: "tenant-b" }));
+    await assertFails(getDoc(doc(db, "tenants", "tenant-b")));
+  });
+
+  /** El campo es nuevo y no puede servir de puerta trasera para el rol. */
+  it("no se puede colar un cambio de rol junto al último conjunto usado", async () => {
+    await assertFails(
+      updateDoc(doc(adminA().firestore(), "users", "admin-1"), {
+        lastActiveTenantId: "tenant-a",
+        role: "superadmin",
+      }),
+    );
+  });
+
+  /**
+   * **CF1, en su forma más simple.** El selector lista las membresías propias
+   * consultando por `uid`; pedir las de otra persona tiene que fallar, o el
+   * selector sería un directorio de quién administra qué.
+   */
+  it("solo se listan las membresías propias", async () => {
+    const db = adminA().firestore();
+    await assertSucceeds(
+      getDocs(query(collection(db, "tenantUsers"), where("uid", "==", "admin-1"))),
+    );
+    await assertFails(
+      getDocs(query(collection(db, "tenantUsers"), where("uid", "==", "resident-3"))),
+    );
+  });
+});

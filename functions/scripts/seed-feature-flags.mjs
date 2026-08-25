@@ -129,6 +129,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-multiconjunto",
+    area: "producto",
+    label: "Un administrador sobre varios conjuntos",
+    origen: "PRD-V-PLAT-002 §11.4",
+    // Nace apagada: capacidad nueva. Además hoy es inerte — el selector pide
+    // dos membresías y en producción nadie tiene dos.
+    enabled: false,
+  },
+  {
     key: "operacion-app-check-monitor",
     area: "operacion",
     label: "App Check en modo monitor",

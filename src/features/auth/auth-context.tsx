@@ -18,14 +18,14 @@ import {
   type User,
 } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
-import { collection, doc, getDoc, getDocFromServer, getDocs, limit, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocFromServer, getDocs, limit, query, updateDoc, where } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
 import { clearSession, loadSession, saveSession } from "@/lib/auth/session";
 import type { AppRole } from "@/lib/constants/roles";
 import { isFirebaseConfigured, missingFirebaseEnvKeys } from "@/lib/firebase/config";
 import { completeResidentPasswordChangeCallable } from "@/lib/firebase/callables";
-import type { SessionUser } from "@/types/domain";
+import type { SessionUser, TenantMembership } from "@/types/domain";
 export type { SessionUser } from "@/types/domain";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "misconfigured" | "profile_error";
@@ -46,6 +46,7 @@ interface SessionProfile {
   tenantName?: string;
   unitId?: string;
   unitLabel?: string;
+  memberships: TenantMembership[];
 }
 
 export interface AuthSession {
@@ -70,6 +71,11 @@ interface AuthContextValue {
   completeForcedPasswordChange: (input: { currentPassword: string; newPassword: string; confirmPassword: string }) => Promise<void>;
   refreshSessionProfile: (options?: { preferServerReads?: boolean }) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Cambia el conjunto activo (`PLAT-002` §5.2). Solo para quien tenga varias
+   * membresías; con una, no hay a dónde cambiar.
+   */
+  switchTenant: (tenantId: string) => Promise<void>;
   hasAnyRole: (roles: AppRole[]) => boolean;
 }
 
@@ -108,6 +114,7 @@ function toSessionUser(profile: SessionProfile): SessionUser {
     role: profile.role,
     tenantId: profile.tenantId ?? undefined,
     tenantName: profile.tenantName,
+    memberships: profile.memberships,
     unitId: profile.unitId,
     unitLabel: profile.unitLabel,
     documentNumber: profile.documentNumber,
@@ -174,6 +181,7 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
   let mustChangePassword = false;
   let temporaryPassword = false;
   let passwordStatus: "temporary" | "updated" = "updated";
+  let memberships: TenantMembership[] = [];
 
   if (role === "superadmin" || firebaseUser.email === "superadmin@hogaru.co") {
     role = "superadmin";
@@ -229,6 +237,63 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
   });
 
   if (firebaseUser.uid && role !== "superadmin") {
+    /**
+     * **`PLAT-002` — las membresías, y cuál de ellas queda activa.**
+     *
+     * Va ANTES de resolver la membresía concreta porque puede cambiar
+     * `tenantId`, y todo lo de abajo cuelga de él.
+     *
+     * Solo para `tenant_admin`, y son dos motivos distintos: el residente con
+     * unidades en dos conjuntos está fuera de alcance (§4) y la portería no
+     * tiene selector (CF4); y así **nadie más paga la consulta extra** al
+     * entrar.
+     *
+     * Si la consulta falla no se rompe la sesión: el selector es comodidad, no
+     * autoridad. Sin él se opera el conjunto de siempre, que es justo el
+     * comportamiento anterior.
+     */
+    if (role === "tenant_admin") {
+      try {
+        const todas = await getDocs(
+          query(collection(firestore, "tenantUsers"), where("uid", "==", firebaseUser.uid)),
+        );
+        memberships = todas.docs
+          .map((d) => d.data() as Record<string, unknown>)
+          .filter((m) => {
+            const esAdmin = m.role === "tenant_admin" || m.role === "admin_tenant";
+            const activa = (m.status ?? "active") === "active";
+            return typeof m.tenantId === "string" && esAdmin && activa;
+          })
+          .map((m) => ({ tenantId: m.tenantId as string }));
+      } catch (membershipsError) {
+        const firestoreError = membershipsError as { code?: string };
+        if (firestoreError.code !== "permission-denied" && firestoreError.code !== "not-found") {
+          throw membershipsError;
+        }
+      }
+    }
+
+    /**
+     * **El último conjunto usado es comodidad, no autoridad (CA5, CF3).** Solo
+     * se acepta si sigue habiendo membresía; si se la revocaron, se cae al
+     * conjunto que ya se hubiera resuelto y se entra sin error (CA6).
+     * Manipularlo a un conjunto ajeno no da acceso a nada: las reglas y las
+     * callables vuelven a comprobar la membresía en cada operación.
+     */
+    const ultimoUsado =
+      typeof userProfileData.lastActiveTenantId === "string" ? userProfileData.lastActiveTenantId : undefined;
+    if (
+      memberships.length > 1 &&
+      ultimoUsado &&
+      memberships.some((m) => m.tenantId === ultimoUsado)
+    ) {
+      tenantId = ultimoUsado;
+    } else if (memberships.length > 1 && !memberships.some((m) => m.tenantId === tenantId)) {
+      // El conjunto del claim o del perfil ya no está entre sus membresías.
+      // Antes esto acababa en «perfil incompleto»; ahora aterriza en uno suyo.
+      tenantId = memberships[0].tenantId;
+    }
+
     let membershipData: Record<string, unknown> | undefined;
 
     if (tenantId) {
@@ -293,6 +358,52 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
         }
       }
     }
+
+    /**
+     * Nombre y estado de cada conjunto, para que el selector no sea una lista
+     * de identificadores y para poder avisar de cuál está en solo lectura
+     * (CA10). **Solo con más de una membresía**: con una, esto no se pinta y la
+     * lectura sería gasto puro.
+     *
+     * N lecturas para N conjuntos propios. Con dieciséis es trivial; con
+     * doscientos habría que agregar en servidor, y está anotado como límite
+     * conocido en la ficha (G6).
+     */
+    if (memberships.length > 1) {
+      memberships = await Promise.all(
+        memberships.map(async (m) => {
+          if (m.tenantId === tenantId) {
+            return { ...m, tenantName: tenantName ?? undefined };
+          }
+          try {
+            const snap = await getDoc(doc(firestore, "tenants", m.tenantId));
+            if (!snap.exists()) return m;
+            const data = snap.data() as Record<string, unknown>;
+            return {
+              ...m,
+              tenantName: typeof data.name === "string" ? data.name : undefined,
+              status: typeof data.status === "string" ? (data.status as TenantMembership["status"]) : undefined,
+            };
+          } catch {
+            // Un conjunto que no se deja leer se queda con su identificador. No
+            // puede tumbar la sesión: el selector es comodidad.
+            return m;
+          }
+        }),
+      );
+
+      // El activo también quiere su estado, y ya se leyó su documento arriba
+      // solo para el nombre. Se relee una vez, no N.
+      try {
+        const snap = await getDoc(doc(firestore, "tenants", tenantId!));
+        const data = snap.exists() ? (snap.data() as Record<string, unknown>) : undefined;
+        const estado = typeof data?.status === "string" ? (data.status as TenantMembership["status"]) : undefined;
+        memberships = memberships.map((m) => (m.tenantId === tenantId ? { ...m, status: estado } : m));
+      } catch {
+        // Sin estado, el selector no marca «solo lectura». No es motivo para
+        // dejar a nadie fuera.
+      }
+    }
   }
 
   if (role === "tenant_admin" && !tenantId) {
@@ -323,6 +434,7 @@ async function resolveSessionProfile(firebaseUser: User, options?: { preferServe
     unitId,
     unitLabel,
     status: profileStatus,
+    memberships,
   };
 
   debugAuth("[auth.profile] resolved", {
@@ -360,6 +472,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         temporaryPassword: cached.temporaryPassword ?? false,
         passwordStatus: cached.passwordStatus === "temporary" ? "temporary" : "updated",
         tenantName: cached.tenantName,
+        memberships: cached.memberships ?? [],
         unitId: cached.unitId,
         unitLabel: cached.unitLabel,
       },
@@ -413,6 +526,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             temporaryPassword: cached.temporaryPassword ?? false,
             passwordStatus: cached.passwordStatus === "temporary" ? "temporary" : "updated",
             tenantName: cached.tenantName,
+            memberships: cached.memberships ?? [],
             unitId: cached.unitId,
             unitLabel: cached.unitLabel,
           },
@@ -708,6 +822,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     debugAuth("[auth.force-change] completed", { uid: sessionUser.uid });
   }, [refreshSessionProfile, user]);
 
+  /**
+   * **`PLAT-002` §5.2 — cambiar de conjunto.**
+   *
+   * Tres cosas, y la tercera es la regla de seguridad:
+   *
+   * 1. **Se comprueba la membresía antes de nada.** No porque proteja —no
+   *    protege: elegir mal en el cliente no da acceso a nada, las reglas y las
+   *    callables vuelven a comprobarlo (CF1, CF3)— sino para fallar aquí con un
+   *    aviso claro en vez de en la primera consulta de la pantalla siguiente.
+   * 2. **Se anota el último usado**, para aterrizar ahí la próxima vez (CA5). Va
+   *    en `users/{uid}.lastActiveTenantId`, que es comodidad y no autoridad: si
+   *    le revocan la membresía, se ignora y entra al selector sin error (CA6).
+   *    **Y si esa escritura falla, el cambio se aborta con un aviso.** Suena
+   *    excesivo para un campo de comodidad, y es al revés: como el paso 3
+   *    recarga la página y la sesión se vuelve a resolver desde este campo, un
+   *    fallo silencioso devolvería al conjunto anterior **sin decir nada** —
+   *    justo después de que la persona pulsara para cambiar. Un error visible
+   *    es mejor que una pantalla que ignora lo que le pidieron.
+   * 3. **Se recarga la página entera.** No es pereza: §5.2 dice que limpiar el
+   *    estado del conjunto anterior **es** la regla de seguridad, y CA4 exige
+   *    que ninguna pantalla muestre un dato del anterior. Cincuenta y cinco
+   *    ficheros leen `tenantId` de la sesión; garantizar CA4 revisándolos uno a
+   *    uno es el riesgo que §12 marca como el mayor de esta PRD. Una recarga lo
+   *    cierra de golpe y no puede olvidarse de un caso.
+   */
+  const switchTenant = useCallback(
+    async (tenantId: string) => {
+      const actual = user;
+      if (!actual) throw new Error("Debes iniciar sesión para cambiar de conjunto.");
+      if (tenantId === actual.tenantId) return;
+
+      const destino = actual.memberships?.find((m) => m.tenantId === tenantId);
+      if (!destino) {
+        throw new Error("Ya no administras ese conjunto. Vuelve a entrar para actualizar tus accesos.");
+      }
+
+      if (db && actual.uid) {
+        try {
+          await updateDoc(doc(db, "users", actual.uid), { lastActiveTenantId: tenantId });
+        } catch (lastActiveError) {
+          debugAuth("[auth.switch-tenant] last-active-write-failed", {
+            uid: actual.uid,
+            tenantId,
+            error: lastActiveError instanceof Error ? lastActiveError.message : "unknown",
+          });
+          throw new Error("No fue posible cambiar de conjunto. Inténtalo de nuevo.");
+        }
+      }
+
+      // La sesión guardada y la cookie se dejan ya apuntando al conjunto nuevo:
+      // la recarga las vuelve a leer, y si se quedaran atrás la pantalla nacería
+      // en el conjunto viejo.
+      const siguiente: SessionUser = {
+        ...actual,
+        tenantId,
+        tenantName: destino.tenantName,
+      };
+      saveSession(siguiente);
+
+      debugAuth("[auth.switch-tenant] reloading", { uid: actual.uid, tenantId });
+
+      if (typeof window !== "undefined") {
+        window.location.assign("/admin");
+      }
+    },
+    [user],
+  );
+
   const logout = useCallback(async () => {
     clearSession();
     setUser(null);
@@ -732,9 +914,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       completeForcedPasswordChange,
       refreshSessionProfile,
       logout,
+      switchTenant,
       hasAnyRole: (roles) => Boolean(user && roles.includes(user.role)),
     }),
-    [user, session, status, loading, error, login, requestPasswordReset, completeForcedPasswordChange, refreshSessionProfile, logout],
+    [user, session, status, loading, error, login, requestPasswordReset, completeForcedPasswordChange, refreshSessionProfile, logout, switchTenant],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -71,6 +71,26 @@ export interface NotificationTemplateOverride {
 /** Mapa por clave de notificación (ver catálogo) → override del tenant. */
 export type NotificationTemplates = Record<string, NotificationTemplateOverride>;
 
+/**
+ * Un conjunto donde la persona tiene membresía de administrador.
+ *
+ * `PRD-V-PLAT-002`: una empresa administradora **no es un rol nuevo**, es un
+ * `tenant_admin` con varias de estas. La autoridad vive en
+ * `tenantUsers/{tenantId}_{uid}`, no aquí: esto es lo que la barra superior
+ * necesita para pintar el selector, y elegir mal en el cliente no da acceso a
+ * nada — las reglas y las callables vuelven a comprobar la membresía (CF1, CF3).
+ */
+export interface TenantMembership {
+  tenantId: string;
+  tenantName?: string;
+  /**
+   * Estado comercial del conjunto, para que el selector avise de cuál está en
+   * solo lectura. **No se hereda de la administradora**: cada conjunto lleva el
+   * suyo (§6).
+   */
+  status?: TenantStatus;
+}
+
 export interface SessionUser {
   uid: string;
   email: string;
@@ -78,8 +98,16 @@ export interface SessionUser {
   photoURL?: string;
   avatarId?: string;
   role: AppRole;
+  /** El conjunto **activo**. Con varias membresías es uno de `memberships`. */
   tenantId?: string;
   tenantName?: string;
+  /**
+   * Los conjuntos donde es administrador. Vacío o de uno = el producto se
+   * comporta exactamente como siempre (CA1). Solo se rellena para
+   * `tenant_admin`: el residente con unidades en dos conjuntos queda fuera de
+   * alcance (§4) y la portería no tiene selector (CF4).
+   */
+  memberships?: TenantMembership[];
   unitId?: string;
   unitLabel?: string;
   documentNumber?: string;

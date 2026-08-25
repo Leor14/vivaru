@@ -41,6 +41,7 @@ const CLAVES = [
   "producto-concepto-al-libro",
   "producto-anticipos",
   "producto-pago-multiple",
+  "producto-multiconjunto",
   "operacion-app-check-monitor",
 ];
 

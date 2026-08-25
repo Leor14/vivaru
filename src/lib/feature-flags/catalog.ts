@@ -69,6 +69,7 @@ export type FeatureFlagKey =
   | "producto-concepto-al-libro"
   | "producto-anticipos"
   | "producto-pago-multiple"
+  | "producto-multiconjunto"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -179,6 +180,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FEAT-002 — importación de datos del conjunto",
     alApagar:
       "Desaparecen las dos entradas de /admin/residents y el recorrido guiado deja de abrir el asistente: manda al alta individual. Las unidades y las personas se crean a mano, una a una. Lo ya importado no se toca.",
+  },
+  "producto-multiconjunto": {
+    key: "producto-multiconjunto",
+    area: "producto",
+    label: "Un administrador sobre varios conjuntos",
+    description:
+      "Selector de conjunto en la barra superior para quien tenga más de una membresía. No gobierna las callables: la autoridad es el documento de membresía y eso va desplegado aparte y antes.",
+    // Nace APAGADA: capacidad nueva. Y hoy no la ve nadie aunque se encienda,
+    // porque el selector solo aparece con DOS membresías o más, y en producción
+    // no hay ninguna persona con dos.
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-002 §11.4 — administradora multiconjunto, entrega 2",
+    alApagar:
+      "Desaparece el selector de la barra superior y cada quien opera el conjunto que ya tenía. Quien tenga varias membresías se queda en la última usada; no pierde acceso a nada, deja de poder cambiar sin cerrar sesión.",
   },
   "producto-reservas-servidor": {
     key: "producto-reservas-servidor",

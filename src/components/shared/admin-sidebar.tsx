@@ -27,6 +27,7 @@ import {
 
 import { NotificationsBell } from "@/components/shared/notifications-bell";
 import { SidebarBrandHeader } from "@/components/shared/sidebar-brand-header";
+import { TenantSwitcher } from "@/components/shared/tenant-switcher";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import type { AppRole } from "@/lib/constants/roles";
 import { resolveActiveNavHref } from "@/lib/navigation/active-item";
@@ -203,6 +204,9 @@ export function AdminSidebar({
             ) : null
           }
         />
+        {/* Solo se pinta con dos membresías o más; con una devuelve `null` y la
+            cabecera queda exactamente como hoy (CA1). */}
+        <TenantSwitcher className="mt-1 px-0.5" />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-3" aria-label="Navegacion principal">

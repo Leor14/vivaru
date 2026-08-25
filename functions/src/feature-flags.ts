@@ -50,6 +50,7 @@ export type FeatureFlagKey =
   | "producto-concepto-al-libro"
   | "producto-anticipos"
   | "producto-pago-multiple"
+  | "producto-multiconjunto"
   | "operacion-app-check-monitor";
 
 /**
@@ -87,6 +88,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-pago-multiple": false,
   // Encendida = la puerta de IA no bloquea por App Check, solo registra. Nace
   // así porque describe lo que ya pasa hoy. Ver el catálogo en `src/`.
+  // Apagada = sin selector de conjunto. Ver el catálogo en `src/`.
+  "producto-multiconjunto": false,
   "operacion-app-check-monitor": true,
 };
 

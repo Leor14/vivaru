@@ -1,4 +1,4 @@
-import type { SessionUser } from "@/types/domain";
+import type { SessionUser, TenantMembership } from "@/types/domain";
 import { encodeSessionCookie, SESSION_COOKIE_KEY } from "@/lib/auth/session-cookie";
 
 const SESSION_KEY = "hogaru.session.user";
@@ -6,6 +6,9 @@ const SESSION_KEY = "hogaru.session.user";
 export function saveSession(user: SessionUser) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  // La cookie lleva el conjunto ACTIVO, no la lista: la lee el middleware, que
+  // solo enruta por rol. Aun así se reescribe al cambiar de conjunto para que
+  // no quede diciendo uno que ya no es el de la pantalla.
   const payload = encodeSessionCookie({
     uid: user.uid,
     role: user.role,
@@ -39,6 +42,16 @@ export function loadSession(): SessionUser | null {
       role: parsed.role as SessionUser["role"],
       tenantId: typeof parsed.tenantId === "string" ? parsed.tenantId : undefined,
       tenantName: typeof parsed.tenantName === "string" ? parsed.tenantName : undefined,
+      memberships: Array.isArray(parsed.memberships)
+        ? (parsed.memberships as unknown[])
+            .filter((m): m is Record<string, unknown> => typeof m === "object" && m !== null)
+            .filter((m) => typeof m.tenantId === "string")
+            .map((m) => ({
+              tenantId: m.tenantId as string,
+              tenantName: typeof m.tenantName === "string" ? m.tenantName : undefined,
+              status: typeof m.status === "string" ? (m.status as TenantMembership["status"]) : undefined,
+            }))
+        : undefined,
       unitId: typeof parsed.unitId === "string" ? parsed.unitId : undefined,
       unitLabel: typeof parsed.unitLabel === "string" ? parsed.unitLabel : undefined,
       documentNumber: typeof parsed.documentNumber === "string" ? parsed.documentNumber : undefined,
