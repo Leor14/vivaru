@@ -84,9 +84,30 @@ async function anticipoEnOperable(sufijo: string, sobrante: number) {
     },
     ADMIN,
     ROL,
-    OPERABLE,
   );
   return r.advanceId!;
+}
+
+/**
+ * La membresía de administrador, que desde `PLAT-002` §11.2 es **la autoridad**
+ * sobre qué conjunto puede cobrar alguien: la guarda dejó de comparar el claim
+ * del token y ahora lee `tenantUsers/{tenantId}_{uid}`. Sin esto sembrado, cada
+ * llamada de esta suite se cae con `permission-denied` — y eso es correcto, no
+ * un estorbo de la prueba: es lo que le pasaría a un administrador de verdad.
+ *
+ * **`conjunto-inexistente` también la lleva, y no es contradictorio.** Esa
+ * prueba fija que un conjunto SIN documento en `tenants` se asume operable; la
+ * membresía vive en otra colección, así que se puede ser miembro de un conjunto
+ * cuyo documento no existe. Sin sembrarla, esa prueba pasaría a fallar por el
+ * permiso y dejaría de comprobar lo que dice su nombre.
+ */
+async function sembrarMembresia(tenantId: string, uid = ADMIN) {
+  await db.collection("tenantUsers").doc(`${tenantId}_${uid}`).set({
+    uid,
+    tenantId,
+    role: "tenant_admin",
+    status: "active",
+  });
 }
 
 beforeEach(async () => {
@@ -109,6 +130,10 @@ beforeEach(async () => {
   // Sin campo `status` a propósito: datos anteriores a que el campo existiera.
   await db.collection("tenants").doc(SIN_STATUS).set({ name: "Sin status" });
 
+  for (const t of [OPERABLE, SUSPENDIDO, VENCIDO, SIN_STATUS, "conjunto-inexistente"]) {
+    await sembrarMembresia(t);
+  }
+
   for (const t of [OPERABLE, SUSPENDIDO, VENCIDO, SIN_STATUS]) {
     await db.collection("featureFlagOverrides").doc(t).set({
       flags: { "producto-anticipos": true, "producto-pago-multiple": true },
@@ -124,7 +149,6 @@ describe("CF8 · cobrar en un conjunto que no puede operar", () => {
         { tenantId: SUSPENDIDO, statementId: "cuota-susp", amount: 140000, date: "2026-08-20", operationKey: "op-susp", source: "manual" },
         ADMIN,
         ROL,
-        SUSPENDIDO,
       ),
     ).rejects.toThrow(/suspendido/i);
   });
@@ -136,7 +160,6 @@ describe("CF8 · cobrar en un conjunto que no puede operar", () => {
         { tenantId: VENCIDO, statementId: "cuota-venc", amount: 140000, date: "2026-08-20", operationKey: "op-venc", source: "manual" },
         ADMIN,
         ROL,
-        VENCIDO,
       ),
     ).rejects.toThrow(/período de prueba/i);
   });
@@ -155,7 +178,6 @@ describe("CF8 · cobrar en un conjunto que no puede operar", () => {
         { tenantId: SUSPENDIDO, statementId: "cuota-intacta", amount: 140000, date: "2026-08-20", operationKey: "op-intacta", source: "manual" },
         ADMIN,
         ROL,
-        SUSPENDIDO,
       ),
     ).rejects.toThrow();
 
@@ -178,7 +200,6 @@ describe("CF8 · cobrar en un conjunto que no puede operar", () => {
         { tenantId: SUSPENDIDO, operationKey: "op-x", reversalKey: "rev-x", reason: "prueba" },
         ADMIN,
         ROL,
-        SUSPENDIDO,
       ),
     ).rejects.toThrow(/suspendido/i);
   });
@@ -192,7 +213,7 @@ describe("CF8 · cobrar en un conjunto que no puede operar", () => {
   it("ni siquiera calcula la vista previa del reparto", async () => {
     await sembrarCuota(SUSPENDIDO, "cuota-previa");
     await expect(
-      vistaPreviaReparto({ tenantId: SUSPENDIDO, unitId: "unit-101", amount: 50000 }, ROL, SUSPENDIDO),
+      vistaPreviaReparto({ tenantId: SUSPENDIDO, unitId: "unit-101", amount: 50000 }, ADMIN, ROL),
     ).rejects.toThrow(/suspendido/i);
   });
 });
@@ -206,7 +227,6 @@ describe("CF8 · anticipos en un conjunto que no puede operar", () => {
         { tenantId: SUSPENDIDO, advanceId, statementId: "cuota-cruce", amount: 60000, date: "2026-08-21", operationKey: "cruce-susp" },
         ADMIN,
         ROL,
-        SUSPENDIDO,
       ),
     ).rejects.toThrow(/suspendido/i);
   });
@@ -217,7 +237,6 @@ describe("CF8 · anticipos en un conjunto que no puede operar", () => {
         { tenantId: SUSPENDIDO, applicationId: "app-x", operationKey: "undo-susp" },
         ADMIN,
         ROL,
-        SUSPENDIDO,
       ),
     ).rejects.toThrow(/suspendido/i);
   });
@@ -229,7 +248,6 @@ describe("CF8 · anticipos en un conjunto que no puede operar", () => {
         { tenantId: SUSPENDIDO, advanceId, reason: "prueba", operationKey: "anul-susp" },
         ADMIN,
         ROL,
-        SUSPENDIDO,
       ),
     ).rejects.toThrow(/suspendido/i);
   });
@@ -242,7 +260,6 @@ describe("CF8 · lo que NO se puede romper al arreglarlo", () => {
       { tenantId: OPERABLE, statementId: "cuota-ok", amount: 140000, date: "2026-08-20", operationKey: "op-ok", source: "manual" },
       ADMIN,
       ROL,
-      OPERABLE,
     );
     expect(r.applied).toBe(true);
     expect(r.balance).toBe(0);
@@ -261,7 +278,6 @@ describe("CF8 · lo que NO se puede romper al arreglarlo", () => {
       { tenantId: SUSPENDIDO, statementId: "cuota-super", amount: 140000, date: "2026-08-20", operationKey: "op-super", source: "manual" },
       "super-1",
       "superadmin",
-      undefined,
     );
     expect(r.applied).toBe(true);
     expect(r.balance).toBe(0);
@@ -279,7 +295,6 @@ describe("CF8 · lo que NO se puede romper al arreglarlo", () => {
       { tenantId: SIN_STATUS, statementId: "cuota-sin-status", amount: 140000, date: "2026-08-20", operationKey: "op-sin-status", source: "manual" },
       ADMIN,
       ROL,
-      SIN_STATUS,
     );
     expect(r.applied).toBe(true);
   });
@@ -290,7 +305,6 @@ describe("CF8 · lo que NO se puede romper al arreglarlo", () => {
       { tenantId: "conjunto-inexistente", statementId: "cuota-inexistente", amount: 140000, date: "2026-08-20", operationKey: "op-inexistente", source: "manual" },
       ADMIN,
       ROL,
-      "conjunto-inexistente",
     );
     expect(r.applied).toBe(true);
   });
@@ -309,7 +323,6 @@ describe("CF8 · lo que NO se puede romper al arreglarlo", () => {
         { tenantId: SUSPENDIDO, statementId: "cuota-fuga", amount: 1000, date: "2026-08-20", operationKey: "op-fuga", source: "manual" },
         "residente-1",
         "resident",
-        SUSPENDIDO,
       ),
     ).rejects.toThrow(/no tienes permiso/i);
   });

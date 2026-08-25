@@ -3,6 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { construirRecibo, type PerfilFiscal } from "./comprobante";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
+import { esAdminActivoDelConjunto } from "./tenant-membership";
 import { assertTenantOperable } from "./tenant-status";
 import {
   CUENTA_ANTICIPO,
@@ -370,12 +371,30 @@ function texto(valor: unknown, campo: string): string {
  *    residente o un curioso hurgando en un conjunto vencido recibiría «el
  *    período de prueba terminó» en vez de «no tienes permiso»: le estaríamos
  *    filtrando el estado comercial de un cliente a quien ni siquiera es miembro.
+ *
+ * **`PLAT-002` §11.2 — el paso 2 dejó de mirar el claim.** Decía
+ * `tokenTenant !== tenantId`, y eso era el bloqueo duro de la administradora:
+ * un admin con membresía en A y en B, parado en B con el claim diciendo A, no
+ * podía cobrar en B. La auditoría de agosto retiró doce comparaciones iguales
+ * en `index.ts` y **no llegó hasta aquí**, porque estas seis viven en
+ * `payments.ts` y `advances.ts`.
+ *
+ * **Y no bastaba con borrarla.** Las doce de `index.ts` tenían
+ * `assertActiveTenantAdmin` justo detrás; estas no tenían nada; la comparación
+ * con el claim era lo ÚNICO que ataba al llamante con el conjunto. Borrarla a
+ * secas habría dejado a cualquier `tenant_admin` cobrar en cualquier conjunto.
+ * Se sustituye por la membresía, que es la autoridad de verdad — el mismo
+ * patrón que `assertSupportRequester` (`support.ts`).
+ *
+ * De paso cierra un hueco que ya existía: hasta ahora el rol salía del **token**
+ * y nadie miraba si la membresía seguía activa, así que un administrador dado de
+ * baja podía cobrar mientras su token no caducara.
  */
-async function assertPuedeCobrar(role: unknown, tokenTenant: unknown, tenantId: string) {
+async function assertPuedeCobrar(role: unknown, uid: string, tenantId: string) {
   const rol = typeof role === "string" ? role : "";
   if (rol === "superadmin" || rol === "super_admin") return;
   const esAdmin = rol === "tenant_admin" || rol === "admin_tenant";
-  if (!esAdmin || tokenTenant !== tenantId) {
+  if (!esAdmin || !(await esAdminActivoDelConjunto(tenantId, uid))) {
     throw new HttpsError("permission-denied", "No tienes permiso para registrar cobros en este conjunto.");
   }
   await assertTenantOperable(tenantId);
@@ -485,12 +504,12 @@ export type VistaPreviaRepartoResultado = {
  */
 export async function vistaPreviaReparto(
   input: VistaPreviaRepartoInput,
+  uid: string,
   role: unknown,
-  tokenTenant: unknown,
 ): Promise<VistaPreviaRepartoResultado> {
   const tenantId = texto(input.tenantId, "el conjunto");
   const unitId = texto(input.unitId, "la unidad");
-  await assertPuedeCobrar(role, tokenTenant, tenantId);
+  await assertPuedeCobrar(role, uid, tenantId);
 
   const monto = typeof input.amount === "number" ? input.amount : NaN;
   if (!Number.isFinite(monto) || monto <= 0) {
@@ -541,13 +560,12 @@ export async function aplicarPago(
   input: AplicarPagoInput,
   uid: string,
   role: unknown,
-  tokenTenant: unknown,
 ): Promise<AplicarPagoResultado> {
   const tenantId = texto(input.tenantId, "el conjunto");
   const operationKey = texto(input.operationKey, "la clave de operación");
   const fecha = texto(input.date, "la fecha");
 
-  await assertPuedeCobrar(role, tokenTenant, tenantId);
+  await assertPuedeCobrar(role, uid, tenantId);
 
   const monto = typeof input.amount === "number" ? input.amount : NaN;
   if (!Number.isFinite(monto) || monto <= 0) {
@@ -1211,14 +1229,13 @@ export async function revertirPago(
   input: RevertirPagoInput,
   uid: string,
   role: unknown,
-  tokenTenant: unknown,
 ): Promise<RevertirPagoResultado> {
   const tenantId = texto(input.tenantId, "el conjunto");
   const operationKey = texto(input.operationKey, "la operación a revertir");
   const reversalKey = texto(input.reversalKey, "la clave de la reversión");
   const motivo = texto(input.reason, "el motivo de la reversión");
 
-  await assertPuedeCobrar(role, tokenTenant, tenantId);
+  await assertPuedeCobrar(role, uid, tenantId);
 
   if (reversalKey === operationKey) {
     throw new HttpsError(

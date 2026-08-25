@@ -7,6 +7,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const feature_flags_1 = require("./feature-flags");
 const payments_1 = require("./payments");
+const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
 /**
  * `PRD-V-FLOW-002` — cruzar un anticipo contra un cargo, y deshacer el cruce.
@@ -46,25 +47,31 @@ function texto(valor, campo) {
  * lectura — da igual que cruzar no mueva dinero nuevo. El orden de las tres
  * comprobaciones, y por qué el estado va al final, está explicado en
  * `assertPuedeCobrar` (`payments.ts`); esto es su gemelo, deliberadamente.
+ *
+ * **`PLAT-002` §11.2:** y también dejó de mirar el claim del token a la vez que
+ * él. La autoridad es la membresía (`esAdminActivoDelConjunto`), porque el claim
+ * es de un solo conjunto y bloqueaba al administrador de varios. El porqué
+ * completo —y por qué borrar la comparación sin poner nada habría abierto un
+ * hueco— está escrito una sola vez, en `assertPuedeCobrar`.
  */
-async function assertPuedeOperarAnticipos(role, tokenTenant, tenantId) {
+async function assertPuedeOperarAnticipos(role, uid, tenantId) {
     const rol = typeof role === "string" ? role : "";
     if (rol === "superadmin" || rol === "super_admin")
         return;
     const esAdmin = rol === "tenant_admin" || rol === "admin_tenant";
-    if (!esAdmin || tokenTenant !== tenantId) {
+    if (!esAdmin || !(await (0, tenant_membership_1.esAdminActivoDelConjunto)(tenantId, uid))) {
         throw new https_1.HttpsError("permission-denied", "No tienes permiso para operar anticipos en este conjunto.");
     }
     await (0, tenant_status_1.assertTenantOperable)(tenantId);
 }
 /** Cruza un anticipo contra un cargo. Transaccional e idempotente. */
-async function cruzarAnticipo(input, uid, role, tokenTenant) {
+async function cruzarAnticipo(input, uid, role) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const advanceId = texto(input.advanceId, "el anticipo");
     const statementId = texto(input.statementId, "el cargo");
     const operationKey = texto(input.operationKey, "la clave de operación");
     const fecha = texto(input.date, "la fecha");
-    await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await assertPuedeOperarAnticipos(role, uid, tenantId);
     await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
     const pedido = typeof input.amount === "number" ? input.amount : NaN;
     if (!Number.isFinite(pedido) || pedido <= 0) {
@@ -201,11 +208,11 @@ async function cruzarAnticipo(input, uid, role, tokenTenant) {
  * habría que adivinar cuánto se aplicó a qué para poder deshacerlo, y adivinar
  * sobre dinero no es una opción.
  */
-async function deshacerCruce(input, uid, role, tokenTenant) {
+async function deshacerCruce(input, uid, role) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const applicationId = texto(input.applicationId, "el cruce");
     const operationKey = texto(input.operationKey, "la clave de operación");
-    await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await assertPuedeOperarAnticipos(role, uid, tenantId);
     await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
     const firestore = db();
     const opRef = firestore.collection("paymentOperations").doc(`${tenantId}_${operationKey}`);
@@ -321,14 +328,14 @@ async function deshacerCruce(input, uid, role, tokenTenant) {
  * dejaría cargos saldados con un anticipo que ya no existe. Primero se deshacen
  * los cruces.
  */
-async function anularAnticipo(input, uid, role, tokenTenant) {
+async function anularAnticipo(input, uid, role) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const advanceId = texto(input.advanceId, "el anticipo");
     const operationKey = texto(input.operationKey, "la clave de operación");
     // CF4. Va por `texto`, que rechaza también la cadena de espacios: un motivo en
     // blanco es lo mismo que no tener motivo, y se cuela solo si nadie lo mira.
     const motivo = texto(input.reason, "el motivo de la anulación");
-    await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await assertPuedeOperarAnticipos(role, uid, tenantId);
     await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
     const firestore = db();
     const opRef = firestore.collection("paymentOperations").doc(`${tenantId}_${operationKey}`);

@@ -3,6 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertFeatureEnabled } from "./feature-flags";
 import { aMoneda, calcularSaldo, TOLERANCIA_MONEDA } from "./payments";
+import { esAdminActivoDelConjunto } from "./tenant-membership";
 import { assertTenantOperable } from "./tenant-status";
 
 /**
@@ -104,12 +105,18 @@ function texto(valor: unknown, campo: string): string {
  * lectura — da igual que cruzar no mueva dinero nuevo. El orden de las tres
  * comprobaciones, y por qué el estado va al final, está explicado en
  * `assertPuedeCobrar` (`payments.ts`); esto es su gemelo, deliberadamente.
+ *
+ * **`PLAT-002` §11.2:** y también dejó de mirar el claim del token a la vez que
+ * él. La autoridad es la membresía (`esAdminActivoDelConjunto`), porque el claim
+ * es de un solo conjunto y bloqueaba al administrador de varios. El porqué
+ * completo —y por qué borrar la comparación sin poner nada habría abierto un
+ * hueco— está escrito una sola vez, en `assertPuedeCobrar`.
  */
-async function assertPuedeOperarAnticipos(role: unknown, tokenTenant: unknown, tenantId: string) {
+async function assertPuedeOperarAnticipos(role: unknown, uid: string, tenantId: string) {
   const rol = typeof role === "string" ? role : "";
   if (rol === "superadmin" || rol === "super_admin") return;
   const esAdmin = rol === "tenant_admin" || rol === "admin_tenant";
-  if (!esAdmin || tokenTenant !== tenantId) {
+  if (!esAdmin || !(await esAdminActivoDelConjunto(tenantId, uid))) {
     throw new HttpsError("permission-denied", "No tienes permiso para operar anticipos en este conjunto.");
   }
   await assertTenantOperable(tenantId);
@@ -120,7 +127,6 @@ export async function cruzarAnticipo(
   input: CruzarAnticipoInput,
   uid: string,
   role: unknown,
-  tokenTenant: unknown,
 ): Promise<CruzarAnticipoResultado> {
   const tenantId = texto(input.tenantId, "el conjunto");
   const advanceId = texto(input.advanceId, "el anticipo");
@@ -128,7 +134,7 @@ export async function cruzarAnticipo(
   const operationKey = texto(input.operationKey, "la clave de operación");
   const fecha = texto(input.date, "la fecha");
 
-  await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+  await assertPuedeOperarAnticipos(role, uid, tenantId);
   await assertFeatureEnabled("producto-anticipos", tenantId);
 
   const pedido = typeof input.amount === "number" ? input.amount : NaN;
@@ -282,13 +288,12 @@ export async function deshacerCruce(
   input: DeshacerCruceInput,
   uid: string,
   role: unknown,
-  tokenTenant: unknown,
 ): Promise<DeshacerCruceResultado> {
   const tenantId = texto(input.tenantId, "el conjunto");
   const applicationId = texto(input.applicationId, "el cruce");
   const operationKey = texto(input.operationKey, "la clave de operación");
 
-  await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+  await assertPuedeOperarAnticipos(role, uid, tenantId);
   await assertFeatureEnabled("producto-anticipos", tenantId);
 
   const firestore = db();
@@ -433,7 +438,6 @@ export async function anularAnticipo(
   input: AnularAnticipoInput,
   uid: string,
   role: unknown,
-  tokenTenant: unknown,
 ): Promise<AnularAnticipoResultado> {
   const tenantId = texto(input.tenantId, "el conjunto");
   const advanceId = texto(input.advanceId, "el anticipo");
@@ -442,7 +446,7 @@ export async function anularAnticipo(
   // blanco es lo mismo que no tener motivo, y se cuela solo si nadie lo mira.
   const motivo = texto(input.reason, "el motivo de la anulación");
 
-  await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+  await assertPuedeOperarAnticipos(role, uid, tenantId);
   await assertFeatureEnabled("producto-anticipos", tenantId);
 
   const firestore = db();

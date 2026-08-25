@@ -17,6 +17,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const comprobante_1 = require("./comprobante");
 const feature_flags_1 = require("./feature-flags");
+const tenant_membership_1 = require("./tenant-membership");
 const tenant_status_1 = require("./tenant-status");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 /**
@@ -211,13 +212,31 @@ function texto(valor, campo) {
  *    residente o un curioso hurgando en un conjunto vencido recibiría «el
  *    período de prueba terminó» en vez de «no tienes permiso»: le estaríamos
  *    filtrando el estado comercial de un cliente a quien ni siquiera es miembro.
+ *
+ * **`PLAT-002` §11.2 — el paso 2 dejó de mirar el claim.** Decía
+ * `tokenTenant !== tenantId`, y eso era el bloqueo duro de la administradora:
+ * un admin con membresía en A y en B, parado en B con el claim diciendo A, no
+ * podía cobrar en B. La auditoría de agosto retiró doce comparaciones iguales
+ * en `index.ts` y **no llegó hasta aquí**, porque estas seis viven en
+ * `payments.ts` y `advances.ts`.
+ *
+ * **Y no bastaba con borrarla.** Las doce de `index.ts` tenían
+ * `assertActiveTenantAdmin` justo detrás; estas no tenían nada; la comparación
+ * con el claim era lo ÚNICO que ataba al llamante con el conjunto. Borrarla a
+ * secas habría dejado a cualquier `tenant_admin` cobrar en cualquier conjunto.
+ * Se sustituye por la membresía, que es la autoridad de verdad — el mismo
+ * patrón que `assertSupportRequester` (`support.ts`).
+ *
+ * De paso cierra un hueco que ya existía: hasta ahora el rol salía del **token**
+ * y nadie miraba si la membresía seguía activa, así que un administrador dado de
+ * baja podía cobrar mientras su token no caducara.
  */
-async function assertPuedeCobrar(role, tokenTenant, tenantId) {
+async function assertPuedeCobrar(role, uid, tenantId) {
     const rol = typeof role === "string" ? role : "";
     if (rol === "superadmin" || rol === "super_admin")
         return;
     const esAdmin = rol === "tenant_admin" || rol === "admin_tenant";
-    if (!esAdmin || tokenTenant !== tenantId) {
+    if (!esAdmin || !(await (0, tenant_membership_1.esAdminActivoDelConjunto)(tenantId, uid))) {
         throw new https_1.HttpsError("permission-denied", "No tienes permiso para registrar cobros en este conjunto.");
     }
     await (0, tenant_status_1.assertTenantOperable)(tenantId);
@@ -274,10 +293,10 @@ function repartirPorAntiguedad(cargos, importe, hoy) {
  * pantalla pueda pintarla sin una segunda lectura, y `sobranteSeraAnticipo`
  * para que no prometa un saldo a favor que la bandera apagada no va a crear.
  */
-async function vistaPreviaReparto(input, role, tokenTenant) {
+async function vistaPreviaReparto(input, uid, role) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const unitId = texto(input.unitId, "la unidad");
-    await assertPuedeCobrar(role, tokenTenant, tenantId);
+    await assertPuedeCobrar(role, uid, tenantId);
     const monto = typeof input.amount === "number" ? input.amount : NaN;
     if (!Number.isFinite(monto) || monto <= 0) {
         throw new https_1.HttpsError("invalid-argument", "El monto del cobro debe ser mayor a cero.");
@@ -318,11 +337,11 @@ async function vistaPreviaReparto(input, role, tokenTenant) {
  * cualquier escritura** dentro de una transacción, así que primero se leen la
  * marca de idempotencia, la cuota y —si aplica— el comprobante del residente.
  */
-async function aplicarPago(input, uid, role, tokenTenant) {
+async function aplicarPago(input, uid, role) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const operationKey = texto(input.operationKey, "la clave de operación");
     const fecha = texto(input.date, "la fecha");
-    await assertPuedeCobrar(role, tokenTenant, tenantId);
+    await assertPuedeCobrar(role, uid, tenantId);
     const monto = typeof input.amount === "number" ? input.amount : NaN;
     if (!Number.isFinite(monto) || monto <= 0) {
         throw new https_1.HttpsError("invalid-argument", "El monto del cobro debe ser mayor a cero.");
@@ -906,12 +925,12 @@ function saldoTrasRevertir(totalCobrado, pagadoAntes, montoRevertido, anticipoAp
  * puede ocurrir dentro de la transacción que ya existía. Se cambia una tarea
  * pendiente que nadie hacía por una escritura que no se puede olvidar.
  */
-async function revertirPago(input, uid, role, tokenTenant) {
+async function revertirPago(input, uid, role) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const operationKey = texto(input.operationKey, "la operación a revertir");
     const reversalKey = texto(input.reversalKey, "la clave de la reversión");
     const motivo = texto(input.reason, "el motivo de la reversión");
-    await assertPuedeCobrar(role, tokenTenant, tenantId);
+    await assertPuedeCobrar(role, uid, tenantId);
     if (reversalKey === operationKey) {
         throw new https_1.HttpsError("invalid-argument", "La clave de la reversión no puede ser la misma del pago.");
     }

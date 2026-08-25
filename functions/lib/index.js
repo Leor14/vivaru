@@ -3413,7 +3413,7 @@ exports.applyAdvance = (0, https_1.onCall)({ cors: http_config_1.callableCorsOri
     const uid = request.auth?.uid;
     if (!uid)
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
-    const resultado = await (0, advances_1.cruzarAnticipo)(request.data, uid, request.auth?.token?.role, request.auth?.token?.tenantId);
+    const resultado = await (0, advances_1.cruzarAnticipo)(request.data, uid, request.auth?.token?.role);
     // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
     // genera una segunda entrada. Misma regla que `applyPayment`.
     if (resultado.applied) {
@@ -3432,7 +3432,7 @@ exports.undoAdvanceApplication = (0, https_1.onCall)({ cors: http_config_1.calla
     const uid = request.auth?.uid;
     if (!uid)
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
-    const resultado = await (0, advances_1.deshacerCruce)(request.data, uid, request.auth?.token?.role, request.auth?.token?.tenantId);
+    const resultado = await (0, advances_1.deshacerCruce)(request.data, uid, request.auth?.token?.role);
     if (resultado.reversed) {
         await writeAuditLog(request.data?.tenantId ?? "", uid, "undo_advance_application", {
             applicationId: request.data?.applicationId,
@@ -3446,7 +3446,7 @@ exports.cancelAdvance = (0, https_1.onCall)({ cors: http_config_1.callableCorsOr
     const uid = request.auth?.uid;
     if (!uid)
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
-    const resultado = await (0, advances_1.anularAnticipo)(request.data, uid, request.auth?.token?.role, request.auth?.token?.tenantId);
+    const resultado = await (0, advances_1.anularAnticipo)(request.data, uid, request.auth?.token?.role);
     // El motivo va al registro de auditoría a propósito: es la única forma de
     // saber después por qué el saldo a favor de un residente dejó de existir.
     if (resultado.cancelled) {
@@ -3472,7 +3472,7 @@ exports.cancelAdvance = (0, https_1.onCall)({ cors: http_config_1.callableCorsOr
 exports.previewPaymentAllocation = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     if (!request.auth?.uid)
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
-    return (0, payments_1.vistaPreviaReparto)(request.data, request.auth?.token?.role, request.auth?.token?.tenantId);
+    return (0, payments_1.vistaPreviaReparto)(request.data, request.auth.uid, request.auth?.token?.role);
 });
 // ── FIN-001 · aplicación de pagos ────────────────────────────────────────────
 //
@@ -3485,8 +3485,7 @@ exports.applyPayment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOri
     if (!uid)
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
     const role = request.auth?.token?.role;
-    const tokenTenant = request.auth?.token?.tenantId;
-    const resultado = await (0, payments_1.aplicarPago)(request.data, uid, role, tokenTenant);
+    const resultado = await (0, payments_1.aplicarPago)(request.data, uid, role);
     // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
     // genera una segunda entrada, que si no el registro contaría dos cobros.
     if (resultado.applied) {
@@ -3525,8 +3524,7 @@ exports.revertPayment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOr
     if (!uid)
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
     const role = request.auth?.token?.role;
-    const tokenTenant = request.auth?.token?.tenantId;
-    const resultado = await (0, payments_1.revertirPago)(request.data, uid, role, tokenTenant);
+    const resultado = await (0, payments_1.revertirPago)(request.data, uid, role);
     if (resultado.reversed) {
         await writeAuditLog(request.data?.tenantId ?? "", uid, "revert_payment", {
             operationKey: request.data?.operationKey,

@@ -60,6 +60,22 @@ async function sembrarCuota(id: string, amount = 140000) {
   });
 }
 
+/**
+ * La membresía de administrador, que desde `PLAT-002` §11.2 es **la autoridad**
+ * sobre qué conjunto puede cobrar alguien: la guarda dejó de comparar el claim
+ * del token y ahora lee `tenantUsers/{tenantId}_{uid}`. Sin esto sembrado, cada
+ * llamada de esta suite se cae con `permission-denied` — y eso es correcto, no
+ * un estorbo de la prueba: es lo que le pasaría a un administrador de verdad.
+ */
+async function sembrarMembresia(tenantId: string, uid = ADMIN) {
+  await db.collection("tenantUsers").doc(`${tenantId}_${uid}`).set({
+    uid,
+    tenantId,
+    role: "tenant_admin",
+    status: "active",
+  });
+}
+
 /** Enciende o apaga `producto-anticipos` para este conjunto, por override. */
 async function bandera(encendida: boolean, multiple = true) {
   await db.collection("featureFlagOverrides").doc(TENANT).set({
@@ -83,6 +99,8 @@ beforeEach(async () => {
   for (const c of ["billingStatements", "ledgerEntries", "paymentOperations", "paymentVouchers", "bankAccounts", "tenantSettings", "advances", "advanceApplications", "featureFlagOverrides"]) {
     await limpiar(c);
   }
+  await sembrarMembresia(TENANT);
+  await sembrarMembresia(OTRO_TENANT);
   await db.collection("bankAccounts").doc("cta-bancolombia").set({
     tenantId: TENANT,
     label: "Bancolombia principal",
@@ -108,7 +126,7 @@ describe("D-C · el asiento del pago guarda a qué cuenta entró el dinero", () 
     await sembrarCuota("cuota-1");
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-1", amount: 140000, date: "2026-08-20", operationKey: "op-1", source: "manual", bankAccountId: "cta-bancolombia" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const asiento = await db.collection("ledgerEntries").doc(r.ledgerEntryId).get();
     expect(asiento.data()?.bankAccountId).toBe("cta-bancolombia");
@@ -123,7 +141,7 @@ describe("D-C · el asiento del pago guarda a qué cuenta entró el dinero", () 
     await sembrarCuota("cuota-2");
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-2", amount: 140000, date: "2026-08-20", operationKey: "op-2", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const asiento = await db.collection("ledgerEntries").doc(r.ledgerEntryId).get();
     expect(asiento.data()?.bankAccountId).toBeNull();
@@ -133,7 +151,7 @@ describe("D-C · el asiento del pago guarda a qué cuenta entró el dinero", () 
     await sembrarCuota("cuota-3");
     await expect(aplicarPago(
       { tenantId: TENANT, statementId: "cuota-3", amount: 1000, date: "2026-08-20", operationKey: "op-3", source: "manual", bankAccountId: "cta-inventada" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/no existe/i);
   });
 
@@ -146,7 +164,7 @@ describe("D-C · el asiento del pago guarda a qué cuenta entró el dinero", () 
     await sembrarCuota("cuota-4");
     await expect(aplicarPago(
       { tenantId: TENANT, statementId: "cuota-4", amount: 1000, date: "2026-08-20", operationKey: "op-4", source: "manual", bankAccountId: "cta-ajena" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/otro conjunto/i);
   });
 
@@ -154,7 +172,7 @@ describe("D-C · el asiento del pago guarda a qué cuenta entró el dinero", () 
     await sembrarCuota("cuota-5");
     await expect(aplicarPago(
       { tenantId: TENANT, statementId: "cuota-5", amount: 1000, date: "2026-08-20", operationKey: "op-5", source: "manual", bankAccountId: "cta-cerrada" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/inactiva/i);
   });
 });
@@ -170,11 +188,11 @@ describe("D-C · el reverso copia la cuenta del asiento que anula", () => {
     await sembrarCuota("cuota-rev");
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-rev", amount: 140000, date: "2026-08-20", operationKey: "op-rev", source: "manual", bankAccountId: "cta-bancolombia" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const r = await revertirPago(
       { tenantId: TENANT, operationKey: "op-rev", reversalKey: "rev-1", reason: "Cobro duplicado" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const reverso = await db.collection("ledgerEntries").doc(r.reversalEntryId).get();
     expect(reverso.data()?.bankAccountId).toBe("cta-bancolombia");
@@ -186,11 +204,11 @@ describe("D-C · el reverso copia la cuenta del asiento que anula", () => {
     await sembrarCuota("cuota-rev2");
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-rev2", amount: 140000, date: "2026-08-20", operationKey: "op-rev2", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const r = await revertirPago(
       { tenantId: TENANT, operationKey: "op-rev2", reversalKey: "rev-2", reason: "Error de registro" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const reverso = await db.collection("ledgerEntries").doc(r.reversalEntryId).get();
     expect(reverso.data()?.bankAccountId).toBeNull();
@@ -210,7 +228,7 @@ describe("D-A · con la bandera APAGADA no cambia un solo número", () => {
     await sembrarCuota("cuota-off", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-off", amount: 200000, date: "2026-08-20", operationKey: "op-off", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.paymentAmount).toBe(200000);
     expect(r.balance).toBe(0);
@@ -243,7 +261,7 @@ describe("D-A · con la bandera apagada NO puede nacer un anticipo por la puerta
         operationKey: "op-off-1", source: "manual",
         allocations: [{ statementId: "cuota-off-1", amount: 50000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/suma menos que el importe pagado/);
     expect((await db.collection("advances").get()).size).toBe(0);
   });
@@ -268,7 +286,7 @@ describe("D-A · con la bandera apagada NO puede nacer un anticipo por la puerta
           { statementId: "cuota-off-3", amount: 70000 },
         ],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/suma menos que el importe pagado/);
     expect((await db.collection("advances").get()).size).toBe(0);
     // Y no se ha movido nada a medias: los cargos siguen intactos.
@@ -295,7 +313,7 @@ describe("D-A · con la bandera apagada NO puede nacer un anticipo por la puerta
           { statementId: "cuota-off-5", amount: 4619.14 },
         ],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.advanceId).toBeUndefined();
     expect((await db.collection("advances").get()).size).toBe(0);
@@ -307,7 +325,7 @@ describe("D-A · con la bandera apagada NO puede nacer un anticipo por la puerta
     await sembrarCuota("cuota-off-6", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-off-6", amount: 200000, date: "2026-08-24", operationKey: "op-off-4", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.paymentAmount).toBe(200000);
     expect(r.advanceId).toBeUndefined();
@@ -321,7 +339,7 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-a", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-a", amount: 200000, date: "2026-08-20", operationKey: "op-a", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.paymentAmount).toBe(140000);
     expect(r.status).toBe("paid");
@@ -337,7 +355,7 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-r1", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r1", amount: 200000, date: "2026-08-20", operationKey: "op-r1", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.paymentAmount + (r.advanceAmount ?? 0)).toBe(200000);
   });
@@ -364,7 +382,7 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-cent", 35.16);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-cent", amount: 400.42, date: "2026-08-24", operationKey: "op-cent", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.paymentAmount).toBe(35.16);
     expect(r.status).toBe("paid");
@@ -389,7 +407,7 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-resta", 3898.12);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-resta", amount: 6440.73, date: "2026-08-24", operationKey: "op-resta", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.advanceAmount).toBe(2542.61);
     const adv = await db.collection("advances").doc(r.advanceId!).get();
@@ -420,7 +438,7 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
         ],
         date: "2026-08-24", operationKey: "op-cent-rep", source: "manual",
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.applied).toBe(true);
     // Cubre los tres exactamente: no sobra nada, así que no nace anticipo (R3).
@@ -438,7 +456,7 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-r3", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r3", amount: 140000, date: "2026-08-20", operationKey: "op-r3", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.advanceId).toBeUndefined();
     expect((await db.collection("advances").get()).size).toBe(0);
@@ -450,11 +468,11 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-ca8", 140000);
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-ca8", amount: 140000, date: "2026-08-20", operationKey: "op-ca8-1", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-ca8", amount: 50000, date: "2026-08-21", operationKey: "op-ca8-2", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.advanceAmount).toBe(50000);
     expect(r.paymentAmount).toBe(140000);
@@ -469,11 +487,11 @@ describe("D-A · el sobrepago deja de evaporarse", () => {
     await sembrarCuota("cuota-r10", 140000);
     const uno = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r10", amount: 200000, date: "2026-08-20", operationKey: "op-r10", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const dos = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r10", amount: 200000, date: "2026-08-20", operationKey: "op-r10", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(dos.applied).toBe(false);
     expect(dos.advanceId).toBe(uno.advanceId);
@@ -495,7 +513,7 @@ describe("§7.4 · el asiento del anticipo NO hereda el origen del cobro", () =>
     await sembrarCuota("cuota-74", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-74", amount: 200000, date: "2026-08-20", operationKey: "op-74", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const adv = (await db.collection("advances").doc(r.advanceId!).get()).data()!;
     const asiento = (await db.collection("ledgerEntries").doc(adv.ledgerEntryId).get()).data()!;
@@ -519,7 +537,7 @@ describe("§7.4 · el asiento del anticipo NO hereda el origen del cobro", () =>
     await sembrarCuota("cuota-inv", 140000);
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-inv", amount: 200000, date: "2026-08-20", operationKey: "op-inv", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const { cuotaIncome, ledgerIncome, total } = await ingresoTotal();
     expect(cuotaIncome).toBe(140000);
@@ -534,7 +552,7 @@ describe("§7.4 · el asiento del anticipo NO hereda el origen del cobro", () =>
     await sembrarCuota("cuota-asi", 140000);
     const r = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-asi", amount: 200000, date: "2026-08-20", operationKey: "op-asi", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const asiento = (await db.collection("ledgerEntries").doc(r.ledgerEntryId).get()).data()!;
     expect(asiento.amount).toBe(140000);
@@ -555,13 +573,13 @@ describe("R15 · revertir un pago se lleva por delante el anticipo que generó",
     await sembrarCuota("cuota-r15", 140000);
     const pago = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r15", amount: 200000, date: "2026-08-20", operationKey: "op-r15", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect((await ingresoTotal()).total).toBe(200000);
 
     const r = await revertirPago(
       { tenantId: TENANT, operationKey: "op-r15", reversalKey: "rev-r15", reason: "Cobro duplicado" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.reversed).toBe(true);
     expect(r.paymentAmount).toBe(0);
@@ -591,15 +609,15 @@ describe("R15 · revertir un pago se lleva por delante el anticipo que generó",
     await sembrarCuota("cuota-anul-rev", 140000);
     const pago = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-anul-rev", amount: 200000, date: "2026-08-20", operationKey: "op-anul-rev", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await anularAnticipo(
       { tenantId: TENANT, advanceId: pago.advanceId!, reason: "El residente renuncia", operationKey: "anul-antes-rev" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const r = await revertirPago(
       { tenantId: TENANT, operationKey: "op-anul-rev", reversalKey: "rev-anul", reason: "Cobro duplicado" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.reversed).toBe(true);
     // El dinero se va del todo: el anticipo estaba anulado pero su ingreso
@@ -617,16 +635,16 @@ describe("R15 · revertir un pago se lleva por delante el anticipo que generó",
     await sembrarCuota("cuota-r8", 140000);
     const pago = await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r8", amount: 200000, date: "2026-08-20", operationKey: "op-r8", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await sembrarCuota("cuota-r8-otra", 90000);
     await cruzarAnticipo(
       { tenantId: TENANT, advanceId: pago.advanceId!, statementId: "cuota-r8-otra", amount: 60000, date: "2026-08-21", operationKey: "cruce-r8" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await expect(revertirPago(
       { tenantId: TENANT, operationKey: "op-r8", reversalKey: "rev-r8", reason: "Error" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/deshacer esos cruces/i);
   });
 
@@ -637,11 +655,11 @@ describe("R15 · revertir un pago se lleva por delante el anticipo que generó",
     await sembrarCuota("cuota-r15b", 140000);
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-r15b", amount: 140000, date: "2026-08-20", operationKey: "op-r15b", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const r = await revertirPago(
       { tenantId: TENANT, operationKey: "op-r15b", reversalKey: "rev-r15b", reason: "Error" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.reversed).toBe(true);
     expect(r.paymentAmount).toBe(0);
@@ -653,7 +671,7 @@ async function anticipoDe(sobrante: number, sufijo: string) {
   await sembrarCuota(`cuota-origen-${sufijo}`, 100000);
   const r = await aplicarPago(
     { tenantId: TENANT, statementId: `cuota-origen-${sufijo}`, amount: 100000 + sobrante, date: "2026-08-20", operationKey: `op-origen-${sufijo}`, source: "manual" },
-    ADMIN, ROL, TENANT,
+    ADMIN, ROL,
   );
   return r.advanceId!;
 }
@@ -666,7 +684,7 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
 
     const r = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-ca5", amount: 60000, date: "2026-08-21", operationKey: "cruce-ca5" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.appliedAmount).toBe(60000);
     expect(r.balance).toBe(80000);
@@ -688,7 +706,7 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
 
     await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-ca6", amount: 60000, date: "2026-08-21", operationKey: "cruce-ca6" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect((await db.collection("ledgerEntries").get()).size).toBe(antes);
   });
@@ -714,7 +732,7 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
     const antes = await ingresoTotal();
     await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-inv2", amount: 60000, date: "2026-08-21", operationKey: "cruce-inv" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const despues = await ingresoTotal();
 
@@ -738,7 +756,7 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
     });
     await expect(cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-otra-unidad", amount: 60000, date: "2026-08-21", operationKey: "cruce-cf1" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/otra unidad/i);
   });
 
@@ -751,7 +769,7 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
 
     const r = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-cap", amount: 200000, date: "2026-08-21", operationKey: "cruce-cap" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.appliedAmount).toBe(140000);
     expect(r.remaining).toBe(60000);
@@ -765,11 +783,11 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
     await sembrarCuota("cuota-saldada", 140000);
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-saldada", amount: 140000, date: "2026-08-20", operationKey: "op-saldada", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await expect(cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-saldada", amount: 60000, date: "2026-08-21", operationKey: "cruce-sal" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/saldo pendiente/i);
   });
 
@@ -779,11 +797,11 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
     await sembrarCuota("cuota-idem", 140000);
     const uno = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-idem", amount: 60000, date: "2026-08-21", operationKey: "cruce-idem" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const dos = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-idem", amount: 60000, date: "2026-08-21", operationKey: "cruce-idem" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(dos.applied).toBe(false);
     expect(dos.applicationId).toBe(uno.applicationId);
@@ -797,7 +815,7 @@ describe("R4 · cruzar un anticipo no mueve dinero", () => {
     await bandera(false);
     await expect(cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-off2", amount: 60000, date: "2026-08-21", operationKey: "cruce-off" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow();
   });
 });
@@ -809,12 +827,12 @@ describe("CA12 · deshacer un cruce devuelve el anticipo a `open` con su remanen
     await sembrarCuota("cuota-ca12", 140000);
     const cruce = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-ca12", amount: 60000, date: "2026-08-21", operationKey: "cruce-ca12" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
 
     const r = await deshacerCruce(
       { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-ca12", reason: "Imputado por error" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.remaining).toBe(60000);
     expect(r.advanceStatus).toBe("open");
@@ -833,11 +851,11 @@ describe("CA12 · deshacer un cruce devuelve el anticipo a `open` con su remanen
     const antes = await ingresoTotal();
     const cruce = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-inv3", amount: 60000, date: "2026-08-21", operationKey: "cruce-inv3" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await deshacerCruce(
       { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-inv3" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect((await ingresoTotal()).total).toBe(antes.total);
   });
@@ -848,12 +866,12 @@ describe("CA12 · deshacer un cruce devuelve el anticipo a `open` con su remanen
     await sembrarCuota("cuota-dos", 140000);
     const cruce = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-dos", amount: 60000, date: "2026-08-21", operationKey: "cruce-dos" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
-    await deshacerCruce({ tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-dos-1" }, ADMIN, ROL, TENANT);
+    await deshacerCruce({ tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-dos-1" }, ADMIN, ROL);
     await expect(deshacerCruce(
       { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "undo-dos-2" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/ya se deshizo/i);
   });
 });
@@ -877,7 +895,7 @@ describe("R9 · anular un anticipo con motivo NO toca el libro", () => {
 
     const r = await anularAnticipo(
       { tenantId: TENANT, advanceId, reason: "El residente renuncia al saldo", operationKey: "anul-r9" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.cancelled).toBe(true);
 
@@ -896,7 +914,7 @@ describe("R9 · anular un anticipo con motivo NO toca el libro", () => {
     const advanceId = await anticipoDe(60000, "cf4");
     await expect(anularAnticipo(
       { tenantId: TENANT, advanceId, reason: "   ", operationKey: "anul-cf4" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/motivo/i);
   });
 
@@ -907,21 +925,21 @@ describe("R9 · anular un anticipo con motivo NO toca el libro", () => {
     await sembrarCuota("cuota-cf3", 140000);
     await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-cf3", amount: 20000, date: "2026-08-21", operationKey: "cruce-cf3" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await expect(anularAnticipo(
       { tenantId: TENANT, advanceId, reason: "Da igual", operationKey: "anul-cf3" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/deshacer esos cruces/i);
   });
 
   it("no se anula dos veces: `cancelled` es terminal", async () => {
     await bandera(true);
     const advanceId = await anticipoDe(60000, "term");
-    await anularAnticipo({ tenantId: TENANT, advanceId, reason: "Uno", operationKey: "anul-t1" }, ADMIN, ROL, TENANT);
+    await anularAnticipo({ tenantId: TENANT, advanceId, reason: "Uno", operationKey: "anul-t1" }, ADMIN, ROL);
     await expect(anularAnticipo(
       { tenantId: TENANT, advanceId, reason: "Dos", operationKey: "anul-t2" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/ya está anulado/i);
   });
 });
@@ -937,7 +955,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi", source: "manual",
         allocations: [{ statementId: "multi-1", amount: 140000 }, { statementId: "multi-2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.allocations).toHaveLength(2);
     const uno = (await db.collection("billingStatements").doc("multi-1").get()).data()!;
@@ -962,7 +980,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-a", source: "manual",
         allocations: [{ statementId: "multi-a1", amount: 140000 }, { statementId: "multi-a2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const asientos = await db.collection("ledgerEntries").where("operationKey", "==", "op-multi-a").get();
     expect(asientos.size).toBe(2);
@@ -980,7 +998,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 300000, date: "2026-08-20", operationKey: "op-multi-b", source: "manual",
         allocations: [{ statementId: "multi-b1", amount: 140000 }, { statementId: "multi-b2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect(r.advanceAmount).toBe(70000);
     const aplicado = r.allocations!.reduce((s, a) => s + a.amount, 0);
@@ -1006,7 +1024,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-u", source: "manual",
         allocations: [{ statementId: "multi-u1", amount: 140000 }, { statementId: "multi-u2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/unidades distintas/i);
   });
 
@@ -1021,7 +1039,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 200000, date: "2026-08-20", operationKey: "op-multi-d", source: "manual",
         allocations: [{ statementId: "multi-d", amount: 100000 }, { statementId: "multi-d", amount: 100000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/dos veces/i);
   });
 
@@ -1035,7 +1053,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 200000, date: "2026-08-20", operationKey: "op-multi-s", source: "manual",
         allocations: [{ statementId: "multi-s1", amount: 140000 }, { statementId: "multi-s2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/suma más/i);
   });
 
@@ -1048,7 +1066,7 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-f", source: "manual",
         allocations: [{ statementId: "multi-f1", amount: 140000 }, { statementId: "multi-f2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow();
   });
 
@@ -1067,13 +1085,13 @@ describe("D-B · un pago cubre varios cargos en una sola operación", () => {
         tenantId: TENANT, amount: 230000, date: "2026-08-20", operationKey: "op-multi-r", source: "manual",
         allocations: [{ statementId: "multi-r1", amount: 140000 }, { statementId: "multi-r2", amount: 90000 }],
       },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     expect((await ingresoTotal()).total).toBe(230000);
 
     await revertirPago(
       { tenantId: TENANT, operationKey: "op-multi-r", reversalKey: "rev-multi-r", reason: "Cobro duplicado" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
 
     const uno = (await db.collection("billingStatements").doc("multi-r1").get()).data()!;
@@ -1105,7 +1123,7 @@ describe("Triaje del 24 ago 2026 · el dinero con centavos, otra vez", () => {
     });
     await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-c14", amount: 100, date: "2026-08-21", operationKey: "cruce-c14" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const cargo = await db.collection("billingStatements").doc("cuota-c14").get();
     expect(cargo.data()?.balance).toBe(0);
@@ -1127,17 +1145,17 @@ describe("Triaje del 24 ago 2026 · el dinero con centavos, otra vez", () => {
     await sembrarCuota("cuota-c7", 3.74);
     const cruce = await cruzarAnticipo(
       { tenantId: TENANT, advanceId, statementId: "cuota-c7", amount: 3.74, date: "2026-08-21", operationKey: "cruce-c7" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await deshacerCruce(
       { tenantId: TENANT, applicationId: cruce.applicationId, operationKey: "descruce-c7" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const tras = await db.collection("advances").doc(advanceId).get();
     expect(tras.data()?.remaining).toBe(tras.data()?.amount);
     await expect(anularAnticipo(
       { tenantId: TENANT, advanceId, reason: "prueba", operationKey: "anula-c7" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     )).resolves.toMatchObject({ ok: true });
   });
 
@@ -1156,11 +1174,11 @@ describe("Triaje del 24 ago 2026 · el dinero con centavos, otra vez", () => {
     await db.collection("billingStatements").doc("cuota-c13").update({ paymentAmount: 140000, balance: 0, status: "paid" });
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-c13", amount: 50000, date: "2026-08-20", operationKey: "op-c13", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await revertirPago(
       { tenantId: TENANT, operationKey: "op-c13", reversalKey: "rev-c13", reason: "prueba" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     const libro = await db.collection("ledgerEntries").get();
     expect(libro.docs.filter((d) => (d.data().amount ?? 0) === 0)).toHaveLength(0);
@@ -1184,7 +1202,7 @@ describe("Triaje del 24 ago 2026 · el dinero con centavos, otra vez", () => {
     await sembrarCuota("cuota-c6", 140000);
     await aplicarPago(
       { tenantId: TENANT, statementId: "cuota-c6", amount: 140000, date: "2026-08-20", operationKey: "op-c6", source: "manual" },
-      ADMIN, ROL, TENANT,
+      ADMIN, ROL,
     );
     await db.collection("billingStatements").doc("cuota-c6-ajena").set({
       tenantId: OTRO_TENANT, unitId: "unit-9", unitLabel: "9", period: "2026-08",
@@ -1193,7 +1211,7 @@ describe("Triaje del 24 ago 2026 · el dinero con centavos, otra vez", () => {
     });
     await expect(aplicarPago(
       { tenantId: OTRO_TENANT, statementId: "cuota-c6-ajena", amount: 10000, date: "2026-08-20", operationKey: "op-c6", source: "manual" },
-      ADMIN, ROL, OTRO_TENANT,
+      ADMIN, ROL,
     )).rejects.toThrow(/pertenece a otro conjunto/);
   });
 });

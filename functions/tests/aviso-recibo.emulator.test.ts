@@ -46,6 +46,22 @@ async function limpiar(col: string) {
   await Promise.all(snap.docs.map((d) => d.ref.delete()));
 }
 
+/**
+ * La membresía de administrador, que desde `PLAT-002` §11.2 es **la autoridad**
+ * sobre qué conjunto puede cobrar alguien: la guarda dejó de comparar el claim
+ * del token y ahora lee `tenantUsers/{tenantId}_{uid}`. Sin esto sembrado, cada
+ * llamada de esta suite se cae con `permission-denied` — y eso es correcto, no
+ * un estorbo de la prueba: es lo que le pasaría a un administrador de verdad.
+ */
+async function sembrarMembresia(tenantId: string, uid = ADMIN) {
+  await db.collection("tenantUsers").doc(`${tenantId}_${uid}`).set({
+    uid,
+    tenantId,
+    role: "tenant_admin",
+    status: "active",
+  });
+}
+
 async function sembrarCuota(id: string, concept: string, period: string, amount: number) {
   await db.collection("billingStatements").doc(id).set({
     tenantId: TENANT,
@@ -88,6 +104,7 @@ beforeEach(async () => {
     await limpiar(c);
   }
   await db.collection("tenants").doc(TENANT).set({ name: "Conjunto del aviso", status: "active", country: "MX" });
+  await sembrarMembresia(TENANT);
   await db.collection("featureFlagOverrides").doc(TENANT).set({
     flags: { "producto-anticipos": true, "producto-pago-multiple": true },
   });
@@ -112,7 +129,6 @@ describe("CA13 · lo que escribe el pago es lo que lee el aviso", () => {
       },
       ADMIN,
       ROL,
-      TENANT,
     );
 
     const leido = await loQueLeeElAviso("op-dos");
@@ -133,7 +149,6 @@ describe("CA13 · lo que escribe el pago es lo que lee el aviso", () => {
       { tenantId: TENANT, statementId: "c-sobre", amount: 160000, date: "2026-08-20", operationKey: "op-sobra", source: "manual" },
       ADMIN,
       ROL,
-      TENANT,
     );
 
     const leido = await loQueLeeElAviso("op-sobra");
@@ -154,7 +169,6 @@ describe("CA13 · lo que escribe el pago es lo que lee el aviso", () => {
       { tenantId: TENANT, statementId: "no-existe", amount: 90000, date: "2026-08-20", operationKey: "op-nada", source: "manual" },
       ADMIN,
       ROL,
-      TENANT,
     ).catch(() => undefined);
 
     // Si `aplicarPago` exige un cargo existente, la ruta de CA8 llega por otro

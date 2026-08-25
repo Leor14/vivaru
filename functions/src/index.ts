@@ -4293,7 +4293,6 @@ export const applyAdvance = onCall<CruzarAnticipoInput>(
       request.data,
       uid,
       request.auth?.token?.role,
-      request.auth?.token?.tenantId,
     );
 
     // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
@@ -4322,7 +4321,6 @@ export const undoAdvanceApplication = onCall<DeshacerCruceInput>(
       request.data,
       uid,
       request.auth?.token?.role,
-      request.auth?.token?.tenantId,
     );
 
     if (resultado.reversed) {
@@ -4346,7 +4344,6 @@ export const cancelAdvance = onCall<AnularAnticipoInput>(
       request.data,
       uid,
       request.auth?.token?.role,
-      request.auth?.token?.tenantId,
     );
 
     // El motivo va al registro de auditoría a propósito: es la única forma de
@@ -4377,7 +4374,7 @@ export const previewPaymentAllocation = onCall<VistaPreviaRepartoInput>(
   { cors: callableCorsOrigins, invoker: "public" },
   async (request) => {
     if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
-    return vistaPreviaReparto(request.data, request.auth?.token?.role, request.auth?.token?.tenantId);
+    return vistaPreviaReparto(request.data, request.auth.uid, request.auth?.token?.role);
   },
 );
 
@@ -4393,9 +4390,8 @@ export const applyPayment = onCall<AplicarPagoInput>(
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
     const role = request.auth?.token?.role;
-    const tokenTenant = request.auth?.token?.tenantId;
 
-    const resultado = await aplicarPago(request.data, uid, role, tokenTenant);
+    const resultado = await aplicarPago(request.data, uid, role);
 
     // Solo se audita lo que de verdad ocurrió: un reintento idempotente no
     // genera una segunda entrada, que si no el registro contaría dos cobros.
@@ -4438,9 +4434,8 @@ export const revertPayment = onCall<RevertirPagoInput>(
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
     const role = request.auth?.token?.role;
-    const tokenTenant = request.auth?.token?.tenantId;
 
-    const resultado = await revertirPago(request.data, uid, role, tokenTenant);
+    const resultado = await revertirPago(request.data, uid, role);
 
     if (resultado.reversed) {
       await writeAuditLog(request.data?.tenantId ?? "", uid, "revert_payment", {
