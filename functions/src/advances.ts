@@ -3,6 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 
 import { assertFeatureEnabled } from "./feature-flags";
 import { aMoneda, calcularSaldo, TOLERANCIA_MONEDA } from "./payments";
+import { assertTenantOperable } from "./tenant-status";
 
 /**
  * `PRD-V-FLOW-002` — cruzar un anticipo contra un cargo, y deshacer el cruce.
@@ -97,14 +98,21 @@ function texto(valor: unknown, campo: string): string {
  * **El residente no, y no es desconfianza.** Cruzar mueve dinero entre
  * obligaciones; que lo haga quien responde de la contabilidad del conjunto, no
  * quien la paga (§3, CF6). Es la misma frontera que `assertPuedeCobrar`.
+ *
+ * **CF8:** y también el mismo estado de conjunto. Cruzar, deshacer un cruce y
+ * anular un anticipo son ESCRITURAS, y `suspended`/`expired` significan solo
+ * lectura — da igual que cruzar no mueva dinero nuevo. El orden de las tres
+ * comprobaciones, y por qué el estado va al final, está explicado en
+ * `assertPuedeCobrar` (`payments.ts`); esto es su gemelo, deliberadamente.
  */
-function assertPuedeOperarAnticipos(role: unknown, tokenTenant: unknown, tenantId: string) {
+async function assertPuedeOperarAnticipos(role: unknown, tokenTenant: unknown, tenantId: string) {
   const rol = typeof role === "string" ? role : "";
   if (rol === "superadmin" || rol === "super_admin") return;
   const esAdmin = rol === "tenant_admin" || rol === "admin_tenant";
   if (!esAdmin || tokenTenant !== tenantId) {
     throw new HttpsError("permission-denied", "No tienes permiso para operar anticipos en este conjunto.");
   }
+  await assertTenantOperable(tenantId);
 }
 
 /** Cruza un anticipo contra un cargo. Transaccional e idempotente. */
@@ -120,7 +128,7 @@ export async function cruzarAnticipo(
   const operationKey = texto(input.operationKey, "la clave de operación");
   const fecha = texto(input.date, "la fecha");
 
-  assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+  await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
   await assertFeatureEnabled("producto-anticipos", tenantId);
 
   const pedido = typeof input.amount === "number" ? input.amount : NaN;
@@ -280,7 +288,7 @@ export async function deshacerCruce(
   const applicationId = texto(input.applicationId, "el cruce");
   const operationKey = texto(input.operationKey, "la clave de operación");
 
-  assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+  await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
   await assertFeatureEnabled("producto-anticipos", tenantId);
 
   const firestore = db();
@@ -434,7 +442,7 @@ export async function anularAnticipo(
   // blanco es lo mismo que no tener motivo, y se cuela solo si nadie lo mira.
   const motivo = texto(input.reason, "el motivo de la anulación");
 
-  assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+  await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
   await assertFeatureEnabled("producto-anticipos", tenantId);
 
   const firestore = db();

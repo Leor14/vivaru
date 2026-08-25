@@ -17,6 +17,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const comprobante_1 = require("./comprobante");
 const feature_flags_1 = require("./feature-flags");
+const tenant_status_1 = require("./tenant-status");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 /**
  * `FIN-001` — aplicación de pagos: un solo comando, transaccional e idempotente.
@@ -190,8 +191,28 @@ function texto(valor, campo) {
  *
  * **No** se acepta al residente aunque el pago nazca de su comprobante: subirlo
  * es una solicitud, aprobarlo es una decisión de la administración.
+ *
+ * **CF8 — y el orden de las tres comprobaciones no es cosmético.**
+ *
+ * Hasta ago 2026 esto solo miraba rol y conjunto del token, así que un conjunto
+ * `suspended` o `expired` **podía cobrar**: `tenantOperable` vive en las reglas
+ * de Firestore y las callables van con Admin SDK, que no pasa por ellas. Se
+ * reprodujo en producción sobre `Privada Las Playas` (recibo `REC-HDFW4R`).
+ * Quedaba un contraste absurdo: `sendBillingReminder`, que solo manda un correo
+ * recordando que pagues, estaba protegida por dos candados de estado; esto, que
+ * mueve el dinero, por ninguno.
+ *
+ * 1. **El superadmin sale primero.** Necesita operar sobre un conjunto
+ *    suspendido justamente para reactivarlo — es la salida de emergencia, y es
+ *    la misma que usa `assertTenantAdminOrSuper`. Comprobar el estado antes
+ *    dejaría fuera a la única persona que puede desbloquearlo.
+ * 2. **Rol y conjunto, después.**
+ * 3. **El estado del conjunto, al final, nunca antes.** Si fuera antes, un
+ *    residente o un curioso hurgando en un conjunto vencido recibiría «el
+ *    período de prueba terminó» en vez de «no tienes permiso»: le estaríamos
+ *    filtrando el estado comercial de un cliente a quien ni siquiera es miembro.
  */
-function assertPuedeCobrar(role, tokenTenant, tenantId) {
+async function assertPuedeCobrar(role, tokenTenant, tenantId) {
     const rol = typeof role === "string" ? role : "";
     if (rol === "superadmin" || rol === "super_admin")
         return;
@@ -199,6 +220,7 @@ function assertPuedeCobrar(role, tokenTenant, tenantId) {
     if (!esAdmin || tokenTenant !== tenantId) {
         throw new https_1.HttpsError("permission-denied", "No tienes permiso para registrar cobros en este conjunto.");
     }
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
 }
 /**
  * Ordena del cargo **más antiguo por vencimiento** al más nuevo (R7).
@@ -255,7 +277,7 @@ function repartirPorAntiguedad(cargos, importe, hoy) {
 async function vistaPreviaReparto(input, role, tokenTenant) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const unitId = texto(input.unitId, "la unidad");
-    assertPuedeCobrar(role, tokenTenant, tenantId);
+    await assertPuedeCobrar(role, tokenTenant, tenantId);
     const monto = typeof input.amount === "number" ? input.amount : NaN;
     if (!Number.isFinite(monto) || monto <= 0) {
         throw new https_1.HttpsError("invalid-argument", "El monto del cobro debe ser mayor a cero.");
@@ -300,7 +322,7 @@ async function aplicarPago(input, uid, role, tokenTenant) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const operationKey = texto(input.operationKey, "la clave de operación");
     const fecha = texto(input.date, "la fecha");
-    assertPuedeCobrar(role, tokenTenant, tenantId);
+    await assertPuedeCobrar(role, tokenTenant, tenantId);
     const monto = typeof input.amount === "number" ? input.amount : NaN;
     if (!Number.isFinite(monto) || monto <= 0) {
         throw new https_1.HttpsError("invalid-argument", "El monto del cobro debe ser mayor a cero.");
@@ -889,7 +911,7 @@ async function revertirPago(input, uid, role, tokenTenant) {
     const operationKey = texto(input.operationKey, "la operación a revertir");
     const reversalKey = texto(input.reversalKey, "la clave de la reversión");
     const motivo = texto(input.reason, "el motivo de la reversión");
-    assertPuedeCobrar(role, tokenTenant, tenantId);
+    await assertPuedeCobrar(role, tokenTenant, tenantId);
     if (reversalKey === operationKey) {
         throw new https_1.HttpsError("invalid-argument", "La clave de la reversión no puede ser la misma del pago.");
     }

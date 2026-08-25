@@ -50,6 +50,7 @@ import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
+import { assertTenantOperable } from "./tenant-status";
 import { cuentaParaConcepto } from "./plan-de-cuentas";
 import { sembrarPlanDeCuentas } from "./plan-de-cuentas-siembra";
 import { provisionTrialWorkspace, type CreateTrialInput } from "./trial-workspace";
@@ -256,33 +257,6 @@ async function assertTenantMember(tenantId: string, uid: string) {
   }
 
   return membershipSnap.data() as { role?: string; unitId?: string; fullName?: string };
-}
-
-/**
- * Estados de tenant que permiten ESCRITURA. `suspended` (cliente que dejó de
- * pagar) y `expired` (prueba vencida) quedan en solo lectura: conservan sus
- * datos y pueden consultarlos, pero no operar.
- *
- * Hasta ahora `tenants.status` era decorativo — se mostraba y filtraba en el
- * superadmin pero no bloqueaba nada, así que el botón "suspender" no tenía
- * ningún efecto real. El superadmin nunca queda bloqueado: necesita operar
- * sobre un tenant suspendido para reactivarlo o convertirlo.
- */
-const WRITABLE_TENANT_STATUSES = ["active", "trial"];
-
-async function assertTenantOperable(tenantId: string) {
-  const snap = await db.collection("tenants").doc(tenantId).get();
-  if (!snap.exists) return;
-
-  const status = (snap.data() as { status?: string } | undefined)?.status;
-  // Sin status explícito se asume operable (compatibilidad con datos antiguos).
-  if (!status || WRITABLE_TENANT_STATUSES.includes(status)) return;
-
-  const reason =
-    status === "expired"
-      ? "El período de prueba de este conjunto terminó. Contacta a un asesor de Vivaru para reactivarlo."
-      : "Este conjunto está suspendido. Contacta a un asesor de Vivaru para reactivarlo.";
-  throw new HttpsError("failed-precondition", reason);
 }
 
 async function assertTenantAdminOrSuper(input: { tenantId: string; uid?: string; role?: unknown }) {

@@ -17,5 +17,22 @@ export default defineConfig({
     // Las transacciones bajo contención reintentan; el default se queda corto.
     testTimeout: 30_000,
     hookTimeout: 30_000,
+    /**
+     * **Un fichero cada vez. El emulador es UNO y las colecciones son las
+     * mismas.**
+     *
+     * Cada suite limpia en su `beforeEach` las colecciones que va a usar
+     * —`billingStatements`, `ledgerEntries`, `advances`…— y esa limpieza es
+     * global: borra también lo que acaba de sembrar la suite de al lado. En
+     * paralelo eso da **fallos fantasma que cambian de sitio entre
+     * ejecuciones**: al añadir `tenant-operable-cf8` salieron 9 fallos en una
+     * corrida y 4 en la siguiente, sin tocar una línea, y tres de ellos en un
+     * fichero que estaba verde.
+     *
+     * Es la misma trampa que ya documenta CLAUDE.md para las pruebas de reglas.
+     * Aislarlo por nombres de documento no sirve: lo que colisiona es el
+     * `.get()` de la colección entera que hace la limpieza.
+     */
+    fileParallelism: false,
   },
 });

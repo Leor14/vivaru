@@ -63,6 +63,7 @@ const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
 const trial_modules_1 = require("./trial-modules");
+const tenant_status_1 = require("./tenant-status");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 const trial_workspace_1 = require("./trial-workspace");
@@ -134,30 +135,6 @@ async function assertTenantMember(tenantId, uid) {
     }
     return membershipSnap.data();
 }
-/**
- * Estados de tenant que permiten ESCRITURA. `suspended` (cliente que dejó de
- * pagar) y `expired` (prueba vencida) quedan en solo lectura: conservan sus
- * datos y pueden consultarlos, pero no operar.
- *
- * Hasta ahora `tenants.status` era decorativo — se mostraba y filtraba en el
- * superadmin pero no bloqueaba nada, así que el botón "suspender" no tenía
- * ningún efecto real. El superadmin nunca queda bloqueado: necesita operar
- * sobre un tenant suspendido para reactivarlo o convertirlo.
- */
-const WRITABLE_TENANT_STATUSES = ["active", "trial"];
-async function assertTenantOperable(tenantId) {
-    const snap = await db.collection("tenants").doc(tenantId).get();
-    if (!snap.exists)
-        return;
-    const status = snap.data()?.status;
-    // Sin status explícito se asume operable (compatibilidad con datos antiguos).
-    if (!status || WRITABLE_TENANT_STATUSES.includes(status))
-        return;
-    const reason = status === "expired"
-        ? "El período de prueba de este conjunto terminó. Contacta a un asesor de Vivaru para reactivarlo."
-        : "Este conjunto está suspendido. Contacta a un asesor de Vivaru para reactivarlo.";
-    throw new https_1.HttpsError("failed-precondition", reason);
-}
 async function assertTenantAdminOrSuper(input) {
     if (input.role === "superadmin") {
         return;
@@ -169,7 +146,7 @@ async function assertTenantAdminOrSuper(input) {
     if (membership.role !== "tenant_admin") {
         throw new https_1.HttpsError("permission-denied", "No tienes permisos para gestionar credenciales de residentes.");
     }
-    await assertTenantOperable(input.tenantId);
+    await (0, tenant_status_1.assertTenantOperable)(input.tenantId);
 }
 /**
  * La autoridad sobre qué conjunto puede operar un admin es SIEMPRE el
@@ -217,7 +194,7 @@ async function assertActiveTenantAdmin(tenantId, uid) {
     if ((profile.status ?? "active") !== "active") {
         throw new https_1.HttpsError("failed-precondition", "Tu perfil administrador se encuentra inactivo.");
     }
-    await assertTenantOperable(tenantId);
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
     return { tenantId };
 }
 /**
@@ -3314,7 +3291,7 @@ exports.createReservationRequest = (0, https_1.onCall)({ cors: http_config_1.cal
     if (!isAdmin && membership.unitId !== data.unitId) {
         throw new https_1.HttpsError("permission-denied", "Solo puedes reservar para tu unidad.");
     }
-    await assertTenantOperable(data.tenantId);
+    await (0, tenant_status_1.assertTenantOperable)(data.tenantId);
     return (0, reservations_1.crearReserva)({
         tenantId: data.tenantId,
         unitId: data.unitId,

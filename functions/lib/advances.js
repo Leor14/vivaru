@@ -7,6 +7,7 @@ const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const feature_flags_1 = require("./feature-flags");
 const payments_1 = require("./payments");
+const tenant_status_1 = require("./tenant-status");
 /**
  * `PRD-V-FLOW-002` — cruzar un anticipo contra un cargo, y deshacer el cruce.
  *
@@ -39,8 +40,14 @@ function texto(valor, campo) {
  * **El residente no, y no es desconfianza.** Cruzar mueve dinero entre
  * obligaciones; que lo haga quien responde de la contabilidad del conjunto, no
  * quien la paga (§3, CF6). Es la misma frontera que `assertPuedeCobrar`.
+ *
+ * **CF8:** y también el mismo estado de conjunto. Cruzar, deshacer un cruce y
+ * anular un anticipo son ESCRITURAS, y `suspended`/`expired` significan solo
+ * lectura — da igual que cruzar no mueva dinero nuevo. El orden de las tres
+ * comprobaciones, y por qué el estado va al final, está explicado en
+ * `assertPuedeCobrar` (`payments.ts`); esto es su gemelo, deliberadamente.
  */
-function assertPuedeOperarAnticipos(role, tokenTenant, tenantId) {
+async function assertPuedeOperarAnticipos(role, tokenTenant, tenantId) {
     const rol = typeof role === "string" ? role : "";
     if (rol === "superadmin" || rol === "super_admin")
         return;
@@ -48,6 +55,7 @@ function assertPuedeOperarAnticipos(role, tokenTenant, tenantId) {
     if (!esAdmin || tokenTenant !== tenantId) {
         throw new https_1.HttpsError("permission-denied", "No tienes permiso para operar anticipos en este conjunto.");
     }
+    await (0, tenant_status_1.assertTenantOperable)(tenantId);
 }
 /** Cruza un anticipo contra un cargo. Transaccional e idempotente. */
 async function cruzarAnticipo(input, uid, role, tokenTenant) {
@@ -56,7 +64,7 @@ async function cruzarAnticipo(input, uid, role, tokenTenant) {
     const statementId = texto(input.statementId, "el cargo");
     const operationKey = texto(input.operationKey, "la clave de operación");
     const fecha = texto(input.date, "la fecha");
-    assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
     await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
     const pedido = typeof input.amount === "number" ? input.amount : NaN;
     if (!Number.isFinite(pedido) || pedido <= 0) {
@@ -197,7 +205,7 @@ async function deshacerCruce(input, uid, role, tokenTenant) {
     const tenantId = texto(input.tenantId, "el conjunto");
     const applicationId = texto(input.applicationId, "el cruce");
     const operationKey = texto(input.operationKey, "la clave de operación");
-    assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
     await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
     const firestore = db();
     const opRef = firestore.collection("paymentOperations").doc(`${tenantId}_${operationKey}`);
@@ -320,7 +328,7 @@ async function anularAnticipo(input, uid, role, tokenTenant) {
     // CF4. Va por `texto`, que rechaza también la cadena de espacios: un motivo en
     // blanco es lo mismo que no tener motivo, y se cuela solo si nadie lo mira.
     const motivo = texto(input.reason, "el motivo de la anulación");
-    assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
+    await assertPuedeOperarAnticipos(role, tokenTenant, tenantId);
     await (0, feature_flags_1.assertFeatureEnabled)("producto-anticipos", tenantId);
     const firestore = db();
     const opRef = firestore.collection("paymentOperations").doc(`${tenantId}_${operationKey}`);
