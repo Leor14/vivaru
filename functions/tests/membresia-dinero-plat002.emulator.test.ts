@@ -337,3 +337,41 @@ describe("lo que se cerró de paso al dejar de mirar el token", () => {
     expect(r.applied).toBe(true);
   });
 });
+
+/**
+ * **`PLAT-002` — el claim sigue al conjunto activo, y solo con membresía.**
+ *
+ * Existe porque el diseño de la ficha —«el claim deja de ser autoridad»— **no
+ * se pudo sostener en Storage**: sus reglas no leen la membresía. Se intentó con
+ * `firestore.exists`, pasó 59 pruebas de emulador falsadas en dos direcciones y
+ * **rompió todas las subidas en el servicio real**. Así que el claim se re-emite
+ * al cambiar de conjunto.
+ *
+ * Lo que se prueba aquí es la puerta: **re-emitir exige membresía**. Si esto se
+ * rompiera, cambiar de conjunto sería concederse acceso a cualquiera.
+ */
+describe("re-emitir el claim exige membresía", () => {
+  it("no se re-emite hacia un conjunto donde no hay membresía", async () => {
+    const { esMiembroDelConjunto } = await import("../src/tenant-membership");
+    expect(await esMiembroDelConjunto(B, ADMIN_UNO)).toBe(false);
+  });
+
+  it("y sí hacia uno donde la hay", async () => {
+    const { esMiembroDelConjunto } = await import("../src/tenant-membership");
+    expect(await esMiembroDelConjunto(B, ADMIN_DOS)).toBe(true);
+    expect(await esMiembroDelConjunto(A, ADMIN_DOS)).toBe(true);
+  });
+
+  /**
+   * El gemelo que suele faltar: una membresía INACTIVA no sirve para re-emitir.
+   * Sin esta, dar de baja a alguien lo dejaría cambiándose de conjunto con un
+   * token recién emitido.
+   */
+  it("una membresía inactiva no vale para re-emitir", async () => {
+    const { esMiembroDelConjunto } = await import("../src/tenant-membership");
+    await db.collection("tenantUsers").doc(`${B}_${ADMIN_DOS}`).set(
+      { uid: ADMIN_DOS, tenantId: B, role: "tenant_admin", status: "inactive" },
+    );
+    expect(await esMiembroDelConjunto(B, ADMIN_DOS)).toBe(false);
+  });
+});

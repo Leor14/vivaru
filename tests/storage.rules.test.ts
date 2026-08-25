@@ -7,7 +7,6 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, setDoc } from "firebase/firestore";
 import { deleteObject, getBytes, ref, uploadString } from "firebase/storage";
 import { afterAll, beforeAll, describe, it } from "vitest";
 
@@ -16,7 +15,6 @@ import { afterAll, beforeAll, describe, it } from "vitest";
 // pasaría por el motivo equivocado.
 const TENANT_A_DOC = "tenants/tenant-a/documents/acta.txt";
 const TENANT_B_DOC = "tenants/tenant-b/documents/acta.txt";
-const CIERRE_B = "tenants/tenant-b/billing-closures/2026-07-1700000000.xlsx";
 const FUERA_DE_TENANT = "uploads/suelto.txt";
 const LOGO = "tenants/tenant-a/branding/logo.png";
 
@@ -65,53 +63,16 @@ beforeAll(async () => {
       host: "127.0.0.1",
       port: 9199,
     },
-    // **Firestore hace falta aquí desde `PLAT-002`**, y no es un adorno del
-    // montaje: `storage.rules` dejó de mirar el claim y ahora resuelve por
-    // `tenantUsers/{tenantId}_{uid}` con reglas entre servicios. Sin el
-    // emulador de Firestore delante, TODA esta suite denegaría — y pasaría en
-    // verde justo las pruebas de denegación, por el motivo equivocado.
-    firestore: {
-      rules: fs.readFileSync(path.resolve("firestore.rules"), "utf8"),
-      host: "127.0.0.1",
-      port: 8080,
-    },
   });
 
   await testEnv.clearStorage();
-  await testEnv.clearFirestore();
 
   await testEnv.withSecurityRulesDisabled(async (context) => {
-    // Las membresías. Son la autoridad de `storage.rules` desde `PLAT-002`, y
-    // el ROL sale de aquí y no del token: la misma persona puede ser
-    // administradora de un conjunto y residente de otro.
-    const db = context.firestore();
-    const membresia = (tenantId: string, uid: string, role: string) =>
-      setDoc(doc(db, "tenantUsers", `${tenantId}_${uid}`), { uid, tenantId, role, status: "active" });
-    await Promise.all([
-      membresia("tenant-a", "resident-1", "resident"),
-      membresia("tenant-a", "resident-9", "resident"),
-      membresia("tenant-a", "admin-1", "tenant_admin"),
-      membresia("tenant-a", "admin-viejo", "admin_tenant"),
-      membresia("tenant-a", "guard-1", "security_guard"),
-      membresia("tenant-a", "guard-viejo", "security"),
-      membresia("tenant-a", "committee-1", "committee"),
-      // `resident-1` es TAMBIÉN miembro de `tenant-b`, pero como RESIDENTE.
-      // Es lo que prueba que el rol no viaja de un conjunto al otro.
-      membresia("tenant-b", "resident-1", "resident"),
-      // `admin-1` administra los DOS. Es la administradora de `PLAT-002`, y sin
-      // ella nada de lo que este cambio arregla se ejercería.
-      membresia("tenant-b", "admin-1", "tenant_admin"),
-      // `admin-viejo` administra A y en B es solo RESIDENTE. Su token dice
-      // `admin_tenant`; su membresía en B dice `resident`. Manda la membresía.
-      membresia("tenant-b", "admin-viejo", "resident"),
-    ]);
-
     const storage = context.storage();
     const sembrar = (ruta: string, contenido: string) => uploadString(ref(storage, ruta), contenido);
     await Promise.all([
       sembrar(TENANT_A_DOC, "acta del conjunto A"),
       sembrar(TENANT_B_DOC, "acta del conjunto B"),
-      sembrar(CIERRE_B, "cierre de cartera del conjunto B"),
       sembrar(FUERA_DE_TENANT, "archivo suelto"),
       sembrar(LOGO, "logo"),
       sembrar(CIERRE, "cierre de cartera"),
@@ -175,20 +136,9 @@ describe("Storage Rules - Vivaru", () => {
     );
   });
 
-  /**
-   * **Esta prueba cambió de actor el 25 de agosto de 2026, no de intención.**
-   * Usaba `admin()`, que desde `PLAT-002` administra los DOS conjuntos a
-   * propósito —es la administradora de la ficha—, así que la escritura pasó a
-   * ser legítima y la prueba se puso roja. El aislamiento que vigila sigue
-   * siendo el mismo; lo que hacía falta era un actor que de verdad NO sea
-   * miembro del conjunto de destino. `guard-1` lo es de `tenant-a` y de nada
-   * más, y se le da un claim que MIENTE diciendo `tenant-b`: si alguien
-   * devuelve la regla a mirar el token, esto entra.
-   */
-  it("bloquea subir archivos a un conjunto donde no se tiene membresía", async () => {
-    const sinMembresia = testEnv.authenticatedContext("guard-1", { role: "tenant_admin", tenantId: "tenant-b" });
+  it("bloquea subir archivos al tenant de otro conjunto", async () => {
     await assertFails(
-      uploadString(ref(sinMembresia.storage(), "tenants/tenant-b/documents/intruso.txt"), "no permitido"),
+      uploadString(ref(admin().storage(), "tenants/tenant-b/documents/intruso.txt"), "no permitido"),
     );
   });
 
@@ -411,55 +361,5 @@ describe("FIN-000 · una carpeta que nadie declaró nace cerrada", () => {
 
   it("el superadmin tampoco — la lista manda sobre el rol", async () => {
     await assertFails(getBytes(ref(superadmin().storage(), CARPETA_NO_DECLARADA)));
-  });
-});
-
-/**
- * **`PLAT-002` — el conjunto activo deja de ser el del claim.**
- *
- * Estas son las que faltaban, y su ausencia era el hallazgo: `storage.rules`
- * autorizaba por `request.auth.token.tenantId` y **ninguna prueba ejercía a un
- * administrador operando un conjunto distinto del de su token**. Como Firestore
- * ya resolvía por membresía, la pantalla parecía correcta y Storage denegaba
- * entero — documentos, comprobantes, portería y soporte.
- *
- * El claim de estas sesiones dice `tenant-a` A PROPÓSITO. Si alguien devuelve
- * `storage.rules` a mirar el token, estas cuatro se caen.
- */
-describe("PLAT-002 · Storage resuelve por membresía, no por el claim", () => {
-  it("un administrador con membresía en DOS conjuntos lee el segundo, aunque su claim diga el primero", async () => {
-    await assertSucceeds(getBytes(ref(admin().storage(), TENANT_B_DOC)));
-  });
-
-  it("y también sus carpetas de dinero, que son solo de administración", async () => {
-    await assertSucceeds(getBytes(ref(admin().storage(), CIERRE_B)));
-  });
-
-  it("y puede escribir en el segundo conjunto", async () => {
-    await assertSucceeds(
-      uploadString(ref(admin().storage(), "tenants/tenant-b/documents/subida-plat002.txt"), "acta nueva"),
-    );
-  });
-
-  /**
-   * **El rol NO viaja entre conjuntos.** `admin-viejo` lleva `admin_tenant` en
-   * el token y administra `tenant-a`, pero en `tenant-b` su membresía dice
-   * `resident`. Lee lo compartido y **no** lo financiero. Si el rol saliera del
-   * token —como salía—, aquí entraría a la cartera de un conjunto que no
-   * administra.
-   */
-  it("el rol sale de la membresía: administra A y en B es residente", async () => {
-    await assertSucceeds(getBytes(ref(adminAlias().storage(), TENANT_B_DOC)));
-    await assertFails(getBytes(ref(adminAlias().storage(), CIERRE_B)));
-  });
-
-  /**
-   * El gemelo obligatorio: sin membresía sigue sin haber acceso. Sin esta, una
-   * regla que concediera a todo el mundo pasaría las tres de arriba en verde.
-   */
-  it("sin membresía en el conjunto no hay acceso, aunque el claim lo diga", async () => {
-    const impostor = testEnv.authenticatedContext("guard-1", { role: "tenant_admin", tenantId: "tenant-b" });
-    await assertFails(getBytes(ref(impostor.storage(), TENANT_B_DOC)));
-    await assertFails(getBytes(ref(impostor.storage(), CIERRE_B)));
   });
 });

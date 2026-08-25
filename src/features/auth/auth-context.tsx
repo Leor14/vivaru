@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  getIdToken,
   getIdTokenResult,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -24,7 +25,7 @@ import { auth, db } from "@/lib/firebase/client";
 import { clearSession, loadSession, saveSession } from "@/lib/auth/session";
 import type { AppRole } from "@/lib/constants/roles";
 import { isFirebaseConfigured, missingFirebaseEnvKeys } from "@/lib/firebase/config";
-import { completeResidentPasswordChangeCallable } from "@/lib/firebase/callables";
+import { completeResidentPasswordChangeCallable, switchActiveTenantCallable } from "@/lib/firebase/callables";
 import type { SessionUser, TenantMembership } from "@/types/domain";
 export type { SessionUser } from "@/types/domain";
 
@@ -831,16 +832,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    *    protege: elegir mal en el cliente no da acceso a nada, las reglas y las
    *    callables vuelven a comprobarlo (CF1, CF3)— sino para fallar aquí con un
    *    aviso claro en vez de en la primera consulta de la pantalla siguiente.
-   * 2. **Se anota el último usado**, para aterrizar ahí la próxima vez (CA5). Va
+   * 2. **Se re-emite el claim del token al conjunto nuevo**, y esto NO es
+   *    comodidad: `storage.rules` no puede leer la membresía —se intentó y
+   *    rompió todas las subidas en el servicio real—, así que el claim tiene que
+   *    seguir al conjunto activo o el segundo conjunto se queda sin documentos,
+   *    sin comprobantes y sin adjuntos. El servidor comprueba la membresía antes
+   *    de emitir. **Y hay que refrescar el token a la fuerza**: sin eso el claim
+   *    nuevo no llega a las reglas.
+   *
+   * 3. **Se anota el último usado**, para aterrizar ahí la próxima vez (CA5). Va
    *    en `users/{uid}.lastActiveTenantId`, que es comodidad y no autoridad: si
    *    le revocan la membresía, se ignora y entra al selector sin error (CA6).
    *    **Y si esa escritura falla, el cambio se aborta con un aviso.** Suena
-   *    excesivo para un campo de comodidad, y es al revés: como el paso 3
-   *    recarga la página y la sesión se vuelve a resolver desde este campo, un
-   *    fallo silencioso devolvería al conjunto anterior **sin decir nada** —
-   *    justo después de que la persona pulsara para cambiar. Un error visible
-   *    es mejor que una pantalla que ignora lo que le pidieron.
-   * 3. **Se recarga la página entera.** No es pereza: §5.2 dice que limpiar el
+   *    excesivo para un campo de comodidad, y es al revés: como el paso
+   *    siguiente recarga la página y la sesión se vuelve a resolver desde este
+   *    campo, un fallo silencioso devolvería al conjunto anterior **sin decir
+   *    nada** — justo después de que la persona pulsara para cambiar.
+   * 4. **Se recarga la página entera.** No es pereza: §5.2 dice que limpiar el
    *    estado del conjunto anterior **es** la regla de seguridad, y CA4 exige
    *    que ninguna pantalla muestre un dato del anterior. Cincuenta y cinco
    *    ficheros leen `tenantId` de la sesión; garantizar CA4 revisándolos uno a
@@ -856,6 +864,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const destino = actual.memberships?.find((m) => m.tenantId === tenantId);
       if (!destino) {
         throw new Error("Ya no administras ese conjunto. Vuelve a entrar para actualizar tus accesos.");
+      }
+
+      // El claim, ANTES que nada: si esto falla, no se ha tocado nada todavía y
+      // la persona sigue donde estaba. Al revés —anotar primero y emitir
+      // después— dejaría `lastActiveTenantId` apuntando a un conjunto para el
+      // que el token no sirve, y la recarga aterrizaría en una pantalla que no
+      // puede leer sus archivos.
+      try {
+        await switchActiveTenantCallable(tenantId);
+        // A la fuerza: sin refrescar, las reglas siguen viendo el claim viejo.
+        if (auth?.currentUser) await getIdToken(auth.currentUser, true);
+      } catch (claimError) {
+        debugAuth("[auth.switch-tenant] claim-no-emitido", {
+          uid: actual.uid,
+          tenantId,
+          error: claimError instanceof Error ? claimError.message : "unknown",
+        });
+        throw new Error("No fue posible cambiar de conjunto. Inténtalo de nuevo.");
       }
 
       if (db && actual.uid) {

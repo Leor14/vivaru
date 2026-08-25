@@ -4534,6 +4534,62 @@ export { registrarFeedbackIa } from "./ai/feedback-gateway";
 // `variante` —lo que decide la puerta dura de nulls en `buzon_simple`— la
 // estaría afirmando el cliente.
 /**
+ * **`PLAT-002` — re-emitir el claim al cambiar de conjunto.**
+ *
+ * **Existe porque el intento elegante NO funcionó, y eso hay que saberlo antes
+ * de borrarla.** El diseño de la ficha decía que el claim «se conserva y deja de
+ * ser autoridad» (§7.4), y que la autoridad sería siempre la membresía. Eso vale
+ * para Firestore y para las callables, que ya resuelven así. **No vale para
+ * Storage**: sus reglas no pueden leer la membresía —se probó con
+ * `firestore.exists`, pasó 59 pruebas de emulador falsadas en dos direcciones, y
+ * **rompió todas las subidas en el servicio real**—. El emulador no es el
+ * servicio.
+ *
+ * Así que el claim tiene que **seguir** al conjunto activo. Esto lo re-emite,
+ * **y solo después de comprobar la membresía**: pedir un conjunto ajeno no
+ * emite nada. El claim sigue sin ser la autoridad —quien decide es la
+ * membresía, aquí mismo— pero pasa a ser un espejo fiel de ella.
+ *
+ * **Su precio, dicho para que no sorprenda: dos pestañas en conjuntos distintos
+ * se pisan**, porque el claim es uno por usuario. La última que cambie gana, y
+ * la otra empezará a recibir denegaciones de Storage. Es el coste de que
+ * `storage.rules` no pueda mirar la membresía.
+ */
+export const switchActiveTenant = onCall<{ tenantId?: string }>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+
+    const tenantId = normalizeText(request.data?.tenantId);
+    if (!tenantId) throw new HttpsError("invalid-argument", "Falta el conjunto.");
+
+    // La membresía manda, y va ANTES de tocar el token: emitir primero y
+    // comprobar después sería regalar el claim durante el tiempo que tarde la
+    // comprobación.
+    if (!(await esMiembroDelConjunto(tenantId, uid))) {
+      throw new HttpsError("permission-denied", "No perteneces a ese conjunto.");
+    }
+
+    // El rol se conserva tal cual: esto cambia de conjunto, no de permisos.
+    // Leerlo del token y no de la membresía es deliberado — el rol efectivo por
+    // conjunto ya lo resuelven las reglas y las callables leyendo el documento.
+    const rolActual = normalizeText(request.auth?.token?.role) || undefined;
+    await getAuth().setCustomUserClaims(uid, {
+      ...(rolActual ? { role: rolActual } : {}),
+      tenantId,
+    });
+
+    await writeAuditLog(tenantId, uid, "switch_active_tenant", {
+      // R8 pide dejar rastro del cambio: quién, a dónde y desde dónde.
+      desde: normalizeText(request.auth?.token?.tenantId) || null,
+    });
+
+    return { ok: true as const, tenantId };
+  },
+);
+
+/**
  * **`PLAT-002` §7.1 — la empresa administradora.** Las dos van por callable y
  * solo superadmin: es el alta comercial (G5). La lógica vive en
  * `management-companies.ts`; aquí se expone, se valida la sesión y se deja el

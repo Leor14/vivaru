@@ -528,6 +528,24 @@ export async function logClientErrorCallable(input: {
 }
 
 /**
+ * **`PLAT-002` — re-emite el claim al conjunto activo.**
+ *
+ * El servidor comprueba la membresía antes de emitir, así que pedir un conjunto
+ * ajeno no da nada. **Quien llame tiene que refrescar el token después**
+ * (`getIdToken(true)`): sin eso el claim nuevo no llega a las reglas de Storage,
+ * que es justo para lo que existe.
+ */
+export async function switchActiveTenantCallable(tenantId: string) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<{ tenantId: string }, { ok: true; tenantId: string }>(
+    functions,
+    "switchActiveTenant",
+  );
+  const result = await callable({ tenantId });
+  return result.data;
+}
+
+/**
  * **`PLAT-002` §7.1 — la empresa administradora.** Solo superadmin (G5): quien
  * la crea es el equipo de Vivaru, en el alta comercial.
  *

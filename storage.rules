@@ -17,42 +17,27 @@ service firebase.storage {
       return signedIn() && rol() in ['superadmin', 'super_admin'];
     }
 
-    // ── La autoridad es la MEMBRESÍA, no el claim ───────────────────────────
+    // ── Por qué esto mira el CLAIM y no la membresía ────────────────────────
     //
-    // `PRD-V-PLAT-002` §11.3. Hasta el 25 de agosto de 2026 esto decía
-    // `request.auth.token.tenantId == tenantId`. Con el selector de conjunto el
-    // claim deja de ser el conjunto en el que se trabaja —pasa a significar «el
-    // último conjunto conocido» (§7.4)— así que un administrador con membresía
-    // en A y en B que cambiara a B se encontraba **Firestore abierto y Storage
-    // cerrado entero**: documentos, comprobantes, notas de portería y evidencia
-    // de soporte, todo denegado, y sin más síntoma que un error de permisos.
+    // Se intentó lo contrario el 25 de agosto de 2026 —`firestore.exists` sobre
+    // `tenantUsers`, para que Storage y Firestore resolvieran igual— y **hubo
+    // que revertirlo: rompe TODAS las subidas en el servicio real**. Se midió:
+    // con esta versión, subir un documento en staging funciona; con la de
+    // reglas entre servicios, no sube nada, y falla también en el conjunto
+    // donde el claim y el activo coinciden.
     //
-    // **Se encontró revisando el cambio, no construyéndolo.** Al escribir §11.3
-    // se leyó `firestore.rules`, se concluyó «las reglas no necesitan un
-    // cambio», y **hay DOS ficheros de reglas**. El otro iba por claim. Es el
-    // mismo patrón que ya costó `CF8`: una puerta arreglada y su gemela no.
+    // **Y las 59 pruebas de esta suite pasaban, falsadas en dos direcciones.**
+    // Corren contra el emulador, y el emulador **no es el servicio**: es el
+    // único mecanismo de este repositorio que las pruebas no pueden cubrir.
+    // Antes de volver a intentarlo, subir un archivo de verdad.
     //
-    // Son reglas ENTRE SERVICIOS: `firestore.exists`/`firestore.get` leen la
-    // misma colección que gobierna Firestore, así que las dos puertas vuelven a
-    // decir lo mismo por construcción. Cuesta una lectura de Firestore por
-    // evaluación, y es el precio de que no puedan volver a discrepar.
-    function membresia(tenantId) {
-      return firestore.get(/databases/(default)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid));
-    }
-
+    // La consecuencia hay que saberla: con el selector de conjunto de
+    // `PLAT-002`, el claim tiene que **seguir** al conjunto activo, y por eso
+    // cambiar de conjunto lo re-emite (`switchActiveTenant`). El precio de esa
+    // decisión es que **dos pestañas en conjuntos distintos se pisan**, porque
+    // el claim es uno por usuario.
     function delConjunto(tenantId) {
-      return signedIn() &&
-        firestore.exists(/databases/(default)/documents/tenantUsers/$(tenantId + '_' + request.auth.uid));
-    }
-
-    // El rol sale de la MEMBRESÍA, no del token. La misma persona puede ser
-    // administradora de un conjunto y residente de otro, y el claim solo lleva
-    // uno: leerlo de ahí le daría en B los permisos que tiene en A. Espejo de
-    // `tenantRole()` en `firestore.rules`. **El superadmin es la excepción y
-    // sigue saliendo del token** (`rol()`), porque no tiene membresía en ningún
-    // conjunto — es exactamente lo que hace `superadmin()` en `firestore.rules`.
-    function rolEnConjunto(tenantId) {
-      return membresia(tenantId).data.role;
+      return signedIn() && request.auth.token.tenantId == tenantId;
     }
 
     // Cualquiera con acceso al conjunto, sea cual sea su rol.
@@ -61,11 +46,11 @@ service firebase.storage {
     }
 
     function admin(tenantId) {
-      return superadmin() || (delConjunto(tenantId) && rolEnConjunto(tenantId) in ['tenant_admin', 'admin_tenant']);
+      return superadmin() || (delConjunto(tenantId) && rol() in ['tenant_admin', 'admin_tenant']);
     }
 
     function porteria(tenantId) {
-      return delConjunto(tenantId) && rolEnConjunto(tenantId) in ['security_guard', 'security'];
+      return delConjunto(tenantId) && rol() in ['security_guard', 'security'];
     }
 
     // Límite de 25 MB por archivo (gobernanza de costo/abuso). En delete
