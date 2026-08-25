@@ -6,43 +6,33 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026
 
-**EL FRENTE 4 ESTÁ CONSTRUIDO Y VALIDADO EN PANTALLA. Queda UNA medición sin hacer, y hasta
-tenerla el repositorio y staging NO COINCIDEN.** Empezar por ahí.
+**EL FRENTE 4 ESTÁ COMPLETO: el MVP entero de `PLAT-002`, construido, validado en pantalla y
+con la única incógnita medida.** Lo que queda es desplegar el paso 3 y la vuelta atrás de
+Storage — ver «Qué falta desplegar», abajo.
 
-### ⚠ Lo primero de lo primero: staging no es lo que dice el repositorio
+### La medición se hizo, y salió al revés de lo que yo apostaba
 
-```
-repositorio (841a8ac)   storage.rules = por MEMBRESÍA   ← lo commiteado
-staging desplegado      storage.rules = por CLAIM       ← montaje de una bisección SIN CERRAR
-producción (887e778)    nada de esta jornada
-```
+**Las reglas entre servicios de Storage NO funcionan en el servicio real.** Se midió con una
+bisección: con `storage.rules` por claim, subir un documento en staging **funciona** (14 → 15
+documentos y el objeto en el bucket); con las de membresía **no sube nada**, y falla también en
+el conjunto donde el claim y el activo coinciden.
 
-**Por qué está así.** Al validar por navegador, **subir un documento falla en staging** — y falla
-en los DOS conjuntos, incluido aquel donde el claim y el conjunto activo coinciden. Ni el objeto
-en Storage ni la fila en `documents`. Se montó una bisección (devolver las reglas al claim y
-repetir la subida) y **no se pudo cerrar**: el entorno bloqueó la subida de archivos por
-navegador. Las reglas viejas quedaron desplegadas porque son el comportamiento anterior y son
-seguras: nadie pierde acceso.
+**Y lo hacían con 59 pruebas de esa suite en verde, falsadas en dos direcciones.** Corren contra
+el emulador, y **el emulador no es el servicio**. Es el único mecanismo de este repositorio que
+las pruebas no pueden cubrir. Queda escrito dentro de `storage.rules`: antes de volver a
+intentarlo, subir un archivo de verdad.
 
-**La medición que falta, y es de veinte segundos:** entrar en staging → Documentos → subir
-cualquier archivo con descripción.
+**Resuelto con el plan B** (`493c454`): `storage.rules` vuelve a mirar el claim, y el claim
+**sigue** al conjunto activo — `switchActiveTenant` lo re-emite, y solo tras comprobar la
+membresía. El claim no vuelve a ser la autoridad: quien decide sigue siendo la membresía, ahora
+dentro de la propia callable.
 
-| Resultado | Qué significa | Qué hacer |
-|---|---|---|
-| **Sube bien** | Las reglas entre servicios NO funcionan en el servicio real | Rehacer: **emitir el claim al cambiar de conjunto** (plan B, abajo) |
-| **Vuelve a fallar** | Las reglas quedan absueltas; el fallo es otro | Desplegar `storage.rules` del repositorio y perseguir la subida aparte |
+> **El precio, que es real y hay que saberlo: dos pestañas en conjuntos distintos se pisan.** El
+> claim es uno por usuario, así que la última que cambie gana y la otra empieza a recibir
+> denegaciones de Storage. Por eso el plan A se intentó primero. Está dicho en los tres sitios
+> donde alguien lo buscará: `storage.rules`, la callable y `switchTenant`.
 
-> **Lo que ya se descartó**, para no repetirlo: el agente de reglas SÍ tiene su rol
-> (`roles/firebaserules.system`), así que el permiso entre servicios está concedido — eso
-> **debilita** la hipótesis de que las reglas sean la causa. Las denegaciones de Storage **no se
-> registran** en Cloud Logging. Y la última subida con éxito en staging fue del **24 de agosto**,
-> anterior a todo lo de esta jornada.
-
-**Plan B, si toca:** una callable que verifique la membresía y llame a `setCustomUserClaims`, más
-un refresco forzado del token en `switchTenant`. Con eso el claim **sigue** al conjunto activo y
-`storage.rules` puede quedarse por claim. **Su precio, que es real: rompe el multipestaña** —el
-claim es uno por usuario, así que dos pestañas en conjuntos distintos se pisan—. El plan A
-(membresía) no tiene ese problema. Por eso no se eligió a ciegas.
+**El repositorio y staging vuelven a coincidir** en las reglas de Storage.
 
 ### Lo que SÍ está cerrado del frente 4
 
@@ -115,9 +105,18 @@ lo propaga a sus conjuntos y hay prueba de que lo hace.
 residente vea su administradora, y el registro de cambios de conjunto (R8). Si se construye la
 vista, **necesita otro nombre**: «Cartera» ya es `/admin/billing`.
 
-**Nada del paso 3 está desplegado todavía**, ni en staging. Las dos callables son nuevas, así que
-al desplegarlas hay que comprobar el permiso de invocación en Cloud Run — una callable nueva nace
-sin él y el síntoma es un «error interno» sin pista.
+### Qué falta desplegar, y en qué orden
+
+Staging tiene el paso 1 y el 2. **Falta el paso 3 y la vuelta atrás de Storage.**
+
+| # | Pieza | Nota |
+|---|---|---|
+| 1 | **functions** | Trae `switchActiveTenant`, `saveManagementCompany` y `setTenantManagementCompany`. **Las tres son NUEVAS**: comprobar el permiso de invocación en Cloud Run al terminar — nacen sin él y el síntoma es un «error interno» sin ninguna pista. Ya costó una tarde con `aiInvoke` |
+| 2 | **front** | El rollout hay que crearlo a mano; el backend de staging no vigila rama |
+| 3 | **reglas** | `firestore.rules` trae el bloque de `managementCompanies`. **`storage.rules` ya está desplegada** —es la versión por claim, que es la buena— así que este paso solo mueve Firestore |
+
+Y una vez desplegado, la comprobación que cierra el frente: **cambiar de conjunto y subir un
+documento en el segundo**. Es lo único que prueba que el claim re-emitido llega a las reglas.
 
 ### Tres cosas del entorno que costaron tiempo hoy
 
