@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { construirEstadoDeCuenta } from "@/features/billing/estado-de-cuenta";
+import { useClearanceCertificates } from "@/features/billing/use-clearance-certificates";
 import { renderEstadoDeCuentaPdf } from "@/features/finanzas/comprobante/estado-de-cuenta-pdf";
 import { renderPazYSalvoPdf } from "@/features/finanzas/comprobante/paz-y-salvo-pdf";
 import { saldoAFavor, useAdvances } from "@/features/finanzas/use-advances";
-import { emitClearanceCertificateCallable } from "@/lib/firebase/callables";
+import { Input } from "@/components/ui/input";
+import { cancelClearanceCertificateCallable, emitClearanceCertificateCallable } from "@/lib/firebase/callables";
 import type { BillingStatement } from "@/types/domain";
 
 /**
@@ -41,6 +43,9 @@ export function EstadoDeCuentaUnidadCard({
   const [emitiendo, setEmitiendo] = useState(false);
   const [descargando, setDescargando] = useState(false);
   const { items: anticipos } = useAdvances(tenantId, unitId || undefined);
+  const { items: certificados } = useClearanceCertificates(tenantId, unitId || undefined);
+  const [motivo, setMotivo] = useState("");
+  const [anulando, setAnulando] = useState<string | null>(null);
 
   const unidades = useMemo(() => {
     const map = new Map<string, string>();
@@ -107,6 +112,41 @@ export function EstadoDeCuentaUnidadCard({
     } finally {
       setEmitiendo(false);
     }
+  }
+
+  async function anular(certificateId: string) {
+    if (!tenantId || !motivo.trim()) return;
+    setAnulando(certificateId);
+    try {
+      const r = await cancelClearanceCertificateCallable({ tenantId, certificateId, reason: motivo.trim() });
+      toast.success(r.alreadyCancelled ? "Ese certificado ya estaba anulado." : "Certificado anulado.");
+      setMotivo("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible anular el certificado.");
+    } finally {
+      setAnulando(null);
+    }
+  }
+
+  /**
+   * Un certificado ANULADO se sigue pudiendo descargar, y el PDF lo dice en la
+   * cara. Es parte del histórico: alguien puede tener el papel en la mano y
+   * necesitar comprobar que ya no vale.
+   */
+  async function volverADescargar(c: (typeof certificados)[number]) {
+    await renderPazYSalvoPdf(
+      {
+        code: c.code,
+        unidad: c.unitLabel,
+        conjunto: tenantName ?? "",
+        asOfDate: c.asOfDate,
+        issuedAt: c.issuedAt,
+        creditBalance: c.creditBalance,
+        anulado: c.status === "anulado",
+        anuladoMotivo: c.anuladoMotivo,
+      },
+      formatAmount,
+    );
   }
 
   return (
@@ -191,6 +231,53 @@ export function EstadoDeCuentaUnidadCard({
               </Button>
             </div>
           </div>
+
+          {certificados.length > 0 ? (
+            <div className="mt-4 rounded-xl border border-[var(--slate-200)] p-3">
+              <p className="text-sm font-medium text-[var(--slate-900)]">
+                Certificados emitidos para esta unidad
+              </p>
+              {/* El motivo va ARRIBA y uno solo para toda la lista: pedirlo
+                  después de pulsar convertiría R8 en un trámite que se rellena
+                  con cualquier cosa para seguir. Y el botón no se activa sin él,
+                  que es lo mismo que hace el servidor. */}
+              <Input
+                className="mt-2"
+                placeholder="Motivo de la anulación"
+                value={motivo}
+                onChange={(event) => setMotivo(event.target.value)}
+              />
+              <ul className="mt-2 divide-y divide-[var(--slate-200)]">
+                {certificados.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                    <span className="text-[var(--slate-700)]">
+                      <span className="font-medium text-[var(--slate-900)]">{c.code}</span> · {c.asOfDate}
+                      {c.status === "anulado" ? (
+                        <span className="ml-2 rounded bg-[var(--slate-100)] px-1.5 py-0.5 text-xs text-[var(--slate-500)]">
+                          Anulado
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="flex gap-2">
+                      <Button type="button" variant="outline" onClick={() => void volverADescargar(c)}>
+                        Descargar
+                      </Button>
+                      {c.status === "emitido" ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={anulando !== null || !motivo.trim()}
+                          onClick={() => void anular(c.id)}
+                        >
+                          {anulando === c.id ? "Anulando…" : "Anular"}
+                        </Button>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </>
       ) : null}
     </Card>

@@ -548,6 +548,43 @@ export interface BillingCampaign {
   createdBy?: string;
 }
 
+/**
+ * `PRD-V-FEAT-004` — el certificado de paz y salvo.
+ *
+ * **Lo escribe SOLO el servidor** y las reglas cierran la escritura del todo,
+ * incluso al administrador: su única condición es «saldo cero» y las callables
+ * usan Admin SDK, que no evalúa reglas — dejarla abierta aquí sería una segunda
+ * puerta al mismo sitio.
+ */
+export interface ClearanceCertificate {
+  id: string;
+  tenantId: string;
+  unitId: string;
+  unitLabel: string;
+  /** `YYYY-MM-DD` de la emisión. */
+  issuedAt: string;
+  /**
+   * La fecha a la que ACREDITA. Hoy es siempre igual a `issuedAt`: acreditar una
+   * fecha pasada exige saber qué se debía ese día, y los pagos no tienen fecha
+   * fiable — ver la cabecera de `functions/src/clearance-certificates.ts`.
+   */
+  asOfDate: string;
+  /** Verificable y derivado de una semilla aleatoria, **no correlativo** (R7). */
+  code: string;
+  requestedBy: string;
+  /** Cero por definición; se guarda porque un documento que afirma algo conserva lo que midió. */
+  balanceAtIssue: number;
+  /** Saldo a favor a la fecha, si lo había (R4). */
+  creditBalance?: number;
+  status: "emitido" | "anulado";
+  anuladoEn?: string;
+  anuladoPor?: string;
+  /** Obligatorio si `anulado` (R8). */
+  anuladoMotivo?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PaymentReceipt {
   id: string;
   tenantId: string;
