@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { construirEstadoDeCuenta, saldoAFavor } from "@/features/billing/estado-de-cuenta";
+import { construirEstadoDeCuenta } from "@/features/billing/estado-de-cuenta";
 import type { BillingStatement } from "@/types/domain";
 
 /**
@@ -141,17 +141,5 @@ describe("FEAT-004 · estado de cuenta", () => {
 
   it("CF1 · con saldo pendiente NO está al día", () => {
     expect(construirEstadoDeCuenta([cargo({ id: "c", balance: 1 })]).alDia).toBe(false);
-  });
-});
-
-describe("FEAT-004 · saldo a favor", () => {
-  it("R4 · suma solo los anticipos activos", () => {
-    expect(
-      saldoAFavor([
-        { remainingAmount: 50_000, status: "active" },
-        { remainingAmount: 30_000, status: "cancelled" },
-        { remainingAmount: 20_000 },
-      ]),
-    ).toBe(70_000);
   });
 });

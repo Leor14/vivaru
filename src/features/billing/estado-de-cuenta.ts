@@ -148,13 +148,11 @@ export function construirEstadoDeCuenta(
 }
 
 /**
- * El saldo A FAVOR de la unidad (`FLOW-002`). Va aparte del estado de cuenta
- * porque **no vive en los cargos**: son documentos de `advances`. R4 lo exige
- * para el paz y salvo —un saldo a favor no impide emitirlo, y el documento lo
- * nombra—, así que se calcula donde se lea, no aquí.
+ * **El saldo a favor NO se calcula aquí: ya existe.** `saldoAFavor` vive en
+ * `src/features/finanzas/use-advances.ts` desde `FLOW-002` y es la que usa la
+ * tarjeta de anticipos del residente. Se escribió aquí una segunda versión antes
+ * de buscarla, y además **estaba mal**: suponía `status === "active"` y
+ * `remainingAmount`, y los campos reales son `status === "open"` y `remaining`
+ * — habría devuelto cero para todos los anticipos vivos, dentro de un documento
+ * que R4 obliga a nombrarlos.
  */
-export function saldoAFavor(anticipos: Array<{ remainingAmount?: number; status?: string }>): number {
-  return anticipos
-    .filter((a) => (a.status ?? "active") === "active")
-    .reduce((total, a) => total + (a.remainingAmount ?? 0), 0);
-}

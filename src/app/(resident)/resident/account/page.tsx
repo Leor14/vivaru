@@ -15,6 +15,9 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
+import { construirEstadoDeCuenta } from "@/features/billing/estado-de-cuenta";
+import { renderEstadoDeCuentaPdf } from "@/features/finanzas/comprobante/estado-de-cuenta-pdf";
+import { saldoAFavor, useAdvances } from "@/features/finanzas/use-advances";
 import { usePaymentReceipts } from "@/features/billing/use-payment-receipts";
 import { watchActiveBankAccounts } from "@/features/finanzas/use-bank-accounts";
 import { db, storage } from "@/lib/firebase/client";
@@ -32,6 +35,39 @@ export default function ResidentAccountPage() {
   const { formatAmount } = useTenantCurrency();
   const vocab = useTenantVocabulary();
   const { items, loading } = useBillingStatements(user?.tenantId, user?.unitId);
+  const { items: anticipos } = useAdvances(user?.tenantId, user?.unitId);
+  const [descargando, setDescargando] = useState(false);
+
+  /**
+   * `FEAT-004` CA7 · el residente descarga su estado de cuenta **sin pedírselo
+   * al administrador**. Es lectura pura: los cargos ya están en la pantalla y el
+   * cálculo del saldo acumulado es presentación (§11.1). Lo que NO se emite
+   * desde aquí es el paz y salvo — su única condición es «saldo cero» y esa la
+   * comprueba el servidor, porque un cliente manipulado emitiría uno falso.
+   */
+  async function descargarEstadoDeCuenta() {
+    setDescargando(true);
+    try {
+      const estado = construirEstadoDeCuenta(items);
+      const hoy = new Date();
+      await renderEstadoDeCuentaPdf(
+        estado,
+        {
+          conjunto: user?.tenantName ?? "Conjunto residencial",
+          unidad: user?.unitLabel ?? user?.unitId ?? "—",
+          // La fecha la pone la pantalla, no el generador: un PDF que decide
+          // qué día es hoy no se puede probar.
+          emitidoEl: `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`,
+          saldoAFavor: saldoAFavor(anticipos, user?.unitId),
+        },
+        formatAmount,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible generar el estado de cuenta.");
+    } finally {
+      setDescargando(false);
+    }
+  }
   const { receiptByStatementId } = usePaymentReceipts(user?.tenantId, user?.unitId);
 
   const [uploading, setUploading] = useState(false);
@@ -244,6 +280,17 @@ export default function ResidentAccountPage() {
               <span className="font-medium text-[var(--slate-900)]">{formatAmount(unitOwnership.monthlyFeeAmount)}</span>
             </span>
           ) : null}
+        </div>
+      ) : null}
+
+      {/* `FEAT-004` · la descarga va aquí, encima de los movimientos que resume.
+          No se ofrece con la lista vacía: un PDF sin una sola línea no es un
+          documento, es una pregunta al administrador. */}
+      {!loading && items.length > 0 ? (
+        <div className="mt-4 flex justify-end">
+          <Button type="button" variant="outline" disabled={descargando} onClick={() => void descargarEstadoDeCuenta()}>
+            {descargando ? "Generando…" : "Descargar estado de cuenta"}
+          </Button>
         </div>
       ) : null}
 
