@@ -185,7 +185,9 @@ despliegue, y que **el asiento diga la verdad sobre qué se cobró**.
 2. **Códigos gobernados**: formato validado, únicos por conjunto e **inmutables una vez usados**.
 3. **Semilla** con las categorías actuales ligadas por `systemKey`, **más las cuentas de ingreso
    que los conceptos de cargo necesitan y hoy no existen** (§8 R11). No son trece: son
-   **dieciocho con `systemKey`**, más las dos cuentas padre — **20 documentos**.
+   **DIECINUEVE con `systemKey`**, más las dos cuentas padre — **21 documentos**. Eran dieciocho y
+   veinte hasta que `PRD-V-FLOW-002` añadió `1.10 · Anticipos de residentes` (`CUENTA_ANTICIPO`), y
+   este número no se actualizó. **Contarlo de `SEMILLA_PLAN_DE_CUENTAS`, no de aquí.**
    *(Eran dieciséis y 18 hasta el 23 de agosto de 2026; la vigilancia sumó dos, una por
    lado del libro — ver D3.)*
 4. **Un solo catálogo de etiquetas**, y el fin de los dos mapas que discrepan.
@@ -209,7 +211,7 @@ despliegue, y que **el asiento diga la verdad sobre qué se cobró**.
 
 ```mermaid
 flowchart TD
-    A[Alta del conjunto] --> B[Se siembra el plan estándar: 18 cuentas de sistema]
+    A[Alta del conjunto] --> B[Se siembra el plan estandar: 19 cuentas de sistema]
     B --> C[Admin abre Finanzas › Plan de cuentas]
     C --> D{¿Qué hace?}
     D -->|Añadir| E[Código, nombre, tipo y cuenta padre]
@@ -345,7 +347,7 @@ residente pasa a usar **el nombre de la cuenta**, con lo que desaparece la discr
 
 | # | Criterio |
 |---|---|
-| CA1 | Un conjunto nuevo nace con las **dieciocho** cuentas de `systemKey` sembradas (20 documentos con los dos padres), y **los ocho conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`) |
+| CA1 | Un conjunto nuevo nace con las **diecinueve** cuentas de `systemKey` sembradas (**21 documentos** con los dos padres), y **los ocho conceptos de cargo resuelven a una cuenta propia** (ninguno cae en `otros_ingresos`). **Decía dieciocho y veinte**: `FLOW-002` añadió `1.10 · Anticipos de residentes` a la semilla y el criterio se quedó atrás |
 | CA2 | El administrador crea una cuenta con código válido y la usa en un egreso |
 | CA3 | **Cobrar un cargo de concepto `multa` escribe un asiento en la cuenta de multas, no en cuotas de administración** |
 | CA4 | Revertir ese pago escribe el negativo **en la misma cuenta** |

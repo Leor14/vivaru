@@ -366,12 +366,25 @@ las banderas con `functions/lib/feature-flags.js` y contando documentos en produ
 |---|---|---|
 | **Cobro por coeficiente** (`PLAT-001`) | encendida | **0 de 88 unidades** tienen coeficiente |
 | **Registro de proveedores** (`FEAT-003`) | encendida | **0 proveedores** registrados |
-| **Plan de cuentas** (`PLAT-003`) | encendidas las dos | **0 cuentas sembradas** — staging tiene 20 |
+| ~~**Plan de cuentas** (`PLAT-003`)~~ | encendidas las dos | **RESUELTO el 24 ago: los nueve sembrados, 21 cuentas cada uno (189 en total, releído).** La pantalla del plan pasó de vacía a «21 cuentas» |
 
-**La causa del tercero está localizada:** el plan **solo se siembra al CREAR un conjunto**
+**El tercero ya está cerrado**, y su causa estaba localizada: el plan **solo se siembra al CREAR un conjunto**
 (`sembrarPlanDeCuentas` desde `createTenantWorkspace` en `index.ts:1103` y desde
 `trial-workspace.ts:170`), y **los nueve conjuntos de producción son anteriores a la
-funcionalidad**. Nunca hubo un backfill. Existe el script `functions/scripts/sembrar-plan-de-cuentas.mjs`.
+funcionalidad**. Nunca hubo un backfill. Se corrió `functions/scripts/sembrar-plan-de-cuentas.mjs` sobre los nueve, **simulando primero**: cero
+colisiones de código, 21 creadas en cada uno y 0 respetadas. **Y de paso destapó un número
+desfasado**: la semilla tiene **21 documentos y 19 con `systemKey`**, no los «18 y 20» que decía
+CA1 de `PLAT-003` — `FLOW-002` le añadió `1.10 · Anticipos de residentes` y el criterio se quedó
+atrás. Corregido, y el script ahora **cuenta la semilla** en vez de citar un número a mano.
+
+**Quedan los otros dos, y no son ingeniería:** capturar coeficientes de 88 unidades y dar de alta
+proveedores. Sin clientes reales solo tiene sentido para que la demostración enseñe algo.
+
+> **Lo que sembrar CONGELA, dicho para que no sorprenda luego.** Una segunda pasada no pisa
+> renombres ni renúmeros, así que los nombres que quedaron son los de la semilla —y son
+> **colombianos**: «Cuotas de administración» en los cuatro conjuntos de México—. Es el mismo
+> comportamiento que ya tenía cualquier alta nueva, y **el plan de cuentas por país está aparcado a
+> propósito**; pero el día que se localice, los nueve necesitarán migración, no una segunda siembra.
 
 > **No rompe nada, y conviene decirlo con precisión para no asustar.** Un asiento puede llevar
 > `accountCode` de un conjunto sin plan: `cajonDe` y `etiquetaDe`
