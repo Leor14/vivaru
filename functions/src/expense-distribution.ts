@@ -47,6 +47,19 @@ const CATEGORIAS_ORDINARIAS = new Set([
   "mantenimiento",
   "administracion",
   "vigilancia",
+  // **Los dos nombres VIEJOS, y no sobran: son casi la mitad de los datos.**
+  // Medido el 25 de agosto de 2026 sobre los dos proyectos: de 130 egresos,
+  // **48 llevan una categoría que ya no existe en `ExpenseCategory`** —
+  // `servicios` (48) y `seguridad` (24)—. Las dos son el nombre anterior de
+  // `servicios_publicos` y `vigilancia`, que están arriba.
+  //
+  // Sin estas dos líneas el aviso se apagaba en **el 37% de los egresos
+  // reales**, y precisamente en los más ordinarios que hay: el agua y la
+  // vigilancia. Un aviso que no salta no se nota — no hay error, no hay rojo,
+  // solo un cobro doble que nadie previno. Por eso se cubren aquí en vez de
+  // esperar a una migración de datos que ni está hecha ni bloquea esto.
+  "servicios",
+  "seguridad",
 ]);
 
 /** Estados de egreso que se pueden repartir (R1). Nunca uno `anulado`. */

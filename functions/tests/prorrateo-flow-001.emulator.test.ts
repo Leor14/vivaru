@@ -213,6 +213,21 @@ describe("FLOW-001 · repartir un egreso", () => {
     expect((await db.collection("billingStatements").get()).size).toBe(4);
   });
 
+  it("CA10 · el aviso también salta con los nombres VIEJOS de categoría, que son casi la mitad de los datos", async () => {
+    // 48 de 130 egresos de los dos proyectos llevan `servicios` o `seguridad`,
+    // que ya no existen en `ExpenseCategory`. Sin cubrirlos, el aviso se apaga
+    // justo en los gastos más ordinarios que hay.
+    await sembrarCuatroUnidades();
+    for (const [i, cat] of ["servicios", "seguridad"].entries()) {
+      await sembrarEgreso(`gasto-viejo-${i}`, { category: cat });
+      const r = await repartirEgreso(
+        entrada({ expenseId: `gasto-viejo-${i}`, operationKey: `op-viejo-${i}`, dryRun: true }),
+        UID,
+      );
+      expect(r.avisoDobleCobro, `categoría «${cat}»`).toBe(true);
+    }
+  });
+
   it("un gasto NO ordinario no da el aviso — si diera siempre, el aviso no diría nada", async () => {
     await sembrarCuatroUnidades();
     await sembrarEgreso("gasto-1", { category: "proveedores" });
