@@ -189,12 +189,35 @@ export async function emitirPazYSalvo(
 
   // R4 · un saldo A FAVOR no impide emitirlo, y el documento lo nombra. Se lee
   // aquí porque no vive en los cargos: son documentos de `advances`.
-  const anticiposSnap = await firestore
-    .collection("advances")
-    .where("tenantId", "==", input.tenantId)
-    .where("unitId", "==", input.unitId)
-    .get();
-  const creditBalance = anticiposSnap.docs
+  //
+  // **Y por TODAS las claves, igual que la deuda.** El arreglo anterior cubrió
+  // el saldo pendiente y dejó este consultando una sola: el certificado podía
+  // imprimir «saldo a favor: 0» a una unidad que sí lo tiene guardado con la
+  // otra clave. `aplicarPago` crea el anticipo con la convención que traía el
+  // cargo sobrepagado (`payments.ts`), así que `advances` está mezclada
+  // exactamente igual que `billingStatements`.
+  //
+  // Aquí el error va en la dirección CONTRARIA a la de la deuda —callar dinero
+  // a favor en vez de callar deuda— y por eso no bloquea la emisión. Pero R4
+  // dice que el documento lo NOMBRA, y un papel que se entrega diciendo que no
+  // hay nada a favor cuando lo hay es igual de falso.
+  const anticiposPorClave = await Promise.all(
+    claves.map((clave) =>
+      firestore
+        .collection("advances")
+        .where("tenantId", "==", input.tenantId)
+        .where("unitId", "==", clave)
+        .get(),
+    ),
+  );
+  const anticiposVistos = new Set<string>();
+  const creditBalance = anticiposPorClave
+    .flatMap((snap) => snap.docs)
+    .filter((d) => {
+      if (anticiposVistos.has(d.id)) return false;
+      anticiposVistos.add(d.id);
+      return true;
+    })
     .map((d) => d.data() as { status?: string; remaining?: number })
     .filter((a) => a.status === "open")
     .reduce((a, x) => a + (x.remaining ?? 0), 0);

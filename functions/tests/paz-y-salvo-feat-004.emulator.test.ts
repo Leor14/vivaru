@@ -197,6 +197,19 @@ describe("FEAT-004 · el cargo HUERFANO, que no casa con ninguna unidad", () => 
     await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/640000/);
   });
 
+  it("R4 · el saldo a favor guardado con la clave ALTERNA también se nombra", async () => {
+    // El arreglo de la deuda dejo este consultando una sola clave: el papel
+    // decia «a favor 0» a quien si tenia dinero puesto. El error va en la
+    // direccion contraria —callar credito en vez de deuda— y por eso no bloquea
+    // la emision, pero R4 obliga a NOMBRARLO.
+    await db.collection("units").doc(U).set({ tenantId: T, unitId: "slug-101", displayName: "101", status: "active" });
+    await sembrarCargo("c1", { balance: 0 });
+    await db.collection("advances").doc("a1").set({ tenantId: T, unitId: "slug-101", status: "open", remaining: 33_000 });
+
+    const r = await emitirPazYSalvo(entrada(), UID);
+    expect(r.creditBalance).toBe(33_000);
+  });
+
   it("y un cargo que llega por DOS vías no se cuenta dos veces", async () => {
     // Si se duplicara, un saldo de 0 seguiria siendo 0 y no se notaria; el caso
     // que lo delata es uno con saldo, que se contaria por clave Y por etiqueta.
