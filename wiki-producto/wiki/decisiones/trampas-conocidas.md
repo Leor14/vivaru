@@ -322,13 +322,18 @@ Y dos consecuencias que no son obvias:
 - **Revertir no es «volver a pendiente».** El estado se recalcula contra la fecha, así que una cuota cuyo vencimiento ya pasó vuelve **vencida**. Es lo correcto, pero sorprende.
 - **El comprobante del residente queda rechazado, no pendiente.** Devolverlo a pendiente parecería más amable y rompería la idempotencia: su clave de aprobación es su propio id, así que al re-aprobarlo la marca ya existiría y el pago **no se aplicaría**, devolviendo «ya aplicado» sin aplicar nada.
 
-## El catálogo de banderas vive en CUATRO sitios, no en dos
+## El catálogo de banderas vive en CINCO sitios, no en dos
+
+> **Esta cabecera decía CUATRO y por eso volvió a pasar el 25 de agosto de 2026:** la bandera nueva
+> se pudo encender en global pero **no por conjunto**, que es justo la vía del canario. El quinto
+> sitio faltaba en la lista.
 
 Los dos evidentes son los espejos de código —`src/lib/feature-flags/catalog.ts` para el cliente y
 `functions/src/feature-flags.ts` para el servidor, duplicados a propósito porque `src/` no puede
-importar de `functions/`—. **Los otros dos son scripts, y son los que muerden:**
-`functions/scripts/seed-feature-flags.mjs`, que crea el documento, y
-`functions/scripts/mover-bandera.mjs`, que lo enciende.
+importar de `functions/`—. **Los otros TRES son scripts, y son los que muerden:**
+`functions/scripts/seed-feature-flags.mjs`, que crea el documento;
+`functions/scripts/mover-bandera.mjs`, que lo enciende en global; y
+`functions/scripts/mover-bandera-de-conjunto.mjs`, que escribe la override por conjunto.
 
 **Añadir una bandera tocando solo los dos primeros la deja imposible de encender, sin síntoma
 visible.** El sembrador no crea su documento y el movedor rechaza la clave como desconocida, así
@@ -338,7 +343,7 @@ en staging**, no antes.
 
 Es pariente de [[banderas-funcionalidad|una bandera puede existir y no gobernar nada]]: allí
 faltaba quien la leyera, aquí falta quien la cree. **La comprobación es la misma y cuesta un
-`grep`**: la clave nueva tiene que aparecer en los cuatro ficheros.
+`grep`**: la clave nueva tiene que aparecer en los CINCO ficheros.
 
 ## Una exclusión escrita contra un VALOR se rompe cuando cambia quien escribe ese valor
 
@@ -407,3 +412,62 @@ verificarla hacia atrás.
 una llamada que no debe existir— hacer el `grep` que demuestre que hoy se cumple.** Si no se
 cumple, la regla no está adoptada: está pendiente, y hay que decir qué se hace con lo que ya la
 incumple.
+
+## Encender una bandera no enciende nada si el FRONT DESPLEGADO no conoce la clave
+
+Ya estaba escrito que una bandera puede ser solo un botón cuando el servidor no la comprueba.
+**Hay una tercera forma, y es la que se coló el 26 de agosto de 2026.**
+
+`FLOW-001` y `FEAT-004` tenían su servidor desplegado en producción y sus banderas sin documento.
+Parecía que quedaba **un** acto —encender— y quedaban **dos**: el front que corría en producción
+sale de `origin/master`, y **`origin/master` ni siquiera mencionaba las claves en su catálogo**.
+Los ficheros de `FEAT-004` nacían en `develop`. Encender habría sido un no-op con aspecto de hito.
+
+**Los actos son TRES: servidor → front → encender.** Y la comprobación cuesta diez segundos, contra
+la rama que de verdad sirve el front y no contra el árbol de trabajo:
+
+```bash
+git show origin/master:src/lib/feature-flags/catalog.ts | grep -E '<la-clave>'
+```
+
+**Y la simétrica, antes de subir un front:** mirar `defaultEnabled` en el catálogo. Cuando la
+bandera **no existe como documento** —que es el caso normal de una capacidad nueva— manda el
+default, así que un `defaultEnabled: true` convierte el despliegue del front en un encendido que
+nadie decidió.
+
+## Una suite en verde no vigila lo que ninguno de sus casos puede distinguir
+
+Pariente del conjunto vacío, pero más difícil de ver: aquí **hay muchos casos y todos pasan**.
+
+El estado de cuenta de `FEAT-004` tenía **once** pruebas. Todas usaban cargos que vencen **en su
+propio mes**, y con esa entrada ordenar por `period` o por `dueDate` **da exactamente el mismo
+resultado**. La suite no podía distinguir la implementación buena de la mala. Salió a producción y
+se vio en pantalla: períodos `05 · 03 · 04 · 06` con un saldo acumulado al lado, porque los cargos
+de marzo y abril vencían el 28 de mayo.
+
+**La pregunta que lo caza:** ¿existe en la suite algún caso donde las dos implementaciones
+candidatas darían resultados DISTINTOS? Si la variable que decide la conducta es constante en todos
+los casos, la suite vigila otra cosa y lo parece.
+
+Se comprobó revirtiendo el orden a propósito: **falló exactamente la prueba nueva y las once
+pasaron**. Ese contraste es la prueba de que estaban ciegas; que la nueva pase, sola, no probaba
+nada. Ver [[un-verde-no-vale-sin-falsacion]].
+
+## La sesión del navegador va por ORIGEN, aunque sea la misma aplicación
+
+Producción responde en `www.grupovivaru.com` y en `vivaru--hogaru-1.us-central1.hosted.app` — mismo
+backend de App Hosting, mismo build. **Firebase Auth guarda la sesión por origen**, así que entrar
+por uno **no** deja sesión en el otro.
+
+Costó una vuelta entera el 26 de agosto: se pidió una sesión, se abrió en un dominio y se buscó en
+el otro, y la pantalla de login parecía decir «no entraste». **Al validar por navegador, fijar el
+dominio primero y pedirlo por su nombre.**
+
+## El repositorio no es el directorio de trabajo de la sesión
+
+El cwd de las sesiones es `/Users/david/Vivaru_Rep`, que **no es un repositorio git**, no tiene
+`docs/` y arrastra un `firestore.rules` de **0 bytes** al lado. El repositorio es
+`/Users/david/Vivaru_Rep/vivaru`.
+
+Consecuencia práctica: **un comando relativo que se le pase a David muere con `MODULE_NOT_FOUND`**
+si lo lanza desde el padre, que es donde su terminal suele estar. **Pasarle siempre ruta absoluta.**

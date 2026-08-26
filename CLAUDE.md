@@ -311,10 +311,24 @@ va por delante, que también es normal.
 > un commit que **nunca llegó a `master`**. Lo desplegado se lee de su servicio — ver el bloque de
 > orden de despliegue.
 
-**DOS MVP ESTÁN EN STAGING Y NINGUNO EN PRODUCCIÓN, las dos veces POR DECISIÓN** (26 ago 2026):
-`FLOW-001` (prorrateo de un egreso) y `FEAT-004` (estado de cuenta y paz y salvo), los dos
-validados por navegador contra la base. **`FLOW-001` no sube porque ahí no puede correr** —0 de 88
-unidades con coeficiente y 74 de 87 sin propietario—; **`FEAT-004` porque depende de `FIX-002`**.
+**`FEAT-004` ESTÁ EN PRODUCCIÓN Y ENCENDIDA** (26 ago 2026, tarde): estado de cuenta y paz y
+salvo. **`FLOW-001` está desplegado entero —servidor y front— y APAGADO**, y seguirá: con 0 de 88
+unidades con coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de
+calcular. Por el criterio del 24, desplegado y apagado **cuenta como frente abierto**.
+
+> **SUBIR Y ENCENDER SON TRES ACTOS, NO DOS — y descubrirlo costó media jornada.** El orden real es
+> **servidor → front → encender**. Por la mañana el servidor de los dos MVP estaba en producción y
+> sus banderas no existían, y parecía que solo faltaba encender. No: **el front que corría
+> (`origin/master`) ni siquiera conocía las claves**. Encender habría sido un no-op con aspecto de
+> hito. La comprobación son diez segundos y va **antes** de prometer una fecha de encendido:
+>
+> ```bash
+> git show origin/master:src/lib/feature-flags/catalog.ts | grep -E '<la-clave>'
+> ```
+>
+> Y al revés, antes de subir un front: **mirar el `defaultEnabled` del catálogo**. En producción
+> esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
+> `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
 
 > **Y EL HALLAZGO QUE MÁS LEJOS LLEGA NO ES NINGUNO DE LOS DOS: `unitId` ESTÁ PARTIDO EN DOS.**
 > Conviven el **id del documento** de la unidad y su **campo `unitId`** (un slug), y hay documentos
@@ -325,9 +339,12 @@ unidades con coeficiente y 74 de 87 sin propietario—; **`FEAT-004` porque depe
 > **No fue una deriva accidental: fueron DOS migraciones en direcciones opuestas y ninguna tocó
 > `tenantUsers`**, que es contra lo que `residentOwnUnit` compara — por eso quedó peor que antes.
 > **Se manifiesta SIN error**: las reglas rechazan, no filtran, así que se ve como una lista vacía.
-> Ficha propia: **`PRD-V-FIX-002`**, lista para desarrollo, y **bloquea de hecho a toda
-> funcionalidad nueva que resuelva persona↔unidad** — `FEAT-004` pagó el peaje arreglando el paz y
-> salvo **tres veces**.
+>
+> **CERRADO (`PRD-V-FIX-002`, 26 ago 2026), y las marcas RETIRADAS.** 250 documentos migrados en
+> los dos ambientes, los diecinueve conjuntos a cero fuera de convención, cero huérfanos sin
+> decidir en producción. `unitIdPrevio` y `unitIdMigradoEn` **ya no existen** —110 documentos en
+> producción, 140 en staging—, así que **`migrar-claves-de-unidad.mjs --revertir` no puede deshacer
+> nada**: era el objeto de esa decisión, no un efecto secundario.
 
 **`PLAT-002` ESTÁ EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`), y con él
 **el frente 4 queda cerrado y desplegado**: la sesión con varias membresías, el selector, la

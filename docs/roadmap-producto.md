@@ -130,6 +130,7 @@ de entrega.**
 
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
+| **Propiedad horizontal** | ✅ `PH-001` · ✅ `PLAT-002` · ✅ `FIX-002` · ✅ `FEAT-004` · ⏸ `FLOW-001` | 🟠 `FLOW-003` | 🔵 `PH-002` | — |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
@@ -139,7 +140,17 @@ de entrega.**
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
 
-**Leyenda:** ✅ construido **y desplegado** (18–19 ago 2026) · 🟢 coste
+> **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
+> frente donde ha ido todo el trabajo desde el 24. El §35 de este mismo documento decía que el
+> frente se había abierto; la vista ejecutiva no se enteró. Añadida.
+>
+> **Y el ⏸ de `FLOW-001` no significa «sin construir»**: significa construido, desplegado entero
+> —servidor y front— y **APAGADO**, porque con 0 de 88 unidades con coeficiente y 74 de 87 sin
+> propietario no puede calcular nada aunque se encienda. Por el criterio del 24 de agosto,
+> desplegado y apagado **cuenta como frente abierto**, no como entregado.
+
+**Leyenda:** ✅ construido **y desplegado** (18–19 ago 2026; los de propiedad horizontal, entre el
+24 y el 26) · 🟢 coste
 cero, se puede hoy · ⏳ **caduca: el dato se pierde si llega tarde** · 🔴 prioridad
 fundacional · 🟠 siguiente capacidad · 🔵 expansión posterior · 🟡 descubrimiento ·
 ⏸ bloqueado por datos · ◇ exploración condicionada
