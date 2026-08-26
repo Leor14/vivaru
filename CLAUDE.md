@@ -211,10 +211,21 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
   > 39% ocupado por un changelog duplicado del repositorio. Ahora son **6.900** y
   > responde a una sola pregunta: dónde está cada frente y qué lo mueve.
   >
-  > **Los tres artefactos, y no se mezclan:** el TABLERO dice dónde está cada frente
-  > y se reescribe; la BITÁCORA dice qué se construyó y dónde corre, una fila por
+  > **Los CUATRO artefactos, y no se mezclan:** el TABLERO dice dónde está cada
+  > frente y se reescribe; el INVENTARIO dice qué iniciativas lo componen y qué frena
+  > a cada una; la BITÁCORA dice qué se construyó y dónde corre, una fila por
   > entrega; el REPOSITORIO dice por qué se decidió así. **El historial no va al
   > tablero**, que es lo que lo hinchó.
+  >
+  > **El inventario es una base de Notion desde el 26 de agosto de 2026** —34 filas,
+  > dentro de la página del tablero— y lleva la columna que el roadmap viejo no tenía:
+  > **qué PRD cubre cada iniciativa**. Sin ella no se podía ir del tablero al trabajo
+  > ni al revés, porque las épicas (`FIN-002`, `PH-001`) y las fichas
+  > (`PRD-V-FLOW-001`) son dos vocabularios distintos para lo mismo.
+  > Tres vistas: **Por horizonte** (tablero), **Lo vivo** (sin lo cerrado) y **Qué
+  > está frenado, y por qué**. Y un horizonte nuevo, `CERRADA`, para que lo terminado
+  > **salga** de los cuatro: el roadmap viejo tenía `FIN-001` y `REVOPS-001A`
+  > marcados con ✅ dentro de la columna AHORA.
   >
   > **Y un hueco que tenían LAS DOS copias:** la tabla ejecutiva no listaba
   > «Propiedad horizontal», que es el frente donde ha ido todo el trabajo desde el 24
