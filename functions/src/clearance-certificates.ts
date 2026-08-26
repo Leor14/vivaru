@@ -1,6 +1,7 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { clavesDeConsulta, construirCatalogo, resolverClaveDeUnidad } from "./clave-de-unidad";
 import { codigoDesdeId } from "./comprobante";
 
 /**
@@ -84,88 +85,74 @@ export async function emitirPazYSalvo(
   }
 
   /**
-   * **La unidad se busca por SUS DOS CLAVES, y esto no es celo.**
+   * **La unidad se resuelve UNA vez, por el resolvedor único** (`PRD-V-FIX-002`, R6).
    *
-   * En `billingStatements` conviven dos convenciones de `unitId`: el id del
-   * documento de la unidad —lo que devuelve `repartirPorCoeficiente` y lo que
-   * guarda `tenantUsers.unitId`— y el campo `unitId` de la unidad, que es un
-   * slug. Medido el 25 de agosto de 2026: en **producción**, 197 cargos por id
-   * y 19 por campo, con **tres conjuntos que tienen las dos a la vez**
-   * (`tenant-santa-maria` 96/3, `queretarock` 16/8, `residencial-qintilab`
-   * 16/8).
+   * Aquí vivía un parche de tres vías —el id, el campo `unitId` y la etiqueta—
+   * y era lo correcto mientras el dato estaba partido: en producción convivían
+   * 197 cargos por id y 19 por campo, y `tenant-santa-maria` tenía la unidad
+   * `u-t1-101` con la cartera repartida entre `u-t1-101` (3.360.000) y
+   * `unit-t1-101` (**3.580.000**), que no existía como unidad. Consultar una
+   * sola clave habría certificado al día a quien debía la mitad.
    *
-   * Consultar por una sola clave dejaría fuera la deuda escrita con la otra, y
-   * este documento **afirma que no hay ninguna**. Sería certificar al día a
-   * quien debe — en un papel que se enseña ante un tercero. Cualquier otra
-   * pantalla que se equivoque aquí pinta un número corto; esta miente.
+   * **`FIX-002` migró el dato el 26 de agosto de 2026 y el parche pasó de
+   * necesario a peligroso.** La vía de la etiqueta consulta
+   * `where("unitLabel", "==", …)` **sin restringir a la unidad**, y nada impide
+   * que dos unidades del mismo conjunto se llamen igual —`updateUnit` no lo
+   * comprueba—. El día que pase, esto se negaría a certificar a quien está al
+   * día porque su homónima debe. Y con una unidad borrada, sus cargos huérfanos
+   * bloquearían a la unidad NUEVA que reutilizara la etiqueta, que es otra
+   * unidad y no hereda deudas.
    *
-   * El arreglo de fondo es unificar el dato, y no es de esta ficha. Mientras
-   * tanto el certificado mira las dos, que es lo único que lo hace cierto.
+   * Se resuelve **sin pasar la etiqueta**, y es deliberado: `unitLabel` viaja en
+   * la petición y un administrador puede mandar lo que quiera. Que un texto del
+   * cliente pueda elegir de qué unidad se certifica sería darle a la petición
+   * una autoridad que solo tiene la membresía.
+   *
+   * **Lo que SÍ se conserva es el slug propio de la unidad**, y la diferencia con
+   * la etiqueta es toda: el slug pertenece a ESTA unidad y a ninguna otra, así que
+   * mirarlo no puede traer deuda ajena. Solo se consulta si además **no es el id
+   * de documento de otra unidad** —esa comprobación es la que impide el único
+   * cruce posible—. Cuesta una consulta y mantiene imposible el fallo que
+   * importa: certificar al día a quien debe. El otro sentido —negarse a
+   * certificar a quien está al día— se arregla mirando; este no.
+   *
+   * Y si no resuelve, **no se emite**. Un papel que afirma que una unidad no
+   * debe nada no se puede firmar sobre una unidad que no se sabe cuál es.
    */
-  // Se resuelve en LAS DOS DIRECCIONES, porque la petición puede traer
-  // cualquiera de las dos claves y la primera versión de esto solo servía si
-  // traía el id del documento: con el slug, `units/{slug}` no existe, la clave
-  // alterna salía vacía y volvíamos a mirar una sola — el mismo agujero que
-  // pretendía cerrar.
-  const porId = await firestore.collection("units").doc(input.unitId).get();
-  let claveAlterna = (porId.data() as { unitId?: string } | undefined)?.unitId;
-
-  if (!porId.exists) {
-    const porCampo = await firestore
-      .collection("units")
-      .where("tenantId", "==", input.tenantId)
-      .where("unitId", "==", input.unitId)
-      .limit(1)
-      .get();
-    claveAlterna = porCampo.docs[0]?.id;
-  }
-
-  const claves = [...new Set([input.unitId, claveAlterna].filter(Boolean))] as string[];
-
-  /**
-   * **Y una TERCERA vía: la etiqueta.** Hay cargos cuyo `unitId` no casa con
-   * ninguna unidad — ni por id ni por campo. Medido en producción el 25 de
-   * agosto de 2026: `tenant-santa-maria` tiene la unidad `u-t1-101` con sus
-   * cargos **partidos en dos claves**, `u-t1-101` (4 cargos, 3.360.000) y
-   * `unit-t1-101` (5 cargos, **3.580.000**), y esta última no existe como
-   * unidad. La deuda real de T1-101 es 6.940.000 y cualquier consulta por clave
-   * enseña menos de la mitad.
-   *
-   * Lo único que ata esos cargos a su unidad es `unitLabel`. Buscar también por
-   * ahí **incluye de más antes que de menos**, y para un documento que AFIRMA
-   * esa es la dirección segura: negarse a certificar a alguien que sí está al
-   * día se arregla mirando; certificar al que debe, no.
-   */
-  const etiqueta = input.unitLabel ?? (await firestore.collection("units").doc(claves[0]).get()).data()?.displayName;
-
-  const consultas = claves.map((clave) =>
-    firestore
-      .collection("billingStatements")
-      .where("tenantId", "==", input.tenantId)
-      .where("unitId", "==", clave)
-      .get(),
+  const unidadesSnap = await firestore
+    .collection("units")
+    .where("tenantId", "==", input.tenantId)
+    .get();
+  const catalogo = construirCatalogo(
+    unidadesSnap.docs.map((d) => {
+      const u = d.data() as { unitId?: string; displayName?: string };
+      return { id: d.id, slug: u.unitId, displayName: u.displayName };
+    }),
   );
-  if (etiqueta) {
-    consultas.push(
+  const resolucion = resolverClaveDeUnidad(input.unitId, catalogo);
+  if (resolucion.estado !== "canonica" && resolucion.estado !== "migrable") {
+    throw new HttpsError(
+      "failed-precondition",
+      "No se puede emitir el paz y salvo: la unidad no existe en este conjunto.",
+    );
+  }
+  const clave = resolucion.clave;
+
+  const slugPropio = (unidadesSnap.docs.find((d) => d.id === clave)?.data() as { unitId?: string } | undefined)?.unitId;
+  const claves = clavesDeConsulta(clave, catalogo, slugPropio);
+
+  const porClave = await Promise.all(
+    claves.map((c) =>
       firestore
         .collection("billingStatements")
         .where("tenantId", "==", input.tenantId)
-        .where("unitLabel", "==", etiqueta)
+        .where("unitId", "==", c)
         .get(),
-    );
-  }
-
-  const cargosPorClave = await Promise.all(consultas);
-  // Un cargo puede venir por dos consultas a la vez —clave Y etiqueta—: contarlo
-  // dos veces duplicaría el saldo e impediría emitir a quien sí está al día.
-  const vistos = new Set<string>();
-  const cargosSnap = {
-    docs: cargosPorClave.flatMap((snap) => snap.docs).filter((d) => {
-      if (vistos.has(d.id)) return false;
-      vistos.add(d.id);
-      return true;
-    }),
-  };
+    ),
+  );
+  // Sin deduplicar: las dos claves son distintas por construcción, así que un
+  // cargo no puede salir por las dos.
+  const cargosSnap = { docs: porClave.flatMap((snap) => snap.docs) };
 
   // R5 · un cargo anulado no cuenta. Y su `balance` ya es cero, así que esto es
   // el segundo de los dos caminos que lo dejan fuera: el estado y el saldo.
@@ -194,34 +181,24 @@ export async function emitirPazYSalvo(
   // R4 · un saldo A FAVOR no impide emitirlo, y el documento lo nombra. Se lee
   // aquí porque no vive en los cargos: son documentos de `advances`.
   //
-  // **Y por TODAS las claves, igual que la deuda.** El arreglo anterior cubrió
-  // el saldo pendiente y dejó este consultando una sola: el certificado podía
-  // imprimir «saldo a favor: 0» a una unidad que sí lo tiene guardado con la
-  // otra clave. `aplicarPago` crea el anticipo con la convención que traía el
-  // cargo sobrepagado (`payments.ts`), así que `advances` está mezclada
-  // exactamente igual que `billingStatements`.
-  //
-  // Aquí el error va en la dirección CONTRARIA a la de la deuda —callar dinero
-  // a favor en vez de callar deuda— y por eso no bloquea la emisión. Pero R4
-  // dice que el documento lo NOMBRA, y un papel que se entrega diciendo que no
-  // hay nada a favor cuando lo hay es igual de falso.
+  // **Por las MISMAS claves que la deuda**, que es lo que hace que las dos cifras
+  // del papel hablen de la misma unidad. `aplicarPago` crea el anticipo con la
+  // convención que traía el cargo sobrepagado (`payments.ts`), así que `advances`
+  // estaba mezclada exactamente igual que `billingStatements` — y se migró en la
+  // misma pasada, porque `FIX-002` recorre las dieciocho colecciones. Aquí el
+  // error va en la dirección CONTRARIA a la de la deuda —callar dinero a favor en
+  // vez de callar deuda— y por eso no bloquea; pero R4 dice que se NOMBRA.
   const anticiposPorClave = await Promise.all(
-    claves.map((clave) =>
+    claves.map((c) =>
       firestore
         .collection("advances")
         .where("tenantId", "==", input.tenantId)
-        .where("unitId", "==", clave)
+        .where("unitId", "==", c)
         .get(),
     ),
   );
-  const anticiposVistos = new Set<string>();
   const creditBalance = anticiposPorClave
     .flatMap((snap) => snap.docs)
-    .filter((d) => {
-      if (anticiposVistos.has(d.id)) return false;
-      anticiposVistos.add(d.id);
-      return true;
-    })
     .map((d) => d.data() as { status?: string; remaining?: number })
     .filter((a) => a.status === "open")
     .reduce((a, x) => a + (x.remaining ?? 0), 0);

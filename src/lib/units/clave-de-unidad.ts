@@ -22,8 +22,14 @@
 export type UnidadDelCatalogo = {
   /** Id del documento en `units`. **Esta es la clave.** */
   id: string;
-  /** El campo `unitId` del documento, que es un slug. **No es la clave.** */
-  unitId?: string | null;
+  /**
+   * El campo `unitId` del documento de la unidad, que es un slug. **No es la
+   * clave**, y aquí se llama `slug` a propósito: llamarlo `unitId` en el tipo
+   * mantenía viva la confusión que causó toda la ficha —dos cosas distintas con
+   * el mismo nombre— y hacía que la guarda de R6 no pudiera distinguir «construir
+   * el catálogo» de «fabricar una clave desde el slug».
+   */
+  slug?: string | null;
   /** Etiqueta visible. Solo se usa para reasignar huérfanos, y solo si es única. */
   displayName?: string | null;
 };
@@ -64,7 +70,7 @@ export function construirCatalogo(unidades: UnidadDelCatalogo[]): CatalogoDeUnid
     if (!u.id) continue;
     ids.add(u.id);
 
-    const campo = (u.unitId ?? "").trim();
+    const campo = (u.slug ?? "").trim();
     // Un campo que ya es el id no aporta una segunda vía: sería resolverse a sí mismo.
     if (campo && campo !== u.id) {
       porCampo.set(campo, [...(porCampo.get(campo) ?? []), u.id]);

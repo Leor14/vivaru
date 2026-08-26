@@ -57,6 +57,7 @@ const email_1 = require("./email");
 const support_1 = require("./support");
 const advances_1 = require("./advances");
 const audit_1 = require("./audit");
+const clave_de_unidad_1 = require("./clave-de-unidad");
 const payments_1 = require("./payments");
 const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
@@ -2411,20 +2412,41 @@ exports.sendScheduledReminders = (0, scheduler_1.onSchedule)({ schedule: "0 9 * 
     }
 });
 // Colecciones que referencian una unidad por su doc id (campo a re-apuntar al fusionar).
+/**
+ * Las colecciones que apuntan a una unidad. **Sale del inventario único de
+ * `PRD-V-FIX-002`**, y no de una lista escrita a mano.
+ *
+ * Escrita a mano decía **NUEVE**, y el comentario de `mergeUnits` prometía
+ * «TODAS las referencias». Son dieciocho. Faltaban `advances` y
+ * `advanceApplications` —dinero que un residente tiene a favor—, `packages`,
+ * `clearanceCertificates`, `visitorInvitations`, `survey_responses` y las dos de
+ * firmas. Y como la fusión **borra la unidad duplicada** al terminar, todo lo que
+ * no repuntaba quedaba apuntando a una unidad que ya no existe.
+ *
+ * **No es hipotético: eso explica los huérfanos de `tenant-santa-maria`.** Los 27
+ * documentos bajo `G1bWNzZJuakw9KRoAx7p` están en `visitorInvitations`,
+ * `survey_responses`, `regulation_signatures` y `committee_agreement_signatures`
+ * —las cuatro que faltaban— y esa clave es una unidad que ya no está.
+ *
+ * Es la trampa del plural, otra vez: cuando una frase dice «todas», hay que
+ * contar cuántas son antes de firmarla.
+ */
 const UNIT_REF_FIELDS = [
-    { collection: "people", field: "unitId" },
-    { collection: "billingStatements", field: "unitId" },
-    { collection: "paymentReceipts", field: "unitId" },
-    { collection: "reservations", field: "unitId" },
-    { collection: "tickets", field: "unitId" },
-    { collection: "visitorAuthorizations", field: "unitId" },
-    { collection: "visitorPasses", field: "unitId" },
+    // `tenantUsers` se lleva aparte: además del documento hay que tocar el perfil
+    // en `users/{uid}`, y por eso tiene su propio bloque más abajo.
+    ...clave_de_unidad_1.COLECCIONES_CON_CLAVE_DE_UNIDAD.filter((c) => !c.raizDelPermiso).map((c) => ({
+        collection: c.nombre,
+        field: c.campoClave,
+    })),
+    // `services` no está en el inventario porque no la gobierna `residentOwnUnit`
+    // —y hoy cero documentos llevan `unitId` en los dos ambientes—, pero el campo
+    // existe y borrar la unidad dejaría la referencia colgando.
     { collection: "services", field: "unitId" },
-    { collection: "paymentVouchers", field: "payerUnitId" },
 ];
-// Fusiona unidades duplicadas (mismo nombre, distinto doc): re-apunta TODAS las referencias
-// de las duplicadas a la superviviente y borra las duplicadas. Server-side por atomicidad y
-// porque tenantUsers es de escritura restringida en reglas.
+// Fusiona unidades duplicadas (mismo nombre, distinto doc): re-apunta las referencias
+// de las duplicadas a la superviviente —las de `UNIT_REF_FIELDS`, que sale del
+// inventario— y borra las duplicadas. Server-side por atomicidad y porque
+// tenantUsers es de escritura restringida en reglas.
 exports.mergeUnits = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const tenantId = normalizeText(request.data?.tenantId);
     const survivorId = normalizeText(request.data?.survivorId);

@@ -102,11 +102,11 @@ for (const { tenantId, unidades, semilla } of objetivo) {
   // mismo resolvedor que usa la migración, planificando dos veces: con el catálogo
   // de ahora y con el catálogo que habría después.
   const deAhora = construirCatalogo(
-    snap.docs.map((d) => ({ id: d.id, unitId: d.data().unitId, displayName: d.data().displayName })),
+    snap.docs.map((d) => ({ id: d.id, slug: d.data().unitId, displayName: d.data().displayName })),
   );
   const deDespues = construirCatalogo([
-    ...snap.docs.map((d) => ({ id: d.id, unitId: d.data().unitId, displayName: d.data().displayName })),
-    ...faltan.map((u) => ({ id: u.id, unitId: u.unitId, displayName: u.displayName })),
+    ...snap.docs.map((d) => ({ id: d.id, slug: d.data().unitId, displayName: d.data().displayName })),
+    ...faltan.map((u) => ({ id: u.id, slug: u.unitId, displayName: u.displayName })),
   ]);
 
   const desatascados = {};

@@ -6,6 +6,7 @@ import {
   COLECCIONES_CON_CLAVE_DE_UNIDAD,
   camposDeLaEscritura,
   claveDeUnidad,
+  clavesDeConsulta,
   construirCatalogo,
   estadoDelConjunto,
   planificarDocumento,
@@ -25,11 +26,11 @@ import {
  */
 
 const UNIDADES_SANTA_MARIA = [
-  { id: "u-t1-101", unitId: "t1-101", displayName: "T1-101" },
-  { id: "u-t1-102", unitId: "t1-102", displayName: "T1-102" },
-  { id: "u-t2-503", unitId: "t2-503", displayName: "T2-503" },
-  { id: "9YLUY4ki4uny212nKxnp", unitId: "1014", displayName: "1014" },
-  { id: "DFPjKffOOGZXRjzlScxk", unitId: "t1-403", displayName: "T1-403" },
+  { id: "u-t1-101", slug: "t1-101", displayName: "T1-101" },
+  { id: "u-t1-102", slug: "t1-102", displayName: "T1-102" },
+  { id: "u-t2-503", slug: "t2-503", displayName: "T2-503" },
+  { id: "9YLUY4ki4uny212nKxnp", slug: "1014", displayName: "1014" },
+  { id: "DFPjKffOOGZXRjzlScxk", slug: "t1-403", displayName: "T1-403" },
 ];
 
 const CATALOGO = construirCatalogo(UNIDADES_SANTA_MARIA);
@@ -90,8 +91,8 @@ describe("resolverClaveDeUnidad", () => {
 
   it("CF1 · dos unidades con la misma etiqueta → ambiguo, y NO se toca", () => {
     const gemelas = construirCatalogo([
-      { id: "id-a", unitId: "casa-7", displayName: "Casa 7" },
-      { id: "id-b", unitId: "casa-7-bis", displayName: "Casa 7" },
+      { id: "id-a", slug: "casa-7", displayName: "Casa 7" },
+      { id: "id-b", slug: "casa-7-bis", displayName: "Casa 7" },
     ]);
     expect(resolverClaveDeUnidad("clave-que-no-existe", gemelas, { etiqueta: "Casa 7" })).toEqual({
       estado: "ambiguo",
@@ -103,8 +104,8 @@ describe("resolverClaveDeUnidad", () => {
 
   it("dos unidades con el MISMO campo `unitId` también son ambiguas — el slug puede colisionar (D1·4)", () => {
     const gemelas = construirCatalogo([
-      { id: "id-a", unitId: "casa-7", displayName: "Casa 7 torre A" },
-      { id: "id-b", unitId: "casa-7", displayName: "Casa 7 torre B" },
+      { id: "id-a", slug: "casa-7", displayName: "Casa 7 torre A" },
+      { id: "id-b", slug: "casa-7", displayName: "Casa 7 torre B" },
     ]);
     expect(resolverClaveDeUnidad("casa-7", gemelas)).toEqual({
       estado: "ambiguo",
@@ -116,8 +117,8 @@ describe("resolverClaveDeUnidad", () => {
 
   it("el id gana al campo: si un valor es id de una unidad y campo de otra, es canónico", () => {
     const cruzado = construirCatalogo([
-      { id: "u-t1-101", unitId: "t1-101", displayName: "T1-101" },
-      { id: "otra", unitId: "u-t1-101", displayName: "La que copió mal" },
+      { id: "u-t1-101", slug: "t1-101", displayName: "T1-101" },
+      { id: "otra", slug: "u-t1-101", displayName: "La que copió mal" },
     ]);
     expect(resolverClaveDeUnidad("u-t1-101", cruzado)).toEqual({ estado: "canonica", clave: "u-t1-101" });
   });
@@ -275,5 +276,37 @@ describe("§6 · el estado de la migración de un conjunto", () => {
 
   it("`partido` es lo que la migración SÍ puede cerrar entero", () => {
     expect(estadoDelConjunto({ unidades: 6, migrables: 30, huerfanos: 0, ambiguos: 0 })).toBe("partido");
+  });
+});
+
+describe("las claves con las que se BUSCA (Fase 2 · el paz y salvo)", () => {
+  it("lo normal es UNA: la canónica", () => {
+    // El campo `unitId` de `u-t1-101` es su propio id, así que no aporta vía.
+    expect(clavesDeConsulta("u-t1-101", CATALOGO, "u-t1-101")).toEqual(["u-t1-101"]);
+    expect(clavesDeConsulta("u-t1-101", CATALOGO, null)).toEqual(["u-t1-101"]);
+    expect(clavesDeConsulta("u-t1-101", CATALOGO, "  ")).toEqual(["u-t1-101"]);
+  });
+
+  it("el SLUG PROPIO se añade: es de esta unidad y no puede traer deuda ajena", () => {
+    expect(clavesDeConsulta("9YLUY4ki4uny212nKxnp", CATALOGO, "1014")).toEqual([
+      "9YLUY4ki4uny212nKxnp",
+      "1014",
+    ]);
+  });
+
+  it("y NO se añade si el slug es el id de OTRA unidad — el único cruce posible", () => {
+    // Es la salvaguarda que la vía de la etiqueta no tenía: dos unidades pueden
+    // llamarse igual y nada lo impide, pero un id es único por construcción.
+    const cruzado = construirCatalogo([
+      { id: "mia", slug: "u-t1-101", displayName: "La que copió mal" },
+      { id: "u-t1-101", slug: "t1-101", displayName: "T1-101" },
+    ]);
+    expect(clavesDeConsulta("mia", cruzado, "u-t1-101")).toEqual(["mia"]);
+  });
+
+  it("no devuelve nunca una lista vacía: sin clave no hay nada que buscar", () => {
+    for (const slug of [null, undefined, "", "1014", "u-t1-101"]) {
+      expect(clavesDeConsulta("u-t1-102", CATALOGO, slug)[0]).toBe("u-t1-102");
+    }
   });
 });

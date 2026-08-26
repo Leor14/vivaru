@@ -32,7 +32,7 @@ async function leerUnidades(db, tenantId) {
   const snap = await db.collection("units").where("tenantId", "==", tenantId).get();
   return snap.docs.map((d) => ({
     id: d.id,
-    unitId: d.data().unitId ?? null,
+    slug: d.data().unitId ?? null,
     displayName: d.data().displayName ?? null,
     status: d.data().status ?? null,
   }));

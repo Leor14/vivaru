@@ -64,8 +64,19 @@ const entrada = (extra: Partial<Parameters<typeof emitirPazYSalvo>[0]> = {}) => 
   ...extra,
 });
 
+/** La unidad tiene que EXISTIR: sin ella no se certifica nada. Ver el bloque de abajo. */
+async function sembrarUnidad(extra: { unitId?: string; displayName?: string } = {}) {
+  await db.collection("units").doc(U).set({
+    tenantId: T,
+    unitId: extra.unitId ?? U,
+    displayName: extra.displayName ?? "101",
+    status: "active",
+  });
+}
+
 beforeEach(async () => {
   for (const c of ["billingStatements", "clearanceCertificates", "advances", "units"]) await limpiar(c);
+  await sembrarUnidad();
 });
 
 describe("FEAT-004 · emitir el paz y salvo", () => {
@@ -178,45 +189,94 @@ describe("FEAT-004 · las DOS claves de unidad", () => {
   });
 });
 
-describe("FEAT-004 · el cargo HUERFANO, que no casa con ninguna unidad", () => {
+describe("FEAT-004 · la vía de la ETIQUETA, retirada por `FIX-002`", () => {
   /**
-   * Medido en producción: `tenant-santa-maria` tiene la unidad `u-t1-101` con
-   * sus cargos partidos en DOS claves —`u-t1-101` (3.360.000) y `unit-t1-101`
-   * (3.580.000)— y la segunda no existe como unidad, ni por id ni por campo. La
-   * deuda real de T1-101 es 6.940.000 y cualquier consulta por clave enseña
-   * menos de la mitad.
+   * **Esta guarda existió, estuvo bien, y dejó de estarlo el 26 de agosto de 2026.**
    *
-   * Lo único que ata esos cargos a su unidad es la ETIQUETA.
+   * Mientras el dato estaba partido había cargos cuyo `unitId` no casaba con
+   * ninguna unidad —`tenant-santa-maria` tenía 3.580.000 bajo `unit-t1-101`, que
+   * no existía— y lo único que los ataba a su unidad era `unitLabel`. Buscar por
+   * ahí era lo único que hacía cierto el papel.
+   *
+   * `FIX-002` migró esos cargos: **cero fuera de convención en los diecinueve
+   * conjuntos**. Y la vía pasó de necesaria a peligrosa, porque
+   * `where("unitLabel", "==", …)` **no restringe a la unidad**:
+   *
+   *   - nada impide que dos unidades del conjunto se llamen igual —`updateUnit`
+   *     no lo comprueba—, y entonces una bloquearía a la otra;
+   *   - y los cargos de una unidad BORRADA bloquearían a la unidad NUEVA que
+   *     reutilizara su etiqueta, que es otra unidad y no hereda deudas.
+   *
+   * Lo que se conserva es el **slug propio**, que pertenece a esta unidad y a
+   * ninguna otra. La diferencia entre las dos vías es toda.
    */
-  it("una deuda con `unitId` huérfano pero la MISMA etiqueta bloquea igual", async () => {
-    await db.collection("units").doc(U).set({ tenantId: T, unitId: U, displayName: "101", status: "active" });
+  it("un cargo HUÉRFANO con la misma etiqueta ya NO bloquea — no se sabe de quién es", async () => {
     await sembrarCargo("porClave", { balance: 0 });
-    // Ni id ni campo: solo comparte etiqueta, como los cinco de produccion.
+    // Ni id, ni campo, ni nada: solo comparte la etiqueta. Puede ser de una unidad
+    // borrada, y esta unidad no hereda su deuda.
     await sembrarCargo("huerfano", { balance: 640_000, unitId: "clave-que-no-existe", period: "2026-05" });
 
-    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/640\.000/);
+    const r = await emitirPazYSalvo(entrada({ unitLabel: "101" }), UID);
+    expect(r.created).toBe(true);
+    expect(r.balanceAtIssue).toBe(0);
   });
 
-  it("R4 · el saldo a favor guardado con la clave ALTERNA también se nombra", async () => {
+  it("la deuda de una unidad HOMÓNIMA no bloquea a esta — es lo que la etiqueta rompía", async () => {
+    await db.collection("units").doc("gemela").set({ tenantId: T, unitId: "gemela", displayName: "101", status: "active" });
+    await sembrarCargo("mio", { balance: 0 });
+    await sembrarCargo("deLaGemela", { balance: 900_000, unitId: "gemela", period: "2026-07" });
+
+    const r = await emitirPazYSalvo(entrada({ unitLabel: "101" }), UID);
+    expect(r.created).toBe(true);
+  });
+
+  it("y el SLUG PROPIO sigue mirándose: ahí sí es esta unidad y su deuda bloquea", async () => {
+    await sembrarUnidad({ unitId: "slug-101" });
+    await sembrarCargo("porId", { balance: 0 });
+    await sembrarCargo("porSlug", { balance: 420_000, unitId: "slug-101", period: "2026-08" });
+
+    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/420\.000/);
+  });
+
+  it("R4 · el saldo a favor guardado con el slug propio también se nombra", async () => {
     // El arreglo de la deuda dejo este consultando una sola clave: el papel
     // decia «a favor 0» a quien si tenia dinero puesto. El error va en la
     // direccion contraria —callar credito en vez de deuda— y por eso no bloquea
     // la emision, pero R4 obliga a NOMBRARLO.
-    await db.collection("units").doc(U).set({ tenantId: T, unitId: "slug-101", displayName: "101", status: "active" });
+    await sembrarUnidad({ unitId: "slug-101" });
     await sembrarCargo("c1", { balance: 0 });
     await db.collection("advances").doc("a1").set({ tenantId: T, unitId: "slug-101", status: "open", remaining: 33_000 });
 
     const r = await emitirPazYSalvo(entrada(), UID);
     expect(r.creditBalance).toBe(33_000);
   });
+});
 
-  it("y un cargo que llega por DOS vías no se cuenta dos veces", async () => {
-    // Si se duplicara, un saldo de 0 seguiria siendo 0 y no se notaria; el caso
-    // que lo delata es uno con saldo, que se contaria por clave Y por etiqueta.
-    await db.collection("units").doc(U).set({ tenantId: T, unitId: U, displayName: "101", status: "active" });
-    await sembrarCargo("porLasDos", { balance: 50_000, period: "2026-06" });
+describe("FEAT-004 · una unidad que no se reconoce no se certifica", () => {
+  /**
+   * **Un papel que afirma que una unidad no debe nada no se puede firmar sobre
+   * una unidad que no se sabe cuál es.** Antes esto emitía: sin unidad, las
+   * consultas por clave salían vacías, el saldo daba cero y el certificado se
+   * creaba tan tranquilo. Es el mismo patrón que persigue toda la ficha —una
+   * consulta que no casa no falla, devuelve vacío— aplicado al documento que
+   * menos se lo puede permitir.
+   */
+  it("una clave que no existe en el conjunto → no se emite", async () => {
+    await sembrarCargo("c1", { balance: 0 });
+    await expect(emitirPazYSalvo(entrada({ unitId: "no-existe" }), UID)).rejects.toThrow(/no existe en este conjunto/);
+  });
 
-    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/pendiente de 50\.000/);
+  it("un conjunto SIN unidades tampoco → no hay nada que certificar", async () => {
+    await limpiar("units");
+    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/no existe en este conjunto/);
+  });
+
+  it("pidiéndolo con el SLUG sí se reconoce: el resolvedor lo lleva a su unidad", async () => {
+    await sembrarUnidad({ unitId: "slug-101" });
+    await sembrarCargo("c1", { balance: 0 });
+
+    const r = await emitirPazYSalvo(entrada({ unitId: "slug-101" }), UID);
+    expect(r.created).toBe(true);
   });
 });
 

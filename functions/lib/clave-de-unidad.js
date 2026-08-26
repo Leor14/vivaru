@@ -41,6 +41,7 @@ exports.resolverClaveDeUnidad = resolverClaveDeUnidad;
 exports.planificarDocumento = planificarDocumento;
 exports.camposDeLaEscritura = camposDeLaEscritura;
 exports.estadoDelConjunto = estadoDelConjunto;
+exports.clavesDeConsulta = clavesDeConsulta;
 /**
  * La clave de una unidad. **Es la única forma legítima de obtenerla**, y existe
  * para que el sitio que la escribe se pueda leer y para que la guarda la pueda
@@ -62,7 +63,7 @@ function construirCatalogo(unidades) {
         if (!u.id)
             continue;
         ids.add(u.id);
-        const campo = (u.unitId ?? "").trim();
+        const campo = (u.slug ?? "").trim();
         // Un campo que ya es el id no aporta una segunda vía: sería resolverse a sí mismo.
         if (campo && campo !== u.id) {
             porCampo.set(campo, [...(porCampo.get(campo) ?? []), u.id]);
@@ -234,4 +235,29 @@ function estadoDelConjunto(cuenta) {
     if (cuenta.migrables > 0)
         return "partido";
     return "limpio";
+}
+/**
+ * **Las claves con las que hay que BUSCAR los documentos de una unidad.**
+ *
+ * Después de `FIX-002` la respuesta es «una»: la clave canónica. Esta función
+ * existe por el caso que sobra, y merece explicarse porque es la frontera entre
+ * un parche que protege y uno que estorba.
+ *
+ * El certificado de paz y salvo **afirma** que una unidad no debe nada, así que
+ * su error caro va en un solo sentido: certificar a quien debe. Mirar además el
+ * **slug propio** de la unidad cuesta una consulta y hace ese fallo imposible
+ * aunque quedara un documento sin migrar — y **no puede traer deuda ajena**,
+ * porque el slug pertenece a esa unidad.
+ *
+ * Con una condición, que es toda la diferencia con la vía de la ETIQUETA que
+ * `FIX-002` retiró: el slug **no puede ser el id de documento de otra unidad**.
+ * Si lo fuera, buscar por él traería los documentos de esa otra —el único cruce
+ * posible— y volveríamos a bloquear a quien está al día. La etiqueta no tiene
+ * esa salvaguarda: dos unidades pueden llamarse igual y nada lo impide.
+ */
+function clavesDeConsulta(clave, catalogo, slugDeLaUnidad) {
+    const slug = (slugDeLaUnidad ?? "").trim();
+    if (!slug || slug === clave || catalogo.ids.has(slug))
+        return [clave];
+    return [clave, slug];
 }

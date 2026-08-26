@@ -42,7 +42,8 @@ export function EstadoDeCuentaUnidadCard({
   items: BillingStatement[];
   formatAmount: (value: number) => string;
 }) {
-  const [unitId, setUnitId] = useState("");
+  /** La CLAVE de la unidad elegida (su id de documento), no su etiqueta. */
+  const [claveElegida, setClaveElegida] = useState("");
   const [emitiendo, setEmitiendo] = useState(false);
   const [descargando, setDescargando] = useState(false);
   // Los anticipos del CONJUNTO entero, no de la unidad: `saldoAFavor` ya filtra
@@ -54,52 +55,46 @@ export function EstadoDeCuentaUnidadCard({
   const [lote, setLote] = useState(false);
 
   /**
-   * **Se agrupa por ETIQUETA, no por `unitId`, y esto no es cosmético.**
+   * **Se agrupa por la CLAVE de la unidad, y la etiqueta solo se enseña.**
    *
-   * En `billingStatements` conviven dos convenciones de `unitId` —el id del
-   * documento de la unidad y su campo `unitId`, que es un slug—. Medido el 25
-   * de agosto de 2026: en producción 197 cargos por id y 19 por campo, con tres
-   * conjuntos que tienen las dos. Agrupando por `unitId`, **la misma unidad
-   * aparecía dos veces en el selector y su estado de cuenta salía partido**: se
-   * vio en staging, donde seis unidades ofrecían «12 estados de cuenta».
+   * Aquí se agrupaba por ETIQUETA, y era lo correcto mientras el dato estaba
+   * partido: con dos convenciones de `unitId` conviviendo —197 cargos por id y 19
+   * por campo en producción—, agrupar por clave hacía que **la misma unidad
+   * apareciera dos veces en el selector con su estado de cuenta partido**. Se vio
+   * en staging: seis unidades ofreciendo «12 estados de cuenta». La etiqueta era
+   * lo único estable entre las dos claves.
    *
-   * Partido, el saldo final del documento deja de coincidir con la cartera —
-   * que es R2, la regla que la ficha llama «la que hace confiable el documento».
+   * **`FIX-002` unificó el dato el 26 de agosto de 2026 y agrupar por etiqueta
+   * pasó de arreglo a defecto:** nada impide que dos unidades del conjunto se
+   * llamen igual —`updateUnit` no lo comprueba—, y entonces esto las fundiría en
+   * una sola fila, sumando la cartera de las dos en un papel que se entrega.
    *
-   * La etiqueta es lo único estable entre las dos claves. El arreglo de fondo es
-   * unificar el dato y no es de esta ficha; agrupar aquí es lo que hace que el
-   * papel diga la verdad mientras tanto.
+   * Y con ello se va **la elección de clave por su FORMA**: se cogía la que
+   * llevara `--` porque ese es el molde de los conjuntos de prueba
+   * (`${tenantId}--${slug}`), y en cualquier otro conjunto caía en «la primera».
+   * Clasificar un identificador por su aspecto es justo lo que hizo fracasar las
+   * dos migraciones anteriores de este campo.
    */
   const unidades = useMemo(() => {
-    const map = new Map<string, { label: string; claves: string[] }>();
+    const map = new Map<string, { clave: string; label: string }>();
     for (const s of items) {
       if (!s.unitId) continue;
-      const label = s.unitLabel || s.unitId;
-      const e = map.get(label) ?? { label, claves: [] };
-      if (!e.claves.includes(s.unitId)) e.claves.push(s.unitId);
-      map.set(label, e);
+      if (!map.has(s.unitId)) map.set(s.unitId, { clave: s.unitId, label: s.unitLabel || s.unitId });
     }
     return [...map.values()].sort((a, b) => a.label.localeCompare(b.label, "es-CO"));
   }, [items]);
 
-  const seleccionada = unidades.find((u) => u.label === unitId);
+  const seleccionada = unidades.find((u) => u.clave === claveElegida);
   const deLaUnidad = useMemo(
-    () => (seleccionada ? items.filter((s) => seleccionada.claves.includes(s.unitId)) : []),
+    () => (seleccionada ? items.filter((s) => s.unitId === seleccionada.clave) : []),
     [items, seleccionada],
   );
   const estado = useMemo(() => construirEstadoDeCuenta(deLaUnidad), [deLaUnidad]);
-  const etiqueta = seleccionada?.label ?? unitId;
-  /**
-   * A la callable se le manda **el id del documento** cuando se conoce: el
-   * servidor resuelve la otra clave sea cual sea la que reciba, pero el id es el
-   * que `tenantUsers.unitId` guarda y por tanto el que ata el certificado a lo
-   * que ve el residente.
-   */
-  const claveParaCallable = seleccionada?.claves.find((c) => c.includes("--")) ?? seleccionada?.claves[0] ?? "";
+  const etiqueta = seleccionada?.label ?? "";
+  /** A la callable va el id del documento, que es lo que guarda `tenantUsers.unitId`. */
+  const claveParaCallable = seleccionada?.clave ?? "";
   const { items: certificados } = useClearanceCertificates(tenantId, claveParaCallable || undefined);
-  const aFavor = seleccionada
-    ? seleccionada.claves.reduce((total, c) => total + saldoAFavor(anticipos, c), 0)
-    : 0;
+  const aFavor = seleccionada ? saldoAFavor(anticipos, seleccionada.clave) : 0;
 
   function hoy() {
     const d = new Date();
@@ -170,7 +165,7 @@ export function EstadoDeCuentaUnidadCard({
     try {
       const emitidoEl = hoy();
       const paquete = unidades
-        .map((u) => ({ ...u, propios: items.filter((s) => u.claves.includes(s.unitId)) }))
+        .map((u) => ({ ...u, propios: items.filter((s) => s.unitId === u.clave) }))
         .filter((u) => u.propios.length > 0)
         .map((u) => ({
           estado: construirEstadoDeCuenta(u.propios),
@@ -178,7 +173,7 @@ export function EstadoDeCuentaUnidadCard({
             conjunto: tenantName ?? "",
             unidad: u.label,
             emitidoEl,
-            saldoAFavor: u.claves.reduce((total, c) => total + saldoAFavor(anticipos, c), 0),
+            saldoAFavor: saldoAFavor(anticipos, u.clave),
           },
         }));
       await renderEstadosDeCuentaEnLotePdf(paquete, tenantName ?? "", emitidoEl, formatAmount);
@@ -236,12 +231,12 @@ export function EstadoDeCuentaUnidadCard({
         Unidad
         <select
           className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 text-sm sm:max-w-xs"
-          value={unitId}
-          onChange={(event) => setUnitId(event.target.value)}
+          value={claveElegida}
+          onChange={(event) => setClaveElegida(event.target.value)}
         >
           <option value="">Selecciona una unidad</option>
           {unidades.map((u) => (
-            <option key={u.label} value={u.label}>
+            <option key={u.clave} value={u.clave}>
               {u.label}
             </option>
           ))}
@@ -257,7 +252,7 @@ export function EstadoDeCuentaUnidadCard({
         </Button>
       </div>
 
-      {unitId ? (
+      {claveElegida ? (
         <>
           <div className="mt-3 overflow-x-auto rounded-xl border border-[var(--slate-200)]">
             <table className="w-full min-w-[420px] text-sm">

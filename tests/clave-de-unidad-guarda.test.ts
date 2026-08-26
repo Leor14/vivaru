@@ -275,3 +275,52 @@ describe("4 · la semilla del trial pasa por el resolvedor", () => {
     expect(leer(SEMILLA)).toContain("export function idDeUnidadSembrada");
   });
 });
+
+describe("5 · fusionar unidades re-apunta TODAS las referencias, no nueve", () => {
+  /**
+   * **`mergeUnits` borra la unidad duplicada al terminar**, así que toda
+   * colección que no repunte queda apuntando a una unidad que ya no existe. Su
+   * lista estaba escrita a mano y decía **NUEVE** mientras el comentario prometía
+   * «TODAS las referencias». Son dieciocho: faltaban `advances` y
+   * `advanceApplications` —dinero a favor de un residente—, `packages`,
+   * `clearanceCertificates`, `visitorInvitations`, `survey_responses` y las dos
+   * de firmas.
+   *
+   * **Y eso explica los huérfanos que `FIX-002` no pudo resolver:** los 27 de
+   * `tenant-santa-maria` bajo `G1bWNzZJuakw9KRoAx7p` están exactamente en cuatro
+   * de las que faltaban.
+   *
+   * Es la trampa del plural: cuando una frase dice «todas», hay que contar
+   * cuántas son antes de firmarla.
+   */
+  const INDEX = "functions/src/index.ts";
+
+  it("la lista SALE del inventario, no está escrita a mano", () => {
+    const texto = leer(INDEX);
+    const desde = texto.indexOf("const UNIT_REF_FIELDS");
+    expect(desde, "no encuentro UNIT_REF_FIELDS").toBeGreaterThan(-1);
+    const bloque = texto.slice(desde, texto.indexOf("];", desde));
+    expect(bloque, "UNIT_REF_FIELDS tiene que derivarse de COLECCIONES_CON_CLAVE_DE_UNIDAD").toContain(
+      "COLECCIONES_CON_CLAVE_DE_UNIDAD.filter",
+    );
+  });
+
+  it("y no vuelve a enumerar a mano las colecciones del inventario", () => {
+    const texto = leer(INDEX);
+    const desde = texto.indexOf("const UNIT_REF_FIELDS");
+    const bloque = texto.slice(desde, texto.indexOf("];", desde));
+    const aMano = [...bloque.matchAll(/collection: "(\w+)"/g)].map((m) => m[1]);
+    // `services` es la única a mano, y su porqué está escrito ahí: no la gobierna
+    // `residentOwnUnit`, así que no entra en el inventario, pero el campo existe.
+    expect(aMano).toEqual(["services"]);
+  });
+
+  it("`tenantUsers` se excluye del genérico porque tiene su propio bloque", () => {
+    const texto = leer(INDEX);
+    const desde = texto.indexOf("const UNIT_REF_FIELDS");
+    const bloque = texto.slice(desde, texto.indexOf("];", desde));
+    expect(bloque).toContain("!c.raizDelPermiso");
+    // Y ese bloque propio tiene que existir, o la membresía se quedaría sin repuntar.
+    expect(texto).toMatch(/collection\("tenantUsers"\)[\s\S]{0,200}unitId["']?\s*,\s*"==",\s*dupId/);
+  });
+});

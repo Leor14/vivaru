@@ -36,8 +36,14 @@
 export type UnidadDelCatalogo = {
   /** Id del documento en `units`. **Esta es la clave.** */
   id: string;
-  /** El campo `unitId` del documento, que es un slug. **No es la clave.** */
-  unitId?: string | null;
+  /**
+   * El campo `unitId` del documento de la unidad, que es un slug. **No es la
+   * clave**, y aquí se llama `slug` a propósito: llamarlo `unitId` en el tipo
+   * mantenía viva la confusión que causó toda la ficha —dos cosas distintas con
+   * el mismo nombre— y hacía que la guarda de R6 no pudiera distinguir «construir
+   * el catálogo» de «fabricar una clave desde el slug».
+   */
+  slug?: string | null;
   /** Etiqueta visible. Solo se usa para reasignar huérfanos, y solo si es única. */
   displayName?: string | null;
 };
@@ -78,7 +84,7 @@ export function construirCatalogo(unidades: UnidadDelCatalogo[]): CatalogoDeUnid
     if (!u.id) continue;
     ids.add(u.id);
 
-    const campo = (u.unitId ?? "").trim();
+    const campo = (u.slug ?? "").trim();
     // Un campo que ya es el id no aporta una segunda vía: sería resolverse a sí mismo.
     if (campo && campo !== u.id) {
       porCampo.set(campo, [...(porCampo.get(campo) ?? []), u.id]);
@@ -345,4 +351,33 @@ export function estadoDelConjunto(cuenta: {
   if (cuenta.huerfanos + cuenta.ambiguos > 0) return "bloqueado";
   if (cuenta.migrables > 0) return "partido";
   return "limpio";
+}
+
+/**
+ * **Las claves con las que hay que BUSCAR los documentos de una unidad.**
+ *
+ * Después de `FIX-002` la respuesta es «una»: la clave canónica. Esta función
+ * existe por el caso que sobra, y merece explicarse porque es la frontera entre
+ * un parche que protege y uno que estorba.
+ *
+ * El certificado de paz y salvo **afirma** que una unidad no debe nada, así que
+ * su error caro va en un solo sentido: certificar a quien debe. Mirar además el
+ * **slug propio** de la unidad cuesta una consulta y hace ese fallo imposible
+ * aunque quedara un documento sin migrar — y **no puede traer deuda ajena**,
+ * porque el slug pertenece a esa unidad.
+ *
+ * Con una condición, que es toda la diferencia con la vía de la ETIQUETA que
+ * `FIX-002` retiró: el slug **no puede ser el id de documento de otra unidad**.
+ * Si lo fuera, buscar por él traería los documentos de esa otra —el único cruce
+ * posible— y volveríamos a bloquear a quien está al día. La etiqueta no tiene
+ * esa salvaguarda: dos unidades pueden llamarse igual y nada lo impide.
+ */
+export function clavesDeConsulta(
+  clave: string,
+  catalogo: CatalogoDeUnidades,
+  slugDeLaUnidad?: string | null,
+): string[] {
+  const slug = (slugDeLaUnidad ?? "").trim();
+  if (!slug || slug === clave || catalogo.ids.has(slug)) return [clave];
+  return [clave, slug];
 }
