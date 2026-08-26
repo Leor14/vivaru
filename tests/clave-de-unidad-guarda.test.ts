@@ -194,6 +194,12 @@ describe("3 · el inventario del servidor está pinchado", () => {
     "functions/src/clearance-certificates.ts",
     "functions/src/coefficient-billing.ts",
     "functions/src/comprobante.ts",
+    // `FLOW-003` R9. **No construye ninguna clave: LEE `tenantUsers.unitId`**, que
+    // desde `FIX-002` ya es la canónica —el id del documento de la unidad—, y por eso
+    // no pasa por `claveDeUnidad(...)`: no hay nada que resolver. Lo que sí hace es
+    // negarse a devolverla cuando no puede afirmar de quién es, que es la otra mitad
+    // de la misma disciplina.
+    "functions/src/estado-de-cuenta-adjunto.ts",
     "functions/src/expense-distribution.ts",
     "functions/src/index.ts",
     "functions/src/payments.ts",
