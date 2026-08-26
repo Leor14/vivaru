@@ -4,15 +4,138 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (`FIX-002`)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (tarde)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **`CA7` por navegador**: entrar como residente de una unidad afectada y ver que su cartera cuadra
-> con la del administrador. Es el único criterio de `FIX-002` que no cierra midiendo. El candidato
-> es `residente@santamaria.co` — debería ver **7 cargos por 4.160.000**.
->
-> Después, retirar `unitIdPrevio` y `unitIdMigradoEn` cuando des la migración por cerrada.
+> **Decidir si sube el front.** `origin/develop` va **49 commits** por delante de
+> `origin/master`, y `master` es lo único que gobierna el front de producción. Ésa es la
+> decisión. **Encender banderas no lo es**, y no por prudencia: está medido que hoy no
+> haría absolutamente nada.
+
+### ENCENDER NO ES EL SEGUNDO ACTO, ES EL TERCERO
+
+El servidor de `FLOW-001` y `FEAT-004` lleva en producción desde esta mañana con las banderas
+sin existir como documento. Parecía que quedaban dos actos —subir y encender—. Son **tres**, y
+el que falta es el de en medio:
+
+    git show origin/master:src/lib/feature-flags/catalog.ts | grep -E 'prorrateo|estado-de-cuenta'
+      → (nada)
+
+**El front vivo no conoce esas dos claves.** Y `estado-de-cuenta.ts`, `paz-y-salvo-pdf.ts`,
+`use-clearance-certificates.ts` y `EstadoDeCuentaUnidadCard.tsx` **nacen en `develop`**: no
+existen en `master`. El orden real es **servidor (hecho) → front → encender**.
+
+> **Y eso descarta de paso un miedo razonable.** Como esos ficheros nunca estuvieron en
+> `master`, producción **no tiene** los tres parches que la Fase 2 retiró: no hay parche
+> caducado corriendo sobre dato ya migrado. El sesgo es limpio —functions de `develop`, front
+> de `master`— y no hay que ir a buscar sobre-inclusiones.
+
+### `FIX-002` QUEDA CERRADA DEL TODO
+
+**CA7 se dio por bueno con lo que hay**, y lo que hay se vio en pantalla, en producción:
+
+| | Portal del residente | Cartera del administrador |
+|---|---|---|
+| **T1-403** — el par completo | 11 cargos · **6.400.000** | 11 cargos · **6.400.000** |
+| **T2-503** — la unidad migrada | *sin ver* | **7 de 104 registros** · **4.160.000** |
+
+Los 104 de la tabla son los 104 cargos que hay; el filtro por unidad —que va por etiqueta—
+devuelve los 7 correctos; y el desplegable lista las diecinueve unidades con nombres limpios.
+La unidad fantasma `G1bWNzZJuakw9KRoAx7p` tiene **cero** cargos: no se cuela nada.
+
+> **EL ESLABÓN QUE QUEDÓ SIN VER, DICHO PARA QUE NO SE PIERDA.** Nadie ha mirado el portal de
+> una membresía **migrada**. `residente@santamaria.co` (Ana Lucía Pérez, T2-503) es la **única
+> de los nueve residentes** con `unitIdPrevio`; los otros ocho no se tocaron, así que Jaime
+> demuestra que el portal pinta fiel, no que pinte fiel *una migrada*. El riesgo es bajo —la
+> migración movió `unitId` a los dos lados a la vez y el portal lee por ahí— pero no es cero,
+> y **ya no hay vuelta atrás** (ver abajo). Si alguna vez sale algo raro en T2-503, mirar aquí
+> primero.
+
+**Las marcas temporales están retiradas en los dos ambientes, y eso es irreversible.**
+`unitIdPrevio` y `unitIdMigradoEn` ya no existen: **110 documentos en producción** (20:54 UTC) y
+**140 en staging** (20:51 UTC, por David). `migrar-claves-de-unidad.mjs --revertir` ya no puede
+deshacer nada — era su objeto, no un efecto secundario.
+
+**Lo que NO se tocó, y se comprobó contándolo:** las **31** del archivado D2 siguen con sus dos
+campos (`visitorInvitations` 26 · `survey_responses` 2 · `packages` 1 · `regulation_signatures` 1
+· `committee_agreement_signatures` 1). No son vuelta atrás, son la decisión escrita en el
+documento.
+
+### EL DEFECTO QUE APARECIÓ MIRANDO: LA ETIQUETA QUE LLEVABA UN ID DENTRO
+
+Salió de contar datos, no de ninguna suite. **Siete membresías de producción llevaban
+`unitLabel` con la forma `{torre}-{id de documento}`** en vez del nombre del apartamento — seis
+en `tenant-santa-maria` y una en Bromelias. Se veía **en producción, en pantalla**: la reserva
+de Jaime decía `torre1-G1bWNzZJuakw9KRoAx7p` donde debía decir `T1-403`.
+
+**El escritor ya estaba encontrado y arreglado.** `functions/src/index.ts:715` lo dice con
+nombre y apellidos —«el fallback NUNCA debe incrustar el docId (antes era `${tower}-${unitId}`…)»—
+y staging tenía **cero de veintitrés**. Era residuo anterior a aquel arreglo; no había nada vivo
+fabricándolo.
+
+| | |
+|---|---|
+| **Por qué no bastaba el resolvedor** | `src/utils/unitLabel.ts` recupera el compuesto sacando el docId final, pero el de Jaime incrustaba el id de una unidad que **ya no existe**: habría caído a «Unidad no vinculada». Y solo lo usan **cuatro pantallas de administrador**, ninguna del residente |
+| **Dónde se veía** | Reservas, PQRS y pases de visitante — todo lo que lee `user.unitLabel`, que `auth-context.tsx:334` saca de la membresía |
+| **Por qué urgía** | `FEAT-004` pasa esa misma cadena al **PDF del paz y salvo** y al callable que lo emite. El papel que se entrega habría salido con un id de base de datos donde va el apartamento |
+| **El dinero, intacto** | Los 104 cargos del conjunto llevan **una sola etiqueta por unidad** y coincide con `displayName`. Por eso `FIX-002` no lo vio: ni era huérfano ni era clave mal resuelta |
+
+Corregido en los 7, `unitLabel` ← `displayName` de la unidad. **Conserva `unitLabelPrevio`, así
+que esta corrección sí tiene vuelta atrás** (`--revertir`).
+
+### DOS INSTRUMENTOS NUEVOS
+
+| Script | Qué hace |
+|---|---|
+| `functions/scripts/corregir-etiqueta-de-unidad.mjs` | Reescribe la etiqueta desde `displayName`. **No adivina**: si la unidad no existe, si su `tenantId` no concuerda o si no tiene `displayName`, lista y no toca |
+| `functions/scripts/retirar-marcas-de-migracion.mjs` | Retira las dos marcas de `FIX-002`. Su guarda comprueba que **cada documento marcado apunta hoy a una unidad viva de su conjunto** antes de dejar nada irreversible |
+
+**Las guardas de rechazo del primero no se han disparado nunca sobre dato real** — están
+escritas y sin ejercitar. No fiarse de una puerta que solo se ha visto cerrada.
+
+Y el segundo llegó a imprimir «Guarda EN VERDE» sobre **cero** documentos en la segunda pasada
+—el falso verde sobre conjunto vacío, otra vez—. Corregido: ahora dice que no llegó a evaluarse.
+
+### LO DESPLEGADO, MEDIDO ESTA TARDE
+
+| | Producción (`hogaru-1`) | Staging (`vivaru-staging-02`) |
+|---|---|---|
+| **Functions** | **81 · todas `ACTIVE`** · 77 `export const` + 4 re-exports = 81, sin sobrantes ni ausentes | **81**, mismos nombres |
+| **`firestore.rules`** | ruleset `60d9dd0f-…` · **idéntico byte a byte al repo** | `b38e118f-…` · **idéntico byte a byte** |
+| **`storage.rules`** | `266b7153-…`, **del 19 de agosto** — sin tocar, como se decidió | `7d20c81d-…`, del 25 |
+| **Front** | `rollout-2026-08-25-002` → build `READY` de **`master` / `e41affa`** | — |
+| **Banderas** | 16 documentos · `producto-prorrateo-de-gastos` y `producto-estado-de-cuenta` **no existen** | 17 · las dos en `false`, con override a `true` en `cliente-convertido-08011856-421616` |
+
+Los cuatro programados de producción se pusieron al día a las **15:09 UTC**, no en la pasada
+grande de la mañana. Eso solo se ve midiendo `updateTime` función por función.
+
+### TRES TRAMPAS DE ENTORNO QUE COSTARON TIEMPO HOY
+
+1. **El repo NO es `/Users/david/Vivaru_Rep`** — es `/Users/david/Vivaru_Rep/vivaru`. El padre no
+   es un repo git, no tiene `docs/`, y tiene un **`firestore.rules` de 0 bytes** suelto al lado.
+   Un comando relativo lanzado desde el padre falla con `MODULE_NOT_FOUND`; usar ruta absoluta.
+2. **`master` local está en `887e778`, del 24** — 24 commits por detrás de `origin/master`.
+   Cambiarse a él es mirar un árbol de anteayer. `develop` sí está sincronizado.
+3. **`CLAUDE.md` tiene DOS `JAVA_HOME` distintos** (líneas 76 y 557). El bueno es el de la 76
+   (`~/.local/jdk/jdk-21.0.12.1+1/…`, verificado ejecutándolo); el de la 557 es de otra época.
+
+**Y la sesión del navegador va por ORIGEN.** Entrar por `www.grupovivaru.com` no deja sesión en
+`vivaru--hogaru-1.us-central1.hosted.app`, aunque sean la misma aplicación y el mismo build.
+
+### LO SIGUIENTE
+
+1. **Decidir si sube el front** (`develop` → `master`). Sube `FEAT-004`, que **se apoya en la
+   cartera y ahí sí hay datos**, así que puede encenderse y cerrarse entera. En el mismo empujón
+   sube la pantalla de `FLOW-001`, que quedaría desplegada y apagada — otro frente abierto.
+2. **Si sube: encender `producto-estado-de-cuenta`** con `mover-bandera.mjs` y validar por
+   navegador. `producto-prorrateo-de-gastos` **no**: con 0 de 88 unidades con coeficiente y 74 de
+   87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
+3. **`FLOW-003`** (cobranza) va después, porque su adjunto depende de `FEAT-004`.
+4. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
+   decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
+
+## EL CIERRE DE LA MAÑANA — `FIX-002` cerrada en los dos ambientes (26 de agosto de 2026)
 
 **EL LOTE DE PRODUCCIÓN ESTÁ COMPLETO: functions, índices y reglas.**
 
@@ -146,6 +269,11 @@ Se migró `tenant-santa-maria` de staging, se **revirtió**, se comprobó que el
 carácter a carácter a `unit-t2-503` sin las dos marcas, y se volvió a migrar. `unitIdPrevio` es lo
 que lo hace posible y por eso R3 no es una comodidad.
 
+> **Y ESA VUELTA ATRÁS YA NO EXISTE.** La tarde del 26 se retiraron `unitIdPrevio` y
+> `unitIdMigradoEn` de los dos ambientes —110 documentos en producción, 140 en staging—, que era
+> justo el objeto de aquella decisión. Lo de arriba es historia de cómo se probó, no una
+> capacidad disponible: hoy `--revertir` no puede deshacer nada.
+
 **Y `--revertir` va en el MISMO orden que la ida, no al revés.** Deshacer parece pedir el orden
 inverso, pero eso pone `tenantUsers` primero: si la corrida muere a media pasada quedan los
 permisos en la clave vieja y el dato en la nueva, que es la rotura máxima.
@@ -215,16 +343,6 @@ ficha decía: 3.360.000 que se veían más 3.580.000 que no.
 
 **Los cuatro conjuntos de producción son `isExample: true`** — comprobado contra los documentos,
 no de memoria. No hay cliente real al que avisar.
-
-### Lo siguiente, después de la migración
-
-**Desplegar functions a producción**, cuando decidas subir `FLOW-001` y `FEAT-004` — ahora el lote
-lleva además la Fase 2 y el archivado. Después, retirar `unitIdPrevio` cuando la migración se dé por
-cerrada, y **`FLOW-003`** (cobranza), que necesita `FEAT-004`.
-
-**Y las CUATRO membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`), que el
-archivador se niega a tocar a propósito: son personas que no ven nada, y taparlas no lo arregla.
-O se les asigna unidad, o se borran esos dos conjuntos de prueba.
 
 ### La Fase 2 está hecha, y encontró de dónde salían los huérfanos
 
