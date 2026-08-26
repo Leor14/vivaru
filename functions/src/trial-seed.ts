@@ -32,6 +32,23 @@ function getDb() {
 /** Marca visible para que el prospecto distinga lo sembrado de lo suyo. */
 export const EXAMPLE_TAG = "Ejemplo";
 
+/**
+ * **El id de documento de una unidad sembrada, en un solo sitio.**
+ *
+ * Es la CLAVE de esa unidad (D1), y `trial-workspace.ts` la necesita para darle
+ * unidad al residente de prueba. La llevaba escrita a mano como
+ * `` `${tenantId}--t1-101` ``: dos sitios calculando el mismo id, y el día que el
+ * esquema cambiara el residente de prueba quedaría apuntando a una unidad que no
+ * existe — sin error, viendo una lista vacía, que es el defecto que persigue
+ * `PRD-V-FIX-002`.
+ */
+export function idDeUnidadSembrada(tenantId: string, slug: string): string {
+  return `${tenantId}--${slug}`;
+}
+
+/** El slug de la primera unidad sembrada. Es la que recibe el residente de prueba. */
+export const SLUG_PRIMERA_UNIDAD = "t1-101";
+
 const UNITS_PER_TOWER = 3;
 const TOWERS = ["Torre 1", "Torre 2"];
 /** Meses de historia financiera (incluye el actual). */
@@ -68,7 +85,7 @@ export type TrialSeedResult = Record<string, number>;
  */
 export async function seedTrialWorkspace(tenantId: string, currency = "MXN"): Promise<TrialSeedResult> {
   /** Todo doc del ambiente lleva el tenantId por delante — sin esto, colisión. */
-  const id = (local: string) => `${tenantId}--${local}`;
+  const id = (local: string) => idDeUnidadSembrada(tenantId, local);
   const now = FieldValue.serverTimestamp();
   const stats: TrialSeedResult = {};
   const db = getDb();

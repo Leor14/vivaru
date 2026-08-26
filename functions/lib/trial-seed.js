@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EXAMPLE_TAG = void 0;
+exports.SLUG_PRIMERA_UNIDAD = exports.EXAMPLE_TAG = void 0;
+exports.idDeUnidadSembrada = idDeUnidadSembrada;
 exports.seedTrialWorkspace = seedTrialWorkspace;
 const firestore_1 = require("firebase-admin/firestore");
 const clave_de_unidad_1 = require("./clave-de-unidad");
@@ -31,6 +32,21 @@ function getDb() {
 }
 /** Marca visible para que el prospecto distinga lo sembrado de lo suyo. */
 exports.EXAMPLE_TAG = "Ejemplo";
+/**
+ * **El id de documento de una unidad sembrada, en un solo sitio.**
+ *
+ * Es la CLAVE de esa unidad (D1), y `trial-workspace.ts` la necesita para darle
+ * unidad al residente de prueba. La llevaba escrita a mano como
+ * `` `${tenantId}--t1-101` ``: dos sitios calculando el mismo id, y el día que el
+ * esquema cambiara el residente de prueba quedaría apuntando a una unidad que no
+ * existe — sin error, viendo una lista vacía, que es el defecto que persigue
+ * `PRD-V-FIX-002`.
+ */
+function idDeUnidadSembrada(tenantId, slug) {
+    return `${tenantId}--${slug}`;
+}
+/** El slug de la primera unidad sembrada. Es la que recibe el residente de prueba. */
+exports.SLUG_PRIMERA_UNIDAD = "t1-101";
 const UNITS_PER_TOWER = 3;
 const TOWERS = ["Torre 1", "Torre 2"];
 /** Meses de historia financiera (incluye el actual). */
@@ -61,7 +77,7 @@ function dueDateFor(monthsAgo) {
  */
 async function seedTrialWorkspace(tenantId, currency = "MXN") {
     /** Todo doc del ambiente lleva el tenantId por delante — sin esto, colisión. */
-    const id = (local) => `${tenantId}--${local}`;
+    const id = (local) => idDeUnidadSembrada(tenantId, local);
     const now = firestore_1.FieldValue.serverTimestamp();
     const stats = {};
     const db = getDb();

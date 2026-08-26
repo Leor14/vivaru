@@ -109,15 +109,23 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
    * deliberado: copiar la clave de un documento que ya la tiene no decide nada,
    * y tras la migración esa clave ya es la buena.
    */
+  /**
+   * **Las DOS formas de fijar la clave**, y la segunda casi se escapa. Se buscaba
+   * solo `unitId: …` —la de objeto literal— y `trial-workspace.ts` la fija por
+   * asignación: `demoProfile.unitId = …`. Estaba bien por casualidad (ya usaba el
+   * id), pero la guarda no lo miraba, y era la fábrica.
+   */
+  const FIJA_LA_CLAVE = "(?:(?:unitId|payerUnitId):|\\.(?:unitId|payerUnitId)\\s*=(?!=))";
+
   const PROHIBIDO = [
     {
       nombre: "el campo `unitId` de una unidad, que es el slug",
-      patron: /(unitId|payerUnitId):\s*[^,;\n]*\b(unit|unidad|units\[[^\]]*\]|unidades\[[^\]]*\]|u)\.unitId\b/,
+      patron: new RegExp(`${FIJA_LA_CLAVE}\\s*[^,;\n]*\\b(?:unit|unidad|units\\[[^\\]]*\\]|unidades\\[[^\\]]*\\]|u)\\.unitId\\b`),
     },
-    { nombre: "`.slug`", patron: /(unitId|payerUnitId):\s*[^,;\n]*\.slug\b/ },
+    { nombre: "`.slug`", patron: new RegExp(`${FIJA_LA_CLAVE}\\s*[^,;\n]*\\.slug\\b`) },
     {
       nombre: "slugificación en línea",
-      patron: /(unitId|payerUnitId):\s*[^,;\n]*toLowerCase\(\)\s*\.replace/,
+      patron: new RegExp(`${FIJA_LA_CLAVE}\\s*[^,;\n]*toLowerCase\\(\\)\\s*\\.replace`),
     },
   ];
 
@@ -183,11 +191,16 @@ describe("3 · el inventario del servidor está pinchado", () => {
     "functions/src/payments.ts",
     "functions/src/reservations.ts",
     "functions/src/trial-seed.ts",
+    // Fija la unidad del residente de prueba POR ASIGNACIÓN, no en un literal.
+    // Estuvo fuera del inventario hasta el 26 ago 2026 por eso mismo.
+    "functions/src/trial-workspace.ts",
   ];
 
   it("los módulos del servidor que nombran unidades son exactamente los pinchados", () => {
     const encontrados = SUPERFICIE.filter(
-      (rel) => rel.startsWith("functions/src/") && /(unitId|payerUnitId):/.test(leer(rel)),
+      (rel) =>
+        rel.startsWith("functions/src/") &&
+        /(?:(?:unitId|payerUnitId):|\.(?:unitId|payerUnitId)\s*=(?!=))/.test(leer(rel)),
     );
     expect(
       encontrados,
@@ -224,5 +237,17 @@ describe("4 · la semilla del trial pasa por el resolvedor", () => {
     const texto = leer(SEMILLA);
     expect(texto).toContain("units.push({ id: id(slug), slug, label, tower })");
     expect(texto).toContain('await set("units", id(slug)');
+  });
+
+  it("el residente de prueba recibe su unidad del MISMO sitio que la crea", () => {
+    // La membresía llevaba `${tenantId}--t1-101` escrito a mano en otro fichero:
+    // dos sitios calculando el mismo id, y el día que el esquema cambiara el
+    // residente de prueba apuntaría a una unidad inexistente sin ningún error.
+    const taller = leer("functions/src/trial-workspace.ts");
+    expect(taller).toContain("idDeUnidadSembrada(tenantId, SLUG_PRIMERA_UNIDAD)");
+    expect(taller, "el id del esquema no puede volver a escribirse a mano").not.toMatch(
+      /`\$\{tenantId\}--t1-101`/,
+    );
+    expect(leer(SEMILLA)).toContain("export function idDeUnidadSembrada");
   });
 });

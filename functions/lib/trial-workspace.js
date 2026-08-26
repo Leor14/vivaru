@@ -9,6 +9,7 @@ const https_1 = require("firebase-functions/v2/https");
 const email_1 = require("./email");
 const country_currency_1 = require("./country-currency");
 const trial_seed_1 = require("./trial-seed");
+const clave_de_unidad_1 = require("./clave-de-unidad");
 const plan_de_cuentas_siembra_1 = require("./plan-de-cuentas-siembra");
 /**
  * Provisión del ambiente de prueba (Fase 1 del self-service).
@@ -186,9 +187,16 @@ async function provisionTrialWorkspace(input) {
             updatedAt: now,
         };
         // El residente necesita unidad para ver su portal con datos.
+        //
+        // **Esta era la mitad buena del defecto del trial.** La membresía siempre
+        // apuntó al ID DEL DOCUMENTO —que es lo correcto (D1) y es contra lo que
+        // compara `residentOwnUnit`— mientras la semilla escribía el SLUG en los
+        // cargos y las personas. Por eso el residente de prueba veía su cartera a
+        // cero sin un solo error: medido en staging, deuda visible 0 de 1.700.000.
+        // El id se pide ahora al mismo sitio que lo crea, en vez de escribirlo a mano.
         if (spec.role === "resident") {
-            demoProfile.unitId = `${tenantId}--t1-101`;
-            demoProfile.unitLabel = "T1-101";
+            demoProfile.unitId = (0, clave_de_unidad_1.claveDeUnidad)({ id: (0, trial_seed_1.idDeUnidadSembrada)(tenantId, trial_seed_1.SLUG_PRIMERA_UNIDAD) });
+            demoProfile.unitLabel = trial_seed_1.SLUG_PRIMERA_UNIDAD.toUpperCase();
         }
         batch.set(db.collection("users").doc(demoUser.uid), demoProfile, { merge: true });
         batch.set(db.collection("tenantUsers").doc(`${tenantId}_${demoUser.uid}`), demoProfile, { merge: true });
