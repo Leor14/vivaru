@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
 import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
-import { anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
+import { anonymizeExpiredEmailDeliveries, anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
 import { currencyForCountry } from "./country-currency";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
@@ -527,18 +527,27 @@ function formatPeriodFromDate(value: string | undefined): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-/** Correos (activos) de una lista de uids de residentes. Chunked por el límite de "in". */
-async function getResidentEmails(uids: string[]): Promise<string[]> {
-  const emails: string[] = [];
+/**
+ * Destinatarios (activos) de una lista de uids de residentes. Chunked por el límite de "in".
+ *
+ * **Devuelve el PAR uid↔correo, no solo el correo.** Antes devolvía `string[]` y el
+ * emparejamiento se perdía justo antes de enviar; `PRD-V-FLOW-003` §7.1 pide `recipientUserId`
+ * en cada fila de `emailDeliveries`, y ese dato existía dos líneas más arriba y se tiraba aquí.
+ * Sin el par, la lista de rebotes sabría a qué DIRECCIÓN escribir pero no a QUIÉN corregirle el
+ * contacto, que es lo accionable.
+ */
+async function getResidentRecipients(uids: string[]): Promise<{ uid: string; email: string }[]> {
+  const destinatarios: { uid: string; email: string }[] = [];
   for (let i = 0; i < uids.length; i += 30) {
     const chunk = uids.slice(i, i + 30);
     const snap = await db.collection("users").where("uid", "in", chunk).get();
     snap.forEach((d) => {
-      const u = d.data() as { email?: string; status?: string };
-      if (u.email && (!u.status || u.status === "active")) emails.push(u.email);
+      const u = d.data() as { uid?: string; email?: string; status?: string };
+      const uid = u.uid ?? d.id;
+      if (u.email && (!u.status || u.status === "active")) destinatarios.push({ uid, email: u.email });
     });
   }
-  return emails;
+  return destinatarios;
 }
 
 /**
@@ -568,10 +577,19 @@ async function deliverResidentNotifications(
   );
 
   if (!copy.emailEnabled) return;
-  const emails = await getResidentEmails(residentUids);
-  for (const to of emails) {
+  const destinatarios = await getResidentRecipients(residentUids);
+  for (const { uid, email } of destinatarios) {
     try {
-      await sendNotificationEmail({ to, subject: copy.emailSubject, body: copy.emailBody, link: copy.link });
+      // **El único envío del producto que va a un residente**, y por eso el único que lleva
+      // contexto: `emailDeliveries` la lee el administrador del conjunto, así que solo debe
+      // contener su tráfico. Ver `ContextoDeEnvio` en `email.ts`.
+      await sendNotificationEmail({
+        to: email,
+        subject: copy.emailSubject,
+        body: copy.emailBody,
+        link: copy.link,
+        contexto: { tenantId, notificationKey: key, recipientUserId: uid },
+      });
     } catch (e) {
       console.error(`[notif-email][${key}]`, e);
     }
@@ -3753,6 +3771,12 @@ export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async
 
   const feedback = await purgeExpiredAiFeedback(db);
   console.log(`[data-retention] Purgadas ${feedback} fila(s) de aiFeedback.`);
+
+  // Rastro de entrega de correo (FLOW-003 §7.4). ANONIMIZA en vez de borrar: el dato personal es
+  // la dirección, y el resto de la fila es la métrica de entregabilidad que da sentido a la
+  // colección. Borrarla cumpliría la retención destruyendo el indicador.
+  const correos = await anonymizeExpiredEmailDeliveries(db);
+  console.log(`[data-retention] Anonimizadas ${correos} fila(s) de emailDeliveries.`);
 });
 
 // ── G4 · Observabilidad: captura de errores no controlados del cliente ────────

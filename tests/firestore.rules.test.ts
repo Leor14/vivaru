@@ -347,6 +347,17 @@ beforeAll(async () => {
     });
 
     // FEAT-004. Un certificado de la unidad del residente `resident-1`.
+    // FLOW-003 · rastro de entrega. El id ES el del proveedor (§7.1).
+    await setDoc(doc(db, "emailDeliveries", "resend-msg-1"), {
+      tenantId: "tenant-a",
+      providerMessageId: "resend-msg-1",
+      recipientEmail: "residente@ejemplo.co",
+      recipientUserId: "resident-1",
+      notificationKey: "billing_new",
+      subject: "Tu cuota de agosto",
+      status: "enviado",
+    });
+
     await setDoc(doc(db, "clearanceCertificates", "pys-1"), {
       tenantId: "tenant-a",
       unitId: "unit-t2-503",
@@ -2793,6 +2804,62 @@ describe("FEAT-004 · el paz y salvo lo escribe SOLO el servidor", () => {
     await assertFails(
       updateDoc(doc(admin.firestore(), "clearanceCertificates", "pys-1"), { status: "anulado" }),
     );
+  });
+
+  // ── FLOW-003 · el rastro de entrega de correo ──────────────────────────────
+  //
+  // **Lo que estas pruebas vigilan es a QUIÉN se le niega**, no a quién se le concede.
+  // La fila guarda la dirección de correo de un residente y qué se le mandó: es detalle
+  // personal, y por eso el consejo queda fuera aunque sí lea el paz y salvo. Comprobar
+  // solo que el administrador entra dejaría esa línea sin guardián.
+
+  it("el administrador lee el rastro de su conjunto", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "emailDeliveries", "resend-msg-1")));
+  });
+
+  it("el CONSEJO no lo lee, al revés que el paz y salvo — aquí hay dirección de correo", async () => {
+    const committee = testEnv.authenticatedContext("committee-1", { role: "committee", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(committee.firestore(), "emailDeliveries", "resend-msg-1")));
+  });
+
+  it("el residente NO lee ni el suyo: le corresponde su cartera, no la telemetría de envío", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(getDoc(doc(resident.firestore(), "emailDeliveries", "resend-msg-1")));
+  });
+
+  it("un administrador de OTRO conjunto tampoco", async () => {
+    const otro = testEnv.authenticatedContext("admin-b", { role: "tenant_admin", tenantId: "tenant-b" });
+    await assertFails(getDoc(doc(otro.firestore(), "emailDeliveries", "resend-msg-1")));
+  });
+
+  it("nadie lo crea desde el cliente — la fila nace en el envío, no en el navegador", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "emailDeliveries", "resend-inventado"), {
+        tenantId: "tenant-a",
+        providerMessageId: "resend-inventado",
+        recipientEmail: "x@y.co",
+        notificationKey: "billing_new",
+        subject: "falso",
+        status: "entregado",
+      }),
+    );
+  });
+
+  it("ni marca un correo como entregado a mano: eso lo hace el webhook con firma", async () => {
+    // Es el criterio que sostiene toda la métrica. Si el administrador pudiera
+    // escribir aquí, «100% de entrega conocida» pasaría a ser «100% de lo que
+    // alguien quiso declarar».
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "emailDeliveries", "resend-msg-1"), { status: "entregado" }),
+    );
+  });
+
+  it("ni lo borra, que es como se taparía un rebote", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "emailDeliveries", "resend-msg-1")));
   });
 
   it("ni lo borra, que es como se perdería el rastro de un papel que ya salió", async () => {

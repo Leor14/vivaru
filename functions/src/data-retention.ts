@@ -128,3 +128,75 @@ export async function purgeExpiredAiUsage(db: Firestore, now: Date = new Date())
 export async function purgeExpiredAiFeedback(db: Firestore, now: Date = new Date()): Promise<number> {
   return purgarPorFecha(db, "aiFeedback", Timestamp.fromDate(aiUsageCutoff(now)));
 }
+
+/** Retención del rastro de entrega de correo (`PRD-V-FLOW-003` §7.4). */
+export const EMAIL_DELIVERY_RETENTION_MONTHS = 12;
+
+/**
+ * Anonimiza el rastro de entrega vencido: doce meses.
+ *
+ * **ANONIMIZA, no borra, y la diferencia importa.** El dato personal de una fila de
+ * `emailDeliveries` es la dirección del destinatario; el resto —cuándo salió, qué aviso era, si
+ * llegó o rebotó— es la métrica que da sentido a la colección entera. Borrar la fila cumpliría la
+ * retención destruyendo el indicador; vaciar la dirección la cumple y lo conserva. Es el mismo
+ * tratamiento que `anonymizeExpiredVouchers`, y por el mismo motivo: ahí también sobrevive lo no
+ * sensible.
+ *
+ * **Nace el mismo día que la colección**, siguiendo la regla que este módulo ya se dio en
+ * `purgeExpiredAiFeedback`: declarar una retención y no implementarla es la forma habitual de
+ * incumplirla.
+ *
+ * Pagina con cursor sobre `sentAt` en vez de repetir la misma consulta. Filtrar por «todavía
+ * tiene PII» dentro de la consulta exigiría un índice más, y sin cursor el bucle no terminaría el
+ * día que las primeras 400 ya estén anonimizadas: seguiría devolviéndolas para siempre.
+ */
+export async function anonymizeExpiredEmailDeliveries(
+  db: Firestore,
+  now: Date = new Date(),
+  months = EMAIL_DELIVERY_RETENTION_MONTHS,
+  /** Solo para poder probar la paginación: sembrar 400 filas por prueba no es razonable. */
+  tamanoLote = 400,
+): Promise<number> {
+  const corte = new Date(now);
+  corte.setMonth(corte.getMonth() - months);
+  const cutoff = Timestamp.fromDate(corte);
+
+  let anonimizadas = 0;
+  let cursor: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+
+  for (;;) {
+    let q = db
+      .collection("emailDeliveries")
+      .where("sentAt", "<", cutoff)
+      .orderBy("sentAt")
+      .limit(tamanoLote);
+    if (cursor) q = q.startAfter(cursor);
+
+    const vencidas = await q.get();
+    if (vencidas.empty) break;
+
+    const batch = db.batch();
+    let ops = 0;
+    for (const doc of vencidas.docs) {
+      const d = doc.data();
+      const tienePII = Boolean(d.recipientEmail || d.recipientUserId);
+      if (!d.anonymizedAt && tienePII) {
+        batch.update(doc.ref, {
+          recipientEmail: null,
+          recipientUserId: null,
+          anonymizedAt: Timestamp.now(),
+        });
+        ops += 1;
+      }
+    }
+    if (ops > 0) {
+      await batch.commit();
+      anonimizadas += ops;
+    }
+
+    cursor = vencidas.docs[vencidas.docs.length - 1];
+    if (vencidas.size < tamanoLote) break;
+  }
+
+  return anonimizadas;
+}

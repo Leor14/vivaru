@@ -1025,6 +1025,24 @@ service cloud.firestore {
     // R9 · el residente alcanza los de SU unidad, con el mismo `residentOwnUnit`
     // que ya gobierna sus cargos. El consejo lee los del conjunto: el
     // certificado no dice nada personal, solo si una unidad debe.
+    // `PRD-V-FLOW-003` §11.2 — el rastro de entrega de cada correo.
+    //
+    // **Solo administración y superadmin, y el consejo NO** — a diferencia de
+    // `clearanceCertificates`, aquí abajo, que sí se lo concede. La diferencia es
+    // deliberada: esta colección guarda la DIRECCIÓN DE CORREO de cada residente y
+    // qué se le mandó, que es detalle personal. Al consejo le corresponde el
+    // agregado, no el renglón. Es la misma línea que se trazó el 24 de agosto al
+    // retirarle la lectura de `advances`.
+    //
+    // Escritura cerrada entera: la fila nace en `sendNotificationEmail` y la mueve
+    // el webhook, los dos con Admin SDK. Nada del cliente escribe aquí — y **eso no
+    // lo sostiene esta regla sino que nadie más escriba**, porque una callable con
+    // Admin SDK no evalúa `firestore.rules`.
+    match /emailDeliveries/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update, delete: if false;
+    }
+
     match /clearanceCertificates/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||

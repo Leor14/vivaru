@@ -354,19 +354,28 @@ function formatPeriodFromDate(value) {
     const label = d.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
-/** Correos (activos) de una lista de uids de residentes. Chunked por el límite de "in". */
-async function getResidentEmails(uids) {
-    const emails = [];
+/**
+ * Destinatarios (activos) de una lista de uids de residentes. Chunked por el límite de "in".
+ *
+ * **Devuelve el PAR uid↔correo, no solo el correo.** Antes devolvía `string[]` y el
+ * emparejamiento se perdía justo antes de enviar; `PRD-V-FLOW-003` §7.1 pide `recipientUserId`
+ * en cada fila de `emailDeliveries`, y ese dato existía dos líneas más arriba y se tiraba aquí.
+ * Sin el par, la lista de rebotes sabría a qué DIRECCIÓN escribir pero no a QUIÉN corregirle el
+ * contacto, que es lo accionable.
+ */
+async function getResidentRecipients(uids) {
+    const destinatarios = [];
     for (let i = 0; i < uids.length; i += 30) {
         const chunk = uids.slice(i, i + 30);
         const snap = await db.collection("users").where("uid", "in", chunk).get();
         snap.forEach((d) => {
             const u = d.data();
+            const uid = u.uid ?? d.id;
             if (u.email && (!u.status || u.status === "active"))
-                emails.push(u.email);
+                destinatarios.push({ uid, email: u.email });
         });
     }
-    return emails;
+    return destinatarios;
 }
 /**
  * Entrega una notificación a una lista de residentes: in-app siempre y, si el
@@ -387,10 +396,19 @@ async function deliverResidentNotifications(key, tenantId, residentUids, vars, o
     })));
     if (!copy.emailEnabled)
         return;
-    const emails = await getResidentEmails(residentUids);
-    for (const to of emails) {
+    const destinatarios = await getResidentRecipients(residentUids);
+    for (const { uid, email } of destinatarios) {
         try {
-            await (0, email_1.sendNotificationEmail)({ to, subject: copy.emailSubject, body: copy.emailBody, link: copy.link });
+            // **El único envío del producto que va a un residente**, y por eso el único que lleva
+            // contexto: `emailDeliveries` la lee el administrador del conjunto, así que solo debe
+            // contener su tráfico. Ver `ContextoDeEnvio` en `email.ts`.
+            await (0, email_1.sendNotificationEmail)({
+                to: email,
+                subject: copy.emailSubject,
+                body: copy.emailBody,
+                link: copy.link,
+                contexto: { tenantId, notificationKey: key, recipientUserId: uid },
+            });
         }
         catch (e) {
             console.error(`[notif-email][${key}]`, e);
@@ -3012,6 +3030,11 @@ exports.anonymizeExpiredVouchersDaily = (0, scheduler_1.onSchedule)("every day 0
     console.log(`[data-retention] Purgadas ${purgadas} fila(s) de aiUsage.`);
     const feedback = await (0, data_retention_1.purgeExpiredAiFeedback)(db);
     console.log(`[data-retention] Purgadas ${feedback} fila(s) de aiFeedback.`);
+    // Rastro de entrega de correo (FLOW-003 §7.4). ANONIMIZA en vez de borrar: el dato personal es
+    // la dirección, y el resto de la fila es la métrica de entregabilidad que da sentido a la
+    // colección. Borrarla cumpliría la retención destruyendo el indicador.
+    const correos = await (0, data_retention_1.anonymizeExpiredEmailDeliveries)(db);
+    console.log(`[data-retention] Anonimizadas ${correos} fila(s) de emailDeliveries.`);
 });
 exports.logClientError = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const message = normalizeText(request.data?.message).slice(0, 2000);

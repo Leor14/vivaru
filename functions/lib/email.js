@@ -2,8 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resendApiKey = void 0;
 exports.idDeRespuestaResend = idDeRespuestaResend;
+exports.registrarEnvio = registrarEnvio;
 exports.sendNotificationEmail = sendNotificationEmail;
 exports.sendAccountEmail = sendAccountEmail;
+const firestore_1 = require("firebase-admin/firestore");
 const params_1 = require("firebase-functions/params");
 // Secret de Resend (se setea con: firebase functions:secrets:set RESEND_API_KEY).
 exports.resendApiKey = (0, params_1.defineSecret)("RESEND_API_KEY");
@@ -113,6 +115,36 @@ function idDeRespuestaResend(cuerpo) {
         return null;
     }
 }
+const db = () => (0, firestore_1.getFirestore)();
+/**
+ * Deja constancia de un correo ACEPTADO por el proveedor.
+ *
+ * **El id del documento es el del proveedor** (§7.1), para que la idempotencia del webhook la
+ * garantice la base y no una comprobación previa: el mismo evento llegando dos veces escribe el
+ * mismo documento.
+ *
+ * **Nunca lanza.** Cuando esto corre el correo ya salió; un fallo al registrar pierde el rastro,
+ * pero propagarlo convertiría un correo entregado en un error para quien lo mandó. Misma
+ * disciplina que el resto del módulo, que es «best-effort» por contrato.
+ */
+async function registrarEnvio(providerMessageId, ctx, input) {
+    try {
+        await db().collection("emailDeliveries").doc(providerMessageId).set({
+            tenantId: ctx.tenantId,
+            providerMessageId,
+            recipientEmail: input.to,
+            recipientUserId: ctx.recipientUserId ?? null,
+            notificationKey: ctx.notificationKey,
+            subject: input.subject,
+            status: "enviado",
+            sentAt: firestore_1.Timestamp.now(),
+            updatedAt: firestore_1.Timestamp.now(),
+        });
+    }
+    catch (e) {
+        console.error("[email] no se pudo registrar el envío", providerMessageId, e);
+    }
+}
 /**
  * Devuelve el id del proveedor cuando Resend lo da, y `null` cuando no hay con qué —sin clave
  * configurada, o respuesta sin id—. **Nunca devuelve `null` por un fallo de envío**: eso sigue
@@ -144,12 +176,17 @@ async function sendNotificationEmail(input) {
     }
     // Leer el cuerpo va DESPUÉS del `ok`, y su fallo no se propaga: a estas alturas Resend ya aceptó
     // el correo y el destinatario lo va a recibir.
+    let providerMessageId = null;
     try {
-        return idDeRespuestaResend(await response.text());
+        providerMessageId = idDeRespuestaResend(await response.text());
     }
     catch {
-        return null;
+        providerMessageId = null;
     }
+    if (providerMessageId && input.contexto) {
+        await registrarEnvio(providerMessageId, input.contexto, input);
+    }
+    return providerMessageId;
 }
 /**
  * Envía por Resend el correo de "define/restablece tu contraseña".
