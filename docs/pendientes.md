@@ -8,10 +8,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Encender `producto-estado-de-cuenta`** con `mover-bandera.mjs`, y validar por navegador.
-> El front subió la tarde del 26 (`rollout-2026-08-26-001`, build `READY` de `master` /
-> `4769085`), así que **ahora encender sí hace algo** — hasta esta tarde no lo habría hecho.
-> `producto-prorrateo-de-gastos` NO: sin coeficientes sembrados bloquea antes de calcular.
+> **Decidir el orden del estado de cuenta** (ver abajo: ordena por `dueDate`, no por `period`,
+> y su propia cabecera dice lo contrario). Después, **`FLOW-003`**.
+>
+> `FEAT-004` quedó **encendida y validada en producción** la tarde del 26. `FLOW-001` sigue
+> apagada y seguirá: sin coeficientes sembrados bloquea antes de calcular.
 
 ### ENCENDER ERA EL TERCER ACTO, Y LOS DOS PRIMEROS YA ESTÁN
 
@@ -33,6 +34,47 @@ verdad sirve el front.**
 > `master`, producción **no tiene** los tres parches que la Fase 2 retiró: no hay parche
 > caducado corriendo sobre dato ya migrado. El sesgo es limpio —functions de `develop`, front
 > de `master`— y no hay que ir a buscar sobre-inclusiones.
+
+### `FEAT-004` ESTÁ ENCENDIDA EN PRODUCCIÓN, Y VALIDADA
+
+Tercer acto hecho. `producto-estado-de-cuenta` = `true` (17 documentos en `featureFlags`, sin
+kill switch propio y con el `_global` en `false`). **`producto-prorrateo-de-gastos` sigue sin
+documento**, así que `FLOW-001` sigue apagada.
+
+**Antes de encender se comprobaron dos cosas, y las dos importaban:**
+
+| | |
+|---|---|
+| **El servidor la hace cumplir** | `index.ts:4386`, dentro de `emitClearanceCertificate`. **`cancelClearanceCertificate` NO la comprueba**, a propósito: apagarla no puede dejar papeles sin forma de retirarlos |
+| **A cuánta gente alcanza** | **Cero.** Los **nueve** conjuntos de producción son `isExample: true` |
+
+**La validación fue el rechazo, no la emisión.** Se pidió el paz y salvo de T2-503, que debe
+dinero, y el servidor contestó: «*No se puede emitir el paz y salvo: la unidad tiene un saldo
+pendiente de 4.160.000, desde 2026-03 (3 períodos)*». Eso prueba de una vez que la bandera está
+encendida —la callable llegó a correr—, que la guarda funciona y que nombra lo accionable. Y
+**no creó nada**: `clearanceCertificates` sigue en **0** en producción, medido después.
+
+El estado de cuenta de T2-503 cierra en **4.160.000**, que es R2: el saldo final coincide con la
+cartera.
+
+### PERO EL ESTADO DE CUENTA SALE DESORDENADO, Y ES UNA DECISIÓN PENDIENTE
+
+En T2-503 los períodos salen **05 · 03 · 04 · 06 · 06 · 06 · 06**, con una columna de saldo
+acumulado al lado. No es un fallo de cálculo —el total es exacto—: `fechaDe()` ordena por
+`dueDate` cuando existe, y **esos cargos de marzo y abril vencen el 28 de mayo**.
+
+**Alcance medido: 3 de 221 cargos** en producción tienen `dueDate` de otro mes que su `period`,
+y los tres son de `tenant-santa-maria`. En staging, **cero de 171**.
+
+> **Y hay una frase falsa dentro del propio fichero.** La cabecera de
+> `src/features/billing/estado-de-cuenta.ts` dice «**se ordena por `period`, NO por `dueDate`**».
+> Eso es cierto de la CONSULTA —un `orderBy dueDate` descartaría el 27% de cargos que no lo
+> traen— y **falso del `sort` en memoria**, que prefiere `dueDate`. Quien lea esa cabecera para
+> tocar el orden va a partir de algo que no es.
+
+**No se tocó**: ordenar por vencimiento un documento de deuda es defendible, y cuál de los dos
+órdenes quiere el documento que se entrega es decisión de negocio. Lo que no puede quedarse es
+la cabecera diciendo una cosa y el código haciendo otra.
 
 ### `FIX-002` QUEDA CERRADA DEL TODO
 
@@ -132,13 +174,14 @@ grande de la mañana. Eso solo se ve midiendo `updateTime` función por función
    `defaultEnabled: false` en el catálogo, que es lo que resuelve cuando no existe el documento.
    Comprobado en pantalla: en la cartera no aparece el estado de cuenta ni el paz y salvo, y el
    menú de acciones de un egreso da solo «Ver detalle · Editar · Eliminar», sin «Repartir».
-2. **Encender `producto-estado-de-cuenta`** con `mover-bandera.mjs` y validar por navegador.
-   `FEAT-004` se apoya en la cartera, y ahí **sí hay datos**, así que puede cerrarse entera.
-   `producto-prorrateo-de-gastos` **no**: con 0 de 88 unidades con coeficiente y 74 de 87 sin
-   propietario, `repartirPorCoeficiente` bloquea antes de calcular. `FLOW-001` queda desplegada
-   y apagada, que por el criterio del 24 **cuenta como frente abierto**.
-3. **`FLOW-003`** (cobranza) va después, porque su adjunto depende de `FEAT-004`.
-4. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
+2. ~~Encender `producto-estado-de-cuenta`~~ — **hecha y validada** la tarde del 26.
+3. **Decidir el orden del estado de cuenta**: por `period` o por `dueDate`. Y corregir la
+   cabecera de `estado-de-cuenta.ts`, que hoy afirma lo que el código no hace.
+4. **`producto-prorrateo-de-gastos` sigue apagada**: con 0 de 88 unidades con coeficiente y 74 de
+   87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular. `FLOW-001` queda
+   desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
+5. **`FLOW-003`** (cobranza), que ya puede ir: su adjunto dependía de `FEAT-004`.
+6. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
    decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
 
 ## EL CIERRE DE LA MAÑANA — `FIX-002` cerrada en los dos ambientes (26 de agosto de 2026)
