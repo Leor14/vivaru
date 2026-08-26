@@ -8,24 +8,36 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Desplegar las REGLAS de producción** — es lo único del lote que quedó fuera, y el clasificador
-> lo bloqueó. El ruleset es el mismo que lleva vivo en staging desde el 25:
+> **`CA7` por navegador**: entrar como residente de una unidad afectada y ver que su cartera cuadra
+> con la del administrador. Es el único criterio de `FIX-002` que no cierra midiendo. El candidato
+> es `residente@santamaria.co` — debería ver **7 cargos por 4.160.000**.
 >
-> ```bash
-> firebase deploy --only firestore:rules --project hogaru-1
-> ```
->
-> Diff de 53 líneas **puramente aditivas**: los tres guardianes de `FLOW-001` sobre
-> `billingStatements` y el bloque nuevo de `clearanceCertificates`. **Nada se pierde** — se
-> comprobó que el front viejo de producción no escribe `status: "cancelled"` en esa colección, y
-> su único `updateDoc` calcula `paid`/`overdue`/`pending`.
->
-> **La vuelta atrás no es un fichero: es el id del ruleset**, que Firebase conserva. El que hay
-> vivo en producción ahora mismo es
-> `projects/hogaru-1/rulesets/12070151-9bb8-428e-b829-dbe559059476` (creado el 25 ago a las 19:33
-> UTC), y volver a él es re-publicarlo. Es más fiable que una copia local, que se pierde con el
-> `/tmp` — de hecho la copia que este documento decía tener **no llegó a existir**: iba en el mismo
-> comando que el clasificador bloqueó.
+> Después, retirar `unitIdPrevio` y `unitIdMigradoEn` cuando des la migración por cerrada.
+
+**EL LOTE DE PRODUCCIÓN ESTÁ COMPLETO: functions, índices y reglas.**
+
+| Artefacto | Estado, medido |
+|---|---|
+| **Functions** | **81 · cero atrasadas · cero errores**, por `updateTime` contra la API con la ADC. Las cuatro nuevas creadas |
+| **Índices** | subidos sin `--force`, así que el índice extra que producción tenía sigue ahí |
+| **Reglas** | ruleset `60d9dd0f-…`, **idéntico byte a byte al repo Y a staging** |
+
+**La vuelta atrás de las reglas es el id anterior**, que Firebase conserva:
+`projects/hogaru-1/rulesets/12070151-9bb8-428e-b829-dbe559059476` (25 ago, 19:33 UTC). Volver es
+re-publicarlo — más fiable que una copia local.
+
+### `storage.rules` deriva en los dos ambientes, y NO hay que hacer nada
+
+Se miró al verificar, por la lección de `PLAT-002` —«son DOS ficheros»—, y lo que sale es tranquilo:
+
+| | Deriva | De la que es CÓDIGO |
+|---|---|---|
+| Producción | 20 líneas | **0** — solo comentarios |
+| Staging | 47 líneas | 7, y **equivalentes**: define `rolEnConjunto(tenantId) { return rol(); }` y lo llama donde el repo llama `rol()` directo |
+
+**No hay deriva de comportamiento en ninguno de los dos**, así que desplegar `storage.rules` sería
+churn con riesgo real y sin ganancia. Queda anotado para que nadie lo despliegue a ciegas ni se
+asuste al verlo diferir.
 
 **LAS FUNCTIONS DE PRODUCCIÓN ESTÁN DESPLEGADAS: 81, cero atrasadas, cero errores.** Medido por
 `updateTime` contra la API con la ADC, no por el código de salida. Las cuatro nuevas existen
