@@ -198,12 +198,27 @@ El valor de `RESEND_API_KEY` lo maneja **solo el usuario** (`firebase functions:
   por entrega con frente, ambiente, bandera y commit. **El roadmap dice qué se va a hacer y por
   qué; la bitácora dice qué existe y dónde corre.** Se actualiza en la misma pasada que el
   roadmap. Identificadores en la tabla de accesos de abajo.
-- **Roadmap de producto:** `docs/roadmap-producto.md` — **el repositorio es la fuente
-  de verdad; la copia de Notion es la vista publicada.** Tres zonas con reglas
-  distintas: el estado se REESCRIBE arriba, el cuerpo se EDITA en su sitio, y solo el
-  changelog acumula (lo nuevo primero). **Nunca añadir «actualización del …» al final
-  del cuerpo**: obliga a bajar y deja dos épocas conviviendo sin decir cuál manda —
-  el defecto que tenía `wiki/modulos/pqrs.md` desde mayo de 2026.
+- **Roadmap de producto:** `docs/roadmap-producto.md` — **el repositorio tiene el
+  detalle y la historia.** Tres zonas con reglas distintas: el estado se REESCRIBE
+  arriba, el cuerpo se EDITA en su sitio, y solo el changelog acumula (lo nuevo
+  primero). **Nunca añadir «actualización del …» al final del cuerpo**: obliga a bajar
+  y deja dos épocas conviviendo sin decir cuál manda — el defecto que tenía
+  `wiki/modulos/pqrs.md` desde mayo de 2026.
+
+  > **La página de Notion YA NO ES una copia de este fichero: es el TABLERO** (26 ago
+  > 2026). Dejó de serlo porque como copia no funcionaba — llegó a **116.000
+  > caracteres** y se quedó **trece versiones atrás** (0.9.19 contra 0.9.32), con el
+  > 39% ocupado por un changelog duplicado del repositorio. Ahora son **6.900** y
+  > responde a una sola pregunta: dónde está cada frente y qué lo mueve.
+  >
+  > **Los tres artefactos, y no se mezclan:** el TABLERO dice dónde está cada frente
+  > y se reescribe; la BITÁCORA dice qué se construyó y dónde corre, una fila por
+  > entrega; el REPOSITORIO dice por qué se decidió así. **El historial no va al
+  > tablero**, que es lo que lo hinchó.
+  >
+  > **Y un hueco que tenían LAS DOS copias:** la tabla ejecutiva no listaba
+  > «Propiedad horizontal», que es el frente donde ha ido todo el trabajo desde el 24
+  > de agosto. El tablero de Notion ya lo tiene; **el de este fichero todavía no**.
 
 ### Accesos de Notion — verificados el 22 de agosto de 2026
 
