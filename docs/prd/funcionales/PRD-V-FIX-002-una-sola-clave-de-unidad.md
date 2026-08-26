@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` — es quien deja de ver lo suyo |
 | **Usuarios secundarios** | `tenant_admin` · `security_guard` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **Lista para PRD** — pendiente de cerrar D1, que es la decisión de fondo |
+| **Estado** | **LISTA PARA DESARROLLO** — D1 y D2 cerradas por David el 25 de agosto de 2026. Gana el **id del documento** |
 | **Dependencias** | Ninguna bloqueante. **Bloquea** cualquier funcionalidad nueva que resuelva persona↔unidad, y ya condicionó a `PRD-V-FEAT-004` |
 | **Riesgo** | **Alto.** Toca la raíz de los permisos del residente y reescribe el campo del que cuelgan quince colecciones |
 | **Reversibilidad** | **Parcial, y hay que decirlo en primera línea.** La migración es reversible **solo si se guarda el valor anterior en cada documento tocado**; sin eso, no hay vuelta atrás. Ver §13 |
@@ -338,9 +338,9 @@ cuando la migración se cierre · decidir qué se hace con los huérfanos ambigu
 
 ## 14. Decisiones abiertas
 
-### D1 · ¿Cuál de las dos convenciones gana?
+### D1 · ¿Cuál de las dos convenciones gana? — **CERRADA**
 
-Es **la** decisión de esta PRD y todo lo demás cuelga de ella.
+Era **la** decisión de esta PRD y todo lo demás colgaba de ella.
 
 **Recomendación: el ID DEL DOCUMENTO de la unidad.** Cuatro razones, y las cuatro son medibles:
 
@@ -358,9 +358,12 @@ Es **la** decisión de esta PRD y todo lo demás cuelga de ella.
 > **Elegir el slug ahora significaría terminar aquella migración, no empezar una nueva** — y
 > asumir el punto 4, que no tiene arreglo.
 
-**TBD para David.** Si la respuesta es el slug, R8 se amplía y §13 gana un paso.
+> **CERRADA el 25 de agosto de 2026 — aceptada la recomendación: gana el ID DEL DOCUMENTO.**
+> La migración lleva todo lo escrito con el slug al id del documento, y `tenantUsers` va en la
+> misma pasada (R8). **No hay que migrar la raíz de los permisos**, que es lo que se habría
+> ganado eligiendo el slug, y se evita la colisión que el slug no tiene forma de evitar.
 
-### D2 · ¿Qué se hace con los huérfanos que no se pueden resolver?
+### D2 · ¿Qué se hace con los huérfanos que no se pueden resolver? — **CERRADA**
 
 Hoy son pocos y conocidos: 5 cargos, 12 paquetes, 3 pases y 1 membresía en producción.
 
@@ -368,7 +371,12 @@ Hoy son pocos y conocidos: 5 cargos, 12 paquetes, 3 pases y 1 membresía en prod
 y no hace daño donde está; adivinar sí. La decisión —archivar, reasignar a mano o borrar— es de
 negocio y necesita mirar cada caso.
 
-**TBD para David.**
+> **CERRADA el 25 de agosto de 2026 — aceptada.** Los huérfanos se listan y no se tocan en el MVP.
+> **Con un matiz que no cabía en la recomendación:** los 5 cargos huérfanos de `tenant-santa-maria`
+> **sí hacen daño donde están** —son 3.580.000 que ninguna pantalla suma y que el paz y salvo solo
+> ve por la vía de la etiqueta—, así que R2 los reasignará por etiqueta si es inequívoca. Lo que
+> queda fuera del MVP son los **ambiguos**: los que no tienen exactamente una unidad con su
+> etiqueta.
 
 ## 15. Puertas
 
@@ -382,8 +390,8 @@ negocio y necesita mirar cada caso.
 | **G5 Operación** | ✅ **La opera el superadmin, con script, conjunto a conjunto.** No es una funcionalidad del producto y no aparece en ninguna barra |
 | **G6 Escala** | ✅ Once colecciones de un conjunto. El mayor tiene 25 unidades |
 
-**Lista para desarrollo EN CUANTO SE CIERRE D1.** Las siete puertas están superadas; lo único que
-falta es elegir la convención, y esa elección cambia el alcance de la migración pero no su forma.
+**LISTA PARA DESARROLLO.** Las siete puertas superadas y las dos decisiones cerradas: gana el id
+del documento, y los huérfanos ambiguos quedan fuera del MVP.
 
 > **Y una nota que no cabe en ninguna sección.** Esta PRD existe porque `PRD-V-FEAT-004` tuvo que
 > aprender la deriva a golpes: el paz y salvo se arregló **tres veces** —las dos claves, el sentido
