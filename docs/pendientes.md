@@ -6,6 +6,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (madrugada)
 
+> ### EL SIGUIENTE PASO, EN UNA FRASE
+>
+> **Ejecutar `PRD-V-FIX-002`: construir el resolvedor único de clave de unidad y arreglar la
+> semilla del trial, y solo después migrar conjunto a conjunto guardando `unitIdPrevio`.**
+>
+> El orden importa y está en su §13: **si se migra primero, el producto sigue escribiendo la
+> convención vieja mientras se limpia**. La ficha está lista para desarrollo, con D1 (gana el id
+> del documento) y D2 (los huérfanos ambiguos fuera del MVP) ya cerradas.
+>
+> **Y es otra superficie que lo de esta sesión: son datos de producción, no construcción.**
+
+
 **DOS MVP EN STAGING Y NINGUNO EN PRODUCCIÓN, y las dos veces por decisión.** `FLOW-001`
 (prorrateo) y `FEAT-004` (estado de cuenta y paz y salvo) están construidos, desplegados en
 staging y **validados por navegador contra la base**. Dieciocho commits, de `453619a` a `6c24fbf`.
