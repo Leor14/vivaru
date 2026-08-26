@@ -8,14 +8,47 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Desplegar las functions de PRODUCCIÓN cuando decidas subir `FLOW-001` y `FEAT-004`** — la
-> semilla corregida va en ese mismo lote, y hasta entonces un trial nuevo de producción seguiría
-> naciendo partido.
+> **Desplegar las REGLAS de producción** — es lo único del lote que quedó fuera, y el clasificador
+> lo bloqueó. El ruleset es el mismo que lleva vivo en staging desde el 25:
 >
-> **No se desplegó, y es deliberado:** producción va por `13:40 del 25 ago` y
-> `emitclearancecertificate` **no existe allí** (comprobado con `gcloud run services list`), así que
-> un `deploy --only functions` subiría el servidor de los dos MVP que decidiste no subir. Esa es tu
-> decisión, no la de esta ficha.
+> ```bash
+> firebase deploy --only firestore:rules --project hogaru-1
+> ```
+>
+> Diff de 53 líneas **puramente aditivas**: los tres guardianes de `FLOW-001` sobre
+> `billingStatements` y el bloque nuevo de `clearanceCertificates`. **Nada se pierde** — se
+> comprobó que el front viejo de producción no escribe `status: "cancelled"` en esa colección, y
+> su único `updateDoc` calcula `paid`/`overdue`/`pending`. El ruleset anterior está guardado en
+> `.rules-prod-antes-*.bak` por si hubiera que volver.
+
+**LAS FUNCTIONS DE PRODUCCIÓN ESTÁN DESPLEGADAS: 81, cero atrasadas, cero errores.** Medido por
+`updateTime` contra la API con la ADC, no por el código de salida. Las cuatro nuevas existen
+—`emitClearanceCertificate`, `cancelClearanceCertificate`, `distributeExpense`,
+`cancelDistribution`— y los índices también subieron (sin `--force`, así que el índice extra que
+producción tenía sigue ahí).
+
+**`FLOW-001` y `FEAT-004` salieron DARK, y eso está medido, no supuesto:** sus banderas
+—`producto-prorrateo-de-gastos` y `producto-estado-de-cuenta`— **no existen como documento** en
+producción y el catálogo las tiene en `false`. Encenderlas es un acto aparte con `mover-bandera.mjs`.
+
+> ### EL DESPLIEGUE MINTIÓ TRES VECES, Y HAY QUE CONTARLO
+>
+> | Intento | Salida | Lo que de verdad pasó |
+> |---|---|---|
+> | Staging, completo | **0** | Sin «Deploy complete», log truncado a 32 líneas, **dos funciones en el código viejo** por `HTTP 429` de cuota de mutaciones por minuto |
+> | Producción, 1.º | **0** | `Error: Failed to list functions` — **no desplegó absolutamente nada** |
+> | Producción, 2.º | **0** | `Error: There was an error deploying functions` — cuatro programadas caídas porque **caducaron las credenciales a mitad** |
+>
+> **La verdad de un despliegue es el `updateTime` de cada función**, nunca el código de salida ni
+> el log. Y al medir, **contar cuántas se listaron**: `gcloud functions list --gen2 --regions`
+> devuelve CERO y el `awk` pasa en verde sobre un conjunto vacío.
+>
+> **Y son TRES credenciales que caducan por separado:** `firebase login --reauth`,
+> `gcloud auth login` (la del CLI, la que usa `gcloud functions list`) y
+> `gcloud auth application-default login` (la ADC, la de los scripts). Renovar la ADC no arregla
+> la del CLI — pero **la ADC sirve para medir por la API REST** y saltarse la otra:
+> `curl -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \`
+> `  "https://cloudfunctions.googleapis.com/v2/projects/hogaru-1/locations/us-central1/functions?pageSize=200"`
 
 **`FIX-002` ESTÁ CERRADO EN LOS DOS AMBIENTES: cero documentos fuera de convención en los
 diecinueve conjuntos.** Seis commits, de `ae45216` a `cbd6ddf`.
