@@ -45,6 +45,7 @@ const CLAVES = [
   "producto-prorrateo-de-gastos",
   "producto-estado-de-cuenta",
   "producto-entrega-de-correo",
+  "producto-calendario-de-cobranza",
   "operacion-app-check-monitor",
 ];
 

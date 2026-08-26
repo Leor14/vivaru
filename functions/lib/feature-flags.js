@@ -86,6 +86,7 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Apagada = sin estado de cuenta ni paz y salvo. Ver el catálogo en `src/`.
     "producto-estado-de-cuenta": false,
     "producto-entrega-de-correo": false,
+    "producto-calendario-de-cobranza": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */

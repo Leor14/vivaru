@@ -81,6 +81,32 @@ service cloud.firestore {
       return collection in ['communications'];
     }
 
+    // `PRD-V-FLOW-003` R5 y R6 — el calendario de cobranza, validado DONDE NO SE SALTA.
+    //
+    // §11.2 lo dice y conviene repetirlo: si el rango solo se comprueba en el
+    // formulario, se salta con una escritura directa desde la consola. Y R6 no es
+    // cosmético — un ciclo de un día es un correo diario a alguien que debe dinero.
+    //
+    // **Tolera que el calendario NO venga**, y eso no es laxitud: `updateDoc` fusiona
+    // y la regla evalúa el documento RESULTANTE, así que una escritura parcial que
+    // toque otro campo llega aquí sin `billingCalendar` y no debe rechazarse.
+    function calendarioDeCobranzaValido(d) {
+      return !('billingCalendar' in d) || (
+        (
+          !('noticeDayOfMonth' in d.billingCalendar)
+          || d.billingCalendar.noticeDayOfMonth == null
+          || (d.billingCalendar.noticeDayOfMonth is int
+              && d.billingCalendar.noticeDayOfMonth >= 1
+              && d.billingCalendar.noticeDayOfMonth <= 28)
+        ) && (
+          !('overdueCycleDays' in d.billingCalendar)
+          || d.billingCalendar.overdueCycleDays == null
+          || (d.billingCalendar.overdueCycleDays is int
+              && d.billingCalendar.overdueCycleDays >= 7)
+        )
+      );
+    }
+
     function pad2(value) {
       return value < 10 ? ('0' + value) : ('' + value);
     }
@@ -236,7 +262,8 @@ service cloud.firestore {
 
     match /tenantSettings/{tenantId} {
       allow read: if signedIn() && sameTenant(tenantId);
-      allow create, update: if tenantOperable(tenantId) && (signedIn() && tenantAdminOrSuper(tenantId) && request.resource.data.tenantId == tenantId);
+      allow create, update: if tenantOperable(tenantId) && (signedIn() && tenantAdminOrSuper(tenantId) && request.resource.data.tenantId == tenantId)
+        && calendarioDeCobranzaValido(request.resource.data);
       allow delete: if tenantOperable(tenantId) && (signedIn() && superadmin());
     }
 

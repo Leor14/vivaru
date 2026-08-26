@@ -73,6 +73,7 @@ export type FeatureFlagKey =
   | "producto-prorrateo-de-gastos"
   | "producto-estado-de-cuenta"
   | "producto-entrega-de-correo"
+  | "producto-calendario-de-cobranza"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -209,6 +210,19 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-001 §11.3 — prorrateo de un gasto entre las unidades",
     alApagar:
       "Desaparece «Repartir entre unidades» del egreso. **Lo ya repartido NO se deshace**: los cargos creados siguen vivos y se cobran. Para deshacerlos hay que anular la corrida ANTES de apagarla, porque apagada tampoco se puede anular. Un cargo con pagos aplicados no se anula en lote en ningún caso: eso es `revertirPago`.",
+  },
+  "producto-calendario-de-cobranza": {
+    key: "producto-calendario-de-cobranza",
+    area: "producto",
+    label: "Calendario de cobranza del conjunto",
+    description:
+      "El conjunto elige el día del mes en que sale el aviso de cuota y cada cuántos días se recuerda la cartera vencida, en vez de que lo fije el despliegue.",
+    // Nace APAGADA: apagada no sale ningún aviso por calendario, que es exactamente
+    // la conducta de hoy. Encenderla es lo que empieza a mandar.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-003 §5.2 — el calendario del conjunto",
+    alApagar:
+      "Dejan de salir los avisos por calendario y se vuelve a la conducta anterior, en la que el ritmo lo fijaba el código. **La configuración guardada NO se borra**: al reencenderla, el conjunto conserva su día y su ciclo. Ojo con el efecto silencioso — un conjunto que dependía del aviso mensual deja de recordarle a nadie y su cartera sube sin que nada falle.",
   },
   "producto-entrega-de-correo": {
     key: "producto-entrega-de-correo",

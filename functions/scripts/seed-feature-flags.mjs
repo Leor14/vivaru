@@ -129,6 +129,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-calendario-de-cobranza",
+    area: "producto",
+    label: "Calendario de cobranza del conjunto",
+    origen: "PRD-V-FLOW-003 §5.2",
+    // Nace apagada: con ella el conjunto elige cuándo salen sus avisos, y apagada
+    // no sale ninguno por calendario — que es la conducta de hoy.
+    enabled: false,
+  },
+  {
     key: "producto-entrega-de-correo",
     area: "producto",
     label: "Rastro de entrega del correo",

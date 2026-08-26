@@ -347,6 +347,12 @@ beforeAll(async () => {
     });
 
     // FEAT-004. Un certificado de la unidad del residente `resident-1`.
+    // FLOW-003 · ajustes del conjunto, para el calendario de cobranza.
+    await setDoc(doc(db, "tenantSettings", "tenant-a"), {
+      tenantId: "tenant-a",
+      billingCalendar: { noticeDayOfMonth: 5, overdueCycleDays: 15 },
+    });
+
     // FLOW-003 · rastro de entrega. El id ES el del proveedor (§7.1).
     await setDoc(doc(db, "emailDeliveries", "resend-msg-1"), {
       tenantId: "tenant-a",
@@ -2854,6 +2860,82 @@ describe("FEAT-004 · el paz y salvo lo escribe SOLO el servidor", () => {
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
     await assertFails(
       updateDoc(doc(admin.firestore(), "emailDeliveries", "resend-msg-1"), { status: "entregado" }),
+    );
+  });
+
+  // ── FLOW-003 · R5 y R6 en las REGLAS, no solo en el formulario ─────────────
+  //
+  // §11.2: «si solo se valida en el formulario, se salta con una escritura directa».
+  // Y R6 no es cosmético — un ciclo de un día es un correo diario a alguien que debe
+  // dinero. Esto es lo que hace que el mínimo sea una regla y no una sugerencia.
+
+  it("el administrador guarda un calendario válido", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        tenantId: "tenant-a",
+        billingCalendar: { noticeDayOfMonth: 28, overdueCycleDays: 7 },
+      }),
+    );
+  });
+
+  it("R5 · RECHAZA el día 31 — no existe en todos los meses", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        tenantId: "tenant-a",
+        billingCalendar: { noticeDayOfMonth: 31 },
+      }),
+    );
+  });
+
+  it("R6 · RECHAZA un ciclo de 1 día, que es hostigar", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        tenantId: "tenant-a",
+        billingCalendar: { overdueCycleDays: 1 },
+      }),
+    );
+  });
+
+  it("acepta `null` en los dos: desactivado no es un valor inválido", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        tenantId: "tenant-a",
+        billingCalendar: { noticeDayOfMonth: null, overdueCycleDays: null },
+      }),
+    );
+  });
+
+  /**
+   * **La que tolera la AUSENCIA del calendario**, que es el caso de todo conjunto que nunca lo
+   * configuró — o sea, los nueve de hoy. Sin esa tolerancia, la regla intentaría leer un campo de
+   * un mapa que no existe, y en Firestore eso no devuelve `null`: **da error de evaluación y
+   * deniega**. El administrador se quedaría sin poder guardar ningún ajuste.
+   *
+   * **Ojo con cómo se prueba, porque el primer intento no probaba nada.** Un `updateDoc` sobre un
+   * documento que YA tiene calendario llega a la regla con el calendario dentro —`updateDoc` es
+   * una fusión y la regla ve el resultado—, así que la rama de ausencia nunca se ejercitaba: la
+   * prueba pasaba igual con la tolerancia quitada. Hace falta un documento SIN calendario.
+   */
+  it("un conjunto que nunca configuró calendario guarda sus otros ajustes", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      setDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        tenantId: "tenant-a",
+        emailFooterHtml: "<p>Conjunto A</p>",
+      }),
+    );
+  });
+
+  it("un residente no guarda ajustes, calendario válido o no", async () => {
+    const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(resident.firestore(), "tenantSettings", "tenant-a"), {
+        billingCalendar: { noticeDayOfMonth: 5, overdueCycleDays: 15 },
+      }),
     );
   });
 
