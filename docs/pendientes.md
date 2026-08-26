@@ -8,11 +8,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Decidir el orden del estado de cuenta** (ver abajo: ordena por `dueDate`, no por `period`,
-> y su propia cabecera dice lo contrario). Después, **`FLOW-003`**.
+> **`FLOW-003`** (cobranza). Ya puede ir: su adjunto dependía de `FEAT-004`, que quedó
+> **encendida, validada y con el orden del documento corregido** la tarde del 26.
 >
-> `FEAT-004` quedó **encendida y validada en producción** la tarde del 26. `FLOW-001` sigue
-> apagada y seguirá: sin coeficientes sembrados bloquea antes de calcular.
+> `FLOW-001` sigue apagada y seguirá: sin coeficientes sembrados bloquea antes de calcular.
 
 ### ENCENDER ERA EL TERCER ACTO, Y LOS DOS PRIMEROS YA ESTÁN
 
@@ -57,24 +56,30 @@ encendida —la callable llegó a correr—, que la guarda funciona y que nombra
 El estado de cuenta de T2-503 cierra en **4.160.000**, que es R2: el saldo final coincide con la
 cartera.
 
-### PERO EL ESTADO DE CUENTA SALE DESORDENADO, Y ES UNA DECISIÓN PENDIENTE
+### Y EL ORDEN DEL DOCUMENTO, QUE SALÍA MAL — DECIDIDO Y ARREGLADO
 
-En T2-503 los períodos salen **05 · 03 · 04 · 06 · 06 · 06 · 06**, con una columna de saldo
-acumulado al lado. No es un fallo de cálculo —el total es exacto—: `fechaDe()` ordena por
-`dueDate` cuando existe, y **esos cargos de marzo y abril vencen el 28 de mayo**.
+En T2-503 los períodos salían **05 · 03 · 04 · 06**, con una columna de saldo acumulado al lado.
+No era un fallo de cálculo —el total era exacto—: `fechaDe()` ordenaba por `dueDate` cuando
+existe, y **esos cargos de marzo y abril vencen el 28 de mayo**. Alcance: **3 de 221 cargos** en
+producción, los tres de `tenant-santa-maria`; **cero de 171** en staging.
 
-**Alcance medido: 3 de 221 cargos** en producción tienen `dueDate` de otro mes que su `period`,
-y los tres son de `tenant-santa-maria`. En staging, **cero de 171**.
+**Decisión de David: se ordena por `period`.** `dueDate` se sigue enseñando y desempata dentro
+del mismo mes; ya no manda. Desplegado en `rollout-2026-08-26-002` y visto en pantalla:
+`03 · 04 · 05 · 06`, con el saldo final **intacto en 4.160.000**.
 
-> **Y hay una frase falsa dentro del propio fichero.** La cabecera de
-> `src/features/billing/estado-de-cuenta.ts` dice «**se ordena por `period`, NO por `dueDate`**».
-> Eso es cierto de la CONSULTA —un `orderBy dueDate` descartaría el 27% de cargos que no lo
-> traen— y **falso del `sort` en memoria**, que prefiere `dueDate`. Quien lea esa cabecera para
-> tocar el orden va a partir de algo que no es.
+De paso cae algo que nadie había decidido: comparaba `"2026-05"` con `"2026-05-28"` —cadenas de
+distinta longitud—, así que un cargo **sin** vencimiento caía siempre antes que uno fechado del
+mismo mes.
 
-**No se tocó**: ordenar por vencimiento un documento de deuda es defendible, y cuál de los dos
-órdenes quiere el documento que se entrega es decisión de negocio. Lo que no puede quedarse es
-la cabecera diciendo una cosa y el código haciendo otra.
+> **POR QUÉ LLEGÓ A PRODUCCIÓN, QUE ES LO QUE HAY QUE APRENDER.** Había **once** pruebas sobre
+> ese fichero y **todas usan cargos que vencen en su propio mes**. Con eso, ordenar por fecha o
+> por período **da el mismo resultado**: el defecto no se podía manifestar aunque estuviera. Se
+> añadió el caso real —marzo venciendo el 28 de mayo— y se falsó revirtiendo el orden: **falla
+> exactamente la nueva y las once pasan**. Eso es lo que prueba que estaban ciegas.
+>
+> La cabecera del fichero, además, **afirmaba lo que el código no hacía** («se ordena por
+> `period`, NO por `dueDate`»): era cierto de la consulta y falso del `sort`. Ahora lo dice
+> separado.
 
 ### `FIX-002` QUEDA CERRADA DEL TODO
 
@@ -149,7 +154,7 @@ Y el segundo llegó a imprimir «Guarda EN VERDE» sobre **cero** documentos en 
 | **Functions** | **81 · todas `ACTIVE`** · 77 `export const` + 4 re-exports = 81, sin sobrantes ni ausentes | **81**, mismos nombres |
 | **`firestore.rules`** | ruleset `60d9dd0f-…` · **idéntico byte a byte al repo** | `b38e118f-…` · **idéntico byte a byte** |
 | **`storage.rules`** | `266b7153-…`, **del 19 de agosto** — sin tocar, como se decidió | `7d20c81d-…`, del 25 |
-| **Front** | **`rollout-2026-08-26-001` → `SUCCEEDED`, build `READY` de `master` / `4769085`** (26 ago, 21:24 UTC). `origin/master` = `origin/develop` | — |
+| **Front** | **`rollout-2026-08-26-002` → `SUCCEEDED`, build `READY` de `master` / `02837be`** (26 ago, 22:12 UTC). `origin/master` = `origin/develop` | — |
 | **Banderas** | 16 documentos · `producto-prorrateo-de-gastos` y `producto-estado-de-cuenta` **no existen** | 17 · las dos en `false`, con override a `true` en `cliente-convertido-08011856-421616` |
 
 Los cuatro programados de producción se pusieron al día a las **15:09 UTC**, no en la pasada
@@ -175,8 +180,7 @@ grande de la mañana. Eso solo se ve midiendo `updateTime` función por función
    Comprobado en pantalla: en la cartera no aparece el estado de cuenta ni el paz y salvo, y el
    menú de acciones de un egreso da solo «Ver detalle · Editar · Eliminar», sin «Repartir».
 2. ~~Encender `producto-estado-de-cuenta`~~ — **hecha y validada** la tarde del 26.
-3. **Decidir el orden del estado de cuenta**: por `period` o por `dueDate`. Y corregir la
-   cabecera de `estado-de-cuenta.ts`, que hoy afirma lo que el código no hace.
+3. ~~Decidir el orden del estado de cuenta~~ — **por `period`, hecho y desplegado**.
 4. **`producto-prorrateo-de-gastos` sigue apagada**: con 0 de 88 unidades con coeficiente y 74 de
    87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular. `FLOW-001` queda
    desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
