@@ -8,7 +8,7 @@
 | **Módulo** | Cartera |
 | **Usuario principal** | `tenant_admin` · `resident` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 cerrada por David el 21 de agosto de 2026 |
+| **Estado** | **MVP CONSTRUIDO Y EN STAGING** — versión 1.1 (25 de agosto de 2026, `453619a`…`5244e3e`). Estado de cuenta con su PDF, certificado con emisión y anulación, portal del residente y cartera del administrador, y el lote. **Pendiente de validar por navegador.** **NO está en producción** |
 | **Dependencias** | Ninguna bloqueante. **Habilita `PRD-V-FLOW-003`**, que adjunta este documento al correo de cobranza |
 | **Riesgo** | **Medio.** El paz y salvo es un documento que se usa ante terceros |
 | **Reversibilidad** | **Total** por bandera |
@@ -160,7 +160,7 @@ le sirve. Poner una caducidad automática sería inventar una regla que ningún 
 | **R3** | Un paz y salvo **solo se emite si el saldo total a `asOfDate` es cero** |
 | **R4** | Un saldo **a favor** no impide emitirlo; el documento lo nombra |
 | **R5** | Un cargo **anulado** no cuenta ni en el estado de cuenta ni en el saldo |
-| **R6** | El certificado declara **la fecha a la que acredita**, que puede ser anterior a hoy |
+| **R6** | El certificado declara **la fecha a la que acredita**. **La segunda mitad —que pueda ser anterior a hoy— NO se implementa**: exige saber qué se debía ese día, y los cargos tienen fecha pero **los pagos no** (de 90 cargos con pago en producción solo 50 traen `lastPaymentAt`; `ledgerEntries` no tiene `unitId`). Un certificado retroactivo contaría como cobrados pagos posteriores a la fecha y certificaría al día a quien no lo estaba — en un papel que se entrega a un tercero. Entra cuando los pagos tengan fecha |
 | **R7** | El código del certificado es **derivado del id, no correlativo** — misma decisión que el recibo tras el 20 ago 2026 |
 | **R8** | Anular un certificado exige motivo y queda con autor y fecha |
 | **R9** | El residente solo accede a los de **su** unidad |
@@ -213,7 +213,7 @@ qué dirección —la del solicitante, la del propietario, la de un tercero— y
 | **Ver el estado de cuenta** | **Cliente directo** | Lectura de dos colecciones con `tenantId`; las reglas la protegen. El cálculo del saldo acumulado es presentación |
 | **Emitir el paz y salvo** | **Callable** | **La condición «saldo cero» no puede evaluarla el cliente**: es el único requisito del documento y un cliente manipulado emitiría uno falso. El servidor lee, comprueba y emite |
 | **Anular un certificado** | **Callable** | Escritura con motivo y auditoría |
-| **Emisión en lote** | **Callable** | N documentos y ficheros en Storage |
+| **Emisión en lote** | ~~Callable~~ → **navegador, un archivo** | **Corregido al construir: esta fila y §11.3 se contradecían.** §11.3 prohíbe una segunda forma de hacer PDF, y el generador es `jspdf` **en el navegador**: no puede correr en una callable. Y guardarlos en Storage contradiría §7.1, que decide que el estado de cuenta **no se persiste** «porque crearía una segunda verdad». Se entrega **un PDF con una unidad por página** |
 
 **La emisión del certificado es el ejemplo de libro de por qué existe esta decisión.**
 
@@ -224,8 +224,14 @@ de su unidad** (`residentOwnUnit`, `firestore.rules:27`); **escritura solo desde
 
 ### 11.3 Índices y banderas
 
-- **Índices:** `clearanceCertificates` por `tenantId` + `unitId`; `billingStatements` por
-  `tenantId` + `unitId` + `dueDate`.
+- **Índices:** `clearanceCertificates` por `tenantId` + `unitId`. **El segundo que pedía esta
+  sección —`billingStatements` por `tenantId` + `unitId` + `dueDate`— NO se creó, y no es un
+  olvido.** `dueDate` es opcional y **falta en el 27% de los cargos de producción** (60 de 221);
+  un `orderBy` descarta los documentos que no traen el campo, así que ordenar por ahí perdería uno
+  de cada cuatro movimientos **y rompería R2 en silencio** — el saldo dejaría de coincidir con la
+  cartera. No daría error: daría un número más pequeño. Se ordena por `period`, que está en el
+  100%, y en memoria. Es el mismo defecto que el 24 de agosto dejó a un residente viendo «Sin
+  documentos» teniendo ocho.
 - **Bandera:** `account-statement`.
 - **Reutiliza** el generador de PDF del recibo. No se introduce una segunda forma de hacer PDF.
 
