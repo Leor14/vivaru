@@ -50,7 +50,6 @@ const CLAVES = [
   "producto-concepto-al-libro",
   "producto-anticipos",
   "producto-pago-multiple",
-  "producto-multiconjunto",
   "producto-prorrateo-de-gastos",
   "producto-estado-de-cuenta",
   "operacion-app-check-monitor",
@@ -59,6 +58,31 @@ const CLAVES = [
 if (!projectId || !tenantId || !clave || (valorCrudo !== "true" && valorCrudo !== "false")) {
   console.error("Uso: node mover-bandera-de-conjunto.mjs <projectId> <tenantId> <clave> <true|false>");
   console.error("Claves:", CLAVES.join(", "));
+  process.exit(1);
+}
+
+/**
+ * **Banderas que SOLO se mueven en global, y por qué no basta con advertirlo.**
+ *
+ * `producto-multiconjunto` gobierna el selector de conjunto, que es un control
+ * de NAVEGACIÓN — y un control de navegación no puede desaparecer como
+ * consecuencia de navegar. La bandera se resuelve contra el conjunto ACTIVO
+ * (`src/lib/feature-flags/provider.tsx:59`), así que apagarla en uno solo deja a
+ * quien salte ahí **sin selector y sin forma de volver**: al reentrar,
+ * `lastActiveTenantId` lo devuelve al mismo sitio.
+ *
+ * El catálogo del cliente ya lo advertía en su `alApagar` desde que nació, y
+ * este script la aceptaba igual. **Advertido no es impedido**, y una advertencia
+ * que no impide se lee el día que se escribe y ninguno más.
+ */
+const SOLO_GLOBAL = {
+  "producto-multiconjunto":
+    "gobierna el selector de conjunto. Apagarla en UNO deja encerrado a quien esté parado ahí: pierde el selector y no puede volver a los demás sin cerrar sesión.",
+};
+
+if (SOLO_GLOBAL[clave]) {
+  console.error(`«${clave}» NO se mueve por conjunto: ${SOLO_GLOBAL[clave]}`);
+  console.error(`Usa el movedor global:  node functions/scripts/mover-bandera.mjs ${projectId} ${clave} ${valorCrudo}`);
   process.exit(1);
 }
 

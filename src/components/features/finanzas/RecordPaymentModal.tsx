@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Modal } from "@/components/shared/modal";
 import { Button } from "@/components/ui/button";
+import { ConjuntoActivoNota } from "@/components/shared/conjunto-activo-nota";
 import { Input } from "@/components/ui/input";
 import { watchPeople, type PersonItem } from "@/features/admin/services";
 import { useAuth } from "@/features/auth/auth-context";
@@ -548,6 +549,9 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                   onChange={(event) => setPayerTaxId(event.target.value)}
                   placeholder="Documento de identidad"
                 />
+              </div>
+              <div className="mt-3">
+                <ConjuntoActivoNota accion="Se registra" />
               </div>
               <div className="mobile-action-group">
                 <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={onClose}>

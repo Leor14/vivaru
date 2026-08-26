@@ -5,6 +5,7 @@ import { AlertTriangle, Info } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ConjuntoActivoNota } from "@/components/shared/conjunto-activo-nota";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import {
@@ -371,6 +372,8 @@ export function RepartirEgresoModal({
             </div>
           </>
         ) : null}
+
+        <ConjuntoActivoNota accion="Se reparte" />
 
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onClose}>

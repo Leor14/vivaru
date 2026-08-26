@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { ConjuntoActivoNota } from "@/components/shared/conjunto-activo-nota";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/shared/modal";
 import {
@@ -204,6 +205,9 @@ export function CoefficientCampaignDialog({
         </div>
       ) : null}
 
+      <div className="mt-4">
+        <ConjuntoActivoNota accion="Se generan las cuotas" />
+      </div>
       <div className="mt-4 flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={() => { reset(); onClose(); }}>
           Cancelar
