@@ -1,6 +1,8 @@
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 
+import { isFeatureEnabled } from "./feature-flags";
+
 // Secret de Resend (se setea con: firebase functions:secrets:set RESEND_API_KEY).
 export const resendApiKey = defineSecret("RESEND_API_KEY");
 
@@ -166,6 +168,11 @@ export async function registrarEnvio(
   input: { to: string; subject: string },
 ): Promise<void> {
   try {
+    // **La bandera se comprueba EN EL SERVIDOR**, que es lo que la convierte en freno y no en
+    // botón. Apagada, no se escribe una sola fila — y por tanto el webhook tampoco tendrá nada
+    // que mover, que es la forma coherente de que «apagado» signifique apagado.
+    if (!(await isFeatureEnabled("producto-entrega-de-correo", ctx.tenantId))) return;
+
     await db().collection("emailDeliveries").doc(providerMessageId).set({
       tenantId: ctx.tenantId,
       providerMessageId,

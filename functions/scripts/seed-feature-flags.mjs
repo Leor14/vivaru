@@ -129,6 +129,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-entrega-de-correo",
+    area: "producto",
+    label: "Rastro de entrega del correo",
+    origen: "PRD-V-FLOW-003 §11.3",
+    // Nace apagada: sin ella no se escribe una sola fila de `emailDeliveries`, y
+    // por tanto tampoco hay nada que el webhook pueda mover.
+    enabled: false,
+  },
+  {
     key: "producto-estado-de-cuenta",
     area: "producto",
     label: "Estado de cuenta y paz y salvo",

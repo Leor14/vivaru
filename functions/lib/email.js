@@ -7,6 +7,7 @@ exports.sendNotificationEmail = sendNotificationEmail;
 exports.sendAccountEmail = sendAccountEmail;
 const firestore_1 = require("firebase-admin/firestore");
 const params_1 = require("firebase-functions/params");
+const feature_flags_1 = require("./feature-flags");
 // Secret de Resend (se setea con: firebase functions:secrets:set RESEND_API_KEY).
 exports.resendApiKey = (0, params_1.defineSecret)("RESEND_API_KEY");
 // Remitente verificado en Resend (dominio notificaciones.grupovivaru.com).
@@ -129,6 +130,11 @@ const db = () => (0, firestore_1.getFirestore)();
  */
 async function registrarEnvio(providerMessageId, ctx, input) {
     try {
+        // **La bandera se comprueba EN EL SERVIDOR**, que es lo que la convierte en freno y no en
+        // botón. Apagada, no se escribe una sola fila — y por tanto el webhook tampoco tendrá nada
+        // que mover, que es la forma coherente de que «apagado» signifique apagado.
+        if (!(await (0, feature_flags_1.isFeatureEnabled)("producto-entrega-de-correo", ctx.tenantId)))
+            return;
         await db().collection("emailDeliveries").doc(providerMessageId).set({
             tenantId: ctx.tenantId,
             providerMessageId,

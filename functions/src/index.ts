@@ -2,7 +2,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -14,6 +14,7 @@ import { anonymizeExpiredEmailDeliveries, anonymizeExpiredVouchers, purgeExpired
 import { currencyForCountry } from "./country-currency";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
+import { aplicarEventoDeCorreo, resendWebhookSecret, verificarFirmaSvix } from "./email-webhook";
 import {
   addSupportInternalNote,
   closeSupportTicket,
@@ -3778,6 +3779,69 @@ export const anonymizeExpiredVouchersDaily = onSchedule("every day 03:00", async
   const correos = await anonymizeExpiredEmailDeliveries(db);
   console.log(`[data-retention] Anonimizadas ${correos} fila(s) de emailDeliveries.`);
 });
+
+// ── FLOW-003 · el webhook de entregabilidad ──────────────────────────────────
+//
+// **La PRIMERA función HTTP del producto.** Todo lo demás son callables y procesos
+// programados, así que esto abre una superficie nueva: la llama un servidor ajeno,
+// no un navegador nuestro, y por eso `cors` y `callableCorsOrigins` no pintan nada.
+//
+// El secreto lo pone el USUARIO, nunca el agente:
+//   firebase functions:secrets:set RESEND_WEBHOOK_SECRET
+// y tiene que existir ANTES de desplegar, o la función no arranca.
+export const resendWebhook = onRequest(
+  { secrets: [resendWebhookSecret], invoker: "public", region: "us-central1" },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("method not allowed");
+      return;
+    }
+
+    // **El cuerpo CRUDO, no el parseado.** Lo firmado es el byte a byte que viajó;
+    // volver a serializar el JSON cambiaría un espacio y la firma dejaría de casar,
+    // con un síntoma que parece un problema de claves y no lo es.
+    const crudo = req.rawBody ? req.rawBody.toString("utf8") : "";
+
+    const firma = verificarFirmaSvix(
+      resendWebhookSecret.value(),
+      {
+        id: req.header("svix-id"),
+        timestamp: req.header("svix-timestamp"),
+        signature: req.header("svix-signature"),
+      },
+      crudo,
+      Math.floor(Date.now() / 1000),
+    );
+
+    if (!firma.ok) {
+      // No se dice al que llama POR QUÉ falló: un atacante afinando su intento
+      // aprende de cada matiz. En el log sí, que es donde hace falta.
+      console.warn("[email-webhook] firma rechazada:", firma.motivo);
+      res.status(401).send("unauthorized");
+      return;
+    }
+
+    let evento: unknown;
+    try {
+      evento = JSON.parse(crudo);
+    } catch {
+      res.status(400).send("bad request");
+      return;
+    }
+
+    try {
+      const r = await aplicarEventoDeCorreo(db, evento as { type?: unknown; data?: { email_id?: unknown } });
+      // **Siempre 200 cuando la firma es válida**, incluso si el evento se ignora.
+      // Un 4xx o un 5xx hace que el proveedor REINTENTE, y reintentar un evento que
+      // nunca vamos a poder aplicar es ruido eterno.
+      res.status(200).json({ resultado: r });
+    } catch (e) {
+      console.error("[email-webhook] fallo al aplicar el evento", e);
+      // Aquí sí conviene el 500: es un fallo NUESTRO y el reintento puede salvarlo.
+      res.status(500).send("internal");
+    }
+  },
+);
 
 // ── G4 · Observabilidad: captura de errores no controlados del cliente ────────
 // El front llama este callable (best-effort) ante un error no manejado. Escribe

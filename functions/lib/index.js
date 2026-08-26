@@ -36,8 +36,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTrialWorkspace = exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = void 0;
+exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -54,6 +54,7 @@ const data_retention_1 = require("./data-retention");
 const country_currency_1 = require("./country-currency");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
+const email_webhook_1 = require("./email-webhook");
 const support_1 = require("./support");
 const advances_1 = require("./advances");
 const audit_1 = require("./audit");
@@ -3035,6 +3036,57 @@ exports.anonymizeExpiredVouchersDaily = (0, scheduler_1.onSchedule)("every day 0
     // colección. Borrarla cumpliría la retención destruyendo el indicador.
     const correos = await (0, data_retention_1.anonymizeExpiredEmailDeliveries)(db);
     console.log(`[data-retention] Anonimizadas ${correos} fila(s) de emailDeliveries.`);
+});
+// ── FLOW-003 · el webhook de entregabilidad ──────────────────────────────────
+//
+// **La PRIMERA función HTTP del producto.** Todo lo demás son callables y procesos
+// programados, así que esto abre una superficie nueva: la llama un servidor ajeno,
+// no un navegador nuestro, y por eso `cors` y `callableCorsOrigins` no pintan nada.
+//
+// El secreto lo pone el USUARIO, nunca el agente:
+//   firebase functions:secrets:set RESEND_WEBHOOK_SECRET
+// y tiene que existir ANTES de desplegar, o la función no arranca.
+exports.resendWebhook = (0, https_1.onRequest)({ secrets: [email_webhook_1.resendWebhookSecret], invoker: "public", region: "us-central1" }, async (req, res) => {
+    if (req.method !== "POST") {
+        res.status(405).send("method not allowed");
+        return;
+    }
+    // **El cuerpo CRUDO, no el parseado.** Lo firmado es el byte a byte que viajó;
+    // volver a serializar el JSON cambiaría un espacio y la firma dejaría de casar,
+    // con un síntoma que parece un problema de claves y no lo es.
+    const crudo = req.rawBody ? req.rawBody.toString("utf8") : "";
+    const firma = (0, email_webhook_1.verificarFirmaSvix)(email_webhook_1.resendWebhookSecret.value(), {
+        id: req.header("svix-id"),
+        timestamp: req.header("svix-timestamp"),
+        signature: req.header("svix-signature"),
+    }, crudo, Math.floor(Date.now() / 1000));
+    if (!firma.ok) {
+        // No se dice al que llama POR QUÉ falló: un atacante afinando su intento
+        // aprende de cada matiz. En el log sí, que es donde hace falta.
+        console.warn("[email-webhook] firma rechazada:", firma.motivo);
+        res.status(401).send("unauthorized");
+        return;
+    }
+    let evento;
+    try {
+        evento = JSON.parse(crudo);
+    }
+    catch {
+        res.status(400).send("bad request");
+        return;
+    }
+    try {
+        const r = await (0, email_webhook_1.aplicarEventoDeCorreo)(db, evento);
+        // **Siempre 200 cuando la firma es válida**, incluso si el evento se ignora.
+        // Un 4xx o un 5xx hace que el proveedor REINTENTE, y reintentar un evento que
+        // nunca vamos a poder aplicar es ruido eterno.
+        res.status(200).json({ resultado: r });
+    }
+    catch (e) {
+        console.error("[email-webhook] fallo al aplicar el evento", e);
+        // Aquí sí conviene el 500: es un fallo NUESTRO y el reintento puede salvarlo.
+        res.status(500).send("internal");
+    }
 });
 exports.logClientError = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins }, async (request) => {
     const message = normalizeText(request.data?.message).slice(0, 2000);

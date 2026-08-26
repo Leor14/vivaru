@@ -60,6 +60,7 @@ export type FeatureFlagKey =
   | "producto-multiconjunto"
   | "producto-prorrateo-de-gastos"
   | "producto-estado-de-cuenta"
+  | "producto-entrega-de-correo"
   | "operacion-app-check-monitor";
 
 /**
@@ -103,6 +104,7 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-prorrateo-de-gastos": false,
   // Apagada = sin estado de cuenta ni paz y salvo. Ver el catálogo en `src/`.
   "producto-estado-de-cuenta": false,
+  "producto-entrega-de-correo": false,
   "operacion-app-check-monitor": true,
 };
 

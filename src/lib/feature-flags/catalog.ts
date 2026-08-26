@@ -72,6 +72,7 @@ export type FeatureFlagKey =
   | "producto-multiconjunto"
   | "producto-prorrateo-de-gastos"
   | "producto-estado-de-cuenta"
+  | "producto-entrega-de-correo"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -208,6 +209,19 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-001 §11.3 — prorrateo de un gasto entre las unidades",
     alApagar:
       "Desaparece «Repartir entre unidades» del egreso. **Lo ya repartido NO se deshace**: los cargos creados siguen vivos y se cobran. Para deshacerlos hay que anular la corrida ANTES de apagarla, porque apagada tampoco se puede anular. Un cargo con pagos aplicados no se anula en lote en ningún caso: eso es `revertirPago`.",
+  },
+  "producto-entrega-de-correo": {
+    key: "producto-entrega-de-correo",
+    area: "producto",
+    label: "Rastro de entrega del correo",
+    description:
+      "Deja constancia de cada correo enviado y de qué le pasó — entregado, rebotado o marcado como spam—, para poder corregir el contacto de quien no lo recibe.",
+    // Nace APAGADA: sin ella no se escribe una sola fila, así que encenderla es lo
+    // que empieza a acumular el rastro. Apagarla NO borra lo ya acumulado.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-003 §11.3 — entrega medida",
+    alApagar:
+      "Dejan de registrarse los envíos nuevos. **Lo ya registrado NO se borra** y el webhook sigue pudiendo mover esas filas, para que un rebote que llega tarde no se pierda. Lo que desaparece es el rastro de lo que se mande a partir de ese momento, y con él la lista de rebotes deja de crecer: alguien puede quedarse sin recibir avisos y nadie se enteraría.",
   },
   "producto-estado-de-cuenta": {
     key: "producto-estado-de-cuenta",
