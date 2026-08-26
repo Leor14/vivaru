@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` — es quien deja de ver lo suyo |
 | **Usuarios secundarios** | `tenant_admin` · `security_guard` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **MVP CERRADO EN LOS DOS AMBIENTES** (26 ago 2026): cero documentos fuera de convención en los diecinueve conjuntos. Queda **desplegar la semilla corregida a producción**, que va en el lote de `FLOW-001`/`FEAT-004`. Ver §16 |
+| **Estado** | **MVP CERRADO EN LOS DOS AMBIENTES** (26 ago 2026): cero fuera de convención en los diecinueve conjuntos, 250 documentos migrados. Quedan los huérfanos de `tenant-santa-maria` (decisión, §17) y **desplegar la semilla corregida a producción**, que va en el lote de `FLOW-001`/`FEAT-004`. Ver §16 y §17 |
 | **Dependencias** | Ninguna bloqueante. **Bloquea** cualquier funcionalidad nueva que resuelva persona↔unidad, y ya condicionó a `PRD-V-FEAT-004` |
 | **Riesgo** | **Alto.** Toca la raíz de los permisos del residente y reescribe el campo del que cuelgan quince colecciones |
 | **Reversibilidad** | **Parcial, y hay que decirlo en primera línea.** La migración es reversible **solo si se guarda el valor anterior en cada documento tocado**; sin eso, no hay vuelta atrás. Ver §13 |
@@ -480,3 +480,49 @@ defecto entero: la membresía apuntaba al id y la semilla escribía el slug.
   la pista; reasignarlos es decisión de negocio, no de migración.
 - `tenant-nogal-bogota` → **15 bajo tres claves**, una de ellas en `tenantUsers`: **hay un residente
   que hoy no ve nada y esta migración no lo arregla.** Es lo primero de Fase 2.
+
+---
+
+## 17. El hallazgo que salió del último huérfano (26 de agosto de 2026)
+
+Al ir a resolver el único conjunto que quedaba BLOQUEADO —`tenant-nogal-bogota`, con quince
+huérfanos y **una membresía de residente entre ellos**— resultó que no era un problema de claves.
+
+**`units` es una colección RAÍZ: el id de documento es global.** Se filtra por `tenantId`, pero el
+id **no vive dentro del conjunto**. `seed-data-co.mjs` y `seed-data-playas.mjs` declaraban los
+mismos cinco —`t1-101`, `t1-102`, `t2-201`, `t2-202`, `t2-204`—, así que no cabían las dos: la que
+sembró última se quedó el documento con SU `tenantId` y **a El Nogal le desaparecieron cinco
+unidades**. `juan.herrera@elnogal.co` abría su portal y no veía nada.
+
+Desde `b2ddf68` (10 de mayo de 2026), **en los dos ambientes y con las mismas cinco**. No es un
+accidente de una corrida: es determinista.
+
+> **Lo encontró un error, no una búsqueda.** El script de reparación reventó con `ALREADY_EXISTS`
+> sobre un documento que la consulta por `tenantId` no devolvía. Ese `ALREADY_EXISTS` era el dato.
+
+### Qué se hizo
+
+| | |
+|---|---|
+| **El dato** | Cinco unidades recreadas con id prefijado (`nogal-t1-101`…), y sus documentos migrados por el camino normal: 18 en staging, 15 en producción. **El Nogal queda LIMPIO** |
+| **La semilla** | `seed-data-co.mjs` usa los ids prefijados. El campo `unitId` sigue siendo el slug: ahí no hay colisión posible, y confundir las dos cosas causó esto |
+| **La guarda** | `functions/tests/semillas-ids-de-unidad.test.ts`: ninguna semilla puede declarar un id que ya declara otra |
+| **La herramienta** | `functions/scripts/restaurar-unidades-de-la-semilla.mjs`. Crea **solo lo que una semilla DECLARA** y no existe —restaurar no es inventar—, nunca toca una unidad viva, y mide con el resolvedor cuántos huérfanos dejarían de serlo |
+
+### Y su gemelo, en el mismo fichero
+
+Con `asCustomer` no se siembra y no hay unidades, pero `trial-workspace.ts` le fijaba igualmente
+`${tenantId}--t1-101` al residente de prueba: **una clave que no existiría nunca**. Dos conjuntos
+de staging seguían así. Ahora solo se asigna si de verdad se va a sembrar — sin unidad se ve igual
+de vacío, pero **se ve que falta asignarla**, y se puede. Es la diferencia entre un hueco y una
+mentira.
+
+### Lo que queda decidido a medias
+
+`tenant-santa-maria` es el único BLOQUEADO, con 31 huérfanos en tres grupos. **Ninguno lleva dinero
+ni deja a un residente sin ver lo suyo**: 27 invitaciones y firmas bajo `G1bWNzZJuakw9KRoAx7p` —una
+unidad que ya no existe—, 3 invitaciones bajo `unit-t2-503` y 1 paquete bajo `unit-torre-1-403`.
+
+Los tres tienen **hermanos con etiqueta que resuelven**, y el informe lo dice. Reasignarlos por esa
+vía sería una extensión de R2 —el valor lo prueba un documento hermano, no el propio— y **está sin
+decidir**: es exactamente el tipo de inferencia que D2 dejó fuera del MVP.

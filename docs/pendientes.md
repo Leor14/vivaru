@@ -18,12 +18,37 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decisión, no la de esta ficha.
 
 **`FIX-002` ESTÁ CERRADO EN LOS DOS AMBIENTES: cero documentos fuera de convención en los
-diecinueve conjuntos.** Cuatro commits, de `ae45216` a `7a49de7`.
+diecinueve conjuntos.** Seis commits, de `ae45216` a `cbd6ddf`.
+
+### Y el hallazgo grande vino después, tirando del último huérfano
+
+**`units` es una colección RAÍZ: el id de documento es global, no vive dentro del conjunto.**
+`seed-data-co.mjs` y `seed-data-playas.mjs` declaraban los mismos cinco ids —`t1-101`, `t1-102`,
+`t2-201`, `t2-202`, `t2-204`—, así que **no cabían las dos**. Ganó Las Playas y **a El Nogal le
+desaparecieron cinco unidades**, dejando quince documentos huérfanos y, entre ellos, la membresía
+de `juan.herrera@elnogal.co`: abría su portal y **no veía absolutamente nada**.
+
+Desde `b2ddf68` (10 de mayo de 2026), **en los dos ambientes y con las mismas cinco**: no es un
+accidente de una corrida, es determinista. `trial-seed.ts` ya lo sabía —prefija con
+`${tenantId}--` y su cabecera lo explica—; las semillas demo no.
+
+> **Lo encontró un error, no una búsqueda.** El script de reparación reventó con `ALREADY_EXISTS`
+> sobre un documento que la consulta por `tenantId` no devolvía. **Ese `ALREADY_EXISTS` era el
+> hallazgo.**
+
+Reparado en los dos: cinco unidades con id prefijado, 18 documentos migrados en staging y 15 en
+producción. **El Nogal queda LIMPIO** y los huérfanos bajan de 23 a 5 en staging y de 46 a 31 en
+producción. `semillas-ids-de-unidad.test.ts` vigila que no vuelva a pasar.
+
+**Y su gemelo, en el mismo fichero.** Con `asCustomer` no se siembra y no hay unidades, pero
+`trial-workspace.ts` le fijaba igualmente `${tenantId}--t1-101` al residente de prueba: una clave
+que no existiría nunca. Dos conjuntos de staging seguían así. Ahora solo se le asigna unidad si de
+verdad se va a sembrar — **sin unidad se ve igual de vacío, pero se ve que FALTA asignarla**.
 
 | | |
 |---|---|
-| **Staging** | 122 documentos migrados en cinco conjuntos · los diez dan cero · **`createTrialWorkspace` desplegada** (solo esa; el resto del árbol no se tocó) |
-| **Producción** | **95 documentos migrados** en cuatro conjuntos · los nueve dan cero · **ninguna function desplegada** |
+| **Staging** | 140 documentos migrados en seis conjuntos · los diez dan cero · 5 huérfanos · **`createTrialWorkspace` desplegada** (solo esa) |
+| **Producción** | **110 documentos migrados** en cinco conjuntos · los nueve dan cero · 31 huérfanos · **ninguna function desplegada** |
 
 **Y la fábrica está probada arreglada, no solo corregida.** Se desplegó `createTrialWorkspace` en
 staging, se sembró un conjunto de usar y tirar con la semilla nueva y el informe lo dio **LIMPIO**:
@@ -77,8 +102,11 @@ tienen etiqueta o no casan. El informe los agrupa por valor para que se puedan d
 - `tenant-santa-maria` → **27 documentos bajo `G1bWNzZJuakw9KRoAx7p`**, una unidad que ya no
   existe. **Sus hermanos CON etiqueta resuelven a `DFPjKffOOGZXRjzlScxk` (T1-403)** — la pista está
   medida, la decisión es de negocio.
-- `tenant-nogal-bogota` → **15 bajo `t2-204`, `t1-101` y `t1-102`**, uno de ellos un `tenantUsers`:
-  **hay un residente que hoy no ve nada y la migración no lo arregla.**
+- ~~`tenant-nogal-bogota`~~ → **RESUELTO**: no eran huérfanos, eran cinco unidades robadas por otra
+  semilla. Ver arriba.
+- En staging quedan **5**, todos memoria de altas `asCustomer` viejas (`cliente-david`,
+  `cliente-nuevo`): membresías de residente de prueba apuntando a una unidad que nunca se sembró.
+  El código ya no las crea; estas cinco son conjuntos de prueba y se pueden dejar o limpiar a mano.
 
 ### CA10, medido después: cada peso cuelga de una unidad real
 
@@ -107,9 +135,14 @@ no de memoria. No hay cliente real al que avisar.
 
 ### Lo siguiente, después de la migración
 
-**Fase 2 de la ficha**: los 35 sitios de lectura que sigan siendo defecto —con el dato unificado la
-mayoría deja de serlo—, retirar `unitIdPrevio` cuando la migración se cierre, y decidir qué se hace
-con los huérfanos. Después, **`FLOW-003`** (cobranza), que necesita `FEAT-004`.
+**Decidir los 31 huérfanos de `tenant-santa-maria`**, que es lo único que queda BLOQUEADO. Son
+tres grupos y **ninguno lleva dinero ni bloquea a un residente** —27 invitaciones y firmas bajo
+`G1bWNzZJuakw9KRoAx7p`, una unidad que ya no existe; 3 invitaciones bajo `unit-t2-503`; 1 paquete
+bajo `unit-torre-1-403`—. Los tres tienen **hermanos con etiqueta que resuelven** y el informe lo
+dice; reasignarlos por esa vía es una extensión de R2 que no está decidida.
+
+Después: **Fase 2** —los 35 sitios de lectura que sigan siendo defecto y retirar `unitIdPrevio`—
+y **`FLOW-003`** (cobranza), que necesita `FEAT-004`.
 
 ### Dos cosas anotadas que no se tocaron
 
