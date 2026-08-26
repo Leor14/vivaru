@@ -4,110 +4,91 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (madrugada)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (`FIX-002`)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Ejecutar `PRD-V-FIX-002`: construir el resolvedor único de clave de unidad y arreglar la
-> semilla del trial, y solo después migrar conjunto a conjunto guardando `unitIdPrevio`.**
+> **Migrar los CUATRO conjuntos de producción que quedan partidos.** El resolvedor, la semilla,
+> el informe y la migración están construidos, probados y **ejecutados enteros en staging**; el
+> seco de producción está medido y cuadra. Lo único que falta es la escritura:
 >
-> El orden importa y está en su §13: **si se migra primero, el producto sigue escribiendo la
-> convención vieja mientras se limpia**. La ficha está lista para desarrollo, con D1 (gana el id
-> del documento) y D2 (los huérfanos ambiguos fuera del MVP) ya cerradas.
+> ```
+> node functions/scripts/informe-claves-de-unidad.mjs hogaru-1 --json /tmp/prod-antes.json
+> node functions/scripts/migrar-claves-de-unidad.mjs hogaru-1 <conjunto> --informe /tmp/prod-antes.json --escribir --si-produccion
+> ```
 >
-> **Y es otra superficie que lo de esta sesión: son datos de producción, no construcción.**
+> Los cuatro, en este orden: `pXHEn5iWKWgX4sDF9tVp` (5 docs) · `queretarock-229-fc4c57` (30) ·
+> `residencial-qintilab-mx-9c1293` (30) · `tenant-santa-maria` (30).
 
+**`FIX-002` ESTÁ CONSTRUIDO Y CERRADO EN STAGING: cero documentos fuera de convención en los diez
+conjuntos.** Dos commits, `ae45216` y `92be707`.
 
-**DOS MVP EN STAGING Y NINGUNO EN PRODUCCIÓN, y las dos veces por decisión.** `FLOW-001`
-(prorrateo) y `FEAT-004` (estado de cuenta y paz y salvo) están construidos, desplegados en
-staging y **validados por navegador contra la base**. Dieciocho commits, de `453619a` a `6c24fbf`.
+### Lo que se construyó
 
-**Y el hallazgo de la jornada no es ninguno de los dos: es que el dato que ata una persona con su
-unidad está partido en dos.** Salió validando, obligó a arreglar el paz y salvo **tres veces**, y
-tiene ficha propia: `PRD-V-FIX-002`, lista para desarrollo.
-
-### `FIX-002` es lo siguiente, y es lo que más pesa
-
-**Conviven dos convenciones de `unitId`** —el id del documento de la unidad y su campo `unitId`,
-que es un slug— y encima hay documentos que no casan con ninguna de las dos.
-
-| Medido el 25 de agosto en producción | |
+| Pieza | Dónde |
 |---|---|
-| Unidades con el id distinto del campo | **34 de 88** |
-| `billingStatements` | 197 por id · **19 por campo** · **5 huérfanos** |
-| Conjuntos con **las dos** a la vez | **3** — `tenant-santa-maria`, `queretarock`, `residencial-qintilab` |
-| **Deuda invisible** | **3.580.000** en T1-101 de `tenant-santa-maria`, bajo una clave que no existe |
-| Sitios de código que asumen una sola | **35**, tras refutar 37 de 99 hallazgos |
+| **El resolvedor único** (R6) y su espejo | `functions/src/clave-de-unidad.ts` · `src/lib/units/clave-de-unidad.ts` |
+| **La guarda** (CF6) | `tests/clave-de-unidad-guarda.test.ts` |
+| **La semilla corregida** | `functions/src/trial-seed.ts` |
+| **El informe** (no escribe nunca) | `functions/scripts/informe-claves-de-unidad.mjs` |
+| **La migración** y su vuelta atrás | `functions/scripts/migrar-claves-de-unidad.mjs` |
 
-**No es una deriva accidental: fueron DOS migraciones en direcciones opuestas y ninguna terminó.**
-Lo dice la cabecera del propio script: «`IMP-01` corrigió `billingStatements` para usar el slug;
-este script corrige `people` y `users` para que coincidan». **Ninguna tocó `tenantUsers`**, que es
-contra lo que `residentOwnUnit` compara — por eso quedó peor que antes.
+**Clasifica MIRANDO CONTRA EL CATÁLOGO, nunca por la forma del valor.** Las dos migraciones
+anteriores usaban `/^unit-[a-z0-9]+…/` y no podían acertar: en producción conviven slugs con
+prefijo (`unit-t1-101`), sin él (`t1-101`, `1014`) e **ids sembrados que parecen slugs**
+(`u-t1-101`, que es un id de documento).
 
-**D1 y D2 cerradas:** gana el **id del documento**, y los huérfanos ambiguos quedan fuera del MVP.
+### Tres cosas que solo se supieron ejecutando
 
-> **Se manifiesta SIN error.** Las reglas rechazan, no filtran: el residente ve una lista vacía o
-> un total corto, y el producto no tiene nada que reportar. Es el mismo patrón que dejó a un
-> residente viendo «Sin documentos» teniendo ocho.
+1. **Las colecciones son DIECIOCHO, no once.** La ficha decía un número y enumeraba otro;
+   `clearanceCertificates` no estaba en su lista y sí en las reglas.
+2. **La semilla del trial se delató sola.** Los cuatro conjuntos de staging nacidos del trial
+   tenían **exactamente 30 documentos fuera** cada uno —6 unidades × (1 persona + 4 cargos)— y su
+   deuda visible era **CERO**: el residente de prueba no veía ni un peso. En producción,
+   `queretarock` y `qintilab` llevan la misma firma de 30.
+3. **El informe daba LIMPIO a un conjunto roto.** `tenant-nogal-bogota` salía limpio con
+   DIECIOCHO huérfanos, uno de ellos un `tenantUsers` — un residente sin ver nada— porque no había
+   nada *migrable*. §6 exige cero huérfanos para decir limpio. Corregido y con prueba.
 
-### Por qué ninguno de los dos sube a producción
+### La vuelta atrás no es una promesa: está ejecutada
 
-**`FLOW-001`: porque ahí no puede correr.** Con **0 de 88** unidades con coeficiente y **74 de 87**
-sin propietario, `repartirPorCoeficiente` bloquea por R2 y R5 antes de calcular. Subirlo apagado
-sería la cuarta capacidad viva sobre una tabla vacía — y por el criterio del 24, desplegado y
-apagado cuenta como abierto.
+Se migró `tenant-santa-maria` de staging, se **revirtió**, se comprobó que el documento volvía
+carácter a carácter a `unit-t2-503` sin las dos marcas, y se volvió a migrar. `unitIdPrevio` es lo
+que lo hace posible y por eso R3 no es una comodidad.
 
-**`FEAT-004`: porque depende de `FIX-002`.** Hoy funciona porque el certificado mira **tres vías**
-—el id, el campo y la etiqueta—, que es un parche consciente y no un diseño.
+**Y `--revertir` va en el MISMO orden que la ida, no al revés.** Deshacer parece pedir el orden
+inverso, pero eso pone `tenantUsers` primero: si la corrida muere a media pasada quedan los
+permisos en la clave vieja y el dato en la nueva, que es la rotura máxima.
 
-### Lo que se validó por navegador, con las cifras anotadas ANTES
+### Lo que NO se toca, y es decisión cerrada (D2)
 
-| | |
-|---|---|
-| **`FLOW-001`** | Previa de 6 líneas · cancelar dejó **0 corridas y 0 cargos** · 6 cargos sumando **exactamente 640.000** con el residuo en cuatro · **cero asientos de libro** · anulados 6/6 con saldo 0 y los importes intactos |
-| **`FEAT-004`** | Selector con **6 unidades, no 12** · `PYS-RNDBF5` emitido · **cero** certificados en la unidad que debe · el «no» nombra 1.700.000 y «desde 2026-07» |
+**46 huérfanos en producción, 23 en staging.** No se migran: un documento cuya clave no casa con
+ninguna unidad solo se reasigna si **exactamente una** unidad lleva su etiqueta (R2), y estos no
+tienen etiqueta o no casan. El informe los agrupa por valor para que se puedan decidir:
 
-### Cinco defectos que ninguna suite vio, y de dónde salió cada uno
+- `tenant-santa-maria` → **27 documentos bajo `G1bWNzZJuakw9KRoAx7p`**, una unidad que ya no
+  existe. **Sus hermanos CON etiqueta resuelven a `DFPjKffOOGZXRjzlScxk` (T1-403)** — la pista está
+  medida, la decisión es de negocio.
+- `tenant-nogal-bogota` → **15 bajo `t2-204`, `t1-101` y `t1-102`**, uno de ellos un `tenantUsers`:
+  **hay un residente que hoy no ve nada y la migración no lo arregla.**
 
-1. **El reintento idempotente chocaba con la guarda de repetido** — lo encontró una prueba.
-2. **El aviso de doble cobro estaba apagado en el 37% de los egresos**: 48 de 130 llevan una
-   categoría que ya no existe en el tipo. Salió de **mirar los datos** del conjunto de validación.
-3. **`R6 · repartir no escribe asientos` pasaba por el motivo equivocado** — afirmaba que
-   `ledgerEntries` estaba vacía, y esa colección es de todos. Sola pasaba por casualidad. Ahora
-   mide el **delta**.
-4. **El código del paz y salvo era elegible por el cliente** — lo derivaba del id, que lleva dentro
-   la `operationKey`. Lo cazó una prueba.
-5. **El diálogo del reparto se abría en blanco** con el botón diciendo «Repartir entre 0 unidades»,
-   que se lee como «este conjunto no tiene unidades». Solo se ve mirando.
+### La deuda que se vuelve visible (§9 — para el administrador, ANTES de que le llamen)
 
-### Tres correcciones a las propias fichas, hechas al construir
+| Conjunto | Unidad | Antes | Después |
+|---|---|---|---|
+| `tenant-santa-maria` | T1-101 | 3.360.000 | **6.940.000** (+3.580.000) |
+| `tenant-santa-maria` | 1014 | 4.480.000 | 5.600.000 (+1.120.000) |
+| `tenant-santa-maria` | 1011 | 4.480.000 | 5.600.000 (+1.120.000) |
+| `queretarock` y `qintilab` | cuatro unidades cada uno | 0 | +5.100.000 por conjunto |
 
-- **`FEAT-004` §11.3 pedía un índice por `dueDate` que habría roto R2 en silencio**: falta en el
-  **27%** de los cargos y un `orderBy` los descarta. Se ordena por `period`. **El índice no se creó.**
-- **`FEAT-004` §11.1 y §11.3 se contradecían** sobre el lote —callable con Storage contra «no hay
-  segunda forma de hacer PDF»—. Gana **un archivo con una unidad por página**.
-- **`FLOW-001` §11.2 pedía una comprobación imposible**: exigía un `get()` en una regla sin
-  presupuesto de accesos. El guardián mira campos del propio documento.
+**Los cuatro conjuntos de producción son `isExample: true`** — comprobado contra los documentos,
+no de memoria. No hay cliente real al que avisar.
 
-### Dos retoques de experiencia sobre el selector de conjunto
+### Lo siguiente, después de la migración
 
-**El conjunto activo se nombra ahora en los tres diálogos que mueven dinero** —registrar pago,
-corrida por coeficiente y repartir egreso—. **No en una banda permanente**: «si se avisa siempre,
-se deja de leer». Va donde el acto es irreversible, y **solo con dos membresías o más**.
-
-**Y `producto-multiconjunto` ya no se puede mover por conjunto.** Gobierna un control de
-navegación, y un control de navegación no puede desaparecer como consecuencia de navegar: apagarla
-en uno dejaba encerrado a quien estuviera parado ahí. El catálogo lo advertía y el script la
-aceptaba igual — **advertido no es impedido**.
-
-### Lo siguiente
-
-**Ejecutar `FIX-002`**, que es otra superficie: datos de producción, no construcción. Su §13 da el
-orden —el resolvedor único y la semilla del trial ANTES de migrar, o el producto sigue escribiendo
-la convención vieja mientras se limpia—.
-
-Después, **`FLOW-003`** (cobranza), que es lo único que queda de la ola C y que **necesita
-`FEAT-004`** para adjuntar el estado de cuenta. Y el frente 6 (`FIN-002`) sigue al final.
+**Fase 2 de la ficha**: los 35 sitios de lectura que sigan siendo defecto —con el dato unificado la
+mayoría deja de serlo—, retirar `unitIdPrevio` cuando la migración se cierre, y decidir qué se hace
+con los huérfanos. Después, **`FLOW-003`** (cobranza), que necesita `FEAT-004`.
 
 ### Dos cosas anotadas que no se tocaron
 

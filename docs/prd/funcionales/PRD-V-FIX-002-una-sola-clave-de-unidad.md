@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` — es quien deja de ver lo suyo |
 | **Usuarios secundarios** | `tenant_admin` · `security_guard` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **LISTA PARA DESARROLLO** — D1 y D2 cerradas por David el 25 de agosto de 2026. Gana el **id del documento** |
+| **Estado** | **MVP CONSTRUIDO Y CERRADO EN STAGING** (26 ago 2026): cero documentos fuera de convención en los diez conjuntos. **En producción queda la escritura de cuatro conjuntos**; el seco está medido y cuadra. Ver §16 |
 | **Dependencias** | Ninguna bloqueante. **Bloquea** cualquier funcionalidad nueva que resuelva persona↔unidad, y ya condicionó a `PRD-V-FEAT-004` |
 | **Riesgo** | **Alto.** Toca la raíz de los permisos del residente y reescribe el campo del que cuelgan quince colecciones |
 | **Reversibilidad** | **Parcial, y hay que decirlo en primera línea.** La migración es reversible **solo si se guarda el valor anterior en cada documento tocado**; sin eso, no hay vuelta atrás. Ver §13 |
@@ -166,11 +166,17 @@ informe, que es barato.
 
 ### 7.1 Las once colecciones con `unitId`
 
-Verificadas contra `firestore.rules` y el código: `billingStatements`, `advances`,
-`advanceApplications`, `paymentReceipts`, `paymentVouchers` (como `payerUnitId`), `reservations`,
+> **Corregido al construir (26 ago 2026): son DIECIOCHO, no once.** Este apartado decía «once» y
+> enumeraba diecisiete, y le faltaba `clearanceCertificates`, que sí está en `firestore.rules`. La
+> cuenta importa: migrar diecisiete deja la que falte fuera del alcance de su dueño. El inventario
+> vive ahora en `COLECCIONES_CON_CLAVE_DE_UNIDAD` (`functions/src/clave-de-unidad.ts`) y una prueba
+> lo cuenta.
+
+Quince las gobierna `residentOwnUnit`: `billingStatements`, `advances`, `advanceApplications`,
+`paymentReceipts`, `paymentVouchers` (como `payerUnitId`), `clearanceCertificates`, `reservations`,
 `packages`, `visitorPasses`, `visitorAuthorizations`, `visitorInvitations`, `tickets`,
-`survey_responses`, `regulation_signatures`, `committee_agreement_signatures`, más `people`,
-`users` y **`tenantUsers`**, que es la que manda.
+`survey_responses`, `regulation_signatures` y `committee_agreement_signatures`. Las otras tres son
+las de identidad: `people`, `users` y **`tenantUsers`**, que es la que manda.
 
 > **`tenantUsers.unitId` es la raíz.** Es el valor contra el que `residentOwnUnit` compara, así que
 > **la migración anterior fue incompleta precisamente por no tocarla**: `scripts/migrate-people-unit-ids.ts`
@@ -397,3 +403,56 @@ del documento, y los huérfanos ambiguos quedan fuera del MVP.
 > aprender la deriva a golpes: el paz y salvo se arregló **tres veces** —las dos claves, el sentido
 > inverso, y el huérfano— antes de quedar cierto. Mientras esta ficha no se ejecute, **toda
 > funcionalidad nueva que resuelva persona↔unidad pagará ese peaje**.
+
+---
+
+## 16. Lo que pasó al ejecutarla (26 de agosto de 2026)
+
+**MVP construido en dos commits, `ae45216` y `92be707`.** El orden de §13 se respetó: el resolvedor
+y la semilla **antes** de migrar.
+
+| Pieza | Dónde |
+|---|---|
+| El resolvedor único (R6) y su espejo del cliente | `functions/src/clave-de-unidad.ts` · `src/lib/units/clave-de-unidad.ts` |
+| La guarda (CF6) | `tests/clave-de-unidad-guarda.test.ts` |
+| La semilla corregida | `functions/src/trial-seed.ts` |
+| El informe (CA1, CA2) — no escribe nunca | `functions/scripts/informe-claves-de-unidad.mjs` |
+| La migración (CA3–CA6) y su vuelta atrás | `functions/scripts/migrar-claves-de-unidad.mjs` |
+
+### Cuatro cosas que la ficha no podía saber
+
+1. **Las colecciones son dieciocho** — ver §7.1.
+2. **La clasificación NO puede ser por la forma del valor.** Conviven `unit-t1-101` (slug),
+   `t1-101` y `1014` (slugs sin prefijo) y `u-t1-101` (**id de documento que parece un slug**). Las
+   dos migraciones anteriores usaban una expresión regular, y por eso ninguna terminó. El resolvedor
+   clasifica **mirando contra el catálogo del conjunto**.
+3. **La semilla del trial se delató sola.** Los cuatro conjuntos de staging nacidos del trial
+   tenían **exactamente 30 documentos fuera** cada uno —6 unidades × (1 persona + 4 cargos)— y su
+   deuda visible era **cero**. En producción, `queretarock` y `qintilab` llevan la misma firma.
+4. **El primer informe daba LIMPIO a un conjunto roto**: `tenant-nogal-bogota`, con dieciocho
+   huérfanos y uno de ellos un `tenantUsers`. §6 exige cero huérfanos para decir limpio, y la
+   primera versión solo miraba lo migrable.
+
+### La reversibilidad está ejecutada, no prometida
+
+Se migró un conjunto de staging, se **revirtió** —el documento volvió carácter a carácter a
+`unit-t2-503`, sin las dos marcas— y se volvió a migrar. Y `--revertir` va en el **mismo** orden que
+la ida: al revés pondría `tenantUsers` primero, y una corrida muerta a media pasada dejaría los
+permisos en la clave vieja con el dato en la nueva.
+
+### Estado por ambiente
+
+| | |
+|---|---|
+| **Staging** | **CERRADO.** 122 documentos migrados en cinco conjuntos; los diez dan cero fuera de convención. Quedan 23 huérfanos, sin tocar (D2) |
+| **Producción** | **Informe y seco hechos y cuadrados**; 95 documentos en cuatro conjuntos, todos `isExample: true`. **Falta la escritura** |
+
+### Lo que R2 dejó fuera, y con qué pista
+
+**46 huérfanos en producción.** Los dos grupos que importan:
+
+- `tenant-santa-maria` → **27 documentos bajo `G1bWNzZJuakw9KRoAx7p`**, una unidad que ya no
+  existe. **Sus hermanos con etiqueta resuelven a `DFPjKffOOGZXRjzlScxk` (T1-403).** El informe da
+  la pista; reasignarlos es decisión de negocio, no de migración.
+- `tenant-nogal-bogota` → **15 bajo tres claves**, una de ellas en `tenantUsers`: **hay un residente
+  que hoy no ve nada y esta migración no lo arregla.** Es lo primero de Fase 2.
