@@ -154,7 +154,7 @@ describe("FEAT-004 · las DOS claves de unidad", () => {
     // …y debiendo por el slug, que es como estan escritos los cargos viejos.
     await sembrarCargo("porSlug", { balance: 75_000, unitId: "slug-101", period: "2026-02" });
 
-    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/75000/);
+    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/75\.000/);
   });
 
   it("y AL REVÉS: pidiéndolo con el slug, la deuda del id del documento también bloquea", async () => {
@@ -165,7 +165,7 @@ describe("FEAT-004 · las DOS claves de unidad", () => {
     await sembrarCargo("porId", { balance: 90_000, period: "2026-03" });
     await sembrarCargo("porSlug", { balance: 0, unitId: "slug-101" });
 
-    await expect(emitirPazYSalvo(entrada({ unitId: "slug-101" }), UID)).rejects.toThrow(/90000/);
+    await expect(emitirPazYSalvo(entrada({ unitId: "slug-101" }), UID)).rejects.toThrow(/90\.000/);
   });
 
   it("y con las dos claves en cero SÍ se emite — la guarda no puede quedarse pegada", async () => {
@@ -194,7 +194,7 @@ describe("FEAT-004 · el cargo HUERFANO, que no casa con ninguna unidad", () => 
     // Ni id ni campo: solo comparte etiqueta, como los cinco de produccion.
     await sembrarCargo("huerfano", { balance: 640_000, unitId: "clave-que-no-existe", period: "2026-05" });
 
-    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/640000/);
+    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/640\.000/);
   });
 
   it("R4 · el saldo a favor guardado con la clave ALTERNA también se nombra", async () => {
@@ -216,7 +216,7 @@ describe("FEAT-004 · el cargo HUERFANO, que no casa con ninguna unidad", () => 
     await db.collection("units").doc(U).set({ tenantId: T, unitId: U, displayName: "101", status: "active" });
     await sembrarCargo("porLasDos", { balance: 50_000, period: "2026-06" });
 
-    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/pendiente de 50000/);
+    await expect(emitirPazYSalvo(entrada({ unitLabel: "101" }), UID)).rejects.toThrow(/pendiente de 50\.000/);
   });
 });
 
@@ -224,7 +224,7 @@ describe("FEAT-004 · lo que NO debe emitirse", () => {
   it("CF1 · con saldo pendiente NO se emite, y se dice cuánto y desde cuándo", async () => {
     await sembrarCargo("c1", { balance: 60_000, period: "2026-03" });
 
-    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/60000/);
+    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/60\.000/);
     await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/2026-03/);
     expect((await db.collection("clearanceCertificates").get()).size).toBe(0);
   });
@@ -239,7 +239,7 @@ describe("FEAT-004 · lo que NO debe emitirse", () => {
     await sembrarCargo("c2", { balance: 30_000, period: "2026-02" });
     await sembrarCargo("c3", { balance: 20_000, period: "2026-04" });
 
-    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/50000/);
+    await expect(emitirPazYSalvo(entrada(), UID)).rejects.toThrow(/50\.000/);
   });
 });
 

@@ -182,7 +182,11 @@ export async function emitirPazYSalvo(
     const periodos = [...new Set(conDeuda.map((c) => c.period).filter(Boolean))].sort();
     throw new HttpsError(
       "failed-precondition",
-      `No se puede emitir el paz y salvo: la unidad tiene un saldo pendiente de ${saldo}` +
+      // El importe va con separadores de miles: este texto lo lee una persona en
+      // pantalla, y «1700000» se cuenta con el dedo. Se formatea aquí y no en el
+      // cliente porque el mensaje del servidor se enseña tal cual — que es
+      // justo lo que lo hace útil.
+      `No se puede emitir el paz y salvo: la unidad tiene un saldo pendiente de ${saldo.toLocaleString("es-CO")}` +
         (periodos.length > 0 ? `, desde ${periodos[0]}${periodos.length > 1 ? ` (${periodos.length} períodos)` : ""}.` : "."),
     );
   }
