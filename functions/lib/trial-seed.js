@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EXAMPLE_TAG = void 0;
 exports.seedTrialWorkspace = seedTrialWorkspace;
 const firestore_1 = require("firebase-admin/firestore");
+const clave_de_unidad_1 = require("./clave-de-unidad");
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
 /**
  * Siembra del ambiente de prueba (Fase 1 del self-service).
@@ -80,13 +81,25 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
         await commitIfNeeded();
     };
     // ── Unidades de ejemplo (andamio del bloque financiero) ────────────────────
+    //
+    // **ESTA ERA LA FÁBRICA DE LA CONVENCIÓN MINORITARIA** (`PRD-V-FIX-002`, §12).
+    // El documento de la unidad se crea con id `${tenantId}--${slug}` y su campo
+    // `unitId` guarda el slug pelado; hasta el 26 de agosto de 2026 las personas y
+    // los cargos sembrados apuntaban al SLUG, así que **todo conjunto nacido del
+    // trial nacía partido**: `tenantUsers.unitId` acaba siendo el id del documento
+    // y `residentOwnUnit` compara contra él, de modo que el residente de prueba
+    // veía su cartera vacía sin un solo error en pantalla.
+    //
+    // Ahora la clave sale del resolvedor único (R6) y es el **id del documento**.
+    // El campo `unitId` del documento de la unidad se sigue escribiendo porque hay
+    // lectores que lo usan —su retirada es Fase 2—, pero ya no lo nombra nadie.
     const units = [];
     for (const tower of TOWERS) {
         const towerNum = tower.slice(-1);
         for (let i = 1; i <= UNITS_PER_TOWER; i++) {
             const slug = `t${towerNum}-${i}0${i}`;
             const label = `T${towerNum}-${i}0${i}`;
-            units.push({ slug, label, tower });
+            units.push({ id: id(slug), slug, label, tower });
             await set("units", id(slug), {
                 unitId: slug,
                 displayName: label,
@@ -110,7 +123,7 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
             documentNumber: "",
             roleType: "owner_occupant",
             occupancyType: "owner_occupant",
-            unitId: unit.slug,
+            unitId: (0, clave_de_unidad_1.claveDeUnidad)(unit),
             tower: unit.tower,
             status: "active",
             isExample: true,
@@ -148,7 +161,7 @@ async function seedTrialWorkspace(tenantId, currency = "MXN") {
             const paymentAmount = isOld ? MONTHLY_FEE : unpaid ? 0 : partial ? MONTHLY_FEE / 2 : MONTHLY_FEE;
             const balance = MONTHLY_FEE - paymentAmount;
             await set("billingStatements", id(`bill-${period}-${unit.slug}`), {
-                unitId: unit.slug,
+                unitId: (0, clave_de_unidad_1.claveDeUnidad)(unit),
                 unitLabel: unit.label,
                 period,
                 concept: "administracion",
