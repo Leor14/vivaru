@@ -18,8 +18,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > Diff de 53 líneas **puramente aditivas**: los tres guardianes de `FLOW-001` sobre
 > `billingStatements` y el bloque nuevo de `clearanceCertificates`. **Nada se pierde** — se
 > comprobó que el front viejo de producción no escribe `status: "cancelled"` en esa colección, y
-> su único `updateDoc` calcula `paid`/`overdue`/`pending`. El ruleset anterior está guardado en
-> `.rules-prod-antes-*.bak` por si hubiera que volver.
+> su único `updateDoc` calcula `paid`/`overdue`/`pending`.
+>
+> **La vuelta atrás no es un fichero: es el id del ruleset**, que Firebase conserva. El que hay
+> vivo en producción ahora mismo es
+> `projects/hogaru-1/rulesets/12070151-9bb8-428e-b829-dbe559059476` (creado el 25 ago a las 19:33
+> UTC), y volver a él es re-publicarlo. Es más fiable que una copia local, que se pierde con el
+> `/tmp` — de hecho la copia que este documento decía tener **no llegó a existir**: iba en el mismo
+> comando que el clasificador bloqueó.
 
 **LAS FUNCTIONS DE PRODUCCIÓN ESTÁN DESPLEGADAS: 81, cero atrasadas, cero errores.** Medido por
 `updateTime` contra la API con la ADC, no por el código de salida. Las cuatro nuevas existen
