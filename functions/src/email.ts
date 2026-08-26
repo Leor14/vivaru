@@ -108,16 +108,44 @@ function buildNotificationHtml(body: string, ctaUrl: string): string {
  * Best-effort: el llamador captura el error para no romper la notificación in-app.
  * `link` puede ser relativo ("/resident/...") o absoluto.
  */
+/**
+ * El id que Resend devuelve al ACEPTAR un correo, sacado del cuerpo de su respuesta.
+ *
+ * **Existe porque `PRD-V-FLOW-003` cuelga de este valor y el producto no lo capturaba.** §7.1 usa
+ * el id del proveedor como id del documento de `emailDeliveries`, «para que la idempotencia del
+ * webhook la garantice la base»; hasta hoy `sendNotificationEmail` miraba solo `response.ok` y
+ * **tiraba el cuerpo**, así que ese id no existía en ninguna parte.
+ *
+ * **Pura y tolerante, las dos a propósito.** Pura para poder probarla sin red ni emulador — no hay
+ * en este repositorio ningún patrón para simular `fetch`, y `email.ts` captura `fetch` al cargar el
+ * módulo, así que interceptarlo exigiría inventar uno—. Y tolerante porque **el correo ya salió**
+ * cuando esto corre: si el cuerpo viene raro se pierde el rastro, que es malo, pero romper aquí
+ * convertiría un correo entregado en un error para quien lo mandó, que es peor.
+ */
+export function idDeRespuestaResend(cuerpo: string): string | null {
+  try {
+    const d = JSON.parse(cuerpo) as { id?: unknown };
+    return typeof d.id === "string" && d.id.trim() ? d.id.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Devuelve el id del proveedor cuando Resend lo da, y `null` cuando no hay con qué —sin clave
+ * configurada, o respuesta sin id—. **Nunca devuelve `null` por un fallo de envío**: eso sigue
+ * lanzando, como antes.
+ */
 export async function sendNotificationEmail(input: {
   to: string;
   subject: string;
   body: string;
   link: string;
-}): Promise<void> {
+}): Promise<string | null> {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY no configurado; se omite el correo de notificación.");
-    return;
+    return null;
   }
 
   const ctaUrl = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
@@ -138,6 +166,14 @@ export async function sendNotificationEmail(input: {
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(`Resend respondió ${response.status}: ${detail}`);
+  }
+
+  // Leer el cuerpo va DESPUÉS del `ok`, y su fallo no se propaga: a estas alturas Resend ya aceptó
+  // el correo y el destinatario lo va a recibir.
+  try {
+    return idDeRespuestaResend(await response.text());
+  } catch {
+    return null;
   }
 }
 
