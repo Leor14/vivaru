@@ -140,6 +140,17 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
 - **Nunca importar `functions/` desde `src/` o `tests/`** — App Hosting hace `npm ci` solo en la raíz; rompe el `next build`. El cliente invoca Cloud Functions por nombre con `httpsCallable`.
 - **CORS de callables:** `callableCorsOrigins` (en `functions/src/http-config.ts`; salió de `index.ts` en ago 2026 para que lo compartan los módulos nuevos) debe incluir el origen que sirve la app (`https://www.grupovivaru.com`). Síntoma de origen faltante: en logs solo `OPTIONS 204`, en navegador `net::ERR_FAILED`.
 - **`unitId` de personas = doc id de la unidad, no el slug.** Usar el slug hace `updateDoc(units/<slug>)` sobre un doc inexistente → `permission-denied` engañoso ("No tienes permiso").
+  **Desde el 26 de agosto de 2026 hay un resolvedor único con guarda** (`PRD-V-FIX-002`):
+  `functions/src/clave-de-unidad.ts` y su espejo `src/lib/units/`. Toda escritura pasa por
+  `claveDeUnidad(unidad)` y `tests/clave-de-unidad-guarda.test.ts` enrojece si alguien fabrica
+  una clave desde el slug. **El dato está migrado en los dos ambientes.** Y **clasificar un
+  identificador por su FORMA no funciona**: conviven `unit-t1-101`, `t1-101`, `1014` e ids
+  sembrados que PARECEN slugs (`u-t1-101`). Solo el catálogo del conjunto sabe qué es cada valor.
+- **`units` es una colección RAÍZ y su id de documento es GLOBAL.** Se filtra por `tenantId`, pero
+  `units/t1-101` es uno solo para toda la base. Dos semillas declaraban los mismos cinco ids y la
+  última se quedó el documento: a El Nogal le desaparecieron cinco unidades desde mayo, en los dos
+  ambientes, con la membresía de un residente entre los huérfanos. **Todo id calculado lleva el
+  conjunto por delante**, como `trial-seed.ts` con `${tenantId}--${local}`.
 - **UNA REGLA DE FIRESTORE NO PROTEGE LO QUE ESCRIBE UNA CALLABLE.** Las callables van con **Admin
   SDK, que NO evalúa `firestore.rules`**. Cada vez que una regla sea la única palanca de un
   invariante, la pregunta obligatoria es **quién más escribe eso**. Costó `CF8`: `tenantOperable`

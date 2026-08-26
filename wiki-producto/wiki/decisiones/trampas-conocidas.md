@@ -103,6 +103,20 @@ Las callables que fijan `cors: callableCorsOrigins` (`createTenantAdmin`, `creat
 
 `createUnit` crea el doc de unidad con **ID autogenerado** y guarda un slug en el campo `unitId`. La persona debe referenciar el **doc id** (`createdUnit.id`), no el slug. Si se guarda el slug, `createPerson`/`deletePerson` hacen `updateDoc(units/<slug>)` sobre un doc inexistente → la regla evalúa `tenantId` indefinido → `permission-denied` ("No tienes permiso"). Por eso los borrados de unidad ahora son *best-effort*. Ver [[firebase-firestore]] y [[usuarios]].
 
+**Desde el 26 de agosto de 2026 hay un resolvedor único y una guarda** (`PRD-V-FIX-002`): `functions/src/clave-de-unidad.ts` y su espejo `src/lib/units/clave-de-unidad.ts`. Toda escritura pasa por `claveDeUnidad(unidad)`, y `tests/clave-de-unidad-guarda.test.ts` se pone en rojo si alguien fabrica una clave desde el slug. **El dato ya está migrado** en los dos ambientes.
+
+**Y clasificar un identificador POR SU FORMA no funciona.** Las dos migraciones anteriores usaban `/^unit-[a-z0-9]+…/` y ninguna terminó: en producción conviven slugs con prefijo (`unit-t1-101`), sin él (`t1-101`, `1014`) e **ids sembrados que parecen slugs** (`u-t1-101`, que es un doc id). Solo el catálogo de unidades del conjunto sabe qué es cada valor.
+
+## `units` es una colección RAÍZ: el id de documento es global
+
+Se filtra por `tenantId`, pero **el id no vive dentro del conjunto**: `units/t1-101` es uno solo para toda la base. `seed-data-co.mjs` y `seed-data-playas.mjs` declaraban los mismos cinco ids, así que **no cabían las dos**: la que sembró última se quedó el documento con SU `tenantId` y a El Nogal le desaparecieron cinco unidades del mapa — con quince documentos huérfanos detrás, uno de ellos la membresía de un residente que **no veía nada**. Desde mayo, en los dos ambientes, con las mismas cinco: determinista, no un accidente.
+
+**Todo id de documento que se calcule** en una colección raíz **lleva el conjunto por delante**, como hace `trial-seed.ts` con `${tenantId}--${local}`. `functions/tests/semillas-ids-de-unidad.test.ts` comprueba que ninguna semilla declare un id que ya declara otra.
+
+## Cuando una frase dice «TODAS», hay que contar cuántas son
+
+`mergeUnits` decía «re-apunta TODAS las referencias de las duplicadas a la superviviente» y su lista, escrita a mano, tenía **nueve de dieciocho** colecciones. Y después **borra la unidad duplicada**, así que todo lo que no repuntaba quedaba apuntando a una unidad inexistente — incluidos `advances`, que es dinero a favor de un residente. Eso explicaba los 27 huérfanos de `tenant-santa-maria`. La lista sale ahora del inventario único `COLECCIONES_CON_CLAVE_DE_UNIDAD` y una guarda impide volver a escribirla a mano. Mismo patrón que las cinco listas de banderas.
+
 ## Functions: recompilar y fijar secret antes de deploy
 
 El bloque `functions` de `firebase.json` no tiene `predeploy`, así que `firebase deploy --only functions` sube el `lib/` ya compilado. Si no se corre `npm --prefix functions run build` antes, se despliega código viejo y el deploy dice "sin cambios". Además, una función que referencia un secret (`RESEND_API_KEY`) **no despliega** si el secret no existe: hay que `firebase functions:secrets:set` **primero**, luego desplegar. Ver [[correos-mensajeria]].
