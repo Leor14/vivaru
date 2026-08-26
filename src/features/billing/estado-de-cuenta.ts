@@ -12,13 +12,33 @@ import type { BillingStatement } from "@/types/domain";
  * **DOS DECISIONES QUE SALEN DE MEDIR LOS DATOS, no de leer la ficha.**
  *
  * **1 · Se ordena por `period`, NO por `dueDate`, y §11.3 pedía lo contrario.**
- * `dueDate` es opcional en `BillingStatement` y **falta en el 27% de los cargos
- * de producción** (60 de 221). Un `orderBy` descarta los documentos que no traen
- * el campo: ordenar por ahí perdería uno de cada cuatro movimientos **y rompería
- * R2 en silencio**, porque el saldo final dejaría de coincidir con la cartera.
- * No daría error; daría un número más pequeño. Es exactamente el defecto que el
- * 24 de agosto de 2026 dejó al residente viendo «Sin documentos» teniendo ocho.
- * `period` está en el 100% de los cargos, en los dos ambientes.
+ * Vale para las DOS cosas, y conviene decirlo separado porque durante un tiempo
+ * solo valió para una:
+ *
+ * *La consulta* no puede usar `orderBy dueDate`. El campo es opcional en
+ * `BillingStatement` y **falta en el 27% de los cargos de producción** (60 de
+ * 221); un `orderBy` descarta los documentos que no lo traen, así que perdería
+ * uno de cada cuatro movimientos **y rompería R2 en silencio**: el saldo final
+ * dejaría de coincidir con la cartera. No daría error, daría un número más
+ * pequeño. Es el defecto que el 24 de agosto de 2026 dejó al residente viendo
+ * «Sin documentos» teniendo ocho.
+ *
+ * *El `sort` en memoria* tampoco, y esto se arregló el 26 de agosto de 2026
+ * **después de verlo en producción**. Ordenaba por `fechaDe()`, que prefiere
+ * `dueDate`, y entonces la cabecera decía una cosa y el código hacía otra. Dos
+ * consecuencias, las dos visibles en un papel que se entrega:
+ *
+ *   · **Un cargo de marzo que vence el 28 de mayo se listaba detrás de mayo.**
+ *     En `tenant-santa-maria`, T2-503 salía `05 · 03 · 04 · 06`, con la columna
+ *     de saldo acumulado al lado. El total era exacto; el orden, ilegible.
+ *   · **Comparaba cadenas de distinta longitud** —`"2026-05"` contra
+ *     `"2026-05-28"`—, así que un cargo sin vencimiento caía SIEMPRE antes que
+ *     uno fechado del mismo mes. Eso no lo decidió nadie: era un efecto de
+ *     comparar dos cosas distintas.
+ *
+ * `period` está en el 100% de los cargos y con formato `YYYY-MM`, medido en los
+ * dos ambientes (221 y 171). `dueDate` se sigue enseñando y sigue desempatando
+ * dentro del mismo mes; lo que ya no hace es mandar.
  *
  * **2 · Cada cargo es UNA línea con su pago dentro, no dos movimientos.** La
  * ficha (R1) habla de «saldo acumulado tras cada movimiento», que supone poder
@@ -34,7 +54,8 @@ import type { BillingStatement } from "@/types/domain";
  * línea por cargo, el saldo acumulado sigue siendo cierto y nada se inventa.
  */
 
-/** Cómo se fechó la línea. Se expone porque el PDF lo dice, y porque explica el orden. */
+/** Cómo se fechó la línea. Se expone porque el PDF lo dice. **No manda en el
+ *  orden** —eso es `period`—, pero sí desempata dentro de un mismo mes. */
 export type FuenteDeFecha = "dueDate" | "period" | "createdAt";
 
 export type LineaEstadoDeCuenta = {
@@ -101,14 +122,14 @@ export function construirEstadoDeCuenta(
     return true;
   });
 
-  // Orden estable: fecha, y a igualdad el período y el id. Sin el desempate por
-  // id, dos cargos del mismo mes salen en el orden que devuelva Firestore, que
-  // no es el mismo entre cargas — y un documento que se imprime no puede cambiar
-  // de orden entre dos descargas.
+  // **Orden: `period` primero, y a igualdad la fecha y el id.** El desempate por
+  // id no es cosmético: sin él, dos cargos del mismo mes salen en el orden que
+  // devuelva Firestore, que no es el mismo entre cargas — y un documento que se
+  // imprime no puede cambiar de orden entre dos descargas.
   const ordenados = [...enRango].sort(
     (a, b) =>
-      fechaDe(a).fecha.localeCompare(fechaDe(b).fecha) ||
       String(a.period).localeCompare(String(b.period)) ||
+      fechaDe(a).fecha.localeCompare(fechaDe(b).fecha) ||
       String(a.id).localeCompare(String(b.id)),
   );
 

@@ -107,6 +107,40 @@ describe("FEAT-004 · estado de cuenta", () => {
     expect(e.saldoFinal).toBe(120_000);
   });
 
+  /**
+   * **La prueba que faltaba, y por eso esto llegó a producción.** Todas las demás
+   * usan cargos cuyo `dueDate` cae en su propio mes, y con eso ordenar por fecha
+   * o por período da lo mismo: el defecto no se podía manifestar.
+   *
+   * Estos tres son los datos REALES de `T2-503` en `tenant-santa-maria` el 26 de
+   * agosto de 2026 — marzo y abril vencían el 28 de mayo—, y salían en pantalla
+   * como `05 · 03 · 04`, con un saldo acumulado al lado que no se podía leer.
+   */
+  it("un cargo que vence en OTRO mes se lista por su período, no por su vencimiento", () => {
+    const e = construirEstadoDeCuenta([
+      cargo({ id: "may", period: "2026-05", amount: 400_000, balance: 400_000 }),
+      cargo({ id: "mar", period: "2026-03", dueDate: "2026-05-28", amount: 400_000, balance: 400_000 }),
+      cargo({ id: "abr", period: "2026-04", dueDate: "2026-05-28", amount: 400_000, paymentAmount: 400_000, balance: 0, status: "paid" }),
+    ]);
+
+    expect(e.lineas.map((l) => l.periodo)).toEqual(["2026-03", "2026-04", "2026-05"]);
+    // Y el acumulado cuenta la historia en orden: se debe marzo, abril se pagó,
+    // y mayo vuelve a subir. Con el orden viejo la primera fila decía 400.000
+    // siendo mayo, que es el mes MÁS NUEVO de los tres.
+    expect(e.lineas.map((l) => l.saldoAcumulado)).toEqual([400_000, 400_000, 800_000]);
+    // R2 no cambia con el orden — y comprobarlo aquí es lo que separa «se ve
+    // mejor» de «sigue cuadrando con la cartera».
+    expect(e.saldoFinal).toBe(800_000);
+  });
+
+  it("dentro de un mismo mes, el vencimiento sigue desempatando", () => {
+    const e = construirEstadoDeCuenta([
+      cargo({ id: "b", period: "2026-06", dueDate: "2026-06-26" }),
+      cargo({ id: "a", period: "2026-06", dueDate: "2026-06-25" }),
+    ]);
+    expect(e.lineas.map((l) => l.statementId)).toEqual(["a", "b"]);
+  });
+
   it("el orden es determinista entre dos descargas, aunque los cargos lleguen barajados", () => {
     const cargos = [
       cargo({ id: "b", period: "2026-01" }),
