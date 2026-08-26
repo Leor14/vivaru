@@ -264,7 +264,7 @@ export default function AdminResidentsPage() {
       if (unitTypeTableFilter !== "all" && unit.type !== unitTypeTableFilter) return false;
       if (unitStatusTableFilter !== "all" && unit.status !== unitStatusTableFilter) return false;
       if (unitNoPersonFilter) {
-        const count = people.filter((p) => p.unitId === unit.id || p.unitId === unit.unitId).length;
+        const count = people.filter((p) => p.unitId === unit.id).length;
         if (count > 0) return false;
       }
       return true;
@@ -421,7 +421,7 @@ export default function AdminResidentsPage() {
       className: "whitespace-nowrap",
       render: (unit) => {
         const count = people.filter(
-          (p) => p.unitId === unit.id || p.unitId === unit.unitId,
+          (p) => p.unitId === unit.id,
         ).length;
         return count === 0 ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
@@ -813,7 +813,7 @@ export default function AdminResidentsPage() {
 
   async function handleDeleteUnit(unit: UnitItem) {
     // Bloquear borrado si la unidad aún tiene personas asociadas (evita huérfanos).
-    const associated = people.filter((p) => p.unitId === unit.id || p.unitId === unit.unitId).length;
+    const associated = people.filter((p) => p.unitId === unit.id).length;
     if (associated > 0) {
       toast.error(
         `No puedes eliminar esta unidad: tiene ${associated} persona${associated === 1 ? "" : "s"} asociada${associated === 1 ? "" : "s"}. Elimina o reasigna esas personas primero.`,
@@ -1205,7 +1205,7 @@ export default function AdminResidentsPage() {
             tableMinWidthClassName="min-w-[640px] sm:min-w-[680px]"
             renderMobileRow={(unit) => {
               const count = people.filter(
-                (p) => p.unitId === unit.id || p.unitId === unit.unitId,
+                (p) => p.unitId === unit.id,
               ).length;
               return (
                 <div>

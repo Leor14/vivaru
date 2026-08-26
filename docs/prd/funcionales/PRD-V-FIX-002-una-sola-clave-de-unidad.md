@@ -526,3 +526,52 @@ unidad que ya no existe—, 3 invitaciones bajo `unit-t2-503` y 1 paquete bajo `
 Los tres tienen **hermanos con etiqueta que resuelven**, y el informe lo dice. Reasignarlos por esa
 vía sería una extensión de R2 —el valor lo prueba un documento hermano, no el propio— y **está sin
 decidir**: es exactamente el tipo de inferencia que D2 dejó fuera del MVP.
+
+---
+
+## 18. Fase 2 · el barrido de los sitios de lectura (26 de agosto de 2026)
+
+**El barrido no confirma «35 sitios que hay que corregir». Confirma tres, y encuentra un cuarto que
+la ficha no había visto.** Se recorrieron **91 ficheros** con **118 lecturas** de clave de unidad.
+
+### Lo que había que tocar, y por qué ya no era lo mismo que en agosto
+
+| Sitio | Qué hacía | Por qué dejó de estar bien |
+|---|---|---|
+| `functions/src/clearance-certificates.ts` | Buscaba por **tres vías**: id, campo y **etiqueta** | `where("unitLabel","==",…)` **no restringe a la unidad**. Dos unidades pueden llamarse igual —`DuplicateUnitsPanel` existe porque pasa— y una bloquearía el certificado de la otra. Y los cargos de una unidad BORRADA bloquearían a la nueva que reutilizara la etiqueta |
+| `EstadoDeCuentaUnidadCard.tsx` | Agrupaba por **etiqueta** y elegía la clave **por su forma** (la que llevara `--`) | Agrupar por etiqueta fundiría dos unidades homónimas en una fila, **sumando su cartera en un papel que se entrega**. Y clasificar por el aspecto del identificador es lo que hizo fracasar las dos migraciones anteriores |
+| `residents/page.tsx` ×4 · `DuplicateUnitsPanel` | `p.unitId === unit.id \|\| p.unitId === unit.unitId` | Vía por la que una unidad hereda el conteo de otra. En el panel de fusión ese número decide **cuál se propone conservar** |
+
+**Lo que se conserva en el certificado es el slug PROPIO**, y la diferencia con la etiqueta es
+toda: el slug pertenece a esa unidad y no puede traer deuda ajena — y solo se consulta si no es el
+id de documento de otra, que es el único cruce posible. La decisión vive en `clavesDeConsulta()`,
+que es pura y se prueba sin emulador. **Y si la unidad no se reconoce, ya no se emite**: antes las
+consultas salían vacías, el saldo daba cero y el papel se firmaba igual.
+
+### El cuarto, que no era un sitio de lectura: era quien fabricaba los huérfanos
+
+**`mergeUnits` decía «re-apunta TODAS las referencias» y conocía NUEVE de dieciocho** — y después
+**borra la unidad duplicada**. Faltaban `advances` y `advanceApplications` —dinero a favor de un
+residente—, `packages`, `clearanceCertificates`, `visitorInvitations`, `survey_responses` y las dos
+de firmas.
+
+> **Eso explica los huérfanos que la migración no pudo resolver.** Los 27 de `tenant-santa-maria`
+> bajo `G1bWNzZJuakw9KRoAx7p` están en **cuatro de las que faltaban**, y esa clave es una unidad que
+> ya no existe. No eran un misterio: eran una fusión.
+
+La lista sale ahora del inventario único y una guarda impide volver a escribirla a mano.
+
+### Lo que NO se toca, y por qué
+
+- **`src/utils/unitLabel.ts`** resuelve una referencia a un **nombre para enseñar**, y acepta id,
+  slug y compuestos históricos. Ser tolerante ahí es correcto: enseñar «T1-403» en vez de un id
+  crudo es mejor, y una etiqueta mal resuelta no mueve dinero.
+- **Las consultas de dinero** —`payments.ts`, `reservations.ts`, `advances`, `eligibility.ts`, los
+  visitantes, el aviso de mora— **ya eran correctas**: todas comparan una sola clave con `==`. Lo
+  que estaba mal era el dato, y por eso la ficha dijo que arreglarlas antes de migrar era escribir
+  código para un problema que se iba a borrar. **Ahí acertó.**
+
+### Lo que queda de la fase
+
+Retirar `unitIdPrevio` y `unitIdMigradoEn` cuando la migración se dé por cerrada, y decidir los 31
+huérfanos de `tenant-santa-maria` — que ahora se sabe de dónde salieron.

@@ -18,8 +18,12 @@ type Props = {
 const norm = (value: string) => value.trim().toLowerCase();
 
 export function DuplicateUnitsPanel({ tenantId, units, people }: Props) {
-  const countPeople = (unit: UnitItem) =>
-    people.filter((p) => p.unitId === unit.id || p.unitId === unit.unitId).length;
+  // **Por la clave, y solo por la clave.** Esto miraba también `unit.unitId` —el
+  // slug— mientras las dos convenciones convivían. `FIX-002` unificó el dato el
+  // 26 de agosto de 2026, y el resto era una vía por la que una unidad podía
+  // heredar el conteo de otra: aquí ese número decide **cuál se propone
+  // conservar** en una fusión que borra la otra.
+  const countPeople = (unit: UnitItem) => people.filter((p) => p.unitId === unit.id).length;
 
   // Agrupa unidades por nombre normalizado; deja solo los grupos con más de una.
   // Dentro de cada grupo, ordena por personas (desc) → la primera es la sugerida a conservar.

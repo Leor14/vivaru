@@ -135,14 +135,40 @@ no de memoria. No hay cliente real al que avisar.
 
 ### Lo siguiente, después de la migración
 
-**Decidir los 31 huérfanos de `tenant-santa-maria`**, que es lo único que queda BLOQUEADO. Son
-tres grupos y **ninguno lleva dinero ni bloquea a un residente** —27 invitaciones y firmas bajo
-`G1bWNzZJuakw9KRoAx7p`, una unidad que ya no existe; 3 invitaciones bajo `unit-t2-503`; 1 paquete
-bajo `unit-torre-1-403`—. Los tres tienen **hermanos con etiqueta que resuelven** y el informe lo
-dice; reasignarlos por esa vía es una extensión de R2 que no está decidida.
+**Correr las pruebas de emulador del paz y salvo**, que están reescritas y **sin ejecutar**: en esta
+máquina no hay Java y el emulador no arranca. Es lo único con rojo posible:
 
-Después: **Fase 2** —los 35 sitios de lectura que sigan siendo defecto y retirar `unitIdPrevio`—
-y **`FLOW-003`** (cobranza), que necesita `FEAT-004`.
+```
+firebase emulators:start --only firestore --project hogaru-1-test
+npm --prefix functions run test:emulator
+```
+
+**Decidir los 31 huérfanos de `tenant-santa-maria`**, que es lo único que queda BLOQUEADO — y que
+ya **no son un misterio: los fabricó `mergeUnits`** (ver la Fase 2). Ninguno lleva dinero ni bloquea
+a un residente. Los tres grupos tienen hermanos con etiqueta que resuelven y el informe lo dice;
+reasignarlos por esa vía es una extensión de R2 que no está decidida.
+
+Después: retirar `unitIdPrevio` cuando la migración se dé por cerrada, y **`FLOW-003`** (cobranza),
+que necesita `FEAT-004`.
+
+### La Fase 2 está hecha, y encontró de dónde salían los huérfanos
+
+Se barrieron **91 ficheros** con **118 lecturas** de clave de unidad. **No eran «35 sitios que
+corregir»: eran tres parches y un cuarto sitio que la ficha no había visto.**
+
+- **El paz y salvo miraba TRES vías** —id, campo y etiqueta—. La etiqueta consulta sin restringir a
+  la unidad: dos homónimas se bloquearían entre sí, y una unidad borrada bloquearía a la nueva que
+  reutilizara su nombre. Retirada; se conserva el **slug propio**, que no puede traer deuda ajena. Y
+  **si la unidad no se reconoce, ya no se emite** — antes salía vacío, daba cero y se firmaba igual.
+- **La tarjeta del estado de cuenta agrupaba por ETIQUETA** y elegía la clave **por su forma** (la
+  que llevara `--`). Lo primero fundiría dos homónimas sumando su cartera en un papel que se
+  entrega.
+- **`mergeUnits` decía «TODAS las referencias» y conocía NUEVE de dieciocho**, y después borra la
+  unidad. **Eso explica los 27 huérfanos de santa-maría**: están en cuatro de las que faltaban.
+- **Lo que NO se tocó, a propósito:** `utils/unitLabel.ts` —resuelve un NOMBRE para enseñar, y ser
+  tolerante ahí es correcto— y todas las consultas de dinero, que **ya eran correctas**. La ficha
+  acertó al decir que arreglarlas antes de migrar era escribir código para un problema que se iba a
+  borrar.
 
 ### Dos cosas anotadas que no se tocaron
 
