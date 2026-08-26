@@ -50,6 +50,12 @@ verdad se va a sembrar — **sin unidad se ve igual de vacío, pero se ve que FA
 | **Staging** | 140 documentos migrados en seis conjuntos · los diez dan cero · 5 huérfanos · **`createTrialWorkspace` desplegada** (solo esa) |
 | **Producción** | **110 documentos migrados** en cinco conjuntos · los nueve dan cero · 31 huérfanos · **ninguna function desplegada** |
 
+**LOS CUATRO BANCOS EN VERDE, y dos de ellos no se habían podido correr nunca aquí:** `npm test`
+(1198) · functions (568) · **emulador (180, los nueve ficheros)** · **reglas (208)**. El emulador
+necesita Java y esta máquina no lo traía; el JDK quedó en `~/.local/jdk` y el `export` está en
+`CLAUDE.md`. Las 23 del paz y salvo se falsaron por tres vías —devolver la etiqueta, quitar la
+guarda de unidad desconocida y quitar el slug propio— y cada una enrojeció exactamente las suyas.
+
 **Y la fábrica está probada arreglada, no solo corregida.** Se desplegó `createTrialWorkspace` en
 staging, se sembró un conjunto de usar y tirar con la semilla nueva y el informe lo dio **LIMPIO**:
 30 documentos en convención, cero migrables. Antes, esos mismos 30 eran los que salían fuera —los
@@ -134,14 +140,6 @@ ficha decía: 3.360.000 que se veían más 3.580.000 que no.
 no de memoria. No hay cliente real al que avisar.
 
 ### Lo siguiente, después de la migración
-
-**Correr las pruebas de emulador del paz y salvo**, que están reescritas y **sin ejecutar**: en esta
-máquina no hay Java y el emulador no arranca. Es lo único con rojo posible:
-
-```
-firebase emulators:start --only firestore --project hogaru-1-test
-npm --prefix functions run test:emulator
-```
 
 **Decidir los 31 huérfanos de `tenant-santa-maria`**, que es lo único que queda BLOQUEADO — y que
 ya **no son un misterio: los fabricó `mergeUnits`** (ver la Fase 2). Ninguno lleva dinero ni bloquea

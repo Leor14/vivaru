@@ -65,6 +65,23 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
 - Tests app: `npm test` (vitest)
 - Tests functions: `npm --prefix functions test` — banco propio desde ago 2026 (`functions/tests/`, config en `functions/vitest.config.mts`). No se pueden poner en `tests/` de la raíz: importar `functions/` desde ahí rompe el build de App Hosting.
 - Tests functions con emulador: `npm --prefix functions run test:emulator` (`*.emulator.test.ts`, config aparte). Requieren el emulador de Firestore levantado — ver la sección de más abajo. Van separados para que la suite normal no falle sin él.
+- **El emulador necesita JAVA, y esta máquina no lo trae.** `/usr/bin/java` existe pero es
+  solo el stub de macOS: responde «Unable to locate a Java Runtime» y el emulador muere
+  antes de arrancar, con un error que no menciona Java hasta el final. No hay Homebrew ni
+  ninguna app con un JDK dentro. **El JDK está en `~/.local/jdk`** (Temurin 21 LTS, arm64,
+  instalado el 26 de agosto de 2026 sin tocar el sistema ni pedir contraseña). Antes de
+  levantar el emulador:
+
+  ```bash
+  export JAVA_HOME="$HOME/.local/jdk/jdk-21.0.12.1+1/Contents/Home"
+  export PATH="$JAVA_HOME/bin:$PATH"
+  firebase emulators:start --only firestore --project hogaru-1-test
+  ```
+
+  Con eso corren los **nueve** ficheros de emulador (180 pruebas) y `npm run test:rules`
+  (208). Ninguno de los dos entra en `npm test`, así que **un cambio en `firestore.rules` o
+  en una callable puede pasar el gate normal y estar roto**: los cuatro bancos son
+  `npm test` (1198), `npm --prefix functions test` (568), el emulador (180) y las reglas (208).
 
 ## Ambientes desplegados
 
