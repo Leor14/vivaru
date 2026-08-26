@@ -46,6 +46,14 @@ function leer(rel: string): string {
   return fs.readFileSync(path.resolve(RAIZ, rel), "utf8");
 }
 
+/** Sin líneas de comentario: lo que el fichero HACE, no lo que cuenta. */
+function soloCodigo(texto: string): string {
+  return texto
+    .split("\n")
+    .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+    .join("\n");
+}
+
 function nucleo(rel: string): string {
   const texto = leer(rel);
   const desde = texto.indexOf(MARCA);
@@ -239,13 +247,29 @@ describe("4 · la semilla del trial pasa por el resolvedor", () => {
     expect(texto).toContain('await set("units", id(slug)');
   });
 
+  it("el residente de prueba NO recibe unidad si no se va a sembrar ninguna", () => {
+    // Con `asCustomer` no hay siembra y no hay unidades, pero la membresía se
+    // fijaba igual a `${tenantId}--t1-101`: una clave que no existiría nunca.
+    // Dos conjuntos de staging seguían así el 26 de agosto de 2026. Sin unidad se
+    // ve igual de vacío, pero se ve que FALTA asignarla — y se puede.
+    const taller = leer("functions/src/trial-workspace.ts");
+    expect(taller).toMatch(/if \(spec\.role === "resident" && shouldSeed\)/);
+    const decision = taller.indexOf("const shouldSeed =");
+    const uso = taller.indexOf('spec.role === "resident" && shouldSeed');
+    expect(decision, "`shouldSeed` tiene que decidirse ANTES de las cuentas de prueba").toBeGreaterThan(-1);
+    expect(decision).toBeLessThan(uso);
+  });
+
   it("el residente de prueba recibe su unidad del MISMO sitio que la crea", () => {
     // La membresía llevaba `${tenantId}--t1-101` escrito a mano en otro fichero:
     // dos sitios calculando el mismo id, y el día que el esquema cambiara el
     // residente de prueba apuntaría a una unidad inexistente sin ningún error.
     const taller = leer("functions/src/trial-workspace.ts");
     expect(taller).toContain("idDeUnidadSembrada(tenantId, SLUG_PRIMERA_UNIDAD)");
-    expect(taller, "el id del esquema no puede volver a escribirse a mano").not.toMatch(
+    // **Solo el código.** Un comentario que NOMBRE el id viejo —y el de arriba lo
+    // nombra, para explicar qué pasó— no es un sitio que lo calcule. Un guardián
+    // que enrojece por su propia prosa se acaba desactivando.
+    expect(soloCodigo(taller), "el id del esquema no puede volver a escribirse a mano").not.toMatch(
       /`\$\{tenantId\}--t1-101`/,
     );
     expect(leer(SEMILLA)).toContain("export function idDeUnidadSembrada");

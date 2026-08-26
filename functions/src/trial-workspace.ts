@@ -219,6 +219,11 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
   // Son cuentas técnicas, no correos de personas reales: así el admin recorre
   // ambos portales sin invitar a nadie ni compartir su contraseña.
   const demoAccounts: CreateTrialResult["demoAccounts"] = [];
+
+  // **La siembra se decide AQUÍ, antes de las cuentas de prueba**, porque de ella
+  // depende si el residente de prueba puede tener unidad. Estaba más abajo, y por
+  // eso el residente la recibía siempre. Ver el bloque de abajo.
+  const shouldSeed = input.seedExamples ?? !input.asCustomer;
   const demoSpecs = [
     { role: "resident", label: "Residente de prueba", local: "residente" },
     { role: "security_guard", label: "Portería de prueba", local: "porteria" },
@@ -245,15 +250,25 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
       createdAt: now,
       updatedAt: now,
     };
-    // El residente necesita unidad para ver su portal con datos.
+    // El residente necesita unidad para ver su portal con datos — **pero solo si
+    // esa unidad va a existir**, y con `asCustomer` no se siembra nada.
     //
-    // **Esta era la mitad buena del defecto del trial.** La membresía siempre
-    // apuntó al ID DEL DOCUMENTO —que es lo correcto (D1) y es contra lo que
-    // compara `residentOwnUnit`— mientras la semilla escribía el SLUG en los
-    // cargos y las personas. Por eso el residente de prueba veía su cartera a
-    // cero sin un solo error: medido en staging, deuda visible 0 de 1.700.000.
-    // El id se pide ahora al mismo sitio que lo crea, en vez de escribirlo a mano.
-    if (spec.role === "resident") {
+    // **Dos defectos vivían en estas tres líneas, y los dos se ven igual: vacío.**
+    //
+    //   1. La membresía siempre apuntó al ID DEL DOCUMENTO —correcto (D1), y es
+    //      contra lo que compara `residentOwnUnit`— mientras la semilla escribía
+    //      el SLUG en los cargos y las personas. Cartera a cero sin un error:
+    //      medido en staging, 0 de 1.700.000. Lo arregló la semilla.
+    //   2. **Y se fijaba aunque NO se sembrara.** En un alta de cliente no hay
+    //      unidades, así que el residente de prueba quedaba apuntando a
+    //      `${tenantId}--t1-101`, que no existe, para siempre. Dos conjuntos de
+    //      staging seguían así el 26 de agosto de 2026.
+    //
+    // Sin unidad se ve igual de vacío, sí — pero **se ve que falta asignarla**, y
+    // se puede desde la pantalla de residentes. Con una clave inventada parece
+    // asignada y no hay nada que arreglar. Es la diferencia entre un hueco y una
+    // mentira.
+    if (spec.role === "resident" && shouldSeed) {
       demoProfile.unitId = claveDeUnidad({ id: idDeUnidadSembrada(tenantId, SLUG_PRIMERA_UNIDAD) });
       demoProfile.unitLabel = SLUG_PRIMERA_UNIDAD.toUpperCase();
     }
@@ -271,7 +286,6 @@ export async function provisionTrialWorkspace(input: CreateTrialInput): Promise<
   // ── 4. Siembra (IDs prefijados por tenant) ────────────────────────────────
   // Por defecto se siembra en las pruebas (los módulos en vista previa deben
   // verse llenos) y NO en un alta de cliente, que carga sus datos reales.
-  const shouldSeed = input.seedExamples ?? !input.asCustomer;
   const seeded = shouldSeed
     ? await seedTrialWorkspace(tenantId, currencyForCountry(input.pais))
     : {};

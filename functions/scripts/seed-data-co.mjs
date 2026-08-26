@@ -40,7 +40,7 @@ export const USERS_CO = [
     displayName: "Juan Herrera Salcedo",
     role: "resident",
     tenantId: TENANT_CO.id,
-    unitId: "t2-204",
+    unitId: "nogal-t2-204",
     unitLabel: "T2-204",
   },
   {
@@ -52,10 +52,26 @@ export const USERS_CO = [
   },
 ];
 
+// **CINCO DE ESTAS UNIDADES LLEVAN PREFIJO, Y NO ES ESTÉTICA.**
+//
+// `units` es una colección RAÍZ: el id de documento es global, no vive dentro del
+// conjunto. Esta semilla y la de Las Playas declaraban los mismos cinco ids
+// —`t1-101`, `t1-102`, `t2-201`, `t2-202` y `t2-204`—, así que **no cabían las
+// dos**: la que sembró última se quedó el documento con SU `tenantId` y a la otra
+// le desaparecieron cinco unidades. Ganó Las Playas, y El Nogal quedó con quince
+// documentos huérfanos —cargos, paquetes, reservas, pases, personas y **la
+// membresía de `juan.herrera@elnogal.co`, que por eso no veía nada**—.
+//
+// Estaba así desde `b2ddf68` (10 de mayo de 2026) y en LOS DOS ambientes, con las
+// mismas cinco: no es un accidente de una corrida, es determinista.
+//
+// El campo `unitId` sigue siendo el slug pelado, y ahí no hay colisión posible:
+// es un campo dentro de un documento que ya está separado por `tenantId`.
+// `tests/semillas-ids-de-unidad.test.ts` vigila que no vuelva a pasar.
 export const UNITS_CO = [
   // Torre 1
-  { id: "t1-101", unitId: "t1-101", displayName: "T1-101", tower: "Torre 1" },
-  { id: "t1-102", unitId: "t1-102", displayName: "T1-102", tower: "Torre 1" },
+  { id: "nogal-t1-101", unitId: "t1-101", displayName: "T1-101", tower: "Torre 1" },
+  { id: "nogal-t1-102", unitId: "t1-102", displayName: "T1-102", tower: "Torre 1" },
   { id: "t1-201", unitId: "t1-201", displayName: "T1-201", tower: "Torre 1" },
   { id: "t1-202", unitId: "t1-202", displayName: "T1-202", tower: "Torre 1" },
   { id: "t1-301", unitId: "t1-301", displayName: "T1-301", tower: "Torre 1" },
@@ -67,9 +83,9 @@ export const UNITS_CO = [
   // Torre 2
   { id: "t2-101", unitId: "t2-101", displayName: "T2-101", tower: "Torre 2" },
   { id: "t2-102", unitId: "t2-102", displayName: "T2-102", tower: "Torre 2" },
-  { id: "t2-201", unitId: "t2-201", displayName: "T2-201", tower: "Torre 2" },
-  { id: "t2-202", unitId: "t2-202", displayName: "T2-202", tower: "Torre 2" },
-  { id: "t2-204", unitId: "t2-204", displayName: "T2-204", tower: "Torre 2" },
+  { id: "nogal-t2-201", unitId: "t2-201", displayName: "T2-201", tower: "Torre 2" },
+  { id: "nogal-t2-202", unitId: "t2-202", displayName: "T2-202", tower: "Torre 2" },
+  { id: "nogal-t2-204", unitId: "t2-204", displayName: "T2-204", tower: "Torre 2" },
   { id: "t2-301", unitId: "t2-301", displayName: "T2-301", tower: "Torre 2" },
   { id: "t2-302", unitId: "t2-302", displayName: "T2-302", tower: "Torre 2" },
   { id: "t2-401", unitId: "t2-401", displayName: "T2-401", tower: "Torre 2" },
@@ -97,7 +113,7 @@ export const PEOPLE_CO = [
     documentNumber: "79245678",
     roleType: "tenant",
     occupancyType: "tenant",
-    unitId: "t2-204",
+    unitId: "nogal-t2-204",
     tower: "Torre 2",
   },
   {
@@ -108,7 +124,7 @@ export const PEOPLE_CO = [
     documentNumber: "43118765",
     roleType: "owner_occupant",
     occupancyType: "owner_occupant",
-    unitId: "t1-101",
+    unitId: "nogal-t1-101",
     tower: "Torre 1",
   },
   {
@@ -119,7 +135,7 @@ export const PEOPLE_CO = [
     documentNumber: "70234567",
     roleType: "tenant",
     occupancyType: "tenant",
-    unitId: "t1-102",
+    unitId: "nogal-t1-102",
     tower: "Torre 1",
   },
   {
@@ -181,10 +197,10 @@ export const BILLING_CO = [
   { id: "bill-t1301-2026-03-co", unitId: "t1-301", unitLabel: "T1-301", period: "2026-03", amount: 350000, balance: 0,      status: "paid",    dueDate: "2026-03-15" },
   { id: "bill-t1301-2026-04-co", unitId: "t1-301", unitLabel: "T1-301", period: "2026-04", amount: 430000, balance: 0,      status: "paid",    dueDate: "2026-04-15" },
   { id: "bill-t1301-2026-05-co", unitId: "t1-301", unitLabel: "T1-301", period: "2026-05", amount: 350000, balance: 350000, status: "pending", dueDate: "2026-05-15" },
-  { id: "bill-t2204-2026-03-co", unitId: "t2-204", unitLabel: "T2-204", period: "2026-03", amount: 430000, balance: 0,      status: "paid",    dueDate: "2026-03-15" },
-  { id: "bill-t2204-2026-04-co", unitId: "t2-204", unitLabel: "T2-204", period: "2026-04", amount: 350000, balance: 350000, status: "overdue", dueDate: "2026-04-15" },
-  { id: "bill-t2204-2026-05-co", unitId: "t2-204", unitLabel: "T2-204", period: "2026-05", amount: 430000, balance: 430000, status: "pending", dueDate: "2026-05-15" },
-  { id: "bill-t1101-2026-05-co", unitId: "t1-101", unitLabel: "T1-101", period: "2026-05", amount: 350000, balance: 350000, status: "pending", dueDate: "2026-05-15" },
+  { id: "bill-t2204-2026-03-co", unitId: "nogal-t2-204", unitLabel: "T2-204", period: "2026-03", amount: 430000, balance: 0,      status: "paid",    dueDate: "2026-03-15" },
+  { id: "bill-t2204-2026-04-co", unitId: "nogal-t2-204", unitLabel: "T2-204", period: "2026-04", amount: 350000, balance: 350000, status: "overdue", dueDate: "2026-04-15" },
+  { id: "bill-t2204-2026-05-co", unitId: "nogal-t2-204", unitLabel: "T2-204", period: "2026-05", amount: 430000, balance: 430000, status: "pending", dueDate: "2026-05-15" },
+  { id: "bill-t1101-2026-05-co", unitId: "nogal-t1-101", unitLabel: "T1-101", period: "2026-05", amount: 350000, balance: 350000, status: "pending", dueDate: "2026-05-15" },
   { id: "bill-t2101-2026-05-co", unitId: "t2-101", unitLabel: "T2-101", period: "2026-05", amount: 350000, balance: 0,      status: "paid",    dueDate: "2026-05-15" },
   // Parqueadero T1-301
   { id: "bill-t1301-parking-2026-05-co", unitId: "t1-301", unitLabel: "T1-301", period: "2026-05", amount: 80000, balance: 80000, status: "pending", dueDate: "2026-05-15", concept: "Parqueadero" },
@@ -194,7 +210,7 @@ export const BILLING_CO = [
 export const PQRS_CO = [
   {
     id: "pqrs-001-co",
-    unitId: "t2-204", unitLabel: "T2-204",
+    unitId: "nogal-t2-204", unitLabel: "T2-204",
     category: "maintenance", type: "pqrs",
     subject: "Filtración de agua en techo de parqueadero nivel -1",
     message: "Se evidencia filtración activa de agua en la cubierta del parqueadero nivel -1, afectando vehículos estacionados. Requiere revisión urgente de impermeabilización.",
@@ -214,7 +230,7 @@ export const PQRS_CO = [
   },
   {
     id: "pqrs-003-co",
-    unitId: "t1-101", unitLabel: "T1-101",
+    unitId: "nogal-t1-101", unitLabel: "T1-101",
     category: "pqrs", type: "petition",
     subject: "Solicitud de copia del reglamento de propiedad horizontal",
     message: "Por favor suministrar copia digital del reglamento de propiedad horizontal actualizado para revisión personal.",
@@ -226,7 +242,7 @@ export const PQRS_CO = [
   },
   {
     id: "pqrs-004-co",
-    unitId: "t2-204", unitLabel: "T2-204",
+    unitId: "nogal-t2-204", unitLabel: "T2-204",
     category: "billing", type: "claim",
     subject: "Cobro duplicado en estado de cuenta de febrero",
     message: "En el estado de cuenta de febrero aparece un cobro duplicado de administración por $350.000. Solicito corrección y nota crédito.",
@@ -273,7 +289,7 @@ export const VISITORS_CO = [
   },
   {
     id: "visit-003-co",
-    unitId: "t2-204", unitLabel: "T2-204", tower: "Torre 2", unit: "204",
+    unitId: "nogal-t2-204", unitLabel: "T2-204", tower: "Torre 2", unit: "204",
     visitorName: "Técnico InterNet Colombia",
     documentNumber: "900443221",
     qrCodeValue: "QR-CO-003",
@@ -284,7 +300,7 @@ export const VISITORS_CO = [
   },
   {
     id: "visit-004-co",
-    unitId: "t1-101", unitLabel: "T1-101", tower: "Torre 1", unit: "101",
+    unitId: "nogal-t1-101", unitLabel: "T1-101", tower: "Torre 1", unit: "101",
     visitorName: "Invitado Programado",
     documentNumber: "1034567890",
     qrCodeValue: "QR-CO-004",
@@ -298,7 +314,7 @@ export const VISITORS_CO = [
 export const PACKAGES_CO = [
   {
     id: "pkg-001-co",
-    unitId: "t2-204", unitLabel: "T2-204",
+    unitId: "nogal-t2-204", unitLabel: "T2-204",
     recipientName: "Juan Herrera Salcedo",
     reference: "PKG-CO-001",
     description: "Mercado Jumbo",
@@ -318,7 +334,7 @@ export const PACKAGES_CO = [
   },
   {
     id: "pkg-003-co",
-    unitId: "t1-101", unitLabel: "T1-101",
+    unitId: "nogal-t1-101", unitLabel: "T1-101",
     recipientName: "Juliana Montoya Pérez",
     reference: "PKG-CO-003",
     description: "Medicamentos",
@@ -371,7 +387,7 @@ export const RESERVATIONS_CO = [
   {
     id: "res-002-co",
     amenityName: "Cancha de Tenis",
-    unitId: "t2-204", unitLabel: "T2-204",
+    unitId: "nogal-t2-204", unitLabel: "T2-204",
     reservedBy: "Juan Herrera Salcedo",
     dateOffsetDays: 1,
     startTime: "07:00", endTime: "09:00",
@@ -381,7 +397,7 @@ export const RESERVATIONS_CO = [
   {
     id: "res-003-co",
     amenityName: "Zona BBQ",
-    unitId: "t1-102", unitLabel: "T1-102",
+    unitId: "nogal-t1-102", unitLabel: "T1-102",
     reservedBy: "Fabio Restrepo Cruz",
     dateOffsetDays: -14,
     startTime: "12:00", endTime: "17:00",
