@@ -8,23 +8,26 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Decidir si sube el front.** `origin/develop` va **49 commits** por delante de
-> `origin/master`, y `master` es lo único que gobierna el front de producción. Ésa es la
-> decisión. **Encender banderas no lo es**, y no por prudencia: está medido que hoy no
-> haría absolutamente nada.
+> **Encender `producto-estado-de-cuenta`** con `mover-bandera.mjs`, y validar por navegador.
+> El front subió la tarde del 26 (`rollout-2026-08-26-001`, build `READY` de `master` /
+> `4769085`), así que **ahora encender sí hace algo** — hasta esta tarde no lo habría hecho.
+> `producto-prorrateo-de-gastos` NO: sin coeficientes sembrados bloquea antes de calcular.
 
-### ENCENDER NO ES EL SEGUNDO ACTO, ES EL TERCERO
+### ENCENDER ERA EL TERCER ACTO, Y LOS DOS PRIMEROS YA ESTÁN
 
-El servidor de `FLOW-001` y `FEAT-004` lleva en producción desde esta mañana con las banderas
-sin existir como documento. Parecía que quedaban dos actos —subir y encender—. Son **tres**, y
-el que falta es el de en medio:
+**Los tres actos son servidor → front → encender, y quedan hechos los dos primeros.** El
+servidor salió por la mañana; el front, por la tarde. Queda encender.
+
+La lección se guarda porque costó descubrirla y no se ve desde el repo: por la mañana parecía
+que quedaban **dos** actos —subir y encender—, y eran tres. Así se supo, en diez segundos:
 
     git show origin/master:src/lib/feature-flags/catalog.ts | grep -E 'prorrateo|estado-de-cuenta'
       → (nada)
 
-**El front vivo no conoce esas dos claves.** Y `estado-de-cuenta.ts`, `paz-y-salvo-pdf.ts`,
-`use-clearance-certificates.ts` y `EstadoDeCuentaUnidadCard.tsx` **nacen en `develop`**: no
-existen en `master`. El orden real es **servidor (hecho) → front → encender**.
+El front que había entonces **no conocía esas dos claves**, y `estado-de-cuenta.ts`,
+`paz-y-salvo-pdf.ts`, `use-clearance-certificates.ts` y `EstadoDeCuentaUnidadCard.tsx` nacían en
+`develop`. **Antes de prometer una fecha de encendido, correr ese `grep` contra la rama que de
+verdad sirve el front.**
 
 > **Y eso descarta de paso un miedo razonable.** Como esos ficheros nunca estuvieron en
 > `master`, producción **no tiene** los tres parches que la Fase 2 retiró: no hay parche
@@ -104,7 +107,7 @@ Y el segundo llegó a imprimir «Guarda EN VERDE» sobre **cero** documentos en 
 | **Functions** | **81 · todas `ACTIVE`** · 77 `export const` + 4 re-exports = 81, sin sobrantes ni ausentes | **81**, mismos nombres |
 | **`firestore.rules`** | ruleset `60d9dd0f-…` · **idéntico byte a byte al repo** | `b38e118f-…` · **idéntico byte a byte** |
 | **`storage.rules`** | `266b7153-…`, **del 19 de agosto** — sin tocar, como se decidió | `7d20c81d-…`, del 25 |
-| **Front** | `rollout-2026-08-25-002` → build `READY` de **`master` / `e41affa`** | — |
+| **Front** | **`rollout-2026-08-26-001` → `SUCCEEDED`, build `READY` de `master` / `4769085`** (26 ago, 21:24 UTC). `origin/master` = `origin/develop` | — |
 | **Banderas** | 16 documentos · `producto-prorrateo-de-gastos` y `producto-estado-de-cuenta` **no existen** | 17 · las dos en `false`, con override a `true` en `cliente-convertido-08011856-421616` |
 
 Los cuatro programados de producción se pusieron al día a las **15:09 UTC**, no en la pasada
@@ -125,12 +128,15 @@ grande de la mañana. Eso solo se ve midiendo `updateTime` función por función
 
 ### LO SIGUIENTE
 
-1. **Decidir si sube el front** (`develop` → `master`). Sube `FEAT-004`, que **se apoya en la
-   cartera y ahí sí hay datos**, así que puede encenderse y cerrarse entera. En el mismo empujón
-   sube la pantalla de `FLOW-001`, que quedaría desplegada y apagada — otro frente abierto.
-2. **Si sube: encender `producto-estado-de-cuenta`** con `mover-bandera.mjs` y validar por
-   navegador. `producto-prorrateo-de-gastos` **no**: con 0 de 88 unidades con coeficiente y 74 de
-   87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
+1. ~~Subir el front~~ — **hecho la tarde del 26**, y subió A OSCURAS: las dos banderas nacen con
+   `defaultEnabled: false` en el catálogo, que es lo que resuelve cuando no existe el documento.
+   Comprobado en pantalla: en la cartera no aparece el estado de cuenta ni el paz y salvo, y el
+   menú de acciones de un egreso da solo «Ver detalle · Editar · Eliminar», sin «Repartir».
+2. **Encender `producto-estado-de-cuenta`** con `mover-bandera.mjs` y validar por navegador.
+   `FEAT-004` se apoya en la cartera, y ahí **sí hay datos**, así que puede cerrarse entera.
+   `producto-prorrateo-de-gastos` **no**: con 0 de 88 unidades con coeficiente y 74 de 87 sin
+   propietario, `repartirPorCoeficiente` bloquea antes de calcular. `FLOW-001` queda desplegada
+   y apagada, que por el criterio del 24 **cuenta como frente abierto**.
 3. **`FLOW-003`** (cobranza) va después, porque su adjunto depende de `FEAT-004`.
 4. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
    decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
