@@ -4,7 +4,110 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 25 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (madrugada)
+
+**DOS MVP EN STAGING Y NINGUNO EN PRODUCCIÓN, y las dos veces por decisión.** `FLOW-001`
+(prorrateo) y `FEAT-004` (estado de cuenta y paz y salvo) están construidos, desplegados en
+staging y **validados por navegador contra la base**. Dieciocho commits, de `453619a` a `6c24fbf`.
+
+**Y el hallazgo de la jornada no es ninguno de los dos: es que el dato que ata una persona con su
+unidad está partido en dos.** Salió validando, obligó a arreglar el paz y salvo **tres veces**, y
+tiene ficha propia: `PRD-V-FIX-002`, lista para desarrollo.
+
+### `FIX-002` es lo siguiente, y es lo que más pesa
+
+**Conviven dos convenciones de `unitId`** —el id del documento de la unidad y su campo `unitId`,
+que es un slug— y encima hay documentos que no casan con ninguna de las dos.
+
+| Medido el 25 de agosto en producción | |
+|---|---|
+| Unidades con el id distinto del campo | **34 de 88** |
+| `billingStatements` | 197 por id · **19 por campo** · **5 huérfanos** |
+| Conjuntos con **las dos** a la vez | **3** — `tenant-santa-maria`, `queretarock`, `residencial-qintilab` |
+| **Deuda invisible** | **3.580.000** en T1-101 de `tenant-santa-maria`, bajo una clave que no existe |
+| Sitios de código que asumen una sola | **35**, tras refutar 37 de 99 hallazgos |
+
+**No es una deriva accidental: fueron DOS migraciones en direcciones opuestas y ninguna terminó.**
+Lo dice la cabecera del propio script: «`IMP-01` corrigió `billingStatements` para usar el slug;
+este script corrige `people` y `users` para que coincidan». **Ninguna tocó `tenantUsers`**, que es
+contra lo que `residentOwnUnit` compara — por eso quedó peor que antes.
+
+**D1 y D2 cerradas:** gana el **id del documento**, y los huérfanos ambiguos quedan fuera del MVP.
+
+> **Se manifiesta SIN error.** Las reglas rechazan, no filtran: el residente ve una lista vacía o
+> un total corto, y el producto no tiene nada que reportar. Es el mismo patrón que dejó a un
+> residente viendo «Sin documentos» teniendo ocho.
+
+### Por qué ninguno de los dos sube a producción
+
+**`FLOW-001`: porque ahí no puede correr.** Con **0 de 88** unidades con coeficiente y **74 de 87**
+sin propietario, `repartirPorCoeficiente` bloquea por R2 y R5 antes de calcular. Subirlo apagado
+sería la cuarta capacidad viva sobre una tabla vacía — y por el criterio del 24, desplegado y
+apagado cuenta como abierto.
+
+**`FEAT-004`: porque depende de `FIX-002`.** Hoy funciona porque el certificado mira **tres vías**
+—el id, el campo y la etiqueta—, que es un parche consciente y no un diseño.
+
+### Lo que se validó por navegador, con las cifras anotadas ANTES
+
+| | |
+|---|---|
+| **`FLOW-001`** | Previa de 6 líneas · cancelar dejó **0 corridas y 0 cargos** · 6 cargos sumando **exactamente 640.000** con el residuo en cuatro · **cero asientos de libro** · anulados 6/6 con saldo 0 y los importes intactos |
+| **`FEAT-004`** | Selector con **6 unidades, no 12** · `PYS-RNDBF5` emitido · **cero** certificados en la unidad que debe · el «no» nombra 1.700.000 y «desde 2026-07» |
+
+### Cinco defectos que ninguna suite vio, y de dónde salió cada uno
+
+1. **El reintento idempotente chocaba con la guarda de repetido** — lo encontró una prueba.
+2. **El aviso de doble cobro estaba apagado en el 37% de los egresos**: 48 de 130 llevan una
+   categoría que ya no existe en el tipo. Salió de **mirar los datos** del conjunto de validación.
+3. **`R6 · repartir no escribe asientos` pasaba por el motivo equivocado** — afirmaba que
+   `ledgerEntries` estaba vacía, y esa colección es de todos. Sola pasaba por casualidad. Ahora
+   mide el **delta**.
+4. **El código del paz y salvo era elegible por el cliente** — lo derivaba del id, que lleva dentro
+   la `operationKey`. Lo cazó una prueba.
+5. **El diálogo del reparto se abría en blanco** con el botón diciendo «Repartir entre 0 unidades»,
+   que se lee como «este conjunto no tiene unidades». Solo se ve mirando.
+
+### Tres correcciones a las propias fichas, hechas al construir
+
+- **`FEAT-004` §11.3 pedía un índice por `dueDate` que habría roto R2 en silencio**: falta en el
+  **27%** de los cargos y un `orderBy` los descarta. Se ordena por `period`. **El índice no se creó.**
+- **`FEAT-004` §11.1 y §11.3 se contradecían** sobre el lote —callable con Storage contra «no hay
+  segunda forma de hacer PDF»—. Gana **un archivo con una unidad por página**.
+- **`FLOW-001` §11.2 pedía una comprobación imposible**: exigía un `get()` en una regla sin
+  presupuesto de accesos. El guardián mira campos del propio documento.
+
+### Dos retoques de experiencia sobre el selector de conjunto
+
+**El conjunto activo se nombra ahora en los tres diálogos que mueven dinero** —registrar pago,
+corrida por coeficiente y repartir egreso—. **No en una banda permanente**: «si se avisa siempre,
+se deja de leer». Va donde el acto es irreversible, y **solo con dos membresías o más**.
+
+**Y `producto-multiconjunto` ya no se puede mover por conjunto.** Gobierna un control de
+navegación, y un control de navegación no puede desaparecer como consecuencia de navegar: apagarla
+en uno dejaba encerrado a quien estuviera parado ahí. El catálogo lo advertía y el script la
+aceptaba igual — **advertido no es impedido**.
+
+### Lo siguiente
+
+**Ejecutar `FIX-002`**, que es otra superficie: datos de producción, no construcción. Su §13 da el
+orden —el resolvedor único y la semilla del trial ANTES de migrar, o el producto sigue escribiendo
+la convención vieja mientras se limpia—.
+
+Después, **`FLOW-003`** (cobranza), que es lo único que queda de la ola C y que **necesita
+`FEAT-004`** para adjuntar el estado de cuenta. Y el frente 6 (`FIN-002`) sigue al final.
+
+### Dos cosas anotadas que no se tocaron
+
+- **48 de 130 egresos con categoría fuera del tipo** (`servicios`, `seguridad`). Hoy solo se ve
+  como **columna Categoría vacía**. **No ensucia el libro**, medido: ningún egreso tiene
+  `accountCode` en ninguno de los dos ambientes.
+- **`Expense.accountCode` está en CERO** —52 de 52 y 78 de 78— y `PLAT-003` §7.2 dice que se
+  resuelve al registrar. Otra capacidad que no puebla. Solo se contó.
+
+---
+
+## EL CIERRE ANTERIOR — `FLOW-001` en staging (25 de agosto de 2026, noche)
 
 **EL MVP DE `FLOW-001` ESTÁ CONSTRUIDO, DESPLEGADO EN STAGING Y VALIDADO POR NAVEGADOR.**
 Repartir un egreso entre las unidades, con vista previa, trazabilidad en los dos sentidos y

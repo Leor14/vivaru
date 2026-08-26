@@ -257,6 +257,24 @@ va por delante, que también es normal.
 > un commit que **nunca llegó a `master`**. Lo desplegado se lee de su servicio — ver el bloque de
 > orden de despliegue.
 
+**DOS MVP ESTÁN EN STAGING Y NINGUNO EN PRODUCCIÓN, las dos veces POR DECISIÓN** (26 ago 2026):
+`FLOW-001` (prorrateo de un egreso) y `FEAT-004` (estado de cuenta y paz y salvo), los dos
+validados por navegador contra la base. **`FLOW-001` no sube porque ahí no puede correr** —0 de 88
+unidades con coeficiente y 74 de 87 sin propietario—; **`FEAT-004` porque depende de `FIX-002`**.
+
+> **Y EL HALLAZGO QUE MÁS LEJOS LLEGA NO ES NINGUNO DE LOS DOS: `unitId` ESTÁ PARTIDO EN DOS.**
+> Conviven el **id del documento** de la unidad y su **campo `unitId`** (un slug), y hay documentos
+> que no casan con ninguno. Medido: **34 de 88 unidades** con los dos valores distintos, **tres
+> conjuntos de producción con las dos convenciones a la vez**, y **3.580.000 de deuda que ninguna
+> pantalla suma** en `tenant-santa-maria`.
+>
+> **No fue una deriva accidental: fueron DOS migraciones en direcciones opuestas y ninguna tocó
+> `tenantUsers`**, que es contra lo que `residentOwnUnit` compara — por eso quedó peor que antes.
+> **Se manifiesta SIN error**: las reglas rechazan, no filtran, así que se ve como una lista vacía.
+> Ficha propia: **`PRD-V-FIX-002`**, lista para desarrollo, y **bloquea de hecho a toda
+> funcionalidad nueva que resuelva persona↔unidad** — `FEAT-004` pagó el peaje arreglando el paz y
+> salvo **tres veces**.
+
 **`PLAT-002` ESTÁ EN PRODUCCIÓN** desde la tarde del 25 de agosto de 2026 (`e41affa`), y con él
 **el frente 4 queda cerrado y desplegado**: la sesión con varias membresías, el selector, la
 entidad `managementCompanies` con su consola de superadmin, y las **dieciocho** comparaciones del

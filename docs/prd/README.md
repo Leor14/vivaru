@@ -88,9 +88,22 @@ Ambas empiezan por la misma puerta: **¿esto merece una PRD?** Un cambio de copy
 | `ia/` | **1** versionada (+4 en Drive, sin migrar) | `FEAT` 1 |
 | `albert/` | **1** | `OPS` 1 |
 
-**Las once funcionales, por estado:** 2 productivas · **7 en producción** (`PLAT-001`,
-`PLAT-003`, `FEAT-003`, `FIX-001`, `FLOW-002` y `PLAT-002` entero) · **7 en producción** contando `PLAT-002`, cuyo MVP subió el 25 de agosto (tarde) · 3 listas para desarrollo
-sin empezar (`FEAT-004`, `FLOW-003`) · **1 con su MVP completo EN STAGING** (`FLOW-001`).
+**Las DOCE funcionales, por estado** —recontadas sobre la tabla, no arrastradas: esta línea llegó
+a decir «once» y a repetir el mismo grupo dos veces—:
+
+| Estado | Cuántas | Cuáles |
+|---|---|---|
+| Productivas | 2 | `FEAT-001`, `FEAT-002` |
+| **En producción** | 5 | `PLAT-001`, `PLAT-003`, `FEAT-003`, `FIX-001`, `PLAT-002` |
+| Cerrada entera | 1 | `FLOW-002` |
+| **MVP en STAGING, no en producción** | 2 | `FLOW-001`, `FEAT-004` — **y las dos por decisión, no por olvido** |
+| Lista para desarrollo | 2 | **`FIX-002`** (bloquea de hecho a lo que resuelva persona↔unidad), `FLOW-003` |
+
+**Las dos que están en staging y no suben, y por qué**, porque es la pregunta que se va a repetir:
+`FLOW-001` porque **en producción no puede correr** —0 de 88 unidades con coeficiente y 74 de 87
+sin propietario, así que R2 y R5 bloquean antes de calcular—, y `FEAT-004` porque **está pendiente
+de que `FIX-002` unifique la clave de unidad**: hoy funciona porque el certificado mira las tres
+vías, que es un parche consciente y no un diseño.
 
 **El plan de construcción son once pasos en tres olas. Van siete, y los siete están EN
 PRODUCCIÓN y apagados** (23–24 ago 2026). Lo que falta ya no es desplegar: es **encender, de una
