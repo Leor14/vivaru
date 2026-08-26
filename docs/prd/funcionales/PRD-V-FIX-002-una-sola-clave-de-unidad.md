@@ -377,6 +377,9 @@ Hoy son pocos y conocidos: 5 cargos, 12 paquetes, 3 pases y 1 membresía en prod
 y no hace daño donde está; adivinar sí. La decisión —archivar, reasignar a mano o borrar— es de
 negocio y necesita mirar cada caso.
 
+> **RESUELTA el 26 de agosto de 2026 — se ARCHIVAN.** Ver §19. Los 31 de `tenant-santa-maria`
+> llevan su decisión escrita y producción queda con los nueve conjuntos en LIMPIO.
+>
 > **CERRADA el 25 de agosto de 2026 — aceptada.** Los huérfanos se listan y no se tocan en el MVP.
 > **Con un matiz que no cabía en la recomendación:** los 5 cargos huérfanos de `tenant-santa-maria`
 > **sí hacen daño donde están** —son 3.580.000 que ninguna pantalla suma y que el paz y salvo solo
@@ -575,3 +578,48 @@ La lista sale ahora del inventario único y una guarda impide volver a escribirl
 
 Retirar `unitIdPrevio` y `unitIdMigradoEn` cuando la migración se dé por cerrada, y decidir los 31
 huérfanos de `tenant-santa-maria` — que ahora se sabe de dónde salieron.
+
+---
+
+## 19. D2 resuelta · los huérfanos se archivan (26 de agosto de 2026)
+
+**Decisión de David.** Los 31 de `tenant-santa-maria` quedan archivados, y producción cierra con
+**los nueve conjuntos en LIMPIO y cero huérfanos sin decidir**.
+
+### Archivar es registrar la decisión, no esconder el documento
+
+Se midió antes de tocar nada, y resultó que son **inertes**:
+
+| | |
+|---|---|
+| El paquete | `status: "delivered"` desde marzo |
+| Las 26 invitaciones | canceladas, y con la fecha de fin pasada |
+| Las 2 respuestas de encuesta | el contador vive en el documento de la encuesta y ya las incluía |
+| Las 2 firmas | **el resumen de cumplimiento cuenta UNIDADES que firmaron, no firmas** — una firma huérfana no suma a nadie |
+
+Así que archivarlas **no cambia una sola pantalla**. Cambia que dejan de ser una pregunta abierta.
+
+Se escribe `unitIdHuerfanoArchivadoEn` y `unitIdHuerfanoMotivo`, y **el motivo es obligatorio**:
+una marca sin porqué obliga a reabrir la pregunta entera dentro de un año. **No se toca nada más** —
+ni la clave, que es la única pista de a dónde apuntaban, ni el estado, ni se mueve ni se borra
+nada—. `--desarchivar` es la operación simétrica, probada en staging.
+
+### Las dos cosas que el archivador se niega a hacer
+
+No son precaución: son significado.
+
+| No archiva | Por qué |
+|---|---|
+| **`tenantUsers` y `users`** | Un huérfano ahí no es un documento viejo sin dueño: es **alguien que hoy no ve nada de lo suyo**. Archivarlo no cierra la pregunta, la tapa — y lo deja fuera para siempre con la decisión marcada como tomada. Lo que hay que hacer es asignarle una unidad |
+| **Dinero vivo** (cargo con saldo, anticipo con remanente) | Es plata de alguien. Sin dueño hace daño donde está —lo dijo D2 de los cinco cargos de santa-maría— y una marca no la devuelve |
+
+Las dos se probaron **contra datos reales**: rechaza las cuatro membresías huérfanas de staging
+(`cliente-david`, `cliente-nuevo`) y deja pasar el cargo `u1`, cuyo saldo es cero. Y se falsaron en
+pruebas: vaciar `NO_ARCHIVABLES` y anular la guarda del saldo enrojecen exactamente la suya.
+
+### Lo que queda abierto de esto
+
+**Las cuatro membresías huérfanas de staging.** El archivador se niega a tocarlas y hace bien: son
+personas sin acceso a lo suyo. O se les asigna unidad, o se borran esos dos conjuntos de prueba —
+que nacieron de un alta `asCustomer` cuya semilla nunca corrió, el defecto que §17 ya corrigió para
+los que vengan.
