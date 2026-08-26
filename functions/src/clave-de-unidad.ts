@@ -320,3 +320,29 @@ export function camposDeLaEscritura(
     [CAMPO_MIGRADO_EN]: ahora,
   };
 }
+
+/**
+ * El estado de la migración de un conjunto (§6). **Vive en el informe, no en un
+ * documento del producto**: persistirlo crearía una segunda verdad que puede
+ * discrepar de la realidad, y la realidad se vuelve a medir corriendo el informe,
+ * que es barato.
+ *
+ * **`limpio` exige cero huérfanos, no solo cero partidas.** La primera versión de
+ * esto daba LIMPIO a un conjunto con un `tenantUsers` huérfano —un residente que
+ * no ve nada— porque no había nada *migrable*. Un informe que da el visto bueno
+ * sobre un conjunto roto es el mismo defecto que la ficha persigue, escrito en la
+ * herramienta que viene a arreglarlo.
+ */
+export type EstadoDelConjunto = "sin-unidades" | "limpio" | "partido" | "bloqueado";
+
+export function estadoDelConjunto(cuenta: {
+  unidades: number;
+  migrables: number;
+  huerfanos: number;
+  ambiguos: number;
+}): EstadoDelConjunto {
+  if (cuenta.unidades === 0) return "sin-unidades";
+  if (cuenta.huerfanos + cuenta.ambiguos > 0) return "bloqueado";
+  if (cuenta.migrables > 0) return "partido";
+  return "limpio";
+}

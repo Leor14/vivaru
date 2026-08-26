@@ -7,6 +7,7 @@ import {
   camposDeLaEscritura,
   claveDeUnidad,
   construirCatalogo,
+  estadoDelConjunto,
   planificarDocumento,
   resolverClaveDeUnidad,
   type AccionPlaneada,
@@ -250,5 +251,29 @@ describe("el inventario de colecciones", () => {
 
   it("`units` NO está: su campo `unitId` es el slug por diseño y no se migra", () => {
     expect(COLECCIONES_CON_CLAVE_DE_UNIDAD.map((c) => c.nombre)).not.toContain("units");
+  });
+});
+
+describe("§6 · el estado de la migración de un conjunto", () => {
+  it("sin unidades no hay nada que mirar", () => {
+    expect(estadoDelConjunto({ unidades: 0, migrables: 0, huerfanos: 9, ambiguos: 0 })).toBe("sin-unidades");
+  });
+
+  it("`limpio` solo cuando no queda NADA: ni migrables, ni huérfanos, ni ambiguos", () => {
+    expect(estadoDelConjunto({ unidades: 25, migrables: 0, huerfanos: 0, ambiguos: 0 })).toBe("limpio");
+  });
+
+  it("un huérfano BLOQUEA aunque no haya nada migrable — el fallo que tuvo este informe", () => {
+    // `tenant-nogal-bogota` en staging: cero migrables y DIECIOCHO huérfanos, uno
+    // de ellos un `tenantUsers`. Salía LIMPIO teniendo a un residente sin ver nada.
+    expect(estadoDelConjunto({ unidades: 15, migrables: 0, huerfanos: 18, ambiguos: 0 })).toBe("bloqueado");
+  });
+
+  it("lo irresoluble manda sobre lo migrable: migrar no lo deja limpio", () => {
+    expect(estadoDelConjunto({ unidades: 19, migrables: 30, huerfanos: 31, ambiguos: 0 })).toBe("bloqueado");
+  });
+
+  it("`partido` es lo que la migración SÍ puede cerrar entero", () => {
+    expect(estadoDelConjunto({ unidades: 6, migrables: 30, huerfanos: 0, ambiguos: 0 })).toBe("partido");
   });
 });

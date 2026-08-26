@@ -40,6 +40,7 @@ exports.construirCatalogo = construirCatalogo;
 exports.resolverClaveDeUnidad = resolverClaveDeUnidad;
 exports.planificarDocumento = planificarDocumento;
 exports.camposDeLaEscritura = camposDeLaEscritura;
+exports.estadoDelConjunto = estadoDelConjunto;
 /**
  * La clave de una unidad. **Es la única forma legítima de obtenerla**, y existe
  * para que el sitio que la escribe se pueda leer y para que la guarda la pueda
@@ -224,4 +225,13 @@ function camposDeLaEscritura(accion, datosActuales, ahora) {
         ...(yaTienePrevio ? {} : { [exports.CAMPO_PREVIO]: accion.de }),
         [exports.CAMPO_MIGRADO_EN]: ahora,
     };
+}
+function estadoDelConjunto(cuenta) {
+    if (cuenta.unidades === 0)
+        return "sin-unidades";
+    if (cuenta.huerfanos + cuenta.ambiguos > 0)
+        return "bloqueado";
+    if (cuenta.migrables > 0)
+        return "partido";
+    return "limpio";
 }

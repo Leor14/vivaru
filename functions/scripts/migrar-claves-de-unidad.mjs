@@ -109,7 +109,12 @@ if (revertir) {
   let vistos = 0;
   let batch = db.batch();
   let ops = 0;
-  for (const coleccion of [...COLECCIONES_CON_CLAVE_DE_UNIDAD].reverse()) {
+  // **El mismo orden que la ida, no el inverso.** Parece que revertir pide
+  // deshacer al revés, pero lo que importa es qué queda si la corrida muere a
+  // media pasada: con `tenantUsers` PRIMERO quedarían los permisos en la clave
+  // vieja y el dato en la nueva, que es la rotura máxima. Dejándola la última, un
+  // corte deja los permisos aún apuntando a donde todavía está casi todo.
+  for (const coleccion of COLECCIONES_CON_CLAVE_DE_UNIDAD) {
     const snap = await db.collection(coleccion.nombre).where("tenantId", "==", tenantId).get();
     for (const d of snap.docs) {
       const previo = d.data()[CAMPO_PREVIO];

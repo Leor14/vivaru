@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import {
   COLECCIONES_CON_CLAVE_DE_UNIDAD,
   construirCatalogo,
+  estadoDelConjunto,
   planificarDocumento,
 } from "../../lib/clave-de-unidad.js";
 
@@ -153,15 +154,13 @@ export async function radiografiarConjunto(db, tenantId) {
     }))
     .sort((a, b) => b.docs - a.docs);
 
-  // §6 · el estado vive en el informe, no en un documento del producto.
-  const estado =
-    catalogo.total === 0
-      ? "sin-unidades"
-      : ambiguos.length > 0
-        ? "bloqueado"
-        : escrituras.length > 0
-          ? "partido"
-          : "limpio";
+  // §6 · el estado sale del módulo puro, que es donde se puede probar.
+  const estado = estadoDelConjunto({
+    unidades: catalogo.total,
+    migrables: escrituras.length,
+    huerfanos: huerfanos.length,
+    ambiguos: ambiguos.length,
+  });
 
   return {
     tenantId,
