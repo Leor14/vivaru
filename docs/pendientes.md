@@ -8,20 +8,28 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Migrar los CUATRO conjuntos de producción que quedan partidos.** El resolvedor, la semilla,
-> el informe y la migración están construidos, probados y **ejecutados enteros en staging**; el
-> seco de producción está medido y cuadra. Lo único que falta es la escritura:
+> **Desplegar las functions de PRODUCCIÓN cuando decidas subir `FLOW-001` y `FEAT-004`** — la
+> semilla corregida va en ese mismo lote, y hasta entonces un trial nuevo de producción seguiría
+> naciendo partido.
 >
-> ```
-> node functions/scripts/informe-claves-de-unidad.mjs hogaru-1 --json /tmp/prod-antes.json
-> node functions/scripts/migrar-claves-de-unidad.mjs hogaru-1 <conjunto> --informe /tmp/prod-antes.json --escribir --si-produccion
-> ```
->
-> Los cuatro, en este orden: `pXHEn5iWKWgX4sDF9tVp` (5 docs) · `queretarock-229-fc4c57` (30) ·
-> `residencial-qintilab-mx-9c1293` (30) · `tenant-santa-maria` (30).
+> **No se desplegó, y es deliberado:** producción va por `13:40 del 25 ago` y
+> `emitclearancecertificate` **no existe allí** (comprobado con `gcloud run services list`), así que
+> un `deploy --only functions` subiría el servidor de los dos MVP que decidiste no subir. Esa es tu
+> decisión, no la de esta ficha.
 
-**`FIX-002` ESTÁ CONSTRUIDO Y CERRADO EN STAGING: cero documentos fuera de convención en los diez
-conjuntos.** Dos commits, `ae45216` y `92be707`.
+**`FIX-002` ESTÁ CERRADO EN LOS DOS AMBIENTES: cero documentos fuera de convención en los
+diecinueve conjuntos.** Cuatro commits, de `ae45216` a `7a49de7`.
+
+| | |
+|---|---|
+| **Staging** | 122 documentos migrados en cinco conjuntos · los diez dan cero · **`createTrialWorkspace` desplegada** (solo esa; el resto del árbol no se tocó) |
+| **Producción** | **95 documentos migrados** en cuatro conjuntos · los nueve dan cero · **ninguna function desplegada** |
+
+**Y la fábrica está probada arreglada, no solo corregida.** Se desplegó `createTrialWorkspace` en
+staging, se sembró un conjunto de usar y tirar con la semilla nueva y el informe lo dio **LIMPIO**:
+30 documentos en convención, cero migrables. Antes, esos mismos 30 eran los que salían fuera —los
+cuatro conjuntos de staging nacidos del trial tenían **exactamente 30** cada uno—. Conjunto
+borrado después (69 documentos).
 
 ### Lo que se construyó
 
@@ -72,6 +80,17 @@ tienen etiqueta o no casan. El informe los agrupa por valor para que se puedan d
 - `tenant-nogal-bogota` → **15 bajo `t2-204`, `t1-101` y `t1-102`**, uno de ellos un `tenantUsers`:
   **hay un residente que hoy no ve nada y la migración no lo arregla.**
 
+### CA10, medido después: cada peso cuelga de una unidad real
+
+| Conjunto | Sin agrupar | Por unidad | Sin dueño |
+|---|---|---|---|
+| `tenant-santa-maria` | 80.220.000 | **80.220.000** | 0 |
+| `queretarock` · `qintilab` | 5.100.000 c/u | **5.100.000** c/u | 0 |
+| `tenant-nogal-bogota` (no migrable) | 1.560.000 | 430.000 | **1.130.000** |
+
+**Y T1-101 de `tenant-santa-maria` lee ahora 6.940.000**, que es exactamente la deuda real que la
+ficha decía: 3.360.000 que se veían más 3.580.000 que no.
+
 ### La deuda que se vuelve visible (§9 — para el administrador, ANTES de que le llamen)
 
 | Conjunto | Unidad | Antes | Después |
@@ -80,6 +99,8 @@ tienen etiqueta o no casan. El informe los agrupa por valor para que se puedan d
 | `tenant-santa-maria` | 1014 | 4.480.000 | 5.600.000 (+1.120.000) |
 | `tenant-santa-maria` | 1011 | 4.480.000 | 5.600.000 (+1.120.000) |
 | `queretarock` y `qintilab` | cuatro unidades cada uno | 0 | +5.100.000 por conjunto |
+
+**Ya está aplicado en los dos ambientes.**
 
 **Los cuatro conjuntos de producción son `isExample: true`** — comprobado contra los documentos,
 no de memoria. No hay cliente real al que avisar.

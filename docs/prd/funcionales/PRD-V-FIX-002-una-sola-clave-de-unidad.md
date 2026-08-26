@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` — es quien deja de ver lo suyo |
 | **Usuarios secundarios** | `tenant_admin` · `security_guard` · `superadmin` |
 | **Responsable** | David |
-| **Estado** | **MVP CONSTRUIDO Y CERRADO EN STAGING** (26 ago 2026): cero documentos fuera de convención en los diez conjuntos. **En producción queda la escritura de cuatro conjuntos**; el seco está medido y cuadra. Ver §16 |
+| **Estado** | **MVP CERRADO EN LOS DOS AMBIENTES** (26 ago 2026): cero documentos fuera de convención en los diecinueve conjuntos. Queda **desplegar la semilla corregida a producción**, que va en el lote de `FLOW-001`/`FEAT-004`. Ver §16 |
 | **Dependencias** | Ninguna bloqueante. **Bloquea** cualquier funcionalidad nueva que resuelva persona↔unidad, y ya condicionó a `PRD-V-FEAT-004` |
 | **Riesgo** | **Alto.** Toca la raíz de los permisos del residente y reescribe el campo del que cuelgan quince colecciones |
 | **Reversibilidad** | **Parcial, y hay que decirlo en primera línea.** La migración es reversible **solo si se guarda el valor anterior en cada documento tocado**; sin eso, no hay vuelta atrás. Ver §13 |
@@ -444,8 +444,32 @@ permisos en la clave vieja con el dato en la nueva.
 
 | | |
 |---|---|
-| **Staging** | **CERRADO.** 122 documentos migrados en cinco conjuntos; los diez dan cero fuera de convención. Quedan 23 huérfanos, sin tocar (D2) |
-| **Producción** | **Informe y seco hechos y cuadrados**; 95 documentos en cuatro conjuntos, todos `isExample: true`. **Falta la escritura** |
+| **Staging** | **CERRADO.** 122 documentos migrados en cinco conjuntos; los diez dan cero. `createTrialWorkspace` desplegada |
+| **Producción** | **CERRADO.** 95 documentos migrados en cuatro conjuntos, todos `isExample: true`; los nueve dan cero. **Sin desplegar functions**: producción va por el 25 a las 13:40 y `emitclearancecertificate` no existe allí, así que un despliegue subiría el servidor de `FLOW-001` y `FEAT-004`, que están retenidos a propósito |
+
+### CA10, medido después de migrar
+
+| Conjunto | Sin agrupar | Por unidad | Sin dueño |
+|---|---|---|---|
+| `tenant-santa-maria` | 80.220.000 | **80.220.000** | 0 |
+| `queretarock` · `qintilab` | 5.100.000 c/u | **5.100.000** c/u | 0 |
+| `tenant-nogal-bogota` (nada migrable) | 1.560.000 | 430.000 | **1.130.000** |
+
+**T1-101 lee ahora 6.940.000** — la deuda real que decía §2: los 3.360.000 que se veían más los
+3.580.000 que no.
+
+### La fábrica, probada arreglada
+
+No basta con corregir `trial-seed.ts`: hay que verlo nacer limpio. Se desplegó
+`createTrialWorkspace` en staging, se sembró un conjunto de usar y tirar y el informe lo dio
+**LIMPIO** — 30 documentos en convención, cero migrables. Antes eran esos mismos 30 los que salían
+fuera: los cuatro conjuntos de staging nacidos del trial tenían **exactamente 30** cada uno, y su
+deuda visible era cero.
+
+**Y la fábrica tenía un segundo sitio que la guarda no veía.** `trial-workspace.ts` fija la unidad
+del residente de prueba por ASIGNACIÓN (`demoProfile.unitId = …`), no en un literal, y el barrido
+solo buscaba `unitId:`. Estaba bien por casualidad —ya usaba el id— y esa casualidad explica el
+defecto entero: la membresía apuntaba al id y la semilla escribía el slug.
 
 ### Lo que R2 dejó fuera, y con qué pista
 
