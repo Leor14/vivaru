@@ -33,7 +33,7 @@
  * planificador de la migración, que es una operación de plataforma.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CAMPO_MIGRADO_EN = exports.CAMPO_PREVIO = exports.COLECCIONES_CON_CLAVE_DE_UNIDAD = void 0;
+exports.NO_ARCHIVABLES = exports.CAMPO_ARCHIVADO_MOTIVO = exports.CAMPO_ARCHIVADO_EN = exports.CAMPO_MIGRADO_EN = exports.CAMPO_PREVIO = exports.COLECCIONES_CON_CLAVE_DE_UNIDAD = void 0;
 exports.claveDeUnidad = claveDeUnidad;
 exports.normalizarEtiqueta = normalizarEtiqueta;
 exports.construirCatalogo = construirCatalogo;
@@ -42,6 +42,8 @@ exports.planificarDocumento = planificarDocumento;
 exports.camposDeLaEscritura = camposDeLaEscritura;
 exports.estadoDelConjunto = estadoDelConjunto;
 exports.clavesDeConsulta = clavesDeConsulta;
+exports.estaArchivado = estaArchivado;
+exports.llevaDineroVivo = llevaDineroVivo;
 /**
  * La clave de una unidad. **Es la única forma legítima de obtenerla**, y existe
  * para que el sitio que la escribe se pueda leer y para que la guarda la pueda
@@ -260,4 +262,51 @@ function clavesDeConsulta(clave, catalogo, slugDeLaUnidad) {
     if (!slug || slug === clave || catalogo.ids.has(slug))
         return [clave];
     return [clave, slug];
+}
+/**
+ * **Archivar un huérfano es registrar una decisión, no esconder un documento.**
+ *
+ * Un huérfano es un documento cuya clave no casa con ninguna unidad y que R2 no
+ * puede reasignar sin adivinar. La ficha los deja listados (D2) y dice que
+ * decidir qué hacer con ellos es de negocio. Cuando esa decisión es «archivar»,
+ * lo único que cambia es que **queda escrita en el propio documento**: el informe
+ * deja de contarlo como pendiente y quien lo encuentre dentro de un año sabe por
+ * qué sigue ahí.
+ *
+ * **No se toca nada más.** Ni la clave —que es la única pista de a dónde
+ * apuntaba—, ni el estado, ni el documento se mueve o se borra. Los 31 de
+ * `tenant-santa-maria` son documentos ya cerrados (el paquete está `delivered`
+ * desde marzo, la invitación está cancelada) y **no inflan ningún número**: el
+ * resumen de firmas cuenta UNIDADES que firmaron, no firmas, así que una firma
+ * huérfana no suma a nadie. Archivarlos no cambia una sola pantalla; cambia que
+ * dejan de ser una pregunta abierta.
+ */
+exports.CAMPO_ARCHIVADO_EN = "unitIdHuerfanoArchivadoEn";
+exports.CAMPO_ARCHIVADO_MOTIVO = "unitIdHuerfanoMotivo";
+function estaArchivado(datos) {
+    return Boolean(datos[exports.CAMPO_ARCHIVADO_EN]);
+}
+/**
+ * **Las colecciones que NO se pueden archivar, y por qué no es una lista de
+ * precaución sino de significado.**
+ *
+ * `tenantUsers` y `users` son la membresía de una persona. Un huérfano ahí no es
+ * un documento viejo sin dueño: es **alguien que hoy no ve nada de lo suyo**
+ * porque su membresía nombra una unidad que no existe. Archivarlo no cierra la
+ * pregunta, la tapa — y deja a esa persona fuera para siempre con la decisión
+ * marcada como tomada. Lo que hay que hacer es asignarle una unidad.
+ */
+exports.NO_ARCHIVABLES = new Set(["tenantUsers", "users"]);
+/**
+ * **Y no se archiva nada que lleve dinero vivo.** Un cargo con saldo o un
+ * anticipo con remanente son plata de alguien: sin dueño hacen daño donde están
+ * —es lo que decía D2 de los cinco cargos de santa-maría— y taparlos con una
+ * marca no la devuelve. Se listan hasta que alguien decida a quién van.
+ */
+function llevaDineroVivo(coleccion, datos) {
+    if (coleccion === "billingStatements")
+        return typeof datos.balance === "number" && datos.balance > 0;
+    if (coleccion === "advances")
+        return typeof datos.remaining === "number" && datos.remaining > 0;
+    return false;
 }

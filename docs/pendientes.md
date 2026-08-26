@@ -48,7 +48,7 @@ verdad se va a sembrar — **sin unidad se ve igual de vacío, pero se ve que FA
 | | |
 |---|---|
 | **Staging** | 140 documentos migrados en seis conjuntos · los diez dan cero · 5 huérfanos · **`createTrialWorkspace` desplegada** (solo esa) |
-| **Producción** | **110 documentos migrados** en cinco conjuntos · los nueve dan cero · 31 huérfanos · **ninguna function desplegada** |
+| **Producción** | **110 documentos migrados** en cinco conjuntos · **los nueve LIMPIOS** · cero huérfanos sin decidir · **ninguna function desplegada** |
 
 **LOS CUATRO BANCOS EN VERDE, y dos de ellos no se habían podido correr nunca aquí:** `npm test`
 (1198) · functions (568) · **emulador (180, los nueve ficheros)** · **reglas (208)**. El emulador
@@ -99,6 +99,32 @@ que lo hace posible y por eso R3 no es una comodidad.
 inverso, pero eso pone `tenantUsers` primero: si la corrida muere a media pasada quedan los
 permisos en la clave vieja y el dato en la nueva, que es la rotura máxima.
 
+### D2 resuelta: los 31 de santa-maría están ARCHIVADOS
+
+**Decisión de David, 26 de agosto de 2026.** Producción queda con **los nueve conjuntos en LIMPIO y
+cero huérfanos sin decidir**.
+
+**Archivar aquí es registrar la decisión, no esconder el documento.** Se comprobó antes de tocar
+nada que son **inertes**: el paquete está `delivered` desde marzo, las invitaciones están
+canceladas, y **no inflan ningún número** — el resumen de firmas cuenta UNIDADES que firmaron, no
+firmas, así que una firma huérfana no suma a nadie. No cambia una sola pantalla; cambia que dejan de
+ser una pregunta abierta.
+
+Se escribe `unitIdHuerfanoArchivadoEn` y `unitIdHuerfanoMotivo` en cada documento —**el motivo es
+obligatorio**, porque una marca sin porqué obliga a reabrir la pregunta entera— y **no se toca nada
+más**: ni la clave, que es la única pista de a dónde apuntaban, ni el estado. `--desarchivar` lo
+deshace, probado en staging.
+
+**Y el archivador se niega a dos cosas, por significado y no por precaución:**
+
+| No archiva | Por qué |
+|---|---|
+| `tenantUsers` y `users` | Un huérfano ahí es **alguien que hoy no ve nada de lo suyo**. Archivarlo no cierra la pregunta: la tapa, y lo deja fuera para siempre con la decisión marcada como tomada. Hay que asignarle una unidad |
+| Cualquier documento con **dinero vivo** | Un cargo con saldo o un anticipo con remanente son plata de alguien. Sin dueño hacen daño donde están, y una marca no la devuelve |
+
+Las dos se probaron contra datos reales de staging: rechaza las cuatro membresías de
+`cliente-david` y `cliente-nuevo`, y deja pasar el cargo `u1` porque su saldo es cero.
+
 ### Lo que NO se toca, y es decisión cerrada (D2)
 
 **46 huérfanos en producción, 23 en staging.** No se migran: un documento cuya clave no casa con
@@ -141,13 +167,13 @@ no de memoria. No hay cliente real al que avisar.
 
 ### Lo siguiente, después de la migración
 
-**Decidir los 31 huérfanos de `tenant-santa-maria`**, que es lo único que queda BLOQUEADO — y que
-ya **no son un misterio: los fabricó `mergeUnits`** (ver la Fase 2). Ninguno lleva dinero ni bloquea
-a un residente. Los tres grupos tienen hermanos con etiqueta que resuelven y el informe lo dice;
-reasignarlos por esa vía es una extensión de R2 que no está decidida.
+**Desplegar functions a producción**, cuando decidas subir `FLOW-001` y `FEAT-004` — ahora el lote
+lleva además la Fase 2 y el archivado. Después, retirar `unitIdPrevio` cuando la migración se dé por
+cerrada, y **`FLOW-003`** (cobranza), que necesita `FEAT-004`.
 
-Después: retirar `unitIdPrevio` cuando la migración se dé por cerrada, y **`FLOW-003`** (cobranza),
-que necesita `FEAT-004`.
+**Y las CUATRO membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`), que el
+archivador se niega a tocar a propósito: son personas que no ven nada, y taparlas no lo arregla.
+O se les asigna unidad, o se borran esos dos conjuntos de prueba.
 
 ### La Fase 2 está hecha, y encontró de dónde salían los huérfanos
 

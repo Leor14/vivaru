@@ -75,13 +75,15 @@ for (const c of conjuntos) {
     partidas,
     fueraDeConvencion: fuera,
     huerfanos: r.huerfanos.length,
+    archivados: r.archivados.length,
     ambiguos: r.ambiguos.length,
   });
 
   console.log(`── ${c.tenantId} (${c.estadoComercial}) → ${r.estado.toUpperCase()}`);
   console.log(
     `   ${r.unidades} unidades · ${r.totales.canonica} docs en convención · ` +
-      `${r.totales.migrable} migrables · ${r.huerfanos.length} huérfanos · ${r.ambiguos.length} ambiguos`,
+      `${r.totales.migrable} migrables · ${r.huerfanos.length} huérfanos · ${r.ambiguos.length} ambiguos` +
+      (r.archivados.length ? ` · ${r.archivados.length} archivados` : ""),
   );
 
   const sucias = r.porUnidad.filter((u) => u.fueraDeConvencion > 0);
@@ -127,9 +129,11 @@ console.table(resumen);
 
 const totalFuera = resumen.reduce((a, r) => a + r.fueraDeConvencion, 0);
 const totalAmbiguos = resumen.reduce((a, r) => a + r.ambiguos, 0);
+const totalArchivados = resumen.reduce((a, r) => a + r.archivados, 0);
 console.log(
   `\n${totalFuera} documento(s) fuera de convención · ` +
-    `${resumen.reduce((a, r) => a + r.huerfanos, 0)} huérfano(s) · ${totalAmbiguos} ambiguo(s)`,
+    `${resumen.reduce((a, r) => a + r.huerfanos, 0)} huérfano(s) sin decidir · ${totalAmbiguos} ambiguo(s)` +
+    (totalArchivados ? ` · ${totalArchivados} archivado(s)` : ""),
 );
 if (totalFuera === 0) console.log("CERO documentos fuera de convención: no hay nada que migrar aquí.");
 

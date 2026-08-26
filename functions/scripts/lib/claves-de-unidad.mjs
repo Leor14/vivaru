@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import {
   COLECCIONES_CON_CLAVE_DE_UNIDAD,
   construirCatalogo,
+  estaArchivado,
   estadoDelConjunto,
   planificarDocumento,
 } from "../../lib/clave-de-unidad.js";
@@ -55,10 +56,12 @@ export async function radiografiarConjunto(db, tenantId) {
   const catalogo = construirCatalogo(unidades);
   const etiquetaDe = new Map(unidades.map((u) => [u.id, u.displayName ?? u.id]));
 
-  const totales = { canonica: 0, migrable: 0, ambiguo: 0, huerfano: 0, sinClave: 0 };
+  const totales = { canonica: 0, migrable: 0, ambiguo: 0, huerfano: 0, archivado: 0, sinClave: 0 };
   const porColeccion = {};
   const escrituras = [];
   const huerfanos = [];
+  /** Huérfanos con la decisión ya tomada y escrita. No cuentan como pendientes. */
+  const archivados = [];
   const ambiguos = [];
   /** unidad canónica → { clave usada → nº de documentos } */
   const clavesPorUnidad = new Map();
@@ -79,7 +82,7 @@ export async function radiografiarConjunto(db, tenantId) {
 
   for (const coleccion of COLECCIONES_CON_CLAVE_DE_UNIDAD) {
     const snap = await db.collection(coleccion.nombre).where("tenantId", "==", tenantId).get();
-    const cuenta = { docs: snap.size, canonica: 0, migrable: 0, ambiguo: 0, huerfano: 0, sinClave: 0 };
+    const cuenta = { docs: snap.size, canonica: 0, migrable: 0, ambiguo: 0, huerfano: 0, archivado: 0, sinClave: 0 };
 
     for (const d of snap.docs) {
       const datos = d.data();
@@ -104,6 +107,10 @@ export async function radiografiarConjunto(db, tenantId) {
         cuenta.ambiguo += 1;
         totales.ambiguo += 1;
         ambiguos.push({ ...accion, saldo: esCartera ? saldoDe(datos) : null });
+      } else if (estaArchivado(datos)) {
+        cuenta.archivado = (cuenta.archivado ?? 0) + 1;
+        totales.archivado += 1;
+        archivados.push({ ...accion, saldo: esCartera ? saldoDe(datos) : null });
       } else {
         cuenta.huerfano += 1;
         totales.huerfano += 1;
@@ -170,6 +177,7 @@ export async function radiografiarConjunto(db, tenantId) {
     porColeccion,
     porUnidad,
     huerfanos,
+    archivados,
     gruposDeHuerfanos,
     ambiguos,
     escrituras,

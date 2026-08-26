@@ -4,9 +4,13 @@ import {
   CAMPO_MIGRADO_EN,
   CAMPO_PREVIO,
   COLECCIONES_CON_CLAVE_DE_UNIDAD,
+  CAMPO_ARCHIVADO_EN,
+  NO_ARCHIVABLES,
   camposDeLaEscritura,
   claveDeUnidad,
   clavesDeConsulta,
+  estaArchivado,
+  llevaDineroVivo,
   construirCatalogo,
   estadoDelConjunto,
   planificarDocumento,
@@ -308,5 +312,49 @@ describe("las claves con las que se BUSCA (Fase 2 · el paz y salvo)", () => {
     for (const slug of [null, undefined, "", "1014", "u-t1-101"]) {
       expect(clavesDeConsulta("u-t1-102", CATALOGO, slug)[0]).toBe("u-t1-102");
     }
+  });
+});
+
+describe("archivar un huérfano (D2) es registrar una decisión, no esconder un documento", () => {
+  it("un documento está archivado cuando lleva la marca, y no antes", () => {
+    expect(estaArchivado({})).toBe(false);
+    expect(estaArchivado({ unitId: "lo-que-sea" })).toBe(false);
+    expect(estaArchivado({ [CAMPO_ARCHIVADO_EN]: "2026-08-26" })).toBe(true);
+  });
+
+  it("una MEMBRESÍA no se archiva: hay alguien detrás que dejaría de ver lo suyo", () => {
+    // Archivar `tenantUsers` no cierra la pregunta, la tapa — y deja a esa persona
+    // fuera para siempre con la decisión marcada como tomada.
+    expect(NO_ARCHIVABLES.has("tenantUsers")).toBe(true);
+    expect(NO_ARCHIVABLES.has("users")).toBe(true);
+  });
+
+  it("y lo que sí es archivable NO está en esa lista", () => {
+    // Si la lista se hinchara, «archivar» dejaría de poder hacer nada y el rechazo
+    // se leería como un fallo del script.
+    for (const c of ["visitorInvitations", "packages", "survey_responses", "regulation_signatures"]) {
+      expect(NO_ARCHIVABLES.has(c)).toBe(false);
+    }
+  });
+
+  it("un cargo CON saldo no se archiva — es plata de alguien", () => {
+    expect(llevaDineroVivo("billingStatements", { balance: 1_120_000 })).toBe(true);
+    expect(llevaDineroVivo("advances", { remaining: 33_000 })).toBe(true);
+  });
+
+  it("y uno pagado sí: `balance` en cero no es dinero vivo", () => {
+    // Es el caso real de staging: `u1`, 250.000 facturados y saldo 0.
+    expect(llevaDineroVivo("billingStatements", { balance: 0, amount: 250_000 })).toBe(false);
+    expect(llevaDineroVivo("advances", { remaining: 0 })).toBe(false);
+  });
+
+  it("una colección sin dinero nunca lo lleva, aunque traiga números", () => {
+    expect(llevaDineroVivo("visitorInvitations", { balance: 999, remaining: 999 })).toBe(false);
+    expect(llevaDineroVivo("packages", { balance: 500 })).toBe(false);
+  });
+
+  it("un campo ausente o no numérico no cuenta como dinero vivo", () => {
+    expect(llevaDineroVivo("billingStatements", {})).toBe(false);
+    expect(llevaDineroVivo("billingStatements", { balance: "1200" })).toBe(false);
   });
 });
