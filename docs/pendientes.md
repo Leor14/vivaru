@@ -4,7 +4,7 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (tarde)
+## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (noche)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
@@ -12,11 +12,17 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > `94ccbc5`. Lo que sigue es **desplegarlo**, y antes hace falta algo que solo puede hacer David:
 >
 > ```bash
-> firebase functions:secrets:set RESEND_WEBHOOK_SECRET
+> firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1
 > ```
 >
-> El secreto tiene que existir **antes** del despliegue o la función no arranca. Y la URL del
-> webhook hay que registrarla en Resend, que existirá cuando se despliegue.
+> El secreto tiene que existir **antes** del despliegue o la función no arranca — y tumba el
+> despliegue de functions entero, no solo el suyo. **Comprobado el 26: NO existe.** El comando
+> llegó partido en el pegado y no creó nada, así que **verificarlo antes de darlo por hecho**, y
+> **sin leer su valor** (nunca `secrets:access`), listando Secret Manager por metadatos con la ADC.
+>
+> Después, en este orden: **desplegar** → **registrar la URL del webhook en Resend** (existe solo
+> cuando la función está desplegada) → **formulario de Ajustes › Cobranza** → **validar por
+> navegador**.
 >
 > Las dos banderas nacen apagadas y **no existen como documento** en ningún ambiente.
 
