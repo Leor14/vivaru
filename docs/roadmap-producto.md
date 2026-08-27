@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.32 |
-| **Fecha** | 26 de agosto de 2026 (madrugada) |
-| **Estado** | **DOS MVP EN STAGING Y NINGUNO EN PRODUCCIÓN, las dos veces por decisión**: `FLOW-001` (prorrateo) y `FEAT-004` (estado de cuenta y paz y salvo), construidos, desplegados y **validados por navegador contra la base**. `FLOW-001` no sube porque **ahí no puede correr** —0 de 88 unidades con coeficiente y 74 de 87 sin propietario, así que R2 y R5 bloquean antes de calcular—; `FEAT-004`, porque depende de que se unifique la clave de unidad. **Y ese es el hallazgo de la jornada, que no es ninguno de los dos:** el dato que ata una persona con su unidad **está partido en dos convenciones**, con 34 de 88 unidades afectadas, tres conjuntos que tienen las dos a la vez y **3.580.000 de deuda que ninguna pantalla suma**. **No fue una deriva accidental: fueron DOS migraciones en direcciones opuestas y ninguna tocó `tenantUsers`**, que es contra lo que comparan los permisos. Tiene ficha propia —`PRD-V-FIX-002`, lista para desarrollo con sus dos decisiones cerradas— y **es lo siguiente**. **La lección que más lejos llega: se manifiesta SIN error** —las reglas rechazan, no filtran— así que se ve como una lista vacía y no como un fallo. Antes de esto: **`FLOW-001` TENÍA SU MVP COMPLETO Y EN STAGING**, validado por navegador contra la base: un egreso de $640.000 repartido entre 6 unidades en cargos que suman **exactamente** el total, con el residuo en cuatro de ellas, y la corrida anulada después con 6/6 en saldo cero y los importes intactos. **Con él la ola B queda cerrada en ingeniería.** **NO sube a producción, y el motivo es de datos**: 0 de 88 unidades con coeficiente y 74 de 87 sin propietario, así que R2 y R5 bloquean antes de calcular — subirlo apagado sería la cuarta capacidad viva sobre una tabla vacía. **La lección que más lejos llega de esta jornada: encender una bandera no es arrancar una capacidad; hay que preguntar cuántas filas tiene la tabla que la alimenta.** Y dos defectos que ninguna suite vio — el reintento idempotente chocaba con la guarda de repetido, y el aviso de doble cobro estaba apagado en **48 de 130 egresos** porque sus categorías ya no existen en el tipo. Antes de esto: **`PLAT-002` ESTÁ EN PRODUCCIÓN** desde la tarde del 25 (`e41affa`), y con él **el frente 4 queda cerrado y desplegado**. El orden fue functions → reglas → front, y de las dos razones documentadas para invertirlo **solo aplicaba una**: el delta de `storage.rules` contra producción eran **solo comentarios**, así que no se desplegó. Se comprobó pieza por pieza contra su fuente —77 functions `ACTIVE`, el ruleset vivo **diferenciado contra el fichero** con 0 líneas de diff, y el front por **procedencia del build**—. **El radio del cambio de autoridad se midió con el predicado REAL y salió 0**; el que estaba anotado era más laxo. **`master` NO es el registro de lo desplegado salvo para el front**: el ruleset anterior salía de un commit que nunca llegó a esa rama. **Falta observar CA1** y nadie tiene dos membresías, así que la bandera —apagada, y sin documento— no enseñaría nada aún. Antes de esto: **`PLAT-002` TENÍA SU MVP COMPLETO Y EN STAGING**, verificado por navegador de punta a punta: una cuenta con **seis conjuntos** cambia entre ellos, **cobra $430.000 en el segundo** y sube un documento ahí. **La ficha estaba mal en dos sitios y eso costó la jornada.** §11.2 decía «las once callables» y **eran DIECIOCHO**: la auditoría de agosto buscó donde la ficha señalaba —`index.ts`— y dejó vivas **las seis del dinero**, en `payments.ts` y `advances.ts`. Y §11.3 decía «las reglas no necesitan un cambio», escrito tras leer **uno de los dos ficheros**: `storage.rules` iba por claim. **La lección que más lejos llega: cuando una conclusión empieza con un plural —«las reglas», «los catálogos», «las callables»— hay que contar cuántos son antes de firmarla.** Ese mismo día el plural falló tres veces: dos ficheros de reglas, **cinco** sitios de catálogo de banderas donde el comentario decía cuatro, y dieciocho comparaciones donde la ficha decía once. **Y una segunda, cara:** las reglas entre servicios de Storage **no funcionan en el servicio real** — pasaron 59 pruebas de emulador falsadas en dos direcciones y **rompieron todas las subidas**. **El emulador no es el servicio**, y es el único mecanismo del repositorio que las pruebas no pueden cubrir. **PRODUCCIÓN NO TIENE NADA DE ESTA JORNADA** y `producto-multiconjunto` está apagada allí: subirlo es la siguiente decisión. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Staging, entrando por el navegador con una sesión real de seis conjuntos.** Cada pieza se comprobó contra su fuente y no contra el «Deploy complete»: las funciones por la API del proyecto (**77 de 77 en `ACTIVE`**), el front por una **cadena que no existía antes** —la huella del bundle no sirve: dos builds del mismo commit dan hashes distintos—, y las reglas por su `released`. **Todo lo dudoso se falsó**: romper la guarda del dinero tumba 8 pruebas en un sentido y 7 en el otro; desactivar R5 tumba exactamente la suya. **Y tres comprobaciones acertaron por accidente y hubo que rehacerlas**: un vigía que contaba un `curl` fallido como «el bundle cambió», un `until` que se disparó con la palabra «Error» dentro de `logClientError`, y tres pruebas nuevas cuyo montaje daba el mismo valor al claim y al conjunto pedido, así que pasaban en verde con la implementación rota. **Toda comprobación nueva necesita un control que se sepa bueno**: sin comparar contra `applyPayment` habría reportado tres callables rotas por un binding que tampoco tiene la que funciona |
+| **Versión** | 0.9.33 |
+| **Fecha** | 27 de agosto de 2026 (madrugada) |
+| **Estado** | **`FLOW-003` ESTÁ EN PRODUCCIÓN, CABLEADO CON RESEND Y VALIDADO DE PUNTA A PUNTA** (27 ago, 00:41–02:16 UTC). Índices, reglas, **15 functions** —no las 82: el conjunto se cerró siguiendo el código, no la ficha— y el front, cada pieza medida contra su fuente. La cadena entera se vio funcionar con números: la fila nace en `emailDeliveries` con **el id del mensaje de Resend como id de documento**, Resend contesta con **dos `POST 200` de Svix** —y el `200` en vez del `401` es la única prueba posible de que la firma a mano verifica con el secreto real— y el webhook la mueve a `entregado` **seis segundos** después. **Y EL HALLAZGO DE LA JORNADA NO ES EL DESPLIEGUE: EL CANAL DE CORREO ESTÁ CERRADO EN TODA LA PRODUCCIÓN.** Las **13** claves del catálogo tienen `emailDefault: false` y **cero** de los 8 conjuntos tienen `notificationTemplates`, así que **a ningún residente le llega un correo** y `FLOW-003` puede estar encendido sin registrar nada. Es la **tercera forma de «encender no era el arranque»** —tras la tabla vacía y el front que no conocía la clave— y la más callada: todo lo que se mira está bien y el síntoma es silencio, idéntico al de algo roto. **El segundo hallazgo bloquea una bandera:** en los datos de producción hay **correos de personas reales ajenas al conjunto** —nombres de pila sueltos en gmail, 6 en `users` y 8 en `people`—, y con el adjunto de `FEAT-004` encendido un aviso de cobranza le mandaría **el estado de cuenta en PDF de la unidad de otro** a un extraño. Por eso **`producto-calendario-de-cobranza` NO se enciende** hasta limpiarlos: ficha en `docs/hallazgo-direcciones-de-correo.md`. **`producto-entrega-de-correo` sí queda encendida**, sobre el canal cerrado, para que el rastro arranque solo el día que alguien abra una plantilla. **Staging NO tiene `FLOW-003`** y los dos ambientes divergen a propósito: allí no existe `RESEND_WEBHOOK_SECRET` y sin él la función HTTP no despliega. Lo demás del frente de propiedad horizontal sigue como estaba: **`FEAT-004` encendida y validada**, **`FIX-002` cerrada y sin vuelta atrás**, y **`FLOW-001` desplegada y APAGADA por falta de DATO** —0 de 88 unidades con coeficiente— que por el criterio del 24 cuenta como frente abierto. Lo que queda de `FLOW-003` es el **formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene cero apariciones en `src/`. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, y por medición en vez de por el «Deploy complete».** El índice por su `state` (`READY`); el ruleset **descargado y diferenciado byte a byte** contra el fichero; las functions por el `updateTime` de las **82**, antes y después —**15 movidas, y de las otras 67 cero movidas, cero desaparecidas, cero fuera de `ACTIVE`**—; y el front por **procedencia del build** más la huella de chunks, comprobando además que el bundle servido **sí conoce las dos claves nuevas**, con una clave inventada de control que no aparece. **Lo dudoso se falsó**: el webhook con cuatro peticiones reales (405 · 401 · 401 · 400) antes de tener secreto bueno, y la oscuridad por las **tres** vías que podrían encenderla —documento, catálogo del servidor y override por conjunto—. Suites antes de desplegar: **2.280 en verde** (1.200 raíz · 639 functions · 220 emulador · 221 reglas). **Y dos frases del propio repositorio resultaron falsas al medirlas**: `CLAUDE.md` decía «un cobro normal manda correo» y una ficha decía que los desconocidos «ya lo reciben hoy». Las dos se dedujeron en vez de medirse; las dos están corregidas |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -144,11 +144,15 @@ de entrega.**
 > frente donde ha ido todo el trabajo desde el 24. El §35 de este mismo documento decía que el
 > frente se había abierto; la vista ejecutiva no se enteró. Añadida.
 >
-> **`FLOW-003` está DESPLEGADO en producción y APAGADO** (27 ago, madrugada): entrega medida del
-> correo, webhook, calendario del conjunto y estado de cuenta adjunto. Lo que queda de la ficha es
-> **registrar la URL del webhook en Resend y poner el secreto real** —el que hay es de relleno, así
-> que la función rechaza todo—, el **formulario de Ajustes › Cobranza** (`billingCalendar` tiene
-> cero apariciones en `src/`), encender las dos banderas y la validación por navegador.
+> **`FLOW-003` está EN PRODUCCIÓN, CABLEADO Y VALIDADO** (27 ago, madrugada). El webhook quedó
+> registrado en Resend con su secreto real, y la cadena se vio funcionar con números: fila en
+> `emailDeliveries` a las 02:16:28 → dos `POST 200` de Svix → `entregado` a las 02:16:34.
+> **`producto-entrega-de-correo` queda encendida; `producto-calendario-de-cobranza` NO**, y su
+> bloqueo no es de código: hay **direcciones de personas ajenas al conjunto** en los datos y el
+> adjunto convertiría el aviso en fuga (`docs/hallazgo-direcciones-de-correo.md`). Lo que queda de
+> la ficha es el **formulario de Ajustes › Cobranza** — `billingCalendar` tiene cero apariciones en
+> `src/`, así que hoy el calendario solo se escribe desde la consola, y la regla ya valida los
+> rangos allí, que era el punto.
 >
 > **Y el ⏸ de `FLOW-001` no significa «sin construir»**: significa construido, desplegado entero
 > —servidor y front— y **APAGADO**, porque con 0 de 88 unidades con coeficiente y 74 de 87 sin
@@ -633,7 +637,7 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 | **El concepto del cargo nunca llega al libro**: una multa o una extraordinaria se contabilizan como cuota de administración | `payments.ts:266` y `:578` — `category: "alicuota"` fijo | `PLAT-003` **1b-ii** (la 1b-i, que prepara el libro para recibirlo, ya está en staging) |
 | **Las reglas de reserva se comprueban solo en el cliente**: 6 de 13 en servidor | `eligibility.ts` + `firestore.rules:558` | `FIX-001` |
 | **El pago no registra a qué cuenta bancaria entró** | `payments.ts` — `bankAccountId: null` en **`aplicarPago` Y en `revertirPago`**: son **dos**, y la PRD nombraba uno | `FLOW-002` |
-| **El correo sale sin webhook**: cero entrega, rebotes y quejas | `functions/src/email.ts` | `FLOW-003` |
+| ~~**El correo sale sin webhook**: cero entrega, rebotes y quejas~~ — **CERRADO** el 27 ago 2026: `emailDeliveries` + `resendWebhook` en producción y validados de punta a punta | `functions/src/email.ts` · `functions/src/email-webhook.ts` | `FLOW-003` ✅ |
 | **Se cobra el mismo importe a todas las unidades** | `BillingCampaign.unitAmount` | `PLAT-001` |
 | **El proveedor no existe como entidad**: se teclea en cada egreso | `Expense.vendorName` | `FEAT-003` |
 
@@ -1014,6 +1018,29 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.33 — 27 de agosto de 2026 (madrugada)
+
+- **`FLOW-003` desplegado en producción, cableado con Resend y validado de punta a punta.** Se
+  desplegaron **15 functions y no las 82**: el conjunto se cerró siguiendo el código —la función
+  nueva, la de su retención, y las 13 que pasan por el único sitio que llama a
+  `sendNotificationEmail` **con contexto**—. Una que parecía entrar no entraba: `buildSummaryPdf`
+  se mudó de fichero con el **cuerpo idéntico**, y una mudanza pura no obliga a redesplegar a quien
+  la consume.
+- **EL CANAL DE CORREO ESTÁ CERRADO EN TODA LA PRODUCCIÓN** — el hallazgo de la jornada, y no lo
+  vio ninguna suite. 13 claves con `emailDefault: false`, cero overrides en 8 conjuntos: **a ningún
+  residente le llega correo**. La bandera estaba encendida sobre una puerta cerrada más arriba.
+  **Tercera forma de «encender no era el arranque»**, y la única cuyo síntoma es silencio.
+- **Hay correos de personas reales AJENAS al conjunto en los datos de producción** (6 en `users`, 8
+  en `people`). **Bloquea encender `producto-calendario-de-cobranza`**: con el adjunto, el aviso
+  lleva el estado de cuenta en PDF de la unidad de otro. Ficha aparte.
+- **Tres trampas nuevas a la wiki, las tres medidas:** un secret de v2 se clava a una **versión** y
+  no sigue a `latest` —cambiarlo obliga a redesplegar—; **un webhook no se prueba con el navegador**
+  (el `GET` da 405 y se lee como avería, y costó una vuelta entera); y las dos credenciales de
+  `gcloud` caducan por separado.
+- **Dos frases del repositorio resultaron FALSAS al medirlas**, las dos deducidas en vez de
+  comprobadas: «un cobro normal manda correo» en `CLAUDE.md`, y «esas direcciones ya lo reciben hoy»
+  en la ficha nueva. Corregidas en su sitio, con la corrección dicha y no borrada.
 
 ### 0.9.32 — 26 de agosto de 2026 (madrugada)
 

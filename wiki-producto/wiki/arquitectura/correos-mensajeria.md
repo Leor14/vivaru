@@ -1,9 +1,9 @@
 ---
-tags: [arquitectura, correos, mensajeria, resend, seguridad]
+tags: [arquitectura, correos, mensajeria, resend, seguridad, entregabilidad]
 tipo: tecnica
 fuentes: ["remediacion-auth-2026"]
 fecha_creacion: 2026-06-09
-fecha_actualizacion: 2026-06-23
+fecha_actualizacion: 2026-08-27
 ---
 
 # Correos y Mensajería
@@ -39,6 +39,33 @@ El enlace de los correos abre la página propia `/restablecer` (en español, con
 ## Avisos a residentes (distintos de los correos de identidad)
 
 Esta página cubre los **correos de identidad** (onboarding y reset). Los **avisos operativos a residentes** (cartera, PQRS, reservas, etc.) son un sistema aparte — in-app + email opcional, con catálogo de copias editable por tenant. Su detalle vive en [[notificaciones-residentes]], usado intensamente por [[cartera-campanas|Cartera]]. Comparten el mismo secret `RESEND_API_KEY` y el remitente `notificaciones.grupovivaru.com`.
+
+## Entrega medida: `emailDeliveries` y el webhook de Resend (`PRD-V-FLOW-003`)
+
+**En producción desde el 27 de agosto de 2026, y validado de punta a punta.** Antes, un correo que
+rebotaba o caía en spam **no dejaba rastro**: nadie sabía a quién no le llegaba el aviso.
+
+| Pieza | Qué hace |
+|---|---|
+| `idDeRespuestaResend` | Captura el **id del mensaje** que devuelve la API. No se guardaba: `sendNotificationEmail` devolvía `void` y tiraba el cuerpo de la respuesta |
+| `emailDeliveries` | Una fila por correo, **con ese id como id de documento** — de ahí sale la idempotencia. Lectura solo para administración y superadmin (**el consejo NO**: guarda la dirección de cada residente), escritura cerrada entera. Retención desde el día uno |
+| `resendWebhook` | La **primera función HTTP del producto** (`https://us-central1-hogaru-1.cloudfunctions.net/resendWebhook`). Resend firma con **Svix** y `svix` no está en el repositorio, así que la firma se verifica a mano contra el vector público de Svix |
+| La bandera | `producto-entrega-de-correo`, comprobada **en el servidor** dentro de `registrarEnvio`. Apagada no se escribe una sola fila |
+
+**`email.opened` y `email.clicked` se ignoran a propósito:** saber si alguien abrió un correo exige
+un píxel de seguimiento, y esta colección existe para saber si el aviso **llegó**, no para vigilar a
+quien lo recibe. Un rebote o una queja marcan además `people.emailStatus`, que es donde el
+administrador corrige el contacto.
+
+> **DOS COSAS QUE MUERDEN, LAS DOS MEDIDAS.** (1) Un secret de Functions v2 se queda **clavado a una
+> VERSIÓN**, no sigue a `latest`: cambiar el valor de `RESEND_WEBHOOK_SECRET` **obliga a redesplegar**
+> `resendWebhook`, y no hacerlo da el mismo síntoma que una clave mal copiada. (2) **Un endpoint de
+> webhook no se prueba con el navegador**: un `GET` responde `405 method not allowed`, que es su
+> conducta correcta y se lee como avería. Para probarlo, `curl -X POST` (da `401`) o el «send test
+> event» de Resend.
+
+**Y el eslabón que decide si esto sirve de algo está aguas arriba**, en [[notificaciones-residentes]]:
+si el aviso no tiene el email activo para ese conjunto, no hay envío y por tanto tampoco fila.
 
 ## Relaciones
 
