@@ -4,43 +4,88 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 27 de agosto de 2026 (madrugada)
+## LO PRIMERO AL ABRIR SESIÓN — 27 de agosto de 2026 (tarde)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **`FLOW-003` está DESPLEGADO ENTERO en producción y APAGADO.** Índices, reglas, quince
-> functions y el front — los cuatro medidos pieza por pieza, no leídos del «Deploy complete».
-> Lo que sigue **solo lo puede hacer David**, y son dos actos sobre el mismo secreto:
+> **Decidir qué se mejora ahora de experiencia y diseño** (`UX-003` en el inventario). El corte
+> de navegación está **cerrado y en producción**, y David decidió el 27 por la tarde **seguir
+> subiendo experiencia antes de abrir `FIN-002`**. Lo que falta no es permiso: es acotar el
+> alcance, y **no hay medición todavía** de qué duele después de la navegación.
 >
-> **1 · Registrar la URL del webhook en Resend.** Ya existe, que es lo que la bloqueaba:
->
-> ```
-> https://us-central1-hogaru-1.cloudfunctions.net/resendWebhook
-> ```
->
-> **2 · Poner el valor REAL del secreto y REDESPLEGAR.** El que hay es de relleno, así que hoy la
-> función rechaza absolutamente todo. Eso es el lado correcto en el que fallar, pero significa que
-> **no se registra ni un evento de entrega** hasta que se cambie.
->
-> ```bash
-> cd /Users/david/Vivaru_Rep/vivaru
-> firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1
-> firebase deploy --only functions:resendWebhook --project hogaru-1
-> ```
->
-> **REDESPLEGAR NO ES OPCIONAL, Y ESTÁ MEDIDO.** La función tiene el secreto **clavado a la
-> `versión=1`**, no a `latest` — leído de su `serviceConfig`. Una versión 2 con el valor bueno
-> **no la alcanza sola**: se queda con el relleno y el síntoma es idéntico a una clave mal
-> copiada. Se comprueba así, sin leer el valor:
->
-> ```bash
-> curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
->   "https://cloudfunctions.googleapis.com/v2/projects/hogaru-1/locations/us-central1/functions/resendWebhook" \
->   | grep -A3 secretEnvironmentVariables
-> ```
->
-> Y después: **formulario de Ajustes › Cobranza** → **encender las dos banderas** → **validar
-> por navegador**.
+> Candidatos sin medir: consistencia de formularios y tablas, estados vacíos y de error,
+> densidad, y el portal del residente en móvil. **El método que funcionó fue medir primero**
+> —entradas visibles, pantallas de scroll, pantallas que dicen su nombre— y recortar el plan a
+> lo que los números señalaban.
+
+### EL CORTE DE NAVEGACIÓN, EN PRODUCCIÓN (`3c7c826`, 27 ago)
+
+Cinco pasadas desplegadas juntas, cada una falsada y verificada en staging antes de subir.
+
+| | Antes | Ahora |
+|---|---|---|
+| Pantallas que dicen su nombre | 7 de 19 | **19 de 19** |
+| Entradas del menú visibles a 671 px | 7 de 19 | **8**, y todo alcanzable plegando |
+| `/admin/billing` | 4,6 pantallas de scroll | **2,6** |
+| Barras de pestañas accesibles | 1 de 6 | **6 de 6** |
+| Estado en la URL | ninguno | pestañas de 6 pantallas |
+
+**Front puro:** cero cambios en `firestore.rules`, `storage.rules`, `firestore.indexes.json` y
+`functions/src`; ninguna callable nueva. Por eso el orden de despliegue no aplicó.
+
+### DOS TRAMPAS QUE COSTARON TIEMPO Y VUELVEN
+
+**1 · Producción NO se despliega con un push a `master`.** Su backend de App Hosting **no tiene
+campo `branch`** —leído del JSON crudo—, igual que el de staging. `CLAUDE.md` decía lo contrario
+y ya está corregido. Hace falta el rollout manual:
+
+```bash
+firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
+```
+
+**2 · La huella de chunks NO comprueba un despliegue de front.** Los nombres llevan hash de
+contenido, así que una página que no usa lo que cambió conserva los suyos: comparar `/login`
+antes y después dijo **«sigue el chunk viejo» con el despliegue ya dentro**. Y `curl` a una ruta
+de `/admin` devuelve **cero bytes** —el middleware redirige sin sesión—, así que grepear eso
+corre sobre un fichero vacío y responde «limpio». **Lo que sí prueba:** sacar del navegador (con
+sesión) el chunk que contiene una cadena que **solo existe en el código nuevo**, y pedirle ese
+chunk exacto al otro ambiente.
+
+### LO QUE ESE CORTE ENSEÑÓ, Y ES LO QUE MÁS VALE
+
+**Cinco defectos los encontró entrar por el navegador y ninguna suite podía verlos:** once
+`<h1>` duplicados —de los que **cinco ya lo estaban desde antes** del corte—, un control de
+plegar inerte en el portal del residente, una migaja que el DOM escribe en minúsculas y la
+pantalla pinta en mayúsculas (`.text-label` lleva `text-transform: uppercase`), 56 px que dejaban
+«Configuración» bajo el pliegue, y un modal que habría quedado mudo dentro de una pestaña.
+
+**Y cuatro pruebas propias no distinguían el código bueno del roto** — las cuatro las destapó
+**falsar**, no escribirlas mejor:
+
+1. Un caso con un mapa vacío donde hacía falta la clave literal `"undefined"`.
+2. Un guardián que se conformaba con **su propia prosa**: la cabecera del componente nombraba los
+   atributos que debía vigilar, así que pasaba en verde con el atributo borrado. Se arregla
+   mirando **solo el código**, como `soloCodigo` en `clave-de-unidad-guarda.test.ts`.
+3. Otro que medía profundidad por **indentación** en un fichero de sangría irregular: rojo falso.
+4. Un arnés de falsación que buscaba un carácter que vitest no imprime, y otro que dejó el
+   fichero sin compilar — vitest no ejecutó **nada**, con aspecto de «todo bien».
+
+### LO QUE QUEDA DEL FRENTE DE EXPERIENCIA
+
+- **`UX-002` — filtros en la URL. Aplazada a propósito.** Son **38 filtros en 14 de las 19**
+  pantallas del admin, y ninguno viaja en la dirección. El mecanismo **ya existe**
+  (`src/lib/navigation/tab-param.ts`, de la pasada 3); falta generalizarlo a varios parámetros a
+  la vez. **Su valor es compartir una vista, y no hay a quién**: producción no tiene clientes.
+  La excepción honesta es que **recargar y perder el filtro molesta desde el primer día**.
+- **`UX-003` — la siguiente pasada, por acotar.** Es el punto de partida de la próxima sesión.
+
+---
+
+## LA JORNADA DEL 27 POR LA MADRUGADA — `FLOW-003` cerrado
+
+> Lo que sigue es **historia, no trabajo pendiente**. El webhook se cerró y
+> `producto-entrega-de-correo` quedó encendida esa misma madrugada; el bloque de propiedad
+> horizontal se cerró después. Se conserva porque las mediciones y las trampas siguen valiendo.
 
 ### LO DESPLEGADO, MEDIDO PIEZA POR PIEZA (27 ago, 00:41–00:49 UTC)
 

@@ -42,7 +42,7 @@ objetivo no está cumplido, no es punto de corte.
 
 ## Stack
 
-Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@theme {}` en globals.css, NO `tailwind.config.ts`), Firebase (Auth, Firestore, Cloud Functions v2, App Hosting), Zod + React Hook Form. Deploy del front por **App Hosting** (push a `master`).
+Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@theme {}` en globals.css, NO `tailwind.config.ts`), Firebase (Auth, Firestore, Cloud Functions v2, App Hosting), Zod + React Hook Form. Deploy del front por **App Hosting**, con **rollout manual en los DOS ambientes** — ver el apartado de despliegue: empujar a `master` NO despliega producción.
 
 ## Comandos clave
 
@@ -124,16 +124,33 @@ el predicado real exige además id `{tenantId}_{uid}`, campo `tenantId` concorda
 administrador y estado activo. Se mide con `functions/scripts/medir-radio-membresias.mjs`, que
 no escribe nada.
 
-**El backend de App Hosting de STAGING no vigila ninguna rama** — su `codebase` no trae campo
-`branch`—, así que **empujar no despliega el front**. Hay que crear el rollout a mano:
+**NINGUNO de los dos backends de App Hosting vigila una rama** — ni el de staging ni el de
+**producción**—, así que **empujar no despliega el front en ningún ambiente**. Hay que crear el
+rollout a mano:
 
 ```bash
+# staging
 firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha> --force --project vivaru-staging-02
+# producción
+firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
 ```
+
+> **Esta línea decía que era cosa SOLO de staging, y era falsa.** Medido el 27 de agosto de 2026
+> en el JSON crudo del backend de producción: su `codebase` trae `repository` y `rootDirectory`
+> y **no tiene campo `branch`**. Empujar a `master` responde «success» y producción sigue
+> sirviendo el build anterior — la trampa completa del despliegue que miente.
+>
+> **Y la huella de chunks NO basta para comprobarlo.** Los nombres llevan hash de contenido, así
+> que una página que no usa lo que cambió —`/login` no monta `app-shell` ni `admin-sidebar`—
+> conserva sus chunks aunque el build sea otro: da un **falso negativo**. Y `curl` a una ruta de
+> `/admin` devuelve **cero bytes**, porque el middleware redirige sin sesión, así que grepear eso
+> corre sobre un fichero vacío y responde «limpio». **Lo que sí prueba:** sacar del navegador (con
+> sesión) el chunk que contiene una cadena que **solo existe en el código nuevo**, y pedirle ese
+> chunk exacto al otro ambiente; 200 con la cadena dentro es la misma versión.
 
 ## Metodología
 
-critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/` — este último con `npm --prefix functions run typecheck`, que es el que mira también `functions/tests/`. Mensajes de commit semánticos. Despliegue del front por push a `master`; functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
+critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/` — este último con `npm --prefix functions run typecheck`, que es el que mira también `functions/tests/`. Mensajes de commit semánticos. Despliegue del front por **rollout manual** (el push a `master` no basta — ver el apartado de despliegue); functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
 
 ## Trampas críticas (ver `wiki-producto/wiki/decisiones/trampas-conocidas.md`)
 

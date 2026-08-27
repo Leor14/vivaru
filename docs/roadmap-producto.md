@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.34 |
-| **Fecha** | 27 de agosto de 2026 (madrugada, cierre) |
-| **Estado** | **EL BLOQUE DE PROPIEDAD HORIZONTAL ESTÁ CERRADO** (27 ago 2026). Diez PRD construidas, desplegadas y **sin ningún frente abierto**: las **doce** banderas de producto encendidas —la única sin documento, `producto-importacion-masiva`, resuelve `true` por el default del catálogo, que es su intención—. **Lo último que lo cerró no fue código sino DATO:** `PLAT-001` y `FLOW-001` llevaban desde el 25 de agosto quietas porque la tabla que alimentan estaba vacía —0 de 93 unidades con coeficiente—, y se sembraron en `tenant-santa-maria`: **18 de 18** activas sumando **100.000000% exacto** por resto mayor, la misma regla que usa el reparto para el dinero. **Y sembrar NO lo cubre todo, que es lo que hay que leer bien:** la corrida por coeficiente tiene **TRES** guardas y esto cubre dos; quedan **4 de 18** unidades sin responsable —tres sin NADIE registrado, y una con arrendataria, que pide decidir si el arrendatario paga—. La corrida se niega **y las nombra**, que es correcto. Antes de eso, `FLOW-003` se cerró entero: cableado con Resend y validado con números —fila en `emailDeliveries`, dos `POST 200` de Svix, `entregado` en seis segundos— más su formulario de Ajustes › Cobranza, visto en pantalla. **LOS DOS HALLAZGOS DE LA JORNADA NO FUERON DESPLIEGUES:** el canal de correo estaba **cerrado en toda la producción** —así que una bandera encendida podía no producir nada, la tercera forma de «encender no era el arranque» y la única cuyo síntoma es silencio—; y había **correos de personas ajenas al conjunto** en los datos, resuelto el mismo día con `DATO-001`. **LO QUE QUEDA NO ES TRABAJO DEL EQUIPO:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0 emitidos, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Lo siguiente es **elegir bloque**. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, y por medición en vez de por el «Deploy complete».** El índice por su `state` (`READY`); el ruleset **descargado y diferenciado byte a byte** contra el fichero; las functions por el `updateTime` de las **82**, antes y después —**15 movidas, y de las otras 67 cero movidas, cero desaparecidas, cero fuera de `ACTIVE`**—; y el front por **procedencia del build** más la huella de chunks, comprobando además que el bundle servido **sí conoce las dos claves nuevas**, con una clave inventada de control que no aparece. **Lo dudoso se falsó**: el webhook con cuatro peticiones reales (405 · 401 · 401 · 400) antes de tener secreto bueno, y la oscuridad por las **tres** vías que podrían encenderla —documento, catálogo del servidor y override por conjunto—. Suites antes de desplegar: **2.280 en verde** (1.200 raíz · 639 functions · 220 emulador · 221 reglas). **Y dos frases del propio repositorio resultaron falsas al medirlas**: `CLAUDE.md` decía «un cobro normal manda correo» y una ficha decía que los desconocidos «ya lo reciben hoy». Las dos se dedujeron en vez de medirse; las dos están corregidas |
+| **Versión** | 0.9.35 |
+| **Fecha** | 27 de agosto de 2026 (tarde) |
+| **Estado** | **EL CORTE DE NAVEGACIÓN ESTÁ EN PRODUCCIÓN** (`3c7c826`, 27 ago, tarde). Fue el bloque elegido tras cerrar propiedad horizontal, y se hizo entero en cinco pasadas: el administrador **ve en qué pantalla está** —19 de 19 la nombran, antes 7—, alcanza el menú completo plegando grupos, las seis barras de pestañas del producto son accesibles y viven en la URL, y **Cartera pasó de 4,6 pantallas de scroll a 2,6**, partida en cuatro. Front puro: cero cambios en reglas, índices y `functions/src`, ninguna callable nueva. **LO QUE ESE CORTE ENSEÑÓ VALE MÁS QUE LA ENTREGA, y son dos cosas.** Primera: **cinco defectos los encontró entrar por el navegador y ninguna suite podía verlos** —once `<h1>` duplicados de los que **cinco ya lo estaban desde antes**, un control de plegar inerte, una migaja que el DOM escribe en minúsculas y la pantalla pinta en mayúsculas, 56 px que dejaban un grupo bajo el pliegue, y un modal que habría quedado mudo dentro de una pestaña—. Segunda: **cuatro pruebas propias no distinguían el código bueno del roto**, y las cuatro las destapó **falsar**, no escribirlas mejor. **Y una frase del `CLAUDE.md` resultó falsa al medirla: producción NO se despliega con un push a `master`** —su backend de App Hosting no tiene campo `branch`, igual que el de staging—, así que hace falta el rollout manual o `master` dice una cosa y producción sirve otra. **Antes de esto: EL BLOQUE DE PROPIEDAD HORIZONTAL ESTÁ CERRADO** (27 ago 2026). Diez PRD construidas, desplegadas y **sin ningún frente abierto**: las **doce** banderas de producto encendidas —la única sin documento, `producto-importacion-masiva`, resuelve `true` por el default del catálogo, que es su intención—. **Lo último que lo cerró no fue código sino DATO:** `PLAT-001` y `FLOW-001` llevaban desde el 25 de agosto quietas porque la tabla que alimentan estaba vacía —0 de 93 unidades con coeficiente—, y se sembraron en `tenant-santa-maria`: **18 de 18** activas sumando **100.000000% exacto** por resto mayor, la misma regla que usa el reparto para el dinero. **Y sembrar NO lo cubre todo, que es lo que hay que leer bien:** la corrida por coeficiente tiene **TRES** guardas y esto cubre dos; quedan **4 de 18** unidades sin responsable —tres sin NADIE registrado, y una con arrendataria, que pide decidir si el arrendatario paga—. La corrida se niega **y las nombra**, que es correcto. Antes de eso, `FLOW-003` se cerró entero: cableado con Resend y validado con números —fila en `emailDeliveries`, dos `POST 200` de Svix, `entregado` en seis segundos— más su formulario de Ajustes › Cobranza, visto en pantalla. **LOS DOS HALLAZGOS DE LA JORNADA NO FUERON DESPLIEGUES:** el canal de correo estaba **cerrado en toda la producción** —así que una bandera encendida podía no producir nada, la tercera forma de «encender no era el arranque» y la única cuyo síntoma es silencio—; y había **correos de personas ajenas al conjunto** en los datos, resuelto el mismo día con `DATO-001`. **LO QUE QUEDA NO ES TRABAJO DEL EQUIPO:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0 emitidos, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Lo siguiente es **elegir bloque**. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, con un método que hubo que corregir sobre la marcha.** La huella de chunks de `/login` antes y después **dio un falso negativo**: dijo «sigue el chunk viejo» con el despliegue ya dentro, porque los nombres llevan hash de contenido y `/login` no usa `app-shell` ni `admin-sidebar`. Y `curl` a `/admin/billing` devuelve **cero bytes** —el middleware redirige sin sesión—, así que grepear eso corre sobre un fichero vacío y da «limpio». **Lo que sí prueba:** sacar del navegador el chunk que contiene una cadena que **solo existe en el código nuevo** y pedirle ese chunk exacto a producción — verificado con `Secciones de Cartera`, `vivaru:sidebar-group:` y `Sobre esta pantalla`, HTTP 200 las tres y byte a byte idéntico al de staging. Suites: **1.269 en la raíz** y `next build` en verde, con `/admin/billing` todavía `○ (Static)`. Cada pasada **falsada** rompiendo el código a propósito. Antes de esto: **Producción, y por medición en vez de por el «Deploy complete».** El índice por su `state` (`READY`); el ruleset **descargado y diferenciado byte a byte** contra el fichero; las functions por el `updateTime` de las **82**, antes y después —**15 movidas, y de las otras 67 cero movidas, cero desaparecidas, cero fuera de `ACTIVE`**—; y el front por **procedencia del build** más la huella de chunks, comprobando además que el bundle servido **sí conoce las dos claves nuevas**, con una clave inventada de control que no aparece. **Lo dudoso se falsó**: el webhook con cuatro peticiones reales (405 · 401 · 401 · 400) antes de tener secreto bueno, y la oscuridad por las **tres** vías que podrían encenderla —documento, catálogo del servidor y override por conjunto—. Suites antes de desplegar: **2.280 en verde** (1.200 raíz · 639 functions · 220 emulador · 221 reglas). **Y dos frases del propio repositorio resultaron falsas al medirlas**: `CLAUDE.md` decía «un cobro normal manda correo» y una ficha decía que los desconocidos «ya lo reciben hoy». Las dos se dedujeron en vez de medirse; las dos están corregidas |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -46,6 +46,16 @@ la fuerza en Fundaciones.
 | `docs/albert-vivaru-integracion.md` | La decisión de integrar con Albert CRM |
 
 **Qué cambió en esta revisión:**
+
+- **El corte de navegación, entero y en producción.** Cinco pasadas: el guardián del contrato
+  ruta↔menú, la cabecera de página en los cuatro portales, el menú plegable, las pestañas
+  unificadas y en la URL, y Cartera partida en cuatro. Detalle en la bitácora.
+- **Frente nuevo en el inventario: «Experiencia y diseño».** No encajaba en ninguno de los
+  nueve, igual que le pasó a «Propiedad horizontal» con el lote de Habitanto. Trae `UX-001`
+  (cerrado), `UX-002` (filtros en la URL, aplazada) y `UX-003` (por acotar).
+- **Y un método de verificación corregido**, porque el obvio miente — ver «Verificado contra».
+
+**Lo anterior a esta revisión:**
 
 - **`FLOW-002`, el front (sesión B), en siete incrementos.** El saldo inicial fuera del documento
   de la cuenta · tipos, callables y el reparto de R7 en un módulo puro · el «% de recaudo» de R16
@@ -1018,6 +1028,28 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.35 — 27 de agosto de 2026 (tarde)
+
+- **El corte de navegación, en producción** (`3c7c826`). Cinco pasadas desplegadas juntas:
+  guardián del contrato ruta↔menú, cabecera de página en los cuatro portales, menú plegable,
+  pestañas unificadas y en la URL, y Cartera partida en cuatro. **De 4,6 pantallas de scroll a
+  2,6**, y de 7 a 19 pantallas que dicen su nombre.
+- **Cinco defectos que ninguna suite podía ver, y los cazó el navegador.** Once `<h1>`
+  duplicados —cinco de ellos **desde antes** del corte—, un chevron inerte en el portal del
+  residente, una migaja que se pinta en mayúsculas aunque el DOM la escriba en minúsculas,
+  56 px que dejaban «Configuración» bajo el pliegue, y un modal que habría quedado mudo si se
+  metía dentro de una pestaña.
+- **Cuatro pruebas propias que no distinguían el código bueno del roto.** Un caso con un mapa
+  vacío donde hacía falta una clave literal; un guardián que se conformaba con su **propia
+  prosa** (la cabecera del componente nombraba los atributos que debía vigilar); otro que medía
+  profundidad por indentación en un fichero de sangría irregular; y un arnés de falsación que
+  buscaba un carácter que vitest no imprime. **Las cuatro las destapó falsar.**
+- **`CLAUDE.md` decía algo falso sobre el despliegue:** «Deploy del front por App Hosting (push
+  a `master`)». El backend de producción **no tiene campo `branch`** —leído del JSON crudo—,
+  igual que el de staging. Sin rollout manual, `master` dice una cosa y producción sirve otra.
+- **Frente nuevo: «Experiencia y diseño»**, con `UX-001` cerrado, `UX-002` aplazada y `UX-003`
+  por acotar. Añadido a los dos catálogos de Notion para que sigan cruzándose.
 
 ### 0.9.34 — 27 de agosto de 2026 (madrugada, cierre)
 
