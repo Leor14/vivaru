@@ -3,10 +3,59 @@ tags: [log, historial]
 tipo: decision
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-23
+fecha_actualizacion: 2026-08-27
 ---
 
 # Log de operaciones — Vivaru Wiki Producto
+
+---
+
+## [2026-08-27] lint | Los tres fantasmas de la wiki, resueltos
+
+Tres wikilinks rotos, todos anteriores a hoy. Se decidió uno por uno si merecían página propia o
+reescritura de la frase, y salieron **dos páginas y una reescritura**.
+
+- **Páginas creadas: 2** → [[falsacion-de-pruebas]] y [[consolidacion-landing-2026]].
+- **Páginas actualizadas: 5** → [[trampas-conocidas]] (cuatro puntos), [[pruebas-reglas-emulador]],
+  [[firebase-firestore]], [[integridad-financiera]] y [[index]].
+
+**Dos de los tres eran nombres de fichas de memoria del agente** —`un-verde-no-vale-sin-falsacion`
+y `un-despliegue-que-miente`—, no páginas de esta wiki: se colaron al escribir. **No se resolvieron
+igual, y la diferencia es el criterio de la pasada.**
+
+- **El primero SÍ merecía página.** [[trampas-conocidas]] tenía **cuatro** secciones que son
+  instancias del mismo método sin nombrarlo nunca: la suite ciega de `FEAT-004`, las seis negativas
+  de `emailDeliveries`, el `setDoc` de `chartOfAccounts` y la prueba parada. Es un gap del check 8,
+  y **se pudo escribir entera con material que ya estaba en la wiki** — no se importó nada de la
+  memoria del agente.
+- **El segundo NO.** De ese despliegue no hay una sola línea en la wiki, así que escribirle página
+  habría sido traer un incidente sin ingestar. La frase se reescribió nombrando a los parientes que
+  **sí** están documentados en esa misma página —el `emulators:exec` que muere reportando código 0
+  y el rollout que se da por bueno leyendo solo la primera página—, conservando intacta la oración
+  que cargaba el sentido: «el código de salida no es la verdad, el estado del recurso sí».
+
+**Y `consolidacion-landing-2026` sí tenía original: la pasada del 22 de agosto se equivocó.**
+Aquel lint lo dejó roto a propósito razonando que una página de fuente «inventaría un original que
+no existe». El original existe y es comprobable: la entrada `[2026-05-31]` **de este mismo log**,
+con las 3 páginas que creó y las 6 que actualizó —**exactamente las ocho que lo citan**— y **dos
+commits reales**, `c586740` (el intento con `@utility`) y `dcac2ce` (el fix con `.marketing-theme`),
+ambos del 1 de junio de 2026 y verificados con `git log` antes de escribir nada. La página nueva
+resume **el registro**, no las páginas que la citan, así que no es circular. Un solo archivo cerró
+los ocho enlaces.
+
+**Lección de método:** el argumento del 22 de agosto era bueno y la conclusión falsa, porque nadie
+buscó el original donde estaba. **Antes de declarar que una fuente no existe, buscarla en este
+log.**
+
+**Lint, con números:** **72 páginas** (70 antes) · las dos nuevas con los 5 campos exactos y en
+orden, en es-CO · **wikilinks rotos: de 4 a 1**. Entrantes: [[falsacion-de-pruebas]] desde 5
+páginas, [[consolidacion-landing-2026]] desde 9. Densidad: 9 y 13 wikilinks. Longitud: 499 y 374
+palabras.
+
+**El que queda es un falso positivo del comando, no un fantasma.** El `wikilinks` de [[index]] está
+**dentro de comillas invertidas** —es la sintaxis citada como ejemplo en la frase de navegación— y
+el `grep` del chequeo no distingue código de enlace. Se deja como está: retocar la prosa para
+contentar a un grep es peor que explicarlo aquí.
 
 ---
 

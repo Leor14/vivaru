@@ -3,7 +3,7 @@ tags: [patron, firebase, firestore, backend]
 tipo: tecnica
 fuentes: ["domain.ts", "gtm-tecnico"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-08-27
 ---
 
 # Firebase y Firestore
@@ -54,6 +54,8 @@ La colección `auditLogs` registra operaciones sensibles: creación de tenants, 
 ## Tests de reglas (GTM Fase 0)
 
 El ítem A1 del [[gtm-tecnico|GTM técnico]] son los tests de las reglas Firestore. Antes de ir a producción, cada regla debe tener un test que verifique que el aislamiento funciona y que los roles solo acceden a lo que deben.
+
+Tenerlo no basta: un bloque escrito solo con casos negativos pasa en verde aunque la regla no exista, porque Firestore deniega igual. Hay que comprobar que borrar la regla enrojece la prueba que concede — ver [[falsacion-de-pruebas]] y, para correrlo, [[pruebas-reglas-emulador]].
 
 ## Relaciones
 

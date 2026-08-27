@@ -3,7 +3,7 @@ tags: [patron, pruebas, firebase, seguridad]
 tipo: herramienta
 fuentes: ["CLAUDE.md", "tests/firestore.rules.test.ts"]
 fecha_creacion: 2026-08-01
-fecha_actualizacion: 2026-08-01
+fecha_actualizacion: 2026-08-27
 ---
 
 # Pruebas de reglas con el emulador
@@ -32,6 +32,8 @@ npx vitest run --dir tests tests/firestore.rules.test.ts
 En cuanto el emulador corrió, la prueba de [[reservaciones]] falló: exigía un `startAt` que la aplicación sí envía, y usaba una fecha en el pasado. Llevaba rota desde antes de que nadie recordara. Se corrigió con una fecha relativa.
 
 La lección no es sobre Java. Es que **una prueba que no se ejecuta es peor que ninguna**, porque ocupa el lugar mental de la verificación sin hacerla. Encaja con lo que registra [[trampas-conocidas]] sobre errores que se normalizan.
+
+Correrla es la condición mínima, no la verificación. Que una prueba pueda enrojecer —y que enrojezca exactamente la que debe cuando se rompe el código a propósito— es lo que la hace valer: el método está en [[falsacion-de-pruebas]].
 
 ## Para qué se usa
 

@@ -3,7 +3,7 @@ tags: [decision, finanzas, contabilidad, auditoria]
 tipo: decision
 fuentes: ["sesion-auditoria-ux-2026-07", "FIN-001", "PRD-V-PLAT-003"]
 fecha_creacion: 2026-07-03
-fecha_actualizacion: 2026-08-23
+fecha_actualizacion: 2026-08-27
 ---
 
 # Integridad Financiera — Reversos, Confirmaciones y Mora Real
@@ -67,7 +67,9 @@ pasa de mostrar **129.000 a 127.500** — el doble conteo dejando de ocurrir.
 
 **La forma de medirlo importa más que la cifra.** Comparar el estado financiero antes y después
 **no prueba nada** cuando el «antes» ya se calcula con el código nuevo. Lo que lo prueba es
-aplicar **las dos reglas sobre los mismos asientos** y contar cuántos cambian de lado.
+aplicar **las dos reglas sobre los mismos asientos** y contar cuántos cambian de lado. Es el mismo
+criterio que [[falsacion-de-pruebas]] aplica a una suite: una comprobación que no puede dar otro
+resultado no comprueba nada.
 
 `computeFundPosition` excluía del ingreso del Libro los asientos de categoría `alicuota`, porque
 el recaudo de cuotas ya se cuenta por la vía de [[cartera-campanas|Cartera]], que es la fuente

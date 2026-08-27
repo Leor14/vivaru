@@ -51,7 +51,7 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=hogaru-1-test \
 
 ## «Inerte» es una predicción, y comparar antes/después no la prueba
 
-Al desplegar un cambio que dices que no mueve nada, la comprobación obvia —calcular el estado antes y después— **no prueba nada si el «antes» ya se calcula con el código nuevo**. Lo que lo prueba es aplicar **las dos reglas, la vieja y la nueva, sobre los mismos datos** y contar cuántos registros cambian de lado. El 23 de agosto de 2026 esa medición encontró **uno de 89** que la comparación habría dado por inerte.
+Al desplegar un cambio que dices que no mueve nada, la comprobación obvia —calcular el estado antes y después— **no prueba nada si el «antes» ya se calcula con el código nuevo**. Lo que lo prueba es aplicar **las dos reglas, la vieja y la nueva, sobre los mismos datos** y contar cuántos registros cambian de lado. El 23 de agosto de 2026 esa medición encontró **uno de 89** que la comparación habría dado por inerte. Es el mismo criterio con el que se verifica una suite: ver [[falsacion-de-pruebas]].
 
 ## Un widget que falla tumba todo /admin (sin aislamiento)
 
@@ -480,7 +480,7 @@ los casos, la suite vigila otra cosa y lo parece.
 
 Se comprobó revirtiendo el orden a propósito: **falló exactamente la prueba nueva y las once
 pasaron**. Ese contraste es la prueba de que estaban ciegas; que la nueva pase, sola, no probaba
-nada. Ver [[un-verde-no-vale-sin-falsacion]].
+nada. El método y sus otras tres formas: [[falsacion-de-pruebas]].
 
 ## La sesión del navegador va por ORIGEN, aunque sea la misma aplicación
 
@@ -514,7 +514,7 @@ igual**.
 - **Abrir la regla de par en par** debe enrojecer las que niegan. Si no, no vigilan lo que dicen.
 
 Un bloque de reglas escrito solo con `assertFails` pasa en verde el día que alguien lo borra por
-accidente en un merge — que es exactamente el día en que hace falta.
+accidente en un merge — que es exactamente el día en que hace falta. El método completo, en [[falsacion-de-pruebas]].
 
 ## Un secreto de Functions tiene que existir ANTES de desplegar, y no se lee para comprobarlo
 
@@ -552,5 +552,7 @@ curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access
 ```
 
 Pasó el 26–27 de agosto de 2026 con `RESEND_WEBHOOK_SECRET`: se corrió varias veces, el nombre
-apareció, y estuvo diecisiete minutos existiendo y vacío. Es de la misma familia que
-[[un-despliegue-que-miente]]: **el código de salida no es la verdad, el estado del recurso sí.**
+apareció, y estuvo diecisiete minutos existiendo y vacío. Es de la misma familia que el
+`emulators:exec` que muere por el npm anidado y se reporta con código 0, o que el rollout que se da
+por bueno leyendo solo la primera página: **el código de salida no es la verdad, el estado del
+recurso sí.** La forma general de la trampa está en [[falsacion-de-pruebas]].

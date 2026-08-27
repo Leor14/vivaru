@@ -3,7 +3,7 @@ tags: [indice, navegacion]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "domain.ts", "middleware.ts", "gtm-tecnico", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06", "estrategia-ia-minima-viable", "plan-general-ia"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-23
+fecha_actualizacion: 2026-08-27
 ---
 
 # Índice — Vivaru Wiki Producto
@@ -25,6 +25,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[auditoria-ux-jul-2026]] | Auditoría UX/UI externa de julio 2026: 42 hallazgos VIV-### sobre el portal admin |
 | [[estrategia-ia-minima-viable]] | 🆕 Decisión ejecutiva de IA: dos capacidades externas, techo de costo y correcciones a supuestos |
 | [[plan-general-ia]] | 🆕 Plan maestro de IA: fases 0–6, puertas G0–G7, datasets, seguridad y decisiones pendientes |
+| [[consolidacion-landing-2026]] | 🆕 La sesión de mayo 2026 que metió el landing en el SaaS y destapó el choque `--spacing-*` / `max-w-*` |
 
 ---
 
@@ -108,6 +109,7 @@ Catálogo maestro del vault. Cada entrada tiene un enlace y una línea de descri
 | [[kpis-formula-unica]] | 🆕 Un indicador, una definición compartida: % recaudo, PQRS pendientes, cumplimiento de firma |
 | [[acciones-de-fila]] | Patrón único de acciones: inline lo frecuente, destructivas al menú contextual |
 | [[pruebas-reglas-emulador]] | 🆕 Correr el emulador de Firestore, sus dos trampas, y por qué una prueba parada engaña |
+| [[falsacion-de-pruebas]] | 🆕 Un verde solo vale si algo puede enrojecerlo: romper el código a propósito y contar cuáles fallan |
 
 ---
 
