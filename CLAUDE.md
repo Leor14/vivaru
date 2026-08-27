@@ -335,13 +335,18 @@ calcular. Por el criterio del 24, desplegado y apagado **cuenta como frente abie
 > esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
 > `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
 
-**`FLOW-003` ESTÁ CONSTRUIDO ENTERO Y SIN DESPLEGAR** (26 ago 2026, `11c4919`…`94ccbc5`):
+**`FLOW-003` ESTÁ DESPLEGADO EN PRODUCCIÓN Y APAGADO** (27 ago 2026, 00:41–00:49 UTC):
 entrega medida del correo, webhook, calendario del conjunto y el estado de cuenta adjunto.
+Índices, reglas, **15 functions** (no las 82) y el front, cada pieza verificada por medición.
+**Staging NO lo tiene**: allí `RESEND_WEBHOOK_SECRET` no existe y sin él `resendWebhook` no
+despliega, así que los dos ambientes divergen desde hoy.
 
-> **ANTES DE DESPLEGARLO HACE FALTA UN SECRETO, Y LO PONE EL USUARIO:**
-> `firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1`.
-> **Tiene que existir ANTES o la función no arranca** — es la misma regla que `RESEND_API_KEY`.
-> Comprobar que está **sin leer su valor**: listar `secretmanager` por la API con la ADC.
+> **EL SECRETO QUE HAY ES DE RELLENO, Y LA FUNCIÓN LO TIENE CLAVADO A `versión=1`.** Medido en su
+> `serviceConfig`, no supuesto: **no sigue a `latest`**. Poner el valor real de Resend con
+> `firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1` **no basta** — hay que
+> **redesplegar `resendWebhook`** o se queda con el relleno, y el síntoma es idéntico al de una
+> clave mal copiada. El valor lo pone el usuario; comprobar **sin leerlo**, listando versiones por
+> la API con la ADC.
 >
 > Y trae la **PRIMERA FUNCIÓN HTTP del producto** (`resendWebhook`). Las 81 anteriores son
 > callables y procesos programados, así que `callableCorsOrigins` no le aplica: esto lo llama un

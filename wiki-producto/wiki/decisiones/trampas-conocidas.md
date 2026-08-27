@@ -3,7 +3,7 @@ tags: [decision, trampas, bugs, antipatrones]
 tipo: decision
 fuentes: ["DESIGN.md", "PRODUCT.md", "consolidacion-landing-2026", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-23
+fecha_actualizacion: 2026-08-27
 ---
 
 # Trampas Conocidas
@@ -21,6 +21,21 @@ Consecuencia de la anterior, y ya pasó tres veces. Toda colección que se lea *
 ## La lista de rollouts de App Hosting está PAGINADA y sin ordenar
 
 `firebase apphosting` no tiene comando para listarlos, así que se consulta la API. **Devuelve 100 por página y NO viene ordenada**: leer solo la primera y ordenarla da como «más reciente» un rollout de ayer, y de ahí sale un «App Hosting no desplegó solo» que es falso. Hay que recorrer `nextPageToken` hasta el final. Con 325 rollouts, la diferencia entre las dos lecturas fue un día entero. Y **la verificación buena de un despliegue es la procedencia del build** —su commit y el estado del rollout—, no un grep de cadenas en el bundle: los chunks de las rutas autenticadas no se descargan sin sesión.
+
+## Las credenciales de `gcloud` son DOS y caducan por separado — probar antes de pedir
+
+`gcloud auth print-access-token` (la del CLI, de `gcloud auth login`) y `gcloud auth application-default print-access-token` (la ADC) son **independientes**. El 27 de agosto de 2026 la primera murió a mitad de sesión con «Reauthentication failed. cannot prompt during non-interactive execution» mientras **la ADC siguió viva y sirvió para todo**: leer functions, reglas, índices, secretos y rollouts por API. El síntoma engaña porque una llamada que usaba la primera devolvió un JSON de error de autenticación que **parece que el recurso no existe**. Regla: cuando la duda es «¿tengo credencial?», **probar la ADC con una lectura real y mirar el error**, no deducirlo de otro comando ni pedirle al usuario que reautentique algo que funciona. Son tres en total con `firebase login --reauth`. Ver [[verificar-bundle-desplegado]].
+
+## `firebase emulators:exec "npm …"` revienta con el npm anidado
+
+`firebase emulators:exec --only firestore "npm --prefix functions run test:emulator"` levanta el emulador, arranca el script y muere con `npm ERR! Cannot read properties of undefined (reading 'stdin')` — un fallo del `npm` anidado, no de las pruebas. Y como el comando suele ir canalizado, **se reporta con código 0 y parece que la suite pasó**. Lo que sí funciona es levantar el emulador aparte y llamar al runner directo:
+
+```bash
+cd /Users/david/Vivaru_Rep/vivaru
+firebase emulators:start --only firestore --project hogaru-1-test &
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=hogaru-1-test \
+  npx vitest run --config functions/vitest.emulator.config.mts
+```
 
 ## «Inerte» es una predicción, y comparar antes/después no la prueba
 
@@ -120,6 +135,8 @@ Se filtra por `tenantId`, pero **el id no vive dentro del conjunto**: `units/t1-
 ## Functions: recompilar y fijar secret antes de deploy
 
 El bloque `functions` de `firebase.json` no tiene `predeploy`, así que `firebase deploy --only functions` sube el `lib/` ya compilado. Si no se corre `npm --prefix functions run build` antes, se despliega código viejo y el deploy dice "sin cambios". Además, una función que referencia un secret (`RESEND_API_KEY`) **no despliega** si el secret no existe: hay que `firebase functions:secrets:set` **primero**, luego desplegar. Ver [[correos-mensajeria]].
+
+**Y el reverso, que muerde después: un secret se clava a una VERSIÓN, no a `latest`.** Medido el 27 de agosto de 2026 en `resendWebhook`, cuyo `serviceConfig` decía `version: "1"`. Añadir una versión 2 con el valor bueno **no la alcanza**: la función sigue arrancando con la vieja, y el síntoma —todo rechazado— es idéntico al de una clave mal copiada, así que se busca el fallo en el sitio equivocado. **Cambiar el valor de un secret obliga a redesplegar las funciones que lo usan.** Se comprueba a qué versión está clavada leyendo `secretEnvironmentVariables` de la función por la API, que no expone el valor.
 
 ## URL de acción personalizada de Firebase Auth
 

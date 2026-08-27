@@ -4,38 +4,182 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — cierre del 26 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — 27 de agosto de 2026 (madrugada)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **`FLOW-003` está CONSTRUIDO ENTERO y sin desplegar.** Seis entregas, de `11c4919` a
-> `94ccbc5`. Lo que sigue es **desplegarlo**, y antes hace falta algo que solo puede hacer David:
+> **`FLOW-003` está DESPLEGADO ENTERO en producción y APAGADO.** Índices, reglas, quince
+> functions y el front — los cuatro medidos pieza por pieza, no leídos del «Deploy complete».
+> Lo que sigue **solo lo puede hacer David**, y son dos actos sobre el mismo secreto:
 >
-> **`RESEND_WEBHOOK_SECRET` ya está puesto** (v1 activa, 00:26 UTC del 27), así que el despliegue
-> está desbloqueado. **Su valor es un RELLENO, no el de Resend** — la función rechazará todo lo
-> que llegue, que es el lado correcto en el que fallar mientras no exista el webhook de verdad.
+> **1 · Registrar la URL del webhook en Resend.** Ya existe, que es lo que la bloqueaba:
 >
-> El orden que queda: **desplegar** → **registrar la URL del webhook en Resend** (existe solo
-> cuando la función está desplegada) → **volver a poner el secreto con el valor real de Resend y
-> redesplegar** → **formulario de Ajustes › Cobranza** → **validar por navegador**.
->
-> ```bash
-> firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1
+> ```
+> https://us-central1-hogaru-1.cloudfunctions.net/resendWebhook
 > ```
 >
-> **TRAMPA MEDIDA, y cuesta media hora:** ese comando **crea el secreto ANTES de pedir el valor**,
-> así que un Enter en vacío deja un secreto **creado y hueco, sin dar error**. Con cero versiones
-> la función tampoco arranca: es igual que si no existiera. **Comprobar siempre las VERSIONES, no
-> que el nombre aparezca** — y sin leer el valor, nunca `secrets:access`:
+> **2 · Poner el valor REAL del secreto y REDESPLEGAR.** El que hay es de relleno, así que hoy la
+> función rechaza absolutamente todo. Eso es el lado correcto en el que fallar, pero significa que
+> **no se registra ni un evento de entrega** hasta que se cambie.
+>
+> ```bash
+> cd /Users/david/Vivaru_Rep/vivaru
+> firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1
+> firebase deploy --only functions:resendWebhook --project hogaru-1
+> ```
+>
+> **REDESPLEGAR NO ES OPCIONAL, Y ESTÁ MEDIDO.** La función tiene el secreto **clavado a la
+> `versión=1`**, no a `latest` — leído de su `serviceConfig`. Una versión 2 con el valor bueno
+> **no la alcanza sola**: se queda con el relleno y el síntoma es idéntico a una clave mal
+> copiada. Se comprueba así, sin leer el valor:
 >
 > ```bash
 > curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
->   "https://secretmanager.googleapis.com/v1/projects/hogaru-1/secrets/RESEND_WEBHOOK_SECRET/versions"
+>   "https://cloudfunctions.googleapis.com/v2/projects/hogaru-1/locations/us-central1/functions/resendWebhook" \
+>   | grep -A3 secretEnvironmentVariables
 > ```
 >
-> Las dos banderas nacen apagadas y **no existen como documento** en ningún ambiente.
+> Y después: **formulario de Ajustes › Cobranza** → **encender las dos banderas** → **validar
+> por navegador**.
 
-### ENCENDER ERA EL TERCER ACTO, Y LOS DOS PRIMEROS YA ESTÁN
+### LO DESPLEGADO, MEDIDO PIEZA POR PIEZA (27 ago, 00:41–00:49 UTC)
+
+| Pieza | Cómo se comprobó | Resultado |
+|---|---|---|
+| **Índices** | Estado del índice por la API de Firestore | `emailDeliveries` (`tenantId · status · sentAt↓`) en **`READY`**. Subido **sin `--force`**, y el CLI avisó de «1 index not present»: el índice extra de producción **sigue ahí** |
+| **Reglas** | Ruleset vivo descargado y diferenciado contra el repo | `9853c52d-…`, **idéntico byte a byte**. Vuelta atrás = republicar `60d9dd0f-…` |
+| **Functions** | `updateTime` de las 82, antes y después | **15/15 movidas y `ACTIVE`**; de las otras **67: cero movidas, cero desaparecidas, cero fuera de `ACTIVE`**. Total 81 → **82** |
+| **Front** | Procedencia del build + huella de chunks | `rollout-2026-08-27-001` **`SUCCEEDED`**, build `READY` de `master`/`2ac3418`. De 21 chunks, **1 sustituido** |
+
+**`master` = `develop` = `2ac3418`** (leído con `git ls-remote`, no de la caché local).
+
+### POR QUÉ SON QUINCE FUNCTIONS Y NO OCHENTA Y DOS
+
+Desplegar las 82 es churn con riesgo —ya mintió un despliegue grande el 26— y desplegar solo las
+«nuevas» habría dejado huecos. El conjunto se cerró **siguiendo el código, no la ficha**:
+
+- `resendWebhook` — nace
+- `anonymizeExpiredVouchersDaily` — es quien corre la retención de `emailDeliveries`
+- **Las 13 que pasan por `deliverResidentNotifications`**, que es el único sitio del producto que
+  llama a `sendNotificationEmail` **con `contexto`**, y por tanto el único que puede escribir una
+  fila: `notifyBillingBatch`, `notifyResidentReceipt`, `onBillingStatementCreated`,
+  `onCommitteeAgreementUpdated`, `onPaymentVoucherCreated`, `onRegulationDocumentCreated`,
+  `onReservationUpdated`, `onSurveyUpdated`, `onTicketUpdated`, `publishScheduledCharges`,
+  `sendBillingReminder`, `sendScheduledReminders`, `updateOverdueStatements`.
+
+**Y una que parecía entrar y no entra:** `monthlyFinancialArchive` usa `buildSummaryPdf`, que se
+mudó de `index.ts` a `pdf-resumen.ts` en esta tanda. Se comparó el cuerpo viejo con el nuevo y es
+**idéntico**: mudanza pura, cero cambio de conducta. Una mudanza no obliga a redesplegar a quien
+la consume.
+
+### EL WEBHOOK SE FALSÓ, NO SE MIRÓ
+
+Cuatro peticiones reales contra la URL desplegada:
+
+| Petición | Respuesta |
+|---|---|
+| `GET` | **405** `method not allowed` |
+| `POST` sin cabeceras de firma | **401** `unauthorized` |
+| `POST` con firma **inventada** | **401** `unauthorized` |
+| `POST` con cuerpo ilegible | **400**, y lo corta el parser de Express **antes** de llegar al código |
+
+Que respondiera a un `curl` sin autenticar prueba de paso que **`invoker: "public"` funcionó**
+—`ingressSettings: ALLOW_ALL`— y ahorra la trampa de `run.invoker`, que muerde con un «error
+interno» sin pista.
+
+### LA OSCURIDAD ESTÁ VERIFICADA POR LAS TRES VÍAS QUE PODRÍAN ENCENDERLA
+
+No basta con que las banderas «nazcan apagadas»: el override manda sobre la global, y el catálogo
+del servidor **es otro fichero** que el del front. Se miraron los tres:
+
+| Vía | Medido en producción |
+|---|---|
+| Documento de bandera | `producto-entrega-de-correo` y `producto-calendario-de-cobranza`: **SIN DOCUMENTO** → resuelve por `default_catalogo` |
+| Catálogo del **servidor** (`functions/src/feature-flags.ts`) | Las dos en **`false`** en `FEATURE_FLAG_DEFAULTS` |
+| Override por conjunto | `featureFlagOverrides` tiene **1** documento y **cero** menciones de las dos claves |
+
+Y el freno es real, no un botón: `registrarEnvio` comprueba la bandera **en el servidor** y sin
+ella no escribe una sola fila.
+
+**El front SÍ conoce las dos claves nuevas**, comprobado descargando los chunks servidos: las dos
+aparecen en `955684ee720a0831.js` —el chunk que cambió—, la clave inventada de control **no**
+aparece, y una vieja (`producto-estado-de-cuenta`) **sí**. Sin eso, encender por conjunto habría
+sido un no-op con aspecto de hito.
+
+### STAGING SE QUEDÓ FUERA, Y ES UNA DECISIÓN, NO UN OLVIDO
+
+**`RESEND_WEBHOOK_SECRET` no existe en `vivaru-staging-02`** — la API contesta «Secret not
+found». Sin él, `resendWebhook` **no despliega**: el secreto tiene que existir antes que la
+función que lo referencia. Se decidió con David ir solo a producción, que es donde el secreto ya
+estaba y donde vive la URL que Resend necesita.
+
+**Consecuencia que hay que recordar:** desde hoy los dos ambientes **divergen**. Staging tiene 81
+functions y el ruleset sin `FLOW-003`; producción, 82 y con él. Para igualarlo hace falta primero
+que David cree el secreto allí:
+
+```bash
+cd /Users/david/Vivaru_Rep/vivaru
+firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project vivaru-staging-02
+```
+
+**Con la trampa de siempre:** ese comando **crea el secreto ANTES de pedir el valor**, así que un
+Enter en vacío deja un secreto creado y hueco sin dar error. **Comprobar las VERSIONES, no que el
+nombre aparezca.**
+
+### LO SIGUIENTE
+
+1. **Registrar el webhook en Resend** y **poner el secreto real + redesplegar** (arriba).
+2. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
+   apariciones en `src/`. Hoy el calendario solo se puede escribir desde la consola — y la regla
+   ya valida los rangos allí, que era el punto.
+3. **Encender las dos banderas** con `mover-bandera.mjs`, cuando 1 y 2 estén.
+4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
+   coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
+   `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
+5. **El sembrador de banderas declara 16 claves y el catálogo tiene 19** — defecto vivo, con ficha
+   aparte. `producto-anticipos`, `producto-pago-multiple` y `producto-importacion-masiva` no se
+   pueden sembrar; en producción existen solo porque `mover-bandera` las creó al encenderlas. Con
+   las dos de `FLOW-003` el sembrador ya sí las declara, así que **el hueco es de tres, no de cinco**.
+6. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
+   decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
+
+### CUATRO TRAMPAS DE ENTORNO, Y UNA ES NUEVA
+
+1. **El repo NO es `/Users/david/Vivaru_Rep`** — es `/Users/david/Vivaru_Rep/vivaru`. El padre no
+   es un repo git, no tiene `docs/`, y tiene un **`firestore.rules` de 0 bytes** suelto al lado.
+   Un comando relativo lanzado desde el padre falla con `MODULE_NOT_FOUND`; usar ruta absoluta.
+2. **NUEVA — `gcloud auth print-access-token` puede pedir reautenticación y la ADC seguir viva.**
+   Pasó el 27: el token del CLI murió con «Reauthentication failed, cannot prompt during
+   non-interactive execution» y **`gcloud auth application-default print-access-token` funcionó
+   toda la sesión**. Son credenciales distintas. Antes de pedirle nada a David, **probar la ADC**:
+   es la que usan los scripts `.mjs` y las lecturas por API.
+3. **`CLAUDE.md` tiene DOS `JAVA_HOME` distintos** (líneas 76 y 557). El bueno es el de la 76
+   (`~/.local/jdk/jdk-21.0.12.1+1/…`, verificado ejecutándolo); el de la 557 es de otra época.
+4. **Las pruebas de emulador no salen con `firebase emulators:exec "npm …"`**: el `npm` anidado
+   revienta con `Cannot read properties of undefined (reading 'stdin')`. Lo que sí funciona es
+   levantar el emulador aparte y llamar a `npx vitest` directo:
+
+   ```bash
+   cd /Users/david/Vivaru_Rep/vivaru
+   firebase emulators:start --only firestore --project hogaru-1-test &
+   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=hogaru-1-test \
+     npx vitest run --config functions/vitest.emulator.config.mts
+   ```
+
+**Y la sesión del navegador va por ORIGEN.** Entrar por `www.grupovivaru.com` no deja sesión en
+`vivaru--hogaru-1.us-central1.hosted.app`, aunque sean la misma aplicación y el mismo build.
+
+### LAS SUITES, ANTES DE DESPLEGAR
+
+**2.280 pruebas en verde** y dos typechecks limpios: 1.200 de la raíz, 639 unitarias de functions,
+220 de emulador de functions, 221 de reglas de Firestore.
+
+## EL CIERRE DEL 26 POR LA NOCHE — `FLOW-003` construido (26 de agosto de 2026)
+
+**Su despliegue está arriba, en la cabecera del 27.** Lo que queda aquí es cómo se construyó y
+las lecciones que dejó; el estado de lo desplegado **ya no se lee de esta sección**.
+
+### ENCENDER ERA EL TERCER ACTO — la lección, con `FEAT-004` de ejemplo
 
 **Los tres actos son servidor → front → encender, y quedan hechos los dos primeros.** El
 servidor salió por la mañana; el front, por la tarde. Queda encender.
@@ -56,7 +200,7 @@ verdad sirve el front.**
 > caducado corriendo sobre dato ya migrado. El sesgo es limpio —functions de `develop`, front
 > de `master`— y no hay que ir a buscar sobre-inclusiones.
 
-### `FLOW-003` — CONSTRUIDO, SIN DESPLEGAR
+### `FLOW-003` — QUÉ SE CONSTRUYÓ, Y EN QUÉ ORDEN
 
 Seis entregas, en un orden que **no es el de la ficha**: pone delante el habilitador que ella no
 vio y aísla lo arriesgado.
@@ -218,47 +362,6 @@ escritas y sin ejercitar. No fiarse de una puerta que solo se ha visto cerrada.
 
 Y el segundo llegó a imprimir «Guarda EN VERDE» sobre **cero** documentos en la segunda pasada
 —el falso verde sobre conjunto vacío, otra vez—. Corregido: ahora dice que no llegó a evaluarse.
-
-### LO DESPLEGADO, MEDIDO ESTA TARDE
-
-| | Producción (`hogaru-1`) | Staging (`vivaru-staging-02`) |
-|---|---|---|
-| **Functions** | **81 · todas `ACTIVE`** · 77 `export const` + 4 re-exports = 81, sin sobrantes ni ausentes | **81**, mismos nombres |
-| **`firestore.rules`** | ruleset `60d9dd0f-…` · **idéntico byte a byte al repo** | `b38e118f-…` · **idéntico byte a byte** |
-| **`storage.rules`** | `266b7153-…`, **del 19 de agosto** — sin tocar, como se decidió | `7d20c81d-…`, del 25 |
-| **Front** | **`rollout-2026-08-26-002` → `SUCCEEDED`, build `READY` de `master` / `02837be`** (26 ago, 22:12 UTC). `origin/master` = `origin/develop` | — |
-| **Banderas** | 16 documentos · `producto-prorrateo-de-gastos` y `producto-estado-de-cuenta` **no existen** | 17 · las dos en `false`, con override a `true` en `cliente-convertido-08011856-421616` |
-
-Los cuatro programados de producción se pusieron al día a las **15:09 UTC**, no en la pasada
-grande de la mañana. Eso solo se ve midiendo `updateTime` función por función.
-
-### TRES TRAMPAS DE ENTORNO QUE COSTARON TIEMPO HOY
-
-1. **El repo NO es `/Users/david/Vivaru_Rep`** — es `/Users/david/Vivaru_Rep/vivaru`. El padre no
-   es un repo git, no tiene `docs/`, y tiene un **`firestore.rules` de 0 bytes** suelto al lado.
-   Un comando relativo lanzado desde el padre falla con `MODULE_NOT_FOUND`; usar ruta absoluta.
-2. **`master` local está en `887e778`, del 24** — 24 commits por detrás de `origin/master`.
-   Cambiarse a él es mirar un árbol de anteayer. `develop` sí está sincronizado.
-3. **`CLAUDE.md` tiene DOS `JAVA_HOME` distintos** (líneas 76 y 557). El bueno es el de la 76
-   (`~/.local/jdk/jdk-21.0.12.1+1/…`, verificado ejecutándolo); el de la 557 es de otra época.
-
-**Y la sesión del navegador va por ORIGEN.** Entrar por `www.grupovivaru.com` no deja sesión en
-`vivaru--hogaru-1.us-central1.hosted.app`, aunque sean la misma aplicación y el mismo build.
-
-### LO SIGUIENTE
-
-1. ~~Subir el front~~ — **hecho la tarde del 26**, y subió A OSCURAS: las dos banderas nacen con
-   `defaultEnabled: false` en el catálogo, que es lo que resuelve cuando no existe el documento.
-   Comprobado en pantalla: en la cartera no aparece el estado de cuenta ni el paz y salvo, y el
-   menú de acciones de un egreso da solo «Ver detalle · Editar · Eliminar», sin «Repartir».
-2. ~~Encender `producto-estado-de-cuenta`~~ — **hecha y validada** la tarde del 26.
-3. ~~Decidir el orden del estado de cuenta~~ — **por `period`, hecho y desplegado**.
-4. **`producto-prorrateo-de-gastos` sigue apagada**: con 0 de 88 unidades con coeficiente y 74 de
-   87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular. `FLOW-001` queda
-   desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
-5. **`FLOW-003`** (cobranza), que ya puede ir: su adjunto dependía de `FEAT-004`.
-6. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
-   decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
 
 ## EL CIERRE DE LA MAÑANA — `FIX-002` cerrada en los dos ambientes (26 de agosto de 2026)
 

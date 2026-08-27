@@ -130,7 +130,7 @@ de entrega.**
 
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
-| **Propiedad horizontal** | ✅ `PH-001` · ✅ `PLAT-002` · ✅ `FIX-002` · ✅ `FEAT-004` · 🟡 `FLOW-003` · ⏸ `FLOW-001` | 🟠 Formulario de cobranza | 🔵 `PH-002` | — |
+| **Propiedad horizontal** | ✅ `PH-001` · ✅ `PLAT-002` · ✅ `FIX-002` · ✅ `FEAT-004` · ⏸ `FLOW-003` · ⏸ `FLOW-001` | 🟠 Formulario de cobranza | 🔵 `PH-002` | — |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
@@ -144,10 +144,11 @@ de entrega.**
 > frente donde ha ido todo el trabajo desde el 24. El §35 de este mismo documento decía que el
 > frente se había abierto; la vista ejecutiva no se enteró. Añadida.
 >
-> **`FLOW-003` está CONSTRUIDO ENTERO y sin desplegar** (26 ago, tarde): entrega medida del
-> correo, webhook, calendario del conjunto y estado de cuenta adjunto. Antes de subirlo hace falta
-> el secreto de firma del webhook, que **lo pone el usuario**. Lo que queda de la ficha es el
-> formulario de Ajustes › Cobranza y la validación por navegador.
+> **`FLOW-003` está DESPLEGADO en producción y APAGADO** (27 ago, madrugada): entrega medida del
+> correo, webhook, calendario del conjunto y estado de cuenta adjunto. Lo que queda de la ficha es
+> **registrar la URL del webhook en Resend y poner el secreto real** —el que hay es de relleno, así
+> que la función rechaza todo—, el **formulario de Ajustes › Cobranza** (`billingCalendar` tiene
+> cero apariciones en `src/`), encender las dos banderas y la validación por navegador.
 >
 > **Y el ⏸ de `FLOW-001` no significa «sin construir»**: significa construido, desplegado entero
 > —servidor y front— y **APAGADO**, porque con 0 de 88 unidades con coeficiente y 74 de 87 sin
