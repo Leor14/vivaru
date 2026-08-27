@@ -1,5 +1,25 @@
 # Hallazgo — hay direcciones de DESCONOCIDOS en los datos de producción
 
+> ## ✅ RESUELTO el 27 de agosto de 2026
+>
+> **Cero direcciones de riesgo en producción**, medido en las tres colecciones. Las siete personas
+> pasaron a `@ejemplo.vivaru.app` con `functions/scripts/sanear-correos-de-prueba.mjs`: **22
+> documentos y 6 cuentas de Firebase Auth**, con `emailPrevio` guardado en los 22, así que tiene
+> vuelta atrás (`--revertir --escribir`).
+>
+> **Y se falsó, que es lo que lo prueba:** las seis direcciones viejas **ya no resuelven en Auth**.
+> Comprobar solo que las nuevas responden habría dado verde aunque las viejas siguieran vivas —
+> que es exactamente el modo de fallo de cambiar Firestore sin tocar Auth.
+>
+> **David confirmó que las cuentas eran del equipo**, así que no hubo incidente. Pero el arreglo
+> seguía haciendo falta por la razón de abajo: **las cuentas eran nuestras y los buzones no.**
+>
+> **LO QUE ESTO NO CIERRA, Y ES LO QUE HAY QUE LEER:** limpia lo que había, **no la puerta**. El
+> día que alguien cree otro residente de prueba tecleando `pedro@gmail.com`, vuelve a pasar — y el
+> correo de alta sale igual, porque `sendAccountEmail` **no está detrás de ninguna bandera**. Para
+> cerrarla de verdad hay que rechazar dominios de buzón real en el formulario de alta cuando el
+> conjunto es `isExample`. Eso es una PRD pequeña, no un script. Ver [[el-parche-que-caduca]].
+
 **Encontrado el 27 de agosto de 2026**, preparando la validación de `FLOW-003`. No es un defecto
 de código: es un problema de **datos**, y estaba ahí antes de esta ficha.
 
@@ -71,6 +91,21 @@ Los de riesgo alto se concentran en **`tenant-santa-maria`** (6 de 7 en `users`)
 > una pantalla, sin aviso ni confirmación. **Arreglar las direcciones ANTES de tocar ese
 > interruptor** es lo que separa un cambio de configuración de un incidente.
 
+
+## Qué se hizo — la salida 1, y por qué
+
+**Se eligió la primera.** Y la medición de la ejecución corrigió dos cosas de esta ficha:
+
+- **Seis de las siete tenían cuenta de Firebase Auth**, cuatro con accesos reales y una con acceso
+  el 26 de agosto a las 18:22. **Eso no eran extraños: era el equipo.** La ficha decía «casi con
+  seguridad pertenecen a una persona real que no tiene nada que ver con el conjunto», y era una
+  inferencia por la FORMA de la dirección. La forma no distingue quién usa la cuenta.
+- **`isDemoAccount` no sirve para distinguirlas**: solo 4 de las 40 membresías lo tienen en `true`,
+  y **ninguna** de las siete. Si hiciera falta volver a separar cuentas de prueba de cuentas
+  reales, ese campo no es el criterio.
+
+**Lo que NO cambió con eso:** las cuentas eran del equipo, pero **los buzones no**. Nadie del
+equipo controla `jorge@gmail.com`; se tecleó, y la contraseña se puso desde la consola.
 
 ## Qué hacer — tres salidas, y la primera es la buena
 

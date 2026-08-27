@@ -196,15 +196,19 @@ y así el rastro empieza solo el día que alguien abra una plantilla.
 
 ### LO SIGUIENTE
 
-1. **🚨 LAS DIRECCIONES DE DESCONOCIDOS — ver `docs/hallazgo-direcciones-de-correo.md`.** Hay
-   correos de **personas reales ajenas al conjunto** en los datos de producción (6 en `users`, 8 en
-   `people`, más un dedazo `@gmial.com`). **Esto BLOQUEA el punto 3**, y no es opinión: con el
-   adjunto encendido, un aviso de cobranza le manda **el estado de cuenta en PDF de la unidad de
-   otro** a un extraño.
+1. ~~**Las direcciones de desconocidos**~~ — **RESUELTO el 27 ago.** Cero de riesgo en las tres
+   colecciones; las siete personas a `@ejemplo.vivaru.app`, 22 documentos y 6 cuentas de Auth, con
+   `emailPrevio` para revertir. **Falsado**: las seis direcciones viejas ya no resuelven en Auth.
+   Eran cuentas del equipo, confirmado por David — pero los **buzones** no lo eran.
+   **LO QUE NO CIERRA:** limpia lo que había, no la puerta. `sendAccountEmail` no está detrás de
+   ninguna bandera, así que el próximo residente creado con una dirección tecleada manda otro
+   enlace de acceso a un desconocido. Cerrarla es rechazar dominios de buzón real en el formulario
+   de alta cuando el conjunto es `isExample` — **PRD pequeña, no script**, y sin escribir.
 2. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
    apariciones en `src/`. Hoy el calendario solo se puede escribir desde la consola — y la regla
-   ya valida los rangos allí, que era el punto.
-3. **Encender `producto-calendario-de-cobranza`** — solo cuando 1 y 2 estén. **Antes no.**
+   ya valida los rangos allí, que era el punto. **Es lo único que queda de `FLOW-003`.**
+3. **Encender `producto-calendario-de-cobranza`** — cuando 2 esté. Y recordar que **encenderla
+   sola no hace nada**: el canal de correo sigue cerrado en los 8 conjuntos.
 4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
    coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
    `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
