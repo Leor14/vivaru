@@ -204,11 +204,12 @@ y así el rastro empieza solo el día que alguien abra una plantilla.
    ninguna bandera, así que el próximo residente creado con una dirección tecleada manda otro
    enlace de acceso a un desconocido. Cerrarla es rechazar dominios de buzón real en el formulario
    de alta cuando el conjunto es `isExample` — **PRD pequeña, no script**, y sin escribir.
-2. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
-   apariciones en `src/`. Hoy el calendario solo se puede escribir desde la consola — y la regla
-   ya valida los rangos allí, que era el punto. **Es lo único que queda de `FLOW-003`.**
-3. **Encender `producto-calendario-de-cobranza`** — cuando 2 esté. Y recordar que **encenderla
-   sola no hace nada**: el canal de correo sigue cerrado en los 8 conjuntos.
+2. ~~**El formulario de Ajustes › Cobranza**~~ — **HECHO y validado en pantalla el 27 ago.**
+   `BillingCalendarCard`, en Ajustes › Portal del residente, justo antes de las plantillas: el
+   calendario dice CUÁNDO y ellas QUÉ. `producto-calendario-de-cobranza` **encendida**.
+3. **Decidir si el calendario se configura en algún conjunto.** Hoy hay **cero** configurados, y
+   por eso la pasada diaria salta todos. Configurar uno es lo que la pone a correr — y con el
+   canal de correo cerrado, lo que saldría son **notificaciones en la app**, no correos.
 4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
    coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
    `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.

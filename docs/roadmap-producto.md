@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.33 |
-| **Fecha** | 27 de agosto de 2026 (madrugada) |
-| **Estado** | **`FLOW-003` ESTÁ EN PRODUCCIÓN, CABLEADO CON RESEND Y VALIDADO DE PUNTA A PUNTA** (27 ago, 00:41–02:16 UTC). Índices, reglas, **15 functions** —no las 82: el conjunto se cerró siguiendo el código, no la ficha— y el front, cada pieza medida contra su fuente. La cadena entera se vio funcionar con números: la fila nace en `emailDeliveries` con **el id del mensaje de Resend como id de documento**, Resend contesta con **dos `POST 200` de Svix** —y el `200` en vez del `401` es la única prueba posible de que la firma a mano verifica con el secreto real— y el webhook la mueve a `entregado` **seis segundos** después. **Y EL HALLAZGO DE LA JORNADA NO ES EL DESPLIEGUE: EL CANAL DE CORREO ESTÁ CERRADO EN TODA LA PRODUCCIÓN.** Las **13** claves del catálogo tienen `emailDefault: false` y **cero** de los 8 conjuntos tienen `notificationTemplates`, así que **a ningún residente le llega un correo** y `FLOW-003` puede estar encendido sin registrar nada. Es la **tercera forma de «encender no era el arranque»** —tras la tabla vacía y el front que no conocía la clave— y la más callada: todo lo que se mira está bien y el síntoma es silencio, idéntico al de algo roto. **El segundo hallazgo bloquea una bandera:** en los datos de producción hay **correos de personas reales ajenas al conjunto** —nombres de pila sueltos en gmail, 6 en `users` y 8 en `people`—, y con el adjunto de `FEAT-004` encendido un aviso de cobranza le mandaría **el estado de cuenta en PDF de la unidad de otro** a un extraño. Por eso **`producto-calendario-de-cobranza` NO se enciende** hasta limpiarlos: ficha en `docs/hallazgo-direcciones-de-correo.md`. **`producto-entrega-de-correo` sí queda encendida**, sobre el canal cerrado, para que el rastro arranque solo el día que alguien abra una plantilla. **Staging NO tiene `FLOW-003`** y los dos ambientes divergen a propósito: allí no existe `RESEND_WEBHOOK_SECRET` y sin él la función HTTP no despliega. Lo demás del frente de propiedad horizontal sigue como estaba: **`FEAT-004` encendida y validada**, **`FIX-002` cerrada y sin vuelta atrás**, y **`FLOW-001` desplegada y APAGADA por falta de DATO** —0 de 88 unidades con coeficiente— que por el criterio del 24 cuenta como frente abierto. Lo que queda de `FLOW-003` es el **formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene cero apariciones en `src/`. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Versión** | 0.9.34 |
+| **Fecha** | 27 de agosto de 2026 (madrugada, cierre) |
+| **Estado** | **`FLOW-003` ESTÁ COMPLETO Y EL FRENTE DE PROPIEDAD HORIZONTAL CIERRA EN INGENIERÍA** (27 ago). Desplegado, cableado con Resend y validado de punta a punta con números —la fila nace en `emailDeliveries` con el id del mensaje de Resend como id de documento, Resend contesta con **dos `POST 200` de Svix** y el webhook la mueve a `entregado` **seis segundos** después—; y su última pieza, el **formulario de Ajustes › Cobranza**, construida y **vista en pantalla**: rechaza el día 31 y el ciclo de 3 con el motivo escrito, y **la marca de deduplicado del servidor sobrevive al guardado**, que era el riesgo real. **Las dos banderas, encendidas.** **EL HALLAZGO DE LA JORNADA NO FUE NINGÚN DESPLIEGUE: el canal de correo estaba CERRADO EN TODA LA PRODUCCIÓN** —13 claves con el correo apagado por defecto y cero conjuntos con override—, así que a ningún residente le llega correo y una bandera encendida puede no producir nada. Es la **tercera forma de «encender no era el arranque»** y la única cuyo síntoma es silencio en vez de error. **Y el segundo hallazgo se encontró y se resolvió el mismo día:** había **correos de personas reales ajenas al conjunto** en los datos —el adjunto les habría mandado el estado de cuenta de la unidad de otro—; `DATO-001` movió siete cuentas a `@ejemplo.vivaru.app`, 22 documentos y 6 de Auth, **falsado comprobando que las viejas ya no resuelven**. Lo demás del frente sigue: **`FEAT-004` encendida y validada**, **`FIX-002` cerrada y sin vuelta atrás**, y **`FLOW-001` desplegada y APAGADA por falta de DATO** —0 de 88 unidades con coeficiente—, que por el criterio del 24 cuenta como frente abierto. **Lo que queda no es código:** sembrar coeficientes, y decidir si algún conjunto configura su calendario —hoy hay **cero**, y por eso la pasada diaria salta todos—. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, y por medición en vez de por el «Deploy complete».** El índice por su `state` (`READY`); el ruleset **descargado y diferenciado byte a byte** contra el fichero; las functions por el `updateTime` de las **82**, antes y después —**15 movidas, y de las otras 67 cero movidas, cero desaparecidas, cero fuera de `ACTIVE`**—; y el front por **procedencia del build** más la huella de chunks, comprobando además que el bundle servido **sí conoce las dos claves nuevas**, con una clave inventada de control que no aparece. **Lo dudoso se falsó**: el webhook con cuatro peticiones reales (405 · 401 · 401 · 400) antes de tener secreto bueno, y la oscuridad por las **tres** vías que podrían encenderla —documento, catálogo del servidor y override por conjunto—. Suites antes de desplegar: **2.280 en verde** (1.200 raíz · 639 functions · 220 emulador · 221 reglas). **Y dos frases del propio repositorio resultaron falsas al medirlas**: `CLAUDE.md` decía «un cobro normal manda correo» y una ficha decía que los desconocidos «ya lo reciben hoy». Las dos se dedujeron en vez de medirse; las dos están corregidas |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -144,15 +144,13 @@ de entrega.**
 > frente donde ha ido todo el trabajo desde el 24. El §35 de este mismo documento decía que el
 > frente se había abierto; la vista ejecutiva no se enteró. Añadida.
 >
-> **`FLOW-003` está EN PRODUCCIÓN, CABLEADO Y VALIDADO** (27 ago, madrugada). El webhook quedó
-> registrado en Resend con su secreto real, y la cadena se vio funcionar con números: fila en
-> `emailDeliveries` a las 02:16:28 → dos `POST 200` de Svix → `entregado` a las 02:16:34.
-> **`producto-entrega-de-correo` queda encendida; `producto-calendario-de-cobranza` NO**, y su
-> bloqueo no es de código: hay **direcciones de personas ajenas al conjunto** en los datos y el
-> adjunto convertiría el aviso en fuga (`docs/hallazgo-direcciones-de-correo.md`). Lo que queda de
-> la ficha es el **formulario de Ajustes › Cobranza** — `billingCalendar` tiene cero apariciones en
-> `src/`, así que hoy el calendario solo se escribe desde la consola, y la regla ya valida los
-> rangos allí, que era el punto.
+> **`FLOW-003` ESTÁ COMPLETO: en producción, cableado, validado y con sus DOS banderas
+> encendidas** (27 ago). La cadena de entrega se vio funcionar con números —fila en
+> `emailDeliveries` a las 02:16:28 → dos `POST 200` de Svix → `entregado` a las 02:16:34—, y el
+> **formulario de Ajustes › Cobranza** quedó construido y validado en pantalla: rangos rechazados
+> (día 31, ciclo de 3), guardado, y **la marca de deduplicado del servidor sobrevivió al guardado**,
+> que era el riesgo de verdad. `DATO-001` levantó el bloqueo que impedía encender el calendario.
+> **No queda nada de la ficha.**
 >
 > **Y el ⏸ de `FLOW-001` no significa «sin construir»**: significa construido, desplegado entero
 > —servidor y front— y **APAGADO**, porque con 0 de 88 unidades con coeficiente y 74 de 87 sin
@@ -1018,6 +1016,26 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.34 — 27 de agosto de 2026 (madrugada, cierre)
+
+- **El formulario de Ajustes › Cobranza, construido y validado en pantalla.** Última pieza de
+  `FLOW-003`. Va en «Portal del residente» y **justo antes de las plantillas**: el calendario dice
+  CUÁNDO sale el aviso y ellas QUÉ dice.
+- **Lo que más protege son las rutas punteadas**, y se comprobó contra producción: se sembró una
+  marca de último envío, se guardó desde la pantalla y **la marca sobrevivió**. Escribir el objeto
+  entero la habría borrado, y el efecto no sería un error sino que el aviso volviera a salir a
+  quien ya lo recibió.
+- **Guardián de espejo nuevo**, porque los dos límites viven en TRES sitios —servidor, reglas y
+  formulario— y nada los vigilaba. Cinco pruebas, falsadas una a una.
+- **Cuatro pruebas de reglas con la primitiva que usa el producto.** Las cinco que había usan
+  `setDoc`; el formulario usa `updateDoc` con rutas punteadas. Es el defecto de `chartOfAccounts`
+  otra vez —«el banco probaba un camino que el producto no usa»— y esta vez se cerró antes de que
+  costara nada.
+- **`DATO-001` cerrado**: siete cuentas de prueba fuera de dominios de correo reales, 22
+  documentos y 6 cuentas de Auth, **falsado** comprobando que las viejas ya no resuelven. Y dos
+  correcciones que trajo la ejecución: no eran extraños sino el equipo, e `isDemoAccount` no
+  distingue cuentas de prueba.
 
 ### 0.9.33 — 27 de agosto de 2026 (madrugada)
 
