@@ -126,21 +126,45 @@ firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project vivaru-staging-02
 Enter en vacío deja un secreto creado y hueco sin dar error. **Comprobar las VERSIONES, no que el
 nombre aparezca.**
 
+### EL WEBHOOK YA ESTÁ CERRADO, Y `producto-entrega-de-correo` ENCENDIDA
+
+**Hecho la madrugada del 27, después del despliegue:**
+
+| | |
+|---|---|
+| **El secreto real** | v2 puesta por David (01:28). La v1 de relleno **sigue `ENABLED`**: el CLI dijo que la destruiría y no lo hizo. Nadie apunta a ella |
+| **El redespliegue** | Revisión `-00003-kes`, clavada a **`versión=2`**. Lo hizo el propio CLI al contestar `Y` a «re-deploy and destroy the stale version» |
+| **La bandera** | `producto-entrega-de-correo` = `true`. Verificada por las tres vías: documento, `_global.killSwitch=false`, **cero overrides** |
+
+> **Y quedó probado que el endpoint SÍ estaba registrado en Resend**, aunque pareciera que no: el
+> `whsec_` **solo existe si creaste el endpoint allá**. Lo que falló fue la forma de probarlo —
+> abrir la URL en el navegador manda un `GET` y el webhook contesta **405 `method not allowed`**,
+> que es su conducta correcta, no una avería. **Un endpoint de webhook no se prueba con el
+> navegador.** Se ve en el log: `GET 405 · ua=Mozilla/5.0`.
+
 ### LO SIGUIENTE
 
-1. **Registrar el webhook en Resend** y **poner el secreto real + redesplegar** (arriba).
-2. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
+1. **Validar la cadena de entrega de punta a punta** — disparar UN recordatorio desde la Cartera,
+   por el botón **de la fila**, sobre `APARTAMENTO 201` de `tenant-santa-maria` (única unidad con
+   destinatario controlado). Debe nacer una fila en `emailDeliveries` con `enviado` y, al entregar
+   Resend, el webhook moverla a `entregado`.
+2. **🚨 LAS DIRECCIONES DE DESCONOCIDOS — ver `docs/hallazgo-direcciones-de-correo.md`.** Hay
+   correos de **personas reales ajenas al conjunto** en los datos de producción (6 en `users`, 8 en
+   `people`, más un dedazo `@gmial.com`). **Esto BLOQUEA el punto 4**, y no es opinión: con el
+   adjunto encendido, un aviso de cobranza le manda **el estado de cuenta en PDF de la unidad de
+   otro** a un extraño.
+3. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
    apariciones en `src/`. Hoy el calendario solo se puede escribir desde la consola — y la regla
    ya valida los rangos allí, que era el punto.
-3. **Encender las dos banderas** con `mover-bandera.mjs`, cuando 1 y 2 estén.
-4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
+4. **Encender `producto-calendario-de-cobranza`** — solo cuando 2 y 3 estén. **Antes no.**
+5. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
    coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
    `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
-5. **El sembrador de banderas declara 16 claves y el catálogo tiene 19** — defecto vivo, con ficha
+6. **El sembrador de banderas declara 16 claves y el catálogo tiene 19** — defecto vivo, con ficha
    aparte. `producto-anticipos`, `producto-pago-multiple` y `producto-importacion-masiva` no se
    pueden sembrar; en producción existen solo porque `mover-bandera` las creó al encenderlas. Con
    las dos de `FLOW-003` el sembrador ya sí las declara, así que **el hueco es de tres, no de cinco**.
-6. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
+7. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
    decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
 
 ### CUATRO TRAMPAS DE ENTORNO, Y UNA ES NUEVA
