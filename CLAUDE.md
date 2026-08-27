@@ -163,6 +163,11 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   conjunto suspendido para reactivarlo— y **el estado del conjunto se comprueba al final, después
   del rol**: al revés, a un no-miembro se le respondería «el período de prueba terminó» en vez de
   «no tienes permiso», filtrando el estado comercial de un cliente.
+- **EL SEMBRADOR DE BANDERAS NO CONOCE TODAS LAS CLAVES.** Medido el 26 de agosto de 2026:
+  `seed-feature-flags.mjs` declara **16** y `mover-bandera.mjs` **19**. Faltan `producto-anticipos`,
+  `producto-pago-multiple` y `producto-importacion-masiva`. En producción existen igual porque
+  `mover-bandera` las crea con `set+merge` al encenderlas — pero **en un ambiente nuevo nacerían
+  sin documento** y resolverían por el default del catálogo, en silencio. Tiene ficha aparte.
 - **EL CATÁLOGO DE BANDERAS VIVE EN CINCO SITIOS, y su propia cabecera decía cuatro.** Los dos
   scripts se declaran «el cuarto» **cada uno**, contando listas distintas: `mover-bandera.mjs`
   enciende **global** y `mover-bandera-de-conjunto.mjs` enciende **por conjunto**. Añadir una
@@ -329,6 +334,19 @@ calcular. Por el criterio del 24, desplegado y apagado **cuenta como frente abie
 > Y al revés, antes de subir un front: **mirar el `defaultEnabled` del catálogo**. En producción
 > esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
 > `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
+
+**`FLOW-003` ESTÁ CONSTRUIDO ENTERO Y SIN DESPLEGAR** (26 ago 2026, `11c4919`…`94ccbc5`):
+entrega medida del correo, webhook, calendario del conjunto y el estado de cuenta adjunto.
+
+> **ANTES DE DESPLEGARLO HACE FALTA UN SECRETO, Y LO PONE EL USUARIO:**
+> `firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1`.
+> **Tiene que existir ANTES o la función no arranca** — es la misma regla que `RESEND_API_KEY`.
+> Comprobar que está **sin leer su valor**: listar `secretmanager` por la API con la ADC.
+>
+> Y trae la **PRIMERA FUNCIÓN HTTP del producto** (`resendWebhook`). Las 81 anteriores son
+> callables y procesos programados, así que `callableCorsOrigins` no le aplica: esto lo llama un
+> servidor ajeno. Su firma se verifica a mano —Resend firma con Svix y `svix` no está en el
+> repositorio— con el vector público de Svix como prueba, no con uno generado por el propio código.
 
 > **Y EL HALLAZGO QUE MÁS LEJOS LLEGA NO ES NINGUNO DE LOS DOS: `unitId` ESTÁ PARTIDO EN DOS.**
 > Conviven el **id del documento** de la unidad y su **campo `unitId`** (un slug), y hay documentos

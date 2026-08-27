@@ -471,3 +471,36 @@ El cwd de las sesiones es `/Users/david/Vivaru_Rep`, que **no es un repositorio 
 
 Consecuencia práctica: **un comando relativo que se le pase a David muere con `MODULE_NOT_FOUND`**
 si lo lanza desde el padre, que es donde su terminal suele estar. **Pasarle siempre ruta absoluta.**
+
+## Una prueba negativa de reglas no distingue «protege» de «no existe»
+
+Al añadir el bloque de `emailDeliveries` (26 ago 2026) se escribieron siete pruebas: una que el
+administrador lee y **seis que los demás no**. Al falsar, **borrar el bloque entero enrojeció UNA
+sola** — la positiva. Las seis negativas siguieron pasando, porque **sin regla Firestore deniega
+igual**.
+
+**Las dos direcciones hacen falta y ninguna sobra:**
+
+- **Borrar la regla** debe enrojecer la prueba que concede. Si no, la regla no está haciendo nada.
+- **Abrir la regla de par en par** debe enrojecer las que niegan. Si no, no vigilan lo que dicen.
+
+Un bloque de reglas escrito solo con `assertFails` pasa en verde el día que alguien lo borra por
+accidente en un merge — que es exactamente el día en que hace falta.
+
+## Un secreto de Functions tiene que existir ANTES de desplegar, y no se lee para comprobarlo
+
+`firebase functions:secrets:set <NOMBRE>` lo pone **el usuario**; el agente no lo pide por chat ni
+corre `secrets:access`. Y una función que referencia un secreto inexistente **no arranca**: el
+despliegue falla.
+
+**Comprobar que existe sin leer su valor** se hace por metadatos, listando Secret Manager con la
+ADC — devuelve nombre y fecha de creación, nunca el contenido:
+
+```bash
+curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  "https://secretmanager.googleapis.com/v1/projects/hogaru-1/secrets?pageSize=50"
+```
+
+Pasó el 26 de agosto de 2026 con `RESEND_WEBHOOK_SECRET`: el comando llegó **partido a la mitad**
+en el pegado (`RESEND_WEBHO` / `OK_SECRET`) y no creó nada. Sin comprobarlo, el fallo habría
+aparecido como un despliegue caído sin motivo aparente.

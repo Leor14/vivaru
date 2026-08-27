@@ -130,7 +130,7 @@ de entrega.**
 
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
-| **Propiedad horizontal** | ✅ `PH-001` · ✅ `PLAT-002` · ✅ `FIX-002` · ✅ `FEAT-004` · ⏸ `FLOW-001` | 🟠 `FLOW-003` | 🔵 `PH-002` | — |
+| **Propiedad horizontal** | ✅ `PH-001` · ✅ `PLAT-002` · ✅ `FIX-002` · ✅ `FEAT-004` · 🟡 `FLOW-003` · ⏸ `FLOW-001` | 🟠 Formulario de cobranza | 🔵 `PH-002` | — |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
@@ -143,6 +143,11 @@ de entrega.**
 > **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
 > frente donde ha ido todo el trabajo desde el 24. El §35 de este mismo documento decía que el
 > frente se había abierto; la vista ejecutiva no se enteró. Añadida.
+>
+> **`FLOW-003` está CONSTRUIDO ENTERO y sin desplegar** (26 ago, tarde): entrega medida del
+> correo, webhook, calendario del conjunto y estado de cuenta adjunto. Antes de subirlo hace falta
+> el secreto de firma del webhook, que **lo pone el usuario**. Lo que queda de la ficha es el
+> formulario de Ajustes › Cobranza y la validación por navegador.
 >
 > **Y el ⏸ de `FLOW-001` no significa «sin construir»**: significa construido, desplegado entero
 > —servidor y front— y **APAGADO**, porque con 0 de 88 unidades con coeficiente y 74 de 87 sin
