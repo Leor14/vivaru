@@ -901,6 +901,65 @@ h3 {
 .marketing-theme .max-w-6xl { max-width: 72rem; }
 .marketing-theme .max-w-7xl { max-width: 80rem; }
 
+/* ── Y lo mismo para las variantes con punto de corte ───────────────────────
+ * El parche de arriba cubre SOLO las clases sin prefijo. Medido en el CSS
+ * compilado el 27 de agosto de 2026: `md:max-w-xl` emitía
+ * `max-width: var(--spacing-xl)` = 32px, y así llevaba tiempo — el formulario
+ * de cambio de contraseña del administrador medía 32 PÍXELES en pantalla, igual
+ * que los dos formularios del perfil del residente. `sm:max-w-sm` daba 8px y
+ * `sm:max-w-xs`, 4px.
+ *
+ * Se parchea la CLASE ENTERA de defecto y no las tres instancias: cualquier
+ * combinación <punto-de-corte>:max-w-<nombre> donde <nombre> tenga un token
+ * --spacing-<nombre>. Son seis nombres (xs, sm, md, lg, xl, 3xl); `2xl` se
+ * salva porque nuestro token se llama `xxl` y por eso resuelve bien a
+ * --container-2xl.
+ *
+ * Vigilado por tests/max-width-colision.test.ts, que enrojece si aparece un
+ * token de espaciado nuevo que colisione o una combinación sin parchear.
+ * ─────────────────────────────────────────────────────────────────────────── */
+@media (width >= 40rem) {
+  .sm\:max-w-xs { max-width: 20rem; }
+  .sm\:max-w-sm { max-width: 24rem; }
+  .sm\:max-w-md { max-width: 28rem; }
+  .sm\:max-w-lg { max-width: 32rem; }
+  .sm\:max-w-xl { max-width: 36rem; }
+  .sm\:max-w-3xl { max-width: 48rem; }
+}
+@media (width >= 48rem) {
+  .md\:max-w-xs { max-width: 20rem; }
+  .md\:max-w-sm { max-width: 24rem; }
+  .md\:max-w-md { max-width: 28rem; }
+  .md\:max-w-lg { max-width: 32rem; }
+  .md\:max-w-xl { max-width: 36rem; }
+  .md\:max-w-3xl { max-width: 48rem; }
+}
+@media (width >= 64rem) {
+  .lg\:max-w-xs { max-width: 20rem; }
+  .lg\:max-w-sm { max-width: 24rem; }
+  .lg\:max-w-md { max-width: 28rem; }
+  .lg\:max-w-lg { max-width: 32rem; }
+  .lg\:max-w-xl { max-width: 36rem; }
+  .lg\:max-w-3xl { max-width: 48rem; }
+}
+@media (width >= 80rem) {
+  .xl\:max-w-xs { max-width: 20rem; }
+  .xl\:max-w-sm { max-width: 24rem; }
+  .xl\:max-w-md { max-width: 28rem; }
+  .xl\:max-w-lg { max-width: 32rem; }
+  .xl\:max-w-xl { max-width: 36rem; }
+  .xl\:max-w-3xl { max-width: 48rem; }
+}
+@media (width >= 96rem) {
+  .2xl\:max-w-xs { max-width: 20rem; }
+  .2xl\:max-w-sm { max-width: 24rem; }
+  .2xl\:max-w-md { max-width: 28rem; }
+  .2xl\:max-w-lg { max-width: 32rem; }
+  .2xl\:max-w-xl { max-width: 36rem; }
+  .2xl\:max-w-3xl { max-width: 48rem; }
+}
+
+
 /* ── Keyframes (reemplaza plugin tailwindcss-animate) ───────────────────── */
 @keyframes accordion-down {
   from { height: 0; }
