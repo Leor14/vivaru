@@ -16,6 +16,7 @@ import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmai
 import { aplicarEventoDeCorreo, resendWebhookSecret, verificarFirmaSvix } from "./email-webhook";
 import { buildSummaryPdf } from "./pdf-resumen";
 import { adjuntoEsDelDestinatario, pdfDelEstadoDeCuenta, unidadDelDestinatario } from "./estado-de-cuenta-adjunto";
+import { pasadaDeCalendarioDeCobranza } from "./cobranza-programada";
 import {
   addSupportInternalNote,
   closeSupportTicket,
@@ -3081,7 +3082,58 @@ export const sendBillingReminder = onCall<{ tenantId: string; unitIds: string[] 
 
 // Recordatorios programados: al dispararse, RECALCULA los pendientes de la campaña en ese
 // momento y los notifica (no congela la lista al programar).
+/**
+ * `FLOW-003` §5.2 · manda el aviso de calendario de UN conjunto. Devuelve si de verdad salió algo.
+ *
+ * **Devolver `false` cuando no hay a quién no es un detalle**: la pasada solo marca la fecha si
+ * esto dijo que sí, y así un ciclo sin morosos no consume el turno del conjunto.
+ */
+async function enviarAvisoDeCalendario(tenantId: string, clase: "aviso" | "vencidas"): Promise<boolean> {
+  // La deuda se lee por unidad, no por residente: es la unidad la que debe.
+  const cargos = await db.collection("billingStatements").where("tenantId", "==", tenantId).get();
+  const unidades = new Set<string>();
+  for (const d of cargos.docs) {
+    const c = d.data() as { unitId?: string; balance?: number; status?: string };
+    if (!c.unitId || (c.balance ?? 0) <= 0) continue;
+    // El aviso mensual mira toda la deuda viva; el de vencidas, solo lo que ya venció.
+    if (clase === "vencidas" && c.status !== "overdue") continue;
+    unidades.add(c.unitId);
+  }
+  if (unidades.size === 0) return false;
+
+  const clave = clase === "vencidas" ? "billing_overdue" : "billing_reminder";
+  const [override, conjunto] = await Promise.all([
+    getTenantNotificationOverride(tenantId, clave),
+    getTenantName(tenantId),
+  ]);
+  const listas = await Promise.all([...unidades].map((u) => listResidentUidsByUnit(tenantId, u)));
+  const residentUids = Array.from(new Set(listas.flat()));
+  // **Unidades con deuda y sin residente con acceso NO son un envío vacío: son un hueco.** Se
+  // dice en el log, porque callarlo deja al administrador creyendo que avisó.
+  const sinDestinatario = listas.filter((l) => l.length === 0).length;
+  if (sinDestinatario > 0) {
+    console.warn(`[cobranza-calendario][${tenantId}] ${sinDestinatario} unidad(es) con deuda y sin residente al que avisar.`);
+  }
+  if (residentUids.length === 0) return false;
+
+  await deliverResidentNotifications(clave as NotificationKey, tenantId, residentUids, { conjunto }, override);
+  return true;
+}
+
 export const sendScheduledReminders = onSchedule({ schedule: "0 9 * * *", secrets: [resendApiKey] }, async () => {
+  // `FLOW-003` · la pasada del calendario de cobranza va PRIMERO y aparte: no depende de los
+  // `billingReminderJobs` de abajo, que son de una sola vez y traen su propia fecha.
+  try {
+    const r = await pasadaDeCalendarioDeCobranza(db, new Date(), enviarAvisoDeCalendario);
+    if (r.conjuntosMirados > 0) {
+      console.log(`[cobranza-calendario] ${r.conjuntosMirados} conjunto(s) con calendario · ${r.enviados.length} envío(s) · ${r.saltados.length} saltado(s).`);
+    }
+  } catch (e) {
+    // Que el calendario falle no puede tumbar los recordatorios programados de abajo, que llevan
+    // en producción desde antes y no tienen nada que ver.
+    console.error("[cobranza-calendario] la pasada falló", e);
+  }
+
   const now = new Date();
   const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-${String(now.getUTCDate()).padStart(2, "0")}`;
 
