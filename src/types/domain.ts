@@ -116,6 +116,34 @@ export interface NotificationTemplateOverride {
 export type NotificationTemplates = Record<string, NotificationTemplateOverride>;
 
 /**
+ * `PRD-V-FLOW-003` §5.2 — el calendario de cobranza del conjunto, dentro de
+ * `tenantSettings/{tenantId}`.
+ *
+ * **Los cuatro campos NO son del mismo dueño, y confundirlo rompe el producto.**
+ * Los dos primeros los escribe el administrador desde Ajustes; los dos últimos
+ * son la **memoria de deduplicado del servidor** —la fecha del último envío— y
+ * nadie más los toca. Por eso el formulario escribe con **rutas punteadas**
+ * (`billingCalendar.noticeDayOfMonth`) y nunca el objeto entero: escribirlo
+ * entero borraría esas dos marcas, y el efecto no sería un error sino que el
+ * aviso volviera a salir a gente que ya lo recibió.
+ *
+ * `null` o ausente significa **desactivado**, en los dos configurables. Los
+ * rangos —1..28 y mínimo 7— se validan en las reglas de Firestore además de en
+ * el formulario, porque desde la consola se salta el formulario. El espejo del
+ * servidor es `functions/src/calendario-de-cobranza.ts`.
+ */
+export interface BillingCalendar {
+  /** Día del mes del aviso de cuota, 1–28. `null` = sin aviso mensual. */
+  noticeDayOfMonth?: number | null;
+  /** Cada cuántos días se recuerda la cartera vencida, mínimo 7. `null` = sin recordatorio. */
+  overdueCycleDays?: number | null;
+  /** Solo lectura para el front: la escribe la pasada programada. */
+  lastNoticeSentAt?: string | null;
+  /** Solo lectura para el front: la escribe la pasada programada. */
+  lastOverdueSentAt?: string | null;
+}
+
+/**
  * Un conjunto donde la persona tiene membresía de administrador.
  *
  * `PRD-V-PLAT-002`: una empresa administradora **no es un rol nuevo**, es un

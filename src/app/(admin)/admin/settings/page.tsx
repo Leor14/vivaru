@@ -26,7 +26,9 @@ import { TowersCard } from "@/features/admin/components/towers-card";
 import { DemoAccountsCard } from "@/features/admin/components/demo-accounts-card";
 import { ResidentModulesCard } from "@/features/admin/components/resident-modules-card";
 import { ModuleVariantsCard } from "@/features/admin/components/module-variants-card";
+import { BillingCalendarCard } from "@/features/admin/components/billing-calendar-card";
 import { NotificationTemplatesCard } from "@/features/admin/components/notification-templates-card";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { FiscalProfileCard } from "@/components/features/finanzas/FiscalProfileCard";
 import { SectionIntro } from "@/components/shared/section-intro";
 import { useTenantBrandingForm } from "@/features/admin/hooks/use-tenant-branding-form";
@@ -62,6 +64,9 @@ export default function AdminSettingsPage() {
   const [blockOnDebt, setBlockOnDebt] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
   const [tab, setTab] = useState<"conjunto" | "modulos" | "residente" | "cuenta">("conjunto");
+  // `PRD-V-FLOW-003` §5.2. Apagada, la pasada diaria no existe, así que la tarjeta
+  // tampoco se pinta: ofrecer un calendario que nadie va a leer es peor que no ofrecerlo.
+  const calendarioDeCobranza = useFeatureFlag("producto-calendario-de-cobranza");
 
   /**
    * Enganches del recorrido guiado: aquí el botón de la banda no abre un modal
@@ -391,6 +396,8 @@ export default function AdminSettingsPage() {
           </label>
         </div>
       </Card>
+
+      {calendarioDeCobranza ? <BillingCalendarCard tenantId={user?.tenantId} /> : null}
 
       <NotificationTemplatesCard tenantId={user?.tenantId} />
         </>
