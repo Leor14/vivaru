@@ -36,6 +36,26 @@ export const roleNavigation: Record<AppRole, NavItem[]> = {
     { href: "/superadmin/audit", label: "Auditoria" },
     { href: "/superadmin/errors", label: "Errores" },
   ],
+  // ───────────────────────────────────────────────────────────────────────────
+  // ⚠️  ESTAS DOS ENTRADAS NO SE RENDERIZAN NUNCA. NO EDITARLAS PARA CAMBIAR EL
+  //     MENÚ DEL ADMINISTRADOR.
+  //
+  //     El menú del admin sale de `ADMIN_SIDEBAR_GROUPS`
+  //     (`src/components/shared/admin-sidebar.tsx`): el shell decide con
+  //     `isAdminRole` y llama a `buildAdminSidebarGroups`, nunca a
+  //     `buildRoleSidebarGroups`, para `tenant_admin` y `admin_tenant`.
+  //
+  //     Se conservan porque `roleNavigation` es un `Record<AppRole, …>` y el tipo
+  //     exige las siete claves. Su único consumidor real, `role-nav.tsx`, se borró
+  //     el 27 de agosto de 2026 — no lo montaba nadie.
+  //
+  //     Añadir una entrada aquí no la haría aparecer en pantalla y no rompería
+  //     ninguna prueba hasta hoy. Ahora lo vigila
+  //     `tests/admin-navigation-contract.test.ts`.
+  //
+  //     El resto de roles —resident, security, superadmin, committee— SÍ salen de
+  //     aquí, vía `buildRoleSidebarGroups`.
+  // ───────────────────────────────────────────────────────────────────────────
   admin_tenant: [
     { href: "/admin", label: "Panel de Control" },
     { href: "/admin/users", label: "Usuarios" },

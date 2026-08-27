@@ -576,20 +576,10 @@ describe("BLOQUE 5 — navegación e íconos", () => {
     });
   });
 
-  describe("role-nav.tsx", () => {
-    const navContent = fs.readFileSync(
-      path.resolve(__dirname, "../src/components/shared/role-nav.tsx"),
-      "utf8",
-    );
-
-    it("mapea '/superadmin/metrics' a BarChart2", () => {
-      expect(navContent).toContain('"/superadmin/metrics": BarChart2');
-    });
-
-    it("BarChart2 está importado de 'lucide-react'", () => {
-      expect(navContent).toMatch(
-        /import\s*\{[^}]*BarChart2[^}]*\}\s*from\s*["']lucide-react["']/,
-      );
-    });
-  });
+  // El bloque `role-nav.tsx` se retiró el 27 de agosto de 2026, con el componente.
+  // Verificaba el mismo mapeo de icono que el bloque de arriba, pero sobre una
+  // copia que **no montaba nadie**: `roleNavigation.tenant_admin` no se renderiza
+  // nunca — el menú del admin sale de ADMIN_SIDEBAR_GROUPS. La afirmación viva es
+  // la de `role-sidebar-groups.ts`; ésta no cubría nada.
+  // Contrato de navegación del admin: `tests/admin-navigation-contract.test.ts`.
 });
