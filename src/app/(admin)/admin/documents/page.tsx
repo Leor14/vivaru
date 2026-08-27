@@ -243,12 +243,10 @@ export default function AdminDocumentsPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
           <FolderOpen className="h-5 w-5 text-[var(--slate-600)]" />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-[var(--slate-900)]">Documentos</h1>
-            <HelpTip text="Centraliza los archivos oficiales del conjunto: actas, contratos, planos y memorias. Tenerlos organizados evita pérdidas de información crítica y facilita cualquier auditoría o revisión legal." />
-          </div>
+        {/* El nombre lo pone `PageHeader` desde el shell. */}
+        <div className="flex items-center gap-2">
           <p className="text-sm text-[var(--slate-500)]">Repositorio de archivos oficiales del conjunto, solo para la administración.</p>
+          <HelpTip text="Centraliza los archivos oficiales del conjunto: actas, contratos, planos y memorias. Tenerlos organizados evita pérdidas de información crítica y facilita cualquier auditoría o revisión legal." />
         </div>
       </div>
 

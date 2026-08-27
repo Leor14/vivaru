@@ -521,12 +521,10 @@ function AdminReportsPageContent() {
       <div className="space-y-6 pb-10">
         {/* ── Header ── */}
         <div className="flex flex-wrap items-start justify-between gap-4 no-print">
-          <div>
-            <div className="flex items-center gap-2">
-              <BarChart2 className="h-5 w-5 text-[var(--brand-700)]" />
-              <h1 className="text-xl font-semibold text-[var(--slate-900)]">Reporte de Comité</h1>
-            </div>
-            <p className="mt-1 text-sm text-[var(--slate-500)]">
+          {/* El nombre lo pone `PageHeader` desde el shell. */}
+          <div className="flex items-center gap-2">
+            <BarChart2 className="h-5 w-5 text-[var(--brand-700)]" />
+            <p className="text-sm text-[var(--slate-500)]">
               Selecciona el período y descarga el reporte para tu presentación.
             </p>
           </div>

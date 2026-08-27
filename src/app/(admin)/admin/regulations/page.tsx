@@ -359,16 +359,12 @@ function AdminRegulationsPageContent() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
             <ScrollText className="h-5 w-5 text-[var(--slate-600)]" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-[var(--slate-900)]">
-                Reglamento del edificio
-              </h1>
-              <HelpTip text="Carga y activa el reglamento interno del conjunto. Cuando los residentes tienen acceso fácil a las normas vigentes, se reducen los conflictos y la administración cuenta con respaldo documental ante cualquier incidencia." />
-            </div>
+          {/* El nombre lo pone `PageHeader` desde el shell. */}
+          <div className="flex items-center gap-2">
             <p className="text-sm text-[var(--slate-500)]">
               Gestiona el reglamento vigente y supervisa las firmas de residentes.
             </p>
+            <HelpTip text="Carga y activa el reglamento interno del conjunto. Cuando los residentes tienen acceso fácil a las normas vigentes, se reducen los conflictos y la administración cuenta con respaldo documental ante cualquier incidencia." />
           </div>
         </div>
 

@@ -134,15 +134,7 @@ export default function ResidentRegulationsPage() {
 
     return (
       <div className="mx-auto max-w-2xl space-y-4 p-4 sm:p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
-            <ScrollText className="h-5 w-5 text-[var(--slate-600)]" />
-          </div>
-          <h1 className="text-xl font-semibold text-[var(--slate-900)]">
-            Reglamento del edificio
-          </h1>
-        </div>
-
+        {/* Sin cabecera propia: el nombre lo pone el shell. */}
         <Card>
           <div className="flex items-start gap-4">
             <CheckCircle className="mt-0.5 h-8 w-8 flex-shrink-0 text-emerald-500" />
@@ -177,12 +169,9 @@ export default function ResidentRegulationsPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
           <ScrollText className="h-5 w-5 text-[var(--slate-600)]" />
         </div>
-        <div>
-          <h1 className="text-xl font-semibold text-[var(--slate-900)]">
-            Reglamento del edificio
-          </h1>
-          <p className="text-sm text-[var(--slate-500)]">{activeRegulation.title}</p>
-        </div>
+        {/* El nombre lo pone el shell; aquí queda el título del documento vigente,
+            que es dato y no rótulo. */}
+        <p className="text-sm text-[var(--slate-500)]">{activeRegulation.title}</p>
       </div>
 
       {/* Document card — reemplaza iframe (inoperante en iOS Safari) */}

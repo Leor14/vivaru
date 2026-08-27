@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { ADMIN_SIDEBAR_GROUPS } from "../src/components/shared/admin-sidebar";
@@ -119,7 +122,60 @@ describe("3 · las rutas que no son del menú", () => {
   });
 });
 
-describe("4 · el grupo aparece solo si hay más de uno", () => {
+describe("4 · el `h1` es del shell, y solo hay uno por pantalla", () => {
+  /**
+   * **El defecto que esta guarda evita ya ocurrió, y lo cazó el navegador, no la
+   * suite.** Al montar `PageHeader` aparecieron ONCE `<h1>` propios repartidos
+   * por las páginas: seis se volvieron duplicados ese mismo día y **cinco ya lo
+   * estaban desde antes** —el residente y el superadmin siempre tuvieron un `h1`
+   * en la cabecera del shell—. En pantalla se leía «Usuarios» dos veces
+   * separadas por 45 px.
+   *
+   * Dos encabezados de nivel 1 en una pantalla no son solo fealdad: para quien
+   * navega con lector de pantalla, el `h1` es el ancla que dice dónde está.
+   *
+   * Ninguna prueba podía verlo: todas miraban datos y lógica, y esto es
+   * estructura. Ahora sí.
+   */
+  const RAIZ = process.cwd();
+
+  const PORTALES = ["src/app/(admin)", "src/app/(resident)", "src/app/(guard)", "src/app/(superadmin)"];
+
+  function paginas(): string[] {
+    const salida: string[] = [];
+    const visitar = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
+        const completo = path.join(dir, entrada.name);
+        if (entrada.isDirectory()) visitar(completo);
+        else if (/\.tsx$/.test(entrada.name)) salida.push(path.relative(RAIZ, completo));
+      }
+    };
+    for (const portal of PORTALES) visitar(path.resolve(RAIZ, portal));
+    return salida.sort();
+  }
+
+  const PAGINAS = paginas();
+
+  it("el barrido mira ficheros de verdad", () => {
+    // Una puerta que se abre sobre un conjunto vacío no verifica nada.
+    expect(PAGINAS.length).toBeGreaterThan(40);
+    expect(PAGINAS).toContain("src/app/(admin)/admin/users/page.tsx");
+  });
+
+  it("ninguna pantalla de los cuatro portales pinta su propio `h1`", () => {
+    const culpables = PAGINAS.filter((rel) => /<h1[\s>]/.test(fs.readFileSync(path.resolve(RAIZ, rel), "utf8")));
+    expect(
+      culpables,
+      "El `h1` de una pantalla lo pone el shell (`PageHeader` en escritorio, la " +
+        "cabecera superior en el resto), y sale del nombre que ya tiene en el menú. " +
+        "Un `<h1>` aquí es el nombre dos veces y dos anclas para el lector de " +
+        "pantalla. Usa `<h2>` para un encabezado de sección:\n" + culpables.join("\n"),
+    ).toEqual([]);
+  });
+});
+
+describe("5 · el grupo aparece solo si hay más de uno", () => {
   it("con dos grupos etiquetados, sale el grupo", () => {
     const dos = [
       { label: "UNO", items: [{ href: "/a", label: "A", icon: (() => null) as never }] },

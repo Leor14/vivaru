@@ -70,9 +70,9 @@ export default function SuperadminIaPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
+        {/* El nombre lo pone la cabecera del shell. */}
         <div>
-          <h1 className="text-xl font-semibold text-[var(--slate-900)]">Consumo de IA</h1>
-          <p className="mt-1 max-w-3xl text-sm text-[var(--slate-600)]">
+          <p className="max-w-3xl text-sm text-[var(--slate-600)]">
             Mes en curso{periodo ? ` · ${periodo}` : ""}. Se registra cada llamada, incluidas las que
             fallan: una llamada fallida ya consumió tokens, y la tasa de fallo es la métrica que dice
             si la capacidad sirve.

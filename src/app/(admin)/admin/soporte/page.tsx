@@ -154,9 +154,9 @@ export default function AdminSoportePage() {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
+        {/* El nombre lo pone `PageHeader` desde el shell. */}
         <div>
-          <h1 className="text-xl font-semibold text-[var(--slate-900)]">Soporte de Vivaru</h1>
-          <p className="mt-1 text-sm text-[var(--slate-600)]">
+          <p className="text-sm text-[var(--slate-600)]">
             El canal directo con nuestro equipo para lo que tenga que ver con la plataforma.
           </p>
         </div>

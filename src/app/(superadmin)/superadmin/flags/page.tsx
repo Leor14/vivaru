@@ -118,9 +118,9 @@ export default function SuperadminFlagsPage() {
 
   return (
     <div className="space-y-4">
+      {/* El nombre lo pone la cabecera del shell. */}
       <div>
-        <h1 className="text-xl font-semibold text-[var(--slate-900)]">Banderas de funcionalidad</h1>
-        <p className="mt-1 max-w-3xl text-sm text-[var(--slate-600)]">
+        <p className="max-w-3xl text-sm text-[var(--slate-600)]">
           Enciende y apaga cualquier capacidad del producto sin desplegar — no solo las de IA. La
           precedencia va de arriba abajo: kill switch maestro, kill switch de la bandera, override
           del conjunto, valor global y default del catálogo. Los dos kill switches mandan sobre los

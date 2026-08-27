@@ -673,8 +673,11 @@ export default function AdminDashboardPage() {
         <Card className="soft-panel border-[#d8e3ef] bg-[linear-gradient(120deg,#f8fbff_0%,#edf4fb_45%,#f7fbff_100%)] p-5">
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-label text-[var(--slate-500)]">Centro de control</p>
-              <h1 className="text-display mt-1 text-[var(--slate-900)]">{asText(user?.tenantName, "Conjunto principal")}</h1>
+              {/* Era un `h1` con el nombre del conjunto y un rótulo «Centro de
+                  control» encima. Con la cabecera del shell diciendo «Panel de
+                  Control» a 40 px, eran dos nombres para lo mismo y DOS `h1` en
+                  la misma pantalla. Queda el conjunto, que es el dato. */}
+              <h2 className="text-display text-[var(--slate-900)]">{asText(user?.tenantName, "Conjunto principal")}</h2>
               <p className="mt-1 text-sm text-[var(--slate-600)]">{headerDate}</p>
               <button
                 type="button"

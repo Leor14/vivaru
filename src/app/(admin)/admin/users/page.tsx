@@ -281,14 +281,13 @@ export default function AdminUsersPage() {
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--slate-100)]">
           <UsersRound className="h-5 w-5 text-[var(--slate-600)]" />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-[var(--slate-900)]">Usuarios</h1>
-            <HelpTip text="Administra quién tiene acceso al panel: administradores y guardas de seguridad. Mantener el listado al día y dar de baja a quien ya no opera es una práctica de seguridad esencial; solo quienes lo necesitan deben tener acceso operativo." />
-          </div>
+        {/* El nombre de la pantalla lo pone `PageHeader` desde el shell: aquí
+            decirlo otra vez era «Usuarios» dos veces con 45 px de separación. */}
+        <div className="flex items-center gap-2">
           <p className="text-sm text-[var(--slate-500)]">
             Crea y administra los usuarios operativos (administradores y guardas) con acceso al panel.
           </p>
+          <HelpTip text="Administra quién tiene acceso al panel: administradores y guardas de seguridad. Mantener el listado al día y dar de baja a quien ya no opera es una práctica de seguridad esencial; solo quienes lo necesitan deben tener acceso operativo." />
         </div>
       </div>
 

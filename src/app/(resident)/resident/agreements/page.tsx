@@ -133,10 +133,9 @@ export default function ResidentAgreementsPage() {
 
   return (
     <div className="space-y-6 p-4">
-      <div>
-        <h1 className="text-xl font-semibold text-[var(--slate-900)]">Acuerdos de comité</h1>
-        <p className="mt-1 text-sm text-[var(--slate-500)]">Acuerdos de las sesiones de comité, ordenados por fecha.</p>
-      </div>
+      {/* El nombre lo pone la cabecera del shell, que desde la pasada 1 nombra la
+          pantalla y no el portal. */}
+      <p className="text-sm text-[var(--slate-500)]">Acuerdos de las sesiones de comité, ordenados por fecha.</p>
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--slate-500)]">Por firmar</h2>
