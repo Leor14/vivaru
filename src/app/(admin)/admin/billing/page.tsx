@@ -3,6 +3,11 @@
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
 import { Tabs } from "@/components/ui/tabs";
 import { useTabParam } from "@/lib/navigation/use-tab-param";
+import {
+  CLAVES_SECCION_CARTERA,
+  seccionesVisiblesDeCartera,
+  vistaEfectivaDeCartera,
+} from "@/features/billing/secciones-cartera";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
 import {
@@ -221,6 +226,11 @@ function AdminBillingPageContent() {
   const { user } = useAuth();
   // Finanzas solo_consulta: oculta la gestión de cobros; deja la cartera y comprobantes en consulta.
   const soloConsulta = useModuleVariant(user?.tenantId, "finance") === "solo_consulta";
+  /**
+   * En `solo_consulta` la cartera se administra fuera de Vivaru: «Cobrar» y
+   * «Cierre» no tendrían nada dentro, así que no se ofrecen.
+   */
+  const seccionesVisibles = seccionesVisiblesDeCartera(soloConsulta);
   const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const { items, loading, error } = useBillingStatements(user?.tenantId);
   const estadoDeCuentaActivo = useFeatureFlag("producto-estado-de-cuenta");
@@ -234,6 +244,13 @@ function AdminBillingPageContent() {
   // `?lista=` y no `?vista=`: la pasada 4 parte Cartera en pestañas de primer
   // nivel y necesita `vista` libre. Renombrar un parámetro después rompe los
   // enlaces que ya se hayan guardado.
+  const [vista, setVista] = useTabParam("vista", CLAVES_SECCION_CARTERA, "resumen");
+  /**
+   * Una URL con `?vista=cierre` en un conjunto de `solo_consulta` apuntaría a una
+   * pestaña que no está en la barra: se enseñaría una pantalla vacía sin decir
+   * por qué. Cae a «Resumen», igual que un valor desconocido.
+   */
+  const vistaEfectiva = vistaEfectivaDeCartera(vista, soloConsulta);
   const [listView, setListView] = useTabParam("lista", CLAVES_VISTA, "campaigns");
   const [conceptFilter, setConceptFilter] = useState<BillingConcept | "all">("all");
   const [periodFilter, setPeriodFilter] = useState("all");
@@ -1240,6 +1257,15 @@ function AdminBillingPageContent() {
           </Button>
         </div>
       )}
+      <Tabs
+        items={seccionesVisibles}
+        value={vistaEfectiva}
+        onChange={setVista}
+        ariaLabel="Secciones de Cartera"
+      />
+
+      {vistaEfectiva === "resumen" ? (
+        <>
       <WidgetErrorBoundary label="el gráfico de cartera">
       <ChartContainer
         title="Comportamiento histórico de cartera"
@@ -1369,8 +1395,10 @@ function AdminBillingPageContent() {
           statements={items}
         />
       </WidgetErrorBoundary>
+        </>
+      ) : null}
 
-      {!soloConsulta && (
+      {vistaEfectiva === "cobrar" && !soloConsulta && (
       <Card id="guia-crear-cobro" className="soft-panel scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -1615,7 +1643,7 @@ function AdminBillingPageContent() {
           Se ofrece también en `solo_consulta`: los dos documentos son lectura
           —el certificado lo escribe el servidor, no esta pantalla— y negárselos
           a quien solo consulta sería quitarle justo lo que puede hacer. */}
-      {estadoDeCuentaActivo && !loading && items.length > 0 ? (
+      {vistaEfectiva === "seguimiento" && estadoDeCuentaActivo && !loading && items.length > 0 ? (
         <EstadoDeCuentaUnidadCard
           tenantId={user?.tenantId}
           tenantName={user?.tenantName}
@@ -1624,7 +1652,7 @@ function AdminBillingPageContent() {
         />
       ) : null}
 
-      {!soloConsulta && scheduledCharges.length > 0 ? (
+      {vistaEfectiva === "cobrar" && !soloConsulta && scheduledCharges.length > 0 ? (
         <Card className="soft-panel">
           <CardTitle>Cobros programados</CardTitle>
           <CardDescription className="mt-1">
@@ -1710,6 +1738,7 @@ function AdminBillingPageContent() {
         </div>
       </Modal>
 
+      {vistaEfectiva === "seguimiento" ? (
       <Tabs
         items={VISTAS_DE_LISTA}
         value={listView}
@@ -1723,8 +1752,9 @@ function AdminBillingPageContent() {
         ariaLabel="Vistas de Cartera"
         variant="segmented"
       />
+      ) : null}
 
-      {listView === "campaigns" ? (
+      {vistaEfectiva === "seguimiento" && listView === "campaigns" ? (
         <Card className="soft-panel">
           <CardTitle>Campañas de cobro</CardTitle>
           <CardDescription className="mt-1">
@@ -1794,7 +1824,7 @@ function AdminBillingPageContent() {
         </Card>
       ) : null}
 
-      {listView !== "campaigns" && listView !== "morosos" ? (
+      {vistaEfectiva === "seguimiento" && listView !== "campaigns" && listView !== "morosos" ? (
       <Card>
         <MobileFiltersPanel
           title="Filtros de cartera"
@@ -2141,7 +2171,7 @@ function AdminBillingPageContent() {
       </Card>
       ) : null}
 
-      {listView === "morosos" ? (
+      {vistaEfectiva === "seguimiento" && listView === "morosos" ? (
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>Morosos</CardTitle>
@@ -2209,7 +2239,7 @@ function AdminBillingPageContent() {
         </Card>
       ) : null}
 
-      {!soloConsulta && (
+      {vistaEfectiva === "cierre" && !soloConsulta && (
       <Card className="soft-panel">
         <CardTitle>Cierre de períodos</CardTitle>
         <CardDescription className="mt-1">
@@ -2425,6 +2455,7 @@ const VISTAS_DE_LISTA = [
   { key: "morosos", label: "Morosos" },
 ] as const;
 const CLAVES_VISTA = VISTAS_DE_LISTA.map((vista) => vista.key);
+
 
 export default function AdminBillingPage() {
   return (
