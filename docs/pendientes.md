@@ -11,18 +11,27 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **`FLOW-003` está CONSTRUIDO ENTERO y sin desplegar.** Seis entregas, de `11c4919` a
 > `94ccbc5`. Lo que sigue es **desplegarlo**, y antes hace falta algo que solo puede hacer David:
 >
+> **`RESEND_WEBHOOK_SECRET` ya está puesto** (v1 activa, 00:26 UTC del 27), así que el despliegue
+> está desbloqueado. **Su valor es un RELLENO, no el de Resend** — la función rechazará todo lo
+> que llegue, que es el lado correcto en el que fallar mientras no exista el webhook de verdad.
+>
+> El orden que queda: **desplegar** → **registrar la URL del webhook en Resend** (existe solo
+> cuando la función está desplegada) → **volver a poner el secreto con el valor real de Resend y
+> redesplegar** → **formulario de Ajustes › Cobranza** → **validar por navegador**.
+>
 > ```bash
 > firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1
 > ```
 >
-> El secreto tiene que existir **antes** del despliegue o la función no arranca — y tumba el
-> despliegue de functions entero, no solo el suyo. **Comprobado el 26: NO existe.** El comando
-> llegó partido en el pegado y no creó nada, así que **verificarlo antes de darlo por hecho**, y
-> **sin leer su valor** (nunca `secrets:access`), listando Secret Manager por metadatos con la ADC.
+> **TRAMPA MEDIDA, y cuesta media hora:** ese comando **crea el secreto ANTES de pedir el valor**,
+> así que un Enter en vacío deja un secreto **creado y hueco, sin dar error**. Con cero versiones
+> la función tampoco arranca: es igual que si no existiera. **Comprobar siempre las VERSIONES, no
+> que el nombre aparezca** — y sin leer el valor, nunca `secrets:access`:
 >
-> Después, en este orden: **desplegar** → **registrar la URL del webhook en Resend** (existe solo
-> cuando la función está desplegada) → **formulario de Ajustes › Cobranza** → **validar por
-> navegador**.
+> ```bash
+> curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+>   "https://secretmanager.googleapis.com/v1/projects/hogaru-1/secrets/RESEND_WEBHOOK_SECRET/versions"
+> ```
 >
 > Las dos banderas nacen apagadas y **no existen como documento** en ningún ambiente.
 

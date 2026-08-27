@@ -504,3 +504,24 @@ curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access
 Pasó el 26 de agosto de 2026 con `RESEND_WEBHOOK_SECRET`: el comando llegó **partido a la mitad**
 en el pegado (`RESEND_WEBHO` / `OK_SECRET`) y no creó nada. Sin comprobarlo, el fallo habría
 aparecido como un despliegue caído sin motivo aparente.
+
+## Un secreto puede existir y estar VACÍO, y el síntoma es el mismo que no tenerlo
+
+`firebase functions:secrets:set <NOMBRE>` **crea el secreto ANTES de pedir el valor**. Si el valor
+no llega a entrar —un Enter en vacío, un pegado que la terminal parte—, queda un secreto **creado
+y hueco**, y el comando **no da error**.
+
+Con cero versiones la función que lo referencia **tampoco arranca**: para el despliegue es igual
+que si no existiera. Y peor, porque el nombre aparece en la lista y todo parece hecho.
+
+**Comprobar VERSIONES, no que el nombre esté**, y sin leer el valor —el agente nunca corre
+`secrets:access`—:
+
+```bash
+curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  "https://secretmanager.googleapis.com/v1/projects/hogaru-1/secrets/<NOMBRE>/versions"
+```
+
+Pasó el 26–27 de agosto de 2026 con `RESEND_WEBHOOK_SECRET`: se corrió varias veces, el nombre
+apareció, y estuvo diecisiete minutos existiendo y vacío. Es de la misma familia que
+[[un-despliegue-que-miente]]: **el código de salida no es la verdad, el estado del recurso sí.**
