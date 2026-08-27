@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   BarChart2,
   BookOpen,
   Building2,
   CalendarCheck,
+  ChevronDown,
   ClipboardList,
   FileText,
   LifeBuoy,
@@ -31,6 +32,7 @@ import { TenantSwitcher } from "@/components/shared/tenant-switcher";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import type { AppRole } from "@/lib/constants/roles";
 import { resolveActiveNavHref } from "@/lib/navigation/active-item";
+import { debePlegarse, pendientesDelGrupo } from "@/lib/navigation/sidebar-collapse";
 import { cn } from "@/lib/utils/cn";
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -144,8 +146,13 @@ const GROUP_LABEL_STYLE = {
   fontSize: 11,
   letterSpacing: "0.09em",
   color: "rgba(255,255,255,0.42)",
-  padding: "14px 14px 5px",
+  // Antes 14px arriba y 14px a los lados. Apretado, porque de las diecinueve
+  // entradas solo cabían SIETE a 671 px de alto útil.
+  padding: "9px 12px 4px",
 } as const;
+
+/** Prefijo del estado plegado de cada grupo. Mismo patrón que `SectionIntro`. */
+const GROUP_STORAGE_PREFIX = "vivaru:sidebar-group:";
 
 const BADGE_TONES: Record<AdminSidebarBadge["tone"], { bg: string; color: string }> = {
   red: { bg: "#DC2626", color: "#ffffff" },
@@ -188,6 +195,48 @@ export function AdminSidebar({
   const activeHref = resolveActiveNavHref(pathname, effectiveHrefs);
   const profilePath = profileHref ?? "/admin/settings";
 
+  /**
+   * **Grupos plegables (pasada 2).** A 671 px de alto útil —un portátil
+   * corriente— de las diecinueve entradas del admin solo se veían SIETE, y la
+   * lateral tiene su propio scroll anidado sin nada que avise de que hay más
+   * abajo: Financiero, Reportes y Configuración quedaban fuera de la vista.
+   *
+   * Se pliega por grupo y se recuerda. Arranca todo abierto —el comportamiento
+   * de hoy— y `localStorage` se lee después, con el mismo patrón que
+   * `SectionIntro`: en modo privado el toggle sigue funcionando, solo no
+   * persiste.
+   */
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const groupKey = effectiveGroups.map((group) => group.label ?? "").join("|");
+
+  useEffect(() => {
+    try {
+      const guardado: Record<string, boolean> = {};
+      for (const group of effectiveGroups) {
+        if (!group.label) continue;
+        guardado[group.label] = window.localStorage.getItem(`${GROUP_STORAGE_PREFIX}${group.label}`) === "1";
+      }
+      setCollapsedGroups(guardado);
+    } catch {
+      // Sin localStorage: todos abiertos, que es exactamente como estaba antes.
+    }
+    // `groupKey` resume los grupos: cambia cuando cambia la lista (variante de
+    // finanzas, módulos del residente), no en cada render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupKey]);
+
+  function toggleGroup(label: string) {
+    setCollapsedGroups((prev) => {
+      const next = { ...prev, [label]: !prev[label] };
+      try {
+        window.localStorage.setItem(`${GROUP_STORAGE_PREFIX}${label}`, next[label] ? "1" : "0");
+      } catch {
+        // Sin persistencia: el plegado igual funciona en esta sesión.
+      }
+      return next;
+    });
+  }
+
   return (
     <div
       className={cn("flex flex-col overflow-hidden rounded-2xl", className)}
@@ -209,21 +258,41 @@ export function AdminSidebar({
         <TenantSwitcher className="mt-1 px-0.5" />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 pb-3" aria-label="Navegacion principal">
+      {/* `relative` + `min-h-0` para que el degradado de abajo se ancle al hueco
+          del scroll y no al documento. */}
+      <div className="relative min-h-0 flex-1">
+      <nav className="h-full overflow-y-auto px-2 pb-3" aria-label="Navegacion principal">
         {effectiveGroups.map((group, groupIndex) => {
           const isFirst = groupIndex === 0;
+          const contieneActivo = group.items.some((item) => item.href === activeHref);
+          // Las dos reglas viven en `sidebar-collapse.ts` para poder probarlas.
+          const plegado = debePlegarse(group.label, contieneActivo, collapsedGroups);
+          const pendientes = pendientesDelGrupo(group, badges);
+          const idContenido = `sidebar-group-${groupIndex}`;
           return (
             <div key={group.label ?? `group-${groupIndex}`}>
               {!isFirst ? <div role="separator" style={SEPARATOR_STYLE} /> : null}
               {group.label ? (
-                <p
-                  className="uppercase"
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label!)}
+                  aria-expanded={!plegado}
+                  aria-controls={idContenido}
+                  className="flex w-full items-center gap-1.5 rounded-lg uppercase transition-colors duration-150 hover:text-[rgba(255,255,255,0.7)]"
                   style={GROUP_LABEL_STYLE}
                 >
-                  {group.label}
-                </p>
+                  <span className="truncate">{group.label}</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 shrink-0 opacity-70 [transition-property:transform] duration-150",
+                      plegado && "-rotate-90",
+                    )}
+                    aria-hidden="true"
+                  />
+                  {plegado && pendientes.count > 0 ? <NavBadge badge={pendientes} /> : null}
+                </button>
               ) : null}
-              <ul className="space-y-0.5">
+              <ul id={idContenido} className="space-y-0.5" hidden={plegado}>
                 {group.items.map((item) => {
                   const Icon = item.icon ?? FALLBACK_ICON;
                   const active = item.href === activeHref;
@@ -234,7 +303,9 @@ export function AdminSidebar({
                         href={item.href}
                         onClick={onItemClick}
                         className={cn(
-                          "group flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] transition-colors duration-150",
+                          // `py-2.5` y no `py-3`: son 19 entradas y cada píxel de
+                          // fila cuesta una entrada visible en una ventana baja.
+                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors duration-150",
                           active
                             ? "text-white"
                             : "text-[rgba(255,255,255,0.75)] hover:text-white",
@@ -274,6 +345,15 @@ export function AdminSidebar({
           );
         })}
       </nav>
+      {/* **Que se vea que hay más abajo.** El scroll de la lateral es anidado y
+          no tenía ninguna señal: a 671 px de alto la lista se cortaba en seco en
+          mitad de un grupo y parecía que ahí se acababa el producto. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-6"
+        style={{ background: `linear-gradient(to top, ${brandColor || "#0f172a"}, transparent)` }}
+      />
+      </div>
 
       {user ? (
         <div
