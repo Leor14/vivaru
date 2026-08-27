@@ -7,6 +7,22 @@ import type { AdminSidebarBadge, AdminSidebarGroup } from "@/components/shared/a
  */
 
 /**
+ * **Si el menú ofrece plegar, que es solo cuando hay más de un grupo.**
+ *
+ * Con un grupo único —el residente, la portería, el consejo, el superadmin— el
+ * ítem activo está SIEMPRE dentro de él, y como el grupo activo nunca se pliega,
+ * el control no haría nada nunca. Un chevron que no responde es peor que no
+ * tenerlo: enseña una capacidad que no existe.
+ *
+ * Es la misma regla que decide la migaja en `page-identity.ts` —un grupo solo
+ * informa si hay otro del que distinguirlo— y por eso se escribe igual aquí en
+ * vez de listar los roles a mano.
+ */
+export function permitePlegarGrupos(groups: AdminSidebarGroup[]): boolean {
+  return groups.filter((group) => group.label).length > 1;
+}
+
+/**
  * Si un grupo se pliega o no.
  *
  * **El grupo de la pantalla actual NUNCA se pliega**, aunque el administrador lo

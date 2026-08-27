@@ -32,7 +32,7 @@ import { TenantSwitcher } from "@/components/shared/tenant-switcher";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import type { AppRole } from "@/lib/constants/roles";
 import { resolveActiveNavHref } from "@/lib/navigation/active-item";
-import { debePlegarse, pendientesDelGrupo } from "@/lib/navigation/sidebar-collapse";
+import { debePlegarse, pendientesDelGrupo, permitePlegarGrupos } from "@/lib/navigation/sidebar-collapse";
 import { cn } from "@/lib/utils/cn";
 
 type IconComponent = ComponentType<{ className?: string; strokeWidth?: number }>;
@@ -208,6 +208,7 @@ export function AdminSidebar({
    */
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const groupKey = effectiveGroups.map((group) => group.label ?? "").join("|");
+  const puedePlegar = permitePlegarGrupos(effectiveGroups);
 
   useEffect(() => {
     try {
@@ -265,14 +266,14 @@ export function AdminSidebar({
         {effectiveGroups.map((group, groupIndex) => {
           const isFirst = groupIndex === 0;
           const contieneActivo = group.items.some((item) => item.href === activeHref);
-          // Las dos reglas viven en `sidebar-collapse.ts` para poder probarlas.
-          const plegado = debePlegarse(group.label, contieneActivo, collapsedGroups);
+          // Las reglas viven en `sidebar-collapse.ts` para poder probarlas.
+          const plegado = puedePlegar && debePlegarse(group.label, contieneActivo, collapsedGroups);
           const pendientes = pendientesDelGrupo(group, badges);
           const idContenido = `sidebar-group-${groupIndex}`;
           return (
             <div key={group.label ?? `group-${groupIndex}`}>
               {!isFirst ? <div role="separator" style={SEPARATOR_STYLE} /> : null}
-              {group.label ? (
+              {group.label && puedePlegar ? (
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.label!)}
@@ -291,6 +292,12 @@ export function AdminSidebar({
                   />
                   {plegado && pendientes.count > 0 ? <NavBadge badge={pendientes} /> : null}
                 </button>
+              ) : group.label ? (
+                // Grupo único: la etiqueta queda como rótulo, sin control. Ver
+                // `permitePlegarGrupos`.
+                <p className="uppercase" style={GROUP_LABEL_STYLE}>
+                  {group.label}
+                </p>
               ) : null}
               <ul id={idContenido} className="space-y-0.5" hidden={plegado}>
                 {group.items.map((item) => {

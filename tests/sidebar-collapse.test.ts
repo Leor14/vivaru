@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { ADMIN_SIDEBAR_GROUPS, type AdminSidebarGroup } from "../src/components/shared/admin-sidebar";
-import { debePlegarse, pendientesDelGrupo } from "../src/lib/navigation/sidebar-collapse";
+import {
+  debePlegarse,
+  pendientesDelGrupo,
+  permitePlegarGrupos,
+} from "../src/lib/navigation/sidebar-collapse";
+import { buildRoleSidebarGroups } from "../src/lib/navigation/role-sidebar-groups";
 
 /**
  * **El menú plegable (pasada 2 del corte de navegación).**
@@ -67,7 +72,34 @@ describe("1 · el grupo de la pantalla actual nunca se pliega", () => {
   });
 });
 
-describe("2 · los pendientes de un grupo plegado suben a su cabecera", () => {
+describe("2 · el control de plegar solo existe si hay más de un grupo", () => {
+  /**
+   * **Lo cazó el navegador, no la suite.** Con un grupo único el ítem activo
+   * está siempre dentro de él, y como el grupo activo nunca se pliega, el
+   * chevron no hacía nada nunca — se veía en el portal del residente, sobre
+   * «MI EDIFICIO». Un control inerte enseña una capacidad que no existe.
+   */
+
+  it("el admin, con seis grupos, sí ofrece plegar", () => {
+    expect(permitePlegarGrupos(ADMIN_SIDEBAR_GROUPS)).toBe(true);
+  });
+
+  it("residente, portería y superadmin no — tienen un solo grupo", () => {
+    for (const rol of ["resident", "security_guard", "superadmin"] as const) {
+      expect(permitePlegarGrupos(buildRoleSidebarGroups(rol)), `${rol} no debería ofrecer plegar`).toBe(false);
+    }
+  });
+
+  it("un menú sin ninguna etiqueta tampoco", () => {
+    expect(permitePlegarGrupos([grupo(undefined, ["/a"])])).toBe(false);
+  });
+
+  it("con dos etiquetados, sí", () => {
+    expect(permitePlegarGrupos([grupo("UNO", ["/a"]), grupo("DOS", ["/b"])])).toBe(true);
+  });
+});
+
+describe("3 · los pendientes de un grupo plegado suben a su cabecera", () => {
   /**
    * Sin esto, plegar «Operativo» escondería los PQRS sin atender **sin decirlo**,
    * y un distintivo existe precisamente para no tener que abrir nada.
