@@ -8,10 +8,17 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **`FLOW-003`** (cobranza). Ya puede ir: su adjunto dependía de `FEAT-004`, que quedó
-> **encendida, validada y con el orden del documento corregido** la tarde del 26.
+> **`FLOW-003` está CONSTRUIDO ENTERO y sin desplegar.** Seis entregas, de `11c4919` a
+> `94ccbc5`. Lo que sigue es **desplegarlo**, y antes hace falta algo que solo puede hacer David:
 >
-> `FLOW-001` sigue apagada y seguirá: sin coeficientes sembrados bloquea antes de calcular.
+> ```bash
+> firebase functions:secrets:set RESEND_WEBHOOK_SECRET
+> ```
+>
+> El secreto tiene que existir **antes** del despliegue o la función no arranca. Y la URL del
+> webhook hay que registrarla en Resend, que existirá cuando se despliegue.
+>
+> Las dos banderas nacen apagadas y **no existen como documento** en ningún ambiente.
 
 ### ENCENDER ERA EL TERCER ACTO, Y LOS DOS PRIMEROS YA ESTÁN
 
@@ -33,6 +40,56 @@ verdad sirve el front.**
 > `master`, producción **no tiene** los tres parches que la Fase 2 retiró: no hay parche
 > caducado corriendo sobre dato ya migrado. El sesgo es limpio —functions de `develop`, front
 > de `master`— y no hay que ir a buscar sobre-inclusiones.
+
+### `FLOW-003` — CONSTRUIDO, SIN DESPLEGAR
+
+Seis entregas, en un orden que **no es el de la ficha**: pone delante el habilitador que ella no
+vio y aísla lo arriesgado.
+
+| Entrega | Qué |
+|---|---|
+| **0** | El **id del mensaje de Resend**, que no existía en el producto. `sendNotificationEmail` devolvía `void` y tiraba el cuerpo de la respuesta — y §7.1 cuelga toda su idempotencia de ese valor |
+| **1** | `emailDeliveries`: la fila por correo, sus reglas, su índice y **su retención desde el día uno** |
+| **2** | El **webhook**: la primera función HTTP del producto, con firma verificada a mano |
+| **3** | El **calendario del conjunto**: contrato, rangos validados en las REGLAS, y la pasada diaria con sus tres puertas |
+| **4** | El **adjunto** del estado de cuenta, resuelto por destinatario (R9) |
+
+**Lo que la ficha decía y el código desmintió** —encontrado en la pasada de plan, antes de
+escribir una línea—: el id del mensaje no se capturaba en ninguna parte; la función a la que había
+que meterle el registro **no recibía ninguno de los tres campos** que la colección exige; **no
+existía ni una función HTTP** en las 81 desplegadas; y la verificación de firma **no tenía con qué
+hacerse**, porque Resend firma con Svix y `svix` no está en el repositorio.
+
+> **DOS DESVÍOS DE LA FICHA, DICHOS.** Las banderas se llaman `producto-entrega-de-correo` y
+> `producto-calendario-de-cobranza`, no `email-delivery-tracking` ni `billing-calendar`: las
+> diecinueve claves del catálogo llevan prefijo de área y están en español, y ésas habrían sido las
+> únicas sin prefijo y en inglés. Y `email.opened` / `email.clicked` **se ignoran a propósito** —
+> saber si alguien abrió un correo exige un píxel de seguimiento, y esa colección existe para saber
+> si el aviso LLEGÓ, no para vigilar a quien lo recibe.
+
+**Y un defecto vivo encontrado de paso, sin mezclarlo:** el sembrador de banderas declara **16**
+claves y el catálogo tiene **19**. Tres —`producto-anticipos`, `producto-pago-multiple`,
+`producto-importacion-masiva`— no se pueden sembrar; en producción existen solo porque
+`mover-bandera` las creó al encenderlas. En un ambiente nuevo nacerían sin documento y resolverían
+por defecto en silencio. Tiene ficha aparte.
+
+### La lección que se repitió CUATRO veces en una jornada
+
+**Una suite en verde no vigila lo que ninguno de sus casos puede distinguir.** Pasó cuatro veces,
+y las cuatro las cazó falsar, no escribir:
+
+1. El orden del estado de cuenta: **once** pruebas, todas con cargos que vencen en su propio mes —
+   con esa entrada los dos órdenes dan el mismo resultado.
+2. La retención de `emailDeliveries`: la prueba se llamaba «con más filas que el lote» y sembraba
+   30 contra un lote de 400. El cursor nunca entraba.
+3. La tolerancia de la regla del calendario: se probaba con `updateDoc` sobre un documento que ya
+   tenía calendario, así que la fusión se lo devolvía y la rama de ausencia no se ejercitaba.
+4. La marca del calendario: escribirla ANTES de enviar pasaba todas las pruebas. **Y al escribir la
+   que faltaba apareció un hueco real** — un envío que lanzaba abortaba la pasada entera.
+
+**La pregunta que las caza a las cuatro:** ¿hay algún caso donde las dos implementaciones
+candidatas darían resultados DISTINTOS? Si la variable que decide la conducta es constante en todos
+los casos, la suite vigila otra cosa y lo parece.
 
 ### `FEAT-004` ESTÁ ENCENDIDA EN PRODUCCIÓN, Y VALIDADA
 
