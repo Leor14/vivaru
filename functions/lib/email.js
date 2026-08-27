@@ -174,6 +174,11 @@ async function sendNotificationEmail(input) {
             to: input.to,
             subject: input.subject,
             html: buildNotificationHtml(input.body, ctaUrl),
+            // Resend recibe el contenido en base64. Va solo si viene: un `attachments: []`
+            // vacío es distinto de no mandarlo y no hace falta averiguar cuánto.
+            ...(input.adjunto
+                ? { attachments: [{ filename: input.adjunto.nombre, content: input.adjunto.buffer.toString("base64") }] }
+                : {}),
         }),
     });
     if (!response.ok) {

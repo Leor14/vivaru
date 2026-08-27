@@ -1,5 +1,8 @@
 import { type Firestore } from "firebase-admin/firestore";
 
+import { construirEstadoDeCuenta, type CargoDeCartera } from "./estado-de-cuenta";
+import { buildSummaryPdf } from "./pdf-resumen";
+
 /**
  * `PRD-V-FLOW-003` R9 / CF7 — de quién es el estado de cuenta que se adjunta.
  *
@@ -82,4 +85,49 @@ export function adjuntoEsDelDestinatario(
   adjunto: { tenantId: string; unitId: string },
 ): boolean {
   return adjunto.tenantId === destinatario.tenantId && adjunto.unitId === destinatario.unitId;
+}
+
+/**
+ * El PDF del estado de cuenta de UNA unidad, listo para adjuntar.
+ *
+ * **Reutiliza `buildSummaryPdf`**, que ya existía para el informe mensual de comité — se sacó de
+ * `index.ts` a su propio módulo justo para esto. Duplicar la fontanería de `pdfkit` habría dejado
+ * dos sitios donde arreglar el mismo defecto de márgenes.
+ *
+ * Devuelve también `tenantId` y `unitId`, y **no es información decorativa**: es lo que
+ * `adjuntoEsDelDestinatario` compara justo antes de enviar. Un PDF que no sabe de quién es no se
+ * puede comprobar.
+ */
+export async function pdfDelEstadoDeCuenta(
+  db: Firestore,
+  destinatario: DestinatarioResuelto,
+  formatearImporte: (n: number) => string,
+): Promise<{ tenantId: string; unitId: string; nombre: string; buffer: Buffer } | null> {
+  const snap = await db
+    .collection("billingStatements")
+    .where("tenantId", "==", destinatario.tenantId)
+    .where("unitId", "==", destinatario.unitId)
+    .get();
+
+  const cargos = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as CargoDeCartera[];
+  // Sin movimientos no se adjunta nada. Un PDF vacío en un correo de cobranza es
+  // ruido que además hace dudar de si el sistema funciona.
+  if (cargos.length === 0) return null;
+
+  const e = construirEstadoDeCuenta(cargos);
+
+  const filas: [string, string][] = e.lineas.map((l) => [
+    `${l.periodo} · ${l.concepto}`,
+    `${formatearImporte(l.cargo)}   ·   saldo ${formatearImporte(l.saldoAcumulado)}`,
+  ]);
+  filas.push(["", ""]);
+  filas.push(["SALDO PENDIENTE", formatearImporte(e.saldoFinal)]);
+
+  const buffer = await buildSummaryPdf(
+    "Estado de cuenta",
+    `Unidad ${destinatario.unitId} · generado automáticamente`,
+    filas,
+  );
+
+  return { tenantId: destinatario.tenantId, unitId: destinatario.unitId, nombre: "estado-de-cuenta.pdf", buffer };
 }

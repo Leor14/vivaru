@@ -32,9 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
 exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
@@ -48,13 +45,14 @@ const logger = __importStar(require("firebase-functions/logger"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const crypto_1 = require("crypto");
 const XLSX = __importStar(require("xlsx"));
-const pdfkit_1 = __importDefault(require("pdfkit"));
 const datetimeValidation_1 = require("./utils/datetimeValidation");
 const data_retention_1 = require("./data-retention");
 const country_currency_1 = require("./country-currency");
 const password_policy_1 = require("./password-policy");
 const email_1 = require("./email");
 const email_webhook_1 = require("./email-webhook");
+const pdf_resumen_1 = require("./pdf-resumen");
+const estado_de_cuenta_adjunto_1 = require("./estado-de-cuenta-adjunto");
 const support_1 = require("./support");
 const advances_1 = require("./advances");
 const audit_1 = require("./audit");
@@ -379,6 +377,17 @@ async function getResidentRecipients(uids) {
     return destinatarios;
 }
 /**
+ * Las claves de aviso que llevan el estado de cuenta adjunto (`FLOW-003` alcance 6).
+ *
+ * **Es una lista blanca, no una negra.** Una clave nueva no debe empezar a mandar la deuda de
+ * nadie por el hecho de existir: si le corresponde, se añade aquí a propósito.
+ */
+const CLAVES_CON_ESTADO_DE_CUENTA = new Set(["billing_new", "billing_batch", "billing_reminder", "billing_overdue"]);
+/** Importe sin decimales, que es como se leen los pesos en los tres países del producto. */
+function formatearImporteSimple(n) {
+    return `$ ${Math.round(n).toLocaleString("es-CO")}`;
+}
+/**
  * Entrega una notificación a una lista de residentes: in-app siempre y, si el
  * tenant activó el correo para esa notificación, también por email (best-effort,
  * el fallo de correo nunca rompe la notificación in-app).
@@ -398,8 +407,32 @@ async function deliverResidentNotifications(key, tenantId, residentUids, vars, o
     if (!copy.emailEnabled)
         return;
     const destinatarios = await getResidentRecipients(residentUids);
+    // `FLOW-003` alcance 6 · el estado de cuenta viaja adjunto en los correos de cobranza.
+    // Va detrás de `producto-calendario-de-cobranza` —la bandera del frente de cobranza— y
+    // **solo en los avisos de cartera**: adjuntarle su deuda a alguien que recibe un aviso de
+    // reglamento sería mandar información que no viene a cuento.
+    const esDeCobranza = CLAVES_CON_ESTADO_DE_CUENTA.has(key);
+    const adjuntarEstadoDeCuenta = esDeCobranza && (await (0, feature_flags_1.isFeatureEnabled)("producto-calendario-de-cobranza", tenantId));
     for (const { uid, email } of destinatarios) {
         try {
+            // **R9 vive aquí dentro, y la posición es la regla.** El adjunto se resuelve DENTRO del
+            // bucle, por destinatario. Resolverlo fuera —que es lo natural, porque el resto de la
+            // copia es igual para todos— le manda a las ochenta y ocho unidades el papel de una.
+            let adjunto;
+            if (adjuntarEstadoDeCuenta) {
+                const destinatario = await (0, estado_de_cuenta_adjunto_1.unidadDelDestinatario)(db, tenantId, uid);
+                if (destinatario) {
+                    const pdf = await (0, estado_de_cuenta_adjunto_1.pdfDelEstadoDeCuenta)(db, destinatario, (n) => formatearImporteSimple(n));
+                    // **El cinturón, justo antes de enviar y sobre lo que se va a enviar.** No es
+                    // redundante: ataja el error de fontanería —reordenar, reutilizar una variable— que
+                    // el compilador no ve porque los dos valores son `string`.
+                    if (pdf && (0, estado_de_cuenta_adjunto_1.adjuntoEsDelDestinatario)(destinatario, pdf)) {
+                        adjunto = { nombre: pdf.nombre, buffer: pdf.buffer };
+                    }
+                }
+                // Sin unidad reconocible NO se adjunta y el correo sale igual. Callar el aviso por no
+                // poder armar su anexo sería cambiar un problema de datos por uno de cobranza.
+            }
             // **El único envío del producto que va a un residente**, y por eso el único que lleva
             // contexto: `emailDeliveries` la lee el administrador del conjunto, así que solo debe
             // contener su tráfico. Ver `ContextoDeEnvio` en `email.ts`.
@@ -409,6 +442,7 @@ async function deliverResidentNotifications(key, tenantId, residentUids, vars, o
                 body: copy.emailBody,
                 link: copy.link,
                 contexto: { tenantId, notificationKey: key, recipientUserId: uid },
+                adjunto,
             });
         }
         catch (e) {
@@ -2882,27 +2916,6 @@ async function archiveXlsx(input) {
         buffer,
     });
 }
-// Construye un PDF simple (texto) a partir de pares etiqueta/valor.
-function buildSummaryPdf(title, subtitle, rows) {
-    return new Promise((resolve, reject) => {
-        const docpdf = new pdfkit_1.default({ size: "A4", margin: 48 });
-        const chunks = [];
-        docpdf.on("data", (c) => chunks.push(c));
-        docpdf.on("end", () => resolve(Buffer.concat(chunks)));
-        docpdf.on("error", reject);
-        docpdf.font("Helvetica-Bold").fontSize(16).fillColor("#0f172a").text(title);
-        docpdf.moveDown(0.3);
-        docpdf.font("Helvetica").fontSize(11).fillColor("#475569").text(subtitle);
-        docpdf.moveDown(1);
-        for (const [label, value] of rows) {
-            const y = docpdf.y;
-            docpdf.font("Helvetica").fontSize(10).fillColor("#475569").text(label, 48, y);
-            docpdf.font("Helvetica-Bold").fillColor("#0f172a").text(value, 48, y, { align: "right" });
-            docpdf.moveDown(0.4);
-        }
-        docpdf.end();
-    });
-}
 // Día 1 de cada mes (06:00 UTC): por cada conjunto, archiva el histórico de cartera y el
 // resumen mensual del comité (núcleo financiero) en sus carpetas de sistema.
 exports.monthlyFinancialArchive = (0, scheduler_1.onSchedule)({ schedule: "0 6 1 * *", timeoutSeconds: 540, memory: "512MiB" }, async () => {
@@ -3001,7 +3014,7 @@ exports.monthlyFinancialArchive = (0, scheduler_1.onSchedule)({ schedule: "0 6 1
             await archiveBuffer({
                 tenantId, systemKey: "committee_reports", fileName: `Reporte-Comite-${prevMonth}.pdf`,
                 ext: "pdf", contentType: "application/pdf",
-                buffer: await buildSummaryPdf("Reporte de comité — Resumen mensual", `${prevMonth} · generado automáticamente`, [
+                buffer: await (0, pdf_resumen_1.buildSummaryPdf)("Reporte de comité — Resumen mensual", `${prevMonth} · generado automáticamente`, [
                     ["Facturado del mes", formatMoney(facturado)],
                     ["Recaudado del mes", formatMoney(recaudado)],
                     ["Liquidado del mes", formatMoney(liquidado)],

@@ -8,13 +8,14 @@ import * as logger from "firebase-functions/logger";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { randomUUID } from "crypto";
 import * as XLSX from "xlsx";
-import PDFDocument from "pdfkit";
 import { combineDateAndTime, isDateTimeValid } from "./utils/datetimeValidation";
 import { anonymizeExpiredEmailDeliveries, anonymizeExpiredVouchers, purgeExpiredAiFeedback, purgeExpiredAiUsage } from "./data-retention";
 import { currencyForCountry } from "./country-currency";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import { aplicarEventoDeCorreo, resendWebhookSecret, verificarFirmaSvix } from "./email-webhook";
+import { buildSummaryPdf } from "./pdf-resumen";
+import { adjuntoEsDelDestinatario, pdfDelEstadoDeCuenta, unidadDelDestinatario } from "./estado-de-cuenta-adjunto";
 import {
   addSupportInternalNote,
   closeSupportTicket,
@@ -60,7 +61,7 @@ import {
 } from "./management-companies";
 import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
-import { assertFeatureEnabled } from "./feature-flags";
+import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
 import { frasesDelRecibo } from "./aviso-recibo";
 import { terminoCuotaMensual } from "./vocabulario-pais";
 import { cuentaParaConcepto } from "./plan-de-cuentas";
@@ -552,6 +553,19 @@ async function getResidentRecipients(uids: string[]): Promise<{ uid: string; ema
 }
 
 /**
+ * Las claves de aviso que llevan el estado de cuenta adjunto (`FLOW-003` alcance 6).
+ *
+ * **Es una lista blanca, no una negra.** Una clave nueva no debe empezar a mandar la deuda de
+ * nadie por el hecho de existir: si le corresponde, se añade aquí a propósito.
+ */
+const CLAVES_CON_ESTADO_DE_CUENTA = new Set<string>(["billing_new", "billing_batch", "billing_reminder", "billing_overdue"]);
+
+/** Importe sin decimales, que es como se leen los pesos en los tres países del producto. */
+function formatearImporteSimple(n: number): string {
+  return `$ ${Math.round(n).toLocaleString("es-CO")}`;
+}
+
+/**
  * Entrega una notificación a una lista de residentes: in-app siempre y, si el
  * tenant activó el correo para esa notificación, también por email (best-effort,
  * el fallo de correo nunca rompe la notificación in-app).
@@ -579,8 +593,36 @@ async function deliverResidentNotifications(
 
   if (!copy.emailEnabled) return;
   const destinatarios = await getResidentRecipients(residentUids);
+
+  // `FLOW-003` alcance 6 · el estado de cuenta viaja adjunto en los correos de cobranza.
+  // Va detrás de `producto-calendario-de-cobranza` —la bandera del frente de cobranza— y
+  // **solo en los avisos de cartera**: adjuntarle su deuda a alguien que recibe un aviso de
+  // reglamento sería mandar información que no viene a cuento.
+  const esDeCobranza = CLAVES_CON_ESTADO_DE_CUENTA.has(key);
+  const adjuntarEstadoDeCuenta =
+    esDeCobranza && (await isFeatureEnabled("producto-calendario-de-cobranza", tenantId));
+
   for (const { uid, email } of destinatarios) {
     try {
+      // **R9 vive aquí dentro, y la posición es la regla.** El adjunto se resuelve DENTRO del
+      // bucle, por destinatario. Resolverlo fuera —que es lo natural, porque el resto de la
+      // copia es igual para todos— le manda a las ochenta y ocho unidades el papel de una.
+      let adjunto: { nombre: string; buffer: Buffer } | undefined;
+      if (adjuntarEstadoDeCuenta) {
+        const destinatario = await unidadDelDestinatario(db, tenantId, uid);
+        if (destinatario) {
+          const pdf = await pdfDelEstadoDeCuenta(db, destinatario, (n) => formatearImporteSimple(n));
+          // **El cinturón, justo antes de enviar y sobre lo que se va a enviar.** No es
+          // redundante: ataja el error de fontanería —reordenar, reutilizar una variable— que
+          // el compilador no ve porque los dos valores son `string`.
+          if (pdf && adjuntoEsDelDestinatario(destinatario, pdf)) {
+            adjunto = { nombre: pdf.nombre, buffer: pdf.buffer };
+          }
+        }
+        // Sin unidad reconocible NO se adjunta y el correo sale igual. Callar el aviso por no
+        // poder armar su anexo sería cambiar un problema de datos por uno de cobranza.
+      }
+
       // **El único envío del producto que va a un residente**, y por eso el único que lleva
       // contexto: `emailDeliveries` la lee el administrador del conjunto, así que solo debe
       // contener su tráfico. Ver `ContextoDeEnvio` en `email.ts`.
@@ -590,6 +632,7 @@ async function deliverResidentNotifications(
         body: copy.emailBody,
         link: copy.link,
         contexto: { tenantId, notificationKey: key, recipientUserId: uid },
+        adjunto,
       });
     } catch (e) {
       console.error(`[notif-email][${key}]`, e);
@@ -3621,27 +3664,6 @@ async function archiveXlsx(input: {
   });
 }
 
-// Construye un PDF simple (texto) a partir de pares etiqueta/valor.
-function buildSummaryPdf(title: string, subtitle: string, rows: [string, string][]): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const docpdf = new PDFDocument({ size: "A4", margin: 48 });
-    const chunks: Buffer[] = [];
-    docpdf.on("data", (c: Buffer) => chunks.push(c));
-    docpdf.on("end", () => resolve(Buffer.concat(chunks)));
-    docpdf.on("error", reject);
-    docpdf.font("Helvetica-Bold").fontSize(16).fillColor("#0f172a").text(title);
-    docpdf.moveDown(0.3);
-    docpdf.font("Helvetica").fontSize(11).fillColor("#475569").text(subtitle);
-    docpdf.moveDown(1);
-    for (const [label, value] of rows) {
-      const y = docpdf.y;
-      docpdf.font("Helvetica").fontSize(10).fillColor("#475569").text(label, 48, y);
-      docpdf.font("Helvetica-Bold").fillColor("#0f172a").text(value, 48, y, { align: "right" });
-      docpdf.moveDown(0.4);
-    }
-    docpdf.end();
-  });
-}
 
 // Día 1 de cada mes (06:00 UTC): por cada conjunto, archiva el histórico de cartera y el
 // resumen mensual del comité (núcleo financiero) en sus carpetas de sistema.

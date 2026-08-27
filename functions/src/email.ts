@@ -201,6 +201,11 @@ export async function sendNotificationEmail(input: {
   link: string;
   /** Presente solo cuando el destinatario es un residente de un conjunto. Ver `ContextoDeEnvio`. */
   contexto?: ContextoDeEnvio;
+  /**
+   * `FLOW-003` R9 · el adjunto de ESTE destinatario. Quien lo pase tiene que haberlo comprobado
+   * antes con `adjuntoEsDelDestinatario`: aquí ya no hay forma de saber de quién es.
+   */
+  adjunto?: { nombre: string; buffer: Buffer };
 }): Promise<string | null> {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
@@ -220,6 +225,11 @@ export async function sendNotificationEmail(input: {
       to: input.to,
       subject: input.subject,
       html: buildNotificationHtml(input.body, ctaUrl),
+      // Resend recibe el contenido en base64. Va solo si viene: un `attachments: []`
+      // vacío es distinto de no mandarlo y no hace falta averiguar cuánto.
+      ...(input.adjunto
+        ? { attachments: [{ filename: input.adjunto.nombre, content: input.adjunto.buffer.toString("base64") }] }
+        : {}),
     }),
   });
 
