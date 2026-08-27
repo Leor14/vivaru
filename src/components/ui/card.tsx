@@ -37,6 +37,14 @@ export function CardTitle({ className, help, children, ...props }: CardTitleProp
   );
 }
 
+/**
+ * La descripcion es prosa, asi que lleva la medida de lectura. Alcanza 133
+ * llamadas en 86 ficheros con un solo cambio, y ninguna de ellas la usa para
+ * maquetar —se comprobo— ni pasa ya un `max-w`.
+ *
+ * Quien necesite el ancho completo pasa `max-w-none`: `cn` usa twMerge, asi
+ * que la clase del llamador SUSTITUYE a esta en vez de sumarse.
+ */
 export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-[var(--slate-600)]", className)} {...props} />;
+  return <p className={cn("max-w-[var(--medida-lectura)] text-sm text-[var(--slate-600)]", className)} {...props} />;
 }

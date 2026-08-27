@@ -654,7 +654,7 @@ function AdminReportsPageContent() {
               <section>
                 <SectionTitle>📝 Resumen ejecutivo</SectionTitle>
                 <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--slate-700)]">
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--slate-700)] [&>li]:max-w-[var(--medida-lectura)]">
                     {execSummary.bullets.map((b, i) => (
                       <li key={i}>{b}</li>
                     ))}
@@ -691,7 +691,7 @@ function AdminReportsPageContent() {
                   <KpiCard label="Resolución PQRS" value={`${report.executive.pqrsResolutionRate}%`} tone={report.executive.pqrsResolutionRate >= 70 ? "success" : "neutral"} />
                   <KpiCard label="% de firma" value={`${report.agreements.signatureRate}%`} tone={report.agreements.signatureRate >= 80 ? "success" : "neutral"} />
                 </div>
-                <p className="mt-2 text-xs text-[var(--slate-500)]">▲▼ comparado con el período anterior equivalente. Morosidad = unidades con saldo vencido sobre unidades activas; meses de fondo = saldo de reserva ÷ egreso mensual promedio.</p>
+                <p className="mt-2 max-w-[var(--medida-lectura)] text-xs text-[var(--slate-500)]">▲▼ comparado con el período anterior equivalente. Morosidad = unidades con saldo vencido sobre unidades activas; meses de fondo = saldo de reserva ÷ egreso mensual promedio.</p>
               </section>
 
               {/* ── Resumen financiero ── */}

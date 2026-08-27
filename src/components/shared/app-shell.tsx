@@ -454,7 +454,7 @@ export function AppShell({
             />
           )}
         </aside>
-        <main className="min-w-0">
+        <main className="mx-auto w-full min-w-0 max-w-[var(--medida-datos)]">
           {/* El CTA comercial es solo para el admin (es quien decide y compra);
               residentes y portería ven una nota informativa, sin venta. */}
           {isAdminRole ? <TrialBanner trial={trial} /> : <DemoEnvironmentNotice />}

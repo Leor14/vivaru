@@ -2,6 +2,25 @@
 @plugin "@tailwindcss/typography";
 
 :root {
+  /* ── Las dos medidas ──────────────────────────────────────────────────────
+     El producto tenia UNA sola: ninguna. `<main>` va sin tope, asi que en una
+     ventana de 1512px la prosa que ocupa el ancho completo sale a 108-182
+     caracteres por linea (medido en cuatro pantallas), y en un monitor de 2560
+     empeora en proporcion.
+
+     LECTURA — para prosa. 65ch da 71-75 caracteres reales con `text-sm`,
+     calibrado en el navegador con una frase española y contando los rectangulos
+     de cada linea; NO es el «65ch» de manual, que aqui daria otra cosa porque
+     un `ch` de Manrope mide 0,61em y el caracter medio 0,46em.
+
+     DATOS — para tablas y tableros. La tabla mas ancha del producto pide
+     `min-w-[1240px]` (/admin/documents), asi que el tope tiene que dejarle sitio
+     o la haria desplazarse teniendo pantalla de sobra: 1440 menos el relleno de
+     las paginas deja 1376. A 1512px no cambia nada —`main` mide 1192—; sirve
+     para monitores grandes. */
+  --medida-lectura: 65ch;
+  --medida-datos: 1440px;
+
   --background: #f4f7fb;
   --foreground: #0f1c2b;
   --surface-strong: #ffffff;
