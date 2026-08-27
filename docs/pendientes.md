@@ -177,29 +177,42 @@ defecto: es configuración — el interruptor está en **Ajustes → plantillas 
 MANDA CORREO» y la ficha de direcciones decía que los desconocidos «ya lo reciben hoy». Las dos
 eran deducciones, no medidas. Las dos están corregidas en su sitio.
 
+### LA CADENA ESTÁ VALIDADA DE PUNTA A PUNTA (27 ago, 02:16 UTC)
+
+Se abrió el canal **solo** para `billing_reminder` en `tenant-santa-maria`, se disparó el
+recordatorio con el botón **de la fila** de `APARTAMENTO 201`, y se cerró el canal después.
+
+| Eslabón | Medido |
+|---|---|
+| **La pantalla** | «Recordatorio enviado: **1 residente(s)**» |
+| **La fila nace** | `emailDeliveries/98fc258d-…` a las **02:16:28.826**, con el **id del mensaje de Resend como id de documento** — que es de donde cuelga toda la idempotencia de §7.1 |
+| **Resend entrega** | **dos** `POST 200` de `Svix-Webhooks/rolling` (54.148.139.208 · 44.228.126.217) a las 02:16:30 y 02:16:31. **`200` y no `401` es la prueba de que la firma verificó con el secreto real** |
+| **El webhook la mueve** | `status: entregado`, `updatedAt` **02:16:34.841** — seis segundos después de nacer |
+
+**Y el canal quedó cerrado otra vez**: `notificationTemplates` vuelve a **0 en los 8 conjuntos**.
+La fila **se conserva**, que es lo que promete el catálogo de la bandera («lo ya registrado NO se
+borra»). `producto-entrega-de-correo` **se deja encendida**: con el canal cerrado no escribe nada,
+y así el rastro empieza solo el día que alguien abra una plantilla.
+
 ### LO SIGUIENTE
 
-1. **Validar la cadena de entrega de punta a punta** — disparar UN recordatorio desde la Cartera,
-   por el botón **de la fila**, sobre `APARTAMENTO 201` de `tenant-santa-maria` (única unidad con
-   destinatario controlado). Debe nacer una fila en `emailDeliveries` con `enviado` y, al entregar
-   Resend, el webhook moverla a `entregado`.
-2. **🚨 LAS DIRECCIONES DE DESCONOCIDOS — ver `docs/hallazgo-direcciones-de-correo.md`.** Hay
+1. **🚨 LAS DIRECCIONES DE DESCONOCIDOS — ver `docs/hallazgo-direcciones-de-correo.md`.** Hay
    correos de **personas reales ajenas al conjunto** en los datos de producción (6 en `users`, 8 en
-   `people`, más un dedazo `@gmial.com`). **Esto BLOQUEA el punto 4**, y no es opinión: con el
+   `people`, más un dedazo `@gmial.com`). **Esto BLOQUEA el punto 3**, y no es opinión: con el
    adjunto encendido, un aviso de cobranza le manda **el estado de cuenta en PDF de la unidad de
    otro** a un extraño.
-3. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
+2. **El formulario de Ajustes › Cobranza**, que no existe: `billingCalendar` tiene **cero**
    apariciones en `src/`. Hoy el calendario solo se puede escribir desde la consola — y la regla
    ya valida los rangos allí, que era el punto.
-4. **Encender `producto-calendario-de-cobranza`** — solo cuando 2 y 3 estén. **Antes no.**
-5. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
+3. **Encender `producto-calendario-de-cobranza`** — solo cuando 1 y 2 estén. **Antes no.**
+4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
    coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
    `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
-6. **El sembrador de banderas declara 16 claves y el catálogo tiene 19** — defecto vivo, con ficha
+5. **El sembrador de banderas declara 16 claves y el catálogo tiene 19** — defecto vivo, con ficha
    aparte. `producto-anticipos`, `producto-pago-multiple` y `producto-importacion-masiva` no se
    pueden sembrar; en producción existen solo porque `mover-bandera` las creó al encenderlas. Con
    las dos de `FLOW-003` el sembrador ya sí las declara, así que **el hueco es de tres, no de cinco**.
-7. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
+6. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
    decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
 
 ### CUATRO TRAMPAS DE ENTORNO, Y UNA ES NUEVA
