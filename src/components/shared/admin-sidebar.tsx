@@ -139,7 +139,10 @@ export type AdminSidebarProps = {
 const SEPARATOR_STYLE = {
   height: 0.5,
   backgroundColor: "rgba(255,255,255,0.08)",
-  margin: "8px 0",
+  // Antes 8px arriba y abajo. Con las cabeceras de grupo ya plegables, el
+  // separador es la segunda demarcación de lo mismo: los cinco sumaban 80px de
+  // margen, que es lo que le faltaba a «Configuración» para entrar en pantalla.
+  margin: "3px 0",
 } as const;
 
 const GROUP_LABEL_STYLE = {
@@ -148,7 +151,7 @@ const GROUP_LABEL_STYLE = {
   color: "rgba(255,255,255,0.42)",
   // Antes 14px arriba y 14px a los lados. Apretado, porque de las diecinueve
   // entradas solo cabían SIETE a 671 px de alto útil.
-  padding: "9px 12px 4px",
+  padding: "7px 12px 3px",
 } as const;
 
 /** Prefijo del estado plegado de cada grupo. Mismo patrón que `SectionIntro`. */
