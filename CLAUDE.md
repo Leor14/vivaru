@@ -317,9 +317,13 @@ va por delante, que también es normal.
 > orden de despliegue.
 
 **`FEAT-004` ESTÁ EN PRODUCCIÓN Y ENCENDIDA** (26 ago 2026, tarde): estado de cuenta y paz y
-salvo. **`FLOW-001` está desplegado entero —servidor y front— y APAGADO**, y seguirá: con 0 de 88
-unidades con coeficiente y 80 de 93 sin propietario, `repartirPorCoeficiente` bloquea antes de
-calcular. Por el criterio del 24, desplegado y apagado **cuenta como frente abierto**.
+salvo. **`FLOW-001` ESTÁ ENCENDIDA desde el 27 de agosto**, y esta línea decía «APAGADO, y
+seguirá». Lo que la desbloqueó no fue código: fue **sembrar los coeficientes**
+(`functions/scripts/sembrar-coeficientes.mjs`). Ya calcula en `tenant-santa-maria` —18 de 18
+unidades, 100.000000% exacto—; en los otros ocho conjuntos sigue sin coeficientes, y allí
+`repartirPorCoeficiente` bloquea antes de calcular **nombrando las unidades que faltan**, que es la
+conducta correcta. **Con ella, el bloque de propiedad horizontal queda CERRADO: cero frentes
+abiertos y las doce banderas de producto encendidas.**
 
 > **SUBIR Y ENCENDER SON TRES ACTOS, NO DOS — y descubrirlo costó media jornada.** El orden real es
 > **servidor → front → encender**. Por la mañana el servidor de los dos MVP estaba en producción y
@@ -376,11 +380,12 @@ claim retiradas —la ruta del dinero resuelve por membresía—. Verificado con
 functions en `ACTIVE`, el ruleset vivo con **0 líneas de diff** contra el fichero, y el front por
 **procedencia del build**.
 
-> **Está desplegado y NO se ve.** `producto-multiconjunto` está apagada y **su documento ni
-> siquiera existe** (resuelve por `default_catalogo`); para encenderla, `seed-feature-flags.mjs`
-> primero y `mover-bandera.mjs` en **GLOBAL** después. Y aunque se encienda, el selector se pinta
-> con **dos membresías o más** y en producción **nadie tiene dos**, así que **CA1 sigue sin
-> observarse**: está cumplido por construcción, no visto.
+> **`producto-multiconjunto` está ENCENDIDA desde el 27 de agosto**, y este párrafo decía que
+> estaba apagada y sin documento. **Encenderla fue inerte, y ahí estaba la gracia:** el selector se
+> pinta con **dos membresías o más** y en producción **nadie tiene dos**, así que no cambió nada
+> visible — pero dejó de contar como frente abierto por el criterio del 24. **CA1 sigue sin
+> observarse** por esa misma razón: está cumplido por construcción, no visto, y para verlo hace
+> falta un segundo administrador con dos conjuntos.
 
 **`FLOW-002` (anticipos) ESTÁ EN PRODUCCIÓN Y ENCENDIDO EN LOS NUEVE CONJUNTOS** desde la madrugada
 del 25 de agosto de 2026. Servidor, front, el «% de recaudo» de R16 midiendo liquidación, y los dos
