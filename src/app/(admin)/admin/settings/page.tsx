@@ -1,6 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -57,13 +59,24 @@ const passwordSchema = z
 
 type PasswordForm = z.infer<typeof passwordSchema>;
 
+/** Nivel de módulo: la lista de claves tiene que ser estable entre renders. */
+const PESTANAS = [
+  { key: "conjunto", label: "Conjunto" },
+  { key: "modulos", label: "Módulos" },
+  { key: "residente", label: "Portal del residente" },
+  { key: "cuenta", label: "Mi cuenta" },
+] as const;
+const CLAVES_PESTANA = PESTANAS.map((pestana) => pestana.key);
+
 export default function AdminSettingsPage() {
   const { user, refreshSessionProfile } = useAuth();
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [blockOnDebt, setBlockOnDebt] = useState(false);
   const [savingPolicy, setSavingPolicy] = useState(false);
-  const [tab, setTab] = useState<"conjunto" | "modulos" | "residente" | "cuenta">("conjunto");
+  // La pestaña vive en la URL (`?vista=`), así se puede enlazar y el botón
+  // «atrás» vuelve a la anterior en vez de salir de la pantalla.
+  const [tab, setTab] = useTabParam("vista", CLAVES_PESTANA, "conjunto");
   // `PRD-V-FLOW-003` §5.2. Apagada, la pasada diaria no existe, así que la tarjeta
   // tampoco se pinta: ofrecer un calendario que nadie va a leer es peor que no ofrecerlo.
   const calendarioDeCobranza = useFeatureFlag("producto-calendario-de-cobranza");
@@ -80,7 +93,8 @@ export default function AdminSettingsPage() {
     requestAnimationFrame(() => {
       document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, []);
+    // `setTab` viene memorizado del hook: entra en dependencias sin re-crear nada.
+  }, [setTab]);
   useGuidedAction("agrupaciones", () => scrollToCard("guia-agrupaciones"));
   useGuidedAction("portal-porteria", () => scrollToCard("guia-cuentas-prueba"));
   useGuidedAction("portal-residente", () => scrollToCard("guia-cuentas-prueba"));
@@ -235,28 +249,7 @@ export default function AdminSettingsPage() {
 
   return (
     <section className="space-y-4">
-      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-[var(--slate-200)]">
-        {([
-          ["conjunto", "Conjunto"],
-          ["modulos", "Módulos"],
-          ["residente", "Portal del residente"],
-          ["cuenta", "Mi cuenta"],
-        ] as const).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              tab === key
-                ? "border-[var(--brand-700)] text-[var(--brand-700)]"
-                : "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs items={PESTANAS} value={tab} onChange={setTab} ariaLabel="Secciones de Perfil del edificio" />
 
       {tab === "conjunto" ? (
         <>

@@ -1,6 +1,8 @@
 "use client";
 
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useEffect } from "react";
 import {
@@ -229,7 +231,10 @@ function AdminBillingPageContent() {
   const [campaignFilter, setCampaignFilter] = useState<string | null>(null);
   const [reminderTarget, setReminderTarget] = useState<{ campaignId: string; label: string; unitIds: string[]; statementIds: string[] } | null>(null);
   const [reminderDate, setReminderDate] = useState("");
-  const [listView, setListView] = useState<"campaigns" | "individuals" | "byUnit" | "overdue" | "morosos">("campaigns");
+  // `?lista=` y no `?vista=`: la pasada 4 parte Cartera en pestañas de primer
+  // nivel y necesita `vista` libre. Renombrar un parámetro después rompe los
+  // enlaces que ya se hayan guardado.
+  const [listView, setListView] = useTabParam("lista", CLAVES_VISTA, "campaigns");
   const [conceptFilter, setConceptFilter] = useState<BillingConcept | "all">("all");
   const [periodFilter, setPeriodFilter] = useState("all");
   const [pendingClosePeriod, setPendingClosePeriod] = useState<string | null>(null);
@@ -1705,27 +1710,19 @@ function AdminBillingPageContent() {
         </div>
       </Modal>
 
-      <div className="inline-flex flex-wrap rounded-xl border border-[var(--slate-300)] bg-white p-0.5">
-        {([
-          { key: "campaigns", label: "Campañas" },
-          { key: "individuals", label: "Cobros individuales" },
-          { key: "byUnit", label: "Por unidad" },
-          { key: "overdue", label: "Cartera vencida" },
-          { key: "morosos", label: "Morosos" },
-        ] as const).map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => {
-              setListView(t.key);
-              if (t.key !== "byUnit") setCampaignFilter(null);
-            }}
-            className={`rounded-lg px-3 py-1.5 text-sm ${listView === t.key ? "bg-[var(--slate-900)] text-white" : "text-[var(--slate-600)]"}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={VISTAS_DE_LISTA}
+        value={listView}
+        onChange={(clave) => {
+          setListView(clave);
+          // Se conserva tal cual: el filtro por campaña solo tiene sentido en
+          // «Por unidad», y arrastrarlo a otra vista enseñaría una lista
+          // recortada sin decir por qué.
+          if (clave !== "byUnit") setCampaignFilter(null);
+        }}
+        ariaLabel="Vistas de Cartera"
+        variant="segmented"
+      />
 
       {listView === "campaigns" ? (
         <Card className="soft-panel">
@@ -2419,6 +2416,16 @@ function AdminBillingPageContent() {
  * ejemplo pero no se opera (ver src/lib/config/trial-modules.ts). Para un
  * cliente activo, el gate es transparente.
  */
+/** Nivel de módulo: la lista de claves tiene que ser estable entre renders. */
+const VISTAS_DE_LISTA = [
+  { key: "campaigns", label: "Campañas" },
+  { key: "individuals", label: "Cobros individuales" },
+  { key: "byUnit", label: "Por unidad" },
+  { key: "overdue", label: "Cartera vencida" },
+  { key: "morosos", label: "Morosos" },
+] as const;
+const CLAVES_VISTA = VISTAS_DE_LISTA.map((vista) => vista.key);
+
 export default function AdminBillingPage() {
   return (
     <ModulePreviewGate module="billing">

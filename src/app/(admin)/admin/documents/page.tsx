@@ -25,6 +25,8 @@ import { SectionIntro } from "@/components/shared/section-intro";
 import { getDocumentDownloadUrlCallable } from "@/lib/firebase/callables";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { documentSchema, type DocumentInput } from "@/features/admin/schemas";
@@ -56,6 +58,13 @@ const ACCEPTED_TYPES =
   "application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
+/** Nivel de módulo: la lista de claves tiene que ser estable entre renders. */
+const PESTANAS = [
+  { key: "carpetas", label: "Carpetas" },
+  { key: "todos", label: "Todos los documentos" },
+] as const;
+const CLAVES_PESTANA = PESTANAS.map((pestana) => pestana.key);
+
 export default function AdminDocumentsPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<DocumentItem[]>([]);
@@ -65,7 +74,9 @@ export default function AdminDocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [searchFilter, setSearchFilter] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
-  const [tab, setTab] = useState<"carpetas" | "todos">("todos");
+  // La pestaña vive en la URL (`?vista=`): antes no se podía enlazar una, el
+  // botón «atrás» salía de la pantalla y recargar volvía siempre a la primera.
+  const [tab, setTab] = useTabParam("vista", CLAVES_PESTANA, "todos");
   const [folderParam, setFolderParam] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,7 +85,8 @@ export default function AdminDocumentsPage() {
       setFolderParam(param);
       setTab("carpetas");
     }
-  }, []);
+    // `setTab` viene memorizado del hook: entra en dependencias sin re-ejecutar.
+  }, [setTab]);
 
   const form = useForm<DocumentInput>({
     resolver: zodResolver(documentSchema),
@@ -250,26 +262,7 @@ export default function AdminDocumentsPage() {
         </div>
       </div>
 
-      {/* ── Tabs ────────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-[var(--slate-200)]">
-        {([
-          ["carpetas", "Carpetas"],
-          ["todos", "Todos los documentos"],
-        ] as const).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              tab === key
-                ? "border-[var(--brand-700)] text-[var(--brand-700)]"
-                : "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs items={PESTANAS} value={tab} onChange={setTab} ariaLabel="Secciones de Documentos" />
 
       {tab === "carpetas" ? (
         <>

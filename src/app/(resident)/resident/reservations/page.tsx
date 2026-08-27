@@ -1,5 +1,7 @@
 "use client";
 
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -163,6 +165,13 @@ function formatReservationTime(reservation: Reservation) {
 
   return reservation.slot ?? "Horario no definido";
 }
+
+/** Nivel de módulo: la lista de claves tiene que ser estable entre renders. */
+const TIPOS_DE_RESERVA = [
+  { key: "amenity", label: "Zona común" },
+  { key: "mudanza", label: "Mudanza" },
+] as const;
+const CLAVES_TIPO_RESERVA = TIPOS_DE_RESERVA.map((tipo) => tipo.key);
 
 export default function ResidentReservationsPage() {
   const { user } = useAuth();
@@ -1425,41 +1434,10 @@ function ReservationModeToggleAndWizard(props: {
   unitId: string;
   unitLabel: string;
 }) {
-  const [mode, setMode] = useState<"amenity" | "mudanza">("amenity");
+  const [mode, setMode] = useTabParam("tipo", CLAVES_TIPO_RESERVA, "amenity");
   return (
     <div className="space-y-3">
-      <div
-        role="tablist"
-        aria-label="Tipo de reserva"
-        className="flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-white p-1 shadow-sm"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "amenity"}
-          onClick={() => setMode("amenity")}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === "amenity"
-              ? "bg-[var(--brand-700)] text-white"
-              : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-          }`}
-        >
-          Zona común
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "mudanza"}
-          onClick={() => setMode("mudanza")}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === "mudanza"
-              ? "bg-[var(--brand-700)] text-white"
-              : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-          }`}
-        >
-          Mudanza
-        </button>
-      </div>
+      <Tabs items={TIPOS_DE_RESERVA} value={mode} onChange={setMode} ariaLabel="Tipo de reserva" variant="pill" />
       {mode === "mudanza" && props.tenantId && props.userId && props.unitId ? (
         <MudanzaWizard
           tenantId={props.tenantId}

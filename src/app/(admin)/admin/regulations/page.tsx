@@ -1,6 +1,8 @@
 "use client";
 
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { FolderOpen, ScrollText, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -295,7 +297,9 @@ function AdminRegulationsPageContent() {
   const pendingCount = Math.max(totalActive - signedCount, 0);
   const complianceRate = totalActive > 0 ? Math.round((signedCount / totalActive) * 100) : 0;
 
-  const [tab, setTab] = useState<"reglamento" | "acuerdos">("reglamento");
+  // La pestaña vive en la URL (`?vista=`), así se puede enlazar y el botón
+  // «atrás» vuelve a la anterior en vez de salir de la pantalla.
+  const [tab, setTab] = useTabParam("vista", CLAVES_PESTANA, "reglamento");
   const router = useRouter();
 
   // Carpeta de sistema "Reglamentos": se asegura y se backfillean los existentes.
@@ -394,26 +398,7 @@ function AdminRegulationsPageContent() {
         ) : null}
       </div>
 
-      {/* ── Tabs ───────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 border-b border-[var(--slate-200)]">
-        {([
-          ["reglamento", "Reglamento"],
-          ["acuerdos", "Acuerdos de comité"],
-        ] as const).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              tab === key
-                ? "border-[var(--brand-700)] text-[var(--brand-700)]"
-                : "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs items={PESTANAS} value={tab} onChange={setTab} ariaLabel="Secciones de Reglamento" />
 
       {tab === "reglamento" ? (
         <>
@@ -552,6 +537,13 @@ function AdminRegulationsPageContent() {
  * ejemplo pero no se opera (ver src/lib/config/trial-modules.ts). Para un
  * cliente activo, el gate es transparente.
  */
+/** Nivel de módulo: la lista de claves tiene que ser estable entre renders. */
+const PESTANAS = [
+  { key: "reglamento", label: "Reglamento" },
+  { key: "acuerdos", label: "Acuerdos de comité" },
+] as const;
+const CLAVES_PESTANA = PESTANAS.map((pestana) => pestana.key);
+
 export default function AdminRegulationsPage() {
   return (
     <ModulePreviewGate module="regulations">

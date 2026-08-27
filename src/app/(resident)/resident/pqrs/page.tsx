@@ -1,5 +1,7 @@
 "use client";
 
+import { Tabs } from "@/components/ui/tabs";
+import { useTabParam } from "@/lib/navigation/use-tab-param";
 import { useState } from "react";
 import { toast } from "sonner";
 import { toastFirebaseError } from "@/lib/utils/error-handler";
@@ -28,7 +30,6 @@ const TICKET_TYPES = [
 ] as const;
 
 type TicketTypeValue = typeof TICKET_TYPES[number]["value"];
-type TabId = "mis-pqrs" | "nueva";
 
 const STATUS_CONFIG: Record<Ticket["status"], { label: string; badgeCls: string }> = {
   open:        { label: "Abierto",     badgeCls: "bg-amber-100 text-amber-700" },
@@ -100,12 +101,21 @@ function TicketRow({ ticket, simple = false }: { ticket: Ticket; simple?: boolea
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+/** Nivel de módulo: la lista de claves tiene que ser estable entre renders. */
+const SECCIONES = [
+  { key: "mis-pqrs", label: "Mis PQRS" },
+  { key: "nueva", label: "Nueva solicitud" },
+] as const;
+const CLAVES_SECCION = SECCIONES.map((seccion) => seccion.key);
+
 export default function ResidentPqrsPage() {
   const { user } = useAuth();
   const { items, loading } = useTickets(user?.tenantId, user?.unitId);
   const isSimpleMode = useModuleVariant(user?.tenantId, "pqrs") === "buzon_simple";
 
-  const [tab, setTab] = useState<TabId>("mis-pqrs");
+  // La pestaña vive en la URL (`?vista=`): así se puede enlazar «Nueva
+  // solicitud» y el botón «atrás» vuelve a la lista en vez de salir.
+  const [tab, setTab] = useTabParam("vista", CLAVES_SECCION, "mis-pqrs");
   const [ticketType, setTicketType] = useState<TicketTypeValue>("petition");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -154,38 +164,19 @@ export default function ResidentPqrsPage() {
       </CardDescription>
 
       {/* ── Tabs ── */}
-      <div
-        role="tablist"
-        aria-label="Secciones PQRS"
-        className="mt-4 flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-white p-1 shadow-sm"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "mis-pqrs"}
-          onClick={() => setTab("mis-pqrs")}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            tab === "mis-pqrs"
-              ? "bg-[var(--brand-700)] text-white"
-              : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-          }`}
-        >
-          {activeItems.length > 0 ? `Mis PQRS (${activeItems.length})` : "Mis PQRS"}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === "nueva"}
-          onClick={() => setTab("nueva")}
-          className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            tab === "nueva"
-              ? "bg-[var(--brand-700)] text-white"
-              : "text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
-          }`}
-        >
-          Nueva solicitud
-        </button>
-      </div>
+      <Tabs
+        items={SECCIONES.map((s) =>
+          // El contador de pendientes viaja en la etiqueta, como estaba.
+          s.key === "mis-pqrs" && activeItems.length > 0
+            ? { ...s, label: `${s.label} (${activeItems.length})` }
+            : s,
+        )}
+        value={tab}
+        onChange={setTab}
+        ariaLabel="Secciones PQRS"
+        variant="pill"
+        className="mt-4"
+      />
 
       {/* ── Tab: Nueva ── */}
       {tab === "nueva" && (
