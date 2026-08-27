@@ -1,5 +1,7 @@
 import * as React from "react";
 
+import { cn } from "@/lib/utils/cn";
+
 export type StatusBadgeContext =
   | "unit"
   | "communication"
@@ -10,6 +12,13 @@ export type StatusBadgeContext =
 
 export type StatusBadgeProps = {
   status: string;
+  /**
+   * **Declarada y HOY SIN USAR.** Catorce de las veintiuna llamadas la pasan y
+   * no cambia nada: `resolveStatusTone` resuelve solo por el texto del estado.
+   * Se conserva porque el día que dos contextos compartan una palabra con
+   * significados distintos hará falta — pero mientras tanto **no configura
+   * nada**, y conviene no pasarla esperando que sí.
+   */
   context?: StatusBadgeContext;
   className?: string;
 };
@@ -82,23 +91,31 @@ export function resolveStatusTone(status: string): StatusTone {
   return { ...FALLBACK, label: capitalize(status) };
 }
 
+/**
+ * **Solo el color va en línea.** El resto de la forma vive en clases para que
+ * quien llama pueda ajustarla: un `style` en línea gana a cualquier utilidad de
+ * Tailwind, así que con la versión anterior el `text-[10px]` que pasan dos
+ * llamadas de `residents/page.tsx` no hacía nada — el `fontSize: 12` lo pisaba
+ * en silencio. (Sus otras dos clases, `ml-auto` y `shrink-0`, sí funcionaban:
+ * no estaban entre las propiedades del `style`.)
+ *
+ * `cn` usa `twMerge`, así que una clase de la llamada sustituye a la de la base
+ * en vez de sumarse. Los valores son los mismos de antes, al píxel.
+ *
+ * El fondo y el texto siguen en línea porque salen de la tabla de tonos y
+ * cambian con el estado.
+ */
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const tone = resolveStatusTone(status);
   return (
     <span
-      className={className}
+      className={cn(
+        "inline-flex items-center gap-[5px] whitespace-nowrap rounded-[4px] px-[9px] py-[3px] text-[12px] font-medium leading-[1.2]",
+        className,
+      )}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        fontSize: 12,
-        fontWeight: 500,
-        padding: "3px 9px",
-        borderRadius: 4,
         background: tone.bg,
         color: tone.text,
-        lineHeight: 1.2,
-        whiteSpace: "nowrap",
       }}
     >
       <span
