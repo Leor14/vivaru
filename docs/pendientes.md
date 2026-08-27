@@ -210,10 +210,10 @@ y así el rastro empieza solo el día que alguien abra una plantilla.
 3. **Decidir si el calendario se configura en algún conjunto.** Hoy hay **cero** configurados, y
    por eso la pasada diaria salta todos. Configurar uno es lo que la pone a correr — y con el
    canal de correo cerrado, lo que saldría son **notificaciones en la app**, no correos.
-4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con 0 de 88 unidades con
-   coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
+4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con **0 de 93** unidades con
+   coeficiente y **80 de 93** sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
    `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
-5. **El sembrador de banderas declara 16 claves y el catálogo tiene 19** — defecto vivo, con ficha
+5. **El sembrador de banderas declara 18 claves y el catálogo tiene 21** (recontado el 27 ago; la cifra vieja era 16 y 19) — defecto vivo, con ficha
    aparte. `producto-anticipos`, `producto-pago-multiple` y `producto-importacion-masiva` no se
    pueden sembrar; en producción existen solo porque `mover-bandera` las creó al encenderlas. Con
    las dos de `FLOW-003` el sembrador ya sí las declara, así que **el hueco es de tres, no de cinco**.
@@ -771,7 +771,7 @@ conjunto no tiene unidades» — una de las tres cosas que el diálogo existe pa
 
 **Por el criterio del 24 —desplegado y apagado cuenta como abierto— subirlo no cerraría nada.**
 Y hay algo más duro: **ahí no puede correr aunque se encienda.** Con 0 de 88 unidades con
-coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea por R2 y por R5 antes de
+coeficiente y 80 de 93 sin propietario, `repartirPorCoeficiente` bloquea por R2 y por R5 antes de
 calcular. Sería **la cuarta capacidad viva sobre una tabla vacía**.
 
 La decisión viaja con el primer cliente o la primera demostración que la necesite, y entonces va
@@ -1265,7 +1265,7 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 | ~~**2**~~ | ~~**`FLOW-002` de verdad**~~ | **CERRADO ENTERO el 24 de agosto de 2026.** CF8 (`9f75083`), §9/CA13 (`c05b274`) y `personId` retirado del contrato. Lo único que le quedaba fuera —el total de anticipos del consejo— vive en `PLAT-004` | — |
 | ~~**3**~~ | ~~**`FIX-001` completo**~~ | **MVP CERRADO el 24 de agosto de 2026** (`a67088c`): bandera encendida en los nueve, puerta medida **con contenido**, y la rama del residente retirada del `create`. Queda solo la **entrega 2** (política por área), que es Fase 2 de la ficha, no MVP | — |
 | ~~**4**~~ | ~~**`PLAT-002` entrega 2**~~ | **MVP CERRADO el 25 de agosto de 2026** (`dbb3f29`…`5894001`): el selector, la sesión con varias membresías, la entidad administradora y su consola. **En staging, verificado por navegador de punta a punta.** La vista de cartera NO entraba — el Story Map la sitúa en Fase 2. Detalle en la cabecera | — |
-| **5** | **Olas B y C** | **La ola B queda hecha**: `FLOW-001` construido, desplegado en staging y validado por navegador el 25 de agosto (`728451f`…`abcbaad`). **No sube a producción**, y el motivo es de datos: con 0 de 88 unidades con coeficiente y 74 de 87 sin propietario, ahí no puede correr aunque se encienda. Queda la ola C: `FEAT-004` (paz y salvo) y luego `FLOW-003` (cobranza), cuyo adjunto depende de ella | Alto — es construir |
+| **5** | **Olas B y C** | **La ola B queda hecha**: `FLOW-001` construido, desplegado en staging y validado por navegador el 25 de agosto (`728451f`…`abcbaad`). **No sube a producción**, y el motivo es de datos: con 0 de 93 unidades con coeficiente y 80 de 93 sin propietario, ahí no puede correr aunque se encienda. Queda la ola C: `FEAT-004` (paz y salvo) y luego `FLOW-003` (cobranza), cuyo adjunto depende de ella | Alto — es construir |
 | **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
 
 **`PLAT-002` YA ESTÁ EN PRODUCCIÓN** desde la tarde del 25 (`e41affa`), así que esa decisión

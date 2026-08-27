@@ -164,7 +164,7 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   del rol**: al revés, a un no-miembro se le respondería «el período de prueba terminó» en vez de
   «no tienes permiso», filtrando el estado comercial de un cliente.
 - **EL SEMBRADOR DE BANDERAS NO CONOCE TODAS LAS CLAVES.** Medido el 26 de agosto de 2026:
-  `seed-feature-flags.mjs` declara **16** y `mover-bandera.mjs` **19**. Faltan `producto-anticipos`,
+  `seed-feature-flags.mjs` declara **18** y `mover-bandera.mjs` **21** (medido el 27 de agosto; eran 16 y 19 antes de `FLOW-003`). Faltan `producto-anticipos`,
   `producto-pago-multiple` y `producto-importacion-masiva`. En producción existen igual porque
   `mover-bandera` las crea con `set+merge` al encenderlas — pero **en un ambiente nuevo nacerían
   sin documento** y resolverían por el default del catálogo, en silencio. Tiene ficha aparte.
@@ -318,7 +318,7 @@ va por delante, que también es normal.
 
 **`FEAT-004` ESTÁ EN PRODUCCIÓN Y ENCENDIDA** (26 ago 2026, tarde): estado de cuenta y paz y
 salvo. **`FLOW-001` está desplegado entero —servidor y front— y APAGADO**, y seguirá: con 0 de 88
-unidades con coeficiente y 74 de 87 sin propietario, `repartirPorCoeficiente` bloquea antes de
+unidades con coeficiente y 80 de 93 sin propietario, `repartirPorCoeficiente` bloquea antes de
 calcular. Por el criterio del 24, desplegado y apagado **cuenta como frente abierto**.
 
 > **SUBIR Y ENCENDER SON TRES ACTOS, NO DOS — y descubrirlo costó media jornada.** El orden real es
