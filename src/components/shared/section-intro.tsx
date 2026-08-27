@@ -9,8 +9,16 @@ import { cn } from "@/lib/utils/cn";
 type SectionIntroProps = {
   /** Clave estable para recordar si el admin colapsó este banner (localStorage). */
   storageKey: string;
-  /** Título corto del apartado, p. ej. "Cartera". */
-  title: string;
+  /**
+   * Título corto del apartado, p. ej. "Cartera".
+   *
+   * **Omitirlo cuando la pantalla ya se nombra en su cabecera** (`PageHeader`):
+   * ahí este bloque es solo la ayuda, y repetir el nombre justo debajo del `h1`
+   * lo dice dos veces. Se sigue pasando donde el título es de la PESTAÑA y no de
+   * la pantalla — `documents` y `settings` tienen uno por pestaña, y sin él esas
+   * pestañas se quedarían sin nombre.
+   */
+  title?: string;
   /** Qué resuelve el apartado. */
   purpose: React.ReactNode;
   /** Cómo se usa / de dónde salen y a dónde van los datos. */
@@ -85,9 +93,15 @@ export function SectionIntro({
           >
             <Icon className="h-4.5 w-4.5" />
           </span>
-          <h2 className="truncate text-base font-semibold tracking-tight text-[var(--brand-900)]">
-            {title}
-          </h2>
+          {title ? (
+            <h2 className="truncate text-base font-semibold tracking-tight text-[var(--brand-900)]">
+              {title}
+            </h2>
+          ) : (
+            <span className="truncate text-sm font-medium text-[var(--brand-800)]">
+              Sobre esta pantalla
+            </span>
+          )}
         </div>
         <button
           type="button"

@@ -168,7 +168,6 @@ export default function AdminSoportePage() {
 
       <SectionIntro
         storageKey="soporte-admin"
-        title="Soporte"
         icon={LifeBuoy}
         tone="peach"
         purpose="Escribirle al equipo de Vivaru cuando algo de la plataforma falla, no cuadra o no sabes cómo hacerlo."

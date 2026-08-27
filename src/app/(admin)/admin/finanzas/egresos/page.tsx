@@ -289,7 +289,6 @@ export default function AdminEgresosPage() {
         storageKey="egresos"
             icon={Receipt}
             tone="lavender"
-        title="Egresos"
         purpose="Las cuentas por pagar y los pagos del conjunto: nómina, servicios públicos, mantenimiento y proveedores."
         how="Registras cada egreso y, al marcarlo como pagado, entra automáticamente como salida en el Libro y fondos."
       />

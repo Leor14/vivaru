@@ -1220,7 +1220,6 @@ function AdminBillingPageContent() {
         storageKey="cartera"
             icon={Wallet}
             tone="lavender"
-        title="Cartera"
         purpose="Controlar lo que cada unidad debe y lo que ha pagado (cuotas o alícuotas de administración)."
         how="Generas los cobros del período por unidad, registras los pagos recibidos y emites el comprobante a cada residente. Los pagos alimentan el Libro y fondos."
       />

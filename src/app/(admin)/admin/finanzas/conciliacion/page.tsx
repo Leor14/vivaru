@@ -180,7 +180,6 @@ export default function AdminConciliacionPage() {
         storageKey="conciliacion"
             icon={Scale}
             tone="lavender"
-        title="Conciliación bancaria"
         purpose="Cuadrar lo registrado en el Libro contra lo que realmente se movió en el banco, para que el saldo contable coincida con el saldo real de la cuenta."
         how={
           <ol className="list-decimal space-y-1 pl-4">

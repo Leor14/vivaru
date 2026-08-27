@@ -9,7 +9,9 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminSidebar, type AdminSidebarBadges, type AdminSidebarGroup } from "@/components/shared/admin-sidebar";
+import { PageHeader } from "@/components/shared/page-header";
 import { buildAdminSidebarGroups, buildRoleSidebarGroups, profileHrefForRole } from "@/lib/navigation/role-sidebar-groups";
+import { resolvePageIdentity } from "@/lib/navigation/page-identity";
 import { getModuleVariant, type FinanceVariant } from "@/lib/config/module-variants";
 import { TopbarActions } from "@/components/shared/topbar-actions";
 import { TrialBanner } from "@/components/shared/trial-banner";
@@ -24,7 +26,7 @@ import { isTicketPending } from "@/features/pqrs/ticket-status";
 import { useTickets } from "@/features/pqrs/use-tickets";
 import { endRouteVeil } from "@/features/onboarding/route-transition";
 import { canAccessPath, routeByRole } from "@/lib/auth/routing";
-import { ROLE_LABEL, type AppRole } from "@/lib/constants/roles";
+import { type AppRole } from "@/lib/constants/roles";
 import { db } from "@/lib/firebase/client";
 import { cn } from "@/lib/utils/cn";
 
@@ -273,6 +275,28 @@ export function AppShell({
   const shellRole: AppRole = isTenantLayout && (user.role === "security_guard" || user.role === "security" || user.role === "committee") ? user.role : role;
   const shellTitle = user.role === "security_guard" || user.role === "security" ? "Panel de Porteria" : title;
 
+  /**
+   * **Los grupos del menú se calculan UNA vez y se reparten.** Antes se calculaban
+   * en dos sitios —el cajón móvil y la barra de escritorio—; con la cabecera de
+   * página serían tres. Si cada uno hiciera su cuenta, la cabecera podría nombrar
+   * una pantalla que el menú no marca, y nadie lo vería hasta tenerlo delante.
+   */
+  const sidebarGroups: AdminSidebarGroup[] = isAdminRole
+    ? markLocked(buildAdminSidebarGroups(branding?.financeVariant))
+    : buildRoleSidebarGroups(
+        shellRole,
+        branding?.residentModules ?? DEFAULT_RESIDENT_MODULES,
+        trial.isTrial || trial.isExpired,
+      );
+
+  const pageIdentity = resolvePageIdentity(pathname, sidebarGroups);
+  /**
+   * El título del layout es el respaldo: es constante por rol —y ése era
+   * justamente el defecto— pero nunca está vacío, así que una ruta que no sea de
+   * menú (una ficha de detalle) sigue teniendo un nombre honesto en pantalla.
+   */
+  const pageTitle = pageIdentity?.title ?? shellTitle;
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffffff_4%,#edf4fb_42%,#e4ecf6_100%)]">
       {!isAdminRole && (shellRole === "tenant_admin" || shellRole === "admin_tenant") ? (
@@ -298,7 +322,9 @@ export function AppShell({
           <Button type="button" variant="outline" size="sm" onClick={() => setMobileNavOpen(true)} aria-label="Abrir menú">
             <Menu className="h-4 w-4" />
           </Button>
-          <h1 className="text-subheading min-w-0 flex-1 truncate text-[var(--slate-900)]">{shellTitle}</h1>
+          {/* En móvil esta cabecera ES la de la pantalla: por eso lleva su nombre
+              y no el del portal, y por eso `PageHeader` solo se pinta en `md:`. */}
+          <h1 className="text-subheading min-w-0 flex-1 truncate text-[var(--slate-900)]">{pageTitle}</h1>
           <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
         </header>
       ) : (
@@ -316,8 +342,12 @@ export function AppShell({
                 <Menu className="h-4 w-4" />
               </Button>
               <div className="min-w-0">
-                <p className="text-label hidden text-[var(--slate-500)] md:block">{ROLE_LABEL[user.role]}</p>
-                <h1 className="truncate text-base font-medium text-[var(--slate-900)] md:text-display">{shellTitle}</h1>
+                {/* El portal baja al sobretítulo y el `h1` pasa a nombrar la
+                    pantalla. Antes decía «Portal del Residente» en las doce, que
+                    es lo mismo que no decir nada. El rol sale de aquí porque el
+                    nombre del portal ya lo contiene. */}
+                <p className="text-label hidden text-[var(--slate-500)] md:block">{shellTitle}</p>
+                <h1 className="truncate text-base font-medium text-[var(--slate-900)] md:text-display">{pageTitle}</h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -356,7 +386,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
-                  groups={markLocked(buildAdminSidebarGroups(branding?.financeVariant))}
+                  groups={sidebarGroups}
                   badges={sidebarBadges}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -380,7 +410,7 @@ export function AppShell({
                 <AdminSidebar
                   tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
                   brandColor={branding?.brandColor}
-                  groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES, trial.isTrial || trial.isExpired)}
+                  groups={sidebarGroups}
                   profileHref={profileHrefForRole(shellRole)}
                   onItemClick={() => setMobileNavOpen(false)}
                   user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
@@ -406,7 +436,7 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
-              groups={markLocked(buildAdminSidebarGroups(branding?.financeVariant))}
+              groups={sidebarGroups}
               badges={sidebarBadges}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}
@@ -417,7 +447,7 @@ export function AppShell({
               className="sticky top-4 h-[calc(100vh-2rem)]"
               tenantName={branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName}
               brandColor={branding?.brandColor}
-              groups={buildRoleSidebarGroups(shellRole, branding?.residentModules ?? DEFAULT_RESIDENT_MODULES, trial.isTrial || trial.isExpired)}
+              groups={sidebarGroups}
               profileHref={profileHrefForRole(shellRole)}
               user={{ fullName: user.fullName, role: shellRole, photoURL: user.photoURL, avatarId: user.avatarId }}
               onLogout={() => void logout()}
@@ -443,6 +473,18 @@ export function AppShell({
                 <GuidedStepBanner />
               </Suspense>
             </WidgetErrorBoundary>
+          ) : null}
+          {/* **Solo el admin, y solo en escritorio.** Los demás roles ya tienen
+              cabecera propia arriba —y desde esta pasada nombra la pantalla—, y
+              en móvil el admin también: pintarla aquí además sería el nombre
+              dos veces. El administrador en escritorio es el único que no tenía
+              ninguna. */}
+          {isAdminRole ? (
+            <PageHeader
+              className="hidden md:flex"
+              group={pageIdentity?.group}
+              title={pageTitle}
+            />
           ) : null}
           {children}
         </main>
