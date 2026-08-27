@@ -194,30 +194,46 @@ La fila **se conserva**, que es lo que promete el catálogo de la bandera («lo 
 borra»). `producto-entrega-de-correo` **se deja encendida**: con el canal cerrado no escribe nada,
 y así el rastro empieza solo el día que alguien abra una plantilla.
 
-### LO SIGUIENTE
+### LO SIGUIENTE — EL BLOQUE DE PROPIEDAD HORIZONTAL ESTÁ CERRADO
 
-1. ~~**Las direcciones de desconocidos**~~ — **RESUELTO el 27 ago.** Cero de riesgo en las tres
-   colecciones; las siete personas a `@ejemplo.vivaru.app`, 22 documentos y 6 cuentas de Auth, con
-   `emailPrevio` para revertir. **Falsado**: las seis direcciones viejas ya no resuelven en Auth.
-   Eran cuentas del equipo, confirmado por David — pero los **buzones** no lo eran.
-   **LO QUE NO CIERRA:** limpia lo que había, no la puerta. `sendAccountEmail` no está detrás de
-   ninguna bandera, así que el próximo residente creado con una dirección tecleada manda otro
-   enlace de acceso a un desconocido. Cerrarla es rechazar dominios de buzón real en el formulario
-   de alta cuando el conjunto es `isExample` — **PRD pequeña, no script**, y sin escribir.
-2. ~~**El formulario de Ajustes › Cobranza**~~ — **HECHO y validado en pantalla el 27 ago.**
-   `BillingCalendarCard`, en Ajustes › Portal del residente, justo antes de las plantillas: el
-   calendario dice CUÁNDO y ellas QUÉ. `producto-calendario-de-cobranza` **encendida**.
-3. **Decidir si el calendario se configura en algún conjunto.** Hoy hay **cero** configurados, y
-   por eso la pasada diaria salta todos. Configurar uno es lo que la pone a correr — y con el
-   canal de correo cerrado, lo que saldría son **notificaciones en la app**, no correos.
-4. **`producto-prorrateo-de-gastos` sigue apagada** y sin documento: con **0 de 93** unidades con
-   coeficiente y **80 de 93** sin propietario, `repartirPorCoeficiente` bloquea antes de calcular.
-   `FLOW-001` queda desplegada y apagada, que por el criterio del 24 **cuenta como frente abierto**.
-5. **El sembrador de banderas declara 18 claves y el catálogo tiene 21** (recontado el 27 ago; la cifra vieja era 16 y 19) — defecto vivo, con ficha
-   aparte. `producto-anticipos`, `producto-pago-multiple` y `producto-importacion-masiva` no se
-   pueden sembrar; en producción existen solo porque `mover-bandera` las creó al encenderlas. Con
-   las dos de `FLOW-003` el sembrador ya sí las declara, así que **el hueco es de tres, no de cinco**.
-6. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
+**Cerrado el 27 de agosto de 2026.** Las **10** PRD del bloque están construidas, desplegadas y
+**sin ningún frente abierto**: las doce banderas de producto están encendidas, y la única sin
+documento —`producto-importacion-masiva`— resuelve `true` por el default del catálogo, que es su
+intención.
+
+| Lo último que se hizo | |
+|---|---|
+| **Coeficientes sembrados** | `tenant-santa-maria`: **18 de 18** unidades activas, sumando **100.000000% exacto** por resto mayor. En toda la producción, 18 de 93 |
+| **Dos propietarios enlazados** | T1-101 (Marta Velásquez) y T2-201 (David Carmona). **Enlazar no es inventar**: las personas ya estaban registradas como `owner_occupant` y faltaba el `ownerIds` del lado de la unidad |
+| **`producto-multiconjunto` encendida** | Inerte hoy: el selector se pinta con dos membresías o más y nadie tiene dos |
+| **`producto-prorrateo-de-gastos` encendida** | Ya puede calcular en Santa María |
+
+> **LO QUE SIGUE FALTANDO, Y NO ES DEUDA DE INGENIERÍA.** La corrida por coeficiente tiene **tres**
+> guardas y sembrar cubre dos. La tercera pide responsable o propietario en **cada** unidad activa,
+> y en Santa María faltan **4 de 18**:
+>
+> - **T2-101, T2-102, T2-103** — no hay **nadie** registrado. Habría que inventar tres personas, y
+>   se decidió con David **no hacerlo**.
+> - **T2-503** — hay **Laura Melo, arrendataria**. No es propietaria: falta **decidir** si el
+>   arrendatario es el responsable de pago, que es negocio y no dato.
+>
+> Con esas cuatro, la corrida se niega **y las nombra**. Eso es correcto: el dato falta de verdad.
+
+**Y un defecto de dato encontrado al enlazar, sin tocarlo:** **T2-201 tiene CUATRO registros
+duplicados de David Carmona**, todos `owner_occupant`, todos activos, todos creados el 5 de junio
+de 2026 (`m8sbjGq5FZUFdpNqEvMt`, `rFSa2er0CP1A8dYoNPtQ`, `uLYXPXZQVoPDqF9U554j`,
+`wwgks6RDtlsWnS50uoMS`). Se enlazó **uno** y los otros tres siguen ahí. No se borraron porque
+borrar personas en producción no se hace de paso.
+
+### LO QUE QUEDA, QUE NO ES DE ESTE BLOQUE
+
+1. **Cuatro capacidades encendidas y quietas por falta de DATO de cliente**: proveedores (0),
+   paz y salvo (0 emitidos), calendario de cobranza (0 configurados) y el canal de correo (cerrado
+   en los 8 conjuntos). **No las arregla una decisión: las llena un cliente.**
+2. **La puerta del alta sigue abierta** — `sendAccountEmail` no está detrás de ninguna bandera, así
+   que un residente nuevo creado con un correo tecleado manda un enlace de acceso a un desconocido.
+   Cerrarla es una **PRD pequeña**, sin escribir.
+3. **Las cuatro membresías huérfanas de staging** (`cliente-david`, `cliente-nuevo`) siguen sin
    decidir: el archivador se niega a tocarlas a propósito, porque son personas que no ven nada.
 
 ### CUATRO TRAMPAS DE ENTORNO, Y UNA ES NUEVA
