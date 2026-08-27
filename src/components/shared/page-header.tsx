@@ -36,7 +36,7 @@ export function PageHeader({
             <ChevronRight className="h-3 w-3 shrink-0 opacity-60" aria-hidden="true" />
           </p>
         ) : null}
-        <h1 className="truncate text-display text-[var(--slate-900)]">{title}</h1>
+        <h1 className="font-display truncate text-display text-[var(--slate-900)]">{title}</h1>
       </div>
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </div>

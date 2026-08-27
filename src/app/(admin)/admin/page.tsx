@@ -677,7 +677,7 @@ export default function AdminDashboardPage() {
                   control» encima. Con la cabecera del shell diciendo «Panel de
                   Control» a 40 px, eran dos nombres para lo mismo y DOS `h1` en
                   la misma pantalla. Queda el conjunto, que es el dato. */}
-              <h2 className="text-display text-[var(--slate-900)]">{asText(user?.tenantName, "Conjunto principal")}</h2>
+              <h2 className="font-display text-display text-[var(--slate-900)]">{asText(user?.tenantName, "Conjunto principal")}</h2>
               <p className="mt-1 text-sm text-[var(--slate-600)]">{headerDate}</p>
               <button
                 type="button"
