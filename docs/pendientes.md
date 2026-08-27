@@ -142,6 +142,41 @@ nombre aparezca.**
 > que es su conducta correcta, no una avería. **Un endpoint de webhook no se prueba con el
 > navegador.** Se ve en el log: `GET 405 · ua=Mozilla/5.0`.
 
+### EL HALLAZGO DE LA VALIDACIÓN: EL CANAL DE CORREO ESTÁ CERRADO EN TODA LA PRODUCCIÓN
+
+**`producto-entrega-de-correo` está encendida sobre una puerta que está cerrada más arriba.** Se
+descubrió al validar: se disparó el recordatorio, la callable respondió `200` dos veces
+(02:02:52 y 02:03:01, auth válida), **la notificación en la app se creó** —«Recordatorio de pago»,
+02:03:02— y **`emailDeliveries` siguió en CERO**. Ni un error en el log.
+
+**La causa está en `index.ts:595`:**
+
+```ts
+if (!copy.emailEnabled) return;
+```
+
+Y `emailEnabled` sale de `override?.emailEnabled ?? t.emailDefault`. Medido:
+
+| | |
+|---|---|
+| Claves del catálogo con `emailDefault: true` | **0 de 13** |
+| `tenantSettings` con `notificationTemplates` | **0 de 8** |
+
+**Conclusión: hoy no le llega un solo correo a ningún residente en toda la producción.** Y por
+tanto `FLOW-003` **no puede grabar una fila** por más encendida que esté su bandera. No es un
+defecto: es configuración — el interruptor está en **Ajustes → plantillas de notificación →
+«También por correo»** (`notification-templates-card.tsx`, escribe
+`tenantSettings.notificationTemplates.<clave>`).
+
+> **Es la tercera forma de «encender no era el arranque», y la más callada de las tres.** Las
+> otras dos fueron la bandera sobre una tabla vacía y el front que no conocía la clave. Ésta es una
+> bandera encendida, con su código desplegado y verificado, **detrás de una puerta de producto que
+> nadie había mirado**. El síntoma es idéntico al de una funcionalidad rota: silencio total.
+
+**Y corrige de paso dos frases que estaban escritas al revés:** `CLAUDE.md` decía «un cobro normal
+MANDA CORREO» y la ficha de direcciones decía que los desconocidos «ya lo reciben hoy». Las dos
+eran deducciones, no medidas. Las dos están corregidas en su sitio.
+
 ### LO SIGUIENTE
 
 1. **Validar la cadena de entrega de punta a punta** — disparar UN recordatorio desde la Cartera,

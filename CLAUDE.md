@@ -524,9 +524,19 @@ mejor que un grep — **un grep encuentra la cadena en las dos versiones**.
 sobre `T2-203` movió los seis que tenía que mover y **dejó los anticipos en $0**, que es la medida
 que prueba que la ruta de un solo cargo no cambió. Detalle en `docs/pendientes.md`.
 
-> **Un cobro normal MANDA CORREO.** El recibo nace dentro de la transacción, así que `applyPayment`
-> crea el `paymentVouchers` y eso enciende `onPaymentVoucherCreated`, que notifica **a los
-> residentes de la unidad pagadora**. Antes de cobrar en un conjunto, mirar a qué direcciones.
+> **Un cobro normal NOTIFICA, pero HOY NO MANDA CORREO — y esta línea decía lo contrario.**
+> El mecanismo es cierto: el recibo nace dentro de la transacción, `applyPayment` crea el
+> `paymentVouchers`, eso enciende `onPaymentVoucherCreated` y notifica **a los residentes de la
+> unidad pagadora**. Lo falso era el canal. **Medido el 27 de agosto de 2026: las 13 claves del
+> catálogo tienen `emailDefault: false` y NINGUNO de los 8 `tenantSettings` tiene
+> `notificationTemplates`**, así que `deliverResidentNotifications` se para en `index.ts:595`
+> —`if (!copy.emailEnabled) return;`— y el correo no se intenta. Llega la notificación en la app
+> y nada más.
+>
+> **El aviso sigue valiendo, pero para otro momento:** el día que alguien encienda «También por
+> correo» en **Ajustes → plantillas de notificación**, todas esas rutas empiezan a escribir de
+> verdad. **Mirar a qué direcciones ANTES de tocar ese interruptor**, no antes de cobrar — ver
+> `docs/hallazgo-direcciones-de-correo.md`.
 
 Estado vivo y detalle: `docs/pendientes.md`, `docs/roadmap-producto.md` (0.9.25),
 `docs/despliegue-flow-002-produccion.md` y la PRD (v1.5).

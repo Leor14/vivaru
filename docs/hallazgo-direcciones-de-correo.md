@@ -53,11 +53,24 @@ Los de riesgo alto se concentran en **`tenant-santa-maria`** (6 de 7 en `users`)
 
 - **No lo causó ninguna bandera de `FLOW-003`.** Verificado leyendo el orden en `email.ts`: el
   `fetch` a Resend está en la línea 21 y `registrarEnvio` en la 55. La bandera
-  `producto-entrega-de-correo` gobierna el **registro**, no el envío. Si algún flujo ya manda
-  correo, esas direcciones **ya lo reciben hoy**.
+  `producto-entrega-de-correo` gobierna el **registro**, no el envío.
+
 - **No es que los conjuntos sean de prueba.** Los nueve son `isExample: true`, sí — pero
   `isExample` es una marca en el documento del conjunto. **La dirección de gmail que hay dentro es
   de una persona de verdad**, y a esa persona la marca no la protege de nada.
+
+> **CORRECCIÓN — este documento decía «esas direcciones ya lo reciben hoy», y era FALSO.** Se
+> dedujo en vez de medirse. Al validar `FLOW-003` la tarde del 27 salió lo contrario: **hoy no le
+> llega correo a ningún residente en toda la producción**. Las **13** claves del catálogo de
+> notificaciones tienen `emailDefault: false`, y **cero** de los 8 `tenantSettings` tienen
+> `notificationTemplates`, así que `deliverResidentNotifications` **se para en
+> `index.ts:595`** —`if (!copy.emailEnabled) return;`— antes de intentar ningún envío.
+>
+> **El riesgo es LATENTE, no activo. Y eso no lo hace menor: lo hace silencioso.** Se activa
+> entero el día que alguien encienda «También por correo» en **Ajustes**, que es un interruptor de
+> una pantalla, sin aviso ni confirmación. **Arreglar las direcciones ANTES de tocar ese
+> interruptor** es lo que separa un cambio de configuración de un incidente.
+
 
 ## Qué hacer — tres salidas, y la primera es la buena
 
