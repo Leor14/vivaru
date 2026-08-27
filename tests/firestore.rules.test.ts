@@ -7,7 +7,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, limit, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
+import { Timestamp, collection, deleteDoc, deleteField, doc, getDoc, getDocs, limit, query, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 
 /**
  * Fecha futura para las reservas. La regla exige `startAt` treinta minutos por
@@ -2926,6 +2926,62 @@ describe("FEAT-004 · el paz y salvo lo escribe SOLO el servidor", () => {
       setDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
         tenantId: "tenant-a",
         emailFooterHtml: "<p>Conjunto A</p>",
+      }),
+    );
+  });
+
+  /**
+   * **EL FORMULARIO NO ESCRIBE ASÍ, y las cinco pruebas de arriba no lo cubrían.**
+   *
+   * Todas usan `setDoc` con el objeto entero. `BillingCalendarCard` usa `updateDoc` con **rutas
+   * punteadas** —`billingCalendar.noticeDayOfMonth`— porque escribir el objeto completo borraría
+   * `lastNoticeSentAt` y `lastOverdueSentAt`, que son la memoria de deduplicado del servidor.
+   *
+   * Son primitivas distintas y la regla las ve distinto: con ruta punteada, Firestore fusiona y la
+   * regla evalúa el documento RESULTANTE. Probar solo `setDoc` es exactamente el defecto que costó
+   * una sesión con `chartOfAccounts` —«el banco probaba un camino que el producto no usa»—, y por
+   * eso estas cuatro existen.
+   */
+  it("el formulario guarda con RUTAS PUNTEADAS, que es como escribe de verdad", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        "billingCalendar.noticeDayOfMonth": 15,
+        "billingCalendar.overdueCycleDays": 30,
+      }),
+    );
+  });
+
+  it("y por ruta punteada la regla SIGUE rechazando el día 31", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        "billingCalendar.noticeDayOfMonth": 31,
+      }),
+    );
+  });
+
+  it("y sigue rechazando un ciclo por debajo del mínimo", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        "billingCalendar.overdueCycleDays": 3,
+      }),
+    );
+  });
+
+  /**
+   * **La que de verdad protege el dato del servidor.** Desactivar borra el campo con
+   * `deleteField()`, no guarda `null`. Si esto se denegara, el administrador no podría apagar el
+   * aviso desde la pantalla y acabaría haciéndolo desde la consola — que es donde no hay reglas de
+   * formulario.
+   */
+  it("desactivar borrando el campo también pasa, y deja el calendario sin esa clave", async () => {
+    const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+    await assertSucceeds(
+      updateDoc(doc(admin.firestore(), "tenantSettings", "tenant-a"), {
+        "billingCalendar.noticeDayOfMonth": deleteField(),
+        "billingCalendar.overdueCycleDays": deleteField(),
       }),
     );
   });
