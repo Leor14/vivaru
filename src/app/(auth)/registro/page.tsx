@@ -138,7 +138,7 @@ export default function RegistroPage() {
                   <label className="block text-sm text-[var(--slate-700)]">
                     Correo
                     <Input className="mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com" />
-                    <span className="mt-1 block text-xs text-[var(--slate-500)]">
+                    <span className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-[var(--slate-500)]">
                       Ahí te enviamos el acceso a tu ambiente.
                     </span>
                   </label>

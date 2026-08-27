@@ -55,7 +55,7 @@ export const TimeSelect = forwardRef<HTMLSelectElement, TimeSelectProps>(
           ))}
         </select>
         {error && (
-          <span id={`${selectId}-error`} className="mt-1 block text-xs text-red-500">
+          <span id={`${selectId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-red-500">
             {error}
           </span>
         )}

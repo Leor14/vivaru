@@ -29,7 +29,7 @@ export function Textarea({ className, label, error, id, ...props }: TextareaProp
         {...props}
       />
       {error && (
-        <span id={`${textareaId}-error`} className="mt-1 block text-xs text-red-500">
+        <span id={`${textareaId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-red-500">
           {error}
         </span>
       )}

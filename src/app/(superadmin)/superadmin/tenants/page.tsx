@@ -566,7 +566,7 @@ export default function SuperadminTenantsPage() {
                   <option key={r.id} value={r.id}>{r.name}</option>
                 ))}
               </select>
-              <span className="mt-1 block text-xs text-[var(--slate-500)]">
+              <span className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-[var(--slate-500)]">
                 Quién vendió este conjunto. En México el canal se lleva casi la mitad del precio:
                 sin este dato la comisión no se reatribuye después.
               </span>

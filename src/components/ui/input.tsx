@@ -57,7 +57,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ) : null}
         </div>
         {error ? (
-          <span id={`${inputId}-error`} className="mt-1 block text-xs text-red-500">
+          <span id={`${inputId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-red-500">
             {error}
           </span>
         ) : null}

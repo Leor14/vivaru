@@ -117,7 +117,7 @@ export function FiscalProfileCard() {
             {...form.register("dataRetentionMonths", { valueAsNumber: true })}
             placeholder="12"
           />
-          <span className="mt-1 block text-xs text-[var(--slate-500)]">
+          <span className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-[var(--slate-500)]">
             Pasado este tiempo se anonimizan la cédula y el nombre en los comprobantes ya transmitidos.
           </span>
         </label>
