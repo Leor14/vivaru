@@ -206,7 +206,7 @@ export function RepartirEgresoModal({
           // 2026: la previa la sirve el servidor y tarda lo que tarda; lo que
           // no puede es parecer una respuesta.
           <div className="space-y-2" aria-busy="true">
-            <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--slate-100)]" />
+            <div className="h-4 w-2/3 animate-pulse rounded-sm bg-[var(--slate-100)]" />
             <div className="h-24 animate-pulse rounded-xl bg-[var(--slate-100)]" />
             <p className="text-xs text-[var(--slate-500)]">Calculando el reparto…</p>
           </div>

@@ -422,7 +422,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
               <HelpTip text="La unidad debe existir antes (importa primero las unidades). Cada residente se vincula a su unidad por el nombre. Si el email o documento ya existe, la fila se marca como duplicada y tú decides si la importas igual." />
             </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
-              Columnas: <code className="rounded bg-[var(--slate-100)] px-1 py-0.5 text-xs">nombre, email, telefono, documento, unidad, rol</code>
+              Columnas: <code className="rounded-sm bg-[var(--slate-100)] px-1 py-0.5 text-xs">nombre, email, telefono, documento, unidad, rol</code>
             </p>
           </div>
           {parseError && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{parseError}</p>}
@@ -512,7 +512,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             <table className="responsive-table text-sm">
               <thead className="bg-[var(--slate-100)] text-left text-[var(--slate-700)]">
                 <tr>
-                  <th className="px-3 py-2 w-8"><input ref={selectAllRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Seleccionar todas" className="h-4 w-4 cursor-pointer rounded border-[var(--slate-300)] accent-[var(--brand-700)]" /></th>
+                  <th className="px-3 py-2 w-8"><input ref={selectAllRef} type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Seleccionar todas" className="h-4 w-4 cursor-pointer rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]" /></th>
                   <th className="px-3 py-2">Fila</th>
                   <th className="px-3 py-2">Nombre</th>
                   <th className="px-3 py-2">Email</th>
@@ -526,7 +526,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
                   const isSelectable = row.errors.length === 0;
                   return (
                     <tr key={row.rowIndex} className={`border-t border-[var(--slate-200)] ${!isSelectable ? "opacity-50" : ""}`}>
-                      <td className="px-3 py-2"><input type="checkbox" checked={selected.has(row.rowIndex)} disabled={!isSelectable} onChange={() => isSelectable && toggleRow(row.rowIndex)} aria-label={`Fila ${row.rowIndex}`} className="h-4 w-4 cursor-pointer rounded border-[var(--slate-300)] accent-[var(--brand-700)] disabled:cursor-not-allowed" /></td>
+                      <td className="px-3 py-2"><input type="checkbox" checked={selected.has(row.rowIndex)} disabled={!isSelectable} onChange={() => isSelectable && toggleRow(row.rowIndex)} aria-label={`Fila ${row.rowIndex}`} className="h-4 w-4 cursor-pointer rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)] disabled:cursor-not-allowed" /></td>
                       <td className="px-3 py-2 text-xs text-[var(--slate-500)]">{row.rowIndex}</td>
                       <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{row.fullName || <span className="italic text-rose-400">vacío</span>}</td>
                       <td className="px-3 py-2 text-[var(--slate-700)]">{row.email || <span className="italic text-rose-400">vacío</span>}</td>

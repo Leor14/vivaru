@@ -260,12 +260,12 @@ export default function ResidentPqrsPage() {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="rounded-xl border border-[var(--slate-200)] bg-white p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <Skeleton className="h-5 w-48 rounded" />
+                    <Skeleton className="h-5 w-48 rounded-sm" />
                     <Skeleton className="h-5 w-20 rounded-full" />
                   </div>
                   <div className="flex gap-2">
                     <Skeleton className="h-4 w-16 rounded-md" />
-                    <Skeleton className="h-4 w-24 rounded" />
+                    <Skeleton className="h-4 w-24 rounded-sm" />
                   </div>
                 </div>
               ))}

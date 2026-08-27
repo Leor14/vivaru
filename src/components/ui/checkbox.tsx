@@ -34,7 +34,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
           className={cn(
-            "h-4 w-4 rounded border-[var(--slate-300)] cursor-pointer",
+            "h-4 w-4 rounded-sm border-[var(--slate-300)] cursor-pointer",
             "accent-[var(--brand-700)]",
             disabled && "cursor-not-allowed",
           )}

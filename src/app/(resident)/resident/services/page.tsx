@@ -112,11 +112,11 @@ export default function ResidentServicesPage() {
                 <div className="space-y-2 p-4 sm:p-5">
                   <div className="flex items-center gap-2">
                     <Skeleton className="h-4 w-20 rounded-full" />
-                    <Skeleton className="h-3 w-16 rounded" />
+                    <Skeleton className="h-3 w-16 rounded-sm" />
                   </div>
-                  <Skeleton className="h-5 w-48 rounded" />
-                  <Skeleton className="h-4 w-full rounded" />
-                  <Skeleton className="h-4 w-4/5 rounded" />
+                  <Skeleton className="h-5 w-48 rounded-sm" />
+                  <Skeleton className="h-4 w-full rounded-sm" />
+                  <Skeleton className="h-4 w-4/5 rounded-sm" />
                 </div>
               </div>
             ))}

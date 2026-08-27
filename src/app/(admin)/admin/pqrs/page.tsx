@@ -446,12 +446,12 @@ export default function AdminPqrsPage() {
                   {[1, 2, 3, 4].map((i) => (
                     <tr key={i} className="border-t border-[var(--slate-200)]">
                       <td className="px-3 py-2">
-                        <Skeleton className="h-4 w-3/4 rounded" />
-                        <Skeleton className="mt-1.5 h-3 w-1/2 rounded" />
+                        <Skeleton className="h-4 w-3/4 rounded-sm" />
+                        <Skeleton className="mt-1.5 h-3 w-1/2 rounded-sm" />
                       </td>
                       <td className="px-3 py-2">
-                        <Skeleton className="h-4 w-full rounded" />
-                        <Skeleton className="mt-1.5 h-3 w-2/3 rounded" />
+                        <Skeleton className="h-4 w-full rounded-sm" />
+                        <Skeleton className="mt-1.5 h-3 w-2/3 rounded-sm" />
                       </td>
                       <td className="px-3 py-2">
                         <Skeleton className="h-5 w-20 rounded-full" />

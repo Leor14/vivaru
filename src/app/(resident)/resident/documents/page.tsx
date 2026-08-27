@@ -20,7 +20,7 @@ export default function ResidentDocumentsPage() {
           <>
             {[1, 2, 3].map((i) => (
               <li key={i} className="rounded-xl border border-[var(--slate-200)] p-3">
-                <Skeleton className="h-4 w-4/5 rounded" />
+                <Skeleton className="h-4 w-4/5 rounded-sm" />
               </li>
             ))}
           </>

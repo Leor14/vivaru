@@ -67,7 +67,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(false); }}
         aria-label="Cerrar ayuda"
-        className="rounded p-0.5 text-[var(--slate-400)] hover:text-[var(--slate-600)]"
+        className="rounded-sm p-0.5 text-[var(--slate-400)] hover:text-[var(--slate-600)]"
       >
         <X className="h-3 w-3" />
       </button>

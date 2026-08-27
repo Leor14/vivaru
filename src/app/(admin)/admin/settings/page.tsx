@@ -377,7 +377,7 @@ export default function AdminSettingsPage() {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+              className="mt-0.5 h-4 w-4 rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]"
               checked={blockOnDebt}
               disabled={savingPolicy}
               onChange={(e) => void handleToggleBlockOnDebt(e.target.checked)}

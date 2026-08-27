@@ -29,9 +29,9 @@ export function ResidentHeader({ tenantId, tenantName }: Props) {
       style={{ background: color, color: "#fff", minHeight: 64 }}
     >
       {logoUrl ? (
-        <img src={logoUrl} alt={name} className="h-10 w-10 shrink-0 rounded bg-white object-contain" />
+        <img src={logoUrl} alt={name} className="h-10 w-10 shrink-0 rounded-sm bg-white object-contain" />
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-white text-lg font-bold text-[var(--brand-700)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-white text-lg font-bold text-[var(--brand-700)]">
           {name[0]}
         </div>
       )}

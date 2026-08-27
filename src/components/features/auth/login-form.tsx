@@ -157,7 +157,7 @@ export function LoginForm() {
           <label className="flex items-center gap-2 text-sm text-[var(--slate-700)]">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-[var(--slate-300)] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[color:var(--brand-200)] focus-visible:ring-offset-1"
+              className="h-4 w-4 rounded-sm border-[var(--slate-300)] transition-all duration-200 focus-visible:ring-2 focus-visible:ring-[color:var(--brand-200)] focus-visible:ring-offset-1"
               {...register("remember")}
             />
             Recordar sesión

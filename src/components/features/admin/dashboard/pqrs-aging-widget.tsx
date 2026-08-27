@@ -60,7 +60,7 @@ export function PqrsAgingWidget({ tenantId }: Props) {
       {summary.loading ? (
         <div className="mt-4 space-y-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-3 w-full animate-pulse rounded bg-[var(--slate-200)]" />
+            <div key={i} className="h-3 w-full animate-pulse rounded-sm bg-[var(--slate-200)]" />
           ))}
         </div>
       ) : (

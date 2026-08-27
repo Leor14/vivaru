@@ -49,8 +49,8 @@ export function RegulationComplianceWidget({ tenantId, totalUnits }: Props) {
 
       {summary.loading ? (
         <div className="mt-4 space-y-3">
-          <div className="h-6 w-32 animate-pulse rounded bg-[var(--slate-200)]" />
-          <div className="h-2 w-full animate-pulse rounded bg-[var(--slate-200)]" />
+          <div className="h-6 w-32 animate-pulse rounded-sm bg-[var(--slate-200)]" />
+          <div className="h-2 w-full animate-pulse rounded-sm bg-[var(--slate-200)]" />
         </div>
       ) : !summary.activeRegulationId ? (
         <p className="mt-4 rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--slate-600)]">

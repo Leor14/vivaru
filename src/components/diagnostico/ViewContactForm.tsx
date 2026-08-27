@@ -140,7 +140,7 @@ export function ViewContactForm({
         <input
           id="consent"
           type="checkbox"
-          className="mt-1 h-5 w-5 shrink-0 rounded border-slate-300 text-brand-blue focus:ring-brand-blue/40"
+          className="mt-1 h-5 w-5 shrink-0 rounded-sm border-slate-300 text-brand-blue focus:ring-brand-blue/40"
           {...register("consent")}
         />
         <span>

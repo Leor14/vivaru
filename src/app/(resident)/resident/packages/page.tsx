@@ -84,15 +84,15 @@ export default function ResidentPackagesPage() {
               <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1.5">
-                    <Skeleton className="h-3.5 w-14 rounded" />
-                    <Skeleton className="h-5 w-28 rounded" />
+                    <Skeleton className="h-3.5 w-14 rounded-sm" />
+                    <Skeleton className="h-5 w-28 rounded-sm" />
                   </div>
                   <Skeleton className="h-6 w-20 rounded-full" />
                 </div>
                 <div className="mt-3 space-y-1.5">
-                  <Skeleton className="h-4 w-full rounded" />
-                  <Skeleton className="h-4 w-4/5 rounded" />
-                  <Skeleton className="h-4 w-2/3 rounded" />
+                  <Skeleton className="h-4 w-full rounded-sm" />
+                  <Skeleton className="h-4 w-4/5 rounded-sm" />
+                  <Skeleton className="h-4 w-2/3 rounded-sm" />
                 </div>
               </div>
             ))}

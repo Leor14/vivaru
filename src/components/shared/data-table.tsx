@@ -76,8 +76,8 @@ export function DataTable<T>({
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center gap-3 bg-white px-3 py-3">
                 <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3.5 w-32 rounded" />
-                  <Skeleton className="h-3 w-24 rounded" />
+                  <Skeleton className="h-3.5 w-32 rounded-sm" />
+                  <Skeleton className="h-3 w-24 rounded-sm" />
                 </div>
                 <Skeleton className="h-7 w-7 rounded-lg" />
               </div>
@@ -183,7 +183,7 @@ export function DataTable<T>({
                 <tr key={`skel-${i}`} className="border-b border-[var(--slate-100)]">
                   {columns.map((column) => (
                     <td key={column.key} className="py-3 pr-4 first:pl-1 last:pr-1">
-                      <Skeleton className="h-4 w-24 rounded" />
+                      <Skeleton className="h-4 w-24 rounded-sm" />
                     </td>
                   ))}
                   {renderActions ? (

@@ -333,7 +333,7 @@ export function EstadoDeCuentaUnidadCard({
                     <span className="text-[var(--slate-700)]">
                       <span className="font-medium text-[var(--slate-900)]">{c.code}</span> · {c.asOfDate}
                       {c.status === "anulado" ? (
-                        <span className="ml-2 rounded bg-[var(--slate-100)] px-1.5 py-0.5 text-xs text-[var(--slate-500)]">
+                        <span className="ml-2 rounded-sm bg-[var(--slate-100)] px-1.5 py-0.5 text-xs text-[var(--slate-500)]">
                           Anulado
                         </span>
                       ) : null}

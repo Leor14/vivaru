@@ -88,7 +88,7 @@ export function BillingBulkMessageDrawer({
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => onToggleUnit(unit.id)}
-                      className="h-4 w-4 rounded border-[var(--slate-300)]"
+                      className="h-4 w-4 rounded-sm border-[var(--slate-300)]"
                     />
                     <span>{unit.label}</span>
                   </label>

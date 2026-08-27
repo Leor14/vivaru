@@ -115,15 +115,15 @@ export default function ResidentCommunicationsPage() {
               <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-5 w-40 rounded" />
-                    <Skeleton className="h-3 w-24 rounded" />
+                    <Skeleton className="h-5 w-40 rounded-sm" />
+                    <Skeleton className="h-3 w-24 rounded-sm" />
                   </div>
                   <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
                 </div>
                 <div className="mt-3 space-y-1.5">
-                  <Skeleton className="h-4 w-full rounded" />
-                  <Skeleton className="h-4 w-4/5 rounded" />
-                  <Skeleton className="h-4 w-3/5 rounded" />
+                  <Skeleton className="h-4 w-full rounded-sm" />
+                  <Skeleton className="h-4 w-4/5 rounded-sm" />
+                  <Skeleton className="h-4 w-3/5 rounded-sm" />
                 </div>
               </div>
             ))}
@@ -245,7 +245,7 @@ export default function ResidentCommunicationsPage() {
                         >
                           <FileText className={`h-4 w-4 shrink-0 ${colorCls}`} aria-hidden="true" />
                           <span className="truncate">{displayName}</span>
-                          <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold ${badgeCls}`}>
+                          <span className={`shrink-0 rounded-sm px-1 py-0.5 text-[10px] font-semibold ${badgeCls}`}>
                             {badge}
                           </span>
                         </a>

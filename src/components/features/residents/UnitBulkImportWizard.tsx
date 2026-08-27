@@ -473,7 +473,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
               <HelpTip text="Descarga la plantilla para ver el formato exacto. El nombre de cada unidad es clave: si ya existe una con ese mismo nombre en el conjunto, el sistema la marcará como duplicada y tú decides si importarla de todos modos o descartarla. Mayúsculas, minúsculas y tildes no afectan el reconocimiento de tipo y estado." />
             </div>
             <p className="mt-1 text-sm text-[var(--slate-500)]">
-              Columnas requeridas: <code className="rounded bg-[var(--slate-100)] px-1 py-0.5 text-xs">nombre, torre, tipo, estado</code>
+              Columnas requeridas: <code className="rounded-sm bg-[var(--slate-100)] px-1 py-0.5 text-xs">nombre, torre, tipo, estado</code>
             </p>
           </div>
 
@@ -617,7 +617,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
                       checked={allSelected}
                       onChange={toggleAll}
                       aria-label="Seleccionar todas las filas válidas"
-                      className="h-4 w-4 cursor-pointer rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+                      className="h-4 w-4 cursor-pointer rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]"
                     />
                   </th>
                   <th className="px-3 py-2">Fila</th>
@@ -644,7 +644,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
                           disabled={!isSelectable}
                           onChange={() => isSelectable && toggleRow(row.rowIndex)}
                           aria-label={`Fila ${row.rowIndex}`}
-                          className="h-4 w-4 cursor-pointer rounded border-[var(--slate-300)] accent-[var(--brand-700)] disabled:cursor-not-allowed"
+                          className="h-4 w-4 cursor-pointer rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)] disabled:cursor-not-allowed"
                         />
                       </td>
                       <td className="px-3 py-2 text-[var(--slate-500)] text-xs">{row.rowIndex}</td>

@@ -1061,7 +1061,7 @@ export default function ResidentReservationsPage() {
                   <label className="flex items-start gap-2">
                     <input
                       type="checkbox"
-                      className="mt-1 h-4 w-4 rounded border-[var(--slate-300)] text-[var(--brand-700)] focus:ring-[var(--brand-200)]"
+                      className="mt-1 h-4 w-4 rounded-sm border-[var(--slate-300)] text-[var(--brand-700)] focus:ring-[var(--brand-200)]"
                       checked={exclusiveUse}
                       onChange={(event) => setExclusiveUse(event.target.checked)}
                     />
@@ -1203,13 +1203,13 @@ export default function ResidentReservationsPage() {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <Skeleton className="h-5 w-40 rounded" />
+                    <Skeleton className="h-5 w-40 rounded-sm" />
                     <Skeleton className="h-5 w-20 rounded-full" />
                   </div>
                   <div className="mt-3 space-y-2">
-                    <Skeleton className="h-4 w-36 rounded" />
-                    <Skeleton className="h-4 w-28 rounded" />
-                    <Skeleton className="h-4 w-32 rounded" />
+                    <Skeleton className="h-4 w-36 rounded-sm" />
+                    <Skeleton className="h-4 w-28 rounded-sm" />
+                    <Skeleton className="h-4 w-32 rounded-sm" />
                   </div>
                 </div>
               ))}

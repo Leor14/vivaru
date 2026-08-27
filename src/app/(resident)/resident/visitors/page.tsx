@@ -123,9 +123,9 @@ export default function ResidentVisitorsPage() {
               <div key={i} className="rounded-xl border border-[var(--slate-200)] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
-                    <Skeleton className="h-5 w-40 rounded" />
-                    <Skeleton className="h-4 w-32 rounded" />
-                    <Skeleton className="h-4 w-56 rounded" />
+                    <Skeleton className="h-5 w-40 rounded-sm" />
+                    <Skeleton className="h-4 w-32 rounded-sm" />
+                    <Skeleton className="h-4 w-56 rounded-sm" />
                   </div>
                   <Skeleton className="h-6 w-20 rounded-full" />
                 </div>

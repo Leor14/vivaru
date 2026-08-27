@@ -211,7 +211,7 @@ export default function ResidentRegulationsPage() {
               ref={checkboxRef}
               type="checkbox"
               id="accept-regulation"
-              className="h-5 w-5 shrink-0 cursor-pointer rounded accent-[var(--brand-700)]"
+              className="h-5 w-5 shrink-0 cursor-pointer rounded-sm accent-[var(--brand-700)]"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
             />

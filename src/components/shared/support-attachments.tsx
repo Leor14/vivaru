@@ -90,7 +90,7 @@ export function AttachmentPicker({
                 type="button"
                 aria-label={`Quitar ${file.name}`}
                 onClick={() => onChange(files.filter((_, j) => j !== i))}
-                className="shrink-0 rounded p-0.5 text-[var(--slate-500)] hover:bg-[var(--slate-100)]"
+                className="shrink-0 rounded-sm p-0.5 text-[var(--slate-500)] hover:bg-[var(--slate-100)]"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>

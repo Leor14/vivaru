@@ -368,7 +368,7 @@ export default function AdminDocumentsPage() {
           <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm text-[var(--slate-700)]">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+              className="h-4 w-4 rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]"
               checked={starredOnly}
               onChange={(event) => setStarredOnly(event.target.checked)}
             />

@@ -598,7 +598,7 @@ function AdminReportsPageContent() {
             <div className="flex items-center gap-3">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="" className="h-12 w-12 rounded object-contain" />
+                <img src={logoUrl} alt="" className="h-12 w-12 rounded-sm object-contain" />
               ) : null}
               <div>
                 <p className="text-lg font-bold text-[var(--slate-900)]">{user?.tenantName ?? "Conjunto"}</p>
@@ -851,7 +851,7 @@ function AdminReportsPageContent() {
                             <td className="px-4 py-2 text-right font-medium text-[var(--danger-700)]">{formatCurrency(u.balance)}</td>
                             <td className={`px-4 py-2 text-right ${u.periods >= 4 ? "font-semibold text-[var(--danger-700)]" : "text-[var(--slate-500)]"}`}>
                               {u.periods}
-                              {u.periods >= 4 ? <span className="ml-1 rounded bg-red-100 px-1 text-[10px] font-medium text-[var(--danger-700)]">crónico</span> : null}
+                              {u.periods >= 4 ? <span className="ml-1 rounded-sm bg-red-100 px-1 text-[10px] font-medium text-[var(--danger-700)]">crónico</span> : null}
                             </td>
                           </tr>
                         ))}

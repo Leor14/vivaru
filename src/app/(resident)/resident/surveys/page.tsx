@@ -367,12 +367,12 @@ export default function ResidentSurveysPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <Skeleton className="h-5 w-44 rounded" />
+                      <Skeleton className="h-5 w-44 rounded-sm" />
                       <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
                     </div>
-                    <Skeleton className="h-4 w-full rounded" />
-                    <Skeleton className="h-4 w-3/4 rounded" />
-                    <Skeleton className="h-3 w-20 rounded" />
+                    <Skeleton className="h-4 w-full rounded-sm" />
+                    <Skeleton className="h-4 w-3/4 rounded-sm" />
+                    <Skeleton className="h-3 w-20 rounded-sm" />
                   </div>
                   <div className="w-full sm:w-auto sm:shrink-0">
                     <Skeleton className="h-8 w-full rounded-lg sm:w-24" />

@@ -662,7 +662,7 @@ export default function SuperadminTenantsPage() {
             <label className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
               <input
                 type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-amber-300 accent-amber-600"
+                className="mt-0.5 h-4 w-4 rounded-sm border-amber-300 accent-amber-600"
                 checked={lockedAck}
                 onChange={(e) => setLockedAck(e.target.checked)}
               />

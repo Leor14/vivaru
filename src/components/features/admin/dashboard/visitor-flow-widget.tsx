@@ -108,7 +108,7 @@ export function VisitorFlowWidget({ tenantId }: Props) {
       </div>
 
       {summary.loading ? (
-        <div className="mt-4 h-12 w-full animate-pulse rounded bg-[var(--slate-200)]" />
+        <div className="mt-4 h-12 w-full animate-pulse rounded-sm bg-[var(--slate-200)]" />
       ) : (
         <>
           <div className="mt-3 flex h-12 items-end gap-1.5">

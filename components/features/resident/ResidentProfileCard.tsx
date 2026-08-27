@@ -368,7 +368,7 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
             ) : unitsError ? (
               <div className="text-destructive text-sm">{unitsError}</div>
             ) : (
-              <select className="w-full border rounded px-2 py-1" {...registerUnit("requestedUnitId", { required: "Selecciona una unidad" })}>
+              <select className="w-full border rounded-sm px-2 py-1" {...registerUnit("requestedUnitId", { required: "Selecciona una unidad" })}>
                 <option value="">Selecciona una unidad</option>
                 {availableUnits.map((unit) => (
                   <option key={unit.id} value={unit.id}>{unit.display}</option>
@@ -380,7 +380,7 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
 
           <div>
             <label className="block font-semibold mb-1">Motivo (opcional)</label>
-            <textarea className="w-full border rounded px-2 py-1" rows={2} {...registerUnit("reason")}></textarea>
+            <textarea className="w-full border rounded-sm px-2 py-1" rows={2} {...registerUnit("reason")}></textarea>
           </div>
 
           <div className="flex gap-2 justify-end">
@@ -400,7 +400,7 @@ export function ResidentProfileCard({ user, onProfileUpdated }: Props) {
       {unitChangeRequestLoading ? (
         <div className="mt-4 text-muted-foreground text-sm">Cargando estado de solicitud de cambio de unidad...</div>
       ) : unitChangeRequest ? (
-        <div className="mt-4 p-3 rounded border bg-slate-50">
+        <div className="mt-4 p-3 rounded-sm border bg-slate-50">
           <div className="font-semibold mb-1">Solicitud de cambio de unidad</div>
           <div className="text-sm mb-1"><span className="font-medium">Unidad solicitada:</span> {unitChangeRequest.requestedUnitDisplay}</div>
           <div className="text-sm mb-1">

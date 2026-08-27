@@ -396,7 +396,7 @@ export function DemoDialog({ children, section }: DemoDialogProps) {
                       setConsent(e.target.checked);
                       if (e.target.checked) setError(null);
                     }}
-                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300"
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded-sm border-slate-300"
                   />
                   <span>
                     Acepto que Vivaru (operado por Qintilab S.A.S.) trate mis

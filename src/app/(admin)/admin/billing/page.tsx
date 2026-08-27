@@ -1564,7 +1564,7 @@ function AdminBillingPageContent() {
                   />
                   <span className="truncate">{u.label}</span>
                   {duplicateLabels.has(u.label) ? (
-                    <span className="shrink-0 rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-700">repetida</span>
+                    <span className="shrink-0 rounded-sm bg-amber-100 px-1 text-[10px] font-medium text-amber-700">repetida</span>
                   ) : null}
                 </label>
               ))}
@@ -2001,15 +2001,15 @@ function AdminBillingPageContent() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skel-${i}`} className="border-b border-[var(--slate-100)]">
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-16 rounded" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-24 rounded" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-16 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-24 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded-sm" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded" /></td>
-                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-8 rounded" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-20 rounded-sm" /></td>
+                  <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-8 rounded-sm" /></td>
                   <td className="px-3 py-2.5"><Skeleton className="h-7 w-16 rounded-xl" /></td>
                 </tr>
               ))

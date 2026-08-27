@@ -1123,7 +1123,7 @@ export default function AdminResidentsPage() {
                 type="button"
                 onClick={() => setUnitSearch("")}
                 aria-label="Limpiar búsqueda"
-                className="absolute right-2 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[var(--slate-400)] hover:text-[var(--slate-700)]"
+                className="absolute right-2 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-[var(--slate-400)] hover:text-[var(--slate-700)]"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -1173,7 +1173,7 @@ export default function AdminResidentsPage() {
           <label className="flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-700)] hover:bg-[var(--slate-50)]">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+              className="h-4 w-4 rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]"
               checked={unitNoPersonFilter}
               onChange={(e) => setUnitNoPersonFilter(e.target.checked)}
             />
@@ -1530,7 +1530,7 @@ export default function AdminResidentsPage() {
               <label className="flex cursor-pointer items-start gap-3">
                 <input
                   type="checkbox"
-                  className="mt-0.5 h-4 w-4 rounded border-[var(--slate-300)] accent-[var(--brand-700)]"
+                  className="mt-0.5 h-4 w-4 rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]"
                   checked={unitExempt}
                   onChange={(e) => setUnitExempt(e.target.checked)}
                 />

@@ -692,7 +692,7 @@ export default function AdminReservationsPage() {
                   <label key={idx} className="flex cursor-pointer items-center gap-1.5 text-sm text-[var(--slate-700)]">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-[var(--slate-300)]"
+                      className="h-4 w-4 rounded-sm border-[var(--slate-300)]"
                       checked={amenityWeekdays.includes(idx)}
                       onChange={() => setAmenityWeekdays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx].sort((a, b) => a - b))}
                     />
@@ -1070,7 +1070,7 @@ export default function AdminReservationsPage() {
                   <label key={idx} className="flex cursor-pointer items-center gap-1.5 text-sm text-[var(--slate-700)]">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-[var(--slate-300)]"
+                      className="h-4 w-4 rounded-sm border-[var(--slate-300)]"
                       checked={editAmenityWeekdays.includes(idx)}
                       onChange={() => setEditAmenityWeekdays((prev) => prev.includes(idx) ? prev.filter((d) => d !== idx) : [...prev, idx].sort((a, b) => a - b))}
                     />

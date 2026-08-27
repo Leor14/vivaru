@@ -555,8 +555,8 @@ export default function AdminVisitorsPage() {
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex gap-3 rounded-xl border border-[var(--slate-200)] p-3">
                   <div className="flex-1 space-y-1.5">
-                    <div className="h-4 w-32 animate-pulse rounded bg-[var(--slate-200)]" />
-                    <div className="h-3 w-48 animate-pulse rounded bg-[var(--slate-100)]" />
+                    <div className="h-4 w-32 animate-pulse rounded-sm bg-[var(--slate-200)]" />
+                    <div className="h-3 w-48 animate-pulse rounded-sm bg-[var(--slate-100)]" />
                   </div>
                   <div className="h-5 w-20 animate-pulse rounded-full bg-[var(--slate-100)]" />
                 </div>

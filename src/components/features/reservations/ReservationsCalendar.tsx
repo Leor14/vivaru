@@ -320,7 +320,7 @@ export function ReservationsCalendar({
                         {amenityName}
                       </span>
                       {/* Timeline bar */}
-                      <div className="relative h-8 flex-1 overflow-hidden rounded bg-white">
+                      <div className="relative h-8 flex-1 overflow-hidden rounded-sm bg-white">
                         {/* Vertical hour guides */}
                         {HOUR_LABELS.slice(1, -1).map((h) => {
                           const pct = ((h - MIN_HOUR) / (MAX_HOUR - MIN_HOUR)) * 100;
@@ -357,7 +357,7 @@ export function ReservationsCalendar({
                             <div
                               key={r.id}
                               title={`${r.amenityName} · ${r.startTime}–${r.endTime} · ${r.reservedBy} · ${r.status === "approved" ? "Aprobada" : "Pendiente"}`}
-                              className="absolute bottom-1 top-1 flex items-center overflow-hidden rounded px-1"
+                              className="absolute bottom-1 top-1 flex items-center overflow-hidden rounded-sm px-1"
                               style={{
                                 left: `${leftPct}%`,
                                 width: `${widthPct}%`,
