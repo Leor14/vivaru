@@ -120,6 +120,8 @@ export function AdminVouchersCard() {
     {
       key: "amount",
       header: "Monto",
+      className: "text-right",
+      headerClassName: "text-right",
       render: (item) => (
         <span className={item.anulado ? "opacity-60" : "font-medium"}>
           {formatAmount(item.amount)}

@@ -264,6 +264,8 @@ export default function AdminEgresosPage() {
     {
       key: "amount",
       header: "Monto",
+      className: "text-right",
+      headerClassName: "text-right",
       render: (item) => <span className="font-medium text-[var(--slate-900)]">{formatAmount(item.amount)}</span>,
     },
     {

@@ -1771,8 +1771,8 @@ function AdminBillingPageContent() {
                   <th className="px-3 py-2 font-medium text-left">Período</th>
                   <th className="px-3 py-2 font-medium text-left">Enviado</th>
                   <th className="px-3 py-2 font-medium text-left"># unidades</th>
-                  <th className="px-3 py-2 font-medium text-left">Valor</th>
-                  <th className="px-3 py-2 font-medium text-left">Recaudado / Pendiente</th>
+                  <th className="px-3 py-2 font-medium text-right">Valor</th>
+                  <th className="px-3 py-2 font-medium text-right">Recaudado / Pendiente</th>
                   <th className="px-3 py-2 font-medium text-left">% recaudo</th>
                   <th className="px-3 py-2 font-medium text-left">Estado</th>
                   <th className="px-3 py-2 font-medium text-left">Acciones</th>
@@ -1785,8 +1785,8 @@ function AdminBillingPageContent() {
                     <td className="px-3 py-2">{formatTableDate(c.period)}</td>
                     <td className="px-3 py-2">{formatSentAt(c.sentAt)}</td>
                     <td className="px-3 py-2">{unitCount}</td>
-                    <td className="px-3 py-2">{formatAmount(c.unitAmount)}</td>
-                    <td className="px-3 py-2">{formatAmount(recaudado)} / {formatAmount(pendiente)}</td>
+                    <td className="px-3 py-2 text-right">{formatAmount(c.unitAmount)}</td>
+                    <td className="px-3 py-2 text-right">{formatAmount(recaudado)} / {formatAmount(pendiente)}</td>
                     <td className="px-3 py-2">{pct}%</td>
                     <td className="px-3 py-2">{c.status === "cerrada" ? "Cerrada" : "Vigente"}</td>
                     <td className="px-3 py-2">
@@ -1987,9 +1987,9 @@ function AdminBillingPageContent() {
             <tr className="border-b border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-700)]">
               <th className="px-3 py-2 font-medium text-left">Apartamento</th>
               <th className="px-3 py-2 font-medium text-left">Fecha</th>
-              <th className="px-3 py-2 font-medium text-left">Monto</th>
-              <th className="px-3 py-2 font-medium text-left">Abono</th>
-              <th className="px-3 py-2 font-medium text-left">Saldo</th>
+              <th className="px-3 py-2 font-medium text-right">Monto</th>
+              <th className="px-3 py-2 font-medium text-right">Abono</th>
+              <th className="px-3 py-2 font-medium text-right">Saldo</th>
               <th className="px-3 py-2 font-medium text-left">Fecha límite</th>
               <th className="px-3 py-2 font-medium text-left">Estado</th>
               <th className="px-3 py-2 font-medium text-left">Comprobante</th>
@@ -2036,9 +2036,9 @@ function AdminBillingPageContent() {
                   ) : null}
                 </td>
                 <td className="px-3 py-2">{formatTableDate(item.period)}</td>
-                <td className="px-3 py-2">{formatAmount(item.amount)}</td>
-                <td className="px-3 py-2">{formatAmount(item.paymentAmount)}</td>
-                <td className="px-3 py-2">{formatAmount(item.balance)}</td>
+                <td className="px-3 py-2 text-right">{formatAmount(item.amount)}</td>
+                <td className="px-3 py-2 text-right">{formatAmount(item.paymentAmount)}</td>
+                <td className="px-3 py-2 text-right">{formatAmount(item.balance)}</td>
                 <td className="px-3 py-2">{formatTableDate(item.dueDate)}</td>
                 <td className="px-3 py-2">
                   {isPaid ? (
@@ -2202,7 +2202,7 @@ function AdminBillingPageContent() {
                 <thead>
                   <tr className="border-b border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-700)]">
                     <th className="px-3 py-2 font-medium text-left">Unidad</th>
-                    <th className="px-3 py-2 font-medium text-left">Deuda total</th>
+                    <th className="px-3 py-2 font-medium text-right">Deuda total</th>
                     <th className="px-3 py-2 font-medium text-left"># períodos</th>
                     <th className="px-3 py-2 font-medium text-left">Más antiguo</th>
                     <th className="px-3 py-2 font-medium text-left">Último pago</th>
@@ -2213,7 +2213,7 @@ function AdminBillingPageContent() {
                   {morosos.map((m) => (
                     <tr key={m.unitId} className="border-b border-[var(--slate-100)]">
                       <td className="px-3 py-2 font-medium text-[var(--slate-800)]">{m.unitLabel}</td>
-                      <td className="px-3 py-2 font-semibold text-red-700">{formatAmount(m.deuda)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-red-700">{formatAmount(m.deuda)}</td>
                       <td className="px-3 py-2">{m.periodos.length}</td>
                       <td className="px-3 py-2">{formatTableDate(m.periodos[0])}</td>
                       <td className="px-3 py-2">{m.lastPaymentAt ? formatTableDate(m.lastPaymentAt) : "—"}</td>

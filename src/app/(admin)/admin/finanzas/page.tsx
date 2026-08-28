@@ -330,6 +330,8 @@ function AdminFinanzasLibroPageContent() {
     {
       key: "amount",
       header: "Monto",
+      className: "text-right",
+      headerClassName: "text-right",
       render: (item) => {
         // El signo y el color salen de si el movimiento ENTRA o SALE, no del
         // tipo: un reverso conserva el tipo y lleva monto negativo, así que
