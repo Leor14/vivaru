@@ -4,15 +4,58 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 27 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — 28 de agosto de 2026
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Elegir frente nuevo — pero antes, mirar tres cosas.** El frente de diseño está cerrado.
-> Quedan **2 commits en staging sin subir a producción**, los documentos que lees ahora se
-> acaban de poner al día, y **hay otra sesión escribiendo en este repositorio** (la tarea del
-> vocabulario por país). La regla de la casa es **una sola sesión que escriba a la vez**: si el
-> frente siguiente escribe código, esperar a que termine.
+> **El frente elegido es Albert ↔ Vivaru, y está esperando respuesta de ellos a DOS preguntas.**
+> No hay nada de código escrito ni pendiente de escribir hoy: lo que hay son **dos decisiones que
+> no son nuestras** —ver abajo—. Mientras contestan, **lo único adelantable es decidir dónde vive
+> el listener de la señal de vuelta**, que es decisión de David.
+>
+> Siguen en pie: **3 commits en staging sin subir a producción** (los dos de ayer más el de hoy),
+> y la regla de la casa —**una sola sesión que escriba a la vez**—.
+
+### ALBERT ↔ VIVARU — RETOMADO EL 28 DE AGOSTO, Y LO QUE SE SUPO
+
+**El estado vivo sigue siendo [`docs/prd/albert/ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md)**,
+que se reescribió entero hoy. Aquí solo lo que hay que saber para retomar:
+
+**Del lado de Albert no queda nada abierto.** Llegó `RESPUESTA-A-005`: **B1 y B3 desplegados**
+—el camino de supresión y la retención 12/12 existen ya en su producción—, A1 cerrado, y el
+`displayName` del usuario de servicio **confirmado por nosotros en pantalla** (`integracion-vivaru`),
+que era lo último que les debíamos esperar.
+
+**Se contestó con [`DECISIONES-A-005`](prd/albert/DECISIONES-A-005-vivaru-a-albert.md), que va por
+el canal y lleva DOS preguntas.** Son lo único que frena el frente:
+
+1. **La clave estable de «ganado» — bloquea DISEÑO.** Navegando su consola se vio que las etapas
+   del pipeline son una **caja de texto libre** (`Nuevo, Contactado, Propuesta, Negociacion,
+   Ganado, Perdido`) y que el desplegable del deal ofrece **esas mismas cadenas**. Condicionar la
+   señal de vuelta a `stage === "Ganado"` significa que **el día que alguien reescriba esa caja el
+   detector deja de disparar sin dar un error**. Se les pide un campo que no se mueva cuando el
+   texto se mueva. **No se les pide congelar el texto.**
+2. **La credencial — bloquea EJECUCIÓN.** Nadie ha dicho nunca que el usuario de servicio tenga
+   contraseña, y al reautenticar el CLI se vio que **`albert-crm-1-1c162` aparece en nuestra lista
+   de proyectos** (con ese acceso se verificó su índice de A1 sin creerles). Así que en vez de
+   pedir una contraseña se les pide **conceder lectura a la cuenta de servicio de nuestras Cloud
+   Functions**. Es mejor por seguridad, no por comodidad: ver el punto siguiente.
+
+**Y un riesgo que creció sin que lo decidiéramos nosotros.** Albert desplegó el **reset
+self-service** en su login —que este expediente había recomendado explícitamente que NO
+priorizaran por nosotros—. El usuario de servicio vive en un **buzón de desarrollo compartido**,
+así que **recuperar la credencial con la que Vivaru escribirá en el CRM ya no exige un superadmin
+suyo**: se hace desde la pantalla de login. Hoy sale gratis corregirlo —**0 deals, 0 contactos, 0
+leads**, verificado en su consola—, y se encarece con el primer cliente.
+
+**Lo único adelantable sin respuesta suya:** decidir **dónde vive el listener**. `onSnapshot` tal
+cual **no tiene dónde correr** —App Hosting va a `minInstances: 0` y una función v2 no sostiene una
+suscripción—, así que la forma que encaja es una **función programada que sondee**. Ojo con no
+confundir mecanismo y requisito: C1 promete **que podemos leer**, no `onSnapshot`.
+
+**Dos avisos de credenciales, medidos hoy:** `firebase login --reauth` está **hecho y verificado**;
+**`gcloud` sigue caducado** —por eso no se pudo medir el nivel exacto de acceso a su proyecto—. Es
+la tercera vez que este proyecto se topa con que **las tres credenciales caducan por separado**.
 
 ### EL FRENTE DE DISEÑO, EN PRODUCCIÓN (`cad728c`, 27 ago)
 
@@ -2282,7 +2325,14 @@ real, pero vuelve a tener sentido entonces.
 
 **`docs/prd/albert/ESTADO-ALBERT.md`** es el documento vivo del expediente: qué está
 cerrado, qué debe Vivaru, qué debe Albert, y qué no tiene dueño. **Ir ahí antes que a los
-cuatro documentos del intercambio.** Abajo, solo lo que cambia esta lista.
+once documentos del intercambio.**
+
+> **AVISO DE VIGENCIA (28 ago 2026).** Todo lo que sigue en esta sección se escribió entre el
+> **19 y el 22 de agosto** y **describe a Albert como estaba entonces**. Al menos tres de sus
+> frases ya son falsas —«sin fecha para lo suyo», «no podemos probar el circuito hasta que
+> publique» y el reset self-service como inexistente—: A1 salió, **B1 y B3 están desplegados** y
+> el reset **está construido**. Se conserva porque explica **cómo se decidió cada cosa**, no
+> **qué está vigente**. Para lo vigente, la cabecera de este documento y `ESTADO-ALBERT.md`.
 
 #### `RESPUESTA-A-002` — lo que hay que saber sin releerla
 
