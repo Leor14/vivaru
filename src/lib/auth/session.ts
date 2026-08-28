@@ -36,7 +36,7 @@ export function loadSession(): SessionUser | null {
     return {
       uid: String(parsed.uid ?? ""),
       email: String(parsed.email ?? ""),
-      fullName: String(parsed.fullName ?? "Usuario HOGARU"),
+      fullName: String(parsed.fullName ?? "Usuario"),
       photoURL: typeof parsed.photoURL === "string" ? parsed.photoURL : undefined,
       avatarId: typeof parsed.avatarId === "string" ? parsed.avatarId : undefined,
       role: parsed.role as SessionUser["role"],

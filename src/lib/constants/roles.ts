@@ -12,9 +12,9 @@ export const APP_ROLES = {
 export type AppRole = (typeof APP_ROLES)[keyof typeof APP_ROLES];
 
 export const ROLE_LABEL: Record<AppRole, string> = {
-  super_admin: "Superadmin HOGARU",
+  super_admin: "Superadmin Vivaru",
   admin_tenant: "Administración",
-  superadmin: "Superadmin HOGARU",
+  superadmin: "Superadmin Vivaru",
   tenant_admin: "Administración",
   resident: "Residente",
   security_guard: "Guarda de seguridad",

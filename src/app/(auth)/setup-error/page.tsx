@@ -21,7 +21,7 @@ export default async function SetupErrorPage({
       <CardTitle className="mt-2 text-2xl">Firebase no esta configurado para este entorno</CardTitle>
       <CardDescription className="mt-3 text-sm text-[var(--slate-700)]">
         {hasMissingKeys
-          ? "HOGARU no puede iniciar autenticacion real porque faltan variables de entorno del cliente Firebase."
+          ? "Vivaru no puede iniciar autenticacion real porque faltan variables de entorno del cliente Firebase."
           : "No se detectan variables faltantes en esta build; revisa variables NEXT_PUBLIC en App Hosting para BUILD y RUNTIME, y vuelve a desplegar."}
       </CardDescription>
 
