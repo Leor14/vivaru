@@ -1,4 +1,13 @@
 @import "tailwindcss";
+
+/* Tailwind escanea TODO fichero de texto del proyecto buscando nombres de clase,
+   no solo los `.tsx`. Estos CSV son datos de prompts y listan clases de Tailwind
+   una por linea: sin excluirlos, el bundle genera utilidades que ninguna pantalla
+   usa. Se descubrio porque `.rounded` seguia apareciendo despues de migrar los 90
+   usos del producto. */
+@source not "../../.github/prompts";
+@source not "../../tests";
+@source not "../../scripts";
 @plugin "@tailwindcss/typography";
 
 :root {
