@@ -163,7 +163,7 @@ export function LoginForm() {
             Recordar sesión
           </label>
 
-          <Button className="h-12 w-full rounded-[10px]" type="submit" disabled={isSubmitting}>
+          <Button className="h-12 w-full" type="submit" disabled={isSubmitting}>
             <LogIn className="mr-2 h-4 w-4" />
             {isSubmitting ? "Validando acceso..." : "Ingresar"}
           </Button>

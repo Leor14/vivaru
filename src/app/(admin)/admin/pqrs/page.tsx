@@ -492,7 +492,11 @@ export default function AdminPqrsPage() {
                     className={`border-t border-[var(--slate-200)] align-top ${isSelected ? "bg-[var(--surface-soft)]" : ""}`}
                   >
                     <td className="px-3 py-2">
-                      <p className="pqrs-asunto truncate font-medium text-[var(--slate-900)]">{ticket.subject}</p>
+                      {/* El asunto es la frase que escribio el residente y se enseña como la
+                          escribio. Llevaba `capitalize`, que en español pone mayuscula a
+                          CADA palabra: en pantalla se leia «Sobre El Cajon De T3-63» y
+                          «Por Que Se Esta Pagando Dos Veces El Concepto De Basura». */}
+                      <p className="truncate font-medium text-[var(--slate-900)]">{ticket.subject}</p>
                       <p className="mt-0.5 truncate text-[11px] text-[var(--slate-500)]">
                         {isSimpleMode ? formatTicketDate(ticket.radicationDate) : `${ticket.radicado} · ${formatTicketDate(ticket.radicationDate)}`}
                       </p>

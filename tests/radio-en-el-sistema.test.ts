@@ -48,6 +48,23 @@ describe("el radio de las esquinas pasa por un token", () => {
     expect(culpables, `usa \`rounded-sm\`, que vale lo mismo y obedece al token:\n${culpables.join("\n")}`).toEqual([]);
   });
 
+  it("ningun .tsx del producto fija un radio en pixeles a pelo", () => {
+    // El landing queda fuera, como en la escala de radios: tiene su propio
+    // lenguaje visual y sus tokens estan anclados aparte.
+    const culpables: string[] = [];
+    for (const dir of DIRECTORIOS) {
+      for (const fichero of ficheros(dir)) {
+        if (fichero.includes("marketing")) continue;
+        soloCodigo(readFileSync(fichero, "utf8"))
+          .split("\n")
+          .forEach((linea, i) => {
+            if (/rounded(-[a-z]+)?-\[\d+px\]/.test(linea)) culpables.push(`${fichero}:${i + 1}`);
+          });
+      }
+    }
+    expect(culpables, `usa un token de la escala:\n${culpables.join("\n")}`).toEqual([]);
+  });
+
   it("el guardian mira ficheros de verdad", () => {
     expect(DIRECTORIOS.flatMap(ficheros).length).toBeGreaterThan(150);
   });

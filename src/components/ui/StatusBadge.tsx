@@ -104,13 +104,18 @@ export function resolveStatusTone(status: string): StatusTone {
  *
  * El fondo y el texto siguen en línea porque salen de la tabla de tonos y
  * cambian con el estado.
+ *
+ * **La forma es una píldora**, que es lo que dice «esto es un estado» sin
+ * leerlo. Era `rounded-[4px]`, un valor a pelo que ningún token alcanzaba. El
+ * relleno horizontal sube de 9 a 10 px porque los extremos redondos se comen
+ * parte del aire.
  */
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const tone = resolveStatusTone(status);
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-[5px] whitespace-nowrap rounded-[4px] px-[9px] py-[3px] text-[12px] font-medium leading-[1.2]",
+        "inline-flex items-center gap-[5px] whitespace-nowrap rounded-full px-[10px] py-[3px] text-[12px] font-medium leading-[1.2]",
         className,
       )}
       style={{

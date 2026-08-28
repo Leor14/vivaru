@@ -148,7 +148,7 @@ export function TenantBrandingCard(props: TenantBrandingCardProps) {
             {/* Live preview */}
             <div
               aria-hidden="true"
-              className="overflow-hidden rounded-[10px] border border-[var(--slate-200)]"
+              className="overflow-hidden rounded-lg border border-[var(--slate-200)]"
               style={{ width: "100%", maxWidth: 260, height: 130 }}
             >
               <div
