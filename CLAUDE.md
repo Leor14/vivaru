@@ -81,7 +81,9 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
   Con eso corren los **nueve** ficheros de emulador (180 pruebas) y `npm run test:rules`
   (208). Ninguno de los dos entra en `npm test`, así que **un cambio en `firestore.rules` o
   en una callable puede pasar el gate normal y estar roto**: los cuatro bancos son
-  `npm test` (1198), `npm --prefix functions test` (568), el emulador (180) y las reglas (208).
+  `npm test` (**1334** el 27 de agosto de 2026), `npm --prefix functions test` (568), el emulador
+  (180) y las reglas (208). **Estos números crecen: contarlos, no citarlos de aquí** — el primero
+  decía 1198 y llevaba trece guardianes de retraso.
 
 ## Ambientes desplegados
 
@@ -222,6 +224,20 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
   única palanca.
 - **Una consulta de `bankAccounts` que no haga un administrador TIENE que filtrar `active == true`.** Desde `FLOW-002` la lectura está abierta **al residente** —no a «los miembros»— y solo para cuentas activas, y Firestore evalúa la consulta contra la regla **sin ejecutarla**: sin ese `where` se rechaza entera aunque todas estuvieran activas. El saldo inicial vive aparte, en `bankAccountBalances`, y ese sí es solo-administrador. **La rama decía `tenantMember` hasta el 24 de agosto de 2026, y eso incluía a la portería y al consejo**: la PRD (§3) le da al `security_guard` «Nada / no puede Acceder», y la regla de `advances` evita `sameTenant` diciendo exactamente eso. Corregido a `tenantRole(..., 'resident')`.
 - **Tenant siempre con `currency` válido** (`COP`|`MXN`|`USD`): cualquier alta/seed de un tenant debe escribir `currency`; los formateadores (`Intl.NumberFormat`, `useTenantCurrency`) deben defaultear a un valor válido y nunca recibir `undefined`.
+- **TAILWIND 4 ESCANEA TODO FICHERO DE TEXTO DEL PROYECTO**, no solo los `.tsx`. Un JSON, un CSV o
+  un `.mjs` que contenga algo con pinta de clase la genera en el bundle. Costó descubrir por qué
+  `.rounded` seguía emitiéndose después de migrar los 90 usos del producto: la mantenían vivos dos
+  volcados de ESLint versionados en la raíz **con el código fuente dentro**, tres CSV de datos de
+  prompts, y **el propio guardián que veta la clase**, cuya expresión regular la nombra. Se excluye
+  con `@source not` en `globals.css` — y **su ruta es relativa al FICHERO CSS**: `globals.css` vive
+  en `src/app/`, así que `../..` ya es la raíz. Con un `..` de más apunta fuera del repositorio,
+  **no falla, y ahorra cero bytes**. Medir el CSS antes y después es lo único que lo delata.
+- **`h1, h2, h3` llevan Playfair por una regla GLOBAL de `globals.css`.** Es la tipografía de marca
+  y aplica a los cuatro portales y al landing. Hasta el 27 de agosto de 2026 dos reglas dentro de
+  `.admin-shell` la apagaban para el admin —y una de ellas aplanaba a peso 500 **toda** la énfasis,
+  `.font-semibold` y `.font-bold` incluidos—. **Están retiradas**, y `globals.css` no tiene ya
+  ningún `!important`. El suelo de peso de los encabezados vive en `@layer base` **a propósito**:
+  sin capa le ganaría a cualquier utilidad de Tailwind y sería la misma cárcel con otro nombre.
 - Locale `es-CO` siempre; `transition: all` prohibido; `replace_all` con acentos corrompe plurales.
 
 ## Seguridad

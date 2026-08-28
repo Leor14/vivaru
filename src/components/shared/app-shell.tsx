@@ -316,7 +316,7 @@ export function AppShell({
         <div className="border-b border-white/10" style={{ backgroundColor: brandingReady ? branding?.brandColor ?? DEFAULT_BRAND_COLOR : DEFAULT_BRAND_COLOR }}>
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-white md:px-8">
             <div className="flex items-center gap-2 text-sm font-medium">
-              {brandingReady && branding?.logoUrl ? <img src={branding.logoUrl} alt="Logo tenant" className="h-7 w-7 rounded-md object-cover" /> : null}
+              {brandingReady && branding?.logoUrl ? <img src={branding.logoUrl} alt="" className="h-7 w-7 rounded-md object-cover" /> : null}
               <span>{branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName ?? "Vivaru"}</span>
             </div>
           </div>
