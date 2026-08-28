@@ -18,10 +18,10 @@ export default async function SetupErrorPage({
   return (
     <Card className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--danger-600)]/25 bg-white p-6 md:p-8">
       <p className="text-xs font-semibold tracking-wide text-[var(--danger-700)] uppercase">Error de configuración</p>
-      <CardTitle className="mt-2 text-2xl">Firebase no esta configurado para este entorno</CardTitle>
+      <CardTitle className="mt-2 text-2xl">Firebase no está configurado para este entorno</CardTitle>
       <CardDescription className="mt-3 text-sm text-[var(--slate-700)]">
         {hasMissingKeys
-          ? "HOGARU no puede iniciar autenticacion real porque faltan variables de entorno del cliente Firebase."
+          ? "Vivaru no puede iniciar la autenticación real porque faltan variables de entorno del cliente Firebase."
           : "No se detectan variables faltantes en esta build; revisa variables NEXT_PUBLIC en App Hosting para BUILD y RUNTIME, y vuelve a desplegar."}
       </CardDescription>
 
@@ -37,8 +37,8 @@ export default async function SetupErrorPage({
           </>
         ) : (
           <div className="space-y-2 text-sm text-[var(--slate-700)]">
-            <p>Diagnostico: las variables requeridas existen en el bundle, pero la inicializacion del cliente no fue valida en este entorno.</p>
-            {reason ? <p className="font-medium text-[var(--slate-900)]">Detalle tecnico: {reason}</p> : null}
+            <p>Diagnóstico: las variables requeridas existen en el bundle, pero la inicialización del cliente no fue válida en este entorno.</p>
+            {reason ? <p className="font-medium text-[var(--slate-900)]">Detalle técnico: {reason}</p> : null}
           </div>
         )}
       </div>

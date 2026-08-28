@@ -303,8 +303,8 @@ export function AppShell({
         <div className="border-b border-white/10" style={{ backgroundColor: brandingReady ? branding?.brandColor ?? DEFAULT_BRAND_COLOR : DEFAULT_BRAND_COLOR }}>
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-white md:px-8">
             <div className="flex items-center gap-2 text-sm font-medium">
-              {brandingReady && branding?.logoUrl ? <img src={branding.logoUrl} alt="Logo tenant" className="h-7 w-7 rounded-md object-cover" /> : null}
-              <span>{branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName ?? "HOGARU"}</span>
+              {brandingReady && branding?.logoUrl ? <img src={branding.logoUrl} alt="" className="h-7 w-7 rounded-md object-cover" /> : null}
+              <span>{branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName ?? "Vivaru"}</span>
             </div>
           </div>
         </div>
@@ -491,7 +491,7 @@ export function AppShell({
       </div>
 
       <footer className={cn("mx-auto hidden px-8 pb-8 text-xs text-[var(--slate-500)] md:block", isAdminRole ? "max-w-none" : "max-w-7xl")}>
-        <p>Tenant: {branding?.tenantName ?? user.tenantName ?? "HOGARU"}</p>
+        <p>Tenant: {branding?.tenantName ?? user.tenantName ?? "Vivaru"}</p>
       </footer>
 
       {/* Bottom nav — portal residente y guardia, solo mobile */}
