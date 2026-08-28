@@ -2,9 +2,14 @@
 
 > Documento **vivo**: se reescribe, no se acumula. Es el sitio donde mirar para retomar
 > sin releer los nueve documentos del intercambio.
-> **Actualizado: 22 de agosto de 2026, tarde** — el intercambio documental **está cerrado**,
+> **Actualizado: 27 de agosto de 2026** — el intercambio documental **está cerrado**,
 > el alta A5 **está ejecutada**, **A1 está publicado en producción** y la validación de
-> `crmRef` **está construida y en staging**. Lo que queda es de otra clase: ver §4.0.
+> `crmRef` **ya está en producción también**. Lo que queda es de otra clase: ver §4.0.
+>
+> **Las cinco filas de §4.0 se volvieron a medir el 27 de agosto**, cinco días después de
+> escribirlas, porque una tabla de «qué existe en el código» envejece sin avisar. **Cuatro
+> siguen exactamente igual y una mejoró.** Nada del frente se movió en esos cinco días: la
+> jornada fue de diseño y experiencia, que no toca esta superficie.
 
 ---
 
@@ -95,11 +100,17 @@ el canal. La contraseña del usuario de servicio va a **Secret Manager**.
 
 | Pieza | En el código |
 |---|---|
-| **Validación de `crmRef`** | ✅ **HECHA.** `src/lib/albert/crm-ref.ts`, los dos formatos, conectada a las dos pantallas, 20 pruebas. En `develop` (`e59f8dc`), staging |
+| **Validación de `crmRef`** | ✅ **HECHA Y EN PRODUCCIÓN.** `src/lib/albert/crm-ref.ts`, los dos formatos, conectada a las dos pantallas, 20 pruebas. Verificado el 27 ago: el fichero está en `origin/master` |
 | Empuje de leads (`submitDemoLead`) | ❌ **Cero apariciones.** No lo llamamos desde ningún sitio |
 | `externalRef.leadId` | ❌ **Cero apariciones** |
 | `eraseByExternalRef` | ❌ **Cero apariciones.** El camino de supresión no existe |
 | Ventana de retención sobre `leads` | ❌ **No existe.** `data-retention.ts` cubre comprobantes, `aiUsage` y `aiFeedback` — los leads no |
+
+**Medido de nuevo el 27 de agosto**, no releído: `submitDemoLead`, `externalRef` y
+`eraseByExternalRef` siguen con **cero apariciones** en `src/`, `components/`, `features/` y
+`functions/src`, y `data-retention.ts` sigue sin cubrir `leads` —sus ventanas son
+`DEFAULT_RETENTION_MONTHS`, `AI_USAGE_RETENTION_MONTHS` y `EMAIL_DELIVERY_RETENTION_MONTHS`,
+esta última de `FLOW-003`—.
 
 **El orden que sigue en pie:** el empuje **con su freno dentro** —no antes, porque hoy no
 creamos deals y un freno solo sería un guardián sin puerta— y después el camino de
