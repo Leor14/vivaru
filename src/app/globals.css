@@ -329,6 +329,42 @@ h3 {
   font-family: var(--font-playfair), serif !important;
 }
 
+/* ── Las cifras del producto son de ancho fijo ───────────────────────────────
+ * Manrope trae cifras PROPORCIONALES. Medido en el navegador: seis unos ocupan
+ * 37,45px y seis ceros 58,56 —tres pixeles y medio por digito—, asi que una
+ * columna de pesos ni alinea ni mide lo mismo de una fila a otra. En un producto
+ * donde lo que se mira son importes, eso es un defecto y no un matiz.
+ *
+ * Va por HERENCIA y no clase a clase porque los importes se pintan en 117 sitios
+ * y no pasan por ningun componente comun: no hay un `<Importe>` que vestir.
+ *
+ * NINGUN GRAFICO LO HEREDA, y eso no es precaucion. Los ejes de Recharts son
+ * `<text>` dentro del SVG —que SI heredan la fuente—, van calculados a pixel
+ * fijo, y el Reporte de Comite IMPRIME ESTE MISMO DOM (`window.print`).
+ * Ensanchar sus digitos desalinearia el PDF que firma el consejo.
+ *
+ * Como gana cada regla, que es lo unico delicado:
+ *   · `svg text` es (0,0,2) y le gana a `body` (0,0,1) pase lo que pase;
+ *   · `svg` es (0,0,1) como `body`, asi que TIENE QUE IR DESPUES;
+ *   · `.marketing-theme` es (0,1,0) y gana a las dos.
+ * Vigilado en tests/cifras-de-ancho-fijo.test.ts.
+ * ─────────────────────────────────────────────────────────────────────────── */
+body {
+  font-variant-numeric: tabular-nums;
+}
+
+svg,
+svg text,
+svg tspan {
+  font-variant-numeric: normal;
+}
+
+/* El landing fuera del sistema, igual que en la escala de radios: sus dos
+   precios son texto de venta y no una columna. */
+.marketing-theme {
+  font-variant-numeric: normal;
+}
+
 .admin-shell .font-display {
   font-weight: 600;
 }
