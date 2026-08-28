@@ -3,11 +3,21 @@
 /* Tailwind escanea TODO fichero de texto del proyecto buscando nombres de clase,
    no solo los `.tsx`. Estos CSV son datos de prompts y listan clases de Tailwind
    una por linea: sin excluirlos, el bundle genera utilidades que ninguna pantalla
-   usa. Se descubrio porque `.rounded` seguia apareciendo despues de migrar los 90
+   usa. Se descubrio porque la utilidad de radio SIN SUFIJO seguia emitiendose
+   despues de migrar los 90
    usos del producto. */
 @source not "../../.github/prompts";
 @source not "../../tests";
 @source not "../../scripts";
+/* Y los documentos, que fue como se descubrio del todo: al describir la
+   migracion de radios en `docs/pendientes.md`, el nombre de la clase quedo
+   escrito en prosa y Tailwind lo leyo como una clase, y la volvio a emitir.
+   **Escribir documentacion no puede cambiar el bundle de produccion.**
+
+   Y POR ESO ESTOS COMENTARIOS NO NOMBRAN LA CLASE: Tailwind escanea tambien
+   ESTE fichero, asi que explicarla escribiendola la resucita. Fue lo ultimo
+   que quedaba emitiendose, y la fuente eran los comentarios que la explicaban. */
+@source not "../../docs";
 @plugin "@tailwindcss/typography";
 
 :root {

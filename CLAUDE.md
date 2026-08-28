@@ -226,10 +226,12 @@ critique → execute → commit. Gate por incremento: typecheck limpio en `src/`
 - **Tenant siempre con `currency` válido** (`COP`|`MXN`|`USD`): cualquier alta/seed de un tenant debe escribir `currency`; los formateadores (`Intl.NumberFormat`, `useTenantCurrency`) deben defaultear a un valor válido y nunca recibir `undefined`.
 - **TAILWIND 4 ESCANEA TODO FICHERO DE TEXTO DEL PROYECTO**, no solo los `.tsx`. Un JSON, un CSV o
   un `.mjs` que contenga algo con pinta de clase la genera en el bundle. Costó descubrir por qué
-  `.rounded` seguía emitiéndose después de migrar los 90 usos del producto: la mantenían vivos dos
+  la utilidad de radio **sin sufijo** seguía emitiéndose después de migrar los 90 usos: la mantenían dos
   volcados de ESLint versionados en la raíz **con el código fuente dentro**, tres CSV de datos de
   prompts, y **el propio guardián que veta la clase**, cuya expresión regular la nombra. Se excluye
-  con `@source not` en `globals.css` — y **su ruta es relativa al FICHERO CSS**: `globals.css` vive
+  con `@source not` en `globals.css` — y ojo, **escanea tambien el propio CSS y los `.md`**, asi que
+  un comentario que NOMBRA una clase para explicarla la resucita: fue la ultima fuente que quedaba.
+  **Su ruta es relativa al FICHERO CSS**: `globals.css` vive
   en `src/app/`, así que `../..` ya es la raíz. Con un `..` de más apunta fuera del repositorio,
   **no falla, y ahorra cero bytes**. Medir el CSS antes y después es lo único que lo delata.
 - **`h1, h2, h3` llevan Playfair por una regla GLOBAL de `globals.css`.** Es la tipografía de marca
