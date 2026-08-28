@@ -73,6 +73,43 @@ su único efecto— y configurarla es captura de dato.
    esquema, que lleva `notificationKey`, pero **la etiqueta de la bandera promete «cada correo
    enviado»** y eso es más de lo que hace.
 
+### `UX-003` — PRIMERA ENTREGA EN PRODUCCIÓN (`5bc9d3f`, 28 ago)
+
+**El hilo del frente: el Panel de Control decía cosas que no se podían comprobar.** Cuatro
+defectos medidos en la primera pantalla que ve todo el mundo, los cuatro de la misma familia.
+
+| | Antes | Ahora |
+|---|---|---|
+| Píldora de alertas | **90**, con las tarjetas sumando 33 y el cajón listando 4 | **4**, y el cajón lista 4 |
+| Fila de cartera del cajón | «76 cuenta(s)» | «**19 unidad(es) · 76 cuenta(s)**» |
+| `% recaudo` al 0,0% | punto **verde** | punto **rojo** |
+| `Reservas hoy` a 0 | punto verde | **neutro** — contar no es un logro |
+| `Paquetes` a 0 | ámbar sobre «Bodega al día» | **neutro** |
+| Cumplimiento total al 6% | **verde**, con Torre 1 al 11% en rojo | **rojo**, igual que sus torres |
+| Barra al 0% | idéntica a «sin datos» | carril teñido; **sin datos sigue gris** |
+
+**La causa de la píldora era la de siempre: dos sitios calculando lo mismo.** La suma usaba
+`overdueStatementsCount` y la tarjeta `overdueUnitsCount` —líneas contiguas—, y ni cubrían las
+mismas categorías. Ahora las alertas se construyen una vez y la píldora cuenta esa lista.
+La escala de color vive en `src/lib/dashboard/umbrales.ts` y la usan la página y el widget.
+
+> **DOS LECCIONES, Y LAS DOS SON SOBRE PRUEBAS QUE NO VIGILAN LO QUE DICEN.**
+>
+> **1 · Falsar destapó que dos pruebas mías eran ciegas.** Con la barra puesta otra vez en verde
+> fijo, «el color es monótono» y «6% no puede verse mejor que 11%» **siguieron en verde**: si todos
+> los colores son iguales, una prueba de orden se cumple sola. **Una escala constante pasa
+> cualquier prueba de monotonía.** Hubo que exigir además que la escala DISTINGA.
+>
+> **2 · Y aun así metí una regresión que ninguna prueba vio.** Al arreglar «el 0% se ve como sin
+> datos» pinté carril y relleno del mismo color: el cero quedó bien y **el avance desapareció**
+> —Torre 1 al 11% y tres al 0% salían como cuatro barras rojas idénticas—. Typecheck en 0, 1343
+> pruebas y la falsación completa **estaban en verde**. Lo cazó abrir la pantalla en producción.
+> **Una barra puede tener el color correcto y no comunicar nada.**
+
+**Y un defecto nuevo visto al verificar, sin arreglar todavía:** en el cajón de alertas el estado
+de la fila de PQRS se pinta **`critical`, en inglés y en minúscula**, mientras las otras dicen
+«En mora» y «Pendiente». Es candidato a la siguiente entrega de `UX-003`.
+
 ### LA DECISIÓN DE HERRAMIENTA COMERCIAL — ALBERT, NO ODOO (28 ago 2026)
 
 Se comparó antes de seguir invirtiendo. **El dato que la resolvió:** la versión gratuita de Odoo
