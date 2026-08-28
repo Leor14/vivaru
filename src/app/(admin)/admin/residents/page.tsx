@@ -1066,7 +1066,11 @@ export default function AdminResidentsPage() {
                 </Button>
               </>
             )}
-            <Button variant="outline" onClick={openCreateUnit}>Crear unidad y titular</Button>
+            {/* La accion principal de la pantalla, en el color de marca. Era blanca, y
+                Residentes era la UNICA de las ocho pantallas equivalentes sin ninguna
+                accion principal a la vista: Comunicaciones, Documentos, Reservas,
+                Encuestas, Usuarios, Visitantes y Servicios ya la tenian. */}
+            <Button onClick={openCreateUnit}>Crear unidad y titular</Button>
           </div>
         </div>
         {sinUnidades && (
