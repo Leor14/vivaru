@@ -72,10 +72,15 @@ tenga nada que decir.**
 Además, fuera del hilo numerado: su **estado de integración** (22 ago) y la **ronda de dudas**
 contestada por el canal. Ambos recogidos aquí.
 
-**Ojo con `RESPUESTA-A-005`: trae dos `uid` y la dirección del usuario de servicio.** Por la
-regla de `DECISIONES-A-002` §2 —el repositorio lleva decisiones, el canal lleva identificadores—
-**no se archiva tal cual aquí**. Lo que vale de ella está recogido en este documento y en
-`DECISIONES-A-005`, sin identificadores.
+**Las once están archivadas desde el 28 de agosto**, y hasta ese día **faltaban tres**:
+`RESPUESTA-A-003`, `-A-004` y `-A-005` vivían fuera del repositorio mientras este documento las
+citaba. Las dos primeras entraron **íntegras** —revisadas carácter a carácter, no traían ningún
+identificador—. De `RESPUESTA-A-005` se retiraron **los dos `uid` y las dos direcciones**, marcados
+en su sitio con `⟨⟨…⟩⟩`; el texto y los argumentos están completos.
+
+> **Y al falsar esa limpieza salió lo de §8**, que es más grande que el archivado: **los dos `uid`
+> ya no existen en ningún sitio del repositorio, pero las dos direcciones siguen en 33 ficheros**,
+> y la mayoría no son documentos. Ver §8.
 
 ---
 
@@ -386,8 +391,30 @@ Es la misma forma que «Vivaru no tiene política de retención» —la tenía, 
 noche— y que «Albert no tiene webhooks» —dejó de importar—. **Una regla nueva también hay
 que verificarla contra el código y los documentos que ya existen.**
 
-*Pendiente de decidir: si esas apariciones se limpian o se aceptan. Es un buzón de rol
-compartido, no una dirección personal.*
+> **Y esta nota se quedó corta ella misma, medido el 28 de agosto.** Decía «escrita en
+> `PRD-A-OPS-001`», en singular, como si fuese un papel despistado. **No lo es:**
+>
+> | | `comercial@qintilab.com` | `dev@qintilab.com` |
+> |---|---|---|
+> | Ficheros en total | **16** | **17** |
+> | Documentos | 4 | 4 |
+> | **Código fuente** | **8** | **7** |
+> | Build compilado | 3 | 4 |
+> | **`apphosting.yaml`** | **1** | **2** |
+>
+> **Las dos son configuración del producto, no una cita despistada en un papel.** Son el destino
+> de los avisos de leads, de demos y de tickets, están escritas en `functions/src` y en `src`, y
+> **viajan dentro de la configuración desplegada**. `dev@qintilab.com` está ahí **desde el 8 de
+> agosto**, semanas antes de ser la cuenta de servicio del CRM.
+>
+> **Con lo cual la pregunta pendiente cambia de forma.** No es «¿se limpian los documentos?»:
+> limpiarlos sería cosmético y dejaría intactas las quince apariciones que de verdad mandan.
+> Es **si estas dos direcciones deben seguir siendo el buzón de producto de Vivaru**, que es una
+> decisión de operación y no de higiene documental. Y enlaza con §4.5: la que además es credencial
+> del CRM es `dev@qintilab.com`.
+>
+> **La forma del error es la de siempre: un plural sin contar.** «Está escrita en un documento» se
+> escribió sin medir cuántos eran, dentro de la misma nota que existe para avisar de eso.
 
 **Un documento puede anunciar lo que no entrega, y hay que decirlo.** `RESPUESTA-A-003`
 abría con «cerramos por fin la fecha de A1» y su §3 llevaba un marcador vacío. Nombrarlo en
