@@ -52,6 +52,7 @@ import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { useAgreementsComplianceSummary } from "@/features/committee-agreements/use-agreements-compliance-summary";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { formatUnitInline } from "@/lib/utils/unit";
+import { tonoPorPorcentaje } from "@/lib/dashboard/umbrales";
 
 function asText(value: unknown, fallback = "Sin dato") {
   if (typeof value === "string" && value.trim().length > 0) {
@@ -419,7 +420,87 @@ export default function AdminDashboardPage() {
   }, [openTickets, todayDate]);
 
   const urgentTickets = ticketsWithUrgency.filter((ticket) => ticket.urgent).length;
-  const alertCount = overdueStatementsCount + urgentTickets + pendingPackages.length + pendingAgreements;
+
+  /**
+   * **Las alertas se construyen UNA vez, y la píldora cuenta esta lista.**
+   *
+   * Antes había dos cálculos: la píldora sumaba `overdueStatementsCount + urgentTickets +
+   * paquetes + acuerdos` y el cajón armaba sus filas por separado. **Derivaron, como derivan
+   * siempre dos sitios que calculan lo mismo**, y la pantalla acabó dando TRES cifras del mismo
+   * concepto: la píldora decía 90, las tarjetas sumaban 33 y el cajón listaba 4 filas — con el
+   * agravante de que la píldora ES el botón que abre el cajón. Encima ni cubrían las mismas
+   * categorías: el cajón incluye las reservas del día y la suma no.
+   *
+   * Con una sola fuente, «90 alertas» y lo que se ve al pulsarla no pueden volver a discrepar.
+   */
+  const alertRows = useMemo<DrawerRow[]>(() => {
+    const rows: DrawerRow[] = [];
+
+    if (urgentTickets > 0) {
+      rows.push({
+        id: "alert-pqrs",
+        primary: "PQRS con riesgo de vencimiento",
+        secondary: `Tipo: PQRS · Prioridad: Alta · ${urgentTickets} caso(s)`,
+        status: "critical",
+        dateLabel: todayIso,
+      });
+    }
+
+    if (overdueStatementsCount > 0) {
+      rows.push({
+        id: "alert-billing",
+        primary: "Cartera en mora",
+        // **Las dos magnitudes, y en este orden.** La tarjeta de Cartera enseña UNIDADES; el
+        // cajón enseñaba CUENTAS. Dar solo una de las dos obliga a quien lee a adivinar por qué
+        // no cuadran, cuando la relación —varias cuentas por unidad— es justo el dato útil.
+        secondary: `Tipo: Cartera · Prioridad: Media · ${overdueUnitsCount} unidad(es) · ${overdueStatementsCount} cuenta(s)`,
+        status: "overdue",
+        dateLabel: todayIso,
+      });
+    }
+
+    if (pendingPackages.length > 0) {
+      rows.push({
+        id: "alert-packages",
+        primary: "Paquetes pendientes de entrega",
+        secondary: `Tipo: Paquetes · Prioridad: Media · ${pendingPackages.length} paquete(s)`,
+        status: "pending",
+        dateLabel: todayIso,
+      });
+    }
+
+    if (pendingAgreements > 0) {
+      rows.push({
+        id: "alert-agreements",
+        primary: "Acuerdos de comité sin firma",
+        secondary: `Tipo: Reglamento · Prioridad: Media · ${pendingAgreements} acuerdo(s)`,
+        status: "pending",
+        dateLabel: todayIso,
+      });
+    }
+
+    if (reservationsToday.length > 0) {
+      rows.push({
+        id: "alert-reservations",
+        primary: "Reservas del día por monitorear",
+        secondary: `Tipo: Reservas · Prioridad: Baja · ${reservationsToday.length} reserva(s)`,
+        status: "scheduled",
+        dateLabel: todayIso,
+      });
+    }
+
+    return rows;
+  }, [
+    urgentTickets,
+    overdueStatementsCount,
+    overdueUnitsCount,
+    pendingPackages.length,
+    pendingAgreements,
+    reservationsToday.length,
+    todayIso,
+  ]);
+
+  const alertCount = alertRows.length;
 
   const metricsError = reservationsError || ticketsError || packagesError || visitorsError;
 
@@ -437,7 +518,9 @@ export default function AdminDashboardPage() {
       label: "Paquetes pendientes",
       value: String(pendingPackages.length),
       insight: pendingPackages.length > 0 ? "En bodega, sin recoger" : "Bodega al día",
-      tone: "pending" as const,
+      // El texto ya se ramificaba con el valor y el tono no lo seguía: con cero paquetes pintaba
+      // ámbar sobre un «Bodega al día». Misma corrección que en las otras dos tarjetas.
+      tone: pendingPackages.length > 0 ? ("pending" as const) : ("neutral" as const),
       href: "/admin/packages",
       help: "Paquetes recibidos en portería que aún no han sido recogidos. Estado actual.",
     },
@@ -468,7 +551,11 @@ export default function AdminDashboardPage() {
       label: "% recaudo",
       value: `${recaudoPeriod.toFixed(1)}%`,
       insight: getTrendInsight(recaudoPeriod, recaudoComparison, "vs mes anterior"),
-      tone: "success" as const,
+      // **El tono sale del valor, no es constante.** Estaba fijo en `success`, así que un recaudo
+      // del 0,0% se pintaba en verde — el color decía «bien» sobre el peor número posible.
+      // La escala es la MISMA que usan las barras de cumplimiento por torre (70 / 40): una sola
+      // regla de color en la pantalla, para que dos verdes signifiquen lo mismo.
+      tone: tonoPorPorcentaje(recaudoPeriod),
       href: "/admin/billing",
       // R16: mide lo SALDADO, no lo cobrado. Una cuota cubierta con un
       // anticipo cuenta aquí al 100 % aunque su dinero entrara otro mes.
@@ -486,7 +573,11 @@ export default function AdminDashboardPage() {
       label: isToday ? "Reservas hoy" : "Reservas",
       value: String(reservationsPeriod),
       insight: getTrendInsight(reservationsPeriod, reservationsComparison, periodSuffix),
-      tone: "success" as const,
+      // **Un recuento de actividad no es bueno ni malo, así que va neutro.** Estaba en `success`:
+      // «0 reservas hoy» se pintaba en verde igual que «40 reservas hoy». Pintar de logro algo
+      // que solo cuenta lo que pasó gasta el color sin decir nada — y le resta significado al
+      // verde de las tarjetas donde sí lo tiene. Es el mismo criterio que ya usa «Visitantes».
+      tone: "neutral" as const,
       href: "/admin/reservations",
       help: `Reservas de zonas comunes (${periodLabel}).`,
     },
@@ -553,61 +644,10 @@ export default function AdminDashboardPage() {
     }
 
     if (drawerSection === "alerts") {
-      const rows: DrawerRow[] = [];
-
-      if (urgentTickets > 0) {
-        rows.push({
-          id: "alert-pqrs",
-          primary: "PQRS con riesgo de vencimiento",
-          secondary: `Tipo: PQRS · Prioridad: Alta · ${urgentTickets} caso(s)`,
-          status: "critical",
-          dateLabel: todayIso,
-        });
-      }
-
-      if (overdueStatementsCount > 0) {
-        rows.push({
-          id: "alert-billing",
-          primary: "Cartera en mora",
-          secondary: `Tipo: Cartera · Prioridad: Media · ${overdueStatementsCount} cuenta(s)`,
-          status: "overdue",
-          dateLabel: todayIso,
-        });
-      }
-
-      if (pendingPackages.length > 0) {
-        rows.push({
-          id: "alert-packages",
-          primary: "Paquetes pendientes de entrega",
-          secondary: `Tipo: Paquetes · Prioridad: Media · ${pendingPackages.length} paquete(s)`,
-          status: "pending",
-          dateLabel: todayIso,
-        });
-      }
-
-      if (pendingAgreements > 0) {
-        rows.push({
-          id: "alert-agreements",
-          primary: "Acuerdos de comité sin firma",
-          secondary: `Tipo: Reglamento · Prioridad: Media · ${pendingAgreements} acuerdo(s)`,
-          status: "pending",
-          dateLabel: todayIso,
-        });
-      }
-
-      if (reservationsToday.length > 0) {
-        rows.push({
-          id: "alert-reservations",
-          primary: "Reservas del día por monitorear",
-          secondary: `Tipo: Reservas · Prioridad: Baja · ${reservationsToday.length} reserva(s)`,
-          status: "scheduled",
-          dateLabel: todayIso,
-        });
-      }
-
+      // La lista viene de `alertRows`, que es lo mismo que cuenta la píldora. Ver su comentario.
       return {
         title: "Alertas operativas",
-        rows,
+        rows: alertRows,
         emptyText: "No hay alertas operativas activas.",
       };
     }
@@ -652,7 +692,7 @@ export default function AdminDashboardPage() {
       emptyText: "No hay comunicaciones vigentes.",
     };
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  }, [communications, deliveredPackagesRecent, drawerSection, pendingPackages, ticketsWithUrgency, visitorsToday]);
+  }, [alertRows, communications, deliveredPackagesRecent, drawerSection, pendingPackages, ticketsWithUrgency, visitorsToday]);
 
   return (
     <section className="space-y-5 pb-2">

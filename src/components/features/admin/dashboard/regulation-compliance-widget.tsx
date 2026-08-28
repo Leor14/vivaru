@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useRegulationComplianceSummary } from "@/features/regulations/use-regulation-compliance-summary";
+import { colorPorPorcentaje } from "@/lib/dashboard/umbrales";
 
 type Props = {
   tenantId?: string;
@@ -84,10 +85,21 @@ export function RegulationComplianceWidget({ tenantId, totalUnits }: Props) {
             </span>
           </div>
 
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-[var(--slate-200)]">
+          <div
+            className="mt-2 h-2 w-full overflow-hidden rounded-full"
+            style={{
+              // **Al 0% la barra mide cero, así que el color tiene que vivir en el carril.** Si no,
+              // «cero de dieciocho firmaron» y «no hay nada que medir» se ven exactamente igual:
+              // un carril gris vacío. Con esto, el cero de un total real se ve como lo que es.
+              background: colorPorPorcentaje(filtered.pct, filtered.total) ?? "var(--slate-200)",
+            }}
+          >
             <div
-              className="h-full rounded-full bg-[#1D9E75] transition-[width] duration-500"
-              style={{ width: `${Math.min(filtered.pct, 100)}%` }}
+              className="h-full rounded-full transition-[width] duration-500"
+              style={{
+                width: `${Math.min(filtered.pct, 100)}%`,
+                background: colorPorPorcentaje(filtered.pct, filtered.total) ?? "var(--slate-200)",
+              }}
             />
           </div>
           <div className="mt-1.5 flex items-center justify-between text-xs text-[var(--slate-600)]">
@@ -100,12 +112,15 @@ export function RegulationComplianceWidget({ tenantId, totalUnits }: Props) {
               {summary.byTower.map((row) => (
                 <div key={row.tower} className="flex items-center gap-2.5">
                   <span className="w-16 shrink-0 text-xs text-[var(--slate-600)]">{row.tower}</span>
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--slate-200)]">
+                  <div
+                    className="h-1.5 flex-1 overflow-hidden rounded-full"
+                    style={{ background: colorPorPorcentaje(row.pct, row.total) ?? "var(--slate-200)" }}
+                  >
                     <div
                       className="h-full rounded-full transition-[width] duration-500"
                       style={{
                         width: `${Math.min(row.pct, 100)}%`,
-                        background: row.pct >= 70 ? "#1D9E75" : row.pct >= 40 ? "#EF9F27" : "#E24B4A",
+                        background: colorPorPorcentaje(row.pct, row.total) ?? "var(--slate-200)",
                       }}
                     />
                   </div>

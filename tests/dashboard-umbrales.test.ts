@@ -1,0 +1,88 @@
+import { describe, expect, it } from "vitest";
+import {
+  colorPorPorcentaje,
+  tonoPorPorcentaje,
+  UMBRAL_ATENCION,
+  UMBRAL_BIEN,
+} from "@/lib/dashboard/umbrales";
+
+/**
+ * Estas pruebas existen por tres defectos REALES que se vieron en producción el 28 de agosto de
+ * 2026, no por cubrir líneas. Cada bloque nombra el que vigila.
+ */
+describe("umbrales del Panel de Control", () => {
+  describe("el tono sale del valor, no es constante", () => {
+    // El defecto: `% recaudo` tenía `tone: "success"` fijo, así que 0,0% se pintaba de verde.
+    it("un recaudo de 0% NO puede leerse como bueno", () => {
+      expect(tonoPorPorcentaje(0)).toBe("alert");
+      expect(tonoPorPorcentaje(0)).not.toBe("success");
+    });
+
+    it("solo desde el umbral bueno se pinta como bueno", () => {
+      expect(tonoPorPorcentaje(UMBRAL_BIEN)).toBe("success");
+      expect(tonoPorPorcentaje(UMBRAL_BIEN - 0.1)).not.toBe("success");
+      expect(tonoPorPorcentaje(100)).toBe("success");
+    });
+
+    it("la franja intermedia es atención, no alarma ni logro", () => {
+      expect(tonoPorPorcentaje(UMBRAL_ATENCION)).toBe("pending");
+      expect(tonoPorPorcentaje(UMBRAL_ATENCION - 0.1)).toBe("alert");
+    });
+  });
+
+  describe("un porcentaje mayor nunca se ve peor que uno menor", () => {
+    /**
+     * El defecto: la barra del total estaba clavada en verde y las de torre usaban umbrales, así
+     * que el widget marcaba **6% en verde** y **11% en rojo** a la vez. Esta prueba lo prohíbe
+     * para TODA la escala, no solo para ese par de números.
+     */
+    const rango = [0, 1, 6, 11, 39.9, 40, 55, 69.9, 70, 85, 100];
+    const orden = { "#E24B4A": 0, "#EF9F27": 1, "#1D9E75": 2 } as const;
+
+    it("el color es monótono en todo el rango", () => {
+      for (let i = 1; i < rango.length; i += 1) {
+        const antes = colorPorPorcentaje(rango[i - 1], 18) as keyof typeof orden;
+        const ahora = colorPorPorcentaje(rango[i], 18) as keyof typeof orden;
+        expect(orden[ahora]).toBeGreaterThanOrEqual(orden[antes]);
+      }
+    });
+
+    /**
+     * **Esta prueba existe porque la de arriba estaba ciega, y lo destapó falsarla.**
+     *
+     * Al romper el código a propósito —barra siempre verde, que es el defecto original— la
+     * monotonía seguía en verde: si todos los colores son iguales, «nunca baja» se cumple sola.
+     * Una escala constante pasa cualquier prueba de orden. Hay que exigir además que la escala
+     * DISTINGA, o el guardián no vigila el defecto que dice vigilar.
+     */
+    it("y la escala distingue de verdad: recorre los tres colores", () => {
+      const colores = new Set(rango.map((pct) => colorPorPorcentaje(pct, 18)));
+      expect(colores.size).toBe(3);
+      expect(colores).toContain("#E24B4A");
+      expect(colores).toContain("#EF9F27");
+      expect(colores).toContain("#1D9E75");
+    });
+
+    it("el par exacto que se vio roto: 6% no puede verse mejor que 11%", () => {
+      const seis = colorPorPorcentaje(6, 18) as keyof typeof orden;
+      const once = colorPorPorcentaje(11, 18) as keyof typeof orden;
+      expect(orden[seis]).toBeLessThanOrEqual(orden[once]);
+    });
+  });
+
+  describe("«sin datos» no es «lo peor»", () => {
+    // El defecto: al 0% la barra mide cero, así que un total real sin firmas y un total vacío
+    // se veían idénticos. Con total 0 no hay color; con total real sí, aunque el avance sea 0.
+    it("sin nada que medir no devuelve color", () => {
+      expect(colorPorPorcentaje(0, 0)).toBeNull();
+    });
+
+    it("cero sobre un total REAL sí tiene color, y es el de alarma", () => {
+      expect(colorPorPorcentaje(0, 18)).toBe("#E24B4A");
+    });
+
+    it("y los dos casos no se ven igual, que es el defecto que hubo", () => {
+      expect(colorPorPorcentaje(0, 0)).not.toBe(colorPorPorcentaje(0, 18));
+    });
+  });
+});
