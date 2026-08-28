@@ -6,6 +6,16 @@ import { cn } from "@/lib/utils/cn";
 
 type KpiTone = "finance" | "success" | "pending" | "alert" | "neutral";
 
+/**
+ * El texto de apoyo de cada tono tiene que leerse sobre SU tarjeta, y la tarjeta
+ * es un degradado: el caso peor es el extremo `to-[...]`, que es el mas oscuro.
+ *
+ * `pending` daba 4,39:1 —por debajo del minimo AA— y era anterior a cualquier
+ * cambio de este frente. Con #8a641f da 4,89. Los otros cuatro ya cumplian.
+ *
+ * `tests/tonos-del-tablero.test.ts` CALCULA los cinco leyendo este mismo mapa:
+ * añadir un tono o retocar un color enrojece con la cifra delante.
+ */
 const TONE_STYLES: Record<KpiTone, { shell: string; dot: string; insight: string }> = {
   finance: {
     shell: "from-[#f4f9ff] to-[#e7f2ff] border-[#cddff2]",
@@ -20,7 +30,7 @@ const TONE_STYLES: Record<KpiTone, { shell: string; dot: string; insight: string
   pending: {
     shell: "from-[#fffbee] to-[#fff4d8] border-[#f1dfad]",
     dot: "bg-[#b5862f]",
-    insight: "text-[#936b24]",
+    insight: "text-[#8a641f]",
   },
   alert: {
     shell: "from-[#fff6f3] to-[#ffece7] border-[#f4d0c7]",
