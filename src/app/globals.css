@@ -278,51 +278,51 @@ h3 {
   text-transform: lowercase;
 }
 
-/* Within the admin shell, force sans-serif and cap font-weight at 500. */
-.admin-shell,
-.admin-shell * {
-  font-family: var(--font-manrope), sans-serif !important;
-}
-
-.admin-shell .font-semibold,
-.admin-shell .font-bold,
-.admin-shell h1,
-.admin-shell h2,
-.admin-shell h3,
-.admin-shell h4,
-.admin-shell h5,
-.admin-shell h6,
-.admin-shell strong,
-.admin-shell b {
-  font-weight: 500;
-}
-
-/* ── La salida de las dos reglas de arriba ──────────────────────────────────
- * Las dos anteriores SON el aspecto plano del portal de administración: la
- * primera fuerza Manrope con el ÚNICO `!important` de este fichero, y la
- * segunda aplana a peso 500 todos los títulos y negritas. No se retiran —
- * hacerlo repinta las diecinueve pantallas de golpe, que es una decisión de
- * producto y no un desatasco.
+/* ── El portal de administracion deja de ser plano (27 ago 2026) ─────────────
+ * Aqui vivian DOS reglas que, juntas, ERAN el aspecto plano:
  *
- * Lo que sí hacía falta es una PUERTA: sin ella, poner la tipografía de marca
- * en la cabecera de página compilaba, pasaba las pruebas, se desplegaba **y no
- * movía un píxel**, porque el `!important` la anulaba. Un no-op con aspecto de
- * hito.
+ *     .admin-shell, .admin-shell * { font-family: Manrope !important }
+ *     .admin-shell .font-semibold, .font-bold, h1..h6, strong, b { font-weight: 500 }
  *
- * Se abre por `font-display`, la utilidad que Tailwind ya genera desde el token
- * `--font-display` y que el landing usa. Quien no la pida, sigue exactamente
- * como estaba.
+ * La segunda no tocaba solo los titulos: nombraba `.font-semibold` y
+ * `.font-bold`, asi que TODO el enfasis del portal estaba forzado a 500. Medido
+ * antes de retirarlas: 54 elementos en el Panel de Control, 29 en Cartera y 12
+ * en Residentes pedian seminegrita y no la recibian.
  *
- * Cómo gana cada una, que es lo único delicado:
- *   · la fuente, por ESPECIFICIDAD — `.admin-shell .font-display` es (0,2,0) y
- *     `.admin-shell *` es (0,1,0); las dos con `!important`, gana la de más
- *     especificidad;
- *   · el peso, por ORDEN — `.admin-shell h1` también es (0,2,0), así que este
- *     bloque TIENE QUE IR DESPUÉS. Vigilado en tests/salida-tipografica.test.ts.
+ * Se retiran por decision de David (27 ago 2026), despues de cinco pasadas cuyo
+ * efecto visible era casi nulo precisamente por esto.
+ *
+ * DOS COMPROBACIONES hechas antes de quitarlas, porque las dos podian salir mal
+ * en silencio:
+ *
+ *  · Sin el `!important`, la fuente base NO queda sin declarar: Tailwind pone
+ *    `--default-font-family: var(--font-manrope)` en `html`, verificado en el CSS
+ *    compilado. Todo hereda Manrope igual, pero ahora se puede sobreescribir.
+ *
+ *  · Un encabezado SIN clase de peso caeria a 400 —mas ligero que antes— porque
+ *    la preflight de Tailwind pone `font-weight: inherit` en h1..h6. Medido en
+ *    tres pantallas: CERO encabezados sin clase de peso. Aun asi queda el suelo
+ *    de abajo, que cuesta una linea y evita el caso que no se midio.
+ *
+ * El suelo va en `@layer base` A PROPOSITO: asi cualquier utilidad de Tailwind
+ * le gana, que es justo lo que la regla vieja impedia. Si fuera CSS sin capa,
+ * volveria a ganarle a `font-semibold` y habriamos cambiado una carcel por otra.
  * ─────────────────────────────────────────────────────────────────────────── */
-.admin-shell .font-display,
-.admin-shell .font-display * {
-  font-family: var(--font-playfair), serif !important;
+@layer base {
+  .admin-shell :where(h1, h2, h3, h4, h5, h6) {
+    font-weight: 600;
+  }
+}
+
+/* La fuente de marca se pide con `font-display`. Ya no hace falta ninguna
+   «puerta» con `!important`: al no haber nada que fuerce Manrope, la utilidad
+   funciona sola y sus hijos heredan Playfair.
+
+   El peso SI se declara aqui, sin capa: `.text-display` es una clase sin capa
+   (0,1,0) que fija 500, y sin esto el nombre de la pantalla se pintaria en
+   Playfair 500 en vez de 600. Con (0,2,0) le gana. */
+.admin-shell .font-display {
+  font-weight: 600;
 }
 
 /* ── Las cifras del producto son de ancho fijo ───────────────────────────────
@@ -353,10 +353,6 @@ svg,
 svg text,
 svg tspan {
   font-variant-numeric: normal;
-}
-
-.admin-shell .font-display {
-  font-weight: 600;
 }
 
 .soft-panel {

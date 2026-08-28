@@ -4,104 +4,105 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * **La puerta que hace posible cambiar la tipografía del admin (pasada 0).**
+ * **El portal de administracion ya no aplana la tipografia.**
  *
- * El portal de administración tiene dos reglas que, juntas, SON su aspecto
- * plano: `.admin-shell *` fuerza Manrope con el **único `!important`** del
- * fichero, y otra aplana a peso 500 todos los títulos y negritas.
+ * Hasta el 27 de agosto de 2026 vivian aqui dos reglas que, juntas, ERAN su
+ * aspecto plano: una forzaba Manrope con `!important` sobre `.admin-shell *`, y
+ * otra fijaba `font-weight: 500` sobre `.font-semibold`, `.font-bold`, h1..h6,
+ * `strong` y `b`. La segunda no tocaba solo los titulos: aplanaba TODO el
+ * enfasis del portal. Medido antes de retirarlas: 54 elementos en el Panel de
+ * Control, 29 en Cartera y 12 en Residentes pedian seminegrita y no la recibian.
  *
- * No se retiran: hacerlo repinta diecinueve pantallas de golpe, y eso es una
- * decisión de producto. Lo que hacía falta era una **salida por la que se pueda
- * optar**, porque sin ella poner la tipografía de marca en la cabecera
- * compilaba, pasaba las pruebas, se desplegaba **y no movía un píxel** — un
- * no-op con aspecto de hito, que es el defecto más caro de todos porque nadie
- * lo busca.
- *
- * Lo delicado, y por eso existe esta prueba: **la fuente gana por especificidad
- * y el peso gana por ORDEN**. Mover el bloque de la salida más arriba lo
- * desactiva a medias —la letra cambiaría y el grosor no— sin que nada falle.
+ * Este fichero guardaba lo contrario —que las dos reglas SIGUIERAN ahi—, y su
+ * premisa caduco con la decision. Ahora guarda que no vuelvan, y sobre todo que
+ * no vuelvan DISFRAZADAS: el modo de fallo real no es que alguien reescriba
+ * aquellas dos lineas, es que se declare una regla sin capa que vuelva a ganarle
+ * a las utilidades.
  */
 
 const RAIZ = process.cwd();
-const css = fs.readFileSync(path.resolve(RAIZ, "src/app/globals.css"), "utf8");
+const CSS = fs.readFileSync(path.resolve(RAIZ, "src/app/globals.css"), "utf8");
 
-/** Posición de un selector en el fichero, o -1. */
-function pos(selector: string): number {
-  return css.indexOf(selector);
+/** Sin comentarios: la prosa de arriba nombra las reglas que este fichero veta. */
+const CODIGO = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+
+/** Todas las reglas cuyo selector menciona `.admin-shell`. */
+function reglasDelShell(): { selector: string; cuerpo: string }[] {
+  const salida: { selector: string; cuerpo: string }[] = [];
+  for (const m of CODIGO.matchAll(/([^{}]*\.admin-shell[^{}]*)\{([^{}]*)\}/g)) {
+    salida.push({ selector: m[1].trim(), cuerpo: m[2].trim() });
+  }
+  return salida;
 }
 
-const FUERZA_FUENTE = ".admin-shell * {";
-const APLANA_PESO = ".admin-shell h1,";
-const PUERTA_FUENTE = ".admin-shell .font-display,";
-const PUERTA_PESO = ".admin-shell .font-display {";
-
-describe("1 · las dos reglas del aspecto plano siguen ahí", () => {
-  it("la que fuerza Manrope, con su `!important`", () => {
-    // Si alguien la retira, el aspecto del admin cambia entero y esta prueba
-    // deja de tener sentido — mejor que enrojezca y se decida a propósito.
-    expect(pos(FUERZA_FUENTE)).toBeGreaterThan(-1);
-    const bloque = css.slice(pos(FUERZA_FUENTE), pos(FUERZA_FUENTE) + 120);
-    expect(bloque).toContain("!important");
+describe("1 · las reglas del aspecto plano no vuelven", () => {
+  it("nada fuerza la fuente del admin con `!important`", () => {
+    const culpables = reglasDelShell().filter(
+      (r) => /font-family/.test(r.cuerpo) && /!important/.test(r.cuerpo),
+    );
+    expect(culpables.map((c) => c.selector), "la guerra de !important se acabo").toEqual([]);
   });
 
-  it("y la que aplana el peso a 500", () => {
-    expect(pos(APLANA_PESO)).toBeGreaterThan(-1);
-    const bloque = css.slice(pos(APLANA_PESO), pos(APLANA_PESO) + 260);
-    expect(bloque).toContain("font-weight: 500");
+  it("no queda NINGUN `!important` en el codigo de globals.css", () => {
+    const cuantos = (CODIGO.match(/!important/g) ?? []).length;
+    expect(cuantos, `hay ${cuantos} !important en el codigo`).toBe(0);
   });
 
-  it("solo hay DOS `!important` en el CÓDIGO: el que fuerza y el que libera", () => {
-    /**
-     * Dos `!important` peleando es el principio de que nadie entienda por qué
-     * algo no se pinta. Había uno; la puerta añade el suyo. Si aparece un
-     * tercero, hay que mirarlo a propósito.
-     *
-     * **Se cuenta solo el CÓDIGO.** La primera versión contaba el fichero
-     * entero y daba cinco, porque el comentario que explica la puerta menciona
-     * `!important` cuatro veces. Un guardián que cuenta su propia prosa se
-     * dispara solo — la misma trampa que resuelve `soloCodigo` en
-     * `clave-de-unidad-guarda.test.ts`.
-     */
-    const soloCodigo = css
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .split("\n")
-      .filter((l) => !/^\s*(\/\/|\*)/.test(l))
-      .join("\n");
-    const cuantos = (soloCodigo.match(/!important/g) ?? []).length;
-    expect(cuantos, `hay ${cuantos} !important en el código de globals.css`).toBe(2);
+  it("nada vuelve a aplanar el enfasis del portal", () => {
+    const culpables = reglasDelShell().filter(
+      (r) =>
+        /font-(semibold|bold)|(^|,)\s*\.admin-shell\s+(strong|b)\b/.test(r.selector) &&
+        /font-weight/.test(r.cuerpo),
+    );
+    expect(
+      culpables.map((c) => c.selector),
+      "una regla que fije el peso de `.font-semibold`/`.font-bold`/`strong` es el aspecto plano otra vez",
+    ).toEqual([]);
   });
 });
 
-describe("2 · la puerta existe y está en el sitio correcto", () => {
-  it("libera la fuente para quien pida `font-display`", () => {
-    expect(pos(PUERTA_FUENTE)).toBeGreaterThan(-1);
-    const bloque = css.slice(pos(PUERTA_FUENTE), pos(PUERTA_FUENTE) + 180);
-    expect(bloque).toContain("--font-playfair");
-    // Sin `!important` no le gana al `!important` de arriba, por mucha
-    // especificidad que tenga.
-    expect(bloque).toContain("!important");
+describe("2 · el suelo de los encabezados no es una carcel nueva", () => {
+  /**
+   * La preflight de Tailwind pone `font-weight: inherit` en h1..h6, asi que sin
+   * suelo un encabezado sin clase caeria a 400 —mas ligero que cuando estaba
+   * aplanado a 500—. Se midio que hoy no hay ninguno, pero el suelo cuesta una
+   * linea y cubre lo que no se midio.
+   */
+  it("existe un suelo de peso para los encabezados", () => {
+    expect(CODIGO).toMatch(/\.admin-shell :where\(h1[^)]*\)\s*\{[^}]*font-weight:\s*600/);
   });
 
-  it("y libera también el peso", () => {
-    expect(pos(PUERTA_PESO)).toBeGreaterThan(-1);
-    const bloque = css.slice(pos(PUERTA_PESO), pos(PUERTA_PESO) + 90);
-    expect(bloque).toMatch(/font-weight:\s*6\d\d/);
+  /**
+   * **La afirmacion que de verdad importa.** Sin capa, el suelo seria (0,1,0) y
+   * el CSS sin capa le gana a `@layer utilities` pase lo que pase: volveria a
+   * gomarse un `font-semibold`, que es exactamente la carcel que acabamos de
+   * quitar. En `@layer base` pierde contra cualquier utilidad, que es lo que se
+   * quiere.
+   */
+  it("y vive en `@layer base`, o seria la misma carcel con otro nombre", () => {
+    const i = CODIGO.search(/\.admin-shell :where\(h1/);
+    expect(i).toBeGreaterThan(-1);
+    const antes = CODIGO.slice(0, i);
+    const capaAbierta = antes.lastIndexOf("@layer base");
+    const capaCerrada = antes.lastIndexOf("\n}");
+    expect(
+      capaAbierta > -1 && capaAbierta > capaCerrada - antes.length,
+      "el suelo tiene que estar dentro de `@layer base`",
+    ).toBe(true);
+    expect(antes.slice(capaAbierta)).toMatch(/@layer base\s*\{[^}]*$/);
+  });
+});
+
+describe("3 · la fuente de marca se pide y se obtiene", () => {
+  it("`font-display` lleva su peso propio", () => {
+    // `.text-display` es una clase sin capa que fija 500. Sin esta regla, el
+    // nombre de la pantalla se pintaria en Playfair 500 en vez de 600.
+    const regla = reglasDelShell().find((r) => /\.font-display/.test(r.selector));
+    expect(regla, "no se encontro la regla de peso de font-display").toBeDefined();
+    expect(regla!.cuerpo).toMatch(/font-weight:\s*600/);
   });
 
-  it("**va DESPUÉS de las dos reglas que libera**", () => {
-    /**
-     * `.admin-shell h1` y `.admin-shell .font-display` tienen la MISMA
-     * especificidad (0,2,0), así que el peso lo decide el orden de aparición.
-     * Subir este bloque lo desactiva a medias y en silencio: cambiaría la letra
-     * —esa gana por especificidad— pero no el grosor.
-     */
-    expect(pos(PUERTA_FUENTE)).toBeGreaterThan(pos(FUERZA_FUENTE));
-    expect(pos(PUERTA_PESO)).toBeGreaterThan(pos(APLANA_PESO));
-  });
-
-  it("cubre también los hijos del elemento que la pide", () => {
-    // Un `h1` con un `<span>` dentro: sin esto, el span vuelve a Manrope por
-    // `.admin-shell *` y el título sale con dos tipografías.
-    expect(css).toContain(".admin-shell .font-display *");
+  it("y ya no necesita ninguna puerta con `!important`", () => {
+    expect(CODIGO).not.toMatch(/\.font-display[^{]*\{[^}]*!important/);
   });
 });
