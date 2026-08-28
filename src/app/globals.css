@@ -359,12 +359,6 @@ svg tspan {
   font-variant-numeric: normal;
 }
 
-/* El landing fuera del sistema, igual que en la escala de radios: sus dos
-   precios son texto de venta y no una columna. */
-.marketing-theme {
-  font-variant-numeric: normal;
-}
-
 .admin-shell .font-display {
   font-weight: 600;
 }
@@ -835,6 +829,11 @@ svg tspan {
   --radius-xl: 0.75rem;
   --radius-2xl: 1rem;
   --radius-3xl: 1.5rem;
+  /* Fuera de las cifras de ancho fijo del producto, por lo mismo: sus dos
+     precios son texto de venta y no una columna. Va AQUI y no en un bloque
+     propio — dos `.marketing-theme` sueltos rompen a los guardianes del
+     landing, que buscan «el primero». */
+  font-variant-numeric: normal;
 }
 
 /* ── Brand colors, spacing, shadows, z-index, durations, easings ─────────── */
