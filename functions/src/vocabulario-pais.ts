@@ -69,8 +69,11 @@ export function terminoCuotaMensual(country: string | undefined): string {
  * `coefficient-billing.ts` («El conjunto no tiene unidades activas»),
  * `management-companies.ts`, `clearance-certificates.ts` e `index.ts` le dicen
  * «conjunto» a un administrador mexicano que su ley llama «condominio». Son
- * ~15 cadenas y no se tocaron en la pasada del 27 de agosto de 2026, que iba
- * del pie de pantalla.
+ * **36 mensajes de `HttpsError` distintos**, medidos el 27 de agosto de 2026,
+ * y no se tocaron en esa pasada, que iba del pie de pantalla. La mayoría ni
+ * siquiera tiene el país a mano donde falla —`repartirPorCoeficiente` recibe
+ * el término ya resuelto por parámetro, y ese es el patrón a seguir—, así que
+ * adoptarlo es trabajo de verdad, no un buscar-y-reemplazar.
  *
  * Puesto de otro modo: esto no es un espejo vacío, es **la mitad servidor de
  * un arreglo a medio hacer**. Si al adoptarlo en esos mensajes resulta que
