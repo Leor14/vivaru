@@ -22,17 +22,22 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > reales—. No está bloqueada, está **aplazada a propósito**; su único requisito ya está en
 > producción. **Se retoma cuando entre cartera real**, que es un hecho medible y no una fecha.
 >
-> ### ▸ CON ESO LA COLA SE VACÍA, Y ESO ES EL ESTADO, NO UN HUECO
+> ### ▸ LA TABLA DE SEIS FILAS SE VACIÓ. EL PROYECTO NO.
 >
-> **No queda ningún frente de ingeniería abierto ni pendiente de abrir.** No es que falte decidir
-> cuál sigue: es que **lo que queda no lo desbloquea una decisión ni código, lo desbloquea un
-> cliente**. Quien abra sesión mañana **no debe buscar «el siguiente frente» en este documento**,
-> porque no lo hay — y buscarlo lleva a abrir algo por abrir, que es justo lo que el criterio del
-> 24 de agosto vino a evitar.
+> **Cuidado con confundir las dos cosas — se confundieron el 28 y se corrigió el mismo día.** La
+> cola de prioridad del 24 de agosto está cerrada entera, sí. Pero **el tablero da «Experiencia y
+> diseño» por ABIERTO**, con `UX-003` pendiente y un freno que es nuestro: *«falta acotarlo, no
+> falta permiso»*. **Hay frente, y se eligió ése.**
 >
-> **Lo único que puede moverse solo** es la respuesta de Albert a las dos preguntas. Todo lo demás
-> —proveedores, calendarios de cobranza, conciliación, el canal de correo— está construido, pagado
-> y esperando a alguien que lo use.
+> **Lo que sí es cierto:** de lo que queda, **casi todo espera a un cliente y no a una decisión ni
+> a código** —proveedores, calendarios de cobranza, conciliación, el canal de correo están
+> construidos, pagados y quietos—. Y **lo único que puede moverse solo** es la respuesta de Albert.
+>
+> **Lo abordable hoy sin clientes, medido el 28:** `UX-003` (por acotar) · cerrar la puerta del
+> alta (PRD pequeña) · la categoría `servicios`, que está fuera del tipo en **16 de 52** egresos
+> —**y el tablero dice «48 de 130», así que una de las dos cifras está mal y resolverlo es parte
+> del trabajo**— · la verificación de las reglas de Storage que leen Firestore · y que
+> `sendAccountEmail` no deje rastro de entrega.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez**.
 

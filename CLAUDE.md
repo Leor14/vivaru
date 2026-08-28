@@ -487,9 +487,11 @@ hay que hacer, y **bajó al final**. El orden vive en `docs/pendientes.md`.
 > bandeja de conciliación sin nadie conciliando** — hay **cero pagos reales**. No es un aplazamiento
 > de calendario: **se retoma cuando exista cartera real**, que es un hecho medible, no una fecha.
 >
-> **Con eso no queda ningún frente de ingeniería abierto ni pendiente de abrir.** Todo lo que sigue
-> en el tablero espera a un cliente, no a una decisión ni a código. **Al abrir sesión, no buscar
-> «el siguiente frente» en esta lista: no lo hay.** Ver la cabecera de `docs/pendientes.md`.
+> **Con eso la COLA DE PRIORIDAD queda cerrada — que no es lo mismo que quedarse sin frente, y
+> confundirlo costó una corrección el mismo 28.** El tablero da **«Experiencia y diseño» por
+> abierto**, con `UX-003` y un freno que es nuestro: *falta acotarlo, no falta permiso*. **Lo que sí
+> es cierto** es que de lo que queda, casi todo espera a un cliente y no a una decisión ni a código.
+> El siguiente frente elegido es `UX-003`. Ver la cabecera de `docs/pendientes.md`.
 
 **El frente 1 —encender las seis banderas— está HECHO** (25 ago 2026), y costó **cero código**. Su
 runbook, `docs/encender-el-lote-habitanto.md`, lleva dentro lo que se vio en cada una y **tres
@@ -620,10 +622,12 @@ existe en la nube**, y ninguna prueba unitaria lo alcanza. La regla que sale de 
   notificaciones filtra por `tenantId` solo si existe: con conjunto usa
   `(userId, tenantId, createdAt)` y funciona; **sin conjunto —el superadmin— pide
   `(userId, createdAt desc)`, que no existe**, y ese índice compuesto no puede suplirlo porque
-  `tenantId` va en medio. Al 24 de agosto de 2026 faltan **tres** índices en producción:
-  `notifications`, `billingReminderJobs` y `billingSchedules` — los dos últimos estaban anotados
-  como «faltan en staging» y faltan también aquí. **`--only firestore:rules` NO despliega
-  índices.**
+  `tenantId` va en medio. ~~Al 24 de agosto de 2026 faltan **tres** índices en producción:
+  `notifications`, `billingReminderJobs` y `billingSchedules`.~~ **Los tres están DESPLEGADOS**,
+  medido contra producción el 28 de agosto de 2026 —`notifications` tiene sus cuatro, incluido
+  `userId + createdAt DESC` que es el de la campana del superadmin—. **Lo que sigue valiendo:
+  `--only firestore:rules` NO despliega índices**, y el mecanismo del campo opcional en el `where`
+  —dos consultas, dos índices— es lo que hay que recordar al añadir un filtro.
 - **El patrón que no depende de índices es `watchLedger`**: pedir sin ordenar y ordenar en
   memoria. Es lo que hace `/admin/finanzas`, y por eso fue el único que nunca se rompió.
 - **Un `catch` que deja la lista vacía convierte un fallo ruidoso en un dato falso.** Si una
