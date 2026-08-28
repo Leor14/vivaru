@@ -4,40 +4,42 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 27 de agosto de 2026 (tarde)
+## LO PRIMERO AL ABRIR SESIÓN — 27 de agosto de 2026 (noche)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Decidir qué se mejora ahora de experiencia y diseño** (`UX-003` en el inventario). El corte
-> de navegación está **cerrado y en producción**, y David decidió el 27 por la tarde **seguir
-> subiendo experiencia antes de abrir `FIN-002`**. Lo que falta no es permiso: es acotar el
-> alcance, y **no hay medición todavía** de qué duele después de la navegación.
->
-> Candidatos sin medir: consistencia de formularios y tablas, estados vacíos y de error,
-> densidad, y el portal del residente en móvil. **El método que funcionó fue medir primero**
-> —entradas visibles, pantallas de scroll, pantallas que dicen su nombre— y recortar el plan a
-> lo que los números señalaban.
+> **Elegir frente nuevo — pero antes, mirar tres cosas.** El frente de diseño está cerrado.
+> Quedan **2 commits en staging sin subir a producción**, los documentos que lees ahora se
+> acaban de poner al día, y **hay otra sesión escribiendo en este repositorio** (la tarea del
+> vocabulario por país). La regla de la casa es **una sola sesión que escriba a la vez**: si el
+> frente siguiente escribe código, esperar a que termine.
 
-### EL CORTE DE NAVEGACIÓN, EN PRODUCCIÓN (`3c7c826`, 27 ago)
+### EL FRENTE DE DISEÑO, EN PRODUCCIÓN (`cad728c`, 27 ago)
 
-Cinco pasadas desplegadas juntas, cada una falsada y verificada en staging antes de subir.
+Once entregas. **Front puro**: cero líneas en `firestore.rules`, `storage.rules`,
+`firestore.indexes.json` y `functions/src` en todo el frente — por eso no aplicó el orden de
+despliegue.
 
 | | Antes | Ahora |
 |---|---|---|
-| Pantallas que dicen su nombre | 7 de 19 | **19 de 19** |
-| Entradas del menú visibles a 671 px | 7 de 19 | **8**, y todo alcanzable plegando |
-| `/admin/billing` | 4,6 pantallas de scroll | **2,6** |
-| Barras de pestañas accesibles | 1 de 6 | **6 de 6** |
-| Estado en la URL | ninguno | pestañas de 6 pantallas |
+| Valores de radio distintos | 6 accidentales | **3 y el círculo** |
+| Caracteres por línea (peor pantalla) | 182 | **67** |
+| Cifras de las tablas | proporcionales | **ancho fijo**, y los gráficos protegidos |
+| Peso de la énfasis del admin | todo forzado a 500 | **real** (27 elementos en una pantalla) |
+| Contraste del texto secundario | 4,60:1 | **4,73:1** sobre un fondo más profundo |
+| Columnas de dinero | 6 a la izquierda | **todas a la derecha** |
 
-**Front puro:** cero cambios en `firestore.rules`, `storage.rules`, `firestore.indexes.json` y
-`functions/src`; ninguna callable nueva. Por eso el orden de despliegue no aplicó.
+**EL HALLAZGO QUE MÁS LEJOS LLEGA:** `globals.css:193` tiene desde siempre
+`h1, h2, h3 { font-family: var(--font-playfair) }`. **Dos reglas dentro de `.admin-shell` la
+estaban apagando** para el portal entero —una con el único `!important` del fichero, y otra que
+aplanaba a 500 **`.font-semibold`, `.font-bold`, h1–h6, `strong` y `b`**, o sea toda la énfasis—.
+No faltaba diseño: **sobraba un interruptor**. `globals.css` queda hoy con **cero `!important`**.
 
-### DOS TRAMPAS QUE COSTARON TIEMPO Y VUELVEN
+### TRES TRAMPAS QUE COSTARON TIEMPO Y VUELVEN
 
 **1 · Producción NO se despliega con un push a `master`.** Su backend de App Hosting **no tiene
-campo `branch`** —leído del JSON crudo—, igual que el de staging. `CLAUDE.md` decía lo contrario
-y ya está corregido. Hace falta el rollout manual:
+campo `branch`** —leído del JSON crudo—, igual que el de staging. Hace falta el rollout manual, y
+**al agente se lo bloquea el clasificador**, así que lo lanza David:
 
 ```bash
 firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
@@ -45,42 +47,48 @@ firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project 
 
 **2 · La huella de chunks NO comprueba un despliegue de front.** Los nombres llevan hash de
 contenido, así que una página que no usa lo que cambió conserva los suyos: comparar `/login`
-antes y después dijo **«sigue el chunk viejo» con el despliegue ya dentro**. Y `curl` a una ruta
-de `/admin` devuelve **cero bytes** —el middleware redirige sin sesión—, así que grepear eso
-corre sobre un fichero vacío y responde «limpio». **Lo que sí prueba:** sacar del navegador (con
-sesión) el chunk que contiene una cadena que **solo existe en el código nuevo**, y pedirle ese
-chunk exacto al otro ambiente.
+dijo **«sigue el chunk viejo» con el despliegue ya dentro**. Y `curl` a una ruta de `/admin`
+devuelve **cero bytes** —el middleware redirige sin sesión—. **Lo que sí prueba:** sacar del
+navegador (con sesión) el chunk que contiene una cadena que **solo existe en el código nuevo**, y
+pedirle ese chunk exacto al otro ambiente.
 
-### LO QUE ESE CORTE ENSEÑÓ, Y ES LO QUE MÁS VALE
+**3 · Y hay un cuarto falso negativo, nuevo: el CSS puede salir IDÉNTICO aunque el código
+cambie.** Migrar 90 clases `rounded → rounded-sm` no movió un byte de la hoja, porque las dos
+utilidades ya se generaban. Una sonda que espera a que cambie el CSS **no termina nunca**. El
+discriminante tiene que estar en lo que cambió.
 
-**Cinco defectos los encontró entrar por el navegador y ninguna suite podía verlos:** once
-`<h1>` duplicados —de los que **cinco ya lo estaban desde antes** del corte—, un control de
-plegar inerte en el portal del residente, una migaja que el DOM escribe en minúsculas y la
-pantalla pinta en mayúsculas (`.text-label` lleva `text-transform: uppercase`), 56 px que dejaban
-«Configuración» bajo el pliegue, y un modal que habría quedado mudo dentro de una pestaña.
+### LO QUE ESE FRENTE ENSEÑÓ
 
-**Y cuatro pruebas propias no distinguían el código bueno del roto** — las cuatro las destapó
-**falsar**, no escribirlas mejor:
+**Cinco pasadas de sistema y David lo cazó en una frase: «lo veo prácticamente igual».** Tenía
+razón. El agente hizo la fontanería antes de tocar lo visible y **no retiró las dos reglas planas
+por decidir solo que era decisión de producto**. Cuando se retiraron, se vio todo. **Si el efecto
+buscado es visible, la primera pasada tiene que serlo.**
 
-1. Un caso con un mapa vacío donde hacía falta la clave literal `"undefined"`.
-2. Un guardián que se conformaba con **su propia prosa**: la cabecera del componente nombraba los
-   atributos que debía vigilar, así que pasaba en verde con el atributo borrado. Se arregla
-   mirando **solo el código**, como `soloCodigo` en `clave-de-unidad-guarda.test.ts`.
-3. Otro que medía profundidad por **indentación** en un fichero de sangría irregular: rojo falso.
-4. Un arnés de falsación que buscaba un carácter que vitest no imprime, y otro que dejó el
-   fichero sin compilar — vitest no ejecutó **nada**, con aspecto de «todo bien».
+**Y una regla sobre los guardianes:** los que más valieron no comprueban que el código sea el
+escrito, **calculan** — el contraste del fondo contra cada gris, los cinco tonos del tablero
+leyendo su propio mapa, el ancho de la tabla más ancha que exista en el código. Cada uno enrojece
+**con la cifra delante**. Son trece ficheros nuevos en `tests/`.
 
-### LO QUE QUEDA DEL FRENTE DE EXPERIENCIA
+**Tres instrumentos propios mintieron, y los tres se cazaron comparando, no leyendo:** un auditor
+de contraste que decía 1,82:1 sobre texto blanco en fondo navy (no resolvía degradados; **no se
+reportó ni uno de sus números**), una medición de seis rutas con `pushState` que devolvió **seis
+resultados idénticos** porque Next no repintó, y un `@source not` con un `..` de más que ahorró
+**0 bytes** hasta que se midió el antes y el después.
 
-- **`UX-002` — filtros en la URL. Aplazada a propósito.** Son **38 filtros en 14 de las 19**
-  pantallas del admin, y ninguno viaja en la dirección. El mecanismo **ya existe**
-  (`src/lib/navigation/tab-param.ts`, de la pasada 3); falta generalizarlo a varios parámetros a
-  la vez. **Su valor es compartir una vista, y no hay a quién**: producción no tiene clientes.
-  La excepción honesta es que **recargar y perder el filtro molesta desde el primer día**.
-- **`UX-003` — la siguiente pasada, por acotar.** Es el punto de partida de la próxima sesión.
+### LO QUE QUEDA
+
+- **2 commits en staging sin producción** (`bc33144`, `8bf5e4a`): el ahorro de CSS (−4,2%) y las
+  correcciones de texto de las pantallas de error. Ninguna urgente.
+- **`UX-002` — filtros en la URL. Aplazada a propósito.** **38 filtros en 14 de las 19** pantallas
+  del admin, y ninguno viaja en la dirección. El mecanismo **ya existe**
+  (`src/lib/navigation/tab-param.ts`); falta generalizarlo a varios parámetros. **Su valor es
+  compartir una vista, y no hay a quién**: producción no tiene clientes. La excepción honesta es
+  que **recargar y perder el filtro molesta desde el primer día**.
+- **El pie dice `Tenant:` en todas las pantallas.** Es jerga, y la palabra correcta **depende del
+  país del conjunto**; `vocabulario-pais.ts` **no tiene término para el inmueble en sí**. Es la
+  tarea que corre en la otra sesión.
 
 ---
-
 ## LA JORNADA DEL 27 POR LA MADRUGADA — `FLOW-003` cerrado
 
 > Lo que sigue es **historia, no trabajo pendiente**. El webhook se cerró y
