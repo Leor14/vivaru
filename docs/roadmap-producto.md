@@ -142,7 +142,7 @@ de entrega.**
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | — | 🔵 `PH-002` (espera al primer pago real) | Nada. Lo que queda son datos de cliente |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
-| Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | 🟠 `FIN-002` | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
+| Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | ⏸ `FIN-002` **(espera cartera real)** | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
@@ -705,7 +705,13 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 #### `FIN-002` — Expediente y conciliación determinística
 
-- **Estado:** Parcial · **Dependencia:** `FIN-001`
+> **NO SE CONSTRUYE POR AHORA. Decisión de David, 28 de agosto de 2026.** No vale la pena montar la
+> bandeja de conciliación **antes de que haya alguien conciliando**: producción tiene **cero pagos
+> reales**. Técnicamente no le falta nada —su único requisito, `FIN-001`, está en producción—, así
+> que **no está bloqueada: está aplazada a propósito**. El disparador para retomarla no es una fecha
+> sino un hecho medible: **que entre cartera real**.
+
+- **Estado:** Aplazada por decisión · **Dependencia:** `FIN-001` (cumplida)
 - **Incluye:** `ReconciliationCase`, estados versionados, normalización, duplicados,
   candidatos determinísticos, bandeja de excepciones, motivos y reversos.
 - **Criterio de salida:** un caso se rastrea desde la evidencia recibida hasta la

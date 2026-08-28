@@ -17,12 +17,24 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > Se verificó de punta a punta con la clave nueva del webhook: recordatorio a una unidad → fila en
 > `enviado` → `entregado` en dos segundos. Detalle abajo.
 >
-> **Con eso, `FIN-002` es lo siguiente y ya sin discusión** — no queda nada desplegado y apagado que
-> cuente como abierto por el criterio del 24. **Pero tiene una pregunta previa tuya sin contestar:**
-> ¿vale la pena construir la bandeja de conciliación antes de que haya alguien conciliando? Hay
-> **cero pagos reales**, y es el frente más grande del tablero.
+> **Y `FIN-002` NO SE CONSTRUYE.** Era la única fila que quedaba de la cola y David la resolvió el
+> 28: **no vale la pena montar la bandeja de conciliación sin nadie conciliando** —cero pagos
+> reales—. No está bloqueada, está **aplazada a propósito**; su único requisito ya está en
+> producción. **Se retoma cuando entre cartera real**, que es un hecho medible y no una fecha.
 >
-> Siguen en pie: **una sola sesión que escriba a la vez**.
+> ### ▸ CON ESO LA COLA SE VACÍA, Y ESO ES EL ESTADO, NO UN HUECO
+>
+> **No queda ningún frente de ingeniería abierto ni pendiente de abrir.** No es que falte decidir
+> cuál sigue: es que **lo que queda no lo desbloquea una decisión ni código, lo desbloquea un
+> cliente**. Quien abra sesión mañana **no debe buscar «el siguiente frente» en este documento**,
+> porque no lo hay — y buscarlo lleva a abrir algo por abrir, que es justo lo que el criterio del
+> 24 de agosto vino a evitar.
+>
+> **Lo único que puede moverse solo** es la respuesta de Albert a las dos preguntas. Todo lo demás
+> —proveedores, calendarios de cobranza, conciliación, el canal de correo— está construido, pagado
+> y esperando a alguien que lo use.
+>
+> Sigue en pie: **una sola sesión que escriba a la vez**.
 
 ### `FLOW-003` — CERRADO EL 28 DE AGOSTO, Y LO QUE ENSEÑÓ
 
@@ -65,9 +77,10 @@ alojarlo uno mismo. **Albert cuesta cero, ya tiene cinco entregas desplegadas, y
 terceros —así que Vivaru es su cliente de referencia—.** Y cambiar no ahorraría ni una de las
 cinco piezas que Vivaru tiene por construir.
 
-**Pendiente de David, y sostiene media decisión:** confirmar con los socios que **Albert es
-producto de Qintilab**. Su web firma «by Somasoft Colombia». Detalle y condiciones de reapertura
-en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md).
+**Y la premisa que sostenía media decisión quedó CONFIRMADA el 28 de agosto: Albert es producto de
+Qintilab.** David lo confirmó con los socios. Se preguntó porque su web firma «by Somasoft
+Colombia»; no lo era. Con eso **se cae una de las cuatro condiciones de reapertura y quedan tres**.
+Detalle en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md).
 
 ### ALBERT ↔ VIVARU — RETOMADO EL 28 DE AGOSTO, Y LO QUE SE SUPO
 
@@ -1432,10 +1445,15 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 | ~~**3**~~ | ~~**`FIX-001` completo**~~ | **MVP CERRADO el 24 de agosto de 2026** (`a67088c`): bandera encendida en los nueve, puerta medida **con contenido**, y la rama del residente retirada del `create`. Queda solo la **entrega 2** (política por área), que es Fase 2 de la ficha, no MVP | — |
 | ~~**4**~~ | ~~**`PLAT-002` entrega 2**~~ | **MVP CERRADO el 25 de agosto de 2026** (`dbb3f29`…`5894001`): el selector, la sesión con varias membresías, la entidad administradora y su consola. **En staging, verificado por navegador de punta a punta.** La vista de cartera NO entraba — el Story Map la sitúa en Fase 2. Detalle en la cabecera | — |
 | **5** | **Olas B y C** | **La ola B queda hecha**: `FLOW-001` construido, desplegado en staging y validado por navegador el 25 de agosto (`728451f`…`abcbaad`). **No sube a producción**, y el motivo es de datos: con 0 de 93 unidades con coeficiente y 80 de 93 sin propietario, ahí no puede correr aunque se encienda. Queda la ola C: `FEAT-004` (paz y salvo) y luego `FLOW-003` (cobranza), cuyo adjunto depende de ella | Alto — es construir |
-| **6** | **`FIN-002`** | Expediente y conciliación determinística. `docs/roadmap-finance.md` §7 | Alto |
+| ~~**6**~~ | ~~**`FIN-002`**~~ | **NO SE CONSTRUYE — decisión de David, 28 ago 2026.** Expediente y conciliación determinística. No vale la pena la bandeja sin nadie conciliando: **cero pagos reales**. Aplazada a propósito, no bloqueada; se retoma **cuando entre cartera real** | — |
 
 **`PLAT-002` YA ESTÁ EN PRODUCCIÓN** desde la tarde del 25 (`e41affa`), así que esa decisión
-dejó de estar pendiente. **Del 5 queda la ola C**, y el 6 (`FIN-002`) sigue al final.
+dejó de estar pendiente. ~~**Del 5 queda la ola C**, y el 6 (`FIN-002`) sigue al final.~~
+
+> **AL 28 DE AGOSTO DE 2026 ESTA TABLA ESTÁ ENTERA TACHADA.** La ola C se cerró —`FEAT-004` el 26,
+> `FLOW-001` y `FLOW-003` el 27, éste último verificado de punta a punta el 28— y **`FIN-002` no se
+> construye por decisión**. **Las seis filas están cerradas o retiradas: la cola quedó vacía**, y eso
+> es el estado del tablero, no un hueco por llenar. Ver la cabecera de este documento.
 
 > **La decisión que sí queda abierta es otra, y no es de ingeniería: cuándo sube `FLOW-001`.**
 > No se pospone por prudencia sino porque **producción no tiene los datos que exige** — y

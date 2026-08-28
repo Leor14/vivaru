@@ -30,13 +30,16 @@ seguir invirtiendo, y la comparación no estuvo reñida:
   cinco. Cambia el interlocutor y la factura, no el código.
 - **Y Albert se vende a terceros**, así que Vivaru usándolo es su cliente de referencia.
 
-> **La recomendación se apoya en una premisa SIN CONFIRMAR: que Albert es producto de Qintilab.**
-> Su web pública firma «by Somasoft Colombia». **Pendiente de David: preguntárselo a los socios.**
-> Si Albert no es de la casa, media argumentación se cae y hay que releer el comparativo.
+> **La premisa que sostiene media recomendación está CONFIRMADA: Albert es producto de Qintilab.**
+> Confirmado por David con los socios el 28 de agosto de 2026. Se preguntó porque su web pública
+> firma «by Somasoft Colombia», que dejaba la duda abierta; no lo era. **Queda escrito para que
+> nadie vuelva a abrir la pregunta el día que vea esa firma.**
 
-**Cuándo se reabre:** si Albert dice que no a la clave estable de «ganado»; si las dos preguntas
-tardan más de dos semanas; si el alcance deja de ser solo el pipeline —facturar a los conjuntos o
-llevar suscripciones cambia el partido—; o si Albert deja de ser de la casa.
+**Cuándo se reabre**, y ya solo quedan tres de las cuatro condiciones: si Albert dice que no a la
+clave estable de «ganado»; si las dos preguntas tardan más de dos semanas; o si el alcance deja de
+ser solo el pipeline —facturar a los conjuntos o llevar suscripciones cambia el partido, y es el
+escenario que más probablemente le dé la vuelta—. **La cuarta —que Albert dejara de ser de la
+casa— se cayó al confirmarse que sí lo es.**
 
 ---
 

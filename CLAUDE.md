@@ -480,7 +480,16 @@ del programa de IA se calculó sobre esa cuenta.
 **EL CRITERIO DE PRIORIZACIÓN CAMBIÓ EL 24 DE AGOSTO DE 2026: cerrar frentes antes que abrirlos.**
 Lo fijó David. La cola empezaba por `FIN-002` porque era el frente de ingeniería más grande
 abordable sin clientes; con el criterio nuevo, abrirlo teniendo cuatro a medias es justo lo que no
-hay que hacer, y **baja al final**. El orden vive en `docs/pendientes.md`.
+hay que hacer, y **bajó al final**. El orden vive en `docs/pendientes.md`.
+
+> **Y el 28 de agosto de 2026 la cola se vació: `FIN-002` NO SE CONSTRUYE.** Decisión de David,
+> contestando la pregunta previa que llevaba abierta desde el 24: **no vale la pena construir la
+> bandeja de conciliación sin nadie conciliando** — hay **cero pagos reales**. No es un aplazamiento
+> de calendario: **se retoma cuando exista cartera real**, que es un hecho medible, no una fecha.
+>
+> **Con eso no queda ningún frente de ingeniería abierto ni pendiente de abrir.** Todo lo que sigue
+> en el tablero espera a un cliente, no a una decisión ni a código. **Al abrir sesión, no buscar
+> «el siguiente frente» en esta lista: no lo hay.** Ver la cabecera de `docs/pendientes.md`.
 
 **El frente 1 —encender las seis banderas— está HECHO** (25 ago 2026), y costó **cero código**. Su
 runbook, `docs/encender-el-lote-habitanto.md`, lleva dentro lo que se vio en cada una y **tres
