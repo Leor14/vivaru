@@ -168,7 +168,11 @@ export function DataTable<T>({
       <div className="responsive-table-wrap hidden sm:block">
         <table className={cn("responsive-table text-sm", tableMinWidthClassName)}>
           <thead>
-            <tr className="border-b border-[var(--slate-200)] text-left text-[var(--slate-500)]">
+            {/* La cabecera lleva peso y el navy de marca: era gris claro sin peso, asi
+                  que una tabla de veinte filas no tenia donde empezar a leerse. El
+                  `font-semibold` solo rinde desde que se retiro la regla que
+                  aplanaba todo el enfasis del portal a 500. */}
+              <tr className="border-b border-[var(--slate-300)] text-left font-semibold text-[var(--brand-700)]">
               {columns.map((column) => (
                 <th key={column.key} className={cn("py-2.5 pr-4 first:pl-1 last:pr-1", column.headerClassName)}>
                   {column.header}

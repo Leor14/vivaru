@@ -21,7 +21,12 @@
   --medida-lectura: 65ch;
   --medida-datos: 1440px;
 
-  --background: #f4f7fb;
+  /* El fondo de pagina, inclinado al navy de marca y un paso mas profundo.
+     Medido antes: la tarjeta (#ffffff) y el fondo (#f4f7fb) se separaban un 3%,
+     asi que la sombra que YA tenian las tarjetas (0 8px 22px al 8%) no llegaba a
+     leerse. No faltaba elevacion: faltaba contra que elevarse.
+     El landing no lo hereda — `.marketing-theme` declara el suyo en blanco. */
+  --background: #e9eff7;
   --foreground: #0f1c2b;
   --surface-strong: #ffffff;
   --surface-soft: #f7fafc;
@@ -76,7 +81,11 @@
      Contraste 2.8:1 sobre blanco: apto para glifos e iconos decorativos, NO
      para texto informativo — ese debe usar --slate-500 (4.9:1). */
   --slate-400: #8b9bb0;
-  --slate-500: #607286;
+  /* Aclarado NO: oscurecido. Iba a 4,60:1 sobre el fondo viejo —al limite de AA—
+     y con el fondo mas profundo caia a 4,27. Con #5a6b7e da 4,73 sobre el fondo
+     nuevo y 5,47 sobre blanco: el fondo se separa y el texto secundario queda
+     MAS legible que antes, no menos. Vigilado en tests/contraste-del-fondo.test.ts. */
+  --slate-500: #5a6b7e;
   --slate-600: #4c5f74;
   --slate-700: #33485f;
   /* Paso intermedio 700↔900 (H 211°, 12.2:1 sobre blanco — entre el 9.4 del
