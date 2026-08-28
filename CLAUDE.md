@@ -374,18 +374,34 @@ abiertos y las doce banderas de producto encendidas.**
 > esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
 > `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
 
-**`FLOW-003` ESTÁ DESPLEGADO EN PRODUCCIÓN Y APAGADO** (27 ago 2026, 00:41–00:49 UTC):
-entrega medida del correo, webhook, calendario del conjunto y el estado de cuenta adjunto.
-Índices, reglas, **15 functions** (no las 82) y el front, cada pieza verificada por medición.
-**Staging NO lo tiene**: allí `RESEND_WEBHOOK_SECRET` no existe y sin él `resendWebhook` no
-despliega, así que los dos ambientes divergen desde hoy.
+**`FLOW-003` ESTÁ EN PRODUCCIÓN, ENCENDIDO Y PROBADO DE PUNTA A PUNTA** (28 ago 2026).
+Desplegado el 27 (00:41–00:49 UTC): entrega medida del correo, webhook, calendario del conjunto y
+el estado de cuenta adjunto. **Staging NO lo tiene**: allí `RESEND_WEBHOOK_SECRET` no existe y sin
+él `resendWebhook` no despliega, así que los dos ambientes divergen desde el 27.
 
-> **EL SECRETO QUE HAY ES DE RELLENO, Y LA FUNCIÓN LO TIENE CLAVADO A `versión=1`.** Medido en su
-> `serviceConfig`, no supuesto: **no sigue a `latest`**. Poner el valor real de Resend con
+> **ESTE BLOQUE DECÍA TRES COSAS FALSAS Y SE CORRIGIERON MIDIENDO EL 28 DE AGOSTO.** Decía que
+> estaba **apagado** —las dos banderas llevaban encendidas desde el 27, `producto-entrega-de-correo`
+> y `producto-calendario-de-cobranza`—, que el secret era **de relleno** —el ciclo ya funcionaba: hay
+> una fila del 27 en `entregado`— y que comprobar versiones **exige la ADC** —`firebase
+> functions:secrets:get` y `:describe` las listan con la credencial del CLI, sin leer el valor—.
+>
+> **Lo que sí era cierto y sigue valiendo: el secret NO sigue a `latest`.** Poner el valor con
 > `firebase functions:secrets:set RESEND_WEBHOOK_SECRET --project hogaru-1` **no basta** — hay que
-> **redesplegar `resendWebhook`** o se queda con el relleno, y el síntoma es idéntico al de una
-> clave mal copiada. El valor lo pone el usuario; comprobar **sin leerlo**, listando versiones por
-> la API con la ADC.
+> **redesplegar `resendWebhook`**. Y el propio CLI lo avisa al guardar: *«N functions are using stale
+> version»*. **Ojo con su pregunta de después:** ofrece redesplegar **y destruir** la versión vieja
+> en el mismo `Y`, y lo segundo es irreversible; además falla si no estás dentro de `vivaru/`.
+>
+> **El ciclo está verificado el 28**: recordatorio a APARTAMENTO 201 → fila en `enviado` → `entregado`
+> en dos segundos, con la **versión 3** del secret. **Y la verificación va contra la base, no contra
+> la pantalla:** un clic sobre una referencia obsoleta del botón «Recordar» no hizo nada y la pantalla
+> no lo dijo — lo delató que no naciera la notificación.
+>
+> **Para probar el correo hay que encender «También por correo»** en Ajustes → Portal del residente,
+> por notificación y por conjunto: sin eso `deliverResidentNotifications` se para en `emailEnabled` y
+> **el correo ni se intenta**. Encender, probar en UNA unidad y volver a apagar es el procedimiento;
+> es lo que se hizo el 27 y el 28. **Antes de encenderlo, mirar las direcciones**: Santa María tiene
+> 14 miembros y **12 no reciben** —6 `@santamaria.co` y 6 `@ejemplo.vivaru.app`—, así que un envío
+> masivo son rebotes duros contra la reputación del dominio.
 >
 > Y trae la **PRIMERA FUNCIÓN HTTP del producto** (`resendWebhook`). Las 81 anteriores son
 > callables y procesos programados, así que `callableCorsOrigins` no le aplica: esto lo llama un

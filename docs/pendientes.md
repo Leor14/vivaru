@@ -12,19 +12,49 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > retomó, se puso al día y se decidió la herramienta —**Vivaru se queda en Albert**, comparado
 > contra Odoo—. No hay nada que construir mientras no contesten.
 >
-> **Y el siguiente frente NO es `FIN-002`, aunque sea la única fila que queda de la cola.** Por el
-> criterio del propio David —*lo desplegado y apagado cuenta como abierto*— hay un frente abierto
-> por delante: **`FLOW-003` salió a producción APAGADO el 27 de agosto**. Antes de abrir el frente
-> más grande del tablero hay que cerrar ése, o decidir explícitamente que se deja abierto.
+> **`FLOW-003` QUEDA CERRADO** (28 ago). Se fue a medir si encenderlo era un no-op y resultó que
+> **ya estaba encendido desde el 27** —las dos banderas— y que **el ciclo del correo ya funcionaba**.
+> Se verificó de punta a punta con la clave nueva del webhook: recordatorio a una unidad → fila en
+> `enviado` → `entregado` en dos segundos. Detalle abajo.
 >
-> **Pero ojo antes de correr a encenderlo:** encender `FLOW-003` puede ser **otro no-op con aspecto
-> de hito**. Sus dos banderas son el rastro de entrega del correo y el calendario de cobranza, y
-> hoy **el producto no manda ni un correo** —las 13 claves del catálogo tienen `emailDefault:false`
-> y ningún conjunto tiene plantillas—. **Medir antes qué cambiaría al encenderlo.** Es la cuarta
-> vez que este patrón aparece.
+> **Con eso, `FIN-002` es lo siguiente y ya sin discusión** — no queda nada desplegado y apagado que
+> cuente como abierto por el criterio del 24. **Pero tiene una pregunta previa tuya sin contestar:**
+> ¿vale la pena construir la bandeja de conciliación antes de que haya alguien conciliando? Hay
+> **cero pagos reales**, y es el frente más grande del tablero.
 >
-> Siguen en pie: **4 commits sin subir a producción** (todos de documentación), y la regla de la
-> casa —**una sola sesión que escriba a la vez**—.
+> Siguen en pie: **una sola sesión que escriba a la vez**.
+
+### `FLOW-003` — CERRADO EL 28 DE AGOSTO, Y LO QUE ENSEÑÓ
+
+**Lo que se hizo:** clave de firma del webhook de Resend puesta por David (versión 3),
+`resendWebhook` **redesplegado** para que la lea —el secret **no sigue a `latest`**—, y el ciclo
+verificado enviando un recordatorio a **APARTAMENTO 201** de Santa María. `emailDeliveries` queda
+con **2 filas, las dos en `entregado`**.
+
+**Lo único que le falta a `FLOW-003` no es código: es dato.** **0 de 8 conjuntos** tienen
+`billingCalendar` configurado, así que la pasada diaria de las 9:00 UTC descarta a todos antes de
+mirar siquiera la bandera. Encender la bandera **abre la tarjeta de configuración** en Ajustes —es
+su único efecto— y configurarla es captura de dato.
+
+> **Y se decide dejarlo sin configurar a propósito.** Configurarlo en un conjunto de ejemplo haría
+> que la pasada mande correos a **12 direcciones que no reciben** —6 `@santamaria.co` y 6
+> `@ejemplo.vivaru.app` de los 14 miembros de Santa María—, y eso son rebotes duros contra la
+> reputación del dominio. **No es deuda: es una decisión con motivo.**
+
+**Cuatro cosas de método que salieron, y las cuatro vuelven:**
+
+1. **`CLAUDE.md` decía TRES cosas falsas** sobre este frente: apagado, secret de relleno, y que
+   comprobar versiones exige la ADC. Las tres cayeron al medir. Corregidas en su sitio.
+2. **La pantalla no delata un clic que no disparó.** Un clic sobre una referencia obsoleta del
+   botón «Recordar» no hizo nada y no hubo error; **lo delató que no naciera la notificación**. Si
+   se hubiera creído a la pantalla, la conclusión habría sido «la clave nueva está rota».
+3. **El correo tiene DOS interruptores, no uno.** La bandera del rastro registra; pero
+   `deliverResidentNotifications` se para antes en `emailEnabled`, que es **por notificación y por
+   conjunto** (Ajustes → Portal del residente). Con el segundo apagado, el correo **ni se intenta**.
+4. **`sendAccountEmail` no registra entrega**, sólo `sendNotificationEmail`. O sea que las
+   invitaciones y activaciones —el correo que más sale— **no dejan rastro**. Es coherente con el
+   esquema, que lleva `notificationKey`, pero **la etiqueta de la bandera promete «cada correo
+   enviado»** y eso es más de lo que hace.
 
 ### LA DECISIÓN DE HERRAMIENTA COMERCIAL — ALBERT, NO ODOO (28 ago 2026)
 
