@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useRegulationComplianceSummary } from "@/features/regulations/use-regulation-compliance-summary";
-import { colorPorPorcentaje } from "@/lib/dashboard/umbrales";
+import { colorDeCarril, colorPorPorcentaje } from "@/lib/dashboard/umbrales";
 
 type Props = {
   tenantId?: string;
@@ -91,7 +91,7 @@ export function RegulationComplianceWidget({ tenantId, totalUnits }: Props) {
               // **Al 0% la barra mide cero, así que el color tiene que vivir en el carril.** Si no,
               // «cero de dieciocho firmaron» y «no hay nada que medir» se ven exactamente igual:
               // un carril gris vacío. Con esto, el cero de un total real se ve como lo que es.
-              background: colorPorPorcentaje(filtered.pct, filtered.total) ?? "var(--slate-200)",
+              background: colorDeCarril(filtered.pct, filtered.total) ?? "var(--slate-200)",
             }}
           >
             <div
@@ -114,7 +114,7 @@ export function RegulationComplianceWidget({ tenantId, totalUnits }: Props) {
                   <span className="w-16 shrink-0 text-xs text-[var(--slate-600)]">{row.tower}</span>
                   <div
                     className="h-1.5 flex-1 overflow-hidden rounded-full"
-                    style={{ background: colorPorPorcentaje(row.pct, row.total) ?? "var(--slate-200)" }}
+                    style={{ background: colorDeCarril(row.pct, row.total) ?? "var(--slate-200)" }}
                   >
                     <div
                       className="h-full rounded-full transition-[width] duration-500"

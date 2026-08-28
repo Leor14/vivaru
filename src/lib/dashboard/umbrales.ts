@@ -47,3 +47,19 @@ export function colorPorPorcentaje(pct: number, total: number): string | null {
   if (pct >= UMBRAL_ATENCION) return "#EF9F27";
   return "#E24B4A";
 }
+
+/**
+ * Color del CARRIL de la barra: el mismo tono, muy rebajado.
+ *
+ * **Existe por una regresión que las pruebas no vieron y el navegador sí.** El primer intento
+ * pintó carril y relleno del mismo color para que un 0% sobre un total real no se confundiera
+ * con «sin datos» — y con eso **el avance dejó de verse**: una torre al 11% y tres al 0% salían
+ * como cuatro barras rojas idénticas. Arreglar la lectura del cero rompió la del progreso.
+ *
+ * Con el carril teñido se cumplen las tres cosas a la vez: el relleno se distingue del carril,
+ * un 0% con datos reales tiene color, y `total === 0` sigue cayendo a gris neutro.
+ */
+export function colorDeCarril(pct: number, total: number): string | null {
+  const base = colorPorPorcentaje(pct, total);
+  return base === null ? null : `${base}2E`;
+}

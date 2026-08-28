@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  colorDeCarril,
   colorPorPorcentaje,
   tonoPorPorcentaje,
   UMBRAL_ATENCION,
@@ -67,6 +68,31 @@ describe("umbrales del Panel de Control", () => {
       const seis = colorPorPorcentaje(6, 18) as keyof typeof orden;
       const once = colorPorPorcentaje(11, 18) as keyof typeof orden;
       expect(orden[seis]).toBeLessThanOrEqual(orden[once]);
+    });
+  });
+
+  describe("la barra sigue mostrando avance", () => {
+    /**
+     * **Esta prueba existe por una regresión propia que ninguna otra vio.**
+     *
+     * Al arreglar «cero con datos se ve igual que sin datos» se pintó el carril del MISMO color
+     * que el relleno. Con eso el cero quedó bien y **el avance desapareció**: una torre al 11% y
+     * tres al 0% salían como cuatro barras rojas idénticas. Typecheck, 1343 pruebas y la
+     * falsación estaban en verde; lo cazó abrir la pantalla.
+     */
+    it("el carril y el relleno NUNCA son el mismo color", () => {
+      for (const pct of [0, 6, 11, 40, 55, 70, 100]) {
+        expect(colorDeCarril(pct, 18)).not.toBe(colorPorPorcentaje(pct, 18));
+      }
+    });
+
+    it("el carril conserva el tono, para que el cero con datos siga teniendo color", () => {
+      expect(colorDeCarril(0, 18)).toContain("#E24B4A");
+      expect(colorDeCarril(100, 18)).toContain("#1D9E75");
+    });
+
+    it("y sin datos el carril tampoco tiene color", () => {
+      expect(colorDeCarril(0, 0)).toBeNull();
     });
   });
 
