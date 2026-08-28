@@ -18,6 +18,27 @@ describe("cada país lee su palabra", () => {
     expect(terminosDePais("EC").coeficiente).toBe("alícuota");
   });
 
+  /**
+   * El inmueble entero: la palabra más visible del producto, y la última que
+   * llegó aquí. Hasta el 27 de agosto de 2026 la pantalla decía «Tenant».
+   */
+  it("Colombia dice conjunto; México y Ecuador, condominio", () => {
+    expect(terminosDePais("CO").copropiedad).toBe("conjunto");
+    expect(terminosDePais("MX").copropiedad).toBe("condominio");
+    expect(terminosDePais("EC").copropiedad).toBe("condominio");
+  });
+
+  /**
+   * Que México y Ecuador coincidan HOY no los hace el mismo caso: se
+   * decidieron por vías distintas —México por David, Ecuador contra Habitanto—
+   * y pueden separarse. Esto fija que quien cambie uno no arrastre al otro sin
+   * enterarse.
+   */
+  it("México y Ecuador coinciden por casualidad, no por compartir la entrada", () => {
+    expect(terminosDePais("MX").copropiedad).toBe(terminosDePais("EC").copropiedad);
+    expect(terminosDePais("MX").coeficiente).not.toBe(terminosDePais("EC").coeficiente);
+  });
+
   it("la cuota mensual también cambia de nombre", () => {
     expect(terminosDePais("CO").cuotaMensual).toBe("cuota de administración");
     expect(terminosDePais("MX").cuotaMensual).toBe("cuota de mantenimiento");
@@ -41,6 +62,18 @@ describe("lo desconocido cae en neutro, nunca en un país concreto", () => {
     const cl = terminosDePais("CL");
     expect(cl.coeficiente).toBe("porcentaje de copropiedad");
     expect(cl.coeficiente).not.toBe(terminosDePais("CO").coeficiente);
+  });
+
+  /**
+   * El neutro del inmueble NO puede ser «conjunto»: es la palabra colombiana,
+   * y caer en ella es exactamente adivinar el país de quien lee. «Copropiedad»
+   * es el término legal común a los tres.
+   */
+  it("sin país, el inmueble no cae en la palabra de ningún mercado", () => {
+    expect(terminosDePais(undefined).copropiedad).toBe("copropiedad");
+    for (const pais of ["CO", "EC", "MX"]) {
+      expect(terminosDePais(undefined).copropiedad).not.toBe(terminosDePais(pais).copropiedad);
+    }
   });
 });
 
@@ -117,5 +150,11 @@ describe("capitalizar", () => {
 
   it("respeta las tildes", () => {
     expect(capitalizar("alícuota")).toBe("Alícuota");
+  });
+
+  /** Es como lo usa el pie de `app-shell`: «Condominio: Torres del Valle». */
+  it("sirve para encabezar el pie con el término del país", () => {
+    expect(capitalizar(terminosDePais("MX").copropiedad)).toBe("Condominio");
+    expect(capitalizar(terminosDePais("CO").copropiedad)).toBe("Conjunto");
   });
 });

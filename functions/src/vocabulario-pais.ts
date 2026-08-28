@@ -57,3 +57,35 @@ export function terminoCuotaMensual(country: string | undefined): string {
   if (!country) return CUOTA_MENSUAL_NEUTRO;
   return CUOTA_MENSUAL_POR_PAIS[country.toUpperCase()] ?? CUOTA_MENSUAL_NEUTRO;
 }
+
+/**
+ * Cómo se llama **el inmueble entero**. Espejo de `copropiedad` en
+ * `src/lib/config/vocabulario-pais.ts`.
+ *
+ * ⚠️ **HOY NO LO LLAMA NADIE EN EL SERVIDOR, y está aquí a propósito.** Rompe
+ * la regla de la cabecera —«aquí vive solo lo que el servidor necesita para
+ * hablar»— porque el consumidor ya existe, solo que todavía dice la palabra a
+ * mano: `advances.ts` («Ese anticipo pertenece a otro conjunto»),
+ * `coefficient-billing.ts` («El conjunto no tiene unidades activas»),
+ * `management-companies.ts`, `clearance-certificates.ts` e `index.ts` le dicen
+ * «conjunto» a un administrador mexicano que su ley llama «condominio». Son
+ * ~15 cadenas y no se tocaron en la pasada del 27 de agosto de 2026, que iba
+ * del pie de pantalla.
+ *
+ * Puesto de otro modo: esto no es un espejo vacío, es **la mitad servidor de
+ * un arreglo a medio hacer**. Si al adoptarlo en esos mensajes resulta que
+ * sobra, se borra; lo que no se puede es dejar que las dos listas se separen
+ * mientras tanto, que es justo para lo que existe este archivo.
+ */
+const COPROPIEDAD_POR_PAIS: Record<string, string> = {
+  CO: "conjunto",
+  EC: "condominio",
+  MX: "condominio",
+};
+
+const COPROPIEDAD_NEUTRO = "copropiedad";
+
+export function terminoCopropiedad(country: string | undefined): string {
+  if (!country) return COPROPIEDAD_NEUTRO;
+  return COPROPIEDAD_POR_PAIS[country.toUpperCase()] ?? COPROPIEDAD_NEUTRO;
+}

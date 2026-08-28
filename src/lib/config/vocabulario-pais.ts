@@ -28,6 +28,22 @@
  * ecuatoriano que dice «alícuota» dieciséis veces—, y México y Colombia por
  * David, que conoce los mercados.
  *
+ * **`copropiedad` —cómo se llama el inmueble entero— se añadió el 27 de agosto
+ * de 2026, y llegó tarde por una razón que conviene no repetir.** Es la palabra
+ * más visible del producto y era la única que no estaba aquí: la pantalla decía
+ * literalmente «Tenant», que no es que estuviera en el idioma equivocado, es que
+ * es jerga de multi-tenancy —vocabulario de cómo está construido el software—
+ * enseñada a quien administra un edificio. **El mapa de un vocabulario se hace
+ * desde las palabras del usuario, no desde los campos que ya existen en el
+ * modelo**, o el término que nadie nombró es justo el que se queda sin traducir.
+ *
+ * Ecuador se decidió por la misma vía que «alícuota» y con más señal: Habitanto
+ * dice «condominio» 46 veces, «conjunto residencial» ninguna, y su propio menú
+ * se llama «Mi Condominio». **La vía tiene un límite conocido** —Habitanto se
+ * vende también en Uruguay, Bolivia y México, así que podría ser su elección
+ * panregional y no la palabra ecuatoriana—; David la confirmó igual el 27 de
+ * agosto sabiéndolo. Colombia y México, por David.
+ *
  * **Al abrir un mercado nuevo hay que añadir su término aquí**, igual que su
  * moneda en `country-currency.ts`. Mientras no esté, cae en los neutros: no
  * se rompe nada, pero nadie lee su palabra. Y cambiar una palabra debe seguir
@@ -35,6 +51,20 @@
  */
 
 export type TerminosPais = {
+  /**
+   * Cómo se llama **el inmueble entero**: lo que en el código es un «tenant».
+   *
+   * El campo NO se llama `conjunto` a propósito. «Conjunto» es la palabra
+   * colombiana, y bautizar el campo con el término de un mercado es la misma
+   * confusión que este archivo existe para evitar, solo que escondida en el
+   * tipo: quien lea `terminos.conjunto` y le salga «condominio» pensará que
+   * hay un error. `copropiedad` es el término legal común a los tres, y el
+   * que ya usa el neutro de `coeficiente`.
+   *
+   * En minúscula, como los demás: casi siempre va dentro de una frase. Para
+   * encabezar una, `capitalizar()`.
+   */
+  copropiedad: string;
   /** El porcentaje de participación de la unidad. Etiqueta larga, para formularios. */
   coeficiente: string;
   /** La misma idea en una palabra, para botones y columnas. */
@@ -53,6 +83,7 @@ export type TerminosPais = {
 
 /** Términos neutros: país desconocido o fuera de los mercados abiertos. */
 const NEUTRO: TerminosPais = {
+  copropiedad: "copropiedad",
   coeficiente: "porcentaje de copropiedad",
   coeficienteCorto: "porcentaje",
   cuotaMensual: "cuota mensual",
@@ -66,6 +97,7 @@ const NEUTRO: TerminosPais = {
 const POR_PAIS: Record<string, TerminosPais> = {
   // Colombia — Ley 675 de 2001.
   CO: {
+    copropiedad: "conjunto",
     coeficiente: "coeficiente de copropiedad",
     coeficienteCorto: "coeficiente",
     cuotaMensual: "cuota de administración",
@@ -80,6 +112,7 @@ const POR_PAIS: Record<string, TerminosPais> = {
   // legal, no nuestra: por eso aquí el texto de ayuda hace más falta que en
   // ningún otro país.
   EC: {
+    copropiedad: "condominio",
     coeficiente: "alícuota",
     coeficienteCorto: "alícuota",
     cuotaMensual: "alícuota mensual",
@@ -92,6 +125,7 @@ const POR_PAIS: Record<string, TerminosPais> = {
   // México — Ley de Propiedad en Condominio (varía por estado; «indiviso» es
   // el término común en todas). La cuenta se identifica por CLABE.
   MX: {
+    copropiedad: "condominio",
     coeficiente: "indiviso",
     coeficienteCorto: "indiviso",
     cuotaMensual: "cuota de mantenimiento",

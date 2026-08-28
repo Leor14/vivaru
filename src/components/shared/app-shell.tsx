@@ -19,6 +19,8 @@ import { GuidedStepBanner } from "@/components/shared/guided-step-banner";
 import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
 import { DemoEnvironmentNotice } from "@/components/shared/demo-environment-notice";
 import { useTenantTrial } from "@/features/tenant/use-tenant-trial";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { capitalizar } from "@/lib/config/vocabulario-pais";
 import { isModuleLocked, moduleForPath } from "@/lib/config/trial-modules";
 import { useAuth } from "@/features/auth/auth-context";
 import { usePackages } from "@/features/packages/use-packages";
@@ -102,6 +104,14 @@ export function AppShell({
   const isAdminRole = role === "tenant_admin" || role === "admin_tenant";
   const navTenantId = isAdminRole ? user?.tenantId : undefined;
   const trial = useTenantTrial(user?.tenantId);
+  /**
+   * Cómo se llama el inmueble en el país de ESTE conjunto. Va aquí arriba
+   * porque el pie está detrás de tres `return` tempranos y un hook no puede
+   * quedar dentro de uno. Lee `tenants/{id}`; la suscripción de la marca, un
+   * poco más abajo, lee `tenantSettings/{id}` — son dos documentos distintos,
+   * así que no se puede ahorrar una escuchando la otra.
+   */
+  const vocabulario = useTenantVocabulary();
 
   /** Marca con candado los módulos que en la prueba son solo vista previa. */
   const markLocked = useCallback(
@@ -297,6 +307,9 @@ export function AppShell({
    */
   const pageTitle = pageIdentity?.title ?? shellTitle;
 
+  /** El nombre del conjunto activo, o nada. Ver el pie, más abajo. */
+  const nombreDeLaCopropiedad = branding?.tenantName ?? user.tenantName;
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffffff_4%,#edf4fb_42%,#e4ecf6_100%)]">
       {!isAdminRole && (shellRole === "tenant_admin" || shellRole === "admin_tenant") ? (
@@ -304,7 +317,7 @@ export function AppShell({
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-white md:px-8">
             <div className="flex items-center gap-2 text-sm font-medium">
               {brandingReady && branding?.logoUrl ? <img src={branding.logoUrl} alt="Logo tenant" className="h-7 w-7 rounded-md object-cover" /> : null}
-              <span>{branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName ?? "HOGARU"}</span>
+              <span>{branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName ?? "Vivaru"}</span>
             </div>
           </div>
         </div>
@@ -490,9 +503,22 @@ export function AppShell({
         </main>
       </div>
 
-      <footer className={cn("mx-auto hidden px-8 pb-8 text-xs text-[var(--slate-500)] md:block", isAdminRole ? "max-w-none" : "max-w-7xl")}>
-        <p>Tenant: {branding?.tenantName ?? user.tenantName ?? "HOGARU"}</p>
-      </footer>
+      {/* **El pie nombra el inmueble con la palabra de SU país**, no con la del
+          modelo de datos. Decía «Tenant: …», que es jerga de multi-tenancy: la
+          palabra con la que está construido el software, enseñada a quien
+          administra un edificio. Ahora dice «Conjunto» en Colombia y
+          «Condominio» en México y Ecuador — ver `vocabulario-pais.ts`, que es
+          donde se cambia; aquí no se decide ninguna palabra.
+
+          **Y sin nombre no se pinta nada.** Antes caía en `"HOGARU"` —la marca
+          vieja— y el superadmin, que no tiene conjunto, leía «Tenant: HOGARU»
+          en todas sus pantallas. Un pie que se queda vacío es mejor que uno que
+          inventa: no hay ningún nombre honesto que poner ahí. */}
+      {nombreDeLaCopropiedad ? (
+        <footer className={cn("mx-auto hidden px-8 pb-8 text-xs text-[var(--slate-500)] md:block", isAdminRole ? "max-w-none" : "max-w-7xl")}>
+          <p>{capitalizar(vocabulario.copropiedad)}: {nombreDeLaCopropiedad}</p>
+        </footer>
+      ) : null}
 
       {/* Bottom nav — portal residente y guardia, solo mobile */}
       {shellRole === "resident" && <ResidentBottomNav />}
