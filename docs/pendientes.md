@@ -8,13 +8,36 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **El frente elegido es Albert ↔ Vivaru, y está esperando respuesta de ellos a DOS preguntas.**
-> No hay nada de código escrito ni pendiente de escribir hoy: lo que hay son **dos decisiones que
-> no son nuestras** —ver abajo—. Mientras contestan, **lo único adelantable es decidir dónde vive
-> el listener de la señal de vuelta**, que es decisión de David.
+> **Albert ↔ Vivaru queda CERRADO TEMPORALMENTE, esperando dos respuestas suyas.** El frente se
+> retomó, se puso al día y se decidió la herramienta —**Vivaru se queda en Albert**, comparado
+> contra Odoo—. No hay nada que construir mientras no contesten.
 >
-> Siguen en pie: **3 commits en staging sin subir a producción** (los dos de ayer más el de hoy),
-> y la regla de la casa —**una sola sesión que escriba a la vez**—.
+> **Y el siguiente frente NO es `FIN-002`, aunque sea la única fila que queda de la cola.** Por el
+> criterio del propio David —*lo desplegado y apagado cuenta como abierto*— hay un frente abierto
+> por delante: **`FLOW-003` salió a producción APAGADO el 27 de agosto**. Antes de abrir el frente
+> más grande del tablero hay que cerrar ése, o decidir explícitamente que se deja abierto.
+>
+> **Pero ojo antes de correr a encenderlo:** encender `FLOW-003` puede ser **otro no-op con aspecto
+> de hito**. Sus dos banderas son el rastro de entrega del correo y el calendario de cobranza, y
+> hoy **el producto no manda ni un correo** —las 13 claves del catálogo tienen `emailDefault:false`
+> y ningún conjunto tiene plantillas—. **Medir antes qué cambiaría al encenderlo.** Es la cuarta
+> vez que este patrón aparece.
+>
+> Siguen en pie: **4 commits sin subir a producción** (todos de documentación), y la regla de la
+> casa —**una sola sesión que escriba a la vez**—.
+
+### LA DECISIÓN DE HERRAMIENTA COMERCIAL — ALBERT, NO ODOO (28 ago 2026)
+
+Se comparó antes de seguir invirtiendo. **El dato que la resolvió:** la versión gratuita de Odoo
+—y la intermedia— **no tienen acceso a API externa**, que es lo único que Vivaru necesita de la
+herramienta. Integrar Odoo exige su plan caro (~Mex$ 19.700 el primer año con seis usuarios) o
+alojarlo uno mismo. **Albert cuesta cero, ya tiene cinco entregas desplegadas, y se vende a
+terceros —así que Vivaru es su cliente de referencia—.** Y cambiar no ahorraría ni una de las
+cinco piezas que Vivaru tiene por construir.
+
+**Pendiente de David, y sostiene media decisión:** confirmar con los socios que **Albert es
+producto de Qintilab**. Su web firma «by Somasoft Colombia». Detalle y condiciones de reapertura
+en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md).
 
 ### ALBERT ↔ VIVARU — RETOMADO EL 28 DE AGOSTO, Y LO QUE SE SUPO
 
@@ -1006,7 +1029,8 @@ el que identifica el build sin ambigüedad es `commitMessage`.
 **Quedan dos frentes y los dos son construir**: el **5** (olas B y C — `FLOW-001` prorrateo,
 `FEAT-004` paz y salvo, `FLOW-003` cobranza) y el **6** (`FIN-002`, expediente y conciliación).
 Por el criterio de David del 24 de agosto —cerrar lo abierto antes de extender— **el 5 va antes
-que el 6**. Ya no queda nada desplegado y apagado que cuente como abierto.
+que el 6**. ~~Ya no queda nada desplegado y apagado que cuente como abierto.~~
+**Esa última frase caducó el 27 de agosto**, cuando `FLOW-003` salió a producción **apagado**: por el criterio del 24 eso cuenta como abierto. Ver la cabecera.
 
 ---
 

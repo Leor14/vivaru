@@ -14,6 +14,32 @@
 
 ---
 
+## La decisión de herramienta, tomada el 28 de agosto de 2026
+
+**Vivaru se queda en Albert.** Se comparó contra Odoo —gratuita, de pago y autoalojada— antes de
+seguir invirtiendo, y la comparación no estuvo reñida:
+
+- **La versión gratuita de Odoo no puede integrarse.** El acceso a API externa vive **solo en su
+  plan Custom**; ni el gratuito ni el intermedio dejan que un sistema de fuera lea o escriba. Como
+  eso es lo único que Vivaru necesita, la opción gratuita **no aplica**, no es que sea peor.
+- **Con más de cinco usuarios, Odoo integrable cuesta ~Mex$ 19.700 el primer año** y ~24.600
+  después. Albert cuesta cero.
+- **El alcance es solo el pipeline**, así que la mayor ventaja de Odoo —traer facturación,
+  suscripciones y contabilidad— queda fuera del comparativo.
+- **Cambiar no ahorra trabajo:** las cinco piezas que Vivaru tiene por construir siguen siendo
+  cinco. Cambia el interlocutor y la factura, no el código.
+- **Y Albert se vende a terceros**, así que Vivaru usándolo es su cliente de referencia.
+
+> **La recomendación se apoya en una premisa SIN CONFIRMAR: que Albert es producto de Qintilab.**
+> Su web pública firma «by Somasoft Colombia». **Pendiente de David: preguntárselo a los socios.**
+> Si Albert no es de la casa, media argumentación se cae y hay que releer el comparativo.
+
+**Cuándo se reabre:** si Albert dice que no a la clave estable de «ganado»; si las dos preguntas
+tardan más de dos semanas; si el alcance deja de ser solo el pipeline —facturar a los conjuntos o
+llevar suscripciones cambia el partido—; o si Albert deja de ser de la casa.
+
+---
+
 ## En una frase
 
 **Del lado de Albert ya no queda nada: ni bloqueo, ni entrega, ni confirmación pendiente.**
