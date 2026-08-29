@@ -257,7 +257,7 @@ mismo caso no se pisan, la segunda falla.
 | | Regla |
 |---|---|
 | **R1** | **Un asiento es candidato de una línea si:** mismo `tenantId`; **si el asiento declara `bankAccountId`, coincide** —16 de 93 no lo declaran y eso no los descarta—; no está conciliado; no está anulado (`reversedByEntryId` ausente); y cumple R2 y R3 |
-| **R2** | **Coherencia de efecto.** El **efecto contable** de un asiento es `(type === "ingreso" ? +1 : −1) × amount`, y **debe ser igual al `amount` de la línea, con su signo**, dentro de `TOLERANCIA_MONEDA` (0,005, la constante que ya existe en `payments.ts:248`). **Comparar valores absolutos es el defecto de §2.** Y el signo del propio asiento importa: un reverso lleva monto **negativo** —medido: `type: "ingreso"`, `amount: −1.120.000`—, así que su efecto es una salida de dinero. **Verificado contra los datos: la regla da coherentes 18 de los 19 pares y aísla exactamente el falso** |
+| **R2** | **Coherencia de efecto.** El **efecto contable** de un asiento es `(type === "ingreso" ? +1 : −1) × amount`, y **debe ser igual al `amount` de la línea, con su signo**, dentro de `TOLERANCIA_MONEDA` (0,005, la constante que ya existe en `payments.ts:248`). **La regla tiene dos mitades y cazan cosas distintas — la ficha 1.0 las confundía.** La **magnitud** es la que rechaza el par falso de §2, que está a **260.000** de distancia; cualquier comprobación de importe lo habría rechazado, así que lo que ese par demuestra es que **no había ninguna**, no que la mitad del signo sea la que lo caza. El **signo** protege de otra cosa: **casar una salida de banco contra una entrada del libro por el mismo importe**, que comparar valores absolutos aceptaría. Y el signo del propio asiento importa: un reverso lleva monto **negativo** —medido: `type: "ingreso"`, `amount: −1.120.000`—, así que su efecto es una salida de dinero. **Verificado contra los datos: la regla da coherentes 18 de los 19 pares y rechaza el falso** |
 | **R3** | **Ventana de fecha: ±3 días.** Medido: el mayor desfase entre pares coherentes reales es **1 día**; el par falso estaba a **6**. La ventana lo excluye por segunda vez, de forma independiente de R2 |
 | **R4** | **Se propone solo con candidato único.** Con dos o más el caso se queda en `detectado` y la bandeja **nombra el discriminante**. Medido: **ninguna de las 8 pendientes tiene candidato único**, así que una propuesta automática por monto y fecha habría acertado cero veces y sugerido mal seis |
 | **R5** | **Duplicado del extracto = misma clave natural**: `tenantId`, `bankAccountId`, `date`, `amount` y **descripción normalizada** (minúsculas, sin acentos, espacios colapsados). **La descripción es obligatoria en la clave**: sin ella, las 27 líneas de producción producen **4 grupos de duplicados que suman 20 líneas legítimas**; con ella, **0**. La unicidad la garantiza la **base**, por id derivado —como `chartOfAccounts` con `{tenantId}_{code}`—, no una comprobación previa que dos pestañas ganan |
@@ -298,7 +298,8 @@ Se escribe **auditoría**, que es distinto: `writeAuditLog` con las acciones
 
 | | Criterio |
 |---|---|
-| **CF1** | Aplicar la línea de −300.000 contra el asiento de +40.000 → **rechazado por R2**, con los dos números en el mensaje |
+| **CF1** | Aplicar la línea de −300.000 contra el asiento de +40.000 → **rechazado**, con los dos números en el mensaje. Lo rechazan **tres** reglas independientes —magnitud, signo y ventana de fecha—, y ninguna existía |
+| **CF1b** | Aplicar una salida de banco de −3.000 contra un ingreso del libro de +3.000 → **rechazado por el signo de R2**. **Es el caso que solo la mitad del signo caza**, y producción no lo tiene: se construye |
 | **CF2** | Un `resident` que lea `reconciliationCases` → **denegado** |
 | **CF3** | Un `tenant_admin` que lea o escriba el caso de **otro** conjunto → **denegado** |
 | **CF4** | El cliente que escriba `reconciled` o `matchedLedgerEntryId` directamente → **denegado por reglas** (R8) |
@@ -311,8 +312,12 @@ Se escribe **auditoría**, que es distinto: `writeAuditLog` con las acciones
 
 Cada guardián se rompe a propósito y **tienen que fallar exactamente las pruebas que deben**:
 
-- **Sustituir R2 por la comparación de valores absolutos** → CF1 se pone en verde. Si no, la
-  prueba no vigila lo que dice.
+- **Sustituir R2 por la comparación de valores absolutos** → tiene que fallar **una sola**
+  prueba: la del signo, con un par de igual importe y sentido contrario. **CF1 sigue en verde, y
+  eso es lo correcto** — el par falso de producción está a 260.000, así que lo rechaza también una
+  comprobación de magnitud. La versión 1.0 de esta ficha decía lo contrario y **la falsación lo
+  desmintió**: una prueba que dice cazar algo que ya cazaba otra regla no vigila nada. El caso del
+  signo **no existe en producción y por eso se construye**, y se dice que es construido.
 - **Poner la ventana de R3 en infinito** → CA5 debe seguir pasando (cero candidatos por monto) y
   CA4 debe empeorar. Distinguir las dos cosas.
 - **Vaciar la recolección de candidatos** → CA3 y CA4 deben fallar. **Una puerta que se abre sobre
@@ -466,7 +471,7 @@ conjunto real. **No frena la construcción**; frena declararla productiva.
 | **`G1` Valor** | ✅ Baseline en §2 y métrica en tres cifras |
 | **`G2` Datos y permisos** | ✅ Contrato en §7, roles en §3 con la columna de lo prohibido, reglas en §11.2 |
 | **`G3` Riesgo** | ✅ Validación en la callable, auditoría, rollback declarado **y su límite** |
-| **`G4` Aceptación** | ✅ 10 criterios que pasan, 8 que fallan y la falsación de cada guardián |
+| **`G4` Aceptación** | ✅ 10 criterios que pasan, 9 que fallan y la falsación de cada guardián |
 | **`G5` Operación** | ⚠️ **Abierta a propósito.** Nadie concilia a diario porque no hay clientes. Es `D3`, y es lo que impide marcarla productiva — **no lo que impide construirla** |
 | **`G6` Escala** | ✅ 27 líneas hoy. El cálculo de candidatos es sobre los asientos sin conciliar de un conjunto (74 en el mayor); si un conjunto real llega a miles, el cálculo se acota por la ventana de R3 |
 
