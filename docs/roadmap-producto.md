@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.37 |
+| **Versión** | 0.9.38 |
 | **Fecha** | 28 de agosto de 2026 |
-| **Estado** | **`UX-003` ARRANCÓ Y TIENE DOS ENTREGAS EN PRODUCCIÓN** (`5bc9d3f`, `cb6d457`, 28 ago). El hilo del frente: **el Panel de Control decía cosas que no se podían comprobar**. La píldora anunciaba **90 alertas** mientras las tarjetas sumaban **33** y el cajón que ella misma abre listaba **4** —dos sitios calculando lo mismo, y ni cubrían las mismas categorías—; un recaudo del **0,0% se pintaba en verde** porque tres tonos estaban fijos; y el widget de cumplimiento marcaba **6% en verde con una torre al 11% en rojo, dentro del mismo recuadro**. La segunda entrega dejó **los estados en español: se vio uno en inglés y eran diez**, y duraron porque `getStatusLabel` cae en silencio a la clave cruda. **EL BALANCE DEL DÍA ES LA MEJOR DEFENSA DE ESTE FRENTE: tres despliegues, y los tres defectos que los motivaron los encontró MIRAR LA PANTALLA.** Uno fue una **regresión propia** —al arreglar que un 0% no se confundiera con «sin datos», el avance dejó de verse— introducida con typecheck en 0, **1.343 pruebas en verde y la falsación completa pasada**. Y falsar destapó además que **dos pruebas mías eran ciegas**: con la barra en verde fijo, «el color es monótono» seguía en verde —una escala constante pasa cualquier prueba de orden—. **ANTES, EL MISMO DÍA:** el frente de Albert cerrado temporalmente con la herramienta decidida (**Albert, no Odoo** — su versión gratuita no tiene API externa), `FLOW-003` verificado de punta a punta, y **`FIN-002` retirado por decisión: no vale la pena la bandeja de conciliación sin nadie conciliando**. **LO QUE NO CAMBIA:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Estado** | **`FIN-002` SE ABRIÓ EL 28 Y SE CERRÓ EL 29: EL EXPEDIENTE DE CONCILIACIÓN ESTÁ EN PRODUCCIÓN ENTERO** (`02a9642`…`e65210e`), con el relleno corrido —27 casos, uno por línea— y la bandera encendida **solo en Santa María**. Ficha: `PRD-V-FLOW-004`. **Y encontró lo que justifica el frente: de los 19 emparejamientos que había en producción, UNO ERA FALSO** —una salida de banco de −300.000 casada contra una entrada de +40.000, escrita el 20 de agosto y contada como buena—, porque la pantalla ofrecía **todos** los movimientos sin conciliar ordenados por cercanía de importe y no comprobaba nada. Hoy sale nombrado y Santa María pasó de decir **5 conciliadas** a **4 y 1 a revisar**; el dato histórico **no se corrige**. **Las reglas no se eligieron, se sacaron de los datos**: la coherencia de efecto da coherentes 18 de 19 pares, la ventana de ±3 días sale de que el mayor desfase real es 1, y la clave de duplicado lleva la descripción dentro porque sin ella 20 líneas legítimas salían repetidas. **Esta celda decía que `FIN-002` estaba RETIRADO** «porque no vale la pena la bandeja sin nadie conciliando»: era la decisión de la tarde del 28, revertida esa misma noche. **ANTES:** `UX-003` con dos entregas en producción, cuyos tres defectos los encontró **mirar la pantalla**. **LO QUE NO CAMBIA:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, por contenido y en las DOS direcciones.** Está todo lo nuevo (`#e9eff7`, `#5a6b7e`, `medida-lectura`, `body{font-variant-numeric:tabular-nums}`, `--radius-xl:10px`) y **ha desaparecido todo lo viejo** (`sans-serif!important`, `.admin-shell .font-semibold`, `pqrs-asunto`, `#607286`, `#f4f7fb`). **Y hay un cuarto falso negativo, nuevo: el CSS puede salir IDÉNTICO aunque el código cambie** —migrar 90 clases `rounded → rounded-sm` no movió un byte, porque las dos utilidades ya se generaban—, así que una sonda que espera a que cambie el CSS no termina nunca. Para la segunda subida sirvió el método de siempre: sacar de staging los chunks que contienen una cadena que **solo existe en el código nuevo** (`px-3 py-2 text-right`) y pedirle a producción esos mismos nombres — 200 y **byte a byte idénticos**, 221.924 y 27.067. Suites: **94 ficheros / 1.334 pruebas**, y **trece guardianes nuevos** de los que los que más valen no comprueban que el código sea el escrito sino que **calculan** —el contraste del fondo contra cada gris, los cinco tonos del tablero leyendo su propio mapa, el ancho de la tabla más ancha que exista en el código—, cada uno enrojeciendo **con la cifra delante**. Cada pasada **falsada** rompiendo el código a propósito. **Tres instrumentos propios mintieron y se cazaron comparando, no leyendo:** un auditor de contraste que daba 1,82:1 sobre texto blanco en fondo navy —no resolvía degradados, y **no se reportó ni uno de sus números**—, una medición de seis rutas con `pushState` que devolvió **seis resultados idénticos** porque Next no repintó, y un `@source not` con un `..` de más que ahorró **0 bytes** hasta medir el antes y el después |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -1056,6 +1056,23 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.38 — 29 de agosto de 2026
+
+- **`FIN-002` cerrada: el expediente de conciliación en producción**, cinco días después de abrirse
+  y con todos sus criterios cumplidos. Su bloque se reescribió arriba; el detalle vive en
+  [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md).
+- **El hallazgo:** de los 19 emparejamientos que había, **uno era falso** y el producto lo contaba
+  como bueno desde el 20 de agosto. Se descubrió midiendo, no leyendo.
+- **Tres lecciones de método, y las tres se pagaron en esta jornada.** El orden de despliegue **se
+  invirtió** —functions → front → reglas— porque la regla restringe lo que la pantalla hacía. **Dos
+  defectos los encontró mirar la pantalla** con typecheck en 0 y las suites en verde, y **uno solo
+  aparecía con la bandera en el estado contrario al que se probó**, que es la tercera vez. Y **una
+  falsación escrita en la propia ficha no falsaba lo que decía**: al par falso lo rechazaban tres
+  reglas independientes, no una — corregida en la ficha, con el caso que sí aísla el signo puesto
+  aparte y marcado como construido.
+- **Y un criterio se descubrió sin cumplir con la ficha ya desplegada** (`CA1`: importar no creaba
+  los expedientes). Cerrado el mismo día y comprobado importando de verdad, no en pruebas.
 
 ### 0.9.37 — 28 de agosto de 2026
 
