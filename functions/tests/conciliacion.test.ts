@@ -17,6 +17,7 @@ import {
   type AsientoDelLibro,
   type LineaDeBanco,
 } from "../src/conciliacion";
+import { casoDeRelleno } from "../src/conciliacion-casos";
 
 /**
  * `PRD-V-FLOW-004` — las reglas del expediente de conciliación.
@@ -293,5 +294,39 @@ describe("R6 · el motivo al salir", () => {
 
   it("aplicar no exige motivo", () => {
     expect(motivoValido("aplicado")).toBe(true);
+  });
+});
+
+// ── §5.4 · el relleno ───────────────────────────────────────────────────────
+
+describe("casoDeRelleno · lo ya escrito se nombra, no se reescribe", () => {
+  const l = linea();
+
+  it("una línea conciliada nace `aplicado`, porque eso es lo que pasó", () => {
+    const caso = casoDeRelleno(l, [], asiento());
+    expect(caso.status).toBe("aplicado");
+    expect(caso.matchedLedgerEntryId).toBe("A1");
+    expect(caso.incoherencias).toEqual([]);
+  });
+
+  it("y si el par no cuadra, nace `aplicado` CON sus incoherencias — no rechazado", () => {
+    // Es la decisión de §5.4 y la de David del 29 de agosto: el dato histórico
+    // no se corrige. Marcarlo como rechazado sería reescribir la historia.
+    const falso = asiento({ id: "igdiGS", type: "ingreso", amount: 40000, date: "2026-06-02", bankAccountId: null });
+    const caso = casoDeRelleno(l, [], falso);
+    expect(caso.status).toBe("aplicado");
+    expect(caso.incoherencias).toEqual(["signo", "monto", "fecha"]);
+  });
+
+  it("una línea sin conciliar se clasifica con las reglas", () => {
+    const caso = casoDeRelleno(l, [asiento()], null);
+    expect(caso.status).toBe("propuesto");
+    expect(caso.candidateLedgerEntryIds).toEqual(["A1"]);
+  });
+
+  it("y sin candidatos queda como excepción", () => {
+    const caso = casoDeRelleno(l, [], null);
+    expect(caso.status).toBe("detectado");
+    expect(caso.excepcion).toBe("sin_contraparte");
   });
 });

@@ -154,7 +154,11 @@ Tres grupos, que son los tres arquetipos medidos, más uno que nace de §2:
 2. **Varios candidatos** — la bandeja los lista y **nombra el discriminante**: cuando los
    candidatos empatan en fecha y monto, se muestra la descripción de la línea y el concepto de
    cada asiento, que es lo único que los separa.
-3. **No identificada** — el dinero llegó y no se sabe de quién. Motivo `deposito_no_identificado`.
+3. **No identificada** — el dinero llegó y no se sabe de quién. **Ojo: el sistema NO la distingue
+   de «sin contraparte»**, y es deliberado — deducirlo del texto sería inventar. Las dos nacen
+   `sin_contraparte`; **«no identificada» es una decisión que la persona registra** con el motivo
+   `deposito_no_identificado`. Medido en el ensayo del relleno: de las 8 pendientes, **2 caen aquí**
+   —la comisión de −180 y el depósito en efectivo—, y solo quien concilia sabe cuál es cuál.
 4. **Conciliaciones a revisar** — casos `aplicado` que **incumplen R2**. Hoy hay **uno**. Ver §5.4.
 
 ### 5.3 Reverso — la cascada (R7)
@@ -284,7 +288,7 @@ Se escribe **auditoría**, que es distinto: `writeAuditLog` con las acciones
 | | Criterio |
 |---|---|
 | **CA1** | Importar un extracto crea una línea y **su caso `detectado`** por cada fila válida |
-| **CA2** | Tras el relleno, **las 27 líneas de producción tienen caso**: 19 `aplicado`, 8 `detectado` |
+| **CA2** | Tras el relleno, **las 27 líneas de producción tienen caso**: 19 `aplicado`, 8 `detectado`. **Verificado en ensayo contra producción el 29 de agosto**: sale exactamente eso, y los 8 se reparten en **6 `varios_candidatos` y 2 `sin_contraparte`** |
 | **CA3** | Una línea con **exactamente un** candidato coherente queda `propuesto` y el caso **nombra** ese candidato |
 | **CA4** | **Las 6 líneas fungibles de 3.000 quedan `detectado`** con ≥2 candidatos listados. **Ninguna queda `propuesto`** |
 | **CA5** | La comisión de **−180 queda `detectado`** con `excepcion: sin_contraparte` y **cero** candidatos |
