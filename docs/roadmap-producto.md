@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.39 |
+| **Versión** | 0.9.40 |
 | **Fecha** | 30 de agosto de 2026 |
 | **Estado** | **`FIN-002` SE ABRIÓ EL 28 Y SE CERRÓ EL 29: EL EXPEDIENTE DE CONCILIACIÓN ESTÁ EN PRODUCCIÓN ENTERO** (`02a9642`…`e65210e`), con el relleno corrido —27 casos, uno por línea— y la bandera encendida **solo en Santa María**. Ficha: `PRD-V-FLOW-004`. **Y encontró lo que justifica el frente: de los 19 emparejamientos que había en producción, UNO ERA FALSO** —una salida de banco de −300.000 casada contra una entrada de +40.000, escrita el 20 de agosto y contada como buena—, porque la pantalla ofrecía **todos** los movimientos sin conciliar ordenados por cercanía de importe y no comprobaba nada. Hoy sale nombrado y Santa María pasó de decir **5 conciliadas** a **4 y 1 a revisar**; el dato histórico **no se corrige**. **Las reglas no se eligieron, se sacaron de los datos**: la coherencia de efecto da coherentes 18 de 19 pares, la ventana de ±3 días sale de que el mayor desfase real es 1, y la clave de duplicado lleva la descripción dentro porque sin ella 20 líneas legítimas salían repetidas. **Esta celda decía que `FIN-002` estaba RETIRADO** «porque no vale la pena la bandeja sin nadie conciliando»: era la decisión de la tarde del 28, revertida esa misma noche. **ANTES:** `UX-003` con tres entregas en producción, cuyos tres defectos los encontró **mirar la pantalla**. **LO QUE NO CAMBIA:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, por contenido y en las DOS direcciones.** Está todo lo nuevo (`#e9eff7`, `#5a6b7e`, `medida-lectura`, `body{font-variant-numeric:tabular-nums}`, `--radius-xl:10px`) y **ha desaparecido todo lo viejo** (`sans-serif!important`, `.admin-shell .font-semibold`, `pqrs-asunto`, `#607286`, `#f4f7fb`). **Y hay un cuarto falso negativo, nuevo: el CSS puede salir IDÉNTICO aunque el código cambie** —migrar 90 clases `rounded → rounded-sm` no movió un byte, porque las dos utilidades ya se generaban—, así que una sonda que espera a que cambie el CSS no termina nunca. Para la segunda subida sirvió el método de siempre: sacar de staging los chunks que contienen una cadena que **solo existe en el código nuevo** (`px-3 py-2 text-right`) y pedirle a producción esos mismos nombres — 200 y **byte a byte idénticos**, 221.924 y 27.067. Suites: **94 ficheros / 1.334 pruebas**, y **trece guardianes nuevos** de los que los que más valen no comprueban que el código sea el escrito sino que **calculan** —el contraste del fondo contra cada gris, los cinco tonos del tablero leyendo su propio mapa, el ancho de la tabla más ancha que exista en el código—, cada uno enrojeciendo **con la cifra delante**. Cada pasada **falsada** rompiendo el código a propósito. **Tres instrumentos propios mintieron y se cazaron comparando, no leyendo:** un auditor de contraste que daba 1,82:1 sobre texto blanco en fondo navy —no resolvía degradados, y **no se reportó ni uno de sus números**—, una medición de seis rutas con `pushState` que devolvió **seis resultados idénticos** porque Next no repintó, y un `@source not` con un `..` de más que ahorró **0 bytes** hasta medir el antes y el después |
@@ -146,7 +146,7 @@ de entrega.**
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
-| Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
+| **Mobile / iOS** | 🟢 **`PLAT-005` VALIDADA EN STAGING con un iPhone real** (29 ago; push web, manifest y SW — bandera solo en el canario) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005`, decidir su producción, y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
@@ -612,6 +612,11 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   está cableado en `src/lib/firebase/messaging.ts` **sin un solo consumidor** y sin
   service worker, así que no hay push; sí hay cámara y QR en portería. Hay pruebas
   visuales responsive sobre 4 rutas.
+- **SUPERADA EN PARTE el 29 ago 2026 por `PRD-V-PLAT-005`:** manifest, service worker
+  y push web existen y están **validados en staging con un iPhone real** — el aviso
+  que nace en `notifications` llega al hub del teléfono. `registerWebPush` tiene por
+  fin su consumidor. Lo que sigue vigente de esta evidencia: la medición de uso por
+  dispositivo y la auditoría responsive.
 
 ### SIGUIENTE
 
@@ -1056,6 +1061,21 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.40 — 30 de agosto de 2026
+
+- **`PRD-V-PLAT-005` — notificaciones push al residente: construida, en staging y VALIDADA con un
+  iPhone real, todo el 29.** Tercer canal del catálogo de avisos (in-app · correo · push), vía
+  FCM/Web Push sin app en las tiendas. Ciclo visto funcionar: registro, push al hub con la app
+  cerrada, toque que navega, baja y re-alta. La bandera `producto-notificaciones-push` encendida
+  **solo en el canario de staging**; producción sin desplegar a propósito. Ficha con §14: las
+  cuatro cosas que solo el teléfono pudo encontrar — dos defectos corregidos (base de enlaces por
+  ambiente; click propio en el SW porque el del SDK de FCM no navega una web app instalada de
+  iOS), y la respuesta de plataforma que evita rediscutir: **no hay push en iPhone sin pantalla
+  de inicio, en ninguna versión** — Declarative Web Push elimina el service worker, no la
+  instalación.
+- **La fila de Mobile/iOS de la vista ejecutiva recoge la entrega**, y la evidencia de `MOB-001`
+  («no hay PWA… no hay push») queda superada en esa parte y anotada dentro.
 
 ### 0.9.39 — 30 de agosto de 2026
 
