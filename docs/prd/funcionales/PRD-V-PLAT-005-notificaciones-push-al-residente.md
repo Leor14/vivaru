@@ -9,8 +9,8 @@
 | **Usuario principal** | `resident` |
 | **Usuarios secundarios** | `tenant_admin` (fase 2) |
 | **Responsable** | David |
-| **Estado** | **Borrador** — versión 0.2, 29 ago 2026. D1 y D2 cerradas: tope de 5 dispositivos, e iconos generados del SVG de marca (solo emblema, blanco sobre `--brand-700`) |
-| **Dependencias** | Ninguna de producto. **Una de consola (D-CONSOLA):** generar el par de claves VAPID en Firebase Console → Cloud Messaging → Web Push certificates, proyecto por ambiente. La hace David; la clave pública va a `apphosting.yaml` y la privada no sale de FCM |
+| **Estado** | **Lista para desarrollo** — versión 0.3, 29 ago 2026. D1, D2 y D-CONSOLA cerradas; no queda ninguna pregunta abierta ni dependencia externa |
+| **Dependencias** | Ninguna. **D-CONSOLA CERRADA el 29 ago 2026:** David generó el par VAPID en los dos proyectos y las claves públicas están cableadas en `apphosting.yaml` y `apphosting.staging.yaml` (87 caracteres cada una, verificadas parseando el YAML; la privada no sale de FCM) |
 | **Riesgo** | **Medio.** No toca dinero ni permisos existentes; el riesgo es molestar (push de más) y prometer un canal que nadie encendió (adopción) |
 | **Reversibilidad** | **Total.** La bandera apaga registro y envío; los tokens quedan escritos y dejan de usarse. Sin push no se pierde nada: el aviso in-app sigue siendo el registro de verdad |
 | **Fase comercial** | En prueba (trial) el canal queda **apagado** — ver §7.3 |
@@ -253,7 +253,7 @@ revés).
 | Service worker | `public/firebase-messaging-sw.js` (no existe hoy) | Estático; la config de Firebase no puede leer env en runtime → se decide entre generarlo en build o servirlo por route handler. **Recomendación: route handler**, que reutiliza las `NEXT_PUBLIC_*` ya definidas en `apphosting.yaml` |
 | Registro cliente | `src/lib/firebase/messaging.ts` | **Ya existe y está bien** — por fin gana su primer consumidor |
 | Envío servidor | `functions/src/index.ts` → `createNotifications` | `admin.messaging().sendEachForMulticast` con `webpush.fcmOptions.link` |
-| Clave VAPID | `NEXT_PUBLIC_FIREBASE_VAPID_KEY` en `apphosting.yaml` **y** `apphosting.staging.yaml` | Par por proyecto (D-CONSOLA). Trampa conocida: una variable puesta a mano en la consola le gana al archivo |
+| Clave VAPID | `NEXT_PUBLIC_FIREBASE_VAPID_KEY` en `apphosting.yaml` **y** `apphosting.staging.yaml` | **CABLEADA en los dos** (29 ago, D-CONSOLA cerrada), con `BUILD` porque el cliente la inlinea. Par por proyecto: la de staging no sirve en producción. Trampa conocida: una variable puesta a mano en la consola le gana al archivo |
 | Bandera | `producto-notificaciones-push` | Nace apagada. **El catálogo vive en CINCO sitios y los cinco se tocan** (los cuatro ficheros + el documento en Firestore), o no se puede encender por conjunto — que es la vía del canario |
 | Índice | `firestore.indexes.json` | `pushTokens (tenantId, userId)` si la consulta compuesta lo exige |
 | Reglas | `firestore.rules` | Bloque nuevo `match /pushTokens/{token}` según §7.2 |

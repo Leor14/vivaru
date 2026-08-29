@@ -41,6 +41,17 @@ env:
       - BUILD
       - RUNTIME
 
+  # ── Web Push (PRD-V-PLAT-005) ─────────────────────────────────────────────
+  # Clave PUBLICA del par VAPID (la privada vive en FCM y no sale de ahi).
+  # Cada proyecto tiene su par: esta NO sirve en el otro ambiente. Generada por
+  # David el 29 ago 2026 en Console → Cloud Messaging → Web Push certificates.
+  # Necesita BUILD porque registerWebPush() la inlinea en el bundle del cliente.
+  - variable: NEXT_PUBLIC_FIREBASE_VAPID_KEY
+    value: BERBEo5DJosIuyrf8zY3GUBMsv8b-5juVmqYiFS0pVuW1-QG5fEDpOsDo04fohbeZ7in3mU0P_uKf8QkFQ3Womw
+    availability:
+      - BUILD
+      - RUNTIME
+
   # ── Ambiente ──────────────────────────────────────────────────────────────
   # ESTA RAMA (master) DESPLIEGA A PRODUCCIÓN → siempre "production".
   # En develop este valor debe ser "staging". Gobierna: noindex/robots.txt,
