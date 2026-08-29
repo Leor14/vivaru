@@ -143,7 +143,7 @@ de entrega.**
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | — | 🔵 `PH-002` (espera al primer pago real) | Nada. Lo que queda son datos de cliente |
 | **Experiencia y diseño** | 🟢 **`UX-001` y `UX-003` en producción** | 🟠 Seguir por otras pantallas, o cerrar el frente | ⏸ `UX-002` (filtros en la URL, espera clientes) | — |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
-| Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | ⏸ `FIN-002` **(espera cartera real)** | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
+| Vivaru Finance | 🟢 **`FIN-002` ABIERTO** (28 ago) · ✅ `FIN-000` · ✅ `FIN-001` | 🟠 El expediente: `ReconciliationCase`, estados, duplicados | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
@@ -706,13 +706,19 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 #### `FIN-002` — Expediente y conciliación determinística
 
-> **NO SE CONSTRUYE POR AHORA. Decisión de David, 28 de agosto de 2026.** No vale la pena montar la
-> bandeja de conciliación **antes de que haya alguien conciliando**: producción tiene **cero pagos
-> reales**. Técnicamente no le falta nada —su único requisito, `FIN-001`, está en producción—, así
-> que **no está bloqueada: está aplazada a propósito**. El disparador para retomarla no es una fecha
-> sino un hecho medible: **que entre cartera real**.
+> **SE ABRE. Decisión de David, 28 de agosto de 2026 — tomada dos veces el mismo día.** Por la
+> tarde se resolvió que no valía la pena montar la bandeja sin nadie conciliando; al cerrar la
+> jornada se revirtió: **se construye igual, para llegar listos al primer cliente.**
+>
+> **Y no arranca de cero, medido el 28:** ya existe `/admin/finanzas/conciliacion` (413 líneas) con
+> su modal de casar una línea de banco contra un asiento, sobre `watchBankStatementLines`,
+> `watchBankAccounts` y `watchLedger`. Lo que **no** existe es el **expediente**.
+>
+> **Ni sobre tablas vacías:** producción tiene **27 líneas de banco, 4 cuentas bancarias, 93
+> asientos con 19 YA conciliados** y 5 operaciones de pago. En cero está solo
+> `reconciliationCases`. **Hay contra qué verificar**, que es lo que faltaba en otros frentes.
 
-- **Estado:** Aplazada por decisión · **Dependencia:** `FIN-001` (cumplida)
+- **Estado:** Abierta · **Dependencia:** `FIN-001` (cumplida desde el 20 ago)
 - **Incluye:** `ReconciliationCase`, estados versionados, normalización, duplicados,
   candidatos determinísticos, bandeja de excepciones, motivos y reversos.
 - **Criterio de salida:** un caso se rastrea desde la evidencia recibida hasta la

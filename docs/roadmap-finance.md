@@ -25,12 +25,15 @@ porqué está en `docs/roadmap-producto.md`.
 > cierto en lo suyo**: F0 y F0b en producción, F1 sin bloqueo, F2 y F3 esperando clientes. Lo que
 > ha cambiado desde entonces es **de fuera de este documento**: entró el lote de propiedad
 > horizontal —`PLAT-003` y `FLOW-002` incluidos— y `aplicarPago` ya no tiene la firma que aquí se
-> describe. ~~**`FIN-002` (=F1) es hoy el frente de ingeniería más grande que se puede abrir sin un
-> cliente real.**~~ **Cierto entonces, y decidido que NO se abre:** el 28 de agosto de 2026 David
-> resolvió que **no vale la pena montar la bandeja de conciliación sin nadie conciliando** —cero
-> pagos reales—. **Aplazada a propósito, no bloqueada**: técnicamente no le falta nada, su único
-> requisito (`FIN-001`) está en producción. Se retoma **cuando entre cartera real**, que es un hecho
-> medible y no una fecha. Estado vivo del lote: `docs/prd/README.md`.
+> describe. **`FIN-002` (=F1) es el frente de ingeniería más grande que se puede abrir sin un
+> cliente real, y el 28 de agosto de 2026 SE ABRIÓ.** La decisión se tomó dos veces ese día: primero
+> que no valía la pena sin nadie conciliando, y al cerrar la jornada se revirtió —**se construye
+> igual, para llegar listos al primer cliente**—.
+>
+> **Y el terreno se midió antes de abrirlo.** No arranca de cero: `/admin/finanzas/conciliacion`
+> existe con su modal de casar banco contra Libro. Y no corre sobre vacío: **27 líneas de banco, 4
+> cuentas, 93 asientos con 19 ya conciliados**; en cero está solo `reconciliationCases`, que es la
+> entrega. Estado vivo del lote: `docs/prd/README.md`.
 >
 > **Y arranca con una pieza recién arreglada por debajo (24 ago 2026, tarde): la conciliación
 > vuelve a poder casar pagos.** No podía con ninguno, y no era un caso raro: en un `update` con

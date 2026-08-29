@@ -8,70 +8,69 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> **Albert ↔ Vivaru queda CERRADO TEMPORALMENTE, esperando dos respuestas suyas.** El frente se
-> retomó, se puso al día y se decidió la herramienta —**Vivaru se queda en Albert**, comparado
-> contra Odoo—. No hay nada que construir mientras no contesten.
+> ## ▸ ABRIR `FIN-002` — EL EXPEDIENTE DE CONCILIACIÓN
 >
-> **`FLOW-003` QUEDA CERRADO** (28 ago). Se fue a medir si encenderlo era un no-op y resultó que
-> **ya estaba encendido desde el 27** —las dos banderas— y que **el ciclo del correo ya funcionaba**.
-> Se verificó de punta a punta con la clave nueva del webhook: recordatorio a una unidad → fila en
-> `enviado` → `entregado` en dos segundos. Detalle abajo.
+> **Es el frente elegido, decidido al cerrar el 28 de agosto.** No hay nada que discutir antes de
+> empezar: su criterio de entrada (`FIN-001`) está cumplido desde el 20 de agosto, y el terreno ya
+> está medido —abajo—. **Lo primero es acotar la entrega, no escribir código.**
 >
-> **Y `FIN-002` NO SE CONSTRUYE.** Era la única fila que quedaba de la cola y David la resolvió el
-> 28: **no vale la pena montar la bandeja de conciliación sin nadie conciliando** —cero pagos
-> reales—. No está bloqueada, está **aplazada a propósito**; su único requisito ya está en
-> producción. **Se retoma cuando entre cartera real**, que es un hecho medible y no una fecha.
+> **Ojo con el historial: esta decisión se tomó DOS VECES el 28 y en sentidos opuestos.** Por la
+> tarde se resolvió que no valía la pena la bandeja sin nadie conciliando; al cerrar la jornada
+> David lo revirtió —**se construye igual, para llegar listos al primer cliente**—. Si encuentras
+> un documento que diga que está aplazada, es de esa tarde; **manda esto**.
 >
-> ### ▸ LA TABLA DE SEIS FILAS SE VACIÓ. EL PROYECTO NO.
->
-> **Cuidado con confundir las dos cosas — se confundieron el 28 y se corrigió el mismo día.** La
-> cola de prioridad del 24 de agosto está cerrada entera, sí. Pero **el tablero da «Experiencia y
-> diseño» por ABIERTO**, con `UX-003` pendiente y un freno que es nuestro: *«falta acotarlo, no
-> falta permiso»*. **Hay frente, y se eligió ése.**
->
-> **Lo que sí es cierto:** de lo que queda, **casi todo espera a un cliente y no a una decisión ni
-> a código** —proveedores, calendarios de cobranza, conciliación, el canal de correo están
-> construidos, pagados y quietos—. Y **lo único que puede moverse solo** es la respuesta de Albert.
->
-> **Lo abordable hoy sin clientes, medido el 28:** `UX-003` (por acotar) · cerrar la puerta del
-> alta (PRD pequeña) · la categoría `servicios`, que está fuera del tipo en **16 de 52** egresos
-> —**y el tablero dice «48 de 130», así que una de las dos cifras está mal y resolverlo es parte
-> del trabajo**— · la verificación de las reglas de Storage que leen Firestore · y que
-> `sendAccountEmail` no deje rastro de entrega.
+> **Lo demás está cerrado o esperando a otros:** Albert espera dos respuestas suyas, `FLOW-003` está
+> cerrado y verificado, y `UX-003` tiene dos entregas en producción y su siguiente paso es una
+> decisión tuya, no un bloqueo.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez**.
 
-### `FLOW-003` — CERRADO EL 28 DE AGOSTO, Y LO QUE ENSEÑÓ
+### `FIN-002` — EL TERRENO, MEDIDO EL 28 DE AGOSTO ANTES DE ABRIRLO
 
-**Lo que se hizo:** clave de firma del webhook de Resend puesta por David (versión 3),
-`resendWebhook` **redesplegado** para que la lea —el secret **no sigue a `latest`**—, y el ciclo
-verificado enviando un recordatorio a **APARTAMENTO 201** de Santa María. `emailDeliveries` queda
-con **2 filas, las dos en `entregado`**.
+**Qué es:** la fase `F1` de Finance — `ReconciliationCase`, estados versionados, normalización,
+duplicados, candidatos determinísticos, bandeja de excepciones, motivos y reversos. Su criterio de
+salida: **un caso se rastrea desde la evidencia recibida hasta la aplicación, el rechazo o el
+reverso.** Detalle en `docs/roadmap-finance.md` §7 y en `docs/roadmap-producto.md`.
 
-**Lo único que le falta a `FLOW-003` no es código: es dato.** **0 de 8 conjuntos** tienen
-`billingCalendar` configurado, así que la pasada diaria de las 9:00 UTC descarta a todos antes de
-mirar siquiera la bandera. Encender la bandera **abre la tarjeta de configuración** en Ajustes —es
-su único efecto— y configurarla es captura de dato.
+**NO ARRANCA DE CERO, y esto es lo que más cambia el plan.** Ya existe
+`src/app/(admin)/admin/finanzas/conciliacion/page.tsx` —**413 líneas**— con su modal «Conciliar con
+un movimiento», alta de cuentas bancarias y el criterio explicado en pantalla («cuando no quedan
+pendientes, el saldo del banco coincide con el del Libro»). Vive sobre `watchBankStatementLines`,
+`watchBankAccounts` y `watchLedger`, y la lógica está en `src/features/finanzas/use-reconciliation`.
+**Lo que NO existe es el expediente:** `ReconciliationCase` da **cero apariciones** en todo el
+código.
 
-> **Y se decide dejarlo sin configurar a propósito.** Configurarlo en un conjunto de ejemplo haría
-> que la pasada mande correos a **12 direcciones que no reciben** —6 `@santamaria.co` y 6
-> `@ejemplo.vivaru.app` de los 14 miembros de Santa María—, y eso son rebotes duros contra la
-> reputación del dominio. **No es deuda: es una decisión con motivo.**
+**Y TAMPOCO CORRE SOBRE TABLAS VACÍAS** —medido en producción el 28, y es lo que faltaba en otros
+frentes—:
 
-**Cuatro cosas de método que salieron, y las cuatro vuelven:**
+| Colección | Filas en producción |
+|---|---|
+| `bankStatementLines` | **27** |
+| `bankAccounts` | 4 |
+| `ledgerEntries` | **93**, de ellos **19 ya conciliados** |
+| `paymentVouchers` | 4 |
+| `paymentOperations` | 5 |
+| **`reconciliationCases`** | **0** ← la entrega |
 
-1. **`CLAUDE.md` decía TRES cosas falsas** sobre este frente: apagado, secret de relleno, y que
-   comprobar versiones exige la ADC. Las tres cayeron al medir. Corregidas en su sitio.
-2. **La pantalla no delata un clic que no disparó.** Un clic sobre una referencia obsoleta del
-   botón «Recordar» no hizo nada y no hubo error; **lo delató que no naciera la notificación**. Si
-   se hubiera creído a la pantalla, la conclusión habría sido «la clave nueva está rota».
-3. **El correo tiene DOS interruptores, no uno.** La bandera del rastro registra; pero
-   `deliverResidentNotifications` se para antes en `emailEnabled`, que es **por notificación y por
-   conjunto** (Ajustes → Portal del residente). Con el segundo apagado, el correo **ni se intenta**.
-4. **`sendAccountEmail` no registra entrega**, sólo `sendNotificationEmail`. O sea que las
-   invitaciones y activaciones —el correo que más sale— **no dejan rastro**. Es coherente con el
-   esquema, que lleva `notificationKey`, pero **la etiqueta de la bandera promete «cada correo
-   enviado»** y eso es más de lo que hace.
+> **Hay contra qué verificar.** No hace falta sembrar para que un guardián signifique algo, que es
+> la trampa que mordió a `FIX-001` —«puerta abierta» sobre cero reservas— y a tres banderas del
+> lote de Habitanto.
+
+**DOS TRAMPAS DEL FRENTE QUE YA MORDIERON Y CONVIENE NO REDESCUBRIR:**
+
+1. **La conciliación estuvo MUERTA y en verde.** Desde `FIN-001`, todos los asientos de cobro nacen
+   con `sourceType: "billingStatement"`, y el veto de `ledgerEntries` rechazaba el `update` — que en
+   Firestore evalúa el documento **resultante**, no el delta. **La pantalla no podía marcar
+   conciliado ni un solo asiento.** Corregido el 24 de agosto, y apareció probando la regla contra
+   el emulador **en la dirección contraria a la que se buscaba**. Cualquier estimación de `FIN-002`
+   anterior al 24 asumía una conciliación que en realidad no funcionaba.
+2. **Una regla de Firestore no protege lo que escribe una callable** (Admin SDK no evalúa reglas).
+   Si el expediente apoya un invariante en una regla, la pregunta obligatoria es **quién más
+   escribe eso**. Es lo que costó `CF8`.
+
+**Lo primero, concretamente:** acotar qué estados tiene un caso y qué lo hace duplicado, contra las
+27 líneas de banco que ya existen. Es una PRD, y `docs/prd/README.md` **no tiene ninguna ficha de
+Finance ni de UX** — conviene mirarlo antes de decidir dónde vive.
 
 ### `UX-003` — PRIMERA ENTREGA EN PRODUCCIÓN (`5bc9d3f`, 28 ago)
 
@@ -1506,7 +1505,7 @@ cuatro a medias es exactamente lo que no hay que hacer — **`FIN-002` baja al f
 | ~~**3**~~ | ~~**`FIX-001` completo**~~ | **MVP CERRADO el 24 de agosto de 2026** (`a67088c`): bandera encendida en los nueve, puerta medida **con contenido**, y la rama del residente retirada del `create`. Queda solo la **entrega 2** (política por área), que es Fase 2 de la ficha, no MVP | — |
 | ~~**4**~~ | ~~**`PLAT-002` entrega 2**~~ | **MVP CERRADO el 25 de agosto de 2026** (`dbb3f29`…`5894001`): el selector, la sesión con varias membresías, la entidad administradora y su consola. **En staging, verificado por navegador de punta a punta.** La vista de cartera NO entraba — el Story Map la sitúa en Fase 2. Detalle en la cabecera | — |
 | **5** | **Olas B y C** | **La ola B queda hecha**: `FLOW-001` construido, desplegado en staging y validado por navegador el 25 de agosto (`728451f`…`abcbaad`). **No sube a producción**, y el motivo es de datos: con 0 de 93 unidades con coeficiente y 80 de 93 sin propietario, ahí no puede correr aunque se encienda. Queda la ola C: `FEAT-004` (paz y salvo) y luego `FLOW-003` (cobranza), cuyo adjunto depende de ella | Alto — es construir |
-| ~~**6**~~ | ~~**`FIN-002`**~~ | **NO SE CONSTRUYE — decisión de David, 28 ago 2026.** Expediente y conciliación determinística. No vale la pena la bandeja sin nadie conciliando: **cero pagos reales**. Aplazada a propósito, no bloqueada; se retoma **cuando entre cartera real** | — |
+| **6** | **`FIN-002`** | **ABIERTO el 28 de agosto de 2026** — y es el frente elegido para la sesión siguiente. Expediente y conciliación determinística. La decisión se tomó dos veces ese día: primero que no valía la pena sin nadie conciliando, y luego se revirtió para llegar listos al primer cliente | Alto |
 
 **`PLAT-002` YA ESTÁ EN PRODUCCIÓN** desde la tarde del 25 (`e41affa`), así que esa decisión
 dejó de estar pendiente. ~~**Del 5 queda la ola C**, y el 6 (`FIN-002`) sigue al final.~~

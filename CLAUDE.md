@@ -504,10 +504,15 @@ Lo fijó David. La cola empezaba por `FIN-002` porque era el frente de ingenier�
 abordable sin clientes; con el criterio nuevo, abrirlo teniendo cuatro a medias es justo lo que no
 hay que hacer, y **bajó al final**. El orden vive en `docs/pendientes.md`.
 
-> **Y el 28 de agosto de 2026 la cola se vació: `FIN-002` NO SE CONSTRUYE.** Decisión de David,
-> contestando la pregunta previa que llevaba abierta desde el 24: **no vale la pena construir la
-> bandeja de conciliación sin nadie conciliando** — hay **cero pagos reales**. No es un aplazamiento
-> de calendario: **se retoma cuando exista cartera real**, que es un hecho medible, no una fecha.
+> **Y el 28 de agosto de 2026 `FIN-002` SE ABRE — la decisión se tomó dos veces el mismo día.**
+> Por la tarde David resolvió que no valía la pena la bandeja sin nadie conciliando; al cerrar la
+> jornada **lo revirtió: se construye igual, para llegar listos al primer cliente.** Queda escrito
+> que fueron dos decisiones y no una, porque quien lea el historial verá las dos.
+>
+> **Y al medir el terreno, el argumento del «conjunto vacío» resultó más débil de lo que parecía:**
+> producción tiene **27 líneas de banco, 4 cuentas, 93 asientos con 19 YA conciliados** y 5
+> operaciones de pago. Lo único en cero es `reconciliationCases`, que es lo que hay que construir.
+> **Se puede verificar contra datos, no sobre una tabla vacía** — que es la trampa de siempre.
 >
 > **Con eso la COLA DE PRIORIDAD queda cerrada — que no es lo mismo que quedarse sin frente, y
 > confundirlo costó una corrección el mismo 28.** El tablero da **«Experiencia y diseño» por
