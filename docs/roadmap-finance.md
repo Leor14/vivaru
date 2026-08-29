@@ -303,7 +303,7 @@ WhatsApp o de un estado bancario. Hoy hay dos y divergen; ese es el trabajo.
 |---|---|---|---|
 | **F0 · Integridad** | Comando único server-side, transaccional e idempotente | — | ✅ **CUMPLIDO ENTERO el 20 ago 2026.** Las dos rutas terminan en el mismo comando, y desde el 20 **el recibo se emite dentro de esa misma transacción** y el reverso lo anula. Era lo único que faltaba, y lo desbloqueó la salida de lo fiscal |
 | **F0b · Storage por rol** | Filtro de rol dentro del conjunto | Ninguno | Un residente no puede leer ni escribir documentos financieros; probado en emulador y en CI |
-| **F1 · Expediente y bandeja** | `ReconciliationCase`, estados, duplicados, candidatos determinísticos | F0 | Un caso se rastrea de la evidencia a la aplicación, rechazo o reverso |
+| **F1 · Expediente y bandeja** | `ReconciliationCase`, estados, duplicados, candidatos determinísticos | F0 | Un caso se rastrea de la evidencia a la aplicación, rechazo o reverso. **PRD escrita el 29 ago 2026: [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md)**, lista para desarrollo |
 | **F2 · IA en sombra** | Extracción documental medida, sin tocar saldos | F1 **y un conjunto de documentos reales** | Métricas por campo sobre baseline determinístico, con costo y latencia |
 | **F3 · Piloto** | Reducir tiempo real | F2 **y un conjunto que emita pagos de verdad** | Go/no-go económico |
 | **F4 · Canales y escala** | WhatsApp, estados bancarios, autoaplicación exacta | F3 | Escala por conjunto sin perder control |

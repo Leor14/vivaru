@@ -718,7 +718,8 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 > asientos con 19 YA conciliados** y 5 operaciones de pago. En cero está solo
 > `reconciliationCases`. **Hay contra qué verificar**, que es lo que faltaba en otros frentes.
 
-- **Estado:** Abierta · **Dependencia:** `FIN-001` (cumplida desde el 20 ago)
+- **Estado:** **PRD escrita y lista para desarrollo** — [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md), 29 ago 2026 · **Dependencia:** `FIN-001` (cumplida desde el 20 ago)
+- **Lo que la ficha añadió al alcance, medido y no supuesto:** de los **19 emparejamientos** de producción **uno es falso** —una salida de −300.000 casada contra un ingreso de +40.000, escrita el 20 de agosto—, y **0 de las 8 líneas pendientes tiene candidato único**. Entra la **coherencia de efecto** como regla, y la **cascada al revertir** (`R15` de `FLOW-002`, decidida por David el 29). **El cierre por fecha de corte NO entra**: es `PH-002`
 - **Incluye:** `ReconciliationCase`, estados versionados, normalización, duplicados,
   candidatos determinísticos, bandeja de excepciones, motivos y reversos.
 - **Criterio de salida:** un caso se rastrea desde la evidencia recibida hasta la
