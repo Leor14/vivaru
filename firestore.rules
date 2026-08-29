@@ -588,10 +588,50 @@ service cloud.firestore {
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
+    // `PRD-V-FLOW-004` R8 — **el enlace con el libro lo escribe SOLO el servidor.**
+    //
+    // Hasta esta ficha, el navegador escribia `reconciled` y
+    // `matchedLedgerEntryId` a placer, y por eso en produccion hay una salida de
+    // banco de -300.000 casada contra una entrada de +40.000. La comprobacion
+    // que lo impide es aritmetica entre DOS documentos —el importe con su signo,
+    // la fecha, la cuenta—, y **eso una regla no lo puede hacer**: tendria que
+    // leer el asiento y comparar. Lo hace la callable `reconcileCase`; esta
+    // regla solo cierra el camino viejo para que no queden los dos abiertos.
+    //
+    // **Importar sigue siendo escritura directa del cliente**, y esta bien: una
+    // linea nace sin conciliar y no afecta a nada hasta que alguien la casa.
+    // Por eso `create` se conserva, exigiendo que nazca suelta.
+    //
+    // Ojo con un efecto util del veto: si dos importaciones corren a la vez, la
+    // segunda hace `setDoc` sobre un documento que YA existe —lo que en reglas
+    // es un `update`— y si aquel ya estaba conciliado, **se deniega** en vez de
+    // pisarlo con `reconciled: false`. La carrera se resuelve negando, que es lo
+    // que se quiere cuando hay dinero conciliado debajo.
     match /bankStatementLines/{docId} {
       allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId));
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && request.resource.data.get('reconciled', false) == false
+        && request.resource.data.get('matchedLedgerEntryId', null) == null;
+      allow update: if tenantOperable(request.resource.data.tenantId)
+        && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reconciled', 'matchedLedgerEntryId'].toSet());
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
+    }
+
+    // `PRD-V-FLOW-004` — el expediente de una linea de extracto.
+    //
+    // **Mas estrecha que `bankStatementLines` a proposito: el cliente NO escribe
+    // nada.** El caso es el registro de que se decidio y por que; si el
+    // navegador pudiera escribirlo, el motivo de un descarte valdria lo que
+    // valga el navegador. Lo escriben las callables del expediente y el reverso.
+    //
+    // La lectura es solo de la administracion. Las descripciones del extracto
+    // nombran unidades y a veces personas, asi que el residente, la porteria y
+    // el consejo no entran — la misma frontera que `bankAccountBalances`.
+    match /reconciliationCases/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update, delete: if false;
     }
 
     // Plan de cuentas gobernado (PRD-V-PLAT-003).
@@ -689,10 +729,27 @@ service cloud.firestore {
       // unico que se le puede tocar es la conciliacion; si no lo es, sigue sin
       // poder convertirse en uno. No cuesta ningun `get()` extra: `resource` ya
       // esta cargado.
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
-        && (resource != null && resource.data.get('sourceType', '') in ['billingStatement', 'advance']
+      // **`PRD-V-FLOW-004` R8, y esto ENSANCHA el veto en un sentido que importa.**
+      // Los tres campos de la conciliacion salen de lo que el cliente puede
+      // tocar **en cualquier asiento**, no solo en los de origen pago. El
+      // emparejamiento falso que motiva la ficha se escribio sobre un asiento
+      // `manual`, que era justo el que esta lista no cubria: para el, la rama de
+      // abajo lo permitia todo.
+      //
+      // Y una consecuencia buscada: para un asiento de cobro, la lista de lo
+      // tocable se queda en `updatedBy`/`updatedAt`, o sea **nada util**. Es lo
+      // correcto — lo unico que el cliente podia hacerle era conciliarlo, y eso
+      // ahora pasa por la callable.
+      allow create: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && !(request.resource.data.get('sourceType', '') in ['billingStatement', 'advance'])
+        && request.resource.data.get('reconciled', false) == false
+        && request.resource.data.get('bankStatementLineId', null) == null;
+      allow update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId) && previewModuleWritable(request.resource.data.tenantId))
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['reconciled', 'bankStatementLineId', 'reconciledAt'].toSet())
+        && (resource.data.get('sourceType', '') in ['billingStatement', 'advance']
               ? request.resource.data.diff(resource.data).affectedKeys()
-                  .hasOnly(['reconciled', 'bankStatementLineId', 'reconciledAt', 'updatedBy', 'updatedAt'])
+                  .hasOnly(['updatedBy', 'updatedAt'])
               : !(request.resource.data.get('sourceType', '') in ['billingStatement', 'advance']));
       // Borrar tampoco: un asiento de cobro o de anticipo se anula con su
       // reverso, que lo escribe el servidor. Borrarlo desde el navegador quitaria

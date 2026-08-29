@@ -2536,26 +2536,40 @@ describe("FLOW-002 · el asiento de origen pago se protege en LAS DOS direccione
   });
 
   /**
-   * **Y el bloqueo, que es la contraparte imprescindible.** En un `update` con
-   * merge Firestore evalúa el documento RESULTANTE, que sí conserva el
-   * `sourceType`, así que la regla vieja denegaba marcar conciliado un asiento de
-   * pago. Como desde `FIN-001` **todos** los asientos de cobro nacen con
-   * `sourceType: "billingStatement"`, la conciliación no podía casar ni un pago.
+   * **ESTAS DOS AFIRMABAN LO CONTRARIO HASTA `FLOW-004`, y el cambio es
+   * deliberado — no es que la regla se haya roto.**
+   *
+   * El 24 de agosto de 2026 se abrió la conciliación al cliente porque la regla
+   * vieja la tenía MUERTA: en un `update` con merge Firestore evalúa el
+   * documento RESULTANTE, que conserva el `sourceType`, así que marcar
+   * conciliado un asiento de cobro se denegaba — y desde `FIN-001` todos nacen
+   * así. Aquello era correcto **para el producto de entonces**, en el que la
+   * pantalla escribía el enlace.
+   *
+   * **`FLOW-004` R8 se lo quita, porque ese permiso es exactamente el que
+   * escribió el emparejamiento falso que hay en producción**: una salida de
+   * banco de −300.000 casada contra una entrada de +40.000. La comprobación que
+   * lo habría impedido es aritmética entre dos documentos, y una regla no puede
+   * hacerla. Ahora concilia `reconcileCase`, con Admin SDK.
+   *
+   * Se conserva la historia escrita porque el mismo campo ha cambiado de
+   * contrato dos veces en cinco días, y sin esto la próxima lectura parecería un
+   * error.
    */
-  it("SÍ se puede marcar conciliado un asiento de cobro, que es lo que hace la conciliación", async () => {
+  it("YA NO se puede marcar conciliado un asiento de cobro desde el cliente (R8)", async () => {
     await sembrarAsiento("le-cobro-conciliar", "billingStatement");
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(admin.firestore(), "ledgerEntries", "le-cobro-conciliar"), {
         reconciled: true, bankStatementLineId: "bl-1", reconciledAt: "2026-08-24",
       }),
     );
   });
 
-  it("y también el de un anticipo", async () => {
+  it("ni deshacerlo — el de un anticipo tampoco", async () => {
     await sembrarAsiento("le-adv-conciliar", "advance");
     const admin = testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(admin.firestore(), "ledgerEntries", "le-adv-conciliar"), {
         reconciled: false, bankStatementLineId: null, reconciledAt: null,
       }),
@@ -3145,5 +3159,256 @@ describe("PLAT-002 · managementCompanies: solo superadmin lee, y nadie escribe"
 
   it("ni borra", async () => {
     await assertFails(deleteDoc(doc(sa().firestore(), "managementCompanies", "adm-1")));
+  });
+});
+
+/**
+ * `PRD-V-FLOW-004` R8 — **el enlace entre el extracto y el libro lo escribe solo
+ * el servidor.**
+ *
+ * Estas reglas no comprueban que un emparejamiento sea correcto: **no pueden**.
+ * La comprobación es aritmética entre dos documentos y una regla tendría que
+ * leer el asiento para hacerla. Lo que hacen es **cerrar el camino viejo**, para
+ * que la callable no conviva con un atajo por el navegador — que es como se
+ * escribió, el 20 de agosto, la conciliación de −300.000 contra +40.000 que
+ * sigue en producción.
+ *
+ * **Se prueba con `updateDoc`, no con `setDoc`**, porque es lo que hace el
+ * producto: en un `update` con merge Firestore evalúa el documento
+ * **resultante**, y esa diferencia ya costó tener la conciliación muerta y en
+ * verde durante semanas.
+ */
+describe("FLOW-004 · el expediente de conciliación", () => {
+  const admin = () => testEnv.authenticatedContext("admin-1", { role: "tenant_admin", tenantId: "tenant-a" });
+  const otroAdmin = () => testEnv.authenticatedContext("admin-2", { role: "tenant_admin", tenantId: "tenant-b" });
+  const residente = () => testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+  const sa = () => testEnv.authenticatedContext("super-1", { role: "superadmin" });
+
+  beforeAll(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "bankStatementLines", "bsl-suelta"), {
+        tenantId: "tenant-a",
+        bankAccountId: "cta-1",
+        date: "2026-06-08",
+        description: "SPEI recibido — T1-101",
+        amount: 3000,
+        reconciled: false,
+        matchedLedgerEntryId: null,
+      });
+      await setDoc(doc(db, "bankStatementLines", "bsl-casada"), {
+        tenantId: "tenant-a",
+        bankAccountId: "cta-1",
+        date: "2026-06-08",
+        description: "Mantenimiento",
+        amount: -300000,
+        reconciled: true,
+        matchedLedgerEntryId: "le-flow004-manual",
+      });
+      await setDoc(doc(db, "ledgerEntries", "le-flow004-manual"), {
+        tenantId: "tenant-a",
+        type: "egreso",
+        amount: 300000,
+        date: "2026-06-08",
+        concept: "Mantenimiento",
+        sourceType: "manual",
+        reconciled: false,
+      });
+      await setDoc(doc(db, "ledgerEntries", "le-flow004-cobro"), {
+        tenantId: "tenant-a",
+        type: "ingreso",
+        amount: 3000,
+        date: "2026-06-08",
+        concept: "Pago de cuota",
+        sourceType: "billingStatement",
+        reconciled: false,
+      });
+      await setDoc(doc(db, "reconciliationCases", "bsl-suelta"), {
+        tenantId: "tenant-a",
+        bankAccountId: "cta-1",
+        bankStatementLineId: "bsl-suelta",
+        status: "detectado",
+        version: 0,
+        candidateLedgerEntryIds: [],
+        matchedLedgerEntryId: null,
+        excepcion: "sin_contraparte",
+        incoherencias: [],
+      });
+    });
+  });
+
+  describe("la línea del extracto", () => {
+    it("un admin puede importar una línea, que nace SUELTA", async () => {
+      await assertSucceeds(
+        setDoc(doc(admin().firestore(), "bankStatementLines", "bsl-nueva"), {
+          tenantId: "tenant-a",
+          bankAccountId: "cta-1",
+          date: "2026-07-01",
+          description: "Depósito",
+          amount: 1000,
+          reconciled: false,
+          matchedLedgerEntryId: null,
+        }),
+      );
+    });
+
+    it("pero NO puede importarla ya conciliada", async () => {
+      await assertFails(
+        setDoc(doc(admin().firestore(), "bankStatementLines", "bsl-nace-casada"), {
+          tenantId: "tenant-a",
+          bankAccountId: "cta-1",
+          date: "2026-07-01",
+          description: "Depósito",
+          amount: 1000,
+          reconciled: true,
+          matchedLedgerEntryId: "le-flow004-manual",
+        }),
+      );
+    });
+
+    it("**R8** · no puede conciliarla a mano — es el camino que escribió el par falso", async () => {
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "bankStatementLines", "bsl-suelta"), {
+          reconciled: true,
+          matchedLedgerEntryId: "le-flow004-manual",
+        }),
+      );
+    });
+
+    it("ni deshacer una conciliación a mano", async () => {
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "bankStatementLines", "bsl-casada"), {
+          reconciled: false,
+          matchedLedgerEntryId: null,
+        }),
+      );
+    });
+
+    it("ni el superadmin: la coherencia no tiene excepción por rol", async () => {
+      await assertFails(
+        updateDoc(doc(sa().firestore(), "bankStatementLines", "bsl-suelta"), {
+          reconciled: true,
+          matchedLedgerEntryId: "le-flow004-manual",
+        }),
+      );
+    });
+
+    it("lo que NO es el enlace se sigue pudiendo corregir", async () => {
+      // El veto es sobre dos campos, no sobre la colección: quien concilia tiene
+      // que poder arreglar una descripción mal parseada del CSV.
+      await assertSucceeds(
+        updateDoc(doc(admin().firestore(), "bankStatementLines", "bsl-suelta"), {
+          description: "SPEI recibido — T1-101 (corregido)",
+        }),
+      );
+    });
+
+    it("un admin de otro conjunto no la ve", async () => {
+      await assertFails(getDoc(doc(otroAdmin().firestore(), "bankStatementLines", "bsl-suelta")));
+    });
+  });
+
+  describe("el asiento del libro", () => {
+    it("**R8** · nadie le escribe la marca de conciliado desde el navegador", async () => {
+      // Y este es `manual`, que es justo el tipo que el veto anterior NO cubría:
+      // el emparejamiento falso de producción se escribió sobre uno así.
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "ledgerEntries", "le-flow004-manual"), {
+          reconciled: true,
+          bankStatementLineId: "bsl-suelta",
+        }),
+      );
+    });
+
+    it("ni sobre un asiento de cobro", async () => {
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "ledgerEntries", "le-flow004-cobro"), {
+          reconciled: true,
+          bankStatementLineId: "bsl-suelta",
+        }),
+      );
+    });
+
+    it("un movimiento manual nace sin conciliar y eso sigue permitido", async () => {
+      await assertSucceeds(
+        setDoc(doc(admin().firestore(), "ledgerEntries", "le-flow004-nuevo"), {
+          tenantId: "tenant-a",
+          type: "egreso",
+          amount: 50,
+          date: "2026-07-01",
+          concept: "Bombillas",
+          sourceType: "manual",
+          reconciled: false,
+        }),
+      );
+    });
+
+    it("pero no nace ya conciliado", async () => {
+      await assertFails(
+        setDoc(doc(admin().firestore(), "ledgerEntries", "le-flow004-nace-casado"), {
+          tenantId: "tenant-a",
+          type: "egreso",
+          amount: 50,
+          date: "2026-07-01",
+          concept: "Bombillas",
+          sourceType: "manual",
+          reconciled: true,
+          bankStatementLineId: "bsl-suelta",
+        }),
+      );
+    });
+
+    it("anular un movimiento manual sigue funcionando — es el camino de `reverseLedgerEntry`", async () => {
+      await assertSucceeds(
+        updateDoc(doc(admin().firestore(), "ledgerEntries", "le-flow004-manual"), {
+          reversedByEntryId: "le-reverso-x",
+        }),
+      );
+    });
+  });
+
+  describe("el expediente", () => {
+    it("la administración lo lee", async () => {
+      await assertSucceeds(getDoc(doc(admin().firestore(), "reconciliationCases", "bsl-suelta")));
+    });
+
+    it("**un residente NO** — la descripción del extracto nombra unidades", async () => {
+      await assertFails(getDoc(doc(residente().firestore(), "reconciliationCases", "bsl-suelta")));
+    });
+
+    it("un admin de otro conjunto tampoco", async () => {
+      await assertFails(getDoc(doc(otroAdmin().firestore(), "reconciliationCases", "bsl-suelta")));
+    });
+
+    it("NADIE lo escribe desde el cliente — ni el superadmin", async () => {
+      await assertFails(
+        setDoc(doc(sa().firestore(), "reconciliationCases", "bsl-inventado"), {
+          tenantId: "tenant-a",
+          bankAccountId: "cta-1",
+          bankStatementLineId: "bsl-inventado",
+          status: "aplicado",
+          version: 0,
+          candidateLedgerEntryIds: [],
+          matchedLedgerEntryId: "le-flow004-manual",
+          excepcion: null,
+          incoherencias: [],
+        }),
+      );
+    });
+
+    it("ni cambia el motivo de uno que ya existe", async () => {
+      // Si el navegador pudiera reescribirlo, el motivo de un descarte valdría
+      // lo que valga el navegador.
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "reconciliationCases", "bsl-suelta"), {
+          status: "aplicado",
+          motivoCodigo: "otro",
+        }),
+      );
+    });
+
+    it("ni lo borra", async () => {
+      await assertFails(deleteDoc(doc(admin().firestore(), "reconciliationCases", "bsl-suelta")));
+    });
   });
 });

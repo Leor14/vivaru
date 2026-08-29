@@ -79,6 +79,18 @@ literal: *«Contesta la pregunta abierta de `FIN-002`: no, todavía no»*. A Fas
 discriminante automático por código de unidad, una línea contra varios asientos y los motivos
 configurables.
 
+> ### ⚠ HAY REGLAS ESCRITAS Y SIN DESPLEGAR, Y ESO ES DELIBERADO
+>
+> `firestore.rules` lleva ya el veto de `FLOW-004` R8 —el cliente deja de poder escribir el enlace
+> entre una línea de banco y un asiento— **y NO se ha desplegado**. Si entra antes que las
+> callables y el front, **la conciliación deja de funcionar en producción**. Está probado contra el
+> emulador (243 en verde, cuatro falsaciones) y esperando su turno, que es el ÚLTIMO.
+>
+> **`firebase deploy --only firestore:rules` despliega el árbol de trabajo, no una rama**, así que
+> cualquier despliegue de reglas hecho por otro motivo se lo llevaría por delante. Medido el 29: el
+> ruleset vivo daba **0 líneas de diferencia** contra el repositorio antes de este cambio, así que
+> hoy lo único pendiente de desplegar ahí es esto.
+
 ### EL PORTAFOLIO, RECONTADO EL 29 — Y LO ÚNICO ABIERTO ES `FLOW-004`
 
 `docs/prd/README.md` arrastraba **dos casillas ya falsas**: «servidor en producción pero APAGADO»

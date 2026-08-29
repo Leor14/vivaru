@@ -360,6 +360,23 @@ abierto al lado del nuevo.
 > no.** Es lo que dejó la conciliación muerta y en verde durante semanas. Se prueban **en las dos
 > direcciones**: que lo legítimo pase y que lo prohibido no.
 
+> **ESCRITAS Y PROBADAS EL 29 DE AGOSTO, Y SIN DESPLEGAR A PROPÓSITO.** 22 pruebas nuevas en
+> `tests/firestore.rules.test.ts` (243 en total, en verde contra el emulador), y las cuatro
+> falsaciones rompen exactamente la suya. **No se despliegan hasta que las callables y el front
+> estén verificados en producción**, porque restringen lo que la pantalla actual hace: si entran
+> antes, la conciliación deja de funcionar.
+>
+> **Y una comprobación que conviene repetir antes de desplegarlas:** el ruleset vivo de producción
+> se leyó por la API de Rules el 29 de agosto y da **0 líneas de diferencia** contra el repositorio
+> anterior a este cambio. Es decir, un `firebase deploy --only firestore:rules` **solo llevaría
+> esto** y nada arrastrado — que es justo lo que no se puede dar por supuesto.
+>
+> **Dos pruebas de `FLOW-002` cambiaron de signo, y no es una regresión.** Afirmaban que el cliente
+> SÍ podía marcar conciliado un asiento de cobro: era correcto para el producto de entonces, en el
+> que la pantalla escribía el enlace, y es **exactamente el permiso que escribió el par falso**.
+> Ahora afirman lo contrario, con la historia escrita al lado — el mismo campo ha cambiado de
+> contrato dos veces en cinco días.
+
 ### 11.3 Índices, jobs y banderas
 
 - **Índice**: `bankStatementLines` por `(tenantId, naturalKey)` — lo pide la comprobación de R5
