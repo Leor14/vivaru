@@ -92,11 +92,20 @@ configurables.
 > revisar»** —antes decía 5 conciliadas—, con los tres motivos escritos debajo de la línea: «el
 > banco y el libro van en sentidos contrarios · los importes no coinciden · se llevan más de 3 días».
 >
-> **Lo único que falta de la entrega 1 es el RELLENO**, que es una escritura de datos y la decide
-> David: `node functions/scripts/rellenar-casos-de-conciliacion.mjs hogaru-1 --escribir`. El ensayo
-> contra producción da **19 aplicado + 6 varios candidatos + 2 sin contraparte**. Sin él, la bandeja
-> funciona igual —los casos nacen al conciliar— pero las 19 conciliaciones ya hechas no tienen
-> expediente.
+> **El RELLENO está corrido** (29 ago): **27 casos = 27 líneas**, repartidos en **19 aplicado + 6
+> varios candidatos + 2 sin contraparte**, cero líneas sin caso y cero huérfanos. Verificado
+> releyendo la base, no creyéndole al script, y **sin tocar ni una línea ni un asiento**: el par
+> falso sigue exactamente como estaba, con su caso `aplicado` y sus tres incoherencias anotadas.
+> Segunda corrida: **0 escritos**.
+>
+> ### ⚠ Y QUEDA UN CRITERIO SIN CUMPLIR — `CA1`
+>
+> **Importar un extracto NO crea los casos.** `importBankStatementLines` escribe la línea y nada
+> más; el caso nace cuando una callable lo toca o cuando corre el relleno. Hoy no se ve —las 27
+> tienen caso porque el relleno pasó, y la bandeja agrupa mirando líneas y asientos, no casos—,
+> **pero la métrica de éxito «100% de las líneas con expediente» deja de ser cierta en la siguiente
+> importación**. El cierre es una callable que asegure los casos de una cuenta, llamada por el
+> importador al terminar: el cliente no puede escribirlos, que es justo lo que R8 decidió.
 
 ### EL PORTAFOLIO, RECONTADO EL 29 — Y LO ÚNICO ABIERTO ES `FLOW-004`
 
