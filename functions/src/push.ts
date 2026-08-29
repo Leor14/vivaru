@@ -8,8 +8,26 @@ import * as logger from "firebase-functions/logger";
 
 import { isFeatureEnabled } from "./feature-flags";
 
-/** Mismo criterio que email.ts: los links relativos del catálogo se vuelven absolutos aquí. */
-const APP_BASE_URL = "https://www.grupovivaru.com";
+/**
+ * La base del enlace depende del AMBIENTE EN QUE CORRE LA FUNCIÓN, no de una
+ * constante: con la base de producción clavada, el toque en un push de staging
+ * salía de la app instalada hacia otro origen y no navegaba — cazado en un
+ * iPhone real el 29 ago 2026. (email.ts tiene la constante clavada: es el
+ * gemelo con el mismo defecto latente, anotado aparte.)
+ */
+function baseDelAmbiente(): string {
+  let proyecto = process.env.GCLOUD_PROJECT ?? "";
+  if (!proyecto) {
+    try {
+      proyecto = (JSON.parse(process.env.FIREBASE_CONFIG ?? "{}") as { projectId?: string }).projectId ?? "";
+    } catch {
+      proyecto = "";
+    }
+  }
+  return proyecto === "vivaru-staging-02"
+    ? "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app"
+    : "https://www.grupovivaru.com";
+}
 
 export interface AvisoParaPush {
   userId: string;
@@ -21,8 +39,9 @@ export interface AvisoParaPush {
 
 /** FCM exige URL absoluta en webpush.fcmOptions.link; el catálogo guarda rutas. */
 export function enlaceAbsoluto(link: string | null | undefined): string {
-  if (!link) return APP_BASE_URL;
-  return link.startsWith("http") ? link : `${APP_BASE_URL}${link}`;
+  const base = baseDelAmbiente();
+  if (!link) return base;
+  return link.startsWith("http") ? link : `${base}${link}`;
 }
 
 /**

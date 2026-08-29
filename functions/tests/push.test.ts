@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { enlaceAbsoluto, esTokenMuerto } from "../src/push";
 import { FEATURE_FLAG_DEFAULTS } from "../src/feature-flags";
@@ -11,6 +11,20 @@ import { FEATURE_FLAG_DEFAULTS } from "../src/feature-flags";
  */
 
 describe("enlaceAbsoluto — fcmOptions.link exige URL absoluta", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("en el proyecto de staging la base es el host de staging — con la de producción, el toque salía de la app instalada", () => {
+    vi.stubEnv("GCLOUD_PROJECT", "vivaru-staging-02");
+    expect(enlaceAbsoluto("/resident/communications")).toBe(
+      "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app/resident/communications",
+    );
+  });
+
+  it("en producción (y sin proyecto declarado) la base es grupovivaru.com", () => {
+    vi.stubEnv("GCLOUD_PROJECT", "hogaru-1");
+    expect(enlaceAbsoluto("/resident/pqrs")).toBe("https://www.grupovivaru.com/resident/pqrs");
+  });
+
   it("una ruta del catálogo se vuelve absoluta", () => {
     expect(enlaceAbsoluto("/resident/pqrs")).toBe("https://www.grupovivaru.com/resident/pqrs");
   });

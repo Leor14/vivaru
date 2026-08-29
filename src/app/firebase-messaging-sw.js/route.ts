@@ -23,13 +23,41 @@ export function GET(): Response {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   };
 
-  const js = `/* Vivaru — service worker de Web Push (generado por route handler) */
+  const js = `/* Vivaru — service worker de Web Push (v2, generado por route handler) */
+
+// EL CLICK ES NUESTRO, y se registra ANTES de cargar el SDK a propósito: el
+// manejador de FCM busca una ventana con la URL exacta del enlace y, si no la
+// hay, hace openWindow — que en una web app INSTALADA de iOS trae la app al
+// frente sin navegar (cazado en un iPhone real, 29 ago 2026). Aquí se corta su
+// manejador y se navega el cliente existente; openWindow queda de último
+// recurso, para cuando no hay ninguno.
+self.addEventListener("notificationclick", (event) => {
+  event.stopImmediatePropagation();
+  event.notification.close();
+  const msg = (event.notification && event.notification.data && event.notification.data.FCM_MSG) || {};
+  const link =
+    (msg.fcmOptions && msg.fcmOptions.link) ||
+    (msg.notification && msg.notification.click_action) ||
+    "/";
+  event.waitUntil((async () => {
+    const abiertos = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const c of abiertos) {
+      try {
+        await c.focus();
+        if ("navigate" in c) await c.navigate(link);
+        return;
+      } catch (e) { /* siguiente cliente */ }
+    }
+    await clients.openWindow(link);
+  })());
+});
+
 importScripts("https://www.gstatic.com/firebasejs/${VERSION_FIREBASE}/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/${VERSION_FIREBASE}/firebase-messaging-compat.js");
 
 firebase.initializeApp(${JSON.stringify(config)});
 
-// El SDK pinta la notificación de fondo y maneja el click con fcmOptions.link.
+// El SDK sigue pintando la notificación de fondo; el click ya no es suyo.
 firebase.messaging();
 `;
 

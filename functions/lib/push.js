@@ -44,13 +44,33 @@ const firestore_1 = require("firebase-admin/firestore");
 const messaging_1 = require("firebase-admin/messaging");
 const logger = __importStar(require("firebase-functions/logger"));
 const feature_flags_1 = require("./feature-flags");
-/** Mismo criterio que email.ts: los links relativos del catálogo se vuelven absolutos aquí. */
-const APP_BASE_URL = "https://www.grupovivaru.com";
+/**
+ * La base del enlace depende del AMBIENTE EN QUE CORRE LA FUNCIÓN, no de una
+ * constante: con la base de producción clavada, el toque en un push de staging
+ * salía de la app instalada hacia otro origen y no navegaba — cazado en un
+ * iPhone real el 29 ago 2026. (email.ts tiene la constante clavada: es el
+ * gemelo con el mismo defecto latente, anotado aparte.)
+ */
+function baseDelAmbiente() {
+    let proyecto = process.env.GCLOUD_PROJECT ?? "";
+    if (!proyecto) {
+        try {
+            proyecto = JSON.parse(process.env.FIREBASE_CONFIG ?? "{}").projectId ?? "";
+        }
+        catch {
+            proyecto = "";
+        }
+    }
+    return proyecto === "vivaru-staging-02"
+        ? "https://vivaru-staging-web--vivaru-staging-02.us-central1.hosted.app"
+        : "https://www.grupovivaru.com";
+}
 /** FCM exige URL absoluta en webpush.fcmOptions.link; el catálogo guarda rutas. */
 function enlaceAbsoluto(link) {
+    const base = baseDelAmbiente();
     if (!link)
-        return APP_BASE_URL;
-    return link.startsWith("http") ? link : `${APP_BASE_URL}${link}`;
+        return base;
+    return link.startsWith("http") ? link : `${base}${link}`;
 }
 /**
  * Códigos de FCM que significan «este token murió»: el documento se purga en el
