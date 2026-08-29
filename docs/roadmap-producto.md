@@ -146,7 +146,7 @@ de entrega.**
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
-| **Mobile / iOS** | 🟢 **`PLAT-005` VALIDADA EN STAGING con un iPhone real** (29 ago; push web, manifest y SW — bandera solo en el canario) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005`, decidir su producción, y `MOB-002` | — | ◇ `MOB-003` |
+| **Mobile / iOS** | 🟢 **`PLAT-005` EN PRODUCCIÓN, bandera solo en Santa María** (30 ago; validada antes en staging con un iPhone real) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005` y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
 | **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
@@ -1061,6 +1061,14 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.41 — 30 de agosto de 2026 (madrugada)
+
+- **`PLAT-005` A PRODUCCIÓN la misma noche**, por el criterio de llegar listos y con el patrón
+  `FLOW-004`: reglas (0 diff contra el vivo), functions (87/87 frescas), front (`b70c357`,
+  rollout `-015` esperado POR NOMBRE — la lista sin ordenar engañó dos veces al vigía en
+  staging), y `producto-notificaciones-push` encendida **solo en `tenant-santa-maria`**,
+  verificada resolviendo con el compilado. La global y los demás conjuntos, apagados.
 
 ### 0.9.40 — 30 de agosto de 2026
 
