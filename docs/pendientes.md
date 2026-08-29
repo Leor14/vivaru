@@ -4,73 +4,128 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 28 de agosto de 2026
+## LO PRIMERO AL ABRIR SESIÓN — 29 de agosto de 2026
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ ABRIR `FIN-002` — EL EXPEDIENTE DE CONCILIACIÓN
+> ## ▸ CONSTRUIR LA ENTREGA 1 DE `FLOW-004` — Y EL ORDEN VA AL REVÉS
 >
-> **Es el frente elegido, decidido al cerrar el 28 de agosto.** No hay nada que discutir antes de
-> empezar: su criterio de entrada (`FIN-001`) está cumplido desde el 20 de agosto, y el terreno ya
-> está medido —abajo—. **Lo primero es acotar la entrega, no escribir código.**
+> **La PRD está escrita, en `develop` (`c14e219`) y lista para desarrollo.** No queda nada que
+> acotar ni que decidir: [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md),
+> que es `FIN-002` / la fase `F1` de Finance. Su criterio de entrada (`FIN-001`) lleva cumplido
+> desde el 20 de agosto.
 >
-> **Ojo con el historial: esta decisión se tomó DOS VECES el 28 y en sentidos opuestos.** Por la
-> tarde se resolvió que no valía la pena la bandeja sin nadie conciliando; al cerrar la jornada
-> David lo revirtió —**se construye igual, para llegar listos al primer cliente**—. Si encuentras
-> un documento que diga que está aplazada, es de esa tarde; **manda esto**.
+> **La trampa nº 1 del frente es el orden de despliegue, y es lo primero que se olvida.** El de
+> Vivaru es reglas → functions → front. **Aquí NO**: la regla **restringe** algo que el front hace
+> hoy, así que si entra primero la pantalla actual deja de poder conciliar. El orden es
+> **functions → front → reglas → relleno**, y las reglas solo cuando 1 y 2 estén verificados en
+> producción.
 >
-> **Lo demás está cerrado o esperando a otros:** Albert espera dos respuestas suyas, `FLOW-003` está
-> cerrado y verificado, y `UX-003` tiene dos entregas en producción y su siguiente paso es una
-> decisión tuya, no un bloqueo.
+> **Las dos decisiones del frente están cerradas y no se reabren:** al revertir un pago conciliado
+> se **cascadea**, no se bloquea (D1, patrón `R15` de `FLOW-002`, David el 29); y el
+> emparejamiento falso que ya está escrito **no se corrige, se nombra** (D2).
+>
+> **`G5` está abierta a propósito** —nadie concilia a diario porque no hay clientes—, así que la
+> ficha **no se marca productiva** aunque se construya entera. Eso no frena construir.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez**.
 
-### `FIN-002` — EL TERRENO, MEDIDO EL 28 DE AGOSTO ANTES DE ABRIRLO
+### `FLOW-004` — LO QUE HAY QUE SABER PARA CONSTRUIR SIN RELEER LA FICHA
 
-**Qué es:** la fase `F1` de Finance — `ReconciliationCase`, estados versionados, normalización,
-duplicados, candidatos determinísticos, bandeja de excepciones, motivos y reversos. Su criterio de
-salida: **un caso se rastrea desde la evidencia recibida hasta la aplicación, el rechazo o el
-reverso.** Detalle en `docs/roadmap-finance.md` §7 y en `docs/roadmap-producto.md`.
+**El defecto que lo motiva está vivo y tiene fecha.** La línea `sVYB2DVgKFHXEZctNqkr` (−300.000,
+«Mantenimiento bomba de agua») está conciliada desde el **20 de agosto** contra el asiento
+`igdiGS5OpFXW2LyI6gbz` (**+40.000**, «Otros ingresos», seis días antes). La pantalla lo aceptó en
+silencio porque ofrece **todos** los asientos sin conciliar ordenados por cercanía de monto
+(`page.tsx:167`) y `matchLine` **no valida nada**.
 
-**NO ARRANCA DE CERO, y esto es lo que más cambia el plan.** Ya existe
-`src/app/(admin)/admin/finanzas/conciliacion/page.tsx` —**413 líneas**— con su modal «Conciliar con
-un movimiento», alta de cuentas bancarias y el criterio explicado en pantalla («cuando no quedan
-pendientes, el saldo del banco coincide con el del Libro»). Vive sobre `watchBankStatementLines`,
-`watchBankAccounts` y `watchLedger`, y la lógica está en `src/features/finanzas/use-reconciliation`.
-**Lo que NO existe es el expediente:** `ReconciliationCase` da **cero apariciones** en todo el
-código.
+**Las cinco reglas salieron de medir, no de elegir.** Cada una con la cifra que la sostiene:
 
-**Y TAMPOCO CORRE SOBRE TABLAS VACÍAS** —medido en producción el 28, y es lo que faltaba en otros
-frentes—:
+| Regla | Qué dice | La cifra que la sostiene |
+|---|---|---|
+| **R2 · coherencia de efecto** | El efecto de un asiento es `(type === "ingreso" ? +1 : −1) × amount` y debe igualar el `amount` de la línea **con su signo** | Da coherentes **18 de los 19** pares que existen y aísla **exactamente** el falso |
+| **R3 · ventana de fecha ±3 días** | Fuera de ella no hay candidato | El mayor desfase entre pares coherentes reales es **1 día**; el falso estaba a **6** |
+| **R4 · propuesta solo con candidato único** | Con dos o más, a la bandeja | **0 de las 8** pendientes tiene candidato único: proponer por monto y fecha habría acertado **cero** veces |
+| **R5 · duplicado con la descripción DENTRO de la clave** | `tenant + cuenta + fecha + monto + descripción normalizada` | Sin la descripción, las 27 líneas dan **4 grupos que suman 20 líneas legítimas**; con ella, **0** |
+| **R7 · cascada al revertir** | Anular o borrar un asiento conciliado suelta su línea y pasa su caso a `reversado` | Va en los **TRES** caminos, y son distintos |
 
-| Colección | Filas en producción |
-|---|---|
-| `bankStatementLines` | **27** |
-| `bankAccounts` | 4 |
-| `ledgerEntries` | **93**, de ellos **19 ya conciliados** |
-| `paymentVouchers` | 4 |
-| `paymentOperations` | 5 |
-| **`reconciliationCases`** | **0** ← la entrega |
+**Los tres caminos de R7, porque no son intercambiables:** `revertPayment` (callable, Admin SDK —
+**la única vía para asientos `billingStatement`/`advance`**, y **ninguna regla la mira**),
+`reverseLedgerEntry` (cliente, alcanza `manual` y `expense` — el par falso es `manual`) y
+`deleteLedgerEntry` (borrado **físico**, alcanza `expense`, y hay líneas conciliadas de gasto:
+energía, nómina, mantenimiento). **Implementar la cascada en uno solo deja los otros dos vivos.**
 
-> **Hay contra qué verificar.** No hace falta sembrar para que un guardián signifique algo, que es
-> la trampa que mordió a `FIX-001` —«puerta abierta» sobre cero reservas— y a tres banderas del
-> lote de Habitanto.
+**Cuatro cosas de fontanería que la ficha decide y conviene no redescubrir:**
 
-**DOS TRAMPAS DEL FRENTE QUE YA MORDIERON Y CONVIENE NO REDESCUBRIR:**
+- **El guardián es la callable, no la regla.** El Admin SDK no evalúa reglas; la regla queda como
+  refuerzo que cierra el camino del cliente (R8).
+- **La bandera `producto-expediente-conciliacion` vive en CINCO sitios**, y el quinto es
+  `mover-bandera-de-conjunto.mjs` — **la vía del canario**. Si falta, la bandera no se puede
+  encender por conjunto y existe a medias.
+- **`reconciliationCases` hay que añadirlo a `PURGEABLE_COLLECTIONS`**
+  (`functions/src/trial-lifecycle.ts:177`). Esa lista ya borra `bankStatementLines`; sin el
+  cambio, los casos quedan huérfanos.
+- **Reversibilidad PARCIAL, y está declarado:** la bandera revierte la bandeja; **no revierte
+  R2**. Apagarla no debe devolver el producto al estado que permitió el par falso.
 
-1. **La conciliación estuvo MUERTA y en verde.** Desde `FIN-001`, todos los asientos de cobro nacen
-   con `sourceType: "billingStatement"`, y el veto de `ledgerEntries` rechazaba el `update` — que en
-   Firestore evalúa el documento **resultante**, no el delta. **La pantalla no podía marcar
-   conciliado ni un solo asiento.** Corregido el 24 de agosto, y apareció probando la regla contra
-   el emulador **en la dirección contraria a la que se buscaba**. Cualquier estimación de `FIN-002`
-   anterior al 24 asumía una conciliación que en realidad no funcionaba.
-2. **Una regla de Firestore no protege lo que escribe una callable** (Admin SDK no evalúa reglas).
-   Si el expediente apoya un invariante en una regla, la pregunta obligatoria es **quién más
-   escribe eso**. Es lo que costó `CF8`.
+**Las cifras se reproducen, no se recuerdan:** `node scripts/medir-conciliacion.mjs hogaru-1`
+—solo lectura por construcción—. Producción tiene **27 líneas de banco, 4 cuentas, 93 asientos con
+19 conciliados**; en cero solo `reconciliationCases`, que es la entrega. **Hay contra qué verificar
+sin sembrar**, que es lo que faltaba en otros frentes.
 
-**Lo primero, concretamente:** acotar qué estados tiene un caso y qué lo hace duplicado, contra las
-27 líneas de banco que ya existen. Es una PRD, y `docs/prd/README.md` **no tiene ninguna ficha de
-Finance ni de UX** — conviene mirarlo antes de decidir dónde vive.
+**Y lo que NO entra está decidido por escrito, no por criterio de la ficha:** el **cierre por fecha
+de corte** —depósitos en tránsito, cheques no cobrados, resumen de saldos— es **`PH-002`**, «sin
+PRD escrita a propósito», y su disparador es el primer pago real. `roadmap-producto` lo dice
+literal: *«Contesta la pregunta abierta de `FIN-002`: no, todavía no»*. A Fase 2 van el
+discriminante automático por código de unidad, una línea contra varios asientos y los motivos
+configurables.
+
+### EL PORTAFOLIO, RECONTADO EL 29 — Y LO ÚNICO ABIERTO ES `FLOW-004`
+
+`docs/prd/README.md` arrastraba **dos casillas ya falsas**: «servidor en producción pero APAGADO»
+(`FLOW-001` se encendió el 27 y `FEAT-004` cerró el 26) y `FLOW-003` como «lista para desarrollo»,
+que **su propia fila desmentía**. Recontado sobre las filas: **13 funcionales — 2 productivas, 10
+en producción, y una abierta.** Es la primera ficha de Finance que vive en el repositorio.
+
+### LO DEMÁS, QUE NO BLOQUEA
+
+- **Albert.** Del lado de ellos no queda nada; del nuestro tampoco. Esperan **dos respuestas
+  suyas** a `DECISIONES-A-005` —la clave estable de «ganado», que bloquea diseño, y la credencial,
+  que bloquea ejecución—. Estado vivo en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md). **No es
+  bloqueante de nada nuestro.**
+- **`UX-003`.** Dos entregas en producción (`5bc9d3f` y `cb6d457`). Su siguiente paso es una
+  decisión, no un bloqueo. Detalle en la jornada del 28, abajo.
+- **2 commits en staging sin producción** (`bc33144`, `8bf5e4a`): ahorro de CSS (−4,2%) y textos de
+  las pantallas de error. Ninguna urgente.
+- **`UX-002` — filtros en la URL. Aplazada a propósito.** 38 filtros en 14 de las 19 pantallas del
+  admin, ninguno viaja en la dirección. El mecanismo ya existe (`src/lib/navigation/tab-param.ts`).
+  Su valor es compartir una vista y **no hay a quién**: producción no tiene clientes. La excepción
+  honesta es que recargar y perder el filtro molesta desde el primer día.
+- **El pie dice `Tenant:` en todas las pantallas.** Es jerga, y la palabra correcta depende del
+  país del conjunto; `vocabulario-pais.ts` no tiene término para el inmueble en sí. Corre en la
+  otra sesión.
+
+### LAS TRAMPAS DEL DESPLIEGUE, QUE VUELVEN SIEMPRE
+
+**Producción NO se despliega con un push a `master`** —su backend de App Hosting no tiene campo
+`branch`—. Hace falta el rollout manual, y **al agente lo bloquea el clasificador**, así que lo
+lanza David:
+
+```bash
+firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
+```
+
+**Y tres falsos negativos al comprobar que algo se desplegó**, con su detalle en la jornada del 28:
+la **huella de chunks** no prueba un despliegue de front (llevan hash de contenido), `curl` a
+`/admin` devuelve **cero bytes** por el middleware, y **el CSS puede salir idéntico** aunque el
+código cambie. El discriminante tiene que estar en lo que cambió.
+
+**Credenciales:** la **ADC está verificada hoy** —los scripts de medición corrieron contra
+`hogaru-1`—. `firebase` y `gcloud` **no se comprobaron el 29**; caducan por separado, así que si
+algo falla raro, es lo primero que hay que mirar.
+
+---
+
+## LA JORNADA DEL 28 DE AGOSTO — `UX-003`, Albert y el frente de diseño
 
 ### `UX-003` — PRIMERA ENTREGA EN PRODUCCIÓN (`5bc9d3f`, 28 ago)
 
@@ -243,19 +298,6 @@ de contraste que decía 1,82:1 sobre texto blanco en fondo navy (no resolvía de
 reportó ni uno de sus números**), una medición de seis rutas con `pushState` que devolvió **seis
 resultados idénticos** porque Next no repintó, y un `@source not` con un `..` de más que ahorró
 **0 bytes** hasta que se midió el antes y el después.
-
-### LO QUE QUEDA
-
-- **2 commits en staging sin producción** (`bc33144`, `8bf5e4a`): el ahorro de CSS (−4,2%) y las
-  correcciones de texto de las pantallas de error. Ninguna urgente.
-- **`UX-002` — filtros en la URL. Aplazada a propósito.** **38 filtros en 14 de las 19** pantallas
-  del admin, y ninguno viaja en la dirección. El mecanismo **ya existe**
-  (`src/lib/navigation/tab-param.ts`); falta generalizarlo a varios parámetros. **Su valor es
-  compartir una vista, y no hay a quién**: producción no tiene clientes. La excepción honesta es
-  que **recargar y perder el filtro molesta desde el primer día**.
-- **El pie dice `Tenant:` en todas las pantallas.** Es jerga, y la palabra correcta **depende del
-  país del conjunto**; `vocabulario-pais.ts` **no tiene término para el inmueble en sí**. Es la
-  tarea que corre en la otra sesión.
 
 ---
 ## LA JORNADA DEL 27 POR LA MADRUGADA — `FLOW-003` cerrado
