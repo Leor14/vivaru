@@ -20,6 +20,12 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/features/auth/auth-context";
 import { db } from "@/lib/firebase/client";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
+import {
+  estadoDeSoportePush,
+  limpiarBajaManual,
+  marcarBajaManual,
+  registrarDispositivo,
+} from "@/lib/push/registro";
 
 interface Dispositivo {
   token: string;
@@ -39,6 +45,8 @@ export function ResidentPushDevicesCard() {
   const encendida = useFeatureFlag("producto-notificaciones-push");
   const [dispositivos, setDispositivos] = useState<Dispositivo[] | null>(null);
   const [borrando, setBorrando] = useState<string | null>(null);
+  const [activable, setActivable] = useState(false);
+  const [activando, setActivando] = useState(false);
 
   const cargar = useCallback(async () => {
     if (!db || !user?.uid || !user?.tenantId) return;
@@ -61,7 +69,12 @@ export function ResidentPushDevicesCard() {
   }, [user?.uid, user?.tenantId]);
 
   useEffect(() => {
-    if (encendida) void cargar();
+    if (!encendida) return;
+    void cargar();
+    // El botón de activar solo tiene sentido donde el permiso puede pedirse:
+    // aquí mismo (soportado). En iOS sin instalar la explicación vive en el
+    // banner del portal, no en esta tarjeta.
+    setActivable(estadoDeSoportePush() === "soportado");
   }, [encendida, cargar]);
 
   if (!encendida || !user?.tenantId) return null;
@@ -71,11 +84,28 @@ export function ResidentPushDevicesCard() {
     setBorrando(token);
     try {
       await deleteDoc(doc(db, "pushTokens", token));
+      // La marca evita que el re-registro silencioso del banner resucite el
+      // dispositivo al relanzar la app: la baja fue una decisión (CA9).
+      marcarBajaManual();
       await cargar();
     } catch (e) {
       console.error("[push] baja de dispositivo", e);
     } finally {
       setBorrando(null);
+    }
+  };
+
+  const activarAqui = async () => {
+    if (!user?.tenantId) return;
+    setActivando(true);
+    try {
+      const token = await registrarDispositivo({ uid: user.uid, tenantId: user.tenantId });
+      if (token) limpiarBajaManual();
+      await cargar();
+    } catch (e) {
+      console.error("[push] activar desde el perfil", e);
+    } finally {
+      setActivando(false);
     }
   };
 
@@ -89,10 +119,17 @@ export function ResidentPushDevicesCard() {
         {dispositivos === null ? (
           <p className="text-sm text-[var(--slate-500)]">Cargando…</p>
         ) : dispositivos.length === 0 ? (
-          <p className="text-sm text-[var(--slate-500)]">
-            Ninguno todavía. Cuando actives los avisos en un teléfono o computador, aparecerá
-            aquí.
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--slate-500)]">
+              Ninguno todavía. Cuando actives los avisos en un teléfono o computador, aparecerá
+              aquí.
+            </p>
+            {activable && (
+              <Button size="sm" onClick={activarAqui} disabled={activando} className="shrink-0">
+                {activando ? "Activando…" : "Activar en este dispositivo"}
+              </Button>
+            )}
+          </div>
         ) : (
           dispositivos.map((d) => (
             <div

@@ -57,6 +57,40 @@ export function estadoDeSoportePush(): SoportePush {
 /** D1 de la ficha: 5 dispositivos por usuario y conjunto. */
 export const TOPE_DE_DISPOSITIVOS = 5;
 
+/**
+ * La baja manual se respeta EN ESTE DISPOSITIVO (CA9, segunda mitad — cazada
+ * por David el 29 ago): sin esta marca, el re-registro silencioso del permiso
+ * ya concedido resucitaba el dispositivo al relanzar la app, deshaciendo la
+ * baja sin preguntar. localStorage porque la decisión es del dispositivo, no
+ * de la cuenta; si no está disponible, se pierde la marca y vuelve la
+ * invitación — molesto, no peligroso.
+ */
+const CLAVE_BAJA_MANUAL = "vivaru-push-baja-manual";
+
+export function bajaManualActiva(): boolean {
+  try {
+    return window.localStorage.getItem(CLAVE_BAJA_MANUAL) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function marcarBajaManual(): void {
+  try {
+    window.localStorage.setItem(CLAVE_BAJA_MANUAL, "1");
+  } catch {
+    /* sin almacenamiento no hay marca que guardar */
+  }
+}
+
+export function limpiarBajaManual(): void {
+  try {
+    window.localStorage.removeItem(CLAVE_BAJA_MANUAL);
+  } catch {
+    /* nada que limpiar */
+  }
+}
+
 /** Para el campo `platform` del documento — diagnóstico, no lógica. */
 export function plataformaActual(): "android" | "ios" | "desktop" | "otro" {
   if (typeof navigator === "undefined") return "otro";

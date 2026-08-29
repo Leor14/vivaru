@@ -97,6 +97,42 @@ describe("plataformaActual — el campo platform del documento", () => {
   });
 });
 
+describe("la marca de baja manual (CA9, segunda mitad)", () => {
+  function fingeAlmacen() {
+    const datos = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (k: string) => datos.get(k) ?? null,
+        setItem: (k: string, v: string) => void datos.set(k, v),
+        removeItem: (k: string) => void datos.delete(k),
+      },
+    });
+  }
+
+  it("marcar → activa; limpiar → inactiva. Es lo que impide resucitar una baja en silencio", async () => {
+    fingeAlmacen();
+    const { bajaManualActiva, limpiarBajaManual, marcarBajaManual } = await import(
+      "@/lib/push/registro"
+    );
+    expect(bajaManualActiva()).toBe(false);
+    marcarBajaManual();
+    expect(bajaManualActiva()).toBe(true);
+    limpiarBajaManual();
+    expect(bajaManualActiva()).toBe(false);
+  });
+
+  it("sin localStorage no revienta y responde false (la invitación vuelve: molesto, no peligroso)", async () => {
+    vi.stubGlobal("window", {
+      get localStorage(): Storage {
+        throw new Error("bloqueado");
+      },
+    });
+    const { bajaManualActiva, marcarBajaManual } = await import("@/lib/push/registro");
+    marcarBajaManual();
+    expect(bajaManualActiva()).toBe(false);
+  });
+});
+
 describe("la bandera y el tope, contra la ficha", () => {
   it("producto-notificaciones-push existe en el catálogo del front y NACE APAGADA", () => {
     const ficha = FEATURE_FLAG_CATALOG["producto-notificaciones-push"];

@@ -10,7 +10,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/auth-context";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
-import { estadoDeSoportePush, registrarDispositivo, type SoportePush } from "@/lib/push/registro";
+import {
+  bajaManualActiva,
+  estadoDeSoportePush,
+  registrarDispositivo,
+  type SoportePush,
+} from "@/lib/push/registro";
 
 // «Ahora no» silencia 14 días (R5: silencia, no insiste). localStorage es
 // conveniencia por dispositivo: si no está disponible, la invitación vuelve.
@@ -46,6 +51,10 @@ export function PushOptInBanner() {
     // El soporte se decide en cliente; en SSR no existe window.
     if (!encendida) return;
     if (aplazadoAhora()) return;
+    // La baja manual manda sobre todo lo demás: quien quitó su dispositivo
+    // decidió, y ni se le re-registra en silencio ni se le vuelve a invitar
+    // aquí. La vuelta es el botón de su perfil (CA9, segunda mitad).
+    if (bajaManualActiva()) return;
     const estado = estadoDeSoportePush();
     // Con el permiso YA concedido no se invita: se re-registra en silencio,
     // que es lo que cura la rotación del token sin molestar a nadie.
