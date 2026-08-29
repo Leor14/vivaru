@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` |
 | **Usuarios secundarios** | `tenant_admin` (fase 2) |
 | **Responsable** | David |
-| **Estado** | **VALIDADA EN STAGING CON UN iPHONE REAL** (29 ago 2026, versión 0.5). El ciclo entero visto funcionar: CA5 (Safari sin instalar explica y NO pide permiso), registro (token con contrato completo, dueño verificado), CA1 (push al hub con la app cerrada), CA2 (el toque navega — tras cazar DOS defectos reales, ver §14), CA9 (la baja borra el token, vigilada en vivo) y CA10 (con 0 tokens: aviso in-app sí, push no, error no). **Pendiente: validar en un Android, decidir el paso a producción, y la entrega 2 (instalación guiada pulida + wording por navegador)** |
+| **Estado** | **VALIDADA EN STAGING CON UN iPHONE REAL** (29 ago 2026, versión 0.5). El ciclo entero visto funcionar: CA5 (Safari sin instalar explica y NO pide permiso), registro (token con contrato completo, dueño verificado), CA1 (push al hub con la app cerrada), CA2 (el toque navega — tras cazar DOS defectos reales, ver §14), CA9 completo (la baja borra el token, se respeta al relanzar, y la re-alta desde el perfil devuelve el mismo dispositivo — todo vigilado en vivo) y CA10 (con 0 tokens: aviso in-app sí, push no, error no). **Pendiente: validar en un Android, decidir el paso a producción, y la entrega 2 (instalación guiada pulida + wording por navegador)** |
 | **Dependencias** | Ninguna. **D-CONSOLA CERRADA el 29 ago 2026:** David generó el par VAPID en los dos proyectos y las claves públicas están cableadas en `apphosting.yaml` y `apphosting.staging.yaml` (87 caracteres cada una, verificadas parseando el YAML; la privada no sale de FCM) |
 | **Riesgo** | **Medio.** No toca dinero ni permisos existentes; el riesgo es molestar (push de más) y prometer un canal que nadie encendió (adopción) |
 | **Reversibilidad** | **Total.** La bandera apaga registro y envío; los tokens quedan escritos y dejan de usarse. Sin push no se pierde nada: el aviso in-app sigue siendo el registro de verdad |
@@ -313,7 +313,12 @@ Ninguna suite podía ver ninguna de las cuatro:
    usa `navigate()` sobre el cliente existente.
 3. **El copy del banner de iOS asume Safari** («toca Compartir») y el residente puede estar en
    Chrome, donde el gesto está en otro sitio. Entrega 2.
-4. **Y una respuesta de plataforma que evita rediscutir**: NO existe push en iPhone sin pantalla
+4. **La baja podía resucitar sola y la re-alta no existía** (lo cazó David mirando su perfil
+   tras CA9): la tarjeta decía «Ninguno todavía» sin ofrecer volver a activar, y el re-registro
+   silencioso del permiso concedido habría deshecho la baja al relanzar la app. Ahora quitar
+   deja una marca local que el banner respeta, y el perfil ofrece «Activar en este dispositivo»
+   (que la limpia). **Verificado en el mismo iPhone: el mismo token volvió al tocar el botón.**
+5. **Y una respuesta de plataforma que evita rediscutir**: NO existe push en iPhone sin pantalla
    de inicio — en ninguna versión, iOS 26 incluido; Declarative Web Push (Safari 18.4) elimina
    el service worker, no la instalación. Verificado en el blog de WebKit y en los proveedores
    especializados. El proyecto hermano de Qintilab también pasa por pantalla de inicio
