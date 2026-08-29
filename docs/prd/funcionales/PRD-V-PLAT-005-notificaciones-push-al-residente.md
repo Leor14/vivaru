@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` |
 | **Usuarios secundarios** | `tenant_admin` (fase 2) |
 | **Responsable** | David |
-| **Estado** | **En desarrollo — MVP CONSTRUIDO** (29 ago 2026, versión 0.4): bandera en los cinco sitios, reglas de `pushTokens` con 13 pruebas, emisor en el embudo `createNotifications`, manifest, SW por route handler, invitación y baja en el portal del residente. Cuatro falsaciones pasadas, cada una enrojeciendo exactamente su prueba. **EN STAGING desde el 29 ago, con los tres actos medidos:** reglas (ruleset vivo con 0 diff contra el repo), functions (87/87 con `updateTime` de la pasada — una se quedó rancia y se redesplegó sola), front (rollout `build-2026-08-29-029` desde `a71d8cc`, y el SW servido lleva la config de staging, no la de producción — que era la razón del route handler). Bandera encendida SOLO en `tenant-santa-maria` de staging, verificada resolviendo con el compilado: canario `true·override_conjunto`, otro conjunto `false·default_catalogo`. **Pendiente: la validación 📱 (CA1, CA5, CA9) y después producción** |
+| **Estado** | **VALIDADA EN STAGING CON UN iPHONE REAL** (29 ago 2026, versión 0.5). El ciclo entero visto funcionar: CA5 (Safari sin instalar explica y NO pide permiso), registro (token con contrato completo, dueño verificado), CA1 (push al hub con la app cerrada), CA2 (el toque navega — tras cazar DOS defectos reales, ver §14), CA9 (la baja borra el token, vigilada en vivo) y CA10 (con 0 tokens: aviso in-app sí, push no, error no). **Pendiente: validar en un Android, decidir el paso a producción, y la entrega 2 (instalación guiada pulida + wording por navegador)** |
 | **Dependencias** | Ninguna. **D-CONSOLA CERRADA el 29 ago 2026:** David generó el par VAPID en los dos proyectos y las claves públicas están cableadas en `apphosting.yaml` y `apphosting.staging.yaml` (87 caracteres cada una, verificadas parseando el YAML; la privada no sale de FCM) |
 | **Riesgo** | **Medio.** No toca dinero ni permisos existentes; el riesgo es molestar (push de más) y prometer un canal que nadie encendió (adopción) |
 | **Reversibilidad** | **Total.** La bandera apaga registro y envío; los tokens quedan escritos y dejan de usarse. Sin push no se pierde nada: el aviso in-app sigue siendo el registro de verdad |
@@ -297,6 +297,27 @@ aplica el orden por defecto. El front sin functions no rompe: registra tokens qu
 | `G4 Aceptación` | ✅ | CA1–CA10 con casos que deben fallar y falsación exigida |
 | `G5 Operación` | ⏸ | **Se abre con el primer dispositivo real recibiendo.** Igual que la conciliación: la llena un residente, no un deploy |
 | `G6 Escala` | ✅ | FCM multicast por chunks; coste cero; purga inline |
+
+## 14. Lo que la validación con teléfono encontró (29 ago 2026)
+
+Ninguna suite podía ver ninguna de las cuatro:
+
+1. **La base del enlace estaba clavada a producción** (calcada de `email.ts`): en staging,
+   `fcmOptions.link` apuntaba a otro origen y el toque no navegaba. Ahora sale de
+   `GCLOUD_PROJECT` con `FIREBASE_CONFIG` de respaldo, probada por ambiente y falsada.
+   **`email.ts` conserva el defecto gemelo** (sus correos de staging enlazan a producción) —
+   anotado como tarea aparte.
+2. **El manejador de click del SDK de FCM no navega una app instalada de iOS**: busca una
+   ventana con la URL exacta y, al no hallarla, hace `openWindow` — que trae la app al frente
+   sin moverla. El SW v2 registra nuestro manejador ANTES de cargar el SDK, le corta el paso y
+   usa `navigate()` sobre el cliente existente.
+3. **El copy del banner de iOS asume Safari** («toca Compartir») y el residente puede estar en
+   Chrome, donde el gesto está en otro sitio. Entrega 2.
+4. **Y una respuesta de plataforma que evita rediscutir**: NO existe push en iPhone sin pantalla
+   de inicio — en ninguna versión, iOS 26 incluido; Declarative Web Push (Safari 18.4) elimina
+   el service worker, no la instalación. Verificado en el blog de WebKit y en los proveedores
+   especializados. El proyecto hermano de Qintilab también pasa por pantalla de inicio
+   (confirmado por David).
 
 ## Preguntas abiertas
 
