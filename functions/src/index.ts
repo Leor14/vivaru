@@ -48,10 +48,12 @@ import {
 } from "./payments";
 import {
   aplicarCaso,
+  asegurarCasos,
   liberarConciliacion,
   reabrirCaso,
   rechazarCaso,
   type AplicarCasoInput,
+  type AsegurarCasosInput,
   type ReabrirCasoInput,
   type RechazarCasoInput,
 } from "./conciliacion-casos";
@@ -4959,6 +4961,28 @@ export const releaseReconciliation = onCall<{ tenantId: string; ledgerEntryId: s
     if (resultado.released) {
       await writeAuditLog(request.data?.tenantId ?? "", uid, "reverse_case", {
         ledgerEntryId: request.data?.ledgerEntryId,
+      });
+    }
+    return resultado;
+  },
+);
+
+// `CA1` — el expediente nace con la línea. Lo llama el importador al terminar,
+// porque el cliente ya no puede escribir casos (R8) y sin esto la métrica «100%
+// de las líneas con expediente» dejaba de ser cierta en la siguiente carga.
+export const ensureReconciliationCases = onCall<AsegurarCasosInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await asegurarCasos(request.data, uid, request.auth?.token?.role);
+    // Solo se audita lo que de verdad ocurrió: reimportar sin líneas nuevas no
+    // crea nada y no debe dejar entrada.
+    if (resultado.created > 0) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "ensure_reconciliation_cases", {
+        bankAccountId: request.data?.bankAccountId ?? null,
+        created: resultado.created,
+        truncated: resultado.truncated,
       });
     }
     return resultado;

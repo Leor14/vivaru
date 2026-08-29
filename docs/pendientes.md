@@ -98,14 +98,18 @@ configurables.
 > falso sigue exactamente como estaba, con su caso `aplicado` y sus tres incoherencias anotadas.
 > Segunda corrida: **0 escritos**.
 >
-> ### ⚠ Y QUEDA UN CRITERIO SIN CUMPLIR — `CA1`
+> ### `CA1`, CERRADO EL MISMO DÍA
 >
-> **Importar un extracto NO crea los casos.** `importBankStatementLines` escribe la línea y nada
-> más; el caso nace cuando una callable lo toca o cuando corre el relleno. Hoy no se ve —las 27
-> tienen caso porque el relleno pasó, y la bandeja agrupa mirando líneas y asientos, no casos—,
-> **pero la métrica de éxito «100% de las líneas con expediente» deja de ser cierta en la siguiente
-> importación**. El cierre es una callable que asegure los casos de una cuenta, llamada por el
-> importador al terminar: el cliente no puede escribirlos, que es justo lo que R8 decidió.
+> **Importar no creaba los casos**: escribía la línea y nada más, y el expediente nacía cuando una
+> callable lo tocaba o cuando corría el relleno. No se veía —la bandeja agrupa mirando líneas y
+> asientos, no casos— pero «100% de las líneas con expediente» dejaba de ser cierto en la siguiente
+> carga. Cerrado con **`ensureReconciliationCases`**, que el importador llama al terminar: el
+> cliente no puede escribir casos, que es la consecuencia buscada de R8.
+>
+> **Dos decisiones de esa callable que conviene no deshacer:** usa `create()` y no `set()`, así que
+> **un caso ya decidido no se pisa** —reimportar no crea nada—; y si la llamada falla, la
+> importación **no se cae** pero **lo dice en pantalla**, porque las líneas ya están escritas y lo
+> que no puede es fallar en silencio.
 
 ### EL PORTAFOLIO, RECONTADO EL 29 — Y LO ÚNICO ABIERTO ES `FLOW-004`
 

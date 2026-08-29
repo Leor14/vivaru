@@ -9,7 +9,7 @@
 | **Módulo** | Finanzas · Conciliación bancaria |
 | **Usuario principal** | `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **EN PRODUCCIÓN el 29 de agosto de 2026** (`02a9642`), con la bandera **apagada** y el relleno corrido (27 casos). **NO se marca productiva:** `G5` sigue abierta y **`CA1` no se cumple** — ver §10 |
+| **Estado** | **EN PRODUCCIÓN el 29 de agosto de 2026** (`02a9642`), con la bandera **apagada** y el relleno corrido (27 casos). **NO se marca productiva:** `G5` sigue abierta —nadie concilia a diario—. `CA1` estuvo sin cumplir y **se cerró el 29** |
 | **Dependencias** | **`FIN-001`, cumplida y en producción desde el 20 ago 2026.** Nada más por delante |
 | **Riesgo** | **Medio-alto.** Toca el enlace entre el extracto y el libro, y una de las escrituras vive en la callable que revierte pagos |
 | **Reversibilidad** | **PARCIAL, y esto va en primera línea.** La bandera revierte la bandeja y el expediente. **No revierte la coherencia**: apagarla no debe devolver el producto al estado que permitió el defecto de §2. Ver §13 |
@@ -287,7 +287,7 @@ Se escribe **auditoría**, que es distinto: `writeAuditLog` con las acciones
 
 | | Criterio |
 |---|---|
-| **CA1** | Importar un extracto crea una línea y **su caso `detectado`** por cada fila válida. **⚠ NO SE CUMPLE, medido el 29 de agosto tras desplegar.** `importBankStatementLines` escribe la línea y nada más; el caso nace después, cuando una callable lo toca o cuando corre el relleno. Hoy el efecto es invisible —las 27 líneas de producción tienen caso porque el relleno pasó— y la bandeja funciona igual, porque agrupa mirando líneas y asientos, no casos. **Lo que rompe es la métrica de éxito (a): «100% de las líneas con expediente» deja de ser cierto en la siguiente importación.** El cierre es una callable que asegure los casos de una cuenta y que el importador llame al terminar; el cliente no puede escribirlos (R8) |
+| **CA1** | Importar un extracto crea una línea y **su caso `detectado`** por cada fila válida. **No se cumplía al desplegar la 1.0 y se cerró el 29 de agosto** con `ensureReconciliationCases`, que el importador llama al terminar — el cliente no puede escribir casos (R8), que es la consecuencia buscada de esa misma regla. Usa `create()`, no `set()`: un caso ya decidido **no se pisa**, y reimportar no crea nada |
 | **CA2** | Tras el relleno, **las 27 líneas de producción tienen caso**: 19 `aplicado`, 8 `detectado`. **Verificado en ensayo contra producción el 29 de agosto**: sale exactamente eso, y los 8 se reparten en **6 `varios_candidatos` y 2 `sin_contraparte`** |
 | **CA3** | Una línea con **exactamente un** candidato coherente queda `propuesto` y el caso **nombra** ese candidato |
 | **CA4** | **Las 6 líneas fungibles de 3.000 quedan `detectado`** con ≥2 candidatos listados. **Ninguna queda `propuesto`** |

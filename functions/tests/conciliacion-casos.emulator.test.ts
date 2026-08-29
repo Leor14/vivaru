@@ -6,7 +6,7 @@ process.env.GCLOUD_PROJECT ??= "hogaru-1-test";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
-import { aplicarCaso, liberarConciliacion, reabrirCaso, rechazarCaso } from "../src/conciliacion-casos";
+import { aplicarCaso, asegurarCasos, liberarConciliacion, reabrirCaso, rechazarCaso } from "../src/conciliacion-casos";
 import { aplicarPago, revertirPago } from "../src/payments";
 
 /**
@@ -286,5 +286,76 @@ describe("CA7 · R7, la cascada — el camino que NINGUNA regla vigila", () => {
     await sembrarAsiento("A1");
     const r = await liberarConciliacion({ tenantId: TENANT, ledgerEntryId: "A1" }, ADMIN, ROL);
     expect(r.released).toBe(false);
+  });
+});
+
+describe("CA1 · el expediente nace con la línea", () => {
+  /**
+   * **El criterio que no se cumplía, y se descubrió con la ficha ya
+   * desplegada.** Importar escribía la línea y nada más. No se veía —la bandeja
+   * agrupa mirando líneas y asientos— pero «100% de las líneas con expediente»
+   * dejaba de ser cierto en la siguiente carga.
+   */
+  it("crea el caso de cada línea que no lo tenga, y lo clasifica", async () => {
+    await sembrarLinea("L1");
+    await sembrarLinea("L2", { amount: 3000, description: "SPEI T1-101", date: "2026-06-10" });
+    await sembrarAsiento("A1");
+
+    const r = await asegurarCasos({ tenantId: TENANT, bankAccountId: CUENTA }, ADMIN, ROL);
+    expect(r.created).toBe(2);
+    expect(r.lines).toBe(2);
+    expect(r.truncated).toBe(false);
+
+    // L1 tiene su asiento coherente: propuesto. L2 no tiene ninguno.
+    expect((await caso("L1").get()).data()?.status).toBe("propuesto");
+    expect((await caso("L2").get()).data()?.excepcion).toBe("sin_contraparte");
+    expect((await caso("L1").get()).data()?.history?.[0]?.mecanismo).toBe("importacion");
+  });
+
+  it("es idempotente: reimportar no crea nada ni pisa lo decidido", async () => {
+    await sembrarLinea("L1");
+    await sembrarAsiento("A1");
+    await aplicarCaso({ tenantId: TENANT, bankStatementLineId: "L1", ledgerEntryId: "A1" }, ADMIN, ROL);
+
+    const r = await asegurarCasos({ tenantId: TENANT, bankAccountId: CUENTA }, ADMIN, ROL);
+    expect(r.created).toBe(0);
+    // Y lo importante: el caso conserva su versión y su historia.
+    const c = (await caso("L1").get()).data();
+    expect(c?.status).toBe("aplicado");
+    expect(c?.version).toBe(1);
+    expect(c?.history).toHaveLength(1);
+  });
+
+  it("una línea conciliada nace `aplicado` con sus incoherencias si el par no cuadra", async () => {
+    await sembrarLinea("L1", { reconciled: true, matchedLedgerEntryId: "A1" });
+    await sembrarAsiento("A1", { type: "ingreso", amount: 40000, date: "2026-06-02", reconciled: true });
+    await asegurarCasos({ tenantId: TENANT }, ADMIN, ROL);
+    const c = (await caso("L1").get()).data();
+    expect(c?.status).toBe("aplicado");
+    expect(c?.incoherencias).toEqual(["signo", "monto", "fecha"]);
+  });
+
+  it("y si apunta a un asiento que YA NO existe, no nace `aplicado` mintiendo", async () => {
+    await sembrarLinea("L1", { reconciled: true, matchedLedgerEntryId: "A-borrado" });
+    await asegurarCasos({ tenantId: TENANT }, ADMIN, ROL);
+    expect((await caso("L1").get()).data()?.status).toBe("detectado");
+  });
+
+  it("no toca las líneas de otro conjunto", async () => {
+    await sembrarLinea("L1");
+    await db.collection("bankStatementLines").doc("L-ajena").set({
+      tenantId: OTRO, bankAccountId: CUENTA, date: "2026-06-08", description: "x", amount: 1, reconciled: false,
+    });
+    const r = await asegurarCasos({ tenantId: TENANT }, ADMIN, ROL);
+    expect(r.lines).toBe(1);
+    expect((await caso("L-ajena").get()).exists).toBe(false);
+  });
+
+  it("y no deja las líneas como las encontró... salvo que sí: no las toca", async () => {
+    await sembrarLinea("L1");
+    await asegurarCasos({ tenantId: TENANT }, ADMIN, ROL);
+    const l = (await db.collection("bankStatementLines").doc("L1").get()).data();
+    expect(l?.reconciled).toBe(false);
+    expect(l?.matchedLedgerEntryId).toBeNull();
   });
 });

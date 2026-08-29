@@ -4,6 +4,7 @@ import { deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where } from "
 import { collection } from "firebase/firestore";
 
 import {
+  ensureReconciliationCasesCallable,
   reconcileCaseCallable,
   rejectReconciliationCaseCallable,
   releaseReconciliationCallable,
@@ -181,7 +182,7 @@ export async function importBankStatementLines(
   userId: string,
   bankAccountId: string,
   csvText: string,
-): Promise<{ imported: number; skipped: number; duplicated: number }> {
+): Promise<{ imported: number; skipped: number; duplicated: number; casos: number; casosFallaron: boolean }> {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
@@ -241,7 +242,24 @@ export async function importBankStatementLines(
     imported += 1;
   }
 
-  return { imported, skipped: rows.length - lines.length, duplicated };
+  /**
+   * **`CA1` — el expediente nace con la línea.**
+   *
+   * Va aquí y no en la pantalla para que no dependa de que quien llame se
+   * acuerde. Y **no tumba la importación si falla**: las líneas ya están
+   * escritas y son utilizables; lo que no puede es fallar **en silencio**, así
+   * que el resultado lo dice y la pantalla lo cuenta.
+   */
+  let casos = 0;
+  let casosFallaron = false;
+  try {
+    const r = await ensureReconciliationCasesCallable({ tenantId, bankAccountId });
+    casos = r.created;
+  } catch {
+    casosFallaron = true;
+  }
+
+  return { imported, skipped: rows.length - lines.length, duplicated, casos, casosFallaron };
 }
 
 /**

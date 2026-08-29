@@ -65,7 +65,7 @@ type Transicion = {
   quien: string;
   motivoCodigo: MotivoCodigo | null;
   /** Cómo ocurrió: a mano desde la bandeja, o arrastrado por otra operación. */
-  mecanismo: "bandeja" | "cascada_reverso" | "cascada_borrado" | "relleno";
+  mecanismo: "bandeja" | "cascada_reverso" | "cascada_borrado" | "relleno" | "importacion";
 };
 
 function texto(valor: unknown, campo: string): string {
@@ -521,4 +521,113 @@ export function casoDeRelleno(
   }
   const { status, excepcion, candidateLedgerEntryIds } = clasificar(linea, asientos);
   return casoNuevo(linea, status, { excepcion, candidateLedgerEntryIds });
+}
+
+// ── CA1 · el caso nace con la línea ─────────────────────────────────────────
+
+/**
+ * Asegura que **cada línea de una cuenta tenga su expediente**.
+ *
+ * **Existe porque `CA1` no se cumplía, y el hueco se descubrió con la ficha ya
+ * desplegada.** Importar un extracto escribía la línea y nada más: el caso nacía
+ * después, cuando una callable lo tocaba o cuando corría el relleno. No se veía
+ * —la bandeja agrupa mirando líneas y asientos, no casos— pero la métrica «100%
+ * de las líneas con expediente» dejaba de ser cierta en la siguiente
+ * importación.
+ *
+ * **La escribe el servidor porque el cliente ya no puede** (R8), que es
+ * exactamente la consecuencia de haberle cerrado ese camino.
+ *
+ * Usa `create()`, no `set()`: si el caso ya existe **no se pisa**. Un
+ * `ALREADY_EXISTS` aquí es el resultado normal de reimportar, no un fallo — la
+ * misma lección del id derivado de R5.
+ */
+export type AsegurarCasosInput = { tenantId: string; bankAccountId?: string };
+
+export type AsegurarCasosResultado = {
+  ok: true;
+  /** Cuántos expedientes se crearon en esta llamada. */
+  created: number;
+  /** Cuántas líneas se miraron. */
+  lines: number;
+  /**
+   * `true` si quedaron líneas sin mirar por el tope de esta llamada. **Se
+   * devuelve en vez de callarlo:** un tope silencioso se lee como «cubrí todo».
+   */
+  truncated: boolean;
+};
+
+/** Tope por llamada. Un lote de Firestore admite 500 escrituras. */
+const TOPE_POR_LLAMADA = 400;
+
+export async function asegurarCasos(
+  input: AsegurarCasosInput,
+  uid: string,
+  role: unknown,
+): Promise<AsegurarCasosResultado> {
+  const tenantId = texto(input.tenantId, "el conjunto");
+  await assertPuedeConciliar(role, uid, tenantId);
+
+  const firestore = db();
+  let consulta = firestore.collection("bankStatementLines").where("tenantId", "==", tenantId);
+  if (typeof input.bankAccountId === "string" && input.bankAccountId) {
+    consulta = consulta.where("bankAccountId", "==", input.bankAccountId);
+  }
+
+  const [lineasSnap, asientosSnap] = await Promise.all([
+    consulta.get(),
+    firestore.collection("ledgerEntries").where("tenantId", "==", tenantId).get(),
+  ]);
+
+  const lineas = lineasSnap.docs.map((d) => comoLinea(d.id, d.data()));
+  const datosPorLinea = new Map(lineasSnap.docs.map((d) => [d.id, d.data()]));
+  const asientos = asientosSnap.docs.map((d) => comoAsiento(d.id, d.data()));
+  const asientoPorId = new Map(asientos.map((a) => [a.id, a]));
+
+  // Qué casos existen ya. Se lee una vez, no uno por línea.
+  const existentes = new Set<string>();
+  for (let i = 0; i < lineas.length; i += 30) {
+    const trozo = lineas.slice(i, i + 30).map((l) => firestore.collection(COLECCION_CASOS).doc(idDeCaso(l.id)));
+    const snaps = await firestore.getAll(...trozo);
+    snaps.forEach((snap) => {
+      if (snap.exists) existentes.add(snap.id);
+    });
+  }
+
+  const faltan = lineas.filter((l) => !existentes.has(idDeCaso(l.id)));
+  const aEscribir = faltan.slice(0, TOPE_POR_LLAMADA);
+
+  const lote = firestore.batch();
+  for (const linea of aEscribir) {
+    const datos = datosPorLinea.get(linea.id);
+    const emparejadoId = typeof datos?.matchedLedgerEntryId === "string" ? datos.matchedLedgerEntryId : null;
+    // Solo cuenta como emparejado si el asiento EXISTE y es del mismo conjunto:
+    // una línea que apunta a un asiento borrado no nace `aplicado` mintiendo.
+    const emparejado = emparejadoId ? (asientoPorId.get(emparejadoId) ?? null) : null;
+    const caso = casoDeRelleno(linea, asientos, emparejado && emparejado.tenantId === tenantId ? emparejado : null);
+    lote.create(firestore.collection(COLECCION_CASOS).doc(idDeCaso(linea.id)), {
+      ...caso,
+      history: [
+        {
+          // No venía de ningún estado: el caso no existía.
+          de: "sin_expediente",
+          a: caso.status,
+          cuando: Timestamp.now(),
+          quien: uid,
+          motivoCodigo: null,
+          mecanismo: "importacion",
+        },
+      ],
+      createdAt: FieldValue.serverTimestamp(),
+      createdBy: uid,
+    });
+  }
+  if (aEscribir.length > 0) await lote.commit();
+
+  return {
+    ok: true as const,
+    created: aEscribir.length,
+    lines: lineas.length,
+    truncated: faltan.length > aEscribir.length,
+  };
 }

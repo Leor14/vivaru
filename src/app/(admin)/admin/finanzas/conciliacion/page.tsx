@@ -357,6 +357,11 @@ export default function AdminConciliacionPage() {
       if (result.imported === 0 && result.duplicated > 0) {
         toast.info(`Ese extracto ya estaba cargado: ${result.duplicated} líneas repetidas, ninguna nueva.`);
       }
+      // `CA1`: si los expedientes no se pudieron crear, la importación sirvió
+      // igual — pero eso NO puede quedarse callado.
+      if (result.casosFallaron) {
+        toast.warning("Las líneas se importaron, pero no se pudieron crear sus expedientes. Vuelve a importar el mismo archivo para reintentarlo: no se duplicará nada.");
+      }
     } catch (error) {
       toastFirebaseError(error);
     } finally {

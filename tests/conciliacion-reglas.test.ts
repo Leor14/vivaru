@@ -237,3 +237,35 @@ describe("El vacío de la pantalla no puede convivir con líneas — guardián d
     expect(antes).toContain("lines.length === 0");
   });
 });
+
+describe("CA1 · importar deja el expediente creado — guardián de texto", () => {
+  /**
+   * **El criterio que se descubrió sin cumplir con la ficha ya en producción.**
+   * `importBankStatementLines` escribía la línea y nada más, así que «100% de
+   * las líneas con expediente» dejaba de ser cierto en la siguiente carga —y no
+   * se veía, porque la bandeja agrupa mirando líneas y asientos, no casos.
+   *
+   * Se vigila como texto porque el defecto es una LLAMADA QUE NO ESTÁ, y lo que
+   * no está no se puede medir de otra forma sin levantar medio mundo.
+   */
+  const fuente = readFileSync("src/features/finanzas/use-reconciliation.ts", "utf-8");
+  const importador = fuente.slice(
+    fuente.indexOf("export async function importBankStatementLines"),
+    fuente.indexOf("export async function matchLine"),
+  );
+
+  it("el importador existe y no está vacío (si se renombra, esto cae por eso)", () => {
+    expect(importador.length).toBeGreaterThan(500);
+  });
+
+  it("y llama a la callable que asegura los expedientes", () => {
+    expect(importador).toContain("ensureReconciliationCasesCallable");
+  });
+
+  it("un fallo al crearlos no se traga: el resultado lo dice", () => {
+    expect(importador).toContain("casosFallaron");
+    // Y la pantalla lo cuenta, que es la otra mitad de no fallar en silencio.
+    const pagina = readFileSync("src/app/(admin)/admin/finanzas/conciliacion/page.tsx", "utf-8");
+    expect(pagina).toContain("result.casosFallaron");
+  });
+});

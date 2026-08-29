@@ -1508,3 +1508,20 @@ export async function releaseReconciliationCallable(input: { tenantId: string; l
   );
   return executeCallable(callable, input, "No fue posible liberar la conciliación de ese movimiento.");
 }
+
+/**
+ * `CA1` — asegura que cada línea de una cuenta tenga su expediente. **La llama
+ * el importador al terminar**: el cliente no puede escribir casos (R8), así que
+ * sin esto una línea recién importada se quedaba sin expediente hasta que
+ * alguien la tocara.
+ */
+export async function ensureReconciliationCasesCallable(input: { tenantId: string; bankAccountId?: string }) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<
+    { tenantId: string; bankAccountId?: string },
+    { ok: true; created: number; lines: number; truncated: boolean }
+  >(functions, "ensureReconciliationCases");
+  return executeCallable(callable, input, "No fue posible crear los expedientes de las líneas importadas.");
+}

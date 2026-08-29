@@ -8,6 +8,7 @@ exports.leerCascada = leerCascada;
 exports.escribirCascada = escribirCascada;
 exports.liberarConciliacion = liberarConciliacion;
 exports.casoDeRelleno = casoDeRelleno;
+exports.asegurarCasos = asegurarCasos;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const conciliacion_1 = require("./conciliacion");
@@ -355,4 +356,68 @@ function casoDeRelleno(linea, asientos, emparejado) {
     }
     const { status, excepcion, candidateLedgerEntryIds } = (0, conciliacion_1.clasificar)(linea, asientos);
     return casoNuevo(linea, status, { excepcion, candidateLedgerEntryIds });
+}
+/** Tope por llamada. Un lote de Firestore admite 500 escrituras. */
+const TOPE_POR_LLAMADA = 400;
+async function asegurarCasos(input, uid, role) {
+    const tenantId = texto(input.tenantId, "el conjunto");
+    await assertPuedeConciliar(role, uid, tenantId);
+    const firestore = db();
+    let consulta = firestore.collection("bankStatementLines").where("tenantId", "==", tenantId);
+    if (typeof input.bankAccountId === "string" && input.bankAccountId) {
+        consulta = consulta.where("bankAccountId", "==", input.bankAccountId);
+    }
+    const [lineasSnap, asientosSnap] = await Promise.all([
+        consulta.get(),
+        firestore.collection("ledgerEntries").where("tenantId", "==", tenantId).get(),
+    ]);
+    const lineas = lineasSnap.docs.map((d) => comoLinea(d.id, d.data()));
+    const datosPorLinea = new Map(lineasSnap.docs.map((d) => [d.id, d.data()]));
+    const asientos = asientosSnap.docs.map((d) => comoAsiento(d.id, d.data()));
+    const asientoPorId = new Map(asientos.map((a) => [a.id, a]));
+    // Qué casos existen ya. Se lee una vez, no uno por línea.
+    const existentes = new Set();
+    for (let i = 0; i < lineas.length; i += 30) {
+        const trozo = lineas.slice(i, i + 30).map((l) => firestore.collection(exports.COLECCION_CASOS).doc((0, conciliacion_1.idDeCaso)(l.id)));
+        const snaps = await firestore.getAll(...trozo);
+        snaps.forEach((snap) => {
+            if (snap.exists)
+                existentes.add(snap.id);
+        });
+    }
+    const faltan = lineas.filter((l) => !existentes.has((0, conciliacion_1.idDeCaso)(l.id)));
+    const aEscribir = faltan.slice(0, TOPE_POR_LLAMADA);
+    const lote = firestore.batch();
+    for (const linea of aEscribir) {
+        const datos = datosPorLinea.get(linea.id);
+        const emparejadoId = typeof datos?.matchedLedgerEntryId === "string" ? datos.matchedLedgerEntryId : null;
+        // Solo cuenta como emparejado si el asiento EXISTE y es del mismo conjunto:
+        // una línea que apunta a un asiento borrado no nace `aplicado` mintiendo.
+        const emparejado = emparejadoId ? (asientoPorId.get(emparejadoId) ?? null) : null;
+        const caso = casoDeRelleno(linea, asientos, emparejado && emparejado.tenantId === tenantId ? emparejado : null);
+        lote.create(firestore.collection(exports.COLECCION_CASOS).doc((0, conciliacion_1.idDeCaso)(linea.id)), {
+            ...caso,
+            history: [
+                {
+                    // No venía de ningún estado: el caso no existía.
+                    de: "sin_expediente",
+                    a: caso.status,
+                    cuando: firestore_1.Timestamp.now(),
+                    quien: uid,
+                    motivoCodigo: null,
+                    mecanismo: "importacion",
+                },
+            ],
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
+            createdBy: uid,
+        });
+    }
+    if (aEscribir.length > 0)
+        await lote.commit();
+    return {
+        ok: true,
+        created: aEscribir.length,
+        lines: lineas.length,
+        truncated: faltan.length > aEscribir.length,
+    };
 }
