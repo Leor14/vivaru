@@ -84,9 +84,13 @@ configurables.
 > Desplegado el 29 de agosto en el orden invertido que pedía el frente: **functions → front →
 > reglas** (`02a9642`). Verificado pieza por pieza: las cinco callables `ACTIVE` por la API, el
 > build por **procedencia del commit**, y el ruleset vivo con **0 líneas de diferencia** contra el
-> repositorio. La bandera `producto-expediente-conciliacion` **no tiene documento ni override**, así
-> que manda el default del catálogo: **apagada**. Encendida solo en `conjunto-las-playas` de
-> staging, que fue el canario.
+> repositorio.
+>
+> **La bandera está ENCENDIDA en `tenant-santa-maria` y en ningún sitio más** (29 ago). Resuelto con
+> el código compilado del servidor, que es como se lee la precedencia: `override_conjunto` = true
+> ahí, y `default_catalogo` = false en los otros ocho y en global. **Y se comprobó pintada**, que es
+> el criterio de encendido —no el documento—: la bandeja agrupa «Conciliaciones a revisar (1)» y
+> «Conciliadas (4)». En staging el canario fue `conjunto-las-playas`.
 >
 > **Y la pantalla ya dice la verdad sobre el par falso**: Santa María muestra **4 conciliadas y 1 «a
 > revisar»** —antes decía 5 conciliadas—, con los tres motivos escritos debajo de la línea: «el
