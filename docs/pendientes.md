@@ -110,6 +110,13 @@ configurables.
 > **un caso ya decidido no se pisa** —reimportar no crea nada—; y si la llamada falla, la
 > importación **no se cae** pero **lo dice en pantalla**, porque las líneas ya están escritas y lo
 > que no puede es fallar en silencio.
+>
+> **Verificado importando de verdad en staging** (`e65210e`), no solo en pruebas: dos líneas nuevas
+> entraron con **id derivado, `naturalKey` y su caso** —`mecanismo: importacion`—, y quedó
+> **24 líneas · 24 casos, cero sin caso**. Reimportando el MISMO fichero: *«Ese extracto ya estaba
+> cargado: 2 líneas repetidas, ninguna nueva»* y el total sin moverse — que es **R5 y `CA8`
+> comprobados en el producto**, no en el emulador. Las dos líneas de prueba se borraron después,
+> con sus casos: staging vuelve a 22 y 22.
 
 ### EL PORTAFOLIO, RECONTADO EL 29 — Y LO ÚNICO ABIERTO ES `FLOW-004`
 

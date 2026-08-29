@@ -294,7 +294,7 @@ Se escribe **auditoría**, que es distinto: `writeAuditLog` con las acciones
 | **CA5** | La comisión de **−180 queda `detectado`** con `excepcion: sin_contraparte` y **cero** candidatos |
 | **CA6** | Aplicar un caso escribe **línea, asiento y caso, o ninguno de los tres** |
 | **CA7** | **R7:** revertir un pago cuyo asiento estaba conciliado suelta la línea, deja el caso en `reversado` con motivo automático que **nombra el asiento de reverso**, y lo devuelve a la bandeja |
-| **CA8** | Reimportar el mismo CSV **no crea ninguna línea** y reporta N **omitidas por duplicadas** |
+| **CA8** | Reimportar el mismo CSV **no crea ninguna línea** y reporta N **omitidas por duplicadas**. **Comprobado en el producto** (staging, 29 ago): «Ese extracto ya estaba cargado: 2 líneas repetidas, ninguna nueva», con el total sin moverse |
 | **CA9** | El par de −300.000 aparece como `aplicado` con `incoherencias: ["signo","monto"]` en «conciliaciones a revisar», **y ni la línea ni el asiento se reescriben** |
 | **CA10** | El total de «conciliadas» de la cabecera **deja de contar** los casos con `incoherencias` no vacío |
 
