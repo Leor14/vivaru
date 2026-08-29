@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -209,5 +211,29 @@ describe("El recuento de la cabecera — el defecto que cazó staging", () => {
   it("sin nada raro, todo lo no conciliado es pendiente", () => {
     const r = resumirConciliacion([linea("a", true), linea("b")], new Set(), new Set());
     expect(r).toEqual({ total: 2, conciliadas: 1, aRevisar: 0, descartadas: 0, pendientes: 1 });
+  });
+});
+
+describe("El vacío de la pantalla no puede convivir con líneas — guardián de texto", () => {
+  /**
+   * **Salió de abrir producción.** El mensaje «Importa un extracto…» colgaba del
+   * `else` de la lista agrupada, así que con la bandera apagada aparecía
+   * **debajo de cinco líneas ya importadas**. No es un fallo de estilo: la
+   * pantalla afirmaba que no había nada mientras lo enseñaba.
+   *
+   * Se vigila como texto porque el defecto vive en la CONDICIÓN, no en un valor
+   * que se pueda calcular: una condición compuesta que mezcla «no hay datos»
+   * con «esta vista no toca» acaba diciendo lo que no es.
+   */
+  const fuente = readFileSync("src/app/(admin)/admin/finanzas/conciliacion/page.tsx", "utf-8");
+
+  it("el mensaje existe (si se renombra, este guardián tiene que caerse por eso)", () => {
+    expect(fuente).toContain("Importa un extracto para ver las líneas a conciliar.");
+  });
+
+  it("y su condición pregunta por CERO líneas, no por la vista", () => {
+    const i = fuente.indexOf("Importa un extracto para ver las líneas a conciliar.");
+    const antes = fuente.slice(Math.max(0, i - 400), i);
+    expect(antes).toContain("lines.length === 0");
   });
 });

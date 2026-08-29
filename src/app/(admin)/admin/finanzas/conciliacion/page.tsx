@@ -644,7 +644,17 @@ export default function AdminConciliacionPage() {
             onEliminar={(l) => void handleDeleteLine(l)}
           />
         </div>
-      ) : accounts.length > 0 ? (
+      ) : null}
+
+      {/*
+        **El vacío se pinta cuando NO hay líneas, y punto.**
+        Estaba colgado del `else` de la lista agrupada, así que con la bandera
+        apagada salía «Importa un extracto para ver las líneas a conciliar»
+        **debajo de cinco líneas ya importadas**. Lo cazó abrir producción: una
+        condición compuesta que mezcla «no hay datos» con «esta vista no toca»
+        acaba diciendo lo que no es.
+      */}
+      {lines.length === 0 && accounts.length > 0 ? (
         <p className="mt-4 text-sm text-[var(--slate-500)]">
           Importa un extracto para ver las líneas a conciliar.
         </p>
