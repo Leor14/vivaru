@@ -9,7 +9,7 @@
 | **Módulo** | Finanzas · Conciliación bancaria |
 | **Usuario principal** | `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **EN PRODUCCIÓN el 29 de agosto de 2026** (`02a9642`), con la bandera **apagada** y el relleno corrido (27 casos). **NO se marca productiva:** `G5` sigue abierta —nadie concilia a diario—. `CA1` estuvo sin cumplir y **se cerró el 29** |
+| **Estado** | **EN PRODUCCIÓN el 29 de agosto de 2026** (`02a9642`), con la bandera **encendida solo en Santa María** —override por conjunto, medido en Firestore; la global no existe y el default es apagado— y el relleno corrido (27 casos). **NO se marca productiva:** `G5` sigue abierta —nadie concilia a diario—. `CA1` estuvo sin cumplir y **se cerró el 29** |
 | **Dependencias** | **`FIN-001`, cumplida y en producción desde el 20 ago 2026.** Nada más por delante |
 | **Riesgo** | **Medio-alto.** Toca el enlace entre el extracto y el libro, y una de las escrituras vive en la callable que revierte pagos |
 | **Reversibilidad** | **PARCIAL, y esto va en primera línea.** La bandera revierte la bandeja y el expediente. **No revierte la coherencia**: apagarla no debe devolver el producto al estado que permitió el defecto de §2. Ver §13 |

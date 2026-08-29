@@ -141,7 +141,7 @@ de método de la cabecera.
 
 ## LA JORNADA DEL 28 DE AGOSTO — `UX-003`, Albert y el frente de diseño
 
-### `UX-003` — PRIMERA ENTREGA EN PRODUCCIÓN (`5bc9d3f`, 28 ago)
+### `UX-003` — PRIMERA ENTREGA EN PRODUCCIÓN (`6738571`, 28 ago)
 
 **El hilo del frente: el Panel de Control decía cosas que no se podían comprobar.** Cuatro
 defectos medidos en la primera pantalla que ve todo el mundo, los cuatro de la misma familia.
@@ -171,10 +171,11 @@ La escala de color vive en `src/lib/dashboard/umbrales.ts` y la usan la página 
 > **2 · Y aun así metí una regresión que ninguna prueba vio.** Al arreglar «el 0% se ve como sin
 > datos» pinté carril y relleno del mismo color: el cero quedó bien y **el avance desapareció**
 > —Torre 1 al 11% y tres al 0% salían como cuatro barras rojas idénticas—. Typecheck en 0, 1343
-> pruebas y la falsación completa **estaban en verde**. Lo cazó abrir la pantalla en producción.
+> pruebas y la falsación completa **estaban en verde**. Lo cazó abrir la pantalla en producción,
+> y su arreglo salió como **segunda entrega, en su propio rollout** (`5bc9d3f`, 22:24).
 > **Una barra puede tener el color correcto y no comunicar nada.**
 
-### `UX-003` — SEGUNDA ENTREGA (`cb6d457`, 28 ago): los estados en español, y eran diez
+### `UX-003` — TERCERA ENTREGA (`cb6d457`, 28 ago): los estados en español, y eran diez
 
 **Salió de verificar la primera.** En el cajón de alertas el estado de PQRS se pintaba
 **`critical`**, en inglés y en minúscula, junto a «En mora» y «Pendiente». Al contar el resto

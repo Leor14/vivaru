@@ -374,9 +374,10 @@ abiertos y las doce banderas de producto encendidas.**
 > esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
 > `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
 
-**`UX-003` TIENE DOS ENTREGAS EN PRODUCCIÓN** (`5bc9d3f` y `cb6d457`, 28 ago 2026): el Panel de
-Control dejó de decir cosas que no se pueden comprobar —la píldora decía 90 con las tarjetas
-sumando 33 y el cajón listando 4— y los estados dejaron de salir en inglés. La escala de color del
+**`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
+un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la
+píldora decía 90 con las tarjetas sumando 33 y el cajón listando 4—, la barra de cumplimiento
+recuperó el avance, y los estados dejaron de salir en inglés. La escala de color del
 tablero vive en `src/lib/dashboard/umbrales.ts` y **la usan la página y el widget**: la misma regla
 estaba escrita a mano en dos ficheros y tres formas, que es como nació uno de los defectos.
 
