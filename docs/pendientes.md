@@ -79,17 +79,24 @@ literal: *«Contesta la pregunta abierta de `FIN-002`: no, todavía no»*. A Fas
 discriminante automático por código de unidad, una línea contra varios asientos y los motivos
 configurables.
 
-> ### ⚠ HAY REGLAS ESCRITAS Y SIN DESPLEGAR, Y ESO ES DELIBERADO
+> ### ✅ `FLOW-004` ESTÁ EN PRODUCCIÓN, Y LA BANDERA APAGADA
 >
-> `firestore.rules` lleva ya el veto de `FLOW-004` R8 —el cliente deja de poder escribir el enlace
-> entre una línea de banco y un asiento— **y NO se ha desplegado**. Si entra antes que las
-> callables y el front, **la conciliación deja de funcionar en producción**. Está probado contra el
-> emulador (243 en verde, cuatro falsaciones) y esperando su turno, que es el ÚLTIMO.
+> Desplegado el 29 de agosto en el orden invertido que pedía el frente: **functions → front →
+> reglas** (`02a9642`). Verificado pieza por pieza: las cinco callables `ACTIVE` por la API, el
+> build por **procedencia del commit**, y el ruleset vivo con **0 líneas de diferencia** contra el
+> repositorio. La bandera `producto-expediente-conciliacion` **no tiene documento ni override**, así
+> que manda el default del catálogo: **apagada**. Encendida solo en `conjunto-las-playas` de
+> staging, que fue el canario.
 >
-> **`firebase deploy --only firestore:rules` despliega el árbol de trabajo, no una rama**, así que
-> cualquier despliegue de reglas hecho por otro motivo se lo llevaría por delante. Medido el 29: el
-> ruleset vivo daba **0 líneas de diferencia** contra el repositorio antes de este cambio, así que
-> hoy lo único pendiente de desplegar ahí es esto.
+> **Y la pantalla ya dice la verdad sobre el par falso**: Santa María muestra **4 conciliadas y 1 «a
+> revisar»** —antes decía 5 conciliadas—, con los tres motivos escritos debajo de la línea: «el
+> banco y el libro van en sentidos contrarios · los importes no coinciden · se llevan más de 3 días».
+>
+> **Lo único que falta de la entrega 1 es el RELLENO**, que es una escritura de datos y la decide
+> David: `node functions/scripts/rellenar-casos-de-conciliacion.mjs hogaru-1 --escribir`. El ensayo
+> contra producción da **19 aplicado + 6 varios candidatos + 2 sin contraparte**. Sin él, la bandeja
+> funciona igual —los casos nacen al conciliar— pero las 19 conciliaciones ya hechas no tienen
+> expediente.
 
 ### EL PORTAFOLIO, RECONTADO EL 29 — Y LO ÚNICO ABIERTO ES `FLOW-004`
 
