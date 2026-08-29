@@ -35,10 +35,10 @@ seguir invirtiendo, y la comparación no estuvo reñida:
 > firma «by Somasoft Colombia», que dejaba la duda abierta; no lo era. **Queda escrito para que
 > nadie vuelva a abrir la pregunta el día que vea esa firma.**
 
-> **Y hay algo que bloquea hoy y no es de Albert: no sabemos a quién escribirle.**
-> `DECISIONES-A-005` está listo desde el 28 de agosto y **no se puede enviar** — el receptor único
-> del canal nunca se fijó, y el repositorio no lleva direcciones por la regla de `DECISIONES-A-002`
-> §2. **Es un dato que solo tiene David.** Ver §6.
+> **`DECISIONES-A-005` YA ESTÁ ENTREGADO** (28 de agosto de 2026). No por correo: **David lo
+> descarga del repositorio y se lo pasa a las personas que le ayudan con Albert.** Conviene saberlo
+> porque el agente no puede hacer esa entrega ni comprobarla — **el frente pasa a esperar su
+> respuesta, no su envío**.
 
 **Cuándo se reabre**, y ya solo quedan tres de las cuatro condiciones: si Albert dice que no a la
 clave estable de «ganado»; si las dos preguntas tardan más de dos semanas; o si el alcance deja de
@@ -365,7 +365,7 @@ rastro**: ni commit, ni prueba en rojo. **Una dependencia se cae por dejar de ne
 | **A5** | ✅ **Ejecutada** |
 | **B1** — `eraseByExternalRef` idempotente | ✅ **Desplegado** (`RESPUESTA-A-005`). Nadie lo llama todavía: eso es nuestro |
 | **B3** — retención programada 12/12 | ✅ **Desplegado** (`RESPUESTA-A-005`) |
-| **Nombre del receptor único del canal** | ⟨⟨pendiente de su owner⟩⟩. **SÍ BLOQUEA, desde el 28 de agosto:** `DECISIONES-A-005` está redactado, commiteado y **sin poder mandarse porque no hay a quién**. Esta fila decía «no bloquea nada» y era cierto mientras no hubiera nada que enviar |
+| **Nombre del receptor único del canal** | ⟨⟨pendiente de su owner⟩⟩. **No bloquea**, y se comprobó por las malas el 28 de agosto: se dio por bloqueante porque el agente no podía mandar el correo, y resultó que **el canal no es el correo** — David descarga el documento y se lo pasa a mano a quien le ayuda con Albert. **La entrega no depende de que exista un buzón único** |
 | **`displayName` del usuario de servicio** | ✅ **Confirmado en pantalla el 28 ago**: `integracion-vivaru` |
 | **Clave estable para «ganado»** | 🟡 **Preguntado en `DECISIONES-A-005` §3.** Bloquea **diseño** |
 | **Credencial de la señal de vuelta** | 🟡 **Preguntado en `DECISIONES-A-005` §4**: cuenta de servicio en vez de contraseña. Bloquea **ejecución** |
