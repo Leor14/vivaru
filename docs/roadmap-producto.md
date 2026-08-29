@@ -706,24 +706,38 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 #### `FIN-002` — Expediente y conciliación determinística
 
-> **SE ABRE. Decisión de David, 28 de agosto de 2026 — tomada dos veces el mismo día.** Por la
-> tarde se resolvió que no valía la pena montar la bandeja sin nadie conciliando; al cerrar la
-> jornada se revirtió: **se construye igual, para llegar listos al primer cliente.**
+> **CERRADA Y EN PRODUCCIÓN el 29 de agosto de 2026.** Entregada entera en cinco días desde que se
+> abrió: expediente con estados versionados, coherencia de los emparejamientos, candidatos con
+> reglas explicadas, duplicados por clave natural, bandeja con motivos, cascada al revertir, reglas
+> y relleno. Ficha: [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md).
 >
-> **Y no arranca de cero, medido el 28:** ya existe `/admin/finanzas/conciliacion` (413 líneas) con
-> su modal de casar una línea de banco contra un asiento, sobre `watchBankStatementLines`,
-> `watchBankAccounts` y `watchLedger`. Lo que **no** existe es el **expediente**.
+> **Lo que encontró, y es el motivo por el que valía la pena:** de los **19 emparejamientos** que
+> había en producción, **uno era falso** —una salida de banco de −300.000 casada contra una entrada
+> de +40.000, escrita el 20 de agosto— y el producto lo contaba como bueno. La pantalla ofrecía
+> **todos** los asientos sin conciliar ordenados por cercanía de monto y no comprobaba nada. **Hoy
+> sale nombrado**: «el banco y el libro van en sentidos contrarios · los importes no coinciden · se
+> llevan más de 3 días», y el total de conciliadas dejó de incluirlo.
 >
-> **Ni sobre tablas vacías:** producción tiene **27 líneas de banco, 4 cuentas bancarias, 93
-> asientos con 19 YA conciliados** y 5 operaciones de pago. En cero está solo
-> `reconciliationCases`. **Hay contra qué verificar**, que es lo que faltaba en otros frentes.
+> **Y lo que enseñó sobre medir:** las reglas no se eligieron, se sacaron de los datos. La
+> coherencia de efecto da coherentes **18 de los 19** pares y aísla el falso; la ventana de ±3 días
+> sale de que el mayor desfase real entre pares buenos es **1**; y la clave de duplicado lleva la
+> descripción dentro porque sin ella **20 líneas legítimas** salían marcadas como repetidas.
+> **Ninguna de las 8 líneas pendientes tenía candidato único**, así que proponer «el más parecido»
+> habría acertado cero veces.
 
-- **Estado:** **PRD escrita y lista para desarrollo** — [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md), 29 ago 2026 · **Dependencia:** `FIN-001` (cumplida desde el 20 ago)
-- **Lo que la ficha añadió al alcance, medido y no supuesto:** de los **19 emparejamientos** de producción **uno es falso** —una salida de −300.000 casada contra un ingreso de +40.000, escrita el 20 de agosto—, y **0 de las 8 líneas pendientes tiene candidato único**. Entra la **coherencia de efecto** como regla, y la **cascada al revertir** (`R15` de `FLOW-002`, decidida por David el 29). **El cierre por fecha de corte NO entra**: es `PH-002`
-- **Incluye:** `ReconciliationCase`, estados versionados, normalización, duplicados,
-  candidatos determinísticos, bandeja de excepciones, motivos y reversos.
-- **Criterio de salida:** un caso se rastrea desde la evidencia recibida hasta la
-  aplicación, el rechazo o el reverso.
+- **Estado:** **EN PRODUCCIÓN** (`02a9642`…`e65210e`, 29 ago 2026), con la bandera encendida **solo
+  en `tenant-santa-maria`** y el relleno corrido —27 casos, uno por línea—. **No se marca
+  productiva**: `G5` sigue abierta porque **nadie concilia a diario**, y eso lo cierra un cliente,
+  no código.
+- **Dependencia:** `FIN-001`, cumplida desde el 20 de agosto.
+- **Lo que NO entró, por decisión escrita:** el **cierre por fecha de corte** —depósitos en
+  tránsito, cheques no cobrados, resumen de saldos— es `PH-002`. A Fase 2 van el discriminante
+  automático por código de unidad, una línea contra varios asientos y los motivos configurables.
+- **Tres cosas que costaron y conviene no redescubrir:** el orden de despliegue **se invirtió**
+  (functions → front → reglas), porque la regla restringe lo que la pantalla hacía; **dos defectos
+  aparecieron solo mirando la pantalla** con las suites en verde, y uno de ellos **solo con la
+  bandera en el estado contrario al que se probó**; y una falsación escrita en la ficha **no falsaba
+  lo que decía** —el par falso lo rechazaban tres reglas, no una—.
 
 #### `AI-PQRS-001` — Piloto visible del asistente de PQRS
 

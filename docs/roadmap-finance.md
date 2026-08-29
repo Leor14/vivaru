@@ -19,30 +19,29 @@ porqué está en `docs/roadmap-producto.md`.
 | **Fecha** | 20 de agosto de 2026, madrugada |
 | **Base** | Documento Rector v2 (Word), fortalecido con verificación directa |
 | **Verificado contra** | Repositorio en `c81e2fe` y proyecto `hogaru-1` (producción). `FIN-000` y `FIN-001` leídas como desplegadas y validadas; `ReconciliationCase` buscado en el código: **cero apariciones**; `realSriTransport` buscado: **no existe**, solo el stub |
-| **Estado del módulo** | **NO congelado. La etiqueta era falsa y esta revisión la retira.** F0 y F0b están **en producción**; F1 es lo siguiente y **no lo bloquea nadie**; F2 y F3 esperan clientes, no personas. **Y el frente fiscal deja de bloquear porque sale del alcance** — ver §5 |
+| **Estado del módulo** | **F0, F0b y F1 están EN PRODUCCIÓN** (F1 el 29 de agosto de 2026). **Lo que queda ya no depende de ingeniería:** F2 pide un conjunto de documentos reales y F3 un conjunto que emita pagos de verdad, y hoy no hay ninguno. El frente fiscal salió del alcance — ver §5 |
 
-> **Vigencia al 24 de agosto de 2026.** El cuerpo se verificó contra `c81e2fe` y **sigue siendo
-> cierto en lo suyo**: F0 y F0b en producción, F1 sin bloqueo, F2 y F3 esperando clientes. Lo que
-> ha cambiado desde entonces es **de fuera de este documento**: entró el lote de propiedad
-> horizontal —`PLAT-003` y `FLOW-002` incluidos— y `aplicarPago` ya no tiene la firma que aquí se
-> describe. **`FIN-002` (=F1) es el frente de ingeniería más grande que se puede abrir sin un
-> cliente real, y el 28 de agosto de 2026 SE ABRIÓ.** La decisión se tomó dos veces ese día: primero
-> que no valía la pena sin nadie conciliando, y al cerrar la jornada se revirtió —**se construye
-> igual, para llegar listos al primer cliente**—.
+> **VIGENCIA AL 29 DE AGOSTO DE 2026 — Y LO QUE ESTE BLOQUE DECÍA YA NO ES CIERTO.** Decía que
+> `FIN-002` (=F1) «es el frente más grande que se puede abrir sin un cliente real» y que **se
+> acababa de abrir**. Se abrió el 28 y **se cerró el 29**: está en producción entero. Ficha:
+> [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md).
 >
-> **Y el terreno se midió antes de abrirlo.** No arranca de cero: `/admin/finanzas/conciliacion`
-> existe con su modal de casar banco contra Libro. Y no corre sobre vacío: **27 líneas de banco, 4
-> cuentas, 93 asientos con 19 ya conciliados**; en cero está solo `reconciliationCases`, que es la
-> entrega. Estado vivo del lote: `docs/prd/README.md`.
+> **El dato que justifica el frente, en una línea:** de los 19 emparejamientos que había en
+> producción, **uno era falso** —una salida de −300.000 contra una entrada de +40.000— y el producto
+> lo contaba como conciliado. Se descubrió midiendo, no leyendo, y hoy sale nombrado en pantalla
+> **sin corregir el dato histórico**, que es lo que decidió §9.
 >
-> **Y arranca con una pieza recién arreglada por debajo (24 ago 2026, tarde): la conciliación
-> vuelve a poder casar pagos.** No podía con ninguno, y no era un caso raro: en un `update` con
-> merge Firestore evalúa el documento **resultante**, que conserva el `sourceType`, y el veto de
-> `ledgerEntries` lo rechazaba — así que **desde `FIN-001`, cuando todos los asientos de cobro
-> nacen con `sourceType: "billingStatement"`, la pantalla de conciliación no podía marcar
-> conciliado ni un solo asiento**. Apareció probando la regla contra el emulador en la dirección
-> contraria a la que se buscaba. Cualquier estimación de `FIN-002` hecha antes del 24 asumía una
-> conciliación que en realidad estaba muerta.
+> **Con F1 cumplido, el criterio de entrada de F2 se queda a medias por el lado que no arregla el
+> código:** pide F1 **y un conjunto de documentos reales**. El primero ya está; el segundo no
+> existe. Lo mismo F3, que espera un conjunto que emita pagos de verdad. **Producción sigue sin un
+> solo cliente**, así que el módulo no está parado por ingeniería.
+>
+> **Dos piezas del cuerpo que quedaron desfasadas y conviene leer con cuidado:** `aplicarPago` ya no
+> tiene la firma que se describe aquí —la cambió `FLOW-002`—, y **la trampa de la conciliación
+> muerta ya no aplica**: se arregló el 24 de agosto, y desde el 29 el enlace ni siquiera lo escribe
+> el cliente (R8 de la ficha). Su lección sigue valiendo entera: en un `update` con merge Firestore
+> evalúa el documento **resultante**, y por eso la conciliación estuvo muerta y en verde durante
+> semanas.
 
 **Qué cambió en esta revisión:**
 
@@ -303,7 +302,7 @@ WhatsApp o de un estado bancario. Hoy hay dos y divergen; ese es el trabajo.
 |---|---|---|---|
 | **F0 · Integridad** | Comando único server-side, transaccional e idempotente | — | ✅ **CUMPLIDO ENTERO el 20 ago 2026.** Las dos rutas terminan en el mismo comando, y desde el 20 **el recibo se emite dentro de esa misma transacción** y el reverso lo anula. Era lo único que faltaba, y lo desbloqueó la salida de lo fiscal |
 | **F0b · Storage por rol** | Filtro de rol dentro del conjunto | Ninguno | Un residente no puede leer ni escribir documentos financieros; probado en emulador y en CI |
-| **F1 · Expediente y bandeja** | `ReconciliationCase`, estados, duplicados, candidatos determinísticos | F0 | Un caso se rastrea de la evidencia a la aplicación, rechazo o reverso. **PRD escrita el 29 ago 2026: [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md)**, lista para desarrollo |
+| **F1 · Expediente y bandeja** | `ReconciliationCase`, estados, duplicados, candidatos determinísticos | F0 | ✅ **CUMPLIDO Y EN PRODUCCIÓN el 29 ago 2026** — [`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md). Un caso se rastrea de la evidencia a la aplicación, el rechazo o el reverso, y los 27 de producción existen. **No se marca productiva:** `G5` abierta —nadie concilia a diario— |
 | **F2 · IA en sombra** | Extracción documental medida, sin tocar saldos | F1 **y un conjunto de documentos reales** | Métricas por campo sobre baseline determinístico, con costo y latencia |
 | **F3 · Piloto** | Reducir tiempo real | F2 **y un conjunto que emita pagos de verdad** | Go/no-go económico |
 | **F4 · Canales y escala** | WhatsApp, estados bancarios, autoaplicación exacta | F3 | Escala por conjunto sin perder control |
