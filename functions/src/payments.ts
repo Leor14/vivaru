@@ -1,6 +1,8 @@
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { escribirCascada, leerCascada, type CascadaPreparada } from "./conciliacion-casos";
+
 import { construirRecibo, type PerfilFiscal } from "./comprobante";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
 import { esAdminActivoDelConjunto } from "./tenant-membership";
@@ -1382,6 +1384,12 @@ export async function revertirPago(
       asientoRef: FirebaseFirestore.DocumentReference | null;
       asiento: { category?: string; accountCode?: string; sourceType?: string; bankAccountId?: string | null; concept?: string } | undefined;
       asientoExiste: boolean;
+      /**
+       * `FLOW-004` R7. Lo que hay que soltar si ese asiento estaba conciliado:
+       * se LEE aqui, con el resto de lecturas, porque Firestore exige que toda
+       * lectura de la transaccion ocurra antes de la primera escritura.
+       */
+      cascada: CascadaPreparada;
     }[] = [];
 
     for (const linea of reparto) {
@@ -1402,6 +1410,7 @@ export async function revertirPago(
         asientoRef,
         asiento: asientoSnap?.data() as never,
         asientoExiste: Boolean(asientoSnap?.exists),
+        cascada: asientoRef ? await leerCascada(tx, asientoRef.id, asientoSnap?.data()) : null,
       });
     }
     const cuota = lineas[0].cuota;
@@ -1522,11 +1531,20 @@ export async function revertirPago(
       });
 
       if (linea.asientoRef && linea.asientoExiste) {
+        // **`FLOW-004` R7 — la cascada, y es la mitad que faltaba.** Marcar el
+        // asiento como anulado sin soltar su linea de banco dejaba la
+        // conciliacion apuntando a un asiento que ya no vale: la pantalla decia
+        // que la cuenta cuadraba con un movimiento anulado dentro. Se decidio
+        // CASCADA y no bloqueo (D1), siguiendo `R15` de `FLOW-002`: bloquear una
+        // reversion de dinero por una formalidad contable es peor, y el caso
+        // existe justamente para dejar constancia de que paso.
         tx.update(linea.asientoRef, {
           reversedByEntryId: reversoRef.id,
+          ...(linea.cascada ? { reconciled: false, bankStatementLineId: null, reconciledAt: null } : {}),
           updatedBy: uid,
           updatedAt: FieldValue.serverTimestamp(),
         });
+        escribirCascada(tx, linea.cascada, uid, "cascada_reverso");
       }
 
       tx.update(linea.cuotaRef, {

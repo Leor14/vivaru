@@ -15,6 +15,7 @@ exports.saldoTrasRevertir = saldoTrasRevertir;
 exports.revertirPago = revertirPago;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
+const conciliacion_casos_1 = require("./conciliacion-casos");
 const comprobante_1 = require("./comprobante");
 const feature_flags_1 = require("./feature-flags");
 const tenant_membership_1 = require("./tenant-membership");
@@ -1056,6 +1057,7 @@ async function revertirPago(input, uid, role) {
                 asientoRef,
                 asiento: asientoSnap?.data(),
                 asientoExiste: Boolean(asientoSnap?.exists),
+                cascada: asientoRef ? await (0, conciliacion_casos_1.leerCascada)(tx, asientoRef.id, asientoSnap?.data()) : null,
             });
         }
         const cuota = lineas[0].cuota;
@@ -1162,11 +1164,20 @@ async function revertirPago(input, uid, role) {
                 updatedAt: firestore_1.FieldValue.serverTimestamp(),
             });
             if (linea.asientoRef && linea.asientoExiste) {
+                // **`FLOW-004` R7 — la cascada, y es la mitad que faltaba.** Marcar el
+                // asiento como anulado sin soltar su linea de banco dejaba la
+                // conciliacion apuntando a un asiento que ya no vale: la pantalla decia
+                // que la cuenta cuadraba con un movimiento anulado dentro. Se decidio
+                // CASCADA y no bloqueo (D1), siguiendo `R15` de `FLOW-002`: bloquear una
+                // reversion de dinero por una formalidad contable es peor, y el caso
+                // existe justamente para dejar constancia de que paso.
                 tx.update(linea.asientoRef, {
                     reversedByEntryId: reversoRef.id,
+                    ...(linea.cascada ? { reconciled: false, bankStatementLineId: null, reconciledAt: null } : {}),
                     updatedBy: uid,
                     updatedAt: firestore_1.FieldValue.serverTimestamp(),
                 });
+                (0, conciliacion_casos_1.escribirCascada)(tx, linea.cascada, uid, "cascada_reverso");
             }
             tx.update(linea.cuotaRef, {
                 paymentAmount: saldo.paymentAmount,

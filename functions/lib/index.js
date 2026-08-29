@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -59,6 +59,7 @@ const advances_1 = require("./advances");
 const audit_1 = require("./audit");
 const clave_de_unidad_1 = require("./clave-de-unidad");
 const payments_1 = require("./payments");
+const conciliacion_casos_1 = require("./conciliacion-casos");
 const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
@@ -3868,6 +3869,72 @@ exports.revertPayment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOr
             // ahora la anulación ocurre, así que la auditoría registra un hecho y
             // no un recordatorio.
             voucherAnuladoId: resultado.voucherAnuladoId ?? null,
+        });
+    }
+    return resultado;
+});
+// ── FLOW-004 · el expediente de conciliación ─────────────────────────────────
+//
+// La lógica vive en `conciliacion-casos.ts`; aquí solo se expone, se valida la
+// sesión y se deja el rastro de auditoría. **Son la ÚNICA vía por la que se
+// escribe el enlace entre una línea de banco y un asiento**: la regla le cierra
+// ese camino al cliente (R8), porque una regla no puede comprobar aritmética
+// contra otro documento y una callable sí.
+//
+// **No van detrás de la bandera**, y es deliberado: la bandera gobierna la
+// bandeja: apagarla no puede devolver el producto al estado que permitía casar
+// una salida de −300.000 contra una entrada de +40.000.
+exports.reconcileCase = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, conciliacion_casos_1.aplicarCaso)(request.data, uid, request.auth?.token?.role);
+    // Solo se audita lo que de verdad ocurrió: un reintento idempotente (R10) no
+    // genera una segunda entrada.
+    if (resultado.applied) {
+        await writeAuditLog(request.data?.tenantId ?? "", uid, "reconcile_case", {
+            bankStatementLineId: request.data?.bankStatementLineId,
+            ledgerEntryId: request.data?.ledgerEntryId,
+            version: resultado.version,
+        });
+    }
+    return resultado;
+});
+exports.rejectReconciliationCase = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, conciliacion_casos_1.rechazarCaso)(request.data, uid, request.auth?.token?.role);
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "reject_case", {
+        bankStatementLineId: request.data?.bankStatementLineId,
+        // El motivo entra en la auditoría: es la mitad del valor de rechazar.
+        motivoCodigo: request.data?.motivoCodigo ?? null,
+        version: resultado.version,
+    });
+    return resultado;
+});
+exports.reopenReconciliationCase = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, conciliacion_casos_1.reabrirCaso)(request.data, uid, request.auth?.token?.role);
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "reopen_case", {
+        bankStatementLineId: request.data?.bankStatementLineId,
+        version: resultado.version,
+    });
+    return resultado;
+});
+// R7, el camino del cliente: soltar la conciliación ANTES de anular o borrar un
+// asiento desde el navegador. Sin esto, el veto de R8 convertiría el ciclo
+// automático de egresos en un error de permisos.
+exports.releaseReconciliation = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, conciliacion_casos_1.liberarConciliacion)(request.data, uid, request.auth?.token?.role);
+    if (resultado.released) {
+        await writeAuditLog(request.data?.tenantId ?? "", uid, "reverse_case", {
+            ledgerEntryId: request.data?.ledgerEntryId,
         });
     }
     return resultado;

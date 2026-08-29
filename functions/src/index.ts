@@ -47,6 +47,15 @@ import {
   type VistaPreviaRepartoInput,
 } from "./payments";
 import {
+  aplicarCaso,
+  liberarConciliacion,
+  reabrirCaso,
+  rechazarCaso,
+  type AplicarCasoInput,
+  type ReabrirCasoInput,
+  type RechazarCasoInput,
+} from "./conciliacion-casos";
+import {
   revocarAccesoDeResidente,
   type RevocarAccesoInput,
 } from "./resident-access";
@@ -4872,6 +4881,84 @@ export const revertPayment = onCall<RevertirPagoInput>(
         // ahora la anulación ocurre, así que la auditoría registra un hecho y
         // no un recordatorio.
         voucherAnuladoId: resultado.voucherAnuladoId ?? null,
+      });
+    }
+    return resultado;
+  },
+);
+
+// ── FLOW-004 · el expediente de conciliación ─────────────────────────────────
+//
+// La lógica vive en `conciliacion-casos.ts`; aquí solo se expone, se valida la
+// sesión y se deja el rastro de auditoría. **Son la ÚNICA vía por la que se
+// escribe el enlace entre una línea de banco y un asiento**: la regla le cierra
+// ese camino al cliente (R8), porque una regla no puede comprobar aritmética
+// contra otro documento y una callable sí.
+//
+// **No van detrás de la bandera**, y es deliberado: la bandera gobierna la
+// bandeja: apagarla no puede devolver el producto al estado que permitía casar
+// una salida de −300.000 contra una entrada de +40.000.
+export const reconcileCase = onCall<AplicarCasoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await aplicarCaso(request.data, uid, request.auth?.token?.role);
+    // Solo se audita lo que de verdad ocurrió: un reintento idempotente (R10) no
+    // genera una segunda entrada.
+    if (resultado.applied) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "reconcile_case", {
+        bankStatementLineId: request.data?.bankStatementLineId,
+        ledgerEntryId: request.data?.ledgerEntryId,
+        version: resultado.version,
+      });
+    }
+    return resultado;
+  },
+);
+
+export const rejectReconciliationCase = onCall<RechazarCasoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await rechazarCaso(request.data, uid, request.auth?.token?.role);
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "reject_case", {
+      bankStatementLineId: request.data?.bankStatementLineId,
+      // El motivo entra en la auditoría: es la mitad del valor de rechazar.
+      motivoCodigo: request.data?.motivoCodigo ?? null,
+      version: resultado.version,
+    });
+    return resultado;
+  },
+);
+
+export const reopenReconciliationCase = onCall<ReabrirCasoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await reabrirCaso(request.data, uid, request.auth?.token?.role);
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "reopen_case", {
+      bankStatementLineId: request.data?.bankStatementLineId,
+      version: resultado.version,
+    });
+    return resultado;
+  },
+);
+
+// R7, el camino del cliente: soltar la conciliación ANTES de anular o borrar un
+// asiento desde el navegador. Sin esto, el veto de R8 convertiría el ciclo
+// automático de egresos en un error de permisos.
+export const releaseReconciliation = onCall<{ tenantId: string; ledgerEntryId: string }>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await liberarConciliacion(request.data, uid, request.auth?.token?.role);
+    if (resultado.released) {
+      await writeAuditLog(request.data?.tenantId ?? "", uid, "reverse_case", {
+        ledgerEntryId: request.data?.ledgerEntryId,
       });
     }
     return resultado;

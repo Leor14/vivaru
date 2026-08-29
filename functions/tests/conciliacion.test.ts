@@ -228,7 +228,8 @@ describe("R5 · el duplicado necesita la descripción DENTRO de la clave", () =>
   });
 
   it("la misma línea dos veces sí es duplicada", () => {
-    expect(claveNatural(seisSpei[0])).toBe(claveNatural({ ...seisSpei[0], id: "otro" }));
+    const otraCarga: LineaDeBanco = { ...seisSpei[0], id: "otro" };
+    expect(claveNatural(seisSpei[0])).toBe(claveNatural(otraCarga));
   });
 
   it("la normalización conserva el código de unidad, que es el discriminante", () => {
@@ -242,13 +243,15 @@ describe("R5 · el duplicado necesita la descripción DENTRO de la clave", () =>
 
 describe("R5 · el id derivado, y que un id de documento es GLOBAL", () => {
   it("la misma línea da siempre el mismo id: la base rechaza la segunda carga", () => {
-    expect(idDeLinea(linea())).toBe(idDeLinea({ ...linea(), id: "da igual" }));
+    const mismaLinea: LineaDeBanco = { ...linea(), id: "da igual" };
+    expect(idDeLinea(linea())).toBe(idDeLinea(mismaLinea));
   });
 
   it("la MISMA línea en dos conjuntos da ids DISTINTOS", () => {
     // Dos siembras declararon una vez el mismo id en una colección raíz y una
     // borró documentos de la otra. El `tenantId` entra en el hash por eso.
-    expect(idDeLinea(linea())).not.toBe(idDeLinea({ ...linea(), tenantId: "otro-conjunto" }));
+    const otroConjunto: LineaDeBanco = { ...linea(), tenantId: "otro-conjunto" };
+    expect(idDeLinea(linea())).not.toBe(idDeLinea(otroConjunto));
   });
 
   it("una descripción con `/` no parte la ruta del documento", () => {
