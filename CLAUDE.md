@@ -81,7 +81,7 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
   Con eso corren los **nueve** ficheros de emulador (180 pruebas) y `npm run test:rules`
   (208). Ninguno de los dos entra en `npm test`, así que **un cambio en `firestore.rules` o
   en una callable puede pasar el gate normal y estar roto**: los cuatro bancos son
-  `npm test` (**1334** el 27 de agosto de 2026), `npm --prefix functions test` (568), el emulador
+  `npm test` (**1348** el 28 de agosto de 2026), `npm --prefix functions test` (568), el emulador
   (180) y las reglas (208). **Estos números crecen: contarlos, no citarlos de aquí** — el primero
   decía 1198 y llevaba trece guardianes de retraso.
 
@@ -373,6 +373,28 @@ abiertos y las doce banderas de producto encendidas.**
 > Y al revés, antes de subir un front: **mirar el `defaultEnabled` del catálogo**. En producción
 > esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
 > `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
+
+**`UX-003` TIENE DOS ENTREGAS EN PRODUCCIÓN** (`5bc9d3f` y `cb6d457`, 28 ago 2026): el Panel de
+Control dejó de decir cosas que no se pueden comprobar —la píldora decía 90 con las tarjetas
+sumando 33 y el cajón listando 4— y los estados dejaron de salir en inglés. La escala de color del
+tablero vive en `src/lib/dashboard/umbrales.ts` y **la usan la página y el widget**: la misma regla
+estaba escrita a mano en dos ficheros y tres formas, que es como nació uno de los defectos.
+
+> **LO QUE HAY QUE LLEVARSE DE ESTE FRENTE, Y VALE MÁS QUE LAS ENTREGAS: los tres defectos que
+> motivaron los tres despliegues del día los encontró MIRAR LA PANTALLA, no una suite.** Uno fue
+> una **regresión propia** —carril y relleno del mismo color, con lo que una torre al 11% y tres al
+> 0% salían idénticas— introducida con **typecheck en 0, 1.343 pruebas en verde y la falsación
+> completa pasada**. **Una barra puede tener el color correcto y no comunicar nada.**
+>
+> **Y falsar destapó que dos pruebas mías eran ciegas:** con la barra puesta en verde fijo, «el
+> color es monótono» y «6% no puede verse mejor que 11%» **siguieron en verde**. Si todos los
+> colores son iguales, una prueba de orden se cumple sola — **una escala constante pasa cualquier
+> prueba de monotonía**. Hay que exigir además que la escala DISTINGA.
+>
+> **El mismo día, el gemelo en los estados:** se vio `critical` en inglés y **eran diez** las claves
+> sin traducir. Duraron porque `getStatusLabel` **cae en silencio a la clave cruda**: no lanza, no
+> avisa, y en las siete que ya venían en español el resultado era casi correcto. **Un fallo que se
+> disimula a sí mismo dura años.** Su guardián **mide el código**, no una lista escrita a mano.
 
 **`FLOW-003` ESTÁ EN PRODUCCIÓN, ENCENDIDO Y PROBADO DE PUNTA A PUNTA** (28 ago 2026).
 Desplegado el 27 (00:41–00:49 UTC): entrega medida del correo, webhook, calendario del conjunto y

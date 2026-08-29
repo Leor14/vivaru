@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.36 |
-| **Fecha** | 27 de agosto de 2026 (noche) |
-| **Estado** | **EL FRENTE DE DISEÑO ESTÁ EN PRODUCCIÓN** (`cad728c`, 27 ago, noche), y su hallazgo vale más que la entrega: **la tipografía de marca ya estaba escrita en el producto desde el commit inicial** —`globals.css:193` pone Playfair en todo `h1, h2, h3`— y **dos reglas dentro de `.admin-shell` la estaban apagando** para el portal entero. La segunda no tocaba solo los títulos: nombraba `.font-semibold`, `.font-bold`, h1–h6, `strong` y `b`, o sea **toda la énfasis del admin forzada a peso 500** —54 elementos en el Panel de Control, 29 en Cartera—. **No faltaba diseño: sobraba un interruptor.** `globals.css` queda con **cero `!important`**. Lo medible: seis valores de radio accidentales → **tres y el círculo**; la peor línea de prosa de **182 a 67 caracteres**; las cifras de las tablas a **ancho fijo** con los ejes de Recharts protegidos —imprimen el mismo DOM que el PDF del comité—; el contraste del texto secundario de **4,60 a 4,73:1** sobre un fondo más profundo; y las columnas de dinero **a la derecha**. **Front puro en las once entregas:** cero líneas en reglas, índices, Storage y `functions/src`. **Y el frente empezó torcido, que es lo que hay que recordar:** cinco pasadas de sistema con efecto visible casi nulo, hasta que David dijo «lo veo prácticamente igual». Tenía razón — el agente hizo la fontanería primero y **no retiró las dos reglas planas por decidir solo que era decisión de producto**. **Si el efecto buscado es visible, la primera pasada tiene que serlo.** **Antes de esto: EL CORTE DE NAVEGACIÓN** (`3c7c826`): 19 de 19 pantallas dicen su nombre —antes 7—, el menú se alcanza plegando, las seis barras de pestañas son accesibles y viven en la URL, y Cartera pasó de 4,6 pantallas de scroll a 2,6. **Y antes, EL BLOQUE DE PROPIEDAD HORIZONTAL, CERRADO**: diez PRD desplegadas, cero frentes abiertos, las doce banderas de producto encendidas, y lo último que lo cerró no fue código sino DATO —coeficientes sembrados, 18 de 18 sumando 100,000000% exacto—. **LO QUE QUEDA NO ES TRABAJO DEL EQUIPO:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Lo siguiente es **elegir bloque**. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Versión** | 0.9.37 |
+| **Fecha** | 28 de agosto de 2026 |
+| **Estado** | **`UX-003` ARRANCÓ Y TIENE DOS ENTREGAS EN PRODUCCIÓN** (`5bc9d3f`, `cb6d457`, 28 ago). El hilo del frente: **el Panel de Control decía cosas que no se podían comprobar**. La píldora anunciaba **90 alertas** mientras las tarjetas sumaban **33** y el cajón que ella misma abre listaba **4** —dos sitios calculando lo mismo, y ni cubrían las mismas categorías—; un recaudo del **0,0% se pintaba en verde** porque tres tonos estaban fijos; y el widget de cumplimiento marcaba **6% en verde con una torre al 11% en rojo, dentro del mismo recuadro**. La segunda entrega dejó **los estados en español: se vio uno en inglés y eran diez**, y duraron porque `getStatusLabel` cae en silencio a la clave cruda. **EL BALANCE DEL DÍA ES LA MEJOR DEFENSA DE ESTE FRENTE: tres despliegues, y los tres defectos que los motivaron los encontró MIRAR LA PANTALLA.** Uno fue una **regresión propia** —al arreglar que un 0% no se confundiera con «sin datos», el avance dejó de verse— introducida con typecheck en 0, **1.343 pruebas en verde y la falsación completa pasada**. Y falsar destapó además que **dos pruebas mías eran ciegas**: con la barra en verde fijo, «el color es monótono» seguía en verde —una escala constante pasa cualquier prueba de orden—. **ANTES, EL MISMO DÍA:** el frente de Albert cerrado temporalmente con la herramienta decidida (**Albert, no Odoo** — su versión gratuita no tiene API externa), `FLOW-003` verificado de punta a punta, y **`FIN-002` retirado por decisión: no vale la pena la bandeja de conciliación sin nadie conciliando**. **LO QUE NO CAMBIA:** cuatro capacidades encendidas y quietas —proveedores 0, paz y salvo 0, calendarios 0, canal de correo cerrado— que **no las arregla una decisión: las llena un cliente**, y no hay ni uno real. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, por contenido y en las DOS direcciones.** Está todo lo nuevo (`#e9eff7`, `#5a6b7e`, `medida-lectura`, `body{font-variant-numeric:tabular-nums}`, `--radius-xl:10px`) y **ha desaparecido todo lo viejo** (`sans-serif!important`, `.admin-shell .font-semibold`, `pqrs-asunto`, `#607286`, `#f4f7fb`). **Y hay un cuarto falso negativo, nuevo: el CSS puede salir IDÉNTICO aunque el código cambie** —migrar 90 clases `rounded → rounded-sm` no movió un byte, porque las dos utilidades ya se generaban—, así que una sonda que espera a que cambie el CSS no termina nunca. Para la segunda subida sirvió el método de siempre: sacar de staging los chunks que contienen una cadena que **solo existe en el código nuevo** (`px-3 py-2 text-right`) y pedirle a producción esos mismos nombres — 200 y **byte a byte idénticos**, 221.924 y 27.067. Suites: **94 ficheros / 1.334 pruebas**, y **trece guardianes nuevos** de los que los que más valen no comprueban que el código sea el escrito sino que **calculan** —el contraste del fondo contra cada gris, los cinco tonos del tablero leyendo su propio mapa, el ancho de la tabla más ancha que exista en el código—, cada uno enrojeciendo **con la cifra delante**. Cada pasada **falsada** rompiendo el código a propósito. **Tres instrumentos propios mintieron y se cazaron comparando, no leyendo:** un auditor de contraste que daba 1,82:1 sobre texto blanco en fondo navy —no resolvía degradados, y **no se reportó ni uno de sus números**—, una medición de seis rutas con `pushState` que devolvió **seis resultados idénticos** porque Next no repintó, y un `@source not` con un `..` de más que ahorró **0 bytes** hasta medir el antes y el después |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -141,6 +141,7 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | — | 🔵 `PH-002` (espera al primer pago real) | Nada. Lo que queda son datos de cliente |
+| **Experiencia y diseño** | 🟢 **`UX-001` y `UX-003` en producción** | 🟠 Seguir por otras pantallas, o cerrar el frente | ⏸ `UX-002` (filtros en la URL, espera clientes) | — |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | Vivaru Finance | ✅ `FIN-000` · ✅ `FIN-001` | ⏸ `FIN-002` **(espera cartera real)** | ⏸ `FIN-AI-001` | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
@@ -148,7 +149,7 @@ de entrega.**
 | Mobile / iOS | 🟡 `MOB-001` | 🟠 `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
 | Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
-| **Compartido con Albert** | 🟡 Decidir dónde viven | — | — | ◇ Agenda · mensajería · precio |
+| **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
 
 > **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
 > frente donde ha ido todo el trabajo desde el 24. El §35 de este mismo documento decía que el
@@ -1034,6 +1035,21 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.37 — 28 de agosto de 2026
+
+- **`UX-003` arrancó, se acotó midiendo y tiene DOS entregas en producción** (`5bc9d3f`,
+  `cb6d457`). Se acotó mirando la pantalla, no opinando: cuatro defectos con fichero y línea, y
+  la comprobación de que **los tonos fijos eran 5 en todo el producto, 3 de ellos en el Panel** —
+  lo que evitó inflar el frente a veinte pantallas.
+- **La tabla ejecutiva de este documento NO listaba «Experiencia y diseño»**, y era el frente
+  donde iba todo el trabajo. El tablero de Notion lo tenía desde el 26; **éste no**. Añadida.
+- **`FIN-002` no se construye** — decisión de David. No bloqueada: aplazada, y el disparador para
+  retomarla es un hecho medible, que entre cartera real.
+- **Herramienta comercial decidida: Albert, no Odoo.** La versión gratuita de Odoo **no tiene API
+  externa**, que es lo único que Vivaru necesita de ella.
+- **Tres afirmaciones falsas de `CLAUDE.md` sobre `FLOW-003`**, caídas al medir: no estaba apagado,
+  el secret no era de relleno, y comprobar versiones no exige la ADC.
 
 ### 0.9.36 — 27 de agosto de 2026 (noche)
 
