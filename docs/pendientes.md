@@ -106,9 +106,28 @@ La escala de color vive en `src/lib/dashboard/umbrales.ts` y la usan la página 
 > pruebas y la falsación completa **estaban en verde**. Lo cazó abrir la pantalla en producción.
 > **Una barra puede tener el color correcto y no comunicar nada.**
 
-**Y un defecto nuevo visto al verificar, sin arreglar todavía:** en el cajón de alertas el estado
-de la fila de PQRS se pinta **`critical`, en inglés y en minúscula**, mientras las otras dicen
-«En mora» y «Pendiente». Es candidato a la siguiente entrega de `UX-003`.
+### `UX-003` — SEGUNDA ENTREGA (`cb6d457`, 28 ago): los estados en español, y eran diez
+
+**Salió de verificar la primera.** En el cajón de alertas el estado de PQRS se pintaba
+**`critical`**, en inglés y en minúscula, junto a «En mora» y «Pendiente». Al contar el resto
+aparecieron **nueve más**: el mapa tenía 24 claves y al producto se le escapaban 10. **Tres se le
+enseñaban al usuario en inglés** —`critical`, `published`, `valid`—; las otras siete ya venían en
+español pero sin pasar por el mapa, así que perdían la mayúscula.
+
+**Por qué duraron tanto:** `getStatusLabel` **cae en silencio a la clave cruda** cuando no la
+encuentra. No lanza, no avisa, y en las siete españolas el resultado era casi correcto. **Un fallo
+que se disimula a sí mismo dura años.**
+
+**El guardián mide el código, no una lista** (`tests/status-mapper-cobertura.test.ts`): recorre los
+ficheros, saca cada `status: "..."` literal y exige que el mapa lo conozca. Una lista escrita a
+mano no vería la clave número once, que es justo como se acumularon estas diez. Falsado quitando
+`critical` —falla— y vaciando la recolección —**también falla**, porque lleva dentro la
+comprobación de que encontró algo—.
+
+> **BALANCE DEL FRENTE HOY: tres despliegues a producción, y los tres defectos que los motivaron
+> los encontró MIRAR LA PANTALLA, no una suite.** Uno de ellos fue una regresión propia introducida
+> con typecheck en 0, 1343 pruebas en verde y la falsación completa pasada. Es la demostración más
+> limpia que ha tenido este proyecto de por qué `UX-003` existe.
 
 ### LA DECISIÓN DE HERRAMIENTA COMERCIAL — ALBERT, NO ODOO (28 ago 2026)
 
