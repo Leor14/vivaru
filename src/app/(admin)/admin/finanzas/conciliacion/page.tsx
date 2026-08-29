@@ -38,6 +38,7 @@ import {
   MOTIVOS_DE_RECHAZO,
   calcularCandidatos,
   incoherenciasDelPar,
+  resumirConciliacion,
   type Incoherencia,
 } from "@/features/finanzas/conciliacion-reglas";
 import { bankAccountSchema, type BankAccountFormValues } from "@/features/finanzas/schemas";
@@ -285,15 +286,11 @@ export default function AdminConciliacionPage() {
    * suma lo que está mal es peor que no tener total.
    */
   const summary = useMemo(() => {
-    const reconciled = lines.filter((l) => l.reconciled && !incoherentes.has(l.id)).length;
-    const aRevisar = incoherentes.size;
-    return {
-      total: lines.length,
-      reconciled,
-      aRevisar,
-      pending: lines.length - reconciled - aRevisar,
-    };
-  }, [lines, incoherentes]);
+    const rechazadas = new Set(
+      lines.filter((l) => casoPorLinea.get(l.id)?.status === "rechazado").map((l) => l.id),
+    );
+    return resumirConciliacion(lines, new Set(incoherentes.keys()), rechazadas);
+  }, [lines, incoherentes, casoPorLinea]);
 
   /** Los candidatos de cada línea, con las MISMAS reglas que aplicará el servidor. */
   const candidatosPorLinea = useMemo(() => {
@@ -510,12 +507,25 @@ export default function AdminConciliacionPage() {
           </div>
           <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
             <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Conciliadas</p>
-            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{summary.reconciled}</p>
+            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{summary.conciliadas}</p>
           </div>
           <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
             <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Sin conciliar</p>
-            <p className="mt-1 text-lg font-semibold text-[#936b24]">{summary.pending}</p>
+            <p className="mt-1 text-lg font-semibold text-[#936b24]">{summary.pendientes}</p>
           </div>
+          {/*
+            **Descartar es una decisión tomada, no trabajo pendiente.** Contarla
+            en «sin conciliar» hacía que ese número no bajara nunca a cero por
+            mucho que se trabajara — y ese número es el que dice si la cuenta
+            cuadra. Lo cazó mirar la pantalla en staging: decía 7 con seis
+            líneas abiertas debajo.
+          */}
+          {summary.descartadas > 0 ? (
+            <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
+              <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Descartadas</p>
+              <p className="mt-1 text-lg font-semibold text-[var(--slate-700)]">{summary.descartadas}</p>
+            </div>
+          ) : null}
           {summary.aRevisar > 0 ? (
             <div className="rounded-xl border border-[var(--danger-200)] bg-[var(--surface-soft)] p-3">
               <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">A revisar</p>

@@ -174,3 +174,34 @@ export async function idDeLinea(
     .join("");
   return `bsl_${hex.slice(0, 32)}`;
 }
+
+/**
+ * El recuento de la cabecera, **en una función pura para que se pueda probar**.
+ *
+ * **Salió de mirar la pantalla en staging**, no de una suite: la cabecera decía
+ * «sin conciliar 7» mientras la bandeja de abajo listaba **seis** líneas
+ * abiertas y una **descartada**. Descartar es una decisión tomada —con motivo
+ * escrito—, no trabajo pendiente, y contarla como pendiente hace que el número
+ * nunca baje a cero por mucho que se trabaje.
+ *
+ * Es la misma familia de defecto que la píldora del Panel de Control que decía
+ * 90 con las tarjetas sumando 33: **dos sitios contando lo mismo con criterios
+ * distintos**. Aquí solo cuenta uno.
+ */
+export function resumirConciliacion(
+  lineas: { id: string; reconciled?: boolean }[],
+  incoherentes: Set<string>,
+  rechazadas: Set<string>,
+): { total: number; conciliadas: number; aRevisar: number; descartadas: number; pendientes: number } {
+  const conciliadas = lineas.filter((l) => l.reconciled && !incoherentes.has(l.id)).length;
+  const aRevisar = lineas.filter((l) => l.reconciled && incoherentes.has(l.id)).length;
+  const descartadas = lineas.filter((l) => !l.reconciled && rechazadas.has(l.id)).length;
+  return {
+    total: lineas.length,
+    conciliadas,
+    aRevisar,
+    descartadas,
+    // Lo que de verdad queda por decidir. Los cuatro grupos suman el total.
+    pendientes: lineas.length - conciliadas - aRevisar - descartadas,
+  };
+}

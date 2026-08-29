@@ -12,6 +12,7 @@ import {
   mismoEfecto,
   normalizarDescripcion,
   porQueNoEsCandidato,
+  resumirConciliacion,
 } from "@/features/finanzas/conciliacion-reglas";
 import type { BankStatementLine, LedgerEntry } from "@/types/domain";
 
@@ -169,5 +170,44 @@ describe("R5 · la clave y el id derivado", () => {
     // cambia el hash, reimportar un extracto crearía documentos nuevos en vez de
     // reconocerlos — y eso se vería como duplicados, no como un error.
     expect(a).toBe("bsl_936552b9a7d451c6c42a2d009ea1b16e");
+  });
+});
+
+describe("El recuento de la cabecera — el defecto que cazó staging", () => {
+  const linea = (id: string, reconciled = false) => ({ id, reconciled });
+
+  it("una línea DESCARTADA no cuenta como pendiente", () => {
+    // La cabecera decía «sin conciliar 7» con seis líneas abiertas debajo y una
+    // descartada. Descartar es una decisión tomada, con motivo escrito.
+    const r = resumirConciliacion(
+      [linea("a"), linea("b"), linea("c")],
+      new Set(),
+      new Set(["c"]),
+    );
+    expect(r.descartadas).toBe(1);
+    expect(r.pendientes).toBe(2);
+  });
+
+  it("una conciliación que NO cuadra sale de «conciliadas» y va a «a revisar»", () => {
+    const r = resumirConciliacion(
+      [linea("a", true), linea("b", true)],
+      new Set(["b"]),
+      new Set(),
+    );
+    expect(r.conciliadas).toBe(1);
+    expect(r.aRevisar).toBe(1);
+    expect(r.pendientes).toBe(0);
+  });
+
+  it("los cuatro grupos SUMAN el total, siempre — es lo que evita el número que no cuadra", () => {
+    const lineas = [linea("a", true), linea("b", true), linea("c"), linea("d"), linea("e")];
+    const r = resumirConciliacion(lineas, new Set(["b"]), new Set(["d"]));
+    expect(r.conciliadas + r.aRevisar + r.descartadas + r.pendientes).toBe(r.total);
+    expect(r.total).toBe(5);
+  });
+
+  it("sin nada raro, todo lo no conciliado es pendiente", () => {
+    const r = resumirConciliacion([linea("a", true), linea("b")], new Set(), new Set());
+    expect(r).toEqual({ total: 2, conciliadas: 1, aRevisar: 0, descartadas: 0, pendientes: 1 });
   });
 });
