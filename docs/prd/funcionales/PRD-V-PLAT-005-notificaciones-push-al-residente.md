@@ -9,7 +9,7 @@
 | **Usuario principal** | `resident` |
 | **Usuarios secundarios** | `tenant_admin` (fase 2) |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 0.3, 29 ago 2026. D1, D2 y D-CONSOLA cerradas; no queda ninguna pregunta abierta ni dependencia externa |
+| **Estado** | **En desarrollo — MVP CONSTRUIDO** (29 ago 2026, versión 0.4): bandera en los cinco sitios, reglas de `pushTokens` con 13 pruebas, emisor en el embudo `createNotifications`, manifest, SW por route handler, invitación y baja en el portal del residente. Cuatro falsaciones pasadas, cada una enrojeciendo exactamente su prueba. **Pendiente: staging y la validación 📱 (CA1, CA5, CA9)** |
 | **Dependencias** | Ninguna. **D-CONSOLA CERRADA el 29 ago 2026:** David generó el par VAPID en los dos proyectos y las claves públicas están cableadas en `apphosting.yaml` y `apphosting.staging.yaml` (87 caracteres cada una, verificadas parseando el YAML; la privada no sale de FCM) |
 | **Riesgo** | **Medio.** No toca dinero ni permisos existentes; el riesgo es molestar (push de más) y prometer un canal que nadie encendió (adopción) |
 | **Reversibilidad** | **Total.** La bandera apaga registro y envío; los tokens quedan escritos y dejan de usarse. Sin push no se pierde nada: el aviso in-app sigue siendo el registro de verdad |

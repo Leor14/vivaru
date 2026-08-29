@@ -193,6 +193,27 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    // Credenciales de entrega de Web Push (PRD-V-PLAT-005). El id del documento
+    // ES el token FCM — idempotencia natural: re-registrar sobrescribe, no
+    // duplica. Solo el dueño las ve; el envío las lee con Admin SDK, que no
+    // pasa por aquí. Escribir (create o update) exige reclamar el documento
+    // como propio: re-registrar el mismo dispositivo es un update, y en un
+    // teléfono prestado reescribe el userId (R4) — poseer el token, que es
+    // inadivinable, es la prueba de poseer el dispositivo. Registrar es
+    // lectura de avisos, no operación del conjunto, así que NO pasa por
+    // tenantOperable: un suspendido puede seguir leyendo.
+    match /pushTokens/{token} {
+      allow read, delete: if signedIn() && (
+        superadmin() ||
+        resource.data.userId == request.auth.uid
+      );
+
+      allow create, update: if signedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.tenantId is string &&
+        tenantMember(request.resource.data.tenantId);
+    }
+
     match /notifications/{docId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid && (
         superadmin() ||

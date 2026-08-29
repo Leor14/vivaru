@@ -17,6 +17,7 @@ import { aplicarEventoDeCorreo, resendWebhookSecret, verificarFirmaSvix } from "
 import { buildSummaryPdf } from "./pdf-resumen";
 import { adjuntoEsDelDestinatario, pdfDelEstadoDeCuenta, unidadDelDestinatario } from "./estado-de-cuenta-adjunto";
 import { pasadaDeCalendarioDeCobranza } from "./cobranza-programada";
+import { empujarAvisos, type AvisoParaPush } from "./push";
 import {
   addSupportInternalNote,
   closeSupportTicket,
@@ -482,6 +483,8 @@ async function createNotifications(inputs: NotificationInput[]) {
 
   const batch = db.batch();
   const seen = new Set<string>();
+  // Lo que de verdad se escribió (tras trim y dedupe): es lo que se empuja.
+  const escritos: AvisoParaPush[] = [];
 
   for (const item of inputs) {
     const userId = item.userId?.trim();
@@ -502,9 +505,25 @@ async function createNotifications(inputs: NotificationInput[]) {
       createdAt: Timestamp.now(),
       link: item.link ?? null,
     });
+    escritos.push({
+      userId,
+      tenantId: item.tenantId ?? null,
+      title: item.title,
+      description: item.description,
+      link: item.link ?? null,
+    });
   }
 
   await batch.commit();
+
+  // Web Push (PRD-V-PLAT-005): DESPUÉS del commit y best-effort — el push es
+  // sombra del aviso y su fallo jamás lo rompe (R3, mismo contrato que el
+  // correo). La bandera por conjunto la comprueba el propio módulo (R2).
+  try {
+    await empujarAvisos(escritos);
+  } catch (e) {
+    console.error("[push] empujarAvisos", e);
+  }
 }
 
 // ── Resolución de copy de notificaciones (overrides por tenant) ───────────────

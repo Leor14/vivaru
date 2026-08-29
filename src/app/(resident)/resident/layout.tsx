@@ -3,6 +3,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { AppShell } from "@/components/shared/app-shell";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { ResidentHeader } from "../../../../components/shared/ResidentHeader";
+import { PushOptInBanner } from "../../../../components/features/resident/PushOptInBanner";
 
 
 export default function ResidentLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default function ResidentLayout({ children }: { children: React.ReactNode
       {user?.tenantId && (
         <ResidentHeader tenantId={user.tenantId} tenantName={user.tenantName} />
       )}
+      <PushOptInBanner />
       {children}
     </AppShell>
   );

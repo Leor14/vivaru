@@ -54,6 +54,7 @@ const email_webhook_1 = require("./email-webhook");
 const pdf_resumen_1 = require("./pdf-resumen");
 const estado_de_cuenta_adjunto_1 = require("./estado-de-cuenta-adjunto");
 const cobranza_programada_1 = require("./cobranza-programada");
+const push_1 = require("./push");
 const support_1 = require("./support");
 const advances_1 = require("./advances");
 const audit_1 = require("./audit");
@@ -305,6 +306,8 @@ async function createNotifications(inputs) {
         return;
     const batch = db.batch();
     const seen = new Set();
+    // Lo que de verdad se escribió (tras trim y dedupe): es lo que se empuja.
+    const escritos = [];
     for (const item of inputs) {
         const userId = item.userId?.trim();
         if (!userId)
@@ -324,8 +327,24 @@ async function createNotifications(inputs) {
             createdAt: firestore_1.Timestamp.now(),
             link: item.link ?? null,
         });
+        escritos.push({
+            userId,
+            tenantId: item.tenantId ?? null,
+            title: item.title,
+            description: item.description,
+            link: item.link ?? null,
+        });
     }
     await batch.commit();
+    // Web Push (PRD-V-PLAT-005): DESPUÉS del commit y best-effort — el push es
+    // sombra del aviso y su fallo jamás lo rompe (R3, mismo contrato que el
+    // correo). La bandera por conjunto la comprueba el propio módulo (R2).
+    try {
+        await (0, push_1.empujarAvisos)(escritos);
+    }
+    catch (e) {
+        console.error("[push] empujarAvisos", e);
+    }
 }
 // ── Resolución de copy de notificaciones (overrides por tenant) ───────────────
 /** Lee el override de una notificación del tenant (tenantSettings.notificationTemplates). */

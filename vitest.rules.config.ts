@@ -22,7 +22,11 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/firestore.rules.test.ts", "tests/storage.rules.test.ts"],
+    include: [
+      "tests/firestore.rules.test.ts",
+      "tests/storage.rules.test.ts",
+      "tests/push-tokens.rules.test.ts",
+    ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.
     fileParallelism: false,

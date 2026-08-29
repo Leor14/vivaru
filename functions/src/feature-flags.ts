@@ -63,6 +63,7 @@ export type FeatureFlagKey =
   | "producto-entrega-de-correo"
   | "producto-calendario-de-cobranza"
   | "producto-expediente-conciliacion"
+  | "producto-notificaciones-push"
   | "operacion-app-check-monitor";
 
 /**
@@ -109,6 +110,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-entrega-de-correo": false,
   "producto-calendario-de-cobranza": false,
   "producto-expediente-conciliacion": false,
+  // Apagada = el servidor no empuja y el portal no invita. Ver el catálogo en `src/`.
+  "producto-notificaciones-push": false,
   "operacion-app-check-monitor": true,
 };
 

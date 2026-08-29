@@ -147,6 +147,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-notificaciones-push",
+    area: "producto",
+    label: "Notificaciones push al residente",
+    origen: "PRD-V-PLAT-005 §11",
+    // Nace apagada: canal nuevo. El push es sombra de la notificación in-app,
+    // que nace con bandera o sin ella.
+    enabled: false,
+  },
+  {
     key: "producto-entrega-de-correo",
     area: "producto",
     label: "Rastro de entrega del correo",

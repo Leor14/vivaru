@@ -75,6 +75,7 @@ export type FeatureFlagKey =
   | "producto-entrega-de-correo"
   | "producto-calendario-de-cobranza"
   | "producto-expediente-conciliacion"
+  | "producto-notificaciones-push"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -186,6 +187,19 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-004 §11.4 — el expediente de conciliación",
     alApagar:
       "Las líneas vuelven a verse en una sola lista, sin agrupar. Se conservan el aviso de «no cuadra» en cada fila, los candidatos filtrados y el motivo del descarte: eso no es la bandeja, es el expediente, y no se apaga.",
+  },
+  "producto-notificaciones-push": {
+    key: "producto-notificaciones-push",
+    area: "producto",
+    label: "Notificaciones push al residente",
+    description:
+      "El aviso que nace en `notifications` llega además al hub del teléfono, vía Web Push. Gobierna la invitación a activar avisos en el portal del residente y el envío del servidor.",
+    // Nace APAGADA: canal nuevo. El push es sombra de la notificación — no
+    // gobierna que el aviso in-app nazca, solo que además se empuje.
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-005 §11 — notificaciones push al residente",
+    alApagar:
+      "Deja de ofrecerse el registro y el servidor deja de empujar. Los avisos in-app siguen intactos; los tokens quedan escritos y sin uso.",
   },
   "producto-importacion-masiva": {
     key: "producto-importacion-masiva",

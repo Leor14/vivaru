@@ -3,6 +3,7 @@
 import { useResidentProfile } from "../../../../../features/resident/hooks/useResidentProfile";
 import { ResidentProfileCard } from "../../../../../components/features/resident/ResidentProfileCard";
 import { ResidentSecuritySection } from "../../../../../components/features/resident/ResidentSecuritySection";
+import { ResidentPushDevicesCard } from "../../../../../components/features/resident/ResidentPushDevicesCard";
 import { useAuth } from "@/features/auth/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -61,6 +62,7 @@ export default function ResidentProfilePage() {
   return (
     <section className="space-y-4">
       <ResidentProfileCard user={user} onProfileUpdated={handleProfileUpdated} />
+      <ResidentPushDevicesCard />
       <ResidentSecuritySection uid={user.uid} onPasswordUpdated={handleProfileUpdated} />
     </section>
   );
