@@ -1430,3 +1430,81 @@ export async function registrarImportacionCallable(input: {
     return { ok: false };
   }
 }
+
+// ── PRD-V-FLOW-004 · el expediente de conciliación ───────────────────────────
+//
+// **Estas cuatro sustituyen a `matchLine` y `unmatchLine`, que escribían desde
+// el navegador sin comprobar nada.** Es la razón entera de la ficha: en
+// producción hay una salida de banco de −300.000 casada contra una entrada de
+// +40.000 porque el cliente escribía lo que se le pidiera. La regla le cierra
+// ese camino (R8), y la aritmética la comprueba el servidor, que es el único
+// que puede leer los dos documentos a la vez y negarse.
+
+export type ReconcileCaseInput = {
+  tenantId: string;
+  bankStatementLineId: string;
+  ledgerEntryId: string;
+  expectedVersion?: number;
+};
+
+export async function reconcileCaseCallable(input: ReconcileCaseInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<ReconcileCaseInput, { ok: true; applied: boolean; status: string; version: number }>(
+    functions,
+    "reconcileCase",
+  );
+  return executeCallable(callable, input, "No fue posible conciliar esa línea.");
+}
+
+export type RejectReconciliationCaseInput = {
+  tenantId: string;
+  bankStatementLineId: string;
+  motivoCodigo: string;
+  motivoTexto?: string;
+  expectedVersion?: number;
+};
+
+export async function rejectReconciliationCaseCallable(input: RejectReconciliationCaseInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<RejectReconciliationCaseInput, { ok: true; status: string; version: number }>(
+    functions,
+    "rejectReconciliationCase",
+  );
+  return executeCallable(callable, input, "No fue posible descartar esa línea.");
+}
+
+export async function reopenReconciliationCaseCallable(input: {
+  tenantId: string;
+  bankStatementLineId: string;
+  expectedVersion?: number;
+}) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<
+    { tenantId: string; bankStatementLineId: string; expectedVersion?: number },
+    { ok: true; status: string; version: number }
+  >(functions, "reopenReconciliationCase");
+  return executeCallable(callable, input, "No fue posible reabrir ese caso.");
+}
+
+/**
+ * R7, el camino del cliente. **Se llama ANTES de anular o borrar un asiento**,
+ * no después: la regla impide tocar un asiento conciliado, así que sin esta
+ * llamada el ciclo automático de egresos se caería con un error de permisos que
+ * se lee como un problema de rol y no de conciliación.
+ */
+export async function releaseReconciliationCallable(input: { tenantId: string; ledgerEntryId: string }) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<{ tenantId: string; ledgerEntryId: string }, { ok: true; released: boolean }>(
+    functions,
+    "releaseReconciliation",
+  );
+  return executeCallable(callable, input, "No fue posible liberar la conciliación de ese movimiento.");
+}

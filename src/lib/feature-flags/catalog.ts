@@ -74,6 +74,7 @@ export type FeatureFlagKey =
   | "producto-estado-de-cuenta"
   | "producto-entrega-de-correo"
   | "producto-calendario-de-cobranza"
+  | "producto-expediente-conciliacion"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -170,6 +171,21 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "Paso 1.4 — adaptador del proveedor",
     alApagar:
       "Se vuelve al simulador al instante, sin desplegar. Es el freno de mano si el proveedor se cae o el gasto se dispara.",
+  },
+  "producto-expediente-conciliacion": {
+    key: "producto-expediente-conciliacion",
+    area: "producto",
+    label: "Bandeja del expediente de conciliación",
+    description:
+      "Agrupa las líneas del extracto por lo que les pasa —con un movimiento que encaja, con varios candidatos, sin contraparte, a revisar— en vez de una lista plana.",
+    // Nace APAGADA: pantalla nueva. **Y no gobierna la coherencia**: los
+    // candidatos y la comprobación de importe y sentido entran con bandera o
+    // sin ella. Apagarla devuelve la lista plana, NO el estado que permitía
+    // casar una salida de −300.000 contra una entrada de +40.000.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-004 §11.4 — el expediente de conciliación",
+    alApagar:
+      "Las líneas vuelven a verse en una sola lista, sin agrupar. Se conservan el aviso de «no cuadra» en cada fila, los candidatos filtrados y el motivo del descarte: eso no es la bandeja, es el expediente, y no se apaga.",
   },
   "producto-importacion-masiva": {
     key: "producto-importacion-masiva",

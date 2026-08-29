@@ -155,17 +155,19 @@ export async function updateExpense(prev: Expense, userId: string, values: Expen
   } else if (action === "update" && prev.ledgerEntryId) {
     await updateExpenseLedgerEntry(prev.ledgerEntryId, userId, expenseForLedger);
   } else if (action === "delete" && prev.ledgerEntryId) {
-    await deleteLedgerEntry(prev.ledgerEntryId);
+    // `FLOW-004` R7: el tenant va porque el borrado tiene que soltar antes la
+    // conciliación, y esa liberación la hace el servidor.
+    await deleteLedgerEntry(prev.ledgerEntryId, prev.tenantId);
     await updateDoc(doc(db, "expenses", prev.id), { ledgerEntryId: null });
   }
 }
 
-export async function deleteExpense(expense: Pick<Expense, "id" | "ledgerEntryId">) {
+export async function deleteExpense(expense: Pick<Expense, "id" | "ledgerEntryId" | "tenantId">) {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
   if (expense.ledgerEntryId) {
-    await deleteLedgerEntry(expense.ledgerEntryId);
+    await deleteLedgerEntry(expense.ledgerEntryId, expense.tenantId);
   }
   await deleteDoc(doc(db, "expenses", expense.id));
 }

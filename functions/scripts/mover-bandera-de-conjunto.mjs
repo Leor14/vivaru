@@ -49,6 +49,7 @@ const CLAVES = [
   "producto-plan-de-cuentas",
   "producto-concepto-al-libro",
   "producto-anticipos",
+  "producto-expediente-conciliacion",
   "producto-pago-multiple",
   "producto-prorrateo-de-gastos",
   "producto-estado-de-cuenta",

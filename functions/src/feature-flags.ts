@@ -62,6 +62,7 @@ export type FeatureFlagKey =
   | "producto-estado-de-cuenta"
   | "producto-entrega-de-correo"
   | "producto-calendario-de-cobranza"
+  | "producto-expediente-conciliacion"
   | "operacion-app-check-monitor";
 
 /**
@@ -107,6 +108,7 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-estado-de-cuenta": false,
   "producto-entrega-de-correo": false,
   "producto-calendario-de-cobranza": false,
+  "producto-expediente-conciliacion": false,
   "operacion-app-check-monitor": true,
 };
 

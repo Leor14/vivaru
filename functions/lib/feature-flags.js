@@ -87,6 +87,7 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "producto-estado-de-cuenta": false,
     "producto-entrega-de-correo": false,
     "producto-calendario-de-cobranza": false,
+    "producto-expediente-conciliacion": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */

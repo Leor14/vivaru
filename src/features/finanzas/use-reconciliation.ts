@@ -1,12 +1,19 @@
 "use client";
 
-import { deleteDoc, doc, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection } from "firebase/firestore";
 
+import {
+  reconcileCaseCallable,
+  rejectReconciliationCaseCallable,
+  releaseReconciliationCallable,
+  reopenReconciliationCaseCallable,
+} from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
-import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
-import type { BankStatementLine, LedgerEntry } from "@/types/domain";
+import { subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
+import type { BankStatementLine, LedgerEntry, ReconciliationCase } from "@/types/domain";
 
-const today = () => new Date().toISOString().slice(0, 10);
+import { claveNatural, idDeLinea } from "./conciliacion-reglas";
 
 // ── Helpers puros (parsing de extracto CSV) ───────────────────────────────
 
@@ -150,92 +157,159 @@ export function watchBankStatementLines(
   );
 }
 
-/** Importa líneas de un extracto CSV. Devuelve cuántas se cargaron y cuántas se omitieron. */
+/**
+ * Importa las líneas de un extracto CSV.
+ *
+ * **R5 — reimportar el mismo extracto ya no duplica nada.** Antes sí: cada carga
+ * creaba documentos nuevos con id automático, así que subir dos veces el mismo
+ * fichero dejaba el extracto contado por duplicado **sin un solo error en
+ * pantalla**. Ahora el id del documento **se deriva del contenido**, de modo que
+ * la segunda carga apunta al mismo documento en vez de crear otro.
+ *
+ * **Y la clave lleva la descripción dentro**, que es la mitad de la regla: sin
+ * ella, seis SPEI de 3.000 del mismo día —que son seis pagos de seis unidades
+ * distintas— se leerían como cinco duplicados.
+ *
+ * Las líneas anteriores al expediente conservan su id, porque hay asientos
+ * apuntándoles; para ellas la comparación es por `naturalKey`, que se lee antes
+ * de escribir. **Es una comprobación previa y por tanto tiene carrera**, a
+ * diferencia del id derivado; la ventana es finita y se cierra sola cuando esas
+ * líneas dejen de existir. Se dice en vez de dejarlo implícito.
+ */
 export async function importBankStatementLines(
   tenantId: string,
   userId: string,
   bankAccountId: string,
   csvText: string,
-): Promise<{ imported: number; skipped: number }> {
+): Promise<{ imported: number; skipped: number; duplicated: number }> {
+  if (!db) {
+    throw new Error("Firebase no esta configurado en este entorno.");
+  }
   const { headers, rows } = parseDelimited(csvText);
   const lines = mapRowsToLines(headers, rows);
   const importBatchId = `imp-${Date.now()}`;
 
-  await Promise.all(
-    lines.map((line) =>
-      createTenantDocument("bankStatementLines", tenantId, userId, {
-        bankAccountId,
-        date: line.date,
-        description: line.description,
-        amount: line.amount,
-        reconciled: false,
-        matchedLedgerEntryId: null,
-        importBatchId,
-      }),
+  // Lo que ya hay en esta cuenta, para no repetirlo. Se comparan las DOS formas:
+  // el id derivado (las nuevas) y la clave natural (las anteriores).
+  const existentes = await getDocs(
+    query(
+      collection(db, "bankStatementLines"),
+      where("tenantId", "==", tenantId),
+      where("bankAccountId", "==", bankAccountId),
     ),
   );
+  const idsPresentes = new Set(existentes.docs.map((d) => d.id));
+  const clavesPresentes = new Set(
+    existentes.docs.map((d) => {
+      const data = d.data() as BankStatementLine;
+      return typeof data.naturalKey === "string" && data.naturalKey
+        ? data.naturalKey
+        : claveNatural({ ...data, tenantId, bankAccountId });
+    }),
+  );
 
-  return { imported: lines.length, skipped: rows.length - lines.length };
-}
+  let imported = 0;
+  let duplicated = 0;
 
-/** Concilia una línea de extracto con un movimiento del libro (enlaza ambos). */
-export async function matchLine(
-  bankLine: BankStatementLine,
-  ledgerEntry: LedgerEntry,
-  userId: string,
-): Promise<void> {
-  if (!db) {
-    throw new Error("Firebase no esta configurado en este entorno.");
-  }
-  const batch = writeBatch(db);
-  batch.update(doc(db, "bankStatementLines", bankLine.id), {
-    reconciled: true,
-    matchedLedgerEntryId: ledgerEntry.id,
-  });
-  batch.update(doc(db, "ledgerEntries", ledgerEntry.id), {
-    reconciled: true,
-    bankStatementLineId: bankLine.id,
-    reconciledAt: today(),
-    updatedBy: userId,
-    updatedAt: serverTimestamp(),
-  });
-  await batch.commit();
-}
-
-/** Deshace la conciliación de una línea (y libera el movimiento del libro). */
-export async function unmatchLine(bankLine: BankStatementLine, userId: string): Promise<void> {
-  if (!db) {
-    throw new Error("Firebase no esta configurado en este entorno.");
-  }
-  const batch = writeBatch(db);
-  batch.update(doc(db, "bankStatementLines", bankLine.id), {
-    reconciled: false,
-    matchedLedgerEntryId: null,
-  });
-  if (bankLine.matchedLedgerEntryId) {
-    batch.update(doc(db, "ledgerEntries", bankLine.matchedLedgerEntryId), {
+  for (const line of lines) {
+    const cuerpo = {
+      tenantId,
+      bankAccountId,
+      date: line.date,
+      description: line.description,
+      amount: line.amount,
+    };
+    const naturalKey = claveNatural(cuerpo);
+    const id = await idDeLinea(cuerpo);
+    if (idsPresentes.has(id) || clavesPresentes.has(naturalKey)) {
+      duplicated += 1;
+      continue;
+    }
+    idsPresentes.add(id);
+    clavesPresentes.add(naturalKey);
+    await setDoc(doc(db, "bankStatementLines", id), {
+      ...cuerpo,
+      naturalKey,
       reconciled: false,
-      bankStatementLineId: null,
-      reconciledAt: null,
+      matchedLedgerEntryId: null,
+      importBatchId,
+      createdBy: userId,
       updatedBy: userId,
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    imported += 1;
   }
-  await batch.commit();
+
+  return { imported, skipped: rows.length - lines.length, duplicated };
 }
 
-export async function deleteBankStatementLine(bankLine: BankStatementLine, userId: string): Promise<void> {
+/**
+ * `PRD-V-FLOW-004` — concilia una línea con un movimiento del libro.
+ *
+ * **Antes esto escribía en dos colecciones desde el navegador sin comprobar
+ * nada**, y por eso en producción hay una salida de banco de −300.000 casada
+ * contra una entrada de +40.000. Ahora lo decide el servidor, que es el único
+ * que puede leer los dos documentos a la vez y negarse.
+ */
+export async function matchLine(
+  tenantId: string,
+  bankLine: BankStatementLine,
+  ledgerEntry: LedgerEntry,
+  expectedVersion?: number,
+): Promise<void> {
+  await reconcileCaseCallable({
+    tenantId,
+    bankStatementLineId: bankLine.id,
+    ledgerEntryId: ledgerEntry.id,
+    expectedVersion,
+  });
+}
+
+/** Deshace la conciliación de una línea. Deja rastro: el caso vuelve a `detectado`. */
+export async function unmatchLine(tenantId: string, bankLine: BankStatementLine, expectedVersion?: number): Promise<void> {
+  await reopenReconciliationCaseCallable({ tenantId, bankStatementLineId: bankLine.id, expectedVersion });
+}
+
+/** R6 — descarta una línea con motivo. Sin motivo del catálogo, el servidor se niega. */
+export async function rejectLine(
+  tenantId: string,
+  bankLine: BankStatementLine,
+  motivoCodigo: string,
+  motivoTexto?: string,
+  expectedVersion?: number,
+): Promise<void> {
+  await rejectReconciliationCaseCallable({
+    tenantId,
+    bankStatementLineId: bankLine.id,
+    motivoCodigo,
+    motivoTexto,
+    expectedVersion,
+  });
+}
+
+/** Los expedientes del conjunto. Los escribe el servidor; aquí solo se leen. */
+export function watchReconciliationCases(
+  tenantId: string,
+  onData: (items: ReconciliationCase[]) => void,
+  onError: (message: string) => void,
+) {
+  return subscribeTenantCollection<ReconciliationCase>("reconciliationCases", tenantId, onData, onError) ?? (() => {});
+}
+
+/**
+ * Borra una línea del extracto.
+ *
+ * **La conciliación se suelta por el servidor, no aquí.** Antes este camino
+ * escribía directamente en el asiento; la regla de R8 se lo impide, y además el
+ * borrado tiene que dejar su rastro en el expediente como cualquier otra salida.
+ */
+export async function deleteBankStatementLine(tenantId: string, bankLine: BankStatementLine): Promise<void> {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
   }
   if (bankLine.reconciled && bankLine.matchedLedgerEntryId) {
-    await updateDoc(doc(db, "ledgerEntries", bankLine.matchedLedgerEntryId), {
-      reconciled: false,
-      bankStatementLineId: null,
-      reconciledAt: null,
-      updatedBy: userId,
-      updatedAt: serverTimestamp(),
-    });
+    await releaseReconciliationCallable({ tenantId, ledgerEntryId: bankLine.matchedLedgerEntryId });
   }
   await deleteDoc(doc(db, "bankStatementLines", bankLine.id));
 }

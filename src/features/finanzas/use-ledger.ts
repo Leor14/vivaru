@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 
+import { releaseReconciliationCallable } from "@/lib/firebase/callables";
 import { db } from "@/lib/firebase/client";
 import { codigoDeCategoriaDeEgreso } from "@/lib/finanzas/conceptos-de-cargo";
 import { createTenantDocument, subscribeTenantCollection } from "@/lib/firebase/realtime-helpers";
@@ -89,9 +90,17 @@ export async function createManualLedgerEntry(
  * Los movimientos manuales NO se borran desde la UI: se reversan con
  * `reverseLedgerEntry` para conservar la trazabilidad contable.
  */
-export async function deleteLedgerEntry(id: string) {
+export async function deleteLedgerEntry(id: string, tenantId?: string) {
   if (!db) {
     throw new Error("Firebase no esta configurado en este entorno.");
+  }
+  // **`FLOW-004` R7, tercer camino.** Este borrado es FÍSICO, así que si el
+  // asiento estaba conciliado la línea de banco se quedaría apuntando a un
+  // documento que ya no existe — y la pantalla seguiría contando la cuenta como
+  // cuadrada. Se suelta primero, por el servidor, que además deja el caso en la
+  // bandeja con su motivo. Es el camino que ninguna regla puede vigilar sola.
+  if (tenantId) {
+    await releaseReconciliationCallable({ tenantId, ledgerEntryId: id }).catch(() => undefined);
   }
   await deleteDoc(doc(db, "ledgerEntries", id));
 }
@@ -118,6 +127,13 @@ export async function reverseLedgerEntry(
   }
   if (entry.reversedByEntryId) {
     throw new Error("Este movimiento ya fue anulado.");
+  }
+  // **`FLOW-004` R7, segundo camino.** Anular sin soltar dejaba la línea de
+  // banco casada con un asiento que ya no vale: la cuenta «cuadraba» con un
+  // movimiento anulado dentro. Se cascadea (D1), no se bloquea — negar una
+  // corrección de dinero por una formalidad contable es peor.
+  if (entry.reconciled) {
+    await releaseReconciliationCallable({ tenantId, ledgerEntryId: entry.id });
   }
   const ref = await createTenantDocument("ledgerEntries", tenantId, userId, {
     type: entry.type,

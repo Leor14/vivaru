@@ -138,6 +138,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-expediente-conciliacion",
+    area: "producto",
+    label: "Bandeja del expediente de conciliación",
+    origen: "PRD-V-FLOW-004 §11.4",
+    // Nace apagada: pantalla nueva. NO gobierna la coherencia de los
+    // emparejamientos, que entra con bandera o sin ella.
+    enabled: false,
+  },
+  {
     key: "producto-entrega-de-correo",
     area: "producto",
     label: "Rastro de entrega del correo",

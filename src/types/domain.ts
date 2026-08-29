@@ -997,6 +997,56 @@ export interface BankStatementLine {
   reconciled: boolean;
   /** Lote de importación (para revertir una carga). */
   importBatchId?: string;
+  /**
+   * `PRD-V-FLOW-004` R5 — la clave que decide si una línea es duplicada:
+   * `tenantId|cuenta|fecha|monto|descripción normalizada`. **La descripción va
+   * dentro y es la mitad de la regla**: sin ella, las 27 líneas de producción
+   * dan cuatro grupos de «duplicados» que suman veinte líneas legítimas.
+   *
+   * En las líneas NUEVAS la unicidad la garantiza la base, porque el id del
+   * documento se deriva de esta clave. Este campo existe para las anteriores al
+   * expediente, que conservan su id porque hay asientos apuntándoles.
+   */
+  naturalKey?: string;
   createdAt?: string;
   createdBy?: string;
+}
+
+/**
+ * `PRD-V-FLOW-004` — el expediente de una línea de extracto.
+ *
+ * **Un caso por línea, y su id ES el id de la línea**: eso hace que «un caso por
+ * línea» lo garantice la base y no una comprobación previa. Lo escribe **solo el
+ * servidor**; el cliente lo lee.
+ */
+export interface ReconciliationCase {
+  id: string;
+  tenantId: string;
+  bankAccountId: string;
+  bankStatementLineId: string;
+  status: "detectado" | "propuesto" | "aplicado" | "rechazado" | "reversado";
+  /** Sube uno por transición. Dos pestañas sobre el mismo caso no se pisan. */
+  version: number;
+  candidateLedgerEntryIds: string[];
+  matchedLedgerEntryId: string | null;
+  excepcion: "sin_contraparte" | "varios_candidatos" | "no_identificada" | null;
+  /**
+   * Lo que tiene de malo un emparejamiento que YA estaba escrito. **Vacío es
+   * sano.** No corrige nada: nombrar sin reescribir es la decisión de §5.4.
+   */
+  incoherencias: ("signo" | "monto" | "fecha" | "cuenta")[];
+  motivoCodigo?: string | null;
+  motivoTexto?: string | null;
+  history?: {
+    de: string;
+    a: string;
+    cuando?: unknown;
+    quien: string;
+    motivoCodigo: string | null;
+    mecanismo: "bandeja" | "cascada_reverso" | "cascada_borrado" | "relleno";
+  }[];
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }

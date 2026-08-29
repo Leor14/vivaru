@@ -35,6 +35,15 @@ const STATUS_LABELS: Record<string, string> = {
    * la encuentra: no lanza, no avisa, y en las siete que ya venían en español el resultado era
    * casi correcto — solo perdía la mayúscula—. Un fallo que se disimula a sí mismo dura años.
    */
+  // `PRD-V-FLOW-004` — los cinco estados del expediente de conciliación. Van
+  // aquí y no en su módulo por la misma razón que los demás: el mapa cae en
+  // silencio a la clave cruda, así que un estado sin etiqueta no da error —
+  // sale en pantalla tal cual y nadie se entera.
+  detectado: "Sin revisar",
+  propuesto: "Con un movimiento que encaja",
+  aplicado: "Conciliada",
+  rechazado: "Descartada",
+  reversado: "Se deshizo sola",
   critical: "Crítico",
   published: "Publicado",
   valid: "Válido",
