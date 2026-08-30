@@ -374,6 +374,22 @@ abiertos y las doce banderas de producto encendidas.**
 > esas banderas no existen como documento, así que **manda el default**; si hubiera estado en
 > `true`, subir el front las habría ENCENDIDO sin que nadie lo decidiera.
 
+**`PLAT-005` — PUSH AL RESIDENTE — ESTÁ EN PRODUCCIÓN, con la bandera SOLO en Santa María**
+(30 ago 2026, `b70c357`, rollout `-015`; validada antes en staging con un iPhone real). El aviso
+que nace en `notifications` llega además al hub del teléfono vía FCM/Web Push, sin app en las
+tiendas. Piezas: reglas de `pushTokens` (el id ES el token; escribir exige reclamarlo), emisor en
+`functions/src/push.ts` colgado del embudo `createNotifications` (best-effort, jamás rompe el
+aviso), manifest, SW por route handler en `/firebase-messaging-sw.js` (la config sale de las
+`NEXT_PUBLIC_*` del ambiente), invitación y baja/re-alta en el portal del residente.
+
+> **CUATRO TRAMPAS QUE DEJÓ, para no repagarlas:** (1) **no hay push en iPhone sin pantalla de
+> inicio, en NINGUNA versión** — Declarative Web Push quita el service worker, no la instalación;
+> (2) el click del SDK de FCM **no navega una web app instalada de iOS** — el SW v2 registra
+> nuestro manejador ANTES del SDK y navega el cliente con `navigate()`; (3) **esperar un rollout
+> se hace POR NOMBRE** (`rollouts/build-YYYY-MM-DD-NNN`): la lista está sin ordenar y un
+> `pageSize=1` dio por servido un rollout EN COLA; (4) el SW de una app instalada se actualiza
+> con liturgia — abrir (descarga), cerrar del todo (activa), reabrir.
+
 **`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
 un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la
 píldora decía 90 con las tarjetas sumando 33 y el cajón listando 4—, la barra de cumplimiento

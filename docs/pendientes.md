@@ -4,120 +4,110 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026
+## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026 (reescrita tras la jornada del 29–30)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ NO HAY FRENTE ELEGIDO. HAY QUE ELEGIRLO, Y LA COLA ESTÁ CORTA
+> ## ▸ REMATAR `PLAT-005` (dos validaciones cortas) Y VOLVER A ELEGIR FRENTE
 >
-> **`FIN-002` se cerró el 29** —el expediente de conciliación, entero y en producción—, así que
-> **Vivaru Finance y Propiedad horizontal están los dos cerrados**. Lo único abierto y que avanza
-> **sin esperar a nadie** es **`UX-003`** (experiencia y diseño). Todo lo demás de la cola espera a
-> un cliente, no a una decisión ni a código.
+> **La jornada del 29–30 abrió y llevó a producción `PLAT-005`** — notificaciones push al
+> residente — en un solo día: PRD → MVP → staging → validación con un iPhone real → producción
+> con la bandera **solo en Santa María**. Con eso Mobile/iOS tiene su primera entrega.
+> Lo que le queda a la ficha es corto y NO es construir: validar el ciclo **en producción** con
+> una cuenta de prod, y verlo una vez en **un Android**. Después, la mesa de elegir frente es la
+> misma de antes: `UX-003` abierto, la puerta del alta esperando tu decisión, y `F2` sigue NO
+> siendo lo siguiente (su medición de abajo no cambió).
 >
-> **Y hay una pregunta ya contestada que conviene no volver a abrir en frío: `F2` (la IA en sombra
-> de Finance) NO es lo siguiente**, y no por prudencia sino por medición — ver abajo.
->
-> Sigue en pie: **una sola sesión que escriba a la vez**.
+> Sigue en pie: **una sola sesión que escriba a la vez.**
 
-### `FIN-002` / `FLOW-004` — CERRADA. LO QUE HAY QUE SABER SI SE VUELVE
+### `PLAT-005` — EN PRODUCCIÓN CON CANARIO. LO QUE HAY QUE SABER PARA RETOMARLA
 
-**En producción entera** (`02a9642`…`e65210e`, 29 ago): expediente con estados versionados,
-coherencia de los emparejamientos, candidatos con reglas, duplicados por clave natural, bandeja
-con motivos, cascada al revertir, reglas y relleno —**27 casos, uno por línea**—. Ficha:
-[`PRD-V-FLOW-004`](prd/funcionales/PRD-V-FLOW-004-expediente-de-conciliacion.md).
+**Ficha:** [`PRD-V-PLAT-005`](prd/funcionales/PRD-V-PLAT-005-notificaciones-push-al-residente.md)
+(v0.6). El aviso que nace en `notifications` llega además al hub del teléfono, sin app en las
+tiendas. Tercer canal del embudo único `createNotifications`; la bandera es
+`producto-notificaciones-push`, **encendida SOLO en `tenant-santa-maria` en LOS DOS ambientes**,
+global apagada. **NO productiva: G5 la llena un residente real**, como todo lo encendido y quieto.
 
-**La bandera `producto-expediente-conciliacion` está encendida SOLO en `tenant-santa-maria`.**
-Resuelto con el código compilado del servidor y comprobado **pintado**, que es el criterio.
+**Para validar en producción** (lo primero de la ficha): la cuenta de prod es
+`jaime-gutierrez.tenant-santa-maria@ejemplo.vivaru.app` (la parte local NO es la vieja
+`jaimeguti`: `DATO-001` derivó las direcciones del NOMBRE, y David le pone contraseña en consola).
+El ciclo de prueba está escrito en §14 de la ficha y el disparador cómodo es un comunicado.
 
-**Lo que sigue encima de la mesa, y es UNA sola cosa:** el emparejamiento falso de **−300.000
-contra +40.000** sigue escrito en `tenant-santa-maria`. **Se deja nombrado a propósito** —el dato
-histórico de conjuntos de ejemplo no se corrige, criterio de `roadmap-finance` §9— y **se decide
-el día que haya pagos reales**. Hoy sale en la bandeja bajo «Conciliaciones a revisar».
+**Los CINCO hallazgos que solo el teléfono encontró** viven en la §14 — dos ya corregidos y
+desplegados (base de enlaces por ambiente; click propio en el SW v2 porque el del SDK de FCM no
+navega una web app instalada de iOS), uno de producto (la baja que podía resucitar sola, también
+corregido), y **la respuesta de plataforma que evita rediscutir: NO hay push en iPhone sin
+pantalla de inicio, en ninguna versión** — Declarative Web Push quita el service worker, no la
+instalación. **Dos chips de tarea abiertos:** `startsAt: undefined` en el formulario de crear
+comunicado (preexistente, lo caza cualquier alta sin vigencia), y el gemelo de `email.ts` (base
+clavada: sus correos de staging enlazan a producción).
 
-**No se marca productiva, y no es de ingeniería:** `G5` sigue abierta porque **nadie concilia a
-diario**. Eso lo cierra un cliente.
+### `FIN-002` — CERRADO, y lo que sigue vivo de él
+
+La bandera `producto-expediente-conciliacion` está encendida **solo en `tenant-santa-maria`**
+(igual que la de push). **El emparejamiento falso de −300.000 contra +40.000 sigue escrito en
+producción A PROPÓSITO** — nombrado en la bandeja, no corregido, criterio de `roadmap-finance`
+§9; se decide el día que haya pagos reales. Y **G5 sigue abierta**: nadie concilia a diario.
 
 ### `F2` NO ES LO SIGUIENTE, Y ESTÁ MEDIDO — no lo rediscutas desde cero
 
-El argumento «sin clientes no vale la pena» se resolvió **al revés** en `FIN-002` y **a favor** en
-`F2`, y la diferencia es la que hay que llevarse:
+Sin cambios: los 5 `paymentReceipts` de producción tienen `fileUrl` vacío, 0 objetos de Storage
+con pinta de comprobante, `aiUsage` en 0 filas, y `DOC-001` no admite datos sintéticos. Lo que lo
+movería es juntar un corpus real (100–200 comprobantes), y eso no es ingeniería.
 
-| | `FIN-002` (se construyó) | `F2` (no) |
-|---|---|---|
-| Contra qué verificar | 27 líneas, 93 asientos, **19 conciliaciones ya hechas** | **Nada** |
-| Ficheros que leer | — | **0**: los 5 `paymentReceipts` tienen nombre y **`fileUrl` vacío**; 0 de 59 objetos de Storage tienen pinta de comprobante |
-| Telemetría de coste | — | `aiUsage`: **0 filas** |
+### LO QUE QUEDA, SEPARADO POR TIPO
 
-Y su bloqueo es **de otra clase**: la auditoría de las PRD de IA dice que `FEAT-001` y `FEAT-002`
-**admiten datasets sintéticos**, y que `DOC-001` **no** —«necesita comprobantes bancarios reales
-con su mala calidad y sus duplicados; eso se recolecta, no se sintetiza»—. Pide **100–200**.
+**Avanza sin esperar a nadie:**
 
-**Lo que sí movería el bloqueo, y no es ingeniería:** juntar un corpus real que no venga de un
-cliente, como se hizo con PQRS —gold set de **152 casos** de chats vecinales reales, anonimizados—.
-Comprobantes propios o de Qintilab sirven.
+- **Rematar `PLAT-005`**: validación en producción + un Android. Corto, y cierra la ficha.
+- **`UX-003`** — abierto. Su siguiente paso sigue siendo **decidir qué pantalla**, y la entrega 2
+  de PLAT-005 (instalación guiada pulida, wording Safari/Chrome) es candidata natural del frente.
 
-### LO QUE QUEDA, SEPARADO POR TIPO — que es lo que evita discutirlo mal
+**Espera una decisión tuya (las mismas dos):**
 
-**Avanza sin esperar a nadie (uno):**
+- **Cerrar la puerta del alta** (rechazar buzones reales en conjuntos `isExample`). Sin escribir.
+- **Si se abre el canal de correo y los calendarios de `FLOW-003`.** Antes de abrir el correo,
+  mirar a quién llegaría: 12 de 14 direcciones de Santa María no reciben.
 
-- **`UX-003`** — abierto. Tres entregas en producción y su siguiente paso es **decidir qué pantalla
-  se mejora**, no un bloqueo.
+**Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
+correo cerrado, **y ahora también el push productivo** (G5 de PLAT-005).
 
-**Espera una decisión tuya (dos, las dos pequeñas):**
+**Espera a Albert:** sus dos preguntas de siempre. Estado en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md).
 
-- **Cerrar la puerta del alta**: rechazar dominios de buzón real cuando el conjunto es `isExample`.
-  `DATO-001` limpió lo que había, **no la puerta**. Es una PRD pequeña, sin escribir.
-- **Si se abre el canal de correo y si algún conjunto configura su calendario.** Son las dos que
-  ponen `FLOW-003` a producir. **Antes de abrir el correo, mirar a quién llegaría**: 12 de los 14
-  miembros de Santa María tienen direcciones que no reciben.
+### LAS TRAMPAS DEL DESPLIEGUE — las de siempre, más las que dejó esta jornada
 
-**Lo llena un cliente, no nosotros (cuatro):** proveedores (0), paz y salvo (0 emitidos),
-calendarios (0), canal de correo cerrado. **No las arregla una decisión.**
+**Producción NO se despliega con push a `master`** (rollout manual, ver `CLAUDE.md`). El orden se
+decide por el delta contra ESE ambiente; en PLAT-005 fue el clásico reglas → functions → front,
+porque nada restringía.
 
-**Espera a Albert (nada nuestro):** dos preguntas suyas —la clave estable de «ganado» y cómo dan la
-credencial—. Estado vivo en [`ESTADO-ALBERT.md`](prd/albert/ESTADO-ALBERT.md).
-
-### LAS TRAMPAS DEL DESPLIEGUE, QUE VUELVEN SIEMPRE
-
-**Producción NO se despliega con un push a `master`** —su backend de App Hosting no tiene campo
-`branch`—. Hace falta el rollout manual:
-
-```bash
-firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
-```
-
-**Y el orden no es fijo: se INVIERTE cuando la pieza restringe.** `FLOW-004` fue **functions →
-front → reglas**, porque la regla quitaba al cliente algo que la pantalla hacía; al revés, la
-conciliación se habría caído en la ventana intermedia.
-
-**Cómo se comprueba cada pieza, porque «Deploy complete» no basta:** las functions por su
-`updateTime` en la API; el front por la **procedencia del build** (el commit del que salió, no la
-huella de chunks, que da falsos negativos); y las reglas **leyendo el ruleset vivo** por la API de
-Rules y diferenciándolo contra el repositorio. **`master` no dice lo que hay desplegado en reglas
-ni en functions.**
-
-**Credenciales:** las tres caducan por separado. El 29, `gcloud` (el CLI) estaba **caducado** y la
-**ADC funcionaba** — con la ADC se leen Firestore, la API de Rules, la de functions y la de App
-Hosting, así que casi todo se puede medir sin arreglar `gcloud`.
-
-**Y un aviso del emulador:** el de staging necesitó que David creara `RESEND_WEBHOOK_SECRET` en
-`vivaru-staging-02`; sin ese secret **ningún despliegue de functions a staging arranca**, ni
-siquiera el de una función que no lo usa. Ya está creado.
+- **ESPERAR UN ROLLOUT SE HACE POR NOMBRE, nunca contra una lista.** La lista de
+  rollouts/builds está paginada y SIN ordenar, y el 29 mordió DOS veces: un `pageSize=1` devolvió
+  un `SUCCEEDED` viejo y el vigía dio por servido un rollout EN COLA; otro devolvió un build de
+  dos semanas atrás. El nombre sale del `rollouts:create` o de paginar entero y ordenar por
+  `createTime`; con él: `rollouts/build-YYYY-MM-DD-NNN`.
+- **Las TRES credenciales caducaron POR SEPARADO y a mitad de faena**: la ADC murió entre dos
+  comandos (`invalid_rapt`, parece error de código), el CLI de gcloud estaba muerto, y el de
+  firebase caducó ENTRE el deploy de reglas y el de functions. Renovadas ADC y firebase el 29–30;
+  `gcloud auth login` (el CLI) quedó sin renovar y casi todo se mide sin él.
+- **El despliegue que miente, otra vez**: un `deploy --only functions` a staging dejó
+  `registrarImportacion` en el código del 26 con salida verde. Contar frescas por `updateTime`
+  contra el corte de la pasada, siempre.
+- **El SW de una web app instalada de iOS tiene su liturgia de actualización**: abrir la app
+  (descarga), cerrarla del todo (activa), reabrir. Sin ese baile se prueba el SW viejo.
 
 ### LO QUE ESTA JORNADA ENSEÑÓ, Y VALE MÁS QUE LA ENTREGA
 
-- **Dos defectos los encontró mirar la pantalla**, con typecheck en 0 y 1.379 pruebas en verde. Y
-  **uno solo aparecía con la bandera en el estado CONTRARIO al que se probó** —staging la tenía
-  encendida, producción la tiene apagada—. Es la tercera vez.
-- **Una falsación escrita en la propia ficha no falsaba lo que decía.** Decía que comparar valores
-  absolutos pondría en verde el par falso: es mentira, ese par lo rechazan **tres** reglas
-  independientes. Y otra falsación **tocó otro bloque** porque la cadena que mutó aparece **seis
-  veces** en `firestore.rules`.
-- **Un criterio de la ficha llevaba horas en producción sin cumplirse** (`CA1`: importar no creaba
-  los expedientes) y **nada fallaba** — la pantalla se veía bien y el relleno lo tapaba. Desplegar
-  prueba que lo construido funciona, **no que se construyó todo lo prometido**.
-
+- **Validar por el teléfono es el nuevo validar por el navegador**: cinco hallazgos reales con
+  typecheck en 0 y cuatro bancos en verde. Dos eran imposibles de ver sin el dispositivo físico
+  (el click del SW, el origen cruzado del enlace).
+- **`git checkout` sobre un fichero SIN commitear se llevó un bloque de reglas entero**, y 8 de
+  13 pruebas «pasaban» sin reglas: `assertFails` se cumple solo cuando todo se deniega — el primo
+  de la puerta sobre conjunto vacío. **La reversión de una falsación se hace por edición.**
+- **Una baja que el sistema puede deshacer en silencio no es una baja**: el re-registro
+  automático habría resucitado el dispositivo quitado. Toda decisión del usuario necesita su
+  marca persistente y su camino de vuelta explícito.
+- **Un heredoc de shell sin comillas en el delimitador ejecuta los backticks del texto** — una
+  nota de memoria se escribió mutilada y hubo que repararla mirándola, no confiando en el exit 0.
 
 ---
 
