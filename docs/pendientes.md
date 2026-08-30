@@ -42,6 +42,16 @@ instalación. **Dos chips de tarea abiertos:** `startsAt: undefined` en el formu
 comunicado (preexistente, lo caza cualquier alta sin vigencia), y el gemelo de `email.ts` (base
 clavada: sus correos de staging enlazan a producción).
 
+### VOCABULARIO — el documento de no deuda, por país (cerrado el 30 por la tarde)
+
+**EN PRODUCCIÓN** (`dc25c1b`): México dice «constancia de no adeudo», Ecuador «certificado de
+expensas», Colombia conserva «paz y salvo»; el término viaja con su artículo y el título del PDF
+cambia por país. Validado con ojos en Las Palmas (staging) y Queretarock (producción). El espejo
+de vocabulario front/functions tiene por fin guardián. **Vistazo pendiente de baja prioridad:**
+confirmar en pantalla que Santa María sigue diciendo «Paz y salvo» (los guardianes lo cubren).
+Trampa nueva: un `rollouts:create` cortado por timeout puede disparar DOS — mirar la lista antes
+de repetir.
+
 ### `FIN-002` — CERRADO, y lo que sigue vivo de él
 
 La bandera `producto-expediente-conciliacion` está encendida **solo en `tenant-santa-maria`**

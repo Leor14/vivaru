@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.40 |
+| **Versión** | 0.9.42 |
 | **Fecha** | 30 de agosto de 2026 |
 | **Estado** | **`PLAT-005` — PUSH AL RESIDENTE — SE ABRIÓ Y LLEGÓ A PRODUCCIÓN EN UN DÍA** (29–30 ago): PRD → MVP → staging → validación con un iPhone real → producción, con `producto-notificaciones-push` encendida **solo en Santa María** en los dos ambientes. El aviso que nace en `notifications` llega además al hub del teléfono, sin app en las tiendas; tercer canal del embudo único, tras in-app y correo. **La validación con teléfono cazó CINCO cosas que ningún banco veía** (§14 de la ficha): la base de enlaces clavada a producción, el click del SDK de FCM que no navega una web app instalada de iOS, la baja que el re-registro silencioso podía deshacer, el copy que asume Safari, y la respuesta de plataforma — **no hay push en iPhone sin pantalla de inicio, en ninguna versión**. Pendiente de la ficha: validar en producción con cuenta de prod y en un Android; **NO productiva** — G5 la llena un residente real. **ANTES:** `FIN-002` cerrada el 29 con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión — y el push productivo se les suma. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Los dos ambientes, pieza por pieza y por el método de cada una** (29–30 ago): reglas leyendo el ruleset VIVO por la API de Rules y diferenciando contra el repo (0 diff en ambos); functions contando 87/87 con `updateTime` dentro del corte de la pasada — que cazó una rancia en staging con el deploy en verde—; el front por PROCEDENCIA del build (staging `build-2026-08-29-034` desde `2fde767`; producción `build-2026-08-29-015` desde `b70c357`), **esperando cada rollout POR NOMBRE** porque la lista sin ordenar engañó dos veces; la bandera resolviendo con `functions/lib/feature-flags.js` compilado (true·override en el canario, false·default en el resto); y el producto entero con un iPhone físico: push en el hub con la app cerrada, toque navegando, baja y re-alta vigiladas en vivo contra `pushTokens`. Suites: 1396 front · 717 functions · 13 de reglas nuevas, cada pieza nueva falsada y cayendo exactamente su prueba |
@@ -1061,6 +1061,25 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.42 — 30 de agosto de 2026 (tarde)
+
+- **El documento de no deuda se llama como lo pide cada país, EN PRODUCCIÓN**: «paz y salvo» solo
+  en Colombia; «constancia de no adeudo» en México (la exige el notario — Ley de Propiedad en
+  Condominio CDMX) y «certificado de expensas» en Ecuador (documento habilitante — doctrina
+  DINARDAP 003-2013); neutro «certificado de no adeudo». Investigado con fuentes, decidido por
+  David, y cableado por el mecanismo de `vocabulario-pais` — con el término viaja su ARTÍCULO,
+  porque el género cambia (LA constancia). Pantallas, PDF (título por país, cuerpo con la fórmula
+  legal común) y el «no» del servidor, que lee el país del conjunto. Validado en staging (Las
+  Palmas) y en producción (Queretarock) con ojos humanos. **Y el espejo front/functions de
+  vocabulario tiene POR FIN guardián**, que cubre de paso coeficiente y cuota — la sincronía era
+  solo un comentario desde el 22 de agosto.
+- **Trampa nueva del CLI, para la colección:** `apphosting:rollouts:create` cortado por timeout
+  puede disparar **DOS rollouts** (pasó en producción, 19 s de diferencia, mismo commit — derroche
+  inofensivo, pero con commits distintos habría sido una carrera). Tras un create cortado, mirar
+  la lista ANTES de repetir. Y las credenciales rotaron **cuatro veces en la jornada** (ADC ×2,
+  firebase ×2): si es lo nuevo normal, valorar `login:ci` o cuenta de servicio.
+- La celda de versión decía 0.9.40 con la 0.9.41 ya en el changelog — corregida de paso.
 
 ### 0.9.41 — 30 de agosto de 2026 (madrugada)
 
