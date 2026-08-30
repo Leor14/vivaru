@@ -137,6 +137,12 @@ firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha> --forc
 firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
 ```
 
+> **Y un `rollouts:create` CORTADO POR TIMEOUT puede disparar DOS rollouts** (30 ago 2026:
+> dos en producción con 19 s de diferencia, mismo commit — inofensivo esa vez; con commits
+> distintos sería una carrera). Tras un create cortado, **mirar la lista antes de repetir**. Y
+> esperar un rollout se hace **POR NOMBRE** contra su recurso exacto: la lista está paginada y
+> sin ordenar, y un `pageSize=1` llegó a dar por servido un rollout EN COLA.
+>
 > **Esta línea decía que era cosa SOLO de staging, y era falsa.** Medido el 27 de agosto de 2026
 > en el JSON crudo del backend de producción: su `codebase` trae `repository` y `rootDirectory`
 > y **no tiene campo `branch`**. Empujar a `master` responde «success» y producción sigue

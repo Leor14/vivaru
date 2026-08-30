@@ -73,7 +73,14 @@ movería es juntar un corpus real (100–200 comprobantes), y eso no es ingenier
 - **`UX-003`** — abierto. Su siguiente paso sigue siendo **decidir qué pantalla**, y la entrega 2
   de PLAT-005 (instalación guiada pulida, wording Safari/Chrome) es candidata natural del frente.
 
-**Espera una decisión tuya (las mismas dos):**
+**Chips de tarea abiertos (tres, cada uno autónomo):** `startsAt: undefined` en crear
+comunicado · la base clavada de `email.ts` (correos de staging enlazan a producción) · el test
+CF3 de migración frágil a latencia (el script tarda 8 s contra un timeout de 5).
+
+**Espera una decisión tuya (las mismas dos, más una nueva):**
+
+- **Credenciales**: rotaron CUATRO veces en la jornada (ADC ×2, firebase ×2). Si es lo nuevo
+  normal, decidir `firebase login:ci` o cuenta de servicio para despliegues.
 
 - **Cerrar la puerta del alta** (rechazar buzones reales en conjuntos `isExample`). Sin escribir.
 - **Si se abre el canal de correo y los calendarios de `FLOW-003`.** Antes de abrir el correo,
