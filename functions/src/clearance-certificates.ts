@@ -2,6 +2,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import { clavesDeConsulta, construirCatalogo, resolverClaveDeUnidad } from "./clave-de-unidad";
+import { terminoPazYSalvo } from "./vocabulario-pais";
 import { codigoDesdeId } from "./comprobante";
 
 /**
@@ -119,6 +120,11 @@ export async function emitirPazYSalvo(
    * Y si no resuelve, **no se emite**. Un papel que afirma que una unidad no
    * debe nada no se puede firmar sobre una unidad que no se sabe cuál es.
    */
+  // El «no» de esta función lo lee una persona, y el documento se llama
+  // distinto en cada país (30 ago 2026): el término sale del país del conjunto.
+  const tenantSnap = await firestore.collection("tenants").doc(input.tenantId).get();
+  const pys = terminoPazYSalvo((tenantSnap.data() as { country?: string } | undefined)?.country);
+
   const unidadesSnap = await firestore
     .collection("units")
     .where("tenantId", "==", input.tenantId)
@@ -133,7 +139,7 @@ export async function emitirPazYSalvo(
   if (resolucion.estado !== "canonica" && resolucion.estado !== "migrable") {
     throw new HttpsError(
       "failed-precondition",
-      "No se puede emitir el paz y salvo: la unidad no existe en este conjunto.",
+      `No se puede emitir ${pys.articulo} ${pys.nombre}: la unidad no existe en este conjunto.`,
     );
   }
   const clave = resolucion.clave;
@@ -173,7 +179,7 @@ export async function emitirPazYSalvo(
       // pantalla, y «1700000» se cuenta con el dedo. Se formatea aquí y no en el
       // cliente porque el mensaje del servidor se enseña tal cual — que es
       // justo lo que lo hace útil.
-      `No se puede emitir el paz y salvo: la unidad tiene un saldo pendiente de ${saldo.toLocaleString("es-CO")}` +
+      `No se puede emitir ${pys.articulo} ${pys.nombre}: la unidad tiene un saldo pendiente de ${saldo.toLocaleString("es-CO")}` +
         (periodos.length > 0 ? `, desde ${periodos[0]}${periodos.length > 1 ? ` (${periodos.length} períodos)` : ""}.` : "."),
     );
   }

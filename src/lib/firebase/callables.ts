@@ -275,7 +275,7 @@ export async function emitClearanceCertificateCallable(input: EmitClearanceCerti
     functions,
     "emitClearanceCertificate",
   );
-  return executeCallable(callable, input, "No fue posible emitir el paz y salvo.");
+  return executeCallable(callable, input, "No fue posible emitir el certificado.");
 }
 
 export type CancelClearanceCertificateInput = {

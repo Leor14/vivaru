@@ -3628,7 +3628,7 @@ async function assertAdminOrResidentDeLaUnidad(tenantId, unitId, uid) {
     // contra el documento, nunca al revés.
     if (m.role === "resident" && m.unitId === unitId)
         return;
-    throw new https_1.HttpsError("permission-denied", "No puedes pedir el paz y salvo de otra unidad.");
+    throw new https_1.HttpsError("permission-denied", "No puedes pedir el certificado de otra unidad.");
 }
 exports.emitClearanceCertificate = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
     const uid = request.auth?.uid;
@@ -3636,7 +3636,7 @@ exports.emitClearanceCertificate = (0, https_1.onCall)({ cors: http_config_1.cal
         throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
     const data = request.data;
     if (!data?.tenantId || !data.unitId || !data.issueDate || !data.operationKey) {
-        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para emitir el paz y salvo.");
+        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para emitir el certificado.");
     }
     await assertAdminOrResidentDeLaUnidad(data.tenantId, normalizeText(data.unitId), uid);
     await (0, tenant_status_1.assertTenantOperable)(data.tenantId);

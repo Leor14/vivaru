@@ -31,6 +31,33 @@ describe("cada país lee su palabra", () => {
   });
 });
 
+describe("el documento de no deuda — cada país pide el suyo (30 ago 2026)", () => {
+  it("Colombia dice paz y salvo; México, constancia de no adeudo; Ecuador, certificado de expensas", () => {
+    expect(terminosDePais("CO").pazYSalvo).toBe("paz y salvo");
+    expect(terminosDePais("MX").pazYSalvo).toBe("constancia de no adeudo");
+    expect(terminosDePais("EC").pazYSalvo).toBe("certificado de expensas");
+  });
+
+  it("el artículo acompaña al género: LA constancia, EL certificado, EL paz y salvo", () => {
+    // Sin esto, «el constancia de no adeudo» se leería mexicano a medias — peor
+    // que no traducir. El artículo es parte del término, no adorno.
+    expect(terminosDePais("MX").pazYSalvoArticulo).toBe("la");
+    expect(terminosDePais("CO").pazYSalvoArticulo).toBe("el");
+    expect(terminosDePais("EC").pazYSalvoArticulo).toBe("el");
+  });
+
+  it("el título del PDF es el nombre en mayúsculas, con el CERTIFICADO DE solo donde toca", () => {
+    expect(terminosDePais("CO").pazYSalvoTitulo).toBe("CERTIFICADO DE PAZ Y SALVO");
+    expect(terminosDePais("MX").pazYSalvoTitulo).toBe("CONSTANCIA DE NO ADEUDO");
+    expect(terminosDePais("EC").pazYSalvoTitulo).toBe("CERTIFICADO DE EXPENSAS");
+  });
+
+  it("sin país: certificado de no adeudo, que se entiende en los tres", () => {
+    expect(terminosDePais(undefined).pazYSalvo).toBe("certificado de no adeudo");
+    expect(terminosDePais("PE").pazYSalvo).toBe("certificado de no adeudo");
+  });
+});
+
 describe("lo desconocido cae en neutro, nunca en un país concreto", () => {
   it("sin país no se adivina", () => {
     expect(terminosDePais(undefined).coeficiente).toBe("porcentaje de copropiedad");

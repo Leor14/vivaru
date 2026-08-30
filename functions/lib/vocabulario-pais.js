@@ -17,6 +17,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.terminoCoeficiente = terminoCoeficiente;
 exports.terminoCuotaMensual = terminoCuotaMensual;
+exports.terminoPazYSalvo = terminoPazYSalvo;
 /** Solo el término corto: es lo único que aparece en un mensaje de error. */
 const POR_PAIS = {
     CO: "coeficiente",
@@ -56,4 +57,25 @@ function terminoCuotaMensual(country) {
     if (!country)
         return CUOTA_MENSUAL_NEUTRO;
     return CUOTA_MENSUAL_POR_PAIS[country.toUpperCase()] ?? CUOTA_MENSUAL_NEUTRO;
+}
+/**
+ * El documento que certifica que la unidad no debe. Espejo de `pazYSalvo` en
+ * `src/lib/config/vocabulario-pais.ts` — decidido por David el 30 ago 2026.
+ *
+ * **Existe porque el «no» del servidor lo lee una persona**: el rechazo de
+ * `emitClearanceCertificate` nombra la deuda (CA de `PRD-V-FEAT-004`), y a un
+ * condómino de CDMX «paz y salvo» no le dice nada — su notario le pide la
+ * «constancia de no adeudo». El artículo viaja junto al nombre porque el
+ * género cambia con el país (EL certificado, LA constancia).
+ */
+const PAZ_Y_SALVO_POR_PAIS = {
+    CO: { nombre: "paz y salvo", articulo: "el" },
+    EC: { nombre: "certificado de expensas", articulo: "el" },
+    MX: { nombre: "constancia de no adeudo", articulo: "la" },
+};
+const PAZ_Y_SALVO_NEUTRO = { nombre: "certificado de no adeudo", articulo: "el" };
+function terminoPazYSalvo(country) {
+    if (!country)
+        return PAZ_Y_SALVO_NEUTRO;
+    return PAZ_Y_SALVO_POR_PAIS[country.toUpperCase()] ?? PAZ_Y_SALVO_NEUTRO;
 }

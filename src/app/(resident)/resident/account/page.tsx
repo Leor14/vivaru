@@ -78,12 +78,17 @@ export default function ResidentAccountPage() {
           creditBalance: r.creditBalance,
         },
         formatAmount,
+        { titulo: vocab.pazYSalvoTitulo },
       );
-      toast.success(r.created ? `Paz y salvo emitido: ${r.code}` : `Ya tenías uno de hoy: ${r.code}`);
+      toast.success(
+        r.created
+          ? `Se emitió ${vocab.pazYSalvoArticulo} ${vocab.pazYSalvo}: ${r.code}`
+          : `Ya se había emitido hoy: ${r.code}`,
+      );
     } catch (error) {
       // El servidor nombra el saldo y desde qué período. Ese texto ES la
       // respuesta: sustituirlo por uno genérico tiraría lo único accionable.
-      toast.error(error instanceof Error ? error.message : "No fue posible emitir el paz y salvo.");
+      toast.error(error instanceof Error ? error.message : `No fue posible emitir ${vocab.pazYSalvoArticulo} ${vocab.pazYSalvo}.`);
     } finally {
       setEmitiendo(false);
     }
@@ -106,6 +111,7 @@ export default function ResidentAccountPage() {
         {
           conjunto: user?.tenantName ?? "Conjunto residencial",
           unidad: user?.unitLabel ?? user?.unitId ?? "—",
+          pazYSalvoFrase: `${vocab.pazYSalvoArticulo} ${vocab.pazYSalvo}`,
           // La fecha la pone la pantalla, no el generador: un PDF que decide
           // qué día es hoy no se puede probar.
           emitidoEl: `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`,
@@ -349,7 +355,7 @@ export default function ResidentAccountPage() {
             {descargando ? "Generando…" : "Descargar estado de cuenta"}
           </Button>
           <Button type="button" disabled={emitiendo} onClick={() => void emitirPazYSalvo()}>
-            {emitiendo ? "Emitiendo…" : "Paz y salvo"}
+            {emitiendo ? "Emitiendo…" : capitalizar(vocab.pazYSalvo)}
           </Button>
         </div>
       ) : null}

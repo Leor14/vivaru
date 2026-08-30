@@ -26,9 +26,17 @@ export type CertificadoParaPdf = {
   anuladoMotivo?: string;
 };
 
+/**
+ * El título viene del vocabulario del país del conjunto (decidido el 30 ago
+ * 2026): CERTIFICADO DE PAZ Y SALVO en Colombia, CONSTANCIA DE NO ADEUDO en
+ * México, CERTIFICADO DE EXPENSAS en Ecuador. El cuerpo es neutro a propósito
+ * —«cuotas ordinarias, extraordinarias»— porque esa fórmula está en la ley de
+ * los tres países; el país lo dice el encabezado.
+ */
 export async function renderPazYSalvoPdf(
   cert: CertificadoParaPdf,
   formatMoney: (value: number) => string,
+  terminos: { titulo: string },
 ): Promise<void> {
   const { jsPDF } = await import("jspdf");
   const docpdf = new jsPDF({ unit: "pt", format: "a4" });
@@ -43,7 +51,7 @@ export async function renderPazYSalvoPdf(
   y += salto + 10;
 
   docpdf.setFontSize(15);
-  docpdf.text("CERTIFICADO DE PAZ Y SALVO", left, y);
+  docpdf.text(terminos.titulo, left, y);
   y += salto;
 
   docpdf.setFontSize(10);
@@ -76,8 +84,8 @@ export async function renderPazYSalvoPdf(
   // leerlo como si acreditara para siempre.
   docpdf.setFontSize(11);
   const cuerpo = cert.anulado
-    ? `Este certificado fue ANULADO y no acredita nada. Se emitió para la unidad ${cert.unidad}.`
-    : `Se hace constar que la unidad ${cert.unidad} se encuentra a PAZ Y SALVO por concepto de cuotas de administración y demás obligaciones de cartera con ${cert.conjunto || "el conjunto"}, con corte al ${cert.asOfDate}.`;
+    ? `Este documento fue ANULADO y no acredita nada. Se emitió para la unidad ${cert.unidad}.`
+    : `Se hace constar que la unidad ${cert.unidad} NO ADEUDA valor alguno por concepto de cuotas ordinarias, extraordinarias ni demás obligaciones de cartera con ${cert.conjunto || "el conjunto"}, con corte al ${cert.asOfDate}.`;
   for (const linea of docpdf.splitTextToSize(cuerpo, right - left) as string[]) {
     docpdf.text(linea, left, y);
     y += salto;
@@ -103,7 +111,7 @@ export async function renderPazYSalvoPdf(
   // si cubriera todo, y este solo habla de cartera: no dice nada de servicios
   // públicos a nombre del propietario ni de obligaciones fuera del conjunto.
   for (const linea of docpdf.splitTextToSize(
-    "Este certificado se refiere exclusivamente a las obligaciones de cartera registradas en Vivaru para la unidad indicada, y con corte a la fecha señalada. No cubre obligaciones posteriores ni ajenas a la administración del conjunto.",
+    "Este documento se refiere exclusivamente a las obligaciones de cartera registradas en Vivaru para la unidad indicada, y con corte a la fecha señalada. No cubre obligaciones posteriores ni ajenas a la administración del conjunto.",
     right - left,
   ) as string[]) {
     docpdf.text(linea, left, y);

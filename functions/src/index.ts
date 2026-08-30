@@ -4558,7 +4558,7 @@ async function assertAdminOrResidentDeLaUnidad(tenantId: string, unitId: string,
   // contra el documento, nunca al revés.
   if (m.role === "resident" && m.unitId === unitId) return;
 
-  throw new HttpsError("permission-denied", "No puedes pedir el paz y salvo de otra unidad.");
+  throw new HttpsError("permission-denied", "No puedes pedir el certificado de otra unidad.");
 }
 
 export const emitClearanceCertificate = onCall<EmitirPazYSalvoInput>(
@@ -4569,7 +4569,7 @@ export const emitClearanceCertificate = onCall<EmitirPazYSalvoInput>(
 
     const data = request.data;
     if (!data?.tenantId || !data.unitId || !data.issueDate || !data.operationKey) {
-      throw new HttpsError("invalid-argument", "Datos incompletos para emitir el paz y salvo.");
+      throw new HttpsError("invalid-argument", "Datos incompletos para emitir el certificado.");
     }
 
     await assertAdminOrResidentDeLaUnidad(data.tenantId, normalizeText(data.unitId), uid);

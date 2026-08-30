@@ -5,6 +5,7 @@ exports.anularPazYSalvo = anularPazYSalvo;
 const firestore_1 = require("firebase-admin/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const clave_de_unidad_1 = require("./clave-de-unidad");
+const vocabulario_pais_1 = require("./vocabulario-pais");
 const comprobante_1 = require("./comprobante");
 /**
  * `PRD-V-FEAT-004` — el certificado de paz y salvo.
@@ -95,6 +96,10 @@ async function emitirPazYSalvo(input, uid) {
      * Y si no resuelve, **no se emite**. Un papel que afirma que una unidad no
      * debe nada no se puede firmar sobre una unidad que no se sabe cuál es.
      */
+    // El «no» de esta función lo lee una persona, y el documento se llama
+    // distinto en cada país (30 ago 2026): el término sale del país del conjunto.
+    const tenantSnap = await firestore.collection("tenants").doc(input.tenantId).get();
+    const pys = (0, vocabulario_pais_1.terminoPazYSalvo)(tenantSnap.data()?.country);
     const unidadesSnap = await firestore
         .collection("units")
         .where("tenantId", "==", input.tenantId)
@@ -105,7 +110,7 @@ async function emitirPazYSalvo(input, uid) {
     }));
     const resolucion = (0, clave_de_unidad_1.resolverClaveDeUnidad)(input.unitId, catalogo);
     if (resolucion.estado !== "canonica" && resolucion.estado !== "migrable") {
-        throw new https_1.HttpsError("failed-precondition", "No se puede emitir el paz y salvo: la unidad no existe en este conjunto.");
+        throw new https_1.HttpsError("failed-precondition", `No se puede emitir ${pys.articulo} ${pys.nombre}: la unidad no existe en este conjunto.`);
     }
     const clave = resolucion.clave;
     const slugPropio = unidadesSnap.docs.find((d) => d.id === clave)?.data()?.unitId;
@@ -134,7 +139,7 @@ async function emitirPazYSalvo(input, uid) {
         // pantalla, y «1700000» se cuenta con el dedo. Se formatea aquí y no en el
         // cliente porque el mensaje del servidor se enseña tal cual — que es
         // justo lo que lo hace útil.
-        `No se puede emitir el paz y salvo: la unidad tiene un saldo pendiente de ${saldo.toLocaleString("es-CO")}` +
+        `No se puede emitir ${pys.articulo} ${pys.nombre}: la unidad tiene un saldo pendiente de ${saldo.toLocaleString("es-CO")}` +
             (periodos.length > 0 ? `, desde ${periodos[0]}${periodos.length > 1 ? ` (${periodos.length} períodos)` : ""}.` : "."));
     }
     // R4 · un saldo A FAVOR no impide emitirlo, y el documento lo nombra. Se lee

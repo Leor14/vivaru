@@ -16,6 +16,12 @@ import type { EstadoDeCuenta } from "@/features/billing/estado-de-cuenta";
  */
 
 export type CabeceraEstadoDeCuenta = {
+  /**
+   * «el paz y salvo» / «la constancia de no adeudo», con artículo, para el
+   * descargo del pie. Opcional a propósito: quien no lo pase cae en el neutro
+   * «un certificado de no adeudo», que se entiende en los tres países.
+   */
+  pazYSalvoFrase?: string;
   conjunto: string;
   unidad: string;
   /** Rango pedido, si lo hubo. Ausente = historia completa. */
@@ -151,7 +157,7 @@ function dibujarEstadoDeCuenta(
   docpdf.setFontSize(8);
   docpdf.setTextColor(120);
   docpdf.text(
-    "Documento generado por Vivaru. Es un resumen informativo de la cuenta y NO acredita estar a paz y salvo.",
+    `Documento generado por Vivaru. Es un resumen informativo de la cuenta y NO equivale a ${cabecera.pazYSalvoFrase ?? "un certificado de no adeudo"}.`,
     left,
     y,
   );

@@ -44,6 +44,19 @@ export type TerminosPais = {
   /** Nombres de los tipos de cuenta bancaria que se usan en el país. */
   tiposCuenta: Array<{ value: string; label: string }>;
   /**
+   * El documento que certifica que la unidad no debe (PRD-V-FEAT-004).
+   * Investigado y decidido por David el 30 ago 2026: en México lo exige el
+   * notario como «constancia de no adeudo» (Ley de Propiedad en Condominio,
+   * CDMX); en Ecuador es el «certificado de expensas», documento habilitante
+   * sin el cual no se inscribe la escritura (doctrina DINARDAP 003-2013 y
+   * Reglamento LPH). En minúscula, para dentro de frase.
+   */
+  pazYSalvo: string;
+  /** «el» o «la»: el género cambia con el país (EL certificado, LA constancia). */
+  pazYSalvoArticulo: "el" | "la";
+  /** El título que encabeza el PDF, ya en mayúsculas. */
+  pazYSalvoTitulo: string;
+  /**
    * Cómo se identifica una cuenta para transferirle. En México **no es el
    * número de cuenta**: es la CLABE de 18 dígitos, y sin ella no se puede
    * pagar. Ver `PRD-V-FEAT-003` §7.
@@ -61,6 +74,9 @@ const NEUTRO: TerminosPais = {
     { value: "ahorros", label: "Ahorros" },
   ],
   identificadorCuenta: { label: "Nº de cuenta", placeholder: "Opcional" },
+  pazYSalvo: "certificado de no adeudo",
+  pazYSalvoArticulo: "el",
+  pazYSalvoTitulo: "CERTIFICADO DE NO ADEUDO",
 };
 
 const POR_PAIS: Record<string, TerminosPais> = {
@@ -74,6 +90,9 @@ const POR_PAIS: Record<string, TerminosPais> = {
       { value: "ahorros", label: "Ahorros" },
     ],
     identificadorCuenta: { label: "Nº de cuenta", placeholder: "Opcional" },
+    pazYSalvo: "paz y salvo",
+    pazYSalvoArticulo: "el",
+    pazYSalvoTitulo: "CERTIFICADO DE PAZ Y SALVO",
   },
   // Ecuador — Ley de Propiedad Horizontal. OJO: «alícuota» nombra **las dos
   // cosas**, el porcentaje y la cuota mensual. Es ambigüedad del propio idioma
@@ -88,6 +107,9 @@ const POR_PAIS: Record<string, TerminosPais> = {
       { value: "ahorros", label: "Ahorros" },
     ],
     identificadorCuenta: { label: "Nº de cuenta", placeholder: "Opcional" },
+    pazYSalvo: "certificado de expensas",
+    pazYSalvoArticulo: "el",
+    pazYSalvoTitulo: "CERTIFICADO DE EXPENSAS",
   },
   // México — Ley de Propiedad en Condominio (varía por estado; «indiviso» es
   // el término común en todas). La cuenta se identifica por CLABE.
@@ -100,6 +122,9 @@ const POR_PAIS: Record<string, TerminosPais> = {
       { value: "ahorros", label: "Ahorro" },
     ],
     identificadorCuenta: { label: "CLABE interbancaria", placeholder: "18 dígitos", maxLength: 18 },
+    pazYSalvo: "constancia de no adeudo",
+    pazYSalvoArticulo: "la",
+    pazYSalvoTitulo: "CONSTANCIA DE NO ADEUDO",
   },
 };
 

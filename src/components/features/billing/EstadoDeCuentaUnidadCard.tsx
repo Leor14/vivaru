@@ -13,6 +13,8 @@ import {
 } from "@/features/finanzas/comprobante/estado-de-cuenta-pdf";
 import { renderPazYSalvoPdf } from "@/features/finanzas/comprobante/paz-y-salvo-pdf";
 import { saldoAFavor, useAdvances } from "@/features/finanzas/use-advances";
+import { useTenantVocabulary } from "@/features/tenant/use-tenant-vocabulary";
+import { capitalizar } from "@/lib/config/vocabulario-pais";
 import { Input } from "@/components/ui/input";
 import { cancelClearanceCertificateCallable, emitClearanceCertificateCallable } from "@/lib/firebase/callables";
 import type { BillingStatement } from "@/types/domain";
@@ -101,12 +103,20 @@ export function EstadoDeCuentaUnidadCard({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
+  const vocab = useTenantVocabulary();
+
   async function descargar() {
     setDescargando(true);
     try {
       await renderEstadoDeCuentaPdf(
         estado,
-        { conjunto: tenantName ?? "", unidad: etiqueta, emitidoEl: hoy(), saldoAFavor: aFavor },
+        {
+          conjunto: tenantName ?? "",
+          unidad: etiqueta,
+          emitidoEl: hoy(),
+          saldoAFavor: aFavor,
+          pazYSalvoFrase: `${vocab.pazYSalvoArticulo} ${vocab.pazYSalvo}`,
+        },
         formatAmount,
       );
     } catch (error) {
@@ -142,11 +152,16 @@ export function EstadoDeCuentaUnidadCard({
           creditBalance: r.creditBalance,
         },
         formatAmount,
+        { titulo: vocab.pazYSalvoTitulo },
       );
-      toast.success(r.created ? `Paz y salvo emitido: ${r.code}` : `Ya había uno de hoy: ${r.code}`);
+      toast.success(
+        r.created
+          ? `Se emitió ${vocab.pazYSalvoArticulo} ${vocab.pazYSalvo}: ${r.code}`
+          : `Ya se había emitido hoy: ${r.code}`,
+      );
     } catch (error) {
       // El servidor dice cuánto debe y desde cuándo. Se enseña tal cual.
-      toast.error(error instanceof Error ? error.message : "No fue posible emitir el paz y salvo.");
+      toast.error(error instanceof Error ? error.message : `No fue posible emitir ${vocab.pazYSalvoArticulo} ${vocab.pazYSalvo}.`);
     } finally {
       setEmitiendo(false);
     }
@@ -217,6 +232,7 @@ export function EstadoDeCuentaUnidadCard({
         anuladoMotivo: c.anuladoMotivo,
       },
       formatAmount,
+      { titulo: vocab.pazYSalvoTitulo },
     );
   }
 
@@ -224,7 +240,7 @@ export function EstadoDeCuentaUnidadCard({
     <Card className="p-4">
       <CardTitle>Estado de cuenta de una unidad</CardTitle>
       <CardDescription>
-        El movimiento completo de la unidad y, si está al día, su certificado de paz y salvo.
+        {`El movimiento completo de la unidad y, si está al día, su ${vocab.pazYSalvo}.`}
       </CardDescription>
 
       <label className="mt-3 block text-sm text-[var(--slate-700)]">
@@ -307,7 +323,7 @@ export function EstadoDeCuentaUnidadCard({
                   servidor y su «no» dice cuánto se debe y desde cuándo, que es
                   más útil que un botón apagado sin explicación. */}
               <Button type="button" disabled={emitiendo} onClick={() => void emitir()}>
-                {emitiendo ? "Emitiendo…" : "Paz y salvo"}
+                {emitiendo ? "Emitiendo…" : capitalizar(vocab.pazYSalvo)}
               </Button>
             </div>
           </div>
