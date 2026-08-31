@@ -8,35 +8,52 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ VALIDAR `PH-003` CON OJOS. Es lo único que le falta, y no lo puedo hacer yo solo
+> ## ▸ ELEGIR. No queda ninguna PRD escrita sin construir
 >
 > **Las TRES PRD que se escribieron el 30 están construidas y en producción**: `UX-004`, `ONB-002`
 > y ahora `PH-003` (`a8e2243`), con la bandera `producto-visita-no-anunciada` encendida **solo en
 > `tenant-santa-maria`** — el único conjunto con push, y sin push la vía A nace inservible.
 >
-> **No queda ninguna PRD escrita sin construir.** Lo siguiente es **elegir**, y antes de elegir hay
-> una deuda concreta: **`PH-003` no se ha visto en pantalla**.
+> **`PH-003` se validó en producción con la sesión del guardia el 31**, y mirarlo encontró un
+> defecto que ningún banco veía. **Queda una deuda pequeña y concreta:** `CA3` y `CA4` piden una
+> sesión de residente y **dos personas a la vez**.
+>
+> **La ADC caducó a mitad de la jornada** (`invalid_grant`): hace falta
+> `gcloud auth application-default login` antes de volver a medir nada contra los proyectos.
 
-### `PH-003` — LO QUE FALTA, Y POR QUÉ NO LO PUEDO CERRAR SOLO
+### `PH-003` — VALIDADO EN PRODUCCIÓN CON LA SESIÓN DEL GUARDIA (31 ago)
 
-**El servidor está verificado**: reglas con `0` líneas de diff contra el repo, las dos functions
-`ACTIVE` por `updateTime`, el front por procedencia del build, y la bandera **resuelta con el
-módulo compilado** (`override_conjunto` en Santa María, `default_catalogo` en los demás).
+**Con la cuenta de portería (Luis Gutiérrez, Santa María) se recorrió el ciclo entero en
+producción**, no en staging y no razonado:
 
-**Lo que falta es mirarlo, y ahí el límite es la sesión del navegador:**
-
-| Qué | Qué hace falta |
+| Criterio | Qué se vio |
 |---|---|
-| El guardia captura y elige vía | Una sesión con rol **`security_guard`**. Santa María tiene **3** |
-| El residente autoriza o rechaza | Una sesión con rol **`resident`**. Santa María tiene **9** |
-| `CA4` — dos residentes contestan a la vez | **Dos dispositivos y dos personas.** No hay suite que lo sustituya |
-| El push de la petición | **Un teléfono con la app instalada.** Hoy hay **0 `pushTokens`** en producción |
+| `CA1` · `R8` | **«Escanear QR» y «Llegó sin avisar» conviven** en la misma cabecera |
+| `CA2` | La vía A crea el pase y avisa: «Le preguntamos al residente. Tiene cinco minutos» |
+| `CA5` | A los cinco minutos, «Nadie contestó» — **sin que corriera ningún job** |
+| `CA6` · `R4` | El guardia rescata por la vía B **sin recapturar los datos**, y el botón estaba desde el primer segundo |
+| `R5` | «Autorizada por **Luis Gutiérrez** (por llamada)», delante y no en un detalle |
+| `R1` · `CA8` | **«Entró» deshabilitado** mientras no estaba autorizada, y habilitado después |
+| La regla nueva | El ingreso pasó **solo tras autorizar**, y el ciclo cerró en «Finalizado» |
+| Sin regresión | Un pase de QR con la hora pasada **sigue diciendo «Expirado»** |
 
-**Y hay una vía intermedia que no se ha tomado:** ejercitar el flujo contra producción con el
-Admin SDK —crear una visita de portería en Santa María y resolverla— para ver la constancia en la
-pantalla del administrador (`CA9`). **Es inocuo**: cero tokens de push, correo apagado en las 13
-claves y ningún conjunto con `notificationTemplates`, así que el aviso solo caería en la campana de
-nueve cuentas de prueba. **No se hizo porque escribe en producción y eso lo decide David.**
+**LO QUE SIGUE SIN VALIDARSE, y no lo cierra una sesión más:** `CA3` y `CA4` —el residente
+autoriza, y la carrera entre dos de la misma unidad— **piden una sesión de residente y dos
+personas a la vez**. `CA10` (el residente ve la constancia) va con ellas. Santa María tiene **9
+residentes** con membresía, así que las cuentas existen.
+
+> ### Y MIRARLO ENCONTRÓ UN DEFECTO QUE NINGÚN BANCO VEÍA
+>
+> Una visita de portería recién capturada salía **«Expirado» EN ROJO al segundo de crearla**,
+> mientras el residente aún tenía cinco minutos y el guardia tenía a la persona delante.
+>
+> **La regla no estaba mal: estaba aplicada a un flujo para el que no se escribió.** «Se pasó la
+> hora de la cita» es correcto para un QR emitido de antemano; una visita de portería **nace en el
+> instante en que alguien está en la puerta**, así que su hora ya pasó nada más nacer. **Ni el
+> typecheck ni los cuatro bancos lo veían**: el estado se calculaba dentro del componente y ninguna
+> prueba lo alcanzaba. Por eso salió a `features/visitors/estado-operativo.ts`, con banco propio y
+> falsación — **y con la prueba que impide la regresión contraria**: un QR con la hora pasada sigue
+> expirando.
 
 ### `PH-003` — LO QUE DEJÓ, Y VALE MÁS QUE LA ENTREGA
 
