@@ -21,6 +21,7 @@ import {
 } from "@/features/visitors/use-visitor-passes";
 import { usePackageDirectory } from "@/features/security-guard/use-package-directory";
 import { estadoDeAutorizacion, segundosRestantes } from "@/features/visitors/autorizacion";
+import { dentroDeVigencia, resolverEstadoOperativo } from "@/features/visitors/estado-operativo";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { resolveVisitAuthorizationCallable } from "@/lib/firebase/callables";
 import { getModuleVariant } from "@/lib/config/module-variants";
@@ -85,29 +86,6 @@ function parseVisitDateTime(date: string, scheduledTime: string) {
   if (!normalizedDate) return null;
 
   return combineLocalDateTime(normalizedDate, normalizedTime);
-}
-
-/** Una autorización de larga duración está vigente hasta el fin del día de validUntil. */
-function isWithinValidity(item: VisitorPass): boolean {
-  const until = item.validUntil;
-  if (!until) return true;
-  const endOfDay = new Date(`${until}T23:59:59`);
-  return Number.isNaN(endOfDay.getTime()) ? true : endOfDay.getTime() >= Date.now();
-}
-
-function resolveOperationalStatus(item: VisitorPass): OperationalStatus {
-  if (item.status === "inside") return "inside";
-  if (item.status === "completed") return "completed";
-
-  // Larga duración: vigente mientras no se pase validUntil (ingresos repetidos).
-  if (item.authorizationType === "larga_duracion" && item.validUntil) {
-    return isWithinValidity(item) ? "scheduled" : "expired";
-  }
-
-  // Puntual / legacy: expira al pasar la fecha-hora programada (comportamiento existente).
-  const visitDateTime = parseVisitDateTime(item.date, item.scheduledTime);
-  if (!visitDateTime) return "scheduled";
-  return visitDateTime.getTime() < Date.now() ? "expired" : "scheduled";
 }
 
 function abbreviateQrCode(value: string) {
@@ -314,7 +292,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
 
     setUpdatingId(item.id);
     try {
-      const reentrable = item.authorizationType === "larga_duracion" && isWithinValidity(item);
+      const reentrable = item.authorizationType === "larga_duracion" && dentroDeVigencia(item, Date.now());
       await markVisitorAsCompleted({
         visitorId: item.id,
         tenantId,
@@ -330,8 +308,10 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
   }
 
   const rows = useMemo<VisitorCardItem[]>(
-    () => items.map((item) => ({ ...item, operationalStatus: resolveOperationalStatus(item) })),
-    [items],
+    // El reloj entra como dependencia: sin él la píldora se congelaría hasta que cambiara algún
+    // pase, igual que la cuenta atrás.
+    () => items.map((item) => ({ ...item, operationalStatus: resolverEstadoOperativo(item, ahoraMs) })),
+    [items, ahoraMs],
   );
 
   // Fecha local de hoy (YYYY-MM-DD) para detectar visitas sin salida registrada.
@@ -1142,7 +1122,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
             </div>
 
             <p className="mt-2 text-sm text-[var(--slate-600)]">
-              Registra la visita que acaba de llegar. El residente de la unidad recibirá la notificación.
+              Registra la visita que acaba de llegar y elige cómo se autoriza. Queda escrito quién la autorizó y por qué medio.
             </p>
 
             <div className="mt-5 space-y-4">
