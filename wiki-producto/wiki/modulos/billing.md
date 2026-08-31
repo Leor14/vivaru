@@ -3,7 +3,7 @@ tags: [modulo, admin, billing, cartera]
 tipo: concepto
 fuentes: ["domain.ts", "DESIGN.md", "BACKLOG.md", "sesion-cartera-crm-2026-06"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-06-23
+fecha_actualizacion: 2026-08-31
 ---
 
 # Billing (Cartera)
@@ -21,6 +21,36 @@ Definidas en [[domain-types]]:
 ## Tipos de cobro (concepto)
 
 Cada cobro tiene un `concept` (best practice de PH): **Mantenimiento y Administración** (default, priorizado en los listados), Cuota extraordinaria, Multa/sanción, Reparación/daño, Interés de mora, Parqueadero/amenidad, Otro. El residente ve el concepto en su [[portal-residente]] y se incluye en la notificación de cobro (catálogo en [[notificaciones-residentes]]).
+
+### El `concept` es una CLAVE, no una etiqueta (31 ago 2026)
+
+En el documento se guarda `parqueadero`, no «Parqueadero / amenidad». Suena obvio y **costó un
+defecto de meses**: una plantilla de datos sembró `concept: "Parqueadero"` —el rótulo donde va la
+clave— en los dos ambientes, y con eso un cobro de **$80.000** fallaba **por una letra** y en
+**tres sitios a la vez**:
+
+| Dónde | Qué pasaba |
+|---|---|
+| El rótulo de la pantalla | Decía «Mantenimiento y Administración» — **en silencio** |
+| La cuenta del asiento | Caía en «otros ingresos» en vez de en «Parqueaderos» |
+| La categoría del libro | Quedaba sin resolver |
+
+**Lo que lo mantuvo vivo es la asimetría: el lado del dinero AVISABA** —`R8` dispara el aviso al
+caer por defecto— **y el de la pantalla mentía en silencio**. Un fallo que se disimula a sí mismo
+dura años; es el mismo modo en que diez estados llegaron a acumularse sin traducir
+([[trampas-conocidas]]).
+
+Hoy la clave **se normaliza antes de buscarla en el catálogo** —igual que ya hacía
+`getTicketTypeLabel` con los tipos de [[pqrs]]— y **un concepto desconocido se enseña tal cual en
+vez de disfrazarse de administración**. Feo a propósito: para que se vea y se corrija.
+
+**Un cobro SIN concepto sigue siendo administración**, y eso no es un parche: es el valor por
+defecto documentado del campo, y hoy lo son 30 de los 221 cobros de producción.
+
+> **Y una cosa que NO es deuda, aunque lo parezca:** `billingStatements.accountCode` está ausente en
+> **220 de 221** cobros. **No lo lee nadie** — al cobrar, `aplicarPago` vuelve a resolver la cuenta
+> desde `concept` y la escribe en el ASIENTO, que es lo que leen los informes. Rellenar los 220 no
+> movería un solo número.
 
 ## Crear cobro: destinatario, lote y programación
 

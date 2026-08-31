@@ -479,14 +479,42 @@ ejecutó en producción**: el padrón pasó de 24 a 18, cero huérfanos, y la de
 `producto-visita-no-anunciada` **solo en `tenant-santa-maria`** — el único conjunto con push, y sin
 push la vía A nace inservible. **Con ella no queda ninguna PRD escrita sin construir.**
 
-> **Lo que le falta es MIRARLA, y ahí el límite es la sesión del navegador:** el portal de portería
-> pide rol de guardia y el del residente rol de residente, y **`CA4` —la carrera entre dos
-> residentes— pide dos dispositivos y dos personas**. No hay suite que lo sustituya.
+> **VALIDADA EN PRODUCCIÓN con la sesión del guardia el 31**, ciclo entero hasta «Finalizado». Lo
+> que queda **pide dos personas y dos teléfonos a la vez** —que el residente autorice, y la carrera
+> entre dos de la misma unidad—, y no hay suite que lo sustituya. Para que SIRVA de verdad falta un
+> residente real con la app: hoy hay **0 `pushTokens`**.
+>
+> **Y mirarla encontró un defecto que ningún banco veía:** una visita de portería salía **«Expirado»
+> al segundo de crearla**. La regla no estaba mal — estaba aplicada a un flujo para el que no se
+> escribió: «se pasó la hora de la cita» vale para un QR emitido de antemano, y una visita de
+> portería **nace en el instante en que alguien está en la puerta**. Ni el typecheck ni los cuatro
+> bancos lo veían: se calculaba dentro del componente y ninguna prueba lo alcanzaba.
 >
 > **Y lo que enseñó construirla:** `registerWalkInVisit` exigía `registro_simple`, que **oculta el
 > QR**, y los diecisiete conjuntos están en `qr_full` — con esa exclusividad **esto no lo habría
 > visto nadie**. La ficha además decía que las reglas ganaban LECTURA para el residente: **ya la
 > tenían**; lo que hacía falta era **endurecer el check-in**, que es escritura directa del guardia.
+
+**EL FRENTE DE COBROS POR CONCEPTO ESTÁ CERRADO** (31 ago, `b2aca4e`), y no llevaba PRD.
+`billingConceptLabel` caía **EN SILENCIO** a «Mantenimiento y Administración» ante cualquier clave
+fuera del catálogo, y un parqueadero de **$80.000** lo disparaba: `concept: "Parqueadero"` —la
+etiqueta donde va la clave—. **Fallaba por una letra y en TRES sitios a la vez**: el rótulo, la
+cuenta del asiento y la categoría.
+
+> **Lo que lo mantuvo vivo es la asimetría: el lado del dinero AVISABA y el de la pantalla mentía en
+> silencio.** Corregidos el código —la clave se normaliza en los dos espejos, y un concepto
+> desconocido **se enseña tal cual**—, la semilla `seed-data-co.mjs` que sembró el dato malo, y el
+> dato en los dos ambientes.
+>
+> **Y la auditoría cambió de conclusión al medirla: `billingStatements.accountCode` NO LO LEE NADIE**
+> —cero lectores—, porque `aplicarPago` vuelve a resolver la cuenta desde `concept` y la escribe en
+> el ASIENTO. «220 de 221 sin `accountCode`» no era una deuda.
+
+**CON ESO, LOS SEIS FRENTES DEL 30 DE AGOSTO ESTÁN RESUELTOS y no queda ninguna PRD escrita sin
+construir.** De los tres frenos vivos, **ninguno es de código**: dos son de dato —la IA espera
+tráfico, la visita repentina espera un residente con la app— y uno es una decisión de prioridad
+(`UX-005`). Reporte del 31 con las cifras y su procedencia:
+<https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
 
 **`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
 un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la

@@ -4,22 +4,65 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, madrugada (las tres PRD construidas)
+## LO PRIMERO AL ABRIR SESIÓN — 31 de agosto de 2026 (los seis frentes, resueltos)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ ELEGIR. No queda ninguna PRD escrita sin construir
+> ## ▸ ELEGIR BLOQUE. No queda trabajo pendiente que dependa del equipo
 >
-> **Las TRES PRD que se escribieron el 30 están construidas y en producción**: `UX-004`, `ONB-002`
-> y ahora `PH-003` (`a8e2243`), con la bandera `producto-visita-no-anunciada` encendida **solo en
-> `tenant-santa-maria`** — el único conjunto con push, y sin push la vía A nace inservible.
+> **Los seis frentes que se abrieron el 30 están resueltos.** Las tres PRD —`UX-004`, `ONB-002` y
+> `PH-003`— están **en producción y validadas con ojos**, más el frente de cobros por concepto, que
+> no llevaba PRD. **Cuatro cerrados de siete.**
 >
-> **`PH-003` se validó en producción con la sesión del guardia el 31**, y mirarlo encontró un
-> defecto que ningún banco veía. **Queda una deuda pequeña y concreta:** `CA3` y `CA4` piden una
-> sesión de residente y **dos personas a la vez**.
+> **Y de los tres frenos que quedan, NINGUNO es de código:** dos son de **dato** —la IA espera
+> tráfico y la visita repentina espera un residente con la app— y uno es una **decisión** tuya
+> (`UX-005`, prioridad). Eso convierte «qué construimos ahora» en una pregunta de negocio.
 >
-> **La ADC caducó a mitad de la jornada** (`invalid_grant`): hace falta
-> `gcloud auth application-default login` antes de volver a medir nada contra los proyectos.
+> Sigue en pie: **una sola sesión que escriba a la vez.**
+
+### DÓNDE QUEDÓ CADA FRENTE
+
+| # | Frente | Escalón | Qué lo detiene |
+|---|---|---|---|
+| **1º** | El panel y sus módulos midiendo lo mismo (`UX-004`) | ✅ **con datos** | Nada |
+| **2º** | Encender la IA | 🟡 **encendida, 0 usos** | **Dato:** cero tickets desde el 7 ago. Y el tope de gasto **sigue sin mirarse** |
+| **3º** | La visita que llega sin avisar (`PH-003`) | 🟡 **encendida, 1 uso** | **Dato:** `0 pushTokens`. Y `CA3`/`CA4` piden **dos personas** |
+| **4º** | El padrón sin duplicados (`ONB-002`) | ✅ **con datos** | Nada. Quedan 4 grupos, y resolverlos es del administrador |
+| **4º bis** | Leer el archivo del cliente con IA (`AI-ONB-001`) | ⏸ **ni escrita, a propósito** | **Dato:** 0 archivos de corpus |
+| **5º** | Cobros que no son mantenimiento | ✅ **con datos** | Nada. Código, semilla y dato corregidos |
+| **6º** | Tableros configurables (`UX-005`) | ⏸ **exploración** | **Decisión:** prioridad |
+
+**Reporte ejecutivo del 31**, con las cifras y su procedencia:
+<https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
+
+### LO QUE LA JORNADA ENSEÑÓ, Y VALE MÁS QUE LAS ENTREGAS
+
+- **Mirar la pantalla encontró DOS defectos que ningún banco veía.** Un guardián nuevo **nació
+  ciego justo en el caso que lo motivó** —su falsación pasó en verde a la primera—, y una visita de
+  portería salía **«Expirado» al segundo de crearla** porque una regla correcta se aplicó a un flujo
+  para el que no se escribió.
+- **Ejecutar la primera fusión destapó el defecto de la SEGUNDA.** Con una hecha todo estaba bien:
+  el registro de la decisión nombra a los archivados, y el barrido lo leía como referencias
+  desconocidas. **Lo que solo falla en la segunda pasada no lo ve nadie.**
+- **El inventario de referencias se derivó de los DATOS, no de los nombres de campo.** Por nombres
+  habría repuntado **29 de 43** y dejado catorce huérfanas.
+- **Un fallo que se disimula a sí mismo dura años.** El rótulo de un cobro mentía en silencio
+  mientras el lado del dinero avisaba; esa asimetría es lo que lo mantuvo vivo.
+- **Y siete discrepancias entre lo documentado y lo medido**, todas corregidas en la misma pasada.
+  Están en el reporte.
+
+### LAS TRAMPAS DEL DESPLIEGUE — tres correcciones nuevas del 31
+
+- **Las TRES credenciales caducan por separado, y se demostró:** con la ADC viva y el CLI de
+  `firebase` caducado, `firebase deploy` respondió **«Deploy complete» con salida 0 y no desplegó
+  nada** — 0 frescas, 90 rancias. Solo se ve midiendo.
+- **El 429 por cuota es una señal para MEDIR, no una conclusión.** Un deploy completo escupió dos
+  429 y aun así dejó **90 de 90 frescas**: el CLI reintentó. Ni «hubo 429» significa rancia, ni
+  «Deploy complete» significa fresca. **Solo decide el `updateTime`.**
+- **No canalices el log del deploy por `tail`.** Tira justo la parte que explica qué falló; ese
+  mismo día una function quedó rancia en staging y el motivo se perdió. `tee` cuesta nada.
+- **Empujar DESPLIEGA en los dos ambientes** (`master` → producción, `develop` → staging). Si ya
+  empujaste, **no lances el rollout a mano**: se duplica.
 
 ### `PH-003` — VALIDADO EN PRODUCCIÓN CON LA SESIÓN DEL GUARDIA (31 ago)
 

@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.45 |
-| **Fecha** | 30 de agosto de 2026 (noche, tras construir) |
-| **Estado** | **DE LAS TRES PRD ESCRITAS ESA MAÑANA, DOS ESTÁN CONSTRUIDAS, EN PRODUCCIÓN Y VALIDADAS CON OJOS LA MISMA NOCHE.** `UX-004` (`PRD-V-FIX-003`, el panel) y `ONB-002` (`PRD-V-FEAT-005`, el padrón sin duplicados). **Queda UNA sin construir:** `PH-003` (`PRD-V-FLOW-005`, la visita repentina), sin decisiones abiertas. El criterio del 24 de agosto —cerrar frentes antes que abrirlos— se cumplió el mismo día en que se abrieron. **`UX-004`:** el panel y Cartera ya no se contradicen —cada indicador declara su ventana— y un mes sin cobros emitidos dejó de afirmar en rojo un recaudo del 0,0%; **no se tocó ninguna fórmula**, porque el defecto era la ventana y el rótulo. **`ONB-002`:** el administrador ve qué registros del padrón parecen la misma persona y por qué regla, y los fusiona eligiendo cuál sobrevive, con vista previa y `snapshot`; **la primera fusión se ejecutó en producción** —siete «David Carmona» en uno, el padrón de Santa María de 24 a 18 personas, cero referencias huérfanas—. **LO QUE MÁS ENSEÑÓ LA JORNADA NO FUERON LAS ENTREGAS:** (1) **construir corrigió su propia ficha en cuatro puntos** —eran 13 duplicados y no 11; el inventario de referencias estaba mal en las cuatro filas; dos nombres distintos comparten documento, así que el cierre transitivo habría propuesto fusionar dos personas; y la regla de las cuentas habría bloqueado el caso real—, y **ninguno se ve leyendo**; (2) **un guardián nuevo nació ciego justo en el caso que lo motivó** y su falsación pasó en verde a la primera; (3) **ejecutar la fusión destapó un defecto que ninguna prueba veía**: con una hecha todo estaba bien, y **la segunda habría abortado**; (4) **el push a `master` SÍ despliega producción**, y este repositorio afirmaba lo contrario desde el 27 — el error no fue medir poco, fue **medir el campo equivocado**. **LO ANTERIOR, VIGENTE:** la IA sigue en producción y sin tráfico —el tope de gasto lleva catorce días sin mirarse—; `PLAT-005` en producción, pendiente de validar allí y en un Android; `FIN-002` cerrada con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, midiendo y con ojos** (30 ago, noche): los cuatro bancos contados con el emulador levantado —`npm test` **1449**, functions **720**, emulador **262**, reglas **249**—; el ruleset vivo leído por la API de Rules con **0 líneas de diff** contra el fichero; las functions por `updateTime`, no por el «Deploy complete»; el front por **procedencia del build**; las banderas **resueltas con el módulo compilado**, no leyendo documentos; y el padrón de Santa María contado antes y después de la fusión (24 → 18, cero huérfanas). **El inventario de referencias a persona se derivó recorriendo las 49 colecciones**, no leyendo nombres de campo. Árbol limpio: los scripts de medición se borraron al terminar |
+| **Versión** | 0.9.46 |
+| **Fecha** | 31 de agosto de 2026 |
+| **Estado** | **LOS SEIS FRENTES QUE SE ABRIERON EL 30 ESTÁN RESUELTOS, Y NO QUEDA NINGUNA PRD ESCRITA SIN CONSTRUIR.** Las tres —`UX-004` (el panel), `ONB-002` (el padrón sin duplicados) y `PH-003` (la visita que llega sin avisar)— están **en producción y validadas con ojos**, no solo desplegadas; más el frente de cobros por concepto, que no llevaba PRD. **Cuatro cerrados de siete.** **LO QUE QUEDA NO ES CÓDIGO, y esa es la conclusión:** de los tres frenos vivos, **dos son de DATO** —la IA espera tráfico (encendida desde el 17 de agosto, cero usos, último ticket el 7) y la visita repentina espera un residente con la app (**0 `pushTokens`**)— y **uno es una DECISIÓN tuya** (`UX-005`, prioridad). `AI-ONB-001` sigue sin escribirse a propósito: cero archivos de corpus. **LO QUE ENSEÑÓ LA JORNADA, y vale más que las entregas:** (1) **mirar la pantalla encontró dos defectos que ningún banco veía** —un guardián nuevo nació ciego justo en el caso que lo motivó, y una visita de portería salía «Expirado» al segundo de crearla porque una regla correcta se aplicó a un flujo para el que no se escribió—; (2) **ejecutar la primera fusión destapó el defecto de la SEGUNDA**: con una hecha todo estaba bien; (3) **el inventario de referencias se derivó de los DATOS y no de los nombres de campo**, y por eso salió bien —por nombres habría repuntado 29 de 43—; (4) **un fallo que se disimula a sí mismo dura años**: el rótulo de un cobro mentía en silencio mientras el lado del dinero avisaba. **LO ANTERIOR, VIGENTE:** `PLAT-005` en producción pendiente de un Android; `FIN-002` cerrada con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, midiendo y con ojos** (31 ago): los cuatro bancos contados con el emulador levantado —`npm test` **1457**, functions **734**, emulador **279**, reglas **255**—; el ruleset vivo leído por la API de Rules con **0 líneas de diff**; **90 functions listadas y 90 `ACTIVE`**; el front por **procedencia del build**; las banderas **resueltas con el módulo compilado**, no leyendo documentos; y los conteos de Firestore documento a documento —9 conjuntos y **0 reales**, 221 cobros, 88 pases, 68 personas, 20 tickets, 5 recibos—. **Y el contraste destapó SIETE discrepancias** entre lo documentado y lo medido, todas corregidas en la misma pasada; están en el reporte de estado del 31 |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1202,6 +1202,36 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.46 — 31 de agosto de 2026 — los seis frentes resueltos, y ninguno lo frena el equipo
+
+- **`PH-003` construida y en producción**, con la bandera solo en el único conjunto donde hay push
+  —sin él la vía A nace inservible—. **El ciclo entero se validó en pantalla con la sesión de un
+  guardia**: capturar, esperar, la caducidad derivándose sola, el rescate por llamada y el ingreso.
+- **Dos cosas eran el nudo y las dos se retiraron.** `registerWalkInVisit` exigía una variante que
+  **oculta el QR**, y los diecisiete conjuntos tienen QR: con esa exclusividad **esto no lo habría
+  visto nadie**. Y creaba el pase ya *dentro*, avisando de un hecho consumado.
+- **La ficha decía que las reglas ganaban LECTURA para el residente. Ya la tenían.** Lo que hacía
+  falta era lo contrario: **endurecer el registro de ingreso**, que es escritura directa del guardia
+  y la única puerta por la que un pase sin autorizar podía entrar. Y ese endurecimiento **no
+  restringe nada vivo**, medido: los 142 pases de los dos ambientes no llevan el campo.
+- **Mirar la pantalla encontró un defecto que ningún banco veía:** una visita de portería salía
+  **«Expirado» en rojo al segundo de crearla**. La regla no estaba mal — estaba aplicada a un flujo
+  para el que no se escribió: «se pasó la hora de la cita» es correcto para un QR emitido de
+  antemano, y una visita de portería nace en el instante en que alguien está en la puerta.
+- **El frente de cobros por concepto, cerrado, y no merecía PRD.** `billingConceptLabel` caía **en
+  silencio** a «Mantenimiento y Administración», y un parqueadero de **$80.000** lo disparaba:
+  fallaba **por una letra** y en **tres sitios a la vez**. Lo que lo hizo durar es la asimetría —
+  **el lado del dinero avisaba y el de la pantalla mentía**. Corregidos el código, la semilla que
+  sembró el dato malo y el dato en los dos ambientes.
+- **Y la auditoría cambió de conclusión al medirla:** «220 de 221 cobros sin cuenta contable» **no
+  es una deuda** — ese campo **no lo lee nadie**, porque al cobrar se vuelve a resolver la cuenta y
+  se escribe en el asiento, que es lo que leen los informes.
+- **Tres correcciones a las trampas del despliegue**, las tres medidas: un `deploy` completo escupió
+  **dos HTTP 429 por cuota y aun así dejó 90 de 90 frescas** —el 429 es una señal para medir, no una
+  conclusión—; **no canalizar el log del deploy por `tail`**, que tira justo lo que explica el fallo;
+  y **las tres credenciales caducan por separado** —con la ADC viva y el CLI de `firebase` caducado,
+  `firebase deploy` respondió «Deploy complete» con salida 0 y **no desplegó nada**.
 
 ### 0.9.45 — 30 de agosto de 2026 (noche) — dos de las tres PRD, construidas y en producción
 
