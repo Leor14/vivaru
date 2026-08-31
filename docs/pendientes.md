@@ -4,9 +4,9 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 31 de agosto de 2026 (cierre)
+## LO PRIMERO AL ABRIR SESIÓN — 31 de agosto de 2026 (noche)
 
-> ### LO QUE PIDIÓ DAVID PARA ESTA SESIÓN
+> ### LO QUE PIDIÓ DAVID PARA LA SIGUIENTE SESIÓN — sigue pendiente ENTERO
 >
 > ## ▸ DOS FRENTES, Y LOS DOS SON DE AFINAR — no de construir de cero
 >
@@ -23,6 +23,31 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > <https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
+
+### LO QUE LA PASADA DE LA NOCHE CERRÓ — el banner genérico del login (`fe89324`)
+
+**TODO fallo de login salía con «Ocurrió un error inesperado», contraseña mala incluida** —
+verificado en producción por la mañana—. `login()` (`auth-context.tsx`) normalizaba bien el
+mensaje y lo lanzaba en un `Error` PLANO; `toastFirebaseError` lo tiraba por no traer `code` ni
+marca. **La misma clase de defecto que `CallableError` cerró para las callables el 24 de agosto,
+y el arreglo fue el mismo mecanismo**: `login()` lanza ahora `CallableError`, y de paso
+`normalizeLoginError` escribe «contraseña» con su eñe, que era lo que se iba a pintar.
+
+**Está en LOS DOS ambientes y verificado con ojos**: `develop` y `master` en `fe89324`, el
+rollout automático `rollout-2026-08-31-021` en `SUCCEEDED` con `traffic.current` sirviéndolo, y
+una credencial inventada pintando **«Correo o contraseña incorrectos.»** en producción. Fila en
+la bitácora de Notion. Prueba nueva `tests/login-credencial-mala.test.ts` con **tres falsaciones,
+cada rotura cayendo en su prueba exacta**, revertidas por edición.
+
+**Dos cosas que enseñó, para no repagarlas:**
+
+- **`npx vitest run <fichero>` a pelo NO es el banco: se salta la config** y recoge ficheros de
+  más — dio **6 falsos rojos en `imp04`** que la línea base «confirmó» porque la línea base
+  cometía el mismo error. El comando es **`npm test -- <fichero>`**, siempre.
+- **El gemelo que lo hace bien estaba escrito y documentado** — la cabecera de `error-handler.ts`
+  cuenta el defecto de las callables con fecha— **y el login lo repitió igual**. Un mecanismo que
+  cierra una clase de defecto no protege los caminos que no pasan por él: `login()` no es una
+  callable y nadie lo miró.
 
 ### (a) CERRAR LA PRUEBA DE PORTERÍA — lo que hay que saber para arrancar
 
