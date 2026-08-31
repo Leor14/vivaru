@@ -8,39 +8,40 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ `ONB-002` ESTÁ CONSTRUIDO Y EN STAGING. Falta desplegarlo a producción y verlo
+> ## ▸ CONSTRUIR `PH-003`. Es la ÚLTIMA PRD escrita y sin construir
 >
-> **`UX-004` está EN PRODUCCIÓN y validada con ojos** (`d1beb9c`). **`ONB-002`
-> (`PRD-V-FEAT-005`, el padrón sin duplicados) está construido, con sus cuatro bancos en verde y
-> desplegado en STAGING** (`f3e2a02`): reglas, las dos functions `ACTIVE` y el front.
+> **`UX-004` y `ONB-002` están las dos EN PRODUCCIÓN y validadas con ojos.** `ONB-002` con la
+> bandera encendida **solo en `tenant-santa-maria`** (`d692be3`): reglas verificadas contra el
+> ruleset vivo con 0 líneas de diff, las dos functions `ACTIVE` por `updateTime`, y el front por
+> procedencia del build.
 >
-> **Lo que falta es producción, y no es un trámite: es donde está el caso.** Staging tiene **cero
-> grupos duplicados** —medido: 59 personas, ningún par comparte documento, correo ni nombre—, así
-> que allí solo se puede ver el estado vacío. **Los 13 registros duplicados están en producción**,
-> en `tenant-santa-maria`, y la sesión de Chrome es administradora **de ese conjunto**.
->
-> Queda una PRD sin construir: [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md)
-> (la visita repentina). Sin decisiones abiertas.
+> **Queda [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md)**
+> (la visita repentina), sin decisiones abiertas. Lo que hay que saber para arrancarla, más abajo.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
 
-### `ONB-002` — LO QUE FALTA PARA CERRARLO, EN ORDEN
+### `ONB-002` — DESPLEGADO Y VISTO. LO QUE QUEDA ABIERTO
 
-1. **Reglas a producción** — `firebase deploy --only firestore:rules --project hogaru-1`. Solo
-   **añaden** `personMergeDecisions` (lectura de administración, escritura de nadie): amplían, no
-   restringen, así que el orden clásico vale sin vueltas.
-2. **Las dos functions** — `firebase deploy --only functions:mergePeople,functions:dismissDuplicatePeopleGroup --project hogaru-1`.
-   **Verificar por `updateTime`**, no por el «Deploy complete».
-3. **El front** — empujar `master`. **Se despliega solo** (ver las trampas). **Al agente se lo
-   bloquea el clasificador**, así que ese push lo autoriza David.
-4. **Encender la bandera SOLO en el canario:**
-   `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-padron-sin-duplicados true`.
-   Nace apagada y **el documento no existe en ninguno de los dos ambientes**, así que hasta
-   entonces manda `defaultEnabled: false` y la pantalla no se ve. Desplegar es inerte.
-5. **Mirar la pantalla** en `/admin/residents` de Santa María: deben salir **5 grupos con 13
-   registros**, y el de «David Carmona» con **7**.
+**En la pantalla de Santa María**, exactamente lo medido: **5 grupos**, «David Carmona» con **7** y
+sus dos documentos distintos como motivos separados, «David Cancelo» y «Luis Otero» juntos **solo
+por su documento compartido**, y cada registro diciendo qué cuelga de él —«listado en 1 unidad · 2
+paquetes»—. `CA1`, `CA2`, `CA3`, `CA4` verificados con ojos.
 
-**Lo que NO hay que hacer:** lanzar el rollout a mano después de empujar. Se duplica.
+> **`CA5` y `CA6` NO están verificados, y hay que decirlo: no se ha ejecutado ninguna fusión.**
+> Verlos exige fusionar de verdad, y eso **no se deshace solo** —se deshace con su `snapshot`, que
+> es una operación, no un rollback—. Los cubren el banco de emulador y sus falsaciones, que no es
+> lo mismo que haberlo visto. **El candidato natural es el grupo de los siete «David Carmona»**:
+> es el más claro y no hay nadie detrás.
+>
+> **`CA8` tampoco se ha visto**: exige un conjunto sin duplicados con la bandera encendida, y hoy
+> la bandera solo está en el único conjunto que los tiene.
+
+**La bandera está SOLO en `tenant-santa-maria`**, verificada resolviendo con el módulo compilado
+(`override_conjunto`), no leyendo el documento. En los demás conjuntos resuelve `default_catalogo`.
+
+**Dos defectos de copy los cazó la pantalla y ninguna prueba**, los dos en el mismo texto y en la
+misma pasada: decía «las 1 referencias», y al arreglarlo quedó «La 1 referencia». El texto es el
+que se lee **antes de confirmar una fusión que no se deshace sola**.
 
 ### `ONB-002` — LO QUE DEJÓ, Y VALE MÁS QUE LA ENTREGA
 

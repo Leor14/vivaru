@@ -453,11 +453,11 @@ ventana y «sin datos» dejó de disfrazarse de «lo peor». **No se tocó ningu
 > copias y no tres — **dos de ellas en el mismo fichero** del portal del residente, coincidiendo
 > por casualidad.
 
-**`ONB-002` (`PRD-V-FEAT-005`, el padrón sin duplicados) ESTÁ CONSTRUIDO Y EN STAGING**
-(`f3e2a02`): reglas, las dos functions `ACTIVE` y el front. **Falta producción**, y no es un
-trámite: staging tiene **cero grupos duplicados** —59 personas, ningún par comparte documento,
-correo ni nombre—, así que allí solo se ve el estado vacío. Los **13 registros duplicados están en
-producción**, en `tenant-santa-maria`. El orden y los cinco pasos están en `docs/pendientes.md`.
+**`ONB-002` (`PRD-V-FEAT-005`, el padrón sin duplicados) ESTÁ EN PRODUCCIÓN** (`d692be3`), con la
+bandera `producto-padron-sin-duplicados` **encendida SOLO en `tenant-santa-maria`**. En pantalla
+salen los **5 grupos con 13 registros** medidos. **`CA5` y `CA6` siguen sin verificar**: exigen
+ejecutar una fusión de verdad, que **no se deshace sola** —se deshace con su `snapshot`, que es una
+operación—.
 
 > **Lo que hay que llevarse, porque vale más que la entrega: el inventario de referencias a persona
 > se derivó de los DATOS y no de los nombres de campo, y por eso salió bien.** Recorrer las 49
