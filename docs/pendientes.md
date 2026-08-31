@@ -189,7 +189,8 @@ Runbook: [`encender-la-ia.md`](encender-la-ia.md).
   Storage con pinta de comprobante, `aiUsage` en 0.
 - **El par falso de −300.000 de la conciliación sigue nombrado a propósito.**
 - **Chips abiertos:** `startsAt: undefined` en crear comunicado · la base clavada de `email.ts` · el
-  test CF3 de migración frágil a latencia · el rojo del emulador · la reconstrucción del facturado
+  test `CF3` de migración —**no es fragilidad a latencia: DEPENDE DE UNA CREDENCIAL VIVA**, medido
+  el 31 ago— · el rojo del emulador · la reconstrucción del facturado
   de Cartera **sin anticipo** (latente: 27 cobros usan el fallback, **0 con anticipo**). **El del
   panel demo muerto está HECHO** (`9a773cb`).
 - **Las dos tareas del frente de cobros por concepto, remedidas el 30 por la noche:**
@@ -282,7 +283,10 @@ movería es juntar un corpus real (100–200 comprobantes), y eso no es ingenier
 
 **Chips de tarea abiertos (tres, cada uno autónomo):** `startsAt: undefined` en crear
 comunicado · la base clavada de `email.ts` (correos de staging enlazan a producción) · el test
-CF3 de migración frágil a latencia (el script tarda 8 s contra un timeout de 5).
+~~CF3 de migración frágil a latencia (el script tarda 8 s contra un timeout de 5).~~ **Remedido el
+31 de agosto de 2026: no es latencia.** Corre un script contra `vivaru-staging-02` y con la **ADC
+caducada** (`invalid_rapt`) se cuelga hasta el timeout de 5 s. Es una prueba **unitaria** que
+necesita credencial, y un banco que enrojece por una credencial enseña a ignorar su color.
 
 **Espera una decisión tuya (las mismas dos, más una nueva):**
 
