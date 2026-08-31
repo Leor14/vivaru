@@ -148,7 +148,7 @@ de entrega.**
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | **Mobile / iOS** | 🟢 **`PLAT-005` EN PRODUCCIÓN, bandera solo en Santa María** (30 ago; validada antes en staging con un iPhone real) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005` y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
-| Onboarding e importación | 🔴 **`PRD-V-FEAT-005` lista para desarrollo** — el padrón sin duplicados, **sin IA y sin esperar corpus** (11 de 68 personas duplicadas en producción) · ⏸ Recolectar evidencia real para lo demás | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA, aún sin PRD) |
+| Onboarding e importación | ⏸ Recolectar evidencia real | 🔴 **`ONB-002`** — el padrón sin duplicados, con `PRD-V-FEAT-005` lista: **sin IA y sin esperar corpus** (11 de 68 personas duplicadas) · ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA, aún sin PRD) |
 | **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
 
 > **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
@@ -913,6 +913,25 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   staging, **ninguna con encabezados sin mapear**. La fuente que iba a alimentar esto
   está vacía.
 
+#### `ONB-002` — Un padrón sin duplicados
+
+- **Frente:** Onboarding e importación · **Estado:** 🔴 **`PRD-V-FEAT-005` escrita y lista para
+  desarrollo** (30 ago 2026) · **Dependencia:** ninguna
+- **Salió de `AI-ONB-001`, era su parte (b), y al medirla dejó de necesitar IA.** Por eso tiene
+  ficha funcional y código propio: **no espera corpus ni cliente**, se puede construir mañana.
+- **Problema medido en producción:** **11 de 68 personas están duplicadas**, en 3 grupos —«David
+  Carmona» ×7, en dos unidades, con dos documentos y el mismo correo en los siete—, y **21 de 68
+  no tienen documento**, que es uno de los dos campos con los que se deduplica.
+- **Por qué existen, que es lo que decide el alcance:** **no entraron por el importador**, que sí
+  deduplica. Entraron por otros caminos y **ninguna puerta mira hacia atrás**. Blindar el alta no
+  limpia la casa.
+- **El riesgo está calibrado con un precedente de este repositorio:** `mergeUnits` prometía «TODAS
+  las referencias» con una lista de **nueve escrita a mano, y eran dieciocho** — eso explica los
+  huérfanos de `tenant-santa-maria`. El inventario de referencias a persona **se deriva y lleva
+  guardián**, y hay un caso que **falsa el guardián**, no la fusión.
+- **Criterio de salida:** el administrador ve los grupos sospechosos con lo que cuelga de cada uno,
+  y los resuelve —fusionar, corregir o descartar con motivo— sin dejar una sola referencia huérfana.
+
 ### DESPUÉS
 
 #### `FIN-AI-001` — Extracción inteligente de comprobantes
@@ -985,7 +1004,7 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   **(a)** entender el archivo que trae el cliente → `PRD-VAI-FEAT-001`, ya reservada y hoy en Drive
   sin versionar; **(b)** **auditar el padrón ya cargado** y proponer grupos de duplicados;
   **(c)** resolverlos —fusionar, corregir, borrar— a mano.
-- **(b) y (c) YA TIENEN PRD y salieron de aquí: [`PRD-V-FEAT-005`](../prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md)**,
+- **(b) y (c) SALIERON DE AQUÍ y son ya `ONB-002`, con [`PRD-V-FEAT-005`](../prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md) escrita**,
   escrita el 30 de agosto. **Es funcional, no de IA**, y **no depende del corpus**, así que se puede
   construir mañana. (a) sigue sin escribirse porque **hoy no pasaría sus propias puertas**: sin
   archivos reales no hay con qué evaluar ni con qué estimar coste.

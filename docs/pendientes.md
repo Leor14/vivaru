@@ -32,7 +32,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 | **1º** | Panel que no cuadra con sus módulos | `UX-004` | ✅ **PRD escrita** — [`PRD-V-FIX-003`](prd/funcionales/PRD-V-FIX-003-una-definicion-por-metrica-del-panel.md). Lista para desarrollo |
 | **2º** | Encender la IA | — | ✅ **Runbook escrito** — [`encender-la-ia.md`](encender-la-ia.md). **No lleva PRD** |
 | **3º** | Autorizar la visita repentina | `PH-003` | ✅ **PRD escrita** — [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md). Lista para desarrollo |
-| **4º** | Padrón sin duplicados (era la parte (b) del 4º) | `AI-ONB-001` | ✅ **PRD escrita** — [`PRD-V-FEAT-005`](prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md). **Funcional, sin IA y sin esperar corpus** |
+| **4º** | Padrón sin duplicados | `ONB-002` | ✅ **PRD escrita** — [`PRD-V-FEAT-005`](prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md). **Funcional, sin IA y sin esperar corpus** |
 | **4º bis** | Leer el archivo del cliente con IA | `AI-ONB-001` | **Sin PRD a propósito**: hoy no pasaría sus puertas (0 archivos de corpus). Futura `PRD-VAI-FEAT-001` |
 | **5º** | Cobros que no son mantenimiento | — | **No merece PRD.** Dos tareas, abajo |
 | **6º** | Tableros configurables | `UX-005` | Exploración. Prioridad baja, decidida por David |
