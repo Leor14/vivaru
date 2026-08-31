@@ -4,7 +4,7 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, noche (reescrita tras la sesión de planeación)
+## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, cierre (reescrita tras la sesión de planeación)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
@@ -54,8 +54,33 @@ siete conjuntos**: Palmas y Nogal `0,0%` contra `50,0%`; Las Playas `100,0%` con
 
 **El arreglo del 0% tiene su gemelo bueno a diez líneas:** `colorPorPorcentaje` ya devuelve neutro
 cuando no hay nada que medir **y explica por qué en un comentario**; `tonoPorPorcentaje` no recibe
-el total y por eso no puede. **Decisión de copy pendiente:** `other` se llama «Otros» en el widget
-de antigüedad y «General» en el módulo de PQRS. Recomendación razonada en la ficha: «General».
+el total y por eso no puede. **La ficha NO tiene ninguna decisión abierta:** la única —cómo llamar
+a `other`, «Otros» en el widget contra «General» en el módulo— **la cerró David: «General»**, que es
+lo que ya dicen los otros dos sitios, así que el cambio toca uno solo.
+
+### `PH-003` Y `ONB-002` — LO QUE HAY QUE SABER PARA ARRANCARLAS
+
+**`PRD-V-FLOW-005` (la visita repentina).** Sus cinco decisiones están tomadas y dentro de la ficha.
+Dos cosas que ahorran una tarde:
+
+- **Es callable por un dato medido, no por criterio:** el `update` de `visitorPasses` deja al
+  residente tocar **solo lo que él creó**, y un pase de portería lleva el uid del guardia — **con
+  las reglas de hoy el residente no puede autorizarlo**.
+- **El catálogo de avisos tiene 13 claves y ninguna de visitas.** Hay que añadir dos, y **vive
+  duplicado en `functions/` y en `src/` con guardián de espejo**.
+- **Depende del push.** Sin él la vía A nace inservible, así que su único canario posible es
+  `tenant-santa-maria`, que es donde el push está encendido.
+
+**`PRD-V-FEAT-005` (el padrón sin duplicados).** No la frena nada: no lleva IA ni espera corpus.
+
+- **El riesgo entero está en la fusión**, y el precedente propio lo calibra: `mergeUnits` prometía
+  «TODAS las referencias» con **nueve escritas a mano y eran dieciocho** — de ahí los huérfanos de
+  Santa María. El inventario **se deriva y lleva guardián**, y `CF8` **falsa el guardián**, no la
+  fusión.
+- **Y la trampa en la que caí yo:** buscar campos escalares dijo que ninguno de los siete «David
+  Carmona» estaba referenciado. **Dos lo están, desde `units.ownerIds` y `residentIds`, que son
+  arrays.** El inventario tiene que cubrir arrays.
+- **Sin `snapshot` no hay fusión**: sin él, «fusionar» es «borrar con un nombre amable».
 
 ### FRENTE 0 — LA PREMISA ERA FALSA, Y CONVIENE NO REDESCUBRIRLO
 

@@ -396,6 +396,28 @@ aviso), manifest, SW por route handler en `/firebase-messaging-sw.js` (la config
 > `pageSize=1` dio por servido un rollout EN COLA; (4) el SW de una app instalada se actualiza
 > con liturgia — abrir (descarga), cerrar del todo (activa), reabrir.
 
+**LA IA YA ESTÁ ENCENDIDA EN PRODUCCIÓN, Y ESTE FICHERO NO LO DECÍA.** Medido el 30 de agosto de
+2026 documento a documento: **tres de las siete banderas de IA llevan encendidas en `hogaru-1`
+desde el 17 de agosto** —`ai-gateway`, `ai-pqrs-shadow` y **`ia-proveedor-real`, que es la que
+llama a Vertex de verdad y cuesta dinero**—, y las cinco functions de IA están `ACTIVE` allí. Las
+cuatro apagadas son justo las de superficie visible, y por eso «no se ve nada» y parecía que no
+estaba desplegado.
+
+> **Lo que hay que saber antes de tocar nada de IA:** (1) **el tope de gasto no lo ha mirado nadie
+> en trece días** — se mira en la consola, no de memoria, que ya nos engañó por un factor de mil;
+> (2) **no hay tráfico**: el último ticket de producción es del **7 de agosto**, diez días *antes*
+> de encender la sombra, y `aiUsage` y `aiAssistance` siguen en **0**; (3) **`aiAssistance` está en
+> 0 en LOS DOS ambientes** aunque la sombra lleva encendida en ambos y staging registró 41 usos —
+> **si el disparador no escribe, encender la sombra no acumula nada**, y esa es la primera pregunta
+> del runbook; (4) **`ai-onboarding-column-mapping` no tiene un solo consumidor en el código**:
+> encenderla es inerte. Runbook completo: `docs/encender-la-ia.md`.
+
+**HAY TRES PRD LISTAS PARA DESARROLLO Y NINGUNA CONSTRUIDA** (30 ago 2026): `PRD-V-FIX-003` (el
+panel y sus módulos midiendo lo mismo), `PRD-V-FLOW-005` (autorizar la visita que llega sin avisar)
+y `PRD-V-FEAT-005` (un padrón sin duplicados). **Lo siguiente es construir, no especificar** — tres
+especificadas y cero construidas es lo que el criterio del 24 de agosto quería evitar. La cola vive
+en la cabecera de `docs/pendientes.md`.
+
 **`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
 un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la
 píldora decía 90 con las tarjetas sumando 33 y el cajón listando 4—, la barra de cumplimiento
