@@ -73,15 +73,18 @@ function asStatus(value: unknown): VisitorPass["status"] {
   return "scheduled";
 }
 
-function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
+export function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
   const unitLabel = asString(raw.unitLabel);
   const parsedUnit = splitTowerUnit(unitLabel || "-");
   const date = asString(raw.date) || toDateKeyLocal(raw.visitDate);
   const scheduledTime = asString(raw.scheduledTime) || asString(raw.visitDate);
+  // `PRD-V-FLOW-005`. El creador solo es un anfitrión plausible cuando es el residente que se
+  // invita a sí mismo; en una visita de portería el creador es el GUARDIA, y caer a su nombre
+  // pintaba «Visita a: <el guardia>» — nadie visita al guardia.
+  const creadaEnPorteria = raw.origen === "porteria" || raw.registeredByGuard === true;
   const hostResidentName =
     asString(raw.hostResidentName) ||
-    asString(raw.createdByName) ||
-    asString(raw.residentName) ||
+    (creadaEnPorteria ? "" : asString(raw.createdByName) || asString(raw.residentName)) ||
     "Residente por confirmar";
 
   return {
