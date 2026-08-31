@@ -246,7 +246,17 @@ Runbook: [`encender-la-ia.md`](encender-la-ia.md).
 - **La lista de rollouts está paginada Y sin ordenar** —439 en producción, 601 en staging— y
   **«creado» no es «sirviendo»**: manda `traffic.current`. Instrumento:
   `functions/scripts/estado-de-apphosting.mjs`.
-- **Contar functions frescas por `updateTime`**, siempre.
+- **Contar functions frescas por `updateTime`**, siempre. **Y el 31 de agosto esa cuenta se afinó:**
+  un `deploy --only functions` completo a producción escupió **dos HTTP 429 por cuota**
+  (`reconcileCase`, `releaseReconciliation`) y aun así terminó con **90 de 90 frescas** — el CLI las
+  reintentó al final. **El 429 es una señal para MEDIR, no una conclusión**: ni «hubo 429» significa
+  que quedó rancia, ni «Deploy complete» significa que no. Solo decide el `updateTime`.
+- **No canalices el log del deploy por `tail`.** Un `firebase deploy … | tail -20` en segundo plano
+  **tira justo la parte que explica qué falló**: ese mismo día una function quedó rancia en staging
+  y el motivo se había perdido. Guardar el log entero con `tee` cuesta nada.
+- **Y las TRES credenciales caducan por separado, otra vez demostrado el 31:** la ADC renovada y el
+  CLI de `firebase` caducado a la vez. `firebase deploy` respondió **«Deploy complete» con salida 0
+  y no desplegó nada** — 0 frescas, 90 rancias. El síntoma solo aparece midiendo.
 - **El emulador necesita `JAVA_HOME`** (`$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home`), y sin
   él dos bancos enteros no corren y `npm test` sale en rojo por un solo fichero.
 - **Las tres credenciales caducan por separado.** Al cerrar: **ADC viva, firebase vivo, el CLI de
