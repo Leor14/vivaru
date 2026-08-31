@@ -4,76 +4,105 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, noche (tras construir `UX-004`)
+## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, noche (tras `UX-004` y `ONB-002`)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ SEGUIR CONSTRUYENDO. Quedan DOS PRD listas y cero líneas escritas
+> ## ▸ `ONB-002` ESTÁ CONSTRUIDO Y EN STAGING. Falta desplegarlo a producción y verlo
 >
-> **`UX-004` está EN PRODUCCIÓN y validada con ojos** (`d1beb9c`, build
-> `build-2026-08-31-002`). De las tres fichas que dejó la sesión de planeación, **queda una menos**:
-> siguen sin construir [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md)
-> (la visita repentina) y [`PRD-V-FEAT-005`](prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md)
-> (el padrón sin duplicados). **Ninguna tiene decisiones abiertas** y lo que hay que saber para
-> arrancarlas sigue escrito más abajo, sin cambios.
+> **`UX-004` está EN PRODUCCIÓN y validada con ojos** (`d1beb9c`). **`ONB-002`
+> (`PRD-V-FEAT-005`, el padrón sin duplicados) está construido, con sus cuatro bancos en verde y
+> desplegado en STAGING** (`f3e2a02`): reglas, las dos functions `ACTIVE` y el front.
 >
-> **El orden entre las dos no está decidido.** `FLOW-005` depende del push y su único canario
-> posible es `tenant-santa-maria`; `FEAT-005` no la frena nada.
+> **Lo que falta es producción, y no es un trámite: es donde está el caso.** Staging tiene **cero
+> grupos duplicados** —medido: 59 personas, ningún par comparte documento, correo ni nombre—, así
+> que allí solo se puede ver el estado vacío. **Los 13 registros duplicados están en producción**,
+> en `tenant-santa-maria`, y la sesión de Chrome es administradora **de ese conjunto**.
+>
+> Queda una PRD sin construir: [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md)
+> (la visita repentina). Sin decisiones abiertas.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
 
-### `UX-004` — CERRADA, Y LO QUE DEJÓ
+### `ONB-002` — LO QUE FALTA PARA CERRARLO, EN ORDEN
 
-**En producción y vista en pantalla**, no solo desplegada. Con la sesión de Carlos Ramírez sobre
-`tenant-santa-maria`, el antes y el después del mismo par de pantallas:
+1. **Reglas a producción** — `firebase deploy --only firestore:rules --project hogaru-1`. Solo
+   **añaden** `personMergeDecisions` (lectura de administración, escritura de nadie): amplían, no
+   restringen, así que el orden clásico vale sin vueltas.
+2. **Las dos functions** — `firebase deploy --only functions:mergePeople,functions:dismissDuplicatePeopleGroup --project hogaru-1`.
+   **Verificar por `updateTime`**, no por el «Deploy complete».
+3. **El front** — empujar `master`. **Se despliega solo** (ver las trampas). **Al agente se lo
+   bloquea el clasificador**, así que ese push lo autoriza David.
+4. **Encender la bandera SOLO en el canario:**
+   `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-padron-sin-duplicados true`.
+   Nace apagada y **el documento no existe en ninguno de los dos ambientes**, así que hasta
+   entonces manda `defaultEnabled: false` y la pantalla no se ve. Desplegar es inerte.
+5. **Mirar la pantalla** en `/admin/residents` de Santa María: deben salir **5 grupos con 13
+   registros**, y el de «David Carmona» con **7**.
 
-| | Antes | Después |
-|---|---|---|
-| Panel · «% recaudo» | **0.0% EN ROJO**, sin ventana | **«—» en neutro**, «Mes en curso», «Sin cobros emitidos en la ventana» |
-| Cartera · «% recaudo» | 2.7%, sin ventana | 2.7%, **«mar 2026 – jun 2026»** |
-| Panel · «Cartera total» | sin ventana | **«Acumulado · todos los períodos»** |
-| Widget de antigüedad · `other` | «Otros» | **«General»** |
+**Lo que NO hay que hacer:** lanzar el rollout a mano después de empujar. Se duplica.
 
-**CA1, CA2, CA4 y CA5 verificados con ojos sobre datos reales. `CA3` NO se ha visto en pantalla** y
-hay que decirlo: exige un conjunto con cobros emitidos y nada saldado, y la sesión de Chrome solo
-alcanza Santa María. Está cubierto por prueba unitaria **y por falsación** —aplanar la escala
-enrojece siete pruebas—, pero eso no es lo mismo que haberlo visto.
+### `ONB-002` — LO QUE DEJÓ, Y VALE MÁS QUE LA ENTREGA
 
-**Tres cosas que dejó y valen más que la entrega:**
+**Medir cambió CUATRO cosas de la ficha, y ninguna era menor.**
 
-- **La falsación `CF2` pasó EN VERDE a la primera, y ahí estaba el hallazgo.** El guardián de `CA7`
-  cortaba el bloque de cada rótulo solo por rótulos **literales**; entre el `label: "% recaudo"` del
-  panel y el siguiente literal hay dos rótulos calculados, así que el bloque se comía media pantalla
-  y encontraba el `scope` **del vecino**, el del bucle de render. **Un guardián puede estar ciego
-  justo en el caso que lo motivó**, y quien lo destapa es falsarlo, no escribirlo.
-- **La ficha contaba TRES copias del mapa de tipos de ticket y había CINCO.** El guardián encontró
-  la cuarta en el portal del residente y, al abrirlo, **eran dos en el mismo fichero**. Coincidían
-  por casualidad. Es el mismo patrón de «busca el gemelo en el mismo fichero» que ya nos pasó.
-- **Una divergencia latente que NO se tocó, a propósito:** `normalizedRows` de Cartera reconstruye
-  el facturado **sin `advanceAppliedAmount`** y se adelanta al fallback canónico. Medido en
-  producción: 221 cobros, 27 usan el fallback, **0 con anticipo** — hoy no muerde. Tiene chip.
+- **Eran 13 registros, no 11.** Los «11 en 3 grupos» eran **la regla de nombre a solas**,
+  presentada como el total. Documento y correo añaden un racimo que el nombre no ve.
+- **El inventario de referencias estaba mal en las CUATRO filas.** Derivarlo **de los datos**
+  —recorrer las 49 colecciones preguntando qué campo contiene de verdad un id de `people`— encontró
+  **`packages.deliveredToId` y `packages.receivedBy`, siete cada uno**, que ningún nombre delata; y
+  descartó **`tickets.residentId`**, que se llama exactamente como una referencia a persona y lleva
+  un **uid**. Un inventario escrito leyendo nombres habría repuntado **29 de 43** y dejado catorce
+  huérfanas: **la historia de `mergeUnits` con otros nombres**.
+- **«David Cancelo» y «Luis Otero» comparten el documento `65465465`.** Por eso se agrupa **por
+  coincidencia y NO por cierre transitivo**: encadenando, los cuatro del racimo caen en una sola
+  propuesta de fusión **con dos nombres distintos dentro**. Un duplicado se ve; una fusión mala, no.
+- **`R5` decía «dos personas con cuenta activa»** y habría bloqueado a «Luis» y «Luis Otero», que
+  apuntan al **mismo uid**: una persona con la ficha duplicada, que es justo lo que hay que poder
+  resolver. Lo que frena son **dos cuentas DISTINTAS**.
 
-### LO QUE ESTA SESIÓN ENSEÑÓ, Y NO ESTABA EN NINGUNA FICHA
+**Y la pieza que sostiene todo esto no es la lista: es el barrido.** Antes de escribir nada, la
+callable busca **todo** lo que apunta a esas personas y **aborta** si aparece algo que el inventario
+no conoce. La lista dice qué se sabe repuntar; el barrido dice qué hay de verdad.
+
+**Falsaciones, todas revertidas por edición:** quitar un campo del inventario enrojece (`CF8`);
+meter uno que no lo es enrojece (`CF3`); abrir la regla enrojece **cinco de seis**; romper el
+extractor del espejo enrojece **tres**, incluida la que existe para eso.
+
+### `UX-004` — CERRADA
+
+En producción y **vista en pantalla**, no solo desplegada. En Santa María el «% recaudo» del panel
+pasó de **0.0% en rojo** a **«—» en neutro** con «Mes en curso» y «Sin cobros emitidos en la
+ventana»; Cartera declara **«mar 2026 – jun 2026»**; «Cartera total» dice **«Acumulado · todos los
+períodos»**; y el widget de antigüedad llama **«General»** a `other`.
+
+**`CA3` es el único criterio NO visto en pantalla**, y hay que decirlo: exige un conjunto con
+cobros emitidos y nada saldado, y la sesión de Chrome solo alcanza Santa María. Está cubierto por
+prueba y por falsación —aplanar la escala enrojece siete pruebas—, que no es lo mismo.
+
+**Lo que enseñó:** la falsación `CF2` **pasó en verde a la primera** y destapó que el guardián
+estaba ciego —cortaba por rótulos literales y leía el `scope` del vecino—; y el mapa de tipos de
+ticket tenía **cinco** copias y no tres, **dos en el mismo fichero**.
+
+### LO QUE ENSEÑÓ LA JORNADA, Y NO ESTABA EN NINGUNA FICHA
 
 **El push a `master` SÍ despliega producción, y este repositorio afirmaba lo contrario desde el 27
-de agosto.** Se descubrió empujando: el rollout nació **cinco segundos después**, sin que nadie lo
-lanzara. La política vive en `traffic.rolloutPolicy.codebaseBranch` —`master` en producción,
-`develop` en staging— y **no en `codebase`**, que es donde se miró el 27.
+de agosto.** Se descubrió empujando: el rollout nació **cinco segundos después**. La política vive
+en `traffic.rolloutPolicy.codebaseBranch` —`master` en producción, `develop` en staging— y **no en
+`codebase`**, que es donde se miró el 27.
 
 > **La lección no es el dato, es cómo se llegó a la conclusión falsa.** Se midió el JSON crudo, que
-> es el método bueno, **sobre el recurso equivocado**: se vio que `codebase` no traía campo `branch`
-> y se leyó esa ausencia como prueba. **Una ausencia solo prueba algo si estabas mirando donde el
-> dato tendría que estar.** Costó un rollout duplicado en staging el mismo día.
+> es el método bueno, **sobre el recurso equivocado**, y la ausencia de un campo que ese recurso
+> nunca lleva se leyó como prueba. **Una ausencia solo prueba algo si mirabas donde el dato tendría
+> que estar.** Costó un rollout duplicado en staging el mismo día.
 
-**Y la lista de rollouts está paginada de verdad:** 438 en producción y 598 en staging. Pedir
-`pageSize=100` y ordenar **esa** página da una respuesta con toda la pinta de correcta. Hay
-instrumento: `functions/scripts/estado-de-apphosting.mjs`, que responde qué rama despliega sola,
-qué build sirve **ahora** y de qué commit salió.
+**Y `npm test` NO estaba roto: le faltaba el emulador.** Con el emulador levantado pasan las
+**1449**. El fichero que enrojecía es `tests/push-tokens.rules.test.ts`, que pide emulador y no
+está en la lista de exclusiones junto a sus dos hermanas. Tiene chip.
 
-### `PH-003` Y `ONB-002` — LO QUE HAY QUE SABER PARA ARRANCARLAS
+### `PH-003` — LO QUE HAY QUE SABER PARA ARRANCARLA
 
 **`PRD-V-FLOW-005` (la visita repentina).** Sus cinco decisiones están tomadas y dentro de la ficha.
-Dos cosas que ahorran una tarde:
 
 - **Es callable por un dato medido, no por criterio:** el `update` de `visitorPasses` deja al
   residente tocar **solo lo que él creó**, y un pase de portería lleva el uid del guardia — **con
@@ -83,75 +112,50 @@ Dos cosas que ahorran una tarde:
 - **Depende del push.** Sin él la vía A nace inservible, así que su único canario posible es
   `tenant-santa-maria`, que es donde el push está encendido.
 
-**`PRD-V-FEAT-005` (el padrón sin duplicados).** No la frena nada: no lleva IA ni espera corpus.
-
-- **El riesgo entero está en la fusión**, y el precedente propio lo calibra: `mergeUnits` prometía
-  «TODAS las referencias» con **nueve escritas a mano y eran dieciocho** — de ahí los huérfanos de
-  Santa María. El inventario **se deriva y lleva guardián**, y `CF8` **falsa el guardián**, no la
-  fusión.
-- **Y la trampa en la que caí yo:** buscar campos escalares dijo que ninguno de los siete «David
-  Carmona» estaba referenciado. **Dos lo están, desde `units.ownerIds` y `residentIds`, que son
-  arrays.** El inventario tiene que cubrir arrays.
-- **Sin `snapshot` no hay fusión**: sin él, «fusionar» es «borrar con un nombre amable».
-
 ### FRENTE 0 — LA PREMISA ERA FALSA, Y CONVIENE NO REDESCUBRIRLO
 
-**La IA ya está en producción.** Código desplegado y `ACTIVE` (`aiInvoke`, las dos de sombra,
-`getAiUsage`, `registrarFeedbackIa`), y **tres de las siete banderas encendidas desde el 17 de
-agosto — `ia-proveedor-real` incluida, que es la que gasta dinero**. Las cuatro apagadas son
-justo las de superficie visible, y por eso «no se ve nada».
+**La IA ya está en producción.** Código desplegado y `ACTIVE`, y **tres de las siete banderas
+encendidas desde el 17 de agosto — `ia-proveedor-real` incluida, que es la que gasta dinero**.
 
 **Lo que falta no es encender: es tráfico.** Último ticket de producción, **7 de agosto**; `aiUsage`
-y `aiAssistance` en **0**.
-
-**Los dos pasos que van PRIMERO en el runbook:** mirar el tope de gasto **en la consola** —lleva
-trece días encendido el proveedor real y nadie lo ha mirado—, y **responder por qué `aiAssistance`
-está en 0 en LOS DOS ambientes** pese a que la sombra lleva encendida en ambos. Si el disparador no
-escribe, encenderla en producción no acumula nada.
-
-**Y una que no hace nada:** `ai-onboarding-column-mapping` **no tiene un solo consumidor en el
-código**. Encenderla —como se hizo en staging el 30— es inerte.
+y `aiAssistance` en **0**. Los dos pasos que van PRIMERO en el runbook: mirar el **tope de gasto en
+la consola** —van catorce días— y **responder por qué `aiAssistance` está en 0 en LOS DOS
+ambientes**. Y `ai-onboarding-column-mapping` **no tiene un solo consumidor**: encenderla es inerte.
+Runbook: [`encender-la-ia.md`](encender-la-ia.md).
 
 ### LO QUE QUEDA DE ANTES, Y SIGUE VIGENTE
 
 - **`PLAT-005` — rematarlo.** Validar el ciclo **en producción** con
-  `jaime-gutierrez.tenant-santa-maria@ejemplo.vivaru.app` (David le pone contraseña en consola) y
-  verlo una vez en **un Android**. Ficha: [`PRD-V-PLAT-005`](prd/funcionales/PRD-V-PLAT-005-notificaciones-push-al-residente.md).
-  **NO productiva:** G5 la llena un residente real. **Y el brazo de producción del cálculo de la
-  base de enlaces no lo ha ejercitado ningún teléfono todavía** — solo el de staging.
+  `jaime-gutierrez.tenant-santa-maria@ejemplo.vivaru.app` y verlo una vez en **un Android**.
+  **NO productiva:** G5 la llena un residente real.
 - **`F2` NO es lo siguiente, y sigue medido:** 5 `paymentReceipts` con `fileUrl` vacío, 0 objetos de
-  Storage con pinta de comprobante, `aiUsage` en 0. Lo mueve juntar 100–200 comprobantes reales.
-- **El par falso de −300.000 de la conciliación sigue nombrado a propósito.** Se decide cuando haya
-  pagos reales.
-- **`npm test` está SIEMPRE en rojo por un solo fichero**, `tests/push-tokens.rules.test.ts`, que
-  pide el emulador y no está en la lista de exclusiones junto a sus dos hermanas. Medido: **99
-  ficheros pasan, 1 falla, 1413 pruebas**. Un rojo permanente deja de ser señal, y este método vive
-  de leer el color. Tiene chip.
-- **Chips de tarea abiertos:** `startsAt: undefined` en crear comunicado · la base clavada de
-  `email.ts` · el test CF3 de migración frágil a latencia · el rojo del emulador de arriba · y la
-  reconstrucción del facturado de Cartera sin anticipo. **El del panel demo muerto está HECHO**:
-  `src/server/` y su fixture, borrados en `9a773cb`.
-- **Las dos tareas del frente de cobros por concepto:** `billingConceptLabel` **cae en silencio a
-  «Mantenimiento y Administración»** ante una clave desconocida —y en producción hay un cobro de
-  parqueadero de $80.000 con `concept: "Parqueadero"` que lo dispara—; y una auditoría de datos
-  (30 cobros sin `concept`, 4 sin `accountCode`).
+  Storage con pinta de comprobante, `aiUsage` en 0.
+- **El par falso de −300.000 de la conciliación sigue nombrado a propósito.**
+- **Chips abiertos:** `startsAt: undefined` en crear comunicado · la base clavada de `email.ts` · el
+  test CF3 de migración frágil a latencia · el rojo del emulador · la reconstrucción del facturado
+  de Cartera **sin anticipo** (latente: 27 cobros usan el fallback, **0 con anticipo**). **El del
+  panel demo muerto está HECHO** (`9a773cb`).
+- **Las dos tareas del frente de cobros por concepto:** `billingConceptLabel` cae en silencio a
+  «Mantenimiento y Administración» —y hay un cobro de parqueadero de $80.000 que lo dispara—; y una
+  auditoría de datos (30 cobros sin `concept`, 4 sin `accountCode`).
 - **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
   puerta del alta · si se abre el canal de correo.
 - **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
-  correo cerrado, push productivo, y ahora también los tickets que la IA necesita.
+  correo cerrado, push productivo, y los tickets que la IA necesita.
 
 ### LAS TRAMPAS DEL DESPLIEGUE — una corregida, las demás siguen mordiendo
 
-- **Empujar DESPLIEGA, en los dos ambientes** (`master` → producción, `develop` → staging). Ver
-  arriba: esta línea decía lo contrario durante tres días. **Si ya empujaste, no lances el rollout
-  a mano** — se duplica.
-- **La lista de rollouts está paginada Y sin ordenar**, y **«creado» no es «sirviendo»**: manda
-  `traffic.current`. Instrumento: `functions/scripts/estado-de-apphosting.mjs`.
-- **Las tres credenciales caducan por separado.** Al cerrar esta sesión: **ADC viva, firebase vivo,
-  el CLI de gcloud muerto** — y casi todo se mide con la ADC.
-- **Contar functions frescas por `updateTime`**, siempre: hay precedente de deploy en verde con
-  código rancio.
-- **Al agente se le bloquea el push a `master`** (clasificador de permisos). Lo autoriza David.
+- **Empujar DESPLIEGA, en los dos ambientes** (`master` → producción, `develop` → staging).
+  **Si ya empujaste, no lances el rollout a mano** — se duplica.
+- **La lista de rollouts está paginada Y sin ordenar** —439 en producción, 601 en staging— y
+  **«creado» no es «sirviendo»**: manda `traffic.current`. Instrumento:
+  `functions/scripts/estado-de-apphosting.mjs`.
+- **Contar functions frescas por `updateTime`**, siempre.
+- **El emulador necesita `JAVA_HOME`** (`$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home`), y sin
+  él dos bancos enteros no corren y `npm test` sale en rojo por un solo fichero.
+- **Las tres credenciales caducan por separado.** Al cerrar: **ADC viva, firebase vivo, el CLI de
+  gcloud muerto**.
+- **Al agente se le bloquea el push a `master`** (clasificador). Lo autoriza David.
 
 ---
 

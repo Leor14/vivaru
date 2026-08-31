@@ -449,9 +449,25 @@ ventana y «sin datos» dejó de disfrazarse de «lo peor». **No se tocó ningu
 > copias y no tres — **dos de ellas en el mismo fichero** del portal del residente, coincidiendo
 > por casualidad.
 
-**QUEDAN DOS PRD LISTAS Y SIN CONSTRUIR:** `PRD-V-FLOW-005` (autorizar la visita que llega sin
-avisar) y `PRD-V-FEAT-005` (un padrón sin duplicados). **Lo siguiente sigue siendo construir, no
-especificar.** La cola vive en la cabecera de `docs/pendientes.md`.
+**`ONB-002` (`PRD-V-FEAT-005`, el padrón sin duplicados) ESTÁ CONSTRUIDO Y EN STAGING**
+(`f3e2a02`): reglas, las dos functions `ACTIVE` y el front. **Falta producción**, y no es un
+trámite: staging tiene **cero grupos duplicados** —59 personas, ningún par comparte documento,
+correo ni nombre—, así que allí solo se ve el estado vacío. Los **13 registros duplicados están en
+producción**, en `tenant-santa-maria`. El orden y los cinco pasos están en `docs/pendientes.md`.
+
+> **Lo que hay que llevarse, porque vale más que la entrega: el inventario de referencias a persona
+> se derivó de los DATOS y no de los nombres de campo, y por eso salió bien.** Recorrer las 49
+> colecciones preguntando qué campo contiene de verdad un id de `people` encontró
+> **`packages.deliveredToId` y `packages.receivedBy` —siete cada uno—**, que ningún nombre delata, y
+> descartó **`tickets.residentId`**, que se llama exactamente como una referencia a persona y lleva
+> un **uid**. Un inventario escrito leyendo nombres habría repuntado **29 de 43** y dejado catorce
+> huérfanas: **`mergeUnits` otra vez, con otros nombres**.
+>
+> **Y lo que sostiene el invariante no es la lista: es el barrido.** Antes de escribir nada, la
+> callable busca todo lo que apunta a esas personas y **aborta** si aparece algo no registrado.
+
+**QUEDA UNA PRD LISTA Y SIN CONSTRUIR:** `PRD-V-FLOW-005` (autorizar la visita que llega sin
+avisar). **Lo siguiente sigue siendo construir, no especificar.**
 
 **`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
 un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la
