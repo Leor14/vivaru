@@ -24,11 +24,22 @@ export function StatTile({
   tone = "blue",
   label,
   value,
+  scope,
   className,
 }: {
   tone?: StatTone;
   label: string;
   value: ReactNode;
+  /**
+   * **La ventana que mide el indicador, bajo el rótulo.**
+   *
+   * El «% recaudo» de esta pantalla mide el rango elegido —hasta doce períodos— y el del Panel
+   * de Control mide UN MES, con el mismo rótulo y a un clic de distancia. El 30 de agosto de
+   * 2026 los siete conjuntos de producción daban dos cifras distintas del mismo concepto.
+   * Se resuelve nombrando cada ventana, no fusionando las dos: son preguntas legítimas y
+   * distintas —«cómo va este mes» y «cómo va el histórico»—.
+   */
+  scope?: string;
   className?: string;
 }) {
   const c = TONES[tone];
@@ -38,6 +49,7 @@ export function StatTile({
       style={{ borderColor: c.border, backgroundColor: c.bg }}
     >
       <p className="text-xs text-[var(--slate-500)]">{label}</p>
+      {scope ? <p className="text-[11px] leading-tight text-[var(--slate-500)]">{scope}</p> : null}
       <p className="mt-1 text-lg font-semibold" style={{ color: c.text }}>
         {value}
       </p>

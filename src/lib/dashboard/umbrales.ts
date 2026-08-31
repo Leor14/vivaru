@@ -27,8 +27,15 @@ export type TonoDeIndicador = "success" | "pending" | "alert" | "neutral";
  * No la uses con recuentos de actividad —visitantes, reservas—: contar lo que pasó no es un
  * logro ni un problema, y pintarlo de verde le quita significado al verde de las tarjetas
  * donde sí lo tiene.
+ *
+ * **Pide el total, igual que su vecina `colorPorPorcentaje`, y por el mismo motivo.** Sin él no
+ * puede distinguir «cero medido» de «no hay nada que medir», y las dos cosas salían en rojo: el
+ * 30 de agosto de 2026, CUATRO de los siete conjuntos de producción afirmaban en rojo un recaudo
+ * del 0,0% en un mes en el que no se había emitido ni un cobro. El número era correcto y la
+ * afirmación falsa. La escala de color solo informa cuando el rojo significa siempre lo mismo.
  */
-export function tonoPorPorcentaje(pct: number): TonoDeIndicador {
+export function tonoPorPorcentaje(pct: number, total: number): TonoDeIndicador {
+  if (total === 0) return "neutral";
   if (pct >= UMBRAL_BIEN) return "success";
   if (pct >= UMBRAL_ATENCION) return "pending";
   return "alert";

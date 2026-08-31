@@ -52,7 +52,7 @@ import { useVisitorPasses } from "@/features/visitors/use-visitor-passes";
 import { useAgreementsComplianceSummary } from "@/features/committee-agreements/use-agreements-compliance-summary";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 import { formatUnitInline } from "@/lib/utils/unit";
-import { tonoPorPorcentaje } from "@/lib/dashboard/umbrales";
+import { lecturaDePorcentaje } from "@/lib/dashboard/indicadores";
 
 function asText(value: unknown, fallback = "Sin dato") {
   if (typeof value === "string" && value.trim().length > 0) {
@@ -309,6 +309,10 @@ export default function AdminDashboardPage() {
   const activityComparisonMonth = dashboardPeriod === "previous" ? previousPreviousMonth : previousMonth;
   // Recaudo es mensual: "hoy"/"este mes" usan el mes en curso; "mes pasado", el anterior.
   const recaudoLabel = dashboardPeriod === "previous" ? "mes pasado" : "mes en curso";
+  // **La ventana que se PINTA bajo cada rótulo.** Con el filtro en «Hoy», el recaudo sigue
+  // midiendo el mes: decirlo es justo lo que evita que dos cifras del mismo nombre se contradigan.
+  const ventanaRecaudo = dashboardPeriod === "previous" ? "Mes pasado" : "Mes en curso";
+  const ventanaActividad = isToday ? "Hoy" : dashboardPeriod === "previous" ? "Mes pasado" : "Mes en curso";
 
   const availableUnits = useMemo(() => {
     const unique = new Set<string>();
@@ -400,10 +404,12 @@ export default function AdminDashboardPage() {
     : countInMonth(reservations, reservationDate, activityComparisonMonth);
 
   // % recaudo del mes: misma fórmula que Cartera y Reporte de Comité (VIV-1103).
-  const monthRate = (month: string) =>
-    computeCollectionSummary(billing.filter((b) => b.period === month)).rate;
-  const recaudoPeriod = monthRate(activityMonth);
-  const recaudoComparison = monthRate(activityComparisonMonth);
+  // **Se guarda el resumen entero y no solo `.rate`**: sin `charged` la pantalla no puede
+  // distinguir «nadie pagó» de «no había nada que cobrar», y las dos salían en rojo.
+  const monthSummary = (month: string) => computeCollectionSummary(billing.filter((b) => b.period === month));
+  const recaudoPeriod = monthSummary(activityMonth);
+  const recaudoComparison = monthSummary(activityComparisonMonth);
+  const recaudoLectura = lecturaDePorcentaje(recaudoPeriod.rate, recaudoPeriod.charged, ventanaRecaudo);
 
   const ticketsWithUrgency = useMemo(() => {
     return openTickets
@@ -509,6 +515,10 @@ export default function AdminDashboardPage() {
     {
       label: "Cartera total",
       value: formatAmount(totalPortfolio),
+      // **Es un ACUMULADO y hay que decirlo.** Suma el saldo de todos los períodos, así que no
+      // se puede comparar con nada del mes: sin la ventana escrita, quien la lea al lado del
+      // «% recaudo» del mes supondrá que las dos hablan del mismo tiempo.
+      scope: "Acumulado · todos los períodos",
       insight: overdueUnitsCount > 0 ? `${overdueUnitsCount} unidad${overdueUnitsCount !== 1 ? "es" : ""} en mora` : "Sin unidades en mora",
       tone: "neutral" as const,
       href: "/admin/billing",
@@ -517,6 +527,7 @@ export default function AdminDashboardPage() {
     {
       label: "Paquetes pendientes",
       value: String(pendingPackages.length),
+      scope: "Al día de hoy",
       insight: pendingPackages.length > 0 ? "En bodega, sin recoger" : "Bodega al día",
       // El texto ya se ramificaba con el valor y el tono no lo seguía: con cero paquetes pintaba
       // ámbar sobre un «Bodega al día». Misma corrección que en las otras dos tarjetas.
@@ -527,6 +538,7 @@ export default function AdminDashboardPage() {
     {
       label: "PQRS abiertas",
       value: String(openTickets.length),
+      scope: "Al día de hoy",
       insight: urgentTickets > 0 ? `${urgentTickets} urgente${urgentTickets !== 1 ? "s" : ""} (>15 días)` : "Ninguna urgente",
       tone: urgentTickets > 0 ? ("alert" as const) : ("neutral" as const),
       href: "/admin/pqrs",
@@ -535,6 +547,7 @@ export default function AdminDashboardPage() {
     {
       label: "Acuerdos sin firma",
       value: String(pendingAgreements),
+      scope: "Al día de hoy",
       insight:
         pendingSignatures > 0
           ? `${pendingSignatures} firma${pendingSignatures !== 1 ? "s" : ""} pendiente${pendingSignatures !== 1 ? "s" : ""}`
@@ -549,13 +562,22 @@ export default function AdminDashboardPage() {
   const actividadPeriodo = [
     {
       label: "% recaudo",
-      value: `${recaudoPeriod.toFixed(1)}%`,
-      insight: getTrendInsight(recaudoPeriod, recaudoComparison, "vs mes anterior"),
+      value: recaudoLectura.valor,
+      // **La ventana, escrita.** Cartera enseña este mismo rótulo sobre hasta doce períodos: el
+      // 30 de agosto de 2026 los SIETE conjuntos de producción daban cifras distintas en las dos
+      // pantallas, a un clic de distancia y sin que ninguna dijera qué medía.
+      scope: recaudoLectura.ventana,
+      // **Y sin nada facturado no hay tendencia que contar**, porque no hay de qué.
+      insight: recaudoLectura.sinDatos
+        ? "Sin cobros emitidos en la ventana"
+        : getTrendInsight(recaudoPeriod.rate, recaudoComparison.rate, "vs mes anterior"),
       // **El tono sale del valor, no es constante.** Estaba fijo en `success`, así que un recaudo
       // del 0,0% se pintaba en verde — el color decía «bien» sobre el peor número posible.
       // La escala es la MISMA que usan las barras de cumplimiento por torre (70 / 40): una sola
       // regla de color en la pantalla, para que dos verdes signifiquen lo mismo.
-      tone: tonoPorPorcentaje(recaudoPeriod),
+      // **Y un mes sin cobros emitidos ya NO se pinta de rojo**: era el caso de cuatro de los
+      // siete conjuntos, afirmando el peor número posible sobre una cartera que nadie había emitido.
+      tone: recaudoLectura.tono,
       href: "/admin/billing",
       // R16: mide lo SALDADO, no lo cobrado. Una cuota cubierta con un
       // anticipo cuenta aquí al 100 % aunque su dinero entrara otro mes.
@@ -564,6 +586,7 @@ export default function AdminDashboardPage() {
     {
       label: isToday ? "Visitantes hoy" : "Visitantes",
       value: String(visitorsPeriod),
+      scope: ventanaActividad,
       insight: getTrendInsight(visitorsPeriod, visitorsComparison, periodSuffix),
       tone: "neutral" as const,
       href: "/admin/visitors",
@@ -572,6 +595,7 @@ export default function AdminDashboardPage() {
     {
       label: isToday ? "Reservas hoy" : "Reservas",
       value: String(reservationsPeriod),
+      scope: ventanaActividad,
       insight: getTrendInsight(reservationsPeriod, reservationsComparison, periodSuffix),
       // **Un recuento de actividad no es bueno ni malo, así que va neutro.** Estaba en `success`:
       // «0 reservas hoy» se pintaba en verde igual que «40 reservas hoy». Pintar de logro algo
@@ -762,6 +786,7 @@ export default function AdminDashboardPage() {
                     key={kpi.label}
                     label={kpi.label}
                     value={kpi.value}
+                    scope={kpi.scope}
                     insight={kpi.insight}
                     tone={kpi.tone}
                     href={kpi.href}
@@ -802,6 +827,7 @@ export default function AdminDashboardPage() {
                     key={kpi.label}
                     label={kpi.label}
                     value={kpi.value}
+                    scope={kpi.scope}
                     insight={kpi.insight}
                     tone={kpi.tone}
                     href={kpi.href}

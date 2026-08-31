@@ -15,18 +15,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/features/auth/auth-context";
 import { createTicket, useTickets } from "@/features/pqrs/use-tickets";
 import { useModuleVariant } from "@/lib/config/use-module-variant";
+import { getTicketTypeLabel, TICKET_TYPE_LABELS } from "@/features/pqrs/ticket-status";
 import type { Ticket } from "@/types/domain";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Definiciones canónicas: datasets/pqrs/taxonomia.md (eje 2). El eje es de QUIÉN
 // o de QUÉ se queja —persona (queja) contra servicio (reclamo)—, no la severidad.
+// **Los rótulos salen del mapa único; aquí viven solo las descripciones.** Este fichero tenía
+// DOS copias del mapa de tipos —esta y `TYPE_LABELS`, abajo— y coincidían por casualidad: eran
+// el mismo mecanismo que hacía que un ticket `other` se llamara «Otros» en el panel y «General»
+// en PQRS. Las descripciones sí son de esta pantalla y no de las otras, así que se quedan.
 const TICKET_TYPES = [
-  { value: "petition",   label: "Petición",   description: "Pides información, un documento o que se haga algo" },
-  { value: "complaint",  label: "Queja",      description: "Inconformidad con la conducta de una persona" },
-  { value: "claim",      label: "Reclamo",    description: "Inconformidad con un servicio que falló o no se cumplió" },
-  { value: "suggestion", label: "Sugerencia", description: "Propones una mejora, sin reportar una falla" },
-  { value: "other",      label: "General",    description: "No encaja en las anteriores" },
+  { value: "petition",   description: "Pides información, un documento o que se haga algo" },
+  { value: "complaint",  description: "Inconformidad con la conducta de una persona" },
+  { value: "claim",      description: "Inconformidad con un servicio que falló o no se cumplió" },
+  { value: "suggestion", description: "Propones una mejora, sin reportar una falla" },
+  { value: "other",      description: "No encaja en las anteriores" },
 ] as const;
 
 type TicketTypeValue = typeof TICKET_TYPES[number]["value"];
@@ -37,11 +42,6 @@ const STATUS_CONFIG: Record<Ticket["status"], { label: string; badgeCls: string 
   responded:   { label: "Respondido",  badgeCls: "bg-indigo-100 text-indigo-700" },
   resolved:    { label: "Resuelto",    badgeCls: "bg-emerald-100 text-emerald-700" },
   closed:      { label: "Cerrado",     badgeCls: "bg-[var(--slate-100)] text-[var(--slate-600)]" },
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  petition: "Petición", complaint: "Queja", claim: "Reclamo",
-  suggestion: "Sugerencia", other: "General",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function formatDate(value: string | undefined): string {
 
 function TicketRow({ ticket, simple = false }: { ticket: Ticket; simple?: boolean }) {
   const statusCfg = STATUS_CONFIG[ticket.status] ?? STATUS_CONFIG.open;
-  const typeLabel = ticket.type ? (TYPE_LABELS[ticket.type] ?? "General") : "General";
+  const typeLabel = getTicketTypeLabel(ticket.type);
   const date = formatDate(ticket.createdAt ?? ticket.updatedAt);
 
   return (
@@ -207,7 +207,7 @@ export default function ResidentPqrsPage() {
                       }`}
                     >
                       <span className={`block font-semibold ${selected ? "text-[var(--brand-700)]" : "text-[var(--slate-800)]"}`}>
-                        {t.label}
+                        {TICKET_TYPE_LABELS[t.value]}
                       </span>
                       <span className={`mt-0.5 block ${selected ? "text-[var(--brand-700)]" : "text-[var(--slate-500)]"}`}>
                         {t.description}

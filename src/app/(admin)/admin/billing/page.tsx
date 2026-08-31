@@ -75,6 +75,7 @@ import { FlujoCajaTablero } from "@/components/features/finanzas/flujo-caja-tabl
 import { LiquidezTablero } from "@/components/features/finanzas/liquidez-tablero";
 import { PeriodFilter } from "@/components/features/finanzas/period-filter";
 import { StatTile } from "@/components/features/finanzas/stat-tile";
+import { lecturaDePorcentaje } from "@/lib/dashboard/indicadores";
 import { TableroCarousel } from "@/components/features/finanzas/tablero-carousel";
 import { Dialog } from "@/components/ui/dialog";
 import { AdvancesPanel } from "@/components/features/billing/AdvancesPanel";
@@ -511,6 +512,20 @@ function AdminBillingPageContent() {
 
     return { totalCharged, totalCollected, totalSettled, gap, collectionRate };
   }, [chartTrend]);
+
+  // **La ventana de ESTA pantalla, escrita bajo el rótulo que comparte con el Panel de Control.**
+  // Aquí el rango lo elige quien mira y por defecto son los últimos doce períodos disponibles;
+  // allí es un mes. Mismo nombre, dos preguntas — y hasta hoy ninguna de las dos se declaraba.
+  const ventanaDeCartera = useMemo(() => {
+    if (!fromPeriod || !toPeriod) return "Rango sin definir";
+    if (fromPeriod === toPeriod) return formatPeriodLabel(fromPeriod);
+    return `${formatPeriodLabel(fromPeriod)} – ${formatPeriodLabel(toPeriod)}`;
+  }, [fromPeriod, toPeriod]);
+
+  const lecturaDeCartera = useMemo(
+    () => lecturaDePorcentaje(trendSummary.collectionRate, trendSummary.totalCharged, ventanaDeCartera),
+    [trendSummary.collectionRate, trendSummary.totalCharged, ventanaDeCartera],
+  );
 
   const chartData = useMemo(
     () =>
@@ -1312,7 +1327,15 @@ function AdminBillingPageContent() {
               llamaba así a este MISMO número, y dos nombres para una cifra
               invitan a buscarles la diferencia. */}
           <StatTile tone="amber" label="Pendiente" value={formatAmount(trendSummary.gap)} />
-          <StatTile tone="blue" label="% recaudo" value={`${trendSummary.collectionRate.toFixed(1)}%`} />
+          {/* La ventana va escrita aquí y no solo en el selector de rango de arriba: el
+              rótulo viaja con la cifra, y quien compara este número con el del Panel de
+              Control lo hace mirando la tarjeta, no el filtro. */}
+          <StatTile
+            tone="blue"
+            label="% recaudo"
+            scope={lecturaDeCartera.ventana}
+            value={lecturaDeCartera.valor}
+          />
         </div>
 
         {chartData.length === 0 ? (

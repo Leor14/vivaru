@@ -5,17 +5,24 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { getTicketTypeLabel } from "@/features/pqrs/ticket-status";
 import { usePqrsAgingSummary } from "@/features/pqrs/use-pqrs-aging-summary";
 
 type Props = { tenantId?: string };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  petition: "Petición",
-  complaint: "Queja",
-  claim: "Reclamo",
-  suggestion: "Sugerencia",
-  other: "Otros",
-};
+/**
+ * **El mapa propio de este widget se retiró: era la tercera copia y era la que divergía.**
+ *
+ * Lo que el selector lista es el `type` del ticket —`usePqrsAgingSummary` agrupa por `raw.type`—,
+ * y aquí `other` se pintaba «Otros» mientras `/admin/pqrs` y el asistente de IA lo llamaban
+ * «General»: el MISMO ticket cambiaba de nombre según dónde se mirara. `ticket-status.ts` decía
+ * ya por escrito que se habían unificado dos de las tres y que esta se dejaba fuera a propósito,
+ * porque obligaba a una decisión de copy. La tomó David el 30 de agosto de 2026: **«General»**,
+ * que es lo que ya decían los otros dos sitios, así que el cambio toca uno solo.
+ *
+ * `getTicketTypeLabel` conserva la conducta que tenía el mapa ante una clave desconocida:
+ * devolver la clave cruda, como hacía el `?? c`.
+ */
 
 export function PqrsAgingWidget({ tenantId }: Props) {
   const [category, setCategory] = useState<string>("all");
@@ -51,7 +58,7 @@ export function PqrsAgingWidget({ tenantId }: Props) {
           <option value="all">Todas las categorías</option>
           {fullSummary.categories.map((c) => (
             <option key={c} value={c}>
-              {CATEGORY_LABELS[c] ?? c}
+              {getTicketTypeLabel(c)}
             </option>
           ))}
         </select>

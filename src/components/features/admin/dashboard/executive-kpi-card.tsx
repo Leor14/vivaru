@@ -47,6 +47,7 @@ const TONE_STYLES: Record<KpiTone, { shell: string; dot: string; insight: string
 export function ExecutiveKpiCard({
   label,
   value,
+  scope,
   insight,
   tone = "neutral",
   href,
@@ -54,6 +55,14 @@ export function ExecutiveKpiCard({
 }: {
   label: string;
   value: string;
+  /**
+   * **La ventana que mide el indicador, bajo el rótulo.**
+   *
+   * Existe porque el mismo rótulo —«% recaudo»— vivía en esta tarjeta midiendo UN MES y en
+   * Cartera midiendo hasta DOCE PERÍODOS, y ninguno de los dos lo decía. Un rótulo que no
+   * nombra su ventana no es ambiguo: es una afirmación distinta según quién la lea.
+   */
+  scope?: string;
   insight: string;
   tone?: KpiTone;
   href?: string;
@@ -68,7 +77,8 @@ export function ExecutiveKpiCard({
         </div>
         <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", TONE_STYLES[tone].dot)} aria-hidden />
       </div>
-      <p className="kpi-value-fluid kpi-value-fluid-xl mt-3 font-semibold text-[var(--slate-900)]">{value}</p>
+      {scope ? <p className="mt-0.5 text-[11px] leading-tight text-[var(--slate-500)]">{scope}</p> : null}
+      <p className="kpi-value-fluid kpi-value-fluid-xl mt-2 font-semibold text-[var(--slate-900)]">{value}</p>
       <p className={cn("mt-1 text-xs font-medium", TONE_STYLES[tone].insight)}>{insight}</p>
     </Card>
   );

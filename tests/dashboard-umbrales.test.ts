@@ -15,19 +15,43 @@ describe("umbrales del Panel de Control", () => {
   describe("el tono sale del valor, no es constante", () => {
     // El defecto: `% recaudo` tenía `tone: "success"` fijo, así que 0,0% se pintaba de verde.
     it("un recaudo de 0% NO puede leerse como bueno", () => {
-      expect(tonoPorPorcentaje(0)).toBe("alert");
-      expect(tonoPorPorcentaje(0)).not.toBe("success");
+      expect(tonoPorPorcentaje(0, 18)).toBe("alert");
+      expect(tonoPorPorcentaje(0, 18)).not.toBe("success");
     });
 
     it("solo desde el umbral bueno se pinta como bueno", () => {
-      expect(tonoPorPorcentaje(UMBRAL_BIEN)).toBe("success");
-      expect(tonoPorPorcentaje(UMBRAL_BIEN - 0.1)).not.toBe("success");
-      expect(tonoPorPorcentaje(100)).toBe("success");
+      expect(tonoPorPorcentaje(UMBRAL_BIEN, 18)).toBe("success");
+      expect(tonoPorPorcentaje(UMBRAL_BIEN - 0.1, 18)).not.toBe("success");
+      expect(tonoPorPorcentaje(100, 18)).toBe("success");
     });
 
     it("la franja intermedia es atención, no alarma ni logro", () => {
-      expect(tonoPorPorcentaje(UMBRAL_ATENCION)).toBe("pending");
-      expect(tonoPorPorcentaje(UMBRAL_ATENCION - 0.1)).toBe("alert");
+      expect(tonoPorPorcentaje(UMBRAL_ATENCION, 18)).toBe("pending");
+      expect(tonoPorPorcentaje(UMBRAL_ATENCION - 0.1, 18)).toBe("alert");
+    });
+  });
+
+  /**
+   * **CA2 y CA3 de `PRD-V-FIX-003`, en la función que decide el color.**
+   *
+   * El tono tenía la misma ceguera que tuvo la barra: sin el total no distinguía «nadie pagó»
+   * de «no había nada que cobrar», y las dos salían en rojo. El 30 de agosto de 2026, CUATRO de
+   * los siete conjuntos de producción afirmaban en rojo un recaudo del 0,0% en un mes sin un
+   * solo cobro emitido. **CA3 está aquí para que arreglarlo no se lleve por delante el cero de
+   * verdad**, que es exactamente la regresión que `UX-003` ya cometió con las barras.
+   */
+  describe("el tono tampoco confunde «sin datos» con «lo peor»", () => {
+    it("CA2 — sin nada facturado no se pinta de alarma", () => {
+      expect(tonoPorPorcentaje(0, 0)).toBe("neutral");
+      expect(tonoPorPorcentaje(0, 0)).not.toBe("alert");
+    });
+
+    it("CA3 — con cobros emitidos y nada saldado SIGUE siendo alarma", () => {
+      expect(tonoPorPorcentaje(0, 1_200_000)).toBe("alert");
+    });
+
+    it("y los dos ceros no se ven igual, que es el defecto que hubo", () => {
+      expect(tonoPorPorcentaje(0, 0)).not.toBe(tonoPorPorcentaje(0, 1_200_000));
     });
   });
 
