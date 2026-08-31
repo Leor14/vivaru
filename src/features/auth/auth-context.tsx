@@ -22,6 +22,7 @@ import { FirebaseError } from "firebase/app";
 import { collection, doc, getDoc, getDocFromServer, getDocs, limit, query, updateDoc, where } from "firebase/firestore";
 
 import { auth, db } from "@/lib/firebase/client";
+import { CallableError } from "@/lib/utils/error-handler";
 import { clearSession, loadSession, saveSession } from "@/lib/auth/session";
 import type { AppRole } from "@/lib/constants/roles";
 import { isFirebaseConfigured, missingFirebaseEnvKeys } from "@/lib/firebase/config";
@@ -129,7 +130,7 @@ function toSessionUser(profile: SessionProfile): SessionUser {
 function normalizeLoginError(error: unknown) {
   if (error instanceof FirebaseError) {
     if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
-      return "Correo o contrasena incorrectos.";
+      return "Correo o contraseña incorrectos.";
     }
     if (error.code === "auth/user-not-found") {
       return "No existe una cuenta con ese correo.";
@@ -140,7 +141,7 @@ function normalizeLoginError(error: unknown) {
     return error.message;
   }
 
-  return error instanceof Error ? error.message : "No fue posible iniciar sesion.";
+  return error instanceof Error ? error.message : "No fue posible iniciar sesión.";
 }
 
 function debugAuth(message: string, payload?: Record<string, unknown>) {
@@ -656,7 +657,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setStatus("unauthenticated");
       setError(message);
-      throw new Error(message);
+      // `CallableError` y no `Error`: el mensaje ya está en lenguaje de usuario
+      // y así `normalizeFirebaseError` lo respeta en vez de caer al genérico.
+      throw new CallableError(message);
     }
   }, []);
 
