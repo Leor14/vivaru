@@ -455,9 +455,14 @@ ventana y «sin datos» dejó de disfrazarse de «lo peor». **No se tocó ningu
 
 **`ONB-002` (`PRD-V-FEAT-005`, el padrón sin duplicados) ESTÁ EN PRODUCCIÓN** (`d692be3`), con la
 bandera `producto-padron-sin-duplicados` **encendida SOLO en `tenant-santa-maria`**. En pantalla
-salen los **5 grupos con 13 registros** medidos. **`CA5` y `CA6` siguen sin verificar**: exigen
-ejecutar una fusión de verdad, que **no se deshace sola** —se deshace con su `snapshot`, que es una
-operación—.
+salen los **5 grupos con 13 registros** medidos, y **la fusión de los siete «David Carmona» se
+ejecutó en producción**: el padrón pasó de 24 a 18, cero huérfanos, y la decisión con su `snapshot`.
+
+> **Y ejecutarla destapó un defecto que ninguna prueba veía: un superviviente no podía volver a
+> fusionarse.** El registro de la decisión nombra a los archivados y al superviviente —para eso
+> existe—, y el barrido lo leía como referencias desconocidas, así que **la SEGUNDA fusión de esa
+> persona habría abortado**. Con una sola hecha, todo parecía bien. **Corregido**, con dos pruebas
+> y su falsación. Es el gemelo de siempre: lo que solo falla en la segunda pasada no lo ve nadie.
 
 > **Lo que hay que llevarse, porque vale más que la entrega: el inventario de referencias a persona
 > se derivó de los DATOS y no de los nombres de campo, y por eso salió bien.** Recorrer las 49

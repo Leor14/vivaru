@@ -137,7 +137,12 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
         mergedIds: grupo.ids.filter((id) => id !== survivorId),
         motivo,
       });
-      toast.success(`${res.fusionadas} registro(s) archivado(s) y ${res.repuntadas} referencia(s) reasignada(s).`);
+      // Mismo criterio que la vista previa: nada de «(s)». Es el mensaje que confirma una
+      // operación que no se deshace sola, y se lee una sola vez.
+      toast.success(
+        `${plural(res.fusionadas, "registro archivado", "registros archivados")} y ` +
+          `${plural(res.repuntadas, "referencia reasignada", "referencias reasignadas")}.`,
+      );
       setAbierto(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudieron fusionar las personas.");

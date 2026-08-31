@@ -27,14 +27,30 @@ sus dos documentos distintos como motivos separados, «David Cancelo» y «Luis 
 por su documento compartido**, y cada registro diciendo qué cuelga de él —«listado en 1 unidad · 2
 paquetes»—. `CA1`, `CA2`, `CA3`, `CA4` verificados con ojos.
 
-> **`CA5` y `CA6` NO están verificados, y hay que decirlo: no se ha ejecutado ninguna fusión.**
-> Verlos exige fusionar de verdad, y eso **no se deshace solo** —se deshace con su `snapshot`, que
-> es una operación, no un rollback—. Los cubren el banco de emulador y sus falsaciones, que no es
-> lo mismo que haberlo visto. **El candidato natural es el grupo de los siete «David Carmona»**:
-> es el más claro y no hay nadie detrás.
+> **`CA5` y `CA6` VERIFICADOS: la fusión de los siete «David Carmona» se ejecutó en producción**
+> el 30 de agosto. «6 registros archivados y 1 referencia reasignada», que es exactamente lo medido
+> antes. El padrón de Santa María pasó de **24 a 18**, **cero referencias huérfanas** en datos de
+> producto, y la decisión quedó con su `snapshot` de las seis personas pisadas, su motivo, su autor
+> y su fecha.
 >
-> **`CA8` tampoco se ha visto**: exige un conjunto sin duplicados con la bandera encendida, y hoy
-> la bandera solo está en el único conjunto que los tiene.
+> **El superviviente elegido fue el ÚNICO con cuenta de acceso** —si sobrevive otro, la persona
+> pierde su login—, y **heredó las dos unidades**: ahora figura como propietario de APARTAMENTO 201
+> y de T2-201, que es lo correcto si es una sola persona.
+>
+> **`CA8` sigue sin verse**: exige un conjunto sin duplicados con la bandera encendida, y la
+> bandera solo está donde los hay.
+
+> ### Y EJECUTARLA DESTAPÓ UN DEFECTO QUE NINGUNA PRUEBA VEÍA
+>
+> Al terminar, los seis ids archivados quedan escritos en `personMergeDecisions.mergedIds` y el del
+> superviviente en `survivorId` —el documento existe justamente para nombrarlos—. **El barrido los
+> leía como referencias**, y como esa colección no está en el inventario, **la SIGUIENTE fusión de
+> esa persona habría abortado**: un superviviente en un callejón sin salida.
+>
+> **Con una sola fusión hecha todo estaba bien. El defecto vivía en la segunda**, que es cuando ya
+> nadie mira. Corregido excluyendo la colección del barrido —repuntarla habría sido peor: reescribir
+> el `survivorId` de una decisión pasada y hacer que la historia diga algo que no pasó— y con dos
+> pruebas que fijan las dos mitades, falsadas quitando la exclusión.
 
 **La bandera está SOLO en `tenant-santa-maria`**, verificada resolviendo con el módulo compilado
 (`override_conjunto`), no leyendo el documento. En los demás conjuntos resuelve `default_catalogo`.
