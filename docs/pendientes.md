@@ -230,10 +230,13 @@ Runbook: [`encender-la-ia.md`](encender-la-ia.md).
   qué:** el cobro de parqueadero está en **`tenant-nogal-bogota`**, y ninguna de las dos sesiones
   del navegador —el guardia y el administrador de Santa María— alcanza ese conjunto. Lo cubren las
   pruebas y sus dos falsaciones. **Para verlo hace falta una sesión de administrador de El Nogal.**
-- **Pendiente de decisión tuya (escribe en producción):** corregir el `concept: "Parqueadero"` de
-  los dos cobros sembrados. **Ya es inocuo** —la normalización lo resuelve bien—, pero deja el dato
-  sin coincidir con el catálogo, y un ambiente nuevo nacería con la clave buena mientras los dos
-  viejos conservan la mala.
+- **El dato también está corregido** (31 ago): el `concept: "Parqueadero"` pasó a `parqueadero` en
+  los DOS ambientes, y verificado leyendo la base — **cero cobros con la clave fuera de forma
+  canónica** en ninguno de los dos. El instrumento queda versionado:
+  `functions/scripts/normalizar-concepto-de-cobro.mjs`, **seco por defecto**, y **no clava ningún
+  id: deriva los candidatos**. Solo toca un valor si, normalizado, existe en el catálogo; uno que no
+  exista lo **lista y no lo toca**, porque eso no es un problema de mayúsculas sino un concepto que
+  alguien tiene que decidir.
 - **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
   puerta del alta · si se abre el canal de correo.
 - **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
