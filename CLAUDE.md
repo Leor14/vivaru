@@ -83,7 +83,11 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
   en una callable puede pasar el gate normal y estar roto**: los cuatro bancos son
   `npm test` (**1348** el 28 de agosto de 2026), `npm --prefix functions test` (568), el emulador
   (180) y las reglas (208). **Estos números crecen: contarlos, no citarlos de aquí** — el primero
-  decía 1198 y llevaba trece guardianes de retraso.
+  decía 1198 y llevaba trece guardianes de retraso. **Medidos el 30 de agosto de 2026, con el
+  emulador levantado: `npm test` **1449** · functions **720** · emulador **260** · reglas **249**.
+  **Y ojo: SIN emulador, `npm test` sale en ROJO por un solo fichero** —`push-tokens.rules.test.ts`,
+  que pide emulador y no está en la lista de exclusiones junto a sus dos hermanas—, así que ese
+  rojo no significa que hayas roto nada.
 
 ## Ambientes desplegados
 
