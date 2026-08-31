@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.42 |
-| **Fecha** | 30 de agosto de 2026 |
-| **Estado** | **`PLAT-005` — PUSH AL RESIDENTE — SE ABRIÓ Y LLEGÓ A PRODUCCIÓN EN UN DÍA** (29–30 ago): PRD → MVP → staging → validación con un iPhone real → producción, con `producto-notificaciones-push` encendida **solo en Santa María** en los dos ambientes. El aviso que nace en `notifications` llega además al hub del teléfono, sin app en las tiendas; tercer canal del embudo único, tras in-app y correo. **La validación con teléfono cazó CINCO cosas que ningún banco veía** (§14 de la ficha): la base de enlaces clavada a producción, el click del SDK de FCM que no navega una web app instalada de iOS, la baja que el re-registro silencioso podía deshacer, el copy que asume Safari, y la respuesta de plataforma — **no hay push en iPhone sin pantalla de inicio, en ninguna versión**. Pendiente de la ficha: validar en producción con cuenta de prod y en un Android; **NO productiva** — G5 la llena un residente real. **Y LA SEGUNDA ENTREGA DE LA JORNADA, también en producción:** el documento de no deuda se nombra por país — «constancia de no adeudo» (MX), «certificado de expensas» (EC) — vía `vocabulario-pais`, validado con ojos en Queretarock; el espejo front/functions de vocabulario ganó guardián. **ANTES:** `FIN-002` cerrada el 29 con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión — y el push productivo se les suma. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos ambientes, pieza por pieza y por el método de cada una** (29–30 ago): reglas leyendo el ruleset VIVO por la API de Rules y diferenciando contra el repo (0 diff en ambos); functions contando 87/87 con `updateTime` dentro del corte de la pasada — que cazó una rancia en staging con el deploy en verde—; el front por PROCEDENCIA del build (staging `build-2026-08-29-034` desde `2fde767`; producción `build-2026-08-29-015` desde `b70c357`), **esperando cada rollout POR NOMBRE** porque la lista sin ordenar engañó dos veces; la bandera resolviendo con `functions/lib/feature-flags.js` compilado (true·override en el canario, false·default en el resto); y el producto entero con un iPhone físico: push en el hub con la app cerrada, toque navegando, baja y re-alta vigiladas en vivo contra `pushTokens`. Suites: 1396 front · 717 functions · 13 de reglas nuevas, cada pieza nueva falsada y cayendo exactamente su prueba |
+| **Versión** | 0.9.43 |
+| **Fecha** | 30 de agosto de 2026 (noche) |
+| **Estado** | **SE ABRIERON SEIS FRENTES NUEVOS Y MEDIRLOS CAMBIÓ TRES ANTES DE PLANEARLOS.** Ninguno se enunció como resultó ser. **(1) El Panel de Control y Cartera no miden lo mismo, y está probado:** el «% recaudo» divergen en **los siete conjuntos de producción** —Palmas y Nogal dicen `0,0%` en el panel y `50,0%` en cartera— y **en cuatro de los siete el panel afirma hoy en rojo un recaudo del 0,0% donde no hay ni un cobro emitido ese mes**. Es `UX-004`, con `PRD-V-FIX-003` escrita y lista para desarrollo. **(2) La IA ya está en producción**: código desplegado y `ACTIVE`, y **tres de las siete banderas encendidas desde el 17 de agosto, `ia-proveedor-real` incluida**. Lo que falta no es encender: es tráfico —cero tickets desde el 7 de agosto—. Runbook en `docs/encender-la-ia.md`; **no lleva PRD porque no hay producto que especificar**. **(3) Los cobros por concepto ya existen** y el frente se disuelve en dos tareas. Entran además `PH-003` (autorizar la visita que llega sin avisar, con sus cinco decisiones tomadas y **conviviendo con el QR**), `AI-ONB-001` **desbloqueado por decisión y ampliado a PDF y fotos** —contra lo que argumentaba la hoja de ruta de IA, y queda escrito—, y `UX-005` en exploración. **Orden decidido por David: `UX-004` → encender IA → `PH-003` → `AI-ONB-001` → los cobros → `UX-005`.** **LO ANTERIOR, VIGENTE:** `PLAT-005` en producción con la bandera solo en Santa María y **pendiente de validar allí y en un Android**; el vocabulario del documento de no deuda por país, también en producción; `FIN-002` cerrada el 29 con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Los dos proyectos, con la ADC y midiendo, no leyendo** (30 ago, noche): las 7 banderas de IA resueltas documento a documento en `hogaru-1` y `vivaru-staging-02`; las functions por la API de Cloud Functions (87 en cada uno, las cinco de IA `ACTIVE`); los 221 `billingStatements` de producción pasados por las fórmulas reales del producto para comparar panel contra cartera conjunto por conjunto; `people`, `visitorPasses`, `paymentReceipts`, `aiUsage`, `aiAssistance`, `aiFeedback` y `aiQuotaCounters` contados. **Dos hipótesis se cayeron al comprobarlas y no llegaron a la PRD:** que el panel pintara estados crudos —`StatusPill` traduce por dentro— y que hubiera aritmética duplicada —`buildBillingTrend` usa las mismas funciones puras—. Árbol limpio: los scripts de medición se borraron al terminar |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -140,11 +140,11 @@ de entrega.**
 
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
-| **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | — | 🔵 `PH-002` (espera al primer pago real) | Nada. Lo que queda son datos de cliente |
-| **Experiencia y diseño** | 🟢 **`UX-001` y `UX-003` en producción** | 🟠 Seguir por otras pantallas, o cerrar el frente | ⏸ `UX-002` (filtros en la URL, espera clientes) | — |
+| **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | 🟠 **`PH-003`** — autorizar la visita que llega sin avisar (encuadrado el 30 ago, sin PRD) | 🔵 `PH-002` (espera al primer pago real) | — |
+| **Experiencia y diseño** | 🟢 `UX-001` y `UX-003` en producción · 🔴 **`UX-004` lista para desarrollo** (`PRD-V-FIX-003`): el panel y cartera **divergen en los 7 conjuntos** | 🟠 Ejecutar `UX-004` | ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ **`UX-005`** (tableros configurables, prioridad baja) |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
-| IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` |
+| IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**desbloqueado por decisión el 30 ago**) |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | **Mobile / iOS** | 🟢 **`PLAT-005` EN PRODUCCIÓN, bandera solo en Santa María** (30 ago; validada antes en staging con un iPhone real) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005` y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
@@ -618,6 +618,45 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
   fin su consumidor. Lo que sigue vigente de esta evidencia: la medición de uso por
   dispositivo y la auditoría responsive.
 
+#### `UX-003` — El Panel de Control dice cosas que se pueden comprobar
+
+- **Frente:** Experiencia y diseño · **Estado:** 🟢 **TRES entregas en producción** (`6738571`,
+  `5bc9d3f`, `cb6d457`, 28 ago 2026, un rollout cada una) · **Nivel 2**
+- **Problema:** la primera pantalla que ve todo el mundo afirmaba cosas que no cuadraban con sus
+  propios módulos — la píldora decía **90** con las tarjetas sumando 33 y el cajón listando 4.
+- **Qué cerró:** las alertas se construyen **una vez** y la píldora cuenta esa lista; la escala de
+  color vive en `src/lib/dashboard/umbrales.ts` y la usan la página y el widget; y diez claves de
+  estado dejaron de salir en inglés, con un guardián que **mide el código, no una lista**.
+- **Criterio de salida:** ningún número del panel contradice al módulo que lo respalda.
+  **CUMPLIDO EN PARTE** — ver `UX-004`, que continúa por los que quedaron.
+
+#### `UX-004` — El panel y sus módulos, midiendo lo mismo
+
+- **Frente:** Experiencia y diseño · **Estado:** 🔴 Lista para desarrollo (`PRD-V-FIX-003`,
+  30 ago 2026) · **Nivel 2** · **Dependencia:** ninguna
+- **Problema, medido contra `hogaru-1` el 30 de agosto:** el «% recaudo» del Panel de Control mide
+  **un mes** y el de Cartera mide **hasta doce períodos**, con el mismo rótulo y sin declarar
+  ninguno cuál. **Divergen en los siete conjuntos de producción**: Palmas y Nogal dicen `0,0%` en
+  el panel y `50,0%` en cartera; Las Playas dice `100,0%` y `76,6%`.
+- **Y el caso que convierte la diferencia en una afirmación falsa:** el panel **no distingue «0%
+  porque nadie pagó» de «0% porque no hay nada que cobrar»**, y pinta el segundo en rojo. Hoy son
+  **cuatro de los siete conjuntos**. La lección estaba aprendida y escrita: la función vecina en el
+  mismo fichero (`colorPorPorcentaje`) ya devuelve neutro sin datos y explica por qué.
+- **Lo que NO es, y diagnosticarlo mal habría costado caro:** no es aritmética duplicada. Las
+  fórmulas ya están unificadas en `src/features/billing/collection.ts` y las usan los dos lados.
+  **Es la ventana y el rótulo.**
+- **Sin decisiones abiertas.** La única —cómo llamar a `other`, «Otros» en el widget de antigüedad
+  contra «General» en el módulo de PQRS— **la cerró David el 30 de agosto: «General»**, que es lo
+  que ya dicen los otros dos sitios, así que el cambio toca uno solo.
+- **Criterio de salida:** dos indicadores con el mismo nombre, en pantallas distintas, **coinciden
+  o declaran su ventana**; y un porcentaje sin nada que medir no se pinta con el color de «mal».
+
+> **`UX-001` y `UX-002` no tienen ficha en este inventario**, y se dice en vez de inventarles una:
+> nacieron en el catálogo de Notion el 27 de agosto de 2026 y aquí solo aparecen en la tabla
+> ejecutiva y en el changelog. Lo que consta: `UX-001` está **cerrado y en producción**, y `UX-002`
+> —filtros en la URL— está **aplazada esperando clientes**. Su detalle vive en el inventario de
+> Notion.
+
 ### SIGUIENTE
 
 #### `PH-001` — Propiedad horizontal: el lote derivado de Habitanto
@@ -698,6 +737,35 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   **Lo siguiente de este frente vuelve a ser construir**: encender ya está hecho. La regla de
   orden sobre `aplicarPago` no aplica porque no queda nada en vuelo sobre ella.
 
+#### `PH-003` — Autorizar la visita que llega sin avisar
+
+- **Frente:** Propiedad horizontal · **Estado:** Encuadrado, **sin PRD** (30 ago 2026) · **Nivel 3**
+- **Problema:** hoy **toda visita nace de la mano del residente**, por QR emitido de antemano. La
+  visita que se presenta en portería sin avisar no tiene camino, y es la mayoría de las visitas
+  reales de un conjunto.
+- **Las dos vías que pide David, y son distintas a propósito:**
+  **(A)** portería captura los datos y **manda al residente una petición de autorización** que él
+  acepta o rechaza; **(B)** portería captura los datos, **llama por teléfono fuera de la
+  plataforma** y, con el sí del residente, autoriza ella misma.
+- **Decisiones ya tomadas (30 ago 2026):** vale **el primero que conteste** de la unidad · la vía A
+  espera **5 minutos** · **la vía B no espera nada** · y **queda constancia de quién autorizó y por
+  qué medio** — que es lo que distingue las dos vías cuando alguien reclame.
+- **Lo que ya existe y hay que aprovechar:** la variante `registro_simple` trae captura, callable
+  con permisos de guardia, auditoría y aviso al residente. **Pero no autoriza: consuma.** Crea la
+  visita con `status: "inside"` y la hora de entrada puesta, y el residente recibe un hecho
+  consumado, sin rastro de que nadie autorizara.
+- **La decisión estructural, tomada:** la visita repentina **convive con el QR**. Hoy el servidor
+  rechaza el registro de portería si el conjunto está en `qr_full`, y **los diecisiete conjuntos de
+  los dos ambientes lo están** — con la exclusividad actual, esto no lo vería nadie.
+- **Lo que abarata el frente:** **cero visitas registradas por portería** en toda la historia de
+  producción y staging (87 y 55 pases, todos de residente). No se rompe un flujo en uso: se estrena.
+- **Dependencia real:** el push de `PLAT-005`. Sin él la petición de la vía A cae en una campana que
+  nadie mira, y el guardia se queda con el visitante en la puerta.
+- **Criterio de salida:** una visita no anunciada entra con autorización trazable — del residente o
+  del guardia declarando el medio— y el residente la ve en su portal.
+- **Siguiente paso:** escribir `PRD-V-FLOW-005`. Necesita un estado nuevo, *pendiente de
+  autorización*: hoy solo existen `scheduled`, `inside` y `completed`.
+
 #### `PH-002` — Lo que espera al primer pago real
 
 - **Estado:** Especificado a nivel de alcance, **sin PRD escrita a propósito**
@@ -751,7 +819,13 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   real y criterios de G7.
 - **Límite:** la IA sugiere; la persona decide. No ejecuta acciones sensibles.
 - **Evidencia (17 ago 2026):** construido y medido contra un gold set de 152 casos.
-  Su bandera está apagada en producción y **su callable no está desplegada ahí**.
+  ~~Su bandera está apagada en producción y su callable no está desplegada ahí.~~
+- **CORREGIDO el 30 de agosto de 2026, midiendo: las dos mitades eran falsas.** `aiInvoke`,
+  `sombraPqrsAlCrearTicket` y `sombraPqrsAlActualizarTicket` están **`ACTIVE` en `hogaru-1`**, y de
+  las dos banderas de PQRS **`ai-pqrs-shadow` lleva encendida desde el 17 de agosto** — solo
+  `ai-pqrs-suggestions` sigue apagada. **Lo que falta no es despliegue: es tráfico.** El último
+  ticket de producción es del **7 de agosto**, diez días *antes* de encender la sombra, y
+  `aiUsage` y `aiAssistance` siguen en **0**. Plan de encendido: `docs/encender-la-ia.md`.
 
 #### `AI-COMM-001` — Piloto medido del asistente de comunicaciones
 
@@ -885,10 +959,47 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 - **Condición de entrada:** demanda expresa, volumen y decisión sobre **cuál es la
   superficie canónica**.
 
-#### `AI-ONB-001` — Mapeo asistido de columnas
+#### `AI-ONB-001` — Cargar el padrón desde lo que el cliente ya tiene
 
-- **Estado:** Exploración bloqueada por datos
-- **No diseñar sobre supuestos.** Activar únicamente cuando `ONB-001` produzca evidencia.
+- **Frente:** IA y agentes · Onboarding e importación · **Estado:** Encuadrado, **sin PRD**
+  (30 ago 2026). **Decía «Exploración bloqueada por datos» y David lo desbloquea por decisión**
+- **Se llamaba «Mapeo asistido de columnas» y el alcance cambió**, también por decisión de David
+  del 30 de agosto: **«cualquier formato» incluye PDF y fotos**, no solo hojas de cálculo. Eso
+  contradice a `docs/hoja-de-ruta-ia.md`, que argumentaba lo contrario y lo dejó escrito. **La
+  contradicción se registra, no se resuelve en silencio** — ver la anotación en esa hoja.
+- **Lo que YA existe sin IA, y hay que decirlo antes de comprar nada:** los dos asistentes de
+  importación (`UnitBulkImportWizard`, `ResidentBulkImportWizard`) aceptan **CSV y XLSX**, **ya no
+  exigen los encabezados de la plantilla**, mapean por sinónimos, miran el **contenido** de una
+  columna cuando su encabezado no dice nada, y descartan duplicados por correo o documento.
+- **La bandera `ai-onboarding-column-mapping` no hace nada.** Medido el 30 de agosto: **cero
+  referencias en el código** fuera del catálogo. Encenderla —como se hizo en staging ese día— es
+  inerte. Es la tercera forma de «una bandera no siempre es el freno»: no hay código detrás.
+- **Son TRES capacidades y conviene no meterlas en una PRD:**
+  **(a)** entender el archivo que trae el cliente → `PRD-VAI-FEAT-001`, ya reservada y hoy en Drive
+  sin versionar; **(b)** **auditar el padrón ya cargado** y proponer grupos de duplicados;
+  **(c)** resolverlos —fusionar, corregir, borrar— a mano.
+- **Y el dato que decide el coste de (b):** esa auditoría **se hizo sin IA, en un script de treinta
+  líneas, y encontró los once duplicados de producción** — «David Carmona» ×7 en dos unidades, con
+  **dos documentos distintos y el mismo correo en los siete**; más 21 de 68 personas sin documento,
+  que es uno de los dos campos con los que se deduplica. **Empezar por lo determinista hace la parte
+  de IA falsable:** se puede medir si el modelo encuentra algo que el script no.
+- **Precondición que sigue en pie:** hacen falta **15–25 archivos de importación reales** para
+  evaluar la parte de IA, y hoy no se guarda ninguno. Eso no lo desbloquea escribir código.
+- **Criterio de salida:** un conjunto nuevo carga unidades y residentes desde el archivo que tenga,
+  y el administrador ve y resuelve los duplicados antes de que ensucien el padrón.
+
+#### `UX-005` — Tableros del panel a la medida del administrador
+
+- **Frente:** Experiencia y diseño · **Estado:** Exploración (30 ago 2026) · **Prioridad baja,
+  declarada por David**
+- **Problema:** los cinco tableros del Panel de Control están **cableados en el código en orden
+  fijo**. No hay reordenar, ni ocultar, ni preferencia guardada. Un administrador que solo opera
+  cartera ve lo mismo que uno que solo opera portería.
+- **Por qué va DESPUÉS de `UX-004`, y no es una cuestión de gusto:** personalizar un panel cuyos
+  números todavía no cuadran con sus módulos es cambiar los muebles de sitio en una casa con la
+  instalación eléctrica mal. Primero que digan la verdad; luego, quién los ve.
+- **Siguiente decisión:** si la preferencia es por usuario o por conjunto — cambia el modelo de
+  datos y quién puede pisar la vista de quién.
 
 ---
 
@@ -1061,6 +1172,53 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.43 — 30 de agosto de 2026 (noche) — seis frentes nuevos, medidos antes de escribirlos
+
+- **Entran seis frentes que pidió David, y MEDIRLOS cambió tres de ellos antes de planearlos.**
+  Se midió contra `hogaru-1` y `vivaru-staging-02` con la ADC, no se leyó documentación.
+- **`UX-004` nace con su PRD (`PRD-V-FIX-003`) y con el defecto probado, no supuesto.** El
+  «% recaudo» del Panel de Control mide **un mes** y el de Cartera **hasta doce períodos**, mismo
+  rótulo: **divergen en los siete conjuntos de producción**. Palmas y Nogal dicen `0,0%` en el
+  panel y `50,0%` en cartera. **Y en cuatro de los siete el panel afirma hoy, en rojo, un recaudo
+  del 0,0% donde no hay ni un cobro emitido ese mes** — «sin datos» disfrazado de «lo peor», que es
+  exactamente el error que la función vecina del mismo fichero ya evita y explica en un comentario.
+- **Verificado contra qué:** ejecutando las fórmulas del producto sobre los 221 `billingStatements`
+  de producción, y leyendo `buildBillingTrend` y `computeCollectionSummary`. **El diagnóstico
+  cambió al medir:** parecía aritmética duplicada y **no lo es** —las dos pantallas usan las mismas
+  funciones puras—; es la ventana y el rótulo. Diagnosticarlo mal habría llevado a reescribir
+  código correcto.
+- **`AI-PQRS-001` llevaba trece días diciendo dos cosas falsas.** Decía que su callable no estaba
+  desplegada en producción y que su bandera estaba apagada: `aiInvoke` está `ACTIVE` y
+  `ai-pqrs-shadow` encendida desde el 17 de agosto. Corregido en su ficha.
+- **El frente 0 no era «empujar la IA a producción»: ya está allí.** Tres de las siete banderas
+  llevan encendidas en producción desde el 17 de agosto —**`ia-proveedor-real` incluida, que es la
+  que gasta dinero**— y nadie lo sabía. Lo que falta es tráfico: cero tickets desde el 7 de agosto,
+  cero filas en `aiUsage`. **No lleva PRD y decirlo es parte del trabajo**: lleva runbook,
+  `docs/encender-la-ia.md`, calcado del del lote de Habitanto.
+- **Y una pregunta abierta que el runbook pone primero:** `aiAssistance` está en **0 en los DOS
+  ambientes** pese a que la sombra lleva encendida en ambos y staging registró 41 usos. Si el
+  disparador no escribe, encenderla en producción no acumula nada — y el argumento de «esperar
+  acumulando» de la hoja de ruta de IA se cae.
+- **`AI-ONB-001` se desbloquea POR DECISIÓN, no por datos**, y cambia de nombre y de alcance:
+  incluye PDF y fotos. **Contradice a `docs/hoja-de-ruta-ia.md`**, que defendía lo contrario; la
+  contradicción queda escrita y fechada en los dos sitios en vez de resolverse en silencio.
+- **El dato que ordena ese frente:** la auditoría de duplicados **se hizo sin IA** y encontró once
+  en producción — «David Carmona» ×7, dos documentos distintos, el mismo correo en los siete—.
+  La IA entra en la cola larga, no en lo evidente.
+- **`PH-003` entra con sus cinco decisiones ya tomadas** (primero que conteste · 5 minutos · la vía
+  B no espera · constancia del medio · **convive con el QR**). Lo abarata que hoy haya **cero
+  visitas registradas por portería** en los dos ambientes: se estrena un flujo, no se migra uno.
+- **`UX-005`** (tableros configurables) entra en exploración, **detrás de `UX-004` a propósito**.
+- **El frente de cobros por concepto NO entra como iniciativa: no merece PRD.** Ya está construido
+  —el residente ve la etiqueta del concepto y sube comprobante por cobro—. Lo que hay son dos
+  tareas: `billingConceptLabel` **cae en silencio a «Mantenimiento y Administración»** ante una
+  clave desconocida, y en producción hay un cobro de parqueadero de $80.000 con `concept:
+  "Parqueadero"` que lo dispara; más 30 cobros sin `concept` y 4 sin `accountCode`.
+- **Hueco del propio inventario, corregido a medias y dicho entero:** el frente «Experiencia y
+  diseño» tenía fila en la tabla ejecutiva desde el 27 de agosto **y ninguna ficha aquí**. Se
+  añaden `UX-003`, `UX-004` y `UX-005`; **`UX-001` y `UX-002` siguen sin ficha y se dice, en vez de
+  inventarles una**: su detalle vive en el inventario de Notion.
 
 ### 0.9.42 — 30 de agosto de 2026 (tarde)
 

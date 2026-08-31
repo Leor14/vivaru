@@ -511,6 +511,22 @@ desbloquea el programa de IA, lo desbloquea vender y activar conjuntos.
 
 ### Paso 4 — Onboarding asistido
 
+> ## EL ALCANCE DE `FEAT-001` CAMBIÓ POR DECISIÓN DE DAVID — 30 de agosto de 2026
+>
+> **Lo que sigue argumentaba que `FEAT-001` NO es lectura de documentos heterogéneos. David decidió
+> que sí lo es:** «cualquier formato» **incluye PDF y fotos**, además de cualquier hoja de cálculo.
+> Su razón es del cliente, no del modelo: el conjunto llega con lo que tiene, y exigirle un CSV es
+> ponerle la primera barrera en el primer día.
+>
+> **La contradicción se deja escrita en vez de borrarse**, porque el argumento de abajo sigue siendo
+> bueno y hay que pagarlo a sabiendas: **ampliar a PDF y fotos multiplica el corpus necesario** y
+> arrastra el mismo problema que tiene hundido a `DOC-001` —los datos no se pueden fabricar—.
+>
+> **Lo que NO cambia, y conviene no perderlo:** la mitad de CSV/XLSX **ya está construida y sin IA**
+> (los dos asistentes aceptan los dos formatos, mapean por sinónimos y miran el contenido de la
+> columna), y **la parte de duplicados no lleva modelo**: una auditoría determinística encontró los
+> once de producción en treinta líneas. Ver `AI-ONB-001` en `docs/roadmap-producto.md`.
+
 **Y una parte se puede empezar ya, sin IA ninguna.** La `FEAT-001` está mal
 descrita en el plan maestro: no es lectura de documentos heterogéneos, es
 importación de CSV y XLSX con el modelo interviniendo **solo** en los encabezados

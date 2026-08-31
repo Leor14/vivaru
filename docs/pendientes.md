@@ -4,23 +4,127 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026 (reescrita tras la jornada del 29–30)
+## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, noche (reescrita tras la sesión de planeación)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ REMATAR `PLAT-005` (dos validaciones cortas) Y VOLVER A ELEGIR FRENTE
+> ## ▸ EJECUTAR `UX-004` — su PRD está escrita y el defecto medido
 >
-> **La jornada del 29–30 abrió y llevó a producción `PLAT-005`** — notificaciones push al
-> residente — en un solo día: PRD → MVP → staging → validación con un iPhone real → producción
-> con la bandera **solo en Santa María**. Con eso Mobile/iOS tiene su primera entrega.
-> Lo que le queda a la ficha es corto y NO es construir: validar el ciclo **en producción** con
-> una cuenta de prod, y verlo una vez en **un Android**. Después, la mesa de elegir frente es la
-> misma de antes: `UX-003` abierto, la puerta del alta esperando tu decisión, y `F2` sigue NO
-> siendo lo siguiente (su medición de abajo no cambió).
+> **La sesión de la noche no construyó código: abrió seis frentes, los midió y los dejó
+> especificados.** Medirlos cambió tres antes de planearlos, así que **nada de lo que sigue está
+> escrito sobre supuestos**. Lo primero de la cola es `UX-004` (`PRD-V-FIX-003`): el Panel de
+> Control y Cartera **no miden lo mismo**, y en cuatro de los siete conjuntos de producción el
+> panel afirma **hoy, en rojo, un recaudo del 0,0%** donde no hay ni un cobro emitido ese mes.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
 
-### `PLAT-005` — EN PRODUCCIÓN CON CANARIO. LO QUE HAY QUE SABER PARA RETOMARLA
+### LOS SEIS FRENTES, EN EL ORDEN QUE DECIDIÓ DAVID
+
+| # | Frente | Código | Estado al cerrar la sesión |
+|---|---|---|---|
+| **1º** | Panel que no cuadra con sus módulos | `UX-004` | ✅ **PRD escrita** — [`PRD-V-FIX-003`](prd/funcionales/PRD-V-FIX-003-una-definicion-por-metrica-del-panel.md). Lista para desarrollo |
+| **2º** | Encender la IA | — | ✅ **Runbook escrito** — [`encender-la-ia.md`](encender-la-ia.md). **No lleva PRD** |
+| **3º** | Autorizar la visita repentina | `PH-003` | Encuadrado en el roadmap, **sin PRD**. Futura `PRD-V-FLOW-005` |
+| **4º** | Cargar el padrón con IA | `AI-ONB-001` | Encuadrado, **sin PRD**. Futura `PRD-VAI-FEAT-001` |
+| **5º** | Cobros que no son mantenimiento | — | **No merece PRD.** Dos tareas, abajo |
+| **6º** | Tableros configurables | `UX-005` | Exploración. Prioridad baja, decidida por David |
+
+### `UX-004` — LO QUE HAY QUE SABER PARA ARRANCARLO
+
+**El defecto está probado contra `hogaru-1`, no supuesto.** El «% recaudo» del panel mide **un
+mes**; el de Cartera, **hasta doce períodos**. Mismo rótulo, ninguno dice cuál. **Divergen en los
+siete conjuntos**: Palmas y Nogal `0,0%` contra `50,0%`; Las Playas `100,0%` contra `76,6%`.
+
+**Dos cosas que ahorran tiempo y que ya están comprobadas:**
+
+- **No hay aritmética duplicada.** `buildBillingTrend` y `computeCollectionSummary` usan las mismas
+  funciones puras de `src/features/billing/collection.ts`, y `tests/kpi-definitions.test.ts` las
+  vigila. **El defecto es la ventana y el rótulo** — diagnosticarlo mal lleva a reescribir código
+  correcto.
+- **El panel NO pinta estados crudos.** `StatusPill` traduce por dentro con `getStatusLabel`. Esa
+  hipótesis se cayó al comprobarla.
+
+**El arreglo del 0% tiene su gemelo bueno a diez líneas:** `colorPorPorcentaje` ya devuelve neutro
+cuando no hay nada que medir **y explica por qué en un comentario**; `tonoPorPorcentaje` no recibe
+el total y por eso no puede. **Decisión de copy pendiente:** `other` se llama «Otros» en el widget
+de antigüedad y «General» en el módulo de PQRS. Recomendación razonada en la ficha: «General».
+
+### FRENTE 0 — LA PREMISA ERA FALSA, Y CONVIENE NO REDESCUBRIRLO
+
+**La IA ya está en producción.** Código desplegado y `ACTIVE` (`aiInvoke`, las dos de sombra,
+`getAiUsage`, `registrarFeedbackIa`), y **tres de las siete banderas encendidas desde el 17 de
+agosto — `ia-proveedor-real` incluida, que es la que gasta dinero**. Las cuatro apagadas son
+justo las de superficie visible, y por eso «no se ve nada».
+
+**Lo que falta no es encender: es tráfico.** Último ticket de producción, **7 de agosto**; `aiUsage`
+y `aiAssistance` en **0**.
+
+**Los dos pasos que van PRIMERO en el runbook:** mirar el tope de gasto **en la consola** —lleva
+trece días encendido el proveedor real y nadie lo ha mirado—, y **responder por qué `aiAssistance`
+está en 0 en LOS DOS ambientes** pese a que la sombra lleva encendida en ambos. Si el disparador no
+escribe, encenderla en producción no acumula nada.
+
+**Y una que no hace nada:** `ai-onboarding-column-mapping` **no tiene un solo consumidor en el
+código**. Encenderla —como se hizo en staging el 30— es inerte.
+
+### LO QUE QUEDA DE ANTES, Y SIGUE VIGENTE
+
+- **`PLAT-005` — rematarlo.** Validar el ciclo **en producción** con
+  `jaime-gutierrez.tenant-santa-maria@ejemplo.vivaru.app` (David le pone contraseña en consola) y
+  verlo una vez en **un Android**. Ficha: [`PRD-V-PLAT-005`](prd/funcionales/PRD-V-PLAT-005-notificaciones-push-al-residente.md).
+  **NO productiva:** G5 la llena un residente real. **Y el brazo de producción del cálculo de la
+  base de enlaces no lo ha ejercitado ningún teléfono todavía** — solo el de staging.
+- **`F2` NO es lo siguiente, y sigue medido:** 5 `paymentReceipts` con `fileUrl` vacío, 0 objetos de
+  Storage con pinta de comprobante, `aiUsage` en 0. Lo mueve juntar 100–200 comprobantes reales.
+- **El par falso de −300.000 de la conciliación sigue nombrado a propósito.** Se decide cuando haya
+  pagos reales.
+- **Chips de tarea abiertos (cuatro):** `startsAt: undefined` en crear comunicado · la base clavada
+  de `email.ts` · el test CF3 de migración frágil a latencia · **y el panel demo muerto**
+  (`src/server/services/dashboard-service.ts` → `dashboard-repository.ts`, con «$94.200.000»
+  inventados y cero consumidores: es el primer sitio donde mira quien audite el panel).
+- **Las dos tareas del frente de cobros por concepto:** `billingConceptLabel` **cae en silencio a
+  «Mantenimiento y Administración»** ante una clave desconocida —y en producción hay un cobro de
+  parqueadero de $80.000 con `concept: "Parqueadero"` que lo dispara—; y una auditoría de datos
+  (30 cobros sin `concept`, 4 sin `accountCode`).
+- **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
+  puerta del alta · si se abre el canal de correo.
+- **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
+  correo cerrado, push productivo, y ahora también los tickets que la IA necesita.
+
+### LAS TRAMPAS DEL DESPLIEGUE — sin cambios, y siguen mordiendo
+
+- **Producción NO se despliega con push a `master`.** Rollout manual, y **esperar POR NOMBRE contra
+  su recurso exacto**: la lista está paginada y sin ordenar. Un `create` cortado por timeout puede
+  disparar **DOS** — mirar la lista antes de repetir.
+- **Las tres credenciales caducan por separado.** Al abrir esta sesión: **ADC viva, firebase vivo,
+  el CLI de gcloud muerto** — y casi todo se mide con la ADC, así que no hace falta pedir nada.
+- **Contar functions frescas por `updateTime`**, siempre: hay precedente de deploy en verde con
+  código rancio.
+- **`UX-004` no toca reglas ni functions**, así que su orden de despliegue es **solo front**. Decirlo
+  evita un despliegue ceremonial de dos pasos vacíos.
+
+### LO QUE ESTA SESIÓN ENSEÑÓ
+
+- **Medir antes de planear cambió tres de los seis frentes.** Ninguno era lo que su enunciado decía:
+  el de IA ya estaba en producción, el de cobros ya estaba construido, y el del panel no era
+  refresco sino definición. **Planear sobre el enunciado habría producido tres PRD equivocadas.**
+- **Dos hipótesis mías se cayeron al comprobarlas**, y comprobarlas costó dos comandos: los estados
+  crudos del panel y la aritmética duplicada. **La segunda habría llevado a reescribir código
+  correcto y probado.**
+- **Un guardián puede consagrar el defecto.** `tests/kpi-definitions.test.ts` afirma «sin facturado →
+  tasa 0» y está en verde: la prueba es correcta y el consumidor usa mal su resultado. **Que una
+  suite vigile una fórmula no significa que vigile lo que la pantalla hace con ella.**
+- **Un frente puede no merecer PRD, y decirlo es parte del trabajo** — dos de los seis no la llevan.
+
+---
+
+## LA JORNADA DEL 29–30 DE AGOSTO — `PLAT-005` y el vocabulario por país
+
+**Bajado de la cabecera el 30 por la noche, al reescribirla.** Las dos entregas están EN PRODUCCIÓN
+y lo que queda vivo de ellas está arriba; esto es el histórico y las lecciones, que es lo que no
+se puede reconstruir leyendo el código.
+
+### `PLAT-005` — EN PRODUCCIÓN CON CANARIO
 
 **Ficha:** [`PRD-V-PLAT-005`](prd/funcionales/PRD-V-PLAT-005-notificaciones-push-al-residente.md)
 (v0.6). El aviso que nace en `notifications` llega además al hub del teléfono, sin app en las
@@ -125,6 +229,7 @@ porque nada restringía.
   marca persistente y su camino de vuelta explícito.
 - **Un heredoc de shell sin comillas en el delimitador ejecuta los backticks del texto** — una
   nota de memoria se escribió mutilada y hubo que repararla mirándola, no confiando en el exit 0.
+
 
 ---
 
