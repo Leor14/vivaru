@@ -4,59 +4,71 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, cierre (reescrita tras la sesión de planeación)
+## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, noche (tras construir `UX-004`)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ CONSTRUIR. Hay TRES PRD listas y CERO líneas escritas
+> ## ▸ SEGUIR CONSTRUYENDO. Quedan DOS PRD listas y cero líneas escritas
 >
-> **La sesión no construyó código: abrió seis frentes, los midió y dejó tres fichas listas para
-> desarrollo** — `PRD-V-FIX-003` (el panel), `PRD-V-FLOW-005` (la visita repentina) y
-> `PRD-V-FEAT-005` (el padrón sin duplicados). Medirlos cambió tres frentes antes de planearlos, así
-> que **nada de esto está escrito sobre supuestos**.
+> **`UX-004` está EN PRODUCCIÓN y validada con ojos** (`d1beb9c`, build
+> `build-2026-08-31-002`). De las tres fichas que dejó la sesión de planeación, **queda una menos**:
+> siguen sin construir [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md)
+> (la visita repentina) y [`PRD-V-FEAT-005`](prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md)
+> (el padrón sin duplicados). **Ninguna tiene decisiones abiertas** y lo que hay que saber para
+> arrancarlas sigue escrito más abajo, sin cambios.
 >
-> **Lo primero de la cola sigue siendo `UX-004`** (`PRD-V-FIX-003`): el Panel de Control y Cartera
-> **no miden lo mismo**, y en cuatro de los siete conjuntos de producción el panel afirma **hoy, en
-> rojo, un recaudo del 0,0%** donde no hay ni un cobro emitido ese mes.
->
-> **Y el aviso que se gana el sitio aquí:** tres especificadas y ninguna construida es exactamente
-> lo que el criterio del 24 de agosto —cerrar frentes antes que abrirlos— quería evitar. **La
-> siguiente sesión debería construir, no especificar.**
+> **El orden entre las dos no está decidido.** `FLOW-005` depende del push y su único canario
+> posible es `tenant-santa-maria`; `FEAT-005` no la frena nada.
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
 
-### LOS SEIS FRENTES, EN EL ORDEN QUE DECIDIÓ DAVID
+### `UX-004` — CERRADA, Y LO QUE DEJÓ
 
-| # | Frente | Código | Estado al cerrar la sesión |
-|---|---|---|---|
-| **1º** | Panel que no cuadra con sus módulos | `UX-004` | ✅ **PRD escrita** — [`PRD-V-FIX-003`](prd/funcionales/PRD-V-FIX-003-una-definicion-por-metrica-del-panel.md). Lista para desarrollo |
-| **2º** | Encender la IA | — | ✅ **Runbook escrito** — [`encender-la-ia.md`](encender-la-ia.md). **No lleva PRD** |
-| **3º** | Autorizar la visita repentina | `PH-003` | ✅ **PRD escrita** — [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md). Lista para desarrollo |
-| **4º** | Padrón sin duplicados | `ONB-002` | ✅ **PRD escrita** — [`PRD-V-FEAT-005`](prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md). **Funcional, sin IA y sin esperar corpus** |
-| **4º bis** | Leer el archivo del cliente con IA | `AI-ONB-001` | **Sin PRD a propósito**: hoy no pasaría sus puertas (0 archivos de corpus). Futura `PRD-VAI-FEAT-001` |
-| **5º** | Cobros que no son mantenimiento | — | **No merece PRD.** Dos tareas, abajo |
-| **6º** | Tableros configurables | `UX-005` | Exploración. Prioridad baja, decidida por David |
+**En producción y vista en pantalla**, no solo desplegada. Con la sesión de Carlos Ramírez sobre
+`tenant-santa-maria`, el antes y el después del mismo par de pantallas:
 
-### `UX-004` — LO QUE HAY QUE SABER PARA ARRANCARLO
+| | Antes | Después |
+|---|---|---|
+| Panel · «% recaudo» | **0.0% EN ROJO**, sin ventana | **«—» en neutro**, «Mes en curso», «Sin cobros emitidos en la ventana» |
+| Cartera · «% recaudo» | 2.7%, sin ventana | 2.7%, **«mar 2026 – jun 2026»** |
+| Panel · «Cartera total» | sin ventana | **«Acumulado · todos los períodos»** |
+| Widget de antigüedad · `other` | «Otros» | **«General»** |
 
-**El defecto está probado contra `hogaru-1`, no supuesto.** El «% recaudo» del panel mide **un
-mes**; el de Cartera, **hasta doce períodos**. Mismo rótulo, ninguno dice cuál. **Divergen en los
-siete conjuntos**: Palmas y Nogal `0,0%` contra `50,0%`; Las Playas `100,0%` contra `76,6%`.
+**CA1, CA2, CA4 y CA5 verificados con ojos sobre datos reales. `CA3` NO se ha visto en pantalla** y
+hay que decirlo: exige un conjunto con cobros emitidos y nada saldado, y la sesión de Chrome solo
+alcanza Santa María. Está cubierto por prueba unitaria **y por falsación** —aplanar la escala
+enrojece siete pruebas—, pero eso no es lo mismo que haberlo visto.
 
-**Dos cosas que ahorran tiempo y que ya están comprobadas:**
+**Tres cosas que dejó y valen más que la entrega:**
 
-- **No hay aritmética duplicada.** `buildBillingTrend` y `computeCollectionSummary` usan las mismas
-  funciones puras de `src/features/billing/collection.ts`, y `tests/kpi-definitions.test.ts` las
-  vigila. **El defecto es la ventana y el rótulo** — diagnosticarlo mal lleva a reescribir código
-  correcto.
-- **El panel NO pinta estados crudos.** `StatusPill` traduce por dentro con `getStatusLabel`. Esa
-  hipótesis se cayó al comprobarla.
+- **La falsación `CF2` pasó EN VERDE a la primera, y ahí estaba el hallazgo.** El guardián de `CA7`
+  cortaba el bloque de cada rótulo solo por rótulos **literales**; entre el `label: "% recaudo"` del
+  panel y el siguiente literal hay dos rótulos calculados, así que el bloque se comía media pantalla
+  y encontraba el `scope` **del vecino**, el del bucle de render. **Un guardián puede estar ciego
+  justo en el caso que lo motivó**, y quien lo destapa es falsarlo, no escribirlo.
+- **La ficha contaba TRES copias del mapa de tipos de ticket y había CINCO.** El guardián encontró
+  la cuarta en el portal del residente y, al abrirlo, **eran dos en el mismo fichero**. Coincidían
+  por casualidad. Es el mismo patrón de «busca el gemelo en el mismo fichero» que ya nos pasó.
+- **Una divergencia latente que NO se tocó, a propósito:** `normalizedRows` de Cartera reconstruye
+  el facturado **sin `advanceAppliedAmount`** y se adelanta al fallback canónico. Medido en
+  producción: 221 cobros, 27 usan el fallback, **0 con anticipo** — hoy no muerde. Tiene chip.
 
-**El arreglo del 0% tiene su gemelo bueno a diez líneas:** `colorPorPorcentaje` ya devuelve neutro
-cuando no hay nada que medir **y explica por qué en un comentario**; `tonoPorPorcentaje` no recibe
-el total y por eso no puede. **La ficha NO tiene ninguna decisión abierta:** la única —cómo llamar
-a `other`, «Otros» en el widget contra «General» en el módulo— **la cerró David: «General»**, que es
-lo que ya dicen los otros dos sitios, así que el cambio toca uno solo.
+### LO QUE ESTA SESIÓN ENSEÑÓ, Y NO ESTABA EN NINGUNA FICHA
+
+**El push a `master` SÍ despliega producción, y este repositorio afirmaba lo contrario desde el 27
+de agosto.** Se descubrió empujando: el rollout nació **cinco segundos después**, sin que nadie lo
+lanzara. La política vive en `traffic.rolloutPolicy.codebaseBranch` —`master` en producción,
+`develop` en staging— y **no en `codebase`**, que es donde se miró el 27.
+
+> **La lección no es el dato, es cómo se llegó a la conclusión falsa.** Se midió el JSON crudo, que
+> es el método bueno, **sobre el recurso equivocado**: se vio que `codebase` no traía campo `branch`
+> y se leyó esa ausencia como prueba. **Una ausencia solo prueba algo si estabas mirando donde el
+> dato tendría que estar.** Costó un rollout duplicado en staging el mismo día.
+
+**Y la lista de rollouts está paginada de verdad:** 438 en producción y 598 en staging. Pedir
+`pageSize=100` y ordenar **esa** página da una respuesta con toda la pinta de correcta. Hay
+instrumento: `functions/scripts/estado-de-apphosting.mjs`, que responde qué rama despliega sola,
+qué build sirve **ahora** y de qué commit salió.
 
 ### `PH-003` Y `ONB-002` — LO QUE HAY QUE SABER PARA ARRANCARLAS
 
@@ -111,10 +123,14 @@ código**. Encenderla —como se hizo en staging el 30— es inerte.
   Storage con pinta de comprobante, `aiUsage` en 0. Lo mueve juntar 100–200 comprobantes reales.
 - **El par falso de −300.000 de la conciliación sigue nombrado a propósito.** Se decide cuando haya
   pagos reales.
-- **Chips de tarea abiertos (cuatro):** `startsAt: undefined` en crear comunicado · la base clavada
-  de `email.ts` · el test CF3 de migración frágil a latencia · **y el panel demo muerto**
-  (`src/server/services/dashboard-service.ts` → `dashboard-repository.ts`, con «$94.200.000»
-  inventados y cero consumidores: es el primer sitio donde mira quien audite el panel).
+- **`npm test` está SIEMPRE en rojo por un solo fichero**, `tests/push-tokens.rules.test.ts`, que
+  pide el emulador y no está en la lista de exclusiones junto a sus dos hermanas. Medido: **99
+  ficheros pasan, 1 falla, 1413 pruebas**. Un rojo permanente deja de ser señal, y este método vive
+  de leer el color. Tiene chip.
+- **Chips de tarea abiertos:** `startsAt: undefined` en crear comunicado · la base clavada de
+  `email.ts` · el test CF3 de migración frágil a latencia · el rojo del emulador de arriba · y la
+  reconstrucción del facturado de Cartera sin anticipo. **El del panel demo muerto está HECHO**:
+  `src/server/` y su fixture, borrados en `9a773cb`.
 - **Las dos tareas del frente de cobros por concepto:** `billingConceptLabel` **cae en silencio a
   «Mantenimiento y Administración»** ante una clave desconocida —y en producción hay un cobro de
   parqueadero de $80.000 con `concept: "Parqueadero"` que lo dispara—; y una auditoría de datos
@@ -124,30 +140,18 @@ código**. Encenderla —como se hizo en staging el 30— es inerte.
 - **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
   correo cerrado, push productivo, y ahora también los tickets que la IA necesita.
 
-### LAS TRAMPAS DEL DESPLIEGUE — sin cambios, y siguen mordiendo
+### LAS TRAMPAS DEL DESPLIEGUE — una corregida, las demás siguen mordiendo
 
-- **Producción NO se despliega con push a `master`.** Rollout manual, y **esperar POR NOMBRE contra
-  su recurso exacto**: la lista está paginada y sin ordenar. Un `create` cortado por timeout puede
-  disparar **DOS** — mirar la lista antes de repetir.
-- **Las tres credenciales caducan por separado.** Al abrir esta sesión: **ADC viva, firebase vivo,
-  el CLI de gcloud muerto** — y casi todo se mide con la ADC, así que no hace falta pedir nada.
+- **Empujar DESPLIEGA, en los dos ambientes** (`master` → producción, `develop` → staging). Ver
+  arriba: esta línea decía lo contrario durante tres días. **Si ya empujaste, no lances el rollout
+  a mano** — se duplica.
+- **La lista de rollouts está paginada Y sin ordenar**, y **«creado» no es «sirviendo»**: manda
+  `traffic.current`. Instrumento: `functions/scripts/estado-de-apphosting.mjs`.
+- **Las tres credenciales caducan por separado.** Al cerrar esta sesión: **ADC viva, firebase vivo,
+  el CLI de gcloud muerto** — y casi todo se mide con la ADC.
 - **Contar functions frescas por `updateTime`**, siempre: hay precedente de deploy en verde con
   código rancio.
-- **`UX-004` no toca reglas ni functions**, así que su orden de despliegue es **solo front**. Decirlo
-  evita un despliegue ceremonial de dos pasos vacíos.
-
-### LO QUE ESTA SESIÓN ENSEÑÓ
-
-- **Medir antes de planear cambió tres de los seis frentes.** Ninguno era lo que su enunciado decía:
-  el de IA ya estaba en producción, el de cobros ya estaba construido, y el del panel no era
-  refresco sino definición. **Planear sobre el enunciado habría producido tres PRD equivocadas.**
-- **Dos hipótesis mías se cayeron al comprobarlas**, y comprobarlas costó dos comandos: los estados
-  crudos del panel y la aritmética duplicada. **La segunda habría llevado a reescribir código
-  correcto y probado.**
-- **Un guardián puede consagrar el defecto.** `tests/kpi-definitions.test.ts` afirma «sin facturado →
-  tasa 0» y está en verde: la prueba es correcta y el consumidor usa mal su resultado. **Que una
-  suite vigile una fórmula no significa que vigile lo que la pantalla hace con ella.**
-- **Un frente puede no merecer PRD, y decirlo es parte del trabajo** — dos de los seis no la llevan.
+- **Al agente se le bloquea el push a `master`** (clasificador de permisos). Lo autoriza David.
 
 ---
 
@@ -230,8 +234,9 @@ correo cerrado, **y ahora también el push productivo** (G5 de PLAT-005).
 
 ### LAS TRAMPAS DEL DESPLIEGUE — las de siempre, más las que dejó esta jornada
 
-**Producción NO se despliega con push a `master`** (rollout manual, ver `CLAUDE.md`). El orden se
-decide por el delta contra ESE ambiente; en PLAT-005 fue el clásico reglas → functions → front,
+~~**Producción NO se despliega con push a `master`** (rollout manual).~~ **FALSO, medido el 30 de
+agosto de 2026: SÍ se despliega** — la política vive en `traffic.rolloutPolicy`, no en `codebase`.
+Ver `CLAUDE.md`. El orden se decide por el delta contra ESE ambiente; en PLAT-005 fue el clásico reglas → functions → front,
 porque nada restringía.
 
 - **ESPERAR UN ROLLOUT SE HACE POR NOMBRE, nunca contra una lista.** La lista de
@@ -421,9 +426,23 @@ No faltaba diseño: **sobraba un interruptor**. `globals.css` queda hoy con **ce
 
 ### TRES TRAMPAS QUE COSTARON TIEMPO Y VUELVEN
 
-**1 · Producción NO se despliega con un push a `master`.** Su backend de App Hosting **no tiene
-campo `branch`** —leído del JSON crudo—, igual que el de staging. Hace falta el rollout manual, y
-**al agente se lo bloquea el clasificador**, así que lo lanza David:
+**1 · ~~Producción NO se despliega con un push a `master`.~~ FALSO — SÍ se despliega, y saberlo
+mal costó un rollout duplicado en staging el 30 de agosto.** El razonamiento era: el backend «no
+tiene campo `branch`, leído del JSON crudo». Cierto y **irrelevante**: `codebase` nunca lleva esa
+información. La política de despliegue automático vive en **`traffic.rolloutPolicy.codebaseBranch`**,
+y dice `master` en producción y `develop` en staging.
+
+**La lección que sobrevive a este dato: una ausencia solo prueba algo si mirabas donde tenía que
+estar.** Se midió el JSON crudo —que es el método bueno— sobre el recurso equivocado, y salió una
+conclusión firme y falsa que gobernó los despliegues durante tres días.
+
+```bash
+node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru   # qué rama despliega y qué sirve
+```
+
+El rollout a mano sigue haciendo falta **solo** para desplegar un commit que no sea la punta de la
+rama, o para reponer uno anterior. **Y al agente el push a `master` se lo bloquea el clasificador**,
+así que ese paso lo autoriza David:
 
 ```bash
 firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1

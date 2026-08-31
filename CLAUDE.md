@@ -42,7 +42,7 @@ objetivo no está cumplido, no es punto de corte.
 
 ## Stack
 
-Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@theme {}` en globals.css, NO `tailwind.config.ts`), Firebase (Auth, Firestore, Cloud Functions v2, App Hosting), Zod + React Hook Form. Deploy del front por **App Hosting**, con **rollout manual en los DOS ambientes** — ver el apartado de despliegue: empujar a `master` NO despliega producción.
+Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@theme {}` en globals.css, NO `tailwind.config.ts`), Firebase (Auth, Firestore, Cloud Functions v2, App Hosting), Zod + React Hook Form. Deploy del front por **App Hosting**, y **se dispara solo al empujar en los DOS ambientes** (producción vigila `master`, staging `develop`) — ver el apartado de despliegue, que corrige lo que este fichero afirmó del 27 al 30 de agosto.
 
 ## Comandos clave
 
@@ -126,9 +126,28 @@ el predicado real exige además id `{tenantId}_{uid}`, campo `tenantId` concorda
 administrador y estado activo. Se mide con `functions/scripts/medir-radio-membresias.mjs`, que
 no escribe nada.
 
-**NINGUNO de los dos backends de App Hosting vigila una rama** — ni el de staging ni el de
-**producción**—, así que **empujar no despliega el front en ningún ambiente**. Hay que crear el
-rollout a mano:
+**LOS DOS BACKENDS SE DESPLIEGAN SOLOS AL EMPUJAR** — producción vigila `master` y staging
+vigila `develop`—, así que **un push a `master` SÍ pone código en producción**, sin pedir nada
+más. Medido el 30 de agosto de 2026 empujando y viendo nacer el rollout **cinco segundos
+después**.
+
+> **ESTA SECCIÓN AFIRMABA LO CONTRARIO DESDE EL 27 DE AGOSTO, Y ERA FALSO.** Decía que «ninguno
+> de los dos vigila una rama, así que empujar no despliega en ningún ambiente». **El error no fue
+> medir poco: fue medir el campo equivocado.** Se leyó `codebase` del backend, se vio que traía
+> `repository` y `rootDirectory` y **ningún campo `branch`**, y se concluyó que no había vigilancia.
+> Pero **App Hosting no guarda ahí la política de despliegue automático**: vive en el recurso
+> **`traffic`**, en `rolloutPolicy.codebaseBranch`. `codebase` nunca llevó esa información, así que
+> la ausencia del campo no probaba nada y sonaba a prueba.
+>
+> ```bash
+> node functions/scripts/estado-de-apphosting.mjs hogaru-1 vivaru          # producción
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web
+> ```
+>
+> Dice **qué rama despliega sola**, **qué build sirve AHORA** y **de qué commit salió**. Solo lee.
+
+**El rollout a mano sigue existiendo y sirve para lo que la política no cubre** —desplegar un
+commit que no es la punta de la rama, o reponer uno anterior—:
 
 ```bash
 # staging
@@ -137,16 +156,19 @@ firebase apphosting:rollouts:create vivaru-staging-web --git-commit <sha> --forc
 firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project hogaru-1
 ```
 
-> **Y un `rollouts:create` CORTADO POR TIMEOUT puede disparar DOS rollouts** (30 ago 2026:
-> dos en producción con 19 s de diferencia, mismo commit — inofensivo esa vez; con commits
-> distintos sería una carrera). Tras un create cortado, **mirar la lista antes de repetir**. Y
-> esperar un rollout se hace **POR NOMBRE** contra su recurso exacto: la lista está paginada y
-> sin ordenar, y un `pageSize=1` llegó a dar por servido un rollout EN COLA.
+> **CUIDADO: lanzarlo después de empujar duplica el despliegue.** Pasó el 30 de agosto en staging
+> —`rollout-…-005` mío a mano y `build-…-006` de la política, dos minutos después, mismo commit—.
+> Inofensivo con el mismo commit; con commits distintos es una carrera. **Si ya empujaste, no
+> crees el rollout: espera al automático.**
 >
-> **Esta línea decía que era cosa SOLO de staging, y era falsa.** Medido el 27 de agosto de 2026
-> en el JSON crudo del backend de producción: su `codebase` trae `repository` y `rootDirectory`
-> y **no tiene campo `branch`**. Empujar a `master` responde «success» y producción sigue
-> sirviendo el build anterior — la trampa completa del despliegue que miente.
+> **Y un `rollouts:create` CORTADO POR TIMEOUT puede disparar DOS** (30 ago 2026: dos en
+> producción con 19 s de diferencia). Tras un create cortado, **mirar la lista antes de repetir**.
+>
+> **Esperar un rollout se hace POR NOMBRE contra su recurso exacto.** La lista está **paginada y
+> sin ordenar** —438 rollouts en producción, 598 en staging— y una página suelta parece el final:
+> ordenar lo que devolvió un `pageSize=100` da una respuesta con pinta de correcta y no lo es. Un
+> `pageSize=1` llegó a dar por servido un rollout EN COLA. **Y «creado» no es «sirviendo»: manda
+> `traffic.current`.**
 >
 > **Y la huella de chunks NO basta para comprobarlo.** Los nombres llevan hash de contenido, así
 > que una página que no usa lo que cambió —`/login` no monta `app-shell` ni `admin-sidebar`—
@@ -158,7 +180,7 @@ firebase apphosting:rollouts:create vivaru --git-commit <sha> --force --project 
 
 ## Metodología
 
-critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/` — este último con `npm --prefix functions run typecheck`, que es el que mira también `functions/tests/`. Mensajes de commit semánticos. Despliegue del front por **rollout manual** (el push a `master` no basta — ver el apartado de despliegue); functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
+critique → execute → commit. Gate por incremento: typecheck limpio en `src/` **y** en `functions/` — este último con `npm --prefix functions run typecheck`, que es el que mira también `functions/tests/`. Mensajes de commit semánticos. Despliegue del front **al empujar** (producción vigila `master`, staging `develop`; el rollout a mano solo hace falta para un commit que no sea la punta de la rama — ver el apartado de despliegue); functions por `firebase deploy --only functions` (recompilar antes — **no hay predeploy build**); el secret debe existir **antes** de desplegar funciones que lo referencian.
 
 ## Trampas críticas (ver `wiki-producto/wiki/decisiones/trampas-conocidas.md`)
 
@@ -412,11 +434,24 @@ estaba desplegado.
 > del runbook; (4) **`ai-onboarding-column-mapping` no tiene un solo consumidor en el código**:
 > encenderla es inerte. Runbook completo: `docs/encender-la-ia.md`.
 
-**HAY TRES PRD LISTAS PARA DESARROLLO Y NINGUNA CONSTRUIDA** (30 ago 2026): `PRD-V-FIX-003` (el
-panel y sus módulos midiendo lo mismo), `PRD-V-FLOW-005` (autorizar la visita que llega sin avisar)
-y `PRD-V-FEAT-005` (un padrón sin duplicados). **Lo siguiente es construir, no especificar** — tres
-especificadas y cero construidas es lo que el criterio del 24 de agosto quería evitar. La cola vive
-en la cabecera de `docs/pendientes.md`.
+**`UX-004` (`PRD-V-FIX-003`) ESTÁ EN PRODUCCIÓN Y VALIDADA CON OJOS** (30 ago 2026, `d1beb9c`,
+build `build-2026-08-31-002`). El Panel de Control y Cartera enseñaban «% recaudo» sobre ventanas
+distintas —un mes contra hasta doce períodos— sin decir cuál, y en cuatro conjuntos el panel
+afirmaba **en rojo** un 0,0% en un mes sin un solo cobro emitido. Ahora cada indicador declara su
+ventana y «sin datos» dejó de disfrazarse de «lo peor». **No se tocó ninguna fórmula.**
+
+> **Lo que hay que llevarse, y no es la entrega: la falsación `CF2` pasó EN VERDE a la primera.**
+> El guardián nuevo cortaba el bloque de cada rótulo solo por rótulos **literales**, así que en el
+> panel se comía media pantalla y daba por declarada una ventana usando el `scope` **del vecino**.
+> **Un guardián puede nacer ciego justo en el caso que lo motivó**, y lo destapa falsarlo.
+>
+> Y el guardián encontró lo que la ficha no contaba: el mapa de tipos de ticket tenía **cinco**
+> copias y no tres — **dos de ellas en el mismo fichero** del portal del residente, coincidiendo
+> por casualidad.
+
+**QUEDAN DOS PRD LISTAS Y SIN CONSTRUIR:** `PRD-V-FLOW-005` (autorizar la visita que llega sin
+avisar) y `PRD-V-FEAT-005` (un padrón sin duplicados). **Lo siguiente sigue siendo construir, no
+especificar.** La cola vive en la cabecera de `docs/pendientes.md`.
 
 **`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
 un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la
