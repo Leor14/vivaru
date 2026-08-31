@@ -8,13 +8,20 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ EJECUTAR `UX-004` — su PRD está escrita y el defecto medido
+> ## ▸ CONSTRUIR. Hay TRES PRD listas y CERO líneas escritas
 >
-> **La sesión de la noche no construyó código: abrió seis frentes, los midió y los dejó
-> especificados.** Medirlos cambió tres antes de planearlos, así que **nada de lo que sigue está
-> escrito sobre supuestos**. Lo primero de la cola es `UX-004` (`PRD-V-FIX-003`): el Panel de
-> Control y Cartera **no miden lo mismo**, y en cuatro de los siete conjuntos de producción el
-> panel afirma **hoy, en rojo, un recaudo del 0,0%** donde no hay ni un cobro emitido ese mes.
+> **La sesión no construyó código: abrió seis frentes, los midió y dejó tres fichas listas para
+> desarrollo** — `PRD-V-FIX-003` (el panel), `PRD-V-FLOW-005` (la visita repentina) y
+> `PRD-V-FEAT-005` (el padrón sin duplicados). Medirlos cambió tres frentes antes de planearlos, así
+> que **nada de esto está escrito sobre supuestos**.
+>
+> **Lo primero de la cola sigue siendo `UX-004`** (`PRD-V-FIX-003`): el Panel de Control y Cartera
+> **no miden lo mismo**, y en cuatro de los siete conjuntos de producción el panel afirma **hoy, en
+> rojo, un recaudo del 0,0%** donde no hay ni un cobro emitido ese mes.
+>
+> **Y el aviso que se gana el sitio aquí:** tres especificadas y ninguna construida es exactamente
+> lo que el criterio del 24 de agosto —cerrar frentes antes que abrirlos— quería evitar. **La
+> siguiente sesión debería construir, no especificar.**
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
 
@@ -24,8 +31,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 |---|---|---|---|
 | **1º** | Panel que no cuadra con sus módulos | `UX-004` | ✅ **PRD escrita** — [`PRD-V-FIX-003`](prd/funcionales/PRD-V-FIX-003-una-definicion-por-metrica-del-panel.md). Lista para desarrollo |
 | **2º** | Encender la IA | — | ✅ **Runbook escrito** — [`encender-la-ia.md`](encender-la-ia.md). **No lleva PRD** |
-| **3º** | Autorizar la visita repentina | `PH-003` | Encuadrado en el roadmap, **sin PRD**. Futura `PRD-V-FLOW-005` |
-| **4º** | Cargar el padrón con IA | `AI-ONB-001` | Encuadrado, **sin PRD**. Futura `PRD-VAI-FEAT-001` |
+| **3º** | Autorizar la visita repentina | `PH-003` | ✅ **PRD escrita** — [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md). Lista para desarrollo |
+| **4º** | Padrón sin duplicados (era la parte (b) del 4º) | `AI-ONB-001` | ✅ **PRD escrita** — [`PRD-V-FEAT-005`](prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md). **Funcional, sin IA y sin esperar corpus** |
+| **4º bis** | Leer el archivo del cliente con IA | `AI-ONB-001` | **Sin PRD a propósito**: hoy no pasaría sus puertas (0 archivos de corpus). Futura `PRD-VAI-FEAT-001` |
 | **5º** | Cobros que no son mantenimiento | — | **No merece PRD.** Dos tareas, abajo |
 | **6º** | Tableros configurables | `UX-005` | Exploración. Prioridad baja, decidida por David |
 

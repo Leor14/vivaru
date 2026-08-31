@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.43 |
-| **Fecha** | 30 de agosto de 2026 (noche) |
-| **Estado** | **SE ABRIERON SEIS FRENTES NUEVOS Y MEDIRLOS CAMBIÓ TRES ANTES DE PLANEARLOS.** Ninguno se enunció como resultó ser. **(1) El Panel de Control y Cartera no miden lo mismo, y está probado:** el «% recaudo» divergen en **los siete conjuntos de producción** —Palmas y Nogal dicen `0,0%` en el panel y `50,0%` en cartera— y **en cuatro de los siete el panel afirma hoy en rojo un recaudo del 0,0% donde no hay ni un cobro emitido ese mes**. Es `UX-004`, con `PRD-V-FIX-003` escrita y lista para desarrollo. **(2) La IA ya está en producción**: código desplegado y `ACTIVE`, y **tres de las siete banderas encendidas desde el 17 de agosto, `ia-proveedor-real` incluida**. Lo que falta no es encender: es tráfico —cero tickets desde el 7 de agosto—. Runbook en `docs/encender-la-ia.md`; **no lleva PRD porque no hay producto que especificar**. **(3) Los cobros por concepto ya existen** y el frente se disuelve en dos tareas. Entran además `PH-003` (autorizar la visita que llega sin avisar, con sus cinco decisiones tomadas y **conviviendo con el QR**), `AI-ONB-001` **desbloqueado por decisión y ampliado a PDF y fotos** —contra lo que argumentaba la hoja de ruta de IA, y queda escrito—, y `UX-005` en exploración. **Orden decidido por David: `UX-004` → encender IA → `PH-003` → `AI-ONB-001` → los cobros → `UX-005`.** **LO ANTERIOR, VIGENTE:** `PLAT-005` en producción con la bandera solo en Santa María y **pendiente de validar allí y en un Android**; el vocabulario del documento de no deuda por país, también en producción; `FIN-002` cerrada el 29 con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Versión** | 0.9.44 |
+| **Fecha** | 30 de agosto de 2026 (cierre) |
+| **Estado** | **TRES PRD LISTAS PARA DESARROLLO Y NINGUNA CONSTRUIDA TODAVÍA — dicho así a propósito.** `PRD-V-FIX-003` (el panel), **`PRD-V-FLOW-005`** (autorizar la visita que llega sin avisar) y **`PRD-V-FEAT-005`** (un padrón sin duplicados: 11 de 68 personas de producción lo están). **Dos de las cuatro pendientes NO se escriben, y esa es la decisión:** `PRD-VAI-FEAT-001` hoy no pasaría sus propias puertas —sin corpus no hay con qué evaluar ni con qué estimar coste— y `UX-005` va detrás de `UX-004`. **La de duplicados salió del frente de IA y se volvió funcional**: no lleva modelo, no espera corpus, y es lo que permitirá medir si la IA aporta algo en la cola larga. **ANTES, EN LA MISMA JORNADA:** se abrieron los seis frentes y medirlos cambió tres. Ninguno se enunció como resultó ser. **(1) El Panel de Control y Cartera no miden lo mismo, y está probado:** el «% recaudo» divergen en **los siete conjuntos de producción** —Palmas y Nogal dicen `0,0%` en el panel y `50,0%` en cartera— y **en cuatro de los siete el panel afirma hoy en rojo un recaudo del 0,0% donde no hay ni un cobro emitido ese mes**. Es `UX-004`, con `PRD-V-FIX-003` escrita y lista para desarrollo. **(2) La IA ya está en producción**: código desplegado y `ACTIVE`, y **tres de las siete banderas encendidas desde el 17 de agosto, `ia-proveedor-real` incluida**. Lo que falta no es encender: es tráfico —cero tickets desde el 7 de agosto—. Runbook en `docs/encender-la-ia.md`; **no lleva PRD porque no hay producto que especificar**. **(3) Los cobros por concepto ya existen** y el frente se disuelve en dos tareas. Entran además `PH-003` (autorizar la visita que llega sin avisar, con sus cinco decisiones tomadas y **conviviendo con el QR**), `AI-ONB-001` **desbloqueado por decisión y ampliado a PDF y fotos** —contra lo que argumentaba la hoja de ruta de IA, y queda escrito—, y `UX-005` en exploración. **Orden decidido por David: `UX-004` → encender IA → `PH-003` → `AI-ONB-001` → los cobros → `UX-005`.** **LO ANTERIOR, VIGENTE:** `PLAT-005` en producción con la bandera solo en Santa María y **pendiente de validar allí y en un Android**; el vocabulario del documento de no deuda por país, también en producción; `FIN-002` cerrada el 29 con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Los dos proyectos, con la ADC y midiendo, no leyendo** (30 ago, noche): las 7 banderas de IA resueltas documento a documento en `hogaru-1` y `vivaru-staging-02`; las functions por la API de Cloud Functions (87 en cada uno, las cinco de IA `ACTIVE`); los 221 `billingStatements` de producción pasados por las fórmulas reales del producto para comparar panel contra cartera conjunto por conjunto; `people`, `visitorPasses`, `paymentReceipts`, `aiUsage`, `aiAssistance`, `aiFeedback` y `aiQuotaCounters` contados. **Dos hipótesis se cayeron al comprobarlas y no llegaron a la PRD:** que el panel pintara estados crudos —`StatusPill` traduce por dentro— y que hubiera aritmética duplicada —`buildBillingTrend` usa las mismas funciones puras—. Árbol limpio: los scripts de medición se borraron al terminar |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -140,7 +140,7 @@ de entrega.**
 
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
-| **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | 🟠 **`PH-003`** — autorizar la visita que llega sin avisar (encuadrado el 30 ago, sin PRD) | 🔵 `PH-002` (espera al primer pago real) | — |
+| **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | 🔴 **`PH-003`** — autorizar la visita que llega sin avisar. **`PRD-V-FLOW-005` escrita y lista para desarrollo** (30 ago) | 🔵 `PH-002` (espera al primer pago real) | — |
 | **Experiencia y diseño** | 🟢 `UX-001` y `UX-003` en producción · 🔴 **`UX-004` lista para desarrollo** (`PRD-V-FIX-003`): el panel y cartera **divergen en los 7 conjuntos** | 🟠 Ejecutar `UX-004` | ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ **`UX-005`** (tableros configurables, prioridad baja) |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
@@ -148,7 +148,7 @@ de entrega.**
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | **Mobile / iOS** | 🟢 **`PLAT-005` EN PRODUCCIÓN, bandera solo en Santa María** (30 ago; validada antes en staging con un iPhone real) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005` y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
-| Onboarding e importación | ⏸ Recolectar evidencia real | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` |
+| Onboarding e importación | 🔴 **`PRD-V-FEAT-005` lista para desarrollo** — el padrón sin duplicados, **sin IA y sin esperar corpus** (11 de 68 personas duplicadas en producción) · ⏸ Recolectar evidencia real para lo demás | ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA, aún sin PRD) |
 | **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
 
 > **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
@@ -763,8 +763,15 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   nadie mira, y el guardia se queda con el visitante en la puerta.
 - **Criterio de salida:** una visita no anunciada entra con autorización trazable — del residente o
   del guardia declarando el medio— y el residente la ve en su portal.
-- **Siguiente paso:** escribir `PRD-V-FLOW-005`. Necesita un estado nuevo, *pendiente de
-  autorización*: hoy solo existen `scheduled`, `inside` y `completed`.
+- **Estado real: `PRD-V-FLOW-005` ESCRITA y lista para desarrollo** (30 ago 2026). Trae el estado
+  nuevo *pendiente de autorización* —hoy solo existen `scheduled`, `inside` y `completed`—, y
+  **la expiración se deriva del sello de tiempo, no de un cron**: un `pendiente` de hace una hora
+  *es* `expirada` sin que nadie haya corrido nada, así que no hay estados atascados.
+- **El dato que obligó a que fuera callable, y no es opinión:** el `update` de `visitorPasses` deja
+  al residente tocar **solo lo que él creó**. Un pase de portería lleva el uid del guardia, así que
+  **con las reglas de hoy el residente no puede autorizarlo** — y abrir esa rama al cliente sería
+  el agujero que la ficha viene a evitar.
+- **Siguiente paso:** construirla, detrás de `UX-004` en la cola.
 
 #### `PH-002` — Lo que espera al primer pago real
 
@@ -978,6 +985,10 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   **(a)** entender el archivo que trae el cliente → `PRD-VAI-FEAT-001`, ya reservada y hoy en Drive
   sin versionar; **(b)** **auditar el padrón ya cargado** y proponer grupos de duplicados;
   **(c)** resolverlos —fusionar, corregir, borrar— a mano.
+- **(b) y (c) YA TIENEN PRD y salieron de aquí: [`PRD-V-FEAT-005`](../prd/funcionales/PRD-V-FEAT-005-un-padron-sin-duplicados.md)**,
+  escrita el 30 de agosto. **Es funcional, no de IA**, y **no depende del corpus**, así que se puede
+  construir mañana. (a) sigue sin escribirse porque **hoy no pasaría sus propias puertas**: sin
+  archivos reales no hay con qué evaluar ni con qué estimar coste.
 - **Y el dato que decide el coste de (b):** esa auditoría **se hizo sin IA, en un script de treinta
   líneas, y encontró los once duplicados de producción** — «David Carmona» ×7 en dos unidades, con
   **dos documentos distintos y el mismo correo en los siete**; más 21 de 68 personas sin documento,
@@ -1172,6 +1183,35 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.44 — 30 de agosto de 2026 (cierre) — dos PRD más, y las dos que NO se escriben
+
+- **`PRD-V-FLOW-005` (autorizar la visita que llega sin avisar) y `PRD-V-FEAT-005` (un padrón sin
+  duplicados), las dos listas para desarrollo.** David pidió adelantar las PRD pendientes
+  aprovechando que las mediciones están frescas — argumento válido: si esperan, hay que remedir.
+- **Pero solo dos de las cuatro, y por qué las otras no.** `PRD-VAI-FEAT-001` **hoy no pasaría sus
+  propias puertas**: sin corpus (15–25 archivos reales, hay cero) no hay con qué evaluar ni con qué
+  estimar coste, así que saldría diciendo «pendiente de datos» justo en las secciones que deciden si
+  se construye. `UX-005` va detrás de `UX-004`, que aún no existe, y le falta una decisión de modelo.
+- **La de duplicados sale del frente de IA y se vuelve funcional.** Era la parte (b) de
+  `AI-ONB-001`; **no lleva modelo**, no depende del corpus y se puede construir mañana. La IA queda
+  para la cola larga —«Ma. José» contra «María José»— y esta ficha es justo lo que permitirá
+  **medir si aporta algo**, que hoy no se puede.
+- **El riesgo de la fusión está calibrado con un precedente propio:** `mergeUnits` prometía «TODAS
+  las referencias» con una lista de **nueve escrita a mano, y eran dieciocho** — eso explica los
+  huérfanos de `tenant-santa-maria`. Por eso el inventario de referencias a persona **se deriva y
+  lleva guardián**, y `CF8` falsa el guardián, no la fusión.
+- **Y volvió a pasar escribiendo la ficha, lo que la mejora:** la primera medición buscó campos
+  escalares y concluyó que **ninguno** de los siete «David Carmona» estaba referenciado. Falso:
+  **dos lo están**, desde `units.ownerIds` y `units.residentIds`, que son **arrays**. Queda escrito
+  dentro de la PRD como la razón de R-INV.
+- **`FLOW-005` es callable por un dato, no por criterio:** el `update` de `visitorPasses` deja al
+  residente tocar solo lo que él creó, y un pase de portería lleva el uid del guardia — **con las
+  reglas de hoy el residente no puede autorizarlo**.
+- **Verificado contra:** las reglas vigentes de `visitorPasses`, el catálogo de avisos (13 claves,
+  **ninguna de visitas**), `deletePerson`, el archivador de huérfanos, y producción con la ADC —
+  68 personas, 11 duplicadas, 3 grupos, 54 `packages` y 20 `tickets` con `residentId`, 15 de 93
+  unidades con arrays poblados.
 
 ### 0.9.43 — 30 de agosto de 2026 (noche) — seis frentes nuevos, medidos antes de escribirlos
 
