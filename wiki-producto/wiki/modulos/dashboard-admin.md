@@ -3,7 +3,7 @@ tags: [modulo, admin, dashboard]
 tipo: concepto
 fuentes: ["PRODUCT.md", "DESIGN.md", "BACKLOG.md"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-08-28
+fecha_actualizacion: 2026-08-30
 ---
 
 # Dashboard Admin
@@ -19,6 +19,31 @@ El grid de KPIs usa `grid-cols-2 gap-3 sm:grid-cols-4`. Los widgets de dashboard
 ## Métricas clave
 
 El dashboard muestra indicadores de los módulos principales: resumen de [[billing|cartera]] (cuántas unidades al día / pendientes / vencidas), visitas activas de [[visitantes]], paquetes pendientes de [[paquetes]], y tickets abiertos de [[pqrs]]. Los colores semánticos siguen la convención de [[tokens-color]]: emerald para "Al día", amber para "Pendiente", red para "Vencido".
+
+## Cada indicador declara qué ventana mide (30 ago 2026)
+
+Regla que salió de `UX-004`, y también de un defecto medido: **dos indicadores con el mismo
+rótulo en pantallas contiguas medían ventanas distintas y ninguno lo decía**. El «% recaudo» del
+Panel mide **un mes**; el de [[billing|Cartera]], **hasta doce períodos**. Medido contra
+producción, **divergían en los siete conjuntos** — Palmas y Nogal marcaban `0,0%` aquí y `50,0%`
+allí, a un clic de distancia.
+
+**No se resolvió fusionando las dos ventanas, sino nombrándolas**: son preguntas legítimas y
+distintas —«cómo va este mes» y «cómo va el histórico»—. Cada tarjeta lleva su ventana bajo el
+rótulo, y «Cartera total» dice que es un **acumulado sin ventana**.
+
+La pieza que lo sostiene es `src/lib/dashboard/indicadores.ts`: `lecturaDePorcentaje` une cifra,
+tono y ventana, **con la ventana como parámetro obligatorio**. No se puede pintar un porcentaje sin
+declarar sobre qué se calculó, y de que las pantallas la usen se encarga un guardián que recorre el
+código. **No se tocó ninguna fórmula**: las de `features/billing/collection.ts` estaban bien y su
+banco ya las vigilaba — el defecto era el recorte y el rótulo, y diagnosticarlo como «dos fórmulas»
+habría llevado a reescribir código correcto.
+
+> **Y el segundo defecto de la misma pantalla:** «sin datos» se disfrazaba de «lo peor». En cuatro
+> de los siete conjuntos el panel afirmaba **en rojo** un recaudo del 0,0% en un mes **sin un solo
+> cobro emitido** — correcto como número y falso como afirmación. Hoy `tonoPorPorcentaje` pide el
+> total, igual que su vecina `colorPorPorcentaje`, y con `charged === 0` la tarjeta dice «—» en
+> neutro y «sin cobros emitidos en la ventana».
 
 ## El color informa, o no está (28 ago 2026)
 

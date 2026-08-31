@@ -3,7 +3,7 @@ tags: [modulo, admin, usuarios, roles]
 tipo: concepto
 fuentes: ["domain.ts", "BACKLOG.md"]
 fecha_creacion: 2026-05-20
-fecha_actualizacion: 2026-05-20
+fecha_actualizacion: 2026-08-30
 ---
 
 # Usuarios
@@ -26,6 +26,36 @@ El tipo `SessionUser` en [[domain-types]] define el usuario. Campos relevantes p
 3. El residente recibe sus credenciales (via email transaccional — ítem A6 del [[gtm-tecnico]])
 4. Al primer login, `mustChangePassword=true` activa la redirección del [[middleware-ts]] a `/resident/change-password-required`
 5. El residente cambia su contraseña → `mustChangePassword=false`
+
+## Revisar duplicados del padrón (30 ago 2026)
+
+Desde `ONB-002`, el administrador ve en `/admin/residents` **qué registros de personas parecen la
+misma y por qué regla** —mismo documento, mismo correo o mismo nombre normalizado—, y puede
+**fusionarlos eligiendo cuál sobrevive**, corregir el dato, o marcar que **no** son la misma
+persona con un motivo escrito. Bandera `producto-padron-sin-duplicados`.
+
+**El problema no era el alta: era que nadie miraba hacia atrás.** La carga masiva y el alta manual
+ya descartaban duplicados; los 13 de producción entraron por semillas, migraciones y altas
+anteriores a esa corrección. **Blindar la puerta no limpia la casa.**
+
+Tres cosas que conviene saber antes de tocarlo:
+
+- **Se agrupa por COINCIDENCIA, no por cierre transitivo.** Encadenar los grupos que comparten a
+  alguien parece más limpio y es peligroso: en producción, dos personas de **nombres distintos**
+  comparten número de documento, así que la transitividad las mete en una sola propuesta de fusión.
+  **Un duplicado se ve; una fusión mala, no.**
+- **Fusionar repunta todo lo que apuntaba al archivado, y el inventario de esas referencias
+  se derivó de los DATOS, no de los nombres de campo** — ver [[trampas-conocidas]]. Lo que sostiene
+  el invariante no es la lista: es un **barrido que aborta antes de escribir** si aparece una
+  referencia que no conoce, en vez de dejar huérfanos como hizo `mergeUnits`.
+- **Las personas se archivan, no se borran**, y cada fusión deja un `snapshot` de lo pisado en
+  `personMergeDecisions`. **Sin snapshot no hay fusión**: sin él, «fusionar» es «borrar con un
+  nombre amable». El descarte **caduca** si entra un registro nuevo al grupo, para que la pantalla
+  no se vuelva el sitio donde los problemas se esconden.
+
+Detrás hay dos callables, `mergePeople` y `dismissDuplicatePeopleGroup`: escriben en varias
+colecciones y **una regla de Firestore no protege lo que escribe una callable** — ver
+[[firebase-firestore]]. La detección, en cambio, es lectura pura y vive en el navegador.
 
 ## Estado: ✅ card mobile + skeleton
 

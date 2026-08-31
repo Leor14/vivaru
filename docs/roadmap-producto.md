@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.44 |
-| **Fecha** | 30 de agosto de 2026 (cierre) |
-| **Estado** | **TRES PRD LISTAS PARA DESARROLLO Y NINGUNA CONSTRUIDA TODAVÍA — dicho así a propósito.** `PRD-V-FIX-003` (el panel), **`PRD-V-FLOW-005`** (autorizar la visita que llega sin avisar) y **`PRD-V-FEAT-005`** (un padrón sin duplicados: 11 de 68 personas de producción lo están). **Dos de las cuatro pendientes NO se escriben, y esa es la decisión:** `PRD-VAI-FEAT-001` hoy no pasaría sus propias puertas —sin corpus no hay con qué evaluar ni con qué estimar coste— y `UX-005` va detrás de `UX-004`. **La de duplicados salió del frente de IA y se volvió funcional**: no lleva modelo, no espera corpus, y es lo que permitirá medir si la IA aporta algo en la cola larga. **ANTES, EN LA MISMA JORNADA:** se abrieron los seis frentes y medirlos cambió tres. Ninguno se enunció como resultó ser. **(1) El Panel de Control y Cartera no miden lo mismo, y está probado:** el «% recaudo» divergen en **los siete conjuntos de producción** —Palmas y Nogal dicen `0,0%` en el panel y `50,0%` en cartera— y **en cuatro de los siete el panel afirma hoy en rojo un recaudo del 0,0% donde no hay ni un cobro emitido ese mes**. Es `UX-004`, con `PRD-V-FIX-003` escrita y lista para desarrollo. **(2) La IA ya está en producción**: código desplegado y `ACTIVE`, y **tres de las siete banderas encendidas desde el 17 de agosto, `ia-proveedor-real` incluida**. Lo que falta no es encender: es tráfico —cero tickets desde el 7 de agosto—. Runbook en `docs/encender-la-ia.md`; **no lleva PRD porque no hay producto que especificar**. **(3) Los cobros por concepto ya existen** y el frente se disuelve en dos tareas. Entran además `PH-003` (autorizar la visita que llega sin avisar, con sus cinco decisiones tomadas y **conviviendo con el QR**), `AI-ONB-001` **desbloqueado por decisión y ampliado a PDF y fotos** —contra lo que argumentaba la hoja de ruta de IA, y queda escrito—, y `UX-005` en exploración. **Orden decidido por David: `UX-004` → encender IA → `PH-003` → `AI-ONB-001` → los cobros → `UX-005`.** **LO ANTERIOR, VIGENTE:** `PLAT-005` en producción con la bandera solo en Santa María y **pendiente de validar allí y en un Android**; el vocabulario del documento de no deuda por país, también en producción; `FIN-002` cerrada el 29 con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos proyectos, con la ADC y midiendo, no leyendo** (30 ago, noche): las 7 banderas de IA resueltas documento a documento en `hogaru-1` y `vivaru-staging-02`; las functions por la API de Cloud Functions (87 en cada uno, las cinco de IA `ACTIVE`); los 221 `billingStatements` de producción pasados por las fórmulas reales del producto para comparar panel contra cartera conjunto por conjunto; `people`, `visitorPasses`, `paymentReceipts`, `aiUsage`, `aiAssistance`, `aiFeedback` y `aiQuotaCounters` contados. **Dos hipótesis se cayeron al comprobarlas y no llegaron a la PRD:** que el panel pintara estados crudos —`StatusPill` traduce por dentro— y que hubiera aritmética duplicada —`buildBillingTrend` usa las mismas funciones puras—. Árbol limpio: los scripts de medición se borraron al terminar |
+| **Versión** | 0.9.45 |
+| **Fecha** | 30 de agosto de 2026 (noche, tras construir) |
+| **Estado** | **DE LAS TRES PRD ESCRITAS ESA MAÑANA, DOS ESTÁN CONSTRUIDAS, EN PRODUCCIÓN Y VALIDADAS CON OJOS LA MISMA NOCHE.** `UX-004` (`PRD-V-FIX-003`, el panel) y `ONB-002` (`PRD-V-FEAT-005`, el padrón sin duplicados). **Queda UNA sin construir:** `PH-003` (`PRD-V-FLOW-005`, la visita repentina), sin decisiones abiertas. El criterio del 24 de agosto —cerrar frentes antes que abrirlos— se cumplió el mismo día en que se abrieron. **`UX-004`:** el panel y Cartera ya no se contradicen —cada indicador declara su ventana— y un mes sin cobros emitidos dejó de afirmar en rojo un recaudo del 0,0%; **no se tocó ninguna fórmula**, porque el defecto era la ventana y el rótulo. **`ONB-002`:** el administrador ve qué registros del padrón parecen la misma persona y por qué regla, y los fusiona eligiendo cuál sobrevive, con vista previa y `snapshot`; **la primera fusión se ejecutó en producción** —siete «David Carmona» en uno, el padrón de Santa María de 24 a 18 personas, cero referencias huérfanas—. **LO QUE MÁS ENSEÑÓ LA JORNADA NO FUERON LAS ENTREGAS:** (1) **construir corrigió su propia ficha en cuatro puntos** —eran 13 duplicados y no 11; el inventario de referencias estaba mal en las cuatro filas; dos nombres distintos comparten documento, así que el cierre transitivo habría propuesto fusionar dos personas; y la regla de las cuentas habría bloqueado el caso real—, y **ninguno se ve leyendo**; (2) **un guardián nuevo nació ciego justo en el caso que lo motivó** y su falsación pasó en verde a la primera; (3) **ejecutar la fusión destapó un defecto que ninguna prueba veía**: con una hecha todo estaba bien, y **la segunda habría abortado**; (4) **el push a `master` SÍ despliega producción**, y este repositorio afirmaba lo contrario desde el 27 — el error no fue medir poco, fue **medir el campo equivocado**. **LO ANTERIOR, VIGENTE:** la IA sigue en producción y sin tráfico —el tope de gasto lleva catorce días sin mirarse—; `PLAT-005` en producción, pendiente de validar allí y en un Android; `FIN-002` cerrada con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, midiendo y con ojos** (30 ago, noche): los cuatro bancos contados con el emulador levantado —`npm test` **1449**, functions **720**, emulador **262**, reglas **249**—; el ruleset vivo leído por la API de Rules con **0 líneas de diff** contra el fichero; las functions por `updateTime`, no por el «Deploy complete»; el front por **procedencia del build**; las banderas **resueltas con el módulo compilado**, no leyendo documentos; y el padrón de Santa María contado antes y después de la fusión (24 → 18, cero huérfanas). **El inventario de referencias a persona se derivó recorriendo las 49 colecciones**, no leyendo nombres de campo. Árbol limpio: los scripts de medición se borraron al terminar |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1202,6 +1202,40 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.45 — 30 de agosto de 2026 (noche) — dos de las tres PRD, construidas y en producción
+
+- **`UX-004` y `ONB-002`, construidas y desplegadas el mismo día en que se escribieron sus fichas**,
+  las dos validadas con ojos en Santa María y no solo desplegadas. Queda `PH-003`.
+- **Construir `ONB-002` corrigió su propia ficha en CUATRO puntos, y ninguno se ve leyendo.**
+  (1) Eran **13** registros duplicados y no 11 — los «11 en 3 grupos» eran **la regla de nombre a
+  solas**. (2) El inventario de referencias estaba mal **en las cuatro filas**: derivarlo de los
+  DATOS —recorrer las 49 colecciones preguntando qué campo contiene de verdad un id de `people`—
+  encontró `packages.deliveredToId` y `packages.receivedBy`, **siete cada uno**, que ningún nombre
+  delata, y descartó `tickets.residentId`, que se llama exactamente como una referencia a persona y
+  lleva un **uid**; por nombres habría repuntado **29 de 43** y dejado catorce huérfanas, que es
+  `mergeUnits` otra vez. (3) «David Cancelo» y «Luis Otero» **comparten documento**, así que agrupar
+  por cierre transitivo habría propuesto fusionar dos personas distintas — **un duplicado se ve, una
+  fusión mala no**. (4) `R5` habría bloqueado el caso real: dos fichas apuntan al **mismo** uid.
+- **Y lo que sostiene el invariante no es la lista, es el barrido**: antes de escribir nada, la
+  callable busca todo lo que apunta a esas personas y **aborta** si aparece algo no registrado. Eso
+  convierte «el inventario está completo» —una promesa— en «si no lo está, no se escribe».
+- **Ejecutar la primera fusión destapó un defecto que ninguna prueba veía.** El registro de la
+  decisión nombra a los archivados —para eso existe— y el barrido lo leía como referencias
+  desconocidas: **la SEGUNDA fusión de esa persona habría abortado**. Con una hecha, todo estaba
+  bien. **El defecto vivía en la segunda pasada, que es cuando ya nadie mira.**
+- **El guardián nuevo de `UX-004` nació ciego justo en el caso que lo motivó.** Su falsación —quitar
+  la ventana al «% recaudo» del panel— **pasó en verde a la primera**: cortaba por rótulos literales,
+  se comía media pantalla y leía el `scope` del vecino. Lo destapó falsarlo, no escribirlo. De paso
+  encontró que el mapa de tipos de ticket tenía **cinco** copias y no tres, **dos en el mismo fichero**.
+- **Tres defectos de copy los cazó la pantalla y ninguna prueba**, los tres en textos que se leen
+  antes de confirmar algo: «las 1 referencias», «La 1 referencia» y «mar de 26 – jun de 26».
+- **CORRECCIÓN QUE GOBIERNA TODOS LOS DESPLIEGUES: el push a `master` SÍ despliega producción.**
+  Este repositorio afirmaba lo contrario desde el 27. **El error no fue medir poco: fue medir el
+  campo equivocado** — se leyó `codebase` del backend, no traía campo `branch` y esa ausencia se
+  leyó como prueba, cuando la política vive en `traffic.rolloutPolicy.codebaseBranch`. **Una
+  ausencia solo prueba algo si mirabas donde el dato tendría que estar.** Costó un rollout duplicado.
+- **Y `npm test` no estaba roto: le faltaba el emulador.** Con él levantado pasan las 1449.
 
 ### 0.9.44 — 30 de agosto de 2026 (cierre) — dos PRD más, y las dos que NO se escriben
 
