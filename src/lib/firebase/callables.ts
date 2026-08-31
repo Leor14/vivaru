@@ -602,6 +602,33 @@ export async function mergeUnitsCallable(input: { tenantId: string; survivorId: 
   return executeCallable(callable, input, "No fue posible fusionar las unidades.");
 }
 
+/**
+ * `PRD-V-FEAT-005` — fusionar registros duplicados del padrón.
+ *
+ * **El motivo es obligatorio y no es burocracia**: dentro de un año, una fusión sin porqué obliga
+ * a reabrir la pregunta entera. El servidor lo exige; aquí solo se transporta.
+ */
+export async function mergePeopleCallable(input: {
+  tenantId: string;
+  survivorId: string;
+  mergedIds: string[];
+  motivo: string;
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean; fusionadas: number; repuntadas: number; decisionId: string }>(
+    functions,
+    "mergePeople",
+  );
+  return executeCallable(callable, input, "No fue posible fusionar las personas.");
+}
+
+/** `PRD-V-FEAT-005` — «no son la misma persona», con motivo. */
+export async function dismissDuplicatePeopleGroupCallable(input: { tenantId: string; ids: string[]; motivo: string }) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<typeof input, { ok: boolean; clave: string }>(functions, "dismissDuplicatePeopleGroup");
+  return executeCallable(callable, input, "No fue posible descartar el grupo.");
+}
+
 export async function getDocumentDownloadUrlCallable(input: { documentId: string }) {
   if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
   const callable = httpsCallable<typeof input, { url: string }>(functions, "getDocumentDownloadUrl");

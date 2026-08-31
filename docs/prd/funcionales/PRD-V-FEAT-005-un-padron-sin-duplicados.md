@@ -32,12 +32,28 @@ Esta ficha da al administrador **la lista de sospechosos y la forma de resolverl
 | Qué | Valor |
 |---|---|
 | Personas en producción | **68** |
-| **Duplicadas** (mismo nombre normalizado, mismo conjunto) | **11**, en 3 grupos — todas en `tenant-santa-maria` |
+| ~~**Duplicadas** (mismo nombre normalizado) — **11** en 3 grupos~~ | **13 registros en 5 grupos** — corregido al construir, ver abajo |
 | Sin número de documento | **21 de 68 (31%)** — y es uno de los dos campos con los que se deduplica |
 | Grupos por documento repetido | 3 |
 | Grupos por correo repetido | 2 |
 
 **El caso que lo retrata:** «David Carmona» aparece **siete veces**, repartido en **dos unidades distintas**, con **dos números de documento diferentes** y **el mismo correo en los siete**.
+
+> ### CORRECCIÓN AL CONSTRUIR (30 ago 2026): eran 13, no 11
+>
+> **Los «11 en 3 grupos» eran la regla de NOMBRE a solas** —David Carmona 7, Jorge Pardo 2, Luis
+> Otero 2—, presentados como si fueran el total. Con las tres reglas de §8 hay **13 registros**, y
+> lo que añaden documento y correo es un racimo que el nombre no ve: **«David Cancelo» y «Luis
+> Otero» comparten el documento `65465465`**, y un tercer «Luis» comparte correo con uno de ellos.
+>
+> **Y esa persona compartida decidió el diseño.** Encadenando los grupos que comparten a alguien
+> —cierre transitivo— los cuatro caen en una sola propuesta de fusión **con dos nombres distintos
+> dentro**, que es justo la fusión mala que §12 teme. Se agrupa **por coincidencia**, no por
+> cierre: cada propuesta se queda pequeña y con su porqué delante (`R8`), y una persona puede
+> aparecer en dos grupos. Con eso son **5 grupos** cubriendo esos 13 registros.
+>
+> **Un hallazgo más, del mismo sitio:** «Luis» y «Luis Otero» apuntan al **mismo `authUid`**. Es
+> una persona con la ficha duplicada, no dos con acceso propio — ver la corrección de `R5`.
 
 ### 2.2 Por qué existen, que es lo que decide el alcance
 
@@ -136,10 +152,24 @@ Lo medido hoy en producción:
 
 | Dónde | Campo | Volumen |
 |---|---|---|
-| `packages` | `residentId` | 54 documentos |
-| `tickets` | `residentId` | 20 documentos |
-| `units` | `ownerIds`, `residentIds` (**arrays**) | 15 unidades pobladas de 93 |
-| `tenantUsers` | `personId` | 0 apuntando a los duplicados actuales |
+| `units` | `ownerIds` (**array**) | **18** |
+| `packages` | `residentId` | **11** |
+| `packages` | `deliveredToId` | **7** |
+| `packages` | `receivedBy` | **7** |
+| ~~`tickets`~~ | ~~`residentId`~~ | **NO es referencia a persona: lleva un uid de Auth** |
+| ~~`tenantUsers`~~ | ~~`personId`~~ | **Ese campo no se escribe nunca**; el enlace es `people.authUid` |
+
+> **Esta tabla estaba mal en las cuatro filas, y lo destapó derivarla de los DATOS** —recorrer las
+> 49 colecciones preguntando qué campo contiene de verdad un id de `people`— en vez de leer
+> nombres de campo. Un inventario escrito por nombres habría **metido `tickets.residentId`**, que
+> se llama exactamente como una referencia a persona y lleva un uid, y habría **dejado fuera
+> `packages.deliveredToId` y `packages.receivedBy`**, que no se llaman como una y llevan siete cada
+> uno: **29 referencias repuntadas de 43, y catorce huérfanas.** La historia de `mergeUnits` con
+> otros nombres.
+>
+> **Los dos campos nuevos son MIXTOS**: llevan un id de persona cuando el guarda elige del
+> directorio y un **uid** cuando lo recoge el residente. Repuntar **por igualdad** los deja en paz,
+> y hay una prueba que lo fija.
 
 > **R-INV — la regla que sale de esto: el inventario se DERIVA, no se escribe.** Como `UNIT_REF_FIELDS` sale de `COLECCIONES_CON_CLAVE_DE_UNIDAD` y no de una lista a mano, aquí tiene que haber un inventario único de referencias a persona **con un guardián que enrojezca cuando alguien añada un campo nuevo sin registrarlo**. Y **tiene que cubrir arrays**, no solo campos escalares.
 
@@ -157,7 +187,7 @@ Lo medido hoy en producción:
 - **R2** — Dos personas de **conjuntos distintos** nunca son el mismo grupo.
 - **R3** — La fusión **la confirma una persona**, siempre, y **eligiendo el superviviente**. No hay «fusionar todo».
 - **R4** — Al fusionar se repunta **todo** lo del inventario derivado. Si aparece una referencia que el inventario no conoce, **la fusión se aborta** en vez de dejar huérfanos.
-- **R5** — **Dos personas con cuenta de acceso activa no se fusionan sin resolver antes las cuentas.** Detrás de cada una hay alguien que entra al portal; fusionar a ciegas deja a una persona sin acceso a lo suyo — la misma razón por la que el archivador de huérfanos se niega a tocar `tenantUsers`.
+- **R5** — **Dos CUENTAS DISTINTAS no se fusionan sin resolverlas antes.** *(Corregido al construir: decía «dos personas con cuenta de acceso activa», y contar registros con `authUid` habría bloqueado el caso real de «Luis» y «Luis Otero», que apuntan al **mismo** uid — una persona con la ficha duplicada, que es justo lo que hay que poder resolver.)* Detrás de cada una hay alguien que entra al portal; fusionar a ciegas deja a una persona sin acceso a lo suyo — la misma razón por la que el archivador de huérfanos se niega a tocar `tenantUsers`.
 - **R6** — Un descarte exige **motivo escrito**, y **vuelve a sospechoso** si el grupo cambia.
 - **R7** — La fusión guarda `snapshot`. **Sin snapshot no hay fusión.**
 - **R8** — Los criterios de agrupación son **explícitos y se muestran**: el administrador ve *por qué* el sistema cree que son la misma persona.
@@ -178,9 +208,9 @@ Lo medido hoy en producción:
 
 ## 10. Criterios de aceptación
 
-**CA1** — En Santa María, la pantalla lista **3 grupos** con **11 registros**, y cada grupo dice por qué regla se agrupó.
+**CA1** — En Santa María, la pantalla lista **5 grupos** cubriendo **13 registros**, y cada grupo dice por qué regla se agrupó. *(Medido al construir; la ficha decía 3 y 11, que era la regla de nombre a solas.)*
 **CA2** — El grupo de «David Carmona» muestra los **7** registros, sus **dos** unidades, sus **dos** documentos y el correo común.
-**CA3** — Al abrir un grupo, cada registro muestra **qué cuelga de él** (paquetes, tickets, unidades, membresía). Los dos que están en arrays de unidad **deben aparecer con esa referencia**.
+**CA3** — Al abrir un grupo, cada registro muestra **qué cuelga de él**: paquetes, unidades y si tiene cuenta de acceso. Los dos que están en arrays de unidad **deben aparecer con esa referencia**. *(«Tickets» sale del criterio: no son referencias a persona.)*
 **CA4** — La vista previa dice, **antes de confirmar**, cuántas referencias se repuntan y qué campos del superviviente se conservan.
 **CA5** — Tras fusionar, **cero referencias** apuntan a los archivados, y el superviviente las tiene todas.
 **CA6** — La fusión deja un `personMergeDecisions` con `snapshot`, motivo, autor y fecha.
@@ -208,7 +238,7 @@ Lo medido hoy en producción:
 - **Detectar**: el cliente ya lee `people` de su conjunto con las reglas de hoy. **La agrupación es una función pura** sobre esos datos, así que vive en un módulo compartido y se prueba entera en milisegundos sin emulador — el mismo patrón que `resolve.ts` de las banderas.
 - **Fusionar y descartar**: **callable, sin discusión.** Escribe en varias colecciones, toca `tenantUsers` (restringida en reglas), debe ser **atómica** y **el cliente no debe poder falsificar** quién decidió ni qué se pisó.
 
-**Callables nuevas:** `fusionarPersonas` · `descartarGrupoDeDuplicados`.
+**Callables nuevas:** `mergePeople` y `dismissDuplicatePeopleGroup` (la lógica, en `functions/src/padron.ts`, se llama `fusionarPersonas` y `descartarGrupoDeDuplicados`).
 **Módulo nuevo:** el inventario derivado de referencias a persona, hermano de `COLECCIONES_CON_CLAVE_DE_UNIDAD`, **con su guardián** (CF8).
 **Se reutiliza:** el patrón de `mergeUnits` (repuntar y archivar), `revokeResidentAccess` para el caso de las cuentas, y el patrón de archivado con motivo.
 **Bandera:** `producto-padron-sin-duplicados`. **El catálogo vive en CINCO sitios**, y uno es el que permite encender **por conjunto** — la vía del canario.
@@ -227,7 +257,7 @@ Lo medido hoy en producción:
 
 **Orden: reglas → functions → front.** Las reglas solo añaden `personMergeDecisions` (lectura de administrador, escritura solo de servidor): amplían, no restringen.
 
-**Producción no se despliega con push a `master`**: rollout manual, esperando **por nombre**.
+**Producción SÍ se despliega con push a `master`** —la política vive en `traffic.rolloutPolicy.codebaseBranch`, medido el 30 de agosto de 2026—, así que **no hay que lanzar el rollout a mano: se duplica**. Comprobar con `functions/scripts/estado-de-apphosting.mjs`.
 
 **Rollback:** apagar la bandera oculta la pantalla. **Las fusiones ya hechas no se deshacen solas** — se deshacen con su `snapshot`, y eso es una operación, no un rollback. **Se dice en primera línea de la ficha a propósito.**
 

@@ -59,6 +59,12 @@ import {
   type RechazarCasoInput,
 } from "./conciliacion-casos";
 import {
+  descartarGrupoDeDuplicados,
+  fusionarPersonas,
+  type DescartarGrupoInput,
+  type FusionarPersonasInput,
+} from "./padron";
+import {
   revocarAccesoDeResidente,
   type RevocarAccesoInput,
 } from "./resident-access";
@@ -4904,6 +4910,49 @@ export const revertPayment = onCall<RevertirPagoInput>(
         voucherAnuladoId: resultado.voucherAnuladoId ?? null,
       });
     }
+    return resultado;
+  },
+);
+
+// ── FEAT-005 · el padrón sin duplicados ──────────────────────────────────────
+//
+// La lógica vive en `padron.ts`; aquí solo se expone, se valida la sesión y se
+// deja el rastro de auditoría. **Detectar NO pasa por aquí**: es lectura pura
+// sobre datos que el cliente ya lee, y vive en `src/features/residents/`.
+//
+// **Van detrás de `producto-padron-sin-duplicados`… en el front, no aquí.** La
+// bandera gobierna que la pantalla se vea; el servidor no la comprueba a
+// propósito, porque una fusión mal hecha no se arregla apagando un interruptor
+// y el guardián que importa —el barrido que aborta ante una referencia
+// desconocida— tiene que valer siempre.
+export const mergePeople = onCall<FusionarPersonasInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await fusionarPersonas(request.data, { uid, role: request.auth?.token?.role });
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "people.merge", {
+      survivorId: request.data?.survivorId,
+      mergedIds: request.data?.mergedIds,
+      // El motivo entra en la auditoría: es lo que permite entender la decisión dentro de un año.
+      motivo: request.data?.motivo ?? null,
+      repuntadas: resultado.repuntadas,
+      decisionId: resultado.decisionId,
+    });
+    return resultado;
+  },
+);
+
+export const dismissDuplicatePeopleGroup = onCall<DescartarGrupoInput>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await descartarGrupoDeDuplicados(request.data, { uid, role: request.auth?.token?.role });
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "people.dismiss_duplicates", {
+      ids: request.data?.ids,
+      motivo: request.data?.motivo ?? null,
+    });
     return resultado;
   },
 );

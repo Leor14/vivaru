@@ -58,6 +58,7 @@ import {
   type UnitItem,
 } from "@/features/admin/services";
 import { DEFAULT_TOWER, distinctTowers, normalizeTower } from "@/utils/tower";
+import { DuplicatePeoplePanel } from "@/components/features/admin/residents/DuplicatePeoplePanel";
 import { DuplicateUnitsPanel } from "@/components/features/admin/residents/DuplicateUnitsPanel";
 
 export default function AdminResidentsPage() {
@@ -110,6 +111,7 @@ export default function AdminResidentsPage() {
    * pruebas no vieron, y se baja desde `/superadmin/flags` sin desplegar.
    */
   const importacionMasiva = useFeatureFlag("producto-importacion-masiva");
+  const padronSinDuplicados = useFeatureFlag("producto-padron-sin-duplicados");
 
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [residentImportOpen, setResidentImportOpen] = useState(false);
@@ -1104,6 +1106,9 @@ export default function AdminResidentsPage() {
       </Card>
 
       <DuplicateUnitsPanel tenantId={user?.tenantId} units={units} people={people} />
+      {padronSinDuplicados ? (
+        <DuplicatePeoplePanel tenantId={user?.tenantId} people={people} units={units} />
+      ) : null}
 
       <Card>
         <CardTitle help="El inventario de apartamentos, locales o casas del conjunto. Cada unidad es el punto de anclaje para cobros, residentes, reservas y PQRS. Mantén este listado preciso y todo lo demás fluye con consistencia.">Unidades</CardTitle>

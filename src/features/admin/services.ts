@@ -79,6 +79,14 @@ export type PersonItem = {
    * deliberado.
    */
   authUid?: string;
+  /**
+   * `PRD-V-FEAT-005`. Marca de que este registro se fusionó en otro: **la persona se archiva,
+   * no se borra**. Lleva la decisión encima —hacia quién, quién y por qué—, que es lo que hace
+   * el archivador de huérfanos: archivar es registrar una decisión, no esconder un documento.
+   */
+  fusionadaEn?: unknown;
+  fusionadaHaciaId?: string;
+  fusionadaMotivo?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -661,6 +669,11 @@ export function watchPeople(tenantId: string, onData: (items: PersonItem[]) => v
             occupancyType: normalizeRoleType(mapped.occupancyType ?? mapped.roleType),
           };
         })
+        // **Las fusionadas salen del padrón** (`PRD-V-FEAT-005`). Se filtra EN MEMORIA y no en la
+        // consulta a propósito: un `where` sobre un campo que casi ningún documento tiene
+        // descartaría el padrón entero, que es exactamente cómo la lista de documentos del
+        // residente llegó a decir «Sin documentos» teniendo ocho.
+        .filter((person) => !person.fusionadaEn)
         .sort((a, b) => a.fullName.localeCompare(b.fullName));
       onData(items);
     },

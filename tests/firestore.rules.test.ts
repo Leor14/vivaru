@@ -3223,6 +3223,18 @@ describe("FLOW-004 · el expediente de conciliación", () => {
         sourceType: "billingStatement",
         reconciled: false,
       });
+      // `PRD-V-FEAT-005` — una decisión de fusión, con su snapshot dentro.
+      await setDoc(doc(db, "personMergeDecisions", "pmd-existente"), {
+        tenantId: "tenant-a",
+        tipo: "fusion",
+        claveDelGrupo: "p1·p2",
+        survivorId: "p1",
+        mergedIds: ["p2"],
+        motivo: "misma persona, dos altas",
+        snapshot: { personas: { p2: { fullName: "David Carmona", documentNumber: "SGWE34675JKG" } }, referencias: [] },
+        estado: "completada",
+        decidedBy: "admin-a",
+      });
       await setDoc(doc(db, "reconciliationCases", "bsl-suelta"), {
         tenantId: "tenant-a",
         bankAccountId: "cta-1",
@@ -3409,6 +3421,54 @@ describe("FLOW-004 · el expediente de conciliación", () => {
 
     it("ni lo borra", async () => {
       await assertFails(deleteDoc(doc(admin().firestore(), "reconciliationCases", "bsl-suelta")));
+    });
+  });
+
+  /**
+   * `PRD-V-FEAT-005` — las decisiones sobre el padrón duplicado.
+   *
+   * **Se prueba, no se lee.** El documento lleva dentro el `snapshot` de las personas pisadas
+   * —nombre, documento, correo—, así que es a la vez lo único que hace reversible una fusión y
+   * un volcado de datos personales. Las dos cosas piden la misma regla: la administración lo lee
+   * y **nadie lo escribe desde el cliente**.
+   */
+  describe("las decisiones del padrón", () => {
+    it("la administración las lee", async () => {
+      await assertSucceeds(getDoc(doc(admin().firestore(), "personMergeDecisions", "pmd-existente")));
+    });
+
+    it("**un residente NO** — el snapshot lleva documentos de identidad de otros", async () => {
+      await assertFails(getDoc(doc(residente().firestore(), "personMergeDecisions", "pmd-existente")));
+    });
+
+    it("un admin de otro conjunto tampoco", async () => {
+      await assertFails(getDoc(doc(otroAdmin().firestore(), "personMergeDecisions", "pmd-existente")));
+    });
+
+    it("NADIE la escribe desde el cliente — ni el superadmin", async () => {
+      // Si el navegador pudiera escribir el snapshot, «se puede deshacer» sería una frase y no
+      // una garantía: valdría lo que valga el navegador.
+      await assertFails(
+        setDoc(doc(sa().firestore(), "personMergeDecisions", "pmd-inventada"), {
+          tenantId: "tenant-a",
+          tipo: "fusion",
+          claveDelGrupo: "p3·p4",
+          survivorId: "p3",
+          mergedIds: ["p4"],
+          motivo: "inventado",
+          snapshot: {},
+        }),
+      );
+    });
+
+    it("ni reescribe el motivo de una que ya existe", async () => {
+      await assertFails(
+        updateDoc(doc(admin().firestore(), "personMergeDecisions", "pmd-existente"), { motivo: "otro" }),
+      );
+    });
+
+    it("ni borra el snapshot, que es lo único que permite volver atrás", async () => {
+      await assertFails(deleteDoc(doc(admin().firestore(), "personMergeDecisions", "pmd-existente")));
     });
   });
 });

@@ -147,6 +147,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-padron-sin-duplicados",
+    area: "producto",
+    label: "Revisar duplicados del padrón",
+    origen: "PRD-V-FEAT-005 §11",
+    // Nace apagada: pantalla nueva. NO gobierna las callables, que comprueban
+    // sus invariantes con bandera o sin ella.
+    enabled: false,
+  },
+  {
     key: "producto-notificaciones-push",
     area: "producto",
     label: "Notificaciones push al residente",

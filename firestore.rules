@@ -640,6 +640,27 @@ service cloud.firestore {
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId) && previewModuleWritable(resource.data.tenantId));
     }
 
+    // `PRD-V-FEAT-005` — las decisiones sobre el padron duplicado.
+    //
+    // **Identica de estrecha que `reconciliationCases`, y por la misma razon: el
+    // cliente NO escribe nada.** Este documento guarda el `snapshot` de lo que se
+    // piso al fusionar, que es lo unico que hace la fusion reversible; si el
+    // navegador pudiera escribirlo, el snapshot valdria lo que valga el
+    // navegador y «se puede deshacer» seria una frase, no una garantia. Lo
+    // escriben `mergePeople` y `dismissDuplicatePeopleGroup`.
+    //
+    // Y la advertencia que este repositorio ya pago: **una regla no protege lo
+    // que escribe una callable** (Admin SDK no las evalua). Esto cierra el
+    // camino del cliente; el invariante vive en `padron.ts`.
+    //
+    // La lectura es solo de la administracion: el snapshot lleva documentos
+    // enteros de personas —documento de identidad, correo, telefono—, asi que el
+    // residente, la porteria y el consejo no entran.
+    match /personMergeDecisions/{docId} {
+      allow read: if signedIn() && tenantAdminOrSuper(resource.data.tenantId);
+      allow create, update, delete: if false;
+    }
+
     // `PRD-V-FLOW-004` — el expediente de una linea de extracto.
     //
     // **Mas estrecha que `bankStatementLines` a proposito: el cliente NO escribe

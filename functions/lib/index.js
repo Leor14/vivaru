@@ -34,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -61,6 +61,7 @@ const audit_1 = require("./audit");
 const clave_de_unidad_1 = require("./clave-de-unidad");
 const payments_1 = require("./payments");
 const conciliacion_casos_1 = require("./conciliacion-casos");
+const padron_1 = require("./padron");
 const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
@@ -3890,6 +3891,43 @@ exports.revertPayment = (0, https_1.onCall)({ cors: http_config_1.callableCorsOr
             voucherAnuladoId: resultado.voucherAnuladoId ?? null,
         });
     }
+    return resultado;
+});
+// ── FEAT-005 · el padrón sin duplicados ──────────────────────────────────────
+//
+// La lógica vive en `padron.ts`; aquí solo se expone, se valida la sesión y se
+// deja el rastro de auditoría. **Detectar NO pasa por aquí**: es lectura pura
+// sobre datos que el cliente ya lee, y vive en `src/features/residents/`.
+//
+// **Van detrás de `producto-padron-sin-duplicados`… en el front, no aquí.** La
+// bandera gobierna que la pantalla se vea; el servidor no la comprueba a
+// propósito, porque una fusión mal hecha no se arregla apagando un interruptor
+// y el guardián que importa —el barrido que aborta ante una referencia
+// desconocida— tiene que valer siempre.
+exports.mergePeople = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, padron_1.fusionarPersonas)(request.data, { uid, role: request.auth?.token?.role });
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "people.merge", {
+        survivorId: request.data?.survivorId,
+        mergedIds: request.data?.mergedIds,
+        // El motivo entra en la auditoría: es lo que permite entender la decisión dentro de un año.
+        motivo: request.data?.motivo ?? null,
+        repuntadas: resultado.repuntadas,
+        decisionId: resultado.decisionId,
+    });
+    return resultado;
+});
+exports.dismissDuplicatePeopleGroup = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, padron_1.descartarGrupoDeDuplicados)(request.data, { uid, role: request.auth?.token?.role });
+    await writeAuditLog(request.data?.tenantId ?? "", uid, "people.dismiss_duplicates", {
+        ids: request.data?.ids,
+        motivo: request.data?.motivo ?? null,
+    });
     return resultado;
 });
 // ── FLOW-004 · el expediente de conciliación ─────────────────────────────────

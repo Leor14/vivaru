@@ -64,6 +64,7 @@ export type FeatureFlagKey =
   | "producto-calendario-de-cobranza"
   | "producto-expediente-conciliacion"
   | "producto-notificaciones-push"
+  | "producto-padron-sin-duplicados"
   | "operacion-app-check-monitor";
 
 /**
@@ -112,6 +113,8 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   "producto-expediente-conciliacion": false,
   // Apagada = el servidor no empuja y el portal no invita. Ver el catálogo en `src/`.
   "producto-notificaciones-push": false,
+  // Apagada = no se ve la pantalla. El servidor NO la comprueba: ver el catálogo en `src/`.
+  "producto-padron-sin-duplicados": false,
   "operacion-app-check-monitor": true,
 };
 

@@ -76,6 +76,7 @@ export type FeatureFlagKey =
   | "producto-calendario-de-cobranza"
   | "producto-expediente-conciliacion"
   | "producto-notificaciones-push"
+  | "producto-padron-sin-duplicados"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -187,6 +188,21 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-004 §11.4 — el expediente de conciliación",
     alApagar:
       "Las líneas vuelven a verse en una sola lista, sin agrupar. Se conservan el aviso de «no cuadra» en cada fila, los candidatos filtrados y el motivo del descarte: eso no es la bandeja, es el expediente, y no se apaga.",
+  },
+  "producto-padron-sin-duplicados": {
+    key: "producto-padron-sin-duplicados",
+    area: "producto",
+    label: "Revisar duplicados del padrón",
+    description:
+      "Enseña al administrador los registros de personas que parecen la misma —mismo documento, mismo correo o mismo nombre— y le deja fusionarlos, corregirlos o marcar que no lo son.",
+    // Nace APAGADA: pantalla nueva. **Y no gobierna el servidor.** Las callables
+    // comprueban sus invariantes con bandera o sin ella, porque una fusión mal
+    // hecha no se arregla apagando un interruptor: el barrido que aborta ante
+    // una referencia desconocida tiene que valer siempre.
+    defaultEnabled: false,
+    origen: "PRD-V-FEAT-005 §11 — un padrón sin duplicados",
+    alApagar:
+      "Desaparece la revisión de duplicados del módulo de Residentes. Las fusiones ya hechas NO se deshacen: quedan con su snapshot en `personMergeDecisions`, y deshacerlas es una operación, no un rollback.",
   },
   "producto-notificaciones-push": {
     key: "producto-notificaciones-push",

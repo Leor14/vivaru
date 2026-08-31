@@ -51,6 +51,7 @@ const CLAVES = [
   "producto-anticipos",
   "producto-expediente-conciliacion",
   "producto-notificaciones-push",
+  "producto-padron-sin-duplicados",
   "producto-pago-multiple",
   "producto-prorrateo-de-gastos",
   "producto-estado-de-cuenta",
