@@ -152,9 +152,14 @@ Runbook: [`encender-la-ia.md`](encender-la-ia.md).
   test CF3 de migración frágil a latencia · el rojo del emulador · la reconstrucción del facturado
   de Cartera **sin anticipo** (latente: 27 cobros usan el fallback, **0 con anticipo**). **El del
   panel demo muerto está HECHO** (`9a773cb`).
-- **Las dos tareas del frente de cobros por concepto:** `billingConceptLabel` cae en silencio a
-  «Mantenimiento y Administración» —y hay un cobro de parqueadero de $80.000 que lo dispara—; y una
-  auditoría de datos (30 cobros sin `concept`, 4 sin `accountCode`).
+- **Las dos tareas del frente de cobros por concepto, remedidas el 30 por la noche:**
+  `billingConceptLabel` cae **en silencio** a «Mantenimiento y Administración» ante una clave que no
+  esté en el catálogo — y el caso real es **más fino de lo que decía esta línea**: el catálogo **sí
+  tiene `parqueadero`**, y el cobro de producción lleva `concept: "Parqueadero"` **con mayúscula**,
+  así que falla por una letra y un parqueadero de $80.000 se lee como administración
+  (`bill-t1301-parking-2026-05-co`, El Nogal, T1-301, mayo 2026). Y la auditoría de datos: **30 de
+  221 cobros sin `concept`** ✅, pero **220 de 221 sin `accountCode`, no 4** — esta línea decía 4 y
+  el campo existe en **un solo documento** de toda la producción.
 - **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
   puerta del alta · si se abre el canal de correo.
 - **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
