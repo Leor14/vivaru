@@ -4,21 +4,61 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, noche (tras `UX-004` y `ONB-002`)
+## LO PRIMERO AL ABRIR SESIÓN — 30 de agosto de 2026, madrugada (las tres PRD construidas)
 
 > ### EL SIGUIENTE PASO, EN UNA FRASE
 >
-> ## ▸ CONSTRUIR `PH-003`. Es la ÚLTIMA PRD escrita y sin construir
+> ## ▸ VALIDAR `PH-003` CON OJOS. Es lo único que le falta, y no lo puedo hacer yo solo
 >
-> **`UX-004` y `ONB-002` están las dos EN PRODUCCIÓN y validadas con ojos.** `ONB-002` con la
-> bandera encendida **solo en `tenant-santa-maria`** (`d692be3`): reglas verificadas contra el
-> ruleset vivo con 0 líneas de diff, las dos functions `ACTIVE` por `updateTime`, y el front por
-> procedencia del build.
+> **Las TRES PRD que se escribieron el 30 están construidas y en producción**: `UX-004`, `ONB-002`
+> y ahora `PH-003` (`a8e2243`), con la bandera `producto-visita-no-anunciada` encendida **solo en
+> `tenant-santa-maria`** — el único conjunto con push, y sin push la vía A nace inservible.
 >
-> **Queda [`PRD-V-FLOW-005`](prd/funcionales/PRD-V-FLOW-005-autorizar-la-visita-que-llega-sin-avisar.md)**
-> (la visita repentina), sin decisiones abiertas. Lo que hay que saber para arrancarla, más abajo.
->
-> Sigue en pie: **una sola sesión que escriba a la vez.**
+> **No queda ninguna PRD escrita sin construir.** Lo siguiente es **elegir**, y antes de elegir hay
+> una deuda concreta: **`PH-003` no se ha visto en pantalla**.
+
+### `PH-003` — LO QUE FALTA, Y POR QUÉ NO LO PUEDO CERRAR SOLO
+
+**El servidor está verificado**: reglas con `0` líneas de diff contra el repo, las dos functions
+`ACTIVE` por `updateTime`, el front por procedencia del build, y la bandera **resuelta con el
+módulo compilado** (`override_conjunto` en Santa María, `default_catalogo` en los demás).
+
+**Lo que falta es mirarlo, y ahí el límite es la sesión del navegador:**
+
+| Qué | Qué hace falta |
+|---|---|
+| El guardia captura y elige vía | Una sesión con rol **`security_guard`**. Santa María tiene **3** |
+| El residente autoriza o rechaza | Una sesión con rol **`resident`**. Santa María tiene **9** |
+| `CA4` — dos residentes contestan a la vez | **Dos dispositivos y dos personas.** No hay suite que lo sustituya |
+| El push de la petición | **Un teléfono con la app instalada.** Hoy hay **0 `pushTokens`** en producción |
+
+**Y hay una vía intermedia que no se ha tomado:** ejercitar el flujo contra producción con el
+Admin SDK —crear una visita de portería en Santa María y resolverla— para ver la constancia en la
+pantalla del administrador (`CA9`). **Es inocuo**: cero tokens de push, correo apagado en las 13
+claves y ningún conjunto con `notificationTemplates`, así que el aviso solo caería en la campana de
+nueve cuentas de prueba. **No se hizo porque escribe en producción y eso lo decide David.**
+
+### `PH-003` — LO QUE DEJÓ, Y VALE MÁS QUE LA ENTREGA
+
+- **Dos cosas eran el nudo y las dos se retiraron.** `registerWalkInVisit` exigía `registro_simple`,
+  que **oculta el QR**, y los diecisiete conjuntos están en `qr_full`: con esa exclusividad **esto
+  no lo habría visto nadie**. Y creaba el pase en `inside`, avisando de un **hecho consumado**.
+- **La ficha decía que las reglas ganaban LECTURA para el residente. Ya la tenían** — el `read` usa
+  `residentOwnUnit` sin condición de creador. Lo que hacía falta era lo contrario: **endurecer el
+  check-in**, que es escritura **directa** del guardia. Sin eso, un pase pendiente entraría y la
+  autorización sería decorativa.
+- **Y ese endurecimiento no restringe nada vivo**, medido: los **142** pases de los dos ambientes no
+  llevan `authorizationStatus`, y su ausencia sigue significando «viene del QR». Por eso las reglas
+  pudieron ir primero — que es lo que la ficha decía, pero por otra razón.
+- **La caducidad no la escribe ningún cron:** se deriva del sello de tiempo al leer. Un `pendiente`
+  de hace una hora **es** `expirada` aunque nadie haya corrido nada.
+- **El medio lo determina QUIÉN resuelve, no lo que pida el cliente.** Un cliente que dijera «app»
+  siendo el guardia estaría fabricando la constancia, y hay una prueba que lo rechaza.
+- **Falsaciones:** quitar el medio enrojece dos · dejar pisar lo resuelto enrojece la carrera ·
+  **romper la caducidad enrojece CA5 Y EL ESPEJO**, porque solo se rompió una copia · dejar firmar
+  al administrador enrojece `CF5` · abrir la regla enrojece `CF4`. Todas revertidas por edición.
+- **Y el guardián del inventario de unidades cazó el módulo nuevo** en cuanto se escribió, sin que
+  nadie se lo pidiera.
 
 ### `ONB-002` — DESPLEGADO Y VISTO. LO QUE QUEDA ABIERTO
 

@@ -475,8 +475,18 @@ ejecutó en producción**: el padrón pasó de 24 a 18, cero huérfanos, y la de
 > **Y lo que sostiene el invariante no es la lista: es el barrido.** Antes de escribir nada, la
 > callable busca todo lo que apunta a esas personas y **aborta** si aparece algo no registrado.
 
-**QUEDA UNA PRD LISTA Y SIN CONSTRUIR:** `PRD-V-FLOW-005` (autorizar la visita que llega sin
-avisar). **Lo siguiente sigue siendo construir, no especificar.**
+**`PH-003` (`PRD-V-FLOW-005`, la visita que llega sin avisar) ESTÁ EN PRODUCCIÓN** (`a8e2243`), con
+`producto-visita-no-anunciada` **solo en `tenant-santa-maria`** — el único conjunto con push, y sin
+push la vía A nace inservible. **Con ella no queda ninguna PRD escrita sin construir.**
+
+> **Lo que le falta es MIRARLA, y ahí el límite es la sesión del navegador:** el portal de portería
+> pide rol de guardia y el del residente rol de residente, y **`CA4` —la carrera entre dos
+> residentes— pide dos dispositivos y dos personas**. No hay suite que lo sustituya.
+>
+> **Y lo que enseñó construirla:** `registerWalkInVisit` exigía `registro_simple`, que **oculta el
+> QR**, y los diecisiete conjuntos están en `qr_full` — con esa exclusividad **esto no lo habría
+> visto nadie**. La ficha además decía que las reglas ganaban LECTURA para el residente: **ya la
+> tenían**; lo que hacía falta era **endurecer el check-in**, que es escritura directa del guardia.
 
 **`UX-003` TIENE TRES ENTREGAS EN PRODUCCIÓN** (`6738571`, `5bc9d3f` y `cb6d457`, 28 ago 2026,
 un rollout cada una): el Panel de Control dejó de decir cosas que no se pueden comprobar —la
