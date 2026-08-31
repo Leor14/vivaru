@@ -225,6 +225,11 @@ Runbook: [`encender-la-ia.md`](encender-la-ia.md).
   que es lo que leen los informes. Rellenar los 220 no movería un solo número. Queda documentado en
   el tipo. Lo que sí queda: **30 cobros sin `concept`**, y para ellos «administración» es el valor
   por defecto documentado, no un fallback.
+- **DESPLEGADO en los dos ambientes** (`8544322`): 90 de 90 functions frescas por `updateTime` en
+  cada uno, y el front por procedencia del build. **Sin validar en pantalla, y hay que decir por
+  qué:** el cobro de parqueadero está en **`tenant-nogal-bogota`**, y ninguna de las dos sesiones
+  del navegador —el guardia y el administrador de Santa María— alcanza ese conjunto. Lo cubren las
+  pruebas y sus dos falsaciones. **Para verlo hace falta una sesión de administrador de El Nogal.**
 - **Pendiente de decisión tuya (escribe en producción):** corregir el `concept: "Parqueadero"` de
   los dos cobros sembrados. **Ya es inocuo** —la normalización lo resuelve bien—, pero deja el dato
   sin coincidir con el catálogo, y un ambiente nuevo nacería con la clave buena mientras los dos
