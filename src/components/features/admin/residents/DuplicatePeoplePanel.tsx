@@ -259,8 +259,9 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
                               </>
                             ) : (
                               <>
+                                {/* Con una sola, el número sobra: «La 1 referencia» no es español. */}
                                 {refs === 1 ? "La" : "Las"}{" "}
-                                <strong>{plural(refs, "referencia", "referencias")}</strong> que{" "}
+                                <strong>{refs === 1 ? "referencia" : `${refs} referencias`}</strong> que{" "}
                                 {refs === 1 ? "cuelga" : "cuelgan"} de {otros.length === 1 ? "él" : "ellos"} —paquetes
                                 y unidades— {refs === 1 ? "pasa" : "pasan"} a apuntar al que se conserva.
                               </>
