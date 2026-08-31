@@ -27,6 +27,16 @@ import type { PersonItem, UnitItem } from "@/features/admin/services";
  * fusionado es peor que uno duplicado, porque **el duplicado se ve y la fusión mala no**.
  */
 
+/**
+ * Concordancia de número. **Existe porque la pantalla decía «las 1 referencias»**, visto en
+ * producción — y dos líneas más arriba, «listado en 1 unidad(es)». El paréntesis es el atajo con
+ * el que se escriben los plurales cuando nadie mira el caso de uno, y aquí el caso de uno es el
+ * más frecuente: la mayoría de los registros duplicados cuelga de una sola cosa.
+ */
+function plural(n: number, singular: string, plural: string) {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
 type Props = {
   tenantId?: string;
   people: PersonItem[];
@@ -212,8 +222,8 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
                           </p>
                           <p className="mt-1 text-[var(--slate-500)]">
                             {suUnidad ? `Unidad ${suUnidad.displayName}` : "Sin unidad"}
-                            {enUnidades.length > 0 ? ` · listado en ${enUnidades.length} unidad(es)` : ""}
-                            {enPaquetes > 0 ? ` · ${enPaquetes} paquete(s)` : ""}
+                            {enUnidades.length > 0 ? ` · listado en ${plural(enUnidades.length, "unidad", "unidades")}` : ""}
+                            {enPaquetes > 0 ? ` · ${plural(enPaquetes, "paquete", "paquetes")}` : ""}
                             {persona.authUid ? " · tiene cuenta de acceso" : ""}
                           </p>
                         </div>
@@ -232,15 +242,32 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
                       <Users className="h-3.5 w-3.5" aria-hidden /> Al confirmar
                     </p>
                     <p className="mt-1">
-                      Se conserva <strong>{porId.get(survivorId)?.fullName ?? survivorId}</strong> con sus datos. Los
-                      otros {grupo.ids.length - 1} registros se archivan con tu motivo, y las{" "}
-                      <strong>
-                        {grupo.ids
-                          .filter((id) => id !== survivorId)
-                          .reduce((total, id) => total + referenciasDe(id).total, 0)}{" "}
-                        referencias
-                      </strong>{" "}
-                      que cuelgan de ellos —paquetes y unidades— pasan a apuntar al que se conserva.
+                      Se conserva <strong>{porId.get(survivorId)?.fullName ?? survivorId}</strong> con sus datos.{" "}
+                      {(() => {
+                        const otros = grupo.ids.filter((id) => id !== survivorId);
+                        const refs = otros.reduce((total, id) => total + referenciasDe(id).total, 0);
+                        return (
+                          <>
+                            {otros.length === 1
+                              ? "El otro registro se archiva"
+                              : `Los otros ${otros.length} registros se archivan`}{" "}
+                            con tu motivo.{" "}
+                            {refs === 0 ? (
+                              <>
+                                <strong>No hay nada que mover</strong>: no cuelga ninguna referencia de{" "}
+                                {otros.length === 1 ? "él" : "ellos"}.
+                              </>
+                            ) : (
+                              <>
+                                {refs === 1 ? "La" : "Las"}{" "}
+                                <strong>{plural(refs, "referencia", "referencias")}</strong> que{" "}
+                                {refs === 1 ? "cuelga" : "cuelgan"} de {otros.length === 1 ? "él" : "ellos"} —paquetes
+                                y unidades— {refs === 1 ? "pasa" : "pasan"} a apuntar al que se conserva.
+                              </>
+                            )}
+                          </>
+                        );
+                      })()}
                     </p>
                     {/* Lo que se PIERDE, que es la mitad que se olvida contar. */}
                     <p className="mt-1 text-[var(--slate-600)]">
