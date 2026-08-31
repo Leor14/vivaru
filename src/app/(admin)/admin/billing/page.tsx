@@ -136,6 +136,16 @@ function parseCsv(text: string) {
   });
 }
 
+/** «mar 2026». Para la VENTANA del indicador, no para el eje del gráfico: en una
+ *  frase, el «mar de 26» que da `Intl` con año de dos cifras se lee mal, y el
+ *  selector de rango de al lado ya escribe «1 mar 2026 — 30 jun 2026». */
+function formatPeriodScope(period: string) {
+  const date = new Date(`${period}-01T00:00:00`);
+  if (Number.isNaN(date.getTime())) return period;
+  const mes = new Intl.DateTimeFormat("es-CO", { month: "short" }).format(date).replace(".", "");
+  return `${mes} ${date.getFullYear()}`;
+}
+
 function formatPeriodLabel(period: string) {
   const date = new Date(`${period}-01T00:00:00`);
   if (Number.isNaN(date.getTime())) return period;
@@ -518,8 +528,8 @@ function AdminBillingPageContent() {
   // allí es un mes. Mismo nombre, dos preguntas — y hasta hoy ninguna de las dos se declaraba.
   const ventanaDeCartera = useMemo(() => {
     if (!fromPeriod || !toPeriod) return "Rango sin definir";
-    if (fromPeriod === toPeriod) return formatPeriodLabel(fromPeriod);
-    return `${formatPeriodLabel(fromPeriod)} – ${formatPeriodLabel(toPeriod)}`;
+    if (fromPeriod === toPeriod) return formatPeriodScope(fromPeriod);
+    return `${formatPeriodScope(fromPeriod)} – ${formatPeriodScope(toPeriod)}`;
   }, [fromPeriod, toPeriod]);
 
   const lecturaDeCartera = useMemo(
