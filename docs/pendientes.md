@@ -4,21 +4,84 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 31 de agosto de 2026 (los seis frentes, resueltos)
+## LO PRIMERO AL ABRIR SESIÓN — 31 de agosto de 2026 (cierre)
 
-> ### EL SIGUIENTE PASO, EN UNA FRASE
+> ### LO QUE PIDIÓ DAVID PARA ESTA SESIÓN
 >
-> ## ▸ ELEGIR BLOQUE. No queda trabajo pendiente que dependa del equipo
+> ## ▸ DOS FRENTES, Y LOS DOS SON DE AFINAR — no de construir de cero
 >
-> **Los seis frentes que se abrieron el 30 están resueltos.** Las tres PRD —`UX-004`, `ONB-002` y
-> `PH-003`— están **en producción y validadas con ojos**, más el frente de cobros por concepto, que
-> no llevaba PRD. **Cuatro cerrados de siete.**
+> **(a) Cerrar la prueba de portería de los accesos de visita.** `PH-003` está en producción y
+> validada a medias: falta que **el residente autorice desde su sesión** y la **carrera entre dos
+> residentes**.
 >
-> **Y de los tres frenos que quedan, NINGUNO es de código:** dos son de **dato** —la IA espera
-> tráfico y la visita repentina espera un residente con la app— y uno es una **decisión** tuya
-> (`UX-005`, prioridad). Eso convierte «qué construimos ahora» en una pregunta de negocio.
+> **(b) Explorar la IA de los formatos de unidad y residente.** Es `AI-ONB-001`. **Explorar, no
+> escribir la ficha**: la decisión de no escribirla sigue en pie mientras no haya corpus, y la
+> exploración es justamente para saber si esa premisa aguanta.
+>
+> **Los seis frentes del 30 están resueltos y no queda ninguna PRD escrita sin construir.** El
+> estado completo, con procedencia, en el reporte del 31:
+> <https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
 >
 > Sigue en pie: **una sola sesión que escriba a la vez.**
+
+### (a) CERRAR LA PRUEBA DE PORTERÍA — lo que hay que saber para arrancar
+
+**Lo que YA está validado en producción** (31 ago, con la sesión del guardia Luis Gutiérrez,
+`tenant-santa-maria`): los dos botones conviviendo, la vía A avisando, la caducidad derivándose
+sola a los cinco minutos, el rescate por llamada sin recapturar, la constancia de quién y por qué
+medio, «Entró» deshabilitado hasta autorizar, y el ciclo cerrado en «Finalizado». Sin regresión en
+el flujo de QR.
+
+**Lo que falta, y lo que cuesta cada cosa:**
+
+| Criterio | Qué hace falta | ¿Se puede hoy? |
+|---|---|---|
+| `CA3` · el residente autoriza | Una **sesión de residente** en el navegador | **Sí.** Los 9 residentes de Santa María tienen cuenta |
+| `CA10` · el residente ve la constancia | Va con `CA3` | Sí |
+| `CA4` · **dos residentes contestan a la vez** | Dos sesiones **de la misma unidad** | **NO. Ver abajo** |
+
+> **`CA4` NO se puede probar hoy, y conviene saberlo antes de intentarlo.** Medido el 31: las nueve
+> unidades de Santa María con residente tienen **exactamente uno cada una**. La carrera necesita
+> **dos residentes con cuenta en la MISMA unidad**, así que hay que crear esa segunda membresía
+> antes — es un paso previo, no parte de la prueba.
+
+**El par más cómodo para `CA3`:** unidad **`APARTAMENTO 201`**, residente **David Carmona**
+(`david.macar.18@gmail.com`, uid `YstMKXXDZhcQ…`). Es la unidad que ya se usó para la visita de
+prueba del 31, y su correo es el tuyo.
+
+**Y un dato que enmarca la prueba:** hay **0 `pushTokens`** en el conjunto, así que la petición
+**no llega al teléfono**: cae en la campana del portal. Para `CA3` da igual —el residente entra y
+autoriza—, pero **no se puede dar por probado el push** con eso.
+
+### (b) LA IA DE LOS FORMATOS — lo que hay que saber para explorarlo
+
+**No se arranca de cero, y esa es la primera cosa a no rediscutir.** La mitad que no necesita IA
+**ya está productiva**: es `PRD-V-FEAT-002`, el importador tabular. Hoy resuelve qué columna del
+archivo alimenta qué campo con **cuatro pistas, en este orden**: nombre exacto → contenido (solo
+donde el campo tiene vocabulario cerrado) → contención con el alias más largo ganando → variedad,
+como último recurso para el texto libre.
+
+**El enganche ya está previsto por escrito.** La cabecera de `src/lib/import/field-catalog.ts`
+declara sus tres consumidores y el tercero es, textual, «el mapeo asistido de `PRD-VAI-FEAT-001`».
+El catálogo declara los alias **por entidad y nunca los compara entre entidades**, porque `tipo`
+significaba «tipo de unidad» en un sitio y «rol de la persona» en otro.
+
+**Tres cosas medidas que la exploración tiene que mirar de frente:**
+
+- **La bandera `ai-onboarding-column-mapping` existe y NO GOBIERNA NADA**: cero consumidores en el
+  código. Encenderla es inerte, y ya se encendió una vez en staging sin efecto.
+- **Cero archivos de corpus.** `importJobs` en 0, `paymentReceipts` con `fileUrl` vacío en los cinco.
+  Sin archivos reales **no hay con qué medir si el modelo acierta ni con qué estimar coste**, que es
+  la razón escrita de no haber redactado la ficha.
+- **La decisión de David del 30 sigue viva:** «cualquier formato» **incluye PDF y fotos**, contra lo
+  que argumentaba `docs/hoja-de-ruta-ia.md`. Al escribir la ficha hay que **reescribir ese alcance,
+  no copiarlo**.
+
+> **La pregunta que ordena la exploración, y sale de `ONB-002`:** allí la regla determinística
+> encontró **los trece duplicados**, y la IA solo tenía sitio en la cola larga — pero **eso solo se
+> pudo afirmar porque existía el suelo contra el que medir**. Aquí es igual: **la pregunta no es
+> «¿qué haría la IA?» sino «¿qué falla hoy el mapeador determinístico?»**. Sin esa respuesta,
+> cualquier ficha se escribe sobre un supuesto.
 
 ### DÓNDE QUEDÓ CADA FRENTE
 
