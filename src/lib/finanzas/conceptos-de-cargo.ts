@@ -91,9 +91,23 @@ export const CODIGO_POR_CONCEPTO: Record<BillingConcept, string> = {
  * es el valor por defecto del propio campo: tratarlo como desconocido movería de
  * cuenta a la mayoría de los cargos que existen hoy.
  */
+/**
+ * **Normaliza la clave de un concepto antes de buscarla.** Espejo de `normalizarConcepto` de
+ * `functions/src/plan-de-cuentas.ts`.
+ *
+ * Existe por un dato real de los DOS ambientes: un cobro de parqueadero de $80.000 lleva
+ * `concept: "Parqueadero"` —la ETIQUETA donde va la CLAVE— y el catálogo la tiene como
+ * `parqueadero`. **Falla por una letra**, y con eso el cargo se leía como «Mantenimiento y
+ * Administración» y su asiento caía en «otros ingresos» en vez de en «Parqueaderos».
+ */
+export function normalizarConcepto(concepto: string | undefined | null): string {
+  return String(concepto ?? "").trim().toLowerCase();
+}
+
 export function codigoDeConcepto(concepto: string | undefined | null): string {
-  if (!concepto) return CODIGO_POR_CONCEPTO.administracion;
-  return CODIGO_POR_CONCEPTO[concepto as BillingConcept] ?? CUENTA_OTROS_INGRESOS;
+  const clave = normalizarConcepto(concepto);
+  if (!clave) return CODIGO_POR_CONCEPTO.administracion;
+  return CODIGO_POR_CONCEPTO[clave as BillingConcept] ?? CUENTA_OTROS_INGRESOS;
 }
 
 /**

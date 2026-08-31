@@ -210,14 +210,25 @@ Runbook: [`encender-la-ia.md`](encender-la-ia.md).
   el 31 ago— · el rojo del emulador · la reconstrucción del facturado
   de Cartera **sin anticipo** (latente: 27 cobros usan el fallback, **0 con anticipo**). **El del
   panel demo muerto está HECHO** (`9a773cb`).
-- **Las dos tareas del frente de cobros por concepto, remedidas el 30 por la noche:**
-  `billingConceptLabel` cae **en silencio** a «Mantenimiento y Administración» ante una clave que no
-  esté en el catálogo — y el caso real es **más fino de lo que decía esta línea**: el catálogo **sí
-  tiene `parqueadero`**, y el cobro de producción lleva `concept: "Parqueadero"` **con mayúscula**,
-  así que falla por una letra y un parqueadero de $80.000 se lee como administración
-  (`bill-t1301-parking-2026-05-co`, El Nogal, T1-301, mayo 2026). Y la auditoría de datos: **30 de
-  221 cobros sin `concept`** ✅, pero **220 de 221 sin `accountCode`, no 4** — esta línea decía 4 y
-  el campo existe en **un solo documento** de toda la producción.
+- **El frente de cobros por concepto está HECHO** (31 ago). `billingConceptLabel` **dejó de mentir
+  en silencio**: buscaba la clave cruda y caía a «Mantenimiento y Administración» ante cualquier
+  valor desconocido, y en producción había un parqueadero de **$80.000** con `concept:
+  "Parqueadero"` —la etiqueta donde va la clave— que lo disparaba. **Fallaba por una letra, y en
+  TRES sitios a la vez**: el rótulo, la cuenta del asiento y la categoría. La asimetría es lo que
+  lo hizo durar: **el lado del dinero avisaba** (R8 dispara el aviso al caer por defecto) **y el de
+  la pantalla mentía en silencio**. Arreglado normalizando la clave en los dos espejos, y ahora una
+  clave desconocida **se enseña tal cual** en vez de disfrazarse. Corregida también la semilla
+  `seed-data-co.mjs`, que era la fuente del dato malo en los DOS ambientes.
+- **Y la auditoría de datos cambió de conclusión al medirla:** «220 de 221 cobros sin
+  `accountCode`» **no es una deuda**. Ese campo **no lo lee nadie** —cero lectores, medido—: al
+  cobrar, `aplicarPago` **vuelve a resolver la cuenta desde `concept`** y la escribe en el asiento,
+  que es lo que leen los informes. Rellenar los 220 no movería un solo número. Queda documentado en
+  el tipo. Lo que sí queda: **30 cobros sin `concept`**, y para ellos «administración» es el valor
+  por defecto documentado, no un fallback.
+- **Pendiente de decisión tuya (escribe en producción):** corregir el `concept: "Parqueadero"` de
+  los dos cobros sembrados. **Ya es inocuo** —la normalización lo resuelve bien—, pero deja el dato
+  sin coincidir con el catálogo, y un ambiente nuevo nacería con la clave buena mientras los dos
+  viejos conservan la mala.
 - **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
   puerta del alta · si se abre el canal de correo.
 - **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de

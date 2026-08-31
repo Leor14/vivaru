@@ -1,4 +1,5 @@
 import { descripcionDeCobro } from "./plan-de-cuentas";
+import { normalizarConcepto } from "./plan-de-cuentas";
 
 /**
  * `PRD-V-FLOW-002` §9 y **CA13** — el aviso del recibo dice **qué cubrió** el
@@ -74,7 +75,10 @@ const ARTICULO: Record<string, string> = {
  * «alícuota», así que su artículo es «la» en los tres.
  */
 export function nombreDelCargo(cargo: CargoCubierto, terminoCuota: string): string {
-  const esOrdinaria = !cargo.concept || cargo.concept === "administracion";
+  // **Se compara la clave NORMALIZADA.** Con la comparación cruda, un `concept` que solo difiera
+  // en mayúsculas —como el `"Parqueadero"` que sembró `seed-data-co.mjs` en los dos ambientes—
+  // se clasifica al revés, y el recibo describe el cargo como lo que no es.
+  const esOrdinaria = !cargo.concept || normalizarConcepto(cargo.concept) === "administracion";
   const base = esOrdinaria ? terminoCuota : descripcionDeCobro(cargo.concept);
   const articulo = esOrdinaria ? "la" : ARTICULO[cargo.concept as string] ?? ARTICULO.otro;
   const periodo = periodoLegible(cargo.period);

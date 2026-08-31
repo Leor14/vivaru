@@ -393,7 +393,19 @@ export interface BillingStatement {
   period: string;
   /** Concepto del cobro (default: administración). */
   concept?: BillingConcept;
-  /** Cuenta del plan resuelta desde `concept` al generar (`PRD-V-PLAT-003` §7.2). */
+  /**
+   * Cuenta del plan resuelta desde `concept` al generar (`PRD-V-PLAT-003` §7.2).
+   *
+   * **NO LO LEE NADIE, y conviene saberlo antes de apoyarse en él** (medido el 31 de agosto de
+   * 2026: cero lectores en `src/` y en `functions/`). Cuando se cobra, `aplicarPago` **vuelve a
+   * resolver la cuenta desde `concept`** con `cuentaParaConcepto(doc.concept)` y escribe el
+   * resultado en el ASIENTO, que es lo que leen los informes. Este campo es una copia que se
+   * escribe y no se consulta.
+   *
+   * Por eso **«220 de 221 cobros de producción no lo tienen» no es una deuda de datos**: es un
+   * campo opcional que solo llevan los cargos creados después de que existiera el código. Rellenar
+   * los 220 no cambiaría un solo número de ningún informe.
+   */
   accountCode?: string;
   /** Liga el cobro a una campaña (lote). null/ausente = cobro individual. */
   campaignId?: string | null;

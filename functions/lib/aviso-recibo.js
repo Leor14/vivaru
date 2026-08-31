@@ -5,6 +5,7 @@ exports.nombreDelCargo = nombreDelCargo;
 exports.enumerar = enumerar;
 exports.frasesDelRecibo = frasesDelRecibo;
 const plan_de_cuentas_1 = require("./plan-de-cuentas");
+const plan_de_cuentas_2 = require("./plan-de-cuentas");
 /** `"2026-06"` → `"junio 2026"`. Devuelve `""` si no hay período legible. */
 function periodoLegible(period) {
     if (!period)
@@ -47,7 +48,10 @@ const ARTICULO = {
  * «alícuota», así que su artículo es «la» en los tres.
  */
 function nombreDelCargo(cargo, terminoCuota) {
-    const esOrdinaria = !cargo.concept || cargo.concept === "administracion";
+    // **Se compara la clave NORMALIZADA.** Con la comparación cruda, un `concept` que solo difiera
+    // en mayúsculas —como el `"Parqueadero"` que sembró `seed-data-co.mjs` en los dos ambientes—
+    // se clasifica al revés, y el recibo describe el cargo como lo que no es.
+    const esOrdinaria = !cargo.concept || (0, plan_de_cuentas_2.normalizarConcepto)(cargo.concept) === "administracion";
     const base = esOrdinaria ? terminoCuota : (0, plan_de_cuentas_1.descripcionDeCobro)(cargo.concept);
     const articulo = esOrdinaria ? "la" : ARTICULO[cargo.concept] ?? ARTICULO.otro;
     const periodo = periodoLegible(cargo.period);

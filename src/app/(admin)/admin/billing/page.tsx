@@ -1,6 +1,7 @@
 "use client";
 
 import { ModulePreviewGate } from "@/components/shared/module-preview-gate";
+import { normalizarConcepto } from "@/lib/finanzas/conceptos-de-cargo";
 import { Tabs } from "@/components/ui/tabs";
 import { useTabParam } from "@/lib/navigation/use-tab-param";
 import {
@@ -614,7 +615,10 @@ function AdminBillingPageContent() {
       return { c, emitido, recaudado, liquidado, pendiente, pendientesUnitIds, pendientesStatementIds, unitCount, paidCount, reminders, pct };
     });
     // Mantenimiento (administración) primero; dentro, el orden por sentAt desc del hook.
-    return rows.sort((a, b) => (a.c.concept === "administracion" ? 0 : 1) - (b.c.concept === "administracion" ? 0 : 1));
+    // Clave normalizada, por lo mismo que en el recibo: una diferencia de mayúsculas ordenaba
+    // un cargo de administración como si no lo fuera.
+    const esAdmin = (c?: string) => normalizarConcepto(c) === "administracion";
+    return rows.sort((a, b) => (esAdmin(a.c.concept) ? 0 : 1) - (esAdmin(b.c.concept) ? 0 : 1));
   }, [campaigns, items]);
 
   // Agregado por período para el cierre/archivado (C4a). Usa el set completo.

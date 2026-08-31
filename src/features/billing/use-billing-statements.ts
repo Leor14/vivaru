@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { normalizarConcepto } from "@/lib/finanzas/conceptos-de-cargo";
 import { doc, increment, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
 
 import { db } from "@/lib/firebase/client";
@@ -20,8 +21,30 @@ export const BILLING_CONCEPTS: { value: BillingConcept; label: string }[] = [
   { value: "otro", label: "Otro" },
 ];
 
+/**
+ * El rótulo de un concepto de cobro.
+ *
+ * **Antes caía EN SILENCIO a «Mantenimiento y Administración» ante cualquier clave desconocida**, y
+ * en producción hay un cobro de parqueadero de $80.000 que lo disparaba: lleva
+ * `concept: "Parqueadero"` —la etiqueta donde va la clave— y el catálogo la tiene como
+ * `parqueadero`. **Fallaba por una letra**, y la pantalla afirmaba que un parqueadero era
+ * administración. Un fallo que se disimula a sí mismo dura años: es el mismo modo en que diez
+ * estados llegaron a acumularse sin traducir.
+ *
+ * Dos cambios, y los dos importan:
+ *
+ * 1. **Se busca con la clave normalizada**, así que «Parqueadero» encuentra su etiqueta de verdad.
+ * 2. **Un concepto presente pero desconocido YA NO se disfraza de administración: se enseña tal
+ *    cual.** Es lo que ya hace `getTicketTypeLabel` con los tipos de PQRS — feo a propósito, para
+ *    que se vea y se corrija en vez de quedarse escondido durante meses.
+ *
+ * **Un cobro SIN concepto sigue siendo administración**, y eso no es una excepción: es el valor por
+ * defecto documentado del campo, y hoy lo son 30 de los 221 cobros de producción.
+ */
 export function billingConceptLabel(concept?: string): string {
-  return BILLING_CONCEPTS.find((c) => c.value === concept)?.label ?? "Mantenimiento y Administración";
+  const clave = normalizarConcepto(concept);
+  if (!clave) return "Mantenimiento y Administración";
+  return BILLING_CONCEPTS.find((c) => c.value === clave)?.label ?? concept!.trim();
 }
 
 export function useBillingStatements(tenantId?: string, unitId?: string) {

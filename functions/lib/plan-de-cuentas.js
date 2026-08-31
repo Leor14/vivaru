@@ -40,6 +40,7 @@ exports.CUENTA_OTROS_EGRESOS = exports.CUENTA_POR_CONCEPTO = exports.CUENTA_ANTI
 exports.validarCodigoDeCuenta = validarCodigoDeCuenta;
 exports.codigoPadreDe = codigoPadreDe;
 exports.docIdDeCuenta = docIdDeCuenta;
+exports.normalizarConcepto = normalizarConcepto;
 exports.cuentaParaConcepto = cuentaParaConcepto;
 exports.cuentaPorSystemKey = cuentaPorSystemKey;
 exports.cuentaPorCodigo = cuentaPorCodigo;
@@ -192,10 +193,26 @@ exports.CUENTA_POR_CONCEPTO = {
  * así que tratarlo como desconocido y mandarlo a `otros_ingresos` movería de
  * cuenta a la mayoría de los cargos que existen hoy.
  */
+/**
+ * **Normaliza la clave de un concepto antes de buscarla en el catálogo.**
+ *
+ * Existe por un dato real de los DOS ambientes: un cobro de parqueadero de $80.000 lleva
+ * `concept: "Parqueadero"` —la ETIQUETA donde va la CLAVE, escrito así por `seed-data-co.mjs`— y
+ * el catálogo la tiene como `parqueadero`. **Falla por una letra**, y falla en tres sitios a la
+ * vez: la cuenta, la categoría y el rótulo de la pantalla.
+ *
+ * Es el mismo criterio que ya usa `getTicketTypeLabel` con los tipos de PQRS: comparar contra el
+ * catálogo tolerando mayúsculas y espacios. **No es clasificar por la forma del valor** —eso ya
+ * costó dos migraciones—: el catálogo sigue mandando, solo se le llega con la clave limpia.
+ */
+function normalizarConcepto(concepto) {
+    return String(concepto ?? "").trim().toLowerCase();
+}
 function cuentaParaConcepto(concepto) {
-    if (!concepto)
+    const clave = normalizarConcepto(concepto);
+    if (!clave)
         return { code: exports.CUENTA_POR_CONCEPTO.administracion, porDefecto: false };
-    const code = exports.CUENTA_POR_CONCEPTO[concepto];
+    const code = exports.CUENTA_POR_CONCEPTO[clave];
     if (!code)
         return { code: exports.CUENTA_OTROS_INGRESOS, porDefecto: true };
     return { code, porDefecto: false };

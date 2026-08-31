@@ -7,6 +7,7 @@ import {
   CATEGORIA_POR_CONCEPTO,
   CODIGO_POR_CATEGORIA_DE_EGRESO,
   CODIGO_POR_CONCEPTO,
+  CUENTA_OTROS_INGRESOS,
   categoriaDeConcepto,
   codigoDeCategoriaDeEgreso,
   codigoDeConcepto,
@@ -122,6 +123,42 @@ describe("el espejo de src/ no puede divergir de functions/", () => {
   it("un cargo sin concepto es cuota de administración, que es el default del campo", () => {
     expect(categoriaDeConcepto(undefined)).toBe("alicuota");
     expect(categoriaDeConcepto(null)).toBe("alicuota");
+  });
+
+  /**
+   * **El defecto del frente 5, y no era hipotético: estaba en los DOS ambientes.**
+   *
+   * Un cobro de parqueadero de $80.000 lleva `concept: "Parqueadero"` —la ETIQUETA donde va la
+   * CLAVE, escrito así por `seed-data-co.mjs`— y el catálogo la tiene como `parqueadero`. Fallaba
+   * por una letra, **y fallaba en tres sitios a la vez**: el rótulo de la pantalla decía
+   * «Mantenimiento y Administración», y el asiento del cobro caía en «otros ingresos» en vez de en
+   * «Parqueaderos».
+   *
+   * La asimetría es lo que lo hizo durar: **el lado del dinero avisaba** (`porDefecto: true`
+   * dispara el aviso de R8) **y el de la pantalla mentía en silencio**.
+   */
+  describe("una clave con mayúsculas encuentra su cuenta (el caso de producción)", () => {
+    it("«Parqueadero» resuelve a Parqueaderos, no a otros ingresos", () => {
+      expect(codigoDeConcepto("Parqueadero")).toBe(CODIGO_POR_CONCEPTO.parqueadero);
+      expect(codigoDeConcepto("Parqueadero")).not.toBe(CUENTA_OTROS_INGRESOS);
+    });
+
+    it("y con espacios alrededor, igual", () => {
+      expect(codigoDeConcepto("  MULTA  ")).toBe(CODIGO_POR_CONCEPTO.multa);
+    });
+
+    it("los dos lados normalizan igual, o uno cobraría a una cuenta distinta del otro", () => {
+      const fuente = leerFuente();
+      expect(fuente).toContain("export function normalizarConcepto");
+      // La misma expresión en los dos ficheros: `trim().toLowerCase()`.
+      const norm = /normalizarConcepto[\s\S]{0,220}?trim\(\)\.toLowerCase\(\)/;
+      expect(fuente, "el servidor no normaliza como el cliente").toMatch(norm);
+      expect(fs.readFileSync("src/lib/finanzas/conceptos-de-cargo.ts", "utf8")).toMatch(norm);
+    });
+
+    it("pero una clave que NO existe sigue cayendo en otros ingresos, no se inventa", () => {
+      expect(codigoDeConcepto("Cuota de piscina")).toBe(CUENTA_OTROS_INGRESOS);
+    });
   });
 
   it("un concepto desconocido cae en otros ingresos, nunca se pierde", () => {

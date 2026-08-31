@@ -202,8 +202,12 @@ export const BILLING_CO = [
   { id: "bill-t2204-2026-05-co", unitId: "nogal-t2-204", unitLabel: "T2-204", period: "2026-05", amount: 430000, balance: 430000, status: "pending", dueDate: "2026-05-15" },
   { id: "bill-t1101-2026-05-co", unitId: "nogal-t1-101", unitLabel: "T1-101", period: "2026-05", amount: 350000, balance: 350000, status: "pending", dueDate: "2026-05-15" },
   { id: "bill-t2101-2026-05-co", unitId: "t2-101", unitLabel: "T2-101", period: "2026-05", amount: 350000, balance: 0,      status: "paid",    dueDate: "2026-05-15" },
-  // Parqueadero T1-301
-  { id: "bill-t1301-parking-2026-05-co", unitId: "t1-301", unitLabel: "T1-301", period: "2026-05", amount: 80000, balance: 80000, status: "pending", dueDate: "2026-05-15", concept: "Parqueadero" },
+  // Parqueadero T1-301.
+  // **`concept` es una CLAVE del catálogo, no una etiqueta.** Esta línea decía `"Parqueadero"` con
+  // mayúscula —el rótulo— y el catálogo la tiene como `parqueadero`: el cargo se leía como
+  // «Mantenimiento y Administración» en pantalla y su asiento caía en «otros ingresos» en vez de
+  // en «Parqueaderos». Sembró el mismo dato malo en los DOS ambientes.
+  { id: "bill-t1301-parking-2026-05-co", unitId: "t1-301", unitLabel: "T1-301", period: "2026-05", amount: 80000, balance: 80000, status: "pending", dueDate: "2026-05-15", concept: "parqueadero" },
 ];
 
 // PQRS: radicationDate calculated at seed time via offsetDays
