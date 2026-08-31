@@ -78,6 +78,21 @@ prueba del 31, y su correo es el tuyo.
 **no llega al teléfono**: cae en la campana del portal. Para `CA3` da igual —el residente entra y
 autoriza—, pero **no se puede dar por probado el push** con eso.
 
+**Y mirar esa pantalla dejó un defecto CORREGIDO: «Visita a: Luis Gutiérrez», el nombre del
+GUARDIA** (`d77a559`). `normalizeVisitorPass` resolvía el anfitrión cayendo a `createdByName`, y en
+una visita de portería el creador es el guardia: con «Sin especificar» la tarjeta afirmaba que la
+visita era a él. **Es la familia de `billingConceptLabel` — un dato ausente disfrazado de dato
+falso**, y se vio en producción con dos pases reales (Ana Gómez y Pedro Prueba).
+
+> **La escritura NO mentía**: `registrarVisitaNoAnunciada` guarda el campo **vacío**, que es lo
+> correcto. El único que inventaba era el normalizador de **lectura**, y por eso no lo veía nadie
+> aguas arriba. **El gemelo que ya lo hacía bien estaba a un fichero de distancia**: el detalle del
+> admin (`admin/visitors/page.tsx:678`) enseña `"-"` sin inventar; el panel cae a «Residente», que
+> tampoco miente. Prueba: `tests/anfitrion-visita-de-porteria.test.ts`, **cinco casos y dos
+> falsaciones que caen en pruebas distintas** —reponer el fallback viejo enrojece las dos de
+> portería; quitar `createdByName` del todo enrojece solo la del residente que se invita a sí
+> mismo—, revertidas por edición.
+
 ### (b) LA IA DE LOS FORMATOS — lo que hay que saber para explorarlo
 
 **No se arranca de cero, y esa es la primera cosa a no rediscutir.** La mitad que no necesita IA
