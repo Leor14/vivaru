@@ -92,6 +92,8 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "producto-notificaciones-push": false,
     // Apagada = no se ve la pantalla. El servidor NO la comprueba: ver el catálogo en `src/`.
     "producto-padron-sin-duplicados": false,
+    // Apagada = portería no captura visitas no anunciadas. Ver el catálogo en `src/`.
+    "producto-visita-no-anunciada": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */

@@ -286,6 +286,36 @@ beforeAll(async () => {
       createdBy: "resident-1",
     });
 
+    // `PRD-V-FLOW-005` — pases capturados por PORTERÍA. Lo que los distingue del flujo de QR es
+    // llevar `authorizationStatus`; su ausencia significa «es del QR».
+    for (const [id, estado] of [
+      ["vis-porteria-pendiente", "pendiente"],
+      ["vis-porteria-autorizada", "autorizada"],
+      ["vis-porteria-rechazada", "rechazada"],
+    ] as const) {
+      await setDoc(doc(db, "visitorPasses", id), {
+        tenantId: "tenant-a",
+        unitId: "unit-t2-503",
+        unitLabel: "T2-503",
+        visitorName: "Ana Gómez",
+        documentNumber: "1020304050",
+        qrCodeValue: "",
+        hostResidentName: "Residente Demo",
+        tower: "T2",
+        unit: "503",
+        date: "2026-03-21",
+        scheduledTime: "10:00",
+        status: "scheduled",
+        checkInAt: null,
+        checkOutAt: null,
+        registeredByGuard: true,
+        origen: "porteria",
+        authorizationStatus: estado,
+        // Lo crea el GUARDIA, no el residente: es la razón dura de que resolver sea una callable.
+        createdBy: "guard-1",
+      });
+    }
+
     await setDoc(doc(db, "visitorPasses", "vis-guard-checkout"), {
       tenantId: "tenant-a",
       unitId: "unit-t2-503",
@@ -1214,6 +1244,86 @@ describe("Firestore Rules - HOGARU", () => {
         checkInAt: "2026-03-21T09:32:00.000Z",
       }),
     );
+  });
+
+  /**
+   * `PRD-V-FLOW-005` R1 y CF4 — **a `inside` solo se llega desde `autorizada`**.
+   *
+   * El registro de ingreso es escritura DIRECTA del guardia, así que esta regla es la única
+   * puerta: sin ella, un pase capturado en portería podría entrar estando `pendiente` y la
+   * autorización sería decorativa. **Y la callable no cubre este camino**, porque el check-in no
+   * pasa por ninguna.
+   */
+  describe("visita de portería · solo entra la autorizada", () => {
+    it("una AUTORIZADA entra, como cualquier otra", async () => {
+      const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+      await assertSucceeds(
+        updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-autorizada"), {
+          status: "inside",
+          checkInAt: "2026-03-21T10:05:00.000Z",
+        }),
+      );
+    });
+
+    it("CF4 — una PENDIENTE no entra", async () => {
+      const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+      await assertFails(
+        updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-pendiente"), {
+          status: "inside",
+          checkInAt: "2026-03-21T10:05:00.000Z",
+        }),
+      );
+    });
+
+    it("y una RECHAZADA tampoco", async () => {
+      const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+      await assertFails(
+        updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-rechazada"), {
+          status: "inside",
+          checkInAt: "2026-03-21T10:05:00.000Z",
+        }),
+      );
+    });
+
+    /**
+     * **La condición que hace que las reglas puedan desplegarse primero.** Los 142 pases de los
+     * dos ambientes no llevan `authorizationStatus`, así que su ausencia tiene que seguir
+     * significando «entra como siempre». Si esta prueba se cae, el despliegue restringe algo vivo.
+     */
+    it("un pase del flujo de QR, SIN el campo, entra igual que antes", async () => {
+      const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+      await assertSucceeds(
+        updateDoc(doc(guard.firestore(), "visitorPasses", "vis-guard-checkin"), {
+          status: "inside",
+          checkInAt: "2026-03-21T09:32:00.000Z",
+        }),
+      );
+    });
+
+    /**
+     * `CF2` — **la regla y la callable son dos puertas, y hay que probar las dos.** El residente
+     * lee el pase de su unidad (ya lo permitía la regla de lectura, sin cambios), pero **no puede
+     * escribir el estado**: no lo creó él, y los campos de autorización son de servidor.
+     */
+    it("CF2 — el residente NO escribe `authorizationStatus` desde el cliente", async () => {
+      const resident = testEnv.authenticatedContext("resident-1", { role: "resident", tenantId: "tenant-a" });
+      await assertSucceeds(getDoc(doc(resident.firestore(), "visitorPasses", "vis-porteria-pendiente")));
+      await assertFails(
+        updateDoc(doc(resident.firestore(), "visitorPasses", "vis-porteria-pendiente"), {
+          authorizationStatus: "autorizada",
+        }),
+      );
+    });
+
+    it("ni el guardia, que es quien lo creó", async () => {
+      const guard = testEnv.authenticatedContext("guard-1", { role: "security_guard", tenantId: "tenant-a" });
+      await assertFails(
+        updateDoc(doc(guard.firestore(), "visitorPasses", "vis-porteria-pendiente"), {
+          authorizationStatus: "autorizada",
+          authorizationMedium: "llamada",
+        }),
+      );
+    });
   });
 
   it("permite al guarda marcar salida (inside -> completed)", async () => {

@@ -20,6 +20,9 @@ import {
   useVisitorPasses,
 } from "@/features/visitors/use-visitor-passes";
 import { usePackageDirectory } from "@/features/security-guard/use-package-directory";
+import { estadoDeAutorizacion, segundosRestantes } from "@/features/visitors/autorizacion";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
+import { resolveVisitAuthorizationCallable } from "@/lib/firebase/callables";
 import { getModuleVariant } from "@/lib/config/module-variants";
 import { doc, onSnapshot } from "firebase/firestore";
 import {
@@ -180,7 +183,16 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
   }, [tenantId]);
 
   // Directorio de unidades (solo se usa en modo registro simple para elegir la unidad anfitriona).
-  const { units: directoryUnits, residentsByUnitId } = usePackageDirectory(isSimpleMode ? tenantId : undefined);
+  /**
+   * `PRD-V-FLOW-005` R8 — **la visita no anunciada CONVIVE con el QR.** El directorio se pedía
+   * solo en modo simple, que es excluyente con el QR: por eso esto no lo veía nadie.
+   */
+  const visitaNoAnunciada = useFeatureFlag("producto-visita-no-anunciada");
+  const puedeCapturar = isSimpleMode || visitaNoAnunciada;
+  const { units: directoryUnits, residentsByUnitId } = usePackageDirectory(puedeCapturar ? tenantId : undefined);
+  // La vía elegida al capturar. `app` pregunta al residente; `llamada` la autoriza el guardia.
+  const [regVia, setRegVia] = useState<"app" | "llamada">("app");
+  const [resolviendoId, setResolviendoId] = useState<string | null>(null);
 
   const [registerOpen, setRegisterOpen] = useState(false);
   const [savingRegister, setSavingRegister] = useState(false);
@@ -196,6 +208,53 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
     setRegHost("");
     setRegisterOpen(true);
   }
+
+  /**
+   * **El reloj como estado, no `Date.now()` dentro del render.** Es lo mismo que ya hacía el
+   * widget de antigüedad de PQRS, y por dos motivos que apuntan al mismo sitio: llamar una
+   * función impura al pintar es lo que marca la regla de lint, y la cuenta atrás quedaría
+   * **congelada** hasta que cambiara algún pase.
+   */
+  const [ahoraMs, setAhoraMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setAhoraMs(Date.now()), 10_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  /** `R1`/`CA8`: la pantalla dice lo mismo que la regla, para no ofrecer un botón que fallará. */
+  function puedeEntrarItem(item: { authorizationStatus?: string; authorizationRequestedAt?: string }) {
+    const estado = estadoDeAutorizacion(
+      item.authorizationStatus,
+      item.authorizationRequestedAt ? Date.parse(item.authorizationRequestedAt) : null,
+      ahoraMs,
+    );
+    return estado === null || estado === "autorizada";
+  }
+
+  async function handleAutorizarPorLlamada(item: { id: string }) {
+    if (!tenantId || resolviendoId) return;
+    setResolviendoId(item.id);
+    try {
+      const res = await resolveVisitAuthorizationCallable({
+        tenantId,
+        visitorPassId: item.id,
+        decision: "autorizar",
+      });
+      // **`aplicada: false` NO es un fallo**: el residente contestó primero.
+      toast.success(res.aplicada ? "Autorizada por llamada." : `${res.resueltaPor} ya la había resuelto.`);
+    } catch (e) {
+      toastFirebaseError(e);
+    } finally {
+      setResolviendoId(null);
+    }
+  }
+
+  /** `R7`/`CA11`: sin residentes con acceso no hay a quién preguntar, y la vía A se apaga. */
+  const sinResidentes = Boolean(regUnitId) && (residentsByUnitId.get(regUnitId)?.length ?? 0) === 0;
+
+  useEffect(() => {
+    if (sinResidentes && regVia === "app") setRegVia("llamada");
+  }, [sinResidentes, regVia]);
 
   async function handleRegisterWalkIn() {
     if (!tenantId || savingRegister) return;
@@ -217,8 +276,13 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
         visitorName: regVisitorName.trim(),
         documentNumber: regDocument.trim(),
         hostResidentName: regHost.trim() || undefined,
+        via: regVia,
       });
-      toast.success("Visita registrada. Se notificó al residente.");
+      toast.success(
+        regVia === "app"
+          ? "Le preguntamos al residente. Tiene cinco minutos para contestar."
+          : "Visita autorizada por llamada. Queda constancia de que fuiste tú.",
+      );
       setRegisterOpen(false);
     } catch (registerError) {
       toastFirebaseError(registerError);
@@ -593,12 +657,62 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
   }, [selectedVisitor]);
 
   const renderActions = (item: VisitorCardItem, opts?: { hideDetail?: boolean }) => (
+    <>
+    {/* `PRD-V-FLOW-005` — la constancia, delante y no en un detalle. Un pase del flujo de QR no
+        tiene autorización y no enseña nada de esto. */}
+    {(() => {
+      const autorizacion = estadoDeAutorizacion(
+        item.authorizationStatus,
+        item.authorizationRequestedAt ? Date.parse(item.authorizationRequestedAt) : null,
+        ahoraMs,
+      );
+      if (!autorizacion) return null;
+      if (autorizacion === "autorizada") {
+        return (
+          <p className="mb-2 text-xs text-[var(--slate-600)]">
+            Autorizada por <span className="font-medium text-[var(--slate-900)]">{item.authorizedByName || "—"}</span>
+            {item.authorizationMedium === "llamada" ? " (por llamada)" : " (desde la app)"}
+          </p>
+        );
+      }
+      if (autorizacion === "rechazada") {
+        return (
+          <p className="mb-2 text-xs font-medium text-[var(--danger-700)]">
+            Rechazada por {item.authorizedByName || "el residente"}. No puede entrar.
+          </p>
+        );
+      }
+      const restan = segundosRestantes(
+        item.authorizationRequestedAt ? Date.parse(item.authorizationRequestedAt) : null,
+        ahoraMs,
+      );
+      return (
+        <div className="mb-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2">
+          <p className="text-xs font-medium text-amber-900">
+            {autorizacion === "pendiente"
+              ? `Esperando al residente · ${Math.floor(restan / 60)}:${String(restan % 60).padStart(2, "0")}`
+              : "Nadie contestó en cinco minutos."}
+          </p>
+          {/* `CA6` y `R4`: la vía B está disponible SIEMPRE, no solo cuando expira — y rescata
+              sin volver a teclear los datos con el visitante delante. */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-2 w-full"
+            disabled={resolviendoId === item.id}
+            onClick={() => void handleAutorizarPorLlamada(item)}
+          >
+            {resolviendoId === item.id ? "Guardando..." : "Llamé y me dijeron que sí"}
+          </Button>
+        </div>
+      );
+    })()}
     <div className={`grid gap-2 grid-cols-2 ${opts?.hideDetail ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>
       <Button
         size="sm"
         className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
         onClick={() => void handleCheckIn(item)}
-        disabled={updatingId === item.id || item.operationalStatus !== "scheduled"}
+        disabled={updatingId === item.id || item.operationalStatus !== "scheduled" || !puedeEntrarItem(item)}
       >
         {updatingId === item.id && item.status === "scheduled" ? "Guardando..." : "Entró"}
       </Button>
@@ -619,6 +733,7 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
         📝 Nota
       </Button>
     </div>
+    </>
   );
 
   return (
@@ -633,15 +748,24 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                 : "Operación en tiempo real para validar identidad y registrar ingreso/salida sin friccion."}
             </CardDescription>
           </div>
-          {isSimpleMode ? (
-            <Button className="w-full sm:w-auto" onClick={openRegister}>
-              Registrar visita
-            </Button>
-          ) : (
-            <Button className="w-full sm:w-auto" onClick={openScanner}>
-              Escanear QR
-            </Button>
-          )}
+          {/* **Los dos botones a la vez cuando hay QR y la bandera está encendida**: la visita
+              no anunciada ocurre en todos los conjuntos, tengan QR o no (`R8`). */}
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            {isSimpleMode ? null : (
+              <Button className="flex-1 sm:flex-none" onClick={openScanner}>
+                Escanear QR
+              </Button>
+            )}
+            {puedeCapturar ? (
+              <Button
+                variant={isSimpleMode ? undefined : "outline"}
+                className="flex-1 sm:flex-none"
+                onClick={openRegister}
+              >
+                Llegó sin avisar
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {error ? <p className="mt-3 text-sm text-[var(--danger-700)]">{error}</p> : null}
@@ -1073,12 +1197,47 @@ export function GuardVisitors({ tenantId, guardId, guardName }: { tenantId?: str
                 placeholder="Ej: 1234567890"
               />
 
+              {/* **La vía se elige ANTES de registrar, y las dos están disponibles desde el
+                  primer segundo** (`R4`). No es un ajuste: es lo que queda escrito como
+                  constancia de quién autorizó y por qué medio. */}
+              <fieldset className="rounded-xl border border-[var(--slate-200)] p-3">
+                <legend className="px-1 text-xs font-medium text-[var(--slate-600)]">¿Cómo se autoriza?</legend>
+                <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    checked={regVia === "app"}
+                    disabled={sinResidentes}
+                    onChange={() => setRegVia("app")}
+                  />
+                  <span className="text-xs">
+                    <span className="block font-medium text-[var(--slate-900)]">Preguntarle al residente</span>
+                    <span className="text-[var(--slate-600)]">
+                      {sinResidentes
+                        ? "Esta unidad no tiene residentes con acceso: no hay a quién preguntarle."
+                        : "Le llega a su teléfono y tiene cinco minutos para contestar."}
+                    </span>
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+                  <input type="radio" className="mt-1" checked={regVia === "llamada"} onChange={() => setRegVia("llamada")} />
+                  <span className="text-xs">
+                    <span className="block font-medium text-[var(--slate-900)]">Ya llamé y me dijeron que sí</span>
+                    <span className="text-[var(--slate-600)]">Autorizas tú, y queda escrito que fue por llamada.</span>
+                  </span>
+                </label>
+              </fieldset>
+
               <Button
                 className="w-full"
                 disabled={savingRegister || !regUnitId || !regVisitorName.trim() || !regDocument.trim()}
                 onClick={() => void handleRegisterWalkIn()}
               >
-                {savingRegister ? "Registrando..." : "Registrar visita"}
+                {savingRegister
+                  ? "Registrando..."
+                  : regVia === "app"
+                    ? "Preguntar al residente"
+                    : "Autorizar y registrar"}
               </Button>
             </div>
           </aside>

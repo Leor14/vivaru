@@ -208,6 +208,12 @@ describe("3 · el inventario del servidor está pinchado", () => {
     // Fija la unidad del residente de prueba POR ASIGNACIÓN, no en un literal.
     // Estuvo fuera del inventario hasta el 26 ago 2026 por eso mismo.
     "functions/src/trial-workspace.ts",
+    // `PRD-V-FLOW-005`. **No construye ninguna clave: COPIA la que le manda la portería**, que
+    // sale del directorio de unidades (`usePackageDirectory` → `unit.id`, el id del documento) y
+    // no de un slug. Igual que `estado-de-cuenta-adjunto.ts`: no hay nada que resolver, y por eso
+    // no pasa por `claveDeUnidad(...)`. Lo que sí hace es buscar los residentes de esa unidad
+    // comparando contra `tenantUsers.unitId`, que desde `FIX-002` es la canónica.
+    "functions/src/visita-no-anunciada.ts",
   ];
 
   it("los módulos del servidor que nombran unidades son exactamente los pinchados", () => {

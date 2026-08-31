@@ -46,6 +46,15 @@ function asTimestampIso(value: unknown) {
   return "";
 }
 
+const ESTADOS_DE_AUTORIZACION = ["pendiente", "autorizada", "rechazada", "expirada"] as const;
+
+function asAuthorizationStatus(valor: unknown): VisitorPass["authorizationStatus"] {
+  const v = typeof valor === "string" ? valor : "";
+  return (ESTADOS_DE_AUTORIZACION as readonly string[]).includes(v)
+    ? (v as VisitorPass["authorizationStatus"])
+    : undefined;
+}
+
 function asStatus(value: unknown): VisitorPass["status"] {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
 
@@ -95,6 +104,17 @@ function normalizeVisitorPass(id: string, raw: DocumentData): VisitorPass {
     checkInAt: asTimestampIso(raw.checkInAt) || undefined,
     checkOutAt: asTimestampIso(raw.checkOutAt) || undefined,
     registeredByGuard: raw.registeredByGuard === true,
+    // `PRD-V-FLOW-005`. **La ausencia se conserva como `undefined` a propósito**: es lo que
+    // distingue un pase del flujo de QR, y darle un valor por defecto haría que los 142 que ya
+    // existen pareciesen visitas de portería sin autorizar.
+    origen: raw.origen === "porteria" ? "porteria" : raw.origen === "qr" ? "qr" : undefined,
+    authorizationStatus: asAuthorizationStatus(raw.authorizationStatus),
+    authorizedBy: asString(raw.authorizedBy) || undefined,
+    authorizedByName: asString(raw.authorizedByName) || undefined,
+    authorizationMedium:
+      raw.authorizationMedium === "app" ? "app" : raw.authorizationMedium === "llamada" ? "llamada" : undefined,
+    authorizationRequestedAt: asTimestampIso(raw.authorizationRequestedAt) || undefined,
+    authorizationResolvedAt: asTimestampIso(raw.authorizationResolvedAt) || undefined,
     visitDate: asString(raw.visitDate) || undefined,
     residentName: asString(raw.residentName) || undefined,
     createdBy: asString(raw.createdBy) || undefined,
@@ -333,9 +353,11 @@ export async function createVisitorPass(input: {
 }
 
 /**
- * Registro simple de visita por portería (variante `registro_simple`). La portería registra una
- * visita que ya llegó; el pase nace "inside" (sin QR) y la Cloud Function notifica al residente.
- * Envía la fecha/hora local de la portería para evitar desfases de zona horaria.
+ * `PRD-V-FLOW-005` — la portería captura una visita que llegó sin avisar, en **cualquier** conjunto.
+ *
+ * Ya no es «registro simple»: esa variante ocultaba el QR y era excluyente con él, así que ningún
+ * conjunto podía usar esto. **Y el pase ya no nace dentro**: nace `scheduled`, y solo entra cuando
+ * está autorizado. Envía la fecha/hora local de la portería para evitar desfases de zona horaria.
  */
 export async function registerWalkInVisit(input: {
   tenantId: string;
@@ -344,11 +366,12 @@ export async function registerWalkInVisit(input: {
   visitorName: string;
   documentNumber: string;
   hostResidentName?: string;
+  via?: "app" | "llamada";
 }) {
   const now = new Date();
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const scheduledTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  await registerWalkInVisitCallable({ ...input, date, scheduledTime });
+  return registerWalkInVisitCallable({ ...input, date, scheduledTime });
 }
 
 export async function markVisitorAsInside(input: { visitorId: string; tenantId: string; previousStatus: VisitorPass["status"] }) {

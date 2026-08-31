@@ -31,7 +31,9 @@ export type NotificationKey =
   | "regulation_new"
   | "agreement_signature"
   | "agreement_info"
-  | "survey_new";
+  | "survey_new"
+  | "visita_autorizacion"
+  | "visita_resuelta";
 
 export interface NotificationVariable {
   /** nombre del token sin llaves; en el texto se escribe {nombre}. */
@@ -65,6 +67,8 @@ export interface NotificationOverride {
 // Variables reutilizadas.
 const CONJUNTO: NotificationVariable = { name: "conjunto", example: "Conjunto Las Palmas", required: false };
 const UNIDAD: NotificationVariable = { name: "unidad", example: "Torre 1 - 301", required: false };
+const VISITANTE: NotificationVariable = { name: "visitante", example: "Ana Gómez", required: true };
+const QUIEN_RESOLVIO: NotificationVariable = { name: "quienResolvio", example: "Carlos Ramírez", required: true };
 const PERIODO: NotificationVariable = { name: "período", example: "junio 2026", required: true };
 const MONTO: NotificationVariable = { name: "monto", example: "$250.000", required: true };
 // Las dos de CA13. **Opcionales las dos**, y su ejemplo lleva la oración
@@ -233,6 +237,33 @@ export const NOTIFICATION_CATALOG: Record<NotificationKey, NotificationTemplate>
     body: "La administración publicó una encuesta. Tu opinión cuenta.",
     emailSubject: "Nueva encuesta disponible — {conjunto}",
     emailBody: "La administración publicó una encuesta. Ingresa para responderla.",
+  },
+  visita_autorizacion: {
+    type: "visitor",
+    link: "/resident/visitors",
+    // **La única `alta` con una persona esperando al otro lado.** No es urgencia de negocio:
+    // hay alguien parado en la puerta mientras esto se lee.
+    relevance: "alta",
+    // **Correo NO, y no por olvido.** Un aviso que hay que atender en cinco minutos no se manda
+    // por un canal que se lee cada varias horas — y en Santa María 12 de 14 direcciones no reciben.
+    emailDefault: false,
+    variables: [VISITANTE, UNIDAD, CONJUNTO],
+    title: "Alguien te visita",
+    body: "{visitante} está en portería y pide entrar a tu unidad. Autoriza o rechaza.",
+    emailSubject: "Alguien te visita — {conjunto}",
+    emailBody: "{visitante} está en portería y pide entrar a tu unidad {unidad}. Entra a Vivaru para autorizar o rechazar.",
+  },
+  visita_resuelta: {
+    type: "visitor",
+    link: "/resident/visitors",
+    // `baja` a propósito: existe para que nadie conteste a algo ya resuelto, no para informar.
+    relevance: "baja",
+    emailDefault: false,
+    variables: [VISITANTE, QUIEN_RESOLVIO, CONJUNTO],
+    title: "Visita ya resuelta",
+    body: "{quienResolvio} ya respondió a la visita de {visitante}.",
+    emailSubject: "Visita ya resuelta — {conjunto}",
+    emailBody: "{quienResolvio} ya respondió a la visita de {visitante} en tu unidad.",
   },
 };
 

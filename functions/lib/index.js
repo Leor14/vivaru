@@ -33,8 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.notifyPendingVisitorExits = exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
-exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = void 0;
+exports.resendAccountInvite = exports.activateAccount = exports.getAccountInvite = exports.logClientError = exports.resendWebhook = exports.anonymizeExpiredVouchersDaily = exports.monthlyFinancialArchive = exports.onSurveyUpdated = exports.onRegulationDocumentCreated = exports.onPaymentVoucherCreated = exports.updateOverdueStatements = exports.publishScheduledCharges = exports.notifyResidentReceipt = exports.mergeUnits = exports.sendScheduledReminders = exports.sendBillingReminder = exports.notifyBillingBatch = exports.remindPackagePickup = exports.onBillingStatementCreated = exports.onTicketUpdated = exports.onTicketCreated = exports.onVisitorPassCreated = exports.onCommitteeAgreementUpdated = exports.onReservationUpdated = exports.onReservationCreated = exports.onPackageCreated = exports.onCommunicationCreated = exports.confirmPackageReceipt = exports.resolveVisitAuthorization = exports.registerWalkInVisit = exports.createVisitorPass = exports.seedDemoData = exports.completeResidentPasswordChange = exports.provisionResidentTemporaryAccess = exports.getDocumentDownloadUrl = exports.moveDocumentFolder = exports.deleteDocumentFolder = exports.renameDocumentFolder = exports.ensureCommunicationsFolder = exports.ensureSystemFolder = exports.createDocumentFolder = exports.revokeResidentAccess = exports.deleteOperationalUser = exports.updateOperationalUser = exports.setOperationalUserStatus = exports.createTenantOperationalUser = exports.updateTenantAdmin = exports.createTenantAdmin = exports.createTenantWorkspace = exports.createTenant = void 0;
+exports.getAiUsage = exports.sombraPqrsAlActualizarTicket = exports.sombraPqrsAlCrearTicket = exports.registrarImportacion = exports.asistirTicketPqrs = exports.setTenantManagementCompany = exports.saveManagementCompany = exports.switchActiveTenant = exports.registrarFeedbackIa = exports.aiInvoke = exports.addSupportNote = exports.closeSupportTicketCallable = exports.reopenSupportTicketCallable = exports.updateSupportTicketStatus = exports.replyToSupportTicket = exports.ensureReconciliationCases = exports.releaseReconciliation = exports.reopenReconciliationCase = exports.rejectReconciliationCase = exports.reconcileCase = exports.dismissDuplicatePeopleGroup = exports.mergePeople = exports.revertPayment = exports.applyPayment = exports.previewPaymentAllocation = exports.cancelAdvance = exports.undoAdvanceApplication = exports.applyAdvance = exports.cancelDistribution = exports.distributeExpense = exports.cancelClearanceCertificate = exports.emitClearanceCertificate = exports.generateCoefficientCampaign = exports.createReservationRequest = exports.createSupportTicket = exports.requestAdvisorContact = exports.createTenantFromLead = exports.trialLifecycleDaily = exports.createTrialWorkspace = exports.notifyPendingVisitorExits = void 0;
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
@@ -62,6 +62,7 @@ const clave_de_unidad_1 = require("./clave-de-unidad");
 const payments_1 = require("./payments");
 const conciliacion_casos_1 = require("./conciliacion-casos");
 const padron_1 = require("./padron");
+const visita_no_anunciada_1 = require("./visita-no-anunciada");
 const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
@@ -2014,80 +2015,84 @@ exports.createVisitorPass = (0, https_1.onCall)(async (request) => {
     return { visitorPassId: createdRef.id };
 });
 /**
- * Registro simple de visita por porteria (modo `registro_simple`). La porteria registra una
- * visita que ya llego: el pase nace en estado "inside" (sin QR) y se notifica a los residentes
- * de la unidad. Solo disponible cuando la variante de Visitas del conjunto es `registro_simple`.
+ * **La visita que llega sin avisar** (`PRD-V-FLOW-005`). La portería captura los datos y elige vía:
+ *
+ * - **Vía A (`via: "app"`)** — el pase nace `pendiente` y se le pregunta al residente. Espera cinco
+ *   minutos, y la caducidad **se deriva del sello de tiempo**, no la escribe ningún cron.
+ * - **Vía B (`via: "llamada"`)** — el guardia llamó por fuera de la plataforma y **autoriza él
+ *   declarando el medio**. No espera nada (`R4`).
+ *
+ * **Dos cosas cambiaron aquí el 30 de agosto de 2026, y las dos eran el nudo de la ficha:**
+ *
+ * 1. **Ya NO exige `registro_simple`** (`R8`). Esa variante y el QR eran excluyentes por diseño, y
+ *    los DIECISIETE conjuntos de los dos ambientes están en `qr_full` — así que con la exclusividad
+ *    anterior **esto no lo habría visto nadie**. La visita no anunciada ocurre en todos los
+ *    conjuntos, tengan QR o no.
+ * 2. **Ya NO nace en `inside`.** Antes creaba el pase con el ingreso ya puesto y le decía al
+ *    residente «la portería registró el ingreso de X» — **un hecho consumado**, sin huella de que
+ *    nadie hubiera dicho que sí. Ahora nace `scheduled` y **solo entra desde `autorizada`** (`R1`),
+ *    lo que comprueban esta callable, la regla de Firestore y la pantalla.
  */
 exports.registerWalkInVisit = (0, https_1.onCall)(async (request) => {
-    if (!request.auth?.uid) {
+    const uid = request.auth?.uid;
+    if (!uid)
         throw new https_1.HttpsError("unauthenticated", "Debes autenticarte para registrar visitas.");
-    }
-    const data = request.data;
-    if (!data.tenantId || !data.unitId || !data.unitLabel || !data.visitorName || !data.documentNumber) {
-        throw new https_1.HttpsError("invalid-argument", "Datos incompletos para registrar la visita.");
-    }
-    const membership = await assertTenantMember(data.tenantId, request.auth.uid);
-    const role = membership.role;
-    const isGuard = role === "security_guard" || role === "security";
-    if (!isGuard && role !== "tenant_admin" && request.auth.token.role !== "superadmin") {
-        throw new https_1.HttpsError("permission-denied", "No tienes permisos para registrar visitas.");
-    }
-    const variant = await getTenantVisitorsVariant(data.tenantId);
-    if (variant !== "registro_simple") {
-        throw new https_1.HttpsError("failed-precondition", "El registro simple de visitas no esta habilitado para este conjunto.");
-    }
-    const now = firestore_1.Timestamp.now();
-    const serverDate = now.toDate();
-    const date = typeof data.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.date)
-        ? data.date
-        : serverDate.toISOString().slice(0, 10);
-    const scheduledTime = typeof data.scheduledTime === "string" && /^\d{2}:\d{2}/.test(data.scheduledTime)
-        ? data.scheduledTime.slice(0, 5)
-        : `${String(serverDate.getUTCHours()).padStart(2, "0")}:${String(serverDate.getUTCMinutes()).padStart(2, "0")}`;
-    const [towerValue, unitValue] = data.unitLabel.split("-");
-    const hostResidentName = typeof data.hostResidentName === "string" && data.hostResidentName.trim().length > 0
-        ? data.hostResidentName.trim()
-        : "";
-    const createdRef = await db.collection("visitorPasses").add({
-        tenantId: data.tenantId,
-        unitId: data.unitId,
-        unitLabel: data.unitLabel,
-        visitorName: data.visitorName,
-        documentNumber: data.documentNumber,
-        qrCodeValue: "",
-        hostResidentName,
-        tower: towerValue?.trim() || "-",
-        unit: unitValue?.trim() || data.unitLabel,
-        date,
-        eventDate: date,
-        scheduledTime,
-        status: "inside",
-        checkInAt: now,
-        checkOutAt: null,
-        registeredByGuard: true,
-        createdBy: request.auth.uid,
-        createdByName: typeof membership.fullName === "string" ? membership.fullName : "",
-        residentName: hostResidentName,
-        createdAt: now,
-        updatedAt: now,
+    const membership = await assertTenantMember(request.data.tenantId, uid);
+    const guardName = typeof membership.fullName === "string" ? membership.fullName : "";
+    const via = request.data?.via === "llamada" ? "llamada" : "app";
+    const resultado = await (0, visita_no_anunciada_1.registrarVisitaNoAnunciada)(request.data, {
+        uid,
+        rol: membership.role === "tenant_admin" && request.auth?.token?.role === "superadmin" ? "superadmin" : membership.role,
+        nombre: guardName,
     });
-    // Notifica a los residentes de la unidad anfitriona.
-    const residentUids = await listResidentUidsByUnit(data.tenantId, data.unitId);
-    if (residentUids.length > 0) {
-        await createNotifications(residentUids.map((uid) => ({
-            userId: uid,
-            tenantId: data.tenantId,
-            type: "visitor",
-            title: "Visita registrada",
-            description: `La porteria registro el ingreso de ${data.visitorName} a tu unidad.`,
-            link: "/resident/visitors",
-        })));
-    }
-    await writeAuditLog(data.tenantId, request.auth.uid, "register_walk_in_visit", {
-        visitorPassId: createdRef.id,
-        unitId: data.unitId,
+    const clave = via === "app" ? "visita_autorizacion" : "visita_resuelta";
+    const [override, conjunto] = await Promise.all([
+        getTenantNotificationOverride(request.data.tenantId, clave),
+        getTenantName(request.data.tenantId),
+    ]);
+    await deliverResidentNotifications(clave, request.data.tenantId, resultado.residentes, via === "app"
+        // `CA2`: se le pregunta a TODOS los residentes activos, sin titular ni jerarquía (`R2`).
+        ? { visitante: request.data.visitorName, unidad: request.data.unitLabel, conjunto }
+        // Vía B: no se pregunta, se informa. Al que llamaron ya lo sabe; los demás no.
+        : { visitante: request.data.visitorName, quienResolvio: `${guardName} (portería)`, conjunto }, override);
+    await writeAuditLog(request.data.tenantId, uid, "register_walk_in_visit", {
+        visitorPassId: resultado.visitorPassId,
+        unitId: request.data.unitId,
+        via,
     });
-    return { visitorPassId: createdRef.id };
+    return { visitorPassId: resultado.visitorPassId, authorizationStatus: resultado.authorizationStatus };
+});
+/**
+ * `PRD-V-FLOW-005` — el residente autoriza o rechaza, o el guardia rescata una expirada por la vía B.
+ *
+ * La lógica vive en `visita-no-anunciada.ts`; aquí se valida la sesión y se deja el rastro. **El
+ * aviso a los DEMÁS residentes solo sale cuando la resolución se aplicó**: avisar de una que ya
+ * estaba resuelta sería contarle a la gente el resultado de su propia carrera perdida.
+ */
+exports.resolveVisitAuthorization = (0, https_1.onCall)({ cors: http_config_1.callableCorsOrigins, invoker: "public" }, async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid)
+        throw new https_1.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const resultado = await (0, visita_no_anunciada_1.resolverAutorizacionDeVisita)(request.data, { uid, role: request.auth?.token?.role });
+    if (resultado.aplicada) {
+        const tenantId = request.data?.tenantId ?? "";
+        const pase = await db.collection("visitorPasses").doc(request.data?.visitorPassId ?? "").get();
+        const datos = pase.data();
+        const otros = (await (0, visita_no_anunciada_1.residentesActivosDeLaUnidad)(tenantId, datos?.unitId ?? "")).filter((x) => x !== uid);
+        if (otros.length > 0) {
+            const [override, conjunto] = await Promise.all([
+                getTenantNotificationOverride(tenantId, "visita_resuelta"),
+                getTenantName(tenantId),
+            ]);
+            await deliverResidentNotifications("visita_resuelta", tenantId, otros, { visitante: datos?.visitorName ?? "", quienResolvio: resultado.resueltaPor, conjunto }, override);
+        }
+        await writeAuditLog(tenantId, uid, "resolve_visit_authorization", {
+            visitorPassId: request.data?.visitorPassId,
+            decision: request.data?.decision,
+            medio: resultado.estado === "autorizada" ? request.data?.medio ?? null : null,
+        });
+    }
+    return resultado;
 });
 exports.confirmPackageReceipt = (0, https_1.onCall)(async (request) => {
     if (!request.auth?.uid) {

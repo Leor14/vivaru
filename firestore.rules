@@ -358,7 +358,20 @@ service cloud.firestore {
               resource.data.status == "scheduled" &&
               request.resource.data.status == "inside" &&
               request.resource.data.checkInAt != null &&
-              request.resource.data.checkOutAt == resource.data.checkOutAt
+              request.resource.data.checkOutAt == resource.data.checkOutAt &&
+              // `PRD-V-FLOW-005` R1 y CF4 — **a `inside` solo se llega desde `autorizada`.**
+              //
+              // El registro de ingreso es escritura DIRECTA del guardia, no una callable, asi que
+              // sin esta linea un pase capturado en porteria podria entrar estando `pendiente`
+              // —o `rechazada`— y la autorizacion seria decorativa.
+              //
+              // **La ausencia del campo significa «es del flujo de QR»**, y esos entran como
+              // siempre: los 142 pases de los dos ambientes no lo tienen, asi que esta condicion
+              // NO restringe nada de lo que ya existe. Por eso las reglas pueden ir primero.
+              (
+                !("authorizationStatus" in resource.data) ||
+                resource.data.authorizationStatus == "autorizada"
+              )
             ) ||
             (
               resource.data.status == "inside" &&

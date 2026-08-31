@@ -304,6 +304,11 @@ export type RegisterWalkInVisitInput = {
   visitorName: string;
   documentNumber: string;
   hostResidentName?: string;
+  /**
+   * `PRD-V-FLOW-005`. **`app`** = se le pregunta al residente y el pase espera cinco minutos.
+   * **`llamada`** = el guardia llamó por fuera y autoriza él, declarando el medio.
+   */
+  via?: "app" | "llamada";
   date?: string;
   scheduledTime?: string;
 };
@@ -313,8 +318,30 @@ export async function registerWalkInVisitCallable(input: RegisterWalkInVisitInpu
     throw new Error("Firebase Functions no esta configurado en este entorno.");
   }
 
-  const callable = httpsCallable<RegisterWalkInVisitInput, { visitorPassId: string }>(functions, "registerWalkInVisit");
+  const callable = httpsCallable<
+    RegisterWalkInVisitInput,
+    { visitorPassId: string; authorizationStatus: "pendiente" | "autorizada" }
+  >(functions, "registerWalkInVisit");
   return executeCallable(callable, input, "No fue posible registrar la visita.");
+}
+
+/**
+ * `PRD-V-FLOW-005` — el residente autoriza o rechaza; el guardia rescata una expirada por la vía B.
+ *
+ * **`aplicada: false` no es un fallo**: significa que alguien de la unidad se adelantó, y viene con
+ * su nombre. Quien lo consuma tiene que distinguirlo, o convertirá una carrera normal en un error.
+ */
+export async function resolveVisitAuthorizationCallable(input: {
+  tenantId: string;
+  visitorPassId: string;
+  decision: "autorizar" | "rechazar";
+}) {
+  if (!functions) throw new Error("Firebase Functions no esta configurado en este entorno.");
+  const callable = httpsCallable<
+    typeof input,
+    { ok: boolean; aplicada: boolean; estado: "autorizada" | "rechazada" | "expirada" | "pendiente"; resueltaPor: string }
+  >(functions, "resolveVisitAuthorization");
+  return executeCallable(callable, input, "No fue posible resolver la visita.");
 }
 
 /**

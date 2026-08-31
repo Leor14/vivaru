@@ -338,8 +338,21 @@ export interface VisitorPass {
   validUntil?: string;
   checkInAt?: string;
   checkOutAt?: string;
-  /** True si la visita fue registrada por portería en modo registro simple (sin QR). */
+  /** True si la visita la capturó la portería (sin QR). `PRD-V-FLOW-005`. */
   registeredByGuard?: boolean;
+  /**
+   * `PRD-V-FLOW-005`. **Su ausencia significa «viene del flujo de QR»**, y de eso depende que los
+   * 142 pases que ya existen sigan entrando como siempre — incluida la regla de Firestore.
+   */
+  origen?: "qr" | "porteria";
+  /** Estado GUARDADO. El real se deriva con `estadoDeAutorizacion`: `pendiente` caduca sola. */
+  authorizationStatus?: "pendiente" | "autorizada" | "rechazada" | "expirada";
+  authorizedBy?: string;
+  authorizedByName?: string;
+  /** `R5`: quedan constancia el quién y el CÓMO. Sin el medio, las dos vías serían indistinguibles. */
+  authorizationMedium?: "app" | "llamada";
+  authorizationRequestedAt?: string;
+  authorizationResolvedAt?: string;
   // Legacy compatibility fields for existing records not yet migrated.
   visitDate?: string;
   residentName?: string;

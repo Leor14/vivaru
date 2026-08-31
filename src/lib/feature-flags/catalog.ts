@@ -77,6 +77,7 @@ export type FeatureFlagKey =
   | "producto-expediente-conciliacion"
   | "producto-notificaciones-push"
   | "producto-padron-sin-duplicados"
+  | "producto-visita-no-anunciada"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -203,6 +204,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FEAT-005 §11 — un padrón sin duplicados",
     alApagar:
       "Desaparece la revisión de duplicados del módulo de Residentes. Las fusiones ya hechas NO se deshacen: quedan con su snapshot en `personMergeDecisions`, y deshacerlas es una operación, no un rollback.",
+  },
+  "producto-visita-no-anunciada": {
+    key: "producto-visita-no-anunciada",
+    area: "producto",
+    label: "Autorizar la visita que llega sin avisar",
+    description:
+      "La portería captura una visita no anunciada y el residente la autoriza desde su teléfono; o el guardia llama por fuera y autoriza él, declarando el medio. Convive con el QR.",
+    // Nace APAGADA: flujo nuevo. **Y no se enciende donde el push esté apagado**: sin push, la
+    // petición de la vía A cae en una campana que nadie mira y el visitante espera cinco minutos
+    // a nadie. Hoy eso significa `tenant-santa-maria` y ningún otro.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-005 §13 — autorizar la visita que llega sin avisar",
+    alApagar:
+      "Portería deja de poder capturar visitas no anunciadas y el flujo de QR queda intacto. Los pases ya creados se quedan y no estorban; los que estuvieran pendientes caducan solos a los cinco minutos, porque su caducidad se deriva del sello de tiempo y no de un proceso.",
   },
   "producto-notificaciones-push": {
     key: "producto-notificaciones-push",

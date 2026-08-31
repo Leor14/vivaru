@@ -52,6 +52,7 @@ const CLAVES = [
   "producto-expediente-conciliacion",
   "producto-notificaciones-push",
   "producto-padron-sin-duplicados",
+  "producto-visita-no-anunciada",
   "producto-pago-multiple",
   "producto-prorrateo-de-gastos",
   "producto-estado-de-cuenta",

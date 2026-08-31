@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { cancelResidentInvitation, subscribeResidentInvitations } from "@/features/visitors/invitations";
+import { PendingVisitAuthorizations } from "@/components/features/resident/PendingVisitAuthorizations";
 import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import type { VisitorInvitation, VisitorInvitationStatus } from "features/visitors/types";
 import { formatDateTime } from "features/visitors/utils/formatDateTime";
@@ -108,6 +109,9 @@ export default function ResidentVisitorsPage() {
           )}
         </div>
       </Card>
+
+      {/* `PRD-V-FLOW-005` — arriba del todo, porque hay alguien esperando en la puerta. */}
+      <PendingVisitAuthorizations tenantId={user?.tenantId} unitId={user?.unitId} />
 
       <Card>
         <div className="flex items-center justify-between gap-3">

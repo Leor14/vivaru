@@ -16,7 +16,9 @@ export type NotificationKey =
   | "regulation_new"
   | "agreement_signature"
   | "agreement_info"
-  | "survey_new";
+  | "survey_new"
+  | "visita_autorizacion"
+  | "visita_resuelta";
 
 export type NotificationRelevance = "alta" | "media" | "baja";
 
@@ -43,6 +45,8 @@ export interface NotificationTemplateDef {
 
 const CONJUNTO: NotificationVariable = { name: "conjunto", example: "Conjunto Las Palmas", required: false };
 const UNIDAD: NotificationVariable = { name: "unidad", example: "Torre 1 - 301", required: false };
+const VISITANTE: NotificationVariable = { name: "visitante", example: "Ana Gómez", required: true };
+const QUIEN_RESOLVIO: NotificationVariable = { name: "quienResolvio", example: "Carlos Ramírez", required: true };
 const PERIODO: NotificationVariable = { name: "período", example: "junio 2026", required: true };
 const MONTO: NotificationVariable = { name: "monto", example: "$250.000", required: true };
 // Las dos de CA13 (`PRD-V-FLOW-002` §9). **Opcionales las dos**, y su ejemplo
@@ -218,6 +222,30 @@ export const NOTIFICATION_CATALOG: NotificationTemplateDef[] = [
     body: "La administración publicó una encuesta. Tu opinión cuenta.",
     emailSubject: "Nueva encuesta disponible — {conjunto}",
     emailBody: "La administración publicó una encuesta. Ingresa para responderla.",
+  },
+  {
+    key: "visita_autorizacion",
+    group: "Visitas",
+    label: "Alguien te visita sin avisar",
+    relevance: "alta",
+    emailDefault: false,
+    variables: [VISITANTE, UNIDAD, CONJUNTO],
+    title: "Alguien te visita",
+    body: "{visitante} está en portería y pide entrar a tu unidad. Autoriza o rechaza.",
+    emailSubject: "Alguien te visita — {conjunto}",
+    emailBody: "{visitante} está en portería y pide entrar a tu unidad {unidad}. Entra a Vivaru para autorizar o rechazar.",
+  },
+  {
+    key: "visita_resuelta",
+    group: "Visitas",
+    label: "La visita ya la resolvió alguien",
+    relevance: "baja",
+    emailDefault: false,
+    variables: [VISITANTE, QUIEN_RESOLVIO, CONJUNTO],
+    title: "Visita ya resuelta",
+    body: "{quienResolvio} ya respondió a la visita de {visitante}.",
+    emailSubject: "Visita ya resuelta — {conjunto}",
+    emailBody: "{quienResolvio} ya respondió a la visita de {visitante} en tu unidad.",
   },
 ];
 

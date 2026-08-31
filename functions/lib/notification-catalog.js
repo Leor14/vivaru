@@ -14,6 +14,8 @@ exports.resolveNotificationCopy = resolveNotificationCopy;
 // Variables reutilizadas.
 const CONJUNTO = { name: "conjunto", example: "Conjunto Las Palmas", required: false };
 const UNIDAD = { name: "unidad", example: "Torre 1 - 301", required: false };
+const VISITANTE = { name: "visitante", example: "Ana Gómez", required: true };
+const QUIEN_RESOLVIO = { name: "quienResolvio", example: "Carlos Ramírez", required: true };
 const PERIODO = { name: "período", example: "junio 2026", required: true };
 const MONTO = { name: "monto", example: "$250.000", required: true };
 // Las dos de CA13. **Opcionales las dos**, y su ejemplo lleva la oración
@@ -181,6 +183,33 @@ exports.NOTIFICATION_CATALOG = {
         body: "La administración publicó una encuesta. Tu opinión cuenta.",
         emailSubject: "Nueva encuesta disponible — {conjunto}",
         emailBody: "La administración publicó una encuesta. Ingresa para responderla.",
+    },
+    visita_autorizacion: {
+        type: "visitor",
+        link: "/resident/visitors",
+        // **La única `alta` con una persona esperando al otro lado.** No es urgencia de negocio:
+        // hay alguien parado en la puerta mientras esto se lee.
+        relevance: "alta",
+        // **Correo NO, y no por olvido.** Un aviso que hay que atender en cinco minutos no se manda
+        // por un canal que se lee cada varias horas — y en Santa María 12 de 14 direcciones no reciben.
+        emailDefault: false,
+        variables: [VISITANTE, UNIDAD, CONJUNTO],
+        title: "Alguien te visita",
+        body: "{visitante} está en portería y pide entrar a tu unidad. Autoriza o rechaza.",
+        emailSubject: "Alguien te visita — {conjunto}",
+        emailBody: "{visitante} está en portería y pide entrar a tu unidad {unidad}. Entra a Vivaru para autorizar o rechazar.",
+    },
+    visita_resuelta: {
+        type: "visitor",
+        link: "/resident/visitors",
+        // `baja` a propósito: existe para que nadie conteste a algo ya resuelto, no para informar.
+        relevance: "baja",
+        emailDefault: false,
+        variables: [VISITANTE, QUIEN_RESOLVIO, CONJUNTO],
+        title: "Visita ya resuelta",
+        body: "{quienResolvio} ya respondió a la visita de {visitante}.",
+        emailSubject: "Visita ya resuelta — {conjunto}",
+        emailBody: "{quienResolvio} ya respondió a la visita de {visitante} en tu unidad.",
     },
 };
 /** Tokens permitidos (sin llaves) de una notificación. Útil para validar overrides. */

@@ -156,6 +156,14 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-visita-no-anunciada",
+    area: "producto",
+    label: "Autorizar la visita que llega sin avisar",
+    origen: "PRD-V-FLOW-005 §13",
+    // Nace apagada, y NO se enciende donde el push esté apagado: sin push la vía A nace inservible.
+    enabled: false,
+  },
+  {
     key: "producto-notificaciones-push",
     area: "producto",
     label: "Notificaciones push al residente",
