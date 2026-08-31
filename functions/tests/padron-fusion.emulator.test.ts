@@ -239,6 +239,54 @@ describe("fusionar personas del padrón", () => {
     });
   });
 
+  /**
+   * **Esta prueba existe por lo que se vio EJECUTANDO la primera fusión de producción**, no por
+   * leer el código: al terminar, los seis ids archivados quedan escritos en
+   * `personMergeDecisions.mergedIds` y el del superviviente en `survivorId` — porque ese documento
+   * existe justamente para nombrarlos. **El barrido los ve como referencias**, y como esa colección
+   * no está (ni debe estar) en el inventario, la SIGUIENTE fusión de esa persona abortaría.
+   *
+   * Un superviviente que no se puede volver a fusionar es un callejón sin salida que solo aparece
+   * en la segunda pasada, cuando ya nadie está mirando.
+   */
+  describe("una persona que ya sobrevivió a una fusión se puede volver a fusionar", () => {
+    it("la decisión anterior no bloquea la siguiente", async () => {
+      await persona("superviviente");
+      await persona("duplicada");
+      await persona("tercera");
+      await fusionarPersonas(
+        { tenantId: TENANT, survivorId: "superviviente", mergedIds: ["duplicada"], motivo: "primera" },
+        actor,
+      );
+      // Ahora `personMergeDecisions` nombra a «superviviente» y a «duplicada».
+      expect((await db.collection("personMergeDecisions").get()).size).toBe(1);
+
+      const segunda = await fusionarPersonas(
+        { tenantId: TENANT, survivorId: "tercera", mergedIds: ["superviviente"], motivo: "segunda" },
+        actor,
+      );
+      expect(segunda.ok).toBe(true);
+    });
+
+    it("y el registro de la decisión NO se reescribe: es historia, no dato de producto", async () => {
+      await persona("superviviente");
+      await persona("duplicada");
+      await persona("tercera");
+      const primera = await fusionarPersonas(
+        { tenantId: TENANT, survivorId: "superviviente", mergedIds: ["duplicada"], motivo: "primera" },
+        actor,
+      );
+      await fusionarPersonas(
+        { tenantId: TENANT, survivorId: "tercera", mergedIds: ["superviviente"], motivo: "segunda" },
+        actor,
+      );
+      const antes = (await db.collection("personMergeDecisions").doc(primera.decisionId).get()).data()!;
+      // Si el barrido repuntara la decisión, esto diría «tercera» y la historia sería falsa.
+      expect(antes.survivorId).toBe("superviviente");
+      expect(antes.mergedIds).toEqual(["duplicada"]);
+    });
+  });
+
   describe("CA7 — descartar un grupo", () => {
     it("guarda la decisión contra la huella de sus ids", async () => {
       await persona("a");

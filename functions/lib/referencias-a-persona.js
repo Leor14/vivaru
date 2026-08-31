@@ -32,9 +32,14 @@
  * Medido en `hogaru-1` el 30 de agosto de 2026: 43 referencias vivas a 68 personas.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NO_SON_REFERENCIA_A_PERSONA = exports.REFERENCIAS_A_PERSONA = void 0;
+exports.NO_SON_REFERENCIA_A_PERSONA = exports.REFERENCIAS_A_PERSONA = exports.DECISIONES_DEL_PADRON = void 0;
 exports.estaRegistrada = estaRegistrada;
 exports.buscarReferenciasAPersona = buscarReferenciasAPersona;
+/**
+ * La colección donde vive el registro de las decisiones. **Se excluye del barrido a propósito**:
+ * ver el comentario dentro de `buscarReferenciasAPersona`.
+ */
+exports.DECISIONES_DEL_PADRON = "personMergeDecisions";
 exports.REFERENCIAS_A_PERSONA = [
     { coleccion: "units", campo: "ownerIds", esLista: true, medido: 18 },
     // Cero en producción hoy, y va igual: `services.ts` la escribe con `arrayUnion(person.id)` al
@@ -84,6 +89,17 @@ async function buscarReferenciasAPersona(db, tenantId, personaIds) {
     for (const coleccion of colecciones) {
         // `people` se trata aparte: sus propios documentos son el objeto de la fusión.
         if (coleccion.id === "people")
+            continue;
+        // **Y `personMergeDecisions` NO es dato de producto: es historia.** Nombra a los archivados y
+        // al superviviente porque existe justamente para eso, así que el barrido los ve como
+        // referencias y —al no estar registrada, ni deber estarlo— haría abortar **la siguiente**
+        // fusión de esa persona. **Un superviviente quedaría en un callejón sin salida.**
+        //
+        // Se descubrió ejecutando la primera fusión de producción, no leyendo el código: con una sola
+        // fusión hecha, todo estaba bien; el defecto vivía en la segunda. Y repuntarla sería peor que
+        // abortar: reescribiría el `survivorId` de una decisión pasada y **la historia diría algo que
+        // no pasó**.
+        if (coleccion.id === exports.DECISIONES_DEL_PADRON)
             continue;
         const snap = await coleccion.where("tenantId", "==", tenantId).limit(5000).get();
         for (const doc of snap.docs) {

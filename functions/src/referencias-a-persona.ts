@@ -33,6 +33,12 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 
+/**
+ * La colección donde vive el registro de las decisiones. **Se excluye del barrido a propósito**:
+ * ver el comentario dentro de `buscarReferenciasAPersona`.
+ */
+export const DECISIONES_DEL_PADRON = "personMergeDecisions";
+
 export type ReferenciaAPersona = {
   coleccion: string;
   campo: string;
@@ -109,6 +115,16 @@ export async function buscarReferenciasAPersona(
   for (const coleccion of colecciones) {
     // `people` se trata aparte: sus propios documentos son el objeto de la fusión.
     if (coleccion.id === "people") continue;
+    // **Y `personMergeDecisions` NO es dato de producto: es historia.** Nombra a los archivados y
+    // al superviviente porque existe justamente para eso, así que el barrido los ve como
+    // referencias y —al no estar registrada, ni deber estarlo— haría abortar **la siguiente**
+    // fusión de esa persona. **Un superviviente quedaría en un callejón sin salida.**
+    //
+    // Se descubrió ejecutando la primera fusión de producción, no leyendo el código: con una sola
+    // fusión hecha, todo estaba bien; el defecto vivía en la segunda. Y repuntarla sería peor que
+    // abortar: reescribiría el `survivorId` de una decisión pasada y **la historia diría algo que
+    // no pasó**.
+    if (coleccion.id === DECISIONES_DEL_PADRON) continue;
     const snap = await coleccion.where("tenantId", "==", tenantId).limit(5000).get();
     for (const doc of snap.docs) {
       for (const [campo, valor] of Object.entries(doc.data() ?? {})) {
