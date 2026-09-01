@@ -4,7 +4,81 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026 (CIERRE DE JORNADA)
+## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, noche (`ONB-003` ABIERTA)
+
+> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— ESTÁ CONSTRUIDA Y EN `develop`. Le faltan TRES cosas, y dos son de David.
+>
+> **Commit `24b9741` en `develop`, empujado; staging se despliega solo desde ahí.** `master` sigue en
+> `810941b` (producción no lo tiene). Los bancos: `npm test` **1554** (+18 nuevas, el rojo de
+> `push-tokens` sin emulador sigue siendo el esperado) · functions **745** · los dos typechecks en 0 ·
+> lint limpio. **Falsado con siete mutaciones del catálogo**, las siete cazadas por el criterio que
+> debía, y el fichero restaurado por edición (md5 comprobado).
+>
+> | Qué falta | Quién | Cómo |
+> |---|---|---|
+> | **1 · Verlo en staging con ojos** — `CA7` (la muestra unida), `CA8` (quitar una columna esconde el separador), `CA16` («Unidad no encontrada» tras unir `1`+`101`), y el botón «Unir «Torre» y «Apto»» del aviso | **David abre sesión de administrador en staging en el Chrome conectado**; la sesión sigue después | Subir `scripts/simulacion-de-cargas/generados/53-…csv` (bloquea → botón → se levanta), `50-…csv` (Nombres+Apellidos), `56-…csv` (une a `1-101` y la revisión dice «Unidad no encontrada»), y `60-…xlsx` en el asistente de UNIDADES (ningún «＋ añadir otra columna»). Si staging enseña lo viejo, es la caché: navegar con `?cb=24b9741` |
+> | **2 · `registrarImportacion` a producción** (y a staging): acepta `camposUnidos` | **David: `firebase login --reauth`** — la credencial de `firebase` MURIÓ esta noche (medido con `projects:list`; a las 04:00 estaba viva) | `npm --prefix functions run build` ya está hecho y `lib/` va en el commit. Luego `firebase deploy --only functions:registrarImportacion --project hogaru-1` (y `--project vivaru-staging-02`). **Orden functions → front**, §13 de la ficha: el servidor viejo ignora el campo en silencio y se pierde la medida |
+> | **3 · Push a `master`** | David (el clasificador me lo bloquea) | Después de 1 y 2. `git push origin develop:master` — y NO lanzar rollout a mano |
+>
+> **Lo que construirla DESTAPÓ, que no está en el código:**
+>
+> - **`CA9` de la ficha era imposible por construcción**, y la fixture 51 lo prometía: «la telemetría
+>   de `inicio` lleva `camposUnidos = 1`». La fila de `inicio` se escribe con el mapeo SUGERIDO,
+>   antes de que la persona toque nada, y `RN-U3` prohíbe que la sugerencia una: **en `inicio` es 0
+>   siempre; la medida vive en `fin`**. Con dos fases NO se puede medir «de las que unieron, cuántas
+>   terminaron». Corregido en la PRD (v1.2, §0); si David quiere medir el abandono tras unir, es
+>   una tercera fase al pulsar «Continuar» — **decisión de producto, Fase 2**.
+> - **Las guardas bloquean en `mappingIssues`, no solo en la pantalla**: una columna en dos campos,
+>   una unión donde no se admite (rol, y toda unidad), un separador de más de 5. La pantalla no deja
+>   construirlas; el catálogo las rechaza si llegan igual. Es la lección de siempre: un botón no
+>   sostiene un invariante.
+> - **La oferta de unir sale en los DOS niveles del aviso** (bloqueo por nombre y duda por forma).
+>   La ficha solo hablaba del que bloquea; la duda también es un archivo partido.
+> - **El banco de cargas ahora mide la unión**: los casos `50`–`57` declaran `unir` y `correr.ts` la
+>   aplica sobre el mapeo sugerido. Los ocho pasan de «bloquea» o «N columnas sin usar» a
+>   **«entra limpio · camposUnidos=1»**. Y `tests/import-unir-columnas.test.ts` construye esos
+>   mismos casos en memoria con `construir()`, sin depender de `generados/` (que está en gitignore).
+>
+> **Dos trampas de esta sesión:**
+>
+> 1. **`cd functions && …` en una llamada de Bash DEJA el directorio cambiado para las siguientes.**
+>    Tres comandos corrieron en `functions/` sin saberlo y uno escribió un fichero de pruebas en
+>    `functions/tests/` en vez de `tests/`. Rutas absolutas o `cd` de vuelta en la misma línea.
+> 2. **`json.dump` reformatea las fixtures enteras** (481 líneas cambiadas por 8 claves nuevas). Se
+>    revirtió y se insertó la línea a mano: el diff son 8 líneas.
+>
+> ### LO QUE SIGUE SIENDO TUYO Y NO LO PUEDE HACER UNA SESIÓN
+>
+> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** Quince días encendida. Sigue sin mirarse.
+> 2. **`firebase login --reauth`** (nuevo esta noche) y **`gcloud auth login`** (desde el 1). La ADC vive.
+> 3. **Corpus real de padrones: 15–25 archivos**, con permiso para anonimizar.
+> 4. **`CA4` de `PH-003`**: dos personas y dos dispositivos (Carolina Prueba, 201).
+
+### LOS CANDIDATOS QUE QUEDAN, cuando `ONB-003` esté en producción
+
+| Frente | Qué haría falta |
+|---|---|
+| **`DATO-001` fase 2** — cerrar la puerta del alta | **Decisión de David**: rechazar buzones reales en conjuntos `isExample`, o limpiar cada tanto. Media jornada |
+| **Cerrar cabos** — los cinco chips | `startsAt` indefinido al crear comunicado · base clavada de `email.ts` · `CF3` con credencial · rojo del emulador · facturado sin anticipo. Media jornada |
+| **`UX-005`** — tableros configurables | Decisión de modelo (por usuario o por conjunto); prioridad baja declarada. **Ojo:** el roadmap aún dice que `UX-004` está sin construir y está hecha desde el 30 |
+| `PH-002` · `SUP-002` | Un pago real · tickets reales. No son candidatos |
+
+### ESTADO DEL REPOSITORIO AL ESCRIBIR ESTO
+
+- **`develop` en `24b9741`** (remoto verificado con `git ls-remote`) · **`master` en `810941b`**.
+- **Producción sirviendo `build-2026-09-01-017`** (`810941b`); staging estaba en `-023` y el rollout
+  de `24b9741` en camino al escribir esto — medirlo por `traffic.current`, no darlo por servido.
+- **Bancos: `npm test` 1554 · functions 745.** Sin emulador el rojo de `push-tokens` es el esperado.
+- **Credenciales: ADC viva · `firebase` MUERTA · `gcloud` muerto.** Se ejercitaron las tres.
+- El `master` local estaba atrasado en `2070604` al abrir; se adelantó al remoto sin checkout.
+
+**Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA JORNADA DEL 1 DE SEPTIEMBRE — CIERRE (pasadas 4 y 5) — histórico
+
+**Bajado de la cabecera al abrir `ONB-003` la noche del 1 de septiembre.** Lo operativo está superado por la cabecera; los candidatos y las trampas de método siguen valiendo.
 
 > ### LA SIGUIENTE SESIÓN **ELIGE FRENTE**. No hay nada a medias.
 >

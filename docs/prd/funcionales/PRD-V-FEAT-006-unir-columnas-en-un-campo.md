@@ -7,7 +7,7 @@
 | **Módulo** | Residentes y unidades → **asistente de importación de residentes** |
 | **Entidad** | **`person` únicamente.** `unit` queda fuera y §4 dice por qué, medido |
 | **Usuario principal** | `tenant_admin` |
-| **Estado** | `Lista para PRD` · **v1.1**, reescrita el 1 de septiembre de 2026 tras construirle fixtures |
+| **Estado** | **CONSTRUIDA — en `develop` (`24b9741`, 1 sep 2026), staging desplegándose; validación en pantalla y producción pendientes** · **v1.2**: construirla corrigió `CA9` y la métrica de §2 — ver §0 |
 | **Dependencias** | Extiende `PRD-V-FEAT-002` (Productiva) y **enmienda su `RN-02`** |
 | **Riesgo** | Bajo — transformación en el navegador, sin superficie de servidor nueva |
 | **Reversibilidad** | Total. Es una revocación del front; nada queda escrito distinto salvo un campo opcional de telemetría |
@@ -47,6 +47,23 @@ determinística entera.
 > que colisiona, y la ausencia de detección en unidades— están resueltos por el recorte o
 > declarados como límite en §4.
 
+> ### Y CONSTRUIRLA (v1.2, 1 sep 2026) ENCONTRÓ UNA COSA FALSA EN LA v1.1
+>
+> **`CA9` decía que la telemetría de `inicio` lleva `camposUnidos`, y la fixture 51 prometía
+> «`camposUnidos = 1` en inicio». Es imposible por construcción:** la fila de `inicio` se escribe
+> con el mapeo **sugerido**, antes de que la persona toque nada, y `RN-U3` prohíbe que la sugerencia
+> una. En `inicio` el número es **0 siempre**; la medida del estreno vive en **`fin`**. Se corrige
+> `CA9` y la métrica de §2: **con dos fases no se puede medir «de las que unieron, cuántas
+> terminaron»**, porque unir ocurre entre las dos. Lo que sí se mide es «de las que terminaron,
+> cuántas unieron». Medir el abandono tras unir pediría una tercera fase al pulsar «Continuar», y
+> **es una decisión de producto, no de esta ficha** — queda en Fase 2.
+>
+> Lo demás se construyó como estaba escrito. Tres cosas que la ficha no decía y el código sí:
+> las guardas de `RN-U2`, `RN-U4`/`RN-U8` y `RN-U7` **bloquean en `mappingIssues`** además de no
+> ofrecerse en pantalla, porque una pantalla es solo un botón; la oferta de unir sale en los **dos
+> niveles** del aviso (bloqueo y duda), no solo en el que bloquea; y en una unión basta con que
+> **una** columna se parezca al campo para no disparar el aviso de «elegida sin evidencia».
+
 ---
 
 ## 1 · Resumen ejecutivo
@@ -76,8 +93,10 @@ barrera del primer día: hoy el producto solo sabe responder «júntalas en Exce
 filas** (medido el 1 sep 2026). Nadie ha usado nunca el importador allí, y producción no tiene
 clientes reales. **No hay con qué medir adopción hoy**, y decirlo es parte de la ficha.
 
-**Métrica de éxito** (`CA-13` de `FEAT-002` ya instrumenta el conducto): de las importaciones con
-`camposUnidos > 0`, qué proporción llega a `fase: "fin"`.
+**Métrica de éxito** (`CA-13` de `FEAT-002` ya instrumenta el conducto): de las importaciones que
+llegan a `fase: "fin"`, qué proporción lleva `camposUnidos > 0` — es decir, **cuántas necesitaron
+unir**. *(v1.2: decía «de las que unieron, cuántas terminan», y eso no se puede medir con dos
+fases — ver §0.)*
 
 > **Y una señal que NO sirve como prueba de adopción, para no leerla mal:** «`encabezadosSinUsar`
 > deja de listar columnas de apellido». Un mapeo equivocado consume columnas, así que esa lista
@@ -240,7 +259,7 @@ Cada uno nombra su fixture cuando la tiene: el archivo ya existe y hoy mide la l
 | `CA6` | **Una fila con la columna de EN MEDIO vacía da «Camilo Bustamante», con UN espacio** | `57` | pasar |
 | `CA7` | La muestra bajo el campo enseña el valor **unido**, no el de la primera columna | `50` | pasar |
 | `CA8` | Quitar una columna deja el campo con la restante y desaparece el selector de separador | — | pasar |
-| `CA9` | La telemetría de `inicio` lleva `camposUnidos` con el número de campos con más de una columna | — | pasar |
+| `CA9` | La telemetría lleva `camposUnidos` con el número de campos con más de una columna: **0 en `inicio` por construcción**, el real en `fin` | `51` | pasar |
 | `CA10` | El aviso de unidad partida ofrece unir, y aceptarlo levanta el bloqueo | `53`, `54` | pasar |
 | `CA11` | Ignorar la oferta deja el aviso como estaba | `53` | pasar |
 | `CA12` | Un mapeo recién sugerido, sin tocar, **nunca trae un campo con dos columnas** | `66` | pasar |
@@ -305,6 +324,14 @@ ignoraría el campo en silencio y se perdería la medida del estreno.
 
 **Se valida en staging:** los diecisiete criterios contra sus fixtures, que ya existen y se
 construyen con `npx tsx scripts/simulacion-de-cargas/construir.ts`. **Solo en producción:** nada.
+
+**Cómo quedó repartida la verificación (v1.2):** quince criterios tienen prueba automática en
+`tests/import-unir-columnas.test.ts`, sobre las fixtures construidas en memoria y leídas por el
+camino real; **falsadas con siete mutaciones** del catálogo, cada una cazada por el criterio que
+debía. Los que viven en React se miran en pantalla: `CA7` (la muestra unida), `CA8` (quitar una
+columna esconde el separador) y la mitad de `CA16` («Unidad no encontrada» en la revisión). El
+banco de cargas (`correr.ts`) aplica además la unión declarada en `50`–`57`: los ocho pasan de
+bloquear o perder columnas a **«entra limpio · camposUnidos=1»**.
 
 **MVP:** §4 «entra», los diecisiete criterios.
 **Fase 2:** la entidad `unit` (con sus fixtures ya escritas) · partir una celda · plantillas con

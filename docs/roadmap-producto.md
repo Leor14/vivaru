@@ -148,7 +148,7 @@ de entrega.**
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | **Mobile / iOS** | 🟢 **`PLAT-005` EN PRODUCCIÓN, bandera solo en Santa María** (30 ago; validada antes en staging con un iPhone real) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005` y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
-| Onboarding e importación | ⏸ Recolectar evidencia real | 🔴 **`ONB-002`** — el padrón sin duplicados, con `PRD-V-FEAT-005` lista: **sin IA y sin esperar corpus** (11 de 68 personas duplicadas) · ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA: **explorada**, aún sin PRD a propósito) |
+| Onboarding e importación | 🟢 **`ONB-003`** — unir columnas (`PRD-V-FEAT-006`) **construida el 1 sep**, en `develop`/staging; pendiente verla con ojos, desplegar `registrarImportacion` y empujar a `master` · ✅ `ONB-002` en producción | ⏸ Recolectar evidencia real · ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA: **explorada**, aún sin PRD a propósito) |
 | **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
 
 > **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
