@@ -1,0 +1,18 @@
+{
+  "nombre": "17-estado-de-ocupacion",
+  "descripcion": "Conjunto de casas por manzanas donde «Estado» significa ocupación —Ocupado, Arrendado, Desocupado— y no activo/inactivo",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "La columna «ESTADO» de una administración colombiana casi nunca es activo/inactivo: es ocupación. Espero que se dé cuenta de que los valores no son los suyos y lo diga; bloquear el archivo entero por una columna opinable sería demasiado, porque las seis casas son importables.",
+  "hojas": {
+    "Inmuebles": [
+      ["MANZANA", "INMUEBLE", "TIPO", "ESTADO"],
+      ["A", "A-01", "Casa", "Ocupado"],
+      ["A", "A-02", "Casa", "Arrendado"],
+      ["A", "A-03", "Casa", "Desocupado"],
+      ["B", "B-01", "Casa", "Ocupado"],
+      ["B", "B-02", "Casa", "Arrendado"],
+      ["B", "B-03", "Casa", "Ocupado"]
+    ]
+  }
+}

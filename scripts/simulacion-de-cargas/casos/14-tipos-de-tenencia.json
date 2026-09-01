@@ -1,0 +1,18 @@
+{
+  "nombre": "14-tipos-de-tenencia",
+  "descripcion": "Vocabulario de tenencia de una copropiedad colombiana: tenedor, copropietario y usufructuario junto a propietario y arrendatario",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Espero que reconozca todas las columnas y que AVISE de que la mitad de las filas traen un rol que el producto no conoce —tenedor, copropietario, usufructuario son figuras reales de la ley 675—. Lo malo sería que diera el archivo por limpio y las filas se cayeran tres pantallas después.",
+  "hojas": {
+    "Residentes": [
+      ["UNIDAD", "NOMBRE COMPLETO", "CORREO ELECTRÓNICO", "TELÉFONO", "TIPO DE TENENCIA", "  CÉDULA  "],
+      ["T1-101", "Ana Restrepo", "ana@correo.com", "3001112233", "Propietario", "51111111"],
+      ["T1-102", "Jairo Villalba", "jairo@correo.com", "3001112234", "Arrendatario", "79222222"],
+      ["T1-201", "Marta Ocampo", "marta@correo.com", "3001112235", "Tenedor", "41333333"],
+      ["T1-202", "Diego Quintero", "diego@correo.com", "3001112236", "Copropietario", "80444444"],
+      ["T2-101", "Yuly Bermúdez", "yuly@correo.com", "3001112237", "Usufructuario", "52555555"],
+      ["T2-102", "Hernán Cárdenas", "hernan@correo.com", "3001112238", "Propietario", "19666666"]
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "nombre": "33-escalera-no-es-torre",
+  "descripcion": "El mismo padrón que el 32 pero con la agrupación llamada «Escalera», que es como la nombra media Guayaquil en edificios sin torres",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Es el caso 32 con otra palabra, así que espero que BLOQUEE igual. Si «Escalera» no está en la lista de agrupaciones, dos apartamentos «3-A» distintos entran como uno solo y el archivo pasa sin decir nada — que es peor que bloquear.",
+  "hojas": {
+    "PADRON": [
+      ["Escalera", "Departamento", "Nombre del residente", "Correo", "Rol"],
+      ["Escalera 1", "3-A", "Mariela Andrade", "mariela.andrade@ejemplo.vivaru.app", "Propietario"],
+      ["Escalera 1", "3-B", "Fabián Zambrano", "fabian.zambrano@ejemplo.vivaru.app", "Arrendatario"],
+      ["Escalera 2", "3-A", "Rocío Villacís", "rocio.villacis@ejemplo.vivaru.app", "Propietario"],
+      ["Escalera 2", "3-B", "Jonathan Cedeño", "jonathan.cedeno@ejemplo.vivaru.app", "Propietario"],
+      ["Escalera 3", "3-A", "Elsa Montenegro", "elsa.montenegro@ejemplo.vivaru.app", "Arrendatario"]
+    ]
+  }
+}

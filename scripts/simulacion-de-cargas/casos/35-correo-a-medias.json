@@ -1,0 +1,20 @@
+{
+  "nombre": "35-correo-a-medias",
+  "descripcion": "Padrón de un conjunto de Cumbayá donde la administración solo tiene el correo de la mitad de los residentes y dejó la celda vacía en el resto",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "El mapeo es correcto, así que espero un «entra limpio» — y ahí está el daño: el correo es OBLIGATORIO para nosotros y falta en cuatro de ocho filas. El problema no se ve hasta la revisión, cuando ya se cargó el archivo.",
+  "hojas": {
+    "Padrón": [
+      ["Unidad", "Nombre", "Correo electrónico", "Teléfono", "Rol"],
+      ["A-101", "Mariela Andrade", "mariela.andrade@ejemplo.vivaru.app", "0991111111", "Propietario"],
+      ["A-102", "Fabián Zambrano", "", "0992222222", "Arrendatario"],
+      ["A-103", "Rocío Villacís", "rocio.villacis@ejemplo.vivaru.app", "0993333333", "Propietario"],
+      ["B-201", "Jonathan Cedeño", "", "0994444444", "Propietario"],
+      ["B-202", "Elsa Montenegro", "elsa.montenegro@ejemplo.vivaru.app", "0995555555", "Arrendatario"],
+      ["B-203", "Wilson Chiriboga", "", "0996666666", "Propietario"],
+      ["C-301", "Nataly Paredes", "nataly.paredes@ejemplo.vivaru.app", "0997777777", "Propietario"],
+      ["C-302", "Byron Loaiza", "", "0998888888", "Arrendatario"]
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "nombre": "44-titulo-en-dos-celdas",
+  "descripcion": "Título de administración repartido en DOS celdas en vez de una, que es justo lo que la detección de preámbulo no cubre",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Debe ENGAÑARLA, y es un límite conocido que quiero ver medido: `filaDeEncabezados` salta lo que tiene menos de dos celdas con texto, y esta fila de título tiene dos, así que devuelve 0 y el título pasa a ser el encabezado. Los encabezados de verdad bajan a fila de datos. Espero un mapeo roto y obligatorios en rojo (✘ FALTAN), que es como se manifiesta en el 01, con `filasDePreambulo: 0`.",
+  "hojas": {
+    "Padrón": [
+      ["PADRÓN GENERAL DE RESIDENTES", "Conjunto Altos del Sauce", "", "", ""],
+      ["", "", "", "", ""],
+      ["Unidad", "Nombre", "Correo", "Teléfono", "Rol"],
+      ["T1-101", "Ana Restrepo", "ana.restrepo@ejemplo.vivaru.app", "3101234567", "propietario"],
+      ["T1-102", "Bruno Villalba", "bruno.villalba@ejemplo.vivaru.app", "3107654321", "inquilino"],
+      ["T2-201", "Celia Márquez", "celia.marquez@ejemplo.vivaru.app", "3109998877", "propietario"],
+      ["T2-202", "Darío Fonseca", "dario.fonseca@ejemplo.vivaru.app", "3102223344", "inquilino"]
+    ]
+  }
+}

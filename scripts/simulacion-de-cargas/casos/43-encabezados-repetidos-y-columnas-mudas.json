@@ -1,0 +1,16 @@
+{
+  "nombre": "43-encabezados-repetidos-y-columnas-mudas",
+  "descripcion": "Dos columnas «Nombre» y dos «Teléfono», una columna entera vacía, y una columna con datos pero SIN encabezado",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "`desambiguar` debe renombrar los duplicados a «Nombre (2)» y «Teléfono (2)», y las dos columnas sin encabezado a «(sin nombre)» y «(sin nombre) (2)». Ninguna de las cuatro se va a mapear, así que espero ⚠ con 4 columnas sin usar. Lo que me interesa medir no es el renombrado sino el precio: el segundo «Nombre» es UNA PERSONA de esa unidad y el segundo «Teléfono» es su celular, y los dos se caen del archivo con el único aviso de un contador de columnas que no dice qué se pierde.",
+  "hojas": {
+    "padron": [
+      ["Unidad", "Nombre", "Nombre", "", "Correo", "Teléfono", "Teléfono", "", "Rol"],
+      ["T1-101", "Ana Restrepo", "Bruno Villalba", "", "ana.restrepo@ejemplo.vivaru.app", "6011234567", "3101234567", "0,0212", "propietario"],
+      ["T1-102", "Celia Márquez", "", "", "celia.marquez@ejemplo.vivaru.app", "6017654321", "3107654321", "0,0195", "inquilino"],
+      ["T2-201", "Darío Fonseca", "Elena Quiroga", "", "dario.fonseca@ejemplo.vivaru.app", "6019998877", "3109998877", "0,0231", "propietario"],
+      ["T2-202", "Fabián Ocampo", "", "", "fabian.ocampo@ejemplo.vivaru.app", "6012223344", "3102223344", "0,0188", "inquilino"]
+    ]
+  }
+}

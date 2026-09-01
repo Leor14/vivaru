@@ -1,0 +1,29 @@
+{
+  "nombre": "41-hoja-buena-la-tercera",
+  "descripcion": "Libro de cuatro hojas donde la buena es la TERCERA: «Instrucciones», «Saldos», «Datos» y una «Hoja1» vacía al final",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "«Hoja1» está vacía y debe DESAPARECER de la lista, no ofrecerse. «Instrucciones» tiene una sola celda por fila, así que su primera línea acabará de encabezado y la hoja se ofrecerá igual — basura, pero ofrecida. «Saldos» es la trampa: su «Estado de cuenta» contiene «estado», así que va a resolver un obligatorio por contención y quedarse a uno de ganar. Espero que `pickBestSheet` elija «Datos» porque es la única con cero obligatorios sin resolver.",
+  "hojas": {
+    "Instrucciones": [
+      ["INSTRUCCIONES DE DILIGENCIAMIENTO"],
+      ["1. No modifique los encabezados de la hoja Datos."],
+      ["2. Envíe el archivo a la administración antes del 5 de cada mes."]
+    ],
+    "Saldos": [
+      ["Unidad", "Estado de cuenta", "Saldo anterior", "Saldo actual"],
+      ["T1-101", "Al día", "0", "0"],
+      ["T1-102", "En mora", "180000", "360000"],
+      ["T2-201", "Al día", "0", "0"]
+    ],
+    "Datos": [
+      ["Inmueble", "Torre", "Tipo", "Estado"],
+      ["T1-101", "Torre 1", "Apartamento", "Activo"],
+      ["T1-102", "Torre 1", "Apartamento", "Activo"],
+      ["P-014", "Torre 1", "Parqueadero", "Activo"],
+      ["B-007", "Torre 2", "Bodega", "Inactivo"],
+      ["T2-201", "Torre 2", "Apartamento", "Activo"]
+    ],
+    "Hoja1": []
+  }
+}

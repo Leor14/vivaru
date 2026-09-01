@@ -1,0 +1,19 @@
+{
+  "nombre": "36-predio-y-manzana-lima",
+  "descripcion": "Padrón de predios de un condominio de Lima: «Mz. / Lote» como agrupación, «Interior» como número de predio y «Uso» como destino",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "Ninguna de las tres palabras peruanas está en el catálogo. Espero que «Situación» se reconozca por su contenido y que «Interior» y «Uso» haya que mapearlas a mano — pedirlo está bien, adivinarlas mal no. Ojo: el interior se repite entre lotes, así que mapear «Interior» a Nombre crea dos unidades «101».",
+  "csv": { "separador": ";" },
+  "hojas": {
+    "predios": [
+      ["Mz. / Lote", "Interior", "Uso", "Situación", "Área (m2)"],
+      ["Mz. A - Lt. 1", "101", "Departamento", "Activo", "72,00"],
+      ["Mz. A - Lt. 1", "102", "Departamento", "Activo", "72,00"],
+      ["Mz. A - Lt. 2", "101", "Departamento", "Activo", "68,50"],
+      ["Mz. A - Lt. 2", "102", "Departamento", "Activo", "68,50"],
+      ["Mz. B - Lt. 1", "E-01", "Estacionamiento", "Activo", "12,00"],
+      ["Mz. B - Lt. 1", "D-01", "Depósito", "Inactivo", "6,00"]
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "nombre": "42-totales-al-final-y-subtotal-en-medio",
+  "descripcion": "Listado de unidades con subtotal EN MEDIO, una fila que se ve en blanco pero no lo está, y fila de TOTAL al final",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "Las tres filas de adorno entran como si fueran unidades. Ninguna comprobación las puede ver: `muestraDe` salta las celdas vacías, así que «Tipo» y «Estado» siguen encajando al 100% aunque las tres filas basura los tengan vacíos, y el bloqueo por cardinalidad solo salta si TODOS los valores son iguales. La fila «,,,» tampoco la salta papaparse, porque `skipEmptyLines: true` solo descarta la línea literalmente vacía. Espero ✔ entra limpio con TRES unidades basura dentro y ni un aviso.",
+  "hojas": {
+    "padron": [
+      ["Unidad", "Torre", "Tipo", "Estado"],
+      ["T1-101", "Torre 1", "Apartamento", "Activo"],
+      ["T1-102", "Torre 1", "Apartamento", "Activo"],
+      ["SUBTOTAL TORRE 1", "2 unidades", "", ""],
+      ["T2-201", "Torre 2", "Apartamento", "Activo"],
+      ["T2-202", "Torre 2", "Casa", "Activo"],
+      ["", "", "", ""],
+      ["TOTAL", "4 unidades", "", ""]
+    ]
+  }
+}

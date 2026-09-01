@@ -1,0 +1,15 @@
+{
+  "nombre": "00-control-limpio",
+  "descripcion": "Padrón impecable, el que sale de nuestra propia plantilla",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Entra limpio, sin columnas sin usar. Es el CONTROL: si este falla, el banco está roto, no el producto.",
+  "hojas": {
+    "padron": [
+      ["nombre", "email", "telefono", "documento", "unidad", "rol"],
+      ["Ana Pérez", "ana@correo.com", "3001112233", "51234567", "T1-101", "propietario"],
+      ["Luis Gómez", "luis@correo.com", "3004445566", "79876543", "T1-102", "inquilino"],
+      ["Carla Soto", "carla@correo.com", "3007778899", "1020304050", "T2-201", "propietario"]
+    ]
+  }
+}

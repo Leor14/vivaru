@@ -1,0 +1,18 @@
+{
+  "nombre": "25-privada-sin-correo",
+  "descripcion": "Padrón de una privada de casas que NO tiene columna de correo: la administración solo guarda teléfonos",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "El correo es obligatorio y aquí no existe ninguna columna que lo contenga. Espero un «✘ FALTAN: Correo electrónico» que obligue a la persona a decidir qué hacer, y que de paso «Casa» se reconozca como la unidad. Que entrara limpio sería lo peor posible.",
+  "hojas": {
+    "Padrón": [
+      ["Casa", "Propietario", "Teléfono celular", "Teléfono de casa", "Calidad"],
+      ["Casa 12", "Renata Ochoa Villalobos", "5512340001", "5555010001", "Propietario"],
+      ["Casa 14", "Ignacio Barrera Fuentes", "5512340002", "", "Propietario"],
+      ["Casa 16", "Sofía Quintanilla Ordaz", "5512340003", "5555010003", "Arrendatario"],
+      ["Casa 18", "Bruno Zepeda Iturbe", "5512340004", "5555010004", "Propietario"],
+      ["Casa 20", "Lucero Madrigal Cifuentes", "5512340005", "", "Arrendatario"],
+      ["Casa 22", "Gerardo Nieto Balderas", "5512340006", "5555010006", "Propietario"]
+    ]
+  }
+}

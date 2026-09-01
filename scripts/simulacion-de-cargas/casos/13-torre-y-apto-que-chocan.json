@@ -1,0 +1,18 @@
+{
+  "nombre": "13-torre-y-apto-que-chocan",
+  "descripcion": "El mismo padrón que el 12 pero con la columna llamada «Torre», que es el nombre que el catálogo sí conoce",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Bloquea: «Torre» queda sin usar y el 101 aparece en dos torres, así que dos unidades entrarían como una. Es el gemelo del caso 12 y existe para medir si la protección depende de la PALABRA o del problema.",
+  "hojas": {
+    "padron": [
+      ["Torre", "Apto", "Nombre", "Correo", "Rol"],
+      ["1", "101", "Ana Restrepo", "ana@correo.com", "Propietario"],
+      ["1", "102", "Jairo Villalba", "jairo@correo.com", "Propietario"],
+      ["1", "201", "Marta Ocampo", "marta@correo.com", "Arrendatario"],
+      ["2", "101", "Diego Quintero", "diego@correo.com", "Propietario"],
+      ["2", "102", "Yuly Bermúdez", "yuly@correo.com", "Propietario"],
+      ["2", "201", "Hernán Cárdenas", "hernan@correo.com", "Arrendatario"]
+    ]
+  }
+}

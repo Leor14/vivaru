@@ -1,0 +1,18 @@
+{
+  "nombre": "12-interior-y-apto",
+  "descripcion": "Conjunto bogotano por interiores: «Interior» y «Apto» en columnas separadas, con el 101 repetido en dos interiores",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Debería bloquear igual que si la columna se llamara «Torre»: «Interior» es la misma idea con el nombre que se usa en Bogotá, y el 101 del Interior 1 y el del Interior 2 son dos apartamentos distintos. Si no lo bloquea, seis personas entran en cuatro unidades y nadie se entera.",
+  "hojas": {
+    "PADRON": [
+      ["Interior", "Apto", "Nombre del propietario", "Correo", "Celular", "Rol"],
+      ["1", "101", "Ana Restrepo", "ana@correo.com", "3001112233", "Propietario"],
+      ["1", "102", "Jairo Villalba", "jairo@correo.com", "3001112234", "Propietario"],
+      ["1", "201", "Marta Ocampo", "marta@correo.com", "3001112235", "Arrendatario"],
+      ["2", "101", "Diego Quintero", "diego@correo.com", "3001112236", "Propietario"],
+      ["2", "102", "Yuly Bermúdez", "yuly@correo.com", "3001112237", "Propietario"],
+      ["2", "201", "Hernán Cárdenas", "hernan@correo.com", "3001112238", "Arrendatario"]
+    ]
+  }
+}

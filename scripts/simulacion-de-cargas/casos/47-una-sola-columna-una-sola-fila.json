@@ -1,0 +1,13 @@
+{
+  "nombre": "47-una-sola-columna-una-sola-fila",
+  "descripcion": "El suelo del formato: UNA columna y UNA fila de datos, las dos rarezas a la vez",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Un archivo de una columna no puede tener ninguna fila con dos celdas con texto, así que `filaDeEncabezados` agota su barrido y cae al `return 0` — el archivo debe entrar y NO tratarse el encabezado como preámbulo. Y con una sola fila de datos `variedad` devuelve `null` (exige dos valores) y la pasada 4 ni corre (exige `rows.length > 1`): el archivo pierde de golpe TODOS los avisos de cardinalidad y el último recurso del mapeo. Espero ✘ FALTAN Correo electrónico, Unidad y Rol.",
+  "hojas": {
+    "padron": [
+      ["Nombre"],
+      ["Ana Restrepo"]
+    ]
+  }
+}

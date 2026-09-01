@@ -1,0 +1,18 @@
+{
+  "nombre": "26-privadas-y-cuotas",
+  "descripcion": "Inventario de casas agrupadas por «Privada», con cuota e indiviso al lado",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "«Privada» es la agrupación mexicana y no está entre los alias de torre, así que espero perderla y que Torre quede vacía. Lo que temo es peor: que el hueco lo llene «Cuota», que repite valores como los repetiría una torre, y que nadie lo avise.",
+  "hojas": {
+    "Casas": [
+      ["Privada", "Núm. de casa", "Tipo", "Estatus", "Cuota", "Indiviso"],
+      ["Privada 1", "12", "Casa", "Activo", "$1,900.00", "1.6200"],
+      ["Privada 1", "14", "Casa", "Activo", "$1,900.00", "1.6200"],
+      ["Privada 2", "3", "Casa", "Activo", "$2,300.00", "1.9400"],
+      ["Privada 2", "5", "Casa", "Activo", "$2,300.00", "1.9400"],
+      ["Privada 3", "21", "Casa", "Activo", "$1,900.00", "1.6200"],
+      ["Privada 3", "23", "Casa", "Activo", "$2,300.00", "1.9400"]
+    ]
+  }
+}

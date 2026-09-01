@@ -1,0 +1,18 @@
+{
+  "nombre": "20-fraccionamiento-tres-nombres",
+  "descripcion": "Padrón de fraccionamiento mexicano con el nombre partido en tres columnas y vocabulario local: «Mail», «Móvil», «Carácter»",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Los dos apellidos se pierden en silencio —solo entra el nombre de pila—, y ni «Mail» ni «Móvil» están entre los alias, así que el correo obligatorio debería quedar sin resolver y pedirse a mano. Lo que temo es que el hueco lo rellene la pasada de variedad con la columna que sea y el archivo entre igual.",
+  "hojas": {
+    "Padrón": [
+      ["Casa", "Nombre(s)", "Apellido Paterno", "Apellido Materno", "Mail", "Móvil", "Carácter"],
+      ["Casa 12", "Renata", "Villalobos", "Argüello", "renata.villalobos@ejemplo.vivaru.app", "5512340001", "Propietario"],
+      ["Casa 14", "Ignacio", "Barrera", "Fuentes", "ignacio.barrera@ejemplo.vivaru.app", "5512340002", "Propietario"],
+      ["Casa 16", "Sofía", "Quintanilla", "Ordaz", "sofia.quintanilla@correo.com", "5512340003", "Arrendatario"],
+      ["Casa 18", "Bruno", "Zepeda", "Iturbe", "bruno.zepeda@correo.com", "5512340004", "Propietario"],
+      ["Casa 20", "Lucero", "Madrigal", "Cifuentes", "lucero.madrigal@ejemplo.vivaru.app", "5512340005", "Arrendatario"],
+      ["Casa 22", "Gerardo", "Nieto", "Balderas", "gerardo.nieto@correo.com", "5512340006", "Propietario"]
+    ]
+  }
+}

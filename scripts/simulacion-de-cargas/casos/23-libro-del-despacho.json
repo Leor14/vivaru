@@ -1,0 +1,31 @@
+{
+  "nombre": "23-libro-del-despacho",
+  "descripcion": "Libro del despacho contable con «Resumen» y «Saldos» delante del padrón bueno, y RFC/CURP al final",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Debería descartar «Resumen» y «Saldos al 31-ago» y quedarse con «Padrón», que es la única hoja que resuelve los cuatro obligatorios. «Correo-e» y «Depto.» deberían reconocerse por contención; «Cel.», RFC y CURP no mapean a nada y se pierden en silencio, y el teléfono es justo el dato con el que se cobra en México.",
+  "hojas": {
+    "Resumen": [
+      ["Concepto", "Importe"],
+      ["Total de departamentos", "48"],
+      ["Cuota mensual", "$2,850.00"],
+      ["Adeudo total", "$182,400.00"]
+    ],
+    "Saldos al 31-ago": [
+      ["Depto", "Condómino", "Saldo", "Días"],
+      ["101", "Renata Ochoa Villalobos", "$1,240.00", "22"],
+      ["102", "Ignacio Barrera Fuentes", "$0.00", "0"],
+      ["201", "Sofía Quintanilla Ordaz", "$3,180.00", "46"],
+      ["202", "Bruno Zepeda Iturbe", "$0.00", "0"]
+    ],
+    "Padrón": [
+      ["Depto.", "Nombre completo", "Correo-e", "Cel.", "Calidad", "RFC", "CURP"],
+      ["101", "Renata Ochoa Villalobos", "renata.ochoa@ejemplo.vivaru.app", "5512340001", "Propietario", "EJEM010101AA1", "EJEM010101MDFXXX01"],
+      ["102", "Ignacio Barrera Fuentes", "ignacio.barrera@ejemplo.vivaru.app", "5512340002", "Arrendatario", "EJEM010101AA2", "EJEM010101HDFXXX02"],
+      ["201", "Sofía Quintanilla Ordaz", "sofia.quintanilla@correo.com", "5512340003", "Propietario", "EJEM010101AA3", "EJEM010101MDFXXX03"],
+      ["202", "Bruno Zepeda Iturbe", "bruno.zepeda@correo.com", "5512340004", "Propietario", "EJEM010101AA4", "EJEM010101HDFXXX04"],
+      ["301", "Lucero Madrigal Cifuentes", "lucero.madrigal@ejemplo.vivaru.app", "5512340005", "Arrendatario", "EJEM010101AA5", "EJEM010101MDFXXX05"],
+      ["302", "Gerardo Nieto Balderas", "gerardo.nieto@correo.com", "5512340006", "Propietario", "EJEM010101AA6", "EJEM010101HDFXXX06"]
+    ]
+  }
+}

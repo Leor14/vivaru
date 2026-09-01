@@ -1,0 +1,18 @@
+{
+  "nombre": "16-parqueaderos-y-bodegas",
+  "descripcion": "Inventario de unidades con parqueaderos, bodegas y un local comercial, con los sinónimos que usa la administración",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "Entra: parqueadero y bodega son tipos válidos desde el 1 sep 2026, y garaje y depósito son sus sinónimos. «Local comercial» no está en la tabla de alias, así que espero un aviso de que una fila de seis no se va a poder tipificar.",
+  "hojas": {
+    "unidades": [
+      ["unidad", "tipo", "estado", "torre"],
+      ["T1-101", "APARTAMENTO", "Activo", "T1"],
+      ["P-12", "PARQUEADERO", "Activo", "SÓTANO"],
+      ["B-04", "BODEGA", "Activo", "SÓTANO"],
+      ["G-07", "GARAJE", "Activo", "SÓTANO"],
+      ["D-02", "DEPÓSITO", "Activo", "SÓTANO"],
+      ["L-01", "LOCAL COMERCIAL", "Activo", "T1"]
+    ]
+  }
+}

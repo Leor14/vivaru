@@ -1,0 +1,18 @@
+{
+  "nombre": "27-calidad-juridica",
+  "descripcion": "Padrón con la columna de rol en vocabulario de la Ley de Propiedad en Condominio: «Condómino», «Poseedor», «Usufructuario»",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Solo «Arrendatario» es un rol que el producto conoce; «Condómino», «Poseedor» y «Usufructuario» no. Espero que aun así reconozca «Calidad jurídica» como el rol y avise de que cinco de seis filas traen un valor que no acepta. Si no la reconoce, pedirá el Rol a mano sin explicar por qué.",
+  "hojas": {
+    "Padrón": [
+      ["Depto.", "Condómino", "Calidad jurídica", "Correo electrónico", "Celular"],
+      ["101", "Renata Ochoa Villalobos", "Condómino", "renata.ochoa@ejemplo.vivaru.app", "5512340001"],
+      ["102", "Ignacio Barrera Fuentes", "Poseedor", "ignacio.barrera@correo.com", "5512340002"],
+      ["201", "Sofía Quintanilla Ordaz", "Arrendatario", "sofia.quintanilla@ejemplo.vivaru.app", "5512340003"],
+      ["202", "Bruno Zepeda Iturbe", "Condómino", "bruno.zepeda@correo.com", "5512340004"],
+      ["301", "Lucero Madrigal Cifuentes", "Usufructuario", "lucero.madrigal@ejemplo.vivaru.app", "5512340005"],
+      ["302", "Gerardo Nieto Balderas", "Condómino", "gerardo.nieto@correo.com", "5512340006"]
+    ]
+  }
+}

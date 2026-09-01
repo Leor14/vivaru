@@ -1,0 +1,18 @@
+{
+  "nombre": "48-veinticinco-columnas-seis-utiles",
+  "descripcion": "Export de sistema viejo con 25 columnas de las que solo 6 nos importan, y dos pares de columnas que compiten por el mismo alias",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Ancho no debería ser un problema, pero aquí hay dos trampas colocadas a propósito y espero que las dos MUERDAN. La pasada 3 se queda con el alias MÁS LARGO que encaje y solo sustituye si el nuevo es estrictamente más largo, así que ante un empate gana el que aparezca ANTES en el archivo: «Nombre del edificio» está antes que «Nombre completo» y los dos casan con «nombre» (6 letras), y «Tipo de documento» está antes que «Número de documento» y los dos casan con «documento» (9). Espero que el nombre de la persona acabe siendo el del edificio y el número de documento acabe siendo «Cédula de ciudadanía». Y espero que NADIE lo avise: el bloqueo por cardinalidad solo salta si la columna tiene UN valor distinto, y aquí hay dos edificios. «Calidad en que actúa» sí debería resolverse por contenido, que es la pasada 2 haciendo bien su trabajo. Veredicto esperado: ⚠ entra con 19 columnas sin usar y dos campos mal, en silencio.",
+  "hojas": {
+    "Base de datos": [
+      ["Consecutivo", "Código interno", "Nombre del edificio", "Torre", "Piso", "Número de apartamento", "Coeficiente de copropiedad", "Nombre completo", "Tipo de documento", "Número de documento", "Correo electrónico", "Teléfono fijo", "Teléfono celular", "Dirección de correspondencia", "Ciudad", "Fecha de ingreso", "Calidad en que actúa", "Saldo anterior", "Cuota de administración", "Cuota extraordinaria", "Intereses de mora", "Saldo total", "Placa vehículo 1", "Placa vehículo 2", "Observaciones"],
+      ["1", "INT-0001", "Edificio Norte", "Torre 1", "1", "101", "0,0212", "Ana Restrepo", "Cédula de ciudadanía", "51234567", "ana.restrepo@ejemplo.vivaru.app", "6011234567", "3101234567", "Calle 12 # 4-56", "Bogotá", "2019-03-04", "propietario", "0", "180000", "0", "0", "180000", "ABC123", "", ""],
+      ["2", "INT-0002", "Edificio Norte", "Torre 1", "1", "102", "0,0195", "Bruno Villalba", "Cédula de ciudadanía", "79876543", "bruno.villalba@ejemplo.vivaru.app", "6017654321", "3107654321", "Calle 12 # 4-58", "Bogotá", "2020-07-15", "inquilino", "180000", "180000", "0", "5400", "365400", "DEF456", "GHI789", "Autoriza notificación por correo"],
+      ["3", "INT-0003", "Edificio Norte", "Torre 1", "2", "201", "0,0231", "Celia Márquez", "Cédula de extranjería", "1020304050", "celia.marquez@ejemplo.vivaru.app", "6019998877", "3109998877", "Carrera 7 # 90-11", "Bogotá", "2018-11-30", "propietario", "0", "180000", "45000", "0", "225000", "", "", ""],
+      ["4", "INT-0004", "Edificio Sur", "Torre 2", "2", "202", "0,0188", "Darío Fonseca", "Cédula de ciudadanía", "43210987", "dario.fonseca@ejemplo.vivaru.app", "6012223344", "3102223344", "Calle 12 # 4-60", "Bogotá", "2021-01-08", "inquilino", "0", "180000", "0", "0", "180000", "JKL012", "", ""],
+      ["5", "INT-0005", "Edificio Sur", "Torre 2", "3", "301", "0,0204", "Elena Quiroga", "Pasaporte", "AV345678", "elena.quiroga@ejemplo.vivaru.app", "6014445566", "3104445566", "Avenida 68 # 20-30", "Bogotá", "2022-05-19", "propietario", "360000", "180000", "0", "10800", "550800", "MNO345", "", "Envía pagos desde el exterior"],
+      ["6", "INT-0006", "Edificio Sur", "Torre 2", "3", "302", "0,0177", "Fabián Ocampo", "Cédula de ciudadanía", "60112233", "fabian.ocampo@ejemplo.vivaru.app", "6017778899", "3107778899", "Calle 12 # 4-62", "Bogotá", "2023-09-02", "propietario", "0", "180000", "0", "0", "180000", "", "", ""]
+    ]
+  }
+}

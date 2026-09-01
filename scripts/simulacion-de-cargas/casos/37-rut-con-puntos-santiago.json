@@ -1,0 +1,17 @@
+{
+  "nombre": "37-rut-con-puntos-santiago",
+  "descripcion": "Padrón de copropietarios de Santiago: «Torre», «Depto», «RUT» con punto de miles y guion, «Mail» y «Calidad»",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Espero que BLOQUEE por «Torre» + «Depto», que es el mismo defecto del 32 con vocabulario chileno. Y espero que «Mail» se reconozca como correo y que el RUT con puntos quede sin usar: no es alias de Documento.",
+  "hojas": {
+    "Copropietarios": [
+      ["Torre", "Depto", "Nombre", "RUT", "Mail", "Calidad"],
+      ["Torre 1", "301", "Javiera Rojas", "11.111.111-1", "javiera.rojas@ejemplo.vivaru.app", "Propietario"],
+      ["Torre 1", "302", "Matías Fuentes", "22.222.222-2", "matias.fuentes@ejemplo.vivaru.app", "Arrendatario"],
+      ["Torre 2", "301", "Camila Tapia", "33.333.333-3", "camila.tapia@ejemplo.vivaru.app", "Propietario"],
+      ["Torre 2", "302", "Diego Salas", "44.444.444-4", "diego.salas@ejemplo.vivaru.app", "Arrendatario"],
+      ["Torre 3", "301", "Fernanda Lillo", "55.555.555-5", "fernanda.lillo@ejemplo.vivaru.app", "Propietario"]
+    ]
+  }
+}

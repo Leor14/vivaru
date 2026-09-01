@@ -1,0 +1,18 @@
+{
+  "nombre": "11-nombres-y-apellidos",
+  "descripcion": "Excel hecho a mano por la administradora: el nombre partido en «Apellidos» y «Nombres», con «C.C.» y «Cel» abreviados",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Espero que reconozca la unidad, el correo y el rol, y que se quede sin saber qué hacer con «Apellidos», «C.C.» y «Cel». Lo grave sería que mapeara «Nombres» al nombre completo y diera el archivo por bueno: entrarían ocho personas sin apellido, sin cédula y sin teléfono, y el aviso solo hablaría de columnas sin usar.",
+  "hojas": {
+    "padron": [
+      ["Apellidos", "Nombres", "C.C.", "Cel", "Correo electrónico", "Apto", "Rol"],
+      ["Restrepo Gaviria", "Ana Lucía", "51111111", "3001112233", "ana@correo.com", "T1-101", "Propietario"],
+      ["Villalba Ruiz", "Jairo Andrés", "79222222", "3001112234", "jairo@correo.com", "T1-102", "Arrendatario"],
+      ["Ocampo Zapata", "Marta Cecilia", "41333333", "3001112235", "marta@correo.com", "T1-201", "Propietario"],
+      ["Quintero Nieto", "Diego Fernando", "80444444", "3001112236", "diego@correo.com", "T1-202", "Propietario"],
+      ["Bermúdez Lozano", "Yuly Paola", "52555555", "3001112237", "yuly@correo.com", "T2-101", "Arrendatario"],
+      ["Cárdenas Pineda", "Hernán Darío", "19666666", "3001112238", "hernan@correo.com", "T2-102", "Propietario"]
+    ]
+  }
+}

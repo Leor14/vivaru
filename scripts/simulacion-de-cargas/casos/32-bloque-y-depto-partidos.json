@@ -1,0 +1,17 @@
+{
+  "nombre": "32-bloque-y-depto-partidos",
+  "descripcion": "Padrón de personas de un conjunto de Quito con la unidad partida en «Bloque» y «Depto», y el mismo número de depto repetido en tres bloques",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Debe BLOQUEAR. «Bloque» es la palabra ecuatoriana de torre y está en el catálogo, así que la fusión se tiene que ver: si entra, cinco personas de tres bloques distintos acaban en dos apartamentos.",
+  "hojas": {
+    "Residentes": [
+      ["Bloque", "Depto", "Nombre", "Correo", "Rol"],
+      ["Bloque A", "3-A", "Mariela Andrade", "mariela.andrade@ejemplo.vivaru.app", "Propietario"],
+      ["Bloque A", "3-B", "Fabián Zambrano", "fabian.zambrano@ejemplo.vivaru.app", "Arrendatario"],
+      ["Bloque B", "3-A", "Rocío Villacís", "rocio.villacis@ejemplo.vivaru.app", "Propietario"],
+      ["Bloque B", "3-B", "Jonathan Cedeño", "jonathan.cedeno@ejemplo.vivaru.app", "Propietario"],
+      ["Bloque C", "3-A", "Elsa Montenegro", "elsa.montenegro@ejemplo.vivaru.app", "Arrendatario"]
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "nombre": "40-bom-crlf-punto-y-coma",
+  "descripcion": "El CSV español de Excel: BOM UTF-8, CRLF y punto y coma, con documento y teléfono guardados como texto con ceros a la izquierda",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "El fallo clásico sería que el BOM se pegue a «Unidad» y lo vuelva irreconocible: el lector no lo quita en ninguna parte. Espero que NO pase, y por ACCIDENTE — `File.text()` decodifica UTF-8 según la norma y se come el BOM, y además `desambiguar` hace `h.trim()`, que en JavaScript borra U+FEFF. Dos defensas y ninguna escrita para esto. El punto y coma lo tiene que adivinar papaparse solo, y el CRLF debe darle igual. Los ceros a la izquierda deben sobrevivir porque en la ruta CSV todo es texto. Espero ✔ entra limpio.",
+  "hojas": {
+    "padron": [
+      ["Unidad", "Nombre", "Correo", "Teléfono", "Documento", "Rol"],
+      ["T1-101", "Ana Restrepo", "ana.restrepo@ejemplo.vivaru.app", "0311234567", "0012345678", "propietario"],
+      ["T1-102", "Bruno Villalba", "bruno.villalba@ejemplo.vivaru.app", "0316549870", "0098765432", "inquilino"],
+      ["T2-201", "Celia Márquez", "celia.marquez@ejemplo.vivaru.app", "0319998877", "0001122334", "propietario"],
+      ["T2-202", "Darío Fonseca", "dario.fonseca@ejemplo.vivaru.app", "0312223344", "0044556677", "inquilino"]
+    ]
+  },
+  "csv": { "bom": true, "eol": "\r\n", "separador": ";" }
+}

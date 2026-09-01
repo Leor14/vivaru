@@ -1,0 +1,20 @@
+{
+  "nombre": "10-padron-mixto-habitanto",
+  "descripcion": "Padrón mixto colombiano: la unidad y su propietario en una sola hoja, con coeficiente, estado de cuenta y saldo al lado",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "El número de apartamento vive en «APTO», que no es alias del nombre de la unidad, así que espero que falte el obligatorio y el asistente lo pida a mano; me temo que el rescate por variedad se lo invente con otra columna cualquiera. «ESTADO DE CUENTA» no debería confundirse con «ESTADO».",
+  "hojas": {
+    "Padrón": [
+      ["TORRE", "APTO", "TIPO", "COEFICIENTE (%)", "PROPIETARIO", "C.C.", "  CELULAR  ", "CORREO", "ESTADO", "ESTADO DE CUENTA", "SALDO"],
+      ["T1", "101", "Apartamento", "1,2500", "Ana Restrepo", "51111111", "3001112233", "ana@correo.com", "Activo", "Al día", "0"],
+      ["T1", "102", "Apartamento", "1,2500", "Jairo Villalba", "79222222", "3001112234", "jairo@correo.com", "Activo", "En mora", "480000"],
+      ["T1", "201", "Apartamento", "1,3800", "Marta Ocampo", "41333333", "3001112235", "marta@correo.com", "Activo", "Al día", "0"],
+      ["T1", "202", "Apartamento", "1,3800", "Diego Quintero", "80444444", "3001112236", "diego@correo.com", "Activo", "En mora", "1250000"],
+      ["T2", "101", "Apartamento", "1,2500", "Yuly Bermúdez", "52555555", "3001112237", "yuly@correo.com", "Activo", "Al día", "0"],
+      ["T2", "102", "Apartamento", "1,2500", "Hernán Cárdenas", "19666666", "3001112238", "hernan@correo.com", "Activo", "Al día", "0"],
+      ["SÓTANO", "P-01", "Parqueadero", "0,1500", "Liliana Pardo", "39777777", "3001112239", "liliana@correo.com", "Activo", "Al día", "0"],
+      ["SÓTANO", "B-01", "Bodega", "0,0900", "Óscar Trujillo", "17888888", "3001112240", "oscar@correo.com", "Activo", "Al día", "0"]
+    ]
+  }
+}

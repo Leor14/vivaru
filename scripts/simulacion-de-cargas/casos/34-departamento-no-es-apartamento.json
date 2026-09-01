@@ -1,0 +1,18 @@
+{
+  "nombre": "34-departamento-no-es-apartamento",
+  "descripcion": "Padrón de unidades de un edificio de Quito: planta baja, mezzanine y pisos, con la columna de tipo llamada «Detalle» y el valor escrito «Departamento», que es como se dice en Ecuador",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "«Departamento» es como el ecuatoriano llama al apartamento y el catálogo solo conoce «apartamento» y «apto», así que espero que «Detalle» NO se reconozca como Tipo y el asistente lo pida a mano. «Situación» sí debería reconocerse por su contenido.",
+  "hojas": {
+    "unidades": [
+      ["Unidad", "Detalle", "Situación", "Alícuota"],
+      ["PB-1", "Local", "Activo", "1,20%"],
+      ["PB-2", "Local", "Activo", "1,20%"],
+      ["Mezzanine 1", "Departamento", "Activo", "2,05%"],
+      ["3-A", "Departamento", "Activo", "2,05%"],
+      ["3-B", "Departamento", "Inactivo", "2,05%"],
+      ["PQ-01", "Parqueadero", "Activo", "0,35%"]
+    ]
+  }
+}

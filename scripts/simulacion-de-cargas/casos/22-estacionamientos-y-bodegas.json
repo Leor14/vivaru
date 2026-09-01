@@ -1,0 +1,18 @@
+{
+  "nombre": "22-estacionamientos-y-bodegas",
+  "descripcion": "Inventario mexicano que mezcla departamentos, estacionamientos y bodegas como unidades, con la cuota mensual al lado",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "«Bodega» sí está en la tabla de alias y «Estacionamiento» no («parqueadero» y «garaje» sí), así que 2 de 6 filas encajan: espero un aviso de duda sobre el tipo, no un bloqueo. Sospecho además que «Cuota mensual» se cuela como Torre porque repite valores, y eso nadie lo avisa.",
+  "hojas": {
+    "Inventario": [
+      ["Unidad", "Tipo de inmueble", "Estatus", "Cuota mensual"],
+      ["A-101", "Departamento", "Activo", "$2,850.00"],
+      ["A-102", "Departamento", "Activo", "$2,850.00"],
+      ["E-14", "Estacionamiento", "Activo", "$450.00"],
+      ["E-15", "Estacionamiento", "Activo", "$450.00"],
+      ["B-03", "Bodega", "Activo", "$300.00"],
+      ["B-04", "Bodega", "Activo", "$300.00"]
+    ]
+  }
+}

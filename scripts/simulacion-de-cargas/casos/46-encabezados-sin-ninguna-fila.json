@@ -1,0 +1,12 @@
+{
+  "nombre": "46-encabezados-sin-ninguna-fila",
+  "descripcion": "Plantilla descargada y devuelta sin diligenciar: tiene encabezados y CERO filas de datos",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "El lector lo tiene que rechazar, y hasta ahí bien. Lo que espero es que lo rechace con el mensaje EQUIVOCADO: `armarHoja` devuelve `null` tanto si no hay encabezados como si no hay cuerpo, y `leerCsv` solo sabe decir «El archivo no tiene una fila de encabezados» — que aquí es falso, la tiene. Quien lo lea irá a arreglar los encabezados, que son lo único correcto del archivo.",
+  "hojas": {
+    "padron": [
+      ["Unidad", "Torre", "Tipo", "Estado"]
+    ]
+  }
+}

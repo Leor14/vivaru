@@ -1,0 +1,19 @@
+{
+  "nombre": "31-cedula-y-ruc-guayaquil",
+  "descripcion": "Padrón de residentes de Guayaquil guardado desde Excel en español: BOM, punto y coma y CRLF, con «Identificación» que mezcla cédula de 10 dígitos y RUC de 13",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "El BOM y el punto y coma no deberían estorbar. Espero que «Identificación» quede SIN USAR —no es alias de Documento, y es como se titula esa columna en todo Ecuador—, y que «Copropietario» y «Apoderado» salgan como duda y no como bloqueo: son filas malas, no una columna equivocada.",
+  "csv": { "bom": true, "eol": "\r\n", "separador": ";" },
+  "hojas": {
+    "padron": [
+      ["Unidad", "Nombre completo", "Identificación", "Correo electrónico", "Celular", "Rol"],
+      ["A-101", "Mariela Andrade", "1111111111", "mariela.andrade@ejemplo.vivaru.app", "0991111111", "Propietario"],
+      ["A-102", "Fabián Zambrano", "2222222222", "fabian.zambrano@ejemplo.vivaru.app", "0992222222", "Arrendatario"],
+      ["B-201", "Comercial Guayas S.A.", "1111111111001", "contacto@ejemplo.vivaru.app", "0993333333", "Propietario"],
+      ["B-202", "Rocío Villacís", "3333333333", "rocio.villacis@ejemplo.vivaru.app", "0994444444", "Copropietario"],
+      ["B-203", "Jonathan Cedeño", "4444444444", "jonathan.cedeno@ejemplo.vivaru.app", "0995555555", "Apoderado"],
+      ["C-301", "Elsa Montenegro", "5555555555", "elsa.montenegro@ejemplo.vivaru.app", "0996666666", "Arrendatario"]
+    ]
+  }
+}

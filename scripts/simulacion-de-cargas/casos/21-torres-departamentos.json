@@ -1,0 +1,18 @@
+{
+  "nombre": "21-torres-departamentos",
+  "descripcion": "Inventario de unidades de un condominio de torres donde todas las unidades son «Departamento», la palabra mexicana",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Debería entrar: es un padrón de unidades impecable, con torre, tipo, estado e indiviso. Pero «departamento» no está en ALIAS_DE_TIPO (sí «apartamento»), y en México nadie escribe «apartamento»: si el tipo se juzga por contenido, ningún valor encaja y esto bloquea el archivo entero por una sola palabra.",
+  "hojas": {
+    "Unidades": [
+      ["Núm. Departamento", "Torre", "Tipo", "Situación", "Indiviso (%)"],
+      ["101", "Torre A", "Departamento", "Activo", "2.4500"],
+      ["102", "Torre A", "Departamento", "Activo", "2.4500"],
+      ["201", "Torre A", "Departamento", "Activo", "2.6100"],
+      ["202", "Torre B", "Departamento", "Activo", "2.6100"],
+      ["301", "Torre B", "Departamento", "Activo", "2.8700"],
+      ["302", "Torre B", "Departamento", "Activo", "2.8700"]
+    ]
+  }
+}

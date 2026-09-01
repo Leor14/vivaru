@@ -1,0 +1,17 @@
+{
+  "nombre": "01-titulo-encima",
+  "descripcion": "XLSX de administración con título y fila en blanco encima de los encabezados",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "El lector salta 2 filas de preámbulo y entra limpio. Antes del 1 sep 2026 convertía el título en encabezado.",
+  "hojas": {
+    "Padrón": [
+      ["PADRÓN GENERAL DE PROPIETARIOS — CONJUNTO LOS ROBLES", "", "", "", ""],
+      ["", "", "", "", ""],
+      ["Unidad", "Nombre", "Correo", "Teléfono", "Rol"],
+      ["T1-101", "Ana Pérez", "ana@correo.com", "3001112233", "propietario"],
+      ["T1-102", "Luis Gómez", "luis@correo.com", "3004445566", "inquilino"],
+      ["T2-201", "Carla Soto", "carla@correo.com", "3007778899", "propietario"]
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "nombre": "45-saltos-comillas-y-espacios-raros",
+  "descripcion": "Celdas con salto de línea y comillas dobles dentro, encabezados con espacios de más y espacios no separables (U+00A0) en el encabezado y dentro de un valor",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Los espacios sobrantes de los encabezados los quita el `trim()` de `desambiguar`, y el U+00A0 de los BORDES también, porque en JavaScript `trim()` lo cuenta como espacio. El salto de línea dentro de la celda debe sobrevivir sin partir la fila (papaparse respeta el entrecomillado) y las comillas dobles deben volver dobles. Lo que espero que ROMPA es el U+00A0 en MEDIO de un VALOR de rol: «propietario residente» no está en la lista de aceptados, así que `encaje` baja a 3/4 = 0,75 y debería salir un aviso de duda sobre una celda que en pantalla se ve exactamente igual que una correcta. El U+00A0 en medio del encabezado «Correo electrónico» debería salvarlo la pasada 3, por contención de «correo».",
+  "hojas": {
+    "padron": [
+      ["Unidad   ", " Nombre completo ", "Correo electrónico", "Teléfono", " Rol ", "Observaciones"],
+      ["T1-101", "Ana \"Anita\" Restrepo", "ana.restrepo@ejemplo.vivaru.app", "3101234567", "propietario residente", "Entregar la correspondencia\nen la portería norte."],
+      ["T1-102", "Bruno Villalba", "bruno.villalba@ejemplo.vivaru.app", "3107654321", "inquilino", ""],
+      ["T2-201", "Celia Márquez", "celia.marquez@ejemplo.vivaru.app", "3109998877", "propietario", "Tiene 2 parqueaderos:\nP-014 y P-015"],
+      ["T2-202", "Darío Fonseca", "dario.fonseca@ejemplo.vivaru.app", "3102223344", "inquilino", "Sin observaciones"]
+    ]
+  }
+}

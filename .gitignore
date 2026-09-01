@@ -61,3 +61,7 @@ datasets/evaluacion/resultados/*-simulado.json
 # Volcados de ESLint: son artefactos, y Tailwind los escanea como si fueran
 # codigo fuente porque llevan el fichero entero dentro de cada resultado.
 eslint-*.json
+
+# Archivos de prueba construidos por scripts/simulacion-de-cargas — se regeneran
+# desde sus especificaciones y no se versionan: son binarios y ruido en el diff.
+scripts/simulacion-de-cargas/generados/

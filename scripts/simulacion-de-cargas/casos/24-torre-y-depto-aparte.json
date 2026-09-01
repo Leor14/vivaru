@@ -1,0 +1,18 @@
+{
+  "nombre": "24-torre-y-depto-aparte",
+  "descripcion": "Padrón de condóminos con la torre y el número de departamento en columnas separadas, y el 101 repetido en tres torres",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "Debería BLOQUEAR, y con razón: «101» existe en las tres torres, así que importar solo el número metería a tres familias distintas en la misma unidad. Es el caso en el que el importador tiene que decir que no en vez de entrar limpio.",
+  "hojas": {
+    "Padrón": [
+      ["Torre", "Depto", "Nombre del propietario", "Correo", "Régimen"],
+      ["Torre A", "101", "Renata Ochoa Villalobos", "renata.ochoa@ejemplo.vivaru.app", "Propietario"],
+      ["Torre A", "102", "Ignacio Barrera Fuentes", "ignacio.barrera@correo.com", "Arrendatario"],
+      ["Torre B", "101", "Sofía Quintanilla Ordaz", "sofia.quintanilla@ejemplo.vivaru.app", "Propietario"],
+      ["Torre B", "201", "Bruno Zepeda Iturbe", "bruno.zepeda@correo.com", "Propietario"],
+      ["Torre C", "101", "Lucero Madrigal Cifuentes", "lucero.madrigal@ejemplo.vivaru.app", "Arrendatario"],
+      ["Torre C", "102", "Gerardo Nieto Balderas", "gerardo.nieto@correo.com", "Propietario"]
+    ]
+  }
+}

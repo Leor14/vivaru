@@ -1,0 +1,18 @@
+{
+  "nombre": "30-alicuotas-quito",
+  "descripcion": "Padrón de unidades de un conjunto de Quito con alícuota (con el % dentro de la celda) y área en m²",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Entra: «Bloque», «Unidad», «Tipo» y «Estado» se reconocen, y parqueadero y bodega ya son tipos válidos. «Alícuota» y «Área» quedan sin usar —no tenemos dónde guardarlas— y espero que el asistente lo diga en vez de perderlas en silencio.",
+  "hojas": {
+    "ALICUOTAS 2026": [
+      ["Bloque", "Unidad", "Tipo", "Estado", "Alícuota", "Área (m2)"],
+      ["A", "A-101", "Apartamento", "Activo", "2,45%", "78,50"],
+      ["A", "A-102", "Apartamento", "Activo", "2,45%", "78,50"],
+      ["B", "B-201", "Apartamento", "Activo", "3,10%", "95,00"],
+      ["A", "PQ-14", "Parqueadero", "Activo", "0,40%", "12,30"],
+      ["A", "BD-07", "Bodega", "Activo", "0,25%", "6,00"],
+      ["B", "B-202", "Apartamento", "Activo", "3,10%", "95,00"]
+    ]
+  }
+}

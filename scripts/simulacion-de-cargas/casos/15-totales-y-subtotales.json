@@ -1,0 +1,18 @@
+{
+  "nombre": "15-totales-y-subtotales",
+  "descripcion": "Padrón con saldo que trae una fila de subtotal por torre en medio y una de TOTAL GENERAL al final",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "Espero que meta el subtotal y el total como dos personas más, porque nada las distingue de una fila de datos. Deberían descartarse o al menos contarse aparte: quien revisa ve «6 filas» donde hay cuatro personas.",
+  "hojas": {
+    "Cartera": [
+      ["APTO", "NOMBRE", "CORREO", "CELULAR", "ROL", "SALDO"],
+      ["T1-101", "Ana Restrepo", "ana@correo.com", "3001112233", "Propietario", "0"],
+      ["T1-102", "Jairo Villalba", "jairo@correo.com", "3001112234", "Arrendatario", "480000"],
+      ["SUBTOTAL TORRE 1", "", "", "", "", "480000"],
+      ["T2-201", "Marta Ocampo", "marta@correo.com", "3001112235", "Propietario", "0"],
+      ["T2-202", "Diego Quintero", "diego@correo.com", "3001112236", "Propietario", "1250000"],
+      ["TOTAL GENERAL", "", "", "", "", "1730000"]
+    ]
+  }
+}
