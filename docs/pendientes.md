@@ -41,6 +41,35 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **3 · EL TOPE DE GASTO DE LA IA sigue sin mirarse.** Van quince días. Eso lo miras tú, en la
 > consola.
 
+> **VERIFICADA OTRA VEZ, Y POR UNA VÍA MEJOR (1 sep, cuarta pasada).** `updateTime` prueba que
+> **hubo** un despliegue; **no prueba QUÉ código corre** — y aquí importaba, porque esta misma
+> ficha anota una rareza: la función ya estaba en `DEPLOYING` desde un origen desconocido cuando
+> se tomó la línea base. **Se resolvió bajando el fuente que GCP construyó y comparándolo:**
+>
+> ```bash
+> # el objeto sale de buildConfig.source.storageSource de la API de Cloud Functions
+> curl -s -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+>   "https://storage.googleapis.com/storage/v1/b/<bucket>/o/<objeto>?alt=media&generation=<gen>" \
+>   -o fuente.zip
+> unzip -p fuente.zip lib/import/telemetria.js | diff - functions/lib/import/telemetria.js
+> ```
+>
+> **Cero diferencias en `telemetria.js` y en `gateway.js`**, y `ACTIVE` con revisión
+> `registrarimportacion-00014-pal`. Lo que corre en producción es exactamente este árbol, y la
+> rareza queda cerrada. **Es la respuesta a «un despliegue que miente» que faltaba**: la identidad
+> del código, no la hora del reloj.
+>
+> **Lo que NO se pudo mirar, y no es un olvido:** el front de producción con ojos. La sesión de
+> Chrome abierta ahí **no es de administrador** —`/admin/residents` redirige a `/unauthorized`—.
+> Queda por procedencia del build (`build-2026-09-01-010` ← `8a82f2f`, por `traffic.current`) y
+> por haberlo visto con ojos en staging sobre el mismo código. **Para verlo en producción hace
+> falta que David cambie la sesión.**
+>
+> **Y un dato medido que ordena `AI-ONB-001`: `importRuns` está VACÍO en producción —0 filas—.**
+> Nadie ha usado nunca el importador allí. La captura de forma está desplegada y correcta, pero
+> **no acumulará nada hasta que alguien importe un archivo**: es el mismo freno que la IA, dato y
+> no código.
+
 ### LO QUE SE HIZO EN LA TERCERA: el vocabulario de tipos deja de decir dos cosas
 
 **`32a8f46`, y no es una limpieza: era una incoherencia viva.** El mapa de rótulos de la página de
