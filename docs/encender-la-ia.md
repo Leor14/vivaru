@@ -105,12 +105,23 @@ node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria
 | 1 | `ai-pqrs-suggestions` | La sombra ya lleva su gemela encendida: es la que menos añade | Que la sugerencia aparezca y que el administrador siga pudiendo clasificar a mano |
 | 2 | `ai-communications-draft` | Tiene consumidor real y su línea base **lleva tres sesiones sin tomarse** | Que el borrador aparezca dentro del formulario y no lo sustituya |
 | 3 | `ai-onboarding-column-mapping` | **No tiene consumidor: no la enciendas todavía** | — |
-| 4 | `ai-receipts-extraction` | Sin corpus (`DOC-001`): 0 comprobantes con fichero en producción | — |
+| 4 | `ai-receipts-extraction` | **No tiene consumidor NI código: tampoco la enciendas** | — |
 
 > **`ai-onboarding-column-mapping` no hace nada.** Medido: **cero referencias en el código** fuera del
 > catálogo de banderas. Encenderla —como se hizo en staging el 30 de agosto— no cambia nada. Es la
 > tercera forma de «una bandera no siempre es el freno»: aquí ni siquiera hay código detrás que
 > frenar. Su capacidad la construirá el frente 5 (`AI-ONB-001`).
+>
+> **Y SON DOS, no una — medido el 1 de septiembre de 2026.** `ai-receipts-extraction` está en la
+> misma situación y este documento no lo decía: sus únicas apariciones en el repositorio son los
+> **cinco** sitios del catálogo de banderas y esta propia tabla. **Y va más lejos que la otra: no
+> existe ni el módulo** — `functions/src/ai/` tiene veintiún ficheros y ninguno de extracción de
+> comprobantes. Aquí el motivo escrito («sin corpus») es cierto pero secundario: aunque llegaran
+> los 200 comprobantes mañana, no habría qué encender.
+>
+> **La lección que deja: al contar banderas inertes, contarlas TODAS.** Este documento nombró la
+> que se estaba mirando y dio por buenas las demás — el mismo defecto que el catálogo de banderas,
+> que decía cuatro sitios y eran cinco.
 
 ### Paso 4 — Anotar el antes y el después
 
