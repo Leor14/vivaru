@@ -2,7 +2,7 @@
 
 > Documento **vivo**: se reescribe, no se acumula. Es el sitio donde mirar para retomar
 > sin releer los nueve documentos del intercambio.
-> **Actualizado: 28 de agosto de 2026** — llegó `RESPUESTA-A-005` y **se navegó el tenant
+> **Actualizado: 1 de septiembre de 2026** (bloque de abajo) · el 28 de agosto llegó `RESPUESTA-A-005` y **se navegó el tenant
 > `vivaru` con la sesión abierta**. Del contrato **no queda nada abierto del lado de Albert**:
 > A5 ejecutada, A1 publicado, **B1 y B3 desplegados**, y el `displayName` **confirmado en
 > pantalla**. Lo que queda es trabajo nuestro — más **una pregunta nueva que sí condiciona el
@@ -11,6 +11,41 @@
 > **Las cinco filas de §4.0 se midieron el 27 de agosto** y siguen vigentes: el código no se
 > ha movido. Lo que cambió el 28 no es código nuestro, es **lo que se supo mirando** — y por
 > eso este documento se reescribe en vez de acumular una nota al pie.
+
+> ### RETOMADO EL 1 DE SEPTIEMBRE DE 2026 — las dos preguntas a Albert se MIDIERON desde su propio proyecto
+>
+> **`dev@qintilab.com` es `roles/owner` de `albert-crm-1-1c162`** —leído de su política de IAM con la
+> ADC, que es esa misma cuenta— junto a `luisEOteroR@gmail.com`. Es la cuenta con la que opera el CLI
+> de Vivaru y la ADC. Con eso se pudo leer su Firestore, sus reglas desplegadas y sus 23 functions
+> sin pedir nada a nadie, y las dos preguntas de `DECISIONES-A-005` cambian de naturaleza:
+>
+> 1. **§4.4.1, la clave estable de «ganado»: CONFIRMADO que no existe, medido.** El pipeline vive en
+>    `tenants/{tenantId}/config/pipeline` como `stages: string[]` —texto plano, escribible por el
+>    `tenant_admin` según sus reglas— y el deal persiste `stage` como esa cadena (`"Propuesta"` en el
+>    único deal de `demo`). **Y el propio tenant `demo` ya enseña el fallo:** su lista está editada a
+>    `["Ganado", "Perdido"]`, así que su deal en `"Propuesta"` no casa con ninguna etapa configurada y
+>    nada lo avisa. `tenants/vivaru/config` está **vacío**: nuestras etapas son las por defecto de su
+>    app, no un documento. **La pregunta sigue siendo suya de contestar** —qué cuesta añadir un
+>    `stageKey`—, pero ya no hace falta que nos digan cómo lo guardan.
+> 2. **§4.6, la credencial: NO depende de Albert.** Conceder a la cuenta de servicio de nuestras
+>    functions (`1047056648517-compute@developer.gserviceaccount.com`, la de `registrarImportacion`)
+>    lectura o escritura sobre su Firestore es un cambio de IAM en `albert-crm-1-1c162`, **y el owner
+>    somos nosotros**. Hoy esa cuenta **no tiene ningún rol allí** (0 apariciones en la política).
+>    Es un acto sobre la seguridad de OTRO producto y lo decide David, no una sesión; pero ya no es una
+>    petición a un tercero.
+>
+> **Y esa misma noche llegó `RESPUESTA-A-006`** —una nota operativa por el canal— que **cambia la vía
+> de credencial por una mejor que la pedida**: Albert construye un endpoint, **`vivaruWonSignals`**,
+> que autentica por **token de identidad de nuestra cuenta de servicio**. Piden solo el correo de esa
+> cuenta. Se contestó con `DECISIONES-A-006`: las dos cuentas (producción y staging, medidas sobre
+> las noventa functions de cada ambiente), **el contrato del endpoint que falta** —no está desplegado
+> en su proyecto al 1 sep—, y la observación de que si el endpoint decide «ganado» por su cuenta, la
+> clave estable de §4.4.1 deja de hacer falta. **La concesión de IAM del punto 2 queda en suspenso:
+> con el endpoint no hace falta para la señal de vuelta.**
+>
+> **Sigue vigente §4.0: cero código nuestro contra Albert** (`submitDemoLead`, `externalRef`,
+> `eraseByExternalRef` y `tenants/vivaru` con 0 apariciones el 1 sep). Y en su lista de functions
+> están `eraseByExternalRef` (B1), `vivaruRetentionSweep` (B3) y `submitDemoLead`, todas `ACTIVE`.
 
 ---
 
@@ -102,6 +137,8 @@ tenga nada que decir.**
 | `DECISIONES-A-004` | 22 ago | Ata «esta semana» al calendario, declina el adelanto del esquema, **y cierra el intercambio** |
 | `RESPUESTA-A-005` | 28 ago | Confirma los dos datos del alta, define «A1 publicado», **anuncia B1 y B3 desplegados**, concede las dos correcciones y anuncia el **reset self-service** |
 | `DECISIONES-A-005` | 28 ago | Cierra el `displayName` **por nuestra cuenta**, acusa B1/B3, y hace **la única pregunta viva**: una clave estable para «ganado» |
+| `RESPUESTA-A-006` | 1 sep | Nota operativa: **piden el correo de nuestra cuenta de servicio** para autenticar contra un endpoint nuevo, `vivaruWonSignals` |
+| `DECISIONES-A-006` | 1 sep | Entrega las dos cuentas (producción y staging), **pide el contrato del endpoint**, y deja de pedir contraseña y exclusión del reset |
 
 Además, fuera del hilo numerado: su **estado de integración** (22 ago) y la **ronda de dudas**
 contestada por el canal. Ambos recogidos aquí.
