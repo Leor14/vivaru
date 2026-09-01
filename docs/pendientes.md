@@ -70,6 +70,57 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **no acumulará nada hasta que alguien importe un archivo**: es el mismo freno que la IA, dato y
 > no código.
 
+### LO QUE SE HIZO EN LA QUINTA: 36 archivos raros, y los cinco defectos que destaparon
+
+**El banco de simulación está en `scripts/simulacion-de-cargas/`** —una especificación JSON por
+caso, un constructor que la vuelve bytes y un corredor que la mete por el camino real— con **36
+casos versionados** que inventaron cuatro agentes (Colombia, México, Ecuador/Perú/Chile, y uno de
+roturas técnicas). Registro completo:
+[`simulacion-de-cargas-1sep2026.md`](simulacion-de-cargas-1sep2026.md).
+
+> **Y lo que NO es, porque confundirlo sería el error caro:** contesta preguntas de
+> **correctitud** —¿revienta?, ¿elige la hoja buena?— y para eso un archivo inventado vale igual
+> que uno real. **No contesta preguntas de frecuencia**, que siguen esperando archivos de un
+> cliente. Que 36 archivos pasen no significa estar listos: significa que 36 formas conocidas de
+> romperlo ya no lo rompen.
+
+**El resultado en una línea: de los 8 archivos que salieron «entra limpio», 2 estaban mal mapeados
+de arriba abajo**, y de los 6 que bloquearon, 2 paraban un archivo impecable por una palabra.
+
+**Los cinco defectos, cerrados y EN PRODUCCIÓN** (`759e339` y `606873c`):
+
+1. **La cuarta pasada del mapeo decidía por POSICIÓN**, y en silencio. Rescata texto libre mirando
+   solo si los valores se repiten, y en un padrón el nombre, el correo, el teléfono, la cédula y
+   el número de casa **son todos únicos**: el empate es lo normal y se lo quedaba la primera
+   columna. Falsado moviendo una columna: el MISMO padrón bautizaba las unidades con el nombre del
+   dueño o con su cédula. Ahora **en empate no se adivina**, y lo resuelto por variedad **avisa de
+   que es una deducción**.
+2. **`departamento` y `estacionamiento`** al catálogo de tipos: así se dice en MX, EC, PE y CL.
+3. **El rechazo dice POR QUÉ**: una plantilla sin diligenciar se rechazaba con «no tiene una fila
+   de encabezados», mandando a arreglar lo único que estaba bien.
+4. **El número de fila** volvió a apuntar al archivo de la persona (regresión propia del día).
+5. **La unidad partida se reconoce por la FORMA y no por la palabra**, con **respuesta graduada**:
+   nombre conocido → bloquea; solo la forma → duda.
+
+**VALIDADO EN PRODUCCIÓN CON OJOS**, y con el contraste que prueba que distingue: el mismo padrón
+con «Interior» sale en **ámbar y deja continuar**, y con «Torre» sale en **rojo con Continuar
+deshabilitado**. Antes, «Interior» pasaba mudo y tres personas caían en el apartamento equivocado.
+
+**Lo que se aprendió y no se reconstruye leyendo el código:**
+
+- **`escalera` entró en la lista de nombres y `interior` NO, a propósito:** en Colombia es el
+  bloque y en México el apartamento —«#45 Interior 302»—. Meterla rompería un país para arreglar
+  el otro; la forma sí los distingue.
+- **La ausencia en el corpus no es evidencia de ausencia.** Al quitar el umbral de proporción los
+  36 archivos daban el mismo resultado salvo uno, y estuve a punto de retirarlo por inútil.
+  Construir el caso que faltaba —familias y una columna de apellidos— lo desmintió.
+- **Los avisos hay que comprobarlos por COLOR y por el estado del botón**, no por su texto: dos
+  avisos con palabras distintas y el mismo nivel no distinguirían nada.
+- **`get_page_text` no ve los modales** (viven en un portal fuera de `<main>`): dijo que no había
+  diálogo con el diálogo abierto, y casi doy por fallida una prueba que había funcionado.
+- **El panel del navegador de la app no tiene subida de archivos** — ahí el archivo va inyectado
+  por DOM. El de Chrome sí la tiene.
+
 ### LO QUE SE HIZO EN LA CUARTA: `PRD-V-FEAT-006` y el número de fila
 
 **La PRD de unir columnas está escrita y en los dos ambientes** (`8514caa`):
