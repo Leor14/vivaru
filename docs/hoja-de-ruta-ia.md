@@ -541,9 +541,27 @@ línea base de activación que la propia PRD necesita.
 Corrección para cuando lleguemos: la PRD dice «siete pasos de activación», que es
 el número del recorrido `trial`. Un cliente tiene diez (`src/lib/onboarding/steps.ts:554`).
 
-**Desde hoy:** guarda una copia anonimizada del archivo de cada conjunto nuevo
+~~**Desde hoy:** guarda una copia anonimizada del archivo de cada conjunto nuevo
 que entre, con permiso. Necesitarás 15–25 y son los más fáciles de conseguir de
-todo el portafolio.
+todo el portafolio.~~
+
+> **SUPERADO POR DECISIÓN DE DAVID — 1 de septiembre de 2026: se guarda la FORMA,
+> no el archivo.** La recomendación tachada chocaba con una decisión ya escrita y
+> nadie lo había notado: **el importador vive entero en el navegador A PROPÓSITO**
+> —«el archivo no viaja a ningún servidor ni se almacena, que es lo que evita
+> guardar un fichero con datos personales», `PRD-V-FEAT-002` §7, citado en la
+> cabecera de `src/lib/import/read-tabular.ts`—. Guardar copias exigía reversar eso.
+>
+> **Lo que se guarda desde hoy**, en la telemetría que ya existía (`importRuns`):
+> cuánto preámbulo traía el archivo, si la unidad venía partida en dos columnas, y
+> qué palabras usa la gente donde tenemos vocabulario cerrado — más los
+> `encabezadosSinUsar` de siempre. Con **dos puertas** para que un mapeo
+> equivocado no convierta eso en un almacén de nombres de personas.
+>
+> **El límite, dicho en voz alta: esto NO cubre PDF ni fotos.** Esos archivos no
+> cruzan siquiera la puerta del lector, así que de ellos no hay forma que
+> capturar, y son justo la mitad cara del alcance que se amplió el 30 de agosto.
+> Para esa mitad sigue haciendo falta pedir archivos a un cliente real.
 
 ---
 

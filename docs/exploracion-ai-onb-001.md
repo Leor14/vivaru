@@ -11,6 +11,39 @@ Lo que cambió es QUÉ ficha será cuando toque.
 
 ---
 
+> ## EL FRENTE SE ABRIÓ, Y LOS CUATRO PUNTOS «SIN CORPUS» ESTÁN HECHOS (1 sep 2026)
+>
+> Lo de abajo es el registro de la exploración y **no se toca**: es lo que se midió. Esto dice
+> qué se ejecutó después, para que el documento no siga pidiendo lo que ya está.
+>
+> 1. **Los arreglos determinísticos — HECHO** (`437f44b`). Alias `apto`/`inmueble`, `bloque` y
+>    compañía como agrupación, y `cardinality` en `person.unitLabel`. **Y dos defectos que ese
+>    arreglo iba a introducir, medidos antes de embarcarlos:** `cardinality` hace DOS trabajos
+>    —sugerir y avisar— y declararla a secas **bloqueaba a una familia** (tres personas de la 101);
+>    y el alias `apto` mapea media unidad y **pierde la torre en silencio**, con `T1-101` y `T2-101`
+>    entrando las dos como «101». Lo primero se resolvió con `repeticionEsNormal`; lo segundo, con
+>    un aviso que **detecta la fusión en vez de sospecharla** —dos filas con la misma etiqueta en
+>    agrupaciones distintas, sobre TODAS las filas— y bloquea nombrando las dos columnas.
+> 2. **La fila de encabezados — HECHO** (`437f44b`), y **en los DOS caminos**: el título sobrevive
+>    a «Guardar como CSV», así que arreglar solo el XLSX dejaba el gemelo roto. La regla se salta
+>    lo que tiene menos de dos celdas con texto, y si ninguna llega a dos vuelve la fila 0, que es
+>    lo que mantiene vivo un archivo de una sola columna.
+> 3. **La decisión de producto — TOMADA** (`7c8bb0a`): **crecen los tipos**. `parqueadero` y
+>    `bodega` son tipos de unidad. Al contarlos eran **siete** los sitios donde el vocabulario
+>    estaba escrito a mano, sin nada que los atara, **y ya habían derivado**: el mapa de rótulos
+>    conocía `parking` y `storage` mientras el esquema los rechazaba. Ahora vive en
+>    `src/lib/units/tipos.ts`.
+> 4. **La captura de corpus — HECHA, y NO como decía la hoja de ruta** (`d8e4026`). Guardar copia
+>    anonimizada del archivo **choca con `PRD-V-FEAT-002` §7**, que es la razón de que el
+>    importador viva entero en el navegador. Decisión de David: se guarda **la FORMA** —preámbulo,
+>    unidad partida, vocabulario ajeno— en la telemetría que ya existía, con dos puertas para que
+>    un mapeo equivocado no la convierta en un almacén de nombres.
+>
+> **Lo que NO cambió, y es lo que sigue mandando:** sin corpus no hay ficha. Y de las cuatro
+> clases de fallo, las que quedan son las caras — **transformaciones** (partir, unir, pivotar) y
+> **formatos** (PDF y fotos, que ni cruzan la puerta del lector y de los que la captura de forma
+> **no puede capturar nada**).
+
 ## Cómo se midió, y cómo repetirlo
 
 Sonda sintética —**NO es corpus, y esa carencia sigue**— corrida contra el código real:
@@ -105,12 +138,20 @@ nuevo, con permiso.
 
 ## Lo que se puede hacer SIN corpus, si se decide abrir
 
-1. **Los arreglos determinísticos de la clase 4** (alias + `cardinality`), con la sonda como
-   verificación antes/después.
-2. **Detección determinística de la fila de encabezados** (clase 1, mitad barata): buscar la
-   primera fila que «parece encabezados» en vez de asumir la fila 0. Sin IA.
-3. **La decisión de producto de los tipos de unidad** (clase 3).
-4. **El mecanismo de captura de corpus** (guardar copia anonimizada con permiso) — es lo único
-   que convierte «esperar un cliente» en «acumular mientras llega».
+**Los cuatro están HECHOS el 1 de septiembre de 2026 — ver el recuadro del principio.** Se dejan
+escritos porque son el razonamiento que los ordenó, de menor a mayor decisión.
 
-Lo que NO se hace sin corpus: la ficha, y cualquier compra de modelo.
+1. ~~Los arreglos determinísticos de la clase 4~~ · `437f44b`
+2. ~~Detección determinística de la fila de encabezados~~ · `437f44b`, y en CSV además de XLSX
+3. ~~La decisión de producto de los tipos de unidad~~ · `7c8bb0a` — crecen los tipos
+4. ~~El mecanismo de captura de corpus~~ · `d8e4026` — **la forma, no el archivo**
+
+Lo que NO se hace sin corpus: la ficha, y cualquier compra de modelo. **Esto no cambió.**
+
+## Y la sonda ya no mide lo mismo que medía
+
+Los números de arriba son los de ANTES. Al correrla hoy: P2 resuelve la unidad, P3 deja de
+proponer el inmueble como nombre de la persona, U2 reconoce «Bloque» como torre, U1 entra sin
+bloquear, y el caso del lector pasa de cinco encabezados «(sin nombre)» a los seis campos
+resueltos. **La sonda lee ahora la tabla de tipos REAL y no una copia** (`06eb184`): mientras fue
+copia, siguió enseñando un bloqueo que el producto ya no hacía.
