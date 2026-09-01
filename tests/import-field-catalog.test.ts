@@ -496,3 +496,99 @@ describe("AI-ONB-001 · repetir la unidad no es sospechoso, partirla sí", () =>
     expect(mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA)["person.unitLabel"]?.nivel).toBe("bloquea");
   });
 });
+
+/**
+ * `AI-ONB-001` · la forma del archivo — cómo se acumula corpus SIN guardar el
+ * archivo del cliente (decisión de David, 1 de septiembre de 2026).
+ *
+ * **La prueba que más importa de este bloque es la de los nombres.** Guardar
+ * «los valores que no reconozco» es útil mientras la columna sea un vocabulario;
+ * si el mapeo se equivoca y el rol apunta a una columna de personas, ese mismo
+ * código estaría guardando nombres reales — justo lo que `PRD-V-FEAT-002` §7
+ * evita teniendo el importador entero en el navegador.
+ */
+describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
+  const ACEPTADOS = {
+    "person.role": ["propietario", "inquilino", "arrendatario", "residente", "otro"],
+  };
+
+  function padron(rol: (i: number) => string, n = 8) {
+    return Array.from({ length: n }, (_, i) => ({
+      Unidad: `T1-10${i}`,
+      Nombre: `Persona ${i}`,
+      Correo: `p${i}@x.com`,
+      Rol: rol(i),
+    }));
+  }
+
+  it("un vocabulario ajeno SÍ se captura: es el dato que falta para decidir", async () => {
+    const { formaDelArchivo } = await import("@/lib/import/field-catalog");
+    // «ocupado/arrendado» es el caso U2 de la sonda: otro eje semántico. Saber
+    // que la gente escribe eso es lo que evita volver a decidir a ciegas, como
+    // pasó con parqueadero y bodega.
+    const rows = padron((i) => (i % 2 === 0 ? "ocupado" : "arrendado"));
+    const mapping = { "person.role": "Rol", "person.unitLabel": "Unidad", "person.fullName": "Nombre", "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const forma = formaDelArchivo(rows, "person", mapping, ACEPTADOS);
+    expect(forma.valoresNoReconocidos.sort()).toEqual(["arrendado", "ocupado"]);
+  });
+
+  it("una columna de NOMBRES no se captura NUNCA, aunque el mapeo se equivoque", async () => {
+    const { formaDelArchivo } = await import("@/lib/import/field-catalog");
+    // El rol apuntando a la columna de personas: ninguno de esos valores es
+    // aceptado, así que sin la puerta saldrían los ocho nombres a la telemetría.
+    const rows = padron(() => "propietario");
+    const mapping = { "person.role": "Nombre", "person.unitLabel": "Unidad", "person.fullName": null, "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const forma = formaDelArchivo(rows, "person", mapping, ACEPTADOS);
+    expect(forma.valoresNoReconocidos).toEqual([]);
+    expect(JSON.stringify(forma)).not.toContain("Persona");
+  });
+
+  it("un padrón GRANDE con apellidos repetidos tampoco pasa: la proporción sola no basta", async () => {
+    // **El caso que la puerta de variedad NO cubre, y por eso hay dos.** 200
+    // filas y 50 apellidos distintos dan una proporción de 0,25 —por debajo del
+    // umbral— y aun así son cincuenta apellidos de personas reales. Lo para el
+    // tope de valores distintos: un vocabulario cerrado tiene cuatro o cinco
+    // palabras, no cincuenta.
+    const { formaDelArchivo } = await import("@/lib/import/field-catalog");
+    const rows = Array.from({ length: 200 }, (_, i) => ({
+      Unidad: `T1-${i}`,
+      Nombre: `Persona ${i}`,
+      Correo: `p${i}@x.com`,
+      Apellido: `Apellido${i % 50}`,
+    }));
+    const mapping = { "person.role": "Apellido", "person.unitLabel": "Unidad", "person.fullName": "Nombre", "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const forma = formaDelArchivo(rows, "person", mapping, ACEPTADOS);
+    expect(forma.valoresNoReconocidos).toEqual([]);
+    expect(JSON.stringify(forma)).not.toContain("Apellido");
+  });
+
+  it("y un archivo corto no aporta señal, así que ahí no se mira", async () => {
+    const { formaDelArchivo } = await import("@/lib/import/field-catalog");
+    const rows = padron(() => "ocupado", 3);
+    const mapping = { "person.role": "Rol", "person.unitLabel": "Unidad", "person.fullName": "Nombre", "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    expect(formaDelArchivo(rows, "person", mapping, ACEPTADOS).valoresNoReconocidos).toEqual([]);
+  });
+
+  it("la unidad partida se marca aunque NO se funda ninguna unidad", async () => {
+    const { formaDelArchivo } = await import("@/lib/import/field-catalog");
+    // Más ancho que el aviso que bloquea, a propósito: para contar cuántos
+    // archivos vienen partidos da igual si además colisionan.
+    const rows = Array.from({ length: 6 }, (_, i) => ({
+      Torre: i < 3 ? "1" : "2",
+      Apto: `10${i}`,
+      Nombre: `Persona ${i}`,
+      Correo: `p${i}@x.com`,
+      Rol: "propietario",
+    }));
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(formaDelArchivo(rows, "person", mapping, ACEPTADOS).unidadPartida).toBe(true);
+  });
+
+  it("y un archivo con la unidad entera no la marca", async () => {
+    const { formaDelArchivo } = await import("@/lib/import/field-catalog");
+    const rows = padron(() => "propietario");
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(formaDelArchivo(rows, "person", mapping, ACEPTADOS).unidadPartida).toBe(false);
+  });
+});

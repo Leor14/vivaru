@@ -183,3 +183,26 @@ describe("dónde empiezan los encabezados de verdad", () => {
     ).rejects.toThrow(TabularReadError);
   });
 });
+
+describe("el preámbulo se cuenta, porque es telemetría de forma", () => {
+  it("un archivo normal declara cero", async () => {
+    const leido = await readTabularFile(archivoCsv("Unidad,Nombre\nT1-101,Ana"));
+    expect(leido.sheets[leido.sheetNames[0]].filasDePreambulo).toBe(0);
+  });
+
+  it("y uno con título y fila en blanco declara las dos que se saltó", async () => {
+    // Es el dato que dice en cuántos archivos REALES hace falta esta detección,
+    // y se puede guardar sin guardar el archivo.
+    const leido = await readTabularFile(
+      archivoXlsx({
+        H: [
+          ["PADRÓN GENERAL", "", ""],
+          ["", "", ""],
+          ["Unidad", "Nombre", "Correo"],
+          ["T1-101", "Ana", "ana@x.com"],
+        ],
+      }),
+    );
+    expect(leido.sheets["H"].filasDePreambulo).toBe(2);
+  });
+});

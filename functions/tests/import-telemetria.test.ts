@@ -89,3 +89,64 @@ describe("lo que NUNCA debe aparecer aquí", () => {
     expect(JSON.stringify(r)).not.toContain("Ana Pérez");
   });
 });
+
+/**
+ * `AI-ONB-001` · la forma del archivo, que es como se acumula corpus **sin**
+ * guardar el archivo (decisión de David, 1 de septiembre de 2026).
+ *
+ * El cliente ya filtra por «esto se comporta como un vocabulario». Estas
+ * pruebas protegen la SEGUNDA puerta, y existe porque el cliente es quien puede
+ * mentir: sin tope aquí, una llamada fabricada convertiría la telemetría en el
+ * almacén de datos personales que §7 de la PRD existe para evitar.
+ */
+describe("la forma del archivo viaja, y acotada", () => {
+  it("el preámbulo, la unidad partida y el vocabulario desconocido se guardan", () => {
+    const r = normalizarRegistro({
+      ...base,
+      filasDePreambulo: 2,
+      unidadPartida: true,
+      valoresNoReconocidos: ["ocupado", "arrendado"],
+    });
+    expect(r.filasDePreambulo).toBe(2);
+    expect(r.unidadPartida).toBe(true);
+    expect(r.valoresNoReconocidos).toEqual(["ocupado", "arrendado"]);
+  });
+
+  it("y su ausencia no rompe nada: un front viejo no manda ninguno", () => {
+    const r = normalizarRegistro(base);
+    expect(r.filasDePreambulo).toBeUndefined();
+    expect(r.unidadPartida).toBeUndefined();
+    expect(r.valoresNoReconocidos).toBeUndefined();
+  });
+
+  it("un cliente que manda quinientos valores solo deja veinte", () => {
+    const r = normalizarRegistro({
+      ...base,
+      valoresNoReconocidos: Array.from({ length: 500 }, (_, i) => `valor-${i}`),
+    });
+    expect(r.valoresNoReconocidos).toHaveLength(20);
+  });
+
+  it("un valor kilométrico se corta, que es como se cuela un párrafo entero", () => {
+    const r = normalizarRegistro({ ...base, valoresNoReconocidos: ["x".repeat(500)] });
+    expect(r.valoresNoReconocidos?.[0]).toHaveLength(40);
+  });
+
+  it("la basura que no es texto se cae sola", () => {
+    const r = normalizarRegistro({
+      ...base,
+      valoresNoReconocidos: ["ocupado", 42, null, { a: 1 }, "  "],
+    });
+    expect(r.valoresNoReconocidos).toEqual(["ocupado"]);
+  });
+
+  it("un preámbulo negativo se rechaza, como cualquier otro conteo", () => {
+    expect(() => normalizarRegistro({ ...base, filasDePreambulo: -3 })).toThrow(RegistroInvalido);
+  });
+
+  it("y `unidadPartida` solo acepta un booleano de verdad", () => {
+    // Una cadena «true» no es un sí: guardarla dejaría un campo que miente al
+    // contarlo, porque cualquier cadena no vacía es verdadera.
+    expect(normalizarRegistro({ ...base, unidadPartida: "true" }).unidadPartida).toBeUndefined();
+  });
+});

@@ -26,6 +26,17 @@ import { FieldValue } from "firebase-admin/firestore";
  * `encabezadosSinUsar` es la lista de columnas que el catálogo no supo
  * reconocer. Esa lista **es** el trabajo pendiente del mapeo asistido de
  * `PRD-VAI-FEAT-001`: con datos reales de qué trae la gente, en vez de suponerlo.
+ *
+ * **Desde el 1 de septiembre de 2026 ese segundo uso es explícito, y es la
+ * respuesta a «¿cómo se acumula corpus sin guardar archivos?».** Guardar copia
+ * de los ficheros del cliente contradice §7 de la PRD —la razón de que el
+ * importador viva entero en el navegador—, así que David decidió guardar la
+ * FORMA: cuánto preámbulo traía el archivo (`filasDePreambulo`), si la unidad
+ * venía partida en dos columnas (`unidadPartida`) y qué palabras usa donde
+ * nosotros tenemos vocabulario cerrado (`valoresNoReconocidos`). La regla de
+ * arriba no se toca: **ni una celda**, y por eso los valores solo se envían
+ * cuando la columna se comporta como vocabulario y no como texto libre — la
+ * puerta está en `formaDelArchivo`, y aquí se acota otra vez.
  */
 
 export const COLECCION = "importRuns";
@@ -33,6 +44,9 @@ export const COLECCION = "importRuns";
 /** Tope defensivo: una lista de encabezados no debería crecer sin fin. */
 const MAX_ENCABEZADOS = 40;
 const MAX_LARGO_ENCABEZADO = 80;
+/** Un vocabulario que no lo es se delata por tamaño. Ver `formaDelArchivo`. */
+const MAX_VALORES_NO_RECONOCIDOS = 20;
+const MAX_LARGO_DE_VALOR = 40;
 
 export type EntidadImportada = "unit" | "person";
 export type FaseImportacion = "inicio" | "fin";
@@ -52,6 +66,16 @@ export interface RegistroImportacion {
   camposAMano: number;
   /** Columnas del archivo que no alimentaron ningún campo. Solo nombres. */
   encabezadosSinUsar: string[];
+  /** Filas que había encima de los encabezados. 0 es lo normal. */
+  filasDePreambulo?: number;
+  /** La unidad de la persona venía repartida en dos columnas (Torre + Apto). */
+  unidadPartida?: boolean;
+  /**
+   * Palabras que el vocabulario cerrado no acepta —`parqueadero`, `ocupado`—.
+   * **Nunca texto libre:** el cliente solo las manda si la columna se comporta
+   * como vocabulario, y aquí se recortan otra vez por si acaso.
+   */
+  valoresNoReconocidos?: string[];
   /** Solo en `fin`. */
   importadas?: number;
   omitidas?: number;
@@ -111,6 +135,23 @@ export function normalizarRegistro(data: unknown): RegistroImportacion {
       .map((h) => h.trim().slice(0, MAX_LARGO_ENCABEZADO))
       .filter(Boolean),
   };
+
+  if (typeof d.filasDePreambulo === "number") {
+    registro.filasDePreambulo = entero(d.filasDePreambulo, "filasDePreambulo");
+  }
+  if (typeof d.unidadPartida === "boolean") registro.unidadPartida = d.unidadPartida;
+  if (Array.isArray(d.valoresNoReconocidos)) {
+    // El cliente ya filtró por «esto parece un vocabulario». Esto es la segunda
+    // puerta, y existe porque el cliente es quien puede mentir: sin tope, una
+    // llamada fabricada convertiría la telemetría en el almacén de datos
+    // personales que §7 evita.
+    const valores = d.valoresNoReconocidos
+      .filter((v): v is string => typeof v === "string")
+      .slice(0, MAX_VALORES_NO_RECONOCIDOS)
+      .map((v) => v.trim().slice(0, MAX_LARGO_DE_VALOR))
+      .filter(Boolean);
+    if (valores.length > 0) registro.valoresNoReconocidos = [...new Set(valores)];
+  }
 
   if (typeof d.pista === "string" && d.pista.trim()) registro.pista = d.pista.trim();
   if (fase === "fin") {

@@ -622,3 +622,76 @@ export function summarizeMapping(
     encabezadosSinUsar: headers.filter((h) => !usados.has(h)),
   };
 }
+
+/**
+ * Cuántos valores distintos puede tener una columna para seguir pareciendo un
+ * vocabulario, y qué proporción de las filas. Ver `formaDelArchivo`.
+ */
+const MAX_VALORES_DE_VOCABULARIO = 12;
+const MAX_VARIEDAD_DE_VOCABULARIO = 0.5;
+const MIN_FILAS_PARA_VOCABULARIO = 4;
+const MAX_LARGO_DE_VALOR = 40;
+
+/**
+ * La FORMA del archivo, para la telemetría — nunca su contenido.
+ *
+ * **POR QUÉ EXISTE.** La ficha de `AI-ONB-001` no se puede escribir sin corpus,
+ * y guardar copia de los archivos del cliente **contradice la decisión de
+ * `PRD-V-FEAT-002` §7**, que es la razón de que el importador viva entero en el
+ * navegador. Decisión de David el 1 de septiembre de 2026: se guarda la forma y
+ * no el archivo. Esto es esa forma, junto a `encabezadosSinUsar`, que ya se
+ * guardaba y es la lista de columnas que el catálogo no supo reconocer.
+ *
+ * **`valoresNoReconocidos` es la parte delicada, y por eso lleva puerta.** Sirve
+ * para saber qué palabras usa la gente de verdad donde nosotros tenemos un
+ * vocabulario cerrado —`parqueadero` y `bodega` costaron una decisión de
+ * producto tomada a ciegas, sobre una sonda inventada—. Pero si el mapeo está
+ * MAL, el campo de rol puede apuntar a una columna de nombres, y entonces
+ * guardar «los valores que no reconozco» sería guardar los nombres de personas
+ * reales. La puerta es que la columna se comporte como un vocabulario: pocos
+ * valores distintos, repetidos entre las filas. Una columna de nombres tiene
+ * tantos valores como filas y **no pasa nunca**.
+ *
+ * Se prefiere perder señal a capturar de más: un archivo corto no aporta
+ * ninguna, y ahí no se mira.
+ */
+export function formaDelArchivo(
+  rows: readonly Record<string, string>[],
+  entity: ImportEntity,
+  mapping: Record<string, string | null>,
+  accepted: AcceptedValues,
+): { valoresNoReconocidos: string[]; unidadPartida: boolean } {
+  const valores: string[] = [];
+
+  if (rows.length >= MIN_FILAS_PARA_VOCABULARIO) {
+    for (const field of fieldsFor(entity)) {
+      const header = mapping[field.key];
+      const aceptados = accepted[field.key];
+      if (!header || !aceptados || aceptados.length === 0) continue;
+
+      const distintos = new Set<string>();
+      for (const row of rows) {
+        const v = normalizeHeader(row[header] ?? "");
+        if (v) distintos.add(v);
+        // Se corta en cuanto deja de parecer un vocabulario: sin esto, una
+        // columna de nombres se recorrería entera para acabar descartándola.
+        if (distintos.size > MAX_VALORES_DE_VOCABULARIO) break;
+      }
+      if (distintos.size === 0 || distintos.size > MAX_VALORES_DE_VOCABULARIO) continue;
+      if (distintos.size / rows.length > MAX_VARIEDAD_DE_VOCABULARIO) continue;
+
+      for (const v of distintos) {
+        if (!aceptados.includes(v)) valores.push(v.slice(0, MAX_LARGO_DE_VALOR));
+      }
+    }
+  }
+
+  // La unidad de la persona repartida en dos columnas. Se mide más ancho que el
+  // aviso que bloquea —aquel exige que dos unidades se FUNDAN—, porque para
+  // saber cuántos archivos vienen así da igual si además colisionan.
+  const etiqueta = mapping["person.unitLabel"];
+  const unidadPartida =
+    entity === "person" && Boolean(etiqueta) && agrupacionSinUsar(rows, mapping) !== null;
+
+  return { valoresNoReconocidos: [...new Set(valores)], unidadPartida };
+}

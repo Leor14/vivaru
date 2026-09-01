@@ -33,6 +33,7 @@ import {
   normalizeHeader,
   suggestMapping,
   summarizeMapping,
+  formaDelArchivo,
   valueFor,
 } from "@/lib/import/field-catalog";
 
@@ -321,6 +322,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             ACEPTADOS,
           )
         ];
+        const sugerido = suggestMapping(hoja.headers, "unit", { rows: hoja.rows, accepted: ACEPTADOS });
         void registrarImportacionCallable({
           runId: id,
           fase: "inicio",
@@ -329,7 +331,11 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
           formato: /\.xlsx?$/i.test(file.name) ? "xlsx" : "csv",
           hojas: archivo.sheetNames.length,
           filas: hoja.rows.length,
-          ...summarizeMapping(hoja.headers, "unit", suggestMapping(hoja.headers, "unit", { rows: hoja.rows, accepted: ACEPTADOS })),
+          ...summarizeMapping(hoja.headers, "unit", sugerido),
+          // La FORMA del archivo, no su contenido: es como se acumula corpus
+          // para `AI-ONB-001` sin guardar el fichero del cliente (§7).
+          filasDePreambulo: hoja.filasDePreambulo,
+          ...formaDelArchivo(hoja.rows, "unit", sugerido, ACEPTADOS),
         });
       } catch (err) {
         // El lector ya trae el mensaje escrito para la persona; cualquier otra

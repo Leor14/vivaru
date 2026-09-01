@@ -1471,6 +1471,16 @@ export async function registrarImportacionCallable(input: {
   camposPorAlias: number;
   camposAMano: number;
   encabezadosSinUsar: string[];
+  /**
+   * La FORMA del archivo, nunca su contenido — decisión de David del 1 de
+   * septiembre de 2026 para acumular corpus de `AI-ONB-001` sin reversar §7 de
+   * `PRD-V-FEAT-002`. Sale de `formaDelArchivo`, que es quien tiene la puerta
+   * que impide mandar texto libre. Solo en `inicio`: describen el archivo, no
+   * lo que la persona acabó eligiendo.
+   */
+  filasDePreambulo?: number;
+  unidadPartida?: boolean;
+  valoresNoReconocidos?: string[];
   importadas?: number;
   omitidas?: number;
 }): Promise<{ ok: boolean }> {

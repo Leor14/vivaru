@@ -27,6 +27,15 @@ export interface TabularSheet {
   /** Encabezados en su orden original. */
   headers: string[];
   rows: Record<string, string>[];
+  /**
+   * Cuántas filas había ENCIMA de los encabezados: el título de la
+   * administración, la fila en blanco. Cero es lo normal.
+   *
+   * Se expone porque es **telemetría de forma**: saber en cuántos archivos
+   * reales hace falta esta detección es justo el dato que no se tiene, y es de
+   * los que se pueden guardar sin guardar el archivo.
+   */
+  filasDePreambulo: number;
 }
 
 export interface TabularFile {
@@ -132,6 +141,7 @@ function armarHoja(matriz: readonly (readonly unknown[])[], nombreHoja?: string)
 
   return {
     headers,
+    filasDePreambulo: inicio,
     rows: cuerpo.map((fila) => {
       const salida: Record<string, string> = {};
       headers.forEach((h, i) => {
