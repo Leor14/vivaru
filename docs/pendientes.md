@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, noche (`ONB-003` ABIERTA)
 
-> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— CONSTRUIDA Y VALIDADA EN STAGING CON OJOS. Le faltan DOS cosas, las dos de David.
+> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— CONSTRUIDA, VALIDADA EN STAGING CON OJOS, Y `registrarImportacion` YA EN PRODUCCIÓN. Falta UNA cosa: el push a `master`.
 >
 > **Commit `24b9741` en `develop`, empujado; staging lo sirve (`build-2026-09-01-024`).** `master` sigue en
 > `810941b` (producción no lo tiene). Los bancos: `npm test` **1554** (+18 nuevas, el rojo de
@@ -17,8 +17,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | Qué falta | Quién | Cómo |
 > |---|---|---|
 > | ~~**1 · Verlo en staging con ojos**~~ **HECHO** (1 sep, noche): `53` bloquea → botón → `T1-101` → 6 válidas con las unidades encontradas; `56` une a `1-101` → «Unidad no encontrada» ×6, ninguna seleccionable; `50` → «Ana María Pérez Ruiz»; `60` en unidades sin nada que unir; quitar, reordenar y el separador propio recortado a 5. Detalle en §13 de la PRD | — | — |
-> | **2 · `registrarImportacion` a producción** (y a staging): acepta `camposUnidos` | **David: `firebase login --reauth`** — la credencial de `firebase` MURIÓ esta noche (medido con `projects:list`; a las 04:00 estaba viva) | `npm --prefix functions run build` ya está hecho y `lib/` va en el commit. Luego `firebase deploy --only functions:registrarImportacion --project hogaru-1` (y `--project vivaru-staging-02`). **Orden functions → front**, §13 de la ficha: el servidor viejo ignora el campo en silencio y se pierde la medida |
-> | **3 · Push a `master`** | David (el clasificador me lo bloquea) | Después de 1 y 2. `git push origin develop:master` — y NO lanzar rollout a mano |
+> | ~~**2 · `registrarImportacion` a producción**~~ **HECHO** (1 sep, 22:11 UTC). David reautenticó `firebase`; **producción** quedó en `registrarimportacion-00015-jeh` por un despliegue que esta sesión NO lanzó (apareció en `DEPLOYING` a las 22:09; se esperó a `ACTIVE`) y **se verificó por identidad de código**: el fuente que construyó GCP, bajado del bucket, da **cero diferencias** en `lib/import/telemetria.js` contra el repo y contiene `camposUnidos`. **Staging** la desplegó esta sesión: `registrarimportacion-00018-dis`, `ACTIVE`, «Deploy complete» | — | — |
+> | **3 · Push a `master`** | David (el clasificador me lo bloquea) | **Ya se puede.** `git push origin develop:master` — y NO lanzar rollout a mano. Después: medir `traffic.current` en producción y verlo una vez con ojos allí |
 >
 > **Lo que construirla DESTAPÓ, que no está en el código:**
 >
@@ -50,7 +50,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > ### LO QUE SIGUE SIENDO TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
 > 1. **EL TOPE DE GASTO DE LA IA, en la consola.** Quince días encendida. Sigue sin mirarse.
-> 2. **`firebase login --reauth`** (nuevo esta noche) y **`gcloud auth login`** (desde el 1). La ADC vive.
+> 2. **`gcloud auth login`** (desde el 1). La ADC vive y `firebase` volvió a vivir a las 22:10 UTC.
 > 3. **Corpus real de padrones: 15–25 archivos**, con permiso para anonimizar.
 > 4. **`CA4` de `PH-003`**: dos personas y dos dispositivos (Carolina Prueba, 201).
 
@@ -70,7 +70,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
   que sale de `24b9741`** — medido por `traffic.current` y leyendo el `hash` del build. El commit de
   documentos posterior disparará otro rollout que no cambia nada empaquetado.
 - **Bancos: `npm test` 1554 · functions 745.** Sin emulador el rojo de `push-tokens` es el esperado.
-- **Credenciales: ADC viva · `firebase` MUERTA · `gcloud` muerto.** Se ejercitaron las tres.
+- **Credenciales: ADC viva · `firebase` viva otra vez (reautenticada 22:10 UTC) · `gcloud` muerto.** Se ejercitaron las tres.
 - El `master` local estaba atrasado en `2070604` al abrir; se adelantó al remoto sin checkout.
 
 **Sigue en pie: una sola sesión que escriba a la vez.**

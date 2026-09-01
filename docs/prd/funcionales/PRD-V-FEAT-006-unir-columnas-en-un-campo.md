@@ -7,7 +7,7 @@
 | **Módulo** | Residentes y unidades → **asistente de importación de residentes** |
 | **Entidad** | **`person` únicamente.** `unit` queda fuera y §4 dice por qué, medido |
 | **Usuario principal** | `tenant_admin` |
-| **Estado** | **CONSTRUIDA Y VALIDADA EN STAGING CON OJOS** (`24b9741`, `build-2026-09-01-024`, 1 sep 2026): los diecisiete criterios, quince por prueba automática falsada y `CA7`, `CA8`, `CA13`, `CA15`, `CA16`, `CA17` vistos en pantalla con las fixtures `53`, `56`, `50` y `60`. **Falta producción**: `registrarImportacion` (credencial de `firebase` caducada) y el push a `master` · **v1.2**: construirla corrigió `CA9` y la métrica de §2 — ver §0 |
+| **Estado** | **CONSTRUIDA Y VALIDADA EN STAGING CON OJOS** (`24b9741`, `build-2026-09-01-024`, 1 sep 2026): los diecisiete criterios, quince por prueba automática falsada y `CA7`, `CA8`, `CA13`, `CA15`, `CA16`, `CA17` vistos en pantalla con las fixtures `53`, `56`, `50` y `60`. **`registrarImportacion` ya está en producción** (`00015-jeh`, verificada por identidad del fuente) y en staging (`00018-dis`); **falta el push a `master`** · **v1.2**: construirla corrigió `CA9` y la métrica de §2 — ver §0 |
 | **Dependencias** | Extiende `PRD-V-FEAT-002` (Productiva) y **enmienda su `RN-02`** |
 | **Riesgo** | Bajo — transformación en el navegador, sin superficie de servidor nueva |
 | **Reversibilidad** | Total. Es una revocación del front; nada queda escrito distinto salvo un campo opcional de telemetría |
