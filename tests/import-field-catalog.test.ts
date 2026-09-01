@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { ALIAS_DE_TIPO } from "@/lib/units/tipos";
+
 import {
   IMPORT_FIELDS,
   fieldsFor,
@@ -187,7 +189,16 @@ describe("summarizeMapping · lo que alimenta la telemetría", () => {
  */
 describe("los archivos que rompieron el paso de columnas", () => {
   const ACEPTADOS_UNIDAD = {
-    "unit.type": ["apartment", "apartamento", "apto", "house", "casa", "office", "oficina", "local", "other", "otro", "otra"],
+    // **Sale de la tabla REAL, no de una copia a mano.** Escrita a mano se quedó
+    // sin `parqueadero` ni `bodega` cuando entraron (1 sep 2026): seguía pasando
+    // —estas filas dicen «apartamento» y «casa»— pero se leía como si fuera el
+    // catálogo, y era la octava copia del vocabulario.
+    //
+    // Derivarla aquí NO es el caso circular de `tipos-de-unidad.test.ts`: aquella
+    // afirmaba algo SOBRE el vocabulario, así que encogerlo la dejaba en verde.
+    // Esta afirma que «Clase» se reconoce como el tipo, y si el vocabulario
+    // perdiera `apartamento` el contenido dejaría de casar y ENROJECERÍA.
+    "unit.type": Object.keys(ALIAS_DE_TIPO),
     "unit.status": ["active", "activo", "activa", "inactive", "inactivo", "inactiva"],
   };
   const ACEPTADOS_PERSONA = {

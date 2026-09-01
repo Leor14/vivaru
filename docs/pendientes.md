@@ -53,6 +53,21 @@ cruda, «Local comercial». **La misma palabra con dos respuestas según el cami
   los 49 chunks la cadena **`"Local comercial"`, que solo existía en el código viejo**: cero
   apariciones. Sin eso, «se ve bien» no habría probado nada.
 
+**Y de paso cayeron las dos observaciones que quedaban vivas, con una correccion dentro:**
+
+- **La OCTAVA copia del vocabulario**, `ACEPTADOS_UNIDAD` en `import-field-catalog.test.ts`, ahora
+  sale de `ALIAS_DE_TIPO`. Escrita a mano se habia quedado sin `parqueadero` ni `bodega` y seguia
+  pasando —sus filas dicen «apartamento» y «casa»—, o sea que **se leia como el catalogo sin
+  serlo**. Derivarla aqui NO es el caso circular del 116: aquella prueba afirmaba algo SOBRE el
+  vocabulario y encogerlo la dejaba en verde; esta afirma que «Clase» se reconoce como el tipo, y
+  **falsarlo quitando `apartamento` de la tabla real la puso en rojo**.
+- **El worktree viejo, retirado** (`nifty-bell-c733cd`, arbol limpio y su commit `5787735` a salvo
+  en `origin/claude/nifty-bell-c733cd`). **Y una correccion a lo que se dijo antes de medirlo: NO
+  entraba en `npm test`** —el script corre `--dir tests` justo para eso—. Lo que si lo colaba era
+  **pasar una ruta suelta**: `npx vitest run tests/x.test.ts` recogia la copia del worktree ademas
+  del fichero de verdad, de otro commit y sin decirlo. Ahora `vitest.config.ts` excluye
+  `**/.claude/worktrees/**`, que no depende del `--dir`.
+
 **Y una prueba mía nació DEBILITADA a propósito y luego pudo endurecerse.** Con el mapa a mano solo
 se podía exigir «no contradecir», porque `apto` degradaba a «Apto» teniendo rótulo bueno a mano;
 derivado, se exige cobertura. Las cuatro falsaciones aíslan lo suyo, y **dos de ellas prueban que
