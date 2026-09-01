@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.46 |
-| **Fecha** | 31 de agosto de 2026 |
-| **Estado** | **LOS SEIS FRENTES QUE SE ABRIERON EL 30 ESTÁN RESUELTOS, Y NO QUEDA NINGUNA PRD ESCRITA SIN CONSTRUIR.** Las tres —`UX-004` (el panel), `ONB-002` (el padrón sin duplicados) y `PH-003` (la visita que llega sin avisar)— están **en producción y validadas con ojos**, no solo desplegadas; más el frente de cobros por concepto, que no llevaba PRD. **Cuatro cerrados de siete.** **LO QUE QUEDA NO ES CÓDIGO, y esa es la conclusión:** de los tres frenos vivos, **dos son de DATO** —la IA espera tráfico (encendida desde el 17 de agosto, cero usos, último ticket el 7) y la visita repentina espera un residente con la app (**0 `pushTokens`**)— y **uno es una DECISIÓN tuya** (`UX-005`, prioridad). `AI-ONB-001` sigue sin escribirse a propósito: cero archivos de corpus. **LO QUE ENSEÑÓ LA JORNADA, y vale más que las entregas:** (1) **mirar la pantalla encontró dos defectos que ningún banco veía** —un guardián nuevo nació ciego justo en el caso que lo motivó, y una visita de portería salía «Expirado» al segundo de crearla porque una regla correcta se aplicó a un flujo para el que no se escribió—; (2) **ejecutar la primera fusión destapó el defecto de la SEGUNDA**: con una hecha todo estaba bien; (3) **el inventario de referencias se derivó de los DATOS y no de los nombres de campo**, y por eso salió bien —por nombres habría repuntado 29 de 43—; (4) **un fallo que se disimula a sí mismo dura años**: el rótulo de un cobro mentía en silencio mientras el lado del dinero avisaba. **LO ANTERIOR, VIGENTE:** `PLAT-005` en producción pendiente de un Android; `FIN-002` cerrada con el par falso de −300.000 nombrado a propósito. **LO QUE NO CAMBIA:** las capacidades encendidas y quietas esperan un cliente, no una decisión. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, midiendo y con ojos** (31 ago): los cuatro bancos contados con el emulador levantado —`npm test` **1457**, functions **734**, emulador **279**, reglas **255**—; el ruleset vivo leído por la API de Rules con **0 líneas de diff**; **90 functions listadas y 90 `ACTIVE`**; el front por **procedencia del build**; las banderas **resueltas con el módulo compilado**, no leyendo documentos; y los conteos de Firestore documento a documento —9 conjuntos y **0 reales**, 221 cobros, 88 pases, 68 personas, 20 tickets, 5 recibos—. **Y el contraste destapó SIETE discrepancias** entre lo documentado y lo medido, todas corregidas en la misma pasada; están en el reporte de estado del 31 |
+| **Versión** | 0.9.47 |
+| **Fecha** | 1 de septiembre de 2026 |
+| **Estado** | **LOS DOS FRENTES DEL 31 ESTÁN RESUELTOS.** (a) La prueba de portería de `PH-003`: **`CA3` verificado en producción con dos sesiones reales a la vez** —guardia y residente en navegadores distintos, resuelto en 26 segundos, `authorizationMedium: "app"` con el uid del residente en la base— y **`CA10` estaba EN PRODUCCIÓN SIN CONSTRUIR**: la propia prueba lo destapó al ver la visita **desaparecer del portal del residente** en el instante de autorizarse. **Se construyó, desplegó y verificó el mismo día** (`28a587e` + `c858edf`), con el mismo vocabulario de constancia que ve la portería. **Tercera vez que muerde «desplegado no es completo».** De `PH-003` queda solo **`CA4`** (la carrera), y **su fixture ya existe**: segunda residente en APARTAMENTO 201 (Carolina Prueba), verificada entrando; la prueba pide **dos personas y dos dispositivos**, no más código. (b) **La exploración de `AI-ONB-001` está hecha y REENCUADRA la ficha:** medido contra el código real, el mapeador determinístico **casi no falla en «elegir columnas»** —que es justo lo que el enganche previsto asiste—; falla en **transformaciones** (nombre partido, Torre+Apto, padrón mixto, fila de título encima de los encabezados) y en **formatos** (PDF/foto ni entran al lector). La premisa de David aguantó —sin corpus no hay ficha— y ya se sabe **qué corpus pedir**. **Y la noche de los chips cerró dos defectos** de la familia «dato ausente disfrazado de dato falso», los dos en producción: el login que todo lo pintaba «error inesperado» (`fe89324`) y el «Visita a: [guardia]» (`d77a559`). **LO ANTERIOR, VIGENTE:** la IA encendida con 0 tráfico y el tope de gasto sin mirarse; `PLAT-005` pendiente de un Android; 0 `pushTokens`; `UX-005` espera tu decisión de prioridad. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, midiendo y con ojos** (1 sep): `CA3` y `CA10` **vistos en pantalla** con las sesiones reales del guardia y de DOS residentes distintos, y los campos leídos de la base (`authorizedBy`, `authorizationMedium`, `checkInAt` posterior a la autorización); la fixture de `CA4` verificada con **la misma consulta del servidor** (`residentesActivosDeLaUnidad` → 2 activos en la 201); el mapeador medido **ejecutando** `suggestMapping` y `readTabularFile` contra ocho formatos plausibles; `npm test` **1490** con el emulador levantado; producción sirviendo `build-2026-09-01-003` por `traffic.current`. Los conteos de fondo (conjuntos, cobros, personas) son los del 31 y están en el reporte |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -140,15 +140,15 @@ de entrega.**
 
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
-| **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001`, las seis desplegadas y encendidas | 🔴 **`PH-003`** — autorizar la visita que llega sin avisar. **`PRD-V-FLOW-005` escrita y lista para desarrollo** (30 ago) | 🔵 `PH-002` (espera al primer pago real) | — |
+| **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
 | **Experiencia y diseño** | 🟢 `UX-001` y `UX-003` en producción · 🔴 **`UX-004` lista para desarrollo** (`PRD-V-FIX-003`): el panel y cartera **divergen en los 7 conjuntos** | 🟠 Ejecutar `UX-004` | ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ **`UX-005`** (tableros configurables, prioridad baja) |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
-| IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**desbloqueado por decisión el 30 ago**) |
+| IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**explorada el 1 sep: la ficha no es «elegir columnas»**; espera corpus) |
 | **REVOPS** — adquisición y activación | 🟢 `REVOPS-000` · ✅ `REVOPS-001E` · ✅ `REVOPS-001A` | 🟠 `REVOPS-001B` · `001C` · `001D` | 🔵 `REVOPS-002` · `003` | ◇ `REVOPS-004` |
 | **Mobile / iOS** | 🟢 **`PLAT-005` EN PRODUCCIÓN, bandera solo en Santa María** (30 ago; validada antes en staging con un iPhone real) · 🟡 `MOB-001` | 🟠 Android de `PLAT-005` y `MOB-002` | — | ◇ `MOB-003` |
 | Servicio a clientes | ✅ `SUP-001` | 🟠 `SUP-002` | 🔵 `SUP-003` | ◇ `SUP-004` |
-| Onboarding e importación | ⏸ Recolectar evidencia real | 🔴 **`ONB-002`** — el padrón sin duplicados, con `PRD-V-FEAT-005` lista: **sin IA y sin esperar corpus** (11 de 68 personas duplicadas) · ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA, aún sin PRD) |
+| Onboarding e importación | ⏸ Recolectar evidencia real | 🔴 **`ONB-002`** — el padrón sin duplicados, con `PRD-V-FEAT-005` lista: **sin IA y sin esperar corpus** (11 de 68 personas duplicadas) · ⏸ `ONB-001` | — | ◇ `AI-ONB-001` (su parte de IA: **explorada**, aún sin PRD a propósito) |
 | **Compartido con Albert** | 🟡 **Cerrado temporalmente** — esperando dos respuestas suyas | — | — | ◇ Agenda · mensajería · precio |
 
 > **Esta tabla no tenía fila de «Propiedad horizontal» hasta el 26 de agosto de 2026**, y es el
@@ -739,7 +739,8 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 #### `PH-003` — Autorizar la visita que llega sin avisar
 
-- **Frente:** Propiedad horizontal · **Estado:** Encuadrado, **sin PRD** (30 ago 2026) · **Nivel 3**
+- **Frente:** Propiedad horizontal · **Estado: EN PRODUCCIÓN, `CA3` y `CA10` verificados con ojos**
+  (1 sep 2026); queda `CA4`, que pide dos personas · **Nivel 3**
 - **Problema:** hoy **toda visita nace de la mano del residente**, por QR emitido de antemano. La
   visita que se presenta en portería sin avisar no tiene camino, y es la mayoría de las visitas
   reales de un conjunto.
@@ -763,15 +764,18 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   nadie mira, y el guardia se queda con el visitante en la puerta.
 - **Criterio de salida:** una visita no anunciada entra con autorización trazable — del residente o
   del guardia declarando el medio— y el residente la ve en su portal.
-- **Estado real: `PRD-V-FLOW-005` ESCRITA y lista para desarrollo** (30 ago 2026). Trae el estado
-  nuevo *pendiente de autorización* —hoy solo existen `scheduled`, `inside` y `completed`—, y
-  **la expiración se deriva del sello de tiempo, no de un cron**: un `pendiente` de hace una hora
+- **Estado real (1 sep 2026): EN PRODUCCIÓN con el ciclo validado por las TRES miradas.** El
+  guardia recorrió el ciclo entero el 31; el 1 de septiembre **`CA3` se verificó con dos sesiones
+  reales a la vez** —el residente autorizó en 26 segundos y quedó `authorizationMedium: "app"` con
+  su uid— y **`CA10` resultó estar SIN CONSTRUIR**: la visita desaparecía del portal del residente
+  al resolverse. Se construyó el mismo día (historial «Visitas registradas en portería», lógica
+  pura con banco en `src/features/visitors/historial-de-porteria.ts`, mismo vocabulario que la
+  portería, cero índices y cero reglas nuevos) y se verificó con dos residentes distintos.
+- **Lo único abierto es `CA4`** (dos residentes contestan a la vez): **la fixture ya existe**
+  —Carolina Prueba, segunda residente de APARTAMENTO 201, con cuenta operativa— y la prueba pide
+  **dos personas y dos dispositivos**, no más código. Receta en `docs/pendientes.md`.
+- **La expiración se deriva del sello de tiempo, no de un cron**: un `pendiente` de hace una hora
   *es* `expirada` sin que nadie haya corrido nada, así que no hay estados atascados.
-- **El dato que obligó a que fuera callable, y no es opinión:** el `update` de `visitorPasses` deja
-  al residente tocar **solo lo que él creó**. Un pase de portería lleva el uid del guardia, así que
-  **con las reglas de hoy el residente no puede autorizarlo** — y abrir esa rama al cliente sería
-  el agujero que la ficha viene a evitar.
-- **Siguiente paso:** construirla, detrás de `UX-004` en la cola.
 
 #### `PH-002` — Lo que espera al primer pago real
 
@@ -987,8 +991,9 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
 
 #### `AI-ONB-001` — Cargar el padrón desde lo que el cliente ya tiene
 
-- **Frente:** IA y agentes · Onboarding e importación · **Estado:** Encuadrado, **sin PRD**
-  (30 ago 2026). **Decía «Exploración bloqueada por datos» y David lo desbloquea por decisión**
+- **Frente:** IA y agentes · Onboarding e importación · **Estado: EXPLORADA (1 sep 2026), sigue
+  sin PRD a propósito** — la premisa aguantó: sin corpus no hay ficha. Pero la exploración
+  **reencuadró qué ficha será** (ver abajo)
 - **Se llamaba «Mapeo asistido de columnas» y el alcance cambió**, también por decisión de David
   del 30 de agosto: **«cualquier formato» incluye PDF y fotos**, no solo hojas de cálculo. Eso
   contradice a `docs/hoja-de-ruta-ia.md`, que argumentaba lo contrario y lo dejó escrito. **La
@@ -1013,8 +1018,25 @@ existen**. Y dejó un hallazgo de portafolio: **el rol `committee` solo alcanza
   **dos documentos distintos y el mismo correo en los siete**; más 21 de 68 personas sin documento,
   que es uno de los dos campos con los que se deduplica. **Empezar por lo determinista hace la parte
   de IA falsable:** se puede medir si el modelo encuentra algo que el script no.
+- **LA EXPLORACIÓN DEL 1 DE SEPTIEMBRE, medida ejecutando el mapeador real contra ocho formatos
+  plausibles (sonda sintética, NO corpus):** el determinístico **casi no falla en «elegir
+  columnas»** —«Mail», «Calidad», «No. Depto», «Clase»/«Situación» los resuelve solo—. Lo que
+  falla son **cuatro clases**: (1) **el LECTOR** —una fila de título encima de los encabezados los
+  convierte en datos y el mapeo sugiere disparates; y PDF/fotos ni entran—; (2) **transformaciones
+  que el contrato columna→campo 1:1 no puede expresar** —nombre partido en Nombres+Apellidos (se
+  pierden los apellidos EN SILENCIO), Torre+Apto separados, el padrón mixto estilo Habitanto con
+  sugerencia equivocada en silencio, y el rol codificado en QUÉ columna está llena—; (3)
+  **vocabulario de VALORES, que es producto y no IA** —`parqueadero`/`bodega` no existen como tipo
+  de unidad y BLOQUEAN el archivo entero—; (4) **huecos baratos del catálogo, de una tarde y sin
+  IA** —`person.unitLabel` sin `cardinality`, alias `apto`/`inmueble` ausentes—.
+- **La implicación que reencuadra la ficha:** el enganche previsto («el mapeo asistido decide qué
+  columna alimenta qué campo») asiste justo lo que ya casi no falla. **La ficha, cuando toque, es
+  de transformaciones y formatos** —partir/unir/pivotar, detectar encabezados, PDF/foto → tabla
+  intermedia—, no de elección de columnas. Detalle en la cabecera de `docs/pendientes.md`.
 - **Precondición que sigue en pie:** hacen falta **15–25 archivos de importación reales** para
-  evaluar la parte de IA, y hoy no se guarda ninguno. Eso no lo desbloquea escribir código.
+  evaluar la parte de IA, y hoy no se guarda ninguno. Eso no lo desbloquea escribir código. **Y ya
+  se sabe qué pedir:** archivos con fila de título, padrones mixtos unidad+persona, nombres
+  partidos, y los PDF/fotos tal como lleguen — esas clases deciden si la IA paga su coste.
 - **Criterio de salida:** un conjunto nuevo carga unidades y residentes desde el archivo que tenga,
   y el administrador ve y resuelve los duplicados antes de que ensucien el padrón.
 
@@ -1202,6 +1224,31 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.47 — 1 de septiembre de 2026 — CA3/CA10 cerrados, y la exploración que reencuadra la IA de formatos
+
+- **`CA3` de `PH-003` verificado en producción con DOS sesiones reales a la vez** —guardia en un
+  navegador, residente en otro—: autorización en 26 segundos, `authorizationMedium: "app"` con el
+  uid del residente, «Entró» habilitándose en vivo y el ciclo cerrando en «Finalizado».
+- **`CA10` estaba EN PRODUCCIÓN SIN CONSTRUIR y lo destapó la propia prueba:** la visita
+  desaparecía del portal del residente al autorizarse — el único lector filtraba `pendiente` e
+  «Invitaciones recientes» lee otra colección. **Construido y verificado el mismo día**
+  (`28a587e` + `c858edf`): historial con la misma constancia que ve la portería, lógica pura con
+  banco propio y falsada, cero índices y cero reglas nuevos. **Tercera vez que muerde «desplegado
+  no es completo»**, tras el `CA1` de `FLOW-004`.
+- **La fixture de `CA4` quedó montada:** Carolina Prueba, segunda residente de APARTAMENTO 201,
+  espejando la forma real de la membresía; la consulta del propio servidor devuelve 2 activos.
+  La carrera solo pide ya dos personas y dos dispositivos.
+- **`AI-ONB-001` explorada midiendo, no opinando:** el mapeador determinístico casi no falla en
+  «elegir columnas»; falla en transformaciones y formatos. **La ficha futura cambia de naturaleza**
+  y ya se sabe qué corpus pedir. La bandera `ai-onboarding-column-mapping` sigue sin consumidores.
+- **La noche de los chips cerró dos defectos en producción**, ambos «dato ausente disfrazado de
+  dato falso»: todo fallo de login salía como «error inesperado» (`fe89324`) y la tarjeta de
+  portería atribuía la visita al guardia cuando no se especificaba anfitrión (`d77a559`).
+- Y dos gestos que costaron descubrirse: **un navegador solo aguanta una sesión** (guardia en
+  Chrome + residente en el panel de la app es el montaje que funciona), y **un enlace de
+  restablecimiento no viaja por copia** — se trunca en el primer `&`; se genera con
+  `generatePasswordResetLink` y se abre directo.
 
 ### 0.9.46 — 31 de agosto de 2026 — los seis frentes resueltos, y ninguno lo frena el equipo
 
