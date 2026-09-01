@@ -4,7 +4,133 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026 (cierre)
+## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, SEGUNDA pasada (cierre)
+
+> ### LO QUE FALTA, Y ES TUYO
+>
+> **1 · EMPUJAR A PRODUCCIÓN.** El trabajo está en `develop` y **producción sigue en `fbd9737`**.
+> El gesto es `git push origin develop:master` —a mí me lo bloquea el clasificador—. Empujar
+> despliega el front solo; **las functions NO**, y hay una que cambió (`registrarImportacion`):
+> `npm --prefix functions run build && npx firebase deploy --only functions:registrarImportacion
+> --project hogaru-1`. El orden da igual aquí, y conviene saber por qué: **el servidor viejo no
+> RECHAZA los campos nuevos, los ignora** —`normalizarRegistro` construye la fila campo a campo—,
+> así que no hay ventana rota. Lo único que se pierde mientras tanto es la telemetría nueva.
+>
+> **2 · DOS CREDENCIALES CADUCADAS**, y hacen falta para verificar, no para desplegar:
+> `gcloud auth application-default login` y `gcloud auth login`. **El `firebase` está vivo**
+> (`dev@qintilab.com`) y con él funcionan el despliegue y `estado-de-apphosting.mjs`.
+>
+> **3 · EL TOPE DE GASTO DE LA IA sigue sin mirarse.** Van quince días. Eso lo miras tú, en la
+> consola.
+
+### LO QUE SE HIZO: `AI-ONB-001` ABIERTO, Y LOS CUATRO PUNTOS «SIN CORPUS» CERRADOS
+
+**La premisa aguantó otra vez: la ficha sigue sin escribirse, y a propósito.** Lo que se hizo es
+lo abrible sin corpus, en el orden que dejó escrito la exploración. El registro está en
+[`docs/exploracion-ai-onb-001.md`](exploracion-ai-onb-001.md), con un recuadro nuevo arriba que
+dice qué se ejecutó; las sondas siguen versionadas y **la del mapeador ya lee la tabla de tipos
+REAL** (mientras fue copia a mano, siguió enseñando un bloqueo que el producto ya no hacía).
+
+- **El lector ya no supone que los encabezados viven en la fila 0** (`437f44b`). Un XLSX con
+  título de administración encima convertía el título en encabezado y los encabezados en datos:
+  el asistente ofrecía columnas «(sin nombre)» y proponía «PADRÓN GENERAL DE PROPIETARIOS» como
+  correo. **Arreglado en los DOS caminos** —el título sobrevive a «Guardar como CSV»—, y de paso
+  se fue la asimetría de que el XLSX recortaba espacios y el CSV no.
+- **Alias que faltaban** (`437f44b`): `apto`/`inmueble` para la unidad de la persona, `inmueble`
+  para el nombre de la unidad, y `bloque`/`etapa`/`manzana`/`edificio` como agrupación.
+- **`parqueadero` y `bodega` son tipos de unidad** (`7c8bb0a`, decisión tuya). Antes bloqueaban el
+  archivo **entero**, no sus filas. **Y al contarlos eran SIETE los sitios** donde el vocabulario
+  estaba escrito a mano sin nada que los atara — **y ya habían derivado**: el mapa de rótulos
+  conocía `parking` y `storage` mientras el esquema los rechazaba, o sea que el lado que PINTA se
+  había adelantado al que VALIDA. Ahora vive en `src/lib/units/tipos.ts`.
+- **Se acumula corpus guardando la FORMA, no el archivo** (`d8e4026`, decisión tuya). La
+  recomendación vieja —copia anonimizada— **chocaba con `PRD-V-FEAT-002` §7**, que es la razón de
+  que el importador viva entero en el navegador, y nadie lo había notado. Ahora `importRuns`
+  guarda cuánto preámbulo traía el archivo, si la unidad venía partida y qué palabras usa la gente
+  donde tenemos vocabulario cerrado. **`hoja-de-ruta-ia.md` queda corregida**, tachando en vez de
+  borrar.
+
+### LOS DOS DEFECTOS QUE EL PROPIO ARREGLO IBA A INTRODUCIR — y es lo que más vale
+
+**Los dos los cazó medir ANTES de embarcarlos, no una suite.** El documento de exploración pedía
+las dos cosas tal cual, y las dos tal cual estaban mal:
+
+- **`cardinality` hace DOS trabajos y solo uno valía.** Guía la pasada que rescata el texto libre
+  **y además alimenta los avisos**. Declararla a secas en `person.unitLabel` **bloqueaba a una
+  familia**: tres personas de la 101 disparaban «repite el mismo valor en todas las filas, así que
+  no puede ser este dato», que para ese campo es falso — y un padrón además **viene ordenado por
+  unidad**, así que la muestra de ocho filas cae dentro del mismo apartamento. De ahí
+  `repeticionEsNormal`.
+- **El alias `apto` mapea MEDIA unidad y pierde la torre en silencio.** `T1-101` y `T2-101`
+  entraban las dos como «101» —dos unidades fundidas en una— con ✔ verde y cero avisos. El
+  guardián **detecta la fusión en vez de sospecharla**: busca dos filas con la misma etiqueta en
+  agrupaciones distintas, **sobre TODAS las filas y no sobre la muestra**, y bloquea nombrando las
+  dos columnas. Si ninguna unidad se funde, no molesta.
+
+### LO QUE ENSEÑÓ FALSAR, ESTA VEZ
+
+**33 guardianes nuevos y 24 falsaciones, todas revertidas por edición.** Tres cosas que no se
+reconstruyen leyendo el código:
+
+- **Mi conductor de falsaciones nació ciego.** Buscaba el símbolo `×` en la salida y **vitest v4 no
+  lo imprime**: dio «pasó en verde» en tres falsaciones que sí enrojecían. *Un instrumento de
+  medida también hay que falsarlo* — se descubrió corriendo una a mano y mirando la salida cruda.
+- **Dos pruebas mías no vigilaban lo que decían.** La de `apto` pasaba igual sin el alias, porque
+  la rescataba la variedad: se dejó en **una sola fila**, donde esa pasada no corre. Y la de «el
+  archivo de parqueaderos entra» derivaba los valores aceptados **de la propia tabla que vigila**,
+  así que quitar `parqueadero` la dejaba en verde —bajaba a «duda» y `hayBloqueantes` seguía en
+  `false`—.
+- **Y una puerta que parecía redundante no lo era.** El tope de valores distintos de la captura de
+  forma pasó en verde al quitarlo: la proporción sola **no cubre un padrón de 200 filas con 50
+  apellidos** —0,25, por debajo del umbral— y son cincuenta apellidos de personas reales. Tiene
+  prueba propia ahora.
+
+### ESTADO DEL REPOSITORIO AL CERRAR
+
+- **`develop` en `8a7b487`, empujado y verificado con `git ls-remote`. `master` sigue en
+  `fbd9737`** — leer los remotos, no esta línea.
+- **Bancos: `npm test` 1506 · functions 741**, los dos en verde con los dos typechecks en 0.
+  **SIN emulador, `npm test` sale en ROJO por `push-tokens.rules.test.ts`** y eso no significa que
+  hayas roto nada. Contarlos, no citarlos de aquí.
+- **Staging: la function `registrarImportacion` desplegada** con «Successful update operation»
+  para ESA function, no un «Deploy complete» genérico. **No se pudo confirmar por `updateTime`:
+  la ADC y el CLI de `gcloud` están caducados**, y `firebase functions:list` falla. Queda dicho
+  como lo que es —desplegado según el CLI, sin medir—.
+- **`functions/lib` va versionado y está reconstruido** (`8a7b487`).
+
+### LO QUE SIGUE DE `AI-ONB-001`, CUANDO TOQUE
+
+**Nada de esto se puede hacer todavía, y la razón no cambió: 0 archivos de corpus.** De las cuatro
+clases de fallo quedan las dos caras: **transformaciones** —partir, unir, pivotar— y **formatos**
+—PDF y fotos, que ni cruzan la puerta del lector—. **Y ojo con esto: la captura de forma NO
+alimenta la segunda**, porque de un PDF que no se lee no hay forma que capturar. Para esa mitad
+sigue haciendo falta pedirle archivos a un cliente real.
+
+### EN ESPERA, SIN TOCAR ESTA PASADA
+
+- **`CA4` de `PH-003`:** la fixture está completa (Carolina Prueba, segunda residente de la 201;
+  la contraseña la sabes tú). Pide **dos personas y dos dispositivos a la vez**. La receta entera
+  está en el histórico de abajo.
+- **`PLAT-005`:** validar el ciclo en producción y verlo una vez en un Android. Sigue en
+  `0 pushTokens`.
+- **`UX-005`** — tableros configurables: espera una decisión de prioridad tuya.
+- **Chips abiertos:** `startsAt: undefined` al crear comunicado · la base clavada de `email.ts` ·
+  el test `CF3` de migración (depende de una credencial viva, no de latencia) · el rojo del
+  emulador · la reconstrucción del facturado de Cartera sin anticipo.
+- **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
+  correo cerrado, push productivo, y los tickets que la IA necesita.
+
+**Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA JORNADA DEL 1 DE SEPTIEMBRE — PRIMERA PASADA — histórico
+
+**Bajado de la cabecera al reescribirla en la segunda pasada del mismo día.** Lo operativo de aquí
+está superado por la cabecera —los cuatro puntos «sin corpus» ya están hechos—; esto es el
+histórico y las lecciones.
+
+### Lo que se pidió y se cerró en la primera pasada (ya no es «lo primero»)
 
 > ### LO QUE PIDIÓ DAVID PARA LA SIGUIENTE SESIÓN
 >
