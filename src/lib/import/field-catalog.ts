@@ -61,6 +61,23 @@ export interface ImportField {
    * dio por bueno: habrían entrado tres unidades con el mismo nombre.
    */
   cardinality?: "alta" | "baja";
+  /**
+   * Que la columna repita valores **no dice nada** de este campo, así que
+   * `cardinality` solo sirve para SUGERIR y nunca para avisar.
+   *
+   * **`cardinality` hace dos trabajos a la vez y solo uno vale aquí.** Guía la
+   * cuarta pasada del mapeo —la que rescata el texto libre— y además alimenta
+   * los avisos de `mappingIssues`. En un campo que **señala a otra entidad** el
+   * segundo trabajo es falso: la unidad de una persona la comparten los que
+   * viven juntos, y un padrón viene **ordenado por unidad**, así que la muestra
+   * de ocho filas puede caer entera dentro del mismo apartamento.
+   *
+   * Sin esto, declarar `cardinality: "alta"` en `person.unitLabel` **bloquea a
+   * una familia**: tres personas de la 101 disparaban «repite el mismo valor en
+   * todas las filas, así que no puede ser este dato», que para este campo es
+   * simplemente falso. Medido el 1 de septiembre de 2026 al añadirla.
+   */
+  repeticionEsNormal?: boolean;
 }
 
 /**
@@ -77,7 +94,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     entity: "unit",
     label: "Nombre de la unidad",
     required: true,
-    aliases: ["nombre", "name", "unidad", "unit", "displayname"],
+    aliases: ["nombre", "name", "unidad", "unit", "displayname", "inmueble"],
     example: "T1-101",
     cardinality: "alta",
   },
@@ -86,7 +103,11 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     entity: "unit",
     label: "Torre o agrupación",
     required: false,
-    aliases: ["torre", "tower"],
+    // «bloque», «etapa», «manzana» y «edificio» son la misma idea con el nombre
+    // de cada país, y aparecen en los padrones tal cual. Además de mapear mejor
+    // una unidad, son lo que deja ver que la unidad de una PERSONA viene
+    // partida en dos columnas — ver el aviso de `person.unitLabel`.
+    aliases: ["torre", "tower", "bloque", "etapa", "manzana", "edificio"],
     example: "T1",
     cardinality: "baja",
   },
@@ -147,8 +168,10 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     entity: "person",
     label: "Unidad",
     required: true,
-    aliases: ["unidad", "unit", "apartamento", "depto", "dpto", "departamento"],
+    aliases: ["unidad", "unit", "apartamento", "depto", "dpto", "departamento", "apto", "inmueble"],
     example: "T1-101",
+    cardinality: "alta",
+    repeticionEsNormal: true,
   },
   {
     key: "person.role",
@@ -357,6 +380,53 @@ export function suggestMapping(
   return mapping;
 }
 
+/**
+ * Cómo llama un archivo a una agrupación. **Sale del catálogo y no de una lista
+ * nueva**: escribirla aparte sería el segundo espejo que este fichero existe
+ * para evitar.
+ */
+const ALIAS_DE_AGRUPACION: readonly string[] =
+  IMPORT_FIELDS.find((field) => field.key === "unit.tower")?.aliases ?? [];
+
+/** El primer encabezado con pinta de agrupación que el mapeo dejó sin usar. */
+function agrupacionSinUsar(
+  rows: readonly Record<string, string>[],
+  mapping: Record<string, string | null>,
+): string | null {
+  const usados = new Set(Object.values(mapping).filter((h): h is string => Boolean(h)));
+  for (const header of Object.keys(rows[0] ?? {})) {
+    if (usados.has(header)) continue;
+    const key = normalizeHeader(header);
+    if (ALIAS_DE_AGRUPACION.some((alias) => key === alias || key.includes(alias))) return header;
+  }
+  return null;
+}
+
+/**
+ * ¿Hay dos filas con la MISMA etiqueta de unidad en agrupaciones distintas?
+ *
+ * Es la fusión, detectada y no sospechada: si el archivo trae `Torre 1 · 101` y
+ * `Torre 2 · 101`, importar solo «101» mete a las dos personas en la misma
+ * unidad. **Se recorren todas las filas y no la muestra de ocho**, porque un
+ * padrón viene ordenado por torre y las ocho primeras caen dentro de la misma.
+ */
+function unidadesQueSeFunden(
+  rows: readonly Record<string, string>[],
+  headerUnidad: string,
+  headerAgrupacion: string,
+): boolean {
+  const agrupacionDe = new Map<string, string>();
+  for (const row of rows) {
+    const etiqueta = normalizeHeader(row[headerUnidad] ?? "");
+    const grupo = normalizeHeader(row[headerAgrupacion] ?? "");
+    if (!etiqueta || !grupo) continue;
+    const visto = agrupacionDe.get(etiqueta);
+    if (visto === undefined) agrupacionDe.set(etiqueta, grupo);
+    else if (visto !== grupo) return true;
+  }
+  return false;
+}
+
 export type NivelAviso = "bloquea" | "duda";
 
 export interface AvisoMapeo {
@@ -391,8 +461,24 @@ export function mappingIssues(
     const header = mapping[field.key];
     if (!header) continue;
 
-    // Texto libre: lo único juzgable es cuánto se repite.
-    if (field.cardinality) {
+    // La unidad de una persona partida en DOS columnas. El catálogo mapea
+    // «Apto» y **pierde «Torre» sin decir nada**, y cuando dos torres repiten
+    // número de apartamento las dos unidades entran como una sola. Es propio de
+    // `person`: una unidad sí tiene dónde guardar su torre, una persona no.
+    if (field.key === "person.unitLabel") {
+      const agrupacion = agrupacionSinUsar(rows, mapping);
+      if (agrupacion && unidadesQueSeFunden(rows, header, agrupacion)) {
+        avisos[field.key] = {
+          nivel: "bloquea",
+          mensaje: `La unidad viene partida en dos columnas: «${agrupacion}» quedó sin usar y «${header}» repite el mismo valor en agrupaciones distintas, así que unidades diferentes entrarían como una sola. Únelas en una columna del archivo antes de importar.`,
+        };
+        continue;
+      }
+    }
+
+    // Texto libre: lo único juzgable es cuánto se repite —salvo donde repetirse
+    // es normal, que ahí no dice nada. Ver `repeticionEsNormal`.
+    if (field.cardinality && !field.repeticionEsNormal) {
       const ratio = variedad(rows, header);
       const distintos = new Set(muestraDe(rows, header)).size;
       if (ratio !== null) {

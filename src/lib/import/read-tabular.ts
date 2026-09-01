@@ -14,6 +14,10 @@
  * **Todo ocurre en el navegador.** El archivo no viaja a ningún servidor ni se
  * almacena, que es lo que evita guardar un fichero con datos personales
  * (`PRD-V-FEAT-002` §7).
+ *
+ * **Y los encabezados no se dan por hechos en la primera fila** — ver
+ * `filaDeEncabezados`. Lo que exporta una administración suele traer un título
+ * encima, y darlo por encabezado envenena todo lo que viene después.
  */
 
 import Papa from "papaparse";
@@ -69,31 +73,91 @@ function comprobarTope(filas: unknown[], hoja?: string) {
   }
 }
 
+/**
+ * Cuántas filas del principio se miran buscando los encabezados. Un preámbulo
+ * de administración son una o dos líneas; diez es holgura, no una apuesta.
+ */
+const FILAS_DE_PREAMBULO = 10;
+
+function celdasConTexto(fila: readonly unknown[] | undefined): number {
+  if (!fila) return 0;
+  return fila.filter((celda) => String(celda ?? "").trim() !== "").length;
+}
+
+/**
+ * En qué fila empiezan los encabezados de verdad.
+ *
+ * **POR QUÉ EXISTE.** Se asumía la fila 0, y lo que exporta una administración
+ * suele traer encima un título en celda combinada —«PADRÓN GENERAL DE
+ * PROPIETARIOS — CONJUNTO LOS ROBLES»— y a veces una fila en blanco. Con esa
+ * suposición **el título se convierte en encabezado y los encabezados reales
+ * pasan a ser datos**: el asistente ofrece columnas llamadas «(sin nombre)» y
+ * llega a proponer el título como correo electrónico, con cara de acierto.
+ * Medido contra este mismo lector el 1 de septiembre de 2026.
+ *
+ * **La regla es deliberadamente corta: se salta lo que tiene menos de dos
+ * celdas con texto.** Un título ocupa una, una fila en blanco ninguna, y una
+ * fila de encabezados dos o más. No intenta adivinar más que eso — un título
+ * repartido en dos celdas la engaña, y eso es sabido y aceptado: la mitad cara
+ * de este problema es de la ficha de IA, no de aquí.
+ *
+ * **Si ninguna fila llega a dos, se devuelve la 0**, que es lo de siempre. Es
+ * lo que mantiene funcionando un archivo de una sola columna.
+ */
+function filaDeEncabezados(matriz: readonly (readonly unknown[])[]): number {
+  const hasta = Math.min(matriz.length, FILAS_DE_PREAMBULO);
+  for (let i = 0; i < hasta; i += 1) {
+    if (celdasConTexto(matriz[i]) >= 2) return i;
+  }
+  return 0;
+}
+
+/**
+ * De una matriz de celdas a una hoja con encabezados y filas.
+ *
+ * **La usan los dos formatos**, y por eso está aquí: cuando CSV y XLSX armaban
+ * su salida cada uno por su lado, el resultado se separaba en detalles —el
+ * CSV no recortaba los espacios y el XLSX sí— y un fallo aparecía en un solo
+ * formato, que se lee como «a veces no funciona». Devuelve `null` cuando no
+ * queda ninguna fila de datos.
+ */
+function armarHoja(matriz: readonly (readonly unknown[])[], nombreHoja?: string): TabularSheet | null {
+  const inicio = filaDeEncabezados(matriz);
+  const headers = desambiguar((matriz[inicio] ?? []).map((celda) => String(celda ?? "")));
+  if (headers.length === 0) return null;
+
+  const cuerpo = matriz.slice(inicio + 1);
+  if (cuerpo.length === 0) return null;
+  comprobarTope(cuerpo, nombreHoja);
+
+  return {
+    headers,
+    rows: cuerpo.map((fila) => {
+      const salida: Record<string, string> = {};
+      headers.forEach((h, i) => {
+        salida[h] = String(fila[i] ?? "").trim();
+      });
+      return salida;
+    }),
+  };
+}
+
 function leerCsv(texto: string, nombreArchivo: string): TabularFile {
-  const result = Papa.parse<Record<string, string>>(texto, {
-    header: true,
+  // `header: false` a propósito: con el modo de encabezados de Papa la primera
+  // fila ES la de encabezados por definición, y entonces un título encima no se
+  // puede detectar. Se pide la matriz cruda y decide `armarHoja`, que es la
+  // misma que usa el XLSX.
+  const result = Papa.parse<string[]>(texto, {
+    header: false,
     skipEmptyLines: true,
   });
 
-  const headers = desambiguar(result.meta.fields ?? []);
-  if (headers.length === 0) {
+  const hoja = armarHoja(result.data);
+  if (!hoja) {
     throw new TabularReadError("El archivo no tiene una fila de encabezados.");
   }
-  comprobarTope(result.data);
 
-  // Papa ya devuelve objetos con los encabezados originales como clave; se
-  // reconstruyen contra los desambiguados para que ambos caminos —CSV y XLSX—
-  // entreguen exactamente las mismas claves.
-  const originales = result.meta.fields ?? [];
-  const rows = result.data.map((fila) => {
-    const salida: Record<string, string> = {};
-    originales.forEach((original, i) => {
-      salida[headers[i]] = String(fila[original] ?? "");
-    });
-    return salida;
-  });
-
-  return { sheetNames: [nombreArchivo], sheets: { [nombreArchivo]: { headers, rows } } };
+  return { sheetNames: [nombreArchivo], sheets: { [nombreArchivo]: hoja } };
 }
 
 function leerXlsx(buffer: ArrayBuffer): TabularFile {
@@ -113,24 +177,13 @@ function leerXlsx(buffer: ArrayBuffer): TabularFile {
     });
 
     // Una hoja vacía o solo con encabezados no se ofrece: elegirla llevaría a
-    // un paso de mapeo sin nada que mapear.
-    if (matriz.length < 2) continue;
-
-    const headers = desambiguar((matriz[0] ?? []).map((c) => String(c ?? "")));
-    const cuerpo = matriz.slice(1);
-    comprobarTope(cuerpo, nombre);
+    // un paso de mapeo sin nada que mapear. Lo decide `armarHoja`, que es quien
+    // sabe en qué fila empiezan de verdad los encabezados.
+    const hoja = armarHoja(matriz, nombre);
+    if (!hoja) continue;
 
     sheetNames.push(nombre);
-    sheets[nombre] = {
-      headers,
-      rows: cuerpo.map((fila) => {
-        const salida: Record<string, string> = {};
-        headers.forEach((h, i) => {
-          salida[h] = String(fila[i] ?? "").trim();
-        });
-        return salida;
-      }),
-    };
+    sheets[nombre] = hoja;
   }
 
   if (sheetNames.length === 0) {

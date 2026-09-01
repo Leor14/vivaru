@@ -368,3 +368,131 @@ describe("pickBestSheet · abrir la hoja que sirve, no la primera", () => {
     expect(pickBestSheet([libro[0]], "unit", ACEPTADOS)).toBe("Saldos");
   });
 });
+
+/**
+ * `AI-ONB-001` · los huecos que la exploración del 1 de septiembre de 2026 midió
+ * contra este mismo código, y que no necesitaban IA para taparse.
+ *
+ * **Lo que estas pruebas protegen no es «que mapee mejor»**, que se ve solo en
+ * la sonda: es que los dos alias nuevos no hayan comprado ese acierto a cambio
+ * de meter dato mutilado en silencio, que es la peor clase de fallo del
+ * importador y la que el propio registro de la exploración nombra primero.
+ */
+describe("AI-ONB-001 · los alias que faltaban", () => {
+  const ACEPTADOS_PERSONA = {
+    "person.role": ["propietario", "inquilino", "arrendatario", "residente", "otro"],
+  };
+  const ACEPTADOS_UNIDAD = {
+    "unit.type": ["apartamento", "casa", "oficina", "otro"],
+    "unit.status": ["activo", "inactivo"],
+  };
+
+  it("un padrón mixto ya no propone el INMUEBLE como nombre de la persona", () => {
+    // El caso P3 de la sonda, formato Habitanto. Antes «Inmueble» ganaba el
+    // nombre por variedad y la unidad se quedaba sin mapear: sugerencia
+    // equivocada, y en silencio.
+    const headers = ["Inmueble", "Coeficiente", "Propietario", "Teléfono", "Email"];
+    const rows = [
+      { Inmueble: "T1-101", Coeficiente: "1,25%", Propietario: "Ana Pérez", "Teléfono": "3001112233", Email: "ana@x.com" },
+      { Inmueble: "T1-102", Coeficiente: "1,25%", Propietario: "Luis Gómez", "Teléfono": "3004445566", Email: "luis@x.com" },
+      { Inmueble: "T2-201", Coeficiente: "2,10%", Propietario: "Carla Soto", "Teléfono": "3007778899", Email: "carla@x.com" },
+    ];
+    const m = suggestMapping(headers, "person", { rows, accepted: ACEPTADOS_PERSONA });
+    expect(m["person.unitLabel"]).toBe("Inmueble");
+    expect(m["person.fullName"]).toBe("Propietario");
+  });
+
+  it("«Apto» alimenta la unidad de la persona, y lo hace EL ALIAS", () => {
+    // **Una sola fila a propósito.** Con dos o más, la pasada de variedad
+    // rescata «Apto» ella sola y la prueba pasaría igual sin el alias: sería un
+    // guardián redundante, de los que dan verde sin vigilar nada. Con una fila
+    // esa pasada no corre —`variedad` pide dos valores— y lo único que puede
+    // resolver la columna es el nombre.
+    const headers = ["Apto", "Nombre Completo", "Correo"];
+    const rows = [{ Apto: "101", "Nombre Completo": "Ana Pérez", Correo: "ana@x.com" }];
+    const m = suggestMapping(headers, "person", { rows, accepted: ACEPTADOS_PERSONA });
+    expect(m["person.unitLabel"]).toBe("Apto");
+  });
+
+  it("una agrupación llamada «Bloque» es la torre de la unidad", () => {
+    const headers = ["Inmueble", "Bloque", "Uso"];
+    const rows = [
+      { Inmueble: "A-101", Bloque: "A", Uso: "apartamento" },
+      { Inmueble: "A-102", Bloque: "A", Uso: "apartamento" },
+      { Inmueble: "B-201", Bloque: "B", Uso: "casa" },
+    ];
+    const m = suggestMapping(headers, "unit", { rows, accepted: ACEPTADOS_UNIDAD });
+    expect(m["unit.tower"]).toBe("Bloque");
+    expect(m["unit.displayName"]).toBe("Inmueble");
+  });
+});
+
+describe("AI-ONB-001 · repetir la unidad no es sospechoso, partirla sí", () => {
+  const ACEPTADOS_PERSONA = {
+    "person.role": ["propietario", "inquilino", "arrendatario", "residente", "otro"],
+  };
+
+  it("una FAMILIA en la misma unidad no bloquea nada", async () => {
+    // `cardinality: "alta"` en `person.unitLabel` es para SUGERIR. Sin
+    // `repeticionEsNormal`, esto disparaba «repite el mismo valor en todas las
+    // filas, así que no puede ser este dato» sobre un archivo impecable.
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { Unidad: "T1-101", Nombre: "Ana Pérez", Correo: "ana@x.com", Rol: "propietario" },
+      { Unidad: "T1-101", Nombre: "Luis Pérez", Correo: "luis@x.com", Rol: "residente" },
+      { Unidad: "T1-101", Nombre: "Carla Pérez", Correo: "carla@x.com", Rol: "residente" },
+    ];
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
+    expect(mapping["person.unitLabel"]).toBe("Unidad");
+    expect(mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA)["person.unitLabel"]).toBeUndefined();
+  });
+
+  it("Torre y Apto separados que FUNDEN dos unidades bloquean, y dicen cuáles son las columnas", async () => {
+    // Sin este aviso el alias «Apto» compra el mapeo al precio de meter a la
+    // 101 de la torre 1 y a la 101 de la torre 2 en la misma unidad, con ✔.
+    const { mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { Torre: "1", Apto: "101", Nombre: "Ana Pérez", Correo: "ana@x.com", Rol: "propietario" },
+      { Torre: "1", Apto: "102", Nombre: "Luis Gómez", Correo: "luis@x.com", Rol: "inquilino" },
+      { Torre: "2", Apto: "101", Nombre: "Carla Soto", Correo: "carla@x.com", Rol: "propietario" },
+    ];
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
+    expect(mapping["person.unitLabel"]).toBe("Apto");
+
+    const avisos = mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA);
+    expect(avisos["person.unitLabel"]?.nivel).toBe("bloquea");
+    expect(avisos["person.unitLabel"]?.mensaje).toContain("Torre");
+    expect(avisos["person.unitLabel"]?.mensaje).toContain("Apto");
+    expect(hayBloqueantes(avisos)).toBe(true);
+  });
+
+  it("y si NINGUNA unidad se funde, no molesta: el aviso mide la fusión, no la sospecha", async () => {
+    // Mismas dos columnas, pero los números de apartamento no se repiten entre
+    // torres. La etiqueta pierde la torre y aun así identifica sin ambigüedad,
+    // así que el archivo entra. Es el límite declarado de este guardián.
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { Torre: "1", Apto: "101", Nombre: "Ana Pérez", Correo: "ana@x.com", Rol: "propietario" },
+      { Torre: "1", Apto: "102", Nombre: "Luis Gómez", Correo: "luis@x.com", Rol: "inquilino" },
+      { Torre: "2", Apto: "201", Nombre: "Carla Soto", Correo: "carla@x.com", Rol: "propietario" },
+    ];
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
+    expect(mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA)["person.unitLabel"]).toBeUndefined();
+  });
+
+  it("la fusión se busca en TODAS las filas, no en la muestra de ocho", async () => {
+    // Un padrón viene ordenado por torre: las ocho primeras filas caen dentro
+    // de la torre 1 y la colisión aparece mucho más abajo.
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    const rows = Array.from({ length: 12 }, (_, i) => ({
+      Torre: i < 10 ? "1" : "2",
+      Apto: `10${i < 10 ? i : i - 10}`,
+      Nombre: `Persona ${i}`,
+      Correo: `p${i}@x.com`,
+      Rol: "propietario",
+    }));
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
+    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA)["person.unitLabel"]?.nivel).toBe("bloquea");
+  });
+});
