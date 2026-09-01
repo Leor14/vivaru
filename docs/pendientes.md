@@ -92,10 +92,23 @@ reconstruyen leyendo el código:
 - **Bancos: `npm test` 1506 · functions 741**, los dos en verde con los dos typechecks en 0.
   **SIN emulador, `npm test` sale en ROJO por `push-tokens.rules.test.ts`** y eso no significa que
   hayas roto nada. Contarlos, no citarlos de aquí.
-- **Staging: la function `registrarImportacion` desplegada** con «Successful update operation»
+- **Staging sirve `build-2026-09-01-006` desde `8a7b487`**, medido por `traffic.current` con
+  `estado-de-apphosting.mjs` (funciona con la credencial de `firebase`, sin ADC).
+- **VALIDADO EN EL NAVEGADOR, sobre el build desplegado** (sesión de administrador de El Nogal):
+  1. El desplegable de tipo de unidad lista **Parqueadero (`parking`) y Bodega (`storage`)** con
+     su valor y su rótulo. El del formulario sale del **mismo `map`** y no se abrió porque ese
+     botón escribe.
+  2. **La prueba que valía: se subió al asistente un XLSX con fila de título Y fila en blanco
+     encima de los encabezados**, y el paso de columnas mapeó **los seis campos bien** —Nombre,
+     Correo, Teléfono, Unidad, Rol, y Documento correctamente en «Sin asignar»—, con «Continuar»
+     habilitado. Antes ese archivo enseñaba «(sin nombre)» y dos obligatorios sin mapear. **Se
+     cerró sin importar**: no se escribió ni una fila, la lista de unidades quedó igual.
+  3. De paso, eso ejercitó de punta a punta la telemetría de forma nueva —`filasDePreambulo: 2`—
+     sin romper el flujo. **No se pudo LEER la fila escrita**: hace falta la ADC.
+- **La function `registrarImportacion` desplegada a staging** con «Successful update operation»
   para ESA function, no un «Deploy complete» genérico. **No se pudo confirmar por `updateTime`:
   la ADC y el CLI de `gcloud` están caducados**, y `firebase functions:list` falla. Queda dicho
-  como lo que es —desplegado según el CLI, sin medir—.
+  como lo que es —desplegada según el CLI, y ejercitada por el navegador sin error—.
 - **`functions/lib` va versionado y está reconstruido** (`8a7b487`).
 
 ### LO QUE SIGUE DE `AI-ONB-001`, CUANDO TOQUE
