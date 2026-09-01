@@ -13,12 +13,18 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > corre `build-2026-09-01-007` desde `709b53a`, que lo contiene. El `-008` con `2ddbc49` quedó en
 > cola y **no cambia nada que se empaquete**: son el config de pruebas, una ficha y este documento.
 >
-> **Lo que SIGUE pendiente son las functions**, que no viajan con el push, y hay una que cambió
-> (`registrarImportacion`):
-> `npm --prefix functions run build && npx firebase deploy --only functions:registrarImportacion
-> --project hogaru-1`. El orden da igual aquí, y conviene saber por qué: **el servidor viejo no
-> RECHAZA los campos nuevos, los ignora** —`normalizarRegistro` construye la fila campo a campo—,
-> así que no hay ventana rota. Lo único que se pierde mientras tanto es la telemetría nueva.
+> **Y `registrarImportacion` YA ESTÁ DESPLEGADA** (1 sep, revisión `registrarimportacion-00014-pal`).
+> Con eso **producción no tiene nada pendiente**: ni front ni functions.
+>
+> **Se verificó por la MEDIDA, no por el «Deploy complete»**: `updateTime` de `03:57:15Z` a
+> `03:59:44Z`, estado `ACTIVE`. Y como `gcloud` está caducado, se leyó la API de Cloud Functions
+> por REST **con la ADC**, que sí vive — apuntado porque la próxima vez ahorra pedir una
+> credencial que no hace falta.
+>
+> **Con una rareza anotada, por si reaparece:** justo antes de desplegar, la función estaba ya en
+> estado `DEPLOYING` con `updateTime` de las `03:56:15Z`, de un despliegue que **no lanzó esta
+> sesión**. Se esperó a que quedara `ACTIVE` y se desplegó encima desde este árbol, para que lo
+> que corre sea código verificado y no uno de procedencia desconocida.
 >
 > **2 · DOS VIVAS Y UNA CADUCADA — y cada una se dice por separado.** La **ADC** está viva (el
 > censo de tipos leyó los dos proyectos con ella) y el **`firebase`** también (`projects:list` y
