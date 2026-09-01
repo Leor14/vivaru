@@ -7,7 +7,7 @@
 | **Módulo** | Residentes y unidades → **asistente de importación de residentes** |
 | **Entidad** | **`person` únicamente.** `unit` queda fuera y §4 dice por qué, medido |
 | **Usuario principal** | `tenant_admin` |
-| **Estado** | **CONSTRUIDA — en `develop` (`24b9741`, 1 sep 2026), staging desplegándose; validación en pantalla y producción pendientes** · **v1.2**: construirla corrigió `CA9` y la métrica de §2 — ver §0 |
+| **Estado** | **CONSTRUIDA Y VALIDADA EN STAGING CON OJOS** (`24b9741`, `build-2026-09-01-024`, 1 sep 2026): los diecisiete criterios, quince por prueba automática falsada y `CA7`, `CA8`, `CA13`, `CA15`, `CA16`, `CA17` vistos en pantalla con las fixtures `53`, `56`, `50` y `60`. **Falta producción**: `registrarImportacion` (credencial de `firebase` caducada) y el push a `master` · **v1.2**: construirla corrigió `CA9` y la métrica de §2 — ver §0 |
 | **Dependencias** | Extiende `PRD-V-FEAT-002` (Productiva) y **enmienda su `RN-02`** |
 | **Riesgo** | Bajo — transformación en el navegador, sin superficie de servidor nueva |
 | **Reversibilidad** | Total. Es una revocación del front; nada queda escrito distinto salvo un campo opcional de telemetría |
@@ -332,6 +332,22 @@ debía. Los que viven en React se miran en pantalla: `CA7` (la muestra unida), `
 columna esconde el separador) y la mitad de `CA16` («Unidad no encontrada» en la revisión). El
 banco de cargas (`correr.ts`) aplica además la unión declarada en `50`–`57`: los ocho pasan de
 bloquear o perder columnas a **«entra limpio · camposUnidos=1»**.
+
+**Visto en staging el 1 de septiembre**, con la sesión de administrador de David sobre el conjunto
+de ejemplo que tiene `T1-101`…`T2-201`: la fixture `53` bloquea, el botón «Unir «Torre» y «Apto»»
+deja las dos columnas con guion, la muestra pasa a `T1-101, T1-102, T1-201`, el bloqueo desaparece
+y la revisión da **6 válidas** con las seis unidades encontradas. Quitar «Apto» esconde el
+separador y deja «Torre» sola; «↑» invierte el orden y la muestra enseña `101-T1`; «Otro…» con seis
+caracteres deja cinco. La fixture `56` une a `1-101` y la revisión dice **«Unidad no encontrada:
+"1-101"»** en las seis, ninguna seleccionable. La `50` une «Nombres» + «Apellidos» por espacio y la
+muestra dice «Ana María Pérez Ruiz». La `60` en el asistente de unidades no enseña ni «añadir
+otra columna», ni «Unir con», ni botón alguno de unir. **Rol** nunca ofrece añadir.
+
+**Un borde que se vio y no está en los criterios:** si la persona quita la columna equivocada
+—deja «Torre» sola como unidad—, el detector por forma toma «Apto» por la agrupación y ofrece
+«Unir «Apto» y «Torre»», que daría `101-T1`. Es una duda, no un bloqueo, y la muestra unida lo
+delata al aceptarla; no se cambió nada porque el estado nace de un error de la persona y la
+mitigación de §12 ya lo cubre. Queda anotado por si un día se convierte en queja.
 
 **MVP:** §4 «entra», los diecisiete criterios.
 **Fase 2:** la entidad `unit` (con sus fixtures ya escritas) · partir una celda · plantillas con

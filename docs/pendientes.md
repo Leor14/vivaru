@@ -6,9 +6,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, noche (`ONB-003` ABIERTA)
 
-> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— ESTÁ CONSTRUIDA Y EN `develop`. Le faltan TRES cosas, y dos son de David.
+> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— CONSTRUIDA Y VALIDADA EN STAGING CON OJOS. Le faltan DOS cosas, las dos de David.
 >
-> **Commit `24b9741` en `develop`, empujado; staging se despliega solo desde ahí.** `master` sigue en
+> **Commit `24b9741` en `develop`, empujado; staging lo sirve (`build-2026-09-01-024`).** `master` sigue en
 > `810941b` (producción no lo tiene). Los bancos: `npm test` **1554** (+18 nuevas, el rojo de
 > `push-tokens` sin emulador sigue siendo el esperado) · functions **745** · los dos typechecks en 0 ·
 > lint limpio. **Falsado con siete mutaciones del catálogo**, las siete cazadas por el criterio que
@@ -16,7 +16,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | Qué falta | Quién | Cómo |
 > |---|---|---|
-> | **1 · Verlo en staging con ojos** — `CA7` (la muestra unida), `CA8` (quitar una columna esconde el separador), `CA16` («Unidad no encontrada» tras unir `1`+`101`), y el botón «Unir «Torre» y «Apto»» del aviso | **David abre sesión de administrador en staging en el Chrome conectado**; la sesión sigue después | Subir `scripts/simulacion-de-cargas/generados/53-…csv` (bloquea → botón → se levanta), `50-…csv` (Nombres+Apellidos), `56-…csv` (une a `1-101` y la revisión dice «Unidad no encontrada»), y `60-…xlsx` en el asistente de UNIDADES (ningún «＋ añadir otra columna»). Si staging enseña lo viejo, es la caché: navegar con `?cb=24b9741` |
+> | ~~**1 · Verlo en staging con ojos**~~ **HECHO** (1 sep, noche): `53` bloquea → botón → `T1-101` → 6 válidas con las unidades encontradas; `56` une a `1-101` → «Unidad no encontrada» ×6, ninguna seleccionable; `50` → «Ana María Pérez Ruiz»; `60` en unidades sin nada que unir; quitar, reordenar y el separador propio recortado a 5. Detalle en §13 de la PRD | — | — |
 > | **2 · `registrarImportacion` a producción** (y a staging): acepta `camposUnidos` | **David: `firebase login --reauth`** — la credencial de `firebase` MURIÓ esta noche (medido con `projects:list`; a las 04:00 estaba viva) | `npm --prefix functions run build` ya está hecho y `lib/` va en el commit. Luego `firebase deploy --only functions:registrarImportacion --project hogaru-1` (y `--project vivaru-staging-02`). **Orden functions → front**, §13 de la ficha: el servidor viejo ignora el campo en silencio y se pierde la medida |
 > | **3 · Push a `master`** | David (el clasificador me lo bloquea) | Después de 1 y 2. `git push origin develop:master` — y NO lanzar rollout a mano |
 >
