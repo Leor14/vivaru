@@ -8,20 +8,29 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### LO QUE FALTA, Y ES TUYO
 >
-> **1 · EMPUJAR A PRODUCCIÓN.** El trabajo está en `develop` —punta `32a8f46`, que ya incluye el
-> arreglo del vocabulario de tipos de la tercera pasada— y **producción sigue en `fbd9737`**.
-> El gesto es `git push origin develop:master` —a mí me lo bloquea el clasificador—. Empujar
-> despliega el front solo; **las functions NO**, y hay una que cambió (`registrarImportacion`):
+> **1 · PRODUCCIÓN YA ESTÁ AL DÍA EN EL FRONT** (lo empujaste tú el 1 de septiembre). `master` y
+> `develop` están los dos en `2ddbc49`, y **el arreglo del vocabulario ya sirve** — producción
+> corre `build-2026-09-01-007` desde `709b53a`, que lo contiene. El `-008` con `2ddbc49` quedó en
+> cola y **no cambia nada que se empaquete**: son el config de pruebas, una ficha y este documento.
+>
+> **Lo que SIGUE pendiente son las functions**, que no viajan con el push, y hay una que cambió
+> (`registrarImportacion`):
 > `npm --prefix functions run build && npx firebase deploy --only functions:registrarImportacion
 > --project hogaru-1`. El orden da igual aquí, y conviene saber por qué: **el servidor viejo no
 > RECHAZA los campos nuevos, los ignora** —`normalizarRegistro` construye la fila campo a campo—,
 > así que no hay ventana rota. Lo único que se pierde mientras tanto es la telemetría nueva.
 >
-> **2 · LAS TRES CREDENCIALES ESTÁN VIVAS** (medido el 1 de septiembre, no supuesto). La segunda
-> pasada dejó escrito que la ADC y `gcloud auth` estaban caducadas; **las dos se usaron en la
-> tercera** —el censo de tipos leyó los dos proyectos con la ADC, y `gcloud auth list` da
-> `dev@qintilab.com` activo—. El `firebase` también. Si algo falla, se vuelve a mirar; **lo que no
-> vale es dar por caducado lo que ya se usó**.
+> **2 · DOS VIVAS Y UNA CADUCADA — y cada una se dice por separado.** La **ADC** está viva (el
+> censo de tipos leyó los dos proyectos con ella) y el **`firebase`** también (`projects:list` y
+> `functions:list` respondieron). **`gcloud auth` NO**: `gcloud functions describe` pide
+> reautenticar. Se arregla con `gcloud auth login`, y solo hace falta para leer functions con
+> `gcloud`; desplegar va por el `firebase`, que está vivo.
+>
+> **Y la lección, que costó escribir esto dos veces:** durante un rato este punto dijo que las
+> TRES estaban vivas, apoyándose en que `gcloud auth list` mostraba la cuenta activa. **Listar una
+> cuenta configurada no demuestra que su token refresque** — es un valor haciendo de sustituto de
+> un hecho. La ADC se dio por viva porque **se usó**; esa sí valía. **Una credencial solo está
+> viva si algo la EJERCITÓ.**
 >
 > **3 · EL TOPE DE GASTO DE LA IA sigue sin mirarse.** Van quince días. Eso lo miras tú, en la
 > consola.
