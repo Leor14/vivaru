@@ -70,6 +70,46 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **no acumulará nada hasta que alguien importe un archivo**: es el mismo freno que la IA, dato y
 > no código.
 
+### LO QUE SE HIZO EN LA CUARTA: `PRD-V-FEAT-006` y el número de fila
+
+**La PRD de unir columnas está escrita y en los dos ambientes** (`8514caa`):
+[`PRD-V-FEAT-006`](prd/funcionales/PRD-V-FEAT-006-unir-columnas-en-un-campo.md), registrada en el
+índice. Es la primera mitad de las transformaciones de `AI-ONB-001` **y no lleva IA**. El
+argumento que la ordena: **no se puede automatizar una capacidad que no existe** —una IA que
+proponga unir Torre y Apto es inútil si el sistema no sabe expresar una unión—. **Enmienda el
+`RN-02` de `FEAT-002`** y deja escrito que hay que corregir la ficha madre al construir.
+**`G1` NO está superada y se dice:** `importRuns` está vacío en producción, así que no hay tráfico
+contra el que leer su métrica. Lista para desarrollo; productiva no.
+
+**Y una regresión propia, arreglada** (`1963ca6`). La detección de preámbulo del `437f44b`
+invalidó una suposición de los dos asistentes: calculaban `idx + 2` con el comentario «+2: header
+row + 1-based», cierto mientras los encabezados vivieran siempre en la fila 0. Con título y fila
+en blanco encima, la primera fila de datos está en la **4** y la revisión la llamaba «fila 2».
+**No rompía la importación: mandaba a la persona al sitio equivocado a buscar su error**, que es
+la clase que dura porque nada falla.
+
+- El cálculo pasa a `filaEnElArchivo(indice, filasDePreambulo)` en `read-tabular.ts` —quien conoce
+  la geometría del archivo— y el preámbulo va **derivado de la hoja activa**, no en estado propio,
+  para que siga al selector de hoja. Los dos asistentes lo tenían a mano e igual: otra pareja de
+  espejos menos.
+- **6 guardianes, 5 falsaciones.** La del defecto original enrojece **solo** las pruebas con
+  preámbulo y deja verdes las del archivo normal: eso prueba que discriminan.
+- **Dos miden el CÓDIGO de los asistentes, y no sobran:** falsando se vio que llamar al cálculo
+  con `0` fijo **pasaba en verde** con las pruebas de aritmética. Vigilar el cálculo no es vigilar
+  lo que el consumidor hace con él.
+- **Verificado en staging con ojos:** el XLSX con título enseña **Fila 4 y Fila 5**. Cerrado sin
+  importar.
+
+> **UNA TRAMPA NUEVA DEL NAVEGADOR, que costó creer que el arreglo no funcionaba.** La primera
+> pasada por staging —con el rollout ya sirviendo `1963ca6`, medido por `traffic.current`— enseñó
+> **«Fila 2 y Fila 3»**: el número viejo. El código estaba bien; **el navegador servía el HTML del
+> build anterior desde su caché**. Se destapa navegando con una cadena de consulta cualquiera
+> (`?cb=…`), que fuerza documento nuevo. **Los chunks llevan hash de contenido y por eso se da por
+> hecho que no hay caché que valga — pero el DOCUMENTO que los referencia sí se cachea.** Es el
+> reverso del falso negativo de la huella de chunks que ya está anotado: allí la huella decía «no
+> cambió» y sí; aquí la pantalla dice «no funciona» y funciona. **Ante una validación de navegador
+> que contradice al código, sospechar de la caché ANTES que del arreglo.**
+
 ### LO QUE SE HIZO EN LA TERCERA: el vocabulario de tipos deja de decir dos cosas
 
 **`32a8f46`, y no es una limpieza: era una incoherencia viva.** El mapa de rótulos de la página de
