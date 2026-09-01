@@ -11,9 +11,14 @@ import {
   mappingIssues,
   type ImportEntity,
 } from "../../src/lib/import/field-catalog";
+import { ALIAS_DE_TIPO } from "../../src/lib/units/tipos";
 
+// **Los tipos salen de la tabla REAL y no de una copia.** El 1 de septiembre de
+// 2026 esta lista era una copia a mano, y en cuanto `parqueadero` y `bodega`
+// pasaron a ser tipos válidos la sonda siguió enseñando un bloqueo que el
+// producto ya no hace: un instrumento que mide otra cosa es peor que ninguno.
 const ACEPTADOS_UNIDAD = {
-  "unit.type": ["apartment", "apartamento", "apto", "house", "casa", "office", "oficina", "local", "other", "otro", "otra"],
+  "unit.type": Object.keys(ALIAS_DE_TIPO),
   "unit.status": ["active", "activo", "activa", "inactive", "inactivo", "inactiva"],
 };
 const ACEPTADOS_PERSONA = {
@@ -82,7 +87,7 @@ const CASOS: Caso[] = [
       { Unidad: "PQ-002", "Agrupación": "Sótano 1", Tipo: "parqueadero", Estado: "activo" },
       { Unidad: "BD-001", "Agrupación": "Sótano 2", Tipo: "bodega", Estado: "activo" },
     ],
-    notas: "Mapea bien y luego bloquea o marca filas: el catálogo de TIPOS no tiene parqueadero/bodega.",
+    notas: "Bloqueaba el archivo ENTERO hasta el 1 sep 2026; desde que parqueadero y bodega son tipos, entra.",
   },
   {
     nombre: "U2 · Vocabulario de estado real (ocupado/arrendado)",
