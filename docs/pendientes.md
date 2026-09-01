@@ -6,6 +6,32 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026 (cierre)
 
+> ### LO QUE PIDIÓ DAVID PARA LA SIGUIENTE SESIÓN
+>
+> ## ▸ ABRIR EL FRENTE DE LA IA DE LOS FORMATOS (`AI-ONB-001`)
+>
+> **Leer primero [`docs/exploracion-ai-onb-001.md`](exploracion-ai-onb-001.md)** — es el registro
+> completo de la exploración del 1 sep, con los resultados reales y cómo repetirlos
+> (`npx tsx scripts/sondas-ai-onb-001/sonda-mapeador.ts` y `sonda-lector.ts`, **versionadas**).
+>
+> **El encuadre que NO hay que rederivar:** el determinístico casi no falla en «elegir columnas»;
+> falla en TRANSFORMACIONES y FORMATOS. **La ficha sigue sin escribirse a propósito** (0 corpus,
+> la premisa aguantó) — abrir el frente NO es escribirla. Lo que SÍ se puede hacer sin corpus,
+> en orden de menor a mayor decisión:
+>
+> 1. **Los arreglos determinísticos de una tarde**: alias `apto`/`inmueble` y `cardinality` en
+>    `person.unitLabel` — la sonda es la verificación antes/después.
+> 2. **Detección determinística de la fila de encabezados** (la mitad barata de la clase 1).
+> 3. **Decisión de producto**: `parqueadero`/`bodega` como tipos de unidad, o «usar *otro*».
+> 4. **El mecanismo de captura de corpus** (copia anonimizada con permiso) — convierte «esperar
+>    un cliente» en «acumular mientras llega».
+>
+> **No rediscutir:** la bandera `ai-onboarding-column-mapping` sigue sin consumidores (inerte);
+> «cualquier formato» incluye PDF y fotos (decisión del 30, anotada en `hoja-de-ruta-ia.md`);
+> y la lista de corpus ya está escrita en el documento de exploración.
+>
+> Sigue en pie: **una sola sesión que escriba a la vez.**
+
 **Los dos frentes que pidió David el 31 quedaron resueltos hasta donde una sesión puede.**
 (a) `CA3` y `CA10` de la prueba de portería, **cerrados en producción** — y `CA10` no era
 «validarlo»: **estaba SIN CONSTRUIR**. (b) La exploración de la IA de formatos está hecha, con
@@ -70,6 +96,10 @@ Sigue en pie: **una sola sesión que escriba a la vez.**
   distintos y conviven.
 
 ### (b) LA EXPLORACIÓN DE `AI-ONB-001` ESTÁ HECHA — qué falla el mapeador, MEDIDO
+
+**El registro completo, con los resultados crudos y cómo repetirlos, está en
+[`docs/exploracion-ai-onb-001.md`](exploracion-ai-onb-001.md); las sondas quedaron VERSIONADAS en
+`scripts/sondas-ai-onb-001/`.** Lo de abajo es el resumen.
 
 Sonda sintética (NO es corpus, y esa carencia sigue) corrida contra el código real
 (`suggestMapping` + `readTabularFile`): ocho formatos plausibles LATAM más el caso del lector.
