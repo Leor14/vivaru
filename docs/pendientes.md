@@ -6,7 +6,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, noche (`ONB-003` ABIERTA)
 
-> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— ESTÁ EN PRODUCCIÓN. No queda nada a medias: **la siguiente sesión vuelve a ELEGIR frente.**
+> ### `ONB-003` está EN PRODUCCIÓN, y la misma noche se RETOMÓ ALBERT. Lo vivo de Albert está en `docs/prd/albert/ESTADO-ALBERT.md` (bloque del 1 sep).
+>
+> **Albert, en tres líneas:** (1) somos **owner** de su proyecto GCP y por eso se pudo medir todo
+> desde dentro; (2) la clave estable de «ganado» **no existe** —`stages: string[]` en
+> `tenants/{t}/config/pipeline`—; (3) llegó `RESPUESTA-A-006`: construyen un endpoint,
+> `vivaruWonSignals`, autenticado con **nuestra cuenta de servicio**, y se contestó con
+> `DECISIONES-A-006` (las dos cuentas y el contrato que falta). **David entrega ese documento por el
+> canal.** Hasta que contesten el contrato, no hay nada que construir contra Albert.
 >
 > **Commit `24b9741` en `develop`, empujado; staging lo sirve (`build-2026-09-01-024`).** `master` sigue en
 > `810941b` (producción no lo tiene). Los bancos: `npm test` **1554** (+18 nuevas, el rojo de
