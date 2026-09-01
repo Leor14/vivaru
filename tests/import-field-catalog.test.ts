@@ -5,6 +5,7 @@ import { ALIAS_DE_TIPO } from "@/lib/units/tipos";
 import {
   IMPORT_FIELDS,
   fieldsFor,
+  mappingIssues,
   missingRequired,
   normalizeHeader,
   requiredFieldsFor,
@@ -715,5 +716,114 @@ describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
     // campo» a un acierto perfecto.
     expect(m["person.role"]).toBe("Calidad");
     expect(avisos["person.role"]).toBeUndefined();
+  });
+});
+
+/**
+ * `AI-ONB-001` · la unidad partida, detectada por la FORMA y no por la palabra.
+ *
+ * El guardián original solo conocía seis palabras, y medido con 36 archivos
+ * resultó que **la protección dependía del rótulo y no del problema**: el mismo
+ * padrón bloqueaba con «Torre» y entraba mudo con «Interior» —Bogotá— o
+ * «Escalera» —Guayaquil—, fundiendo apartamentos.
+ *
+ * Ahora hay dos caminos y **la respuesta se gradúa con la certeza**: si el
+ * nombre lo dice, se bloquea; si solo lo dice la forma de los datos, se duda.
+ */
+describe("AI-ONB-001 · la unidad partida se reconoce sin saber la palabra", () => {
+  const ACEPTADOS = { "person.role": ["propietario", "arrendatario", "residente"] };
+
+  /** Seis filas, dos grupos, y el número de apartamento repetido entre ellos. */
+  function padron(rotuloAgrupacion: string) {
+    return [
+      { [rotuloAgrupacion]: "1", Apto: "101", Nombre: "Ana Restrepo", Correo: "a@x.com", Rol: "propietario" },
+      { [rotuloAgrupacion]: "1", Apto: "102", Nombre: "Jairo Villalba", Correo: "b@x.com", Rol: "propietario" },
+      { [rotuloAgrupacion]: "1", Apto: "201", Nombre: "Marta Ocampo", Correo: "c@x.com", Rol: "arrendatario" },
+      { [rotuloAgrupacion]: "2", Apto: "101", Nombre: "Diego Salas", Correo: "d@x.com", Rol: "propietario" },
+      { [rotuloAgrupacion]: "2", Apto: "102", Nombre: "Sara Pinto", Correo: "e@x.com", Rol: "propietario" },
+      { [rotuloAgrupacion]: "2", Apto: "201", Nombre: "Iván Mejía", Correo: "f@x.com", Rol: "arrendatario" },
+    ];
+  }
+
+  function avisoDeUnidad(rows: Record<string, string>[]) {
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(mapping["person.unitLabel"]).toBe("Apto");
+    return mappingIssues(rows, "person", mapping, ACEPTADOS)["person.unitLabel"];
+  }
+
+  it("una palabra CONOCIDA bloquea: ahí hay certeza", () => {
+    expect(avisoDeUnidad(padron("Torre"))?.nivel).toBe("bloquea");
+  });
+
+  it("«Escalera» también, que es la palabra de Guayaquil y siempre agrupa", () => {
+    expect(avisoDeUnidad(padron("Escalera"))?.nivel).toBe("bloquea");
+  });
+
+  it("una palabra DESCONOCIDA ya no pasa muda: duda, por la forma de los datos", () => {
+    // «Interior» es el bloque en Bogotá y el apartamento en México, así que NO
+    // se puede meter en la lista de agrupaciones sin romper un país para
+    // arreglar el otro. La forma sí lo distingue.
+    const aviso = avisoDeUnidad(padron("Interior"));
+    expect(aviso?.nivel).toBe("duda");
+    expect(aviso?.mensaje).toContain("Interior");
+  });
+
+  it("y duda, NO bloquea: una sospecha no deja a nadie sin salida", () => {
+    // El nivel es la mitad del arreglo. Bloquear por una corazonada dejaría a
+    // alguien parado delante de un archivo que puede estar bien.
+    expect(avisoDeUnidad(padron("Interior"))?.nivel).not.toBe("bloquea");
+  });
+
+  it("un edificio con FAMILIAS y una columna de apellidos no dispara nada", () => {
+    // **El falso positivo que hubo que construir**, porque el corpus no lo
+    // traía: tres unidades con dos personas cada una y «Apellido» sin usar.
+    // Repite valores, pero no como un grupo — y sin este caso, quitar el
+    // umbral de proporción pasaría desapercibido.
+    const rows = [
+      { Unidad: "101", Nombre: "Ana", Apellido: "Pérez", Correo: "a@x.com", Rol: "propietario" },
+      { Unidad: "101", Nombre: "Luis", Apellido: "Pérez", Correo: "b@x.com", Rol: "residente" },
+      { Unidad: "102", Nombre: "Carla", Apellido: "Soto", Correo: "c@x.com", Rol: "propietario" },
+      { Unidad: "102", Nombre: "Mario", Apellido: "Soto", Correo: "d@x.com", Rol: "residente" },
+      { Unidad: "103", Nombre: "Elsa", Apellido: "Ruiz", Correo: "e@x.com", Rol: "propietario" },
+      { Unidad: "103", Nombre: "Jorge", Apellido: "Nieto", Correo: "f@x.com", Rol: "residente" },
+    ];
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(mappingIssues(rows, "person", mapping, ACEPTADOS)["person.unitLabel"]).toBeUndefined();
+  });
+
+  it("una columna con DEMASIADOS grupos no es una agrupación, aunque se repita", () => {
+    // **Quince grupos en treinta filas**: la proporción sale 0,5 y pasa el
+    // umbral — lo único que lo para es el tope absoluto. Un conjunto tiene dos
+    // o tres torres, no quince. Sin este caso, quitar el tope no se notaría.
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      Referencia: `REF-${i % 15}`,
+      Apto: `10${i % 3}`,
+      Nombre: `Persona ${i}`,
+      Correo: `p${i}@x.com`,
+      Rol: "propietario",
+    }));
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(mappingIssues(rows, "person", mapping, ACEPTADOS)["person.unitLabel"]).toBeUndefined();
+  });
+
+  it("y una columna CONSTANTE no puede tapar a la agrupación de verdad", () => {
+    // **El caso que hace falta el «al menos dos valores».** Una columna con el
+    // nombre del conjunto repetido en todas las filas va ANTES que «Interior»,
+    // y sin ese filtro se elegiría a ella: como nunca difiere, no hay fusión
+    // que detectar y el aviso se perdería — un falso negativo por orden de
+    // columnas, que es justo el defecto que este guardián vino a cerrar.
+    const rows = [
+      { Conjunto: "Altos del Sauce", Interior: "1", Apto: "101", Nombre: "Ana", Correo: "a@x.com", Rol: "propietario" },
+      { Conjunto: "Altos del Sauce", Interior: "1", Apto: "102", Nombre: "Luis", Correo: "b@x.com", Rol: "propietario" },
+      { Conjunto: "Altos del Sauce", Interior: "1", Apto: "201", Nombre: "Marta", Correo: "c@x.com", Rol: "arrendatario" },
+      { Conjunto: "Altos del Sauce", Interior: "2", Apto: "101", Nombre: "Diego", Correo: "d@x.com", Rol: "propietario" },
+      { Conjunto: "Altos del Sauce", Interior: "2", Apto: "102", Nombre: "Sara", Correo: "e@x.com", Rol: "propietario" },
+      { Conjunto: "Altos del Sauce", Interior: "2", Apto: "201", Nombre: "Iván", Correo: "f@x.com", Rol: "arrendatario" },
+    ];
+    const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    const aviso = mappingIssues(rows, "person", mapping, ACEPTADOS)["person.unitLabel"];
+    expect(aviso?.nivel).toBe("duda");
+    expect(aviso?.mensaje).toContain("Interior");
   });
 });

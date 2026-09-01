@@ -107,7 +107,11 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     // de cada país, y aparecen en los padrones tal cual. Además de mapear mejor
     // una unidad, son lo que deja ver que la unidad de una PERSONA viene
     // partida en dos columnas — ver el aviso de `person.unitLabel`.
-    aliases: ["torre", "tower", "bloque", "etapa", "manzana", "edificio"],
+    // `escalera` entró el 1 de septiembre de 2026: es la palabra de Guayaquil
+    // para un edificio sin torres, y **siempre agrupa** — al revés que
+    // `interior`, que en Colombia es el bloque y en México el apartamento, y
+    // por eso NO está aquí sino confiada a la detección por forma.
+    aliases: ["torre", "tower", "bloque", "etapa", "manzana", "edificio", "escalera"],
     example: "T1",
     cardinality: "baja",
   },
@@ -410,16 +414,79 @@ export function suggestMapping(
 const ALIAS_DE_AGRUPACION: readonly string[] =
   IMPORT_FIELDS.find((field) => field.key === "unit.tower")?.aliases ?? [];
 
-/** El primer encabezado con pinta de agrupación que el mapeo dejó sin usar. */
-function agrupacionSinUsar(
+/**
+ * Cuántos grupos distintos puede tener una columna para seguir pareciendo una
+ * agrupación. Un conjunto tiene dos o tres torres, no ochenta.
+ */
+const MAX_GRUPOS = 12;
+
+/**
+ * ¿Esta columna se COMPORTA como una agrupación, sin mirar cómo se llama?
+ *
+ * Pocos valores distintos y muy repetidos. Es lo que separa una torre de un
+ * apellido **sin entender ninguna de las dos palabras**: en un padrón de 200
+ * filas, las torres son tres y los apellidos ciento y pico.
+ *
+ * El tope absoluto hace el trabajo que la proporción sola no puede: en un
+ * edificio con familias, la columna de apellidos ronda el 0,5 de variedad y
+ * pasaría el filtro proporcional — pero son cien apellidos, no doce.
+ */
+function pareceAgrupacion(rows: readonly Record<string, string>[], header: string): boolean {
+  const distintos = new Set<string>();
+  let conValor = 0;
+  for (const row of rows) {
+    const v = normalizeHeader(row[header] ?? "");
+    if (!v) continue;
+    conValor += 1;
+    distintos.add(v);
+    if (distintos.size > MAX_GRUPOS) return false;
+  }
+  // Una columna constante no agrupa nada: no distingue dos unidades.
+  if (conValor < 2 || distintos.size < 2) return false;
+  // **La proporción se probó a quitar y hubo que reponerla.** Con solo el tope
+  // de 12 el corpus no cambiaba —36 archivos, un único caso distinto— y parecía
+  // que no protegía de nada; construir el caso que al corpus le faltaba lo
+  // desmintió: un edificio con FAMILIAS y una columna de apellidos sin usar
+  // —cuatro apellidos en seis filas— pasaba el tope y disparaba un aviso de
+  // «unidad partida» que era falso. La ausencia en el corpus no era evidencia.
+  return distintos.size / conValor <= 0.5;
+}
+
+/**
+ * La columna sin usar que podría ser la otra mitad de la unidad.
+ *
+ * **Devuelve además CÓMO se reconoció, y de eso depende la respuesta.** Hasta el
+ * 1 de septiembre de 2026 esto solo miraba la lista de alias de `unit.tower`, y
+ * medido con 36 archivos construidos resultó que **la protección dependía de la
+ * palabra y no del problema**: el mismo archivo bloqueaba con «Torre» y entraba
+ * con «Interior» —Bogotá— o «Escalera» —Guayaquil—, fundiendo apartamentos en
+ * silencio.
+ *
+ * Ahora hay dos caminos y no se mezclan: si el nombre lo dice, hay certeza; si
+ * solo lo dice la forma, hay sospecha. **Y una sospecha no bloquea un archivo.**
+ *
+ * **Por qué `interior` NO se añadió a los alias de torre**, que sería lo obvio:
+ * en Colombia es el bloque y en México es el apartamento —«#45 Interior 302»—.
+ * La misma palabra es la agrupación en un país y la unidad en otro, así que
+ * ponerla en la lista rompería México para arreglar Bogotá. **La forma sí lo
+ * distingue**: tres valores repetidos en cuarenta filas es una agrupación, y uno
+ * distinto por fila es la unidad.
+ */
+function candidataDeAgrupacion(
   rows: readonly Record<string, string>[],
   mapping: Record<string, string | null>,
-): string | null {
+): { header: string; porNombre: boolean } | null {
   const usados = new Set(Object.values(mapping).filter((h): h is string => Boolean(h)));
-  for (const header of Object.keys(rows[0] ?? {})) {
-    if (usados.has(header)) continue;
+  const libres = Object.keys(rows[0] ?? {}).filter((h) => !usados.has(h));
+
+  for (const header of libres) {
     const key = normalizeHeader(header);
-    if (ALIAS_DE_AGRUPACION.some((alias) => key === alias || key.includes(alias))) return header;
+    if (ALIAS_DE_AGRUPACION.some((alias) => key === alias || key.includes(alias))) {
+      return { header, porNombre: true };
+    }
+  }
+  for (const header of libres) {
+    if (pareceAgrupacion(rows, header)) return { header, porNombre: false };
   }
   return null;
 }
@@ -501,12 +568,22 @@ export function mappingIssues(
     // número de apartamento las dos unidades entran como una sola. Es propio de
     // `person`: una unidad sí tiene dónde guardar su torre, una persona no.
     if (field.key === "person.unitLabel") {
-      const agrupacion = agrupacionSinUsar(rows, mapping);
-      if (agrupacion && unidadesQueSeFunden(rows, header, agrupacion)) {
-        avisos[field.key] = {
-          nivel: "bloquea",
-          mensaje: `La unidad viene partida en dos columnas: «${agrupacion}» quedó sin usar y «${header}» repite el mismo valor en agrupaciones distintas, así que unidades diferentes entrarían como una sola. Únelas en una columna del archivo antes de importar.`,
-        };
+      const candidata = candidataDeAgrupacion(rows, mapping);
+      if (candidata && unidadesQueSeFunden(rows, header, candidata.header)) {
+        // **La respuesta se gradúa con la certeza, y esa es la decisión.** Si la
+        // columna se llama como una agrupación, la fusión está probada y parar
+        // es lo correcto. Si solo lo parece por su forma, la sospecha es fuerte
+        // pero no es certeza — y un bloqueo equivocado deja a alguien sin
+        // salida delante de un archivo que está bien.
+        avisos[field.key] = candidata.porNombre
+          ? {
+              nivel: "bloquea",
+              mensaje: `La unidad viene partida en dos columnas: «${candidata.header}» quedó sin usar y «${header}» repite el mismo valor en agrupaciones distintas, así que unidades diferentes entrarían como una sola. Únelas en una columna del archivo antes de importar.`,
+            }
+          : {
+              nivel: "duda",
+              mensaje: `«${candidata.header}» quedó sin usar y sus valores se repiten como los de una agrupación, y hay unidades con la misma etiqueta en grupos distintos. Puede que la unidad venga partida en dos columnas: si es así, «${header}» sola no las distingue y entrarían como una. Compruébalo.`,
+            };
         continue;
       }
     }
@@ -755,7 +832,7 @@ export function formaDelArchivo(
   // saber cuántos archivos vienen así da igual si además colisionan.
   const etiqueta = mapping["person.unitLabel"];
   const unidadPartida =
-    entity === "person" && Boolean(etiqueta) && agrupacionSinUsar(rows, mapping) !== null;
+    entity === "person" && Boolean(etiqueta) && candidataDeAgrupacion(rows, mapping) !== null;
 
   return { valoresNoReconocidos: [...new Set(valores)], unidadPartida };
 }

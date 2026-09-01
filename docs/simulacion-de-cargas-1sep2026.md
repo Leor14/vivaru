@@ -48,7 +48,26 @@ bloquea cuando la columna repite **un único** valor, y estas no repiten nada.
 > el diagnóstico, no el dato. Importando UNIDADES **no hay red**: `displayName` solo se comprueba
 > «no vacío», así que una unidad llamada `Ana Pérez` pasa todas las validaciones y **se crea**.
 
-## Defecto 2 — el guardián de la unidad partida depende de la PALABRA, no del problema
+## Defecto 2 — el guardián de la unidad partida dependía de la PALABRA — **RESUELTO**
+
+> **Cerrado el 1 de septiembre de 2026.** Ahora hay **dos caminos y la respuesta se gradúa con la
+> certeza**: si la columna se llama como una agrupación, la fusión está probada y **bloquea**; si
+> solo lo dice la FORMA de los datos —pocos valores distintos y muy repetidos— es una sospecha
+> fuerte y **duda**, que avisa sin dejar a nadie sin salida. Con eso, «Interior» pasa de mudo a
+> avisar sin necesidad de conocer la palabra.
+>
+> **`escalera` sí entró en la lista de nombres y `interior` NO, a propósito:** en Colombia
+> «interior» es el bloque y en México es el apartamento —«#45 Interior 302»—, así que meterla
+> rompería un país para arreglar el otro. La forma sí los distingue: tres valores repetidos en
+> cuarenta filas es una agrupación, y uno distinto por fila es la unidad.
+>
+> **Y una lección de método que costó una vuelta:** al quitar el umbral de proporción, los 36
+> archivos daban **exactamente el mismo resultado salvo uno**, así que parecía que no protegía de
+> nada. Construir el caso que al corpus le faltaba —un edificio con FAMILIAS y una columna de
+> apellidos sin usar— lo desmintió: sin umbral, disparaba un aviso de «unidad partida» que era
+> falso. **La ausencia en el corpus no era evidencia de ausencia.**
+
+Lo que decía antes de arreglarlo:
 
 El aviso que se construyó esta misma mañana funciona, y **solo ve seis palabras**: torre, tower,
 bloque, etapa, manzana, edificio. Dos agentes lo destaparon por separado con archivos idénticos
