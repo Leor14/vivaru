@@ -4,7 +4,134 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, TERCERA pasada (cierre)
+## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026 (CIERRE DE JORNADA)
+
+> ### LA SIGUIENTE SESIÓN **ELIGE FRENTE**. No hay nada a medias.
+>
+> **Árbol limpio, `develop` y `master` en `493dded`, producción sirviendo ese commit**
+> (`build-2026-09-01-017`, medido por `traffic.current`). **Cero PRD escritas sin construir y
+> cero frentes a medias.** Lo que sigue es una decisión de prioridad, no un desbloqueo.
+>
+> **LOS CANDIDATOS, con lo que de verdad los mueve:**
+>
+> | Frente | Qué es | Qué haría falta |
+> |---|---|---|
+> | **`ONB-003`** — unir columnas | PRD **escrita y lista para desarrollo**, acotada a `person`, sin IA | **Nada. Solo decidir.** Doce de sus diecisiete criterios ya apuntan a una fixture construida |
+> | **`UX-005`** — tableros configurables | En exploración desde el 30 ago | **Acotarlo.** Es lo único del frente de diseño sin decidir |
+> | **`PH-002`** — cierre por fecha de corte | Sin empezar | Lo dispara el primer pago real. **No hay ninguno** |
+> | **`SUP-002`** — métricas de soporte | Sin empezar | Sin tickets reales que medir |
+> | **`DATO-001` fase 2** — cerrar la puerta del alta | PRD pequeña, sin escribir | **Decisión tuya**: rechazar buzones reales en conjuntos `isExample`, o repetir la limpieza cada tanto |
+>
+> **`ONB-003` es el único con el trabajo ya masticado**, y por eso lo pongo primero — pero el
+> frente de onboarding ya recibió dos jornadas seguidas, así que cambiar de aire es legítimo.
+>
+> ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
+>
+> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **quince días
+>    encendida en producción** y es la que llama a Vertex y cobra. Este proyecto ya leyó un tope
+>    de 80 pesos creyendo que eran 80.000. **Es lo único urgente de todo el tablero.**
+> 2. **`gcloud auth login`** — el CLI de gcloud está MUERTO. La ADC y el `firebase` están vivos.
+> 3. **Corpus real de padrones: 15–25 archivos**, con permiso para anonimizar. Es gestión de una
+>    tarde y **desbloquea la única mitad de `AI-ONB-001` que sigue parada**.
+> 4. **`CA4` de `PH-003`**: la carrera entre dos residentes de la misma unidad. La fixture está
+>    montada (Carolina Prueba, 201; la contraseña la sabes tú) y pide **dos personas y dos
+>    dispositivos a la vez**.
+
+### LO QUE SE HIZO HOY, EN UNA JORNADA DE CINCO PASADAS
+
+**`AI-ONB-001` se abrió y lo que salió NO LLEVA IA.** Los cuatro puntos «sin corpus» hechos, más
+cinco defectos que destaparon **36 archivos construidos a propósito**, más una PRD nueva. Todo en
+producción y **validado con ojos**, no solo desplegado.
+
+| Commit | Qué |
+|---|---|
+| `437f44b` | La fila de título deja de envenenar el mapeo —**en CSV y XLSX**— y la unidad partida deja de fundir unidades |
+| `7c8bb0a` | `parqueadero` y `bodega` son tipos de unidad, y el vocabulario deja de vivir en **siete** sitios |
+| `d8e4026` | Se acumula corpus guardando **la FORMA del archivo, no el archivo** |
+| `1963ca6` | El número de fila vuelve a apuntar al archivo de la persona (**regresión propia del día**) |
+| `759e339` | El mapeo **deja de adivinar por el orden de las columnas** |
+| `606873c` | La unidad partida se reconoce **por la forma, no por la palabra** |
+| `493dded` | `PRD-V-FEAT-006` v1.1 y sus 16 fixtures |
+
+### LOS CUATRO HALLAZGOS QUE NO SE RECONSTRUYEN LEYENDO EL CÓDIGO
+
+- **El mapeo decidía por POSICIÓN.** La cuarta pasada rescata texto libre mirando solo si los
+  valores se repiten, y en un padrón el nombre, el correo, el teléfono, la cédula y el número de
+  casa **son todos únicos**: el empate era lo normal y se lo quedaba la primera columna. Falsado
+  moviendo una columna — el mismo padrón bautizaba las unidades con el nombre del dueño **o con su
+  cédula**, sin avisar en ninguno de los dos casos.
+- **El daño no era igual en los dos asistentes.** Importando personas el disparate no entra: el
+  correo se valida después. Importando **unidades no hay red** —`displayName` solo se comprueba «no
+  vacío»— así que ahí sí se creaban unidades con nombre de persona. **Es también la razón por la
+  que `FEAT-006` se acotó a `person`.**
+- **La sombra de PQRS SÍ escribe** (medido: fila en 45 s). `aiAssistance = 0` significaba «no ha
+  entrado ni un ticket», no un defecto. **Pero los nueve conjuntos de producción están marcados
+  `isExample` y la sombra los OMITE a propósito**: el día que entre un ticket real no se
+  clasificará hasta que alguien desmarque el conjunto — **y ese paso no está en ningún runbook**.
+  Santa María además está en `buzon_simple`, donde por contrato no corre.
+- **Son DOS las banderas de IA inertes, no una.** `ai-receipts-extraction` tampoco tiene
+  consumidor, **y no existe ni el módulo**: `functions/src/ai/` tiene veintiún ficheros y ninguno
+  extrae comprobantes.
+
+### EL BANCO NUEVO, QUE ES LO QUE QUEDA PARA LA PRÓXIMA VEZ
+
+```bash
+npx tsx scripts/simulacion-de-cargas/construir.ts   # especificación JSON → archivo real
+npx tsx scripts/simulacion-de-cargas/correr.ts      # archivo → qué ve el asistente
+```
+
+**51 casos versionados**, cada uno con **dos expectativas**: lo medido HOY y lo que debería pasar
+con `FEAT-006`. Empieza en los BYTES, que es lo que lo separa de las sondas de `AI-ONB-001`
+—aquellas parten de encabezados escritos a mano y **se saltan el lector entero**—.
+
+> **Y lo que NO es, porque confundirlo sería el error caro:** contesta preguntas de
+> **correctitud** y **no de frecuencia**. Que 51 archivos pasen no significa estar listos para el
+> primer cliente: significa que 51 formas conocidas de romperlo ya no lo rompen.
+
+### CINCO TRAMPAS DE MÉTODO QUE COSTARON TIEMPO HOY
+
+1. **Un instrumento de medida también nace ciego.** Mi conductor de falsaciones buscaba el símbolo
+   `×` y **vitest v4 no lo imprime**: dio tres «pasó en verde» falsos. Antes de creerse un barrido
+   automático, **hacerle una falsación al barrido**.
+2. **La caché del navegador da FALSOS NEGATIVOS.** Con el rollout ya sirviendo el commit bueno,
+   staging enseñaba el número viejo: se cachea **el documento**, aunque los chunks lleven hash.
+   Se destapa navegando con `?cb=<sha>`. **Ante una validación que contradiga al código,
+   sospechar de la caché antes que del arreglo.**
+3. **La ausencia en el corpus no es evidencia de ausencia.** Quitar un umbral no cambiaba ninguno
+   de los 36 archivos y estuve a punto de retirarlo por inútil; **construir el caso que faltaba**
+   —familias y una columna de apellidos— lo desmintió.
+4. **`get_page_text` no ve los modales** (viven en un portal fuera de `<main>`): dijo que no había
+   diálogo con el diálogo abierto. Lo ven la captura y consultar el DOM.
+5. **Los avisos se comprueban por COLOR y por el estado del botón**, no por su texto: dos avisos
+   con palabras distintas y el mismo nivel no distinguirían nada.
+
+### ESTADO DEL REPOSITORIO AL CERRAR
+
+- **`develop` y `master` en `493dded`**, verificado con `git ls-remote`. Árbol limpio.
+- **Producción sirviendo `build-2026-09-01-017`** desde ese commit, medido por `traffic.current`.
+- **Bancos: `npm test` 1536 · functions 741**, los dos typechecks en 0. **SIN emulador `npm test`
+  sale en ROJO por `push-tokens.rules.test.ts`** y eso no significa que hayas roto nada.
+- **Credenciales: ADC viva · `firebase` vivo (`dev@qintilab.com`) · CLI de `gcloud` MUERTO.**
+- **`registrarImportacion` desplegada en producción** y probada **por identidad de código**: se
+  bajó el fuente que GCP construyó y se diferenció contra `functions/lib` — cero diferencias.
+
+### LOS CUATRO REPOSITORIOS DE INFORMACIÓN, AL DÍA
+
+Bitácora (3 filas nuevas) · inventario (`AI-ONB-001` corregida, `ONB-003` creada) · tablero de
+producto (lo de hoy arriba, **13 viñetas anteriores al 30 podadas**) · y el **backlog de gobierno
+del equipo**, que llevaba seis días desactualizado: dos filas nuevas —onboarding y experiencia, que
+**no existían**— y cuatro puestas al día.
+
+**Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA JORNADA DEL 1 DE SEPTIEMBRE — PASADAS 1 A 3 — histórico
+
+**Bajado de la cabecera al cerrar la jornada.** Lo operativo de aquí está superado por la cabecera;
+esto es el histórico y las lecciones.
+
+### Lo que se cerró en las pasadas 1 a 3 (ya no es «lo primero»)
 
 > ### LO QUE FALTA, Y ES TUYO
 >
