@@ -4,6 +4,7 @@ import {
   getBufferMinutes,
   isDateTimeValid,
 } from "@/utils/datetimeValidation";
+import { TIPOS_DE_UNIDAD } from "@/lib/units/tipos";
 import { normalizeTower } from "@/utils/tower";
 
 const requiredText = (label: string, min = 2) => z.string().trim().min(min, `${label} es obligatorio`);
@@ -38,7 +39,9 @@ export const unitSchema = z.object({
     .min(1, "Torre es obligatorio")
     // Canonización única (src/utils/tower.ts): "t1"/"torre 1"/"TORRE 1" → "Torre 1".
     .transform((val) => normalizeTower(val) || val.trim()),
-  type: z.enum(["apartment", "house", "office", "other"]),
+  // El vocabulario sale de `src/lib/units/tipos.ts` y no se escribe aquí:
+  // era una de las siete copias que había que cambiar a la vez.
+  type: z.enum(TIPOS_DE_UNIDAD),
   status: z.enum(["active", "inactive"]),
   coefficient: optionalBoundedNumber("Coeficiente", 0, 100),
   monthlyFeeAmount: optionalBoundedNumber("Valor de expensa", 0, 1_000_000_000),

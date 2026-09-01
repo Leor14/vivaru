@@ -58,6 +58,7 @@ import {
   type UnitItem,
 } from "@/features/admin/services";
 import { DEFAULT_TOWER, distinctTowers, normalizeTower } from "@/utils/tower";
+import { ETIQUETA_DE_TIPO, TIPOS_DE_UNIDAD } from "@/lib/units/tipos";
 import { DuplicatePeoplePanel } from "@/components/features/admin/residents/DuplicatePeoplePanel";
 import { DuplicateUnitsPanel } from "@/components/features/admin/residents/DuplicateUnitsPanel";
 
@@ -367,15 +368,15 @@ export default function AdminResidentsPage() {
   }
 
   const unitTypeLabels: Record<string, string> = {
-    apartment: "Apartamento",
+    ...ETIQUETA_DE_TIPO,
+    // Tolerancia, no catálogo: valores que pueden estar GUARDADOS así en datos
+    // viejos o venidos de fuera. `commercial` y `local` no son tipos válidos
+    // —el esquema los rechaza— y siguen aquí para que, si aparece uno, la tabla
+    // lo enseñe legible en vez de crudo.
     apartamento: "Apartamento",
-    house: "Casa",
     casa: "Casa",
-    office: "Oficina",
     oficina: "Oficina",
-    parking: "Parqueadero",
     parqueadero: "Parqueadero",
-    storage: "Bodega",
     bodega: "Bodega",
     commercial: "Local comercial",
     local: "Local comercial",
@@ -1160,10 +1161,9 @@ export default function AdminResidentsPage() {
             aria-label="Filtrar por tipo"
           >
             <option value="all">Tipo: todos</option>
-            <option value="apartment">Apartamento</option>
-            <option value="house">Casa</option>
-            <option value="office">Oficina</option>
-            <option value="other">Otro</option>
+            {TIPOS_DE_UNIDAD.map((tipo) => (
+              <option key={tipo} value={tipo}>{ETIQUETA_DE_TIPO[tipo]}</option>
+            ))}
           </select>
 
           {/* Estado */}
@@ -1493,10 +1493,9 @@ export default function AdminResidentsPage() {
               <label className="text-sm text-[var(--slate-700)]">
                 Tipo
                 <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...unitForm.register("type")}>
-                  <option value="apartment">Apartamento</option>
-                  <option value="house">Casa</option>
-                  <option value="office">Oficina</option>
-                  <option value="other">Otro</option>
+                  {TIPOS_DE_UNIDAD.map((tipo) => (
+                    <option key={tipo} value={tipo}>{ETIQUETA_DE_TIPO[tipo]}</option>
+                  ))}
                 </select>
               </label>
               <label className="text-sm text-[var(--slate-700)]">

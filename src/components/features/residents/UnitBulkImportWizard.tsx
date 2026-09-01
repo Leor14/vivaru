@@ -37,6 +37,7 @@ import {
 } from "@/lib/import/field-catalog";
 
 import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+import { ALIAS_DE_TIPO, ETIQUETA_DE_TIPO } from "@/lib/units/tipos";
 
 import { registrarImportacionCallable } from "@/lib/firebase/callables";
 
@@ -81,19 +82,8 @@ type Props = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const TYPE_ALIASES: Record<string, UnitType> = {
-  apartment: "apartment",
-  apartamento: "apartment",
-  apto: "apartment",
-  house: "house",
-  casa: "house",
-  office: "office",
-  oficina: "office",
-  local: "office",
-  other: "other",
-  otro: "other",
-  otra: "other",
-};
+// Los alias de tipo salen del catálogo — ver `src/lib/units/tipos.ts`.
+const TYPE_ALIASES = ALIAS_DE_TIPO;
 
 const STATUS_ALIASES: Record<string, UnitStatus> = {
   active: "active",
@@ -104,12 +94,9 @@ const STATUS_ALIASES: Record<string, UnitStatus> = {
   inactiva: "inactive",
 };
 
-const TYPE_LABELS: Record<UnitType, string> = {
-  apartment: "Apartamento",
-  house: "Casa",
-  office: "Oficina",
-  other: "Otro",
-};
+// Los rótulos salen del catálogo. Este fichero llevaba su propia copia, que
+// es la séptima de las siete que había que cambiar a la vez.
+const TYPE_LABELS = ETIQUETA_DE_TIPO;
 
 /**
  * Lectura cruda de una celda para ENSEÑAR lo que escribió la persona cuando el

@@ -143,7 +143,7 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
    * existe desde antes que la ficha. No nombra a nadie: es la propia unidad
    * describiéndose. Retirarlo rompería lectores y es Fase 2.
    */
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:639"]);
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:640"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);

@@ -23,6 +23,7 @@ import {
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 import { db, storage } from "@/lib/firebase/client";
+import type { UnitType } from "@/lib/units/tipos";
 import { revokeResidentAccessCallable } from "@/lib/firebase/callables";
 import { normalizeTower } from "@/utils/tower";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
@@ -35,7 +36,7 @@ export type UnitItem = {
   unitId: string;
   displayName: string;
   tower: string;
-  type: "apartment" | "house" | "office" | "other";
+  type: UnitType;
   status: "active" | "inactive";
   ownerIds: string[];
   residentIds: string[];
