@@ -50,6 +50,16 @@ export type VisitaDelHistorial = {
 /** El historial enseña las últimas; por encima de esto es una pantalla de archivo, no un vistazo. */
 export const MAX_VISITAS_EN_HISTORIAL = 20;
 
+/**
+ * `2026-08-31` → `31/08/2026`, que es como la enseña la portería. Un valor que no tenga esa forma
+ * se enseña tal cual — inventar una fecha sería peor que enseñar la cruda.
+ */
+function fechaLegible(date: string | undefined): string {
+  if (!date) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : date;
+}
+
 function ordenDe(p: PaseParaHistorial): number {
   const marca = p.authorizationResolvedAt ?? p.authorizationRequestedAt ?? p.createdAt;
   const ms = marca ? Date.parse(marca) : Number.NaN;
@@ -95,7 +105,7 @@ export function visitasDePorteria(
       id: p.id,
       visitorName: p.visitorName,
       documentNumber: p.documentNumber,
-      fecha: p.date ?? "",
+      fecha: fechaLegible(p.date),
       hora: p.scheduledTime ?? "",
       ciclo: p.status === "inside" ? "dentro" : p.status === "completed" ? "finalizado" : null,
       constancia,

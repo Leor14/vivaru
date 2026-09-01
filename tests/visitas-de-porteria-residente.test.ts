@@ -82,6 +82,18 @@ describe("la constancia dice quién y por qué medio — el mismo rótulo que ve
   });
 });
 
+describe("la fecha se enseña como la ve la portería", () => {
+  it("2026-08-31 se enseña 31/08/2026", () => {
+    const [v] = visitasDePorteria([pase({ date: "2026-08-31" })], AHORA);
+    expect(v.fecha).toBe("31/08/2026");
+  });
+
+  it("una fecha que no tenga esa forma se enseña tal cual, no se inventa", () => {
+    const [v] = visitasDePorteria([pase({ date: "31/08/2026" })], AHORA);
+    expect(v.fecha).toBe("31/08/2026");
+  });
+});
+
 describe("el ciclo y el orden", () => {
   it("dentro y finalizado se distinguen; un pase sin entrar no lleva píldora de ciclo", () => {
     const [dentro] = visitasDePorteria([pase({ status: "inside" })], AHORA);
