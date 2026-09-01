@@ -58,7 +58,7 @@ import {
   type UnitItem,
 } from "@/features/admin/services";
 import { DEFAULT_TOWER, distinctTowers, normalizeTower } from "@/utils/tower";
-import { ETIQUETA_DE_TIPO, TIPOS_DE_UNIDAD } from "@/lib/units/tipos";
+import { ETIQUETA_DE_TIPO, TIPOS_DE_UNIDAD, rotuloDeTipo } from "@/lib/units/tipos";
 import { DuplicatePeoplePanel } from "@/components/features/admin/residents/DuplicatePeoplePanel";
 import { DuplicateUnitsPanel } from "@/components/features/admin/residents/DuplicateUnitsPanel";
 
@@ -367,28 +367,6 @@ export default function AdminResidentsPage() {
     return parsed.data;
   }
 
-  const unitTypeLabels: Record<string, string> = {
-    ...ETIQUETA_DE_TIPO,
-    // Tolerancia, no catálogo: valores que pueden estar GUARDADOS así en datos
-    // viejos o venidos de fuera. `commercial` y `local` no son tipos válidos
-    // —el esquema los rechaza— y siguen aquí para que, si aparece uno, la tabla
-    // lo enseñe legible en vez de crudo.
-    apartamento: "Apartamento",
-    casa: "Casa",
-    oficina: "Oficina",
-    parqueadero: "Parqueadero",
-    bodega: "Bodega",
-    commercial: "Local comercial",
-    local: "Local comercial",
-  };
-
-  function formatUnitType(value: string | undefined | null): string {
-    if (!value) return "-";
-    const key = value.trim().toLowerCase();
-    if (unitTypeLabels[key]) return unitTypeLabels[key];
-    return key.charAt(0).toUpperCase() + key.slice(1);
-  }
-
   function formatTowerLabel(value: string | undefined | null): string {
     return normalizeTower(value) || "-";
   }
@@ -410,7 +388,7 @@ export default function AdminResidentsPage() {
       key: "type",
       header: "Tipo",
       className: "whitespace-nowrap",
-      render: (unit) => formatUnitType(unit.type),
+      render: (unit) => rotuloDeTipo(unit.type),
     },
     {
       key: "status",
@@ -1225,7 +1203,7 @@ export default function AdminResidentsPage() {
                     <StatusBadge status={unit.status} context="unit" className="ml-auto shrink-0 text-[10px]" />
                   </div>
                   <p className="mt-0.5 truncate text-xs text-[var(--slate-500)]">
-                    {formatUnitType(unit.type)}
+                    {rotuloDeTipo(unit.type)}
                     {" · "}
                     {count === 0 ? (
                       <span className="text-amber-600">Sin titular</span>

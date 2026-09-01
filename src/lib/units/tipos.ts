@@ -81,3 +81,56 @@ export const ALIAS_DE_TIPO: Record<string, UnitType> = {
   otro: "other",
   otra: "other",
 };
+
+/**
+ * Lo que se PINTA para un `type` guardado, incluso si el esquema ya no lo
+ * aceptaría.
+ *
+ * **Vive aquí y no dentro de la página por la misma razón que los alias.**
+ * Estaba declarado dentro del componente de residentes, así que ninguna prueba
+ * podía alcanzarlo sin arrastrar React — y fue exactamente ahí donde el
+ * vocabulario volvió a derivar: el mapa conocía `commercial` y `local`, que el
+ * esquema RECHAZA, y además `local` se pintaba «Local comercial» mientras
+ * `ALIAS_DE_TIPO` lo resuelve a `office`, que se pinta «Oficina». La misma
+ * palabra tenía dos respuestas según entrara por un archivo o estuviera
+ * guardada cruda.
+ *
+ * Las dos entradas se retiraron el 1 de septiembre de 2026 después de CONTAR:
+ * cero unidades con `commercial` o `local` en producción (93 unidades) y en
+ * staging (87). Ninguna las estaba usando.
+ *
+ * **Y desde entonces el mapa NO SE ESCRIBE: SE DERIVA.** Retirar dos entradas
+ * arreglaba el caso y dejaba viva la causa —un mapa a mano al lado de un
+ * catálogo—, que es la misma forma que ya mordió dos veces. Derivándolo de
+ * `ALIAS_DE_TIPO`, una palabra no puede tener aquí una respuesta distinta de la
+ * que tiene allí: no queda sitio donde escribirla. `commercial` desaparece
+ * porque no es alias de nada, y `local` pasa a decir «Oficina», que es lo que
+ * ya decía al importarla.
+ *
+ * El respaldo de abajo sigue cubriendo lo que no es ni tipo ni alias: sale con
+ * la primera en mayúscula en vez de en blanco.
+ */
+const ROTULOS_TOLERADOS: Record<string, string> = {
+  // Cada palabra que un archivo sabe leer se pinta con el rótulo del tipo al
+  // que ESA MISMA tabla la resuelve. Así `local` dice «Oficina» venga como
+  // venga, y `apto`, `garaje` y `deposito` dejan de degradar a «Apto»,
+  // «Garaje» y «Deposito» teniendo un rótulo bueno a mano.
+  ...Object.fromEntries(
+    Object.entries(ALIAS_DE_TIPO).map(([palabra, tipo]) => [palabra, ETIQUETA_DE_TIPO[tipo]]),
+  ),
+  // Va DESPUÉS a propósito: el rótulo propio de un tipo manda sobre cualquier
+  // alias que coincida con su nombre. Un tipo no puede quedar mal escrito en
+  // pantalla por una fila torcida de la tabla de alias.
+  ...ETIQUETA_DE_TIPO,
+};
+
+/** El rótulo de un `type` guardado, tolerante con lo que el esquema rechazaría. */
+export function rotuloDeTipo(value: string | undefined | null): string {
+  if (!value) return "-";
+  const clave = value.trim().toLowerCase();
+  if (ROTULOS_TOLERADOS[clave]) return ROTULOS_TOLERADOS[clave];
+  return clave.charAt(0).toUpperCase() + clave.slice(1);
+}
+
+/** Solo para el banco: qué palabras conoce el mapa tolerante. */
+export const PALABRAS_CON_ROTULO = Object.keys(ROTULOS_TOLERADOS);

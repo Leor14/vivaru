@@ -8,7 +8,9 @@ import {
 import {
   ALIAS_DE_TIPO,
   ETIQUETA_DE_TIPO,
+  PALABRAS_CON_ROTULO,
   TIPOS_DE_UNIDAD,
+  rotuloDeTipo,
 } from "@/lib/units/tipos";
 import { unitSchema } from "@/features/admin/schemas";
 
@@ -96,5 +98,73 @@ describe("un archivo de parqueaderos y bodegas ya no bloquea", () => {
   it("y cada fila cuaja en el tipo que le toca", () => {
     expect(ALIAS_DE_TIPO["parqueadero"]).toBe("parking");
     expect(ALIAS_DE_TIPO["bodega"]).toBe("storage");
+  });
+});
+
+/**
+ * El resto de la deriva del 1 de septiembre de 2026.
+ *
+ * El mapa de rótulos de la página de residentes conservaba `commercial` y
+ * `local`, y cada uno estaba mal por un motivo distinto:
+ *
+ *   · `commercial` no lo puede escribir NADIE. No es un tipo válido y ningún
+ *     archivo lo resuelve: era un rótulo esperando un valor imposible.
+ *   · `local` sí es una palabra que un archivo escribe — pero `ALIAS_DE_TIPO` la
+ *     resuelve a `office`. Importada se veía «Oficina»; guardada cruda, «Local
+ *     comercial». La misma palabra con dos respuestas.
+ *
+ * Se contó antes de tocar nada: cero unidades con cualquiera de los dos en
+ * producción (93) y en staging (87).
+ *
+ * **Y el arreglo no fue retirar las dos entradas, sino DERIVAR el mapa entero
+ * de `ALIAS_DE_TIPO`.** Retirarlas curaba el caso y dejaba viva la causa: un
+ * mapa a mano al lado de un catálogo. Ahora una palabra no puede tener aquí una
+ * respuesta distinta de la que tiene allí porque no hay dónde escribirla, y de
+ * paso `apto`, `garaje`, `deposito` y `otra` —alias que degradaban a «Apto» o
+ * «Garaje» teniendo rótulo bueno a mano— se pintan como su tipo.
+ *
+ * Estas tres pruebas ya no vigilan el contenido del mapa: vigilan que **siga
+ * derivándose**. La primera enrojece si alguien vuelve a escribir una entrada a
+ * mano; la segunda, si la derivación se rompe o se queda corta.
+ */
+describe("lo que se PINTA no se separa de lo que se puede guardar", () => {
+  it("el mapa no conoce ninguna palabra que el sistema no pueda producir", () => {
+    // Producible = o el esquema lo acepta, o un archivo lo escribe y se resuelve.
+    // Derivado, esto se cumple solo; escrito a mano, era donde entró `commercial`.
+    const producibles = new Set([...TIPOS_DE_UNIDAD, ...Object.keys(ALIAS_DE_TIPO)]);
+    for (const palabra of PALABRAS_CON_ROTULO) {
+      expect(
+        producibles.has(palabra),
+        `«${palabra}» tiene rótulo y nada puede dejarla guardada: ni es un tipo válido ni una palabra que un archivo resuelva`,
+      ).toBe(true);
+    }
+  });
+
+  it("y TODA palabra que un archivo acepta se pinta igual venga como venga", () => {
+    // Esta prueba nació débil —solo exigía no contradecir— porque con el mapa a
+    // mano `apto` degradaba a «Apto» y no se podía pedir más. Con el mapa
+    // derivado se puede exigir lo fuerte: cobertura, no solo coherencia.
+    for (const [palabra, tipo] of Object.entries(ALIAS_DE_TIPO)) {
+      expect(
+        rotuloDeTipo(palabra),
+        `«${palabra}» importada resuelve a «${tipo}» y se pinta «${ETIQUETA_DE_TIPO[tipo]}», pero guardada cruda se pinta «${rotuloDeTipo(palabra)}»`,
+      ).toBe(ETIQUETA_DE_TIPO[tipo]);
+    }
+  });
+
+  it("y `local` dice lo mismo por los dos caminos, que es la incoherencia que abrió esto", () => {
+    // El caso concreto, clavado aparte: si alguien vuelve a darle rótulo propio,
+    // el mensaje de arriba habla de alias en general y este nombra el defecto.
+    expect(ALIAS_DE_TIPO["local"]).toBe("office");
+    expect(rotuloDeTipo("local")).toBe("Oficina");
+    expect(rotuloDeTipo("  LOCAL  ")).toBe("Oficina");
+  });
+
+  it("y lo que no es ni tipo ni alias degrada legible, en vez de quedarse en blanco", () => {
+    // `commercial` sale ya sin rótulo propio: nada lo resuelve, así que degrada.
+    expect(rotuloDeTipo("commercial")).toBe("Commercial");
+    expect(rotuloDeTipo("helipuerto")).toBe("Helipuerto");
+    expect(rotuloDeTipo(null)).toBe("-");
+    expect(rotuloDeTipo("")).toBe("-");
   });
 });
