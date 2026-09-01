@@ -4,25 +4,220 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 31 de agosto de 2026 (noche)
+## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026 (cierre)
 
-> ### LO QUE PIDIÓ DAVID PARA LA SIGUIENTE SESIÓN — sigue pendiente ENTERO
->
-> ## ▸ DOS FRENTES, Y LOS DOS SON DE AFINAR — no de construir de cero
->
-> **(a) Cerrar la prueba de portería de los accesos de visita.** `PH-003` está en producción y
-> validada a medias: falta que **el residente autorice desde su sesión** y la **carrera entre dos
-> residentes**.
->
-> **(b) Explorar la IA de los formatos de unidad y residente.** Es `AI-ONB-001`. **Explorar, no
-> escribir la ficha**: la decisión de no escribirla sigue en pie mientras no haya corpus, y la
-> exploración es justamente para saber si esa premisa aguanta.
->
-> **Los seis frentes del 30 están resueltos y no queda ninguna PRD escrita sin construir.** El
-> estado completo, con procedencia, en el reporte del 31:
-> <https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
->
-> Sigue en pie: **una sola sesión que escriba a la vez.**
+**Los dos frentes que pidió David el 31 quedaron resueltos hasta donde una sesión puede.**
+(a) `CA3` y `CA10` de la prueba de portería, **cerrados en producción** — y `CA10` no era
+«validarlo»: **estaba SIN CONSTRUIR**. (b) La exploración de la IA de formatos está hecha, con
+los fallos del mapeador **medidos contra el código real**, y reencuadra la ficha futura. Sigue
+sin quedar ninguna PRD escrita sin construir. Reporte del 31 (vigente para las cifras de fondo):
+<https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
+
+Sigue en pie: **una sola sesión que escriba a la vez.**
+
+### `PH-003` — `CA3` Y `CA10` CERRADOS EN PRODUCCIÓN (1 sep)
+
+- **`CA3` verificado con DOS sesiones reales a la vez** —guardia en Chrome, residente en el panel
+  del navegador de la app—: vía A sobre APARTAMENTO 201, el residente vio «Alguien te visita
+  ahora · quedan 4:44», autorizó, y el guardia vio **«Autorizada por David Carmona (desde la
+  app)»** sin recargar, con «Entró» pasando de deshabilitado a verde y el ciclo cerrando en
+  «Finalizado». En la base: `authorizedBy` = uid del RESIDENTE (el del guardia queda en
+  `createdBy`), `authorizationMedium: "app"`, resuelto en 26 segundos, `checkInAt` POSTERIOR a la
+  autorización.
+- **`CA10` estaba EN PRODUCCIÓN SIN CONSTRUIR, y lo demostró la propia prueba:** al autorizar, la
+  visita **desapareció del portal del residente**. El único lector de `visitorPasses` del portal
+  filtraba `pendiente`, e «Invitaciones recientes» lee OTRA colección (`visitorInvitations`). Es
+  el gemelo del `CA1` de `FLOW-004`: ciclo validado con ojos y un criterio de primera fase sin
+  construir — **«desplegado» no es «completo», tercera vez que muerde**.
+- **`CA10` construido y desplegado** (`28a587e` + `c858edf`): sección «Visitas registradas en
+  portería» en el portal del residente. La lógica es pura y con banco propio
+  (`src/features/visitors/historial-de-porteria.ts` ·
+  `tests/visitas-de-porteria-residente.test.ts`, 12 pruebas, falsadas), **el vocabulario de la
+  constancia es EL MISMO que ve la portería**, y usa la misma consulta que el panel de pendientes:
+  **cero índices y cero reglas nuevos**. Una `pendiente` viva NO sale en el historial —esa es del
+  panel de decidir— y una `pendiente` de más de cinco minutos sale como «Nadie contestó».
+  Verificado en pantalla **con dos residentes distintos**.
+- **Falsar destapó un guardián redundante:** el filtro «es de portería» de la primera línea no
+  gobernaba nada —la suite siguió en verde sin él—; la única autoridad es `estadoDeAutorizacion`
+  devolviendo `null`. Se retiró y se falsó la línea que sí sostiene: enrojeció la prueba exacta.
+- **Y mirar la pantalla desplegada cazó lo que ningún banco veía:** la fecha salía `2026-08-31`
+  cruda donde la portería enseña `31/08/2026`. Corregido con prueba y falsación (`c858edf`).
+
+### `CA4` — LA FIXTURE ESTÁ MONTADA; la prueba pide dos personas y dos dispositivos
+
+- **Segunda residente de la 201: Carolina Prueba** ·
+  `carolina-prueba.tenant-santa-maria@ejemplo.vivaru.app` · uid `P81M3KCUs1THFKjAm5YS1Y37mBC2`.
+  Espeja la forma REAL medida de la membresía de David (Auth con claims + `users/{uid}` +
+  `tenantUsers/tenant-santa-maria_{uid}`, `mustChangePassword: false`). **La contraseña la puso
+  David y solo él la sabe.** Sesión **verificada**: entra y ve las visitas de la 201 con sus
+  constancias.
+- **La consulta del propio servidor (`residentesActivosDeLaUnidad`) devuelve 2 activos en la
+  201** — el aviso de la vía A llegará a las dos campanas, y `CF1` acepta a cualquiera de los dos.
+- **A propósito NO tiene ficha en el padrón (`people`)**, igual que los usuarios del sembrador:
+  el servidor de visitas solo mira `tenantUsers`. Si un día estorba en el padrón, se le da de
+  alta desde el producto.
+- **La prueba que queda:** el guardia dispara la vía A a la 201; David y Carolina contestan **a la
+  vez** desde dos dispositivos; el segundo debe ver «*fulano* ya había respondido», no un error.
+- **Cómo ponerle contraseña a una cuenta `@ejemplo.vivaru.app`, que costó tres intentos:** el
+  botón de la consola manda un CORREO a un buzón que no existe. Lo que funciona es
+  `generatePasswordResetLink` del Admin SDK — **y el enlace NO se pasa por copia: se trunca en el
+  primer `&`** (pasó, y el error «The selected page mode is invalid» no dice eso). Se abre
+  directo en el panel del navegador y David teclea allí.
+- **Una sesión de navegador POR navegador, y cuesta descubrirlo a mitad de prueba:** entrar con
+  otra cuenta en el mismo perfil de Chrome **reemplaza** la sesión anterior (así se perdió la del
+  residente al entrar el guardia), y el login redirige a la sesión viva. El montaje que funciona:
+  **guardia en Chrome, residente en el panel del navegador de la app** — son navegadores
+  distintos y conviven.
+
+### (b) LA EXPLORACIÓN DE `AI-ONB-001` ESTÁ HECHA — qué falla el mapeador, MEDIDO
+
+Sonda sintética (NO es corpus, y esa carencia sigue) corrida contra el código real
+(`suggestMapping` + `readTabularFile`): ocho formatos plausibles LATAM más el caso del lector.
+**El suelo determinístico es más alto de lo esperado** — «Mail», «Calidad», «No. Depto»,
+«Clase»/«Situación» los resuelve solo. Lo que falla son CUATRO clases:
+
+1. **El LECTOR, antes que el mapeador.** Un XLSX con fila de título encima de los encabezados
+   —la celda combinada típica de una administración— convierte el título en encabezado y los
+   encabezados reales en datos, y la pasada de variedad sugiere disparates con cara seria
+   («PADRÓN GENERAL…» ← correo electrónico). Y **PDF y fotos ni cruzan la puerta**
+   (`read-tabular.ts` solo acepta CSV/XLSX) — justo el alcance que David amplió el 30.
+2. **Transformaciones que el contrato columna→campo 1:1 no puede expresar.** «Nombres» +
+   «Apellidos» → mapea y **pierde los apellidos en silencio, con ✔ verde**; «Torre» + «Apto»
+   separados → dos obligatorios sin salida, ni a mano; el padrón mixto estilo Habitanto →
+   sugerencia **equivocada en silencio** (`Inmueble` propuesta como nombre de la persona); y el
+   rol codificado en QUÉ columna está lleno el nombre («Propietario(a)» / «Arrendatario(a)»).
+3. **Vocabulario de VALORES, que es decisión de producto y no IA.** `parqueadero`/`bodega` mapean
+   perfecto y **bloquean entero** —no existen en el catálogo de tipos de unidad—; y
+   `ocupado/arrendado/desocupado` es OTRO eje semántico que `activo/inactivo`.
+4. **Huecos baratos del propio catálogo, sin IA y de una tarde:** `person.unitLabel` no declara
+   `cardinality` (la pasada de variedad no puede rescatarla nunca) y faltan alias obvios
+   (`apto`, `inmueble`).
+
+> **La implicación que ordena la ficha, cuando se escriba:** el enganche previsto en
+> `field-catalog.ts` —«el mapeo asistido decide qué columna alimenta qué campo»— apunta a lo que
+> el determinístico **ya casi no falla**. Una IA que solo elija columnas no toca ninguno de los
+> cuatro fallos gordos: lo que falta son **transformaciones** (partir, unir, pivotar, detectar
+> dónde empiezan los encabezados) y **formatos** (PDF/foto → tabla intermedia). **El corpus que
+> pedir cuando llegue un cliente:** archivos con fila de título, padrones mixtos unidad+persona,
+> nombres partidos, y los PDF/fotos tal como lleguen. La telemetría (`encabezadosSinUsar`) está
+> bien diseñada y en 0 —`importJobs` = 0—, así que **la premisa de David aguantó: sin corpus no
+> hay ficha**; pero la ficha, cuando toque, **no es «mapeo asistido de columnas»**.
+
+### DÓNDE QUEDÓ CADA FRENTE
+
+| # | Frente | Escalón | Qué lo detiene |
+|---|---|---|---|
+| **1º** | El panel y sus módulos midiendo lo mismo (`UX-004`) | ✅ **con datos** | Nada |
+| **2º** | Encender la IA | 🟡 **encendida, 0 usos** | **Dato:** cero tickets desde el 7 ago. Y el tope de gasto **sigue sin mirarse** |
+| **3º** | La visita que llega sin avisar (`PH-003`) | 🟡 **`CA3`+`CA10` ✅; queda `CA4`** | **Dos personas y dos dispositivos** — la fixture ya está (Carolina). Push: sigue en `0 pushTokens` |
+| **4º** | El padrón sin duplicados (`ONB-002`) | ✅ **con datos** | Nada. Quedan 4 grupos, y resolverlos es del administrador |
+| **4º bis** | Leer el archivo del cliente con IA (`AI-ONB-001`) | ⏸ **explorada; ficha reencuadrada** | **Dato:** 0 archivos de corpus. Y la ficha no es «elegir columnas» |
+| **5º** | Cobros que no son mantenimiento | ✅ **con datos** | Nada. Código, semilla y dato corregidos |
+| **6º** | Tableros configurables (`UX-005`) | ⏸ **exploración** | **Decisión:** prioridad |
+
+### ESTADO DEL REPOSITORIO AL CERRAR (1 sep)
+
+- **El código de producto está en `c858edf` en los DOS remotos**, verificado con `git ls-remote`;
+  producción sirviendo `build-2026-09-01-003` (medido por `traffic.current`, no por «creado»).
+  **Este traspaso es el commit siguiente a ese** — leer los remotos, no esta línea.
+- **Bancos al cierre: `npm test` 1490 con el emulador levantado** (functions, emulador y reglas
+  no se tocaron esta pasada). Contarlos, no citarlos de aquí.
+- **Credenciales:** ADC viva, `firebase` vivo, el CLI de `gcloud` muerto.
+- **Un push que responde «Everything up-to-date» no subió nada** — pasó el 1 sep: `git push
+  origin master` con el `master` LOCAL viejo. Cuando el trabajo vive en `develop`, el gesto es
+  **`git push origin develop:master`**. El remoto se comprueba con `git ls-remote`, siempre.
+- **Los dos chips de la noche están CERRADOS y EN PRODUCCIÓN** (detalle en el histórico de abajo):
+  el login que disfrazaba todo error de «error inesperado» (`fe89324`) y el «Visita a: [guardia]»
+  (`d77a559`).
+
+### FRENTE 0 — LA PREMISA ERA FALSA, Y CONVIENE NO REDESCUBRIRLO
+
+**La IA ya está en producción.** Código desplegado y `ACTIVE`, y **tres de las siete banderas
+encendidas desde el 17 de agosto — `ia-proveedor-real` incluida, que es la que gasta dinero**.
+
+**Lo que falta no es encender: es tráfico.** Último ticket de producción, **7 de agosto**; `aiUsage`
+y `aiAssistance` en **0**. Los dos pasos que van PRIMERO en el runbook: mirar el **tope de gasto en
+la consola** —van catorce días— y **responder por qué `aiAssistance` está en 0 en LOS DOS
+ambientes**. Y `ai-onboarding-column-mapping` **no tiene un solo consumidor**: encenderla es inerte.
+Runbook: [`encender-la-ia.md`](encender-la-ia.md).
+
+### LO QUE QUEDA DE ANTES, Y SIGUE VIGENTE
+
+- **`PLAT-005` — rematarlo.** Validar el ciclo **en producción** con
+  `jaime-gutierrez.tenant-santa-maria@ejemplo.vivaru.app` y verlo una vez en **un Android**.
+  **NO productiva:** G5 la llena un residente real.
+- **`F2` NO es lo siguiente, y sigue medido:** 5 `paymentReceipts` con `fileUrl` vacío, 0 objetos de
+  Storage con pinta de comprobante, `aiUsage` en 0.
+- **El par falso de −300.000 de la conciliación sigue nombrado a propósito.**
+- **Chips abiertos:** `startsAt: undefined` en crear comunicado · la base clavada de `email.ts` · el
+  test `CF3` de migración —**no es fragilidad a latencia: DEPENDE DE UNA CREDENCIAL VIVA**, medido
+  el 31 ago— · el rojo del emulador · la reconstrucción del facturado
+  de Cartera **sin anticipo** (latente: 27 cobros usan el fallback, **0 con anticipo**). **El del
+  panel demo muerto está HECHO** (`9a773cb`).
+- **El frente de cobros por concepto está HECHO** (31 ago). `billingConceptLabel` **dejó de mentir
+  en silencio**: buscaba la clave cruda y caía a «Mantenimiento y Administración» ante cualquier
+  valor desconocido, y en producción había un parqueadero de **$80.000** con `concept:
+  "Parqueadero"` —la etiqueta donde va la clave— que lo disparaba. **Fallaba por una letra, y en
+  TRES sitios a la vez**: el rótulo, la cuenta del asiento y la categoría. La asimetría es lo que
+  lo hizo durar: **el lado del dinero avisaba** (R8 dispara el aviso al caer por defecto) **y el de
+  la pantalla mentía en silencio**. Arreglado normalizando la clave en los dos espejos, y ahora una
+  clave desconocida **se enseña tal cual** en vez de disfrazarse. Corregida también la semilla
+  `seed-data-co.mjs`, que era la fuente del dato malo en los DOS ambientes.
+- **Y la auditoría de datos cambió de conclusión al medirla:** «220 de 221 cobros sin
+  `accountCode`» **no es una deuda**. Ese campo **no lo lee nadie** —cero lectores, medido—: al
+  cobrar, `aplicarPago` **vuelve a resolver la cuenta desde `concept`** y la escribe en el asiento,
+  que es lo que leen los informes. Rellenar los 220 no movería un solo número. Queda documentado en
+  el tipo. Lo que sí queda: **30 cobros sin `concept`**, y para ellos «administración» es el valor
+  por defecto documentado, no un fallback.
+- **DESPLEGADO en los dos ambientes** (`8544322`): 90 de 90 functions frescas por `updateTime` en
+  cada uno, y el front por procedencia del build. **Sin validar en pantalla, y hay que decir por
+  qué:** el cobro de parqueadero está en **`tenant-nogal-bogota`**, y ninguna de las dos sesiones
+  del navegador —el guardia y el administrador de Santa María— alcanza ese conjunto. Lo cubren las
+  pruebas y sus dos falsaciones. **Para verlo hace falta una sesión de administrador de El Nogal.**
+- **El dato también está corregido** (31 ago): el `concept: "Parqueadero"` pasó a `parqueadero` en
+  los DOS ambientes, y verificado leyendo la base — **cero cobros con la clave fuera de forma
+  canónica** en ninguno de los dos. El instrumento queda versionado:
+  `functions/scripts/normalizar-concepto-de-cobro.mjs`, **seco por defecto**, y **no clava ningún
+  id: deriva los candidatos**. Solo toca un valor si, normalizado, existe en el catálogo; uno que no
+  exista lo **lista y no lo toca**, porque eso no es un problema de mayúsculas sino un concepto que
+  alguien tiene que decidir.
+- **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
+  puerta del alta · si se abre el canal de correo.
+- **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
+  correo cerrado, push productivo, y los tickets que la IA necesita.
+
+### LAS TRAMPAS DEL DESPLIEGUE — una corregida, las demás siguen mordiendo
+
+- **Empujar DESPLIEGA, en los dos ambientes** (`master` → producción, `develop` → staging).
+  **Si ya empujaste, no lances el rollout a mano** — se duplica.
+- **La lista de rollouts está paginada Y sin ordenar** —459 en producción al 1 sep, 601 en staging al 31— y
+  **«creado» no es «sirviendo»**: manda `traffic.current`. Instrumento:
+  `functions/scripts/estado-de-apphosting.mjs`.
+- **Contar functions frescas por `updateTime`**, siempre. **Y el 31 de agosto esa cuenta se afinó:**
+  un `deploy --only functions` completo a producción escupió **dos HTTP 429 por cuota**
+  (`reconcileCase`, `releaseReconciliation`) y aun así terminó con **90 de 90 frescas** — el CLI las
+  reintentó al final. **El 429 es una señal para MEDIR, no una conclusión**: ni «hubo 429» significa
+  que quedó rancia, ni «Deploy complete» significa que no. Solo decide el `updateTime`.
+- **No canalices el log del deploy por `tail`.** Un `firebase deploy … | tail -20` en segundo plano
+  **tira justo la parte que explica qué falló**: ese mismo día una function quedó rancia en staging
+  y el motivo se había perdido. Guardar el log entero con `tee` cuesta nada.
+- **Y las TRES credenciales caducan por separado, otra vez demostrado el 31:** la ADC renovada y el
+  CLI de `firebase` caducado a la vez. `firebase deploy` respondió **«Deploy complete» con salida 0
+  y no desplegó nada** — 0 frescas, 90 rancias. El síntoma solo aparece midiendo.
+- **El emulador necesita `JAVA_HOME`** (`$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home`), y sin
+  él dos bancos enteros no corren y `npm test` sale en rojo por un solo fichero.
+- **Las tres credenciales caducan por separado.** Al cerrar: **ADC viva, firebase vivo, el CLI de
+  gcloud muerto**.
+- **Al agente se le bloquea el push a `master`** (clasificador). Lo autoriza David.
+
+---
+
+## LA JORNADA DEL 31 DE AGOSTO Y LA NOCHE DE LOS CHIPS — histórico
+
+**Bajado de la cabecera el 1 de septiembre al reescribirla.** OJO: lo operativo de aquí está
+**SUPERADO por la cabecera** —`CA3` y `CA10` ya están cerrados, y la segunda membresía de la 201
+ya existe—; esto es el histórico y las lecciones, que es lo que no se reconstruye leyendo el
+código.
 
 ### LO QUE LA PASADA DE LA NOCHE CERRÓ — el banner genérico del login (`fe89324`)
 
@@ -123,21 +318,6 @@ significaba «tipo de unidad» en un sitio y «rol de la persona» en otro.
 > «¿qué haría la IA?» sino «¿qué falla hoy el mapeador determinístico?»**. Sin esa respuesta,
 > cualquier ficha se escribe sobre un supuesto.
 
-### DÓNDE QUEDÓ CADA FRENTE
-
-| # | Frente | Escalón | Qué lo detiene |
-|---|---|---|---|
-| **1º** | El panel y sus módulos midiendo lo mismo (`UX-004`) | ✅ **con datos** | Nada |
-| **2º** | Encender la IA | 🟡 **encendida, 0 usos** | **Dato:** cero tickets desde el 7 ago. Y el tope de gasto **sigue sin mirarse** |
-| **3º** | La visita que llega sin avisar (`PH-003`) | 🟡 **encendida, 1 uso** | **Dato:** `0 pushTokens`. Y `CA3`/`CA4` piden **dos personas** |
-| **4º** | El padrón sin duplicados (`ONB-002`) | ✅ **con datos** | Nada. Quedan 4 grupos, y resolverlos es del administrador |
-| **4º bis** | Leer el archivo del cliente con IA (`AI-ONB-001`) | ⏸ **ni escrita, a propósito** | **Dato:** 0 archivos de corpus |
-| **5º** | Cobros que no son mantenimiento | ✅ **con datos** | Nada. Código, semilla y dato corregidos |
-| **6º** | Tableros configurables (`UX-005`) | ⏸ **exploración** | **Decisión:** prioridad |
-
-**Reporte ejecutivo del 31**, con las cifras y su procedencia:
-<https://claude.ai/code/artifact/5520a8a6-b471-4783-a6b6-e440d67e3ec7>
-
 ### LO QUE LA JORNADA ENSEÑÓ, Y VALE MÁS QUE LAS ENTREGAS
 
 - **Mirar la pantalla encontró DOS defectos que ningún banco veía.** Un guardián nuevo **nació
@@ -153,19 +333,6 @@ significaba «tipo de unidad» en un sitio y «rol de la persona» en otro.
   mientras el lado del dinero avisaba; esa asimetría es lo que lo mantuvo vivo.
 - **Y siete discrepancias entre lo documentado y lo medido**, todas corregidas en la misma pasada.
   Están en el reporte.
-
-### LAS TRAMPAS DEL DESPLIEGUE — tres correcciones nuevas del 31
-
-- **Las TRES credenciales caducan por separado, y se demostró:** con la ADC viva y el CLI de
-  `firebase` caducado, `firebase deploy` respondió **«Deploy complete» con salida 0 y no desplegó
-  nada** — 0 frescas, 90 rancias. Solo se ve midiendo.
-- **El 429 por cuota es una señal para MEDIR, no una conclusión.** Un deploy completo escupió dos
-  429 y aun así dejó **90 de 90 frescas**: el CLI reintentó. Ni «hubo 429» significa rancia, ni
-  «Deploy complete» significa fresca. **Solo decide el `updateTime`.**
-- **No canalices el log del deploy por `tail`.** Tira justo la parte que explica qué falló; ese
-  mismo día una function quedó rancia en staging y el motivo se perdió. `tee` cuesta nada.
-- **Empujar DESPLIEGA en los dos ambientes** (`master` → producción, `develop` → staging). Si ya
-  empujaste, **no lances el rollout a mano**: se duplica.
 
 ### `PH-003` — VALIDADO EN PRODUCCIÓN CON LA SESIÓN DEL GUARDIA (31 ago)
 
@@ -320,97 +487,6 @@ en `traffic.rolloutPolicy.codebaseBranch` —`master` en producción, `develop` 
 **1449**. El fichero que enrojecía es `tests/push-tokens.rules.test.ts`, que pide emulador y no
 está en la lista de exclusiones junto a sus dos hermanas. Tiene chip.
 
-### `PH-003` — LO QUE HAY QUE SABER PARA ARRANCARLA
-
-**`PRD-V-FLOW-005` (la visita repentina).** Sus cinco decisiones están tomadas y dentro de la ficha.
-
-- **Es callable por un dato medido, no por criterio:** el `update` de `visitorPasses` deja al
-  residente tocar **solo lo que él creó**, y un pase de portería lleva el uid del guardia — **con
-  las reglas de hoy el residente no puede autorizarlo**.
-- **El catálogo de avisos tiene 13 claves y ninguna de visitas.** Hay que añadir dos, y **vive
-  duplicado en `functions/` y en `src/` con guardián de espejo**.
-- **Depende del push.** Sin él la vía A nace inservible, así que su único canario posible es
-  `tenant-santa-maria`, que es donde el push está encendido.
-
-### FRENTE 0 — LA PREMISA ERA FALSA, Y CONVIENE NO REDESCUBRIRLO
-
-**La IA ya está en producción.** Código desplegado y `ACTIVE`, y **tres de las siete banderas
-encendidas desde el 17 de agosto — `ia-proveedor-real` incluida, que es la que gasta dinero**.
-
-**Lo que falta no es encender: es tráfico.** Último ticket de producción, **7 de agosto**; `aiUsage`
-y `aiAssistance` en **0**. Los dos pasos que van PRIMERO en el runbook: mirar el **tope de gasto en
-la consola** —van catorce días— y **responder por qué `aiAssistance` está en 0 en LOS DOS
-ambientes**. Y `ai-onboarding-column-mapping` **no tiene un solo consumidor**: encenderla es inerte.
-Runbook: [`encender-la-ia.md`](encender-la-ia.md).
-
-### LO QUE QUEDA DE ANTES, Y SIGUE VIGENTE
-
-- **`PLAT-005` — rematarlo.** Validar el ciclo **en producción** con
-  `jaime-gutierrez.tenant-santa-maria@ejemplo.vivaru.app` y verlo una vez en **un Android**.
-  **NO productiva:** G5 la llena un residente real.
-- **`F2` NO es lo siguiente, y sigue medido:** 5 `paymentReceipts` con `fileUrl` vacío, 0 objetos de
-  Storage con pinta de comprobante, `aiUsage` en 0.
-- **El par falso de −300.000 de la conciliación sigue nombrado a propósito.**
-- **Chips abiertos:** `startsAt: undefined` en crear comunicado · la base clavada de `email.ts` · el
-  test `CF3` de migración —**no es fragilidad a latencia: DEPENDE DE UNA CREDENCIAL VIVA**, medido
-  el 31 ago— · el rojo del emulador · la reconstrucción del facturado
-  de Cartera **sin anticipo** (latente: 27 cobros usan el fallback, **0 con anticipo**). **El del
-  panel demo muerto está HECHO** (`9a773cb`).
-- **El frente de cobros por concepto está HECHO** (31 ago). `billingConceptLabel` **dejó de mentir
-  en silencio**: buscaba la clave cruda y caía a «Mantenimiento y Administración» ante cualquier
-  valor desconocido, y en producción había un parqueadero de **$80.000** con `concept:
-  "Parqueadero"` —la etiqueta donde va la clave— que lo disparaba. **Fallaba por una letra, y en
-  TRES sitios a la vez**: el rótulo, la cuenta del asiento y la categoría. La asimetría es lo que
-  lo hizo durar: **el lado del dinero avisaba** (R8 dispara el aviso al caer por defecto) **y el de
-  la pantalla mentía en silencio**. Arreglado normalizando la clave en los dos espejos, y ahora una
-  clave desconocida **se enseña tal cual** en vez de disfrazarse. Corregida también la semilla
-  `seed-data-co.mjs`, que era la fuente del dato malo en los DOS ambientes.
-- **Y la auditoría de datos cambió de conclusión al medirla:** «220 de 221 cobros sin
-  `accountCode`» **no es una deuda**. Ese campo **no lo lee nadie** —cero lectores, medido—: al
-  cobrar, `aplicarPago` **vuelve a resolver la cuenta desde `concept`** y la escribe en el asiento,
-  que es lo que leen los informes. Rellenar los 220 no movería un solo número. Queda documentado en
-  el tipo. Lo que sí queda: **30 cobros sin `concept`**, y para ellos «administración» es el valor
-  por defecto documentado, no un fallback.
-- **DESPLEGADO en los dos ambientes** (`8544322`): 90 de 90 functions frescas por `updateTime` en
-  cada uno, y el front por procedencia del build. **Sin validar en pantalla, y hay que decir por
-  qué:** el cobro de parqueadero está en **`tenant-nogal-bogota`**, y ninguna de las dos sesiones
-  del navegador —el guardia y el administrador de Santa María— alcanza ese conjunto. Lo cubren las
-  pruebas y sus dos falsaciones. **Para verlo hace falta una sesión de administrador de El Nogal.**
-- **El dato también está corregido** (31 ago): el `concept: "Parqueadero"` pasó a `parqueadero` en
-  los DOS ambientes, y verificado leyendo la base — **cero cobros con la clave fuera de forma
-  canónica** en ninguno de los dos. El instrumento queda versionado:
-  `functions/scripts/normalizar-concepto-de-cobro.mjs`, **seco por defecto**, y **no clava ningún
-  id: deriva los candidatos**. Solo toca un valor si, normalizado, existe en el catálogo; uno que no
-  exista lo **lista y no lo toca**, porque eso no es un problema de mayúsculas sino un concepto que
-  alguien tiene que decidir.
-- **Espera una decisión tuya:** credenciales (`firebase login:ci` o cuenta de servicio) · cerrar la
-  puerta del alta · si se abre el canal de correo.
-- **Lo llena un cliente, no nosotros:** proveedores (0), paz y salvo (0), calendarios (0), canal de
-  correo cerrado, push productivo, y los tickets que la IA necesita.
-
-### LAS TRAMPAS DEL DESPLIEGUE — una corregida, las demás siguen mordiendo
-
-- **Empujar DESPLIEGA, en los dos ambientes** (`master` → producción, `develop` → staging).
-  **Si ya empujaste, no lances el rollout a mano** — se duplica.
-- **La lista de rollouts está paginada Y sin ordenar** —439 en producción, 601 en staging— y
-  **«creado» no es «sirviendo»**: manda `traffic.current`. Instrumento:
-  `functions/scripts/estado-de-apphosting.mjs`.
-- **Contar functions frescas por `updateTime`**, siempre. **Y el 31 de agosto esa cuenta se afinó:**
-  un `deploy --only functions` completo a producción escupió **dos HTTP 429 por cuota**
-  (`reconcileCase`, `releaseReconciliation`) y aun así terminó con **90 de 90 frescas** — el CLI las
-  reintentó al final. **El 429 es una señal para MEDIR, no una conclusión**: ni «hubo 429» significa
-  que quedó rancia, ni «Deploy complete» significa que no. Solo decide el `updateTime`.
-- **No canalices el log del deploy por `tail`.** Un `firebase deploy … | tail -20` en segundo plano
-  **tira justo la parte que explica qué falló**: ese mismo día una function quedó rancia en staging
-  y el motivo se había perdido. Guardar el log entero con `tee` cuesta nada.
-- **Y las TRES credenciales caducan por separado, otra vez demostrado el 31:** la ADC renovada y el
-  CLI de `firebase` caducado a la vez. `firebase deploy` respondió **«Deploy complete» con salida 0
-  y no desplegó nada** — 0 frescas, 90 rancias. El síntoma solo aparece midiendo.
-- **El emulador necesita `JAVA_HOME`** (`$HOME/.local/java/jdk-21.0.12+8-jre/Contents/Home`), y sin
-  él dos bancos enteros no corren y `npm test` sale en rojo por un solo fichero.
-- **Las tres credenciales caducan por separado.** Al cerrar: **ADC viva, firebase vivo, el CLI de
-  gcloud muerto**.
-- **Al agente se le bloquea el push a `master`** (clasificador). Lo autoriza David.
 
 ---
 
