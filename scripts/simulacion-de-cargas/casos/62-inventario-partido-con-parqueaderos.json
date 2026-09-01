@@ -1,0 +1,19 @@
+{
+  "nombre": "62-inventario-partido-con-parqueaderos",
+  "descripcion": "Inventario de UNIDADES con el identificador partido en «Torre» y «Número», donde parqueadero y bodega no tienen torre y repiten la numeración de los apartamentos",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "MEDIDO por el banco: «✘ FALTAN: Nombre de la unidad · ⚠ 1 columna(s) sin usar», igual que el 60 — «Número» sin usar y el obligatorio en ∅. Los tipos SÍ se resuelven los seis: parqueadero y bodega entraron en ALIAS_DE_TIPO el 1 sep 2026, así que la parte que costó una decisión de producto ya no estorba. MEDIDO LEYENDO EL CÓDIGO, porque el banco para en el mapeo: las dos filas sin torre se caen igual en Revisión — UnitBulkImportWizard.tsx:264 hace «if (!tower) errors.push(\"Torre vacía\")» aunque el catálogo declare unit.tower como required:false. El catálogo y el asistente NO dicen lo mismo sobre si la torre es obligatoria, y quien manda es el asistente.",
+  "conFeat006": "«Nombre de la unidad» ← «Torre» + «Número» por guion. Los cuatro apartamentos dan T1-101, T1-102, T2-101, T2-102; y el parqueadero y la bodega, que no tienen torre, dan «101» y «102» por RN-U5 —la parte vacía se omite y el separador no queda colgando—, que es CA5 aplicado a unidades. CONSECUENCIA QUE LA FICHA NO DECLARA: RN-U5 está escrita para un nombre de persona, donde «Ana» + «» = «Ana» es exactamente lo que se quiere. En una UNIDAD el valor unido ES LA CLAVE, así que omitir la parte vacía no acorta el texto: cambia el ESQUEMA del identificador a mitad de archivo —cuatro filas «T1-101» y dos filas «101»—, sin avisar. Y las dos filas siguen cayéndose por «Torre vacía», así que unir no basta para que este archivo entre entero: hace falta además decidir si un parqueadero puede vivir sin agrupación.",
+  "hojas": {
+    "unidades": [
+      ["Torre", "Número", "Tipo", "Estado"],
+      ["T1", "101", "Apartamento", "Activo"],
+      ["T1", "102", "Apartamento", "Activo"],
+      ["T2", "101", "Apartamento", "Activo"],
+      ["T2", "102", "Apartamento", "Activo"],
+      ["", "101", "Parqueadero", "Activo"],
+      ["", "102", "Bodega", "Activo"]
+    ]
+  }
+}

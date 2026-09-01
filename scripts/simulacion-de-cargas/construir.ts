@@ -33,8 +33,19 @@ export interface Caso {
   /** Qué se está importando. */
   entidad: "person" | "unit";
   formato: "csv" | "xlsx";
-  /** Lo que quien lo inventó espera que pase. Se compara a ojo con lo medido. */
+  /** Lo que quien lo inventó espera que pase HOY. Se compara a ojo con lo medido. */
   queDeberiaPasar: string;
+  /**
+   * Qué debería pasar cuando `PRD-V-FEAT-006` —unir varias columnas en un
+   * campo— esté construida.
+   *
+   * **Se escribe ANTES de construirla, y por eso vale.** Un caso con solo la
+   * expectativa de hoy envejece a las dos semanas: dice que el archivo se
+   * rompe y no dice qué sería estar bien. Con las dos, el mismo fichero es la
+   * línea base de ahora y el criterio de aceptación de después — y este
+   * proyecto ya se ha quedado sin línea base por no anotarla a tiempo.
+   */
+  conFeat006?: string;
   /** Nombre de hoja → matriz de celdas. Un CSV usa la primera. */
   hojas: Record<string, string[][]>;
   /** Rarezas del CSV. Se ignoran en XLSX. */

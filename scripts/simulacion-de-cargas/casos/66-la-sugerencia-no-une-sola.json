@@ -1,0 +1,19 @@
+{
+  "nombre": "66-la-sugerencia-no-une-sola",
+  "descripcion": "Inventario de UNIDADES que trae a la vez el nombre completo («Unidad») y sus dos mitades («Torre», «Apto»): todos los ingredientes para unir, y la respuesta correcta es no unir nada",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: «⚠ 1 columna(s) sin usar». El mapeo sugerido es exactamente unit.displayName ← «Unidad», unit.tower ← «Torre», unit.type ← «Tipo», unit.status ← «Estado», y «Apto» queda sin usar. Ningún aviso. Es lo correcto y hoy sale gratis, porque el mapeo NO SABE unir: una columna por campo es la única forma que existe.",
+  "conFeat006": "DEBE SEGUIR SALIENDO IGUAL, y por eso el caso vale. Es CA9 con RN-U3: el mapeo recién sugerido, sin tocar, tiene que traer EXACTAMENTE una columna por campo —«Unidad», «Torre», «Tipo», «Estado»— y dejar «Apto» sin usar. Lo que NO debe hacer, teniendo todos los ingredientes delante, es proponer «Nombre de la unidad» ← «Torre»+«Apto» ni «Nombre de la unidad» ← «Unidad»+«Apto», aunque las dos den valores plausibles. Unir es un acto explícito de la persona: si alguien quiere «Torre»+«Apto» tendrá que quitar «Unidad» del campo primero y añadir las dos a mano. En la telemetría de inicio, camposUnidos debe valer 0 en este archivo (CA6). NOTA sobre §5 punto 6: el camino asistido de la ficha cuelga del aviso que BLOQUEA por unidad partida, y ese aviso solo existe para person.unitLabel — en un inventario de unidades no hay oferta automática que ignorar, así que aquí RN-U3 se cumple sin ayuda de CA7 ni CA8.",
+  "hojas": {
+    "Unidades": [
+      ["Unidad", "Torre", "Apto", "Tipo", "Estado"],
+      ["T1-101", "T1", "101", "Apartamento", "Activo"],
+      ["T1-102", "T1", "102", "Apartamento", "Activo"],
+      ["T1-201", "T1", "201", "Apartamento", "Activo"],
+      ["T2-101", "T2", "101", "Apartamento", "Activo"],
+      ["T2-102", "T2", "102", "Apartamento", "Activo"],
+      ["T2-201", "T2", "201", "Apartamento", "Inactivo"]
+    ]
+  }
+}

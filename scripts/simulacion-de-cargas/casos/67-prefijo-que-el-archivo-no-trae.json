@@ -1,0 +1,19 @@
+{
+  "nombre": "67-prefijo-que-el-archivo-no-trae",
+  "descripcion": "Inventario de UNIDADES por etapas donde el conjunto llama a sus casas «E1-12» y el archivo solo trae «1» y «12»: unir da un nombre que no es el del conjunto",
+  "entidad": "unit",
+  "formato": "csv",
+  "queDeberiaPasar": "MEDIDO: «✘ FALTAN: Nombre de la unidad · ⚠ 1 columna(s) sin usar». «Etapa» va a la torre —está en los alias de agrupación—, «Tipo» y «Estado» aciertan, y «Casa» queda sin usar; el obligatorio en ∅. Mapeando «Casa» a mano entran seis casas llamadas 12, 14, 16, 12, 14, 16: tres unitId distintos para seis unidades.",
+  "conFeat006": "«Nombre de la unidad» ← «Etapa» + «Casa» por guion → 1-12, 1-14, 1-16, 2-12, 2-14, 2-16. Seis identificadores distintos, y ninguno es el que usa el conjunto, que llama a esas casas E1-12 … E2-16. Es el caso de prefijo que §4 declara fuera del MVP («el MVP une valores tal como vienen»). HUECO: §4 declara también su consecuencia —la persona verá «Unidad no encontrada» en esas filas, «comportamiento correcto y visible, no silencioso»— y ESO ES CIERTO PARA EL IMPORTADOR DE PERSONAS Y FALSO PARA EL DE UNIDADES. Aquí no hay nada que buscar: bulkCreateUnits CREA las unidades, con unitId derivado del nombre unido; la detección de duplicados compara el slug contra las unidades ya existentes y «1-12» no se parece a «e1-12», así que no marca nada. El resultado no es un error visible: es un padrón paralelo de seis unidades creado en silencio, y la importación de residentes que venga detrás diciendo «E1-12» no casará con ninguna. La consecuencia de §4 hay que escribirla por entidad, o la ficha tranquiliza sobre un riesgo que solo cubre la mitad.",
+  "hojas": {
+    "casas": [
+      ["Etapa", "Casa", "Tipo", "Estado"],
+      ["1", "12", "Casa", "Activo"],
+      ["1", "14", "Casa", "Activo"],
+      ["1", "16", "Casa", "Activo"],
+      ["2", "12", "Casa", "Activo"],
+      ["2", "14", "Casa", "Activo"],
+      ["2", "16", "Casa", "Inactivo"]
+    ]
+  }
+}

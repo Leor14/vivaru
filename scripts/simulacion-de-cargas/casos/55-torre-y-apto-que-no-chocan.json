@@ -1,0 +1,19 @@
+{
+  "nombre": "55-torre-y-apto-que-no-chocan",
+  "descripcion": "El mismo reparto que el 53 pero con la numeración corrida entre torres: nada se funde, así que nada avisa — y la unidad entra a medias igual",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "MEDIDO, y es el hallazgo de este lote: «⚠ 1 columna(s) sin usar» **y NADA MÁS**. El detector SÍ encuentra «Torre» —está en los alias de agrupación—, pero como ningún apartamento se repite entre torres «unidadesQueSeFunden» responde que no y el aviso **no llega a emitirse**: no bloquea, ni siquiera duda. Las seis personas entran con la unidad a medias («101», «202») y el único rastro es un contador genérico, el mismo que dejaría una columna de observaciones que a nadie le importa. La protección de hoy no cubre «la unidad viene partida»: cubre «la unidad viene partida Y COLISIONA», que es un subconjunto, y este archivo es el complemento.",
+  "conFeat006": "La persona puede unir «Torre» + «Apto» → T1-101, T1-102, T1-103, T2-201… y ese es el valor que casa con las unidades del conjunto. **Pero nada se lo va a proponer**, y eso hay que decirlo antes de construir: el camino asistido de §5.6 cuelga del aviso de unidad partida, y aquí no hay aviso; y RN-U3 prohíbe que la sugerencia automática asigne dos columnas a un campo (CA9 lo exige). Así que este archivo sigue entrando a medias y en silencio salvo que la persona se fije en «1 columna sin usar» y ate cabos. FEAT-006 le da la CAPACIDAD y no la SEÑAL. Consecuencia medible: la señal cualitativa de §2 —«encabezadosSinUsar deja de listar columnas de torre»— no mejora sola en este caso, y leerla como prueba de adopción daría una lectura optimista.",
+  "hojas": {
+    "padron": [
+      ["Torre", "Apto", "Nombre", "Correo", "Rol"],
+      ["T1", "101", "Ana María Arciniegas", "ana.arciniegas@ejemplo.vivaru.app", "Propietario"],
+      ["T1", "102", "Camilo Bustamante", "camilo.bustamante@ejemplo.vivaru.app", "Arrendatario"],
+      ["T1", "103", "Elena Sofía Duarte", "elena.duarte@ejemplo.vivaru.app", "Propietario"],
+      ["T2", "201", "Ricardo Fajardo", "ricardo.fajardo@ejemplo.vivaru.app", "Propietario"],
+      ["T2", "202", "Natalia Gallego", "natalia.gallego@ejemplo.vivaru.app", "Arrendatario"],
+      ["T2", "203", "Tomás Hincapié", "tomas.hincapie@ejemplo.vivaru.app", "Propietario"]
+    ]
+  }
+}

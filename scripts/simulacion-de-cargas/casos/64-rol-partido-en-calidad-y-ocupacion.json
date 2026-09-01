@@ -1,0 +1,18 @@
+{
+  "nombre": "64-rol-partido-en-calidad-y-ocupacion",
+  "descripcion": "Padrón donde el ROL viene partido en «Calidad» y «Ocupación», y unirlas produce exactamente las dos etiquetas de dos palabras que el catálogo de roles SÍ acepta",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: «⚠ 1 columna(s) sin usar». La segunda pasada reconoce «Calidad» por su CONTENIDO —propietario y arrendatario están en ROLE_ALIASES— y la manda a «Rol»; «Ocupación» queda sin usar, sin aviso. Consecuencia: las tres filas «Propietario» entran las tres como owner_occupant, y las dos que el archivo marca «No residente» —que son inversionistas— pierden esa distinción EN SILENCIO. SORPRESA: esperaba una duda de unidad partida apuntando a «Ocupación», porque con 2 valores distintos en 5 filas pareceAgrupacion() la da por agrupación; no salta porque las cinco unidades son distintas y unidadesQueSeFunden() devuelve false. Es decir: el aviso NO está protegiendo, está callado por casualidad — en un padrón con dos personas en la misma unidad y distinta ocupación, este mismo archivo dispararía una duda de «unidad partida» falsa señalando «Ocupación».",
+  "conFeat006": "DEBE FALLAR EL INTENTO. Es CA10: «Rol» no ofrece «＋ añadir otra columna» (RN-U4). CONTRADICCIÓN QUE ABRE ESTE CASO, y es el hallazgo: unir «Calidad» + «Ocupación» por espacio produce «propietario residente» y «propietario no residente», y las DOS están medidas dentro de ROLE_ALIASES —owner_occupant e investor—. O sea que RN-U4 prohíbe justo la unión que funcionaría, y la razón que §4 le pone («unir dos valores de un catálogo produce un valor que el catálogo no acepta») es FALSA aquí: el catálogo de roles tiene dos alias de DOS PALABRAS puestos a propósito para esta forma exacta. La tercera combinación, «arrendatario residente», sí quedaría fuera —medido—, así que la regla protege de algo real; lo que no es cierto es su enunciado. La fixture se queda del lado de la ficha (debe fallar), y la decisión de si RN-U4 se afina —por ejemplo validando lo unido contra el catálogo en vez de prohibir la unión— es de producto, no mía.",
+  "hojas": {
+    "Padrón": [
+      ["Nombre", "Correo", "Unidad", "Calidad", "Ocupación"],
+      ["Ana María Pérez", "ana.perez@ejemplo.vivaru.app", "T1-101", "Propietario", "Residente"],
+      ["Luis Gómez", "luis.gomez@ejemplo.vivaru.app", "T1-102", "Propietario", "No residente"],
+      ["Carla Soto", "carla.soto@ejemplo.vivaru.app", "T2-201", "Arrendatario", "Residente"],
+      ["Mario Ruiz", "mario.ruiz@ejemplo.vivaru.app", "T2-202", "Propietario", "Residente"],
+      ["Elsa Montenegro", "elsa.montenegro@ejemplo.vivaru.app", "T3-301", "Propietario", "No residente"]
+    ]
+  }
+}

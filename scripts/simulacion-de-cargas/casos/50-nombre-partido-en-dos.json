@@ -1,0 +1,17 @@
+{
+  "nombre": "50-nombre-partido-en-dos",
+  "descripcion": "El nombre en «Nombres» y «Apellidos», que es como lo lleva media Colombia",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "HOY entra dejando «Apellidos» sin usar: cada persona se importa con medio nombre. El aviso solo dice «1 columna sin usar», que no nombra el daño.",
+  "conFeat006": "Nombre completo admite «Nombres» + «Apellidos» unidas por espacio, y la muestra enseña «Ana María Pérez Ruiz». Es el CA1 de la ficha.",
+  "hojas": {
+    "padron": [
+      ["Nombres", "Apellidos", "Correo", "Unidad", "Rol"],
+      ["Ana María", "Pérez Ruiz", "ana@correo.com", "T1-101", "propietario"],
+      ["Luis", "Gómez Salas", "luis@correo.com", "T1-102", "inquilino"],
+      ["Carla", "Soto", "carla@correo.com", "T2-201", "propietario"],
+      ["Mario Andrés", "Ruiz", "mario@correo.com", "T2-202", "propietario"]
+    ]
+  }
+}

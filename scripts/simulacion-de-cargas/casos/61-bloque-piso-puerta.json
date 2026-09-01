@@ -1,0 +1,19 @@
+{
+  "nombre": "61-bloque-piso-puerta",
+  "descripcion": "Inventario de UNIDADES de un edificio de Quito con el identificador repartido en TRES columnas: «Bloque», «Piso» y «Puerta»",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: «✘ FALTAN: Nombre de la unidad · ⚠ 2 columna(s) sin usar». «Bloque» va a la torre —es el alias ecuatoriano y ya está en el catálogo—, «Tipo» y «Estado» aciertan, y «Piso» y «Puerta» quedan las dos sin usar. Ninguna de las dos se rescata por variedad (3/6 y 2/6, muy por debajo del 0,9 que exige un campo de cardinalidad alta) y, como en el 60, no hay un solo aviso que nombre el problema. Mapear a mano una sola de las dos no arregla nada: con «Puerta» sola salen dos unidades llamadas 01 y una 02; con «Piso» sola, tres llamadas 1 y tres llamadas 2.",
+  "conFeat006": "«Nombre de la unidad» admite TRES columnas en orden —«Bloque», «Piso», «Puerta»— unidas por guion → A-1-01, A-1-02, A-2-01, B-1-01, B-1-02, B-2-01: seis identificadores distintos. Ejercita RN-U1 (varias columnas, en el orden en que la persona las añadió) más allá del par, que es donde CA1 y CA2 se quedan. HUECO QUE DESTAPA: RN-U6 dice que el separador aplica igual entre TODAS las partes, así que con tres columnas solo hay dos formas posibles —A-1-01 con guion, o A101 sin separador— y la que un administrador de Quito escribiría de verdad, A-101 (bloque con guion, piso y puerta pegados), NO SE PUEDE EXPRESAR. Con dos columnas RN-U6 no se nota; con tres es la mitad de los casos. Y arrastra el mismo choque con RN-U2 que el 60: «Bloque» hace falta a la vez dentro del nombre y en el campo «Torre o agrupación».",
+  "hojas": {
+    "Inventario": [
+      ["Bloque", "Piso", "Puerta", "Tipo", "Estado"],
+      ["A", "1", "01", "Departamento", "Activo"],
+      ["A", "1", "02", "Departamento", "Activo"],
+      ["A", "2", "01", "Departamento", "Activo"],
+      ["B", "1", "01", "Departamento", "Activo"],
+      ["B", "1", "02", "Departamento", "Activo"],
+      ["B", "2", "01", "Departamento", "Inactivo"]
+    ]
+  }
+}

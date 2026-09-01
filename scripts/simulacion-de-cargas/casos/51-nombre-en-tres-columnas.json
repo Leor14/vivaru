@@ -1,0 +1,19 @@
+{
+  "nombre": "51-nombre-en-tres-columnas",
+  "descripcion": "Condominio mexicano con el nombre en TRES columnas —«Nombre(s)», «Apellido Paterno», «Apellido Materno»— y todo lo demás mapeando bien",
+  "entidad": "person",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: entra con «⚠ 2 columna(s) sin usar» y ningún aviso más. «Nombre(s)» se lleva el nombre completo por CONTENCIÓN y no por nombre exacto —normalizado queda «nombre(s)», que no es el alias «nombre» pero lo contiene—, y «Apellido Paterno» y «Apellido Materno» se caen en silencio: las seis personas entran llamándose «Renata», «Ignacio», «Sofía Elena». Lo demás mapea entero, así que este archivo AÍSLA el nombre partido en tres, al revés que el 20, que además se queda sin unidad y mezcla dos defectos en un veredicto.",
+  "conFeat006": "«Nombre completo» admite las TRES columnas en orden —«Nombre(s)», «Apellido Paterno», «Apellido Materno»— unidas por espacio, que es el separador por defecto (§5.3), y la muestra bajo el campo enseña «Renata Villalobos Argüello» y no «Renata» (CA3). Es CA1 con tres partes en vez de dos, y RN-U6 obliga a que el separador sea el mismo entre las tres: no hay separador por par. «encabezadosSinUsar» pasa de 2 a 0 y la telemetría de inicio lleva camposUnidos = 1 (CA6).",
+  "hojas": {
+    "Padrón": [
+      ["Depto", "Nombre(s)", "Apellido Paterno", "Apellido Materno", "Correo", "Rol"],
+      ["A-301", "Renata", "Villalobos", "Argüello", "renata.villalobos@ejemplo.vivaru.app", "Propietario"],
+      ["A-302", "Ignacio", "Barrera", "Fuentes", "ignacio.barrera@ejemplo.vivaru.app", "Propietario"],
+      ["A-401", "Sofía Elena", "Quintanilla", "Ordaz", "sofia.quintanilla@ejemplo.vivaru.app", "Arrendatario"],
+      ["B-301", "Bruno", "Zepeda", "Iturbe", "bruno.zepeda@ejemplo.vivaru.app", "Propietario"],
+      ["B-302", "Lucero", "Madrigal", "Cifuentes", "lucero.madrigal@ejemplo.vivaru.app", "Arrendatario"],
+      ["B-401", "Gerardo Antonio", "Nieto", "Balderas", "gerardo.nieto@ejemplo.vivaru.app", "Propietario"]
+    ]
+  }
+}

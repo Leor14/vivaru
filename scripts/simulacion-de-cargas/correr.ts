@@ -76,7 +76,8 @@ async function main() {
   for (const caso of casos) {
     const ruta = join(dir, `${caso.nombre}.${caso.formato}`);
     console.log(`\n══════ ${caso.nombre}  ·  ${caso.descripcion}`);
-    console.log(`       esperado: ${caso.queDeberiaPasar}`);
+    console.log(`       esperado HOY: ${caso.queDeberiaPasar}`);
+    if (caso.conFeat006) console.log(`       con FEAT-006:  ${caso.conFeat006}`);
 
     let leido;
     try {

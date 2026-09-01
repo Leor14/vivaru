@@ -1,0 +1,19 @@
+{
+  "nombre": "53-torre-y-apto-que-se-unen-bien",
+  "descripcion": "«Torre» con prefijo (T1, T2) + «Apto», con el 101 en las dos torres: hoy bloquea, y unir da justo la etiqueta con que se llaman las unidades",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "MEDIDO: «⛔ BLOQUEA · ⚠ 1 columna(s) sin usar», con el mensaje «La unidad viene partida en dos columnas: «Torre» quedó sin usar y «Apto» repite el mismo valor en agrupaciones distintas, así que unidades diferentes entrarían como una sola. Únelas en una columna del archivo antes de importar». El bloqueo es correcto —el 101 está en T1 y en T2— y es por NOMBRE, no por forma: «torre» está en los alias de agrupación, así que hay certeza y no sospecha. La única salida que ofrece hoy es editar el Excel fuera del producto, que es literalmente lo que dice el mensaje.",
+  "conFeat006": "El mismo aviso pasa a OFRECER «unir «Torre» y «Apto»» (§5.6). Aceptarla asigna las dos columnas a «Unidad» en ese orden con guion y da T1-101, T1-102, T1-201, T2-101… —que es como se llaman las unidades del conjunto—, y **levanta el bloqueo** (CA7, y CA2 con el guion). Ignorarla lo mantiene, porque el archivo sigue fundiendo dos unidades (CA8, RN-U8). Es el caso feliz de la ficha: unir aquí produce la etiqueta correcta sin tocar el archivo. Compárese con el 56, que es el mismo archivo con la torre escrita «1» en vez de «T1» y en el que unir NO basta.",
+  "hojas": {
+    "padron": [
+      ["Torre", "Apto", "Nombre", "Correo", "Rol"],
+      ["T1", "101", "Ana María Arciniegas", "ana.arciniegas@ejemplo.vivaru.app", "Propietario"],
+      ["T1", "102", "Camilo Bustamante", "camilo.bustamante@ejemplo.vivaru.app", "Arrendatario"],
+      ["T1", "201", "Elena Sofía Duarte", "elena.duarte@ejemplo.vivaru.app", "Propietario"],
+      ["T2", "101", "Ricardo Fajardo", "ricardo.fajardo@ejemplo.vivaru.app", "Propietario"],
+      ["T2", "102", "Natalia Gallego", "natalia.gallego@ejemplo.vivaru.app", "Arrendatario"],
+      ["T2", "201", "Tomás Hincapié", "tomas.hincapie@ejemplo.vivaru.app", "Propietario"]
+    ]
+  }
+}

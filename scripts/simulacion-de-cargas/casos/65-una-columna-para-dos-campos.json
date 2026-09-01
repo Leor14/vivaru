@@ -1,0 +1,19 @@
+{
+  "nombre": "65-una-columna-para-dos-campos",
+  "descripcion": "Inventario de UNIDADES donde «Tipo» es lo único que distingue el apartamento 101 del parqueadero 101: hace falta para el nombre Y para el tipo a la vez",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: «✘ FALTAN: Nombre de la unidad · ⚠ 1 columna(s) sin usar». «Torre», «Tipo» y «Estado» aciertan y «Número» queda sin usar, igual que en el 60. Lo que NADIE mira es que aquí ni siquiera «Torre»+«Número» alcanza: el archivo trae dos veces T1-101 (el apartamento y el parqueadero) y dos veces T2-201. Hoy eso no se ve por ningún lado — la detección de duplicados del asistente compara el slug del nombre contra las unidades YA EXISTENTES y nunca contra las otras filas del mismo archivo, así que dos filas del archivo con el mismo nombre entran las dos.",
+  "conFeat006": "DEBE FALLAR EL INTENTO. Es CA11: «Tipo» ya alimenta «Tipo de unidad», así que no se puede elegir además dentro del nombre unido (RN-U2). Y ese es el problema, porque este archivo LO NECESITA: la unión que el MVP permite —«Torre» + «Número» por guion— da T1-101 dos veces y T2-201 dos veces, es decir dos pares de unidades con el mismo displayName y el mismo unitId; la única columna que las separa es justamente la que RN-U2 bloquea. La unión correcta sería «Torre»+«Número»+«Tipo» → T1-101-Parqueadero. HUECO: la ficha prohíbe reusar la columna y no ofrece salida — ni partir la celda (Fase 2), ni una plantilla (Fase 2), ni un aviso de nombres repetidos DENTRO del archivo, que hoy tampoco existe. Con FEAT-006 tal como está escrita, este inventario sigue sin poder entrar bien, y ahora además entra pareciendo correcto.",
+  "hojas": {
+    "Unidades": [
+      ["Número", "Torre", "Tipo", "Estado"],
+      ["101", "T1", "Apartamento", "Activo"],
+      ["102", "T1", "Apartamento", "Activo"],
+      ["101", "T1", "Parqueadero", "Activo"],
+      ["102", "T1", "Bodega", "Activo"],
+      ["201", "T2", "Apartamento", "Activo"],
+      ["201", "T2", "Parqueadero", "Activo"]
+    ]
+  }
+}

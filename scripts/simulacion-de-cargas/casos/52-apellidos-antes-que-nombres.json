@@ -1,0 +1,19 @@
+{
+  "nombre": "52-apellidos-antes-que-nombres",
+  "descripcion": "Padrón alfabetizado por apellido: «Apellidos» va ANTES que «Nombres», así que el orden de unión no puede ser el orden del archivo",
+  "entidad": "person",
+  "formato": "csv",
+  "queDeberiaPasar": "MEDIDO: «⚠ 1 columna(s) sin usar». El mapeo se queda con «Nombres» para el nombre completo y deja «Apellidos» fuera, y conviene saber POR QUÉ: no es la posición, es que «apellidos» no contiene ningún alias de person.fullName y «nombres» sí contiene «nombre». Las seis personas entran como «Ana María», «Camilo», «Elena Sofía». Es el 50 con las columnas al revés en el archivo, y el veredicto de hoy no distingue los dos casos.",
+  "conFeat006": "Se unen «Nombres» + «Apellidos» por espacio y sale «Ana María Arciniegas Peralta» (CA1). **El orden de unión NO es el del archivo**: RN-U1 dice «en el orden en que la persona las añadió», y aquí la persona tiene que añadir primero la SEGUNDA columna del archivo. Si las añade en el orden en que las lee, sale «Arciniegas Peralta Ana María» — un nombre invertido, no un error: nada lo rechaza, entra igual y el padrón queda al revés. Lo único que lo delata es la muestra unida bajo el campo (CA3), que es exactamente la mitigación que la ficha escribe en §12. Este archivo existe para probar esa mitigación, no la unión.",
+  "hojas": {
+    "padron": [
+      ["Apellidos", "Nombres", "Correo", "Apto", "Rol"],
+      ["Arciniegas Peralta", "Ana María", "ana.arciniegas@ejemplo.vivaru.app", "T1-101", "Propietario"],
+      ["Bustamante Loaiza", "Camilo", "camilo.bustamante@ejemplo.vivaru.app", "T1-102", "Arrendatario"],
+      ["Duarte Ossa", "Elena Sofía", "elena.duarte@ejemplo.vivaru.app", "T1-201", "Propietario"],
+      ["Fajardo Neira", "Ricardo", "ricardo.fajardo@ejemplo.vivaru.app", "T2-101", "Propietario"],
+      ["Gallego Mesa", "Natalia", "natalia.gallego@ejemplo.vivaru.app", "T2-102", "Arrendatario"],
+      ["Hincapié Serna", "Tomás Esteban", "tomas.hincapie@ejemplo.vivaru.app", "T2-201", "Propietario"]
+    ]
+  }
+}

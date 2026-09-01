@@ -1,0 +1,19 @@
+{
+  "nombre": "63-tipo-y-estado-partidos-en-dos",
+  "descripcion": "Inventario de UNIDADES donde el tipo viene en «Tipo» + «Modalidad» y el estado en «Estado» + «Motivo»: las dos tentaciones de unir un campo de vocabulario cerrado",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: «⚠ 2 columna(s) sin usar», y nada más. Los cuatro campos se resuelven bien —«Inmueble» al nombre, «Torre» a la torre, «Tipo» al tipo y «Estado» al estado— y «Modalidad» y «Motivo» quedan sin usar, sin un solo aviso. Y AHÍ ESTÁ LA GRACIA DEL CASO: hoy este archivo es de los que mejor entran, así que el sistema no da ninguna señal de que dos columnas se están perdiendo. La tentación de unirlas no nace de un error en pantalla: nace de que el administrador ve «Modalidad» y «Motivo» ahí, sin destino, y el desplegable de «Tipo de unidad» al lado.",
+  "conFeat006": "DEBE FALLAR EL INTENTO. Es CA10: «Tipo de unidad» y «Estado» no ofrecen «＋ añadir otra columna» (RN-U4), así que las dos uniones que un administrador querría hacer no se pueden ni empezar: «Tipo»+«Modalidad» por espacio daría «Apartamento Dúplex», «Parqueadero Cubierto», «Bodega Sencilla» —ninguno está en ALIAS_DE_TIPO, las seis filas saldrían «Tipo inválido»— y «Estado»+«Motivo» daría «Inactivo En remodelación», que STATUS_ALIASES tampoco acepta. El resultado correcto es que «Modalidad» y «Motivo» SIGAN sin usar: el producto no tiene campo para ellas, y unirlas a un vocabulario cerrado sería inventarle valores. PRECISIÓN SOBRE LA FICHA: §4 justifica la prohibición diciendo que «unir dos valores de un catálogo produce un valor que el catálogo no acepta», y aquí las columnas de origen NO son de catálogo —«Modalidad» y «Motivo» son texto libre—. Lo que sostiene la regla es el DESTINO, que es lo que RN-U4 sí dice; la justificación de §4 habla del origen y no cubre este archivo aunque el desenlace coincida.",
+  "hojas": {
+    "Inmuebles": [
+      ["Inmueble", "Torre", "Tipo", "Modalidad", "Estado", "Motivo"],
+      ["T1-101", "T1", "Apartamento", "Dúplex", "Activo", "Ocupado"],
+      ["T1-102", "T1", "Apartamento", "Sencillo", "Activo", "Arrendado"],
+      ["T1-301", "T1", "Apartamento", "Penthouse", "Activo", "Ocupado"],
+      ["T2-201", "T2", "Apartamento", "Sencillo", "Inactivo", "En remodelación"],
+      ["P-12", "T2", "Parqueadero", "Cubierto", "Activo", "Ocupado"],
+      ["B-04", "T2", "Bodega", "Sencilla", "Activo", "Desocupado"]
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "nombre": "60-torre-y-numero-de-unidad",
+  "descripcion": "Inventario de UNIDADES con el identificador partido en «Torre» y «Número», y el mismo número repetido en las tres torres",
+  "entidad": "unit",
+  "formato": "xlsx",
+  "queDeberiaPasar": "MEDIDO: «✘ FALTAN: Nombre de la unidad · ⚠ 1 columna(s) sin usar». «Torre» va a la torre, «Tipo» y «Estado» aciertan, y «Número» queda SIN USAR: el obligatorio se queda en ∅ y no se llega a Revisión. SORPRESA 1: esperaba que la cuarta pasada rescatara «Número» por variedad, y no lo hace — 101/102 repetidos en tres torres dan 0,33 y el campo exige ≥0,9. SORPRESA 2, la que importa: NO HAY NINGÚN AVISO que diga por qué. El detector de unidad partida (candidataDeAgrupacion + unidadesQueSeFunden) es exclusivo de person.unitLabel, así que en un inventario de UNIDADES no existe: la persona solo lee «falta el nombre de la unidad» delante de un archivo que lo trae, en dos columnas. Y si lo mapea a mano, entra: medido, las seis unidades salen con solo DOS unitId distintos (101,102,101,102,101,102), porque bulkCreateUnits deriva unitId del displayName y de nada más.",
+  "conFeat006": "«Nombre de la unidad» admite «Torre» + «Número» unidas por guion → T1-101 … T3-102: seis unitId distintos de seis (medido). Es el CA2 de la ficha llevado a la entidad unit. Y SÍ, unir sigue teniendo sentido aunque unit.tower exista, que era la duda: el campo tower guarda la torre pero NO entra en la clave — la identidad de la unidad es su displayName, y de ahí sale el unitId contra el que después resuelven las personas y residentOwnUnit. Sin unir no se pierde la torre: se pierde la UNICIDAD. PERO CHOCA CON RN-U2: la persona necesita «Torre» dos veces —dentro del nombre unido y en el campo «Torre o agrupación»—, y RN-U2 lo prohíbe. Y no es un lujo: UnitBulkImportWizard.tsx:264 marca «Torre vacía» como error de fila aunque el catálogo declare unit.tower como required:false, así que renunciar a mapear la torre deja las SEIS filas en error. Con RN-U2 tal como está escrita, este archivo no tiene salida ni uniendo.",
+  "hojas": {
+    "Unidades": [
+      ["Torre", "Número", "Tipo", "Estado"],
+      ["T1", "101", "Apartamento", "Activo"],
+      ["T1", "102", "Apartamento", "Activo"],
+      ["T2", "101", "Apartamento", "Activo"],
+      ["T2", "102", "Apartamento", "Activo"],
+      ["T3", "101", "Apartamento", "Activo"],
+      ["T3", "102", "Apartamento", "Inactivo"]
+    ]
+  }
+}
