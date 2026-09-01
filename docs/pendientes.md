@@ -4,11 +4,12 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, SEGUNDA pasada (cierre)
+## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, TERCERA pasada (cierre)
 
 > ### LO QUE FALTA, Y ES TUYO
 >
-> **1 · EMPUJAR A PRODUCCIÓN.** El trabajo está en `develop` y **producción sigue en `fbd9737`**.
+> **1 · EMPUJAR A PRODUCCIÓN.** El trabajo está en `develop` —punta `32a8f46`, que ya incluye el
+> arreglo del vocabulario de tipos de la tercera pasada— y **producción sigue en `fbd9737`**.
 > El gesto es `git push origin develop:master` —a mí me lo bloquea el clasificador—. Empujar
 > despliega el front solo; **las functions NO**, y hay una que cambió (`registrarImportacion`):
 > `npm --prefix functions run build && npx firebase deploy --only functions:registrarImportacion
@@ -16,14 +17,49 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > RECHAZA los campos nuevos, los ignora** —`normalizarRegistro` construye la fila campo a campo—,
 > así que no hay ventana rota. Lo único que se pierde mientras tanto es la telemetría nueva.
 >
-> **2 · DOS CREDENCIALES CADUCADAS**, y hacen falta para verificar, no para desplegar:
-> `gcloud auth application-default login` y `gcloud auth login`. **El `firebase` está vivo**
-> (`dev@qintilab.com`) y con él funcionan el despliegue y `estado-de-apphosting.mjs`.
+> **2 · LAS TRES CREDENCIALES ESTÁN VIVAS** (medido el 1 de septiembre, no supuesto). La segunda
+> pasada dejó escrito que la ADC y `gcloud auth` estaban caducadas; **las dos se usaron en la
+> tercera** —el censo de tipos leyó los dos proyectos con la ADC, y `gcloud auth list` da
+> `dev@qintilab.com` activo—. El `firebase` también. Si algo falla, se vuelve a mirar; **lo que no
+> vale es dar por caducado lo que ya se usó**.
 >
 > **3 · EL TOPE DE GASTO DE LA IA sigue sin mirarse.** Van quince días. Eso lo miras tú, en la
 > consola.
 
-### LO QUE SE HIZO: `AI-ONB-001` ABIERTO, Y LOS CUATRO PUNTOS «SIN CORPUS» CERRADOS
+### LO QUE SE HIZO EN LA TERCERA: el vocabulario de tipos deja de decir dos cosas
+
+**`32a8f46`, y no es una limpieza: era una incoherencia viva.** El mapa de rótulos de la página de
+residentes conservaba `commercial` y `local`, que el esquema RECHAZA, y cada uno estaba mal por un
+motivo distinto — `commercial` no lo puede escribir nadie, y `local` sí es una palabra que un
+archivo escribe pero `ALIAS_DE_TIPO` la resuelve a `office`: importada se veía «Oficina» y guardada
+cruda, «Local comercial». **La misma palabra con dos respuestas según el camino.**
+
+- **Se MIDIÓ antes de decidir, y salió cero en los dos ambientes**: 93 unidades en producción y 87
+  en staging, **todas `apartment`** — ni un `office`, ni un `parking`, ni un `storage`. Los tipos
+  que se decidieron esa mañana siguen sin una sola fila. El censo va versionado
+  (`scripts/censar-tipos-de-unidad.mjs`, solo lectura) y **no consulta por `type == "local"`**: el
+  formateador normaliza antes de buscar, así que un `Local` con mayúscula era un caso vivo que un
+  `where` no habría visto. Cuenta todos los valores distintos y **enseña el denominador**.
+- **El arreglo no fue retirar las dos entradas: fue DERIVAR el mapa de `ALIAS_DE_TIPO`.** Retirarlas
+  curaba el caso y dejaba viva la causa —un mapa a mano al lado de un catálogo, la misma forma que
+  ya mordió dos veces—. Derivado, no queda dónde escribir una respuesta distinta.
+- **`ROTULOS_TOLERADOS` y el formateador salieron del componente.** Estaban dentro de
+  `AdminResidentsPage`, o sea **inalcanzables desde una prueba sin arrastrar React** — que es
+  exactamente la razón por la que la tabla de alias se movió, y exactamente donde el vocabulario
+  volvió a derivar. **Un guardián no se puede escribir sobre lo que no se puede importar.**
+- **Verificado en staging por el navegador** (`build-2026-09-01-009`), y la comprobación tuvo que
+  ser indirecta: **el efecto visible es CERO** —todo es `apartment`, se pinta «Apartamento» igual
+  que antes—, así que la pantalla no distingue el build nuevo del viejo. Se resolvió buscando en
+  los 49 chunks la cadena **`"Local comercial"`, que solo existía en el código viejo**: cero
+  apariciones. Sin eso, «se ve bien» no habría probado nada.
+
+**Y una prueba mía nació DEBILITADA a propósito y luego pudo endurecerse.** Con el mapa a mano solo
+se podía exigir «no contradecir», porque `apto` degradaba a «Apto» teniendo rótulo bueno a mano;
+derivado, se exige cobertura. Las cuatro falsaciones aíslan lo suyo, y **dos de ellas prueban que
+los invariantes no son redundantes**: reponer `commercial` enrojece uno y deja verde el otro, y
+reponer `local` al revés.
+
+### LO QUE SE HIZO EN LA SEGUNDA: `AI-ONB-001` ABIERTO, Y LOS CUATRO PUNTOS «SIN CORPUS» CERRADOS
 
 **La premisa aguantó otra vez: la ficha sigue sin escribirse, y a propósito.** Lo que se hizo es
 lo abrible sin corpus, en el orden que dejó escrito la exploración. El registro está en
