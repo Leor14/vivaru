@@ -28,7 +28,7 @@ import {
   valueFor,
 } from "@/lib/import/field-catalog";
 
-import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+import { filaEnElArchivo, readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
 
 import { registrarImportacionCallable } from "@/lib/firebase/callables";
 
@@ -191,6 +191,12 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
   const [libro, setLibro] = useState<TabularFile | null>(null);
   const [sheetName, setSheetName] = useState<string>("");
+  /**
+   * Cuántas filas se saltó el lector antes de los encabezados, de la hoja
+   * ACTIVA. **Derivado y no estado propio**: sigue solo al selector de hoja, y
+   * no hay un tercer sitio que acordarse de limpiar al cambiar de archivo.
+   */
+  const filasDePreambulo = (sheetName && libro?.sheets[sheetName]?.filasDePreambulo) || 0;
   /** Une el inicio y el fin de un mismo intento en la telemetría. */
   const [runId, setRunId] = useState<string>("");
 
@@ -228,7 +234,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
             const isDuplicate = errors.length === 0 && ((!!email && existingEmails.has(email.toLowerCase())) || (!!documentNumber && existingDocs.has(documentNumber)));
 
             return {
-              rowIndex: idx + 2,
+              rowIndex: filaEnElArchivo(idx, filasDePreambulo),
               raw,
               fullName,
               email,
@@ -245,7 +251,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
 
           return parsed;
     },
-    [existingUnits, existingPeople],
+    [existingUnits, existingPeople, filasDePreambulo],
   );
 
   /** Toma la hoja indicada del libro y propone su mapeo. */

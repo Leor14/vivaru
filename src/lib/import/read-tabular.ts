@@ -204,6 +204,29 @@ function leerXlsx(buffer: ArrayBuffer): TabularFile {
 }
 
 /**
+ * En qué fila del ARCHIVO está la fila de datos número `indice` (base 0).
+ *
+ * **Es el número que la persona lee en la revisión para ir a buscar su error**,
+ * así que tiene que apuntar a la fila que verá al abrir el Excel, no a la
+ * posición dentro del arreglo.
+ *
+ * **POR QUÉ EXISTE.** Los dos asistentes calculaban `idx + 2` con el comentario
+ * «+2: header row + 1-based», y esa suposición **dejó de ser cierta el 1 de
+ * septiembre de 2026**, cuando el lector empezó a saltarse el preámbulo: en un
+ * archivo con título y fila en blanco encima, la primera fila de datos está en
+ * la 4 y se la llamaba «fila 2». No rompía la importación —solo mandaba a la
+ * persona al sitio equivocado a buscar—, que es la clase de fallo que dura.
+ *
+ * Vive aquí, y no en cada asistente, porque la geometría del archivo la conoce
+ * el lector: los dos la tenían escrita a mano e igual, que es como se separan.
+ */
+export function filaEnElArchivo(indice: number, filasDePreambulo: number): number {
+  // +1 porque las filas del archivo se cuentan desde 1, y +1 más por la fila de
+  // encabezados, que no es un dato.
+  return indice + filasDePreambulo + 2;
+}
+
+/**
  * Lee el archivo y devuelve sus hojas. Lanza `TabularReadError` con un mensaje
  * ya escrito para la persona — nunca un error técnico en pantalla.
  */

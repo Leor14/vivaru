@@ -37,7 +37,7 @@ import {
   valueFor,
 } from "@/lib/import/field-catalog";
 
-import { readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
+import { filaEnElArchivo, readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
 import { ALIAS_DE_TIPO, ETIQUETA_DE_TIPO } from "@/lib/units/tipos";
 
 import { registrarImportacionCallable } from "@/lib/firebase/callables";
@@ -226,6 +226,12 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
   const [libro, setLibro] = useState<TabularFile | null>(null);
   const [sheetName, setSheetName] = useState<string>("");
+  /**
+   * Cuántas filas se saltó el lector antes de los encabezados, de la hoja
+   * ACTIVA. **Derivado y no estado propio**: sigue solo al selector de hoja, y
+   * no hay un tercer sitio que acordarse de limpiar al cambiar de archivo.
+   */
+  const filasDePreambulo = (sheetName && libro?.sheets[sheetName]?.filasDePreambulo) || 0;
   /** Une el inicio y el fin de un mismo intento en la telemetría. */
   const [runId, setRunId] = useState<string>("");
 
@@ -268,7 +274,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
         const isDuplicate = Boolean(duplicateId) && errors.length === 0;
 
         return {
-          rowIndex: idx + 2, // +2: header row + 1-based
+          rowIndex: filaEnElArchivo(idx, filasDePreambulo),
           raw,
           displayName,
           tower,
@@ -280,7 +286,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
         };
       });
     },
-    [existingUnits],
+    [existingUnits, filasDePreambulo],
   );
 
   /** Toma la hoja indicada del libro y propone su mapeo. */

@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import {
   MAX_ROWS,
   TabularReadError,
+  filaEnElArchivo,
   readTabularFile,
 } from "@/lib/import/read-tabular";
 
@@ -204,5 +205,100 @@ describe("el preámbulo se cuenta, porque es telemetría de forma", () => {
       }),
     );
     expect(leido.sheets["H"].filasDePreambulo).toBe(2);
+  });
+});
+
+/**
+ * El número de fila que la persona lee en la revisión para ir a buscar su error.
+ *
+ * **Nació correcto y lo rompió otro cambio de este mismo día.** Los dos
+ * asistentes calculaban `idx + 2` con el comentario «+2: header row + 1-based»;
+ * esa suposición dejó de valer en cuanto el lector empezó a saltarse el
+ * preámbulo. No rompía la importación —solo mandaba a buscar al sitio
+ * equivocado—, y por eso no lo delataba nada.
+ */
+describe("el número de fila que se le enseña a la persona", () => {
+  it("en un archivo sin preámbulo, la primera fila de datos es la 2", () => {
+    // Sin este caso, la prueba de abajo pasaría con una fórmula que sumara de
+    // más: hacen falta los dos para fijar la recta.
+    expect(filaEnElArchivo(0, 0)).toBe(2);
+    expect(filaEnElArchivo(3, 0)).toBe(5);
+  });
+
+  it("con título y fila en blanco encima, la primera fila de datos es la 4, no la 2", () => {
+    expect(filaEnElArchivo(0, 2)).toBe(4);
+    expect(filaEnElArchivo(3, 2)).toBe(7);
+  });
+
+  it("y apunta a la fila REAL del archivo, no a una cuenta aparte", async () => {
+    // El invariante de verdad: lo que se enseña tiene que coincidir con dónde
+    // está esa fila al abrir el Excel. Se comprueba contra la matriz original,
+    // no contra la fórmula.
+    const matriz = [
+      ["PADRÓN GENERAL", "", ""],
+      ["", "", ""],
+      ["Unidad", "Nombre", "Correo"],
+      ["ZZ-901", "Ana", "ana@x.com"],
+      ["ZZ-902", "Luis", "luis@x.com"],
+      ["ZZ-903", "Carla", "carla@x.com"],
+    ];
+    const leido = await readTabularFile(archivoXlsx({ H: matriz }));
+    const hoja = leido.sheets["H"];
+
+    const idx = hoja.rows.findIndex((r) => r.Nombre === "Carla");
+    const enPantalla = filaEnElArchivo(idx, hoja.filasDePreambulo);
+
+    // Dónde está de verdad «Carla» en el archivo, contando desde 1.
+    const enElArchivo = matriz.findIndex((f) => f[1] === "Carla") + 1;
+    expect(enElArchivo).toBe(6);
+    expect(enPantalla).toBe(enElArchivo);
+  });
+
+  it("y en un archivo normal el invariante se cumple igual", async () => {
+    const matriz = [
+      ["Unidad", "Nombre"],
+      ["ZZ-901", "Ana"],
+      ["ZZ-902", "Luis"],
+    ];
+    const hoja = (await readTabularFile(archivoXlsx({ H: matriz }))).sheets["H"];
+    const idx = hoja.rows.findIndex((r) => r.Nombre === "Luis");
+    expect(filaEnElArchivo(idx, hoja.filasDePreambulo)).toBe(
+      matriz.findIndex((f) => f[1] === "Luis") + 1,
+    );
+  });
+});
+
+/**
+ * **Y que los asistentes lo USEN, que es lo que las pruebas de arriba no ven.**
+ *
+ * `filaEnElArchivo` puede estar impecable y alguien llamarla con `0` fijo: el
+ * banco seguiría verde y la persona seguiría mandada a la fila equivocada. Es el
+ * primo conocido —un guardián que vigila el cálculo y no lo que el consumidor
+ * hace con él—, así que este mide el CÓDIGO, no una lista escrita a mano.
+ */
+describe("los dos asistentes usan el cálculo, no su propia cuenta", () => {
+  const ASISTENTES = [
+    "src/components/features/residents/ResidentBulkImportWizard.tsx",
+    "src/components/features/residents/UnitBulkImportWizard.tsx",
+  ];
+
+  it("cada uno pide la fila con el preámbulo de la hoja activa", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const ruta of ASISTENTES) {
+      const fuente = readFileSync(ruta, "utf8");
+      expect(fuente, `${ruta} no llama a filaEnElArchivo con el preámbulo`).toContain(
+        "rowIndex: filaEnElArchivo(idx, filasDePreambulo)",
+      );
+    }
+  });
+
+  it("y ninguno vuelve a contar las filas por su cuenta", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const ruta of ASISTENTES) {
+      const fuente = readFileSync(ruta, "utf8");
+      expect(fuente, `${ruta} volvió a calcular el número de fila a mano`).not.toMatch(
+        /rowIndex:\s*idx\s*\+/,
+      );
+    }
   });
 });
