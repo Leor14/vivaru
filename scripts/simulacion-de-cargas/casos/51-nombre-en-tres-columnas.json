@@ -5,6 +5,7 @@
   "formato": "xlsx",
   "queDeberiaPasar": "MEDIDO: entra con «⚠ 2 columna(s) sin usar» y ningún aviso más. «Nombre(s)» se lleva el nombre completo por CONTENCIÓN y no por nombre exacto —normalizado queda «nombre(s)», que no es el alias «nombre» pero lo contiene—, y «Apellido Paterno» y «Apellido Materno» se caen en silencio: las seis personas entran llamándose «Renata», «Ignacio», «Sofía Elena». Lo demás mapea entero, así que este archivo AÍSLA el nombre partido en tres, al revés que el 20, que además se queda sin unidad y mezcla dos defectos en un veredicto.",
   "conFeat006": "«Nombre completo» admite las TRES columnas en orden —«Nombre(s)», «Apellido Paterno», «Apellido Materno»— unidas por espacio, que es el separador por defecto (§5.3), y la muestra bajo el campo enseña «Renata Villalobos Argüello» y no «Renata» (CA3). Es CA1 con tres partes en vez de dos, y RN-U6 obliga a que el separador sea el mismo entre las tres: no hay separador por par. «encabezadosSinUsar» pasa de 2 a 0 y la telemetría de inicio lleva camposUnidos = 1 (CA6).",
+  "unir": { "person.fullName": { "headers": ["Nombre(s)", "Apellido Paterno", "Apellido Materno"], "separador": " " } },
   "hojas": {
     "Padrón": [
       ["Depto", "Nombre(s)", "Apellido Paterno", "Apellido Materno", "Correo", "Rol"],

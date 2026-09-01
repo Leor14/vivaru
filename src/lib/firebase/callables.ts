@@ -1481,6 +1481,8 @@ export async function registrarImportacionCallable(input: {
   filasDePreambulo?: number;
   unidadPartida?: boolean;
   valoresNoReconocidos?: string[];
+  /** Campos alimentados con más de una columna (`PRD-V-FEAT-006`, `CA9`). */
+  camposUnidos?: number;
   importadas?: number;
   omitidas?: number;
 }): Promise<{ ok: boolean }> {

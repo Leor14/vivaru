@@ -105,6 +105,9 @@ function normalizarRegistro(data) {
     }
     if (typeof d.unidadPartida === "boolean")
         registro.unidadPartida = d.unidadPartida;
+    if (typeof d.camposUnidos === "number") {
+        registro.camposUnidos = entero(d.camposUnidos, "camposUnidos");
+    }
     if (Array.isArray(d.valoresNoReconocidos)) {
         // El cliente ya filtró por «esto parece un vocabulario». Esto es la segunda
         // puerta, y existe porque el cliente es quien puede mentir: sin tope, una

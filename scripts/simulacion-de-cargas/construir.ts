@@ -22,6 +22,8 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as XLSX from "xlsx";
 
+import type { Asignacion } from "../../src/lib/import/field-catalog";
+
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const CASOS = join(AQUI, "casos");
 
@@ -46,6 +48,13 @@ export interface Caso {
    * proyecto ya se ha quedado sin línea base por no anotarla a tiempo.
    */
   conFeat006?: string;
+  /**
+   * La unión que la persona haría en el paso de columnas, por campo destino
+   * (`PRD-V-FEAT-006`). El corredor la aplica SOBRE el mapeo sugerido y enseña
+   * el valor unido de las primeras filas, que es lo que `conFeat006` promete.
+   * **Solo la persona une**: la sugerencia nunca trae esto (`RN-U3`).
+   */
+  unir?: Record<string, Asignacion>;
   /** Nombre de hoja → matriz de celdas. Un CSV usa la primera. */
   hojas: Record<string, string[][]>;
   /** Rarezas del CSV. Se ignoran en XLSX. */
@@ -80,6 +89,11 @@ function construirXlsx(caso: Caso): Buffer {
   return XLSX.write(libro, { type: "buffer", bookType: "xlsx" }) as Buffer;
 }
 
+/** Los bytes de un caso, sin tocar disco: es lo que usan las pruebas. */
+export function construir(caso: Caso): Buffer {
+  return caso.formato === "csv" ? construirCsv(caso) : construirXlsx(caso);
+}
+
 export function leerCasos(): Caso[] {
   return readdirSync(CASOS)
     .filter((f) => f.endsWith(".json"))
@@ -92,7 +106,7 @@ function main() {
   mkdirSync(salida, { recursive: true });
   const casos = leerCasos();
   for (const caso of casos) {
-    const bytes = caso.formato === "csv" ? construirCsv(caso) : construirXlsx(caso);
+    const bytes = construir(caso);
     const ruta = join(salida, `${caso.nombre}.${caso.formato}`);
     writeFileSync(ruta, bytes);
     console.log(`✔ ${caso.nombre}.${caso.formato}  (${bytes.length} bytes) — ${caso.descripcion}`);

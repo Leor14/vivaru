@@ -26,6 +26,7 @@ import {
   summarizeMapping,
   formaDelArchivo,
   valueFor,
+  type Mapping,
 } from "@/lib/import/field-catalog";
 
 import { filaEnElArchivo, readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
@@ -188,7 +189,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
   const [parseError, setParseError] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
-  const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [mapping, setMapping] = useState<Mapping>({});
   const [libro, setLibro] = useState<TabularFile | null>(null);
   const [sheetName, setSheetName] = useState<string>("");
   /**
@@ -206,7 +207,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
    * persona lo corrige en el paso de columnas.
    */
   const buildRows = useCallback(
-    (data: Record<string, string>[], mapping: Record<string, string | null>): ParsedRow[] => {
+    (data: Record<string, string>[], mapping: Mapping): ParsedRow[] => {
           const unitByName = new Map(existingUnits.map((u) => [normName(u.displayName), u]));
           const existingEmails = new Set(existingPeople.map((p) => (p.email || "").toLowerCase()).filter(Boolean));
           const existingDocs = new Set(existingPeople.map((p) => p.documentNumber || "").filter(Boolean));

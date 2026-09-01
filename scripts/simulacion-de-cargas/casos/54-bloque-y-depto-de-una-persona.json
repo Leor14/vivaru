@@ -5,6 +5,7 @@
   "formato": "xlsx",
   "queDeberiaPasar": "MEDIDO: «⛔ BLOQUEA · ⚠ 1 columna(s) sin usar», nombrando «Bloque» y «Depto». «Bloque» es alias de torre en el catálogo, así que el bloqueo es por NOMBRE —certeza— igual que el del 53. Todo lo demás mapea entero, «Celular» al teléfono incluido, así que lo ÚNICO que impide importar este archivo es la unidad partida: seis personas paradas por una columna que el producto sabe leer y no sabe unir.",
   "conFeat006": "El aviso ofrece unir «Bloque» + «Depto» con guion → A-301, A-302, B-301, B-302, C-301, C-302, y aceptarlo levanta el bloqueo (CA7). Es el gemelo ecuatoriano del 53 y existe para comprobar que la oferta **no depende de la palabra «Torre»**: la alimentan «agrupacionSinUsar» y «unidadesQueSeFunden», que ya están en producción desde el 1 sep 2026 (§11), así que las dos palabras tienen que ofrecer lo mismo. Si una ofrece y la otra no, la protección volvería a depender de la palabra —que es el defecto que se corrigió ese mismo día en el detector— y habría vuelto por la puerta de la oferta.",
+  "unir": { "person.unitLabel": { "headers": ["Bloque", "Depto"], "separador": "-" } },
   "hojas": {
     "Residentes": [
       ["Bloque", "Depto", "Nombre completo", "Correo", "Celular", "Rol"],

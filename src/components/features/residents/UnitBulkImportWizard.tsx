@@ -35,6 +35,7 @@ import {
   summarizeMapping,
   formaDelArchivo,
   valueFor,
+  type Mapping,
 } from "@/lib/import/field-catalog";
 
 import { filaEnElArchivo, readTabularFile, TabularReadError, type TabularFile } from "@/lib/import/read-tabular";
@@ -223,7 +224,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
   const [parseError, setParseError] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
-  const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  const [mapping, setMapping] = useState<Mapping>({});
   const [libro, setLibro] = useState<TabularFile | null>(null);
   const [sheetName, setSheetName] = useState<string>("");
   /**
@@ -243,7 +244,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
    * sugerido, y otra vez si la persona lo corrige en el paso de columnas.
    */
   const buildRows = useCallback(
-    (data: Record<string, string>[], mapping: Record<string, string | null>): ParsedRow[] => {
+    (data: Record<string, string>[], mapping: Mapping): ParsedRow[] => {
       // Construir slug set de unidades existentes para detección de duplicados
       const existingSlugs = new Map(
         existingUnits.map((u) => [

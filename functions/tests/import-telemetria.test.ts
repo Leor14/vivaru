@@ -150,3 +150,26 @@ describe("la forma del archivo viaja, y acotada", () => {
     expect(normalizarRegistro({ ...base, unidadPartida: "true" }).unidadPartida).toBeUndefined();
   });
 });
+
+/**
+ * `PRD-V-FEAT-006`, `CA9`: cuántos campos se alimentaron con más de una
+ * columna. Es UN número —nunca qué columnas ni qué valores—, así que la regla
+ * de «ni una celda» no se toca.
+ */
+describe("los campos unidos viajan como un conteo", () => {
+  it("se guarda cuando el front lo manda", () => {
+    expect(normalizarRegistro({ ...base, fase: "fin", importadas: 5, omitidas: 0, camposUnidos: 2 }).camposUnidos).toBe(2);
+  });
+
+  it("y su ausencia no rompe nada: un front anterior a la unión no lo manda", () => {
+    expect(normalizarRegistro(base).camposUnidos).toBeUndefined();
+  });
+
+  it("un conteo negativo se rechaza, como cualquier otro", () => {
+    expect(() => normalizarRegistro({ ...base, camposUnidos: -1 })).toThrow(RegistroInvalido);
+  });
+
+  it("y lo que no es un número se ignora en vez de tumbar la fila", () => {
+    expect(normalizarRegistro({ ...base, camposUnidos: "dos" }).camposUnidos).toBeUndefined();
+  });
+});

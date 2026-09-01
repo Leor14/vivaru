@@ -8,6 +8,7 @@
 import {
   suggestMapping,
   missingRequired,
+  type Asignacion,
   mappingIssues,
   type ImportEntity,
 } from "../../src/lib/import/field-catalog";
@@ -124,8 +125,8 @@ const CASOS: Caso[] = [
   },
 ];
 
-function etiqueta(v: string | null): string {
-  return v === null ? "∅" : `«${v}»`;
+function etiqueta(v: Asignacion | null): string {
+  return v === null ? "∅" : v.headers.map((h) => `«${h}»`).join(" + ");
 }
 
 for (const caso of CASOS) {

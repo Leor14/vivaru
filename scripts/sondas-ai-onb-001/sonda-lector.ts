@@ -35,8 +35,8 @@ const m = suggestMapping(hoja.headers, "person", {
   accepted: { "person.role": ["propietario", "inquilino", "arrendatario", "residente", "dueno", "otro"] },
 });
 console.log("\nMapeo sugerido:");
-for (const [campo, header] of Object.entries(m)) {
-  console.log(`  ${campo.padEnd(22)} ← ${header === null ? "∅" : `«${header}»`}`);
+for (const [campo, a] of Object.entries(m)) {
+  console.log(`  ${campo.padEnd(22)} ← ${a === null ? "∅" : a.headers.map((h) => `«${h}»`).join(" + ")}`);
 }
 const faltan = missingRequired(m, "person");
 console.log(

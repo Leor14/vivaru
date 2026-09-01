@@ -27,6 +27,8 @@ import {
   pickBestSheet,
   suggestMapping,
   summarizeMapping,
+  unir,
+  type Asignacion,
 } from "../../src/lib/import/field-catalog";
 import { readTabularFile, TabularReadError } from "../../src/lib/import/read-tabular";
 import { ALIAS_DE_TIPO } from "../../src/lib/units/tipos";
@@ -54,6 +56,21 @@ const ACEPTADOS_PERSONA = {
  * detalle y el resumen —que es lo que la gente lee— decía lo contrario. Un
  * instrumento que resume mal es peor que no resumir.
  */
+function etiqueta(a: Asignacion | null): string {
+  return a === null ? "∅" : a.headers.map((h) => `«${h}»`).join(" + ");
+}
+
+/** Los tres primeros valores no vacíos del campo, ya unidos: lo que vería la persona bajo el desplegable. */
+function muestra(rows: Record<string, string>[], a: Asignacion): string {
+  const out: string[] = [];
+  for (const row of rows) {
+    const v = unir(row, a);
+    if (v) out.push(v);
+    if (out.length === 3) break;
+  }
+  return out.join(", ");
+}
+
 function veredicto(
   faltan: string[],
   bloquea: boolean,
@@ -106,9 +123,9 @@ async function main() {
 
     const m = suggestMapping(hoja.headers, caso.entidad, { rows: hoja.rows, accepted });
     const avisos = mappingIssues(hoja.rows, caso.entidad, m, accepted);
-    for (const [campo, header] of Object.entries(m)) {
+    for (const [campo, asignacion] of Object.entries(m)) {
       const a = avisos[campo];
-      console.log(`         ${campo.padEnd(20)} ← ${header === null ? "∅" : `«${header}»`}${a ? `   ⚠ ${a.nivel}: ${a.mensaje}` : ""}`);
+      console.log(`         ${campo.padEnd(20)} ← ${etiqueta(asignacion)}${a ? `   ⚠ ${a.nivel}: ${a.mensaje}` : ""}`);
     }
 
     const faltan = missingRequired(m, caso.entidad).map((f) => f.label);
@@ -118,7 +135,32 @@ async function main() {
     const dudas = Object.values(avisos).filter((a) => a?.nivel === "duda").length;
     const v = veredicto(faltan, hayBloqueantes(avisos), dudas, encabezadosSinUsar);
     console.log(`       ${v}`);
-    resumen.push(`${caso.nombre.padEnd(34)} ${v}`);
+
+    // **Lo que la persona haría con FEAT-006**, si el caso lo declara. Se
+    // aplica sobre el mapeo sugerido —que nunca une— y se vuelve a medir: el
+    // valor unido, cuántos campos se unieron y si el bloqueo se levantó.
+    let despues = "";
+    if (caso.unir) {
+      const unido = { ...m, ...caso.unir };
+      const avisos2 = mappingIssues(hoja.rows, caso.entidad, unido, accepted);
+      const resumen2 = summarizeMapping(hoja.headers, caso.entidad, unido);
+      console.log(`       ── con la unión declarada ──`);
+      for (const [campo, a] of Object.entries(caso.unir)) {
+        console.log(`         ${campo.padEnd(20)} ← ${etiqueta(a)} sep=${JSON.stringify(a.separador)} → ${muestra(hoja.rows, a)}`);
+      }
+      for (const [campo, a] of Object.entries(avisos2)) {
+        if (a) console.log(`         ${campo.padEnd(20)}   ⚠ ${a.nivel}: ${a.mensaje}`);
+      }
+      const v2 = veredicto(
+        missingRequired(unido, caso.entidad).map((f) => f.label),
+        hayBloqueantes(avisos2),
+        Object.values(avisos2).filter((a) => a?.nivel === "duda").length,
+        resumen2.encabezadosSinUsar,
+      );
+      despues = ` ⟶ unido: ${v2} · camposUnidos=${resumen2.camposUnidos}`;
+      console.log(`       ${v2} · camposUnidos=${resumen2.camposUnidos}`);
+    }
+    resumen.push(`${caso.nombre.padEnd(34)} ${v}${despues}`);
   }
 
   console.log("\n\n═══════════════ RESUMEN ═══════════════");

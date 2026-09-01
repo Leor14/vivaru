@@ -40,6 +40,13 @@ El campo que hace útil el caso es **`queDeberiaPasar`**: la expectativa de quie
 en una frase. Lo interesante no es la lista de casos que pasan — es **dónde lo medido no
 coincide con lo esperado**.
 
+**Y desde `PRD-V-FEAT-006` un caso puede declarar `unir`**: la unión que la persona haría en el
+paso de columnas, por campo destino (`{ "person.fullName": { "headers": [...], "separador": " " } }`).
+El corredor la aplica **sobre** el mapeo sugerido —que nunca une solo— y vuelve a medir: enseña el
+valor unido de las primeras filas, cuántos campos se unieron y si el bloqueo se levantó. Los casos
+`50`–`57` la llevan, y son la línea base de esa ficha en las dos direcciones. Las pruebas de
+`tests/import-unir-columnas.test.ts` construyen estos mismos casos en memoria con `construir()`.
+
 ## Dónde termina
 
 El corredor llega hasta el mapeo y sus avisos. La validación por fila —correo, rol, si la

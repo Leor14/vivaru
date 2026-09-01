@@ -11,8 +11,19 @@ import {
   requiredFieldsFor,
   suggestMapping,
   valueFor,
+  columnasDe,
+  una,
   type ImportEntity,
+  type Mapping,
 } from "@/lib/import/field-catalog";
+
+/**
+ * Desde `PRD-V-FEAT-006` un campo lleva una LISTA de columnas y no una sola.
+ * Estas pruebas afirman sobre la sugerencia, que por `RN-U3` es siempre de una
+ * columna, así que se lee la única — y si algún día la sugerencia uniera, esto
+ * enseñaría las dos con un «+» en vez de disimularlo.
+ */
+const col = (m: Mapping, key: string): string | null => m[key]?.headers.join(" + ") ?? null;
 
 /**
  * El catálogo centraliza lo que antes vivía duplicado en los dos asistentes de
@@ -51,12 +62,12 @@ describe("el catálogo no se contradice a sí mismo", () => {
 describe("«tipo» significa cosas distintas y no se mezclan", () => {
   it("en unidades sugiere el tipo de unidad", () => {
     const mapa = suggestMapping(["nombre", "tipo"], "unit");
-    expect(mapa["unit.type"]).toBe("tipo");
+    expect(col(mapa, "unit.type")).toBe("tipo");
   });
 
   it("en personas sugiere el rol", () => {
     const mapa = suggestMapping(["nombre", "tipo"], "person");
-    expect(mapa["person.role"]).toBe("tipo");
+    expect(col(mapa, "person.role")).toBe("tipo");
     // Y no existe ningún campo de persona que se llame «tipo de persona»
     expect(Object.keys(mapa)).not.toContain("unit.type");
   });
@@ -66,10 +77,10 @@ describe("los alias de siempre siguen resolviendo igual", () => {
   it("unidades: la plantilla de hoy se mapea entera y sola", () => {
     const mapa = suggestMapping(["nombre", "torre", "tipo", "estado"], "unit");
     expect(mapa).toEqual({
-      "unit.displayName": "nombre",
-      "unit.tower": "torre",
-      "unit.type": "tipo",
-      "unit.status": "estado",
+      "unit.displayName": una("nombre"),
+      "unit.tower": una("torre"),
+      "unit.type": una("tipo"),
+      "unit.status": una("estado"),
     });
   });
 
@@ -79,22 +90,22 @@ describe("los alias de siempre siguen resolviendo igual", () => {
       "person",
     );
     expect(mapa).toEqual({
-      "person.fullName": "nombre",
-      "person.email": "email",
-      "person.phone": "telefono",
-      "person.documentNumber": "documento",
-      "person.unitLabel": "unidad",
-      "person.role": "rol",
+      "person.fullName": una("nombre"),
+      "person.email": una("email"),
+      "person.phone": una("telefono"),
+      "person.documentNumber": una("documento"),
+      "person.unitLabel": una("unidad"),
+      "person.role": una("rol"),
     });
   });
 
   it("acepta las variantes en inglés y los acentos y mayúsculas del archivo", () => {
     const mapa = suggestMapping(["Nombre", "Correo", "Teléfono", "Unit", "Role"], "person");
-    expect(mapa["person.fullName"]).toBe("Nombre");
-    expect(mapa["person.email"]).toBe("Correo");
-    expect(mapa["person.phone"]).toBe("Teléfono");
-    expect(mapa["person.unitLabel"]).toBe("Unit");
-    expect(mapa["person.role"]).toBe("Role");
+    expect(col(mapa, "person.fullName")).toBe("Nombre");
+    expect(col(mapa, "person.email")).toBe("Correo");
+    expect(col(mapa, "person.phone")).toBe("Teléfono");
+    expect(col(mapa, "person.unitLabel")).toBe("Unit");
+    expect(col(mapa, "person.role")).toBe("Role");
   });
 });
 
@@ -104,18 +115,18 @@ describe("lo que antes no tenía salida", () => {
     // «Nombre del propietario» SÍ se reconocen — es el arreglo. Aquí se usan
     // encabezados que de verdad no dicen nada.
     const mapa = suggestMapping(["Columna 1", "Zzz"], "person");
-    expect(mapa["person.fullName"]).toBeNull();
-    expect(mapa["person.unitLabel"]).toBeNull();
+    expect(col(mapa, "person.fullName")).toBeNull();
+    expect(col(mapa, "person.unitLabel")).toBeNull();
   });
 
   it("y por contención sí reconoce los encabezados largos de un archivo real", () => {
     const mapa = suggestMapping(["Depto", "Nombre del propietario"], "person");
-    expect(mapa["person.unitLabel"]).toBe("Depto");
-    expect(mapa["person.fullName"]).toBe("Nombre del propietario");
+    expect(col(mapa, "person.unitLabel")).toBe("Depto");
+    expect(col(mapa, "person.fullName")).toBe("Nombre del propietario");
   });
 
   it("y el mapeo hecho a mano sí lo resuelve", () => {
-    const mapa = { ...suggestMapping(["Depto"], "person"), "person.unitLabel": "Depto" };
+    const mapa = { ...suggestMapping(["Depto"], "person"), "person.unitLabel": una("Depto") };
     expect(valueFor({ Depto: "T1-101" }, mapa, "person.unitLabel")).toBe("T1-101");
   });
 
@@ -137,7 +148,7 @@ describe("una columna no alimenta dos campos", () => {
     // alias de `person.unitLabel`, y `person.fullName` no lo lleva. Aun así se
     // comprueba que ningún encabezado quede asignado dos veces.
     const mapa = suggestMapping(["nombre", "unidad"], "person");
-    const asignados = Object.values(mapa).filter(Boolean);
+    const asignados = columnasDe(mapa);
     expect(new Set(asignados).size).toBe(asignados.length);
   });
 });
@@ -148,7 +159,7 @@ describe("valueFor", () => {
   });
 
   it("recorta los espacios, como hacía getField", () => {
-    expect(valueFor({ tel: "  300  " }, { "person.phone": "tel" }, "person.phone")).toBe("300");
+    expect(valueFor({ tel: "  300  " }, { "person.phone": una("tel") }, "person.phone")).toBe("300");
   });
 });
 
@@ -166,7 +177,7 @@ describe("summarizeMapping · lo que alimenta la telemetría", () => {
     // «nombre» lo resuelve el alias; «Columna X» la asigna la persona; «Saldo» sobra.
     const mapping = {
       ...suggestMapping(headers, "person"),
-      "person.unitLabel": "Columna X",
+      "person.unitLabel": una("Columna X"),
     };
     const r = summarizeMapping(headers, "person", mapping);
     expect(r.camposPorAlias).toBe(1);
@@ -230,8 +241,8 @@ describe("los archivos que rompieron el paso de columnas", () => {
       accepted: ACEPTADOS_UNIDAD,
     });
     // Son justo los dos que el 14 de agosto salieron cruzados.
-    expect(m["unit.type"]).toBe("Clase");
-    expect(m["unit.status"]).toBe("Situación");
+    expect(col(m, "unit.type")).toBe("Clase");
+    expect(col(m, "unit.status")).toBe("Situación");
   });
 
   it("el CSV de residentes pasa de reconocer 1 de 6 a reconocer 5", async () => {
@@ -240,13 +251,13 @@ describe("los archivos que rompieron el paso de columnas", () => {
       rows: personas.rows,
       accepted: ACEPTADOS_PERSONA,
     });
-    expect(m["person.unitLabel"]).toBe("No. Depto");
-    expect(m["person.fullName"]).toBe("NOMBRE DEL PROPIETARIO");
-    expect(m["person.email"]).toBe("Correo electrónico");
-    expect(m["person.phone"]).toBe("Celular");
-    expect(m["person.role"]).toBe("Régimen");
+    expect(col(m, "person.unitLabel")).toBe("No. Depto");
+    expect(col(m, "person.fullName")).toBe("NOMBRE DEL PROPIETARIO");
+    expect(col(m, "person.email")).toBe("Correo electrónico");
+    expect(col(m, "person.phone")).toBe("Celular");
+    expect(col(m, "person.role")).toBe("Régimen");
     // «RFC» no se reconoce y está bien: documento es opcional, así que no bloquea.
-    expect(m["person.documentNumber"]).toBeNull();
+    expect(col(m, "person.documentNumber")).toBeNull();
   });
 
   it("y con eso ya no falta ningún obligatorio: se puede continuar", async () => {
@@ -262,10 +273,10 @@ describe("los archivos que rompieron el paso de columnas", () => {
     const { mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
     // Exactamente lo de la captura: Estado ← Clase, Tipo ← Situación.
     const cruzado = {
-      "unit.displayName": "Edificio",
-      "unit.tower": "Identificador",
-      "unit.type": "Situación",
-      "unit.status": "Clase",
+      "unit.displayName": una("Edificio"),
+      "unit.tower": una("Identificador"),
+      "unit.type": una("Situación"),
+      "unit.status": una("Clase"),
     };
     const avisos = mappingIssues(unidades.rows, "unit", cruzado, ACEPTADOS_UNIDAD);
     expect(avisos["unit.status"]?.nivel).toBe("bloquea");
@@ -277,8 +288,8 @@ describe("los archivos que rompieron el paso de columnas", () => {
     const { suggestMapping, mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
     const m = {
       ...suggestMapping(unidades.headers, "unit", { rows: unidades.rows, accepted: ACEPTADOS_UNIDAD }),
-      "unit.displayName": "Identificador",
-      "unit.tower": "Edificio",
+      "unit.displayName": una("Identificador"),
+      "unit.tower": una("Edificio"),
     };
     expect(hayBloqueantes(mappingIssues(unidades.rows, "unit", m, ACEPTADOS_UNIDAD))).toBe(false);
   });
@@ -305,20 +316,20 @@ describe("texto libre: lo que distingue un identificador de una agrupación", ()
     const { suggestMapping } = await import("@/lib/import/field-catalog");
     const m = suggestMapping(headers, "unit", { rows, accepted: ACEPTADOS });
     // Lo que la persona tuvo que asignar a mano —y asignó al revés—.
-    expect(m["unit.displayName"]).toBe("Identificador");
-    expect(m["unit.tower"]).toBe("Edificio");
+    expect(col(m, "unit.displayName")).toBe("Identificador");
+    expect(col(m, "unit.tower")).toBe("Edificio");
     // Y lo que ya resolvía el contenido.
-    expect(m["unit.type"]).toBe("Clase");
-    expect(m["unit.status"]).toBe("Situación");
+    expect(col(m, "unit.type")).toBe("Clase");
+    expect(col(m, "unit.status")).toBe("Situación");
   });
 
   it("y si aun así se cruzan, el nombre repetido BLOQUEA", async () => {
     const { mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
     const cruzado = {
-      "unit.displayName": "Edificio",
-      "unit.tower": "Identificador",
-      "unit.type": "Clase",
-      "unit.status": "Situación",
+      "unit.displayName": una("Edificio"),
+      "unit.tower": una("Identificador"),
+      "unit.type": una("Clase"),
+      "unit.status": una("Situación"),
     };
     const avisos = mappingIssues(rows, "unit", cruzado, ACEPTADOS);
     expect(avisos["unit.displayName"]?.nivel).toBe("bloquea");
@@ -336,8 +347,8 @@ describe("texto libre: lo que distingue un identificador de una agrupación", ()
     ];
     const { suggestMapping, mappingIssues, hayBloqueantes } = await import("@/lib/import/field-catalog");
     const m = suggestMapping(["nombre", "torre"], "unit", { rows: conTorres });
-    expect(m["unit.displayName"]).toBe("nombre");
-    expect(m["unit.tower"]).toBe("torre");
+    expect(col(m, "unit.displayName")).toBe("nombre");
+    expect(col(m, "unit.tower")).toBe("torre");
     expect(hayBloqueantes(mappingIssues(conTorres, "unit", m, {}))).toBe(false);
   });
 });
@@ -410,8 +421,8 @@ describe("AI-ONB-001 · los alias que faltaban", () => {
       { Inmueble: "T2-201", Coeficiente: "2,10%", Propietario: "Carla Soto", "Teléfono": "3007778899", Email: "carla@x.com" },
     ];
     const m = suggestMapping(headers, "person", { rows, accepted: ACEPTADOS_PERSONA });
-    expect(m["person.unitLabel"]).toBe("Inmueble");
-    expect(m["person.fullName"]).toBe("Propietario");
+    expect(col(m, "person.unitLabel")).toBe("Inmueble");
+    expect(col(m, "person.fullName")).toBe("Propietario");
   });
 
   it("«Apto» alimenta la unidad de la persona, y lo hace EL ALIAS", () => {
@@ -423,7 +434,7 @@ describe("AI-ONB-001 · los alias que faltaban", () => {
     const headers = ["Apto", "Nombre Completo", "Correo"];
     const rows = [{ Apto: "101", "Nombre Completo": "Ana Pérez", Correo: "ana@x.com" }];
     const m = suggestMapping(headers, "person", { rows, accepted: ACEPTADOS_PERSONA });
-    expect(m["person.unitLabel"]).toBe("Apto");
+    expect(col(m, "person.unitLabel")).toBe("Apto");
   });
 
   it("una agrupación llamada «Bloque» es la torre de la unidad", () => {
@@ -434,8 +445,8 @@ describe("AI-ONB-001 · los alias que faltaban", () => {
       { Inmueble: "B-201", Bloque: "B", Uso: "casa" },
     ];
     const m = suggestMapping(headers, "unit", { rows, accepted: ACEPTADOS_UNIDAD });
-    expect(m["unit.tower"]).toBe("Bloque");
-    expect(m["unit.displayName"]).toBe("Inmueble");
+    expect(col(m, "unit.tower")).toBe("Bloque");
+    expect(col(m, "unit.displayName")).toBe("Inmueble");
   });
 });
 
@@ -455,7 +466,7 @@ describe("AI-ONB-001 · repetir la unidad no es sospechoso, partirla sí", () =>
       { Unidad: "T1-101", Nombre: "Carla Pérez", Correo: "carla@x.com", Rol: "residente" },
     ];
     const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
-    expect(mapping["person.unitLabel"]).toBe("Unidad");
+    expect(col(mapping, "person.unitLabel")).toBe("Unidad");
     expect(mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA)["person.unitLabel"]).toBeUndefined();
   });
 
@@ -469,7 +480,7 @@ describe("AI-ONB-001 · repetir la unidad no es sospechoso, partirla sí", () =>
       { Torre: "2", Apto: "101", Nombre: "Carla Soto", Correo: "carla@x.com", Rol: "propietario" },
     ];
     const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
-    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(col(mapping, "person.unitLabel")).toBe("Apto");
 
     const avisos = mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA);
     expect(avisos["person.unitLabel"]?.nivel).toBe("bloquea");
@@ -504,7 +515,7 @@ describe("AI-ONB-001 · repetir la unidad no es sospechoso, partirla sí", () =>
       Rol: "propietario",
     }));
     const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS_PERSONA });
-    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(col(mapping, "person.unitLabel")).toBe("Apto");
     expect(mappingIssues(rows, "person", mapping, ACEPTADOS_PERSONA)["person.unitLabel"]?.nivel).toBe("bloquea");
   });
 });
@@ -539,7 +550,7 @@ describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
     // que la gente escribe eso es lo que evita volver a decidir a ciegas, como
     // pasó con parqueadero y bodega.
     const rows = padron((i) => (i % 2 === 0 ? "ocupado" : "arrendado"));
-    const mapping = { "person.role": "Rol", "person.unitLabel": "Unidad", "person.fullName": "Nombre", "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const mapping = { "person.role": una("Rol"), "person.unitLabel": una("Unidad"), "person.fullName": una("Nombre"), "person.email": una("Correo"), "person.phone": null, "person.documentNumber": null };
     const forma = formaDelArchivo(rows, "person", mapping, ACEPTADOS);
     expect(forma.valoresNoReconocidos.sort()).toEqual(["arrendado", "ocupado"]);
   });
@@ -549,7 +560,7 @@ describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
     // El rol apuntando a la columna de personas: ninguno de esos valores es
     // aceptado, así que sin la puerta saldrían los ocho nombres a la telemetría.
     const rows = padron(() => "propietario");
-    const mapping = { "person.role": "Nombre", "person.unitLabel": "Unidad", "person.fullName": null, "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const mapping = { "person.role": una("Nombre"), "person.unitLabel": una("Unidad"), "person.fullName": null, "person.email": una("Correo"), "person.phone": null, "person.documentNumber": null };
     const forma = formaDelArchivo(rows, "person", mapping, ACEPTADOS);
     expect(forma.valoresNoReconocidos).toEqual([]);
     expect(JSON.stringify(forma)).not.toContain("Persona");
@@ -568,7 +579,7 @@ describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
       Correo: `p${i}@x.com`,
       Apellido: `Apellido${i % 50}`,
     }));
-    const mapping = { "person.role": "Apellido", "person.unitLabel": "Unidad", "person.fullName": "Nombre", "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const mapping = { "person.role": una("Apellido"), "person.unitLabel": una("Unidad"), "person.fullName": una("Nombre"), "person.email": una("Correo"), "person.phone": null, "person.documentNumber": null };
     const forma = formaDelArchivo(rows, "person", mapping, ACEPTADOS);
     expect(forma.valoresNoReconocidos).toEqual([]);
     expect(JSON.stringify(forma)).not.toContain("Apellido");
@@ -577,7 +588,7 @@ describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
   it("y un archivo corto no aporta señal, así que ahí no se mira", async () => {
     const { formaDelArchivo } = await import("@/lib/import/field-catalog");
     const rows = padron(() => "ocupado", 3);
-    const mapping = { "person.role": "Rol", "person.unitLabel": "Unidad", "person.fullName": "Nombre", "person.email": "Correo", "person.phone": null, "person.documentNumber": null };
+    const mapping = { "person.role": una("Rol"), "person.unitLabel": una("Unidad"), "person.fullName": una("Nombre"), "person.email": una("Correo"), "person.phone": null, "person.documentNumber": null };
     expect(formaDelArchivo(rows, "person", mapping, ACEPTADOS).valoresNoReconocidos).toEqual([]);
   });
 
@@ -593,7 +604,7 @@ describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
       Rol: "propietario",
     }));
     const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
-    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(col(mapping, "person.unitLabel")).toBe("Apto");
     expect(formaDelArchivo(rows, "person", mapping, ACEPTADOS).unidadPartida).toBe(true);
   });
 
@@ -628,9 +639,9 @@ describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
 
   it("con VARIAS columnas empatadas, el campo se queda sin mapear", () => {
     const m = suggestMapping(Object.keys(empate[0]), "person", { rows: empate, accepted: ACEPTADOS });
-    expect(m["person.fullName"]).toBeNull();
-    expect(m["person.email"]).toBeNull();
-    expect(m["person.unitLabel"]).toBeNull();
+    expect(col(m, "person.fullName")).toBeNull();
+    expect(col(m, "person.email")).toBeNull();
+    expect(col(m, "person.unitLabel")).toBeNull();
   });
 
   it("y por eso el archivo PIDE los obligatorios en vez de inventarlos", () => {
@@ -650,7 +661,7 @@ describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
       { Titular: "Carla Soto", Sector: "Norte", Rol: "propietario" },
     ];
     const m = sm(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
-    expect(m["person.fullName"]).toBe("Titular");
+    expect(col(m, "person.fullName")).toBe("Titular");
   });
 
   it("pero lo resuelto por variedad AVISA de que es una deducción", async () => {
@@ -684,7 +695,7 @@ describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
       { Nombre: "Luis Gómez", Mail: "luis@x.com", "No. Depto": "EA-102", Calidad: "inquilino" },
     ];
     const m = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
-    expect(m["person.email"]).toBe("Mail");
+    expect(col(m, "person.email")).toBe("Mail");
 
     // **Y esto es lo que guarda el alias, no la línea de arriba.** Sin él la
     // columna se resuelve igual —por variedad, al ser la única libre— y la
@@ -704,7 +715,7 @@ describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
       { "NOMBRE DEL PROPIETARIO": "Luis Gómez", "Correo electrónico": "luis@x.com", "No. Depto": "EA-102", Calidad: "inquilino" },
     ];
     const m = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
-    expect(m["person.fullName"]).toBe("NOMBRE DEL PROPIETARIO");
+    expect(col(m, "person.fullName")).toBe("NOMBRE DEL PROPIETARIO");
     const avisos = mappingIssues(rows, "person", m, ACEPTADOS);
     expect(avisos["person.fullName"]).toBeUndefined();
     expect(avisos["person.unitLabel"]).toBeUndefined();
@@ -714,7 +725,7 @@ describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
     // campo de vocabulario cerrado ya lo juzgó la comprobación de contenido, y
     // sin esta línea la segunda pasada le colgaría un «no se parece a este
     // campo» a un acierto perfecto.
-    expect(m["person.role"]).toBe("Calidad");
+    expect(col(m, "person.role")).toBe("Calidad");
     expect(avisos["person.role"]).toBeUndefined();
   });
 });
@@ -747,7 +758,7 @@ describe("AI-ONB-001 · la unidad partida se reconoce sin saber la palabra", () 
 
   function avisoDeUnidad(rows: Record<string, string>[]) {
     const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
-    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(col(mapping, "person.unitLabel")).toBe("Apto");
     return mappingIssues(rows, "person", mapping, ACEPTADOS)["person.unitLabel"];
   }
 
@@ -803,7 +814,7 @@ describe("AI-ONB-001 · la unidad partida se reconoce sin saber la palabra", () 
       Rol: "propietario",
     }));
     const mapping = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
-    expect(mapping["person.unitLabel"]).toBe("Apto");
+    expect(col(mapping, "person.unitLabel")).toBe("Apto");
     expect(mappingIssues(rows, "person", mapping, ACEPTADOS)["person.unitLabel"]).toBeUndefined();
   });
 

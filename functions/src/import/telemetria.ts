@@ -76,6 +76,13 @@ export interface RegistroImportacion {
    * como vocabulario, y aquí se recortan otra vez por si acaso.
    */
   valoresNoReconocidos?: string[];
+  /**
+   * Campos que la persona alimentó con MÁS de una columna (`PRD-V-FEAT-006`,
+   * `CA9`). Un número, nunca qué columnas: la regla de arriba no cambia. En
+   * `inicio` vale 0 por construcción —el mapeo sugerido no une—, así que la
+   * medida del estreno está en `fin`.
+   */
+  camposUnidos?: number;
   /** Solo en `fin`. */
   importadas?: number;
   omitidas?: number;
@@ -140,6 +147,9 @@ export function normalizarRegistro(data: unknown): RegistroImportacion {
     registro.filasDePreambulo = entero(d.filasDePreambulo, "filasDePreambulo");
   }
   if (typeof d.unidadPartida === "boolean") registro.unidadPartida = d.unidadPartida;
+  if (typeof d.camposUnidos === "number") {
+    registro.camposUnidos = entero(d.camposUnidos, "camposUnidos");
+  }
   if (Array.isArray(d.valoresNoReconocidos)) {
     // El cliente ya filtró por «esto parece un vocabulario». Esto es la segunda
     // puerta, y existe porque el cliente es quien puede mentir: sin tope, una

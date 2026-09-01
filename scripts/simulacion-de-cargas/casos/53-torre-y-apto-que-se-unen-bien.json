@@ -5,6 +5,7 @@
   "formato": "csv",
   "queDeberiaPasar": "MEDIDO: «⛔ BLOQUEA · ⚠ 1 columna(s) sin usar», con el mensaje «La unidad viene partida en dos columnas: «Torre» quedó sin usar y «Apto» repite el mismo valor en agrupaciones distintas, así que unidades diferentes entrarían como una sola. Únelas en una columna del archivo antes de importar». El bloqueo es correcto —el 101 está en T1 y en T2— y es por NOMBRE, no por forma: «torre» está en los alias de agrupación, así que hay certeza y no sospecha. La única salida que ofrece hoy es editar el Excel fuera del producto, que es literalmente lo que dice el mensaje.",
   "conFeat006": "El mismo aviso pasa a OFRECER «unir «Torre» y «Apto»» (§5.6). Aceptarla asigna las dos columnas a «Unidad» en ese orden con guion y da T1-101, T1-102, T1-201, T2-101… —que es como se llaman las unidades del conjunto—, y **levanta el bloqueo** (CA7, y CA2 con el guion). Ignorarla lo mantiene, porque el archivo sigue fundiendo dos unidades (CA8, RN-U8). Es el caso feliz de la ficha: unir aquí produce la etiqueta correcta sin tocar el archivo. Compárese con el 56, que es el mismo archivo con la torre escrita «1» en vez de «T1» y en el que unir NO basta.",
+  "unir": { "person.unitLabel": { "headers": ["Torre", "Apto"], "separador": "-" } },
   "hojas": {
     "padron": [
       ["Torre", "Apto", "Nombre", "Correo", "Rol"],

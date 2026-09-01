@@ -26,6 +26,70 @@
 
 export type ImportEntity = "unit" | "person";
 
+/**
+ * Lo que alimenta un campo destino: una o más columnas del archivo y cómo se
+ * unen — `PRD-V-FEAT-006`.
+ *
+ * **Hasta el 1 de septiembre de 2026 esto era un `string | null`**: una columna
+ * por campo, y un padrón con «Nombres» + «Apellidos» entraba con medio nombre.
+ * El contrato cambió de forma en vez de añadir un segundo mapa al lado, porque
+ * dos estructuras describiendo el mismo mapeo son el espejo que este fichero
+ * existe para evitar. Una sola columna es el caso de siempre, con la lista de
+ * largo uno.
+ *
+ * `headers` va **en el orden en que la persona las añadió** (`RN-U1`), que no
+ * es el orden del archivo: un padrón alfabetizado trae «Apellidos» antes que
+ * «Nombres». `separador` aplica igual entre todas las partes (`RN-U6`); la
+ * cadena vacía significa «sin separador».
+ */
+export interface Asignacion {
+  headers: string[];
+  separador: string;
+}
+
+/** Para cada campo destino, qué lo alimenta. `null` es «sin decidir». */
+export type Mapping = Record<string, Asignacion | null>;
+
+export const SEPARADOR_POR_DEFECTO = " ";
+/** `RN-U7`: un separador propio no pasa de cinco caracteres. */
+export const MAX_LARGO_DE_SEPARADOR = 5;
+
+/** Una sola columna, que es la forma que produce toda sugerencia (`RN-U3`). */
+export function una(header: string): Asignacion {
+  return { headers: [header], separador: SEPARADOR_POR_DEFECTO };
+}
+
+export function esSeparadorValido(separador: string): boolean {
+  return separador.length <= MAX_LARGO_DE_SEPARADOR;
+}
+
+/** Todas las columnas del archivo que algún campo usa. */
+export function columnasDe(mapping: Mapping): string[] {
+  const out: string[] = [];
+  for (const asignacion of Object.values(mapping)) {
+    if (asignacion) out.push(...asignacion.headers);
+  }
+  return out;
+}
+
+/**
+ * El valor de un campo en una fila: las partes, recortadas, unidas por el
+ * separador. **Una parte vacía se omite entera, esté donde esté** (`RN-U5`):
+ * «Camilo» + «» + «Bustamante» da `Camilo Bustamante` con UN espacio. La
+ * fixture 57 existe porque la primera versión de la regla solo hablaba de los
+ * bordes, y un hueco EN MEDIO habría dejado dos espacios que nadie ve.
+ */
+export function unir(
+  row: Record<string, string>,
+  asignacion: Asignacion | null | undefined,
+): string {
+  if (!asignacion) return "";
+  return asignacion.headers
+    .map((h) => (row[h] ?? "").trim())
+    .filter(Boolean)
+    .join(asignacion.separador);
+}
+
 export interface ImportField {
   /** Identificador estable. No se enseña a nadie; se usa en el mapeo. */
   key: string;
@@ -78,6 +142,14 @@ export interface ImportField {
    * simplemente falso. Medido el 1 de septiembre de 2026 al añadirla.
    */
   repeticionEsNormal?: boolean;
+  /**
+   * Si la persona puede asignarle VARIAS columnas del archivo (`PRD-V-FEAT-006`).
+   * Solo campos de texto libre de `person`: un vocabulario cerrado como el rol
+   * se resuelve por contenido y unirlo no aporta (`RN-U4`); y en `unit` el
+   * valor unido sería la IDENTIDAD de la unidad, así que un empalme equivocado
+   * sembraría un padrón paralelo sin que nadie lo viera (`RN-U8`).
+   */
+  admiteUnion?: boolean;
 }
 
 /**
@@ -141,6 +213,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     aliases: ["nombre", "name", "fullname"],
     example: "Ana Pérez",
     cardinality: "alta",
+    admiteUnion: true,
   },
   {
     key: "person.email",
@@ -162,6 +235,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     required: false,
     aliases: ["telefono", "celular", "phone", "tel"],
     example: "3001234567",
+    admiteUnion: true,
   },
   {
     key: "person.documentNumber",
@@ -170,6 +244,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     required: false,
     aliases: ["documento", "cedula", "documentnumber", "id"],
     example: "12345678",
+    admiteUnion: true,
   },
   {
     key: "person.unitLabel",
@@ -180,6 +255,7 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     example: "T1-101",
     cardinality: "alta",
     repeticionEsNormal: true,
+    admiteUnion: true,
   },
   {
     key: "person.role",
@@ -239,10 +315,18 @@ export type AcceptedValues = Record<string, readonly string[]>;
 
 const MUESTRA = 8;
 
-function muestraDe(rows: readonly Record<string, string>[], header: string): string[] {
+/** Una columna suelta o una asignación entera: los dos leen igual. */
+type Fuente = string | Asignacion;
+
+function leerDe(fuente: Fuente): (row: Record<string, string>) => string {
+  return typeof fuente === "string" ? (row) => (row[fuente] ?? "").trim() : (row) => unir(row, fuente);
+}
+
+function muestraDe(rows: readonly Record<string, string>[], fuente: Fuente): string[] {
+  const leer = leerDe(fuente);
   const out: string[] = [];
   for (const row of rows) {
-    const v = (row[header] ?? "").trim();
+    const v = leer(row);
     if (v) out.push(normalizeHeader(v));
     if (out.length === MUESTRA) break;
   }
@@ -254,8 +338,8 @@ function muestraDe(rows: readonly Record<string, string>[], header: string): str
  * de 0 = uno repetido. Es lo que separa un identificador de una agrupación sin
  * entender ni una palabra de lo que dicen.
  */
-function variedad(rows: readonly Record<string, string>[], header: string): number | null {
-  const muestra = muestraDe(rows, header);
+function variedad(rows: readonly Record<string, string>[], fuente: Fuente): number | null {
+  const muestra = muestraDe(rows, fuente);
   if (muestra.length < 2) return null;
   return new Set(muestra).size / muestra.length;
 }
@@ -263,10 +347,10 @@ function variedad(rows: readonly Record<string, string>[], header: string): numb
 /** Proporción de la muestra que el campo acepta. Sin muestra, `null`. */
 function encaje(
   rows: readonly Record<string, string>[],
-  header: string,
+  fuente: Fuente,
   aceptados: readonly string[],
 ): number | null {
-  const muestra = muestraDe(rows, header);
+  const muestra = muestraDe(rows, fuente);
   if (muestra.length === 0) return null;
   return muestra.filter((v) => aceptados.includes(v)).length / muestra.length;
 }
@@ -297,10 +381,13 @@ export function suggestMapping(
   headers: readonly string[],
   entity: ImportEntity,
   opts?: { rows?: readonly Record<string, string>[]; accepted?: AcceptedValues },
-): Record<string, string | null> {
+): Mapping {
   const normalizados = headers.map((h) => ({ original: h, key: normalizeHeader(h) }));
   const taken = new Set<string>();
-  const mapping: Record<string, string | null> = {};
+  // **Toda sugerencia es de UNA columna por campo** (`RN-U3`, `CA12`): unir es
+  // un acto explícito de la persona. Aunque el archivo traiga «Torre» y «Apto»
+  // sueltos, esto no las junta; lo ofrece el aviso, y decide quien importa.
+  const mapping: Mapping = {};
   const campos = fieldsFor(entity);
   for (const field of campos) mapping[field.key] = null;
 
@@ -308,7 +395,7 @@ export function suggestMapping(
   for (const field of campos) {
     const hit = normalizados.find((h) => !taken.has(h.original) && field.aliases.includes(h.key));
     if (hit) {
-      mapping[field.key] = hit.original;
+      mapping[field.key] = una(hit.original);
       taken.add(hit.original);
     }
   }
@@ -332,7 +419,7 @@ export function suggestMapping(
         }
       }
       if (mejor) {
-        mapping[field.key] = mejor.original;
+        mapping[field.key] = una(mejor.original);
         taken.add(mejor.original);
       }
     }
@@ -352,7 +439,7 @@ export function suggestMapping(
       }
     }
     if (mejor) {
-      mapping[field.key] = mejor.original;
+      mapping[field.key] = una(mejor.original);
       taken.add(mejor.original);
     }
   }
@@ -398,7 +485,7 @@ export function suggestMapping(
       // sugerencia sin fundamento es peor que ninguna.
       if (empatadas.length > 1) continue;
 
-      mapping[field.key] = empatadas[0].original;
+      mapping[field.key] = una(empatadas[0].original);
       taken.add(empatadas[0].original);
     }
   }
@@ -474,9 +561,9 @@ function pareceAgrupacion(rows: readonly Record<string, string>[], header: strin
  */
 function candidataDeAgrupacion(
   rows: readonly Record<string, string>[],
-  mapping: Record<string, string | null>,
+  mapping: Mapping,
 ): { header: string; porNombre: boolean } | null {
-  const usados = new Set(Object.values(mapping).filter((h): h is string => Boolean(h)));
+  const usados = new Set(columnasDe(mapping));
   const libres = Object.keys(rows[0] ?? {}).filter((h) => !usados.has(h));
 
   for (const header of libres) {
@@ -534,6 +621,12 @@ export type NivelAviso = "bloquea" | "duda";
 export interface AvisoMapeo {
   nivel: NivelAviso;
   mensaje: string;
+  /**
+   * La salida, cuando el aviso la tiene: la asignación que lo resolvería
+   * (`PRD-V-FEAT-006` §5.6). Hoy solo la trae la unidad partida —«Torre» +
+   * «Apto» con guion—. Aceptarla es un acto de la persona; el aviso la ofrece.
+   */
+  oferta?: Asignacion;
 }
 
 /**
@@ -553,23 +646,70 @@ export interface AvisoMapeo {
 export function mappingIssues(
   rows: readonly Record<string, string>[],
   entity: ImportEntity,
-  mapping: Record<string, string | null>,
+  mapping: Mapping,
   accepted: AcceptedValues,
 ): Record<string, AvisoMapeo | undefined> {
   const avisos: Record<string, AvisoMapeo | undefined> = {};
   if (rows.length === 0) return avisos;
 
+  // **Las tres guardas de `FEAT-006` van primero y bloquean**, porque la
+  // pantalla las impide pero una pantalla es solo un botón: un mapeo fabricado
+  // con dos campos sobre la misma columna (`RN-U2`), con una unión donde no se
+  // admite (`RN-U4`, `RN-U8`) o con un separador de un párrafo (`RN-U7`) no
+  // puede seguir aunque llegue hasta aquí.
+  const duenoDe = new Map<string, ImportField>();
   for (const field of fieldsFor(entity)) {
-    const header = mapping[field.key];
-    if (!header) continue;
+    const asignacion = mapping[field.key];
+    if (!asignacion || asignacion.headers.length === 0) continue;
+    for (const h of asignacion.headers) {
+      const otro = duenoDe.get(h);
+      if (otro) {
+        avisos[field.key] = {
+          nivel: "bloquea",
+          mensaje: `«${h}» ya alimenta «${otro.label}»: una columna no puede alimentar dos campos.`,
+        };
+      } else {
+        duenoDe.set(h, field);
+      }
+    }
+    if (asignacion.headers.length > 1 && !field.admiteUnion) {
+      avisos[field.key] = {
+        nivel: "bloquea",
+        mensaje: `«${field.label}» no admite unir columnas: elige una sola.`,
+      };
+    } else if (asignacion.headers.length > 1 && !esSeparadorValido(asignacion.separador)) {
+      avisos[field.key] = {
+        nivel: "bloquea",
+        mensaje: `El separador no puede tener más de ${MAX_LARGO_DE_SEPARADOR} caracteres.`,
+      };
+    }
+  }
+
+  for (const field of fieldsFor(entity)) {
+    const asignacion = mapping[field.key];
+    if (!asignacion || asignacion.headers.length === 0 || avisos[field.key]) continue;
+    // Para los mensajes. Con una sola columna es su nombre, como siempre.
+    const header = asignacion.headers.join(" + ");
 
     // La unidad de una persona partida en DOS columnas. El catálogo mapea
     // «Apto» y **pierde «Torre» sin decir nada**, y cuando dos torres repiten
     // número de apartamento las dos unidades entran como una sola. Es propio de
     // `person`: una unidad sí tiene dónde guardar su torre, una persona no.
-    if (field.key === "person.unitLabel") {
+    // **Solo mientras la unidad sea UNA columna**: unida ya no hay nada que
+    // detectar, y esa es justo la forma en que aceptar la oferta apaga el aviso.
+    if (field.key === "person.unitLabel" && asignacion.headers.length === 1) {
       const candidata = candidataDeAgrupacion(rows, mapping);
-      if (candidata && unidadesQueSeFunden(rows, header, candidata.header)) {
+      if (candidata && unidadesQueSeFunden(rows, asignacion.headers[0], candidata.header)) {
+        // **Y desde `FEAT-006` el aviso trae la salida**: unir las dos columnas
+        // con guion, agrupación primero, que es como se llaman las unidades
+        // (`T1-101`). Aceptarla consume la columna que quedaba sin usar y el
+        // aviso se queda sin motivo (`CA10`); ignorarla no cambia nada, porque
+        // el archivo sigue igual (`CA11`). Se ofrece en los DOS niveles: la
+        // duda también es un archivo partido, solo que reconocido por la forma.
+        const oferta: Asignacion = {
+          headers: [candidata.header, asignacion.headers[0]],
+          separador: "-",
+        };
         // **La respuesta se gradúa con la certeza, y esa es la decisión.** Si la
         // columna se llama como una agrupación, la fusión está probada y parar
         // es lo correcto. Si solo lo parece por su forma, la sospecha es fuerte
@@ -579,10 +719,12 @@ export function mappingIssues(
           ? {
               nivel: "bloquea",
               mensaje: `La unidad viene partida en dos columnas: «${candidata.header}» quedó sin usar y «${header}» repite el mismo valor en agrupaciones distintas, así que unidades diferentes entrarían como una sola. Únelas en una columna del archivo antes de importar.`,
+              oferta,
             }
           : {
               nivel: "duda",
               mensaje: `«${candidata.header}» quedó sin usar y sus valores se repiten como los de una agrupación, y hay unidades con la misma etiqueta en grupos distintos. Puede que la unidad venga partida en dos columnas: si es así, «${header}» sola no las distingue y entrarían como una. Compruébalo.`,
+              oferta,
             };
         continue;
       }
@@ -591,8 +733,8 @@ export function mappingIssues(
     // Texto libre: lo único juzgable es cuánto se repite —salvo donde repetirse
     // es normal, que ahí no dice nada. Ver `repeticionEsNormal`.
     if (field.cardinality && !field.repeticionEsNormal) {
-      const ratio = variedad(rows, header);
-      const distintos = new Set(muestraDe(rows, header)).size;
+      const ratio = variedad(rows, asignacion);
+      const distintos = new Set(muestraDe(rows, asignacion)).size;
       if (ratio !== null) {
         if (field.cardinality === "alta" && distintos === 1) {
           avisos[field.key] = {
@@ -614,11 +756,11 @@ export function mappingIssues(
     const aceptados = accepted[field.key];
     if (!aceptados || aceptados.length === 0) continue;
 
-    const ratio = encaje(rows, header, aceptados);
+    const ratio = encaje(rows, asignacion, aceptados);
     if (ratio === null) continue;
 
     if (ratio === 0) {
-      const ejemplo = muestraDe(rows, header)[0] ?? "";
+      const ejemplo = muestraDe(rows, asignacion)[0] ?? "";
       avisos[field.key] = {
         nivel: "bloquea",
         mensaje: `«${header}» no parece este dato: dice «${ejemplo}», que no es un valor válido aquí.`,
@@ -645,14 +787,17 @@ export function mappingIssues(
   // no se parece a este campo ni por nombre ni por contenido, decirlo es
   // exacto, lo haya decidido quien lo haya decidido.
   for (const field of fieldsFor(entity)) {
-    const header = mapping[field.key];
-    if (!header || avisos[field.key]) continue;
+    const asignacion = mapping[field.key];
+    if (!asignacion || asignacion.headers.length === 0 || avisos[field.key]) continue;
+    const header = asignacion.headers.join(" + ");
     // **Un campo de vocabulario cerrado ya lo juzgó el bloque de arriba**, que
     // mira lo que DICE la columna: si no encajaba nada bloqueó, si encajaba a
     // medias avisó, y si llegó hasta aquí sin aviso es porque encaja. Repetir
     // esa comprobación era un ayudante que ninguna falsación podía distinguir.
     if (accepted[field.key]?.length) continue;
-    if (hayEvidenciaDeNombre(header, field)) continue;
+    // En una unión basta con que UNA columna se parezca al campo: la otra la
+    // puso la persona a propósito, y «Apellidos» no contiene «nombre».
+    if (asignacion.headers.some((h) => hayEvidenciaDeNombre(h, field))) continue;
 
     avisos[field.key] = {
       nivel: "duda",
@@ -676,20 +821,18 @@ export function hayBloqueantes(avisos: Record<string, AvisoMapeo | undefined>): 
  */
 export function valueFor(
   row: Record<string, string>,
-  mapping: Record<string, string | null>,
+  mapping: Mapping,
   fieldKey: string,
 ): string {
-  const header = mapping[fieldKey];
-  if (!header) return "";
-  return (row[header] ?? "").trim();
+  return unir(row, mapping[fieldKey]);
 }
 
 /** Los campos obligatorios que el mapeo todavía no resuelve. `RN-01`. */
 export function missingRequired(
-  mapping: Record<string, string | null>,
+  mapping: Mapping,
   entity: ImportEntity,
 ): readonly ImportField[] {
-  return requiredFieldsFor(entity).filter((field) => !mapping[field.key]);
+  return requiredFieldsFor(entity).filter((field) => !mapping[field.key]?.headers.length);
 }
 
 /**
@@ -743,23 +886,37 @@ export function pickBestSheet(
 export function summarizeMapping(
   headers: readonly string[],
   entity: ImportEntity,
-  mapping: Record<string, string | null>,
-): { camposPorAlias: number; camposAMano: number; encabezadosSinUsar: string[] } {
+  mapping: Mapping,
+): {
+  camposPorAlias: number;
+  camposAMano: number;
+  camposUnidos: number;
+  encabezadosSinUsar: string[];
+} {
   const sugerido = suggestMapping(headers, entity);
   let camposPorAlias = 0;
   let camposAMano = 0;
+  // `PRD-V-FEAT-006`, `CA9`: cuántos campos llevan más de una columna. Es la
+  // medida del estreno de la unión, y **solo puede ser mayor que cero en la
+  // fase `fin`**: en `inicio` el mapeo es el sugerido, que nunca une (`RN-U3`).
+  let camposUnidos = 0;
 
   for (const field of fieldsFor(entity)) {
     const elegido = mapping[field.key];
-    if (!elegido) continue;
-    if (sugerido[field.key] === elegido) camposPorAlias += 1;
+    if (!elegido || elegido.headers.length === 0) continue;
+    if (elegido.headers.length > 1) camposUnidos += 1;
+    // Una unión siempre es trabajo de la persona, aunque una de sus columnas
+    // coincida con la sugerida.
+    const propuesta = sugerido[field.key]?.headers[0];
+    if (elegido.headers.length === 1 && propuesta === elegido.headers[0]) camposPorAlias += 1;
     else camposAMano += 1;
   }
 
-  const usados = new Set(Object.values(mapping).filter((h): h is string => Boolean(h)));
+  const usados = new Set(columnasDe(mapping));
   return {
     camposPorAlias,
     camposAMano,
+    camposUnidos,
     encabezadosSinUsar: headers.filter((h) => !usados.has(h)),
   };
 }
@@ -799,20 +956,20 @@ const MAX_LARGO_DE_VALOR = 40;
 export function formaDelArchivo(
   rows: readonly Record<string, string>[],
   entity: ImportEntity,
-  mapping: Record<string, string | null>,
+  mapping: Mapping,
   accepted: AcceptedValues,
 ): { valoresNoReconocidos: string[]; unidadPartida: boolean } {
   const valores: string[] = [];
 
   if (rows.length >= MIN_FILAS_PARA_VOCABULARIO) {
     for (const field of fieldsFor(entity)) {
-      const header = mapping[field.key];
+      const asignacion = mapping[field.key];
       const aceptados = accepted[field.key];
-      if (!header || !aceptados || aceptados.length === 0) continue;
+      if (!asignacion?.headers.length || !aceptados || aceptados.length === 0) continue;
 
       const distintos = new Set<string>();
       for (const row of rows) {
-        const v = normalizeHeader(row[header] ?? "");
+        const v = normalizeHeader(unir(row, asignacion));
         if (v) distintos.add(v);
         // Se corta en cuanto deja de parecer un vocabulario: sin esto, una
         // columna de nombres se recorrería entera para acabar descartándola.
@@ -832,7 +989,9 @@ export function formaDelArchivo(
   // saber cuántos archivos vienen así da igual si además colisionan.
   const etiqueta = mapping["person.unitLabel"];
   const unidadPartida =
-    entity === "person" && Boolean(etiqueta) && candidataDeAgrupacion(rows, mapping) !== null;
+    entity === "person" &&
+    Boolean(etiqueta?.headers.length) &&
+    candidataDeAgrupacion(rows, mapping) !== null;
 
   return { valoresNoReconocidos: [...new Set(valores)], unidadPartida };
 }

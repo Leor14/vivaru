@@ -5,6 +5,7 @@
   "formato": "csv",
   "queDeberiaPasar": "MEDIDO: «⛔ BLOQUEA · ⚠ 1 columna(s) sin usar», con el mismo mensaje palabra por palabra que el 53. **El bloqueo no mira los VALORES de la torre**, solo que la columna se llame como una agrupación y que dos filas repitan etiqueta en grupos distintos, así que «1»/«2» y «T1»/«T2» le dan exactamente lo mismo. Hoy los dos archivos son indistinguibles para el importador; con FEAT-006 dejan de serlo, y esa es la gracia del par.",
   "conFeat006": "Aceptar la oferta une «Torre» + «Apto» con guion y produce **1-101, no T1-101**: el MVP une los valores tal como vienen y no admite plantillas (§4). El bloqueo se levanta (CA7) y a cambio las seis filas quedan con «Unidad no encontrada» en la revisión y **no importables** (CA13, RN-06 sin cambios). **Es la limitación DECLARADA de la ficha, no un defecto** — está escrita en §4 con este mismo ejemplo—, y por eso vive aquí en una fixture: alguien va a llegar a esta pantalla, va a ver seis filas rojas después de aceptar lo que el producto le propuso, y va a concluir que la unión está rota. Lo que lo resolvería es una plantilla T{Torre}-{Apto}, que la ficha manda a Fase 2 a propósito porque una plantilla es un lenguaje. Contra el 53: mismo archivo, un carácter de diferencia en el dato, y la diferencia entre entrar y no entrar.",
+  "unir": { "person.unitLabel": { "headers": ["Torre", "Apto"], "separador": "-" } },
   "hojas": {
     "padron": [
       ["Torre", "Apto", "Nombre", "Correo", "Rol"],

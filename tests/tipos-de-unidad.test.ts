@@ -84,7 +84,7 @@ describe("un archivo de parqueaderos y bodegas ya no bloquea", () => {
     // dato: dice «parqueadero», que no es un valor válido aquí. Y no marcaba
     // esas tres filas — paraba el archivo completo.
     const mapping = suggestMapping(Object.keys(rows[0]), "unit", { rows, accepted: ACEPTADOS });
-    expect(mapping["unit.type"]).toBe("Tipo");
+    expect(mapping["unit.type"]?.headers).toEqual(["Tipo"]);
 
     // **Ni un aviso, ni siquiera de duda.** Con solo `hayBloqueantes` esta
     // prueba era ciega a la mitad del caso: si «parqueadero» desapareciera de
@@ -193,7 +193,7 @@ describe("las dos palabras que tumbaban padrones enteros", () => {
       { Unidad: "B-202", Torre: "B", Tipo: "Departamento", Estado: "activo" },
     ];
     const mapping = suggestMapping(Object.keys(rows[0]), "unit", { rows, accepted: ACEPTADOS });
-    expect(mapping["unit.type"]).toBe("Tipo");
+    expect(mapping["unit.type"]?.headers).toEqual(["Tipo"]);
     expect(mappingIssues(rows, "unit", mapping, ACEPTADOS)["unit.type"]).toBeUndefined();
   });
 });

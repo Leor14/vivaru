@@ -236,7 +236,7 @@ navegador y se descarta—, lo que evita guardar un fichero con datos personales
 | # | Regla |
 |---|---|
 | `RN-01` | Un campo destino obligatorio sin mapear **impide** avanzar a Revisión |
-| `RN-02` | Dos columnas no pueden mapearse al mismo campo destino |
+| `RN-02` | Una columna no puede alimentar dos campos destino. **Enmendada por `PRD-V-FEAT-006` (1 sep 2026):** decía «dos columnas no pueden mapearse al mismo campo», y esa dirección queda permitida en `person` por acto explícito de la persona — nunca por la sugerencia (`RN-U3`). Es `RN-U2` de aquella ficha |
 | `RN-03` | Una fila con al menos un error **no es importable**, ni seleccionándola |
 | `RN-04` | Una unidad duplicada —mismo nombre normalizado— no se crea dos veces |
 | `RN-05` | Una persona con email o documento ya existente en el conjunto se marca duplicada y queda fuera por defecto |
@@ -282,7 +282,7 @@ conjunto en prueba, en 300 correos a gente que no aceptó nada.
 | `CA-10` | Un conjunto `suspended` no puede importar | **debe fallar** |
 | `CA-11` | Un archivo de 5.001 filas se rechaza con mensaje explicativo | **debe fallar** |
 | `CA-12` | Cerrar el asistente antes de confirmar no escribe ni un documento | pasar |
-| `CA-13` | Queda instrumentado cuántas importaciones se inician y cuántas terminan, por pista | pasar |
+| `CA-13` | Queda instrumentado cuántas importaciones se inician y cuántas terminan, por pista — y desde `PRD-V-FEAT-006`, cuántos campos se alimentaron con más de una columna (`camposUnidos`, un número) | pasar |
 | `CA-14` | Importar 500 personas **no envía ni un correo** | pasar |
 | `CA-15` | El `unitId` de cada persona importada es el doc id de su unidad, no el slug | pasar |
 | `CA-16` | Con cero unidades, el botón de cargar residentes está deshabilitado y el motivo se lee en pantalla | pasar |
