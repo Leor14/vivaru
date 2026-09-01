@@ -66,8 +66,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 ### ESTADO DEL REPOSITORIO AL ESCRIBIR ESTO
 
 - **`develop` en `24b9741`** (remoto verificado con `git ls-remote`) · **`master` en `810941b`**.
-- **Producción sirviendo `build-2026-09-01-017`** (`810941b`); staging estaba en `-023` y el rollout
-  de `24b9741` en camino al escribir esto — medirlo por `traffic.current`, no darlo por servido.
+- **Producción sirviendo `build-2026-09-01-017`** (`810941b`) · **staging sirviendo `build-2026-09-01-024`,
+  que sale de `24b9741`** — medido por `traffic.current` y leyendo el `hash` del build. El commit de
+  documentos posterior disparará otro rollout que no cambia nada empaquetado.
 - **Bancos: `npm test` 1554 · functions 745.** Sin emulador el rojo de `push-tokens` es el esperado.
 - **Credenciales: ADC viva · `firebase` MUERTA · `gcloud` muerto.** Se ejercitaron las tres.
 - El `master` local estaba atrasado en `2070604` al abrir; se adelantó al remoto sin checkout.
