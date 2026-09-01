@@ -120,7 +120,7 @@ const CASOS: Caso[] = [
       { "No. Depto": "EA-102", Nombre: "Luis Gómez", Mail: "luis@x.com", "Móvil": "5544332212", RFC: "GOSL900211CD2", Calidad: "inquilino" },
       { "No. Depto": "EA-103", Nombre: "Carla Soto", Mail: "carla@x.com", "Móvil": "5544332213", RFC: "SOCA910101EF3", Calidad: "propietario" },
     ],
-    notas: "«Mail» no contiene ningún alias (email/correo/e-mail); ¿lo rescata la variedad? email es obligatorio.",
+    notas: "«Mail» lo rescataba la VARIEDAD, o sea la suerte: el mismo empate elegía el RUT en un padrón chileno. Desde el 1 sep es alias.",
   },
 ];
 

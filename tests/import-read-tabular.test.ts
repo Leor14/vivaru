@@ -302,3 +302,25 @@ describe("los dos asistentes usan el cálculo, no su propia cuenta", () => {
     }
   });
 });
+
+describe("el rechazo dice POR QUÉ, que no es lo mismo que decir que no", () => {
+  it("una plantilla devuelta sin diligenciar no culpa a los encabezados", async () => {
+    // Encabezados correctos y cero filas. Decía «El archivo no tiene una fila de
+    // encabezados», que manda a arreglar lo único que está bien.
+    await expect(
+      readTabularFile(archivoCsv("nombre,email,unidad,rol")),
+    ).rejects.toThrow(/ninguna fila de datos/i);
+  });
+
+  it("y un archivo sin nada sí culpa a los encabezados", async () => {
+    // El contraste es lo que prueba que distingue: sin este caso, un mensaje
+    // fijo cualquiera pasaría la prueba de arriba.
+    await expect(readTabularFile(archivoCsv(""))).rejects.toThrow(/fila de encabezados/i);
+  });
+
+  it("y ninguno de los dos culpa al otro", async () => {
+    await expect(
+      readTabularFile(archivoCsv("nombre,email,unidad,rol")),
+    ).rejects.not.toThrow(/fila de encabezados/i);
+  });
+});

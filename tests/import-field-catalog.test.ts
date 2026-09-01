@@ -603,3 +603,117 @@ describe("AI-ONB-001 · la forma se guarda, el contenido no", () => {
     expect(formaDelArchivo(rows, "person", mapping, ACEPTADOS).unidadPartida).toBe(false);
   });
 });
+
+/**
+ * `AI-ONB-001` · lo que destapó meter 36 archivos construidos por el camino real
+ * (1 sep 2026, `docs/simulacion-de-cargas-1sep2026.md`).
+ *
+ * **La cuarta pasada decidía por POSICIÓN.** Rescata texto libre mirando solo si
+ * los valores se repiten, y en un padrón el nombre, el correo, el teléfono, la
+ * cédula y el número de casa **son todos únicos**: el empate no es raro, es lo
+ * normal, y se lo quedaba el primero del archivo. Un mismo padrón bautizaba las
+ * unidades con el nombre del dueño o con su cédula según el orden de las
+ * columnas, sin avisar en ninguno de los dos casos.
+ */
+describe("AI-ONB-001 · sin evidencia no se adivina, y se dice", () => {
+  const ACEPTADOS = { "person.role": ["propietario", "inquilino", "residente"] };
+
+  /** Tres columnas de valores únicos y ningún nombre que se parezca a nada. */
+  const empate = [
+    { Casa: "C-11", Titular: "Ana Pérez", Fijo: "6011112233" },
+    { Casa: "C-12", Titular: "Luis Gómez", Fijo: "6014445566" },
+    { Casa: "C-13", Titular: "Carla Soto", Fijo: "6017778899" },
+  ];
+
+  it("con VARIAS columnas empatadas, el campo se queda sin mapear", () => {
+    const m = suggestMapping(Object.keys(empate[0]), "person", { rows: empate, accepted: ACEPTADOS });
+    expect(m["person.fullName"]).toBeNull();
+    expect(m["person.email"]).toBeNull();
+    expect(m["person.unitLabel"]).toBeNull();
+  });
+
+  it("y por eso el archivo PIDE los obligatorios en vez de inventarlos", () => {
+    const m = suggestMapping(Object.keys(empate[0]), "person", { rows: empate, accepted: ACEPTADOS });
+    expect(missingRequired(m, "person").map((f) => f.label).sort()).toEqual(
+      ["Correo electrónico", "Nombre completo", "Rol", "Unidad"],
+    );
+  });
+
+  it("con UNA sola candidata sí se resuelve — el rescate no se retiró", async () => {
+    // La cuarta pasada sigue existiendo y sigue sirviendo. Sin este caso, la
+    // prueba de arriba pasaría con la pasada BORRADA, que es otra cosa.
+    const { suggestMapping: sm } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { Titular: "Ana Pérez", Sector: "Norte", Rol: "propietario" },
+      { Titular: "Luis Gómez", Sector: "Norte", Rol: "inquilino" },
+      { Titular: "Carla Soto", Sector: "Norte", Rol: "propietario" },
+    ];
+    const m = sm(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(m["person.fullName"]).toBe("Titular");
+  });
+
+  it("pero lo resuelto por variedad AVISA de que es una deducción", async () => {
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { Titular: "Ana Pérez", Sector: "Norte", Rol: "propietario" },
+      { Titular: "Luis Gómez", Sector: "Norte", Rol: "inquilino" },
+      { Titular: "Carla Soto", Sector: "Norte", Rol: "propietario" },
+    ];
+    const m = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    const aviso = mappingIssues(rows, "person", m, ACEPTADOS)["person.fullName"];
+    expect(aviso?.nivel).toBe("duda");
+    expect(aviso?.mensaje).toContain("Titular");
+  });
+
+  it("y una columna reconocida por su NOMBRE no molesta con ese aviso", async () => {
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { Nombre: "Ana Pérez", Correo: "ana@x.com", Unidad: "T1-101", Rol: "propietario" },
+      { Nombre: "Luis Gómez", Correo: "luis@x.com", Unidad: "T1-102", Rol: "inquilino" },
+    ];
+    const m = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(mappingIssues(rows, "person", m, ACEPTADOS)).toEqual({});
+  });
+
+  it("«Mail» se reconoce por su nombre, que es como se resuelve un nombre", async () => {
+    // Lo rescataba la variedad, o sea la suerte: ese mismo empate elegía el RUT
+    // en un padrón chileno y ofrecía los RUT como direcciones de correo.
+    const rows = [
+      { Nombre: "Ana Pérez", Mail: "ana@x.com", "No. Depto": "EA-101", Calidad: "propietario" },
+      { Nombre: "Luis Gómez", Mail: "luis@x.com", "No. Depto": "EA-102", Calidad: "inquilino" },
+    ];
+    const m = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(m["person.email"]).toBe("Mail");
+
+    // **Y esto es lo que guarda el alias, no la línea de arriba.** Sin él la
+    // columna se resuelve igual —por variedad, al ser la única libre— y la
+    // prueba pasaría sin cambiar nada. Lo que cambia es que entonces llega con
+    // un aviso de «me lo he deducido», y con el alias llega sin aviso.
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    expect(mappingIssues(rows, "person", m, ACEPTADOS)["person.email"]).toBeUndefined();
+  });
+
+  it("y un encabezado largo reconocido por CONTENCIÓN tampoco molesta", async () => {
+    // «NOMBRE DEL PROPIETARIO» no es un alias exacto: contiene uno. Sin este
+    // caso, la evidencia por contención podía retirarse entera sin que nadie
+    // lo notara — los demás casos usan nombres exactos.
+    const { mappingIssues } = await import("@/lib/import/field-catalog");
+    const rows = [
+      { "NOMBRE DEL PROPIETARIO": "Ana Pérez", "Correo electrónico": "ana@x.com", "No. Depto": "EA-101", Calidad: "propietario" },
+      { "NOMBRE DEL PROPIETARIO": "Luis Gómez", "Correo electrónico": "luis@x.com", "No. Depto": "EA-102", Calidad: "inquilino" },
+    ];
+    const m = suggestMapping(Object.keys(rows[0]), "person", { rows, accepted: ACEPTADOS });
+    expect(m["person.fullName"]).toBe("NOMBRE DEL PROPIETARIO");
+    const avisos = mappingIssues(rows, "person", m, ACEPTADOS);
+    expect(avisos["person.fullName"]).toBeUndefined();
+    expect(avisos["person.unitLabel"]).toBeUndefined();
+
+    // **Y «Calidad» tampoco**, que es el caso que faltaba: su nombre no se
+    // parece a «rol» en nada — se reconoció por lo que DICE la columna. Un
+    // campo de vocabulario cerrado ya lo juzgó la comprobación de contenido, y
+    // sin esta línea la segunda pasada le colgaría un «no se parece a este
+    // campo» a un acierto perfecto.
+    expect(m["person.role"]).toBe("Calidad");
+    expect(avisos["person.role"]).toBeUndefined();
+  });
+});

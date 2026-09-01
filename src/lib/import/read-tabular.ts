@@ -127,19 +127,27 @@ function filaDeEncabezados(matriz: readonly (readonly unknown[])[]): number {
  * **La usan los dos formatos**, y por eso está aquí: cuando CSV y XLSX armaban
  * su salida cada uno por su lado, el resultado se separaba en detalles —el
  * CSV no recortaba los espacios y el XLSX sí— y un fallo aparecía en un solo
- * formato, que se lee como «a veces no funciona». Devuelve `null` cuando no
- * queda ninguna fila de datos.
+ * formato, que se lee como «a veces no funciona».
+ *
+ * **Dice POR QUÉ no pudo, y eso no es un lujo.** Devolvía `null` por dos motivos
+ * distintos y quien la llamaba solo sabía contar uno: una plantilla devuelta sin
+ * diligenciar —encabezados correctos, cero filas— se rechazaba con «El archivo
+ * no tiene una fila de encabezados», **que manda a arreglar lo único que está
+ * bien**. Medido el 1 de septiembre de 2026 con un archivo construido a
+ * propósito, y los dos formatos además se contradecían sobre el mismo archivo.
  */
-function armarHoja(matriz: readonly (readonly unknown[])[], nombreHoja?: string): TabularSheet | null {
+type Armado = { hoja: TabularSheet } | { falta: "encabezados" | "datos" };
+
+function armarHoja(matriz: readonly (readonly unknown[])[], nombreHoja?: string): Armado {
   const inicio = filaDeEncabezados(matriz);
   const headers = desambiguar((matriz[inicio] ?? []).map((celda) => String(celda ?? "")));
-  if (headers.length === 0) return null;
+  if (headers.length === 0) return { falta: "encabezados" };
 
   const cuerpo = matriz.slice(inicio + 1);
-  if (cuerpo.length === 0) return null;
+  if (cuerpo.length === 0) return { falta: "datos" };
   comprobarTope(cuerpo, nombreHoja);
 
-  return {
+  return { hoja: {
     headers,
     filasDePreambulo: inicio,
     rows: cuerpo.map((fila) => {
@@ -149,7 +157,7 @@ function armarHoja(matriz: readonly (readonly unknown[])[], nombreHoja?: string)
       });
       return salida;
     }),
-  };
+  } };
 }
 
 function leerCsv(texto: string, nombreArchivo: string): TabularFile {
@@ -162,12 +170,16 @@ function leerCsv(texto: string, nombreArchivo: string): TabularFile {
     skipEmptyLines: true,
   });
 
-  const hoja = armarHoja(result.data);
-  if (!hoja) {
-    throw new TabularReadError("El archivo no tiene una fila de encabezados.");
+  const armado = armarHoja(result.data);
+  if ("falta" in armado) {
+    throw new TabularReadError(
+      armado.falta === "encabezados"
+        ? "El archivo no tiene una fila de encabezados."
+        : "El archivo tiene los encabezados pero ninguna fila de datos.",
+    );
   }
 
-  return { sheetNames: [nombreArchivo], sheets: { [nombreArchivo]: hoja } };
+  return { sheetNames: [nombreArchivo], sheets: { [nombreArchivo]: armado.hoja } };
 }
 
 function leerXlsx(buffer: ArrayBuffer): TabularFile {
@@ -189,11 +201,11 @@ function leerXlsx(buffer: ArrayBuffer): TabularFile {
     // Una hoja vacía o solo con encabezados no se ofrece: elegirla llevaría a
     // un paso de mapeo sin nada que mapear. Lo decide `armarHoja`, que es quien
     // sabe en qué fila empiezan de verdad los encabezados.
-    const hoja = armarHoja(matriz, nombre);
-    if (!hoja) continue;
+    const armado = armarHoja(matriz, nombre);
+    if ("falta" in armado) continue;
 
     sheetNames.push(nombre);
-    sheets[nombre] = hoja;
+    sheets[nombre] = armado.hoja;
   }
 
   if (sheetNames.length === 0) {

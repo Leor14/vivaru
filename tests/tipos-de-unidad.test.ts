@@ -168,3 +168,32 @@ describe("lo que se PINTA no se separa de lo que se puede guardar", () => {
     expect(rotuloDeTipo("")).toBe("-");
   });
 });
+
+describe("las dos palabras que tumbaban padrones enteros", () => {
+  it("«departamento» es un apartamento — así se dice en MX, EC, PE y CL", () => {
+    // Un inventario impecable BLOQUEABA entero por esta palabra.
+    expect(ALIAS_DE_TIPO["departamento"]).toBe("apartment");
+  });
+
+  it("«estacionamiento» es un parqueadero", () => {
+    // Sin ella encajaban 2 de 6 valores: no llegaba a bloquear, así que entraba
+    // con las unidades mal tipadas — que es peor que pararse.
+    expect(ALIAS_DE_TIPO["estacionamiento"]).toBe("parking");
+  });
+
+  it("y un archivo de departamentos entra sin un solo aviso", () => {
+    const ACEPTADOS = {
+      "unit.type": Object.keys(ALIAS_DE_TIPO),
+      "unit.status": ["activo", "inactivo"],
+    };
+    const rows = [
+      { Unidad: "A-101", Torre: "A", Tipo: "Departamento", Estado: "activo" },
+      { Unidad: "A-102", Torre: "A", Tipo: "Departamento", Estado: "activo" },
+      { Unidad: "B-201", Torre: "B", Tipo: "Estacionamiento", Estado: "activo" },
+      { Unidad: "B-202", Torre: "B", Tipo: "Departamento", Estado: "activo" },
+    ];
+    const mapping = suggestMapping(Object.keys(rows[0]), "unit", { rows, accepted: ACEPTADOS });
+    expect(mapping["unit.type"]).toBe("Tipo");
+    expect(mappingIssues(rows, "unit", mapping, ACEPTADOS)["unit.type"]).toBeUndefined();
+  });
+});

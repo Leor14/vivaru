@@ -143,7 +143,11 @@ export const IMPORT_FIELDS: readonly ImportField[] = [
     entity: "person",
     label: "Correo electrónico",
     required: true,
-    aliases: ["email", "correo", "e-mail"],
+    // «mail» a secas es lo que escriben media México y medio Chile. Estaba
+    // saliendo bien **por suerte**: la pasada de variedad lo rescataba por ser
+    // la primera columna única del archivo, y ese mismo empate elegía el RUT en
+    // un padrón chileno. Un nombre se resuelve nombrándolo, no con estadística.
+    aliases: ["email", "correo", "e-mail", "mail"],
     example: "ana@correo.com",
     cardinality: "alta",
   },
@@ -358,22 +362,40 @@ export function suggestMapping(
     for (const field of campos) {
       if (mapping[field.key] || !field.cardinality) continue;
 
-      let mejor: { original: string; ratio: number } | null = null;
+      const candidatas: { original: string; ratio: number }[] = [];
       for (const h of normalizados) {
         if (taken.has(h.original)) continue;
         const ratio = variedad(rows, h.original);
         if (ratio === null) continue;
-
-        if (field.cardinality === "alta" && ratio >= 0.9) {
-          if (!mejor || ratio > mejor.ratio) mejor = { original: h.original, ratio };
-        } else if (field.cardinality === "baja" && ratio <= 0.5) {
-          if (!mejor || ratio < mejor.ratio) mejor = { original: h.original, ratio };
+        if (field.cardinality === "alta" ? ratio >= 0.9 : ratio <= 0.5) {
+          candidatas.push({ original: h.original, ratio });
         }
       }
-      if (mejor) {
-        mapping[field.key] = mejor.original;
-        taken.add(mejor.original);
-      }
+      if (candidatas.length === 0) continue;
+
+      const mejorRatio =
+        field.cardinality === "alta"
+          ? Math.max(...candidatas.map((c) => c.ratio))
+          : Math.min(...candidatas.map((c) => c.ratio));
+      const empatadas = candidatas.filter((c) => c.ratio === mejorRatio);
+
+      // **EN EMPATE NO SE ADIVINA, y esto es lo que la pasada hacía mal.**
+      // Se quedaba con la primera del archivo, así que **el orden de las
+      // columnas decidía el mapeo**: medido el 1 de septiembre de 2026 con 36
+      // archivos construidos, un mismo padrón bautizaba las unidades con el
+      // nombre del dueño o con su cédula según cuál columna fuera antes, y
+      // ninguna de las dos versiones avisaba de nada. En un padrón, el nombre,
+      // el correo, el teléfono, la cédula y el número de casa **son todos
+      // únicos**, así que el empate no es raro: es lo normal.
+      //
+      // Un empate significa que no hay evidencia para preferir una, y sin
+      // evidencia el campo se queda sin mapear — que es lo que la persona ve y
+      // puede corregir. `RN-07`: el mapeo por alias es sugerencia, y una
+      // sugerencia sin fundamento es peor que ninguna.
+      if (empatadas.length > 1) continue;
+
+      mapping[field.key] = empatadas[0].original;
+      taken.add(empatadas[0].original);
     }
   }
 
@@ -425,6 +447,19 @@ function unidadesQueSeFunden(
     else if (visto !== grupo) return true;
   }
   return false;
+}
+
+/**
+ * ¿El NOMBRE del encabezado dice algo a favor de este campo?
+ *
+ * Replica las pasadas 1 y 3 de `suggestMapping` para un solo par. No se
+ * comparte código con ellas a propósito: allí el bucle va por campos buscando
+ * columna libre, y aquí la pregunta es al revés y sobre un par ya decidido.
+ */
+function hayEvidenciaDeNombre(header: string, field: ImportField): boolean {
+  const key = normalizeHeader(header);
+  if (field.aliases.includes(key)) return true;
+  return field.aliases.some((alias) => alias.length >= 4 && key.includes(alias));
 }
 
 export type NivelAviso = "bloquea" | "duda";
@@ -517,6 +552,35 @@ export function mappingIssues(
         mensaje: `Algunos valores de «${header}» no son válidos aquí; las filas afectadas saldrán marcadas en la revisión.`,
       };
     }
+  }
+
+  // **Y una segunda pasada: decir cuándo la columna se eligió SIN evidencia.**
+  //
+  // La cuarta pasada del mapeo rescata texto libre mirando solo si los valores
+  // se repiten, y **su resultado era indistinguible de un acierto por nombre**.
+  // Medido el 1 de septiembre de 2026 con 36 archivos: un padrón sin columna de
+  // correo salía «entra limpio» con el correo apuntando a la columna de nombres,
+  // el nombre a la del número de casa y la unidad a un teléfono fijo. Cero
+  // avisos, porque ninguna de aquellas columnas repetía un valor.
+  //
+  // Esto no bloquea —puede estar bien, y a veces lo está— pero **deja de
+  // callarse**. Vale igual para lo que eligió la persona a mano: si la columna
+  // no se parece a este campo ni por nombre ni por contenido, decirlo es
+  // exacto, lo haya decidido quien lo haya decidido.
+  for (const field of fieldsFor(entity)) {
+    const header = mapping[field.key];
+    if (!header || avisos[field.key]) continue;
+    // **Un campo de vocabulario cerrado ya lo juzgó el bloque de arriba**, que
+    // mira lo que DICE la columna: si no encajaba nada bloqueó, si encajaba a
+    // medias avisó, y si llegó hasta aquí sin aviso es porque encaja. Repetir
+    // esa comprobación era un ayudante que ninguna falsación podía distinguir.
+    if (accepted[field.key]?.length) continue;
+    if (hayEvidenciaDeNombre(header, field)) continue;
+
+    avisos[field.key] = {
+      nivel: "duda",
+      mensaje: `«${header}» no se parece a este campo ni por su nombre ni por lo que dice: está aquí solo porque sus valores no se repiten, que es la pista más débil que hay. Compruébalo antes de seguir.`,
+    };
   }
 
   return avisos;

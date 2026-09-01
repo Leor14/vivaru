@@ -64,6 +64,11 @@ export const ALIAS_DE_TIPO: Record<string, UnitType> = {
   apartment: "apartment",
   apartamento: "apartment",
   apto: "apartment",
+  // **`departamento` es como se dice en México, Ecuador, Perú y Chile, sin
+  // excepción**, y hasta el 1 de septiembre de 2026 no estaba: un inventario
+  // impecable —torre, tipo, estado, indiviso— **bloqueaba entero** por esa
+  // palabra. Medido con archivos construidos de los cuatro países.
+  departamento: "apartment",
   house: "house",
   casa: "house",
   office: "office",
@@ -74,6 +79,10 @@ export const ALIAS_DE_TIPO: Record<string, UnitType> = {
   parking: "parking",
   parqueadero: "parking",
   garaje: "parking",
+  // La palabra mexicana. Sin ella, un archivo con estacionamientos y bodegas
+  // encajaba 2 de 6 valores: no llegaba a bloquear, así que entraba con cuatro
+  // unidades mal tipadas — que es peor que pararse.
+  estacionamiento: "parking",
   storage: "storage",
   bodega: "storage",
   deposito: "storage",
