@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/auth-context";
 import { cancelResidentInvitation, subscribeResidentInvitations } from "@/features/visitors/invitations";
 import { PendingVisitAuthorizations } from "@/components/features/resident/PendingVisitAuthorizations";
+import { PorterVisitHistory } from "@/components/features/resident/PorterVisitHistory";
 import { useVisitorsVariant } from "@/features/visitors/use-visitors-variant";
 import type { VisitorInvitation, VisitorInvitationStatus } from "features/visitors/types";
 import { formatDateTime } from "features/visitors/utils/formatDateTime";
@@ -112,6 +113,10 @@ export default function ResidentVisitorsPage() {
 
       {/* `PRD-V-FLOW-005` — arriba del todo, porque hay alguien esperando en la puerta. */}
       <PendingVisitAuthorizations tenantId={user?.tenantId} unitId={user?.unitId} />
+
+      {/* `CA10` — y debajo, lo ya resuelto con su constancia: sin esto, una visita desaparecía
+          del portal en el instante de autorizarse. */}
+      <PorterVisitHistory tenantId={user?.tenantId} unitId={user?.unitId} />
 
       <Card>
         <div className="flex items-center justify-between gap-3">
