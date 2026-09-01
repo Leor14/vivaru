@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, noche (`ONB-003` ABIERTA)
 
-> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— CONSTRUIDA, VALIDADA EN STAGING CON OJOS, Y `registrarImportacion` YA EN PRODUCCIÓN. Falta UNA cosa: el push a `master`.
+> ### `ONB-003` —unir columnas, `PRD-V-FEAT-006`— ESTÁ EN PRODUCCIÓN. No queda nada a medias: **la siguiente sesión vuelve a ELEGIR frente.**
 >
 > **Commit `24b9741` en `develop`, empujado; staging lo sirve (`build-2026-09-01-024`).** `master` sigue en
 > `810941b` (producción no lo tiene). Los bancos: `npm test` **1554** (+18 nuevas, el rojo de
@@ -18,7 +18,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > |---|---|---|
 > | ~~**1 · Verlo en staging con ojos**~~ **HECHO** (1 sep, noche): `53` bloquea → botón → `T1-101` → 6 válidas con las unidades encontradas; `56` une a `1-101` → «Unidad no encontrada» ×6, ninguna seleccionable; `50` → «Ana María Pérez Ruiz»; `60` en unidades sin nada que unir; quitar, reordenar y el separador propio recortado a 5. Detalle en §13 de la PRD | — | — |
 > | ~~**2 · `registrarImportacion` a producción**~~ **HECHO** (1 sep, 22:11 UTC). David reautenticó `firebase`; **producción** quedó en `registrarimportacion-00015-jeh` por un despliegue que esta sesión NO lanzó (apareció en `DEPLOYING` a las 22:09; se esperó a `ACTIVE`) y **se verificó por identidad de código**: el fuente que construyó GCP, bajado del bucket, da **cero diferencias** en `lib/import/telemetria.js` contra el repo y contiene `camposUnidos`. **Staging** la desplegó esta sesión: `registrarimportacion-00018-dis`, `ACTIVE`, «Deploy complete» | — | — |
-> | **3 · Push a `master`** | David (el clasificador me lo bloquea) | **Ya se puede.** `git push origin develop:master` — y NO lanzar rollout a mano. Después: medir `traffic.current` en producción y verlo una vez con ojos allí |
+> | ~~**3 · Push a `master`**~~ **HECHO** (David, 22:15 UTC). `master` en `6548e51`; **producción sirviendo `build-2026-09-01-019`, que sale de ese commit** — medido por `traffic.current` y el `hash` del build a las 22:17 UTC. **Y visto con ojos en producción** (Santa María, sesión de Carlos Ramírez): la fixture `53` bloquea, el botón «Unir «Torre» y «Apto»» deja las dos columnas con guion y la muestra dice `T1-101, T1-102, T1-201`. No se importó nada. **Ojo: esa subida dejó UNA fila de telemetría en `importRuns` de producción** (fase `inicio`, Santa María), que hasta hoy estaba en 0 — es de esta validación, no de un cliente | — | — |
 >
 > **Lo que construirla DESTAPÓ, que no está en el código:**
 >
@@ -65,10 +65,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ### ESTADO DEL REPOSITORIO AL ESCRIBIR ESTO
 
-- **`develop` en `24b9741`** (remoto verificado con `git ls-remote`) · **`master` en `810941b`**.
-- **Producción sirviendo `build-2026-09-01-017`** (`810941b`) · **staging sirviendo `build-2026-09-01-024`,
-  que sale de `24b9741`** — medido por `traffic.current` y leyendo el `hash` del build. El commit de
-  documentos posterior disparará otro rollout que no cambia nada empaquetado.
+- **`develop` y `master` en `6548e51`** (remotos verificados). El commit de documentos que cierra esto va solo a `develop`, así que `master` quedará un commit de docs por detrás: no empaqueta nada.
+- **Producción sirviendo `build-2026-09-01-019` (`6548e51`)** · staging sirviendo el último de `develop`, con
+  `24b9741` dentro — medidos por `traffic.current` y leyendo el `hash` del build.
 - **Bancos: `npm test` 1554 · functions 745.** Sin emulador el rojo de `push-tokens` es el esperado.
 - **Credenciales: ADC viva · `firebase` viva otra vez (reautenticada 22:10 UTC) · `gcloud` muerto.** Se ejercitaron las tres.
 - El `master` local estaba atrasado en `2070604` al abrir; se adelantó al remoto sin checkout.
