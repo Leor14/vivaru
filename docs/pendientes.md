@@ -25,17 +25,21 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **Vuelta atrás real:** cada documento saneado guarda `emailPrevio` (18 en total, 10 de hoy y 8
 > de `DATO-001`). Se deshace con `sanear-correos-de-prueba.mjs hogaru-1 --revertir --escribir`.
 >
-> ### LO QUE FALTA PARA ENCENDER, Y NO ES CÓDIGO
+> ### LO QUE FALTA PARA ENCENDER: **UNA SOLA COSA**
 >
-> **1 · Los dominios de semilla.** Si se enciende hoy, la puerta **no admitiría 14 direcciones**
-> en `people` de los conjuntos marcados: `elnogal.co` ×8 y `privadapalmas.mx` ×6 (y en
-> `users`/`tenantUsers`, además `santamaria.co` ×6, `bromelias.co` ×2, `lasplayas.com`). **Son las
-> cuentas con las que se entra a las demos**, y §4 de la ficha las dejó fuera de alcance como
-> `TBD`. **La puerta no impide entrar** —el login no pasa por ella—, pero sí impediría crear o
-> editar esas personas y mandarles correo de acceso. **Decisión tuya:** o se añaden esos dominios
-> a `config/correosDelEquipo`, o se sanean también, o esos conjuntos no se encienden.
+> **Los cinco dominios de semilla YA ESTÁN en `config/correosDelEquipo`** (decisión de David,
+> 3 sep). La medición DNS la respalda: `bromelias.co`, `elnogal.co` y `privadapalmas.mx` **no
+> resuelven**; `lasplayas.com` declara **null MX** (`0 .` — no acepta correo). **El único con
+> matiz es `santamaria.co`:** tiene registro `A` y **no tiene `MX`**, así que un envío no llegaría
+> a una persona pero **puede rebotar**, y los rebotes duros gastan la reputación del remitente.
+> **`outlook.com` NO se añadió**: es un proveedor público y habría abierto la puerta entera.
 >
-> **2 · Una dirección que NO está identificada, y mi inventario anterior no la vio.**
+> **La lista quedó en 6 dominios + 7 direcciones exactas, y pasó su control:** rechaza
+> `gmail`/`hotmail`/`outlook`/`yahoo`/`icloud` y un dominio real cualquiera, y admite los seis
+> previstos. Sin ese control, una lista demasiado abierta habría dejado la puerta inútil sin que
+> nada fallara.
+>
+> **Lo ÚNICO que queda: una dirección sin identificar, y mi inventario anterior no la vio.**
 > `dann…@outlook.com` — **«César Montufar», `security_guard` de Privada Las Playas, con cuenta de
 > Auth y último acceso el 1 de julio de 2026**. La metí en la lista del equipo dando por hecho que
 > todas eran tuyas, y **no lo es**; ya está retirada. **No se ha saneado ni se saneará hasta que
@@ -61,10 +65,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### LO SIGUIENTE
 >
-> 1. **Decidir lo de los dominios de semilla** (punto 1 de arriba). Es lo único que bloquea encender.
-> 2. **Decir de quién es `dann…@outlook.com`** (César Montufar).
-> 3. **Encender por conjunto** —`mover-bandera-de-conjunto.mjs`— antes que en global. Empezar por
->    uno, mirar, y seguir.
+> 1. **Decir de quién es `dann…@outlook.com`** (César Montufar). Es lo único que bloquea encender:
+>    con eso, o entra en la lista del equipo, o se sanea como las diez.
+> 2. **Encender por conjunto** —`mover-bandera-de-conjunto.mjs`— antes que en global. Empezar por
+>    uno, mirar, y seguir. **Si se enciende hoy, solo esa persona quedaría sin admitir** (2
+>    documentos), y no perdería el acceso: el login no pasa por la puerta.
 > 4. **Medir `CA9`** después de encender: el barrido debe dar 0 no admisibles en los marcados.
 > 5. **Ver el mensaje en pantalla**: crear una persona con un correo cualquiera desde Residentes.
 > 6. **Los cuatro repositorios de Notion** — el conector estuvo caído; el contenido está entregado
