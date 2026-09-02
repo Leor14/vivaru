@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.49 |
-| **Fecha** | 1 de septiembre de 2026 |
-| **Estado** | **2 sep: LOS CINCO CABOS SUELTOS EN PRODUCCIÓN** (`484e16a`; `master` en `2584aa3`, `build-2026-09-02-001` medido por `traffic.current`) **y `PRD-V-PLAT-006` escrita en Discovery**: la «puerta del alta» de `DATO-001` resultó **imposible por construcción con `isExample`** —lo llevan los nueve conjuntos, trials incluidos— y `DATO-001` dejó once direcciones que su patrón no cazaba. Espera tres decisiones. Detalle en 0.9.49. **Lo anterior:** 1 sep, noche: `ONB-003` (unir columnas) EN PRODUCCIÓN y validada con ojos; Albert RETOMADO** — `DECISIONES-A-006` entregada, esperando el contrato de su endpoint `vivaruWonSignals`. Detalle en el changelog 0.9.48. **Lo del día, vigente:** **LOS DOS FRENTES DEL 31 ESTÁN RESUELTOS.** (a) La prueba de portería de `PH-003`: **`CA3` verificado en producción con dos sesiones reales a la vez** —guardia y residente en navegadores distintos, resuelto en 26 segundos, `authorizationMedium: "app"` con el uid del residente en la base— y **`CA10` estaba EN PRODUCCIÓN SIN CONSTRUIR**: la propia prueba lo destapó al ver la visita **desaparecer del portal del residente** en el instante de autorizarse. **Se construyó, desplegó y verificó el mismo día** (`28a587e` + `c858edf`), con el mismo vocabulario de constancia que ve la portería. **Tercera vez que muerde «desplegado no es completo».** De `PH-003` queda solo **`CA4`** (la carrera), y **su fixture ya existe**: segunda residente en APARTAMENTO 201 (Carolina Prueba), verificada entrando; la prueba pide **dos personas y dos dispositivos**, no más código. (b) **La exploración de `AI-ONB-001` está hecha y REENCUADRA la ficha:** medido contra el código real, el mapeador determinístico **casi no falla en «elegir columnas»** —que es justo lo que el enganche previsto asiste—; falla en **transformaciones** (nombre partido, Torre+Apto, padrón mixto, fila de título encima de los encabezados) y en **formatos** (PDF/foto ni entran al lector). La premisa de David aguantó —sin corpus no hay ficha— y ya se sabe **qué corpus pedir**. **Y la noche de los chips cerró dos defectos** de la familia «dato ausente disfrazado de dato falso», los dos en producción: el login que todo lo pintaba «error inesperado» (`fe89324`) y el «Visita a: [guardia]» (`d77a559`). **LO ANTERIOR, VIGENTE:** la IA encendida con 0 tráfico y el tope de gasto sin mirarse; `PLAT-005` pendiente de un Android; 0 `pushTokens`; `UX-005` espera tu decisión de prioridad. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, midiendo y con ojos** (1 sep, noche: `build-2026-09-01-019` ← `6548e51` por `traffic.current`; `npm test` **1554** · functions **745**). Y por la mañana: `CA3` y `CA10` **vistos en pantalla** con las sesiones reales del guardia y de DOS residentes distintos, y los campos leídos de la base (`authorizedBy`, `authorizationMedium`, `checkInAt` posterior a la autorización); la fixture de `CA4` verificada con **la misma consulta del servidor** (`residentesActivosDeLaUnidad` → 2 activos en la 201); el mapeador medido **ejecutando** `suggestMapping` y `readTabularFile` contra ocho formatos plausibles; `npm test` **1490** con el emulador levantado; producción sirviendo `build-2026-09-01-003` por `traffic.current`. Los conteos de fondo (conjuntos, cobros, personas) son los del 31 y están en el reporte |
+| **Versión** | 0.9.50 |
+| **Fecha** | 3 de septiembre de 2026 |
+| **Estado** | **`PRD-V-PLAT-006` COMPLETA — los NUEVE criterios cumplidos, y en los dos ambientes.** La puerta de buzones cierra por SALIDA (ningún correo sale a una dirección no admisible desde un conjunto marcado), por ENTRADA (reglas de `people` —formulario **e importación masiva**— y las cuatro callables de alta) y con el **motivo legible** en pantalla. **Detrás de `producto-puerta-de-buzones`, apagada, e INERTE en producción: medido —0 conjuntos marcados, bandera sin documento, 0 overrides, sin lista del equipo—.** Validada con un canario en staging: el botón «Enviar acceso» creó cuatro cuentas y la puerta cortó exactamente una, con su fila y su motivo. **Y las ONCE direcciones de `DATO-001` están RESUELTAS**: diez son tecleo de demostración —sin Auth, sin actividad en seis colecciones, creadas en ráfagas de 4–5 minutos por el administrador del propio conjunto— y una es del equipo (David lo confirmó). **Lo que queda de `PLAT-006` NO es código:** marcar los siete conjuntos en producción, sanear las diez y encender. **Lo anterior, vigente:** los cinco cabos en producción (0.9.49); la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera tu decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. **`master` sigue en `2584aa3`**: el mensaje legible de `CA1` y el catálogo de la bandera entran con el próximo push. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Los dos ambientes, midiendo.** Reglas: ruleset vivo **idéntico al repo, 0 líneas de diff** en `hogaru-1` y en `vivaru-staging-02`, leído por la API de Rules. Functions: **90 `ACTIVE` en cada uno y cero con bundle viejo**, por `updateTime` contra una línea base tomada ANTES —una se quedó atrás en el primer intento y el «Deploy complete» no lo dijo—. La puerta de entrada, ejercitada **contra el servicio real** de staging con un `tenant_admin` de verdad: seis casos con su contraste (rechaza gmail al crear y al cambiar, permite lo inerte, permite tocar otro campo, niega la lista del equipo). Bancos: `npm test` **1579** · functions **782** · reglas de Firestore **293**, typechecks en 0 |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1224,6 +1224,53 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.50 — 3 de septiembre de 2026 — la puerta de buzones, entera
+
+- **`PRD-V-PLAT-006` pasa de Discovery a COMPLETA en una jornada, y desplegada en los dos
+  ambientes.** Tres capas: la **salida** (`functions/src/email.ts`, delante del `fetch`), la
+  **entrada** (`firestore.rules` para `people` + `assertBuzonAdmisible` en `createTenantAdmin`,
+  `createTenantOperationalUser`, `provisionResidentTemporaryAccess` y `resendAccountInvite`) y el
+  **motivo legible** (`src/lib/buzones/`). Todo tras `producto-puerta-de-buzones`, apagada.
+- **Las once direcciones de `DATO-001`, resueltas — y no por su forma, sino por su CONTEXTO.** La
+  lección de aquella ficha («la forma no dice de quién es un buzón») sigue en pie, pero lo que
+  rodea a una dirección sí habla: cruzando creador, hora de alta, cuenta de Auth, unidad, vecinos
+  y actividad en seis colecciones, **diez resultaron tecleo de demostración** —sin Auth, sin una
+  sola fila de actividad, creadas en ráfagas de 4–5 minutos por el administrador del propio
+  conjunto, en unidades con nombres inconsistentes y con nombres de persona inventados— y **una es
+  del equipo**, que David confirmó. Once preguntas quedaron en una.
+- **La ficha decía que la puerta de salida era «un solo sitio», y construirla lo desmintió.**
+  `email.ts` es el único `fetch`, sí, pero la puerta necesita saber de qué conjunto es el envío y
+  **siete de los ocho no lo llevaban**. Cuatro van a bandejas de Vivaru y filtrarlos habría cortado
+  los avisos de trial; a los tres que van a personas se les bajó el `tenantId`, que **ya tenían en
+  su ámbito**. El flanco por olvido lo sostiene un guardián que barre el código.
+- **Y había un gemelo que la ficha no nombraba:** `assertCanInviteRealPeople` ya hacía media cosa
+  desde el trial, con **otro criterio** (`status`, no la marca) y **un solo punto de aplicación de
+  los cuatro**. Conviven a propósito.
+- **`CA1` se cerró con el reparto de `PLAT-003`: el servidor impide, el front explica.** Una regla
+  de Firestore no puede devolver texto. Y explica en vez de validar antes **porque no puede
+  validar**: el predicado necesita `config/correosDelEquipo` y el `tenant_admin` no puede leerla
+  (D2), así que un front que rechazara todo lo no inerte daría falsos positivos justo sobre las
+  cuentas con las que el equipo valida el producto.
+- **El defecto de agosto estuvo a punto de repetirse idéntico.** La traducción lanzaba un `Error`
+  plano; `normalizeFirebaseError` solo respeta el texto de un `CallableError`, así que en pantalla
+  se habría leído «Ocurrió un error inesperado» —lo mismo que documenta la cabecera de esa clase,
+  escrita tras el mismo tropiezo—. **Todo `CA1` habría sido inerte y ninguna suite lo habría
+  dicho.** Cerrado generalizando el contrato: `CallableError` extiende ahora `ErrorParaElUsuario`
+  y el traductor comprueba la clase base — el contrato nunca fue «viene de una callable» sino
+  «este texto está escrito para leerse».
+- **Dos correcciones al conteo que arrastraba el inventario de correos.** El baseline decía «68
+  `people`, 36 no inertes»; seis de esos registros son las altas repetidas de **una sola persona**
+  que `ONB-002` fusionó el 31 de agosto, y **la fusión deja `status: "active"`** —archivar no es
+  esconder—, así que un barrido que solo mire `status` cuenta seis veces el mismo buzón. El informe
+  ya los separa: **62 vivas, 30 no inertes**. Comprobado además que **no hay envío duplicado**:
+  ninguna function itera `people` para mandar correo.
+- **Método.** Diecinueve falsaciones en la jornada. **Tres pasaron en verde: dos por malas** —una
+  usaba un conjunto inexistente, que no está marcado, así que no mutaba nada; otra insertaba fuera
+  del bloque examinado— **y una porque destapaba un hueco real**: ninguna prueba miraba que el
+  emisor usara el tipo de error correcto. Y **una prueba de CONTROL destapó que
+  `config/correosDelEquipo` no la podía leer NADIE, superadmin incluido**: `CA8` habría pasado en
+  verde por la razón equivocada y la lista solo habría sido editable por script.
 
 ### 0.9.49 — 2 de septiembre de 2026 — los cinco cabos, y la puerta del alta que no era
 
