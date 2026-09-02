@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.50 |
+| **Versión** | 0.9.51 |
 | **Fecha** | 3 de septiembre de 2026 |
-| **Estado** | **`PRD-V-PLAT-006` COMPLETA — los NUEVE criterios cumplidos, y en los dos ambientes.** La puerta de buzones cierra por SALIDA (ningún correo sale a una dirección no admisible desde un conjunto marcado), por ENTRADA (reglas de `people` —formulario **e importación masiva**— y las cuatro callables de alta) y con el **motivo legible** en pantalla. **Detrás de `producto-puerta-de-buzones`, apagada, e INERTE en producción: medido —0 conjuntos marcados, bandera sin documento, 0 overrides, sin lista del equipo—.** Validada con un canario en staging: el botón «Enviar acceso» creó cuatro cuentas y la puerta cortó exactamente una, con su fila y su motivo. **Y las ONCE direcciones de `DATO-001` están RESUELTAS**: diez son tecleo de demostración —sin Auth, sin actividad en seis colecciones, creadas en ráfagas de 4–5 minutos por el administrador del propio conjunto— y una es del equipo (David lo confirmó). **Lo que queda de `PLAT-006` NO es código:** marcar los siete conjuntos en producción, sanear las diez y encender. **Lo anterior, vigente:** los cinco cabos en producción (0.9.49); la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera tu decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. **`master` sigue en `2584aa3`**: el mensaje legible de `CA1` y el catálogo de la bandera entran con el próximo push. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Los dos ambientes, midiendo.** Reglas: ruleset vivo **idéntico al repo, 0 líneas de diff** en `hogaru-1` y en `vivaru-staging-02`, leído por la API de Rules. Functions: **90 `ACTIVE` en cada uno y cero con bundle viejo**, por `updateTime` contra una línea base tomada ANTES —una se quedó atrás en el primer intento y el «Deploy complete» no lo dijo—. La puerta de entrada, ejercitada **contra el servicio real** de staging con un `tenant_admin` de verdad: seis casos con su contraste (rechaza gmail al crear y al cambiar, permite lo inerte, permite tocar otro campo, niega la lista del equipo). Bancos: `npm test` **1579** · functions **782** · reglas de Firestore **293**, typechecks en 0 |
+| **Estado** | **`PRD-V-PLAT-006` COMPLETA, DESPLEGADA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS.** La puerta de buzones cierra por salida, por entrada y con el motivo legible; el código está en los dos ambientes y **`master` desplegado** (`build-2026-09-02-002`). Y hoy se hizo lo que **no era código**: **siete conjuntos marcados** `sinClienteDetras` —los dos de trial fuera—, **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con seis dominios y siete direcciones del equipo. **La bandera sigue APAGADA**, y encenderla ya no está bloqueado por ingeniería: **queda UNA dirección por identificar** —`dann…@outlook.com`, un guardia de Privada Las Playas con cuenta de Auth y acceso el 1 de julio—, y es la única que quedaría sin admitir. **Lo anterior, vigente:** la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -1224,6 +1224,32 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.51 — 3 de septiembre de 2026 — los datos de producción, puestos
+
+- **Siete conjuntos marcados `sinClienteDetras` y diez direcciones saneadas, en producción.** Con
+  script nuevo (`marcar-conjuntos-sin-cliente.mjs`, seco por defecto y reversible) que **verifica
+  leyendo** que ningún conjunto de trial quedó marcado. Las diez eran **solo contacto** —cero
+  cuentas de Auth—, y el barrido bajó de 30 direcciones no inertes a 20.
+- **El saneador no cazaba ni una de las diez, y responderlo bien costó descubrirlo.** Su
+  `esDeRiesgo` exige una parte local de 3 a 10 letras seguidas: **exactamente el patrón que dejó
+  once fuera en `DATO-001`**. Ejecutarlo tal cual sobre producción respondía **«No hay nada que
+  hacer»**, un no-op que se lee como éxito. Ampliar la expresión habría barrido también las
+  direcciones del equipo, del mismo dominio. Ahora acepta `--lista <ruta.json>`: **la propiedad de
+  un buzón la decide una persona**, y la lista es el artefacto de esa decisión, no un atajo.
+- **Los cinco dominios de semilla entran en la lista del equipo (decisión de David), con medición
+  DNS detrás:** `bromelias.co`, `elnogal.co` y `privadapalmas.mx` **no resuelven**; `lasplayas.com`
+  declara **null MX**. El único con matiz es **`santamaria.co`** —tiene `A` y no tiene `MX`—, así
+  que un envío no llegaría a nadie pero **puede rebotar**. **`outlook.com` NO se añadió**: es un
+  proveedor público y habría abierto la puerta entera.
+- **Y el inventario de «las once» era incompleto: barría solo `people`.** Hay **tres** buzones
+  públicos que existen únicamente como identidad (`users`/`tenantUsers`). Dos son los `+alias` del
+  equipo; el tercero, **`dann…@outlook.com` — un guardia de Privada Las Playas con cuenta de Auth y
+  último acceso el 1 de julio de 2026**. Se metió por error en la lista del equipo dándolo por
+  propio, **se retiró**, y no se sanea hasta saber de quién es. **Un inventario vale lo que valen
+  las colecciones que recorre.**
+- **Con eso, encender ya no lo bloquea la ingeniería:** si se encendiera hoy, quedaría **una sola
+  persona** sin admitir (2 documentos), y **no perdería el acceso** —el login no pasa por la puerta.
 
 ### 0.9.50 — 3 de septiembre de 2026 — la puerta de buzones, entera
 
