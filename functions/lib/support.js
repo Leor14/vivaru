@@ -525,6 +525,10 @@ async function notifyClient(ticket, subject, body) {
             subject: `${envTag()}${subject}`,
             body,
             link: "/admin/soporte",
+            // `PLAT-006`: va a una PERSONA del conjunto, así que pasa por la puerta. Sin
+            // `contexto`, que además escribiría fila de entrega en la bandeja del
+            // administrador y este no es un correo de residente.
+            tenantId: ticket.tenantId,
         });
     }
     catch (error) {

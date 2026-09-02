@@ -3,10 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resendApiKey = void 0;
 exports.idDeRespuestaResend = idDeRespuestaResend;
 exports.registrarEnvio = registrarEnvio;
+exports.puertaDeBuzones = puertaDeBuzones;
 exports.sendNotificationEmail = sendNotificationEmail;
 exports.sendAccountEmail = sendAccountEmail;
 const firestore_1 = require("firebase-admin/firestore");
 const params_1 = require("firebase-functions/params");
+const buzones_admisibles_1 = require("./buzones-admisibles");
 const feature_flags_1 = require("./feature-flags");
 const push_1 = require("./push");
 // Secret de Resend (se setea con: firebase functions:secrets:set RESEND_API_KEY).
@@ -154,6 +156,62 @@ async function registrarEnvio(providerMessageId, ctx, input) {
     }
 }
 /**
+ * `PRD-V-PLAT-006` · la puerta de SALIDA. Delante del `fetch`, que es el único sitio por el que
+ * sale correo.
+ *
+ * **Por qué la puerta necesita un `tenantId` y no le basta la dirección.** Se midió el 2 sep 2026:
+ * de los ocho envíos del producto, **cuatro van a una persona de un conjunto** (el residente, el
+ * cliente que abrió un ticket, la invitación de cuenta y el restablecimiento) y **cuatro van a
+ * buzones de Vivaru** (`notifyInbox`, `supportInbox`, comercial). Una puerta ciega que mirase solo
+ * la dirección cortaría los avisos internos de trial el día que alguien tocara la lista del
+ * equipo. Por eso filtra **solo cuando sabe de qué conjunto es el envío**, y `guardian-de-la-puerta-de-salida.test.ts`
+ * vigila que ningún envío a una persona se quede sin pasarlo.
+ *
+ * **No lanza nunca** (`RN-5`): un cobro que no pudo avisar sigue siendo un cobro. Cf.
+ * `error-despues-del-commit`.
+ */
+async function puertaDeBuzones(tenantId, to) {
+    // Sin conjunto no hay puerta: es correo interno de Vivaru a sus propias bandejas.
+    if (!tenantId)
+        return { admitido: true };
+    // **La bandera se comprueba EN EL SERVIDOR** y por conjunto, que es lo que la hace freno y no
+    // botón, y lo que permite el canario en uno solo.
+    if (!(await (0, feature_flags_1.isFeatureEnabled)("producto-puerta-de-buzones", tenantId)))
+        return { admitido: true };
+    return { admitido: await (0, buzones_admisibles_1.buzonAdmisibleEnConjunto)(tenantId, to) };
+}
+/**
+ * `RN-4` · un envío rechazado por la puerta **deja fila**. Rechazar en silencio es peor que
+ * enviar: nadie se entera de que el dato está mal.
+ *
+ * **Y por eso esta fila NO depende de `producto-entrega-de-correo`**, al contrario que
+ * `registrarEnvio`. Aquella bandera gobierna el rastro de ENTREGA —lo que el proveedor hizo con un
+ * correo que salió—; esto es la constancia de que algo **no** salió, y apagar el rastro no puede
+ * convertir un rechazo en silencio. Es la diferencia entre no medir y no enterarse.
+ *
+ * El id no puede ser el del proveedor —no hubo llamada—, así que lo pone la base.
+ */
+async function registrarRechazoDePuerta(tenantId, input, notificationKey) {
+    try {
+        await db().collection("emailDeliveries").add({
+            tenantId,
+            providerMessageId: null,
+            recipientEmail: input.to,
+            recipientUserId: null,
+            notificationKey: notificationKey ?? "puerta-de-buzones",
+            subject: input.subject,
+            status: "rechazado-puerta",
+            motivo: buzones_admisibles_1.MOTIVO_RECHAZO,
+            sentAt: null,
+            rejectedAt: firestore_1.Timestamp.now(),
+            updatedAt: firestore_1.Timestamp.now(),
+        });
+    }
+    catch (e) {
+        console.error("[email] no se pudo registrar el rechazo de la puerta", tenantId, e);
+    }
+}
+/**
  * Devuelve el id del proveedor cuando Resend lo da, y `null` cuando no hay con qué —sin clave
  * configurada, o respuesta sin id—. **Nunca devuelve `null` por un fallo de envío**: eso sigue
  * lanzando, como antes.
@@ -162,6 +220,13 @@ async function sendNotificationEmail(input) {
     const apiKey = exports.resendApiKey.value();
     if (!apiKey) {
         console.warn("[email] RESEND_API_KEY no configurado; se omite el correo de notificación.");
+        return null;
+    }
+    // `PLAT-006` · la puerta va ANTES del `fetch`: rechazado es no enviado, no enviado y borrado.
+    const tenantIdDestino = input.contexto?.tenantId ?? input.tenantId ?? null;
+    if (!(await puertaDeBuzones(tenantIdDestino, input.to)).admitido) {
+        await registrarRechazoDePuerta(tenantIdDestino, input, input.contexto?.notificationKey);
+        console.warn("[email] la puerta de buzones rechazó un envío", { tenantId: tenantIdDestino });
         return null;
     }
     const ctaUrl = (0, push_1.enlaceAbsoluto)(input.link);
@@ -211,6 +276,11 @@ async function sendAccountEmail(input) {
     const apiKey = exports.resendApiKey.value();
     if (!apiKey) {
         console.warn("[email] RESEND_API_KEY no configurado; se omite el envío del correo de acceso.");
+        return;
+    }
+    if (!(await puertaDeBuzones(input.tenantId, input.to)).admitido) {
+        await registrarRechazoDePuerta(input.tenantId, { to: input.to, subject: COPY[input.variant].subject }, "cuenta");
+        console.warn("[email] la puerta de buzones rechazó un correo de cuenta", { tenantId: input.tenantId });
         return;
     }
     // Los correos requieren URL absoluta. Los enlaces de Firebase ya vienen absolutos
