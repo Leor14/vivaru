@@ -158,9 +158,20 @@ PRD cubre los P0 salvo el cierre de conciliación, que está en espera a propós
 
 ### Orden de construcción del lote de Habitanto
 
-Nueve PRD escritas entre el 21 de agosto de 2026, todas **listas para desarrollo**. Este es el
-orden que se defiende, y **el orden importa más que ninguna de ellas por separado**: dos tocan la
-misma función de producción y una no se puede revertir con una bandera.
+Nueve PRD escritas el 21 de agosto de 2026, en un orden de **once ítems**. Este es el orden que se
+defiende, y **el orden importa más que ninguna de ellas por separado**: dos tocan la misma función
+de producción y una no se puede revertir con una bandera.
+
+> **Al 3 de septiembre de 2026 van DIEZ DE ONCE, todas en producción**, medido contra `hogaru-1`
+> (banderas leídas, callables `ACTIVE`, y el código en `c2e2483`, que es el commit del build que
+> sirve producción). **El único sin construir es el 11.** Esta línea decía «todas listas para
+> desarrollo», que era cierto el 21 de agosto y dejó de serlo dos días después.
+>
+> **Y el índice de arriba llevaba razón todo el tiempo:** § *Funcionales* ya daba `FLOW-001` en
+> producción desde el **27 de agosto** y `FEAT-004` desde el **26**, mientras esta tabla y las dos
+> fichas decían «en staging». **Es la segunda vez en el mismo día que la divergencia va en la misma
+> dirección** —el índice se mantiene, lo demás no—, así que ante duda: **el índice manda sobre la
+> cabecera de la ficha, y la medición manda sobre los dos.**
 
 #### Antes de nada — ✅ HECHO (`83aea4f`, 21 ago 2026)
 
@@ -183,9 +194,9 @@ la unidad que el producto muestra. **Cambia el render de todos los importes en e
 
 | # | PRD | Por qué en este orden |
 |---|---|---|
-| 5 | **`PLAT-003` · plan de cuentas** ✅ **en producción y ENCENDIDAS** las dos (25 ago) — pero **`0` cuentas sembradas en producción**: el plan solo se siembra al CREAR un conjunto | **Antes que `FLOW-002`.** Si va después, `FLOW-002` añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
+| 5 | **`PLAT-003` · plan de cuentas** ✅ **en producción y ENCENDIDAS** las dos (25 ago) — ~~`0` cuentas sembradas~~ → **`189` cuentas en producción** (3 sep 2026), sembradas el 24 ago con `sembrar-plan-de-cuentas.mjs` porque el plan solo se siembra al CREAR un conjunto y los nueve son anteriores | **Antes que `FLOW-002`.** Si va después, `FLOW-002` añade el valor `"anticipo"` a un enum que `PLAT-003` sustituye acto seguido |
 | 6 | **`FLOW-002` · anticipos** ✅ **CERRADA ENTERA** (24 ago) | **PRD en v1.6.** Las dos banderas encendidas globalmente. **Ya no le falta ningún criterio propio**: `CF8` y `§9/CA13` construidos, `personId` retirado del contrato |
-| ~~7~~ | ~~**`FLOW-001` · prorrateo**~~ | ✅ **MVP hecho y en staging** (25 ago). Con él **la ola B queda cerrada en ingeniería** |
+| ~~7~~ | ~~**`FLOW-001` · prorrateo**~~ | ✅ **EN PRODUCCIÓN** — `generateCoefficientCampaign` `ACTIVE` en `hogaru-1` y bandera `producto-prorrateo-de-gastos` encendida (verificado el 3 sep 2026). Esta celda dijo «en staging» ocho días: `master` y `develop` están en el mismo commit, así que lo que está en el árbol está en producción. Con él **la ola B queda cerrada en ingeniería** |
 
 > **`PLAT-003` y `FLOW-002` modifican la misma función: `aplicarPago`, que está en producción y
 > mueve dinero.** `PLAT-003` cambia **qué valor** escribe en la categoría; `FLOW-002` cambia **su
@@ -200,10 +211,10 @@ la unidad que el producto muestra. **Cambia el render de todos los importes en e
 
 | # | PRD |
 |---|---|
-| 8 | **`FEAT-004` · estado de cuenta y paz y salvo** — después de `FLOW-002`, para que el documento sepa mostrar el saldo a favor |
-| 9 | **`FLOW-003` · cobranza que llega** — su adjunto necesita el 8 |
+| ~~8~~ | ~~**`FEAT-004` · estado de cuenta y paz y salvo**~~ ✅ **EN PRODUCCIÓN** — `emitClearanceCertificate` y `cancelClearanceCertificate` `ACTIVE` en `hogaru-1`, bandera `producto-estado-de-cuenta` encendida (3 sep 2026). Su ficha decía «en staging» |
+| ~~9~~ | ~~**`FLOW-003` · cobranza que llega**~~ ✅ **COMPLETA Y EN PRODUCCIÓN** (27 ago), cableada con Resend y validada de punta a punta. Sus dos banderas encendidas. **Datos: solo `2` filas en `emailDeliveries`** — la capacidad mide entregas que casi no ocurren todavía |
 | ~~10~~ | ~~**`PLAT-002` · entrega 2**~~ ✅ **HECHA y EN PRODUCCIÓN** (25 ago, tarde). La **vista** de cartera no entraba: el Story Map la sitúa en Fase 2 |
-| 11 | **`FIX-001` · entrega 2** — política de reserva por área |
+| **11** | **`FIX-001` · entrega 2** — política de reserva por área. 🔴 **EL ÚNICO SIN CONSTRUIR.** Verificado por el modelo de datos el 3 sep: `blockOnDebt` vive en `tenantSettings.reservationPolicy` y es **un solo ajuste del conjunto entero**; no hay política por amenity |
 
 #### En espera de disparador
 

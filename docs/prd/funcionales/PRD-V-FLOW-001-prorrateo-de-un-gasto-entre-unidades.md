@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **MVP COMPLETO Y EN STAGING** — versión 1.1 (25 de agosto de 2026, `728451f`…`abcbaad`). Validado por navegador contra la base: los doce criterios de §10 que aplican al MVP. **NO está en producción, y el motivo es de datos**: 0 de 88 unidades con coeficiente y 74 de 87 sin propietario, así que R2 y R5 bloquean antes de calcular. **Fase 2 sin construir**: reparto por área, reparto a un subconjunto (D2) y exportar el reparto para el acta |
+| **Estado** | 🟢 **MVP EN PRODUCCIÓN** — versión 1.1 (25 de agosto de 2026, `728451f`…`abcbaad`). Validado por navegador contra la base: los doce criterios de §10 que aplican al MVP. **Verificado el 3 de septiembre de 2026:** `generateCoefficientCampaign` `ACTIVE` en `hogaru-1` y bandera `producto-prorrateo-de-gastos` **encendida**. ~~«NO está en producción, y el motivo es de datos: 0 de 88 unidades con coeficiente»~~ — **ese motivo caducó**: hoy son **18 de 93 unidades**, las 18 de `tenant-santa-maria` sumando `100,0000` exacto, así que **ahí la corrida ya puede correr**; en los otros siete conjuntos con unidades R2 sigue bloqueando por falta de coeficiente. **Fase 2 sin construir**: reparto por área, reparto a un subconjunto (D2) y exportar el reparto para el acta. **Criterios sin repasar contra producción.** |
 | **Dependencias** | **`PRD-V-PLAT-001` — bloqueante.** Sin coeficiente por unidad no hay nada que prorratear |
 | **Riesgo** | **Alto.** Crea decenas de cargos de dinero real en una sola operación |
 | **Reversibilidad** | **Total**, y es un requisito del diseño: una corrida se anula entera (§5.3) |

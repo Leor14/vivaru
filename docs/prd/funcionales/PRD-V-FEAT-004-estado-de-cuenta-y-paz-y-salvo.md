@@ -8,7 +8,7 @@
 | **Módulo** | Cartera |
 | **Usuario principal** | `tenant_admin` · `resident` |
 | **Responsable** | David |
-| **Estado** | **MVP CONSTRUIDO Y EN STAGING** — versión 1.1 (25 de agosto de 2026, `453619a`…`5244e3e`). Estado de cuenta con su PDF, certificado con emisión y anulación, portal del residente y cartera del administrador, y el lote. **Pendiente de validar por navegador.** **NO está en producción** |
+| **Estado** | 🟢 **MVP EN PRODUCCIÓN** — versión 1.1 (25 de agosto de 2026, `453619a`…`5244e3e`). Estado de cuenta con su PDF, certificado con emisión y anulación, portal del residente y cartera del administrador, y el lote. **Verificado el 3 de septiembre de 2026:** `emitClearanceCertificate` y `cancelClearanceCertificate` `ACTIVE` en `hogaru-1`, bandera `producto-estado-de-cuenta` **encendida**, y los módulos `estado-de-cuenta-pdf.ts`, `paz-y-salvo-pdf.ts` y `use-clearance-certificates.ts` en `c2e2483`, commit del build que sirve producción. ~~«NO está en producción»~~ — lo dijo ocho días. **Sigue pendiente de validar por navegador**, y los criterios sin repasar contra producción. |
 | **Dependencias** | Ninguna bloqueante. **Habilita `PRD-V-FLOW-003`**, que adjunta este documento al correo de cobranza |
 | **Riesgo** | **Medio.** El paz y salvo es un documento que se usa ante terceros |
 | **Reversibilidad** | **Total** por bandera |
