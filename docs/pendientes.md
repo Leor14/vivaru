@@ -6,11 +6,12 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 2 de septiembre de 2026 (CIERRE de la jornada de los cabos)
 
-> ### LOS CINCO CABOS ESTÁN CERRADOS Y EN STAGING. La puerta del alta NO se construyó: medirla la volvió otra ficha, y espera TRES decisiones de David.
+> ### LOS CINCO CABOS ESTÁN EN PRODUCCIÓN. La puerta del alta NO se construyó: medirla la volvió otra ficha, y espera TRES decisiones de David.
 >
-> **`develop` en `484e16a` + documentos, empujado; staging sirve `build-2026-09-02-003` (← `484e16a`),
-> medido por `traffic.current`. `master` sigue en `6548e51`: PRODUCCIÓN NO TIENE LOS CABOS — el push
-> a `master` es de David.** Árbol limpio. **Bancos: `npm test` 1560 · functions 750, y por primera
+> **`develop` y `master` en `2584aa3`, empujados (David pidió el push a `master` al cierre). Producción
+> sirve `build-2026-09-02-001` (← `2584aa3`) y staging `build-2026-09-02-003` (← `484e16a`), medidos por
+> `traffic.current`.** En producción los cabos se verifican **por procedencia del build** (el navegador no
+> tenía sesión de producción abierta); con ojos se vieron en staging. Árbol limpio. **Bancos: `npm test` 1560 · functions 750, y por primera
 > vez `npm test` sale en VERDE SIN emulador.**
 >
 > **Los cinco, en un commit (`484e16a`), falsados por edición los cinco:**
@@ -23,7 +24,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > | Rojo del emulador | `push-tokens.rules.test.ts` no estaba en las exclusiones de `vitest.config.ts` | Excluido con sus dos hermanas; sigue en `vitest.rules.config.ts` (`vitest list --config …` lo confirma) | `npm test` en verde sin emulador |
 > | Facturado sin anticipo | Cartera reconstruía `balance + paymentAmount` sin `advanceAppliedAmount`; `collection.ts` ya lo hacía bien | La página usa `statementChargedAmount`. **Medido en producción antes**: 221 cobros, 1 sin `amount`, 26 con `amount` 0 y saldo 0, **0 con anticipo** — las dos fórmulas coinciden hoy en las 221 | `tests/facturado-una-sola-formula.test.ts` (barre `src/` buscando el gemelo) en rojo al reponerlo. **Su control falló a la primera**: la expresión no cazaba la fórmula canónica y vigilaba un conjunto vacío |
 >
-> **Producción no necesita las 27 functions ahora**: allí la base clavada YA era la correcta, así que
+> **Producción no necesita las 27 functions ahora** (siguen sin desplegar allí, a propósito): allí la base clavada YA era la correcta, así que
 > desplegarlas cambia cero comportamiento. Irán con el siguiente lote. La lista, por si hace falta
 > antes: `createTenantAdmin createTenantFromLead createTenantOperationalUser createTrialWorkspace
 > notifyBillingBatch notifyResidentReceipt onBillingStatementCreated onCommitteeAgreementUpdated
@@ -57,12 +58,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
 > 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **diecisiete días**.
-> 2. **Push a `master`** para que los cinco cabos lleguen a producción (`484e16a` y los docs).
-> 3. **Las tres decisiones de `PLAT-006`** (arriba), **y de quién son las once direcciones**: con eso
+> 2. **Las tres decisiones de `PLAT-006`** (arriba), **y de quién son las once direcciones**: con eso
 >    se corre `sanear-correos-de-prueba.mjs` y la ficha pasa a «lista para desarrollo».
-> 4. **Entregar `DECISIONES-A-006` a Albert** por el canal.
-> 5. **`gcloud auth login`** — sigue muerto. ADC y `firebase` vivos (ejercitadas hoy).
-> 6. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
+> 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
+> 4. **`gcloud auth login`** — sigue muerto. ADC y `firebase` vivos (ejercitadas hoy).
+> 5. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
 >
 > ### LOS CANDIDATOS QUE QUEDAN
 >
@@ -75,8 +75,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### ESTADO DEL REPOSITORIO AL CERRAR
 >
-> - **`develop`: `484e16a` + el commit de documentos**, empujado (leer con `git ls-remote`). **`master`: `6548e51`.**
-> - **Staging: `build-2026-09-02-003` ← `484e16a`** · functions de correo desplegadas (27/27). **Producción: `build-2026-09-01-019` ← `6548e51`**, sin los cabos.
+> - **`develop` y `master`: `2584aa3`**, empujados (leer con `git ls-remote`).
+> - **Producción: `build-2026-09-02-001` ← `2584aa3`** (rollout automático al empujar, esperado por nombre y medido por `traffic.current`). **Staging: `build-2026-09-02-003` ← `484e16a`** · functions de correo desplegadas en staging (27/27), no en producción.
 > - **Bancos: `npm test` 1560 · functions 750**, typechecks en 0. **Sin emulador ya no hay rojo esperado.**
 > - **Credenciales: ADC viva · `firebase` viva · `gcloud` muerto.**
 >
