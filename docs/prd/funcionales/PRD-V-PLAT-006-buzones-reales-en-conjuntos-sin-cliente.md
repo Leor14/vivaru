@@ -281,5 +281,30 @@ servidor.
 | `G1 Valor` | **Superada.** Baseline en §2; métrica en `fin` |
 | `G2 Datos y permisos` | **Superada (3 sep).** D1 y D2 tomadas como recomendaba §0; la propiedad de las once, resuelta |
 | `G3 Riesgo` | **Superada (3 sep).** D3 = las dos, la salida primero. El trial cubierto por `CA7`, que falla si alguien deriva la marca de `isExample` |
-| `G4 Construcción` | **MVP construido, sin desplegar.** 20 pruebas nuevas, seis falsaciones más dos de los guardianes |
-| `G5 Despliegue` · `G6 Valor` | Abiertas: falta desplegar, marcar los siete, sanear las diez y encender el canario |
+| `G4 Construcción` | **Superada.** 20 pruebas nuevas, seis falsaciones más dos de los guardianes |
+| `G5 Despliegue` | **Superada en los DOS ambientes (3 sep).** 90 functions `ACTIVE` en cada uno, **cero sin mover** medido por `updateTime` contra la línea base. **Canario encendido en staging** (`tenant-santa-maria` marcado + override de la bandera), y validado con el flujo real: ver abajo |
+| `G6 Valor` | **Abierta en producción**: falta marcar los siete, sanear las diez y encender |
+
+### La validación de staging (3 sep), y por qué el caso que salió es el que importaba
+
+**El botón «Enviar acceso» del portal creó las cuatro cuentas y la puerta cortó exactamente una.**
+Medido en la base, no en la pantalla —que no dijo nada—: `users` pasó de 2 a 6, y `emailDeliveries`
+recibió una fila `rechazado-puerta` para `puerta.plat006@santamaria.co` con su motivo, mientras las
+tres direcciones `@demo.co` (inertes) salieron sin fila.
+
+**`accountInvites` quedó en 0, y eso identifica la ruta:** no fue `sendOnboardingInvite` sino
+`provisionResidentTemporaryAccess` → `sendPasswordSetupEmail` → `sendAccountEmail`, que es
+**precisamente el envío que no sabía de qué conjunto era** y al que se le bajó el `tenantId` en
+esta entrega. Sin ese cambio, ese correo habría salido.
+
+Los cuatro casos, ejercitando `functions/lib/email.js` —el bundle desplegado— contra los datos
+reales de staging, con `fetch` interceptado:
+
+| | Conjunto | Dirección | Resultado |
+|---|---|---|---|
+| A | marcado | `@santamaria.co` (no inerte) | **cortado**, `null`, fila con motivo |
+| B | marcado | `@demo.co` (inerte) | pasa |
+| C | marcado | `@qintilab.com` (equipo) | pasa |
+| D | **no** marcado | `@gmail.com` | pasa |
+
+Sin B, C y D el caso A no probaría nada: una puerta que rechaza todo también «corta» el envío malo.

@@ -8,10 +8,24 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### `PLAT-006` TIENE SU MVP CONSTRUIDO Y **SIN DESPLEGAR**, con la bandera apagada. Las once direcciones están RESUELTAS. Lo siguiente es DESPLEGAR, y arrastra el lote de 27 functions de correo.
 >
-> **`develop` y `master` seguían en `024cbb8` y `2584aa3` al abrir; el trabajo de hoy está en
-> `6db3a58`, COMMITEADO Y SIN EMPUJAR** (leer los remotos con `git ls-remote`, no de aquí).
-> Árbol limpio salvo ese commit. **Bancos: `npm test` 1560 · functions 770** (eran 750; +20 de hoy),
-> typechecks en 0.
+> **`develop` EMPUJADO. `master` sigue en `2584aa3` — el push a producción lo pide David.** Leer
+> los remotos con `git ls-remote`, no de aquí. **Bancos: `npm test` 1560 · functions 770** (eran
+> 750; +20 de hoy), typechecks en 0.
+>
+> **FUNCTIONS DESPLEGADAS EN LOS DOS AMBIENTES** (David lo autorizó): 90 `ACTIVE` en cada uno,
+> **cero sin mover**, medido por `updateTime` contra la línea base tomada antes. Con ellas fue el
+> lote de 27 de correo que llevaba desde el 2 sep solo en staging. **El front de producción NO
+> lleva el catálogo de la bandera nueva** (no se empujó `master`): la consola de superadmin de
+> producción no la verá hasta ese push, y no hace falta antes porque allí nace apagada.
+>
+> **CANARIO ENCENDIDO Y VALIDADO EN STAGING.** `tenant-santa-maria` con `sinClienteDetras: true`,
+> la bandera por override solo ahí, y `config/correosDelEquipo` con `qintilab.com`. **Se quedan
+> puestos.** El botón «Enviar acceso» del portal creó cuatro cuentas y la puerta cortó una: fila
+> `rechazado-puerta` con motivo, y las tres inertes salieron. **La pantalla no dijo nada — lo dijo
+> la base.** Y la ruta que se ejercitó fue `provisionResidentTemporaryAccess` →
+> `sendPasswordSetupEmail`, que es **el envío que no sabía de qué conjunto era** y al que se le
+> bajó el `tenantId` hoy. Quedan 2 filas en `emailDeliveries` de staging como evidencia; la persona
+> y la unidad de prueba, borradas (verificado leyendo).
 >
 > ### LO QUE SE CONSTRUYÓ, Y LO QUE CONSTRUIRLO DESMINTIÓ
 >
@@ -61,15 +75,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### LO SIGUIENTE, EN ORDEN
 >
-> 1. **Empujar `6db3a58`** (lo pide David). Empujar a `develop` despliega **el front** de staging;
->    **la puerta es de functions y NO se despliega al empujar.**
-> 2. **`firebase deploy --only functions`** — y ojo: **arrastra el lote de 27 functions de correo**
->    que llevan desde el 2 sep solo en staging. Es la decisión que hay que tomar antes.
-> 3. **Validar en staging con el navegador** (sesión de Carlos Ramírez, Santa María): marcar el
->    conjunto, encender la bandera **por conjunto**, y ver un rechazo con su fila.
-> 4. **Después:** la puerta de ENTRADA (reglas de `people` + las cuatro callables de alta), que es
->    «Después» en §13 y NO está construida.
-> 5. **Sanear las diez** con `sanear-correos-de-prueba.mjs`, y entonces medir `CA9`.
+> 1. **La puerta de ENTRADA** — reglas de `people` + las cuatro callables de alta. Es «Después» en
+>    §13 y **NO está construida**. Es lo que impide que el dato malo ENTRE; hoy solo se impide que
+>    salga.
+> 2. **En producción: marcar los siete conjuntos** con `sinClienteDetras` (no los dos del trial),
+>    escribir `config/correosDelEquipo`, y **encender por conjunto** antes que en global.
+> 3. **Sanear las diez** con `sanear-correos-de-prueba.mjs` — ya se puede, la propiedad está
+>    resuelta. Y **entonces** medir `CA9`, que se mide en `fin` y no al desplegar.
+> 4. **El push a `master`**, para que la consola de superadmin de producción vea la bandera.
 >
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
