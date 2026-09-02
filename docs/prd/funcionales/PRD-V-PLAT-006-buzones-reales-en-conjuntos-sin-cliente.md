@@ -194,7 +194,7 @@ remitente y el canal siguen siendo los de `email.ts`.
 
 | | Criterio | Cómo se mide |
 |---|---|---|
-| `CA1` | En un conjunto marcado y con la bandera encendida, crear una persona con `alguien@gmail.com` **falla** con el motivo de `RN-3`, desde el formulario y desde la importación | Regla probada contra el emulador con el patrón real del cliente (`addDoc`/`updateDoc`); la callable, por prueba unitaria |
+| `CA1` | En un conjunto marcado y con la bandera encendida, crear una persona con `alguien@gmail.com` **falla** con el motivo de `RN-3`, desde el formulario y desde la importación | **Cumplido a medias, y el hueco es del mecanismo.** El rechazo funciona —probado contra el emulador y **contra el servicio real de staging** con un `tenant_admin` de verdad—, pero **una regla de Firestore no puede devolver texto**: llega `permission-denied`, así que quien teclea vería «No tienes permiso» y no el motivo. Por las callables sí llega legible (`failed-precondition` + `MOTIVO_RECHAZO`). **Cerrarlo es trabajo de front** —validar en el formulario antes de escribir— y no está hecho |
 | `CA2` | La misma alta con `alguien@ejemplo.vivaru.app` **pasa** | Ídem |
 | `CA3` | La misma alta con una dirección listada en `config/correosDelEquipo` **pasa**, y con su `+alias` no listado **falla** | Ídem |
 | `CA4` | **Debe seguir funcionando:** `createTrialWorkspace` con `prospecto@gmail.com` crea el conjunto y envía la invitación. El trial no se marca | Prueba de la callable + un trial real en staging |
@@ -310,6 +310,27 @@ servidor.
 | `G4 Construcción` | **Superada, entrada incluida.** 57 pruebas nuevas —20 de salida, 25 de reglas contra el emulador, 12 del servidor— y **doce falsaciones**, dos de ellas rehechas porque pasaron en verde siendo malas |
 | `G5 Despliegue` | **Superada en los DOS ambientes (3 sep).** 90 functions `ACTIVE` en cada uno, **cero sin mover** medido por `updateTime` contra la línea base. **Canario encendido en staging** (`tenant-santa-maria` marcado + override de la bandera), y validado con el flujo real: ver abajo |
 | `G6 Valor` | **Abierta en producción**: falta marcar los siete, sanear las diez y encender |
+
+### La validación de la entrada (3 sep), contra el SERVICIO y no contra el emulador
+
+Con un `tenant_admin` temporal real de staging y el SDK cliente —la misma ruta del navegador—,
+sobre el ruleset ya desplegado. El usuario y sus documentos se borraron después, verificándolo.
+
+| | Caso | Resultado |
+|---|---|---|
+| A | cambiar el correo de una persona a `@gmail.com` | **rechazado** |
+| B | cambiarlo a uno inerte | permitido |
+| C | tocar otro campo **sin** tocar el correo | permitido — la trampa del merge |
+| D | crear una persona con `@gmail.com` | **rechazado** |
+| E | crear una con dominio inerte | permitido — **el contraste** |
+| F | leer `config/correosDelEquipo` | **rechazado** |
+
+Sin B, C y E esto no probaría nada: una regla que lo niegue todo también «rechaza» lo que debe.
+
+**Lo que NO se pudo validar:** cómo se ve el error en la pantalla. El menú de acciones y el modal
+de alta no responden a clics sintéticos, así que el formulario no llegó a enviarse desde el
+navegador. Queda para David, y son tres pasos: marcar un conjunto, encender la bandera por
+conjunto, e intentar crear una persona con un correo cualquiera desde Residentes.
 
 ### La validación de staging (3 sep), y por qué el caso que salió es el que importaba
 

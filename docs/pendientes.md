@@ -4,106 +4,86 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (CIERRE de la puerta de buzones)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (CIERRE de PLAT-006, entera)
 
-> ### `PLAT-006` TIENE SU MVP CONSTRUIDO Y **SIN DESPLEGAR**, con la bandera apagada. Las once direcciones están RESUELTAS. Lo siguiente es DESPLEGAR, y arrastra el lote de 27 functions de correo.
+> ### `PLAT-006` ESTÁ COMPLETA Y EN LOS DOS AMBIENTES: salida Y entrada. **La bandera sigue apagada y en producción es INERTE, medido.** Lo que queda no es código.
 >
-> **`develop` EMPUJADO. `master` sigue en `2584aa3` — el push a producción lo pide David.** Leer
-> los remotos con `git ls-remote`, no de aquí. **Bancos: `npm test` 1560 · functions 770** (eran
-> 750; +20 de hoy), typechecks en 0.
+> **`develop` empujado. `master` sigue en `2584aa3` — el push a producción lo pides tú.** Leer los
+> remotos con `git ls-remote`. **Bancos: `npm test` 1560 · functions 782 · reglas de Firestore 293**
+> (255 + 13 + 25 nuevas), typechecks en 0.
 >
-> **FUNCTIONS DESPLEGADAS EN LOS DOS AMBIENTES** (David lo autorizó): 90 `ACTIVE` en cada uno,
-> **cero sin mover**, medido por `updateTime` contra la línea base tomada antes. Con ellas fue el
-> lote de 27 de correo que llevaba desde el 2 sep solo en staging. **El front de producción NO
-> lleva el catálogo de la bandera nueva** (no se empujó `master`): la consola de superadmin de
-> producción no la verá hasta ese push, y no hace falta antes porque allí nace apagada.
+> **Desplegado y verificado, en orden reglas → functions, en los dos ambientes:**
 >
-> **CANARIO ENCENDIDO Y VALIDADO EN STAGING.** `tenant-santa-maria` con `sinClienteDetras: true`,
-> la bandera por override solo ahí, y `config/correosDelEquipo` con `qintilab.com`. **Se quedan
-> puestos.** El botón «Enviar acceso» del portal creó cuatro cuentas y la puerta cortó una: fila
-> `rechazado-puerta` con motivo, y las tres inertes salieron. **La pantalla no dijo nada — lo dijo
-> la base.** Y la ruta que se ejercitó fue `provisionResidentTemporaryAccess` →
-> `sendPasswordSetupEmail`, que es **el envío que no sabía de qué conjunto era** y al que se le
-> bajó el `tenantId` hoy. Quedan 2 filas en `emailDeliveries` de staging como evidencia; la persona
-> y la unidad de prueba, borradas (verificado leyendo).
+> | | Producción | Staging |
+> |---|---|---|
+> | Reglas | **idénticas al repo, 0 líneas de diff** | ídem |
+> | Functions | 90 `ACTIVE`, **0 con bundle viejo** | 90 `ACTIVE` |
+> | La puerta | **INERTE**: 0 conjuntos marcados · bandera sin documento · 0 overrides · sin lista del equipo | **canario encendido** en `tenant-santa-maria` |
 >
-> ### LO QUE SE CONSTRUYÓ, Y LO QUE CONSTRUIRLO DESMINTIÓ
+> **Una function se quedó atrás en el primer intento** (`monthlyFinancialArchive`, con el bundle de
+> las 02:03) y se redesplegó sola. **El `Deploy complete` no lo dijo:** lo dijo comparar `updateTime`
+> contra la línea base.
 >
-> | Pieza | Dónde |
-> |---|---|
-> | El predicado único `buzonAdmisibleEnConjunto` + catálogo de dominios inertes | `functions/src/buzones-admisibles.ts` (nuevo) |
-> | La puerta de SALIDA, delante del `fetch` | `functions/src/email.ts` — `puertaDeBuzones` y `registrarRechazoDePuerta` |
-> | El `tenantId` bajado a los tres envíos a personas que no lo tenían | `support.ts` (`notifyClient`), `index.ts` (`sendOnboardingInvite`, `sendPasswordSetupEmail`) |
-> | Bandera `producto-puerta-de-buzones`, **apagada**, en los CINCO sitios | catálogo front y functions, `seed-`, `mover-bandera`, `mover-bandera-de-conjunto` |
-> | 20 pruebas: 14 de comportamiento + 2 guardianes | `functions/tests/puerta-de-buzones.test.ts`, `guardian-de-la-puerta-de-salida.test.ts`, `catalogo-de-dominios-inertes.test.ts` |
+> ### LAS DOS PALANCAS, Y POR QUÉ HACEN FALTA LAS DOS
 >
-> **LO QUE DESMINTIÓ LA FICHA, y es lo que hay que llevarse:** §11 decía que la puerta de salida
-> «vive en `email.ts`, el único sitio por el que sale todo correo». Cierto y **engañoso**: la
-> puerta necesita el conjunto, y **7 de los 8 envíos no lo llevaban**. Cuatro van a bandejas de
-> Vivaru (`notifyInbox`, `supportInbox`, comercial) y **filtrarlos habría cortado los avisos de
-> trial**; a los tres que van a personas se les bajó el `tenantId`, que **los tres ya tenían en su
-> ámbito**. Por eso la puerta filtra **solo cuando sabe el conjunto**, y el flanco por olvido lo
-> sostiene un guardián que barre el código.
+> | Camino | Quién escribe | Qué lo cubre |
+> |---|---|---|
+> | `people` — formulario **y la importación masiva** | el CLIENTE, por `writeBatch` | `firestore.rules` |
+> | `users` · `tenantUsers` | solo callables, con **Admin SDK, que NO evalúa las reglas** | `assertBuzonAdmisible` en las cuatro callables de alta |
 >
-> **Y había un gemelo que la ficha no nombraba:** `assertCanInviteRealPeople`
-> (`functions/src/trial-modules.ts:61`) ya hacía la mitad de esto desde el trial — misma forma,
-> **criterio distinto** (`status ∈ {trial, expired}`) y **un solo punto de aplicación de los
-> cuatro**. Conviven a propósito.
+> **El trial NO la lleva, a propósito**, y una prueba de control lo exige: un prospecto se registra
+> con su correo real (`CA4`). Si alguien «arregla» esa asimetría, rompe el alta y nada más lo nota.
 >
-> ### LAS ONCE DIRECCIONES: RESUELTAS
+> ### EL HUECO QUE QUEDA, Y NO LO TAPES
 >
-> **Diez son tecleo de demostración y una es del equipo.** No lo dijo la forma —esa lección sigue
-> en pie— sino el **contexto**: sin Auth, sin una fila de actividad en seis colecciones, y creadas
-> **en ráfagas de 4–5 minutos** por el administrador del propio conjunto, en unidades con nombres
-> inconsistentes y con nombres de persona inventados. La única con cuenta de Auth,
-> `luiseoteror@gmail.com`, **David confirmó que es suya**.
+> **`CA1` está cumplido a medias.** El rechazo funciona —validado **contra el servicio real de
+> staging** con un `tenant_admin` temporal, seis casos con su contraste—, pero **una regla de
+> Firestore no puede devolver texto**: llega `permission-denied`, así que quien teclea vería «No
+> tienes permiso» en vez del motivo. Por las callables sí llega legible. **Cerrarlo es trabajo de
+> front** (validar en el formulario antes de escribir) y **no está hecho**.
 >
-> **Con eso `sanear-correos-de-prueba.mjs` ya se puede correr sobre las diez** — no se corrió hoy:
-> escribe en producción y no se pidió.
->
-> ### UN HALLAZGO QUE NO SE BUSCABA, Y QUE NO ES DE ESTA FICHA
->
-> **La fusión de `ONB-002` deja `status: "active"` en los absorbidos.** Los seis «David Carmona»
-> fusionados el 31 ago llevan `fusionadaEn`/`fusionadaHaciaId`/motivo, y **siguen `active`**: las
-> 24 `people` de Santa María están las 24 en `active`. Es coherente con «archivar no es esconder»,
-> pero **solo cuatro ficheros del código conocen `fusionadaEn`** (`padron.ts`, `duplicados.ts`,
-> `services.ts` y su prueba). El barrido de correos los contaba seis veces y **ya los separa**: el
-> baseline pasó de 68 a **62 personas vivas**. **Comprobado que NO hay envío duplicado** — ninguna
-> function itera `people` para mandar correo; el único consumidor (`email-webhook.ts:143`) solo
-> marca `emailStatus`. **Queda como pregunta abierta, no como defecto probado:** ¿qué otras
-> pantallas cuentan `status == active` sin mirar `fusionadaEn`?
+> **Y no se pudo ver en pantalla:** el menú de acciones y el modal de alta no responden a clics
+> sintéticos. **Son tres pasos tuyos**: marcar un conjunto, encender la bandera por conjunto, e
+> intentar crear una persona con un correo cualquiera desde Residentes.
 >
 > ### LO SIGUIENTE, EN ORDEN
 >
-> 1. **La puerta de ENTRADA** — reglas de `people` + las cuatro callables de alta. Es «Después» en
->    §13 y **NO está construida**. Es lo que impide que el dato malo ENTRE; hoy solo se impide que
->    salga.
-> 2. **En producción: marcar los siete conjuntos** con `sinClienteDetras` (no los dos del trial),
+> 1. **En producción: marcar los siete** conjuntos con `sinClienteDetras` (NO los dos del trial),
 >    escribir `config/correosDelEquipo`, y **encender por conjunto** antes que en global.
-> 3. **Sanear las diez** con `sanear-correos-de-prueba.mjs` — ya se puede, la propiedad está
->    resuelta. Y **entonces** medir `CA9`, que se mide en `fin` y no al desplegar.
+> 2. **Sanear las diez** con `sanear-correos-de-prueba.mjs` — la propiedad ya está resuelta. Y
+>    **entonces** medir `CA9`, que se mide en `fin`.
+> 3. **El mensaje legible en el formulario** (el hueco de `CA1`), si se quiere cerrar del todo.
 > 4. **El push a `master`**, para que la consola de superadmin de producción vea la bandera.
+>
+> ### LAS ONCE DIRECCIONES: RESUELTAS
+>
+> **Diez son tecleo de demostración y una es del equipo.** No lo dijo la forma sino el **contexto**:
+> sin Auth, sin actividad en seis colecciones, y creadas **en ráfagas de 4–5 minutos** por el
+> administrador del propio conjunto. La única con Auth, `luiseoteror@gmail.com`, es tuya.
 >
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
 > 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **dieciocho días**.
-> 2. **Decidir si el despliegue de functions arrastra el lote de 27** (punto 2 de arriba).
+> 2. Los tres pasos de la validación en pantalla (arriba).
 > 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
 > 4. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
 >
-> ### CUATRO TRAMPAS DE MÉTODO DE HOY
+> ### CINCO TRAMPAS DE MÉTODO DE HOY
 >
-> 1. **`gcloud` NO estaba muerto.** El traspaso lo daba por muerto tres días seguidos.
->    `gcloud projects list` responde. **`gcloud auth list` no prueba nada** —eso ya estaba escrito—
->    pero de ahí no se sigue que esté muerto: hay que **ejercitarla**, y en los dos sentidos.
-> 2. **Una falsación puede pasar EN VERDE por ser mala, no por ser buena la prueba.** La sexta usó
->    un `tenantId` inexistente, que no está marcado, así que no rompía nada. **Si una falsación no
->    enrojece, sospechar primero de la falsación.**
-> 3. **Un guardián con la expresión mal escrita acusa al código correcto.** El de la puerta señaló
->    dos llamadas que sí pasaban `tenantId`: eran propiedad abreviada (`tenantId });`) y la
->    expresión exigía `,` o `:` detrás.
-> 4. **`npx tsc --noEmit` en `functions/` NO mira `tests/`** — está escrito en `CLAUDE.md` y se
->    usó igual. El bueno es `npm --prefix functions run typecheck`.
+> 1. **`gcloud` NO estaba muerto.** El traspaso lo arrastró tres días. **Ejercitar sirve también
+>    para declarar MUERTA una credencial**, y nadie lo hizo. La ADC además es **por proyecto**: 200
+>    en `hogaru-1`, 403 en `vivaru-staging`.
+> 2. **DOS falsaciones pasaron en verde por ser MALAS, no por serlo la prueba** — una usaba un
+>    conjunto inexistente (que no está marcado, así que no mutaba nada) y otra insertó la línea
+>    fuera del bloque examinado. **Si una falsación no enrojece, sospechar primero de la falsación.**
+> 3. **Un guardián con la expresión mal escrita ACUSA al código correcto**: el de la puerta señaló
+>    dos llamadas que sí pasaban `tenantId`, escritas como propiedad abreviada (`tenantId });`).
+>    **Y me pasó otra vez en mi propio filtro de `grep`**, que exigía un `·` y se comió resultados.
+> 4. **La prueba de CONTROL destapó lo que la principal no veía:** `config/correosDelEquipo` no la
+>    podía leer **NADIE**, superadmin incluido. `CA8` habría pasado en verde por la razón
+>    equivocada, y la lista solo habría sido editable por script.
+> 5. **`updateDoc` fusiona y la regla ve el documento RESULTANTE.** Mirar el correo en toda
+>    actualización habría bloqueado editar cualquier campo de las once que ya están dentro.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
