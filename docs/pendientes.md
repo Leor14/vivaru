@@ -55,6 +55,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > o ambas — **la salida primero**, porque protege también a las once. **Lo único construido:** el
 > barrido en seco `functions/scripts/informe-correos-en-conjuntos-de-ejemplo.mjs` (enmascara).
 >
+> **Los cinco repositorios de información están al día (2 sep):** roadmap (0.9.49), bitácora (fila de los
+> cabos «En producción»), tablero (cabecera del 2 sep, fila de Fundaciones, la decisión de la puerta), inventario
+> (**`DATO-002` nueva, bloqueada por las tres decisiones**; `DATO-001` y `CORE-001` anotadas) y backlog de
+> gobierno (fila #28, «Cargar el padrón»). La ficha se llama `PRD-V-PLAT-006` y la épica `DATO-002`.
+>
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
 > 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **diecisiete días**.
