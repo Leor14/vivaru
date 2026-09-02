@@ -34,11 +34,15 @@
 //     tomada, o si el nombre no da un slug utilizable, **lista y no toca**.
 //   · El proyecto va como argumento SIEMPRE.
 //
-// Uso: node functions/scripts/sanear-correos-de-prueba.mjs <projectId> [--escribir] [--revertir]
+// Uso: node functions/scripts/sanear-correos-de-prueba.mjs <projectId> [--escribir] [--revertir] [--lista <ruta.json>]
+//
+// `--lista` selecciona por LISTA EXPLÍCITA en vez de por la forma de la dirección.
+// Ver el comentario de `seleccionada()`: el criterio por forma dejó once fuera.
 
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { readFileSync } from "node:fs";
 
 const [projectId, ...flags] = process.argv.slice(2);
 const ESCRIBIR = flags.includes("--escribir");
@@ -69,6 +73,42 @@ function esDeRiesgo(email) {
   return PROVEEDOR.test(dominio) && /^[a-z]{3,10}$/i.test(local);
 }
 
+/**
+ * `--lista <ruta>` · seleccionar por LISTA EXPLÍCITA en vez de por la forma.
+ *
+ * **Existe porque `esDeRiesgo` es exactamente el patrón que dejó once fuera.** `DATO-001` corrió
+ * este script el 27 de agosto de 2026, limpió siete y **dejó once**: su expresión exige una parte
+ * local de 3 a 10 letras seguidas, así que no caza `medi.paty@`, `Caro_ap_03@` ni `joa.peprz@`.
+ * Ejecutarlo de nuevo sobre producción el 3 de septiembre respondía «No hay nada que hacer» —un
+ * no-op que se lee como éxito—, y ampliar la expresión habría barrido también las direcciones del
+ * equipo, que son del mismo dominio.
+ *
+ * **La lección de `PLAT-006` es que la forma no dice de quién es un buzón: lo dice el contexto, y
+ * la decisión la toma una persona.** La lista es el artefacto de esa decisión, no un atajo.
+ *
+ * El fichero es el JSON que produce el barrido de contexto: un array de objetos con `email`.
+ */
+const RUTA_LISTA = flags.includes("--lista") ? flags[flags.indexOf("--lista") + 1] : null;
+let LISTA = null;
+if (RUTA_LISTA) {
+  const crudo = JSON.parse(readFileSync(RUTA_LISTA, "utf8"));
+  LISTA = new Set(
+    (Array.isArray(crudo) ? crudo : [])
+      .map((x) => String(typeof x === "string" ? x : x.email || "").trim().toLowerCase())
+      .filter(Boolean),
+  );
+  if (!LISTA.size) {
+    console.error(`La lista ${RUTA_LISTA} no trae ninguna dirección. Abortado antes de tocar nada.`);
+    process.exit(1);
+  }
+}
+
+/** Con `--lista` manda la lista; sin ella, el criterio por forma de siempre. */
+function seleccionada(email) {
+  if (LISTA) return LISTA.has(String(email).trim().toLowerCase());
+  return esDeRiesgo(email);
+}
+
 /** Enmascara para imprimir. NUNCA se escribe una dirección completa en el log. */
 function mask(email) {
   if (!email || !email.includes("@")) return String(email);
@@ -95,7 +135,7 @@ async function main() {
       const data = d.data();
       const clave = REVERTIR ? data.emailPrevio : (data.email || "").trim().toLowerCase();
       if (!clave) continue;
-      if (!REVERTIR && !esDeRiesgo(clave)) continue;
+      if (!REVERTIR && !seleccionada(clave)) continue;
       const actual = (data.email || "").trim().toLowerCase();
       const entrada = porCorreo.get(REVERTIR ? clave : actual) ?? { docs: [], nombre: null, tenantId: null };
       entrada.docs.push({ col, id: d.id, ref: d.ref, data });
