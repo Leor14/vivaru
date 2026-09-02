@@ -4,86 +4,87 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (CIERRE de PLAT-006, entera)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (CIERRE de PLAT-006, con los NUEVE criterios)
 
-> ### `PLAT-006` ESTÁ COMPLETA Y EN LOS DOS AMBIENTES: salida Y entrada. **La bandera sigue apagada y en producción es INERTE, medido.** Lo que queda no es código.
+> ### `PLAT-006` ESTÁ COMPLETA: salida, entrada Y `CA1`. Reglas y functions **en los dos ambientes**; el trozo de front va con el siguiente `master`. **LAS TRES CREDENCIALES CADUCARON al final de la jornada.**
 >
-> **`develop` empujado. `master` sigue en `2584aa3` — el push a producción lo pides tú.** Leer los
-> remotos con `git ls-remote`. **Bancos: `npm test` 1560 · functions 782 · reglas de Firestore 293**
-> (255 + 13 + 25 nuevas), typechecks en 0.
+> **`develop` en `a6c2e2e`, empujado. `master` sigue en `2584aa3` — el push lo pides tú.** Leer los
+> remotos con `git ls-remote`. **Bancos: `npm test` 1579 · functions 782 · reglas de Firestore 293**,
+> typechecks en 0.
 >
-> **Desplegado y verificado, en orden reglas → functions, en los dos ambientes:**
+> ### LO PRIMERO DE LO PRIMERO: LAS CREDENCIALES
 >
-> | | Producción | Staging |
+> **Las TRES murieron durante la sesión, ejercitadas una a una al cerrar:** ADC (HTTP 000, no da
+> token), `gcloud` CLI (pide reauth) y `firebase` CLI («credentials are no longer valid»). **Todo el
+> despliegue se hizo y se verificó ANTES**, así que no queda nada a medias — pero **la siguiente
+> sesión no puede leer Firestore ni la API de App Hosting hasta que las renueves**:
+>
+> ```
+> gcloud auth application-default login
+> gcloud auth login
+> npx firebase login --reauth
+> ```
+>
+> **Lo único que quedó sin comprobar por esto:** que el rollout de staging ya sirva el front nuevo.
+>
+> ### QUÉ QUEDÓ, EN TRES CAPAS
+>
+> | Capa | Qué hace | Dónde |
 > |---|---|---|
-> | Reglas | **idénticas al repo, 0 líneas de diff** | ídem |
-> | Functions | 90 `ACTIVE`, **0 con bundle viejo** | 90 `ACTIVE` |
-> | La puerta | **INERTE**: 0 conjuntos marcados · bandera sin documento · 0 overrides · sin lista del equipo | **canario encendido** en `tenant-santa-maria` |
+> | **Salida** | ningún correo sale a una dirección no admisible desde un conjunto marcado | `functions/src/email.ts` · **desplegada y validada** |
+> | **Entrada** | ni se escribe: reglas para `people` (formulario **e importación**) y `assertBuzonAdmisible` en las cuatro callables de alta | `firestore.rules` + `functions/src` · **desplegadas** |
+> | **`CA1`** | el rechazo **dice por qué**, en el formulario y en la importación | `src/lib/buzones/` + `services.ts` · **sin desplegar (front)** |
 >
-> **Una function se quedó atrás en el primer intento** (`monthlyFinancialArchive`, con el bundle de
-> las 02:03) y se redesplegó sola. **El `Deploy complete` no lo dijo:** lo dijo comparar `updateTime`
-> contra la línea base.
+> **En producción sigue INERTE y está medido:** 0 conjuntos marcados · bandera sin documento ·
+> 0 overrides · sin lista del equipo.
 >
-> ### LAS DOS PALANCAS, Y POR QUÉ HACEN FALTA LAS DOS
+> ### EL DEFECTO DE AGOSTO ESTUVO A PUNTO DE REPETIRSE, IDÉNTICO
 >
-> | Camino | Quién escribe | Qué lo cubre |
-> |---|---|---|
-> | `people` — formulario **y la importación masiva** | el CLIENTE, por `writeBatch` | `firestore.rules` |
-> | `users` · `tenantUsers` | solo callables, con **Admin SDK, que NO evalúa las reglas** | `assertBuzonAdmisible` en las cuatro callables de alta |
+> La traducción del rechazo lanzaba un `Error` plano. `normalizeFirebaseError` **solo respeta el
+> texto de un `CallableError`**; un `Error` plano no tiene `code`, cae en el genérico, y en pantalla
+> se habría leído **«Ocurrió un error inesperado»** — que es literalmente lo que documenta la
+> cabecera de `CallableError`, escrita el 24 de agosto tras el mismo tropiezo. **Todo el trabajo de
+> `CA1` habría sido inerte donde importa, y ninguna suite lo habría dicho.**
 >
-> **El trial NO la lleva, a propósito**, y una prueba de control lo exige: un prospecto se registra
-> con su correo real (`CA4`). Si alguien «arregla» esa asimetría, rompe el alta y nada más lo nota.
->
-> ### EL HUECO QUE QUEDA, Y NO LO TAPES
->
-> **`CA1` está cumplido a medias.** El rechazo funciona —validado **contra el servicio real de
-> staging** con un `tenant_admin` temporal, seis casos con su contraste—, pero **una regla de
-> Firestore no puede devolver texto**: llega `permission-denied`, así que quien teclea vería «No
-> tienes permiso» en vez del motivo. Por las callables sí llega legible. **Cerrarlo es trabajo de
-> front** (validar en el formulario antes de escribir) y **no está hecho**.
->
-> **Y no se pudo ver en pantalla:** el menú de acciones y el modal de alta no responden a clics
-> sintéticos. **Son tres pasos tuyos**: marcar un conjunto, encender la bandera por conjunto, e
-> intentar crear una persona con un correo cualquiera desde Residentes.
+> Cerrado generalizando el contrato en vez de ensanchar el caso: **`CallableError` ahora extiende
+> `ErrorParaElUsuario`** y el traductor comprueba la clase base. El contrato nunca fue «viene de una
+> callable», sino **«este texto está escrito para leerse»**.
 >
 > ### LO SIGUIENTE, EN ORDEN
 >
-> 1. **En producción: marcar los siete** conjuntos con `sinClienteDetras` (NO los dos del trial),
->    escribir `config/correosDelEquipo`, y **encender por conjunto** antes que en global.
-> 2. **Sanear las diez** con `sanear-correos-de-prueba.mjs` — la propiedad ya está resuelta. Y
->    **entonces** medir `CA9`, que se mide en `fin`.
-> 3. **El mensaje legible en el formulario** (el hueco de `CA1`), si se quiere cerrar del todo.
-> 4. **El push a `master`**, para que la consola de superadmin de producción vea la bandera.
->
-> ### LAS ONCE DIRECCIONES: RESUELTAS
->
-> **Diez son tecleo de demostración y una es del equipo.** No lo dijo la forma sino el **contexto**:
-> sin Auth, sin actividad en seis colecciones, y creadas **en ráfagas de 4–5 minutos** por el
-> administrador del propio conjunto. La única con Auth, `luiseoteror@gmail.com`, es tuya.
+> 1. **Renovar las tres credenciales** (arriba).
+> 2. **En producción: marcar los siete** conjuntos con `sinClienteDetras` (NO los dos del trial),
+>    escribir `config/correosDelEquipo` con `qintilab.com`, y **encender por conjunto**.
+> 3. **Sanear las diez** con `sanear-correos-de-prueba.mjs`. Y **entonces** medir `CA9`.
+> 4. **El push a `master`** — lleva el mensaje legible de `CA1` y el catálogo de la bandera.
+> 5. **Ver el mensaje en pantalla** en staging: marcar, encender por conjunto, y crear una persona
+>    con un correo cualquiera desde Residentes. **No se pudo automatizar**: el menú de acciones y el
+>    modal de alta no responden a clics sintéticos.
 >
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
 > 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **dieciocho días**.
-> 2. Los tres pasos de la validación en pantalla (arriba).
+> 2. Las tres credenciales, y el paso 5 de arriba.
 > 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
 > 4. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
 >
-> ### CINCO TRAMPAS DE MÉTODO DE HOY
+> ### LAS TRAMPAS DE MÉTODO DE HOY
 >
-> 1. **`gcloud` NO estaba muerto.** El traspaso lo arrastró tres días. **Ejercitar sirve también
->    para declarar MUERTA una credencial**, y nadie lo hizo. La ADC además es **por proyecto**: 200
->    en `hogaru-1`, 403 en `vivaru-staging`.
-> 2. **DOS falsaciones pasaron en verde por ser MALAS, no por serlo la prueba** — una usaba un
->    conjunto inexistente (que no está marcado, así que no mutaba nada) y otra insertó la línea
->    fuera del bloque examinado. **Si una falsación no enrojece, sospechar primero de la falsación.**
-> 3. **Un guardián con la expresión mal escrita ACUSA al código correcto**: el de la puerta señaló
->    dos llamadas que sí pasaban `tenantId`, escritas como propiedad abreviada (`tenantId });`).
->    **Y me pasó otra vez en mi propio filtro de `grep`**, que exigía un `·` y se comió resultados.
-> 4. **La prueba de CONTROL destapó lo que la principal no veía:** `config/correosDelEquipo` no la
->    podía leer **NADIE**, superadmin incluido. `CA8` habría pasado en verde por la razón
->    equivocada, y la lista solo habría sido editable por script.
-> 5. **`updateDoc` fusiona y la regla ve el documento RESULTANTE.** Mirar el correo en toda
->    actualización habría bloqueado editar cualquier campo de las once que ya están dentro.
+> 1. **`gcloud` NO estaba muerto al abrir** —el traspaso lo arrastró tres días—, **y sí lo está al
+>    cerrar.** Ejercitar sirve en los dos sentidos, y el estado caduca: **medirlo, no citarlo.**
+> 2. **TRES falsaciones pasaron en verde. Dos por MALAS** —una usaba un conjunto inexistente, otra
+>    insertaba fuera del bloque examinado— **y una porque destapaba un hueco REAL**: ninguna prueba
+>    miraba que el emisor usara el tipo de error correcto. **Si una falsación no enrojece, primero
+>    se duda de la falsación; si la falsación es buena, el hueco es de la cobertura.**
+> 3. **La prueba de CONTROL destapó lo que la principal no veía:** `config/correosDelEquipo` no la
+>    podía leer NADIE, superadmin incluido, así que `CA8` habría pasado por la razón equivocada.
+> 4. **`updateDoc` fusiona y la regla ve el documento RESULTANTE.** Por eso `create` mira el correo
+>    siempre y `update` solo si CAMBIA — si no, editar el teléfono de las once quedaba bloqueado.
+> 5. **Un guardián anclado a NÚMERO DE LÍNEA enrojece con cualquier inserción de arriba.** El de
+>    `clave-de-unidad` avisó al desplazarse su excepción de la 640 a la 715. **Funcionó como
+>    promete su propio comentario**, pero conviene saberlo antes de culpar al cambio.
+> 6. **Un `replace` sin contar ocurrencias toca de más**: `await batch.commit()` aparecía en
+>    `bulkCreateUnits` y en `bulkCreatePeople`. Contar antes de sustituir.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
