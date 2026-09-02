@@ -116,6 +116,25 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
 > 4. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
 >
+> ### CÓMO SE LEE STAGING, que hoy costó cuatro intentos
+>
+> **El proyecto de staging es `vivaru-staging-02` y su backend se llama `vivaru-staging-web`.**
+> Ninguno de los dos es lo que uno teclea por inercia:
+>
+> | Lo que apunté | Lo que contestó | Lo que parece |
+> |---|---|---|
+> | proyecto `vivaru-staging` | **`HTTP 403` «App Hosting API has not been used in project…»** | Que falta habilitar una API, o que la credencial no llega |
+> | backend `vivaru` en `vivaru-staging-02` | **`404 NOT_FOUND`** | Que staging no tiene backend |
+>
+> **`vivaru-staging` existe de verdad como proyecto** (`670093878770`), y por eso el 403 es
+> convincente: no es un id inventado, es el proyecto equivocado. El bueno está en `.firebaserc`.
+> **Dos credenciales distintas dieron el mismo 403**, lo que reforzaba la lectura falsa de que era
+> un problema de permisos. La orden correcta:
+> `node scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web 3` desde `functions/`.
+>
+> Medido así: staging sirve **`build-2026-09-02-017` ← `c2e2483`**, y **se despliega solo al
+> empujar a `develop`** (confirmado en `traffic.rolloutPolicy`, no en `codebase`).
+>
 > ### LAS TRAMPAS DE MÉTODO DE LA JORNADA
 >
 > 1. **Un script que no encuentra nada responde «No hay nada que hacer», y eso NO es «ya está
