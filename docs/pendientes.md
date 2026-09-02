@@ -8,24 +8,32 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### `PLAT-006` ESTÁ COMPLETA: salida, entrada Y `CA1`. Reglas y functions **en los dos ambientes**; el trozo de front va con el siguiente `master`. **LAS TRES CREDENCIALES CADUCARON al final de la jornada.**
 >
-> **`develop` en `a6c2e2e`, empujado. `master` sigue en `2584aa3` — el push lo pides tú.** Leer los
-> remotos con `git ls-remote`. **Bancos: `npm test` 1579 · functions 782 · reglas de Firestore 293**,
-> typechecks en 0.
+> **LOS DOS REMOTOS EN `13edea5`, y producción sirviendo `build-2026-09-02-002` desde ese mismo
+> commit** (`rollout-2026-09-02-002` `SUCCEEDED`, medido por `traffic.current` y por procedencia del
+> commit, no por el «Deploy complete»). Leer los remotos con `git ls-remote`. **Bancos: `npm test`
+> 1579 · functions 782 · reglas de Firestore 293**, typechecks en 0.
 >
-> ### LO PRIMERO DE LO PRIMERO: LAS CREDENCIALES
+> **Comprobado DESPUÉS de desplegar el front, que es cuando importa: la puerta sigue apagada e
+> inerte en producción.** 0 conjuntos marcados · la bandera **sin documento**, así que manda el
+> default del catálogo (`false`) · 0 overrides · sin lista del equipo · **0 rechazos** en
+> `emailDeliveries`. Antes de empujar se verificó que ningún `defaultEnabled` existente cambiaba:
+> subir un front con un default en `true` habría encendido una capacidad sin que nadie lo decidiera.
 >
-> **Las TRES murieron durante la sesión, ejercitadas una a una al cerrar:** ADC (HTTP 000, no da
-> token), `gcloud` CLI (pide reauth) y `firebase` CLI («credentials are no longer valid»). **Todo el
-> despliegue se hizo y se verificó ANTES**, así que no queda nada a medias — pero **la siguiente
-> sesión no puede leer Firestore ni la API de App Hosting hasta que las renueves**:
+> **Las tres credenciales están VIVAS** (renovadas por David y ejercitadas: ADC con HTTP 200 contra
+> Firestore de producción, `gcloud` y `firebase` listando). Cuenta `dev@qintilab.com`, proyecto
+> `hogaru-1`.
 >
+> ### LAS CREDENCIALES CADUCARON Y SE RENOVARON — la lección se queda
+>
+> Las tres murieron a media jornada y David las renovó; **están vivas y ejercitadas**. Lo que hay
+> que llevarse es **cómo se comprueban**: `gcloud auth application-default print-access-token`
+> **devuelve un mensaje de ERROR de 273 caracteres cuando está muerta**, así que un chequeo que mire
+> la LONGITUD del token la da por viva. Hay que mirar el CONTENIDO —un token empieza por `ya29.`— y
+> además ejercitarlo contra algo real:
+>
+> ```bash
+> T=$(gcloud auth application-default print-access-token 2>/dev/null); case "$T" in ya29.*) echo viva;; *) echo MUERTA;; esac
 > ```
-> gcloud auth application-default login
-> gcloud auth login
-> npx firebase login --reauth
-> ```
->
-> **Lo único que quedó sin comprobar por esto:** que el rollout de staging ya sirva el front nuevo.
 >
 > ### QUÉ QUEDÓ, EN TRES CAPAS
 >
@@ -52,14 +60,21 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### LO SIGUIENTE, EN ORDEN
 >
-> 1. **Renovar las tres credenciales** (arriba).
-> 2. **En producción: marcar los siete** conjuntos con `sinClienteDetras` (NO los dos del trial),
->    escribir `config/correosDelEquipo` con `qintilab.com`, y **encender por conjunto**.
-> 3. **Sanear las diez** con `sanear-correos-de-prueba.mjs`. Y **entonces** medir `CA9`.
-> 4. **El push a `master`** — lleva el mensaje legible de `CA1` y el catálogo de la bandera.
-> 5. **Ver el mensaje en pantalla** en staging: marcar, encender por conjunto, y crear una persona
->    con un correo cualquiera desde Residentes. **No se pudo automatizar**: el menú de acciones y el
->    modal de alta no responden a clics sintéticos.
+> **Ya NO quedan pasos de código ni de despliegue: `PLAT-006` está entera en los dos ambientes y
+> `master` desplegado.** Lo que sigue es operación:
+>
+> 1. **Marcar los siete** conjuntos de producción con `sinClienteDetras` (NO los dos del trial),
+>    escribir `config/correosDelEquipo` con `qintilab.com`, y **encender por conjunto** antes que en
+>    global.
+> 2. **Sanear las diez** con `sanear-correos-de-prueba.mjs`. Y **entonces** medir `CA9`, que se mide
+>    en `fin` y no al desplegar.
+> 3. **Ver el mensaje en pantalla**: marcar un conjunto, encender la bandera ahí, y crear una
+>    persona con un correo cualquiera desde Residentes. **No se pudo automatizar** — el menú de
+>    acciones y el modal de alta no responden a clics sintéticos, y la sesión de staging del
+>    navegador se cerró.
+> 4. **Los cuatro repositorios de Notion**, que esta sesión no pudo tocar (conector desconectado):
+>    el contenido está escrito y entregado como archivo — tres filas de bitácora, la cabecera del
+>    tablero, tres anotaciones del inventario y tres filas del backlog de gobierno.
 >
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
