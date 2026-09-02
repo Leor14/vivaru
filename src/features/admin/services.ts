@@ -883,8 +883,10 @@ export async function createCommunication(
   >,
 ) {
   const firestore = assertDb();
+  // Sin vigencia, `startsAt`/`endsAt` llegan como `undefined` y Firestore rechaza el
+  // documento entero: un comunicado sin fechas no se podía crear. Ver `stripUndefined`.
   const ref = await addDoc(collection(firestore, "communications"), {
-    ...payload,
+    ...stripUndefined(payload),
     tenantId,
     createdBy: userId,
     publishedAt: serverTimestamp(),
@@ -897,7 +899,7 @@ export async function createCommunication(
 export async function updateCommunication(id: string, userId: string, payload: Partial<CommunicationItem>) {
   const firestore = assertDb();
   await updateDoc(doc(firestore, "communications", id), {
-    ...payload,
+    ...stripUndefined(payload),
     updatedBy: userId,
     updatedAt: serverTimestamp(),
   });

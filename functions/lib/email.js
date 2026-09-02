@@ -8,6 +8,7 @@ exports.sendAccountEmail = sendAccountEmail;
 const firestore_1 = require("firebase-admin/firestore");
 const params_1 = require("firebase-functions/params");
 const feature_flags_1 = require("./feature-flags");
+const push_1 = require("./push");
 // Secret de Resend (se setea con: firebase functions:secrets:set RESEND_API_KEY).
 exports.resendApiKey = (0, params_1.defineSecret)("RESEND_API_KEY");
 // Remitente verificado en Resend (dominio notificaciones.grupovivaru.com).
@@ -64,8 +65,9 @@ function buildHtml(fullName, link, variant) {
   </table>
 </body></html>`;
 }
-// Base pública de la app para construir el CTA absoluto de las notificaciones.
-const APP_BASE_URL = "https://www.grupovivaru.com";
+// La base pública del CTA la decide el AMBIENTE en que corre la función (`enlaceAbsoluto`,
+// en push.ts). Con la constante de producción clavada, los correos de staging enlazaban a
+// producción: el mismo defecto que el push tuvo hasta el 29 ago 2026.
 function buildNotificationHtml(body, ctaUrl) {
     const safeBody = escapeHtml(body);
     return `<!doctype html>
@@ -162,7 +164,7 @@ async function sendNotificationEmail(input) {
         console.warn("[email] RESEND_API_KEY no configurado; se omite el correo de notificación.");
         return null;
     }
-    const ctaUrl = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
+    const ctaUrl = (0, push_1.enlaceAbsoluto)(input.link);
     const response = await httpFetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -212,8 +214,8 @@ async function sendAccountEmail(input) {
         return;
     }
     // Los correos requieren URL absoluta. Los enlaces de Firebase ya vienen absolutos
-    // (http…); los propios (p. ej. /activar?token=…) se prefijan con la base pública.
-    const absoluteLink = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
+    // (http…); los propios (p. ej. /activar?token=…) se prefijan con la base del ambiente.
+    const absoluteLink = (0, push_1.enlaceAbsoluto)(input.link);
     const response = await httpFetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {

@@ -31,7 +31,7 @@
 // él está prohibido** (CF4), y si el dato se movió entre uno y otro la huella no
 // casa y esto se planta: un plan que ya no describe la realidad no se aplica.
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -85,6 +85,14 @@ if (escribir && !revertir && !rutaInforme) {
     "Falta --informe <ruta>. Primero se mira y después se toca:\n" +
       `  node functions/scripts/informe-claves-de-unidad.mjs ${projectId} ${tenantId} --json informe.json`,
   );
+  process.exit(1);
+}
+// Y un informe que NO EXISTE se rechaza aquí, antes de `initializeApp()`: más abajo se
+// abría después de leer Firestore, y con la credencial caducada la prueba CF3 se
+// colgaba hasta el timeout. Lo que no necesita red no debe pedirla.
+if (escribir && !revertir && !existsSync(rutaInforme)) {
+  console.error(`El informe ${rutaInforme} no existe. Córrelo primero:\n` +
+    `  node functions/scripts/informe-claves-de-unidad.mjs ${projectId} ${tenantId} --json informe.json`);
   process.exit(1);
 }
 

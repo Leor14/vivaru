@@ -442,7 +442,10 @@ function AdminBillingPageContent() {
 
   const normalizedRows = useMemo(() => {
     return items.map((item) => {
-      const rowAmount = typeof item.amount === "number" ? item.amount : (item.balance || 0) + (item.paymentAmount || 0);
+      // Una sola fórmula del facturado (`collection.ts`): la reconstrucción de aquí
+      // olvidaba `advanceAppliedAmount` y un cargo legado cubierto con anticipo
+      // habría salido facturado de menos.
+      const rowAmount = statementChargedAmount(item);
       const rowPayment = item.paymentAmount || 0;
       const rowDueDate = item.dueDate || "";
       const status = computeStatementStatus(item.balance || 0, { dueDate: rowDueDate, period: item.period });

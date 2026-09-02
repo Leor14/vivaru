@@ -2,6 +2,7 @@ import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 
 import { isFeatureEnabled } from "./feature-flags";
+import { enlaceAbsoluto } from "./push";
 
 // Secret de Resend (se setea con: firebase functions:secrets:set RESEND_API_KEY).
 export const resendApiKey = defineSecret("RESEND_API_KEY");
@@ -80,8 +81,9 @@ function buildHtml(fullName: string, link: string, variant: AccountEmailVariant)
 </body></html>`;
 }
 
-// Base pública de la app para construir el CTA absoluto de las notificaciones.
-const APP_BASE_URL = "https://www.grupovivaru.com";
+// La base pública del CTA la decide el AMBIENTE en que corre la función (`enlaceAbsoluto`,
+// en push.ts). Con la constante de producción clavada, los correos de staging enlazaban a
+// producción: el mismo defecto que el push tuvo hasta el 29 ago 2026.
 
 function buildNotificationHtml(body: string, ctaUrl: string): string {
   const safeBody = escapeHtml(body);
@@ -213,7 +215,7 @@ export async function sendNotificationEmail(input: {
     return null;
   }
 
-  const ctaUrl = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
+  const ctaUrl = enlaceAbsoluto(input.link);
   const response = await httpFetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -272,8 +274,8 @@ export async function sendAccountEmail(input: {
   }
 
   // Los correos requieren URL absoluta. Los enlaces de Firebase ya vienen absolutos
-  // (http…); los propios (p. ej. /activar?token=…) se prefijan con la base pública.
-  const absoluteLink = input.link.startsWith("http") ? input.link : `${APP_BASE_URL}${input.link}`;
+  // (http…); los propios (p. ej. /activar?token=…) se prefijan con la base del ambiente.
+  const absoluteLink = enlaceAbsoluto(input.link);
 
   const response = await httpFetch("https://api.resend.com/emails", {
     method: "POST",

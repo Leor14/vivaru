@@ -87,9 +87,10 @@ Next.js 15/16 (App Router), React 19, TypeScript, **Tailwind v4** (tokens en `@t
   emulador levantado: `npm test` 1449 · functions 720 · emulador **260** · reglas **249**.
   **Vueltos a medir el 1 de septiembre SIN emulador: `npm test` **1510** · functions **741**** —los
   otros dos no se midieron ese día, así que siguen siendo los del 30 y hay que contarlos—.
-  **Y ojo: SIN emulador, `npm test` sale en ROJO por un solo fichero** —`push-tokens.rules.test.ts`,
-  que pide emulador y no está en la lista de exclusiones junto a sus dos hermanas—, así que ese
-  rojo no significa que hayas roto nada.
+  **SIN emulador `npm test` sale en VERDE** (desde el 2 sep 2026): `push-tokens.rules.test.ts`
+  estuvo fuera de la lista de exclusiones junto a sus dos hermanas y enrojecía el banco entero sin
+  emulador, y un banco que enrojece por el entorno enseña a ignorar su color. Las tres corren con
+  `npm run test:rules:all`, con el emulador levantado.
 
 ## Ambientes desplegados
 

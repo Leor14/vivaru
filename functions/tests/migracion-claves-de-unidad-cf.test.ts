@@ -36,6 +36,20 @@ describe("CF3 · contra producción sin la bandera explícita", () => {
     const r = correr("vivaru-staging-02", "un-conjunto", "--escribir", "--informe", "inexistente.json");
     expect(r.stderr).not.toContain("PRODUCCIÓN");
   });
+
+  it("un informe que NO existe se rechaza antes de tocar la red (sin credencial, esta prueba se colgaba)", () => {
+    // Chip cerrado el 2 sep 2026. Hasta entonces el script pasaba las guardas, hacía
+    // `initializeApp()` y LEÍA Firestore antes de abrir el informe: con la ADC caducada
+    // la prueba de arriba esperaba el timeout entero. Un banco que enrojece por una
+    // credencial enseña a ignorar su color. Se mide por el mensaje, que solo existe
+    // en la guarda nueva, y por el código de salida.
+    const r = correr("vivaru-staging-02", "un-conjunto", "--escribir", "--informe", "inexistente.json");
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain("inexistente.json no existe");
+    expect(r.stderr).toContain("informe-claves-de-unidad.mjs");
+    // Y NO llegó a mirar el conjunto: ese mensaje es el de después de la red.
+    expect(r.stderr).not.toContain("No existe el conjunto");
+  });
 });
 
 describe("CF4 · escribir sin haber corrido el informe", () => {
