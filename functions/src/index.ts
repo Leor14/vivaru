@@ -77,6 +77,7 @@ import {
 import { crearReserva, type CrearReservaInput } from "./reservations";
 import { generarCorridaPorCoeficiente, type GenerarCorridaInput } from "./coefficient-billing";
 import { runTrialLifecycle } from "./trial-lifecycle";
+import { assertBuzonAdmisible } from "./buzones-admisibles";
 import { assertCanInviteRealPeople, assertModuleAllowed } from "./trial-modules";
 import {
   asociarConjunto,
@@ -1279,6 +1280,10 @@ export const createTenantAdmin = onCall<CreateTenantAdminInput>(
       throw new HttpsError("not-found", "El tenant no existe.");
     }
 
+    // `PLAT-006`: antes de tocar Auth. Crear la cuenta y rechazar después dejaría
+    // el usuario creado sin poder entrar, que es peor que no crearlo.
+    await assertBuzonAdmisible(data.tenantId, data.email);
+
     const authApi = getAuth();
     const existingUser = await authApi
       .getUserByEmail(data.email)
@@ -1516,6 +1521,10 @@ export const createTenantOperationalUser = onCall<CreateTenantOperationalUserInp
       if (!tenantSnap.exists) {
         throw new HttpsError("not-found", "El tenant no existe.");
       }
+
+      // `PLAT-006`: sobre el conjunto REAL del actor, no sobre el que vino en la
+      // petición — `assertActiveTenantAdmin` ya lo resolvió arriba.
+      await assertBuzonAdmisible(targetTenantId, data.email);
 
       const authApi = getAuth();
       const existingUser = await authApi
@@ -2268,6 +2277,12 @@ export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporar
     });
     // Regla B: en prueba no se invita a personas reales.
     await assertCanInviteRealPeople(tenantId);
+    // `PLAT-006`: su gemelo por la marca del conjunto, no por el estado. Las dos
+    // conviven — aquélla protege el ambiente que expira, esta el conjunto sin
+    // cliente detrás. El correo sale de `people`, así que se lee antes de crear
+    // nada: rechazar después dejaría la cuenta hecha y sin correo de acceso.
+    const personaSnap = await db.collection("people").doc(personId).get();
+    await assertBuzonAdmisible(tenantId, (personaSnap.data() as { email?: string } | undefined)?.email);
 
     try {
       const { isNewUser, ...result } = await upsertResidentTemporaryAccess({
@@ -4108,6 +4123,10 @@ export const resendAccountInvite = onCall<{ tenantId?: string; uid?: string }>(
     const email = userData?.email ?? authUser?.email ?? "";
     const fullName = userData?.fullName ?? authUser?.displayName ?? "";
     if (!email) throw new HttpsError("failed-precondition", "El usuario no tiene correo registrado.");
+
+    // `PLAT-006`: reenviar es un camino de alta como cualquier otro. Sin esto, una
+    // dirección que la puerta rechaza al crear se cuela por el botón de reenviar.
+    await assertBuzonAdmisible(actor.tenantId, email);
 
     await sendOnboardingInvite(targetUid, email, fullName, actor.tenantId, role, "welcome");
     await writeAuditLog(actor.tenantId, request.auth.uid, "resend_account_invite", { uid: targetUid });

@@ -81,6 +81,97 @@ service cloud.firestore {
       return collection in ['communications'];
     }
 
+    // ─── `PRD-V-PLAT-006` · la puerta de ENTRADA ───────────────────────────
+    //
+    // En un conjunto marcado `sinClienteDetras` solo se admiten direcciones de
+    // prueba o del equipo. Espejo de `functions/src/buzones-admisibles.ts`, y
+    // hace falta **además** de aquél porque las dos palancas protegen caminos
+    // distintos: `people` lo escribe el CLIENTE (el formulario y la importación
+    // masiva, que va por `writeBatch` desde el navegador), mientras `users` y
+    // `tenantUsers` solo los escriben callables — y una callable va con Admin
+    // SDK, que NO evalúa estas reglas. Es la lección de `CF8`.
+    //
+    // **Coste:** cero lecturas extra en un conjunto SIN marcar, que son todos
+    // los que tienen cliente. `tenants/{id}` ya lo lee `tenantOperable`, y
+    // Firestore cuenta una sola vez la misma ruta dentro de una evaluación; el
+    // resto solo se consulta si la marca está puesta.
+    function conjuntoSinClienteDetras(tenantId) {
+      return exists(/databases/$(database)/documents/tenants/$(tenantId))
+        && get(/databases/$(database)/documents/tenants/$(tenantId)).data.get('sinClienteDetras', false) == true;
+    }
+
+    // Resuelve `producto-puerta-de-buzones` con la MISMA precedencia que
+    // `resolveFeatureFlag` en el servidor: kill switch maestro, kill switch de
+    // la bandera, override del conjunto, valor global.
+    //
+    // **El default es `false` y aquí va escrito a mano**, porque una regla no
+    // puede leer el catálogo del código. Si alguien cambia `defaultEnabled` a
+    // `true` en `src/lib/feature-flags/catalog.ts`, esta regla se queda atrás y
+    // la puerta de entrada dejaría de aplicarse sin que nada falle. Lo vigila
+    // `tests/puerta-de-buzones.rules.test.ts`.
+    function flagDataPuerta() {
+      return exists(/databases/$(database)/documents/featureFlags/producto-puerta-de-buzones)
+        ? get(/databases/$(database)/documents/featureFlags/producto-puerta-de-buzones).data
+        : {};
+    }
+
+    function killSwitchMaestroPuesto() {
+      return exists(/databases/$(database)/documents/featureFlags/_global)
+        && get(/databases/$(database)/documents/featureFlags/_global).data.get('killSwitch', false) == true;
+    }
+
+    function overridePuerta(tenantId) {
+      return exists(/databases/$(database)/documents/featureFlagOverrides/$(tenantId))
+        ? get(/databases/$(database)/documents/featureFlagOverrides/$(tenantId)).data.get('flags', {})
+        : {};
+    }
+
+    function puertaDeBuzonesActiva(tenantId) {
+      return !killSwitchMaestroPuesto()
+        && flagDataPuerta().get('killSwitch', false) != true
+        && (
+          overridePuerta(tenantId).get('producto-puerta-de-buzones', null) is bool
+            ? overridePuerta(tenantId).get('producto-puerta-de-buzones', false) == true
+            : flagDataPuerta().get('enabled', false) == true
+        );
+    }
+
+    // El dominio, en minúsculas. Devuelve '' si no hay un `@` con algo detrás,
+    // y '' no está en ninguna lista, así que una dirección malformada se rechaza.
+    function dominioDeCorreo(email) {
+      return email is string && email.matches('.+@.+') ? email.lower().split('@')[1] : '';
+    }
+
+    // **Igualdad exacta, sin subdominios.** El servidor admite además los
+    // subdominios (`x.ejemplo.vivaru.app`); aquí no, y la diferencia es
+    // deliberada: la ENTRADA más estricta que la SALIDA es segura —nada entra
+    // que la salida fuese a rechazar—, y al revés no lo sería.
+    function dominioInerte(dominio) {
+      return dominio in ['ejemplo.vivaru.app', 'demo.grupovivaru.com', 'hogaru.test', 'demo.co', 'example.com'];
+    }
+
+    function correoDelEquipo(email) {
+      return exists(/databases/$(database)/documents/config/correosDelEquipo) && (
+        dominioDeCorreo(email) in get(/databases/$(database)/documents/config/correosDelEquipo).data.get('dominios', [])
+        || email.lower() in get(/databases/$(database)/documents/config/correosDelEquipo).data.get('direcciones', [])
+      );
+    }
+
+    // `RN-2`. **No se normaliza el `+alias`**: `david+res1@…` se admite solo si
+    // está listada tal cual o si su dominio entero lo está. Quitar el alias
+    // convertiría una dirección listada en una familia infinita.
+    function buzonAdmisible(email) {
+      return dominioInerte(dominioDeCorreo(email)) || correoDelEquipo(email);
+    }
+
+    // La puerta, con sus tres cortocircuitos en orden de coste creciente.
+    function puertaDeBuzonesPermite(tenantId, email) {
+      return !(email is string) || email == ''
+        || !conjuntoSinClienteDetras(tenantId)
+        || !puertaDeBuzonesActiva(tenantId)
+        || buzonAdmisible(email);
+    }
+
     // `PRD-V-FLOW-003` R5 y R6 — el calendario de cobranza, validado DONDE NO SE SALTA.
     //
     // §11.2 lo dice y conviene repetirlo: si el rango solo se comprueba en el
@@ -257,13 +348,48 @@ service cloud.firestore {
 
     match /people/{docId} {
       allow read: if signedIn() && sameTenant(resource.data.tenantId);
-      allow create, update: if tenantOperable(request.resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId));
+
+      // `PLAT-006`: al CREAR se mira siempre el correo. Este es el camino de la
+      // importación masiva, que escribe `people` con `writeBatch` desde el
+      // navegador — y un padrón importado es la forma más rápida de meter mil
+      // direcciones de desconocidos en un conjunto de demostración.
+      allow create: if tenantOperable(request.resource.data.tenantId)
+        && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId))
+        && puertaDeBuzonesPermite(request.resource.data.tenantId, request.resource.data.get('email', ''));
+
+      // Al ACTUALIZAR, solo si el correo CAMBIA. `updateDoc` fusiona y la regla
+      // evalúa el documento RESULTANTE, así que mirar el correo siempre
+      // bloquearía cambiarle el teléfono a cualquiera de las once direcciones
+      // que ya están dentro — a las que esta ficha protege por la SALIDA, no
+      // echándolas. Misma trampa que `calendarioDeCobranzaValido`.
+      allow update: if tenantOperable(request.resource.data.tenantId)
+        && (signedIn() && tenantAdminOrSuper(request.resource.data.tenantId))
+        && (
+          request.resource.data.get('email', '') == resource.data.get('email', '')
+          || puertaDeBuzonesPermite(request.resource.data.tenantId, request.resource.data.get('email', ''))
+        );
+
       allow delete: if tenantOperable(resource.data.tenantId) && (signedIn() && tenantAdminOrSuper(resource.data.tenantId));
     }
 
     // Credenciales de las cuentas de prueba del trial. Contienen contraseñas en
     // claro, así que NO pueden vivir en tenantSettings (que lee cualquier
     // miembro del tenant): solo el admin del conjunto y el superadmin.
+    // `PRD-V-PLAT-006` D2 · configuración de plataforma, del superadmin y de nadie más.
+    //
+    // **Existe porque el control de su propia prueba falló.** `config` no está en
+    // `relaxedTenantCollection`, así que la regla comodín de abajo la negaba a
+    // TODOS — y el `tenant_admin` no podía leerla, que era lo que `CA8` pedía,
+    // pero **el superadmin tampoco**, y §3 le encarga mantener la lista. Sin la
+    // prueba de control, los `assertFails` de `CA8` habrían pasado por la razón
+    // equivocada y la lista solo habría sido editable por script.
+    //
+    // No lleva `tenantId` a propósito: la lista del equipo es GLOBAL, porque el
+    // equipo es el mismo en los nueve conjuntos.
+    match /config/{docId} {
+      allow read, write: if signedIn() && superadmin();
+    }
+
     match /tenantDemoAccounts/{tenantId} {
       allow read: if signedIn() && tenantAdminOrSuper(tenantId);
       allow write: if false;  // solo el Admin SDK al provisionar

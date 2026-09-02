@@ -67,6 +67,7 @@ const resident_access_1 = require("./resident-access");
 const reservations_1 = require("./reservations");
 const coefficient_billing_1 = require("./coefficient-billing");
 const trial_lifecycle_1 = require("./trial-lifecycle");
+const buzones_admisibles_1 = require("./buzones-admisibles");
 const trial_modules_1 = require("./trial-modules");
 const management_companies_1 = require("./management-companies");
 const tenant_membership_1 = require("./tenant-membership");
@@ -944,6 +945,9 @@ exports.createTenantAdmin = (0, https_1.onCall)({
         if (!tenantSnap.exists) {
             throw new https_1.HttpsError("not-found", "El tenant no existe.");
         }
+        // `PLAT-006`: antes de tocar Auth. Crear la cuenta y rechazar después dejaría
+        // el usuario creado sin poder entrar, que es peor que no crearlo.
+        await (0, buzones_admisibles_1.assertBuzonAdmisible)(data.tenantId, data.email);
         const authApi = (0, auth_1.getAuth)();
         const existingUser = await authApi
             .getUserByEmail(data.email)
@@ -1135,6 +1139,9 @@ exports.createTenantOperationalUser = (0, https_1.onCall)({
         if (!tenantSnap.exists) {
             throw new https_1.HttpsError("not-found", "El tenant no existe.");
         }
+        // `PLAT-006`: sobre el conjunto REAL del actor, no sobre el que vino en la
+        // petición — `assertActiveTenantAdmin` ya lo resolvió arriba.
+        await (0, buzones_admisibles_1.assertBuzonAdmisible)(targetTenantId, data.email);
         const authApi = (0, auth_1.getAuth)();
         const existingUser = await authApi
             .getUserByEmail(data.email)
@@ -1762,6 +1769,12 @@ exports.provisionResidentTemporaryAccess = (0, https_1.onCall)({
     });
     // Regla B: en prueba no se invita a personas reales.
     await (0, trial_modules_1.assertCanInviteRealPeople)(tenantId);
+    // `PLAT-006`: su gemelo por la marca del conjunto, no por el estado. Las dos
+    // conviven — aquélla protege el ambiente que expira, esta el conjunto sin
+    // cliente detrás. El correo sale de `people`, así que se lee antes de crear
+    // nada: rechazar después dejaría la cuenta hecha y sin correo de acceso.
+    const personaSnap = await db.collection("people").doc(personId).get();
+    await (0, buzones_admisibles_1.assertBuzonAdmisible)(tenantId, personaSnap.data()?.email);
     try {
         const { isNewUser, ...result } = await upsertResidentTemporaryAccess({
             tenantId,
@@ -3277,6 +3290,9 @@ exports.resendAccountInvite = (0, https_1.onCall)({ cors: http_config_1.callable
     const fullName = userData?.fullName ?? authUser?.displayName ?? "";
     if (!email)
         throw new https_1.HttpsError("failed-precondition", "El usuario no tiene correo registrado.");
+    // `PLAT-006`: reenviar es un camino de alta como cualquier otro. Sin esto, una
+    // dirección que la puerta rechaza al crear se cuela por el botón de reenviar.
+    await (0, buzones_admisibles_1.assertBuzonAdmisible)(actor.tenantId, email);
     await sendOnboardingInvite(targetUid, email, fullName, actor.tenantId, role, "welcome");
     await writeAuditLog(actor.tenantId, request.auth.uid, "resend_account_invite", { uid: targetUid });
     return { ok: true };

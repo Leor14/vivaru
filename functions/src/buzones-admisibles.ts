@@ -1,4 +1,7 @@
 import { getFirestore } from "firebase-admin/firestore";
+import { HttpsError } from "firebase-functions/v2/https";
+
+import { isFeatureEnabled } from "./feature-flags";
 
 /**
  * `PRD-V-PLAT-006` · el predicado único de «esta dirección se puede tocar en este conjunto».
@@ -149,3 +152,30 @@ export async function buzonAdmisibleEnConjunto(
 /** El motivo legible, uno solo, para que el rechazo diga lo mismo en la entrada y en la salida. */
 export const MOTIVO_RECHAZO =
   "En un conjunto de demostración solo se admiten direcciones de prueba o del equipo.";
+
+/**
+ * `PRD-V-PLAT-006` · la puerta de ENTRADA del lado del servidor.
+ *
+ * **Existe porque una regla de Firestore no protege lo que escribe una callable.** Las callables
+ * van con Admin SDK, que no evalúa `firestore.rules`, así que `firestore.rules` cubre `people` —lo
+ * escribe el cliente— y esto cubre `users` y `tenantUsers`, que solo se escriben por callable. Si
+ * cambias una, cambia la otra: es el mismo par que `tenantOperable` / `assertTenantOperable`, y su
+ * desajuste costó `CF8`.
+ *
+ * **Lanza `failed-precondition`, no `permission-denied`**, y con el mismo texto que ve quien recibe
+ * el rechazo en la salida: al administrador no le falta un permiso, es que la dirección no cabe en
+ * un conjunto de demostración. Misma forma que `assertCanInviteRealPeople`.
+ *
+ * **Respeta la bandera**, así que apagada no rechaza nada — que es la conducta de hoy.
+ */
+export async function assertBuzonAdmisible(
+  tenantId: string | null | undefined,
+  email: string | null | undefined,
+): Promise<void> {
+  // Sin correo no hay nada que juzgar: quien exija el correo es cada callable.
+  if (!email) return;
+  if (!(await isFeatureEnabled("producto-puerta-de-buzones", tenantId))) return;
+  if (await buzonAdmisibleEnConjunto(tenantId, email)) return;
+
+  throw new HttpsError("failed-precondition", MOTIVO_RECHAZO);
+}

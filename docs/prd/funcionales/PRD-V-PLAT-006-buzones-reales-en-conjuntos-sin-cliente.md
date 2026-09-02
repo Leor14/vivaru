@@ -6,7 +6,7 @@
 | **Portales** | `ADMIN` (alcance: alta y edición de personas y cuentas) · `SUPERADMIN` (alcance: la marca del conjunto y la lista del equipo) · `RESIDENTE` y `PORTERIA` no se ven afectados |
 | **Módulo** | Residentes y unidades · Cuentas · correo transaccional (`functions/src/email.ts`) |
 | **Usuario principal** | `superadmin` (marca los conjuntos y mantiene la lista). `tenant_admin` la sufre: es a quien se le rechaza una dirección |
-| **Estado** | **MVP CONSTRUIDO — sin desplegar, bandera apagada (3 sep 2026).** D1, D2, la puerta de SALIDA y el barrido. `G2` y `G3` cerradas: David tomó las tres recomendaciones de §0 y confirmó que **`luiseoteror@gmail.com` (Luis Otero) es suyo**, con lo que las once quedan resueltas — diez de tecleo de demo, una del equipo. Falta la puerta de ENTRADA (reglas + callables), que es «Después» en §13 |
+| **Estado** | **COMPLETA Y CONSTRUIDA (3 sep 2026).** Salida **desplegada en los dos ambientes y validada** en el canario de staging; **entrada construida, sin desplegar**, con la bandera apagada. D1, D2, D3 tomadas como recomendaba §0, y las once resueltas — diez de tecleo de demo, una del equipo (`luiseoteror@gmail.com`, confirmado por David). Lo que queda no es código: marcar los siete en producción, sanear las diez y encender |
 | **Dependencias** | `DATO-001` (limpieza del 27 ago, hecha) · `PRD-V-FLOW-003` (el canal de correo y el adjunto que convierte un correo molesto en fuga) · `PRD-V-FEAT-002`/`FEAT-006` (la importación es un camino de alta) · el trial self-service (`createTrialWorkspace`, `createTenantFromLead`) |
 | **Riesgo** | **Medio.** Mal cortada rompe el trial: un prospecto se registra con su correo real y su conjunto nace `isExample: true` |
 | **Reversibilidad** | Total detrás de una bandera. La marca del conjunto es un campo que se puede quitar; la lista del equipo, un documento |
@@ -273,6 +273,32 @@ sanear las once.
 **MVP:** D1, D2, salida, barrido. **Después:** entrada (reglas + callables), importación por
 servidor.
 
+> **LA ENTRADA, CONSTRUIDA EL 3 DE SEPTIEMBRE.** Dos palancas, porque una sola no llega:
+>
+> | Camino | Quién escribe | Qué lo cubre |
+> |---|---|---|
+> | `people` — formulario **y la importación masiva** | el CLIENTE, por `writeBatch` | `firestore.rules` |
+> | `users` · `tenantUsers` | solo callables, con **Admin SDK, que NO evalúa las reglas** | `assertBuzonAdmisible` en `createTenantAdmin`, `createTenantOperationalUser`, `provisionResidentTemporaryAccess` y `resendAccountInvite` |
+>
+> **El trial NO la lleva, y hay una prueba que lo exige**: `createTrialWorkspace` y
+> `createTenantFromLead` dan de alta a un prospecto con su correo real (`CA4`). Sin ese control,
+> alguien «arreglaría» la asimetría un día y rompería el alta sin que nada más lo notara.
+>
+> **La regla resuelve la bandera ella misma** —kill switch maestro, kill switch de la bandera,
+> override del conjunto, valor global—, con el default `false` escrito a mano porque una regla no
+> puede leer el catálogo del código. Es una **sexta copia** del catálogo de banderas y está
+> declarada como tal.
+>
+> **Dos trampas que dejó, y las dos las cazó una prueba, no la lectura:**
+>
+> 1. **`updateDoc` fusiona y la regla ve el documento RESULTANTE.** Mirar el correo en toda
+>    actualización habría bloqueado cambiarle el teléfono a cualquiera de las once que ya están
+>    dentro. Por eso `create` mira siempre y `update` solo **si el correo cambia**.
+> 2. **`config/correosDelEquipo` no la podía leer NADIE, superadmin incluido** —`config` no está en
+>    `relaxedTenantCollection`, así que caía en la regla comodín—. `CA8` habría pasado en verde por
+>    la razón equivocada: no «el admin no puede», sino «nadie puede», y la lista solo habría sido
+>    editable por script. **Lo destapó la prueba de CONTROL**, no la principal.
+
 ## Puertas
 
 | | |
@@ -281,7 +307,7 @@ servidor.
 | `G1 Valor` | **Superada.** Baseline en §2; métrica en `fin` |
 | `G2 Datos y permisos` | **Superada (3 sep).** D1 y D2 tomadas como recomendaba §0; la propiedad de las once, resuelta |
 | `G3 Riesgo` | **Superada (3 sep).** D3 = las dos, la salida primero. El trial cubierto por `CA7`, que falla si alguien deriva la marca de `isExample` |
-| `G4 Construcción` | **Superada.** 20 pruebas nuevas, seis falsaciones más dos de los guardianes |
+| `G4 Construcción` | **Superada, entrada incluida.** 57 pruebas nuevas —20 de salida, 25 de reglas contra el emulador, 12 del servidor— y **doce falsaciones**, dos de ellas rehechas porque pasaron en verde siendo malas |
 | `G5 Despliegue` | **Superada en los DOS ambientes (3 sep).** 90 functions `ACTIVE` en cada uno, **cero sin mover** medido por `updateTime` contra la línea base. **Canario encendido en staging** (`tenant-santa-maria` marcado + override de la bandera), y validado con el flujo real: ver abajo |
 | `G6 Valor` | **Abierta en producción**: falta marcar los siete, sanear las diez y encender |
 

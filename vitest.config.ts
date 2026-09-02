@@ -23,6 +23,7 @@ export default defineConfig({
       "**/firestore.rules.test.ts",
       "**/storage.rules.test.ts",
       "**/push-tokens.rules.test.ts",
+      "**/puerta-de-buzones.rules.test.ts",
       // Copias de un worktree de Claude. `--dir tests` ya las deja fuera de
       // `npm test`, pero **una ruta suelta se salta el `--dir`**: `npx vitest run
       // tests/x.test.ts` recogía el fichero del worktree ADEMÁS del de verdad, y

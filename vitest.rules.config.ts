@@ -26,6 +26,7 @@ export default defineConfig({
       "tests/firestore.rules.test.ts",
       "tests/storage.rules.test.ts",
       "tests/push-tokens.rules.test.ts",
+      "tests/puerta-de-buzones.rules.test.ts",
     ],
     exclude: ["**/node_modules/**", "**/dist/**", "**/.claude/**"],
     // Comparten emulador: en paralelo se pisan los mismos documentos.
