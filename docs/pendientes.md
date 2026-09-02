@@ -4,7 +4,105 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 2 de septiembre de 2026 (CIERRE de la noche del 1)
+## LO PRIMERO AL ABRIR SESIÓN — 2 de septiembre de 2026 (CIERRE de la jornada de los cabos)
+
+> ### LOS CINCO CABOS ESTÁN CERRADOS Y EN STAGING. La puerta del alta NO se construyó: medirla la volvió otra ficha, y espera TRES decisiones de David.
+>
+> **`develop` en `484e16a` + documentos, empujado; staging sirve `build-2026-09-02-003` (← `484e16a`),
+> medido por `traffic.current`. `master` sigue en `6548e51`: PRODUCCIÓN NO TIENE LOS CABOS — el push
+> a `master` es de David.** Árbol limpio. **Bancos: `npm test` 1560 · functions 750, y por primera
+> vez `npm test` sale en VERDE SIN emulador.**
+>
+> **Los cinco, en un commit (`484e16a`), falsados por edición los cinco:**
+>
+> | Cabo | Qué era | Qué quedó | Cómo se falsó |
+> |---|---|---|---|
+> | Comunicado sin vigencia | `startsAt: undefined` en el formulario y Firestore rechazaba el documento ENTERO: no se podía crear un comunicado sin fechas | `createCommunication` y `updateCommunication` pasan por `stripUndefined`. **Visto en staging**: creado sin fechas → «Comunicado creado», y el documento en la base sin las claves; borrado después | `tests/comunicados-sin-vigencia.test.ts` en rojo al quitar el `stripUndefined` |
+> | Base clavada de `email.ts` | Los correos de staging enlazaban a producción | `enlaceAbsoluto` de `push.ts` (el gemelo que ya lo hacía bien) decide la base por `GCLOUD_PROJECT`. **Desplegado a staging en las 27 functions que envían correo**, cerradas siguiendo el código (dos con alias `…Impl` que el cierre transitivo no veía), `ACTIVE` y `updateTime` fresco las 27 | `functions/tests/email-enlace-del-ambiente.test.ts`: lee el CUERPO que sale a Resend con `fetch` sustituido ANTES de importar el módulo |
+> | `CF3` con credencial | El script abría el informe DESPUÉS de leer Firestore; con la ADC caducada la prueba se colgaba hasta el timeout | El informe que no existe se rechaza antes de `initializeApp()` | La prueba nueva en rojo al anular la guarda |
+> | Rojo del emulador | `push-tokens.rules.test.ts` no estaba en las exclusiones de `vitest.config.ts` | Excluido con sus dos hermanas; sigue en `vitest.rules.config.ts` (`vitest list --config …` lo confirma) | `npm test` en verde sin emulador |
+> | Facturado sin anticipo | Cartera reconstruía `balance + paymentAmount` sin `advanceAppliedAmount`; `collection.ts` ya lo hacía bien | La página usa `statementChargedAmount`. **Medido en producción antes**: 221 cobros, 1 sin `amount`, 26 con `amount` 0 y saldo 0, **0 con anticipo** — las dos fórmulas coinciden hoy en las 221 | `tests/facturado-una-sola-formula.test.ts` (barre `src/` buscando el gemelo) en rojo al reponerlo. **Su control falló a la primera**: la expresión no cazaba la fórmula canónica y vigilaba un conjunto vacío |
+>
+> **Producción no necesita las 27 functions ahora**: allí la base clavada YA era la correcta, así que
+> desplegarlas cambia cero comportamiento. Irán con el siguiente lote. La lista, por si hace falta
+> antes: `createTenantAdmin createTenantFromLead createTenantOperationalUser createTrialWorkspace
+> notifyBillingBatch notifyResidentReceipt onBillingStatementCreated onCommitteeAgreementUpdated
+> onPaymentVoucherCreated onRegulationDocumentCreated onReservationUpdated onSurveyUpdated
+> onTicketUpdated provisionResidentTemporaryAccess publishScheduledCharges registerWalkInVisit
+> reopenSupportTicketCallable replyToSupportTicket requestAdvisorContact resendAccountInvite
+> resolveVisitAuthorization sendBillingReminder sendScheduledReminders trialLifecycleDaily
+> updateOverdueStatements createSupportTicket updateSupportTicketStatus`.
+>
+> ### LA PUERTA DEL ALTA — `PRD-V-PLAT-006`, en Discovery, y por qué NO se construyó
+>
+> El chip decía «rechazar buzones reales en conjuntos `isExample`». **Medido antes de escribir una
+> línea, el criterio es imposible por construcción**, la trampa de `CA9` de anteanoche:
+>
+> 1. **`isExample` lo llevan los NUEVE conjuntos de producción, incluidos los dos del trial**
+>    (`queretarock-229-fc4c57`, `residencial-qintilab-mx-9c1293`, con `trialEndsAt`). Un prospecto se
+>    registra con su correo real por diseño: esa puerta lo rechazaría.
+> 2. **`DATO-001` limpió siete por su FORMA y dejó ONCE** en `people` (6 en `pXHEn5iWKWgX4sDF9tVp`
+>    del 17 may, 5 en Santa María del 21 may y 5 jun; `medi.paty@gmail.com`, `Caro_ap_03@outlook.com`…),
+>    todas anteriores a la limpieza, **ninguna ha recibido correo** (`emailDeliveries`: 2 filas, 0 a
+>    ellas). **No se sabe de quién son: la forma no lo dice.**
+> 3. **El equipo valida con buzones reales dentro de conjuntos de ejemplo** (`david.macar.18+…@hotmail.com`
+>    en Las Playas, el iPhone de `PLAT-005`). Sin lista del equipo, la puerta rechaza la validación.
+>
+> **Ficha:** `docs/prd/funcionales/PRD-V-PLAT-006-buzones-reales-en-conjuntos-sin-cliente.md`, con las
+> tres decisiones y su recomendación: **D1** un campo explícito `sinClienteDetras` (nunca derivado de
+> `isExample` ni de `trialEndsAt`) · **D2** dominios inertes + lista del equipo · **D3** entrada, salida
+> o ambas — **la salida primero**, porque protege también a las once. **Lo único construido:** el
+> barrido en seco `functions/scripts/informe-correos-en-conjuntos-de-ejemplo.mjs` (enmascara).
+>
+> ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
+>
+> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **diecisiete días**.
+> 2. **Push a `master`** para que los cinco cabos lleguen a producción (`484e16a` y los docs).
+> 3. **Las tres decisiones de `PLAT-006`** (arriba), **y de quién son las once direcciones**: con eso
+>    se corre `sanear-correos-de-prueba.mjs` y la ficha pasa a «lista para desarrollo».
+> 4. **Entregar `DECISIONES-A-006` a Albert** por el canal.
+> 5. **`gcloud auth login`** — sigue muerto. ADC y `firebase` vivos (ejercitadas hoy).
+> 6. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
+>
+> ### LOS CANDIDATOS QUE QUEDAN
+>
+> | Frente | Qué haría falta |
+> |---|---|
+> | **`PLAT-006`** — la puerta de buzones | D1–D3 y la propiedad de las once. Con eso, una jornada |
+> | **`ONB-003` Fase 2** — unidades, plantillas con prefijo | Decisión de alcance: `RN-U2` y la red de `bulkCreateUnits` |
+> | **`UX-005`** — tableros configurables | Decisión de modelo. Prioridad baja |
+> | **Albert** | El contrato de `vivaruWonSignals`. No empezar sin él |
+>
+> ### ESTADO DEL REPOSITORIO AL CERRAR
+>
+> - **`develop`: `484e16a` + el commit de documentos**, empujado (leer con `git ls-remote`). **`master`: `6548e51`.**
+> - **Staging: `build-2026-09-02-003` ← `484e16a`** · functions de correo desplegadas (27/27). **Producción: `build-2026-09-01-019` ← `6548e51`**, sin los cabos.
+> - **Bancos: `npm test` 1560 · functions 750**, typechecks en 0. **Sin emulador ya no hay rojo esperado.**
+> - **Credenciales: ADC viva · `firebase` viva · `gcloud` muerto.**
+>
+> ### CINCO TRAMPAS DE MÉTODO DE HOY
+>
+> 1. **Un `replace` sin contar ocurrencias al RESTAURAR una falsación metió el arreglo en dos sitios
+>    de más** (`createPerson`, `createReservation`). Lo cazó comparar el md5 antes y después: **la
+>    restauración también se verifica**, no solo la mutación.
+> 2. **El control del guardián falló a la primera** (la expresión no cazaba la fórmula canónica). Sin
+>    ese control, el guardián habría pasado en verde vigilando nada. Cf. `un-verde-no-vale-sin-falsacion`.
+> 3. **Un cierre transitivo por nombre no ve los alias de importación** (`createSupportTicket as
+>    createSupportTicketImpl`): dos functions se habrían quedado fuera del despliegue. Grep de los `as`.
+> 4. **`npx vitest list --config <cfg>` dice qué ficheros recoge cada config** sin correr nada: es
+>    la prueba de una exclusión, no leer el fichero de config.
+> 5. **Un chip apuntado con un criterio («en conjuntos `isExample`») se mide ANTES de escribir la
+>    PRD**: la medición lo invalidó en diez minutos y habría costado media jornada construirlo mal.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA NOCHE DEL 1 DE SEPTIEMBRE — CIERRE — histórico
+
+**Bajado de la cabecera al cerrar la jornada del 2 de septiembre.** Lo operativo lo supera la cabecera; el encuadre de Albert y los candidatos siguen valiendo.
+
+### LO PRIMERO AL ABRIR SESIÓN — 2 de septiembre de 2026 (CIERRE de la noche del 1)
 
 > ### NO HAY NADA A MEDIAS. La siguiente sesión **ELIGE FRENTE**, y Albert está ESPERANDO a Albert.
 >

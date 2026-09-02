@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.48 |
+| **Versión** | 0.9.49 |
 | **Fecha** | 1 de septiembre de 2026 |
-| **Estado** | **1 sep, noche: `ONB-003` (unir columnas) EN PRODUCCIÓN y validada con ojos; Albert RETOMADO** — `DECISIONES-A-006` entregada, esperando el contrato de su endpoint `vivaruWonSignals`. Detalle en el changelog 0.9.48. **Lo del día, vigente:** **LOS DOS FRENTES DEL 31 ESTÁN RESUELTOS.** (a) La prueba de portería de `PH-003`: **`CA3` verificado en producción con dos sesiones reales a la vez** —guardia y residente en navegadores distintos, resuelto en 26 segundos, `authorizationMedium: "app"` con el uid del residente en la base— y **`CA10` estaba EN PRODUCCIÓN SIN CONSTRUIR**: la propia prueba lo destapó al ver la visita **desaparecer del portal del residente** en el instante de autorizarse. **Se construyó, desplegó y verificó el mismo día** (`28a587e` + `c858edf`), con el mismo vocabulario de constancia que ve la portería. **Tercera vez que muerde «desplegado no es completo».** De `PH-003` queda solo **`CA4`** (la carrera), y **su fixture ya existe**: segunda residente en APARTAMENTO 201 (Carolina Prueba), verificada entrando; la prueba pide **dos personas y dos dispositivos**, no más código. (b) **La exploración de `AI-ONB-001` está hecha y REENCUADRA la ficha:** medido contra el código real, el mapeador determinístico **casi no falla en «elegir columnas»** —que es justo lo que el enganche previsto asiste—; falla en **transformaciones** (nombre partido, Torre+Apto, padrón mixto, fila de título encima de los encabezados) y en **formatos** (PDF/foto ni entran al lector). La premisa de David aguantó —sin corpus no hay ficha— y ya se sabe **qué corpus pedir**. **Y la noche de los chips cerró dos defectos** de la familia «dato ausente disfrazado de dato falso», los dos en producción: el login que todo lo pintaba «error inesperado» (`fe89324`) y el «Visita a: [guardia]» (`d77a559`). **LO ANTERIOR, VIGENTE:** la IA encendida con 0 tráfico y el tope de gasto sin mirarse; `PLAT-005` pendiente de un Android; 0 `pushTokens`; `UX-005` espera tu decisión de prioridad. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Estado** | **2 sep: LOS CINCO CABOS SUELTOS CERRADOS** en `develop` (`484e16a`; staging lo sirve, producción espera el push a `master`) **y `PRD-V-PLAT-006` escrita en Discovery**: la «puerta del alta» de `DATO-001` resultó **imposible por construcción con `isExample`** —lo llevan los nueve conjuntos, trials incluidos— y `DATO-001` dejó once direcciones que su patrón no cazaba. Espera tres decisiones. Detalle en 0.9.49. **Lo anterior:** 1 sep, noche: `ONB-003` (unir columnas) EN PRODUCCIÓN y validada con ojos; Albert RETOMADO** — `DECISIONES-A-006` entregada, esperando el contrato de su endpoint `vivaruWonSignals`. Detalle en el changelog 0.9.48. **Lo del día, vigente:** **LOS DOS FRENTES DEL 31 ESTÁN RESUELTOS.** (a) La prueba de portería de `PH-003`: **`CA3` verificado en producción con dos sesiones reales a la vez** —guardia y residente en navegadores distintos, resuelto en 26 segundos, `authorizationMedium: "app"` con el uid del residente en la base— y **`CA10` estaba EN PRODUCCIÓN SIN CONSTRUIR**: la propia prueba lo destapó al ver la visita **desaparecer del portal del residente** en el instante de autorizarse. **Se construyó, desplegó y verificó el mismo día** (`28a587e` + `c858edf`), con el mismo vocabulario de constancia que ve la portería. **Tercera vez que muerde «desplegado no es completo».** De `PH-003` queda solo **`CA4`** (la carrera), y **su fixture ya existe**: segunda residente en APARTAMENTO 201 (Carolina Prueba), verificada entrando; la prueba pide **dos personas y dos dispositivos**, no más código. (b) **La exploración de `AI-ONB-001` está hecha y REENCUADRA la ficha:** medido contra el código real, el mapeador determinístico **casi no falla en «elegir columnas»** —que es justo lo que el enganche previsto asiste—; falla en **transformaciones** (nombre partido, Torre+Apto, padrón mixto, fila de título encima de los encabezados) y en **formatos** (PDF/foto ni entran al lector). La premisa de David aguantó —sin corpus no hay ficha— y ya se sabe **qué corpus pedir**. **Y la noche de los chips cerró dos defectos** de la familia «dato ausente disfrazado de dato falso», los dos en producción: el login que todo lo pintaba «error inesperado» (`fe89324`) y el «Visita a: [guardia]» (`d77a559`). **LO ANTERIOR, VIGENTE:** la IA encendida con 0 tráfico y el tope de gasto sin mirarse; `PLAT-005` pendiente de un Android; 0 `pushTokens`; `UX-005` espera tu decisión de prioridad. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, midiendo y con ojos** (1 sep, noche: `build-2026-09-01-019` ← `6548e51` por `traffic.current`; `npm test` **1554** · functions **745**). Y por la mañana: `CA3` y `CA10` **vistos en pantalla** con las sesiones reales del guardia y de DOS residentes distintos, y los campos leídos de la base (`authorizedBy`, `authorizationMedium`, `checkInAt` posterior a la autorización); la fixture de `CA4` verificada con **la misma consulta del servidor** (`residentesActivosDeLaUnidad` → 2 activos en la 201); el mapeador medido **ejecutando** `suggestMapping` y `readTabularFile` contra ocho formatos plausibles; `npm test` **1490** con el emulador levantado; producción sirviendo `build-2026-09-01-003` por `traffic.current`. Los conteos de fondo (conjuntos, cobros, personas) son los del 31 y están en el reporte |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -1224,6 +1224,27 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.49 — 2 de septiembre de 2026 — los cinco cabos, y la puerta del alta que no era
+
+- **Los cinco cabos sueltos, cerrados en un commit (`484e16a`) y falsados por edición.** Un
+  comunicado sin vigencia mandaba `startsAt: undefined` y Firestore rechazaba el documento entero
+  (no se podía crear un comunicado sin fechas; visto arreglado en staging); `email.ts` llevaba la
+  base de producción clavada y los correos de staging enlazaban a producción (ahora decide
+  `enlaceAbsoluto`, el gemelo de `push.ts`; **27 functions** desplegadas a staging, cerradas
+  siguiendo el código); la prueba `CF3` de migración dependía de una credencial viva (el informe
+  inexistente se rechaza antes de tocar la red); `push-tokens.rules.test.ts` enrojecía `npm test`
+  sin emulador (excluido con sus hermanas: **por primera vez el banco sale en verde sin emulador**,
+  1560); y Cartera reconstruía el facturado sin el anticipo (una sola fórmula, `statementChargedAmount`,
+  con guardián que barre `src/`; medido antes: 0 cobros con anticipo, las dos fórmulas coinciden).
+- **`PRD-V-PLAT-006` — Buzones reales en conjuntos sin cliente: la puerta**, en Discovery. Es la
+  «fase 2» de `DATO-001`, y **medirla antes de escribirla la cambió**: `isExample` lo llevan los
+  nueve conjuntos de producción **incluidos los dos del trial**, cuyo administrador se registra con
+  su correo real, así que «rechazar buzones reales en conjuntos `isExample`» rechazaría a cualquier
+  prospecto. Además `DATO-001` limpió siete por su forma y **dejó once** (dos conjuntos demo,
+  mayo–junio, ninguna con correo recibido), y el equipo valida con buzones reales dentro de esos
+  conjuntos. Tres decisiones (qué marca al conjunto, qué se admite, entrada o salida) con
+  recomendación; construido solo el barrido en seco que lo mide.
 
 ### 0.9.48 — 1 de septiembre de 2026 (noche)
 
