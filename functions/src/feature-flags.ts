@@ -66,6 +66,7 @@ export type FeatureFlagKey =
   | "producto-notificaciones-push"
   | "producto-padron-sin-duplicados"
   | "producto-visita-no-anunciada"
+  | "producto-puerta-de-buzones"
   | "operacion-app-check-monitor";
 
 /**
@@ -110,6 +111,10 @@ export const FEATURE_FLAG_DEFAULTS: Record<FeatureFlagKey, boolean> = {
   // Apagada = sin estado de cuenta ni paz y salvo. Ver el catálogo en `src/`.
   "producto-estado-de-cuenta": false,
   "producto-entrega-de-correo": false,
+  // Apagada = no se rechaza ni un envío ni una escritura: la conducta de hoy. El
+  // SERVIDOR la comprueba, en `email.ts` delante del `fetch`, que es lo que la
+  // hace freno y no botón. Ver el catálogo en `src/`.
+  "producto-puerta-de-buzones": false,
   "producto-calendario-de-cobranza": false,
   "producto-expediente-conciliacion": false,
   // Apagada = el servidor no empuja y el portal no invita. Ver el catálogo en `src/`.

@@ -55,18 +55,28 @@ for (const t of conjuntos.docs) {
 
 const informe = { projectId, medidoEn: new Date().toISOString(), conjuntosDeEjemplo: Object.fromEntries(ejemplo), colecciones: {} };
 
+// **Un registro FUSIONADO no es una dirección viva, y contarlo infla el informe.** `ONB-002`
+// fusionó siete altas del mismo residente el 31 ago 2026, y la fusión deja la decisión escrita en
+// el documento (`fusionadaEn`, `fusionadaHaciaId`) **sin tocar `status`**: los seis absorbidos
+// siguen en `active`, que es lo correcto —archivar no es esconder— pero hace que un barrido que
+// solo mire `status` cuente seis veces el mismo buzón. Se separan, no se ocultan.
+const estaFusionado = (x) => Boolean(x.fusionadaEn || x.fusionadaHaciaId);
+
 for (const coleccion of ["people", "tenantUsers", "users"]) {
   const snap = await db.collection(coleccion).get();
-  const r = { total: snap.size, enConjuntosDeEjemplo: 0, porDominio: {}, noInertes: [] };
+  const r = { total: snap.size, enConjuntosDeEjemplo: 0, fusionados: 0, porDominio: {}, noInertes: [], noInertesFusionados: [] };
   for (const d of snap.docs) {
     const x = d.data();
     if (!ejemplo.has(x.tenantId)) continue;
-    r.enConjuntosDeEjemplo += 1;
+    const fusionado = estaFusionado(x);
+    if (fusionado) r.fusionados += 1;
+    else r.enConjuntosDeEjemplo += 1;
     const dominio = dominioDe(x.email);
     const clave = dominio ?? "(sin correo)";
-    r.porDominio[clave] = (r.porDominio[clave] ?? 0) + 1;
+    if (!fusionado) r.porDominio[clave] = (r.porDominio[clave] ?? 0) + 1;
     if (dominio && !esInerte(dominio)) {
-      r.noInertes.push({ doc: `${coleccion}/${d.id}`, correo: enmascarar(x.email), tenantId: x.tenantId, status: x.status ?? null });
+      const fila = { doc: `${coleccion}/${d.id}`, correo: enmascarar(x.email), tenantId: x.tenantId, status: x.status ?? null };
+      (fusionado ? r.noInertesFusionados : r.noInertes).push(fila);
     }
   }
   informe.colecciones[coleccion] = r;
@@ -91,6 +101,11 @@ console.log(`CORREOS EN CONJUNTOS DE EJEMPLO · ${projectId} · seco\n`);
 console.log(`${ejemplo.size} conjunto(s) de ejemplo, ${[...ejemplo.values()].filter((c) => c.trial).length} de trial.`);
 for (const [nombre, r] of Object.entries(informe.colecciones)) {
   console.log(`\n${nombre}: ${r.enConjuntosDeEjemplo} de ${r.total} en conjuntos de ejemplo · ${r.noInertes.length} con dominio NO inerte`);
+  if (r.fusionados) {
+    console.log(
+      `     (+${r.fusionados} fusionado(s) por ONB-002, ${r.noInertesFusionados.length} de ellos no inertes — NO se cuentan: son el mismo buzón repetido)`,
+    );
+  }
   for (const [dominio, n] of Object.entries(r.porDominio).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${String(n).padStart(4)}  ${dominio}${esInerte(dominio) ? "  (inerte)" : ""}`);
   }

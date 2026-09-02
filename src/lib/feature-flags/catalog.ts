@@ -78,6 +78,7 @@ export type FeatureFlagKey =
   | "producto-notificaciones-push"
   | "producto-padron-sin-duplicados"
   | "producto-visita-no-anunciada"
+  | "producto-puerta-de-buzones"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -297,6 +298,20 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-FLOW-003 §11.3 — entrega medida",
     alApagar:
       "Dejan de registrarse los envíos nuevos. **Lo ya registrado NO se borra** y el webhook sigue pudiendo mover esas filas, para que un rebote que llega tarde no se pierda. Lo que desaparece es el rastro de lo que se mande a partir de ese momento, y con él la lista de rebotes deja de crecer: alguien puede quedarse sin recibir avisos y nadie se enteraría.",
+  },
+  "producto-puerta-de-buzones": {
+    key: "producto-puerta-de-buzones",
+    area: "producto",
+    label: "Puerta de buzones en conjuntos sin cliente",
+    description:
+      "En los conjuntos marcados como «sin cliente detrás» solo se admiten direcciones de prueba o del equipo: el producto deja de escribir y de escribirle a buzones de personas que nadie sabe de quién son.",
+    // Nace APAGADA: apagada no se rechaza ni un envío, que es exactamente la
+    // conducta de hoy. La marca del conjunto se puede poner igual —encender es un
+    // instante y la marca es la que cuesta pensar (`RN-6`).
+    defaultEnabled: false,
+    origen: "PRD-V-PLAT-006 §11 — buzones reales en conjuntos sin cliente",
+    alApagar:
+      "Los conjuntos marcados vuelven a poder escribir y recibir correo en cualquier dirección, como hasta hoy. **La marca `sinClienteDetras` y la lista del equipo NO se borran**: al reencenderla la puerta vuelve con la misma configuración. Ojo con el efecto silencioso al revés que en las demás — aquí apagar no deja de hacer algo visible, sino que **reabre** la puerta por la que entraron las once direcciones que `DATO-001` tuvo que limpiar dos veces.",
   },
   "producto-estado-de-cuenta": {
     key: "producto-estado-de-cuenta",

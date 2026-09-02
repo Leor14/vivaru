@@ -58,6 +58,10 @@ const CLAVES = [
   "producto-estado-de-cuenta",
   "producto-entrega-de-correo",
   "producto-calendario-de-cobranza",
+  // Sin esta línea la puerta no se puede encender POR CONJUNTO, que es la vía del
+  // canario: encenderla en Santa María antes que en los nueve. Es el olvido que
+  // ya pasó el 25 ago con otra bandera.
+  "producto-puerta-de-buzones",
   "operacion-app-check-monitor",
 ];
 

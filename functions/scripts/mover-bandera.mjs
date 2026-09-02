@@ -50,6 +50,7 @@ const CLAVES = [
   "producto-estado-de-cuenta",
   "producto-entrega-de-correo",
   "producto-calendario-de-cobranza",
+  "producto-puerta-de-buzones",
   "operacion-app-check-monitor",
 ];
 

@@ -6,7 +6,7 @@
 | **Portales** | `ADMIN` (alcance: alta y edición de personas y cuentas) · `SUPERADMIN` (alcance: la marca del conjunto y la lista del equipo) · `RESIDENTE` y `PORTERIA` no se ven afectados |
 | **Módulo** | Residentes y unidades · Cuentas · correo transaccional (`functions/src/email.ts`) |
 | **Usuario principal** | `superadmin` (marca los conjuntos y mantiene la lista). `tenant_admin` la sufre: es a quien se le rechaza una dirección |
-| **Estado** | **Discovery — bloqueada por TRES decisiones de David (§0).** Es la «fase 2» de `DATO-001` del roadmap. Medida el 2 sep 2026 contra producción; **nada construido a propósito**, porque el criterio con que se apuntó el chip es imposible por construcción |
+| **Estado** | **MVP CONSTRUIDO — sin desplegar, bandera apagada (3 sep 2026).** D1, D2, la puerta de SALIDA y el barrido. `G2` y `G3` cerradas: David tomó las tres recomendaciones de §0 y confirmó que **`luiseoteror@gmail.com` (Luis Otero) es suyo**, con lo que las once quedan resueltas — diez de tecleo de demo, una del equipo. Falta la puerta de ENTRADA (reglas + callables), que es «Después» en §13 |
 | **Dependencias** | `DATO-001` (limpieza del 27 ago, hecha) · `PRD-V-FLOW-003` (el canal de correo y el adjunto que convierte un correo molesto en fuga) · `PRD-V-FEAT-002`/`FEAT-006` (la importación es un camino de alta) · el trial self-service (`createTrialWorkspace`, `createTenantFromLead`) |
 | **Riesgo** | **Medio.** Mal cortada rompe el trial: un prospecto se registra con su correo real y su conjunto nace `isExample: true` |
 | **Reversibilidad** | Total detrás de una bandera. La marca del conjunto es un campo que se puede quitar; la lista del equipo, un documento |
@@ -35,6 +35,24 @@ construir tal cual**. Tres hechos, los tres contados en producción el 2 de sept
    `DATO-001`, todas `active`, ninguna con cuenta de Auth salvo `luiseoteror@gmail.com`, y
    **ninguna ha recibido correo** (`emailDeliveries` tiene 2 filas en total, 0 a ellas). No se
    sabe de quién son los buzones: la lección de `DATO-001` es que la forma no lo dice.
+
+   > **RESUELTO EL 3 DE SEPTIEMBRE, y no por la forma: por el CONTEXTO.** La forma de una
+   > dirección no dice de quién es —eso sigue siendo cierto—, pero lo que la rodea sí. Cruzando
+   > creador, hora de alta, cuenta de Auth, unidad, vecinos de unidad y actividad en seis
+   > colecciones (`tickets`, `payments`, `reservations`, `visits`, `packages`,
+   > `billingStatements`), las once se parten limpiamente:
+   >
+   > - **Diez son tecleo de demostración.** Sin cuenta de Auth, sin una sola fila de actividad, y
+   >   creadas **en ráfagas de cuatro y cinco minutos** por el administrador del propio conjunto
+   >   (`admin@santamaria.co`, seis el 21 may entre las 01:40 y las 01:44; `admin@lasplayas.com`,
+   >   cuatro el 17 may entre las 22:36 y las 22:41), en unidades con nombres inconsistentes
+   >   (`PA-101`, `PA - 001`, `PA - 4001`) y con nombres de persona inventados.
+   > - **Una es del equipo:** `luiseoteror@gmail.com` (Luis Otero), la única de las once con
+   >   cuenta de Auth. **David lo confirmó el 3 de septiembre.**
+   >
+   > Con eso `G2` y `G3` pierden su bloqueo de datos. **La medición no sustituye a preguntar** —el
+   > último caso lo decidió David, no el barrido—, pero redujo once preguntas a una.
+
 3. **El equipo valida con buzones reales dentro de conjuntos de ejemplo, y eso es correcto.**
    `conjunto-las-playas` tiene cinco cuentas `david.macar.18+…@hotmail.com`; `PLAT-005` se
    validó con un iPhone real y un correo real. Una puerta en el alta que rechace «buzones reales»
@@ -71,12 +89,22 @@ puerta: en un conjunto marcado como sin cliente, solo se admite y solo se envía
 inertes o del equipo. El valor es dejar de depender de limpiezas periódicas por patrón, que ya
 demostraron dejar pasar la mitad.
 
-## 2 · Problema y baseline (medido el 2 sep 2026, `hogaru-1`)
+## 2 · Problema y baseline (medido el 2 sep 2026, `hogaru-1`; **recontado el 3**)
+
+> **El baseline del 2 de septiembre CONTABA DE MÁS, y la corrección enseña algo que vale más que
+> la cifra.** Decía «68 `people`, 36 con dominio no inerte». Seis de esos registros son las altas
+> repetidas de **una sola persona** que `ONB-002` fusionó el 31 de agosto: la fusión escribe la
+> decisión en el documento (`fusionadaEn`, `fusionadaHaciaId`, el motivo) y **deja `status` en
+> `active`** —archivar no es esconder—, así que un barrido que solo mire `status` cuenta seis veces
+> el mismo buzón. **Las 24 `people` de Santa María están las 24 en `active`.** El informe ya los
+> separa; las cifras de abajo son las corregidas. **Las ONCE no cambian**: los seis fusionados eran
+> todos la misma dirección del equipo.
 
 | Medida | Valor |
 |---|---|
 | Conjuntos en producción · con `isExample: true` · con `trialEndsAt` | 9 · 9 · 2 |
-| `people` en conjuntos de ejemplo · con dominio no inerte y no del equipo | 68 · **11** |
+| `people` **vivas** en conjuntos de ejemplo · con dominio no inerte · fusionadas aparte | **62** · **30** · 6 |
+| De esas, **no admisibles y no del equipo** | **11**, resueltas el 3 sep (§0.2) |
 | `tenantUsers` · `users` · cuentas de Auth con dominio inventado por semilla | 41 · 40 · 28 |
 | Correos entregados (`emailDeliveries`) · a las once | 2 · 0 |
 | Direcciones que `DATO-001` limpió el 27 ago por su forma | 7 (22 documentos + 6 de Auth) |
@@ -191,6 +219,33 @@ Casos que **deben fallar**: `CA1`, la mitad de `CA3`, `CA5`, y la escritura de `
   `resendAccountInvite`) y para la importación cuando pase por servidor.
 - **La puerta de salida** vive en `email.ts`, delante del `fetch`: es el único sitio por el que
   sale todo correo (27 functions lo alcanzan, contadas el 2 sep).
+
+  > **CONSTRUIRLA DESMINTIÓ LA MITAD DE ESTA FRASE, y es el hallazgo del 3 de septiembre.**
+  > `email.ts` es el único `fetch`, sí — pero **la puerta necesita saber de qué conjunto es el
+  > envío, y siete de los ocho no lo llevaban.** Medido llamador a llamador:
+  >
+  > | | Envíos | Van a | ¿Sabían el conjunto? |
+  > |---|---|---|---|
+  > | `sendNotificationEmail` | 6 | 2 a una persona · 4 a bandejas de Vivaru | **1** (`deliverResidentNotifications`, por `contexto`) |
+  > | `sendAccountEmail` | 2 | 2 a una persona | **0** — la firma ni lo admitía |
+  >
+  > **Una puerta ciega a la dirección habría sido peor que ninguna**: `notifyInbox()`,
+  > `supportInbox()` y `comercial@qintilab.com` son cuatro de los ocho, y filtrarlos cortaría los
+  > avisos de trial el día que alguien tocara la lista del equipo. Así que la puerta **filtra solo
+  > cuando sabe el conjunto**, y se le bajó el `tenantId` a los tres envíos a personas que no lo
+  > pasaban (`notifyClient` de soporte, `sendOnboardingInvite` y `sendPasswordSetupEmail` — los
+  > tres YA tenían el dato en su ámbito; solo había que enhebrarlo).
+  >
+  > Esa decisión deja un flanco por olvido —un envío nuevo que no pase `tenantId` sale sin pasar
+  > por nada— y por eso lo sostiene un guardián que **barre el código**, no una lista:
+  > `functions/tests/guardian-de-la-puerta-de-salida.test.ts`, con dos controles propios porque un
+  > guardián puede pasar en verde vigilando un conjunto vacío.
+
+- **El gemelo que ya existía, y la ficha no lo nombraba.** `assertCanInviteRealPeople`
+  (`functions/src/trial-modules.ts:61`) ya bloquea invitar residentes reales, con la misma forma
+  (`assert…(tenantId)` → `failed-precondition` legible). **Pero su criterio es `status ∈ {trial,
+  expired}`, no la marca, y se aplica en UN solo punto de los cuatro.** Las dos puertas conviven:
+  aquella protege el ambiente que expira, esta el conjunto sin cliente.
 - **Catálogo de dominios inertes** en un módulo compartido por front y functions, con guardián
   de que las reglas, el helper y el front leen la **misma** lista (cinco copias es la trampa de
   `guardian-ciego-en-su-propio-caso`).
@@ -224,6 +279,7 @@ servidor.
 |---|---|
 | `G0 Necesidad` | **Superada.** Medida dos veces (27 ago y 2 sep), y la segunda encontró lo que la primera dejó |
 | `G1 Valor` | **Superada.** Baseline en §2; métrica en `fin` |
-| `G2 Datos y permisos` | **Abierta: D1 y D2** |
-| `G3 Riesgo` | **Abierta: D3**, y el trial como caso que debe seguir funcionando |
-| `G4`–`G6` | No aplican hasta cerrar D1–D3 |
+| `G2 Datos y permisos` | **Superada (3 sep).** D1 y D2 tomadas como recomendaba §0; la propiedad de las once, resuelta |
+| `G3 Riesgo` | **Superada (3 sep).** D3 = las dos, la salida primero. El trial cubierto por `CA7`, que falla si alguien deriva la marca de `isExample` |
+| `G4 Construcción` | **MVP construido, sin desplegar.** 20 pruebas nuevas, seis falsaciones más dos de los guardianes |
+| `G5 Despliegue` · `G6 Valor` | Abiertas: falta desplegar, marcar los siete, sanear las diez y encender el canario |

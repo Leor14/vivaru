@@ -408,10 +408,16 @@ async function writeAuditLog(tenantId: string, actorUid: string | undefined, act
 // A5: genera el enlace seguro de Firebase y lo envía por Resend (marca Vivaru).
 // Best-effort: nunca rompe la creación del usuario; si falla, queda en logs y el
 // usuario siempre puede usar "¿Olvidaste tu contraseña?" (reset nativo).
-async function sendPasswordSetupEmail(email: string, fullName: string, variant: AccountEmailVariant = "welcome") {
+async function sendPasswordSetupEmail(
+  email: string,
+  fullName: string,
+  variant: AccountEmailVariant = "welcome",
+  // `PLAT-006`: el conjunto, para la puerta de buzones. Su único llamador lo tiene.
+  tenantId?: string | null,
+) {
   try {
     const link = await getAuth().generatePasswordResetLink(email);
-    await sendAccountEmail({ to: email, fullName, link, variant });
+    await sendAccountEmail({ to: email, fullName, link, variant, tenantId });
   } catch (error) {
     console.warn("[email] no se pudo enviar el correo de acceso", { email, variant, error });
   }
@@ -444,7 +450,9 @@ async function sendOnboardingInvite(
       createdAt: Timestamp.now(),
       expiresAt,
     });
-    await sendAccountEmail({ to: email, fullName, link: `/activar?token=${token}`, variant });
+    // `PLAT-006`: `tenantId` ya era parámetro de esta función y va a la fila de
+    // `accountInvites`; solo faltaba bajarlo hasta la puerta.
+    await sendAccountEmail({ to: email, fullName, link: `/activar?token=${token}`, variant, tenantId });
   } catch (error) {
     console.warn("[invite] no se pudo crear/enviar la invitacion de acceso", { email, error });
   }
@@ -2269,7 +2277,7 @@ export const provisionResidentTemporaryAccess = onCall<ProvisionResidentTemporar
       });
 
       // Cuenta nueva → bienvenida; reenvío de acceso a residente existente → restablecimiento.
-      await sendPasswordSetupEmail(result.email, result.fullName, isNewUser ? "welcome" : "reset");
+      await sendPasswordSetupEmail(result.email, result.fullName, isNewUser ? "welcome" : "reset", tenantId);
 
       return {
         ...result,

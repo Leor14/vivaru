@@ -1,6 +1,7 @@
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { defineSecret } from "firebase-functions/params";
 
+import { buzonAdmisibleEnConjunto, MOTIVO_RECHAZO } from "./buzones-admisibles";
 import { isFeatureEnabled } from "./feature-flags";
 import { enlaceAbsoluto } from "./push";
 
@@ -192,6 +193,68 @@ export async function registrarEnvio(
 }
 
 /**
+ * `PRD-V-PLAT-006` · la puerta de SALIDA. Delante del `fetch`, que es el único sitio por el que
+ * sale correo.
+ *
+ * **Por qué la puerta necesita un `tenantId` y no le basta la dirección.** Se midió el 2 sep 2026:
+ * de los ocho envíos del producto, **cuatro van a una persona de un conjunto** (el residente, el
+ * cliente que abrió un ticket, la invitación de cuenta y el restablecimiento) y **cuatro van a
+ * buzones de Vivaru** (`notifyInbox`, `supportInbox`, comercial). Una puerta ciega que mirase solo
+ * la dirección cortaría los avisos internos de trial el día que alguien tocara la lista del
+ * equipo. Por eso filtra **solo cuando sabe de qué conjunto es el envío**, y `guardian-de-la-puerta-de-salida.test.ts`
+ * vigila que ningún envío a una persona se quede sin pasarlo.
+ *
+ * **No lanza nunca** (`RN-5`): un cobro que no pudo avisar sigue siendo un cobro. Cf.
+ * `error-despues-del-commit`.
+ */
+export async function puertaDeBuzones(
+  tenantId: string | null | undefined,
+  to: string,
+): Promise<{ admitido: boolean }> {
+  // Sin conjunto no hay puerta: es correo interno de Vivaru a sus propias bandejas.
+  if (!tenantId) return { admitido: true };
+  // **La bandera se comprueba EN EL SERVIDOR** y por conjunto, que es lo que la hace freno y no
+  // botón, y lo que permite el canario en uno solo.
+  if (!(await isFeatureEnabled("producto-puerta-de-buzones", tenantId))) return { admitido: true };
+  return { admitido: await buzonAdmisibleEnConjunto(tenantId, to) };
+}
+
+/**
+ * `RN-4` · un envío rechazado por la puerta **deja fila**. Rechazar en silencio es peor que
+ * enviar: nadie se entera de que el dato está mal.
+ *
+ * **Y por eso esta fila NO depende de `producto-entrega-de-correo`**, al contrario que
+ * `registrarEnvio`. Aquella bandera gobierna el rastro de ENTREGA —lo que el proveedor hizo con un
+ * correo que salió—; esto es la constancia de que algo **no** salió, y apagar el rastro no puede
+ * convertir un rechazo en silencio. Es la diferencia entre no medir y no enterarse.
+ *
+ * El id no puede ser el del proveedor —no hubo llamada—, así que lo pone la base.
+ */
+async function registrarRechazoDePuerta(
+  tenantId: string,
+  input: { to: string; subject: string },
+  notificationKey?: string,
+): Promise<void> {
+  try {
+    await db().collection("emailDeliveries").add({
+      tenantId,
+      providerMessageId: null,
+      recipientEmail: input.to,
+      recipientUserId: null,
+      notificationKey: notificationKey ?? "puerta-de-buzones",
+      subject: input.subject,
+      status: "rechazado-puerta",
+      motivo: MOTIVO_RECHAZO,
+      sentAt: null,
+      rejectedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+  } catch (e) {
+    console.error("[email] no se pudo registrar el rechazo de la puerta", tenantId, e);
+  }
+}
+
+/**
  * Devuelve el id del proveedor cuando Resend lo da, y `null` cuando no hay con qué —sin clave
  * configurada, o respuesta sin id—. **Nunca devuelve `null` por un fallo de envío**: eso sigue
  * lanzando, como antes.
@@ -204,6 +267,15 @@ export async function sendNotificationEmail(input: {
   /** Presente solo cuando el destinatario es un residente de un conjunto. Ver `ContextoDeEnvio`. */
   contexto?: ContextoDeEnvio;
   /**
+   * `PLAT-006` · el conjunto del DESTINATARIO, para la puerta de salida.
+   *
+   * Separado de `contexto` a propósito: `contexto` significa además «escribe una fila de entrega
+   * en `emailDeliveries`», y hay envíos a una persona de un conjunto —el correo de soporte a
+   * quien abrió el ticket— que deben pasar por la puerta **sin** aparecer en la bandeja de
+   * entregas del administrador. Cuando viene `contexto`, su `tenantId` manda y esto sobra.
+   */
+  tenantId?: string | null;
+  /**
    * `FLOW-003` R9 · el adjunto de ESTE destinatario. Quien lo pase tiene que haberlo comprobado
    * antes con `adjuntoEsDelDestinatario`: aquí ya no hay forma de saber de quién es.
    */
@@ -212,6 +284,14 @@ export async function sendNotificationEmail(input: {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY no configurado; se omite el correo de notificación.");
+    return null;
+  }
+
+  // `PLAT-006` · la puerta va ANTES del `fetch`: rechazado es no enviado, no enviado y borrado.
+  const tenantIdDestino = input.contexto?.tenantId ?? input.tenantId ?? null;
+  if (!(await puertaDeBuzones(tenantIdDestino, input.to)).admitido) {
+    await registrarRechazoDePuerta(tenantIdDestino as string, input, input.contexto?.notificationKey);
+    console.warn("[email] la puerta de buzones rechazó un envío", { tenantId: tenantIdDestino });
     return null;
   }
 
@@ -266,10 +346,25 @@ export async function sendAccountEmail(input: {
   fullName: string;
   link: string;
   variant: AccountEmailVariant;
+  /**
+   * `PLAT-006` · el conjunto al que se está dando de alta la cuenta.
+   *
+   * **Es el envío más peligroso de los ocho** y el único que no tenía por dónde saberlo: le llega
+   * a una persona que hasta ese momento solo era una fila en `people`, y le abre una cuenta. Los
+   * dos llamadores tienen el dato (`sendOnboardingInvite` lo recibe; el de restablecimiento lo
+   * tiene en `provisionResidentTemporaryAccess`), solo había que bajarlo hasta aquí.
+   */
+  tenantId?: string | null;
 }): Promise<void> {
   const apiKey = resendApiKey.value();
   if (!apiKey) {
     console.warn("[email] RESEND_API_KEY no configurado; se omite el envío del correo de acceso.");
+    return;
+  }
+
+  if (!(await puertaDeBuzones(input.tenantId, input.to)).admitido) {
+    await registrarRechazoDePuerta(input.tenantId as string, { to: input.to, subject: COPY[input.variant].subject }, "cuenta");
+    console.warn("[email] la puerta de buzones rechazó un correo de cuenta", { tenantId: input.tenantId });
     return;
   }
 

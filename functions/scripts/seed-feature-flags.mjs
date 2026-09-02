@@ -182,6 +182,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-puerta-de-buzones",
+    area: "producto",
+    label: "Puerta de buzones en conjuntos sin cliente",
+    origen: "PRD-V-PLAT-006 §11",
+    // Nace apagada: apagada no se rechaza ni un envío. La marca del conjunto se
+    // puede poner igual, y es la que cuesta pensar.
+    enabled: false,
+  },
+  {
     key: "producto-estado-de-cuenta",
     area: "producto",
     label: "Estado de cuenta y paz y salvo",
