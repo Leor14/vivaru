@@ -4,7 +4,105 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 2 de septiembre de 2026 (CIERRE de la jornada de los cabos)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (CIERRE de la puerta de buzones)
+
+> ### `PLAT-006` TIENE SU MVP CONSTRUIDO Y **SIN DESPLEGAR**, con la bandera apagada. Las once direcciones están RESUELTAS. Lo siguiente es DESPLEGAR, y arrastra el lote de 27 functions de correo.
+>
+> **`develop` y `master` seguían en `024cbb8` y `2584aa3` al abrir; el trabajo de hoy está en
+> `6db3a58`, COMMITEADO Y SIN EMPUJAR** (leer los remotos con `git ls-remote`, no de aquí).
+> Árbol limpio salvo ese commit. **Bancos: `npm test` 1560 · functions 770** (eran 750; +20 de hoy),
+> typechecks en 0.
+>
+> ### LO QUE SE CONSTRUYÓ, Y LO QUE CONSTRUIRLO DESMINTIÓ
+>
+> | Pieza | Dónde |
+> |---|---|
+> | El predicado único `buzonAdmisibleEnConjunto` + catálogo de dominios inertes | `functions/src/buzones-admisibles.ts` (nuevo) |
+> | La puerta de SALIDA, delante del `fetch` | `functions/src/email.ts` — `puertaDeBuzones` y `registrarRechazoDePuerta` |
+> | El `tenantId` bajado a los tres envíos a personas que no lo tenían | `support.ts` (`notifyClient`), `index.ts` (`sendOnboardingInvite`, `sendPasswordSetupEmail`) |
+> | Bandera `producto-puerta-de-buzones`, **apagada**, en los CINCO sitios | catálogo front y functions, `seed-`, `mover-bandera`, `mover-bandera-de-conjunto` |
+> | 20 pruebas: 14 de comportamiento + 2 guardianes | `functions/tests/puerta-de-buzones.test.ts`, `guardian-de-la-puerta-de-salida.test.ts`, `catalogo-de-dominios-inertes.test.ts` |
+>
+> **LO QUE DESMINTIÓ LA FICHA, y es lo que hay que llevarse:** §11 decía que la puerta de salida
+> «vive en `email.ts`, el único sitio por el que sale todo correo». Cierto y **engañoso**: la
+> puerta necesita el conjunto, y **7 de los 8 envíos no lo llevaban**. Cuatro van a bandejas de
+> Vivaru (`notifyInbox`, `supportInbox`, comercial) y **filtrarlos habría cortado los avisos de
+> trial**; a los tres que van a personas se les bajó el `tenantId`, que **los tres ya tenían en su
+> ámbito**. Por eso la puerta filtra **solo cuando sabe el conjunto**, y el flanco por olvido lo
+> sostiene un guardián que barre el código.
+>
+> **Y había un gemelo que la ficha no nombraba:** `assertCanInviteRealPeople`
+> (`functions/src/trial-modules.ts:61`) ya hacía la mitad de esto desde el trial — misma forma,
+> **criterio distinto** (`status ∈ {trial, expired}`) y **un solo punto de aplicación de los
+> cuatro**. Conviven a propósito.
+>
+> ### LAS ONCE DIRECCIONES: RESUELTAS
+>
+> **Diez son tecleo de demostración y una es del equipo.** No lo dijo la forma —esa lección sigue
+> en pie— sino el **contexto**: sin Auth, sin una fila de actividad en seis colecciones, y creadas
+> **en ráfagas de 4–5 minutos** por el administrador del propio conjunto, en unidades con nombres
+> inconsistentes y con nombres de persona inventados. La única con cuenta de Auth,
+> `luiseoteror@gmail.com`, **David confirmó que es suya**.
+>
+> **Con eso `sanear-correos-de-prueba.mjs` ya se puede correr sobre las diez** — no se corrió hoy:
+> escribe en producción y no se pidió.
+>
+> ### UN HALLAZGO QUE NO SE BUSCABA, Y QUE NO ES DE ESTA FICHA
+>
+> **La fusión de `ONB-002` deja `status: "active"` en los absorbidos.** Los seis «David Carmona»
+> fusionados el 31 ago llevan `fusionadaEn`/`fusionadaHaciaId`/motivo, y **siguen `active`**: las
+> 24 `people` de Santa María están las 24 en `active`. Es coherente con «archivar no es esconder»,
+> pero **solo cuatro ficheros del código conocen `fusionadaEn`** (`padron.ts`, `duplicados.ts`,
+> `services.ts` y su prueba). El barrido de correos los contaba seis veces y **ya los separa**: el
+> baseline pasó de 68 a **62 personas vivas**. **Comprobado que NO hay envío duplicado** — ninguna
+> function itera `people` para mandar correo; el único consumidor (`email-webhook.ts:143`) solo
+> marca `emailStatus`. **Queda como pregunta abierta, no como defecto probado:** ¿qué otras
+> pantallas cuentan `status == active` sin mirar `fusionadaEn`?
+>
+> ### LO SIGUIENTE, EN ORDEN
+>
+> 1. **Empujar `6db3a58`** (lo pide David). Empujar a `develop` despliega **el front** de staging;
+>    **la puerta es de functions y NO se despliega al empujar.**
+> 2. **`firebase deploy --only functions`** — y ojo: **arrastra el lote de 27 functions de correo**
+>    que llevan desde el 2 sep solo en staging. Es la decisión que hay que tomar antes.
+> 3. **Validar en staging con el navegador** (sesión de Carlos Ramírez, Santa María): marcar el
+>    conjunto, encender la bandera **por conjunto**, y ver un rechazo con su fila.
+> 4. **Después:** la puerta de ENTRADA (reglas de `people` + las cuatro callables de alta), que es
+>    «Después» en §13 y NO está construida.
+> 5. **Sanear las diez** con `sanear-correos-de-prueba.mjs`, y entonces medir `CA9`.
+>
+> ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
+>
+> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **dieciocho días**.
+> 2. **Decidir si el despliegue de functions arrastra el lote de 27** (punto 2 de arriba).
+> 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
+> 4. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
+>
+> ### CUATRO TRAMPAS DE MÉTODO DE HOY
+>
+> 1. **`gcloud` NO estaba muerto.** El traspaso lo daba por muerto tres días seguidos.
+>    `gcloud projects list` responde. **`gcloud auth list` no prueba nada** —eso ya estaba escrito—
+>    pero de ahí no se sigue que esté muerto: hay que **ejercitarla**, y en los dos sentidos.
+> 2. **Una falsación puede pasar EN VERDE por ser mala, no por ser buena la prueba.** La sexta usó
+>    un `tenantId` inexistente, que no está marcado, así que no rompía nada. **Si una falsación no
+>    enrojece, sospechar primero de la falsación.**
+> 3. **Un guardián con la expresión mal escrita acusa al código correcto.** El de la puerta señaló
+>    dos llamadas que sí pasaban `tenantId`: eran propiedad abreviada (`tenantId });`) y la
+>    expresión exigía `,` o `:` detrás.
+> 4. **`npx tsc --noEmit` en `functions/` NO mira `tests/`** — está escrito en `CLAUDE.md` y se
+>    usó igual. El bueno es `npm --prefix functions run typecheck`.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA JORNADA DE LOS CABOS — 2 DE SEPTIEMBRE — histórico
+
+**Bajado de la cabecera al cerrar la jornada de la puerta de buzones.** Lo operativo lo supera la
+cabecera; los cinco cabos siguen en producción y la lista de las 27 functions sigue valiendo.
+
+
+### Lo que decía al abrir el 2 de septiembre (CIERRE de la jornada de los cabos)
 
 > ### LOS CINCO CABOS ESTÁN EN PRODUCCIÓN. La puerta del alta NO se construyó: medirla la volvió otra ficha, y espera TRES decisiones de David.
 >
