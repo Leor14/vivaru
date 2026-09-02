@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.51 |
+| **Versión** | 0.9.52 |
 | **Fecha** | 3 de septiembre de 2026 |
-| **Estado** | **`PRD-V-PLAT-006` COMPLETA, DESPLEGADA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS.** La puerta de buzones cierra por salida, por entrada y con el motivo legible; el código está en los dos ambientes y **`master` desplegado** (`build-2026-09-02-002`). Y hoy se hizo lo que **no era código**: **siete conjuntos marcados** `sinClienteDetras` —los dos de trial fuera—, **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con seis dominios y siete direcciones del equipo. **La bandera sigue APAGADA**, y encenderla ya no está bloqueado por ingeniería: **queda UNA dirección por identificar** —`dann…@outlook.com`, un guardia de Privada Las Playas con cuenta de Auth y acceso el 1 de julio—, y es la única que quedaría sin admitir. **Lo anterior, vigente:** la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Estado** | **`PRD-V-PLAT-006` COMPLETA, DESPLEGADA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS.** La puerta de buzones cierra por salida, por entrada y con el motivo legible; el código está en los dos ambientes y **`master` desplegado** (`build-2026-09-02-002`). Y hoy se hizo lo que **no era código**: **siete conjuntos marcados** `sinClienteDetras` —los dos de trial fuera—, **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con seis dominios y siete direcciones del equipo. **La bandera sigue APAGADA**, y encenderla ya no está bloqueado por ingeniería: **queda UNA dirección por identificar** —`dann…@outlook.com`, un guardia de Privada Las Playas con cuenta de Auth y acceso el 1 de julio—, y es la única que quedaría sin admitir. **Lo anterior, vigente:** la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. Los remotos se leen con `git ls-remote`, no de aquí. **Y una pasada de higiene (3 sep) corrigió lo que este documento afirmaba de sí mismo:** `UX-004` llevaba **cuatro días en producción** mientras la vista ejecutiva mandaba «🟠 Ejecutar `UX-004`», y **siete fichas de PRD** decían «Lista para desarrollo» con el código desplegado y la bandera encendida |
 | **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -141,7 +141,7 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
-| **Experiencia y diseño** | 🟢 `UX-001` y `UX-003` en producción · 🔴 **`UX-004` lista para desarrollo** (`PRD-V-FIX-003`): el panel y cartera **divergen en los 7 conjuntos** | 🟠 Ejecutar `UX-004` | ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ **`UX-005`** (tableros configurables, prioridad baja) |
+| **Experiencia y diseño** | 🟢 **`UX-001`, `UX-003` y `UX-004` en producción** — `UX-004` construida el 30 ago (`src/lib/dashboard/indicadores.ts` + `umbrales.ts`), cableada en el panel **y** en cartera, con guardián `tests/panel-ventanas.test.ts` dentro de la suite que corre | 🟡 **Repasar los criterios de `UX-004` contra producción** — desplegar prueba que funciona, no que se construyó todo lo prometido | ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ **`UX-005`** (tableros configurables, prioridad baja) |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**explorada el 1 sep: la ficha no es «elegir columnas»**; espera corpus) |
@@ -632,8 +632,21 @@ próxima vez que aparezca un dato que no se reconstruye, esta es la lista donde 
 
 #### `UX-004` — El panel y sus módulos, midiendo lo mismo
 
-- **Frente:** Experiencia y diseño · **Estado:** 🔴 Lista para desarrollo (`PRD-V-FIX-003`,
-  30 ago 2026) · **Nivel 2** · **Dependencia:** ninguna
+- **Frente:** Experiencia y diseño · **Estado:** 🟢 **CONSTRUIDA Y EN PRODUCCIÓN** desde el 30 de
+  agosto de 2026 (`PRD-V-FIX-003`) · **Nivel 2** · **Dependencia:** ninguna
+- **Cómo se verificó, el 3 de septiembre de 2026:** `src/lib/dashboard/indicadores.ts` y
+  `umbrales.ts` existen y los importan **los dos consumidores** —`admin/page.tsx` (panel) y
+  `admin/billing/page.tsx` (cartera)—; el guardián `tests/panel-ventanas.test.ts` lo recoge
+  `vitest list`; y el código vive en `c2e2483`, que es el commit del build que sirve producción.
+  **`ventana` es un parámetro obligatorio** de `lecturaDePorcentaje`, así que no se puede pintar un
+  porcentaje sin declarar sobre qué se calculó, y **un total de cero devuelve `SIN_DATOS` en tono
+  neutro** en lugar de un `0,0%` en rojo: los dos defectos de abajo, cerrados.
+- **Lo que NO está verificado:** los criterios de aceptación **no se repasaron contra las cifras de
+  producción** después de desplegar. Esa es la tarea que queda, y es la lección de `FLOW-004`:
+  `CA1` estuvo horas en producción sin cumplirse y nada fallaba.
+- **Esta ficha dijo «🔴 Lista para desarrollo» durante cuatro días**, y la vista ejecutiva mandaba
+  «🟠 Ejecutar `UX-004`» sobre algo ya construido. El aviso estaba escrito el 1 de septiembre en
+  `pendientes.md` y nadie bajó a corregir el roadmap.
 - **Problema, medido contra `hogaru-1` el 30 de agosto:** el «% recaudo» del Panel de Control mide
   **un mes** y el de Cartera mide **hasta doce períodos**, con el mismo rótulo y sin declarar
   ninguno cuál. **Divergen en los siete conjuntos de producción**: Palmas y Nogal dicen `0,0%` en
@@ -1224,6 +1237,37 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.52 — 3 de septiembre de 2026 — higiene: lo que los documentos decían de sí mismos
+
+- **`UX-004` llevaba cuatro días en producción y este roadmap mandaba ejecutarla.** La fila
+  «Experiencia y diseño» tenía `AHORA: 🔴 UX-004 lista para desarrollo` y `SIGUIENTE: 🟠 Ejecutar
+  UX-004`. Medido: `src/lib/dashboard/indicadores.ts` + `umbrales.ts` existen desde el **30 de
+  agosto**, los importan **los dos** consumidores (panel y cartera), el guardián
+  `tests/panel-ventanas.test.ts` lo recoge `vitest list`, y el código vive en `c2e2483`, que es el
+  commit del build que sirve producción. **El aviso estaba escrito en `pendientes.md` el 1 de
+  septiembre y nadie bajó a corregir el roadmap.**
+- **Siete fichas de PRD decían «Lista para desarrollo» con el código desplegado y encendido:**
+  `FIX-003`, `FEAT-005`, `FLOW-005`, `FIX-001`, `FLOW-003`, `FEAT-003` y `PLAT-001`. Reetiquetadas
+  con **la evidencia que las verifica**, no con una etiqueta nueva.
+- **`docs/prd/README.md` estaba bien todo el tiempo.** El índice ya decía «EN PRODUCCIÓN» para las
+  siete. **La divergencia era entre el índice, que se mantiene, y la cabecera de cada ficha, que
+  no.** Un artefacto se mantiene o no se mantiene; tener dos versiones de la misma verdad es la
+  forma de que una envejezca sin que nadie lo note.
+- **Dos mediciones dentro de las fichas eran falsas, que es peor que una etiqueta rancia.**
+  `PLAT-001` decía «0 de 9 conjuntos con coeficiente cargado» → hoy **18 de 93 unidades**, las 18 de
+  `tenant-santa-maria`, **sumando `100,0000` exacto**. `FEAT-005` decía «11 duplicados de 68» en la
+  prosa cuando **su propia tabla ya decía 13**; y hoy hay **6 personas con `fusionadaEn` y 1
+  documento en `personMergeDecisions`**: la capacidad no solo está desplegada, **se ha usado**.
+- **`FEAT-003` sigue encendida sobre una tabla vacía**, verificado: `vendors` **no aparece entre las
+  52 colecciones raíz** de producción. Cero proveedores. Eso no lo arregla una decisión.
+- **La trampa de la jornada: mi primer conteo de coeficientes dio `0` en los nueve conjuntos, y era
+  un no-op.** Leía `tenants/<id>/units` y **`units` es colección RAÍZ** —`tenants` no tiene ni una
+  subcolección—, además de buscar `ownershipCoefficient` cuando el campo se llama `coefficient`.
+  Dos errores que se suman y devuelven un cero perfectamente creíble. **Lo destapó desconfiar del
+  cero, no una prueba en rojo.**
+- **La cabecera de `pendientes.md` afirmaba `abdde99` con los remotos tres commits más adelante**
+  (`c2e2483`) y dos builds después. Corregida y datada.
 
 ### 0.9.51 — 3 de septiembre de 2026 — los datos de producción, puestos
 

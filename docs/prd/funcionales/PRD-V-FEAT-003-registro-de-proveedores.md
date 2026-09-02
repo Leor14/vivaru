@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `committee` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 cerrada por David el 21 de agosto de 2026 |
+| **Estado** | 🟡 **CONSTRUIDA, DESPLEGADA Y ENCENDIDA — PERO SOBRE UNA TABLA VACÍA.** Verificado el 3 de septiembre: `src/features/finanzas/use-vendors.ts` escribe en `vendors`, la bandera `producto-registro-proveedores` está **encendida** en `hogaru-1`, y **`vendors` no aparece entre las 52 colecciones raíz de producción: cero proveedores registrados.** Esto no lo arregla una decisión, lo llena un cliente. D1 cerrada por David el 21 de agosto de 2026. **Criterios SIN repasar contra producción** (3 sep 2026). |
 | **Dependencias** | Ninguna |
 | **Riesgo** | **Bajo.** Entidad nueva; el egreso conserva su copia de los datos |
 | **Reversibilidad** | **Total.** Sin `vendorId`, el egreso funciona como hoy |

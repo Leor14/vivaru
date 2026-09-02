@@ -8,7 +8,7 @@
 | **Módulo** | Reservas |
 | **Usuario principal** | `resident` · `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1 cerrada por David el 21 de agosto de 2026: **la corrección se despliega sola, antes que la política por área** |
+| **Estado** | 🟢 **CONSTRUIDA Y EN PRODUCCIÓN**, con la bandera `producto-reservas-servidor` **encendida** en `hogaru-1` (leída el 3 de septiembre de 2026). D1 la cerró David el 21 de agosto de 2026: la corrección se desplegó sola, antes que la política por área. **Criterios SIN repasar contra producción** (3 sep 2026). |
 | **Dependencias** | Ninguna |
 | **Riesgo** | **Medio.** Cambia por dónde se crea una reserva, que hoy funciona |
 | **Reversibilidad** | **Parcial.** La escritura directa desde el cliente se cierra en las reglas y eso **no se revierte con una bandera** (§13) |

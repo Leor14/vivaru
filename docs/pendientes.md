@@ -8,9 +8,16 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### `PLAT-006` está COMPLETA y desplegada, los SIETE conjuntos MARCADOS y las DIEZ direcciones SANEADAS en producción. **La bandera sigue APAGADA**, y para encenderla queda UNA decisión tuya y UNA dirección sin identificar.
 >
-> **Los dos remotos en `abdde99`.** Producción sirvió `build-2026-09-02-002` desde `13edea5`
-> (`rollout-2026-09-02-002` `SUCCEEDED`, por `traffic.current`). **Bancos: `npm test` 1579 ·
-> functions 782 · reglas 293**, typechecks en 0. **Las tres credenciales VIVAS**, ejercitadas.
+> **Los dos remotos en `c2e2483`** (`git ls-remote`, árbol limpio). **Producción sirve
+> `build-2026-09-02-006`, `READY`, rama `master`**, cuyo mensaje de commit es el de `c2e2483` —
+> medido por `traffic.current`, no por el «Deploy complete». **Bancos: `npm test` 1579 ·
+> functions 782 · reglas 293**, typechecks en 0. **Las tres credenciales VIVAS**, ejercitadas
+> (ADC y `gcloud` con `HTTP 200`; el token mirado por contenido `ya29.`, no por longitud).
+>
+> > **Esta línea dijo `abdde99` durante tres commits.** `abdde99` es solo el marcado de los siete
+> > conjuntos; después entraron `57e2738`, `10cf030`, `1c63c92` y `c2e2483`, y con ellos dos builds
+> > más. Una cabecera que se reescribe entera **también hay que reescribirla al final**, no al
+> > empezar a cerrar.
 >
 > ### LO QUE SE ESCRIBIÓ EN PRODUCCIÓN HOY
 >
@@ -70,10 +77,34 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 2. **Encender por conjunto** —`mover-bandera-de-conjunto.mjs`— antes que en global. Empezar por
 >    uno, mirar, y seguir. **Si se enciende hoy, solo esa persona quedaría sin admitir** (2
 >    documentos), y no perdería el acceso: el login no pasa por la puerta.
-> 4. **Medir `CA9`** después de encender: el barrido debe dar 0 no admisibles en los marcados.
-> 5. **Ver el mensaje en pantalla**: crear una persona con un correo cualquiera desde Residentes.
-> 6. **Los cuatro repositorios de Notion** — el conector estuvo caído; el contenido está entregado
+> 3. **Medir `CA9`** después de encender: el barrido debe dar 0 no admisibles en los marcados.
+> 4. **Ver el mensaje en pantalla**: crear una persona con un correo cualquiera desde Residentes.
+> 5. **Los cuatro repositorios de Notion** — el conector estuvo caído; el contenido está entregado
 >    como archivo.
+>
+> ### LA PASADA DE HIGIENE DEL 3 DE SEPTIEMBRE (hecha, no pendiente)
+>
+> Los documentos afirmaban cosas falsas **sobre el propio trabajo ya hecho**, y eso dirige mal la
+> elección de frente. Corregido en `roadmap-producto.md` (0.9.52), en las siete fichas y en el
+> índice:
+>
+> | Qué decía | Qué es, medido el 3 sep |
+> |---|---|
+> | Roadmap: `AHORA 🔴 UX-004 lista para desarrollo` · `SIGUIENTE 🟠 Ejecutar UX-004` | **En producción desde el 30 ago.** El aviso estaba escrito aquí el 1 sep y nadie bajó a corregirlo |
+> | Siete fichas: `Estado: Lista para desarrollo` | `FIX-003` `FEAT-005` `FLOW-005` `FIX-001` `FLOW-003` `FEAT-003` `PLAT-001` — **todas desplegadas y con bandera encendida** |
+> | `PLAT-001`: «0 de 9 conjuntos con coeficiente» | **18 de 93 unidades**, las 18 de Santa María, **sumando 100,0000 exacto** |
+> | `FEAT-005`: «11 duplicados de 68» en la prosa | **13** ya decía su propia tabla; y hoy **6 personas con `fusionadaEn`** y **1 `personMergeDecisions`**: usada, no solo desplegada |
+> | `FEAT-003`: encendida | **Cierto, y sobre tabla vacía**: `vendors` no está entre las 52 colecciones raíz |
+>
+> **`docs/prd/README.md` estaba bien todo el tiempo.** El índice ya decía «EN PRODUCCIÓN» para las
+> siete. **La divergencia era entre el índice, que se mantiene, y la cabecera de cada ficha, que no**
+> — dos versiones de la misma verdad y una envejeciendo sin que nadie lo note.
+>
+> **La trampa: mi primer conteo de coeficientes dio `0` en los nueve, y era un no-op.** Leía
+> `tenants/<id>/units`, y **`units` es colección RAÍZ** (`tenants` no tiene ni una subcolección);
+> encima buscaba `ownershipCoefficient` y el campo se llama `coefficient`. Dos errores sumados
+> devuelven un cero creíble. **Lo destapó desconfiar del cero**, no una prueba en rojo — el mismo
+> patrón que «No hay nada que hacer» del saneador.
 >
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >

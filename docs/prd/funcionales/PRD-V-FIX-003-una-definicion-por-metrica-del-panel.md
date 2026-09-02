@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` — es quien toma decisiones con estos números |
 | **Usuarios secundarios** | Ninguno. El consejo no alcanza el panel (`canAccessPath` lo deja solo en `/admin/documents`) |
 | **Responsable** | David |
-| **Estado** | Lista para desarrollo |
+| **Estado** | 🟢 **CONSTRUIDA Y EN PRODUCCIÓN** desde el 30 de agosto de 2026. Verificado el 3 de septiembre: `src/lib/dashboard/indicadores.ts` + `umbrales.ts`, importados por el panel (`admin/page.tsx`) **y** por cartera (`admin/billing/page.tsx`); guardián `tests/panel-ventanas.test.ts` recogido por `vitest list`; el código vive en `c2e2483`, commit del build que sirve producción. **Criterios SIN repasar contra producción** (3 sep 2026). |
 | **Dependencias** | Ninguna bloqueante. Continúa `UX-003`, misma familia de defectos |
 | **Riesgo** | **Bajo en ejecución, alto en consecuencia.** No toca datos, reglas ni dinero: cambia qué número se muestra. Pero los números que corrige son los que sostienen decisiones de cobranza |
 | **Reversibilidad** | **Total.** Front exclusivamente: sin migración, sin reglas, sin functions, sin bandera. Se revierte con un rollout al commit anterior |

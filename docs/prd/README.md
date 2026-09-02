@@ -176,7 +176,7 @@ la unidad que el producto muestra. **Cambia el render de todos los importes en e
 |---|---|---|
 | 1 | **`PLAT-002` · auditoría de las callables** ✅ **en producción** (23 ago) — **pero eran DIECIOCHO, no once**: quedaron vivas las seis del dinero hasta el 25 ago (`dbb3f29`, **en producción** esa tarde) | Va **sola y primero**. Es el único cambio del lote que **no se revierte con una bandera** |
 | 2 | **`FIX-001` · MVP completo** ✅ **en producción, bandera ENCENDIDA y regla CERRADA** (24 ago) | Corrección de una regla de negocio que hoy solo vive en el cliente. **No cambia nada visible** |
-| 3 | **`PLAT-001` · copropiedad** ✅ **MVP en producción y ENCENDIDA** (25 ago) — pero **`0` de `88` unidades tienen coeficiente**, así que la corrida no puede correr | Base de la que dependen catorce candidatos |
+| 3 | **`PLAT-001` · copropiedad** ✅ **MVP en producción y ENCENDIDA** (25 ago) — ~~`0` de `88`~~ → **`18` de `93` unidades con coeficiente** (3 sep 2026): las 18 son de `tenant-santa-maria` y suman `100,0000` exacto, así que **ahí la corrida ya puede correr**; los otros siete conjuntos con unidades siguen a cero | Base de la que dependen catorce candidatos |
 | 4 | **`FEAT-003` · proveedores** ✅ **MVP en producción y ENCENDIDA** (25 ago) — pero **`0` proveedores registrados**, así que el selector está vacío | Independiente de todo lo demás |
 
 #### Ola B — contabilidad

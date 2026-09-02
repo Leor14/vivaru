@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` / `admin_tenant` |
 | **Usuarios secundarios** | `resident` · `committee` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1, D2, D3 y G5 cerradas por David el 21 de agosto de 2026 |
+| **Estado** | 🟢 **CONSTRUIDA, EN PRODUCCIÓN Y CON DATOS EN UN CONJUNTO.** Verificado el 3 de septiembre midiendo `units` (colección **raíz**, 93 documentos): el campo es `coefficient`, y **`tenant-santa-maria` tiene 18 de sus 19 unidades con coeficiente, sumando `100,0000` exacto**; los otros siete conjuntos con unidades siguen a cero. Bandera `producto-cobro-por-coeficiente` **encendida**. D1, D2, D3 y G5 cerradas por David el 21 de agosto de 2026. **Criterios SIN repasar contra producción** (3 sep 2026). |
 | **Dependencias** | **Ninguna.** No depende del programa de IA ni de Albert |
 | **Habilita** | El prorrateo de un gasto entre unidades, el certificado de paz y salvo y el voto ponderado por alícuota |
 | **Solapamiento** | `PRD-V-FEAT-002` (Importación de datos del conjunto) — ver §11.4 |
@@ -73,7 +73,7 @@ estructural, no estadístico:
 | Indicador | Hoy |
 |---|---|
 | Unidades que pueden cobrar un importe distinto entre sí | **0** |
-| Conjuntos de producción con coeficiente cargado | **0 de 9** (los 9 son de prueba) |
+| Conjuntos de producción con coeficiente cargado | ~~**0 de 9**~~ → **1 de 9** (`tenant-santa-maria`: 18 de sus 19 unidades, sumando `100,0000` exacto). Medido el 3 sep 2026 sobre `units`, que es colección **raíz** y no subcolección del conjunto |
 | Formas de prorratear un gasto común | **Ninguna** |
 
 **Métrica de éxito, medible desde el primer conjunto real:** que la suma de los cargos

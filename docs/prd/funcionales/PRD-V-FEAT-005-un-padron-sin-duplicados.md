@@ -9,7 +9,7 @@
 | **Usuario principal** | `tenant_admin` — es quien mira el padrón y quien decide qué es un duplicado |
 | **Usuarios secundarios** | `superadmin` (opera la auditoría de varios conjuntos) |
 | **Responsable** | David |
-| **Estado** | Lista para desarrollo |
+| **Estado** | 🟢 **CONSTRUIDA, EN PRODUCCIÓN Y YA USADA.** Verificado el 3 de septiembre: `mergePeople` y `mergeUnits` `ACTIVE` en `hogaru-1`; `DuplicatePeoplePanel` y `DuplicateUnitsPanel` en el árbol; las reglas puras en `src/features/residents/duplicados.ts`. **Y hay rastro de uso real: 6 personas con `fusionadaEn` y 1 documento en `personMergeDecisions`.** **Criterios SIN repasar contra producción** (3 sep 2026). |
 | **Dependencias** | Ninguna. **No depende de `AI-ONB-001` ni de ningún corpus** — esa independencia es la mitad del valor de esta ficha |
 | **Riesgo** | **Alto en la fusión, nulo en la auditoría.** Detectar no toca nada; fusionar reescribe referencias y puede borrar a una persona. Ver §12 y el precedente de `mergeUnits` |
 | **Reversibilidad** | **Parcial, y va en primera línea.** La detección es reversible por definición. **La fusión solo lo es si se guarda lo que se pisó**, y esta ficha lo exige (§7) |
@@ -19,7 +19,9 @@
 
 ## 1. Resumen ejecutivo
 
-El padrón de producción tiene **11 registros duplicados de 68** —el 16%—, y el producto no tiene forma de verlos ni de resolverlos. Hoy solo se evita crear duplicados **en el momento del alta**; nadie mira hacia atrás.
+El padrón de producción tenía ~~**11**~~ **13 registros duplicados de 68** —el 19%— cuando se escribió esta ficha, y el producto no tenía forma de verlos ni de resolverlos. Hoy solo se evitaba crear duplicados **en el momento del alta**; nadie miraba hacia atrás.
+
+> **Esta cifra es de ANTES de construir, y la prosa se quedó en 11 cuando la tabla de abajo ya decía 13.** Medido el 3 de septiembre de 2026: `people` sigue en **68** documentos —fusionar marca, no borra— con **6 marcados `fusionadaEn`** y **1 documento en `personMergeDecisions`**. La capacidad está en producción y se ha usado.
 
 Esta ficha da al administrador **la lista de sospechosos y la forma de resolverlos**: fusionar en uno, corregir el dato, o marcar que no son la misma persona.
 

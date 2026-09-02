@@ -9,7 +9,7 @@
 | **Usuario principal** | `security_guard` — es quien tiene al visitante delante y hoy no tiene camino |
 | **Usuarios secundarios** | `resident` (decide) · `tenant_admin` (audita) |
 | **Responsable** | David |
-| **Estado** | Lista para desarrollo |
+| **Estado** | 🟢 **CONSTRUIDA Y EN PRODUCCIÓN.** Verificado el 3 de septiembre: `registerWalkInVisit` y `resolveVisitAuthorization` `ACTIVE` en `hogaru-1`, consumidas desde `GuardVisitors.tsx` y `use-visitor-passes.ts`. **Criterios SIN repasar contra producción** (3 sep 2026). |
 | **Dependencias** | **`PRD-V-PLAT-005` (push al residente).** No bloquea construir, sí bloquea que la vía A sirva de algo: sin push la petición cae en una campana que nadie mira |
 | **Riesgo** | **Medio.** No toca dinero, pero **decide quién entra a una propiedad privada** y deja constancia de quién lo autorizó. Un fallo aquí es de seguridad física, no de datos |
 | **Reversibilidad** | **Total por bandera.** Apagarla devuelve el flujo de QR intacto. Los pases creados quedan y no estorban |

@@ -8,7 +8,7 @@
 | **Módulo** | Comunicaciones · Cartera |
 | **Usuario principal** | `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **Lista para desarrollo** — versión 1.0. D1, D2 y G5 cerradas por David el 21 de agosto de 2026 |
+| **Estado** | ✅ **COMPLETA Y EN PRODUCCIÓN** desde el 27 de agosto de 2026, cableada con Resend y validada de punta a punta. Sus **dos banderas encendidas**, leídas en `hogaru-1` el 3 de septiembre: `producto-calendario-de-cobranza` y `producto-entrega-de-correo`. D1, D2 y G5 las cerró David el 21 de agosto de 2026. **El roadmap ya decía «no queda nada de la ficha»; esta línea no se enteró.** |
 | **Dependencias** | **`PRD-V-FEAT-004`** para el adjunto del estado de cuenta. La medición de entrega no depende de nada |
 | **Riesgo** | **Medio.** Toca procesos programados que ya corren en producción |
 | **Reversibilidad** | **Total** por banderas |
