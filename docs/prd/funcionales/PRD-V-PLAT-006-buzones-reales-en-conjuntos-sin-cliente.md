@@ -194,7 +194,7 @@ remitente y el canal siguen siendo los de `email.ts`.
 
 | | Criterio | Cómo se mide |
 |---|---|---|
-| `CA1` | En un conjunto marcado y con la bandera encendida, crear una persona con `alguien@gmail.com` **falla** con el motivo de `RN-3`, desde el formulario y desde la importación | **Cumplido a medias, y el hueco es del mecanismo.** El rechazo funciona —probado contra el emulador y **contra el servicio real de staging** con un `tenant_admin` de verdad—, pero **una regla de Firestore no puede devolver texto**: llega `permission-denied`, así que quien teclea vería «No tienes permiso» y no el motivo. Por las callables sí llega legible (`failed-precondition` + `MOTIVO_RECHAZO`). **Cerrarlo es trabajo de front** —validar en el formulario antes de escribir— y no está hecho |
+| `CA1` | En un conjunto marcado y con la bandera encendida, crear una persona con `alguien@gmail.com` **falla** con el motivo de `RN-3`, desde el formulario y desde la importación | **CUMPLIDO (3 sep 2026).** El rechazo lo pone la regla —validado contra el emulador y contra el **servicio real** de staging con un `tenant_admin` de verdad—, y el motivo lo pone el front: `src/lib/buzones/admisibles.ts`, espejo vigilado del servidor. Una regla no puede devolver texto, así que la traducción convierte el `permission-denied` en `MENSAJE_PUERTA` **solo cuando las tres condiciones se dan** (conjunto marcado · bandera encendida · correo no inerte) y en cualquier otro caso deja el mensaje de siempre. **La importación nombra las direcciones candidatas del lote**, que es lo que hace accionable un padrón de cientos |
 | `CA2` | La misma alta con `alguien@ejemplo.vivaru.app` **pasa** | Ídem |
 | `CA3` | La misma alta con una dirección listada en `config/correosDelEquipo` **pasa**, y con su `+alias` no listado **falla** | Ídem |
 | `CA4` | **Debe seguir funcionando:** `createTrialWorkspace` con `prospecto@gmail.com` crea el conjunto y envía la invitación. El trial no se marca | Prueba de la callable + un trial real en staging |
@@ -271,7 +271,7 @@ persona rechazada con ojos (`CA1`); en producción solo se enciende tras marcar 
 sanear las once.
 
 **MVP:** D1, D2, salida, barrido. **Después:** entrada (reglas + callables), importación por
-servidor.
+servidor. **Todo construido al 3 de septiembre de 2026.**
 
 > **LA ENTRADA, CONSTRUIDA EL 3 DE SEPTIEMBRE.** Dos palancas, porque una sola no llega:
 >
@@ -310,6 +310,34 @@ servidor.
 | `G4 Construcción` | **Superada, entrada incluida.** 57 pruebas nuevas —20 de salida, 25 de reglas contra el emulador, 12 del servidor— y **doce falsaciones**, dos de ellas rehechas porque pasaron en verde siendo malas |
 | `G5 Despliegue` | **Superada en los DOS ambientes (3 sep).** 90 functions `ACTIVE` en cada uno, **cero sin mover** medido por `updateTime` contra la línea base. **Canario encendido en staging** (`tenant-santa-maria` marcado + override de la bandera), y validado con el flujo real: ver abajo |
 | `G6 Valor` | **Abierta en producción**: falta marcar los siete, sanear las diez y encender |
+
+### Cómo se cerró `CA1`, y el defecto que estuvo a punto de repetirse
+
+**El servidor impide; el front explica.** Es el mismo reparto que `validarCodigoDeCuenta` de
+`PLAT-003`, cuyo comentario ya lo decía: *«las reglas no pueden decir POR QUÉ»*.
+
+**Y explica en vez de validar antes, a propósito.** El predicado completo necesita
+`config/correosDelEquipo` y **el `tenant_admin` no puede leerla** —lo prohíbe D2 y las reglas lo
+cumplen—. Un front que rechazara todo lo no inerte daría falsos positivos justo sobre las cuentas
+con las que el equipo valida el producto, que es lo que D2 vino a proteger. Así que se intenta la
+escritura y, si el servidor la rechaza, se decide si la puerta lo explica **con lo que el
+administrador sí puede leer**: la marca del conjunto y las tres fuentes de la bandera.
+
+> **EL DEFECTO DE AGOSTO ESTUVO A PUNTO DE REPETIRSE IDÉNTICO, y lo cazó medir el camino entero.**
+> La traducción lanzaba un `Error` plano. `normalizeFirebaseError` solo respeta el texto de un
+> `CallableError`; un `Error` plano no tiene `code`, cae en el genérico, y en pantalla se habría
+> leído **«Ocurrió un error inesperado. Intenta de nuevo.»** — exactamente lo que documenta la
+> cabecera de `CallableError`, escrita el 24 de agosto tras el mismo tropiezo. **Todo el trabajo
+> habría sido inerte donde importa.**
+>
+> Se cerró generalizando el contrato, no ensanchando el caso: `CallableError` ahora extiende
+> **`ErrorParaElUsuario`**, y el traductor comprueba la clase base. El contrato nunca fue «viene de
+> una callable» sino **«este texto está escrito para leerse»**.
+>
+> **Y hubo un segundo hueco, destapado por una falsación que pasó en verde SIN ser mala:** reponer
+> el `Error` plano en `services.ts` no enrojecía nada, porque las pruebas miraban el traductor y
+> **ninguna miraba que el emisor usara el tipo correcto**. Lo cubre ahora un guardián que barre el
+> fichero.
 
 ### La validación de la entrada (3 sep), contra el SERVICIO y no contra el emulador
 

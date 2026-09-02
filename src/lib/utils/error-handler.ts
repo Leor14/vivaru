@@ -19,7 +19,14 @@ import { toast } from "sonner";
  * lo cazó ninguna suite: las pruebas comprueban que el servidor lanza el error
  * correcto, y nadie miraba qué se pintaba. Salió de abrir la pantalla.
  */
-export class CallableError extends Error {
+export class ErrorParaElUsuario extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ErrorParaElUsuario";
+  }
+}
+
+export class CallableError extends ErrorParaElUsuario {
   constructor(message: string) {
     super(message);
     this.name = "CallableError";
@@ -36,7 +43,14 @@ export function normalizeFirebaseError(error: unknown): string {
   // cargo bloquea—, que es justo lo que el mapa de códigos de abajo no puede
   // saber. `failed-precondition` a secas dice «no se cumplen las condiciones»,
   // que no le sirve a nadie.
-  if (error instanceof CallableError && error.message) return error.message;
+  //
+  // **Se comprueba la clase BASE, no `CallableError`**, desde `PLAT-006`: la
+  // traducción de la puerta de buzones no viene de una callable —la lanza
+  // `services.ts` al ver un `permission-denied` de las reglas— y con la
+  // comprobación estrecha habría caído en el genérico de abajo, repitiendo el
+  // defecto que esta misma clase vino a cerrar en agosto. El contrato nunca fue
+  // «viene de una callable», sino **«este texto está escrito para leerse»**.
+  if (error instanceof ErrorParaElUsuario && error.message) return error.message;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawCode = (error as any)?.code ?? "";

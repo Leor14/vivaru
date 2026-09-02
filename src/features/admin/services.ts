@@ -25,6 +25,10 @@ import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage
 import { db, storage } from "@/lib/firebase/client";
 import type { UnitType } from "@/lib/units/tipos";
 import { revokeResidentAccessCallable } from "@/lib/firebase/callables";
+import { dominioDe, esDominioInerte, laPuertaExplicaElRechazo, MENSAJE_PUERTA } from "@/lib/buzones/admisibles";
+import { ErrorParaElUsuario } from "@/lib/utils/error-handler";
+import { isFeatureFlagEnabled } from "@/lib/feature-flags/resolve";
+import type { FeatureFlagDoc, FeatureFlagOverridesDoc, GlobalFeatureFlagDoc } from "@/lib/feature-flags/resolve";
 import { normalizeTower } from "@/utils/tower";
 import { combineDateAndTime, isDateTimeValid } from "@/utils/datetimeValidation";
 import type { FiscalProfile } from "@/types/domain";
@@ -408,6 +412,59 @@ function toMutationUserError(error: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
+/**
+ * `PRD-V-PLAT-006` `CA1` · convierte el `permission-denied` de la puerta en el motivo de `RN-3`.
+ *
+ * **Solo se llama cuando la escritura YA falló**, así que sus cuatro lecturas no cuestan nada en
+ * el camino feliz. Lee lo que el `tenant_admin` sí puede ver —la marca del conjunto y los tres
+ * documentos de la bandera— y **nunca** `config/correosDelEquipo`, que D2 le niega.
+ *
+ * Si algo de esto falla, devuelve `null` y el llamador deja su mensaje de siempre: explicar es un
+ * extra, y un extra no puede convertir un error en otro error.
+ */
+async function motivoDeLaPuertaDeBuzones(tenantId: string | null | undefined, email: string | null | undefined) {
+  if (!tenantId) return null;
+  try {
+    const firestore = assertDb();
+    const [tenantSnap, flagSnap, globalSnap, overridesSnap] = await Promise.all([
+      getDoc(doc(firestore, "tenants", tenantId)),
+      getDoc(doc(firestore, "featureFlags", "producto-puerta-de-buzones")),
+      getDoc(doc(firestore, "featureFlags", "_global")),
+      getDoc(doc(firestore, "featureFlagOverrides", tenantId)),
+    ]);
+
+    const explica = laPuertaExplicaElRechazo({
+      conjuntoMarcado: (tenantSnap.data() as { sinClienteDetras?: unknown } | undefined)?.sinClienteDetras === true,
+      // La MISMA precedencia que el servidor y que la regla, resuelta por el
+      // lector compartido en vez de a mano: kill switches, override, global, default.
+      puertaEncendida: isFeatureFlagEnabled("producto-puerta-de-buzones", {
+        flag: flagSnap.exists() ? (flagSnap.data() as FeatureFlagDoc) : null,
+        global: globalSnap.exists() ? (globalSnap.data() as GlobalFeatureFlagDoc) : null,
+        overrides: overridesSnap.exists() ? (overridesSnap.data() as FeatureFlagOverridesDoc) : null,
+      }),
+      email,
+    });
+    return explica ? MENSAJE_PUERTA : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Envuelve una escritura de `people` para que un rechazo de la puerta se explique. */
+async function conMotivoDeLaPuerta<T>(
+  operacion: () => Promise<T>,
+  contexto: { tenantId: string | null | undefined; email: string | null | undefined },
+): Promise<T> {
+  try {
+    return await operacion();
+  } catch (error) {
+    if ((error as FirestoreError)?.code !== "permission-denied") throw error;
+    const motivo = await motivoDeLaPuertaDeBuzones(contexto.tenantId, contexto.email);
+    if (!motivo) throw error;
+    throw new ErrorParaElUsuario(motivo);
+  }
+}
+
 function toDateTimeMutationError(error: unknown, fallbackMessage: string, bufferMinutes: number) {
   const firestoreError = error as FirestoreError;
   if (firestoreError?.code === "permission-denied" || firestoreError?.code === "failed-precondition") {
@@ -612,7 +669,25 @@ export async function bulkCreatePeople(
       created++;
     }
 
-    await batch.commit();
+    // `PLAT-006` `CA1`, la mitad de la IMPORTACIÓN. Un padrón entra por aquí en
+    // lotes, y el lote falla ENTERO: decir «no tienes permiso» sobre doscientas
+    // filas no le sirve a nadie. Cuando la puerta explica el rechazo, el mensaje
+    // nombra las direcciones CANDIDATAS —las que no son de dominio inerte—, que
+    // es lo más que se puede afirmar desde aquí: la lista del equipo no la puede
+    // leer el administrador, así que alguna de las nombradas podría ser
+    // admisible. Por eso dice «revisa estas» y no «estas están mal».
+    try {
+      await batch.commit();
+    } catch (error) {
+      if ((error as FirestoreError)?.code !== "permission-denied") throw error;
+      const sospechosas = chunk.map((r) => r.email).filter((e) => !esDominioInerte(dominioDe(e)));
+      const motivo = await motivoDeLaPuertaDeBuzones(tenantId, sospechosas[0]);
+      if (!motivo) throw error;
+      throw new ErrorParaElUsuario(
+        `${motivo} Revisa estas ${sospechosas.length} del archivo: ${sospechosas.slice(0, 10).join(", ")}` +
+          (sospechosas.length > 10 ? ` y ${sospechosas.length - 10} más.` : "."),
+      );
+    }
   }
 
   return created;
@@ -698,14 +773,18 @@ export async function createPerson(
   payload: Omit<PersonItem, "id" | "tenantId" | "createdAt" | "updatedAt">,
 ) {
   const firestore = assertDb();
-  const created = await addDoc(collection(firestore, "people"), {
-    ...payload,
-    tenantId,
-    createdBy: userId,
-    updatedBy: userId,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  const created = await conMotivoDeLaPuerta(
+    () =>
+      addDoc(collection(firestore, "people"), {
+        ...payload,
+        tenantId,
+        createdBy: userId,
+        updatedBy: userId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+    { tenantId, email: payload.email },
+  );
 
   if (shouldAttachToOwners(payload.roleType)) {
     await updateDoc(doc(firestore, "units", payload.unitId), {
@@ -732,11 +811,18 @@ export async function updatePerson(id: string, userId: string, payload: Partial<
   const previousSnap = await getDoc(personRef);
   const previous = previousSnap.exists() ? (previousSnap.data() as Partial<PersonItem>) : null;
 
-  await updateDoc(doc(firestore, "people", id), {
-    ...payload,
-    updatedBy: userId,
-    updatedAt: serverTimestamp(),
-  });
+  await conMotivoDeLaPuerta(
+    () =>
+      updateDoc(doc(firestore, "people", id), {
+        ...payload,
+        updatedBy: userId,
+        updatedAt: serverTimestamp(),
+      }),
+    // El conjunto sale del documento previo: esta firma no lo recibe. Y el correo
+    // que juzga la puerta es el NUEVO, que es el único que la regla mira cuando
+    // cambia; si el `payload` no lo trae, la puerta no puede ser la causa.
+    { tenantId: (previous as { tenantId?: string } | null)?.tenantId, email: payload.email },
+  );
 
   const previousUnitId = previous?.unitId;
   const previousRole = normalizeRoleType(previous?.roleType);

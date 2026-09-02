@@ -143,7 +143,12 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
    * existe desde antes que la ficha. No nombra a nadie: es la propia unidad
    * describiéndose. Retirarlo rompería lectores y es Fase 2.
    */
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:640"]);
+  // Movida de la 640 a la 715 el 3 sep 2026 al insertar la traducción de la puerta
+  // de buzones (`PLAT-006` `CA1`) más arriba en el fichero. **La línea es la misma,
+  // verificada contra el commit anterior**: no es una excepción nueva, es la de
+  // siempre desplazada — y que este guardián lo cazara es justo lo que promete su
+  // segundo caso.
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:715"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);
