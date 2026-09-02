@@ -4,7 +4,87 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 1 de septiembre de 2026, noche (`ONB-003` ABIERTA)
+## LO PRIMERO AL ABRIR SESIÓN — 2 de septiembre de 2026 (CIERRE de la noche del 1)
+
+> ### NO HAY NADA A MEDIAS. La siguiente sesión **ELIGE FRENTE**, y Albert está ESPERANDO a Albert.
+>
+> **Árbol limpio. `develop` empujado y por delante de `master` solo en documentos** (leer los remotos
+> con `git ls-remote`, no de aquí). **Producción sirviendo `build-2026-09-01-019` desde `6548e51`**,
+> medido por `traffic.current`. **Cero PRD escritas sin construir, cero frentes a medias.**
+>
+> **Lo que se cerró anoche, en una sesión:**
+>
+> | Qué | Dónde quedó |
+> |---|---|
+> | **`ONB-003` — unir columnas (`PRD-V-FEAT-006`)** | **EN PRODUCCIÓN**, validada con ojos en staging y en producción. Front en `6548e51`; `registrarImportacion` con `camposUnidos` en los dos ambientes, verificada por identidad del fuente. PRD en v1.2 con `G1` abierta (la cierra un cliente que importe) |
+> | **Albert — retomado** | `DECISIONES-A-006` redactada, **David la entrega por el canal**. Estado vivo: `docs/prd/albert/ESTADO-ALBERT.md`, bloque del 1 sep |
+> | Los cinco repositorios de información | Al día: bitácora, tablero, inventario, backlog de gobierno y roadmap (0.9.48) |
+>
+> **LOS CANDIDATOS, con lo que de verdad los mueve:**
+>
+> | Frente | Qué es | Qué haría falta |
+> |---|---|---|
+> | **`DATO-001` fase 2** — cerrar la puerta del alta | PRD pequeña, sin escribir | **Decisión de David**: rechazar buzones reales en conjuntos `isExample`, o repetir la limpieza cada tanto. Media jornada |
+> | **Cerrar cabos** — los cinco chips | `startsAt` indefinido al crear comunicado · base clavada de `email.ts` · `CF3` con credencial · rojo del emulador · facturado sin anticipo | Nada. Media jornada, y encaja con el anterior en una jornada |
+> | **`ONB-003` Fase 2** | La entidad `unit` (fixtures `60`–`67` ya escritas), plantillas con prefijo, partir una celda | Una decisión de alcance: `unit` pide resolver `RN-U2` (la torre hace falta en dos campos) y la ausencia de red en `bulkCreateUnits` |
+> | **`UX-005`** — tableros configurables | En exploración | Decisión de modelo (por usuario o por conjunto). Prioridad baja declarada |
+> | **Albert — señal de vuelta** | Lo único construible sin clientes de REVOPS | **El contrato de `vivaruWonSignals`**, que Albert no ha dado y cuyo endpoint no existe aún. No empezar sin él |
+> | `PH-002` · `SUP-002` | — | Un pago real · tickets reales. No son candidatos |
+>
+> ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
+>
+> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **dieciséis días**
+>    encendida en producción. **Sigue siendo lo único urgente del tablero.**
+> 2. **Entregar `DECISIONES-A-006` a Albert** por el canal (descargar del repositorio y pasarlo).
+> 3. **`gcloud auth login`** — el CLI de gcloud sigue muerto. La ADC vive; `firebase` vive desde las
+>    22:10 UTC del 1 sep (reautenticada esa noche tras caducar).
+> 4. **Corpus real de padrones: 15–25 archivos**, con permiso para anonimizar. Desbloquea la mitad
+>    de IA de `AI-ONB-001`.
+> 5. **`CA4` de `PH-003`**: dos personas y dos dispositivos (Carolina Prueba, 201).
+
+### LO QUE HAY QUE SABER DE ALBERT ANTES DE TOCARLO (medido el 1 sep desde su proyecto)
+
+- **Somos `roles/owner` de `albert-crm-1-1c162`** (`dev@qintilab.com`, la cuenta de la ADC y del
+  CLI). Se puede leer su Firestore, sus reglas y sus functions con la ADC. **No conceder IAM allí sin
+  decisión de David**: es la seguridad de otro producto.
+- **La clave estable de «ganado» NO existe.** Pipeline en `tenants/{t}/config/pipeline` como
+  `stages: string[]`, editable por el `tenant_admin`; el deal guarda `stage` como texto. El tenant
+  `demo` ya tiene un deal en una etapa que no está en su lista.
+- **La credencial la resuelve SU propuesta:** endpoint `vivaruWonSignals` con token de identidad
+  de nuestra cuenta de servicio. Las cuentas están en `DECISIONES-A-006` (medidas sobre las 90
+  functions de cada ambiente). **El endpoint no está desplegado** al 1 sep.
+- **Lo que se dejó de pedir:** contraseña del usuario de servicio y exclusión del reset self-service.
+
+### ESTADO DEL REPOSITORIO AL CERRAR
+
+- **Producción: `build-2026-09-01-019` ← `6548e51`.** Staging sirve el último `develop`.
+- **Bancos: `npm test` 1554 · functions 745**, typechecks en 0. SIN emulador `npm test` sale en ROJO
+  por `push-tokens.rules.test.ts` y eso no significa que rompiste nada.
+- **Credenciales: ADC viva · `firebase` viva · `gcloud` muerto.** Verificar ejercitándolas.
+- **`importRuns` en producción tiene UNA fila**, de la validación de anoche (fase `inicio`, Santa
+  María). No es tráfico de cliente.
+
+### CINCO TRAMPAS DE MÉTODO DE ANOCHE
+
+1. **Un criterio de aceptación puede ser IMPOSIBLE por construcción** y pasar tres revisiones:
+   `CA9` pedía una medida en un momento en que el dato no puede existir. Al escribir un criterio,
+   preguntar **cuándo se mide y qué hay en ese instante**.
+2. **`cd` dentro de una llamada de Bash persiste en las siguientes.** Tres comandos corrieron en
+   `functions/` sin saberlo y uno escribió un fichero en el sitio equivocado. Rutas absolutas.
+3. **Un despliegue ajeno en `DEPLOYING` no se pisa: se espera a `ACTIVE` y se verifica por identidad
+   del fuente** (bajar el zip del bucket y `diff`). Pasó dos veces el 1 sep, y las dos era código
+   nuestro.
+4. **`json.dump` reformatea el fichero entero.** Ocho claves nuevas dieron 481 líneas de diff;
+   insertar la línea a mano dio 8.
+5. **La caché del navegador da falsos negativos** con el rollout ya sirviendo: `?cb=<sha>`.
+
+**Sigue en pie: una sola sesión que escriba a la vez.**
+
+---
+
+## LA NOCHE DEL 1 DE SEPTIEMBRE — `ONB-003` y Albert — histórico
+
+**Bajado de la cabecera al cerrar la sesión.** Lo operativo está en la cabecera; esto es el detalle de cómo se hizo y lo que destapó.
 
 > ### `ONB-003` está EN PRODUCCIÓN, y la misma noche se RETOMÓ ALBERT. Lo vivo de Albert está en `docs/prd/albert/ESTADO-ALBERT.md` (bloque del 1 sep).
 >
