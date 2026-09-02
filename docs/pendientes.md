@@ -8,7 +8,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### `PLAT-006` está COMPLETA y desplegada, los SIETE conjuntos MARCADOS y las DIEZ direcciones SANEADAS en producción. **La bandera sigue APAGADA**, y para encenderla queda UNA decisión tuya y UNA dirección sin identificar.
 >
-> **Los dos remotos en `c2e2483`** (`git ls-remote`, árbol limpio). **Producción sirve
+> **`master` en `c2e2483`; `develop`, un commit de documentos por delante** — el de la pasada de
+> higiene, que no empaqueta nada. **El push a `master` lo pide David.** Léelos con `git ls-remote`:
+> esta línea la deja atrás el propio commit que la escribe, y así fue como envejeció la anterior.
+> **Producción sirve
 > `build-2026-09-02-006`, `READY`, rama `master`**, cuyo mensaje de commit es el de `c2e2483` —
 > medido por `traffic.current`, no por el «Deploy complete». **Bancos: `npm test` 1579 ·
 > functions 782 · reglas 293**, typechecks en 0. **Las tres credenciales VIVAS**, ejercitadas
