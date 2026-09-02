@@ -6,7 +6,7 @@
 | **Portales** | `ADMIN` (alcance: alta y edición de personas y cuentas) · `SUPERADMIN` (alcance: la marca del conjunto y la lista del equipo) · `RESIDENTE` y `PORTERIA` no se ven afectados |
 | **Módulo** | Residentes y unidades · Cuentas · correo transaccional (`functions/src/email.ts`) |
 | **Usuario principal** | `superadmin` (marca los conjuntos y mantiene la lista). `tenant_admin` la sufre: es a quien se le rechaza una dirección |
-| **Estado** | **COMPLETA — los NUEVE criterios cumplidos (3 sep 2026).** Salida y entrada **desplegadas en los dos ambientes** (reglas y functions), con la bandera apagada y **inerte en producción, medido**. `CA1` cerrado con el motivo legible en el formulario y en la importación; ese último trozo es front y **entra en el siguiente despliegue de `master`**. D1–D3 tomadas como recomendaba §0 y las once resueltas — diez de tecleo de demo, una del equipo (`luiseoteror@gmail.com`, confirmado por David). **Lo que queda no es código:** marcar los siete en producción, sanear las diez y encender |
+| **Estado** | **COMPLETA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS (3 sep 2026).** Código en los dos ambientes; **siete conjuntos marcados** (0 de trial), **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con `qintilab.com` + los cinco dominios de semilla + siete direcciones exactas del equipo. **La bandera sigue APAGADA.** Para encender queda **una sola cosa**: identificar `dann…@outlook.com` (César Montufar, guardia de Privada Las Playas, con cuenta de Auth y acceso el 1 jul 2026) — es el único que quedaría sin admitir |
 | **Dependencias** | `DATO-001` (limpieza del 27 ago, hecha) · `PRD-V-FLOW-003` (el canal de correo y el adjunto que convierte un correo molesto en fuga) · `PRD-V-FEAT-002`/`FEAT-006` (la importación es un camino de alta) · el trial self-service (`createTrialWorkspace`, `createTenantFromLead`) |
 | **Riesgo** | **Medio.** Mal cortada rompe el trial: un prospecto se registra con su correo real y su conjunto nace `isExample: true` |
 | **Reversibilidad** | Total detrás de una bandera. La marca del conjunto es un campo que se puede quitar; la lista del equipo, un documento |
@@ -310,6 +310,37 @@ servidor. **Todo construido al 3 de septiembre de 2026.**
 | `G4 Construcción` | **Superada, entrada incluida.** 57 pruebas nuevas —20 de salida, 25 de reglas contra el emulador, 12 del servidor— y **doce falsaciones**, dos de ellas rehechas porque pasaron en verde siendo malas |
 | `G5 Despliegue` | **Superada en los DOS ambientes (3 sep).** 90 functions `ACTIVE` en cada uno, **cero sin mover** medido por `updateTime` contra la línea base. **Canario encendido en staging** (`tenant-santa-maria` marcado + override de la bandera), y validado con el flujo real: ver abajo |
 | `G6 Valor` | **Abierta en producción**: falta marcar los siete, sanear las diez y encender |
+
+### Los datos de producción, puestos el 3 de septiembre
+
+| Qué | Resultado, verificado leyendo |
+|---|---|
+| Conjuntos marcados | **7**, y **0 de trial** — comprobado explícitamente por el propio script |
+| Personas saneadas | **10** · 10 documentos de `people`, **0 cuentas de Auth** (las diez eran solo contacto) |
+| Barrido | de **30** direcciones no inertes a **20** |
+| `config/correosDelEquipo` | 6 dominios + 7 direcciones exactas |
+| Sin admitir si se encendiera | **2 documentos, 1 persona** |
+
+**Los cinco dominios de semilla se admiten por decisión de David (3 sep), y la medición DNS la
+respalda:** `bromelias.co`, `elnogal.co` y `privadapalmas.mx` **no resuelven**; `lasplayas.com`
+declara **null MX** (`0 .`, RFC 7505: no acepta correo). **El único con matiz es `santamaria.co`**:
+tiene registro `A` y **no tiene `MX`**, así que un envío no llegaría a una persona pero **puede
+rebotar**, y los rebotes duros gastan la reputación del remitente. **`outlook.com` NO se añadió** —
+es un proveedor público, y admitirlo habría abierto la puerta a cualquier dirección de Outlook,
+incluida la única que sigue sin identificar.
+
+> **La trampa del saneador, que costó descubrir.** `sanear-correos-de-prueba.mjs` **no cazaba ni
+> una de las diez**: su `esDeRiesgo` exige una parte local de 3 a 10 letras seguidas, que es
+> **exactamente el patrón que dejó once fuera en `DATO-001`**. Correrlo tal cual sobre producción
+> respondía **«No hay nada que hacer»** — un no-op que se lee como éxito—, y ampliar la expresión
+> habría barrido también las direcciones del equipo, del mismo dominio. Ahora acepta
+> `--lista <ruta.json>`: **la propiedad de un buzón la decide una persona**, y la lista es el
+> artefacto de esa decisión.
+>
+> **Y el inventario de «las once» era incompleto: barrió solo `people`.** Hay **tres** buzones
+> públicos que existen únicamente como identidad (`users`/`tenantUsers`) y no aparecían en aquel
+> conteo. Dos son los `+alias` del equipo; el tercero es el de César Montufar. **Un inventario vale
+> lo que valen las colecciones que recorre.**
 
 ### Cómo se cerró `CA1`, y el defecto que estuvo a punto de repetirse
 
