@@ -4,102 +4,96 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (CIERRE de PLAT-006, con los NUEVE criterios)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (PLAT-006 entera, y los datos de producción PUESTOS)
 
-> ### `PLAT-006` ESTÁ COMPLETA: salida, entrada Y `CA1`. Reglas y functions **en los dos ambientes**; el trozo de front va con el siguiente `master`. **LAS TRES CREDENCIALES CADUCARON al final de la jornada.**
+> ### `PLAT-006` está COMPLETA y desplegada, los SIETE conjuntos MARCADOS y las DIEZ direcciones SANEADAS en producción. **La bandera sigue APAGADA**, y para encenderla queda UNA decisión tuya y UNA dirección sin identificar.
 >
-> **LOS DOS REMOTOS EN `13edea5`, y producción sirviendo `build-2026-09-02-002` desde ese mismo
-> commit** (`rollout-2026-09-02-002` `SUCCEEDED`, medido por `traffic.current` y por procedencia del
-> commit, no por el «Deploy complete»). Leer los remotos con `git ls-remote`. **Bancos: `npm test`
-> 1579 · functions 782 · reglas de Firestore 293**, typechecks en 0.
+> **Los dos remotos en `abdde99`.** Producción sirvió `build-2026-09-02-002` desde `13edea5`
+> (`rollout-2026-09-02-002` `SUCCEEDED`, por `traffic.current`). **Bancos: `npm test` 1579 ·
+> functions 782 · reglas 293**, typechecks en 0. **Las tres credenciales VIVAS**, ejercitadas.
 >
-> **Comprobado DESPUÉS de desplegar el front, que es cuando importa: la puerta sigue apagada e
-> inerte en producción.** 0 conjuntos marcados · la bandera **sin documento**, así que manda el
-> default del catálogo (`false`) · 0 overrides · sin lista del equipo · **0 rechazos** en
-> `emailDeliveries`. Antes de empujar se verificó que ningún `defaultEnabled` existente cambiaba:
-> subir un front con un default en `true` habría encendido una capacidad sin que nadie lo decidiera.
+> ### LO QUE SE ESCRIBIÓ EN PRODUCCIÓN HOY
 >
-> **Las tres credenciales están VIVAS** (renovadas por David y ejercitadas: ADC con HTTP 200 contra
-> Firestore de producción, `gcloud` y `firebase` listando). Cuenta `dev@qintilab.com`, proyecto
-> `hogaru-1`.
+> | Qué | Resultado, verificado leyendo |
+> |---|---|
+> | **7 conjuntos marcados** `sinClienteDetras` | 7 · **0 de trial** (los dos con `trialEndsAt` quedaron fuera) |
+> | **10 personas saneadas** al dominio inerte | 10 documentos de `people`, **0 cuentas de Auth** — las diez eran solo contacto |
+> | `config/correosDelEquipo` | `qintilab.com` + **7 direcciones exactas** del equipo |
+> | Barrido | de **30** direcciones no inertes a **20** |
+> | Bandera | **APAGADA** (sin documento → default del catálogo), 0 overrides |
 >
-> ### LAS CREDENCIALES CADUCARON Y SE RENOVARON — la lección se queda
+> **Vuelta atrás real:** cada documento saneado guarda `emailPrevio` (18 en total, 10 de hoy y 8
+> de `DATO-001`). Se deshace con `sanear-correos-de-prueba.mjs hogaru-1 --revertir --escribir`.
 >
-> Las tres murieron a media jornada y David las renovó; **están vivas y ejercitadas**. Lo que hay
-> que llevarse es **cómo se comprueban**: `gcloud auth application-default print-access-token`
-> **devuelve un mensaje de ERROR de 273 caracteres cuando está muerta**, así que un chequeo que mire
-> la LONGITUD del token la da por viva. Hay que mirar el CONTENIDO —un token empieza por `ya29.`— y
-> además ejercitarlo contra algo real:
+> ### LO QUE FALTA PARA ENCENDER, Y NO ES CÓDIGO
 >
-> ```bash
-> T=$(gcloud auth application-default print-access-token 2>/dev/null); case "$T" in ya29.*) echo viva;; *) echo MUERTA;; esac
-> ```
+> **1 · Los dominios de semilla.** Si se enciende hoy, la puerta **no admitiría 14 direcciones**
+> en `people` de los conjuntos marcados: `elnogal.co` ×8 y `privadapalmas.mx` ×6 (y en
+> `users`/`tenantUsers`, además `santamaria.co` ×6, `bromelias.co` ×2, `lasplayas.com`). **Son las
+> cuentas con las que se entra a las demos**, y §4 de la ficha las dejó fuera de alcance como
+> `TBD`. **La puerta no impide entrar** —el login no pasa por ella—, pero sí impediría crear o
+> editar esas personas y mandarles correo de acceso. **Decisión tuya:** o se añaden esos dominios
+> a `config/correosDelEquipo`, o se sanean también, o esos conjuntos no se encienden.
 >
-> ### QUÉ QUEDÓ, EN TRES CAPAS
+> **2 · Una dirección que NO está identificada, y mi inventario anterior no la vio.**
+> `dann…@outlook.com` — **«César Montufar», `security_guard` de Privada Las Playas, con cuenta de
+> Auth y último acceso el 1 de julio de 2026**. La metí en la lista del equipo dando por hecho que
+> todas eran tuyas, y **no lo es**; ya está retirada. **No se ha saneado ni se saneará hasta que
+> digas de quién es.**
 >
-> | Capa | Qué hace | Dónde |
-> |---|---|---|
-> | **Salida** | ningún correo sale a una dirección no admisible desde un conjunto marcado | `functions/src/email.ts` · **desplegada y validada** |
-> | **Entrada** | ni se escribe: reglas para `people` (formulario **e importación**) y `assertBuzonAdmisible` en las cuatro callables de alta | `firestore.rules` + `functions/src` · **desplegadas** |
-> | **`CA1`** | el rechazo **dice por qué**, en el formulario y en la importación | `src/lib/buzones/` + `services.ts` · **sin desplegar (front)** |
+> > **POR QUÉ SE ESCAPÓ, que es lo que hay que llevarse:** el inventario de «las once» barrió
+> > **solo `people`**. Esta vive únicamente en `users` y `tenantUsers`. **Hay tres direcciones así**
+> > —las otras dos son tus `+alias` de Las Playas—, y ninguna aparecía en aquel conteo. El barrido
+> > oficial (`informe-correos-en-conjuntos-de-ejemplo.mjs`) sí mira las tres colecciones; el mío
+> > ad-hoc, no. **Un inventario vale lo que valen las colecciones que recorre.**
 >
-> **En producción sigue INERTE y está medido:** 0 conjuntos marcados · bandera sin documento ·
-> 0 overrides · sin lista del equipo.
+> ### LA TRAMPA DEL SANEADOR, que costó descubrir y vale para la próxima
 >
-> ### EL DEFECTO DE AGOSTO ESTUVO A PUNTO DE REPETIRSE, IDÉNTICO
+> **`sanear-correos-de-prueba.mjs` no cazaba ni una de las diez.** Su `esDeRiesgo` exige una parte
+> local de 3 a 10 letras seguidas —`^[a-z]{3,10}$`—, que es **exactamente el patrón que dejó once
+> fuera en `DATO-001`**. Correrlo tal cual sobre producción respondía **«No hay nada que hacer»**:
+> un no-op que se lee como éxito. Y ampliar la expresión habría barrido también las direcciones del
+> equipo, que son del mismo dominio. Por eso ahora acepta **`--lista <ruta.json>`**: la propiedad
+> de un buzón la decide una persona, y la lista es el artefacto de esa decisión.
 >
-> La traducción del rechazo lanzaba un `Error` plano. `normalizeFirebaseError` **solo respeta el
-> texto de un `CallableError`**; un `Error` plano no tiene `code`, cae en el genérico, y en pantalla
-> se habría leído **«Ocurrió un error inesperado»** — que es literalmente lo que documenta la
-> cabecera de `CallableError`, escrita el 24 de agosto tras el mismo tropiezo. **Todo el trabajo de
-> `CA1` habría sido inerte donde importa, y ninguna suite lo habría dicho.**
+> **La lista de las diez NO está versionada**: lleva direcciones completas de terceros. Se
+> regenera con el barrido de contexto cuando haga falta.
 >
-> Cerrado generalizando el contrato en vez de ensanchar el caso: **`CallableError` ahora extiende
-> `ErrorParaElUsuario`** y el traductor comprueba la clase base. El contrato nunca fue «viene de una
-> callable», sino **«este texto está escrito para leerse»**.
+> ### LO SIGUIENTE
 >
-> ### LO SIGUIENTE, EN ORDEN
->
-> **Ya NO quedan pasos de código ni de despliegue: `PLAT-006` está entera en los dos ambientes y
-> `master` desplegado.** Lo que sigue es operación:
->
-> 1. **Marcar los siete** conjuntos de producción con `sinClienteDetras` (NO los dos del trial),
->    escribir `config/correosDelEquipo` con `qintilab.com`, y **encender por conjunto** antes que en
->    global.
-> 2. **Sanear las diez** con `sanear-correos-de-prueba.mjs`. Y **entonces** medir `CA9`, que se mide
->    en `fin` y no al desplegar.
-> 3. **Ver el mensaje en pantalla**: marcar un conjunto, encender la bandera ahí, y crear una
->    persona con un correo cualquiera desde Residentes. **No se pudo automatizar** — el menú de
->    acciones y el modal de alta no responden a clics sintéticos, y la sesión de staging del
->    navegador se cerró.
-> 4. **Los cuatro repositorios de Notion**, que esta sesión no pudo tocar (conector desconectado):
->    el contenido está escrito y entregado como archivo — tres filas de bitácora, la cabecera del
->    tablero, tres anotaciones del inventario y tres filas del backlog de gobierno.
+> 1. **Decidir lo de los dominios de semilla** (punto 1 de arriba). Es lo único que bloquea encender.
+> 2. **Decir de quién es `dann…@outlook.com`** (César Montufar).
+> 3. **Encender por conjunto** —`mover-bandera-de-conjunto.mjs`— antes que en global. Empezar por
+>    uno, mirar, y seguir.
+> 4. **Medir `CA9`** después de encender: el barrido debe dar 0 no admisibles en los marcados.
+> 5. **Ver el mensaje en pantalla**: crear una persona con un correo cualquiera desde Residentes.
+> 6. **Los cuatro repositorios de Notion** — el conector estuvo caído; el contenido está entregado
+>    como archivo.
 >
 > ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
 >
 > 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **dieciocho días**.
-> 2. Las tres credenciales, y el paso 5 de arriba.
+> 2. Los puntos 1 y 2 de arriba.
 > 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
 > 4. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
 >
-> ### LAS TRAMPAS DE MÉTODO DE HOY
+> ### LAS TRAMPAS DE MÉTODO DE LA JORNADA
 >
-> 1. **`gcloud` NO estaba muerto al abrir** —el traspaso lo arrastró tres días—, **y sí lo está al
->    cerrar.** Ejercitar sirve en los dos sentidos, y el estado caduca: **medirlo, no citarlo.**
-> 2. **TRES falsaciones pasaron en verde. Dos por MALAS** —una usaba un conjunto inexistente, otra
->    insertaba fuera del bloque examinado— **y una porque destapaba un hueco REAL**: ninguna prueba
->    miraba que el emisor usara el tipo de error correcto. **Si una falsación no enrojece, primero
->    se duda de la falsación; si la falsación es buena, el hueco es de la cobertura.**
-> 3. **La prueba de CONTROL destapó lo que la principal no veía:** `config/correosDelEquipo` no la
->    podía leer NADIE, superadmin incluido, así que `CA8` habría pasado por la razón equivocada.
-> 4. **`updateDoc` fusiona y la regla ve el documento RESULTANTE.** Por eso `create` mira el correo
->    siempre y `update` solo si CAMBIA — si no, editar el teléfono de las once quedaba bloqueado.
-> 5. **Un guardián anclado a NÚMERO DE LÍNEA enrojece con cualquier inserción de arriba.** El de
->    `clave-de-unidad` avisó al desplazarse su excepción de la 640 a la 715. **Funcionó como
->    promete su propio comentario**, pero conviene saberlo antes de culpar al cambio.
-> 6. **Un `replace` sin contar ocurrencias toca de más**: `await batch.commit()` aparecía en
->    `bulkCreateUnits` y en `bulkCreatePeople`. Contar antes de sustituir.
+> 1. **Un script que no encuentra nada responde «No hay nada que hacer», y eso NO es «ya está
+>    limpio».** El saneador dio ese mensaje sobre diez direcciones que sí había que sanear.
+> 2. **Un inventario vale lo que valen las colecciones que recorre** — el de «las once» miró solo
+>    `people` y dejó fuera tres identidades.
+> 3. **Un chequeo de credencial que mide la LONGITUD del token la da por viva**:
+>    `print-access-token` devuelve un ERROR de 273 caracteres cuando está muerta. Mirar el
+>    contenido (`ya29.`) y ejercitarlo. Y `HTTP 000` no es una respuesta.
+> 4. **DOS falsaciones pasaron en verde por malas y UNA por destapar un hueco real.** Si no
+>    enrojece: primero se duda de la falsación; si la falsación es buena, falta cobertura.
+> 5. **Una prueba de CONTROL destapó que `config/correosDelEquipo` no la podía leer NADIE**,
+>    superadmin incluido: `CA8` habría pasado en verde por la razón equivocada.
+> 6. **`updateDoc` fusiona y la regla ve el documento RESULTANTE**: por eso `create` mira el correo
+>    siempre y `update` solo si CAMBIA.
+> 7. **Un guardián anclado a NÚMERO DE LÍNEA enrojece con cualquier inserción de arriba** — el de
+>    `clave-de-unidad`, al desplazarse su excepción de la 640 a la 715.
 >
 > **Sigue en pie: una sola sesión que escriba a la vez.**
 
