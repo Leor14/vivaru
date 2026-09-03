@@ -16,10 +16,10 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.58 |
+| **Versión** | 0.9.59 |
 | **Fecha** | 3 de septiembre de 2026 |
-| **Estado** | **EL MODO OSCURO ESTÁ CERRADO Y ENCENDIDO EN LOS NUEVE CONJUNTOS** (`PRD-V-FEAT-007`, 3 sep 2026, `e0d8e99`): tres entregas en producción, bandera global encendida y **sin overrides**, canario probado de ida y de vuelta en Santa María. **Era el PASO PREVIO acordado antes de volver a los bloques de Habitanto, y ya está hecho** — el frente vivo vuelve a ser Habitanto, con fila propia en la tabla de abajo. **Lo primero ahí es ELEGIR BLOQUE, no construir**: el lote cerrado era solo el **P0**, y quedan **38 P1, 42 P2 y 12 P3** de los 108 candidatos, más los **diez huecos** de la sesión con la administradora —que salieron de escuchar, no de navegar la app— y **`FIX-001` entrega 2**, lo único que le falta al lote (van 10 de 11). **Lo anterior, vigente:** el tope de gasto de la IA sin mirarse; `PLAT-005` pendiente de un Android; Albert espera el contrato de `vivaruWonSignals`; y `PLAT-006` espera saber de quién es `dann…@outlook.com`. Los remotos se leen con `git ls-remote`, no de aquí |
-| **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
+| **Estado** | **LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ EN PRODUCCIÓN Y OBSERVADA CON OJOS** (3 sep 2026, `7b87e2b`): informe económico anclado al banco — cálculo **compartido** entre `src/` y `functions/` con espejo **byte a byte**, saldo inicial real, cuentas pendientes de cobro y deuda a proveedores. **Cierra la causa mecánica de `R12` y `R16`**: `monthlyFinancialArchive` ya no reimplementa el resumen. Y cierra un **defecto vivo**: Santa María recibía «Fondo insuficiente… evita registrar nuevos egresos» teniendo **5.000.000** en el banco; hoy pinta **$725.000** y sin aviso. **Lo siguiente es la ENTREGA 2 de esa misma ficha, no elegir frente** —`monthlyReports`, estados, callable de emitir/firmar/anular y PDF con firmas—, por el criterio del 24 de agosto: cerrar frentes antes que abrirlos, y `FLOW-007` está abierta y a un tercio. **`PRD-V-FLOW-006` sigue BLOQUEADA** por `G5` (quién registra la tasa del BCE) y las cinco preguntas al abogado, las dos de David. **Lo anterior, vigente:** el tope de gasto de la IA sin mirarse; `PLAT-005` pendiente de un Android; Albert espera el contrato de `vivaruWonSignals`; `PLAT-006` espera saber de quién es `dann…@outlook.com`; y quedan **37 P1, 42 P2 y 12 P3** de los 108 candidatos de Habitanto. Los remotos se leen con `git ls-remote`, no de aquí |
+| **Verificado contra** | **Producción, midiendo y mirando la pantalla.** La entrega 1 se observó con la sesión de administrador de Santa María: **$725.000** de saldo de fondos y **sin aviso rojo**, y la aritmética se contrastó **contra Firestore, no contra la pantalla** — `5.000.000 + 2.200.000 + 290.000 − 6.765.000`, con los 13 asientos leídos de la base. **Con el `0` que pasaban los tres consumidores daba −4.275.000.** El Excel trae las cuatro filas nuevas, y **los ceros se contrastaron**: staging tiene 171 cargos y 78 egresos y Santa María 0 de cada uno, así que el cero es el dato y no una colección sin leer. Despliegue verificado **midiendo, no leyendo «Deploy complete»**: **90 functions `ACTIVE`** por proyecto, **0 sin moverse**, 0 del código sin desplegar; y los rollouts esperados **por nombre**. Bancos: `npm test` **1715** · functions **799** · los dos typechecks en 0. **Los de reglas no se pudieron correr: este equipo no tiene Java** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
 **Lo que YA está construido no se lee aquí.** Vive en una base de Notion propia —
@@ -141,7 +141,7 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
-| **Bloques de Habitanto** | 🟢 **`B5` ELEGIDO Y CON FICHA** — `PRD-V-FLOW-006` (mora legal + convenio, 3 sep), el primer bloque que se aterriza. **Riesgo ALTO: toca `aplicarPago`, en producción** | 🟠 **Seguir eligiendo bloque**, que es lo primero y no es construir. El lote cerrado era **solo el P0**: de los **108 candidatos** quedan **38 P1, 42 P2 y 12 P3** sin empezar (`docs/prd/candidatos-prd-desde-habitanto.md`). Categorías con más P1: **G·comunicaciones (6)**, **B·cartera y cobro (6)**, **E·egresos (5)**, **A·unidad y personas (3)** | 🟠 **Leer ANTES `docs/sesion-administradora-habitanto.md`** — **diez huecos que el inventario NO vio**, porque los 108 salieron de **navegar la app** y no de escuchar a quien la usa. Es ley, dolor y rodeo: nada de eso sale en una pantalla | 🟠 **`FIX-001` entrega 2** (política de reserva **por área**) — lo único que le falta al lote: van **10 de 11**. Verificado el 3 sep: `blockOnDebt` sigue siendo un solo ajuste del conjunto, sin política por amenity. **Fase 2 aplazada a propósito**, no un olvido | ◇ **Encender no es poner en uso** — tres capacidades del lote anterior quedaron activas sobre tablas VACÍAS; **coeficiente y proveedores siguen en cero**, y eso es captura de datos, no ingeniería |
+| **Bloques de Habitanto** | 🟢 **`FLOW-007` ENTREGA 1 EN PRODUCCIÓN Y OBSERVADA** (3 sep, `7b87e2b`) — informe anclado al banco, cálculo unificado con espejo byte a byte, y el aviso falso de «Fondo insuficiente» cerrado | 🟠 **`FLOW-007` ENTREGA 2** — `monthlyReports`, estados, callable de emitir/firmar/anular y PDF con firmas. **Es lo siguiente y no es elegir frente**: la ficha está abierta a un tercio. Aviso: **seis de sus criterios son banco de reglas y aquí no se pueden correr** | 🔴 **`FLOW-006` BLOQUEADA** (mora legal + convenio) — espera `G5` y al abogado, las dos de David · 🟠 **`FIX-001` entrega 2** (reserva por área), lo único que le falta al lote: van 10 de 11 | ◇ Quedan **37 P1, 42 P2 y 12 P3** de los 108 candidatos, y **los diez huecos** de `docs/sesion-administradora-habitanto.md` — que salieron de escuchar, no de navegar la app |
 | **Experiencia y diseño** | ✅ **BLOQUE CERRADO** — `UX-001`, `UX-003`, `UX-004` y **`UX-006` MODO OSCURO en producción y ENCENDIDO EN LOS NUEVE CONJUNTOS** (3 sep, `PRD-V-FEAT-007`, por el valor global y sin overrides). Era el **paso previo acordado antes de volver a los bloques de Habitanto**, y ya está hecho | 🟡 **Cuatro criterios de `FEAT-007` para marcarla Productiva** — las 7 pruebas de reglas **escritas y sin correr porque este equipo no tiene Java**, el destello (`CA5`/`CA6`), la impresión con ojos (`CA11`/`CA15`/`CA19`) y `CA7` · 🟡 Repasar los criterios de `UX-004` contra producción | 🟠 **`UX-005`** (tableros configurables) — **DESBLOQUEADA**: su decisión pendiente era «por usuario o por conjunto» y `FEAT-007` la resolvió, **por usuario** · ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ Deuda de contraste anterior: `--slate-400` (2,83:1, 78 usos) y dos botones con etiqueta blanca (3,65 y 3,61). Medida, con suelo en las pruebas, y **arreglarla se ve en claro**: decisión de David |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
@@ -1238,6 +1238,38 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.59 — 3 de septiembre de 2026 — la entrega 1 de `FLOW-007`, en producción y observada
+
+- **El estado financiero pasa a tener UNA sola implementación.** `src/lib/finanzas/nucleo-estado-financiero.ts`
+  y su copia **byte a byte** en `functions/src/`, con dos guardianes que hacen falta los dos: la
+  **identidad del fichero** impide que diverjan, y un **banco de ocho casos con los números escritos
+  a mano** —corrido por los DOS bancos— impide que dos ficheros idénticos estén ambos equivocados.
+  Es lo que pedía `CA1` y lo que `R12` y `R16` no tuvieron. **`monthlyFinancialArchive` ya no
+  reimplementa el resumen.**
+- **El defecto vivo, cerrado y VISTO.** Santa María recibía «Fondo insuficiente… evita registrar
+  nuevos egresos» con **5.000.000** en el banco, porque los tres consumidores pasaban
+  `openingBalance = 0`. Hoy pinta **$725.000** y sin aviso, verificado en producción con sesión de
+  administrador y contrastado contra Firestore.
+- **`TBD-M1` medido antes de escribir código:** **4 de 9** conjuntos tienen documento de saldo
+  inicial y **2 distinto de cero**. No era un no-op. **Y la ADC no estaba muerta**: `invalid_rapt`
+  es un desafío de reautenticación, no una caducidad.
+- **Dos correcciones a la propia ficha, al medir.** **`R5` falsificado**: la deuda a proveedores no
+  vive en `vendors` —0 filas— sino en los **13 egresos en `registrado`** de cuatro conjuntos. Y
+  **`ExpenseStatus` es castellano** (`registrado | pagado | anulado`): filtrar en inglés daba la
+  deuda **tres veces más grande**.
+- **`CA3` fallaba de verdad, y lo cazó el banco de casos.** `2.000,44 − 1.234,56` daba
+  `765.8800000000001`. **Invisible con COP** —seis de los nueve conjuntos— y roto con MXN y USD.
+- **`CA18` predijo mal y la construcción estaba bien.** Son **tres cables**, no uno: el aviso lo
+  calcula `computeFundPosition` y el cierre el núcleo. Tres falsaciones por separado, cada una
+  enrojeciendo solo lo suyo.
+- **Y mirar la pantalla encontró un defecto que 1714 pruebas en verde no veían, y era propio:** el
+  arreglo estaba **a medias dentro de sí mismo**. La tarjeta decía «Saldo de fondos $0» —en rojo—
+  mientras el Excel de esa misma pantalla decía «Sin saldo bancario de apertura». **Al arreglar la
+  mitad visible de un defecto, buscar las otras superficies que muestran lo mismo.**
+- **Y una trampa de credenciales que costó un despliegue fallido:** `firebase login:list` respondía
+  «Logged in as …» **con el token muerto**, y `gcloud auth list` igual. Solo lo delató ejercitarlas.
+  **La ADC estaba viva mientras las otras dos no.**
 
 ### 0.9.58 — 3 de septiembre de 2026 — el informe que la ley obliga a publicar: `PRD-V-FLOW-007`
 
