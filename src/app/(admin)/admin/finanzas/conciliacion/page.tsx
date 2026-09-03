@@ -115,7 +115,7 @@ function Grupo({
                   </p>
                 ) : null}
                 {caso?.status === "reversado" ? (
-                  <p className="mt-0.5 text-xs text-[#936b24]">
+                  <p className="mt-0.5 text-xs text-[var(--tinte-ambar-texto-1)]">
                     Se deshizo sola: el movimiento con el que estaba casada fue anulado.
                   </p>
                 ) : null}
@@ -130,7 +130,7 @@ function Grupo({
                 {line.reconciled ? (
                   <>
                     {fallos.length === 0 ? (
-                      <Badge className="text-[#2f775f]">
+                      <Badge className="text-[var(--tinte-verde-texto-1)]">
                         <Check className="mr-1 h-3 w-3" />
                         Conciliada
                       </Badge>
@@ -512,11 +512,11 @@ export default function AdminConciliacionPage() {
           </div>
           <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
             <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Conciliadas</p>
-            <p className="mt-1 text-lg font-semibold text-[#2f775f]">{summary.conciliadas}</p>
+            <p className="mt-1 text-lg font-semibold text-[var(--tinte-verde-texto-1)]">{summary.conciliadas}</p>
           </div>
           <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
             <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Sin conciliar</p>
-            <p className="mt-1 text-lg font-semibold text-[#936b24]">{summary.pendientes}</p>
+            <p className="mt-1 text-lg font-semibold text-[var(--tinte-ambar-texto-1)]">{summary.pendientes}</p>
           </div>
           {/*
             **Descartar es una decisión tomada, no trabajo pendiente.** Contarla
@@ -802,7 +802,7 @@ export default function AdminConciliacionPage() {
                     >
                       <span className="flex items-center justify-between gap-3">
                         <span className="text-sm font-medium text-[var(--slate-900)]">{entry.concept}</span>
-                        <span className={entry.type === "ingreso" ? "text-[#2f775f]" : "text-[#936b24]"}>
+                        <span className={entry.type === "ingreso" ? "text-[var(--tinte-verde-texto-1)]" : "text-[var(--tinte-ambar-texto-1)]"}>
                           {entry.type === "ingreso" ? "+" : "−"}
                           {formatAmount(entry.amount)}
                         </span>

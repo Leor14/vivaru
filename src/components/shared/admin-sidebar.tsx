@@ -282,7 +282,7 @@ export function AdminSidebar({
                   onClick={() => toggleGroup(group.label!)}
                   aria-expanded={!plegado}
                   aria-controls={idContenido}
-                  className="flex w-full items-center gap-1.5 rounded-lg uppercase transition-colors duration-150 hover:text-[rgba(255,255,255,0.7)]"
+                  className="flex w-full items-center gap-1.5 rounded-lg uppercase transition-colors duration-150 hover:text-[var(--on-fill)]/70"
                   style={GROUP_LABEL_STYLE}
                 >
                   <span className="truncate">{group.label}</span>
@@ -318,7 +318,7 @@ export function AdminSidebar({
                           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors duration-150",
                           active
                             ? "text-[var(--on-fill)]"
-                            : "text-[rgba(255,255,255,0.75)] hover:text-[var(--on-fill)]",
+                            : "text-[var(--on-fill)]/75 hover:text-[var(--on-fill)]",
                         )}
                         style={{
                           backgroundColor: active

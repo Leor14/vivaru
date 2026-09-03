@@ -310,7 +310,7 @@ function AdminFinanzasLibroPageContent() {
       key: "type",
       header: "Tipo",
       render: (item) => (
-        <Badge className={item.type === "ingreso" ? "text-[#2f775f]" : "text-[#936b24]"}>
+        <Badge className={item.type === "ingreso" ? "text-[var(--tinte-verde-texto-1)]" : "text-[var(--tinte-ambar-texto-1)]"}>
           {item.type === "ingreso" ? "Ingreso" : "Egreso"}
         </Badge>
       ),
@@ -339,7 +339,7 @@ function AdminFinanzasLibroPageContent() {
         // absoluto porque el signo ya lo pone esta línea.
         const entra = movimientoEntraAlFondo(item.type, item.amount);
         return (
-          <span className={entra ? "font-medium text-[#2f775f]" : "font-medium text-[#936b24]"}>
+          <span className={entra ? "font-medium text-[var(--tinte-verde-texto-1)]" : "font-medium text-[var(--tinte-ambar-texto-1)]"}>
             {entra ? "+" : "−"}
             {formatAmount(Math.abs(item.amount))}
           </span>
@@ -384,7 +384,7 @@ function AdminFinanzasLibroPageContent() {
       </div>
 
       {fundPosition.balance < 0 ? (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#e2b6b6] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-[var(--tinte-rojo-borde-2)] bg-[var(--tinte-neutro-fondo-2)] px-4 py-3 text-sm text-[var(--tinte-rojo-texto-2)]">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
           <span>
             <strong>Fondo insuficiente.</strong> El saldo de fondos es negativo ({formatAmount(fundPosition.balance)}). Revisa los ingresos pendientes y evita registrar nuevos egresos hasta regularizarlo.
@@ -396,26 +396,26 @@ function AdminFinanzasLibroPageContent() {
         <div
           className={
             fundPosition.balance < 0
-              ? "rounded-xl border border-[#e2b6b6] bg-[#FCEBEB] p-3"
+              ? "rounded-xl border border-[var(--tinte-rojo-borde-2)] bg-[var(--tinte-neutro-fondo-2)] p-3"
               : "rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3"
           }
         >
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Saldo de fondos</p>
-          <p className={`mt-1 text-lg font-semibold ${fundPosition.balance < 0 ? "text-[#A32D2D]" : "text-[#2c648d]"}`}>
+          <p className={`mt-1 text-lg font-semibold ${fundPosition.balance < 0 ? "text-[var(--tinte-rojo-texto-1)]" : "text-[var(--tinte-azul-texto-1)]"}`}>
             {formatAmount(fundPosition.balance)}
           </p>
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Ingresos por cuotas</p>
-          <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatAmount(fundPosition.cuotaIncome)}</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(fundPosition.cuotaIncome)}</p>
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Otros ingresos</p>
-          <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatAmount(fundPosition.ledgerIncome)}</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(fundPosition.ledgerIncome)}</p>
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Egresos</p>
-          <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatAmount(fundPosition.expenses)}</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--tinte-ambar-texto-1)]">{formatAmount(fundPosition.expenses)}</p>
         </div>
       </div>
 

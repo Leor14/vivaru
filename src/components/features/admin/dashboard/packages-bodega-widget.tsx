@@ -115,7 +115,7 @@ export function PackagesBodegaWidget({ tenantId }: Props) {
                   <p className="truncate text-[11px] text-[var(--slate-500)]">{pkg.unitLabel}</p>
                 </div>
                 <div className="ml-3 flex flex-col items-end gap-0.5">
-                  <span className={`text-sm font-semibold ${crit ? "text-[#A32D2D]" : "text-[#854F0B]"}`}>
+                  <span className={`text-sm font-semibold ${crit ? "text-[var(--tinte-rojo-texto-1)]" : "text-[var(--tinte-ambar-texto-3)]"}`}>
                     {pkg.daysInBodega} días
                   </span>
                   <Link

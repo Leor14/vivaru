@@ -195,11 +195,11 @@ function BillingTrendTooltip({
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
           <span>Cobrado</span>
-          <span className="font-semibold text-[#2c648d]">{formatAmount(charged)}</span>
+          <span className="font-semibold text-[var(--tinte-azul-texto-1)]">{formatAmount(charged)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>Recaudado</span>
-          <span className="font-semibold text-[#2f775f]">{formatAmount(collected)}</span>
+          <span className="font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(collected)}</span>
         </p>
         {settled !== collected ? (
           // Solo aparece cuando los dos números se separan, que es cuando hay
@@ -207,16 +207,16 @@ function BillingTrendTooltip({
           // buscarles la diferencia.
           <p className="flex items-center justify-between gap-3">
             <span>Saldado con anticipos</span>
-            <span className="font-semibold text-[#2f775f]">{formatAmount(Math.max(settled - collected, 0))}</span>
+            <span className="font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(Math.max(settled - collected, 0))}</span>
           </p>
         ) : null}
         <p className="flex items-center justify-between gap-3">
           <span>Pendiente</span>
-          <span className="font-semibold text-[#936b24]">{formatAmount(gap)}</span>
+          <span className="font-semibold text-[var(--tinte-ambar-texto-1)]">{formatAmount(gap)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>% recaudo</span>
-          <span className="font-semibold text-[#355f87]">{rate.toFixed(1)}%</span>
+          <span className="font-semibold text-[var(--tinte-azul-texto-3)]">{rate.toFixed(1)}%</span>
         </p>
       </div>
     </div>
@@ -734,7 +734,7 @@ export default function AdminDashboardPage() {
           </Card>
         }
       >
-        <Card className="soft-panel border-[#d8e3ef] bg-[linear-gradient(120deg,#f8fbff_0%,#edf4fb_45%,#f7fbff_100%)] p-5">
+        <Card className="soft-panel border-[var(--tinte-neutro-borde-3)] bg-[linear-gradient(120deg,#f8fbff_0%,#edf4fb_45%,#f7fbff_100%)] p-5">
           <div className="flex flex-col gap-4">
             <div>
               {/* Era un `h1` con el nombre del conjunto y un rótulo «Centro de
@@ -749,7 +749,7 @@ export default function AdminDashboardPage() {
                 onClick={() => setDrawerSection("alerts")}
               >
                 <span
-                  className={`h-2.5 w-2.5 rounded-full ${alertCount > 0 ? "bg-[#c26735]" : "bg-[#3c8b71]"}`}
+                  className={`h-2.5 w-2.5 rounded-full ${alertCount > 0 ? "bg-[var(--tinte-ambar-fondo-2)]" : "bg-[var(--tinte-verde-fondo-3)]"}`}
                   aria-hidden
                 />
                 <span className="text-xs font-semibold text-[var(--slate-700)]">
@@ -1068,12 +1068,12 @@ export default function AdminDashboardPage() {
         }
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="premium-card-hover border-[#d4e0ec] bg-[var(--surface-strong)] p-4">
+          <Card className="premium-card-hover border-[var(--tinte-neutro-borde-2)] bg-[var(--surface-strong)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Operación</p>
                 <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Ingresos validados por portería hoy. Muestra visitantes activos y completados del día en curso.">
-                  <Users className="h-4 w-4 text-[#416f95]" /> Visitantes hoy
+                  <Users className="h-4 w-4 text-[var(--tinte-azul-texto-4)]" /> Visitantes hoy
                 </CardTitle>
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("visitors")}>Ver todo</Button>
@@ -1108,12 +1108,12 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="premium-card-hover border-[#e7dbb6] bg-[var(--surface-strong)] p-4">
+          <Card className="premium-card-hover border-[var(--tinte-verde-borde-3)] bg-[var(--surface-strong)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Logística</p>
                 <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Paquetes en espera de ser recogidos. Haz clic en 'Ver todo' para ver el historial reciente de entregas.">
-                  <PackageCheck className="h-4 w-4 text-[#8a6524]" /> Paquetes
+                  <PackageCheck className="h-4 w-4 text-[var(--tinte-ambar-texto-5)]" /> Paquetes
                 </CardTitle>
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("packages")}>Ver todo</Button>
@@ -1140,12 +1140,12 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className={`premium-card-hover p-4 transition-colors ${urgentTickets > 0 ? "border-[var(--danger-200)] bg-[#fff9f8]" : "border-[#edd2cb] bg-[var(--surface-strong)]"}`}>
+          <Card className={`premium-card-hover p-4 transition-colors ${urgentTickets > 0 ? "border-[var(--danger-200)] bg-[var(--tinte-neutro-fondo-8)]" : "border-[var(--tinte-ambar-borde-1)] bg-[var(--surface-strong)]"}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className={`text-label ${urgentTickets > 0 ? "text-[var(--danger-500)]" : "text-[var(--slate-500)]"}`}>Atención{urgentTickets > 0 ? ` · ${urgentTickets} urgente${urgentTickets > 1 ? "s" : ""}` : ""}</p>
                 <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Casos abiertos ordenados por antiguedad. Los marcados como urgentes llevan mas de 15 dias sin respuesta.">
-                  <ClipboardList className={`h-4 w-4 ${urgentTickets > 0 ? "text-[var(--danger-500)]" : "text-[#a34d3f]"}`} /> PQRS
+                  <ClipboardList className={`h-4 w-4 ${urgentTickets > 0 ? "text-[var(--danger-500)]" : "text-[var(--tinte-ambar-texto-6)]"}`} /> PQRS
                 </CardTitle>
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("pqrs")}>Ver todo</Button>
@@ -1172,12 +1172,12 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="premium-card-hover border-[#d4deeb] bg-[var(--surface-strong)] p-4">
+          <Card className="premium-card-hover border-[var(--tinte-neutro-borde-1)] bg-[var(--surface-strong)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Comunicación</p>
                 <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Comunicados publicados y vigentes a la fecha. Los programados o vencidos no aparecen aqui.">
-                  <MessageSquareText className="h-4 w-4 text-[#476987]" /> Comunicaciones vigentes
+                  <MessageSquareText className="h-4 w-4 text-[var(--tinte-azul-texto-5)]" /> Comunicaciones vigentes
                 </CardTitle>
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("communications")}>Ver todo</Button>

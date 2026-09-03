@@ -132,7 +132,7 @@ function RecaudoTooltip({
   const { facturado, recaudado, liquidado, collectionRate } = payload[0].payload;
   const pendiente = Math.max(facturado - liquidado, 0);
   return (
-    <div className="rounded-lg border border-[#e2e8f0] bg-[var(--surface-strong)] px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-lg border border-[var(--tinte-neutro-borde-4)] bg-[var(--surface-strong)] px-3 py-2 text-xs shadow-sm">
       <p className="font-semibold text-[var(--slate-800)]">{label ? monthShort(String(label)) : ""}</p>
       <div className="mt-1 space-y-0.5 text-[var(--slate-700)]">
         <p className="flex justify-between gap-4"><span>Facturado</span><span className="font-semibold">{formatCurrency(facturado)}</span></p>
@@ -627,7 +627,7 @@ function AdminReportsPageContent() {
                 PDF a la asamblea. Si el informe está incompleto, el papel lo dice.
               */}
               {report.error ? (
-                <div className="flex items-start gap-2 rounded-xl border border-[#e2b6b6] bg-[#FCEBEB] px-4 py-3 text-sm text-[#791F1F]">
+                <div className="flex items-start gap-2 rounded-xl border border-[var(--tinte-rojo-borde-2)] bg-[var(--tinte-neutro-fondo-2)] px-4 py-3 text-sm text-[var(--tinte-rojo-texto-2)]">
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
                   <span>
                     <strong>Informe incompleto.</strong> {report.error} Los totales que

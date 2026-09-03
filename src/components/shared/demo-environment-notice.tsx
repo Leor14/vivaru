@@ -23,7 +23,7 @@ export function DemoEnvironmentNotice() {
   return (
     <div
       role="status"
-      className="flex items-start gap-2 border-b border-[#e8d3a8] bg-[#FAEEDA] px-4 py-2 text-xs text-[#633806]"
+      className="flex items-start gap-2 border-b border-[var(--tinte-verde-borde-4)] bg-[var(--tinte-verde-fondo-4)] px-4 py-2 text-xs text-[var(--tinte-ambar-texto-4)]"
     >
       <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden />
       <span>

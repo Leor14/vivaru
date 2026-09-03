@@ -125,13 +125,13 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
         // Un `catch` que deja la lista vacía convierte un fallo ruidoso en un
         // dato falso: «no hay anticipos» y «no pude leerlos» se ven igual, y el
         // segundo es el que hace que alguien cobre dos veces.
-        <p className="mt-4 rounded-xl border border-[#f0d6d2] bg-[#fff6f4] px-3 py-2 text-sm text-[#9c4631]">
+        <p className="mt-4 rounded-xl border border-[var(--tinte-rojo-borde-1)] bg-[var(--tinte-neutro-fondo-1)] px-3 py-2 text-sm text-[var(--tinte-ambar-texto-2)]">
           No pudimos cargar los anticipos: {error}
         </p>
       ) : null}
 
       {!puedeOperar && items.length > 0 ? (
-        <p className="mt-4 rounded-xl border border-[#eee0c1] bg-[#fff8e8] px-3 py-2 text-sm text-[#936b24]">
+        <p className="mt-4 rounded-xl border border-[var(--tinte-verde-borde-1)] bg-[var(--tinte-verde-fondo-1)] px-3 py-2 text-sm text-[var(--tinte-ambar-texto-1)]">
           Los anticipos están apagados en este conjunto: este dinero se ve, pero no se puede cruzar ni anular hasta
           volver a encenderlos.
         </p>
@@ -182,11 +182,11 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
                       // El motivo se enseña, no solo se guarda: es la única forma
                       // de que quien mire después sepa por qué desapareció el
                       // saldo a favor de un residente.
-                      <p className="mt-1 text-xs text-[#9c4631]">Anulado: {anticipo.cancellationReason}</p>
+                      <p className="mt-1 text-xs text-[var(--tinte-ambar-texto-2)]">Anulado: {anticipo.cancellationReason}</p>
                     ) : null}
                   </div>
                   <div className="text-right">
-                    <p className="text-base font-semibold text-[#2f775f]">{formatAmount(anticipo.remaining)}</p>
+                    <p className="text-base font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(anticipo.remaining)}</p>
                     <p className="text-[11px] text-[var(--slate-500)]">por aplicar</p>
                   </div>
                 </div>
@@ -402,7 +402,7 @@ function CruzarAnticipoModal({
                   {/* La regla contable de la ficha, dicha donde se opera y no
                       solo en la PRD: es la pregunta que hace cualquiera que vea
                       bajar una deuda sin que entre dinero. */}
-                  <p className="rounded-xl border border-[#d6e6f3] bg-[#f5faff] px-3 py-2 text-xs text-[#2c648d]">
+                  <p className="rounded-xl border border-[var(--tinte-azul-borde-1)] bg-[var(--tinte-neutro-fondo-6)] px-3 py-2 text-xs text-[var(--tinte-azul-texto-1)]">
                     Cruzar no mueve dinero ni cambia los ingresos del mes: ese dinero ya entró cuando se recibió el
                     anticipo. Lo único que cambia es a qué cuota queda imputado.
                   </p>
@@ -492,7 +492,7 @@ function AnularAnticipoModal({
             Vas a anular {formatAmount(anticipo.remaining)} de saldo a favor de{" "}
             <strong>{anticipo.unitLabel || anticipo.unitId}</strong>.
           </p>
-          <p className="rounded-xl border border-[#eee0c1] bg-[#fff8e8] px-3 py-2 text-xs text-[#936b24]">
+          <p className="rounded-xl border border-[var(--tinte-verde-borde-1)] bg-[var(--tinte-verde-fondo-1)] px-3 py-2 text-xs text-[var(--tinte-ambar-texto-1)]">
             Anular <strong>no devuelve el dinero</strong> y no cambia los ingresos del conjunto: ese dinero entró y se
             queda. Lo que desaparece es el crédito de esta unidad, y no se puede deshacer. Si lo que quieres es
             devolver el pago entero, reviértelo desde el libro.

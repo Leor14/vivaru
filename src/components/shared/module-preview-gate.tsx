@@ -42,11 +42,11 @@ export function ModulePreviewGate({
       <div className="rounded-2xl border border-[var(--brand-200,#bcd9f2)] bg-[var(--brand-50,#E6F1FB)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
-            <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-[#0C447C]">
+            <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--surface-strong)] text-[var(--tinte-azul-texto-2)]">
               <Lock className="h-4 w-4" aria-hidden />
             </span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0C447C]">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--tinte-azul-texto-2)]">
                 Vista previa
               </p>
               <h2 className="mt-0.5 text-lg font-semibold text-[var(--slate-900)]">

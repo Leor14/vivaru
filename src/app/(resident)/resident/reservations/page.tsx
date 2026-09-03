@@ -799,7 +799,7 @@ export default function ResidentReservationsPage() {
         unitId={user?.unitId ?? ""}
         unitLabel={user?.unitLabel ?? "Unidad no definida"}
       />
-      <Card className="relative overflow-hidden border-[var(--slate-200)] bg-gradient-to-br from-[var(--surface-strong)] via-[#f8fbff] to-[#f2f8ff] p-0">
+      <Card className="relative overflow-hidden border-[var(--slate-200)] bg-gradient-to-br from-[var(--surface-strong)] via-[var(--tinte-neutro-fondo-7)] to-[var(--tinte-neutro-fondo-5)] p-0">
         {eligibility !== null && !eligibility.eligible ? (
           <div className="flex flex-wrap items-start gap-3 border-b border-[var(--danger-600)]/20 bg-[var(--danger-50)] px-5 py-3.5 sm:items-center">
             <div className="flex-1 min-w-0">

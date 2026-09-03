@@ -206,11 +206,11 @@ function BillingTrendTooltip({
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
           <span>Cobrado</span>
-          <span className="font-semibold text-[#2c648d]">{formatAmount(charged)}</span>
+          <span className="font-semibold text-[var(--tinte-azul-texto-1)]">{formatAmount(charged)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>Recaudado</span>
-          <span className="font-semibold text-[#2f775f]">{formatAmount(collected)}</span>
+          <span className="font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(collected)}</span>
         </p>
         {settled !== collected ? (
           // Solo aparece cuando los dos números se separan, que es cuando hay
@@ -218,16 +218,16 @@ function BillingTrendTooltip({
           // buscarles la diferencia.
           <p className="flex items-center justify-between gap-3">
             <span>Saldado con anticipos</span>
-            <span className="font-semibold text-[#2f775f]">{formatAmount(Math.max(settled - collected, 0))}</span>
+            <span className="font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(Math.max(settled - collected, 0))}</span>
           </p>
         ) : null}
         <p className="flex items-center justify-between gap-3">
           <span>Pendiente</span>
-          <span className="font-semibold text-[#936b24]">{formatAmount(gap)}</span>
+          <span className="font-semibold text-[var(--tinte-ambar-texto-1)]">{formatAmount(gap)}</span>
         </p>
         <p className="flex items-center justify-between gap-3">
           <span>% recaudo</span>
-          <span className="font-semibold text-[#355f87]">{rate.toFixed(1)}%</span>
+          <span className="font-semibold text-[var(--tinte-azul-texto-3)]">{rate.toFixed(1)}%</span>
         </p>
       </div>
     </div>

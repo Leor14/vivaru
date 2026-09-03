@@ -369,7 +369,7 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                   {formatAmount(Number(amount) || 0)}.
                 </p>
                 {createdVoucher.advance && createdVoucher.advance > 0 ? (
-                  <p className="mt-1 text-[#2f775f]">
+                  <p className="mt-1 text-[var(--tinte-verde-texto-1)]">
                     {formatAmount(createdVoucher.advance)} quedaron como saldo a favor de la unidad.
                   </p>
                 ) : null}
@@ -487,12 +487,12 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                   </ul>
 
                   {motivo === "linea-no-positiva" ? (
-                    <p className="mt-2 rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                    <p className="mt-2 rounded-lg border border-[var(--tinte-rojo-borde-1)] bg-[var(--tinte-neutro-fondo-1)] px-2 py-1 text-xs text-[var(--tinte-ambar-texto-2)]">
                       Hay una línea en cero o negativa. Cada cargo del reparto tiene que llevar un importe mayor que
                       cero; si no quieres cubrirlo, desmárcalo.
                     </p>
                   ) : motivo === "suma-mayor" ? (
-                    <p className="mt-2 rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                    <p className="mt-2 rounded-lg border border-[var(--tinte-rojo-borde-1)] bg-[var(--tinte-neutro-fondo-1)] px-2 py-1 text-xs text-[var(--tinte-ambar-texto-2)]">
                       El reparto suma más que el importe pagado. Puede sumar menos —lo que sobre queda a favor de la
                       unidad—, pero no más.
                     </p>
@@ -508,14 +508,14 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                   pantalla no puede prometer un saldo a favor que la bandera
                   apagada no va a crear. */}
               {cuadra && aviso.tipo === "error" ? (
-                <p className="rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                <p className="rounded-lg border border-[var(--tinte-rojo-borde-1)] bg-[var(--tinte-neutro-fondo-1)] px-2 py-1 text-xs text-[var(--tinte-ambar-texto-2)]">
                   No pudimos calcular el reparto. Puedes registrar el cobro contra este cargo, pero
                   revisa después a qué quedó aplicado.
                 </p>
               ) : null}
 
               {cuadra && (aviso.tipo === "a-favor" || aviso.tipo === "contra-el-cargo") ? (
-                <p className="rounded-lg border border-[#d6ede4] bg-[#f1fbf7] px-2 py-1 text-xs text-[#2f775f]">
+                <p className="rounded-lg border border-[var(--tinte-verde-borde-2)] bg-[var(--tinte-neutro-fondo-4)] px-2 py-1 text-xs text-[var(--tinte-verde-texto-1)]">
                   {aviso.tipo === "a-favor"
                     ? `Sobran ${formatAmount(aviso.sobrante)}: quedarán como saldo a favor de la unidad.`
                     : `Sobran ${formatAmount(aviso.sobrante)}, y se contabilizarán contra el cargo. Para guardarlos como saldo a favor hay que encender los anticipos.`}
@@ -523,7 +523,7 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
               ) : null}
 
               {cuadra && aviso.tipo === "sin-destino" ? (
-                <p className="rounded-lg border border-[#f0d6d2] bg-[#fff6f4] px-2 py-1 text-xs text-[#9c4631]">
+                <p className="rounded-lg border border-[var(--tinte-rojo-borde-1)] bg-[var(--tinte-neutro-fondo-1)] px-2 py-1 text-xs text-[var(--tinte-ambar-texto-2)]">
                   Sobran {formatAmount(aviso.sobrante)} y no hay dónde guardarlos: al repartir el pago
                   entre varios cargos, con los anticipos apagados, la diferencia no se contabiliza en
                   ninguna parte. Ajusta las líneas hasta sumar el importe, o enciende los anticipos.

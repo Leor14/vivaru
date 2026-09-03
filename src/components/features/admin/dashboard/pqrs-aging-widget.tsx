@@ -79,7 +79,7 @@ export function PqrsAgingWidget({ tenantId }: Props) {
       )}
 
       {summary.age30plus > 0 ? (
-        <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#FCEBEB] px-2.5 py-1.5 text-xs text-[#A32D2D]">
+        <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[var(--tinte-neutro-fondo-2)] px-2.5 py-1.5 text-xs text-[var(--tinte-rojo-texto-1)]">
           <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
           {summary.age30plus} {summary.age30plus === 1 ? "caso superó" : "casos superaron"} el umbral de 30 días
         </div>
@@ -104,7 +104,7 @@ function AgeBar({
   tone: "ok" | "warn" | "crit";
 }) {
   const color = tone === "ok" ? "#1D9E75" : tone === "warn" ? "#EF9F27" : "#E24B4A";
-  const textColor = tone === "ok" ? "text-[#0F6E56]" : tone === "warn" ? "text-[#854F0B]" : "text-[#A32D2D]";
+  const textColor = tone === "ok" ? "text-[var(--tinte-verde-texto-2)]" : tone === "warn" ? "text-[var(--tinte-ambar-texto-3)]" : "text-[var(--tinte-rojo-texto-1)]";
   return (
     <div className="flex items-center gap-2.5">
       <span className="w-20 shrink-0 text-xs text-[var(--slate-600)]">{label}</span>

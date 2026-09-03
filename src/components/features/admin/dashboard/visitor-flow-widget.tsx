@@ -72,8 +72,8 @@ export function VisitorFlowWidget({ tenantId }: Props) {
         </div>
         <div className="flex items-center gap-2">
           {summary.insideNow > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E1F5EE] px-2.5 py-1 text-xs font-medium text-[#0F6E56]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1D9E75]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--tinte-neutro-fondo-3)] px-2.5 py-1 text-xs font-medium text-[var(--tinte-verde-texto-2)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--tinte-verde-fondo-2)]" />
               {summary.insideNow} dentro
             </span>
           ) : null}

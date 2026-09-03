@@ -364,7 +364,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               </select>
                             ) : null}
                             {cuentaDeBaja(receipt) ? (
-                              <p className="w-full text-xs text-[#9c4631]">
+                              <p className="w-full text-xs text-[var(--tinte-ambar-texto-2)]">
                                 El residente dijo que pagó a «{cuentaDeBaja(receipt)?.label}», que está dada de baja.
                                 Elige a qué cuenta entró el dinero.
                               </p>

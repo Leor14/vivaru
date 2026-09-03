@@ -132,7 +132,7 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
         </div>
       ) : filtered.length === 0 ? (
         <div className="mt-4 flex items-center gap-2 rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--slate-600)]">
-          <CheckCircle2 className="h-4 w-4 text-[#1D9E75]" aria-hidden />
+          <CheckCircle2 className="h-4 w-4 text-[var(--tinte-verde-texto-3)]" aria-hidden />
           Sin unidades en mora
         </div>
       ) : (
@@ -147,7 +147,7 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
                 <p className="text-[11px] text-[var(--slate-500)]">{row.days} días vencido</p>
               </div>
               <div className="flex flex-col items-end gap-0.5">
-                <span className="text-sm font-semibold text-[#A32D2D]">{formatAmount(row.balance)}</span>
+                <span className="text-sm font-semibold text-[var(--tinte-rojo-texto-1)]">{formatAmount(row.balance)}</span>
                 <Link
                   href={`/admin/billing?unitId=${encodeURIComponent(row.id)}`}
                   className="text-[11px] text-[var(--brand-700)] hover:underline"

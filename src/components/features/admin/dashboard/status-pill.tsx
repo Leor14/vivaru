@@ -4,10 +4,10 @@ import { getStatusLabel } from "@/utils/statusMapper";
 type StatusTone = "finance" | "success" | "pending" | "alert" | "neutral";
 
 const TONE_CLASS: Record<StatusTone, string> = {
-  finance: "bg-[#eaf2fb] text-[#2d6187] border-[#c7dbef]",
-  success: "bg-[#ebf8f2] text-[#2f725b] border-[#cbe6d9]",
-  pending: "bg-[#fff7df] text-[#8a6626] border-[#ead8a3]",
-  alert: "bg-[#ffeceb] text-[#9a4033] border-[#f2c8c1]",
+  finance: "bg-[var(--tono-finance-fondo)] text-[var(--tono-finance-texto)] border-[var(--tono-finance-borde)]",
+  success: "bg-[var(--tono-success-fondo)] text-[var(--tono-success-texto)] border-[var(--tono-success-borde)]",
+  pending: "bg-[var(--tono-pending-fondo)] text-[var(--tono-pending-texto)] border-[var(--tono-pending-borde)]",
+  alert: "bg-[var(--tono-alert-fondo)] text-[var(--tono-alert-texto)] border-[var(--tono-alert-borde)]",
   neutral: "bg-[var(--slate-100)] text-[var(--slate-700)] border-[var(--slate-200)]",
 };
 

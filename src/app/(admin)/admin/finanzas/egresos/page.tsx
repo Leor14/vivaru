@@ -57,8 +57,8 @@ const STATUS_LABELS: Record<ExpenseStatus, string> = {
 };
 
 const STATUS_CLASSES: Record<ExpenseStatus, string> = {
-  registrado: "text-[#936b24]",
-  pagado: "text-[#2f775f]",
+  registrado: "text-[var(--tinte-ambar-texto-1)]",
+  pagado: "text-[var(--tinte-verde-texto-1)]",
   anulado: "text-[var(--slate-500)]",
 };
 
@@ -318,11 +318,11 @@ export default function AdminEgresosPage() {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Por pagar</p>
-          <p className="mt-1 text-lg font-semibold text-[#936b24]">{formatAmount(totals.porPagar)}</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--tinte-ambar-texto-1)]">{formatAmount(totals.porPagar)}</p>
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Pagado</p>
-          <p className="mt-1 text-lg font-semibold text-[#2f775f]">{formatAmount(totals.pagado)}</p>
+          <p className="mt-1 text-lg font-semibold text-[var(--tinte-verde-texto-1)]">{formatAmount(totals.pagado)}</p>
         </div>
         <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] p-3">
           <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Egresos (filtro)</p>

@@ -110,8 +110,11 @@ const HEX_EN_CLASE = new RegExp(
   "g",
 );
 
-/** Lo medido el 3 de septiembre de 2026. Este numero SOLO puede bajar. */
-const TECHO_HEX = 140;
+/** Lo medido el 3 de septiembre de 2026. Este numero SOLO puede bajar.
+ *  Empezo en 140 y la entrega 2 lo llevo a CERO: en oscuro esos tintes no
+ *  quedaban «sin tematizar», quedaban rotos —19 elementos ilegibles en el panel,
+ *  texto a 1,55:1—, asi que dejaron de ser deuda y pasaron a ser trabajo. */
+const TECHO_HEX = 0;
 
 describe("PRD-V-FEAT-007 · la deuda de hexadecimales en clase arbitraria", () => {
   const cuenta = TODOS.reduce(
@@ -128,9 +131,9 @@ describe("PRD-V-FEAT-007 · la deuda de hexadecimales en clase arbitraria", () =
   });
 
   it("y el techo esta pegado a la realidad, no inflado", () => {
-    // Un techo muy por encima de lo real deja sitio para colar literales sin que
-    // nadie se entere. Cuando se migren, hay que BAJARLO.
-    expect(cuenta).toBeGreaterThan(TECHO_HEX - 20);
+    // Un techo por encima de lo real deja sitio para colar literales sin que
+    // nadie se entere. Con el techo en 0 la afirmacion es exacta y no hay holgura.
+    expect(cuenta).toBe(TECHO_HEX);
   });
 });
 

@@ -18,29 +18,29 @@ type KpiTone = "finance" | "success" | "pending" | "alert" | "neutral";
  */
 const TONE_STYLES: Record<KpiTone, { shell: string; dot: string; insight: string }> = {
   finance: {
-    shell: "from-[#f4f9ff] to-[#e7f2ff] border-[#cddff2]",
-    dot: "bg-[#3d7ea6]",
-    insight: "text-[#2a5f83]",
+    shell: "from-[var(--tono-finance-panel-desde)] to-[var(--tono-finance-panel-hasta)] border-[var(--tono-finance-panel-borde)]",
+    dot: "bg-[var(--tono-finance-punto)]",
+    insight: "text-[var(--tono-finance-apunte)]",
   },
   success: {
-    shell: "from-[#f3fdf8] to-[#e6f8f0] border-[#cde8da]",
-    dot: "bg-[#378b6d]",
-    insight: "text-[#2b6f58]",
+    shell: "from-[var(--tono-success-panel-desde)] to-[var(--tono-success-panel-hasta)] border-[var(--tono-success-panel-borde)]",
+    dot: "bg-[var(--tono-success-punto)]",
+    insight: "text-[var(--tono-success-apunte)]",
   },
   pending: {
-    shell: "from-[#fffbee] to-[#fff4d8] border-[#f1dfad]",
-    dot: "bg-[#b5862f]",
-    insight: "text-[#8a641f]",
+    shell: "from-[var(--tono-pending-panel-desde)] to-[var(--tono-pending-panel-hasta)] border-[var(--tono-pending-panel-borde)]",
+    dot: "bg-[var(--tono-pending-punto)]",
+    insight: "text-[var(--tono-pending-apunte)]",
   },
   alert: {
-    shell: "from-[#fff6f3] to-[#ffece7] border-[#f4d0c7]",
-    dot: "bg-[#bd5a4a]",
-    insight: "text-[#9e4436]",
+    shell: "from-[var(--tono-alert-panel-desde)] to-[var(--tono-alert-panel-hasta)] border-[var(--tono-alert-panel-borde)]",
+    dot: "bg-[var(--tono-alert-punto)]",
+    insight: "text-[var(--tono-alert-apunte)]",
   },
   neutral: {
-    shell: "from-[#f7f9fc] to-[#edf2f8] border-[#d6e0eb]",
-    dot: "bg-[#63788d]",
-    insight: "text-[#4e6378]",
+    shell: "from-[var(--tono-neutral-panel-desde)] to-[var(--tono-neutral-panel-hasta)] border-[var(--tono-neutral-panel-borde)]",
+    dot: "bg-[var(--tono-neutral-punto)]",
+    insight: "text-[var(--tono-neutral-apunte)]",
   },
 };
 
