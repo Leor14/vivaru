@@ -16,9 +16,9 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.55 |
+| **Versión** | 0.9.56 |
 | **Fecha** | 3 de septiembre de 2026 |
-| **Estado** | **`PRD-V-PLAT-006` COMPLETA, DESPLEGADA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS.** La puerta de buzones cierra por salida, por entrada y con el motivo legible; el código está en los dos ambientes y **`master` desplegado** (`build-2026-09-02-002`). Y hoy se hizo lo que **no era código**: **siete conjuntos marcados** `sinClienteDetras` —los dos de trial fuera—, **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con seis dominios y siete direcciones del equipo. **La bandera sigue APAGADA**, y encenderla ya no está bloqueado por ingeniería: **queda UNA dirección por identificar** —`dann…@outlook.com`, un guardia de Privada Las Playas con cuenta de Auth y acceso el 1 de julio—, y es la única que quedaría sin admitir. **Lo anterior, vigente:** la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. Los remotos se leen con `git ls-remote`, no de aquí. **Y una pasada de higiene (3 sep) corrigió lo que este documento afirmaba de sí mismo:** `UX-004` llevaba **cuatro días en producción** mientras la vista ejecutiva mandaba «🟠 Ejecutar `UX-004`», y **siete fichas de PRD** decían «Lista para desarrollo» con el código desplegado y la bandera encendida |
+| **Estado** | **EL MODO OSCURO ESTÁ CERRADO Y ENCENDIDO EN LOS NUEVE CONJUNTOS** (`PRD-V-FEAT-007`, 3 sep 2026, `e0d8e99`): tres entregas en producción, bandera global encendida y **sin overrides**, canario probado de ida y de vuelta en Santa María. **Era el PASO PREVIO acordado antes de volver a los bloques de Habitanto, y ya está hecho** — el frente vivo vuelve a ser Habitanto, con fila propia en la tabla de abajo. **Lo primero ahí es ELEGIR BLOQUE, no construir**: el lote cerrado era solo el **P0**, y quedan **41 P1, 40 P2 y 12 P3** de los 108 candidatos, más los **diez huecos** de la sesión con la administradora —que salieron de escuchar, no de navegar la app— y **`FIX-001` entrega 2**, lo único que le falta al lote (van 10 de 11). **Lo anterior, vigente:** el tope de gasto de la IA sin mirarse; `PLAT-005` pendiente de un Android; Albert espera el contrato de `vivaruWonSignals`; y `PLAT-006` espera saber de quién es `dann…@outlook.com`. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
 | **Alcance** | Madurez de producto. No está subordinado al go-to-market, aunque incorpora evidencia comercial y de adopción |
 
@@ -141,7 +141,8 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
-| **Experiencia y diseño** | 🟢 **`UX-001`, `UX-003` y `UX-004` en producción** — `UX-004` construida el 30 ago (`src/lib/dashboard/indicadores.ts` + `umbrales.ts`), cableada en el panel **y** en cartera, con guardián `tests/panel-ventanas.test.ts` dentro de la suite que corre | 🟡 **Repasar los criterios de `UX-004` contra producción** — desplegar prueba que funciona, no que se construyó todo lo prometido | ⏸ `UX-002` (filtros en la URL, espera clientes) | 🟢 **`UX-006` — MODO OSCURO EN PRODUCCIÓN Y ENCENDIDO EN SANTA MARÍA (1 de 9)** (`PRD-V-FEAT-007`, 3 sep 2026). **Canario vivo**, con la global en `false`. Ciclo encender → apagar → encender hecho: al reencender, el residente **recuperó solo su elección** —el perfil conserva `tema`—, verificado con sesión real y **cero elementos ilegibles**. **NO es Productiva**: quedan cuatro criterios, y uno **este equipo no lo puede correr porque no hay Java**. Encenderlo es decisión de David · ◇ `UX-005` (tableros configurables, prioridad baja) |
+| **Bloques de Habitanto** ← **EL FRENTE AL QUE SE VUELVE** | 🟠 **ELEGIR BLOQUE**, que es lo primero y no es construir. El lote cerrado era **solo el P0**: de los **108 candidatos** quedan **41 P1, 40 P2 y 12 P3** sin empezar (`docs/prd/candidatos-prd-desde-habitanto.md`). Categorías con más P1: **G·comunicaciones (8)**, **B·cartera y cobro (6)**, **E·egresos (5)**, **A·unidad y personas (3)** | 🟠 **Leer ANTES `docs/sesion-administradora-habitanto.md`** — **diez huecos que el inventario NO vio**, porque los 108 salieron de **navegar la app** y no de escuchar a quien la usa. Es ley, dolor y rodeo: nada de eso sale en una pantalla | 🟠 **`FIX-001` entrega 2** (política de reserva **por área**) — lo único que le falta al lote: van **10 de 11**. Verificado el 3 sep: `blockOnDebt` sigue siendo un solo ajuste del conjunto, sin política por amenity. **Fase 2 aplazada a propósito**, no un olvido | ◇ **Encender no es poner en uso** — tres capacidades del lote anterior quedaron activas sobre tablas VACÍAS; **coeficiente y proveedores siguen en cero**, y eso es captura de datos, no ingeniería |
+| **Experiencia y diseño** | ✅ **BLOQUE CERRADO** — `UX-001`, `UX-003`, `UX-004` y **`UX-006` MODO OSCURO en producción y ENCENDIDO EN LOS NUEVE CONJUNTOS** (3 sep, `PRD-V-FEAT-007`, por el valor global y sin overrides). Era el **paso previo acordado antes de volver a los bloques de Habitanto**, y ya está hecho | 🟡 **Cuatro criterios de `FEAT-007` para marcarla Productiva** — las 7 pruebas de reglas **escritas y sin correr porque este equipo no tiene Java**, el destello (`CA5`/`CA6`), la impresión con ojos (`CA11`/`CA15`/`CA19`) y `CA7` · 🟡 Repasar los criterios de `UX-004` contra producción | 🟠 **`UX-005`** (tableros configurables) — **DESBLOQUEADA**: su decisión pendiente era «por usuario o por conjunto» y `FEAT-007` la resolvió, **por usuario** · ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ Deuda de contraste anterior: `--slate-400` (2,83:1, 78 usos) y dos botones con etiqueta blanca (3,65 y 3,61). Medida, con suelo en las pruebas, y **arreglarla se ve en claro**: decisión de David |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**explorada el 1 sep: la ficha no es «elegir columnas»**; espera corpus) |
@@ -1237,6 +1238,29 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.56 — 3 de septiembre de 2026 — cerrado el paso previo; el frente vuelve a Habitanto
+
+- **`UX-006` / `PRD-V-FEAT-007` ENCENDIDO EN LOS NUEVE CONJUNTOS** de producción, por el valor global
+  y **sin ninguna override** — la del canario se retiró al subir, para que **apagar la global apague
+  los nueve**. Verificado calculando el valor **efectivo** conjunto por conjunto con la misma
+  precedencia que `src/lib/feature-flags/resolve.ts`: **9 de 9, todos por `valor_global`**.
+- **El modo oscuro era el PASO PREVIO acordado antes de volver a los bloques de Habitanto.** Con él
+  cerrado, el frente vivo vuelve a ser Habitanto, y por eso **estrena fila propia** en la tabla de
+  frentes. **Lo primero ahí es ELEGIR BLOQUE, no construir.**
+- **Lo que falta de Habitanto, con nombre y tamaño:** el lote cerrado era **solo el bloque P0**. De
+  los **108 candidatos** quedan **41 P1, 40 P2 y 12 P3** (`docs/prd/candidatos-prd-desde-habitanto.md`);
+  las categorías con más P1 son **G·comunicaciones (8)**, **B·cartera y cobro (6)**, **E·egresos (5)**
+  y **A·unidad y personas (3)**. Aparte están los **diez huecos** de
+  `docs/sesion-administradora-habitanto.md`, que **el inventario no vio** porque los 108 salieron de
+  navegar la app y no de escuchar a quien la usa. Y **`FIX-001` entrega 2**, lo único que le falta al
+  lote: van **10 de 11**, y se verificó el 3 sep que `blockOnDebt` sigue siendo un solo ajuste del
+  conjunto, sin política por amenity.
+- **`UX-005` queda DESBLOQUEADA** sin tocarla: su decisión pendiente era «por usuario o por conjunto»
+  y `FEAT-007` la resolvió **por usuario**.
+- **Tablero de Notion alineado el mismo día** (`Backlog e inventario detallado`): dos filas corregidas
+  —experiencia y diseño, y el lote de Habitanto, que decía «Completado» sin la salvedad de las 10 de
+  11— y **tres filas nuevas** para los frentes que faltan.
 
 ### 0.9.55 — 3 de septiembre de 2026 — `UX-006` construido entero y en producción
 

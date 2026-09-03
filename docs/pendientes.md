@@ -6,7 +6,24 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO ESTÁ ENCENDIDO EN LOS NUEVE CONJUNTOS DE PRODUCCIÓN.
+> # EL PASO PREVIO ESTÁ HECHO. EL FRENTE VUELVE A LOS BLOQUES DE HABITANTO.
+>
+> **El modo oscuro era lo que había que cerrar antes de seguir con Habitanto, y está cerrado**:
+> `PRD-V-FEAT-007`, tres entregas en producción y **encendido en los NUEVE conjuntos**. Lo que sigue
+> es Habitanto, y **lo primero es ELEGIR BLOQUE, no construir.**
+>
+> | Lo que falta de Habitanto | Cuánto | Dónde vive |
+> |---|---|---|
+> | **Los candidatos que no son P0** — el lote cerrado era **solo el bloque P0** | **41 P1 · 40 P2 · 12 P3** de 108. Más P1: **G·comunicaciones (8)**, **B·cartera (6)**, **E·egresos (5)**, **A·unidad y personas (3)** | `docs/prd/candidatos-prd-desde-habitanto.md` |
+> | **Los diez huecos de la administradora** — **léelos ANTES de elegir bloque** | 10. Salieron de **escuchar**, no de navegar la app: ley, dolor y rodeo | `docs/sesion-administradora-habitanto.md` |
+> | **`FIX-001` entrega 2** — política de reserva **por área** | Lo único que le falta al lote: van **10 de 11**. Verificado el 3 sep: `blockOnDebt` es un solo ajuste del conjunto | `docs/prd/funcionales/PRD-V-FIX-001-…md` |
+>
+> **Y el aviso que ya costó una vez: encender no es poner en uso.** Tres capacidades del lote anterior
+> quedaron activas sobre tablas **vacías**; **coeficiente y proveedores siguen en cero**, y eso no es
+> ingeniería sino captura de datos.
+>
+> **Notion alineado el mismo día** (`Backlog e inventario detallado`): dos filas corregidas y **tres
+> nuevas** para estos frentes.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. **Construida entera, en producción y encendida en los nueve.** **Las cuatro decisiones abiertas las
