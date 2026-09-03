@@ -6,10 +6,10 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO ESTÁ ENCENDIDO EN PRODUCCIÓN, EN SANTA MARÍA. 1 DE 9, GLOBAL APAGADA.
+> # EL MODO OSCURO ESTÁ ENCENDIDO EN LOS NUEVE CONJUNTOS DE PRODUCCIÓN.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
-> `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
+> `UX-006`. **Construida entera, en producción y encendida en los nueve.** **Las cuatro decisiones abiertas las
 > cerró David** y están dentro: **por usuario** · **residente y admin** · **claro u oscuro,
 > ignorando el sistema operativo** · **el informe del consejo siempre en claro**.
 >
@@ -20,16 +20,21 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **CANARIO ENCENDIDO (3 sep, tercera maniobra del día).** `featureFlagOverrides/tenant-santa-maria`
-> → `flags['producto-modo-oscuro'] = true`, **global en `false`**: **1 de 9**. Las otras cuatro
-> overrides del conjunto intactas.
+> **ENCENDIDA EN LOS NUEVE** (3 sep 2026), por `featureFlags/producto-modo-oscuro` `enabled: true`.
+> Verificado calculando el valor **efectivo** conjunto por conjunto con **la misma precedencia que
+> `src/lib/feature-flags/resolve.ts`**, no de memoria: **9 de 9, y los nueve por `valor_global`**.
 >
-> **Lo que el ciclo encender → apagar → encender dejó comprobado, y no solo escrito:** al
-> reencenderla, **el residente recuperó SOLO su elección** — el perfil conservaba `tema: "oscuro"`,
-> el interruptor apareció con «Oscuro» marcado y la pantalla salió en oscuro sin tocar nada. Es
-> exactamente lo que promete el `alApagar` del catálogo.
+> **La override del canario se RETIRÓ al subir, y eso no es limpieza:** con ella puesta, Santa María
+> resolvía por `override_conjunto`, así que un `enabled: false` futuro **habría apagado ocho y
+> dejado uno encendido**. Ahora hay una sola fuente y apagar la global apaga los nueve. Las otras
+> cuatro overrides del conjunto siguen intactas.
 >
-> **Para apagarlo**, la misma orden con `false`.
+> **Para apagar de emergencia, el KILL SWITCH, no `enabled: false`.** La precedencia de `resolve.ts`
+> pone los dos kill switches **por encima de cualquier override**, y esa es toda su razón de ser.
+>
+> **El ciclo del canario dejó comprobado** lo que el catálogo solo prometía: encender → apagar →
+> encender **sin perder la elección del usuario**. El perfil conserva `tema`, y el espejo de
+> `localStorage` se autocorrige a `claro` con la bandera apagada sin borrar nada.
 >
 > **El orden de los argumentos NO es el intuitivo:** `<projectId> <tenantId> <clave> <valor>` — el
 > conjunto va **SEGUNDO**:
