@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO ESTÁ ENTERO Y EN PRODUCCIÓN, CON LA BANDERA APAGADA. LO QUE FALTA ES ENCENDERLO.
+> # EL MODO OSCURO, ENTERO Y CORREGIDO. EN `master` FALTA LA CORRECCIÓN DEL LIENZO; EN STAGING ESTÁ.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -19,6 +19,29 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > construye igual porque el valor es de accesibilidad y no de conversión. **No la reabras:** está
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
+>
+> **AVISO: `master` tiene las tres entregas (`70e4f97`) pero NO la corrección del lienzo.** Lo que
+> hay en producción **pinta el fondo claro con las tarjetas oscuras** si alguien enciende la
+> bandera. Está apagada, así que no se ve — pero **no la enciendas en producción hasta empujar
+> `develop`** (`32b9678`).
+>
+> **LA CORRECCIÓN GENERAL (David la vio en una captura, y ninguna prueba la veía).** El lienzo de
+> `app-shell` —que comparten los TRES portales— se pintaba con un degradado de hexadecimales dentro
+> de un valor arbitrario COMPUESTO: `bg-[radial-gradient(...#ffffff...)]`. **Quinta forma de color
+> literal**, y un solo `div` explicaba el síntoma entero.
+>
+> Y una **sexta**, que corrige un juicio mío: dije que los 344 hexadecimales en propiedades de JS
+> «casi todos sobreviven porque son de gráfica». **Falso para los mapas de superficie** —`StatusBadge`
+> y las fichas de cifra quedaban a 2,4:1—. **215 tokenizados por el nombre de su clave.**
+>
+> **Barrido final: CERO ilegibles** en `/admin`, `/admin/billing` (en los DOS temas), `pqrs`,
+> `reports`, `residents` y `settings`. De paso se subieron los tres rótulos de la barra lateral, que
+> eran deuda anterior e iguales en claro: 3,35:1 → **5,45:1**.
+>
+> **Y una trampa del propio medidor, la tercera del día:** daba 19 ilegibles que no lo eran. Leía
+> `oklab()` como RGB, trataba un blanco al 12% como opaco, y **medía durante la transición de
+> color**. Con `transition: none` antes de medir, 14 → 7. **Un medidor sin control propio miente
+> igual que un guardián sin falsar.**
 >
 > **LAS TRES ENTREGAS EN PRODUCCIÓN** (`8bf3e94`; `develop` y `master` iguales, producción sirviendo
 > `build-2026-09-03-004`, `READY`). **La bandera está APAGADA en producción y ENCENDIDA en staging**,

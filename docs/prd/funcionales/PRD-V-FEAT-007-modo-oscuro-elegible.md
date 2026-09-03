@@ -780,5 +780,65 @@ reglas no estaba apagado: no se puede correr aquí**. Declara **354** casos.
 
 ---
 
+## Bitácora · La corrección general (3 de septiembre de 2026)
+
+**David vio en una captura lo que ninguna prueba veía:** las tarjetas oscurecían y **el lienzo no**,
+y los textos que tocan el fondo se perdían por ser del mismo color.
+
+### La causa, y por qué se escapó
+
+`app-shell.tsx` pintaba el lienzo con
+`bg-[radial-gradient(circle_at_top_left,#ffffff_4%,#edf4fb_42%,#e4ecf6_100%)]`.
+
+**Es una QUINTA forma de color literal:** el hexadecimal **dentro de un valor arbitrario
+compuesto**. Los patrones cazaban `bg-[#hex]` pero no un hex metido en un degradado — y ese
+elemento lo comparten **los tres portales**. Un solo `div` explicaba el síntoma entero: los textos
+ya venían de tokens y se habían aclarado, así que quedaban claros sobre claro.
+
+### Y una SEXTA, que corrige un juicio mío
+
+Al medir los 344 hexadecimales en propiedades de JS concluí que «casi todos sobreviven porque son
+colores saturados de gráfica». **Era cierto para las gráficas y falso para los mapas de
+superficie.** Barrer `/admin/billing` lo demostró: las fichas de cifra tenían **superficie clara con
+el texto ya aclarado encima, a 2,4:1**. La superficie no venía de una clase sino de un mapa
+`{ border, bg, text }` en TypeScript.
+
+### Qué se corrigió, por familias
+
+| Familia | Cuántos | Qué era |
+|---|---|---|
+| Degradados con hex | **9** | El lienzo, el hero del panel, los siete tonos de `metric-card` |
+| Sombras escritas en línea | **28 → 18 tokens** | Enteras, no solo su color: en oscuro hay que subirles la opacidad o no se ven |
+| Respaldos `var(--token, #hex)` | **13** | Color literal escondido en un respaldo que nunca dispara |
+| `color-mix(..., white)` | **6** | Los paneles del asistente de IA salían con fondo CLARO en tema oscuro |
+| Mapas de color en objetos de TS | **215 → 83 tokens** | `StatusBadge` (117), calendario de reservas, chips de carpeta, fichas de cifra. Tokenizados **por el nombre de su clave**, que es lo que dice su papel |
+| Rótulos de la barra lateral | **3** | Deuda anterior, igual en los dos temas: 3,35:1 → **5,45:1** |
+
+### Lo que sigue sin tematizarse, y con razón
+
+La marca del conjunto (la elige el cliente), el **QR** (negro sobre blanco o no se escanea), la
+paleta determinista del avatar y `chart-theme` — los colores de gráfica se leen **en ejecución**,
+porque van en atributos del SVG donde `var()` no vale. El guardián los protege **al revés**:
+enrojece si se quedan sin color.
+
+### Una tercera trampa del propio medidor
+
+El primer barrido dio **19 ilegibles en el panel** y **14 después**, con textos a 1,55:1 que estaban
+bien. Tres causas distintas, todas del instrumento: leía `oklab()` como si fueran canales RGB,
+trataba un fondo blanco al 12% como opaco, y —la que costó más— **medía durante la transición de
+color**, porque los elementos con `transition-colors` devuelven el valor intermedio. Con
+`transition: none` antes de medir, el panel pasó de 14 a 7. **Un medidor sin control propio miente
+igual que un guardián sin falsar.**
+
+### El cierre, medido
+
+| Pantalla | Ilegibles en oscuro | En claro |
+|---|---|---|
+| `/admin` | **0** | — |
+| `/admin/billing` | **0** | **0** |
+| `/admin/pqrs`, `/admin/reports`, `/admin/residents`, `/admin/settings` | **0** | — |
+
+---
+
 *Escrita el 3 de septiembre de 2026 con la skill `crear-prd-vivaru`. Todas las cifras de esta ficha
 están medidas contra `776f9c9` y contra `grupovivaru.com` en producción, no citadas.*
