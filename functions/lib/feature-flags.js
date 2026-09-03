@@ -98,6 +98,9 @@ exports.FEATURE_FLAG_DEFAULTS = {
     "producto-padron-sin-duplicados": false,
     // Apagada = portería no captura visitas no anunciadas. Ver el catálogo en `src/`.
     "producto-visita-no-anunciada": false,
+    // Apagada = no se pinta el interruptor y todos ven claro. El servidor NO la
+    // comprueba: el tema no toca ningun dato de negocio. Ver el catálogo en `src/`.
+    "producto-modo-oscuro": false,
     "operacion-app-check-monitor": true,
 };
 /** Solo booleanos de verdad: un `"true"` escrito a mano no enciende nada. */
