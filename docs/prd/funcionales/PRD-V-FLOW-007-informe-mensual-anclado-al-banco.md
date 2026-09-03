@@ -334,7 +334,7 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 | `CA9` | ✅ **El defecto vivo, cerrado** | `tests/flow-007-estado-financiero.test.ts`. Los tres consumidores leen el saldo real, y el aviso exige que el saldo **esté registrado** |
 | `CA17` | ✅ Cumplido | El `try/catch` por conjunto, con las lecturas nuevas **dentro** — comprobado sobre el código |
 | `CA18` | ✅ **Falsado, y el resultado NO fue el previsto** | Ver abajo |
-| `CA5` `CA6` `CA10`–`CA16` | ⏳ Entregas 2 y 3 | Cuatro de ellos son **banco de reglas: no se pueden correr en este equipo, no hay Java** |
+| `CA5` `CA6` `CA10`–`CA16` | ⏳ Entregas 2 y 3 | ~~Cuatro de ellos son **banco de reglas: no se pueden correr en este equipo, no hay Java**~~ — **FALSO, y corregido el 3 de septiembre**: sí se pueden, y se corrieron en la entrega 2. Ver «Estado tras la entrega 2» |
 
 > **`CA18` decía que enrojecerían «exactamente `CA2`, `CA3` y `CA9`», y no fue así — la predicción
 > estaba mal, no la construcción.** Se rompieron **tres** cables, uno cada vez:
@@ -352,6 +352,72 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 >
 > **Y una falsación mintió antes de acertar:** F1 pareció dejar el banco de `src/` en verde. No era
 > el banco, era el `grep` con el que se leyó la salida. **El instrumento también necesita control.**
+
+### Estado tras la entrega 2 — 3 de septiembre de 2026
+
+> ### 🔴 LO PRIMERO: **«no hay Java» ERA FALSO, y por eso los seis criterios de reglas SÍ se corrieron**
+>
+> La ficha, `docs/pendientes.md` y el traspaso de la sesión daban `CA6`, `CA10`, `CA11`, `CA12`,
+> `CA14` y `CA16` por **imposibles de verificar en este equipo**. Se comprobó ejercitándolo, y no:
+>
+> - `/usr/bin/java` **es el stub de macOS**. Responde «Unable to locate a Java Runtime», que es
+>   exactamente lo que se lee como «aquí no hay Java» — y por eso la afirmación sobrevivió a
+>   `FEAT-007`, a `FLOW-007` entrega 1 y a dos redacciones de la cabecera de pendientes.
+> - **El JDK está instalado local al usuario en `~/.local/jdk` (Temurin 21 LTS), y `CLAUDE.md` lo
+>   documenta con el `export` exacto.** Arranca el emulador de Firestore y Storage sin una queja.
+>
+> **Es el mismo error que `invalid_rapt` con la ADC en la entrega 1: dar algo por muerto sin
+> ejercitarlo, y propagarlo por escrito.** Costó cero minutos comprobarlo.
+
+| Criterio | Estado | Dónde vive |
+|---|---|---|
+| `CA5` | ✅ **Cumplido, y falsado** | `functions/tests/flow-007-emision.emulator.test.ts`. Emitido el informe, se corrige un asiento del período y las cifras **no se mueven** — con el control de que recalcular hoy SÍ daría otro número |
+| `CA6` | ✅ **Cumplido en el banco de reglas** | `tests/informe-mensual.rules.test.ts`. La escritura está cerrada al cliente **entera**: `update`, `setDoc`, cambio de estado, creación y borrado, y **tampoco el superadmin** |
+| `CA10` `CA11` `CA12` | ✅ **Cumplidos, y DEBEN FALLAR — fallan** | El residente no lee `monthlyReports` en ningún estado, ni de su conjunto ni de otro. No es la interfaz: es que **no hay rama de residente** hasta la entrega 3 |
+| `CA13` | 🟡 **Construido; falta MIRARLO** | El PDF lleva logo, período, secciones y bloque de firmas —vacío y **no omitido** cuando nadie ha firmado—. `functions/tests/flow-007-pdf-informe.test.ts` vigila que se construya; **que se VEA bien es de ojos, en staging** |
+| `CA14` | 🟡 **La mitad del servidor, sí** | `issueMonthlyReport` lleva `assertTenantOperable` + `assertTenantContratado`, que es lo que de verdad frena: **la regla no protege lo que escribe una callable**. La mitad de reglas está cubierta por el cierre total de escritura |
+| `CA15` | ✅ **Cumplido** | Un anulado conserva sus cifras, su motivo y su lectura. `anulado` es **terminal**: ni se reemite, ni se firma, ni lo resucita la corrida del día 1 |
+| `CA16` | ✅ **Cumplido en el SERVIDOR** | `anularInforme` exige motivo y **recorta antes de mirarlo**, así que un motivo en blanco tampoco cuela. El formulario solo evita el viaje |
+
+**Bancos: `npm test` 1732 · functions 824 · reglas 371 · emulador 301** (con dos rojos
+**preexistentes** en `payments.emulator.test.ts`, medidos también sobre el árbol limpio).
+
+> **Ocho falsaciones, y las ocho enrojecieron EXACTAMENTE lo suyo.** Borrar el bloque de reglas
+> dejó rojas **solo las cuatro de lectura** —y las trece de escritura **siguieron verdes**, que es
+> el hallazgo: una prueba de denegación pasa igual **sin ninguna regla**, porque el deny por
+> defecto la satisface. Sin esa falsación, trece verdes no habrían probado que mi regla existe.
+>
+> Las otras siete: abrir el borrador al consejo (2 rojas), abrir una rama de residente (3: `CA10`,
+> `CA11` y `CA12`), quitar la guarda de estado de `guardarBorrador` (2), quitar la relectura dentro
+> de la transacción de `sellarEmision` (1), quitar la deduplicación de firmas (1), quitar el motivo
+> obligatorio (1) y quitar el `try` del logo (1).
+
+> **Y una prueba mía nació sin poder fallar.** El caso principal de `CA5` —«el informe sigue
+> diciendo 4.800»— **es cierto por construcción** mientras el informe sea una instantánea guardada:
+> ninguna de las ocho falsaciones lo tocó. Pasaría igual si el `update` del asiento fuera un no-op.
+> Se le añadió **el control que le faltaba**: comprobar antes que recalcular hoy daría `0`. Solo
+> entonces «no se movió» afirma algo. Es la distinción del 3 de septiembre: **una falsación en
+> verde es falsación mala O hueco real de cobertura** — aquí era lo segundo.
+
+> **El guardián de la taxonomía de documentos se habría quedado CIEGO ante la categoría nueva.**
+> Extraía la unión con `/"([a-z]+)"/g`, sin guion bajo, así que **no habría visto `informe_mensual`
+> y por tanto no habría podido echarla en falta**: habría dado «todo clasificado» sobre una
+> taxonomía con un hueco. Medido: con la categoría sin clasificar y el `regex` viejo, **once
+> pruebas en verde**. Es el patrón de `UX-004` —un guardián ciego en su propio caso—, y aquí lo
+> destapó añadir la primera categoría compuesta.
+
+> **`StatusBadge` no conocía `emitido` ni `anulado`** —sí `borrador` y `publicado`—, así que dos de
+> los cuatro estados se habrían pintado en tono neutro con la clave cruda en minúscula. En
+> castellano eso **se lee casi bien**, que es lo que hace que dure: el mismo fallo que se disimula a
+> sí mismo de las diez claves sin traducir de `UX-003`.
+
+> **Y un tropiezo propio que el banco cazó en el acto:** los casos de `construirInstantanea` nacieron
+> con `type: "expense"` / `"income"`. **El asiento es castellano —`egreso` / `ingreso`—**, y el
+> núcleo no lanza ante un tipo que no conoce: **simplemente no acumula**, y `totalIncome` salió en
+> cero. Es exactamente lo que triplicó la deuda a proveedores al medir en producción, cometido
+> dentro del banco que venía a vigilarlo.
+
+---
 
 > **`CA1` es el guardián que `R12` y `R16` no tuvieron.** Las dos derivas pasaron porque nada
 > comparaba las dos implementaciones. **No se satisface grepeando un nombre**: un import o un
@@ -423,7 +489,7 @@ una colección), así que el orden normal aplica. *(Si en alguna entrega una reg
 | # | Qué | Reversible |
 |---|---|---|
 | **1** | ✅ **CONSTRUIDA (3 sep 2026).** Cálculo compartido, saldo inicial real, cuentas pendientes de cobro y deuda a proveedores, y el aviso de fondo insuficiente corregido. **Sin cambiar el modelo de datos ni tocar reglas** | Sí, bandera `producto-informe-mensual` |
-| **2** | **Emisión firmable.** `monthlyReports`, estados, callable de emitir/firmar/anular, PDF con logo y firmas, archivado | Sí, bandera |
+| **2** | ✅ **CONSTRUIDA (3 sep 2026).** `monthlyReports` con sus cuatro estados, las cuatro callables (regenerar, emitir, firmar, anular), PDF con logo y bloque de firmas, archivado en categoría propia, y las reglas de la colección | Sí, bandera |
 | **3** | **Publicación.** Categoría nueva, regla del residente, `K2` por conjunto, y la ruta del consejo | Sí, **y además el interruptor `K2`** |
 
 ### Rollback
@@ -442,7 +508,7 @@ después de que la comunidad lo vio, no.**
 | Dónde | Qué |
 |---|---|
 | `npm test` | `CA1`–`CA5`, `CA7`–`CA9`, `CA15`, `CA17`, y la falsación `CA18` |
-| Banco de reglas | `CA6`, `CA10`–`CA12`, `CA14`, `CA16` — ⚠️ **este equipo no lo puede correr: no hay Java**, igual que en `FEAT-007` |
+| Banco de reglas | `CA6`, `CA10`–`CA12`, `CA14`, `CA16` — ✅ **CORRIDOS el 3 de septiembre de 2026.** La línea anterior decía «este equipo no lo puede correr: no hay Java» y **era falsa**: `/usr/bin/java` es el stub de macOS, pero el JDK está en `~/.local/jdk` (documentado en `CLAUDE.md`) y levanta el emulador sin una queja. Ver la nota de abajo |
 | Staging, con ojos | `CA13` (el PDF con logo y firmas) y la vista del residente |
 | Producción | Que la corrida del día 1 produce lo mismo con la bandera apagada |
 

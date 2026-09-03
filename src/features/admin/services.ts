@@ -268,6 +268,21 @@ export type DocumentCategory =
   | "acuerdo"
   | "comprobante"
   | "reporte"
+  /**
+   * `PRD-V-FLOW-007` · el informe económico mensual emitido.
+   *
+   * **Categoría propia y no `financiero` ni `reporte`.** Esas dos llevan dentro
+   * comprobantes, históricos de cartera y expedientes —detalle por unidad—, así
+   * que abrirlas al residente para publicar el informe abriría también todo eso.
+   * Una categoría nueva es la diferencia entre publicar un documento y abrir un
+   * cajón.
+   *
+   * **Nace SOLO-ADMINISTRACIÓN.** La entrega 3 la abre al residente, y entonces
+   * hay que moverla de lista **y** tocar la regla de Firestore **a la vez**:
+   * separarlas hace que la consulta se rechace entera y la pantalla diga «sin
+   * documentos» teniendo varios, que es un fallo que este producto ya tuvo.
+   */
+  | "informe_mensual"
   | "otro";
 
 /** Colores disponibles para diferenciar carpetas (clave; el mapa hex vive en la UI). */

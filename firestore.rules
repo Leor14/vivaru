@@ -1317,6 +1317,45 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // ─── `PRD-V-FLOW-007` · el informe económico mensual ──────────────────────
+    //
+    // **ESCRITURA CERRADA AL CLIENTE, entera.** Las cuatro operaciones —regenerar,
+    // emitir, firmar y anular— van por callable con Admin SDK, que **no evalúa
+    // estas reglas**. Dejar aquí una rama de administrador sería una segunda
+    // puerta al mismo sitio, y la lección de `CF8` es que las dos puertas se
+    // olvidan por separado. Con `create, update, delete: if false`:
+    //
+    //   · `CA6`  — un `update` sobre un informe `emitido` que toque una cifra
+    //     queda rechazado **por la regla**, no escondido en la interfaz. Y no
+    //     solo sobre `emitido`: sobre cualquier estado.
+    //   · `CA16` — anular sin motivo lo rechaza el SERVIDOR (`anularInforme`),
+    //     porque por aquí no se puede anular en absoluto.
+    //   · `CA14` — un conjunto `suspended` no emite: la callable lo veta con
+    //     `assertTenantOperable`, espejo de `tenantOperable` de aquí.
+    //
+    // **LECTURA.** El administrador ve todos los estados, incluidos los
+    // borradores. El consejo ve **solo lo que ya se emitió**: un borrador tiene
+    // cifras que todavía cambian, y enseñárselo invita a discutir números que
+    // nadie ha afirmado. `CA15` — el `anulado` **sí** se lee, marcado: archivar
+    // no es esconder.
+    //
+    // **EL RESIDENTE NO LEE NADA AQUÍ, todavía.** Es la entrega 3, y su alcance
+    // **espera al abogado** (`RN-11`, y el `TBD-L` heredado de `FLOW-006`). Abrirlo
+    // ahora sería publicar el detalle por unidad de la cartera —quién debe y
+    // cuánto— a la comunidad entera: `CA10`, `CA11` y `CA12` deben FALLAR hoy, y
+    // fallan porque no hay rama de residente. Cerrarlo después de que la
+    // comunidad lo vio no se puede.
+    //
+    // ⚠️ **Estas ramas NO se han ejercitado con el banco de reglas**: pide
+    // emulador y este equipo no tiene Java. Es lo mismo que pasó con `FEAT-007`.
+    match /monthlyReports/{docId} {
+      allow read: if signedIn() && (
+        tenantAdminOrSuper(resource.data.tenantId) ||
+        (tenantRole(resource.data.tenantId, 'committee') && resource.data.status != 'borrador')
+      );
+      allow create, update, delete: if false;
+    }
+
     match /clearanceCertificates/{docId} {
       allow read: if signedIn() && (
         tenantAdminOrSuper(resource.data.tenantId) ||

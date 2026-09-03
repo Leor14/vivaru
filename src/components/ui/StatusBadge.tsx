@@ -75,6 +75,13 @@ const STATUS_TONES: Record<string, StatusTone> = {
   cancelado:    { bg: "var(--mapa-neutro-superficie-3)", text: "var(--mapa-neutro-texto-1)", dot: "var(--mapa-neutro-acento-1)", label: "Cancelado" },
   urgent:       { bg: "var(--mapa-neutro-superficie-2)", text: "var(--mapa-rojo-texto-1)", dot: "var(--mapa-rojo-acento-1)", label: "Urgente" },
   urgente:      { bg: "var(--mapa-neutro-superficie-2)", text: "var(--mapa-rojo-texto-1)", dot: "var(--mapa-rojo-acento-1)", label: "Urgente" },
+  // `PRD-V-FLOW-007`. **`borrador` y `publicado` ya estaban; estos dos NO**, y sin
+  // ellos la insignia caía al tono neutro con la clave cruda en minúscula
+  // («emitido»). Es el fallo que se disimula a sí mismo: en castellano la clave
+  // se lee casi bien, así que nadie lo nota — el mismo patrón de las diez claves
+  // sin traducir de `UX-003`.
+  emitido:      { bg: "var(--mapa-verde-superficie-1)", text: "var(--mapa-verde-texto-1)", dot: "var(--mapa-verde-acento-1)", label: "Emitido" },
+  anulado:      { bg: "var(--mapa-neutro-superficie-2)", text: "var(--mapa-rojo-texto-1)", dot: "var(--mapa-rojo-acento-1)", label: "Anulado" },
 };
 
 function capitalize(value: string): string {

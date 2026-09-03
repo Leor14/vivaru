@@ -27,6 +27,7 @@ import {
 import * as XLSX from "xlsx";
 import { AlertTriangle, BarChart2, Download, FileSpreadsheet, FolderPlus, Printer } from "lucide-react";
 
+import { InformeMensualCard } from "@/components/features/finanzas/InformeMensualCard";
 import { TablePager } from "@/components/shared/table-pager";
 import { usePagination } from "@/components/shared/use-pagination";
 import { WidgetErrorBoundary } from "@/components/shared/widget-error-boundary";
@@ -40,6 +41,7 @@ import {
   type ReportPeriodKey,
   type DateRange,
 } from "@/features/reports/use-committee-report";
+import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { useTenantCurrency } from "@/features/tenant/use-tenant-currency";
 
 // ─── Period chips ─────────────────────────────────────────────────────────────
@@ -174,6 +176,9 @@ function SectionLoading() {
 function AdminReportsPageContent() {
   const { user } = useAuth();
   const { formatAmount: formatCurrency, formatAmountCompact } = useTenantCurrency();
+  // `PRD-V-FLOW-007`. **Apagada en los nueve**, así que hoy esto no pinta nada:
+  // se enciende por conjunto cuando alguien vaya a mirar un informe generado.
+  const informeMensual = useFeatureFlag("producto-informe-mensual");
 
   const [periodKey, setPeriodKey] = useState<ReportPeriodKey>("last_month");
   const [customRange, setCustomRange] = useState<DateRange>({
@@ -711,6 +716,18 @@ function AdminReportsPageContent() {
                   torta de egresos llevaba aquí sin envolver desde antes; entra
                   ahora porque este incremento le pone otra al lado.
                 */}
+                {/*
+                  `PRD-V-FLOW-007` entrega 2 · el informe emitible.
+                  **Detrás de la bandera y de su propio boundary**: consume datos
+                  del conjunto, y un fallo suyo no puede tumbar `/admin` entera.
+                */}
+                {informeMensual && (
+                  <WidgetErrorBoundary label="informe-mensual">
+                    <div className="mt-4">
+                      <InformeMensualCard />
+                    </div>
+                  </WidgetErrorBoundary>
+                )}
                 <WidgetErrorBoundary label="resumen-financiero-por-cuenta">
                 {report.financial.incomeByCategory.length > 0 ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">

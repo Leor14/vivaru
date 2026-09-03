@@ -1591,3 +1591,72 @@ export async function ensureReconciliationCasesCallable(input: { tenantId: strin
   >(functions, "ensureReconciliationCases");
   return executeCallable(callable, input, "No fue posible crear los expedientes de las líneas importadas.");
 }
+
+// ── PRD-V-FLOW-007 entrega 2 · el informe económico mensual ──────────────────
+//
+// **Ninguna de las cuatro manda una cifra.** Solo el conjunto y el período (o el
+// informe). El servidor recalcula y sella: si los números viajaran desde aquí, el
+// administrador emitiría el que quisiera, y `issuedBy` en un documento con
+// sanción legal detrás no puede depender de lo que escriba un navegador.
+
+export type MonthlyReportInput = { tenantId: string; period: string };
+
+/** Rehace el borrador del período con los asientos de hoy. Solo sobre `borrador`. */
+export async function regenerateMonthlyReportCallable(input: MonthlyReportInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<MonthlyReportInput, { ok: true; reportId: string }>(
+    functions,
+    "regenerateMonthlyReport",
+  );
+  return executeCallable(callable, input, "No fue posible generar el borrador del informe.");
+}
+
+/** Congela las cifras, sella el firmante y archiva el PDF. `created: false` = reintento. */
+export async function issueMonthlyReportCallable(input: MonthlyReportInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<MonthlyReportInput, { ok: true; reportId: string; created: boolean }>(
+    functions,
+    "issueMonthlyReport",
+  );
+  return executeCallable(callable, input, "No fue posible emitir el informe.");
+}
+
+export type SignMonthlyReportInput = { tenantId: string; reportId: string };
+
+/**
+ * Deja constancia de la aprobación. **El nombre y el cargo NO viajan**: los lee el
+ * servidor de la membresía, porque si vinieran de aquí cualquiera firmaría como
+ * presidente del consejo mandando ese texto.
+ */
+export async function signMonthlyReportCallable(input: SignMonthlyReportInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<SignMonthlyReportInput, { ok: true; yaFirmado: boolean }>(
+    functions,
+    "signMonthlyReport",
+  );
+  return executeCallable(callable, input, "No fue posible firmar el informe.");
+}
+
+export type VoidMonthlyReportInput = {
+  tenantId: string;
+  reportId: string;
+  /** `RN-06` · obligatorio, y el servidor lo exige además del formulario (`CA16`). */
+  reason: string;
+};
+
+export async function voidMonthlyReportCallable(input: VoidMonthlyReportInput) {
+  if (!functions) {
+    throw new Error("Firebase Functions no esta configurado en este entorno.");
+  }
+  const callable = httpsCallable<VoidMonthlyReportInput, { ok: true; yaAnulado: boolean }>(
+    functions,
+    "voidMonthlyReport",
+  );
+  return executeCallable(callable, input, "No fue posible anular el informe.");
+}

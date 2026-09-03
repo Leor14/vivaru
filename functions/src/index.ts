@@ -14,7 +14,7 @@ import { currencyForCountry } from "./country-currency";
 import { assertStrongPassword, generateStrongPassword } from "./password-policy";
 import { resendApiKey, sendAccountEmail, sendNotificationEmail, type AccountEmailVariant } from "./email";
 import { aplicarEventoDeCorreo, resendWebhookSecret, verificarFirmaSvix } from "./email-webhook";
-import { buildSummaryPdf } from "./pdf-resumen";
+import { buildInformeMensualPdf, buildSummaryPdf } from "./pdf-resumen";
 import { adjuntoEsDelDestinatario, pdfDelEstadoDeCuenta, unidadDelDestinatario } from "./estado-de-cuenta-adjunto";
 import { pasadaDeCalendarioDeCobranza } from "./cobranza-programada";
 import { empujarAvisos, type AvisoParaPush } from "./push";
@@ -88,6 +88,19 @@ import {
 import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
+import {
+  anularInforme,
+  construirInstantanea,
+  firmarInforme,
+  guardarBorrador,
+  idDelInforme,
+  prepararEmision,
+  assertPeriodoValido,
+  leerYConstruirInstantanea,
+  sellarEmision,
+  sumarSaldoDeApertura,
+  type InstantaneaDelInforme,
+} from "./informe-mensual";
 import {
   construirEstadoFinanciero,
   sumarCuentasPorCobrar,
@@ -2004,6 +2017,7 @@ const SYSTEM_FOLDERS: Record<string, { name: string; description: string }> = {
   billing_closures: { name: "Cierres de cartera", description: "Reportes de cierre de períodos de cartera. Carpeta del sistema." },
   committee_reports: { name: "Reportes de comité", description: "Reportes de comité generados por período. Carpeta del sistema." },
   cartera_history: { name: "Histórico de cartera", description: "Histórico de recaudo (esperado vs cobrado) y morosos. Carpeta del sistema." },
+  monthly_reports: { name: "Informes mensuales", description: "Informes económicos mensuales emitidos y firmados. Carpeta del sistema." },
   ledger_history: { name: "Histórico del libro", description: "Movimientos del libro guardados por período. Carpeta del sistema." },
 };
 
@@ -3736,12 +3750,13 @@ export const onSurveyUpdated = onDocumentUpdated({ document: "surveys/{surveyId}
 const ARCHIVE_PATH: Record<string, string> = {
   cartera_history: "cartera-history",
   committee_reports: "committee-reports",
+  monthly_reports: "monthly-reports",
 };
 
 // Sube un buffer a Storage (con token de descarga) y lo registra en la carpeta de sistema.
 async function archiveBuffer(input: {
   tenantId: string;
-  systemKey: "cartera_history" | "committee_reports";
+  systemKey: "cartera_history" | "committee_reports" | "monthly_reports";
   fileName: string;
   ext: string;
   contentType: string;
@@ -3750,15 +3765,33 @@ async function archiveBuffer(input: {
   source: string;
   sourceId: string;
   category: string;
-}): Promise<void> {
+  /**
+   * **Id fijo del documento, para que reintentar no duplique** (`FLOW-007` entrega 2).
+   *
+   * Sin él, el nombre del fichero lleva `Date.now()` y la fila de `documents` se
+   * crea con `add()`: dos llamadas dejan dos PDF y dos filas. En el archivo
+   * mensual eso da igual —corre una vez al mes y sin nadie mirando—, pero emitir
+   * un informe puede reintentarse, y entonces el conjunto vería **dos informes de
+   * marzo** sin saber cuál vale.
+   *
+   * Con el id fijo, la ruta de Storage también lo es, así que el segundo intento
+   * **sobrescribe** en vez de acumular. Es el mismo «el id ES la clave» del paz y
+   * salvo y del reparto.
+   */
+  stableId?: string;
+}): Promise<string> {
   const token = randomUUID();
-  const path = `tenants/${input.tenantId}/${ARCHIVE_PATH[input.systemKey]}/${input.sourceId}-${Date.now()}.${input.ext}`;
+  const nombreEnStorage = input.stableId ?? `${input.sourceId}-${Date.now()}`;
+  const path = `tenants/${input.tenantId}/${ARCHIVE_PATH[input.systemKey]}/${nombreEnStorage}.${input.ext}`;
   const bucket = getStorage().bucket();
   await bucket.file(path).save(input.buffer, { metadata: { contentType: input.contentType, metadata: { firebaseStorageDownloadTokens: token } } });
   const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(path)}?alt=media&token=${token}`;
 
   const folderId = await ensureSystemFolderImpl(input.tenantId, "system", input.systemKey);
-  await db.collection("documents").add({
+  const ref = input.stableId
+    ? db.collection("documents").doc(input.stableId)
+    : db.collection("documents").doc();
+  await ref.set({
     tenantId: input.tenantId,
     fileName: input.fileName,
     description: input.description,
@@ -3776,6 +3809,7 @@ async function archiveBuffer(input: {
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   });
+  return ref.id;
 }
 
 // Construye un .xlsx server-side y lo archiva.
@@ -3894,27 +3928,28 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
     let saldoInicial: number | undefined;
     let porCobrar = 0;
     let deudaProveedores = 0;
+    // **Se sacan del `if` para que el BORRADOR de la entrega 2 los reutilice.**
+    // Volver a pedirlos abajo serían dos consultas más por conjunto y nueve
+    // conjuntos, cada día 1, para releer lo que ya está en memoria.
+    let egresosDelConjunto: { amount?: number; status?: string; dueDate?: string; vendorId?: string; vendorName?: string }[] = [];
+    let saldosDelConjunto: { openingBalance?: number }[] = [];
     if (informeAnclado) {
       const [saldosSnap, egresosSnap] = await Promise.all([
         db.collection("bankAccountBalances").where("tenantId", "==", tenantId).get(),
         db.collection("expenses").where("tenantId", "==", tenantId).get(),
       ]);
+      saldosDelConjunto = saldosSnap.docs.map((d) => d.data() as { openingBalance?: number });
+      egresosDelConjunto = egresosSnap.docs.map(
+        (d) => d.data() as { amount?: number; status?: string; dueDate?: string; vendorId?: string; vendorName?: string },
+      );
       // **`undefined` cuando no hay NINGÚN documento de saldo**, no cero: es la
       // distinción de `CA4`, y sumar sobre una lista vacía daría 0 y afirmaría
-      // que el conjunto abrió sin un peso.
-      let acumulado = 0;
-      let alguno = false;
-      for (const d of saldosSnap.docs) {
-        const v = (d.data() as { openingBalance?: number }).openingBalance;
-        if (typeof v !== "number" || !Number.isFinite(v)) continue;
-        acumulado += v;
-        alguno = true;
-      }
-      saldoInicial = alguno ? acumulado : undefined;
+      // que el conjunto abrió sin un peso. La suma vive en `informe-mensual.ts`
+      // desde la entrega 2, para que la corrida programada y la callable no
+      // puedan discrepar — que es la causa mecánica de `R12` y `R16`.
+      saldoInicial = sumarSaldoDeApertura(saldosDelConjunto);
       porCobrar = sumarCuentasPorCobrar(stmts);
-      deudaProveedores = sumarDeudaAProveedores(
-        egresosSnap.docs.map((d) => d.data() as { amount?: number; status?: string }),
-      );
+      deudaProveedores = sumarDeudaAProveedores(egresosDelConjunto);
     }
 
     const estado = construirEstadoFinanciero({
@@ -3979,6 +4014,36 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
       ]),
       description: `Reporte de comité ${prevMonth} (automático, resumen financiero)`, source: "committee_report", sourceId: prevMonth, category: "reporte",
     });
+
+    // ── `FLOW-007` entrega 2 · el BORRADOR del informe del mes ──
+    //
+    // **Solo con la bandera encendida**, y no por ahorrar lecturas: sin ella,
+    // `monthlyReports` no se pinta en ninguna parte, así que crear borradores
+    // sería sembrar en producción documentos que nadie puede ver ni emitir — y
+    // el día que la bandera se encienda, aparecerían meses de golpe con cifras
+    // que nadie revisó.
+    //
+    // **Nunca pisa un informe emitido** (`RN-05`): `guardarBorrador` lo comprueba
+    // y devuelve `escrito: false`. Si la corrida pudiera reescribir lo emitido,
+    // las cifras congeladas dejarían de estarlo solas al mes siguiente.
+    if (informeAnclado) {
+      const r = await guardarBorrador({
+        tenantId,
+        period: prevMonth,
+        instantanea: construirInstantanea({
+          period: prevMonth,
+          cargos: stmts,
+          asientos: monthLed,
+          recaudado,
+          saldos: saldosDelConjunto,
+          egresos: egresosDelConjunto,
+        }),
+        actorUid: "system",
+      });
+      if (!r.escrito) {
+        console.log(`[monthly-archive][${tenantId}] ${prevMonth} ya está en '${r.motivo}': no se toca el borrador.`);
+      }
+    }
     } catch (e) {
       console.error(`[monthly-archive][${tenantId}]`, e);
     }
@@ -4758,6 +4823,347 @@ export const cancelClearanceCertificate = onCall<AnularPazYSalvoInput>(
     }
 
     return resultado;
+  },
+);
+
+// ── FLOW-007 entrega 2 · cómo se lee el informe en el PDF ───────────────────
+
+/** `RN-12`. Va impreso: quien reciba el papel tiene que saber qué NO es. */
+const PIE_DEL_INFORME =
+  "Las firmas de este documento son constancia de quién lo emitió y quién lo aprobó dentro de Vivaru, " +
+  "con nombre, cargo y fecha selladas por el sistema. No constituyen firma electrónica certificada.";
+
+/**
+ * Baja el logo del conjunto para la cabecera del PDF.
+ *
+ * **Nunca lanza.** Este documento cumple una obligación legal cuya sanción es la
+ * remoción del administrador: que no se pueda emitir porque un logo dio 404, o
+ * porque el servidor que lo aloja está lento, sería cambiar un problema cosmético
+ * por uno grave. Sin logo, el informe sale sin logo y lo demás va igual.
+ *
+ * El tope de tamaño y el de tiempo no son paranoia: `branding.logoUrl` es una URL
+ * que escribió el cliente, y sin ellos una emisión se quedaría colgada de un
+ * servidor ajeno hasta agotar el timeout de la función.
+ */
+async function descargarLogo(url: string | undefined): Promise<Buffer | undefined> {
+  if (!url || !/^https:\/\//.test(url)) return undefined;
+  try {
+    const respuesta = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!respuesta.ok) return undefined;
+    const bytes = Buffer.from(await respuesta.arrayBuffer());
+    // 2 MiB. Un logo es un logo; más que eso es otra cosa.
+    return bytes.length > 2 * 1024 * 1024 ? undefined : bytes;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Las cifras de cabecera: el estado de caja anclado al banco.
+ *
+ * **`CA4` en una línea:** sin saldo registrado se escribe «Sin saldo bancario de
+ * apertura», **no «$0»**. La diferencia entre un cero que alguien registró y la
+ * ausencia de dato es lo que separa un estado de caja de un tablero de indicadores.
+ */
+function filasDeCabecera(i: InstantaneaDelInforme): [string, string][] {
+  return [
+    [
+      "Saldo inicial del banco",
+      i.openingBalanceSource === "registrado" ? formatMoney(i.openingBalance) : "Sin saldo bancario de apertura",
+    ],
+    ["Ingresos del mes", formatMoney(i.totalIncome)],
+    ["Egresos del mes", formatMoney(i.totalExpenses)],
+    ["Resultado neto del mes", formatMoney(i.netResult)],
+    // `RN-03` · la identidad se ENSEÑA como tal, no solo se cumple.
+    ["Saldo final del fondo (inicial + ingresos − egresos)", formatMoney(i.closingBalance)],
+  ];
+}
+
+/**
+ * Las cuatro secciones del informe.
+ *
+ * **Las cuatro van SIEMPRE, también en cero** (`RN-08`, `CA8`): un cero calculado
+ * dice «no se debe nada» y una sección ausente dice «esto no se mide», y para un
+ * consejo son dos cosas distintas. El PDF pinta «Sin movimientos en el período»
+ * cuando la lista viene vacía, en vez de saltarse el bloque.
+ *
+ * **Los egresos salen en el orden del PLAN, no por monto** (`RN-07`): ya vienen
+ * ordenados del núcleo, que compara por el código de cuenta. Reordenar aquí por
+ * importe desharía justo lo que la entrega 1 construyó.
+ */
+function seccionesDelInforme(i: InstantaneaDelInforme): {
+  title: string;
+  rows: [string, string][];
+  total?: [string, string];
+}[] {
+  return [
+    {
+      title: "Ingresos por cuenta",
+      rows: i.income.map((l) => [l.label, formatMoney(l.amount)] as [string, string]),
+      total: ["Total de ingresos", formatMoney(i.totalIncome)],
+    },
+    {
+      title: "Egresos por cuenta",
+      rows: i.expenses.map((l) => [l.label, formatMoney(l.amount)] as [string, string]),
+      total: ["Total de egresos", formatMoney(i.totalExpenses)],
+    },
+    {
+      title: "Cuentas pendientes de cobro",
+      rows: i.receivables.byUnit.map(
+        (u) =>
+          [
+            `${u.unitLabel} · ${u.periods} ${u.periods === 1 ? "período" : "períodos"}`,
+            formatMoney(u.balance),
+          ] as [string, string],
+      ),
+      total: ["Total por cobrar", formatMoney(i.receivables.total)],
+    },
+    {
+      title: "Deuda a proveedores",
+      rows: i.payables.byVendor.map((v) => [v.vendorName, formatMoney(v.amount)] as [string, string]),
+      total: [
+        `Total por pagar (vencido: ${formatMoney(i.payables.overdue)})`,
+        formatMoney(i.payables.total),
+      ],
+    },
+  ];
+}
+
+// ── FLOW-007 entrega 2 · el informe mensual emitible y firmable ──────────────
+//
+// **Las cuatro van por callable y no por escritura directa** (§11.1 de la ficha):
+// escriben en tres sitios, **congelan cifras** y sellan quién emitió. Un campo
+// escribible desde el cliente no puede sostener un invariante, y `issuedBy` en un
+// documento con sanción legal detrás es exactamente eso.
+//
+// **De la petición NO llega ni una cifra.** Solo qué conjunto y qué período; los
+// números los recalcula el servidor. Si vinieran del cliente, el administrador
+// emitiría el número que quisiera.
+//
+// **Y la bandera se comprueba EN EL SERVIDOR** en las tres que crean o emiten —la
+// lección de «una bandera que el servidor no comprueba es solo un botón»—. **Anular
+// NO la comprueba**, por lo mismo que el paz y salvo: apagar la bandera no puede
+// dejar informes emitidos sin forma de retirarlos.
+
+/** Nombre y cargo de quien firma. **Los pone el servidor**, nunca la petición. */
+async function identidadParaFirmar(tenantId: string, uid: string): Promise<{ name: string; role: string }> {
+  const membership = (await assertTenantMember(tenantId, uid)) as {
+    role?: string;
+    status?: string;
+    tenantId?: string;
+    fullName?: string;
+  };
+  // **El conjunto de la membresía tiene que ser ESTE**, y no basta con que el
+  // documento exista: su id lo compone el llamador. Es la misma comprobación que
+  // hace `assertActiveTenantAdmin`, y aquí no se hereda porque firmar no es de
+  // administración — también firma el consejo.
+  if (membership.tenantId !== tenantId) {
+    throw new HttpsError("permission-denied", "No puedes operar sobre otro conjunto.");
+  }
+  const rol = membership.role ?? "";
+  if (rol !== "tenant_admin" && rol !== "admin_tenant" && rol !== "committee") {
+    throw new HttpsError(
+      "permission-denied",
+      "Solo la administración y el consejo firman el informe del conjunto.",
+    );
+  }
+  // **Una membresía inactiva no firma.** A quien se le retiró el acceso se le
+  // retiró la autoridad, y una firma es precisamente una afirmación de
+  // autoridad: dejarla pasar pondría en el papel a alguien que ya no responde
+  // por el conjunto. El camino del administrador ya lo comprueba; el del
+  // consejo no lo haría sin esta línea.
+  if ((membership.status ?? "active") !== "active") {
+    throw new HttpsError("failed-precondition", "Tu membresía en este conjunto está inactiva.");
+  }
+  const perfil = await db.collection("users").doc(uid).get();
+  const nombre =
+    (perfil.data() as { fullName?: string } | undefined)?.fullName ||
+    membership.fullName ||
+    "";
+  if (!nombre) {
+    // Una firma sin nombre no es constancia de nada: el bloque del PDF diría
+    // «firmado por» y una línea en blanco. Se para antes de escribirla.
+    throw new HttpsError(
+      "failed-precondition",
+      "Tu perfil no tiene nombre completo, y la firma lo lleva impreso. Complétalo antes de firmar.",
+    );
+  }
+  return {
+    name: nombre,
+    role: rol === "committee" ? "Consejo de administración" : "Administración",
+  };
+}
+
+export const regenerateMonthlyReport = onCall<{ tenantId: string; period: string }>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.period) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto o el período.");
+    }
+    const tenantId = normalizeText(data.tenantId);
+    const period = normalizeText(data.period);
+
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+    await assertTenantContratado(tenantId);
+    await assertFeatureEnabled("producto-informe-mensual", tenantId);
+    assertPeriodoValido(period);
+
+    const instantanea = await leerYConstruirInstantanea(tenantId, period);
+    const r = await guardarBorrador({ tenantId, period, instantanea, actorUid: uid });
+    if (!r.escrito) {
+      throw new HttpsError(
+        "failed-precondition",
+        r.motivo === "anulado"
+          ? "Ese informe está anulado y no se regenera."
+          : "Ese informe ya está emitido: sus cifras están congeladas. Anúlalo si hay que corregirlo.",
+      );
+    }
+
+    await writeAuditLog(tenantId, uid, "regenerate_monthly_report", { period });
+    return { ok: true as const, reportId: idDelInforme(tenantId, period) };
+  },
+);
+
+export const issueMonthlyReport = onCall<{ tenantId: string; period: string }>(
+  { cors: callableCorsOrigins, invoker: "public", timeoutSeconds: 120, memory: "512MiB" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.period) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto o el período.");
+    }
+    const tenantId = normalizeText(data.tenantId);
+    const period = normalizeText(data.period);
+
+    // `RN-13` · un conjunto suspendido o vencido **no emite**. `assertTenantOperable`
+    // lo veta, y `assertTenantContratado` además veta `trial` — el módulo financiero
+    // está en vista previa durante la prueba, y una callable no evalúa la regla que
+    // lo dice. Es la lección de `CF8`: la regla no protege lo que escribe una callable.
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+    await assertTenantContratado(tenantId);
+    await assertFeatureEnabled("producto-informe-mensual", tenantId);
+
+    const preparado = await prepararEmision({ tenantId, period });
+    if (preparado.yaEmitido) {
+      // Reintento idempotente: no se archiva un segundo PDF ni se vuelve a sellar.
+      return { ok: true as const, reportId: idDelInforme(tenantId, period), created: false };
+    }
+
+    const tenantSnap = await db.collection("tenants").doc(tenantId).get();
+    const tenant = tenantSnap.data() as { name?: string; branding?: { logoUrl?: string } } | undefined;
+
+    const pdf = await buildInformeMensualPdf({
+      tenantName: tenant?.name ?? tenantId,
+      period,
+      logo: await descargarLogo(tenant?.branding?.logoUrl),
+      statusLabel: "Emitido",
+      headline: filasDeCabecera(preparado.instantanea),
+      sections: seccionesDelInforme(preparado.instantanea),
+      // Recién emitido no lo ha firmado nadie: el bloque sale vacío y **no se
+      // omite**, que es lo que `CA13` pide con esas palabras.
+      signatures: [],
+      footNote: PIE_DEL_INFORME,
+    });
+
+    const documentId = await archiveBuffer({
+      tenantId,
+      systemKey: "monthly_reports",
+      fileName: `Informe-mensual-${period}.pdf`,
+      ext: "pdf",
+      contentType: "application/pdf",
+      buffer: pdf,
+      description: `Informe económico mensual ${period} (emitido)`,
+      source: "monthly_report",
+      sourceId: period,
+      // **Categoría propia, y no `financiero` ni `reporte`** (`R2`). Esas dos
+      // llevan dentro comprobantes y detalle por unidad, así que abrirlas al
+      // residente en la entrega 3 abriría también todo eso: una categoría nueva
+      // es la diferencia entre publicar un documento y abrir un cajón. Nace
+      // solo-administración; la entrega 3 la abre, en la regla y en la lista de
+      // la consulta **a la vez**.
+      category: "informe_mensual",
+      // El id fijo hace idempotente el reintento: mismo PDF, misma fila.
+      stableId: `informe_${idDelInforme(tenantId, period)}`,
+    });
+
+    await sellarEmision({ tenantId, period, instantanea: preparado.instantanea, actorUid: uid, documentId });
+    await writeAuditLog(tenantId, uid, "issue_monthly_report", { period, documentId });
+
+    return { ok: true as const, reportId: idDelInforme(tenantId, period), created: true };
+  },
+);
+
+export const signMonthlyReport = onCall<{ tenantId: string; reportId: string }>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.reportId) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto o el informe.");
+    }
+    const tenantId = normalizeText(data.tenantId);
+    const reportId = normalizeText(data.reportId);
+
+    // **Firma el consejo, no solo la administración**, así que aquí NO va
+    // `assertActiveTenantAdmin`: la comprobación de rol la hace
+    // `identidadParaFirmar`, que además es de donde salen el nombre y el cargo.
+    await assertTenantOperable(tenantId);
+    await assertFeatureEnabled("producto-informe-mensual", tenantId);
+    const quien = await identidadParaFirmar(tenantId, uid);
+
+    const r = await firmarInforme({
+      tenantId,
+      reportId,
+      actorUid: uid,
+      actorName: quien.name,
+      actorRole: quien.role,
+    });
+    if (!r.yaFirmado) {
+      await writeAuditLog(tenantId, uid, "sign_monthly_report", { reportId, role: quien.role });
+    }
+    return r;
+  },
+);
+
+export const voidMonthlyReport = onCall<{ tenantId: string; reportId: string; reason: string }>(
+  { cors: callableCorsOrigins, invoker: "public" },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError("unauthenticated", "Debes iniciar sesión.");
+    const data = request.data;
+    if (!data?.tenantId || !data.reportId) {
+      throw new HttpsError("invalid-argument", "Faltan el conjunto o el informe.");
+    }
+    const tenantId = normalizeText(data.tenantId);
+
+    // Anular es de administración, y **la bandera NO se comprueba**: apagarla no
+    // puede dejar vivos informes emitidos sin forma de retirarlos. Mismo criterio
+    // que `cancelClearanceCertificate`.
+    await assertActiveTenantAdmin(tenantId, uid);
+    await assertTenantOperable(tenantId);
+
+    const r = await anularInforme({
+      tenantId,
+      reportId: normalizeText(data.reportId),
+      reason: data.reason,
+      actorUid: uid,
+    });
+    if (!r.yaAnulado) {
+      await writeAuditLog(tenantId, uid, "void_monthly_report", {
+        reportId: normalizeText(data.reportId),
+        // `writeAuditLog` revienta con un `undefined`, y aquí el motivo es
+        // obligatorio río arriba — se manda normalizado igualmente.
+        reason: (data.reason ?? "").trim(),
+      });
+    }
+    return r;
   },
 );
 

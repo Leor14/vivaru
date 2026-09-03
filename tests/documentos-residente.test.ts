@@ -136,7 +136,13 @@ describe("documentos · el residente no ve lo financiero", () => {
   it("toda la taxonomía está clasificada: ni una categoría sin decidir", () => {
     const servicios = fs.readFileSync(path.resolve("src/features/admin/services.ts"), "utf8");
     const union = servicios.slice(servicios.indexOf("export type DocumentCategory"));
-    const taxonomia = (union.slice(0, union.indexOf(";")).match(/"([a-z]+)"/g) ?? []).map((c) => c.replaceAll('"', ""));
+    // **`[a-z_]`, con el guion bajo, y no sobra.** Con `[a-z]+` este guardián se
+    // habría quedado CIEGO justo ante la primera categoría compuesta
+    // (`informe_mensual`, de `FLOW-007`): no la habría extraído de la unión, así
+    // que no habría podido echarla en falta y habría dado «todo clasificado»
+    // sobre una taxonomía con un hueco. Es el mismo patrón que el guardián de
+    // `UX-004`, que nació ciego en su propio caso.
+    const taxonomia = (union.slice(0, union.indexOf(";")).match(/"([a-z_]+)"/g) ?? []).map((c) => c.replaceAll('"', ""));
 
     expect(taxonomia.length).toBeGreaterThan(5);
     const clasificadas = new Set<string>([

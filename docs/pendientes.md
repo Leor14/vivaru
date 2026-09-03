@@ -4,79 +4,122 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` cerrada)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 2 de `FLOW-007` cerrada)
 
-> # LO SIGUIENTE ES LA **ENTREGA 2 DE `PRD-V-FLOW-007`**. NO SE ELIGE FRENTE Y NO SE ESCRIBE FICHA.
+> # LO SIGUIENTE ES LA **ENTREGA 3 DE `PRD-V-FLOW-007`**… PERO ESTÁ BLOQUEADA POR EL ABOGADO.
 >
-> La entrega 1 está **en producción y observada con ojos**, los cuatro criterios. La ficha queda
-> **abierta a un tercio**, y por el criterio del 24 de agosto —**cerrar frentes antes que
-> abrirlos**— lo que toca es terminarla, no abrir otra cosa.
+> Las entregas **1 y 2 están construidas**; la 1 en producción y observada, la 2 **construida y sin
+> desplegar**. La 3 —publicar al residente— **espera las cinco preguntas al abogado ecuatoriano**
+> (`TBD-L1`–`L5`), que son de David. Así que **al abrir, lo primero es preguntarle si ya hay
+> respuesta**; si no la hay, toca **elegir frente** (ver más abajo).
 >
-> **Estado:** `master` y `develop` en el mismo commit, árbol limpio. `npm test` **1715** ·
-> functions **799** · los dos typechecks en 0. **Leer los remotos con `git ls-remote`, no de aquí.**
+> **Estado:** leer los remotos con `git ls-remote`, **no de aquí**.
+> **Bancos:** `npm test` **1732** · functions **824** · reglas **371** · emulador **301**
+> (con **dos rojos PREEXISTENTES** en `payments.emulator.test.ts` — medidos también sobre el árbol
+> limpio, así que no son de esta jornada; ver abajo).
 >
-> ### Lo que la entrega 1 dejó hecho, para no rehacerlo
+> ---
+>
+> ## 🔴 LA CORRECCIÓN QUE MÁS LEJOS LLEGA: **SÍ HAY JAVA, Y LLEVABA SEMANAS DICIÉNDOSE QUE NO**
+>
+> Esta cabecera, la ficha de `FLOW-007`, la de `FEAT-007` y el traspaso de la sesión anterior
+> afirmaban que **este equipo no puede correr el banco de reglas «porque no hay Java»**. Es falso, y
+> comprobarlo costó treinta segundos:
+>
+> - **`/usr/bin/java` es el stub de macOS.** Responde «Unable to locate a Java Runtime», que es
+>   exactamente lo que se lee como «aquí no hay Java».
+> - **El JDK está instalado local al usuario en `~/.local/jdk`** (Temurin 21 LTS, arm64), y
+>   **`CLAUDE.md` lo documenta con el `export` exacto** desde el 26 de agosto. Levanta el emulador de
+>   Firestore y Storage sin una queja.
+>
+> ```bash
+> export JAVA_HOME="$HOME/.local/jdk/jdk-21.0.12.1+1/Contents/Home"
+> export PATH="$JAVA_HOME/bin:$PATH"
+> firebase emulators:start --only firestore,storage --project hogaru-1-test
+> ```
+>
+> **Es el mismo error que `invalid_rapt` con la ADC en la entrega 1: dar algo por muerto sin
+> ejercitarlo.** Con la diferencia de que este se propagó **por escrito a cuatro documentos** y
+> dejó **seis criterios de `FLOW-007` y cuatro de `FEAT-007`** declarados inverificables durante
+> semanas. **Los seis de `FLOW-007` ya se corrieron.** Los cuatro de `FEAT-007` siguen sin correr, y
+> ahora se sabe que **se puede**.
+>
+> > **La regla, otra vez: una credencial —o una herramienta— solo está viva o muerta si algo la
+> > EJERCITÓ.** Y cuando un documento diga «aquí no se puede», el coste de comprobarlo es casi
+> > siempre menor que el de creerlo.
+>
+> ---
+>
+> ### Lo que la entrega 2 dejó hecho
 >
 > | Pieza | Dónde |
 > |---|---|
-> | **El núcleo único**, autocontenido y **sin un solo `import`** | `src/lib/finanzas/nucleo-estado-financiero.ts` |
-> | **Su copia byte a byte** | `functions/src/nucleo-estado-financiero.ts` |
-> | **El banco de casos con los números a mano** | `tests/fixtures/estado-financiero-golden.json`, corrido por **los dos** bancos |
-> | La bandera `producto-informe-mensual` en **los cinco** sitios | catálogos y los tres scripts. **Apagada en los nueve** |
+> | El cálculo del informe, **pure y único**, que usan la corrida programada **y** las callables | `functions/src/informe-mensual.ts` |
+> | Las **cuatro callables**: regenerar · emitir · firmar · anular | `functions/src/index.ts` |
+> | El PDF con **logo y bloque de firmas** | `buildInformeMensualPdf`, `functions/src/pdf-resumen.ts` |
+> | Las **reglas de `monthlyReports`** — lectura por rol, **escritura cerrada al cliente entera** | `firestore.rules` |
+> | La pantalla del administrador, **detrás de la bandera** | `src/components/features/finanzas/InformeMensualCard.tsx`, montada en `/admin/reports` |
+> | Los **dos índices** (`tenantId+period`, `tenantId+status+period`) | `firestore.indexes.json` |
 >
-> > **LA REGLA QUE NO SE PUEDE ROMPER:** el núcleo **no importa NADA**. En cuanto tenga un `import`,
-> > las dos copias dejan de poder ser idénticas y el guardián más fuerte se cae. Hay una prueba que
-> > lo vigila, y otra que compara el fichero byte a byte.
+> **Categoría nueva `informe_mensual`, y nace SOLO-ADMINISTRACIÓN.** La ficha la listaba en la
+> entrega 3; se crea ya para que el PDF emitido no vaya a `financiero` ni a `reporte` —que llevan
+> detalle por unidad— y la 3 **no tenga que migrar documentos**. La 3 solo la mueve de lista, **y
+> tiene que tocar la regla y la lista de la consulta A LA VEZ**.
 >
-> ### La entrega 2, y lo que ya se sabe de ella
+> ### Lo que la entrega 2 NO hizo, y por qué
 >
-> **`monthlyReports`, estados, callable de emitir/firmar/anular, PDF con logo y firmas, archivado.**
->
-> 1. **Va por CALLABLE, sin discusión.** Escribe en **tres sitios** —`monthlyReports`, `documents`
->    y Storage—, **congela cifras** (si las mandara el cliente, el administrador emitiría el número
->    que quisiera) y sella `issuedBy`/`issuedAt`. **Un campo escribible desde el cliente no puede
->    sostener un invariante.** La LECTURA sí es directa, protegida por reglas.
-> 2. **NO hay esquema de firmas de un informe.** `firma` (403 apariciones) y `signature` (273)
->    existen y son **otra cosa**: `signedBy` es el uid del residente que **acepta un acuerdo del
->    consejo**. Buscar por el nombre lleva a creer que ya existe.
-> 3. **SEIS de sus criterios son banco de reglas —`CA6`, `CA10`, `CA11`, `CA12`, `CA14`, `CA16`— y
->    este equipo NO los puede correr: no hay Java.** Hay que decirlo al planificar, no al entregar.
-> 4. **Reutiliza lo que ya existe:** `buildSummaryPdf` / `pdf-resumen.ts` y `archiveXlsx` /
->    `archiveBuffer`. No se escriben de cero.
-> 5. **La publicación al residente es la entrega 3, y está DENEGADA por una regla desplegada** — por
->    eso la ficha crea **categoría nueva** en vez de abrir `financiero` y `reporte`, que llevan
->    detalle por unidad.
+> - **El correo al consejo de §9 no se construyó.** No existe hoy ningún camino de correo al
+>   `committee`, y sobre todo: **el consejo no llega al informe hasta la entrega 3**, que es la que
+>   abre su ruta. Avisarle por correo de que revise y firme algo que no puede abrir sería mandarlo a
+>   una puerta cerrada. **Va con la entrega 3.**
+> - **Publicar y despublicar** son la entrega 3, y `publicado` ya existe en el tipo y en las guardas.
 >
 > ### Lo que NO hay que hacer
 >
-> - **No encender `producto-informe-mensual`** todavía. Está apagada en los nueve y así debe seguir
->   hasta que alguien mire un informe generado con ella; y cuando toque, **por conjunto**.
-> - **No reabrir `FLOW-006`.** Sigue bloqueada por `G5` —quién registra la tasa del BCE cada mes— y
->   las cinco preguntas al abogado. **Las dos son de David.** Ni `RN-13` ni `RN-14`.
-> - **No reabrir las decisiones de `FEAT-007`** ni su `G1` vacía.
+> - **NO encender `producto-informe-mensual`.** Sigue apagada en los nueve, y así hasta que alguien
+>   **mire un informe generado con ella**; y entonces, **por conjunto**.
+> - **No reabrir `FLOW-006`** (`G5` y el abogado, las dos de David), ni `RN-13`/`RN-14`, ni las
+>   decisiones de `FEAT-007` ni su `G1` vacía.
 >
-> ### Las nueve cosas que enseñó construir la entrega 1
+> ### Lo que falta de `FLOW-007`, en orden
 >
-> 1. **La ADC no estaba muerta.** `invalid_rapt` es un desafío de **reautenticación de operaciones
->    sensibles**, no la caducidad de la credencial. Ejercitarla costó treinta segundos.
-> 2. **Y su reverso: `firebase login:list` afirmaba «Logged in as …» con el token MUERTO**, y
->    `gcloud auth list` igual. **Una credencial solo está viva si algo la EJERCITÓ.**
-> 3. **Un conteo sobre cero filas siempre responde algo.** `TBD-M1` dio «0 de 0» porque el filtro
->    era `isExample !== true` y **los nueve conjuntos son de ejemplo**.
-> 4. **`R5` estaba escrito sobre la colección equivocada.** La deuda a proveedores no vive en
->    `vendors` sino en los egresos no pagados.
-> 5. **`ExpenseStatus` es castellano.** Filtrar en inglés no excluye nada: la cifra salió **tres
->    veces más grande** y con pinta de dato.
-> 6. **`CA3` fallaba de verdad y lo cazó el banco de casos.** Residuo de coma flotante **invisible
->    con COP** y roto con MXN y USD.
-> 7. **`CA18` predijo mal y la construcción estaba bien.** Eran **tres cables**, no uno.
-> 8. **Una falsación mintió antes de acertar:** parecía dejar un banco en verde y era el `grep` con
->    el que se leyó la salida. **El instrumento también necesita control.**
-> 9. **Mirar la pantalla encontró un defecto propio que 1714 pruebas en verde no veían:** el arreglo
->    estaba **a medias dentro de sí mismo** —la tarjeta afirmaba lo que el Excel ya negaba—. **Al
->    arreglar la mitad visible de un defecto, buscar las otras superficies que muestran lo mismo.**
+> 1. **Desplegar la entrega 2.** El orden es **reglas → functions → front**, porque aquí la regla
+>    **amplía**. `firebase deploy --only firestore:rules`, luego `--only firestore:indexes`, luego
+>    `firebase deploy --only functions` (recompilar antes: **no hay predeploy build**), y el front al
+>    empujar. **El push a `master` lo pide David.**
+> 2. **`CA13` con OJOS, en staging.** Es lo único de la entrega 2 que no se puede cerrar aquí: que el
+>    logo se vea y el bloque de firmas se lea. Hay que **encender la bandera en un conjunto de
+>    staging**, generar, emitir y **abrir el PDF**.
+> 3. **La entrega 3**, cuando conteste el abogado.
 >
-> ---
+> ### Las seis cosas que enseñó construir la entrega 2
+>
+> 1. **«No hay Java» era falso** — arriba, y es la que más lejos llega.
+> 2. **UNA PRUEBA DE DENEGACIÓN PASA IGUAL SIN NINGUNA REGLA.** Borrar el bloque entero de
+>    `monthlyReports` dejó **las trece pruebas de escritura en verde** —las satisface el deny por
+>    defecto— y solo enrojecieron las cuatro de lectura. **Trece verdes no probaban que mi regla
+>    existiera.** Al escribir reglas, la falsación obligatoria es **borrar el bloque**, no solo
+>    aflojarlo.
+> 3. **Una prueba mía nació sin poder fallar.** El caso principal de `CA5` es cierto **por
+>    construcción** mientras el informe sea una instantánea guardada: ninguna de las ocho
+>    falsaciones lo tocó. Se le añadió el control que le faltaba —comprobar que **recalcular hoy SÍ
+>    daría otro número**—. Sin él, «no se movió» no afirma nada.
+> 4. **Un guardián se queda ciego ante el primer caso que se sale de su expresión regular.** El de la
+>    taxonomía de documentos leía `/"([a-z]+)"/g`, **sin guion bajo**, así que `informe_mensual` no
+>    existía para él: con la categoría **sin clasificar**, once pruebas en verde. Es `UX-004` otra
+>    vez, con otro nombre.
+> 5. **`StatusBadge` no conocía `emitido` ni `anulado`** —sí `borrador` y `publicado`—. En castellano
+>    la clave cruda **se lee casi bien**, y por eso este fallo dura: se disimula a sí mismo.
+> 6. **El asiento es CASTELLANO (`ingreso`/`egreso`)** y el núcleo **no lanza** ante un tipo que no
+>    conoce: no acumula, y la cifra sale en cero con pinta de dato. Lo cometí **dentro del banco que
+>    venía a vigilarlo**, dos horas después de leer la lección en esta misma cabecera.
+>
+> ### Dos rojos que NO son de esta jornada
+>
+> `payments.emulator.test.ts` falla en `CA12 · deshacer un cruce…` y `D-B · revertir un pago
+> repartido…`, las dos con `expected 'overdue' to be 'pending'`. **Medido sobre el árbol limpio
+> antes de tocar nada: ya fallaban** (y allí eran tres). Huele a dependencia de la fecha del día.
+> **No se investigaron: quedan fuera del alcance de esta ficha.**
 
 ## EL CONTEXTO DE HABITANTO, CONSOLIDADO
 >

@@ -148,7 +148,7 @@ describe("2 · ninguna clave de unidad sale de un slug", () => {
   // verificada contra el commit anterior**: no es una excepción nueva, es la de
   // siempre desplazada — y que este guardián lo cazara es justo lo que promete su
   // segundo caso.
-  const EXCEPCIONES = new Set(["src/features/admin/services.ts:715"]);
+  const EXCEPCIONES = new Set(["src/features/admin/services.ts:730"]);
 
   it("el barrido mira ficheros de verdad", () => {
     expect(SUPERFICIE.length).toBeGreaterThan(200);
@@ -207,6 +207,13 @@ describe("3 · el inventario del servidor está pinchado", () => {
     "functions/src/estado-de-cuenta-adjunto.ts",
     "functions/src/expense-distribution.ts",
     "functions/src/index.ts",
+    // `PRD-V-FLOW-007` entrega 2. **No construye ninguna clave: AGRUPA por la que
+    // trae el cargo** (`billingStatements.unitId`, canónica desde `FIX-002`) para
+    // el desglose de cartera del informe, y la escribe tal cual en una fila que
+    // **solo se lee**. No resuelve, no escribe sobre `units` y no toca ninguna
+    // membresía, así que no hay nada que pasar por `claveDeUnidad(...)`. Mismo
+    // caso que `estado-de-cuenta-adjunto.ts` y `visita-no-anunciada.ts`.
+    "functions/src/informe-mensual.ts",
     "functions/src/payments.ts",
     "functions/src/reservations.ts",
     "functions/src/trial-seed.ts",

@@ -46,6 +46,10 @@ export const CATEGORIAS_SOLO_ADMINISTRACION = [
   "comprobante",
   "contrato",
   "legal",
+  // `PRD-V-FLOW-007`. **Aquí hasta la entrega 3**, que es la que lo publica al
+  // residente — y su alcance espera al abogado (`RN-11`). Mientras tanto el
+  // informe se emite y se firma, y solo lo ven la administración y el consejo.
+  "informe_mensual",
 ] as const;
 
 const VISIBLES = new Set<string>(CATEGORIAS_VISIBLES_PARA_RESIDENTE);
