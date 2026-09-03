@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.54 |
+| **Versión** | 0.9.55 |
 | **Fecha** | 3 de septiembre de 2026 |
 | **Estado** | **`PRD-V-PLAT-006` COMPLETA, DESPLEGADA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS.** La puerta de buzones cierra por salida, por entrada y con el motivo legible; el código está en los dos ambientes y **`master` desplegado** (`build-2026-09-02-002`). Y hoy se hizo lo que **no era código**: **siete conjuntos marcados** `sinClienteDetras` —los dos de trial fuera—, **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con seis dominios y siete direcciones del equipo. **La bandera sigue APAGADA**, y encenderla ya no está bloqueado por ingeniería: **queda UNA dirección por identificar** —`dann…@outlook.com`, un guardia de Privada Las Playas con cuenta de Auth y acceso el 1 de julio—, y es la única que quedaría sin admitir. **Lo anterior, vigente:** la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. Los remotos se leen con `git ls-remote`, no de aquí. **Y una pasada de higiene (3 sep) corrigió lo que este documento afirmaba de sí mismo:** `UX-004` llevaba **cuatro días en producción** mientras la vista ejecutiva mandaba «🟠 Ejecutar `UX-004`», y **siete fichas de PRD** decían «Lista para desarrollo» con el código desplegado y la bandera encendida |
 | **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
@@ -141,7 +141,7 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
-| **Experiencia y diseño** | 🟢 **`UX-001`, `UX-003` y `UX-004` en producción** — `UX-004` construida el 30 ago (`src/lib/dashboard/indicadores.ts` + `umbrales.ts`), cableada en el panel **y** en cartera, con guardián `tests/panel-ventanas.test.ts` dentro de la suite que corre | 🟡 **Repasar los criterios de `UX-004` contra producción** — desplegar prueba que funciona, no que se construyó todo lo prometido | ⏸ `UX-002` (filtros en la URL, espera clientes) | 🟠 **`UX-006` — MODO OSCURO: PRD ESCRITA Y LISTA** (`PRD-V-FEAT-007`, 3 sep 2026) — **Lista para PRD**, con las cuatro decisiones cerradas por David: **por usuario · residente y admin · claro u oscuro ignorando el sistema operativo · el informe del consejo siempre en claro**. **`G1` no se supera y David aceptó su ausencia el mismo día** —cero clientes, adopción no medible—, así que **nada la frena: lo siguiente es CONSTRUIR**, en tres entregas (terreno · mecanismo · interruptor) · ◇ `UX-005` (tableros configurables, prioridad baja) |
+| **Experiencia y diseño** | 🟢 **`UX-001`, `UX-003` y `UX-004` en producción** — `UX-004` construida el 30 ago (`src/lib/dashboard/indicadores.ts` + `umbrales.ts`), cableada en el panel **y** en cartera, con guardián `tests/panel-ventanas.test.ts` dentro de la suite que corre | 🟡 **Repasar los criterios de `UX-004` contra producción** — desplegar prueba que funciona, no que se construyó todo lo prometido | ⏸ `UX-002` (filtros en la URL, espera clientes) | 🟢 **`UX-006` — MODO OSCURO: LAS TRES ENTREGAS EN PRODUCCIÓN, BANDERA APAGADA** (`PRD-V-FEAT-007`, 3 sep 2026). Canario probado **de ida y de vuelta** en Santa María —1 de 9, verificado con sesión real, cero elementos ilegibles— y apagado después. **NO es Productiva**: quedan cuatro criterios, y uno **este equipo no lo puede correr porque no hay Java**. Encenderlo es decisión de David · ◇ `UX-005` (tableros configurables, prioridad baja) |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**explorada el 1 sep: la ficha no es «elegir columnas»**; espera corpus) |
@@ -1237,6 +1237,31 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.55 — 3 de septiembre de 2026 — `UX-006` construido entero y en producción
+
+- **`PRD-V-FEAT-007`, las TRES entregas en producción** (`f74a64c`, `build-2026-09-03-009`).
+  Terreno · mecanismo · interruptor. **Bandera apagada en los nueve conjuntos.**
+- **Canario probado de ida y de vuelta** en `tenant-santa-maria`: encendido 1 de 9 con la global en
+  `false`, verificado en el portal del residente de producción con sesión real —interruptor
+  presente, «Oscuro» marcado, **cero elementos ilegibles**— y apagado después, con las **otras
+  cuatro overrides del conjunto intactas** y el perfil **conservando su `tema`**.
+- **El defecto que lo destapó todo lo vio David en una captura, no una prueba:** las tarjetas
+  oscurecían y **el lienzo no**. Era `bg-[radial-gradient(...#ffffff...)]` en `app-shell` —el
+  elemento que comparten los TRES portales—, o sea **un hexadecimal dentro de un valor arbitrario
+  compuesto**, la QUINTA de seis formas de color literal que fueron apareciendo de una en una.
+- **Un juicio corregido:** de los hexadecimales en atributos de JS dije que «casi todos sobreviven
+  porque son colores saturados de gráfica». Cierto para las gráficas y **falso para los mapas de
+  superficie** — en `/admin/billing` las fichas de cifra quedaban a 2,4:1. **215 tokenizados por el
+  nombre de su clave.**
+- **`CA16` cumple, y solo se podía medir en producción:** el CSS de `grupovivaru.com` pasa de **21
+  reglas de `prefers-color-scheme` a CERO**. El landing dejó de reaccionar al sistema operativo.
+- **Deuda anterior corregida de paso:** los rótulos de la barra lateral pasan de 3,35:1 a **5,45:1**,
+  porque salían igual en los dos temas. Siguen abiertas, con suelo en las pruebas y **como decisión
+  de David**, `--slate-400` (2,83:1) y dos rellenos con etiqueta blanca (3,65 y 3,61).
+- **Y una trampa del propio instrumento:** el barrido de contraste dio 19 defectos y **ninguno era
+  real** —leía `oklab` como RGB, componía mal la transparencia y **medía durante la transición de
+  color**—. Un medidor sin control propio miente igual que un guardián sin falsar.
 
 ### 0.9.54 — 3 de septiembre de 2026 — `PRD-V-FEAT-007`: la ficha del modo oscuro, escrita
 
