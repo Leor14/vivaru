@@ -86,8 +86,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > **Los remotos se leen con `git ls-remote`, no de aquí:** esta línea la deja atrás el propio commit
 > que la escribe.
 >
-> **Los builds NO se remidieron hoy.** Los que hay escritos vienen de la pasada anterior. Se leen
-> así —el proyecto y el backend de staging **no** son los obvios—:
+> **Los dos ambientes SIRVEN lo de hoy, medido por `traffic.current` y verificado por el commit de
+> origen, no por el número de build:** producción **`build-2026-09-03-002`** y staging
+> **`build-2026-09-03-004`**, los dos `READY` y `SUCCEEDED`, los dos desde **`6685c3e`**. Como el
+> cambio es solo documentación, **el producto desplegado no cambia en nada**. Se leen así —el
+> proyecto y el backend de staging **no** son los obvios—:
 >
 > ```
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web 3
@@ -99,8 +102,9 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 293 que venía escrito, y no sé cuál es el bueno porque no corrió ninguno**: hay que levantar el
 > emulador y contarlo, no elegir entre los dos números.
 >
-> **Las credenciales NO se ejercitaron hoy** — la sesión no salió del repositorio salvo para leer
-> `grupovivaru.com` por HTTP público. Ejercítalas antes de creerlas vivas.
+> **Credenciales: la de GitHub y la de la API de App Hosting, EJERCITADAS hoy** —el push a las dos
+> ramas y la lectura de los dos backends—. **`gcloud` y `firebase` NO se ejercitaron**: ejercítalas
+> antes de creerlas vivas, que una cuenta configurada no dice nada de su token.
 
 ---
 
