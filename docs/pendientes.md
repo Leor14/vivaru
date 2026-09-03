@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO ESTÁ CONSTRUIDO ENTERO Y ENCENDIDO EN STAGING. EN PRODUCCIÓN, APAGADO Y SIN TOCAR.
+> # EL MODO OSCURO ESTÁ ENTERO Y EN PRODUCCIÓN, CON LA BANDERA APAGADA. LO QUE FALTA ES ENCENDERLO.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,25 +20,34 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **LAS TRES ENTREGAS HECHAS** (`2441a08`, en `develop` y sirviéndose en staging con la bandera
-> **encendida**; `master` sigue en `8d3ba81`, **el push a producción lo pides tú**, y allí la bandera
-> está **apagada y sin tocar**). Entra en `/admin/settings` → «Mi cuenta» y elige.
+> **LAS TRES ENTREGAS EN PRODUCCIÓN** (`8bf3e94`; `develop` y `master` iguales, producción sirviendo
+> `build-2026-09-03-004`, `READY`). **La bandera está APAGADA en producción y ENCENDIDA en staging**,
+> que es el canario. En producción no hay interruptor ni tarjeta, y todo se ve en claro.
 >
 > **1 · Terreno** — 832 literales → 0 en 150 ficheros, más los 138 tintes a medida.
 > **2 · Mecanismo** — variante por atributo, 119 tokens de paleta oscura generados por regla, guion
 > anti-destello, y `RN-07` con una línea: el bloque va en `@media screen`, así que **al imprimir no
-> aplica** y el informe del consejo sale en claro sin duplicar un token.
-> **3 · Interruptor** — campo `tema` en `users/{uid}`, regla con enum **desplegada a staging y
-> verificada leyendo el ruleset VIVO**, bandera en los **cinco** sitios, y las dos pantallas.
+> aplica**.
+> **3 · Interruptor** — campo `tema` en `users/{uid}`, regla con enum **desplegada a producción y
+> verificada byte a byte contra el repositorio leyendo el ruleset VIVO**, bandera en los **cinco**
+> sitios, y las dos pantallas.
 >
-> **Bancos: `npm test` 1689.** Tres guardianes nuevos, **falsados catorce veces** entre todos.
+> **Bancos: `npm test` 1689 · functions 782.** Tres guardianes nuevos, **falsados catorce veces**.
 >
-> **Verificado en staging con sesión real:** clic → cambia sin recargar; **borré el espejo y recargué
-> → volvió oscuro** (o sea, el dato vive en Firestore y el espejo es caché); y **apagando la bandera
-> con `oscuro` guardado desaparece el interruptor y se ve claro**, que es `CA2` y lo que separa una
-> bandera de un botón.
+> **`CA16` CUMPLE, y solo se podía medir aquí:** el CSS de `grupovivaru.com` pasa de **21 reglas de
+> `prefers-color-scheme` a CERO**, y con el sistema operativo en oscuro el botón del landing que se
+> pintaba `oklab(0.928755…/0.3)` **ahora sale blanco**. El landing dejó de reaccionar al sistema, que
+> era la consecuencia querida de `RN-09`.
 >
-> **LO QUE FALTA PARA MARCARLA PRODUCTIVA — y una parte no la puede hacer esta máquina:**
+> **El grupo B, vivo y mejor:** «Vencido» en PQRS pasó del rosa saturado de Tailwind (5,02:1) al rojo
+> teja de Vivaru, **7,41:1**. Ninguna insignia baja de ahí.
+>
+> **LO QUE FALTA — y lo primero es TUYO:**
+>
+> 0. **ENCENDER la bandera en producción** cuando quieras, y con canario: `mover-bandera-de-conjunto.mjs`
+>    la enciende en UN conjunto antes que en los nueve. Sin eso, nadie ve el modo oscuro.
+>
+> **Y lo que no puede hacer esta máquina:**
 >
 > 1. **Correr el banco de reglas donde HAYA JAVA.** Aquí no lo hay, y por eso el emulador no arranca:
 >    las 7 pruebas nuevas están **escritas y sin ejecutar**. Es también la explicación del «293 vs
@@ -48,7 +57,6 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 3. `CA11`, `CA15`, `CA19` — impresión y PDF **con ojos**. `RN-07` está verificada en el CSSOM, pero
 >    el diálogo de impresión no se ha abierto.
 > 4. `CA7` — contar en producción que **ningún** documento ganó `tema` sin que su dueño lo eligiera.
-> 5. **`CA16` en producción**, con su valor de partida ya medido.
 >
 > **TRES COSAS TUYAS, TODAS DE CONTRASTE Y TODAS ANTERIORES A ESTE FRENTE.** Están medidas, con
 > suelo en las pruebas, y **arreglarlas SE VE**, así que son decisión tuya como lo fue el grupo B:
