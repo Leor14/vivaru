@@ -1,5 +1,6 @@
 "use client";
 
+import { useColoresDeGrafica } from "@/lib/ui/colores-de-grafica";
 import { Component, type ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -156,6 +157,8 @@ function percentageDelta(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
+const COLORES_DE_LA_TENDENCIA = ["slate-700", "brand-600"] as const;
+
 function getTrendInsight(current: number, previous: number, suffix = "vs mes anterior") {
   const delta = percentageDelta(current, previous);
   if (delta === null) return current > 0 ? `Sin base previa (${suffix})` : "Sin actividad";
@@ -264,6 +267,9 @@ type DrawerRow = {
 };
 
 export default function AdminDashboardPage() {
+  // Los colores de la grafica se leen del tema en ejecucion: Recharts los pinta
+  // en atributos del SVG, donde `var(--token)` no vale. Ver el modulo.
+  const coloresGrafica = useColoresDeGrafica(COLORES_DE_LA_TENDENCIA);
   const { user } = useAuth();
   const { formatAmount, formatAmountCompact } = useTenantCurrency();
   const tenantId = user?.tenantId;
@@ -943,7 +949,7 @@ export default function AdminDashboardPage() {
                       width={48}
                     />
                     <Tooltip content={<BillingTrendTooltip formatAmount={formatAmount} />} />
-                    <Legend wrapperStyle={{ fontSize: 12, color: "#334155" }} />
+                    <Legend wrapperStyle={{ fontSize: 12, color: coloresGrafica["slate-700"] }} />
                     <Bar
                       yAxisId="money"
                       dataKey="totalCharged"
@@ -965,9 +971,9 @@ export default function AdminDashboardPage() {
                       type="monotone"
                       dataKey="collectionRate"
                       name="% recaudo"
-                      stroke="#335f88"
+                      stroke={coloresGrafica["brand-600"]}
                       strokeWidth={2.2}
-                      dot={{ r: 3, fill: "#335f88" }}
+                      dot={{ r: 3, fill: coloresGrafica["brand-600"] }}
                       activeDot={{ r: 5 }}
                     />
                   </ComposedChart>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 /**
  * El tema oscuro: cobertura, contraste y lo que NO debe girar.
@@ -11,6 +12,24 @@ import { readFileSync } from "node:fs";
  * CONTRASTE de los pares que el producto pinta de verdad, en los DOS temas.
  */
 const CSS = readFileSync("src/app/globals.css", "utf8");
+
+/** Los .tsx/.ts del alcance, para el barrido de hexadecimales sueltos. */
+const ALCANCE_TSX = [
+  "src/app/(admin)", "src/app/(resident)", "src/app/(auth)",
+  "src/components/shared", "src/components/features", "src/components/ui", "src/features",
+];
+const EXCLUIDAS_TSX = ["src/features/security-guard", "src/features/superadmin"];
+function listar(raiz: string): string[] {
+  const salida: string[] = [];
+  for (const e of readdirSync(raiz)) {
+    const ruta = join(raiz, e);
+    if (EXCLUIDAS_TSX.some((x) => ruta.startsWith(x))) continue;
+    if (statSync(ruta).isDirectory()) salida.push(...listar(ruta));
+    else if (ruta.endsWith(".tsx") || ruta.endsWith(".ts")) salida.push(ruta);
+  }
+  return salida;
+}
+const TODOS_TSX = ALCANCE_TSX.flatMap(listar);
 
 function bloque(inicio: RegExp): string {
   const i = CSS.search(inicio);
@@ -197,6 +216,55 @@ describe("PRD-V-FEAT-007 · rellenos claros por debajo de AA, deuda ANTERIOR", (
     for (const n of RELLENOS) {
       const r = contraste(val(T_OSCURO, "--on-fill"), val(T_OSCURO, `--relleno-${n}`));
       expect(r, `--relleno-${n} en oscuro da ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
+
+/**
+ * CUARTA forma de color literal: el hexadecimal en una propiedad de JS o en un
+ * atributo JSX — `stroke="#335f88"`, `fill: "#94a3b8"`, `wrapperStyle={{color}}`.
+ *
+ * No es una clase de Tailwind, asi que ni la medicion del 3 de septiembre ni el
+ * guardian de `color-por-token` la veian. Son **344 en 33 ficheros**, y NO todas
+ * deben tematizarse: la marca del conjunto la elige el cliente y el QR tiene que
+ * seguir siendo negro sobre blanco para que se pueda escanear.
+ *
+ * En oscuro casi todas sobreviven porque son colores saturados de grafica. Las
+ * dos que NO —el rotulo de la leyenda y la linea de «% recaudo» del panel, a
+ * 1,55:1 y 2,40:1— se arreglaron leyendo el token en ejecucion, porque en un
+ * atributo del SVG `var()` no vale.
+ *
+ * Techo, no comentario: si aparecen mas, enrojece.
+ */
+const HEX_SUELTO = /#[0-9a-fA-F]{6}\b/g;
+const TECHO_HEX_JS = 344;
+
+/** Colores que NO son del tema y no deben migrarse nunca. */
+const NO_SON_DEL_TEMA = [
+  "src/features/admin/hooks/use-tenant-branding-form.ts",
+  "src/features/admin/components/tenant-branding-card.tsx",
+  "src/features/admin/utils/branding-contrast.ts",
+  "src/features/admin/services.ts",
+  "src/app/(resident)/resident/visitors/[id]/qr/page.tsx",
+];
+
+describe("PRD-V-FEAT-007 · hexadecimales fuera de las clases, deuda medida", () => {
+  it("no crecen", () => {
+    const cuenta = TODOS_TSX.reduce(
+      (n, f) => n + (readFileSync(f, "utf8").match(HEX_SUELTO)?.length ?? 0),
+      0,
+    );
+    expect(
+      cuenta,
+      `Habia ${TECHO_HEX_JS} y ahora hay ${cuenta}. Un color nuevo se pide por token; ` +
+        `si va en un atributo de SVG, leelo en ejecucion con useColoresDeGrafica.`,
+    ).toBeLessThanOrEqual(TECHO_HEX_JS);
+  });
+
+  it("los que NO son del tema siguen ahi, y eso es lo correcto", () => {
+    // Un guardian que empujara a migrarlos romperia la marca del cliente y el QR.
+    for (const f of NO_SON_DEL_TEMA) {
+      expect(readFileSync(f, "utf8").match(HEX_SUELTO)?.length ?? 0, `${f} se quedo sin color`).toBeGreaterThan(0);
     }
   });
 });

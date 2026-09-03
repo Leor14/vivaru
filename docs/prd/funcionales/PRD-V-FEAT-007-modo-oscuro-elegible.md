@@ -624,8 +624,8 @@ que el tema solo se activa poniendo el atributo a mano o el espejo en el navegad
 | Paleta oscura | **119 tokens**, generados por regla y no a ojo |
 | `prefers-color-scheme` en el CSS servido | **21 → 0**, que es el control de `CA16` |
 | Sin destello | Guion **bloqueante** en `<head>` + espejo en `localStorage` |
-| Guardián | `tests/tema-oscuro.test.ts`, **66 casos**, falsado cuatro veces |
-| Bancos | `npm test` **1660** |
+| Guardián | `tests/tema-oscuro.test.ts`, **68 casos**, falsado cuatro veces |
+| Bancos | `npm test` **1664** |
 
 ### Las cuatro decisiones de diseño, y por qué no son de gusto
 
@@ -668,6 +668,38 @@ otra impresión, sin repetir un solo token. Verificado en el CSSOM del navegador
 pixel. **En OSCURO los tres cumplen** —`--slate-400` da 4,72:1—, porque ahí el valor lo decide este
 frente. Arreglarlos en claro **se ve**, así que es decisión de David, como lo fue el grupo B.
 Mientras tanto **el suelo está fijado en la prueba y solo puede subir**.
+
+### Mirarlo en staging demostró que la entrega NO estaba terminada
+
+Con sesión real y el tema puesto, el panel salía **medio oscuro y medio claro**: **19 elementos
+ilegibles**, texto a **1,55:1** y **2,43:1**. Las tarjetas de indicadores conservaban sus fondos
+literales mientras el texto de encima ya venía de tokens y se había aclarado.
+
+**Eso corrige el encuadre de la entrega 1:** los 140 hexadecimales en clase arbitraria **no eran
+«deuda anotada», eran un bloqueo del modo oscuro.** Se tokenizaron **sin unificar** —cada valor claro
+es el que había, así que en claro no se mueve un pixel— con nombres del propio vocabulario de sus
+mapas (`--tono-{finance,success,pending,alert,neutral}-*`) para los dos ficheros estructurados, y
+generados por regla (familia de matiz + papel) para los 101 restantes. **El techo de hexadecimales
+en clase bajó de 140 a CERO**, y quien lo detectó fue la propia prueba que lo vigilaba: estaba
+escrita para exigir que el techo siguiera pegado a la realidad, y enrojeció al quedar inflada.
+
+### Y una CUARTA forma de color literal, que ninguna medición había visto
+
+El hexadecimal en **propiedad de JS o atributo JSX** — `stroke="#335f88"`, `fill: "#94a3b8"`,
+`wrapperStyle={{ color: "#334155" }}`. No es una clase de Tailwind, así que ni la medición del 3 de
+septiembre ni el guardián de clases lo veían. **Son 344 en 33 ficheros.**
+
+**No todos deben migrarse, y esa es la parte que importa:** la marca del conjunto la elige el cliente
+(`use-tenant-branding-form`, `tenant-branding-card`, `branding-contrast`) y el **QR tiene que seguir
+siendo negro sobre blanco** o deja de escanearse. El guardián los protege explícitamente: enrojece si
+se quedan **sin** color.
+
+En oscuro casi todos sobreviven porque son colores saturados de gráfica. **Los dos que no** —el
+rótulo de la leyenda y la línea de «% recaudo» del panel, a 1,55:1 y 2,40:1— se arreglaron, y el
+arreglo destapó un límite del mecanismo: **Recharts pinta el color en atributos del SVG, y ahí
+`var(--token)` no vale**, porque `var()` solo funciona en declaraciones CSS. Se resuelve leyendo el
+token **en ejecución** (`useColoresDeGrafica`), con un observador que relee cuando cambia el atributo
+del tema. El resto queda con **techo en el guardián**.
 
 ### La falsación que enseñó algo
 
