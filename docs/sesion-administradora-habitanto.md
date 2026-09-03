@@ -111,6 +111,14 @@ que tenemos ahorita, del decreto 462, para que lo puedan revisar. Voy a pasar co
 > [`glosario-mercados.md`](glosario-mercados.md), que hoy solo nombra «Ley de Propiedad Horizontal»
 > de forma genérica.
 
+> ✅ **HECHA el 3 de septiembre de 2026:**
+> [`investigacion-legal-ecuador-mora.md`](investigacion-legal-ecuador-mora.md). El decreto es
+> real (R.O. 4.º Supl. 339, 3 ago 2026) y ella acertó en todo. **Y destapó dos cosas que este
+> documento no sabía:** la ley fija un **orden de imputación del pago** que `aplicarPago` no
+> cumple —ordena solo por fecha—, y la **publicación mensual del estado de pago por unidad es
+> obligación legal cuya sanción es la remoción del administrador**, lo que sube de golpe la
+> prioridad del §3.7.
+
 ### 3.4 · Artículos legales dentro del aviso de cobro
 
 > «Que también **se incluya en los avisos de cobro los artículos** donde dice que si no pagan lo que
