@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # LA FICHA DEL MODO OSCURO ESTÁ LISTA Y EN `master`. LO SIGUIENTE ES CONSTRUIRLA.
+> # ENTREGA 1 DEL MODO OSCURO, CONSTRUIDA Y EN STAGING. LO SIGUIENTE ES LA ENTREGA 2 — EL MECANISMO.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,10 +20,24 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **NO QUEDA NINGÚN FRENO.** Lo siguiente es **construir, en tres entregas**: terreno (migración de
-> color a token, **sin un solo cambio visible**) · mecanismo (variante, paleta, sin destello,
-> informe en claro) · interruptor (regla, campo, las dos pantallas, bandera). **La entrega 1 es útil
-> sola**, y su guardián `CA12` **hay que falsarlo**, no solo escribirlo.
+> **ENTREGA 1 HECHA** (`430c860`, en `develop` y **sirviéndose en staging**; `master` sigue en
+> `8d3ba81` y **el push a producción lo pides tú**). **832 usos de color literal → 0** en 150
+> ficheros, 48 tokens nuevos, y `npm test` **1594**. Guardián `tests/color-por-token.test.ts`,
+> 15 casos, **falsado seis veces**.
+>
+> **Lo siguiente es la ENTREGA 2 — el mecanismo:** `@custom-variant dark` por atributo, la paleta
+> oscura de los ~25 semánticos, el script del `<head>` contra el destello, y `RN-07` (el informe del
+> consejo siempre en claro). Y después la 3, el interruptor.
+>
+> **DOS COSAS TUYAS ANTES O DURANTE LA 2:**
+>
+> 1. **Los 140 hexadecimales en clase arbitraria** (`bg-[#fff6f4]`), 81 colores en 20 ficheros. Son
+>    mapas de tono a medida con casi-duplicados entre ficheros —tarjetas del panel, pastillas de
+>    estado—. Unificarlos es **diseñar un sistema de tonos y SE VE**: misma clase de decisión que el
+>    grupo B. **Vigilados con techo en el guardián**, no anotados en un comentario.
+> 2. **`npm run dev` NO ARRANCA en este repositorio, y es ANTERIOR a esta entrega.** Turbopack
+>    rechaza los selectores `.2xl\:max-w-*` de `globals.css`, que empiezan por dígito; el build de
+>    producción sí los tolera, y por eso nadie se había enterado. Se verifica con `next start`.
 >
 > **MEDIR ANTES CAMBIÓ LA FICHA EN CUATRO SITIOS, y ninguno se deducía leyendo:**
 >
@@ -136,7 +150,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | Frente | Qué cuesta | Qué desbloquea | Freno |
 > |---|---|---|---|
-> | **Construir `PRD-V-FEAT-007`** ← **lo siguiente** | **Tres entregas**: terreno (sin un solo cambio visible) · mecanismo · interruptor | Modo oscuro en residente y admin. La entrega 1 es útil sola: deja el color en tokens | **Ninguno.** `G1` aceptado por David el 3 sep |
+> | **`PRD-V-FEAT-007` entrega 2** ← **lo siguiente** | Variante por atributo · paleta oscura de los ~25 semánticos · script contra el destello · informe del consejo en claro | El modo oscuro empieza a verse | **Ninguno.** La entrega 1 ya dejó el color en tokens |
 > | **`B5` + convenio de pago** | 1–2 sesiones **y una PRD antes** | Interés de mora legal en Ecuador. **La ley los encadena: van en UNA ficha** | 🔴 Toca `aplicarPago` en producción. Y 5 puntos piden abogado |
 > | **Encender `PLAT-006`** | ½ sesión | Cierra el frente entero | **Tuyo**: de quién es `dann…@outlook.com` |
 > | **Puerta pública de alta intención** | ~1 sesión | Hoy un prospecto **no tiene por dónde decir «quiero contratar»**: `requestAdvisorContact` exige `tenantId` + auth, y el landing solo manda correo | Ninguno |
