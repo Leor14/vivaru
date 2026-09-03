@@ -4,7 +4,168 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de las dos fichas de Habitanto)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (contexto de Habitanto consolidado)
+
+> # LA SIGUIENTE SESIÓN CONSTRUYE. NO ESCRIBE OTRA FICHA, Y NO ELIGE FRENTE.
+>
+> Hay **dos fichas escritas y CERO construyéndose**. Por el criterio del 24 de agosto —**cerrar
+> frentes antes que abrirlos**, y *desplegado y apagado cuenta como abierto*— escribir un tercer
+> bloque ahora sube a **tres** los frentes abiertos sin producto. **El trabajo disponible cabe en una
+> sola cosa, y es `PRD-V-FLOW-007`.**
+>
+> | Ficha | Qué es | ¿Se puede construir? |
+> |---|---|---|
+> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | Hueco §3.7 de la sesión con la administradora, **ascendido por la investigación legal**: publicarlo es obligación del Decreto 462 y la sanción es la **remoción del administrador** | ✅ **SÍ. Entregas 1 y 2 no esperan a nadie** |
+> | **`PRD-V-FLOW-006`** — interés de mora legal + convenio de pago (Ecuador) | Candidato `B5` fusionado con el convenio **porque la ley los encadena** | ❌ **NO.** Espera `G5` y al abogado |
+>
+> **Lo que las separa es `G5`, y la lección vale para la siguiente ficha que se escriba:** en
+> `FLOW-007` el dueño de la operación **ya existe** —el administrador emite ese informe a mano cada
+> mes—; en `FLOW-006` **nadie tiene asignado registrar la tasa del BCE**.
+>
+> ### Los tres primeros pasos, en este orden
+>
+> 1. **`gcloud auth application-default login`.** La ADC está caducada (`invalid_rapt`, ejercitada y
+>    confirmada muerta). Destraba las dos cosas siguientes.
+> 2. **Contar `TBD-M1`: cuántos de los nueve conjuntos tienen `openingBalance` registrado** en
+>    `bankAccountBalances`. **Si es cero en los nueve, la entrega 1 no cambia una sola cifra** y se
+>    leería como un no-op — el error que este repositorio ya cometió con tres capacidades encendidas
+>    sobre tablas vacías. En ese caso, la entrega 1 incluye pedir el dato.
+> 3. **Construir la entrega 1 de `FLOW-007`.** Cálculo compartido entre `src/` y `functions/`, saldo
+>    inicial real, cuentas pendientes de cobro y deuda a proveedores.
+>
+> ### El defecto VIVO que va dentro de esa entrega, no aparte
+>
+> `/admin/finanzas` avisa **«Fondo insuficiente… evita registrar nuevos egresos»** a un conjunto **que
+> tiene dinero en el banco**. Los **tres** consumidores pasan `openingBalance = 0` aunque el
+> administrador lo haya registrado en la pantalla de conciliación:
+>
+> - `src/app/(admin)/admin/finanzas/page.tsx:154` — `computeFundPosition(entries, cuotaIncome)`, **sin tercer argumento**
+> - `src/app/(admin)/admin/finanzas/page.tsx:164` — `buildFinancialStatement(…, 0, planInformes)`
+> - `src/features/reports/use-committee-report.ts:573` — lo mismo, `0` literal
+>
+> **No se arregla suelto**: es `CA9` de la ficha, y sacarlo la dejaría sin su guardián de regresión.
+>
+> ### Y lo que hay que saber antes de tocar `FLOW-007`
+>
+> 1. **`functions/` NO tiene módulo de estado financiero.** `monthlyFinancialArchive`
+>    (`functions/src/index.ts:3802`, `0 6 1 * *`, **`ACTIVE` en producción**) reimplementa el resumen
+>    en línea, y **ya se desvió DOS veces** —`R12`/`R13` el 23 de agosto y `R16` el 24, registradas en
+>    los comentarios de `payments.ts:267` y `:324`—. Unificar es el punto de la entrega 1.
+> 2. **La publicación al residente no está pendiente: está DENEGADA** por una regla desplegada
+>    (`financiero` y `reporte` son solo-administración). Por eso la ficha crea **categoría nueva**:
+>    abrir las existentes publicaría también comprobantes y expedientes.
+> 3. **Cuatro de las seis partes de la columna vertebral YA se calculan.** `buildFinancialStatement`
+>    ordena por el código del plan y el saldo final es `fundBalance` — **buscar `closingBalance` da
+>    cero porque el nombre es otro**.
+> 4. **`firma` (403) y `signature` (273) existen y son otra cosa**: `signedBy` es el uid del residente
+>    que **acepta** un acuerdo del consejo. **No hay esquema de firmas de un informe.**
+>
+> ---
+>
+> ## EL CONTEXTO DE HABITANTO, CONSOLIDADO
+>
+> **De dónde viene todo, y el orden importa:**
+>
+> | Documento | Fecha | De dónde salió |
+> |---|---|---|
+> | `docs/inventario-habitanto.md` | 21 ago | **Navegando `app.habitanto.com`** |
+> | `docs/prd/candidatos-prd-desde-habitanto.md` | 21 ago | 108 candidatos en 14 categorías. **Su fuente declarada es el inventario** |
+> | `docs/sesion-administradora-habitanto.md` | 3 sep | El transcript del **19 de agosto** con Paola, que **USA** Habitanto |
+>
+> **EL HALLAZGO QUE LO EXPLICA TODO: el transcript nunca fue la fuente.** Los 108 candidatos y las
+> nueve PRD salieron de **mirar el software**; lo que ella dijo —su dolor, sus obligaciones legales,
+> sus rodeos manuales— no entró por esa cadena. La prueba: el inventario anota en su §9 «lo que esta
+> pasada no vio» **el detalle de la cuenta por pagar y del cheque que la paga**, y ese detalle estaba
+> en el transcript **dos días antes**, con ella compartiendo pantalla. **Los huecos no son aleatorios:
+> son lo que no se ve en una pantalla.**
+>
+> ### Los frentes que quedan, en el orden de §5 de la sesión — pero ese orden YA ENVEJECIÓ
+>
+> Sus puntos **1, 2 y 5 están hechos o escritos** (investigación legal · `B5` + convenio · el
+> informe). **La investigación legal ascendió el 5 por encima del 3 sin que nadie reescribiera la
+> lista**, así que antes de seguirla, mirar qué se supo después.
+>
+> | # | Frente | Estado medido |
+> |---|---|---|
+> | **3** | **Cuentas por pagar con calendario de cuotas.** Paga la póliza en **once cuotas** y teclea el cuadro entero | `installment` = **0**. El egreso es un importe con **UNA** fecha. Es el hueco que **nuestro propio inventario declaró no haber visto** |
+> | **4** | **Foto en la lectura del medidor.** Su cuello de botella textual: «les tengo que mandar por email, en un archivo aparte» | **Terreno virgen: `medidor` = 0**, `consumption` = 0. Los 36 aciertos de `meter` son el verbo castellano |
+> | **6** | **Presupuesto contra ejecución, con déficit señalado.** Obligación con **ventana fija: el Q1**, para la Asamblea | `presupuestado` = 0 y `ejecución` = 0. `E6` **simula** y `E7` da escenarios; **ninguno compara**. Encaja dentro del informe mensual, así que hacerlo antes obliga a rehacer parte |
+> | **7** | **Pase de proveedor en portería** · **articulado legal en el aviso** · **corte de TAG y ascensor** | `ascensor` = 0, `tag` = 0. **Pero dos de estos ya tienen decisión tomada — ver abajo** |
+>
+> > ⚠️ **EL PUNTO 7 NO ESTÁ VIRGEN: `FLOW-006` ya decidió en contra de dos de sus tres partes.**
+> > **`RN-14`: no se cita ningún número de artículo** en el producto ni en un aviso —las fuentes
+> > secundarias se contradicen en la numeración y solo el Registro Oficial lo zanja—. Y **`RN-13`:
+> > esta ficha NO habilita ninguna restricción al moroso**, porque restringir exige la notificación
+> > previa de 5 días, **que es otra ficha**. Construir el corte sin ese procedimiento sería aplicar la
+> > sanción sin lo que la legitima. **No las reabras sin leer las dos reglas.**
+>
+> ### DOS HUECOS DE ESA LISTA RESULTARON FALSOS AL MEDIRLOS (3 sep). No los repitas
+>
+> - **§3.9 «adjuntar fotos a un comunicado» — ESTÁ CONSTRUIDO.** `communications/page.tsx` maneja
+>   `attachmentFiles`, sube varios y los muestra; `visibility.ts` los sirve al residente con
+>   compatibilidad hacia atrás. **El hueco se dedujo de que la palabra no aparecía en el documento de
+>   candidatos, NO de mirar el producto**: el mismo error de método que ese documento vino a
+>   denunciar, cometido dentro de él.
+> - **§3.10 «no hay pase para proveedor NI RECURRENTE» — el recurrente SÍ existe**
+>   (`authorizationType: "larga_duracion"`, con ventana y estado propio). **Falta solo el perfil de
+>   PROVEEDOR**, así que esa ventaja es más barata de lo que estaba escrito.
+>
+> **Y una ventaja que no estamos contando:** al conciliar, Habitanto le hace **teclear a mano el
+> saldo del banco**. Nuestro `FLOW-004` **importa el extracto**.
+>
+> ### Más allá de los diez huecos
+>
+> - **37 P1, 42 P2 y 12 P3** sin tocar de los 108 candidatos. **Son 37 y no 38: `B5` ya tiene ficha**
+>   —el 38 es el conteo anterior a escribirla, y ya está corregido en el roadmap y en Notion—.
+> - **`PRD-V-PLAT-004` (alcance del rol Consejo) NUNCA SE ESCRIBIÓ**, y ya lo piden **dos** fichas
+>   (`K1`, `K2`, el total de anticipos del consejo). Hoy `committee` solo llega a `/admin/documents`
+>   (`src/lib/auth/routing.ts:29`, medido).
+> - **`PLAT-002` fases 2 y 3: su bloqueo CADUCÓ.** La fase 3 esperaba el plan de cuentas gobernado y
+>   **hay 189 cuentas sembradas**. Verificado en la ficha (§ Story Map y la fila de dependencias).
+> - **Cierre de conciliación (`D1`–`D4`, los cuatro P0)**: aparcado **a propósito** hasta el primer
+>   mes con pagos reales.
+> - **`FIX-001` entrega 2** — política de reserva **por área**. Lo único que le falta al lote: van
+>   **10 de 11**. Hoy `blockOnDebt` es un solo ajuste del conjunto entero.
+>
+> ---
+>
+> ### Estado de git y ambientes
+>
+> **`master`, `develop` y local en `bfa1a8d`**, verificado con `git ls-remote`, no citado. Árbol
+> limpio. El commit corrige **tres divergencias entre lo medido y lo documentado** —la fila de
+> `FEAT-007` en el índice decía «1 de 9» llevando horas en los nueve, y los dos huecos falsos de
+> arriba—.
+>
+> **`npm test` 1693 en verde**, sin emulador. **Los bancos de reglas siguen sin poder correr en este
+> equipo: no hay Java** — afecta a cuatro criterios de `FEAT-007` y a seis de `FLOW-007`.
+>
+> **`FEAT-007` (modo oscuro) está EN PRODUCCIÓN y ENCENDIDA EN LOS NUEVE**, por el valor global y sin
+> overrides. **No reabras sus decisiones ni su `G1`**; para apagar de emergencia, el **kill switch**.
+>
+> ### Lo que es de David, y ninguna sesión puede hacer
+>
+> 1. **`G5` de `FLOW-006`: quién registra la tasa del BCE cada mes.** Sin tasa no se devenga nada.
+> 2. **Las cinco preguntas al abogado ecuatoriano** (`TBD-L1`–`L5`). **La misma respuesta gobierna la
+>    entrega 3 de `FLOW-007`**, que abre datos financieros a los residentes.
+> 3. **Aceptar `G1` vacía** en las dos fichas, como en `FEAT-006` y `FEAT-007`.
+> 4. Tope de gasto de IA · `dann…@outlook.com` para `PLAT-006` · `DECISIONES-A-006` a Albert ·
+>    corpus real de padrones · `CA4` de `PH-003`.
+>
+> ### Método, lo que dejó esta jornada
+>
+> 1. **Buscar por nombre miente en las DOS direcciones al dimensionar una ficha.** `agreement` (341
+>    aciertos, ninguno es un convenio), `firma` (403, ninguno es la firma de un informe),
+>    `closingBalance` (0, pero el saldo final sí se calcula). **Abrir un acierto y leerlo**; para lo
+>    que dé cero, **buscar el concepto por su cálculo**.
+> 2. **Una lista ordenada de prioridades envejece por dentro**, y nadie la reescribe.
+> 3. **`G5` decide por dónde se empieza**, no es un trámite de cierre.
+> 4. **El índice tampoco es inmune.** Creíamos que «el índice se mantiene y la ficha no»; hoy falló el
+>    índice. **Lo único fiable es la medición.**
+> 5. **Un defecto encontrado dentro del alcance de una ficha se deja dentro de la ficha.**
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
+
+## LA JORNADA DE LAS DOS FICHAS DE HABITANTO — 3 DE SEPTIEMBRE — histórico
 
 > # HAY DOS FICHAS ESCRITAS Y SOLO UNA SE PUEDE CONSTRUIR. NO ELIJAS FRENTE: EMPIEZA POR ESA.
 >
