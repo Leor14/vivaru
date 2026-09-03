@@ -4,162 +4,77 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` construida)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` cerrada)
 
-> # LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ EN PRODUCCIÓN, ENTERA. **FALTA MIRARLA CON OJOS.**
+> # LO SIGUIENTE ES LA **ENTREGA 2 DE `PRD-V-FLOW-007`**. NO SE ELIGE FRENTE Y NO SE ESCRIBE FICHA.
 >
-> Árbol limpio, `master` y `develop` en el mismo commit. `npm test` **1714** · functions **799** ·
-> los dos typechecks en 0. **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
+> La entrega 1 está **en producción y observada con ojos**, los cuatro criterios. La ficha queda
+> **abierta a un tercio**, y por el criterio del 24 de agosto —**cerrar frentes antes que
+> abrirlos**— lo que toca es terminarla, no abrir otra cosa.
 >
-> | Pieza | Estado | Cómo se comprobó |
-> |---|---|---|
-> | **`functions` en staging** | ✅ 3 sep 22:02 UTC | 90 desplegadas, **0 sin moverse**, 0 del código sin desplegar, 0 fuera de `ACTIVE` |
-> | **`functions` en producción** | ✅ 3 sep 22:11 UTC | lo mismo, medido igual |
-> | **Front en staging** | ✅ `build-2026-09-03-036` READY | `traffic.current`, esperado **por nombre** |
-> | **Front en producción** | ✅ `build-2026-09-03-020` READY, sirviendo `bb75f7e` | ídem, ~9 min de cola |
+> **Estado:** `master` y `develop` en el mismo commit, árbol limpio. `npm test` **1715** ·
+> functions **799** · los dos typechecks en 0. **Leer los remotos con `git ls-remote`, no de aquí.**
 >
-> **`monthlyFinancialArchive` ya NO reimplementa el resumen en producción**: la unificación que
-> cierra la causa de `R12` y `R16` está desplegada donde corre el archivo del día 1. Se verificó
-> **midiendo, no leyendo «Deploy complete»** — que en este repositorio ya mintió una vez.
->
-> ### LA ENTREGA 1 ESTÁ OBSERVADA. LOS CUATRO CRITERIOS, VISTOS
->
-> **`/admin/finanzas` de `Conjunto Residencial Santa Maria`, en PRODUCCIÓN, con la sesión de
-> Carlos Ramirez (3 sep 2026).** Era lo único que **ninguna suite prueba**, y cuadra al peso:
->
-> | | |
-> |---|---|
-> | saldo de apertura registrado | **5.000.000** |
-> | + cuotas (Cartera) | 2.200.000 |
-> | + otros ingresos (libro) | 290.000 |
-> | − egresos (libro) | 6.765.000 |
-> | **= saldo de fondos en pantalla** | **725.000** |
->
-> **Y con el `0` que pasaban los tres consumidores: −4.275.000.** Negativo, disparando «Fondo
-> insuficiente… evita registrar nuevos egresos» a un conjunto con cinco millones en el banco. El
-> defecto era exactamente ese y ya no ocurre.
->
-> **La aritmética se contrastó contra los DATOS, no contra la pantalla**: apertura, otros ingresos,
-> egresos y los 13 asientos se leyeron de Firestore y coinciden uno a uno con lo pintado.
->
-> **Intentado el 3 de septiembre, y NO se pudo cerrar. Los dos ambientes fallan por motivos
-> DISTINTOS, y conviene no confundirlos:**
->
-> | Ambiente | Qué pasó |
-> |---|---|
-> | **producción** | La sesión entra como **David Carmona, RESIDENTE** de Santa María. `/admin` responde «No tienes permisos». **Falta una sesión de administrador ahí** |
-> | **staging** | La sesión SÍ es administradora (**Carlos Ramirez**) y la pantalla abre — pero **Santa María en staging tiene 0 cuentas bancarias, 0 saldos y 0 movimientos**. No hay nada que observar |
->
-> **Los datos están en producción y el acceso en staging.** Mirarlo de verdad pide una sesión de
-> administrador **en producción**, que es donde Santa María tiene los 5.000.000 y 104 cargos.
->
-> > **Pero mirar no fue en balde: destapó un defecto MÍO, a medias dentro del propio arreglo.**
-> > El Excel de `/admin/finanzas` ya decía «Sin saldo bancario de apertura» mientras **la tarjeta
-> > de encima decía «Saldo de fondos $0»** — gateé el aviso y la exportación y dejé el rótulo
-> > afirmando. Corregido en `6038e67`: sin saldo de apertura la tarjeta pasa a «Movimientos
-> > acumulados», lo explica, y **no se pinta en rojo**. Ninguna suite lo veía; lo vio la pantalla.
->
-> Lo que hay que ver, y lo que ya se vio:
->
-> | # | Qué | Estado |
-> |---|---|---|
-> | 1 | Que **no** aparece el aviso rojo en Santa María, con 5.000.000 registrados | ✅ **VISTO EN PRODUCCIÓN el 3 sep**, sesión de Carlos Ramirez |
-> | 2 | Que el saldo de fondos incluye esos cinco millones | ✅ ídem — **$725.000**, y el rótulo dice «Saldo de fondos», no «Movimientos acumulados» |
-> | 3 | Que un conjunto **sin** saldo no dice «Saldo de fondos $0» | ✅ **VISTO en staging el 3 sep**, ya desplegado: la tarjeta dice «MOVIMIENTOS ACUMULADOS $0» y debajo «Sin saldo bancario de apertura. Regístralo en la cuenta del conjunto para ver el saldo real.» |
-> | 4 | Que el Excel del estado trae las cuatro filas nuevas | ✅ **VISTO en staging el 3 sep**, descargando el fichero: `Saldo inicial registrado` → **«Sin saldo bancario de apertura»** (`CA4`: no dice «$0»), y `Saldo final del fondo`, `Cuentas pendientes de cobro` y `Deuda a proveedores` **presentes valiendo cero** (`CA8`) |
->
-> > **Y los ceros se contrastaron, porque un cero puede ser la respuesta correcta o un cable
-> > suelto.** Staging tiene **171 cargos y 78 egresos** repartidos entre sus conjuntos, y **Santa
-> > María tiene 0 de cada uno**: el cero del informe es el dato, no un fallo de carga. Sin ese
-> > contraste, «0» y «no se está leyendo la colección» son indistinguibles — el defecto que este
-> > repositorio ya tuvo con tres capacidades encendidas sobre tablas vacías.
->
-> **La bandera `producto-informe-mensual` está en `false` en los DOS proyectos** —nueve conjuntos
-> en producción, diez en staging—, medido **resolviendo con `functions/lib/feature-flags.js`
-> compilado**, no leyendo documentos: **no tiene documento en ninguno de los dos**, y «sin
-> documento» no es «apagada», manda el default del catálogo. Por eso el front nuevo entra sin
-> cambiar una cifra de lo que nadie ve hoy, y encenderla es un acto aparte y **por conjunto**.
->
-> **El rollout se esperó POR NOMBRE** (`rollout-2026-09-03-036`), no mirando la primera página de
-> la lista: son 710 rollouts sin ordenar y esa vía ya dio un falso «servido» antes. Tardó ~3½
-> minutos en pasar de `QUEUED` a servir.
->
-> ### Qué se construyó, en una línea cada cosa
+> ### Lo que la entrega 1 dejó hecho, para no rehacerlo
 >
 > | Pieza | Dónde |
 > |---|---|
-> | **El núcleo único del estado financiero**, autocontenido y sin un solo `import` | `src/lib/finanzas/nucleo-estado-financiero.ts` |
-> | **Su copia byte a byte** del servidor | `functions/src/nucleo-estado-financiero.ts` |
-> | `monthlyFinancialArchive` **deja de reimplementar** el resumen | `functions/src/index.ts` |
-> | **El saldo inicial real** en los tres consumidores | la página de Finanzas y `use-committee-report.ts` |
-> | **Cuentas pendientes de cobro** y **deuda a proveedores** | el núcleo, y `payables.ts` ya no tiene su propia definición |
-> | La bandera `producto-informe-mensual` en **los cinco** sitios | catálogos y los tres scripts |
+> | **El núcleo único**, autocontenido y **sin un solo `import`** | `src/lib/finanzas/nucleo-estado-financiero.ts` |
+> | **Su copia byte a byte** | `functions/src/nucleo-estado-financiero.ts` |
+> | **El banco de casos con los números a mano** | `tests/fixtures/estado-financiero-golden.json`, corrido por **los dos** bancos |
+> | La bandera `producto-informe-mensual` en **los cinco** sitios | catálogos y los tres scripts. **Apagada en los nueve** |
 >
-> ### LO QUE NO SE HIZO, y hay que saberlo antes de seguir
+> > **LA REGLA QUE NO SE PUEDE ROMPER:** el núcleo **no importa NADA**. En cuanto tenga un `import`,
+> > las dos copias dejan de poder ser idénticas y el guardián más fuerte se cae. Hay una prueba que
+> > lo vigila, y otra que compara el fichero byte a byte.
 >
-> - **NO se tocaron las reglas ni el modelo de datos.** La entrega 1 no las necesita:
->   `bankAccountBalances` ya concede lectura al administrador y la consulta por `tenantId` pasa.
-> - **`monthlyFinancialArchive` ya está desplegada en los dos ambientes** — ver la tabla de arriba.
->   Lo que queda es el front de producción.
-> - **La bandera está apagada en los nueve, medido.** Encenderla es un acto aparte y va **por
->   conjunto**, empezando por el canario.
-> - **Lo que NO revierte la bandera:** el saldo inicial en la pantalla de Finanzas. Es la
->   corrección del aviso falso y va sin bandera a propósito — volver atrás sería volver a mentirle
->   al administrador.
+> ### La entrega 2, y lo que ya se sabe de ella
 >
-> ### LO PRIMERO DE LA SIGUIENTE SESIÓN: la entrega 2, no otra ficha
+> **`monthlyReports`, estados, callable de emitir/firmar/anular, PDF con logo y firmas, archivado.**
 >
-> Sigue valiendo el criterio del 24 de agosto —**cerrar frentes antes que abrirlos**—. `FLOW-007`
-> está **abierta y a un tercio**, así que lo que toca es su **entrega 2**: `monthlyReports`,
-> estados, la callable de emitir/firmar/anular y el PDF con logo y firmas.
+> 1. **Va por CALLABLE, sin discusión.** Escribe en **tres sitios** —`monthlyReports`, `documents`
+>    y Storage—, **congela cifras** (si las mandara el cliente, el administrador emitiría el número
+>    que quisiera) y sella `issuedBy`/`issuedAt`. **Un campo escribible desde el cliente no puede
+>    sostener un invariante.** La LECTURA sí es directa, protegida por reglas.
+> 2. **NO hay esquema de firmas de un informe.** `firma` (403 apariciones) y `signature` (273)
+>    existen y son **otra cosa**: `signedBy` es el uid del residente que **acepta un acuerdo del
+>    consejo**. Buscar por el nombre lleva a creer que ya existe.
+> 3. **SEIS de sus criterios son banco de reglas —`CA6`, `CA10`, `CA11`, `CA12`, `CA14`, `CA16`— y
+>    este equipo NO los puede correr: no hay Java.** Hay que decirlo al planificar, no al entregar.
+> 4. **Reutiliza lo que ya existe:** `buildSummaryPdf` / `pdf-resumen.ts` y `archiveXlsx` /
+>    `archiveBuffer`. No se escriben de cero.
+> 5. **La publicación al residente es la entrega 3, y está DENEGADA por una regla desplegada** — por
+>    eso la ficha crea **categoría nueva** en vez de abrir `financiero` y `reporte`, que llevan
+>    detalle por unidad.
 >
-> **Lo que la entrega 2 necesita saber y ya está medido:**
+> ### Lo que NO hay que hacer
 >
-> - `firma` (403) y `signature` (273) **existen y son otra cosa** — `signedBy` es el residente que
->   **acepta** un acuerdo del consejo. **No hay esquema de firmas de un informe.**
-> - La emisión va por **callable, sin discusión**: escribe en tres sitios, congela cifras y sella
->   `issuedBy`/`issuedAt`. **Un campo escribible desde el cliente no puede sostener un invariante.**
-> - `CA6`, `CA10`–`CA12`, `CA14` y `CA16` son **banco de reglas, y este equipo no lo puede correr:
->   no hay Java.** Son seis criterios que se quedan sin verificar aquí.
+> - **No encender `producto-informe-mensual`** todavía. Está apagada en los nueve y así debe seguir
+>   hasta que alguien mire un informe generado con ella; y cuando toque, **por conjunto**.
+> - **No reabrir `FLOW-006`.** Sigue bloqueada por `G5` —quién registra la tasa del BCE cada mes— y
+>   las cinco preguntas al abogado. **Las dos son de David.** Ni `RN-13` ni `RN-14`.
+> - **No reabrir las decisiones de `FEAT-007`** ni su `G1` vacía.
 >
-> **`FLOW-006` sigue bloqueada y no se toca:** espera `G5` —quién registra la tasa del BCE cada
-> mes— y las cinco preguntas al abogado, las dos de David.
+> ### Las nueve cosas que enseñó construir la entrega 1
 >
-> ### Lo que se aprendió midiendo, y no estaba escrito en ningún sitio
->
-> 1. **La ADC no estaba muerta.** La cabecera anterior la daba por caducada con `invalid_rapt`.
->    Acuñó un token a la primera y leyó producción sin una queja: `invalid_rapt` es un desafío de
->    **reautenticación de operaciones sensibles**, no la caducidad de la credencial. Ejercitarla
->    costó treinta segundos; darla por muerta habría costado un login que no hacía falta.
-> 2. **El primer conteo de `TBD-M1` dio «0 de 0» y parecía una respuesta.** El filtro era
->    `isExample !== true`, y **los nueve conjuntos son de ejemplo**: la población se quedó vacía y
->    el resultado se leía como «ningún conjunto tiene saldo», que es otra frase. Un conteo sobre
->    cero filas siempre responde algo.
-> 3. **`R5` estaba escrito sobre la colección equivocada.** «Sale cero porque no hay proveedores» —
->    y `vendors` sí tiene cero filas, pero la deuda vive en **los egresos no pagados**: trece, en
->    cuatro conjuntos. **Quien cobra no está en `vendors`, está en la factura que nadie ha pagado.**
-> 4. **`ExpenseStatus` es castellano** (`registrado | pagado | anulado`). Filtrar por
->    `"paid"`/`"cancelled"` no excluye nada: la deuda salió **tres veces más grande** y con pinta de
->    dato.
-> 5. **`CA3` fallaba de verdad, y el banco de casos lo cazó.** 2.000,44 − 1.234,56 daba
->    `765.8800000000001`. **Invisible con COP** —seis de los nueve conjuntos— y roto con MXN y USD.
->    El defecto podía vivir años sin que nadie lo viera.
-> 6. **Tres guardianes siguieron la función al moverla, y los tres enrojecieron.** Es la prueba de
->    que vigilaban de verdad y no la mención de un nombre.
-> 7. **`CA18` predijo mal y la construcción estaba bien.** Decía «enrojecen exactamente `CA2`, `CA3`
->    y `CA9`». Son **tres cables distintos**, no uno: el aviso lo calcula `computeFundPosition` y el
->    cierre lo calcula el núcleo. Detalle en la ficha.
-> 8. **Una falsación mintió antes de acertar.** F1 pareció dejar el banco de `src/` en verde; no era
->    el banco, era el `grep` con el que se leyó la salida. **El instrumento también necesita
->    control.**
-> 9. **`firebase login:list` dijo «Logged in as dev@qintilab.com» con la credencial MUERTA.** Lo
->    delató ejercitarla: el `deploy` murió autenticando antes de tocar nada. `gcloud auth list`
->    hizo lo mismo —cuenta activa con asterisco, y `Reauthentication failed` al usarla—. **La ADC
->    estaba viva mientras las otras dos estaban muertas**: son cuatro credenciales que caducan por
->    separado, y **solo está viva la que algo ha EJERCITADO**.
-> 10. **Los dos gemelos que ya existían aparecieron al buscarlos**: `summarizePayables.totalPayable`
->    era la deuda a proveedores y `BillingHeroCard.totalPendingBalance` la cartera viva. Escribir
->    una tercera definición de cada una era exactamente cómo nació `R12`.
+> 1. **La ADC no estaba muerta.** `invalid_rapt` es un desafío de **reautenticación de operaciones
+>    sensibles**, no la caducidad de la credencial. Ejercitarla costó treinta segundos.
+> 2. **Y su reverso: `firebase login:list` afirmaba «Logged in as …» con el token MUERTO**, y
+>    `gcloud auth list` igual. **Una credencial solo está viva si algo la EJERCITÓ.**
+> 3. **Un conteo sobre cero filas siempre responde algo.** `TBD-M1` dio «0 de 0» porque el filtro
+>    era `isExample !== true` y **los nueve conjuntos son de ejemplo**.
+> 4. **`R5` estaba escrito sobre la colección equivocada.** La deuda a proveedores no vive en
+>    `vendors` sino en los egresos no pagados.
+> 5. **`ExpenseStatus` es castellano.** Filtrar en inglés no excluye nada: la cifra salió **tres
+>    veces más grande** y con pinta de dato.
+> 6. **`CA3` fallaba de verdad y lo cazó el banco de casos.** Residuo de coma flotante **invisible
+>    con COP** y roto con MXN y USD.
+> 7. **`CA18` predijo mal y la construcción estaba bien.** Eran **tres cables**, no uno.
+> 8. **Una falsación mintió antes de acertar:** parecía dejar un banco en verde y era el `grep` con
+>    el que se leyó la salida. **El instrumento también necesita control.**
+> 9. **Mirar la pantalla encontró un defecto propio que 1714 pruebas en verde no veían:** el arreglo
+>    estaba **a medias dentro de sí mismo** —la tarjeta afirmaba lo que el Excel ya negaba—. **Al
+>    arreglar la mitad visible de un defecto, buscar las otras superficies que muestran lo mismo.**
 >
 > ---
 
