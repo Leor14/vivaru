@@ -4,51 +4,66 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de documentación)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # PASO 1, ANTES DE CUALQUIER OTRA COSA: **MODO OSCURO**
+> # LA FICHA DEL MODO OSCURO ESTÁ LISTA Y EN `master`. LO SIGUIENTE ES CONSTRUIRLA.
 >
-> **Instrucción de David al cerrar el 3 de septiembre.** Antes de retomar `B5` o cualquier otro
-> frente, la primera tarea es **explorar y definir para construir** una funcionalidad nueva:
-> **que el usuario pueda elegir modo oscuro en Vivaru.**
+> **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
+> `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
+> cerró David** y están dentro: **por usuario** · **residente y admin** · **claro u oscuro,
+> ignorando el sistema operativo** · **el informe del consejo siempre en claro**.
 >
-> Está en fase **«a explorar y definir»**, no en construcción. Lo que toca es una **PRD** con
-> `crear-prd-vivaru` (no lleva IA), y **medir antes de escribirla** — que es la lección que ya
-> ahorró media jornada en `PLAT-006`.
+> **`G1` NO se supera, y David aceptó su ausencia explícitamente.** Producción tiene **cero
+> clientes**, así que **la adopción no se puede medir**; `CA12`–`CA14` la sustituyen con métrica de
+> **terreno** (color literal a cero en el alcance, contraste AA), que **no es lo mismo**. Se
+> construye igual porque el valor es de accesibilidad y no de conversión. **No la reabras:** está
+> decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
+> adopción es deuda de esta ficha.
 >
-> **LA MEDICIÓN YA ESTÁ HECHA (3 sep), y cambia la forma de la ficha:**
+> **NO QUEDA NINGÚN FRENO.** Lo siguiente es **construir, en tres entregas**: terreno (migración de
+> color a token, **sin un solo cambio visible**) · mecanismo (variante, paleta, sin destello,
+> informe en claro) · interruptor (regla, campo, las dos pantallas, bandera). **La entrega 1 es útil
+> sola**, y su guardián `CA12` **hay que falsarlo**, no solo escribirlo.
 >
-> | Qué | Medido |
-> |---|---|
-> | Tokens CSS en `globals.css` | **174** propiedades — hay sistema de tokens |
-> | `@theme` / `@theme inline` / `:root` | líneas 860, 153 y 23 de `globals.css` |
-> | `prefers-color-scheme` | **0 ficheros** |
-> | `next-themes` u otra librería | **NO está en dependencias** |
-> | Interruptor de tema en la interfaz | **0 ficheros** |
-> | Clases `dark:` | **4 ficheros, y 3 son de MARKETING** (`tabs`, `input`, `button`), no del producto |
-> | **Colores LITERALES** (`bg-white`, `text-gray-*`, `border-slate-*`…) | **625 usos en 169 ficheros** |
-> | Colores en hexadecimal dentro de componentes | **0** |
+> **MEDIR ANTES CAMBIÓ LA FICHA EN CUATRO SITIOS, y ninguno se deducía leyendo:**
 >
-> **Lo que esto significa, y es el hallazgo:** el trabajo **no es «añadir un interruptor»**. Los 174
-> tokens existen y **625 usos de color se los saltan**. Mientras un componente diga `bg-white`, el
-> modo oscuro no lo alcanza — cambie lo que cambie el token. La ficha tiene que decidir si eso se
-> migra entero, por superficie, o si el alcance del MVP es un portal.
+> 1. **La palanca del tema son ~25 nombres, no 127 ni 174.** `globals.css` declara 127 propiedades
+>    personalizadas; de las 68 de `:root` **solo CUATRO son semánticas** (`--background`,
+>    `--foreground`, `--surface-strong`, `--surface-soft`). Las otras 64 son **escalas con nombre de
+>    color** — `--slate-*`, `--brand-*`, `--danger-*`, `--amber-*` y **24 pares `--icon-*`**. Un
+>    token que se llama `--slate-200` **no se puede invertir**: su nombre dice qué color es, no qué
+>    papel cumple. **Las escalas se re-mapean; solo los semánticos se invierten.** La palanca real
+>    son esos 4 más los **21 de `@theme inline`**, que es el puente de shadcn.
+> 2. **Hay un tercer bloque que ninguna medición había contado.** Los componentes tienen **0
+>    hexadecimales**, cierto — pero **35 reglas del propio `globals.css` pintan color literal**:
+>    `.soft-panel` con su degradado, dos tooltips y seis sombras. Ningún token las alcanza.
+> 3. **Los PDF no «no deben» heredar el tema: NO PUEDEN.** Paz y salvo, estado de cuenta y recibo se
+>    dibujan con `jspdf` **desde datos**; el adjunto de correo con `pdfkit` en el servidor. De los
+>    tres `window.print()`, dos abren ventana nueva con estilos en línea. **El ÚNICO que hereda el
+>    DOM es el informe del consejo** (`/admin/reports`), cuyo `@media print` **oculta pero no
+>    repinta** — y es justo el documento que se firma.
+> 4. **Vivaru YA responde al modo oscuro del sistema EN PRODUCCIÓN, y nadie lo decidió.** Sin
+>    `@custom-variant dark`, la variante `dark:` de Tailwind 4 es media query pura. **Verificado en
+>    `grupovivaru.com`, no deducido:** **21 reglas dentro de `@media (prefers-color-scheme: dark)`**,
+>    y con el sistema operativo en oscuro un botón del landing se pinta **ahora mismo** con un fondo
+>    pensado para oscuro sobre una página clara. Por eso «ignorar el sistema» es un **cambio visible
+>    sobre una página fuera de alcance**, y va como criterio (`CA16`) con su valor de partida medido.
 >
-> **Cuatro preguntas que la PRD tiene que cerrar y NO se pueden deducir del código:**
+> **DOS AVISOS DE LA PASADA ANTERIOR, CORREGIDOS CON EVIDENCIA:**
 >
-> 1. **¿Por usuario o por conjunto?** Es la misma decisión abierta que tiene `UX-005`, y conviene
->    resolverla una sola vez para las dos.
-> 2. **¿Qué portales?** Son cuatro —`/admin`, `/resident`, `/guard`, `/superadmin`— más el landing.
->    El residente es móvil y es donde más se pide; el landing tiene marca propia.
-> 3. **¿Sigue al sistema operativo, o es elección explícita, o las dos** (claro / oscuro / sistema)?
-> 4. **¿Qué pasa con lo que se EXPORTA?** Los PDF de estado de cuenta, paz y salvo y el informe
->    mensual **no deben heredar el tema**: un paz y salvo en oscuro es un documento roto. Hay que
->    decirlo explícitamente o alguien lo hereda sin querer.
+> - **La trampa de Tailwind con los `.md` YA ESTABA CERRADA.** `@source not "../../docs"` está en la
+>   **línea 20 de `globals.css`**, junto a las de `tests`, `scripts` y `.github/prompts`. Escribir
+>   documentación **no puede** cambiar el bundle. El aviso de `0.9.53` describía un peligro real y
+>   **ya resuelto**; repetirlo mandaba a rederivarlo.
+> - **Los 625 usos en 169 ficheros salen 1.048 en 145 fuera de marketing** con un patrón más amplio.
+>   **El total importa menos que el reparto:** `components/features` 39 · `shared` 26 · `(admin)` 18
+>   · `(resident)` 13, y **`components/ui` solo 9** — la base del sistema de diseño está casi limpia.
+>   **El peor fichero del repositorio es `GuardVisitors.tsx`, con 59 usos, y está FUERA de alcance.**
 >
-> **Y el aviso que vale doble aquí:** `globals.css` tiene una regla GLOBAL que pone Playfair a
-> `h1,h2,h3`, y hasta el 27 de agosto dos reglas dentro de `.admin-shell` la apagaban. **Tocar el
-> tema es tocar ese fichero.** Ver la trampa de Tailwind 4 en `CLAUDE.md`: escanea **todo fichero
-> de texto**, `.md` y el propio CSS incluidos.
+> **Y un gemelo que ya lo hace bien, encontrado al contar los bancos:**
+> **`tests/contraste-del-fondo.test.ts` ya calcula contraste real leyendo `globals.css`** — paró un
+> cambio de fondo al medir que `--slate-500` (**usado 526 veces**) caía a 4,27:1. `CA13` **lo
+> extiende, no lo duplica**.
 
 ---
 
@@ -64,26 +79,38 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 > ### ESTADO DEL REPOSITORIO AL CERRAR
 >
-> **`master` en `c2e2483`; `develop` por delante con los commits de documentación de hoy.** Léelos
-> con `git ls-remote`: esta línea la deja atrás el propio commit que la escribe. **El push a
-> `master` lo pide David** — hoy no se pidió, y como todo lo del día es documentación, `master` no
-> empaqueta nada distinto.
+> **Al ABRIR, `develop` y `master` los DOS en `776f9c9`** —verificado con `git ls-remote`, no
+> citado—, árbol limpio. **Al cerrar, los dos empujados con la documentación de hoy** (David pidió el
+> push a `master`): la ficha nueva, su fila en `docs/prd/README.md` y el roadmap en **0.9.54**. Como
+> todo es documentación, **`master` no empaqueta nada distinto** y el despliegue no cambia producto.
+> **Los remotos se leen con `git ls-remote`, no de aquí:** esta línea la deja atrás el propio commit
+> que la escribe.
 >
-> **Producción sirve `build-2026-09-02-006`, `READY`, desde `master`** (medido por
-> `traffic.current`). **Staging sirve `build-2026-09-02-017`**, y se lee así —el proyecto y el
-> backend **no** son los obvios—:
+> **Los builds NO se remidieron hoy.** Los que hay escritos vienen de la pasada anterior. Se leen
+> así —el proyecto y el backend de staging **no** son los obvios—:
 >
 > ```
 > node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web 3
 > ```
 >
-> **Bancos: `npm test` 1579 · functions 782 · reglas 293.** Un rojo ahora es tuyo.
-> **Las tres credenciales VIVAS**, ejercitadas hoy con `HTTP 200`.
+> **Bancos, contados hoy: `npm test` 1579 ✅ · functions 782 ✅.** Un rojo ahora es tuyo.
+> **El de reglas NO se pudo medir: el emulador no está levantado** (`ECONNREFUSED 127.0.0.1:8080`).
+> Su config declara **347 casos en cuatro ficheros** y quedaron todos omitidos. **Ese 347 no es el
+> 293 que venía escrito, y no sé cuál es el bueno porque no corrió ninguno**: hay que levantar el
+> emulador y contarlo, no elegir entre los dos números.
+>
+> **Las credenciales NO se ejercitaron hoy** — la sesión no salió del repositorio salvo para leer
+> `grupovivaru.com` por HTTP público. Ejercítalas antes de creerlas vivas.
 
 ---
 
 > ### LO QUE SE HIZO EL 3 DE SEPTIEMBRE (todo documentación, cero código de producto)
 >
+> 0. **`PRD-V-FEAT-007`, la ficha del modo oscuro** —lo de la cabecera—, con las cuatro decisiones
+>    de David cerradas, **19 criterios de aceptación (cinco deben fallar)** y su fila en
+>    `docs/prd/README.md`. Roadmap a **0.9.54**, y la celda de `UX-006` deja de decir «a explorar».
+>    **David aceptó `G1` el mismo día**, así que la ficha cerró en **Lista para PRD** y no en
+>    Discovery. **Empujada a `develop` y a `master`.**
 > 1. **Higiene de los repositorios de información.** El roadmap tenía como única acción «SIGUIENTE»
 >    de su frente de diseño **«Ejecutar `UX-004`» sobre algo con cuatro días en producción**, y
 >    **siete fichas de PRD** decían «Lista para desarrollo» con el código desplegado y la bandera
@@ -101,10 +128,11 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ---
 
-> ### LOS CANDIDATOS, DESPUÉS DEL MODO OSCURO
+> ### LOS CANDIDATOS — Y EL PRIMERO YA TIENE FICHA
 >
 > | Frente | Qué cuesta | Qué desbloquea | Freno |
 > |---|---|---|---|
+> | **Construir `PRD-V-FEAT-007`** ← **lo siguiente** | **Tres entregas**: terreno (sin un solo cambio visible) · mecanismo · interruptor | Modo oscuro en residente y admin. La entrega 1 es útil sola: deja el color en tokens | **Ninguno.** `G1` aceptado por David el 3 sep |
 > | **`B5` + convenio de pago** | 1–2 sesiones **y una PRD antes** | Interés de mora legal en Ecuador. **La ley los encadena: van en UNA ficha** | 🔴 Toca `aplicarPago` en producción. Y 5 puntos piden abogado |
 > | **Encender `PLAT-006`** | ½ sesión | Cierra el frente entero | **Tuyo**: de quién es `dann…@outlook.com` |
 > | **Puerta pública de alta intención** | ~1 sesión | Hoy un prospecto **no tiene por dónde decir «quiero contratar»**: `requestAdvisorContact` exige `tenantId` + auth, y el landing solo manda correo | Ninguno |
@@ -124,11 +152,25 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
 > 4. **Un abogado ecuatoriano** para los cinco puntos 🔴 de la investigación legal.
 > 5. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
-> 6. **El push a `master`**, si quieres los documentos de hoy en producción.
+>
+> *(El push a `master` ya no está aquí: lo pediste y está hecho.)*
 
 ---
 
 > ### LAS TRAMPAS DE MÉTODO DEL 3 DE SEPTIEMBRE
+>
+> - **UNA MEDICIÓN CORRECTA PUEDE CONTAR LA COSA EQUIVOCADA.** «174 tokens» y «625 usos» eran
+>    conteos ciertos **y ninguno era la magnitud que decidía algo**. Los tokens no son una palanca
+>    uniforme: **solo ~25 nombres invierten el tema**, y los otros ~100 son escalas con nombre de
+>    color que se re-mapean. Y de los usos, **lo que decide el alcance es el reparto por zona, no el
+>    total** —`components/ui` está casi limpio con 9 ficheros, y el peor fichero del repositorio está
+>    en un portal que queda fuera—. **Contar bien no es medir lo que decide.** La pregunta que lo
+>    destapa: *¿qué haría distinto si este número fuera el doble?* Si la respuesta es «nada», el
+>    número no era el que había que medir.
+> - **UN AVISO QUE DESCRIBE UN PELIGRO YA RESUELTO MANDA A REDERIVARLO.** La cabecera advertía que
+>    Tailwind escanea los `.md`, y **`@source not "../../docs"` lleva tiempo en la línea 20 de
+>    `globals.css`**, puesto justo por eso. El aviso era verdad como física y **falso como estado**.
+>    Un aviso vivo tiene que decir si ya está cerrado, o cuesta una comprobación cada vez que se lee.
 >
 > 1. **Un conteo dio `0` en los nueve conjuntos y era un no-op.** Leía `tenants/<id>/units` y
 >    **`units` es colección RAÍZ**; encima buscaba `ownershipCoefficient` y el campo es
