@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO ESTÁ ENTERO EN PRODUCCIÓN Y APAGADO EN LOS NUEVE CONJUNTOS. EL CANARIO SE PROBÓ Y SE CERRÓ.
+> # EL MODO OSCURO ESTÁ ENCENDIDO EN PRODUCCIÓN, EN SANTA MARÍA. 1 DE 9, GLOBAL APAGADA.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,17 +20,20 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **EL CANARIO SE ENCENDIÓ Y SE APAGÓ EL 3 DE SEPTIEMBRE, y salió bien.** Con
-> `flags['producto-modo-oscuro'] = true` solo en `tenant-santa-maria` —**1 de 9**, la global en
-> `false`— se verificó en el portal del residente de producción con sesión real: interruptor
-> presente, «Oscuro» marcado y **cero elementos ilegibles**. Después se apagó: **0 de 9 encendidos**,
-> las **otras cuatro overrides del conjunto intactas**, y el perfil **conserva su `tema: "oscuro"`**
-> — al reencenderla, cada quien recupera lo que había elegido, que es justo lo que promete el
-> `alApagar` del catálogo.
+> **CANARIO ENCENDIDO (3 sep, tercera maniobra del día).** `featureFlagOverrides/tenant-santa-maria`
+> → `flags['producto-modo-oscuro'] = true`, **global en `false`**: **1 de 9**. Las otras cuatro
+> overrides del conjunto intactas.
 >
-> **Para volver a encenderlo.** El orden es `<projectId> <tenantId> <clave> <valor>`, con el conjunto
-> **SEGUNDO**:
-> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-modo-oscuro true`
+> **Lo que el ciclo encender → apagar → encender dejó comprobado, y no solo escrito:** al
+> reencenderla, **el residente recuperó SOLO su elección** — el perfil conservaba `tema: "oscuro"`,
+> el interruptor apareció con «Oscuro» marcado y la pantalla salió en oscuro sin tocar nada. Es
+> exactamente lo que promete el `alApagar` del catálogo.
+>
+> **Para apagarlo**, la misma orden con `false`.
+>
+> **El orden de los argumentos NO es el intuitivo:** `<projectId> <tenantId> <clave> <valor>` — el
+> conjunto va **SEGUNDO**:
+> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-modo-oscuro <true|false>`
 >
 > **NO enciendas la GLOBAL** (`mover-bandera.mjs`): saltaría de un conjunto a los nueve de golpe. Y
 > ojo, **estuvo encendida por error de operación**: el documento de `hogaru-1` apareció en
