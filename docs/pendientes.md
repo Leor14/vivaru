@@ -159,13 +159,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > ### Estado de git y ambientes
 >
-> **`master`, `develop` y local en `bfa1a8d`**, verificado con `git ls-remote`, no citado. Árbol
-> limpio. El commit corrige **tres divergencias entre lo medido y lo documentado** —la fila de
-> `FEAT-007` en el índice decía «1 de 9» llevando horas en los nueve, y los dos huecos falsos de
-> arriba—.
+> **Vive SOLO en la cabecera de arriba, y se mide con `git ls-remote`.** Este bloque llevaba un sha
+> a mano (`bfa1a8d`) que estaba tres commits por detrás de los tres remotos, y había **otro bloque
+> igual más abajo con un sha distinto** (`14ef836`): dos épocas apiladas, que es el defecto que el
+> preámbulo de este documento dice que ya tuvo dos veces. **Un sha escrito a mano en un sitio que no
+> se reescribe entero siempre acaba mintiendo.**
 >
-> **`npm test` 1693 en verde**, sin emulador. **Los bancos de reglas siguen sin poder correr en este
-> equipo: no hay Java** — afecta a cuatro criterios de `FEAT-007` y a seis de `FLOW-007`.
+> **Los bancos de reglas siguen sin poder correr en este equipo: no hay Java** — afecta a cuatro
+> criterios de `FEAT-007` y a **seis** de `FLOW-007`, que se quedan sin verificar aquí.
 >
 > **`FEAT-007` (modo oscuro) está EN PRODUCCIÓN y ENCENDIDA EN LOS NUEVE**, por el valor global y sin
 > overrides. **No reabras sus decisiones ni su `G1`**; para apagar de emergencia, el **kill switch**.
@@ -202,7 +203,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | Ficha | Qué es | Estado | ¿Se puede construir? |
 > |---|---|---|---|
-> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | Discovery, `14ef836` | ✅ **SÍ. Las entregas 1 y 2 no esperan a nadie** |
+> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1 CONSTRUIDA** (`0b234b1`, sin empujar); entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
 > | **`PRD-V-FLOW-006`** — interés de mora legal y convenio de pago (Ecuador) | Candidato `B5`, fusionado con el convenio porque **la ley los encadena** | Discovery, `c973a89` | ❌ **NO.** Espera dos cosas de David |
 >
 > **`G5` es lo que las separa, y la lección se aplica a la siguiente ficha que escribas:** en
@@ -277,17 +278,6 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > - **`PRD-V-PLAT-004`** (alcance del rol Consejo) **nunca se escribió**, y ya lo piden dos fichas:
 >   `K1`, `K2` y el total de anticipos del consejo. Hoy `committee` **solo llega a
 >   `/admin/documents`**.
->
-> ### Estado de git y ambientes
->
-> **`master` y `develop` en `14ef836`**, los dos verificados con `git rev-parse` después de empujar.
-> Árbol limpio. El commit es **solo documentación** —`docs/prd/README.md`,
-> `docs/roadmap-producto.md` y la ficha nueva—, así que el rollout de producción despliega el mismo
-> comportamiento con otro sha. **No se pudo comprobar ese rollout**: hace falta la ADC.
->
-> Bancos: **`npm test` 1693 en verde**, sin emulador. Los de reglas **siguen sin poder correr en este
-> equipo: no hay Java** — afecta a `CA4`, `CA8` y `CA17` de `FEAT-007` y a seis criterios de
-> `FLOW-007`.
 >
 > ### Método, lo que salió de esta jornada
 >
