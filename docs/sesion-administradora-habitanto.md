@@ -188,7 +188,15 @@ señala déficit. **Es una obligación legal con ventana fija (Q1), no un inform
 > «Aquí me permite, por decirte, **adjuntar fotos**.» Lo usa.
 
 Las dos apariciones de `adjunt` en candidatos son el **plano de la unidad** (`A4`) y el **estado de
-cuenta** (`G2`). Adjuntar material arbitrario a una comunicación no está. Es pequeño y es real.
+cuenta** (`G2`).
+
+> ❌ **ESTE HUECO ERA FALSO, y se descubrió midiendo el 3 de septiembre de 2026.** Decía «adjuntar
+> material arbitrario a una comunicación no está. Es pequeño y es real». **Está construido**:
+> `src/app/(admin)/admin/communications/page.tsx` maneja `attachmentFiles`, sube **varios** ficheros
+> y los muestra, y `src/features/communications/visibility.ts` los sirve al residente con
+> compatibilidad hacia atrás (`attachmentUrl` suelto **y** `attachments[]`). **El hueco se dedujo de
+> que la palabra no aparecía en el documento de candidatos, no de mirar el producto** — el mismo
+> error de método que este documento vino a denunciar, cometido dentro de él.
 
 ### 3.10 · Dos cosas que Habitanto NO tiene y conviene atacar
 
@@ -197,7 +205,7 @@ No son huecos nuestros: son **ventajas que ella dejó servidas**.
 | Lo que dijo | Por qué importa |
 |---|---|
 | «El **valor del banco**, del estado de cuenta, **eso se tiene que poner uno manualmente**» al conciliar | Nuestro `FLOW-004` ya importa las líneas del extracto. Es una superioridad concreta, y hoy no la contamos |
-| «El vehicular **no está en Habitanto**, yo lo manejo en otro sistema. **Ellos solo generan QR, y solo para visitas.** Los **proveedores** no tienen acceso: se registran **con el guardia, manualmente**» | Vivaru ya tiene pases con QR, vigencia y marca de entrada/salida. **Verificado: no hay tipo de pase para proveedor ni recurrente** — solo visita. Extenderlo es barato y cubre un flujo que su competencia hace en papel |
+| «El vehicular **no está en Habitanto**, yo lo manejo en otro sistema. **Ellos solo generan QR, y solo para visitas.** Los **proveedores** no tienen acceso: se registran **con el guardia, manualmente**» | Vivaru ya tiene pases con QR, vigencia y marca de entrada/salida. **CORREGIDO el 3 sep 2026: la mitad de esta celda era falsa.** Decía «no hay tipo de pase para proveedor **ni recurrente**», y el recurrente **sí existe**: `authorizationType: "larga_duracion"`, con su opción en el formulario del administrador, ventana `validFrom`/`validUntil` y estado operativo propio. **Lo que falta es solo el perfil de PROVEEDOR**, y por eso extenderlo es aún más barato de lo que se escribió |
 
 ---
 
