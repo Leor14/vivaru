@@ -26,7 +26,7 @@ export function SidebarBrandHeader({ tenantName, className, rightSlot }: Sidebar
         {tenantName ? (
           <p
             className="truncate"
-            style={{ fontSize: 11, color: "rgba(255,255,255,0.45)" }}
+            style={{ fontSize: 11, color: "rgba(255,255,255,0.62)" }}
           >
             {tenantName}
           </p>

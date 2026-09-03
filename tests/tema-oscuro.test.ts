@@ -271,3 +271,32 @@ describe("PRD-V-FEAT-007 · hexadecimales fuera de las clases, deuda medida", ()
     }
   });
 });
+
+describe("PRD-V-FEAT-007 · los rotulos de la barra lateral se leen", () => {
+  /**
+   * Eran deuda ANTERIOR y salian igual en los dos temas: los rotulos de seccion
+   * a 3,35:1, el nombre del conjunto a 3,62 y «Cerrar sesion» a 4,10. Se subieron
+   * a 0,62 de opacidad — 5,45:1 sobre el azul de la barra — al pedir David una
+   * revision general. Aqui se fija el suelo: SOLO puede subir.
+   */
+  const AZUL_BARRA: [number, number, number] = [11, 60, 93];
+  const sobreAzul = (a: number): string => {
+    const c = AZUL_BARRA.map((v) => Math.round(255 * a + v * (1 - a)));
+    return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+  };
+  const AZUL = `#${AZUL_BARRA.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+
+  it.each([
+    ["src/components/shared/admin-sidebar.tsx", 2],
+    ["src/components/shared/sidebar-brand-header.tsx", 1],
+  ])("en %s, todo texto blanco translucido llega a 4,5:1", (ruta, cuantos) => {
+    const src = readFileSync(ruta, "utf8");
+    // Solo las que son COLOR de texto; los fondos y bordes decorativos no cuentan.
+    const opacidades = [...src.matchAll(/color:\s*"rgba\(255,255,255,([\d.]+)\)"/g)].map((m) => Number(m[1]));
+    expect(opacidades.length, `${ruta} deberia tener ${cuantos}`).toBe(cuantos);
+    for (const a of opacidades) {
+      const r = contraste(sobreAzul(a), AZUL);
+      expect(r, `opacidad ${a} da ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

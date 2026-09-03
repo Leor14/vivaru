@@ -148,7 +148,7 @@ const SEPARATOR_STYLE = {
 const GROUP_LABEL_STYLE = {
   fontSize: 11,
   letterSpacing: "0.09em",
-  color: "rgba(255,255,255,0.42)",
+  color: "rgba(255,255,255,0.62)", // 3,35:1 → 5,45:1 sobre el azul de la barra
   // Antes 14px arriba y 14px a los lados. Apretado, porque de las diecinueve
   // entradas solo cabían SIETE a 671 px de alto útil.
   padding: "7px 12px 3px",
@@ -399,7 +399,7 @@ export function AdminSidebar({
               type="button"
               onClick={onLogout}
               className="mt-4 inline-flex items-center gap-2 hover:text-[var(--on-fill)]"
-              style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}
+              style={{ fontSize: 12, color: "rgba(255,255,255,0.62)" }}
             >
               <LogOut className="h-3.5 w-3.5" strokeWidth={2} />
               <span>Cerrar sesión</span>
