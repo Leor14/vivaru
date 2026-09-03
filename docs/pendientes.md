@@ -6,23 +6,26 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` construida)
 
-> # LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ EN STAGING. **PRODUCCIÓN NO, Y FUNCTIONS TAMPOCO.**
+> # LA ENTREGA 1 DE `PRD-V-FLOW-007`: FUNCTIONS EN LOS DOS AMBIENTES. **EL FRONT DE PRODUCCIÓN, NO.**
 >
 > Árbol limpio. `npm test` **1714** · functions **799** · los dos typechecks en 0.
 > **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
 >
 > | Pieza | Dónde está | Qué falta |
 > |---|---|---|
+> | **`functions` en staging** | ✅ desplegadas el 3 sep 22:02 UTC | — |
+> | **`functions` en producción** | ✅ desplegadas el 3 sep 22:11 UTC | — |
 > | **Front en staging** | ✅ `build-2026-09-03-036` **READY**, sirviendo `85ca459` | — |
 > | **Front en producción** | ❌ `master` sin mover | **el push a `master`, que es de David** |
-> | **`functions`** | ❌ **compilado y sin desplegar** | `firebase deploy --only functions` |
 >
-> > **El push NO despliega functions, y esto importa aquí más que de costumbre.**
-> > `monthlyFinancialArchive` está modificada y **corre en producción cada día 1 a las 06:00
-> > UTC**. Mientras no se despliegue, **el archivo mensual sigue con la aritmética vieja**: el
-> > commit une las dos implementaciones *en el repositorio*, no todavía en producción. Con la
-> > bandera apagada produce exactamente lo de hoy (`R1`), así que no corre prisa — pero hasta que
-> > se despliegue, la unificación no está en producción y decir que sí lo está sería falso.
+> **Con eso, `monthlyFinancialArchive` ya NO reimplementa el resumen en producción:** la
+> unificación que cierra la causa de `R12` y `R16` está desplegada donde corre el archivo del día
+> 1. Se verificó **midiendo, no leyendo «Deploy complete»**: 90 functions en cada proyecto,
+> **0 sin moverse**, **0 del código sin desplegar**, **0 fuera de `ACTIVE`**.
+>
+> **Lo único que falta para cerrar la entrega es el front de producción**, y ahí el efecto es la
+> corrección del aviso falso de «Fondo insuficiente» — que **no va detrás de bandera**, a
+> propósito.
 >
 > **La bandera `producto-informe-mensual` está en `false` en los DOS proyectos** —nueve conjuntos
 > en producción, diez en staging—, medido **resolviendo con `functions/lib/feature-flags.js`
@@ -49,9 +52,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > - **NO se tocaron las reglas ni el modelo de datos.** La entrega 1 no las necesita:
 >   `bankAccountBalances` ya concede lectura al administrador y la consulta por `tenantId` pasa.
-> - **`monthlyFinancialArchive` está modificada y NO desplegada** — ver la tabla de arriba.
->   `functions/lib` está versionado y ya recompilado en el commit, así que solo falta
->   `firebase deploy --only functions`.
+> - **`monthlyFinancialArchive` ya está desplegada en los dos ambientes** — ver la tabla de arriba.
+>   Lo que queda es el front de producción.
 > - **La bandera está apagada en los nueve, medido.** Encenderla es un acto aparte y va **por
 >   conjunto**, empezando por el canario.
 > - **Lo que NO revierte la bandera:** el saldo inicial en la pantalla de Finanzas. Es la
@@ -103,7 +105,12 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > 8. **Una falsación mintió antes de acertar.** F1 pareció dejar el banco de `src/` en verde; no era
 >    el banco, era el `grep` con el que se leyó la salida. **El instrumento también necesita
 >    control.**
-> 9. **Los dos gemelos que ya existían aparecieron al buscarlos**: `summarizePayables.totalPayable`
+> 9. **`firebase login:list` dijo «Logged in as dev@qintilab.com» con la credencial MUERTA.** Lo
+>    delató ejercitarla: el `deploy` murió autenticando antes de tocar nada. `gcloud auth list`
+>    hizo lo mismo —cuenta activa con asterisco, y `Reauthentication failed` al usarla—. **La ADC
+>    estaba viva mientras las otras dos estaban muertas**: son cuatro credenciales que caducan por
+>    separado, y **solo está viva la que algo ha EJERCITADO**.
+> 10. **Los dos gemelos que ya existían aparecieron al buscarlos**: `summarizePayables.totalPayable`
 >    era la deuda a proveedores y `BillingHeroCard.totalPendingBalance` la cartera viva. Escribir
 >    una tercera definición de cada una era exactamente cómo nació `R12`.
 >
@@ -222,7 +229,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | Ficha | Qué es | Estado | ¿Se puede construir? |
 > |---|---|---|---|
-> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1 EN STAGING** (`85ca459`); producción y functions sin desplegar; entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
+> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | §3.7 de la sesión con la administradora, **ascendido por la investigación legal** | **Entrega 1: functions en los DOS ambientes, front solo en staging**; entregas 2 y 3 en Discovery | ✅ **SÍ. La 2 tampoco espera a nadie** |
 > | **`PRD-V-FLOW-006`** — interés de mora legal y convenio de pago (Ecuador) | Candidato `B5`, fusionado con el convenio porque **la ley los encadena** | Discovery, `c973a89` | ❌ **NO.** Espera dos cosas de David |
 >
 > **`G5` es lo que las separa, y la lección se aplica a la siguiente ficha que escribas:** en
