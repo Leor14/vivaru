@@ -46,10 +46,14 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > > afirmando. Corregido en `6038e67`: sin saldo de apertura la tarjeta pasa a «Movimientos
 > > acumulados», lo explica, y **no se pinta en rojo**. Ninguna suite lo veía; lo vio la pantalla.
 >
-> Lo que hay que ver, en orden: (1) que **no** aparece el aviso rojo; (2) que el saldo de fondos
-> incluye los cinco millones; (3) en un conjunto **sin** saldo registrado —Bromelias, El Nogal,
-> Las Palmas— que sale «Sin saldo bancario de apertura» y **no «$0»**; (4) que el Excel del estado
-> trae las cuatro filas nuevas.
+> Lo que hay que ver, y lo que ya se vio:
+>
+> | # | Qué | Estado |
+> |---|---|---|
+> | 1 | Que **no** aparece el aviso rojo en Santa María, con 5.000.000 registrados | ❌ **pide sesión de administrador en PRODUCCIÓN** |
+> | 2 | Que el saldo de fondos incluye esos cinco millones | ❌ ídem |
+> | 3 | Que un conjunto **sin** saldo no dice «Saldo de fondos $0» | ✅ **VISTO en staging el 3 sep**, ya desplegado: la tarjeta dice «MOVIMIENTOS ACUMULADOS $0» y debajo «Sin saldo bancario de apertura. Regístralo en la cuenta del conjunto para ver el saldo real.» |
+> | 4 | Que el Excel del estado trae las cuatro filas nuevas | ❌ sin comprobar — se puede en staging aunque salgan en cero, que es precisamente `CA8` |
 >
 > **La bandera `producto-informe-mensual` está en `false` en los DOS proyectos** —nueve conjuntos
 > en producción, diez en staging—, medido **resolviendo con `functions/lib/feature-flags.js`
