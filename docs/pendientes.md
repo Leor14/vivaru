@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO, ENTERO Y CORREGIDO. EN `master` FALTA LA CORRECCIÓN DEL LIENZO; EN STAGING ESTÁ.
+> # EL MODO OSCURO ESTÁ ENCENDIDO EN PRODUCCIÓN, EN UN SOLO CONJUNTO: SANTA MARÍA. CANARIO VIVO.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,18 +20,26 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **LA BANDERA SE ENCENDIÓ EN PRODUCCIÓN DESDE LA CONSOLA, Y AHORA ESTÁ APAGADA OTRA VEZ.** El
-> documento `featureFlags/producto-modo-oscuro` de `hogaru-1` estaba en `enabled: true`, escrito el
-> **3 sep 05:10Z** por un **uid** — y es la ÚNICA bandera de producción escrita así: **todas las
-> demás llevan `mover-bandera:` o `seed-features:`**. Esa firma es la de la consola de superadmin,
-> no la de un script. **Yo la apagué** al encontrarla, porque en ese momento producción servía
-> `70e4f97`, que es **anterior a la corrección del lienzo**: quien la encendiera vio exactamente el
-> fondo claro con las tarjetas oscuras de la captura.
+> **CANARIO ENCENDIDO EL 3 DE SEPTIEMBRE.** `featureFlagOverrides/tenant-santa-maria` →
+> `flags['producto-modo-oscuro'] = true`. **La global sigue en `false`**, así que es **1 conjunto de
+> 9**: los otros ocho no la ven. Verificado en el portal del residente de producción con sesión
+> real — el interruptor está, «Oscuro» marcado, y **cero elementos ilegibles**.
 >
-> **Ahora la corrección SÍ está en producción** (`863e43a`, `build-2026-09-03-006`), y verificada:
-> poniendo el atributo a mano sobre producción, el **portal del residente da CERO ilegibles**.
-> **Encenderla otra vez es decisión tuya**, y mejor con canario:
-> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 producto-modo-oscuro <conjunto> true`
+> **Para apagarlo**, la misma orden con `false`. El orden de los argumentos es
+> `<projectId> <tenantId> <clave> <valor>` — **`<tenantId>` va SEGUNDO**, y el conjunto es
+> `tenant-santa-maria`:
+> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-modo-oscuro false`
+>
+> **ANTES, la bandera GLOBAL estuvo encendida en producción por error de operación.** El documento de
+> `hogaru-1` estaba en `enabled: true`, escrito el **3 sep 05:10Z por un uid** — y era la ÚNICA
+> bandera de producción escrita así: **todas las demás llevan `mover-bandera:` o `seed-features:`**.
+> Esa firma es la de la **consola de superadmin**. La apagué al encontrarla, porque producción servía
+> entonces `70e4f97`, **anterior a la corrección del lienzo**: quien la encendiera vio el fondo claro
+> con las tarjetas oscuras. **La global sigue apagada, y así debe quedarse mientras dure el canario.**
+>
+> **Y una trampa al comprobarlo:** mi primer control dijo «ningún conjunto tiene la override» y era
+> **falso** — las overrides viven **anidadas bajo `flags`** y yo miraba el nivel superior. **El cero
+> era el no-op, no la escritura.** Segunda vez en el día.
 >
 > **LA CORRECCIÓN GENERAL (David la vio en una captura, y ninguna prueba la veía).** El lienzo de
 > `app-shell` —que comparten los TRES portales— se pintaba con un degradado de hexadecimales dentro
