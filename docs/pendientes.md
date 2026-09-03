@@ -4,65 +4,93 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (contexto de Habitanto consolidado)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, corte (entrega 1 de `FLOW-007` construida)
 
-> # LA SIGUIENTE SESIÓN CONSTRUYE. NO ESCRIBE OTRA FICHA, Y NO ELIGE FRENTE.
+> # LA ENTREGA 1 DE `PRD-V-FLOW-007` ESTÁ CONSTRUIDA Y COMMITEADA. **NO ESTÁ EMPUJADA.**
 >
-> Hay **dos fichas escritas y CERO construyéndose**. Por el criterio del 24 de agosto —**cerrar
-> frentes antes que abrirlos**, y *desplegado y apagado cuenta como abierto*— escribir un tercer
-> bloque ahora sube a **tres** los frentes abiertos sin producto. **El trabajo disponible cabe en una
-> sola cosa, y es `PRD-V-FLOW-007`.**
+> Commit **`0b234b1`**, árbol limpio. `npm test` **1714** · functions **799** · los dos typechecks
+> en 0. **Verificar los remotos con `git ls-remote`, no citarlos de aquí.**
 >
-> | Ficha | Qué es | ¿Se puede construir? |
-> |---|---|---|
-> | **`PRD-V-FLOW-007`** — informe económico mensual **anclado al banco**, emitible, firmable y publicado | Hueco §3.7 de la sesión con la administradora, **ascendido por la investigación legal**: publicarlo es obligación del Decreto 462 y la sanción es la **remoción del administrador** | ✅ **SÍ. Entregas 1 y 2 no esperan a nadie** |
-> | **`PRD-V-FLOW-006`** — interés de mora legal + convenio de pago (Ecuador) | Candidato `B5` fusionado con el convenio **porque la ley los encadena** | ❌ **NO.** Espera `G5` y al abogado |
+> **Lo primero: decidir el push.** Empujar despliega en los dos ambientes. `develop` va a staging;
+> **`master` va a producción y ese lo pide David**.
 >
-> **Lo que las separa es `G5`, y la lección vale para la siguiente ficha que se escriba:** en
-> `FLOW-007` el dueño de la operación **ya existe** —el administrador emite ese informe a mano cada
-> mes—; en `FLOW-006` **nadie tiene asignado registrar la tasa del BCE**.
+> ### Qué se construyó, en una línea cada cosa
 >
-> ### Los tres primeros pasos, en este orden
+> | Pieza | Dónde |
+> |---|---|
+> | **El núcleo único del estado financiero**, autocontenido y sin un solo `import` | `src/lib/finanzas/nucleo-estado-financiero.ts` |
+> | **Su copia byte a byte** del servidor | `functions/src/nucleo-estado-financiero.ts` |
+> | `monthlyFinancialArchive` **deja de reimplementar** el resumen | `functions/src/index.ts` |
+> | **El saldo inicial real** en los tres consumidores | la página de Finanzas y `use-committee-report.ts` |
+> | **Cuentas pendientes de cobro** y **deuda a proveedores** | el núcleo, y `payables.ts` ya no tiene su propia definición |
+> | La bandera `producto-informe-mensual` en **los cinco** sitios | catálogos y los tres scripts |
 >
-> 1. **`gcloud auth application-default login`.** La ADC está caducada (`invalid_rapt`, ejercitada y
->    confirmada muerta). Destraba las dos cosas siguientes.
-> 2. **Contar `TBD-M1`: cuántos de los nueve conjuntos tienen `openingBalance` registrado** en
->    `bankAccountBalances`. **Si es cero en los nueve, la entrega 1 no cambia una sola cifra** y se
->    leería como un no-op — el error que este repositorio ya cometió con tres capacidades encendidas
->    sobre tablas vacías. En ese caso, la entrega 1 incluye pedir el dato.
-> 3. **Construir la entrega 1 de `FLOW-007`.** Cálculo compartido entre `src/` y `functions/`, saldo
->    inicial real, cuentas pendientes de cobro y deuda a proveedores.
+> ### LO QUE NO SE HIZO, y hay que saberlo antes de seguir
 >
-> ### El defecto VIVO que va dentro de esa entrega, no aparte
+> - **NO se tocaron las reglas ni el modelo de datos.** La entrega 1 no las necesita:
+>   `bankAccountBalances` ya concede lectura al administrador y la consulta por `tenantId` pasa.
+> - **`monthlyFinancialArchive` está modificada y NO desplegada.** Corre en producción cada día 1
+>   a las 06:00 UTC. Desplegar functions es `firebase deploy --only functions` **recompilando
+>   antes** — `functions/lib` está versionado y ya está recompilado en el commit.
+> - **La bandera nace APAGADA en los nueve.** Con ella apagada el archivo mensual produce
+>   exactamente lo de hoy (`R1`), así que desplegar es seguro; encenderla es un acto aparte y va
+>   **por conjunto**, empezando por el canario.
+> - **Lo que NO revierte la bandera:** el saldo inicial en la pantalla de Finanzas. Es la
+>   corrección del aviso falso y va sin bandera a propósito — volver atrás sería volver a mentirle
+>   al administrador.
 >
-> `/admin/finanzas` avisa **«Fondo insuficiente… evita registrar nuevos egresos»** a un conjunto **que
-> tiene dinero en el banco**. Los **tres** consumidores pasan `openingBalance = 0` aunque el
-> administrador lo haya registrado en la pantalla de conciliación:
+> ### LO PRIMERO DE LA SIGUIENTE SESIÓN: la entrega 2, no otra ficha
 >
-> - `src/app/(admin)/admin/finanzas/page.tsx:154` — `computeFundPosition(entries, cuotaIncome)`, **sin tercer argumento**
-> - `src/app/(admin)/admin/finanzas/page.tsx:164` — `buildFinancialStatement(…, 0, planInformes)`
-> - `src/features/reports/use-committee-report.ts:573` — lo mismo, `0` literal
+> Sigue valiendo el criterio del 24 de agosto —**cerrar frentes antes que abrirlos**—. `FLOW-007`
+> está **abierta y a un tercio**, así que lo que toca es su **entrega 2**: `monthlyReports`,
+> estados, la callable de emitir/firmar/anular y el PDF con logo y firmas.
 >
-> **No se arregla suelto**: es `CA9` de la ficha, y sacarlo la dejaría sin su guardián de regresión.
+> **Lo que la entrega 2 necesita saber y ya está medido:**
 >
-> ### Y lo que hay que saber antes de tocar `FLOW-007`
+> - `firma` (403) y `signature` (273) **existen y son otra cosa** — `signedBy` es el residente que
+>   **acepta** un acuerdo del consejo. **No hay esquema de firmas de un informe.**
+> - La emisión va por **callable, sin discusión**: escribe en tres sitios, congela cifras y sella
+>   `issuedBy`/`issuedAt`. **Un campo escribible desde el cliente no puede sostener un invariante.**
+> - `CA6`, `CA10`–`CA12`, `CA14` y `CA16` son **banco de reglas, y este equipo no lo puede correr:
+>   no hay Java.** Son seis criterios que se quedan sin verificar aquí.
 >
-> 1. **`functions/` NO tiene módulo de estado financiero.** `monthlyFinancialArchive`
->    (`functions/src/index.ts:3802`, `0 6 1 * *`, **`ACTIVE` en producción**) reimplementa el resumen
->    en línea, y **ya se desvió DOS veces** —`R12`/`R13` el 23 de agosto y `R16` el 24, registradas en
->    los comentarios de `payments.ts:267` y `:324`—. Unificar es el punto de la entrega 1.
-> 2. **La publicación al residente no está pendiente: está DENEGADA** por una regla desplegada
->    (`financiero` y `reporte` son solo-administración). Por eso la ficha crea **categoría nueva**:
->    abrir las existentes publicaría también comprobantes y expedientes.
-> 3. **Cuatro de las seis partes de la columna vertebral YA se calculan.** `buildFinancialStatement`
->    ordena por el código del plan y el saldo final es `fundBalance` — **buscar `closingBalance` da
->    cero porque el nombre es otro**.
-> 4. **`firma` (403) y `signature` (273) existen y son otra cosa**: `signedBy` es el uid del residente
->    que **acepta** un acuerdo del consejo. **No hay esquema de firmas de un informe.**
+> **`FLOW-006` sigue bloqueada y no se toca:** espera `G5` —quién registra la tasa del BCE cada
+> mes— y las cinco preguntas al abogado, las dos de David.
+>
+> ### Lo que se aprendió midiendo, y no estaba escrito en ningún sitio
+>
+> 1. **La ADC no estaba muerta.** La cabecera anterior la daba por caducada con `invalid_rapt`.
+>    Acuñó un token a la primera y leyó producción sin una queja: `invalid_rapt` es un desafío de
+>    **reautenticación de operaciones sensibles**, no la caducidad de la credencial. Ejercitarla
+>    costó treinta segundos; darla por muerta habría costado un login que no hacía falta.
+> 2. **El primer conteo de `TBD-M1` dio «0 de 0» y parecía una respuesta.** El filtro era
+>    `isExample !== true`, y **los nueve conjuntos son de ejemplo**: la población se quedó vacía y
+>    el resultado se leía como «ningún conjunto tiene saldo», que es otra frase. Un conteo sobre
+>    cero filas siempre responde algo.
+> 3. **`R5` estaba escrito sobre la colección equivocada.** «Sale cero porque no hay proveedores» —
+>    y `vendors` sí tiene cero filas, pero la deuda vive en **los egresos no pagados**: trece, en
+>    cuatro conjuntos. **Quien cobra no está en `vendors`, está en la factura que nadie ha pagado.**
+> 4. **`ExpenseStatus` es castellano** (`registrado | pagado | anulado`). Filtrar por
+>    `"paid"`/`"cancelled"` no excluye nada: la deuda salió **tres veces más grande** y con pinta de
+>    dato.
+> 5. **`CA3` fallaba de verdad, y el banco de casos lo cazó.** 2.000,44 − 1.234,56 daba
+>    `765.8800000000001`. **Invisible con COP** —seis de los nueve conjuntos— y roto con MXN y USD.
+>    El defecto podía vivir años sin que nadie lo viera.
+> 6. **Tres guardianes siguieron la función al moverla, y los tres enrojecieron.** Es la prueba de
+>    que vigilaban de verdad y no la mención de un nombre.
+> 7. **`CA18` predijo mal y la construcción estaba bien.** Decía «enrojecen exactamente `CA2`, `CA3`
+>    y `CA9`». Son **tres cables distintos**, no uno: el aviso lo calcula `computeFundPosition` y el
+>    cierre lo calcula el núcleo. Detalle en la ficha.
+> 8. **Una falsación mintió antes de acertar.** F1 pareció dejar el banco de `src/` en verde; no era
+>    el banco, era el `grep` con el que se leyó la salida. **El instrumento también necesita
+>    control.**
+> 9. **Los dos gemelos que ya existían aparecieron al buscarlos**: `summarizePayables.totalPayable`
+>    era la deuda a proveedores y `BillingHeroCard.totalPendingBalance` la cartera viva. Escribir
+>    una tercera definición de cada una era exactamente cómo nació `R12`.
 >
 > ---
->
-> ## EL CONTEXTO DE HABITANTO, CONSOLIDADO
+
+## EL CONTEXTO DE HABITANTO, CONSOLIDADO
 >
 > **De dónde viene todo, y el orden importa:**
 >
