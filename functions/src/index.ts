@@ -95,11 +95,13 @@ import {
   guardarBorrador,
   idDelInforme,
   prepararEmision,
+  PIE_DEL_INFORME,
   assertPeriodoValido,
+  filasDeCabecera,
   leerYConstruirInstantanea,
+  seccionesDelInforme,
   sellarEmision,
   sumarSaldoDeApertura,
-  type InstantaneaDelInforme,
 } from "./informe-mensual";
 import {
   construirEstadoFinanciero,
@@ -4826,13 +4828,6 @@ export const cancelClearanceCertificate = onCall<AnularPazYSalvoInput>(
   },
 );
 
-// ── FLOW-007 entrega 2 · cómo se lee el informe en el PDF ───────────────────
-
-/** `RN-12`. Va impreso: quien reciba el papel tiene que saber qué NO es. */
-const PIE_DEL_INFORME =
-  "Las firmas de este documento son constancia de quién lo emitió y quién lo aprobó dentro de Vivaru, " +
-  "con nombre, cargo y fecha selladas por el sistema. No constituyen firma electrónica certificada.";
-
 /**
  * Baja el logo del conjunto para la cabecera del PDF.
  *
@@ -4856,77 +4851,6 @@ async function descargarLogo(url: string | undefined): Promise<Buffer | undefine
   } catch {
     return undefined;
   }
-}
-
-/**
- * Las cifras de cabecera: el estado de caja anclado al banco.
- *
- * **`CA4` en una línea:** sin saldo registrado se escribe «Sin saldo bancario de
- * apertura», **no «$0»**. La diferencia entre un cero que alguien registró y la
- * ausencia de dato es lo que separa un estado de caja de un tablero de indicadores.
- */
-function filasDeCabecera(i: InstantaneaDelInforme): [string, string][] {
-  return [
-    [
-      "Saldo inicial del banco",
-      i.openingBalanceSource === "registrado" ? formatMoney(i.openingBalance) : "Sin saldo bancario de apertura",
-    ],
-    ["Ingresos del mes", formatMoney(i.totalIncome)],
-    ["Egresos del mes", formatMoney(i.totalExpenses)],
-    ["Resultado neto del mes", formatMoney(i.netResult)],
-    // `RN-03` · la identidad se ENSEÑA como tal, no solo se cumple.
-    ["Saldo final del fondo (inicial + ingresos − egresos)", formatMoney(i.closingBalance)],
-  ];
-}
-
-/**
- * Las cuatro secciones del informe.
- *
- * **Las cuatro van SIEMPRE, también en cero** (`RN-08`, `CA8`): un cero calculado
- * dice «no se debe nada» y una sección ausente dice «esto no se mide», y para un
- * consejo son dos cosas distintas. El PDF pinta «Sin movimientos en el período»
- * cuando la lista viene vacía, en vez de saltarse el bloque.
- *
- * **Los egresos salen en el orden del PLAN, no por monto** (`RN-07`): ya vienen
- * ordenados del núcleo, que compara por el código de cuenta. Reordenar aquí por
- * importe desharía justo lo que la entrega 1 construyó.
- */
-function seccionesDelInforme(i: InstantaneaDelInforme): {
-  title: string;
-  rows: [string, string][];
-  total?: [string, string];
-}[] {
-  return [
-    {
-      title: "Ingresos por cuenta",
-      rows: i.income.map((l) => [l.label, formatMoney(l.amount)] as [string, string]),
-      total: ["Total de ingresos", formatMoney(i.totalIncome)],
-    },
-    {
-      title: "Egresos por cuenta",
-      rows: i.expenses.map((l) => [l.label, formatMoney(l.amount)] as [string, string]),
-      total: ["Total de egresos", formatMoney(i.totalExpenses)],
-    },
-    {
-      title: "Cuentas pendientes de cobro",
-      rows: i.receivables.byUnit.map(
-        (u) =>
-          [
-            `${u.unitLabel} · ${u.periods} ${u.periods === 1 ? "período" : "períodos"}`,
-            formatMoney(u.balance),
-          ] as [string, string],
-      ),
-      total: ["Total por cobrar", formatMoney(i.receivables.total)],
-    },
-    {
-      title: "Deuda a proveedores",
-      rows: i.payables.byVendor.map((v) => [v.vendorName, formatMoney(v.amount)] as [string, string]),
-      total: [
-        `Total por pagar (vencido: ${formatMoney(i.payables.overdue)})`,
-        formatMoney(i.payables.total),
-      ],
-    },
-  ];
 }
 
 // ── FLOW-007 entrega 2 · el informe mensual emitible y firmable ──────────────

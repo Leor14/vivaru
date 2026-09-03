@@ -3811,10 +3811,6 @@ exports.cancelClearanceCertificate = (0, https_1.onCall)({ cors: http_config_1.c
     }
     return resultado;
 });
-// ── FLOW-007 entrega 2 · cómo se lee el informe en el PDF ───────────────────
-/** `RN-12`. Va impreso: quien reciba el papel tiene que saber qué NO es. */
-const PIE_DEL_INFORME = "Las firmas de este documento son constancia de quién lo emitió y quién lo aprobó dentro de Vivaru, " +
-    "con nombre, cargo y fecha selladas por el sistema. No constituyen firma electrónica certificada.";
 /**
  * Baja el logo del conjunto para la cabecera del PDF.
  *
@@ -3841,68 +3837,6 @@ async function descargarLogo(url) {
     catch {
         return undefined;
     }
-}
-/**
- * Las cifras de cabecera: el estado de caja anclado al banco.
- *
- * **`CA4` en una línea:** sin saldo registrado se escribe «Sin saldo bancario de
- * apertura», **no «$0»**. La diferencia entre un cero que alguien registró y la
- * ausencia de dato es lo que separa un estado de caja de un tablero de indicadores.
- */
-function filasDeCabecera(i) {
-    return [
-        [
-            "Saldo inicial del banco",
-            i.openingBalanceSource === "registrado" ? formatMoney(i.openingBalance) : "Sin saldo bancario de apertura",
-        ],
-        ["Ingresos del mes", formatMoney(i.totalIncome)],
-        ["Egresos del mes", formatMoney(i.totalExpenses)],
-        ["Resultado neto del mes", formatMoney(i.netResult)],
-        // `RN-03` · la identidad se ENSEÑA como tal, no solo se cumple.
-        ["Saldo final del fondo (inicial + ingresos − egresos)", formatMoney(i.closingBalance)],
-    ];
-}
-/**
- * Las cuatro secciones del informe.
- *
- * **Las cuatro van SIEMPRE, también en cero** (`RN-08`, `CA8`): un cero calculado
- * dice «no se debe nada» y una sección ausente dice «esto no se mide», y para un
- * consejo son dos cosas distintas. El PDF pinta «Sin movimientos en el período»
- * cuando la lista viene vacía, en vez de saltarse el bloque.
- *
- * **Los egresos salen en el orden del PLAN, no por monto** (`RN-07`): ya vienen
- * ordenados del núcleo, que compara por el código de cuenta. Reordenar aquí por
- * importe desharía justo lo que la entrega 1 construyó.
- */
-function seccionesDelInforme(i) {
-    return [
-        {
-            title: "Ingresos por cuenta",
-            rows: i.income.map((l) => [l.label, formatMoney(l.amount)]),
-            total: ["Total de ingresos", formatMoney(i.totalIncome)],
-        },
-        {
-            title: "Egresos por cuenta",
-            rows: i.expenses.map((l) => [l.label, formatMoney(l.amount)]),
-            total: ["Total de egresos", formatMoney(i.totalExpenses)],
-        },
-        {
-            title: "Cuentas pendientes de cobro",
-            rows: i.receivables.byUnit.map((u) => [
-                `${u.unitLabel} · ${u.periods} ${u.periods === 1 ? "período" : "períodos"}`,
-                formatMoney(u.balance),
-            ]),
-            total: ["Total por cobrar", formatMoney(i.receivables.total)],
-        },
-        {
-            title: "Deuda a proveedores",
-            rows: i.payables.byVendor.map((v) => [v.vendorName, formatMoney(v.amount)]),
-            total: [
-                `Total por pagar (vencido: ${formatMoney(i.payables.overdue)})`,
-                formatMoney(i.payables.total),
-            ],
-        },
-    ];
 }
 // ── FLOW-007 entrega 2 · el informe mensual emitible y firmable ──────────────
 //
@@ -4010,12 +3944,12 @@ exports.issueMonthlyReport = (0, https_1.onCall)({ cors: http_config_1.callableC
         period,
         logo: await descargarLogo(tenant?.branding?.logoUrl),
         statusLabel: "Emitido",
-        headline: filasDeCabecera(preparado.instantanea),
-        sections: seccionesDelInforme(preparado.instantanea),
+        headline: (0, informe_mensual_1.filasDeCabecera)(preparado.instantanea),
+        sections: (0, informe_mensual_1.seccionesDelInforme)(preparado.instantanea),
         // Recién emitido no lo ha firmado nadie: el bloque sale vacío y **no se
         // omite**, que es lo que `CA13` pide con esas palabras.
         signatures: [],
-        footNote: PIE_DEL_INFORME,
+        footNote: informe_mensual_1.PIE_DEL_INFORME,
     });
     const documentId = await archiveBuffer({
         tenantId,

@@ -663,3 +663,101 @@ export async function anularInforme(input: {
     return { ok: true as const, yaAnulado: false };
   });
 }
+
+// ── Cómo se LEE el informe en el PDF ────────────────────────────────────────
+
+/** `RN-12`. Va impreso: quien reciba el papel tiene que saber qué NO es. */
+export const PIE_DEL_INFORME =
+  "Las firmas de este documento son constancia de quién lo emitió y quién lo aprobó dentro de Vivaru, " +
+  "con nombre, cargo y fecha selladas por el sistema. No constituyen firma electrónica certificada.";
+
+/**
+ * Las cifras de cabecera: el estado de caja anclado al banco.
+ *
+ * **`CA4` en una línea:** sin saldo registrado se escribe «Sin saldo bancario de
+ * apertura», **no «$0»**. La diferencia entre un cero que alguien registró y la
+ * ausencia de dato es lo que separa un estado de caja de un tablero de indicadores.
+ */
+export function filasDeCabecera(i: InstantaneaDelInforme): [string, string][] {
+  return [
+    [
+      "Saldo inicial del banco",
+      i.openingBalanceSource === "registrado" ? formatearMonto(i.openingBalance) : "Sin saldo bancario de apertura",
+    ],
+    ["Ingresos del mes", formatearMonto(i.totalIncome)],
+    ["Egresos del mes", formatearMonto(i.totalExpenses)],
+    ["Resultado neto del mes", formatearMonto(i.netResult)],
+    // `RN-03` · la identidad se ENSEÑA como tal, no solo se cumple.
+    //
+    // **El signo va con el GUION ASCII, y no es un descuido tipográfico.** Aquí
+    // había un menos de verdad (`−`, U+2212) y en el PDF salía **`ˆ`**: las
+    // fuentes estándar de `pdfkit` van en **WinAnsi**, que no tiene ese carácter.
+    // Lo cazó mirar el PDF; las 824 pruebas en verde no lo veían, porque ninguna
+    // miraba el papel. Lo vigila `caracteresDelPdf` en el banco.
+    ["Saldo final del fondo (inicial + ingresos - egresos)", formatearMonto(i.closingBalance)],
+  ];
+}
+
+/**
+ * Las cuatro secciones del informe.
+ *
+ * **Las cuatro van SIEMPRE, también en cero** (`RN-08`, `CA8`): un cero calculado
+ * dice «no se debe nada» y una sección ausente dice «esto no se mide», y para un
+ * consejo son dos cosas distintas. El PDF pinta «Sin movimientos en el período»
+ * cuando la lista viene vacía, en vez de saltarse el bloque.
+ *
+ * **Los egresos salen en el orden del PLAN, no por monto** (`RN-07`): ya vienen
+ * ordenados del núcleo, que compara por el código de cuenta. Reordenar aquí por
+ * importe desharía justo lo que la entrega 1 construyó.
+ */
+export function seccionesDelInforme(i: InstantaneaDelInforme): {
+  title: string;
+  rows: [string, string][];
+  total?: [string, string];
+}[] {
+  return [
+    {
+      title: "Ingresos por cuenta",
+      rows: i.income.map((l) => [l.label, formatearMonto(l.amount)] as [string, string]),
+      total: ["Total de ingresos", formatearMonto(i.totalIncome)],
+    },
+    {
+      title: "Egresos por cuenta",
+      rows: i.expenses.map((l) => [l.label, formatearMonto(l.amount)] as [string, string]),
+      total: ["Total de egresos", formatearMonto(i.totalExpenses)],
+    },
+    {
+      title: "Cuentas pendientes de cobro",
+      rows: i.receivables.byUnit.map(
+        (u) =>
+          [
+            `${u.unitLabel} · ${u.periods} ${u.periods === 1 ? "período" : "períodos"}`,
+            formatearMonto(u.balance),
+          ] as [string, string],
+      ),
+      total: ["Total por cobrar", formatearMonto(i.receivables.total)],
+    },
+    {
+      title: "Deuda a proveedores",
+      rows: i.payables.byVendor.map((v) => [v.vendorName, formatearMonto(v.amount)] as [string, string]),
+      total: [
+        `Total por pagar (vencido: ${formatearMonto(i.payables.overdue)})`,
+        formatearMonto(i.payables.total),
+      ],
+    },
+  ];
+}
+
+
+/**
+ * El importe tal y como se imprime. **Vive aquí y no en `index.ts`** para que la
+ * callable y cualquier comprobación usen EL MISMO, en vez de dos que acaben
+ * discrepando — que es la enfermedad entera que esta ficha vino a curar.
+ *
+ * Es la misma forma que `formatMoney` del archivo mensual, y se queda en `es-CO`
+ * a propósito: cambiar aquí el formato por país es de otra ficha, y hacerlo a
+ * escondidas dentro de ésta movería cifras sin que nadie lo hubiera pedido.
+ */
+export function formatearMonto(value: number): string {
+  return `$${Math.round(value).toLocaleString("es-CO")}`;
+}
