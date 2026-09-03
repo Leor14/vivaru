@@ -27,7 +27,7 @@ function EditabilityBadge({ editability }: { editability: Editability }) {
   }
   if (editability === "warn") {
     return (
-      <span className="rounded-full bg-[var(--amber-100)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--amber-700)]">
+      <span className="rounded-full bg-[var(--amber-100)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--amber-800)]">
         cambio con aviso
       </span>
     );

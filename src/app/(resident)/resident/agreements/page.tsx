@@ -59,7 +59,7 @@ function SignCard({
           <CardTitle className="text-base">{agreement.title}</CardTitle>
           <CardDescription className="mt-0.5">Sesión del {formatDateSafe(agreement.sessionDate)}</CardDescription>
         </div>
-        <Badge className="bg-[var(--amber-100)] text-[var(--amber-700)]">{MODE_LABEL[agreement.signatureMode]}</Badge>
+        <Badge className="bg-[var(--amber-100)] text-[var(--amber-800)]">{MODE_LABEL[agreement.signatureMode]}</Badge>
       </div>
 
       {agreement.fileUrl ? (

@@ -48,7 +48,7 @@ function getTicketStatusLabel(status: string): string {
 function getStatusBadgeClass(status: string) {
   switch (status) {
     case "open":
-      return "bg-[var(--amber-100)] text-[var(--amber-700)]";
+      return "bg-[var(--amber-100)] text-[var(--amber-800)]";
     case "in_progress":
       return "bg-[var(--info-100)] text-[var(--info-700)]";
     case "responded":
@@ -74,7 +74,7 @@ function getDueBadge(params: { isClosed: boolean; businessDaysRemaining: number 
     return { label: "Vencido", className: "bg-[var(--danger-100)] text-[var(--danger-700)]" };
   }
   if (remaining <= 5) {
-    return { label: `${remaining} días`, className: "bg-[var(--amber-100)] text-[var(--amber-700)]" };
+    return { label: `${remaining} días`, className: "bg-[var(--amber-100)] text-[var(--amber-800)]" };
   }
   return { label: "Al día", className: "bg-[var(--success-100)] text-[var(--success-700)]" };
 }

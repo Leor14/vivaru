@@ -1604,7 +1604,7 @@ function AdminBillingPageContent() {
                   />
                   <span className="truncate">{u.label}</span>
                   {duplicateLabels.has(u.label) ? (
-                    <span className="shrink-0 rounded-sm bg-[var(--amber-100)] px-1 text-[10px] font-medium text-[var(--amber-700)]">repetida</span>
+                    <span className="shrink-0 rounded-sm bg-[var(--amber-100)] px-1 text-[10px] font-medium text-[var(--amber-800)]">repetida</span>
                   ) : null}
                 </label>
               ))}
@@ -2009,7 +2009,7 @@ function AdminBillingPageContent() {
                           type="button"
                           onClick={() => void cancelReminderJob(j.id)}
                           title="Cancelar recordatorio programado"
-                          className="rounded-full border border-[var(--amber-200)] bg-[var(--amber-50)] px-2 py-0.5 text-[var(--amber-700)] hover:bg-[var(--amber-100)]"
+                          className="rounded-full border border-[var(--amber-200)] bg-[var(--amber-50)] px-2 py-0.5 text-[var(--amber-800)] hover:bg-[var(--amber-100)]"
                         >
                           {j.scheduledFor} ✕
                         </button>

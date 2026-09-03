@@ -208,7 +208,7 @@ function PendingUnitsTable({
                   {person?.email ?? "—"}
                 </td>
                 <td className="py-3">
-                  <Badge className="bg-[var(--amber-100)] text-[var(--amber-700)]">Pendiente</Badge>
+                  <Badge className="bg-[var(--amber-100)] text-[var(--amber-800)]">Pendiente</Badge>
                 </td>
               </tr>
             );

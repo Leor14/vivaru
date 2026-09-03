@@ -405,7 +405,7 @@ export default function AdminVisitorsPage() {
     if (label === "Dentro") return "bg-[var(--info-100)] text-[var(--info-700)]";
     if (label === "Finalizado") return "bg-[var(--slate-100)] text-[var(--slate-700)]";
     if (label === "Expirado") return "bg-[var(--danger-100)] text-[var(--danger-700)]";
-    return "bg-[var(--amber-100)] text-[var(--amber-700)]";
+    return "bg-[var(--amber-100)] text-[var(--amber-800)]";
   }
 
   return (

@@ -100,7 +100,7 @@ function longDateLabel(dateKey: string) {
 
 function getStatusBadgeClass(status: Reservation["status"]) {
   if (status === "approved") return "bg-[var(--success-100)] text-[var(--success-700)]";
-  if (status === "pending") return "bg-[var(--amber-100)] text-[var(--amber-700)]";
+  if (status === "pending") return "bg-[var(--amber-100)] text-[var(--amber-800)]";
   if (status === "cancelled") return "bg-[var(--danger-100)] text-[var(--danger-700)]";
   return "bg-[var(--slate-200)] text-[var(--slate-700)]";
 }

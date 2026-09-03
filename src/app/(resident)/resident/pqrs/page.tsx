@@ -37,7 +37,7 @@ const TICKET_TYPES = [
 type TicketTypeValue = typeof TICKET_TYPES[number]["value"];
 
 const STATUS_CONFIG: Record<Ticket["status"], { label: string; badgeCls: string }> = {
-  open:        { label: "Abierto",     badgeCls: "bg-[var(--amber-100)] text-[var(--amber-700)]" },
+  open:        { label: "Abierto",     badgeCls: "bg-[var(--amber-100)] text-[var(--amber-800)]" },
   in_progress: { label: "En proceso",  badgeCls: "bg-[var(--info-100)] text-[var(--info-700)]" },
   responded:   { label: "Respondido",  badgeCls: "bg-[var(--categoria-indigo-100)] text-[var(--categoria-indigo-700)]" },
   resolved:    { label: "Resuelto",    badgeCls: "bg-[var(--success-100)] text-[var(--success-700)]" },

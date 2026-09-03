@@ -537,7 +537,7 @@ reglas.
 | Usos que ahora pasan por token en el alcance | **3.786** |
 | Reglas de `globals.css` con color literal | **12 → 0** (`.soft-panel`, dos tooltips del selector de fechas, el velo del visor, cuatro sombras) |
 | Tokens nuevos | **48**: `--success-*` (8) · `--info-*` (5) · `--categoria-*` (18) · `--on-fill` · `--overlay` · `--surface-tint` · cuatro sombras · dos del selector de rango · y los pasos que faltaban en las rampas propias (`--amber-200/400/500/600`, `--danger-400/800`, `--slate-950`) |
-| Guardián | `tests/color-por-token.test.ts`, **5 casos**, falsado cuatro veces |
+| Guardián | `tests/color-por-token.test.ts`, **15 casos**, falsado seis veces |
 
 ### Lo que construir corrigió de esta ficha
 
@@ -571,6 +571,22 @@ reglas.
 > Unificarlos es diseñar un sistema de tonos, **se ve**, y es la misma clase de decisión que el grupo
 > B. **Queda vigilado, no anotado:** el guardián fija el techo en 140 y enrojece si sube.
 
+### Una regresión de contraste, cazada en staging
+
+**Unificar la paleta bajó una insignia por debajo de AA, y ninguna prueba lo vio.** La pastilla de
+plazo de PQRS pasó de **4,52:1** (`amber-700` de Tailwind sobre su `amber-100`) a **4,33:1**
+(`--amber-700` sobre `--amber-100`). Lo cazó **calcular el contraste del par antes y después**, no
+mirar la pantalla: a ojo las dos se leen.
+
+**El arreglo no fue inventar un color: fue leer el alias que ya estaba escrito.** `globals.css`
+declara `--warning-100: var(--amber-100)` y `--warning-800: var(--amber-800)` — el sistema ya decía
+que el par de aviso es **100 con 800**, no con 700. Con el 800 da **6,61:1**. Corregidos **11 pares
+en 9 ficheros**; los `amber-700` sobre `amber-50` se quedan (4,65:1, cumplen).
+
+De los **17 pares de insignia** que crea esta entrega, ese era **el único** por debajo. Ahora hay
+guardián: `tests/color-por-token.test.ts` lee los valores de `globals.css` y calcula, así que mover
+un token enrojece con el número delante.
+
 ### Cómo se verificó, y por qué no basta con el verde
 
 - **El bundle construido, no la suite.** Una utilidad de Tailwind desaparece del CSS cuando pierde su
@@ -584,8 +600,11 @@ reglas.
   culpable), vaciar el alcance (el control se cae **y el caso principal pasa en verde sobre un
   conjunto vacío**, que es justo lo que ese control existe para cazar), reponer el literal en el árbol
   `src/features` recién añadido, y añadir un hexadecimal nuevo.
-- **Pendiente de ojos:** las pantallas **autenticadas** de admin y residente, que es donde se ve el
-  cambio del grupo B. `/login` sí se miró. **`npm run dev` no arranca en este repositorio y es
+- **Visto en staging con sesión real** (`build-2026-09-03-006` ← `2266be8`): panel de control, PQRS
+  y `/login` en admin, comparados contra la misma pantalla en producción, que sirve la paleta
+  anterior. La insignia «Vencido» pasó del rosa saturado de Tailwind —`rose-100`/`rose-700`— al rojo
+  teja de Vivaru —`#f6e5e3`/`#8e1c13`—, que es exactamente lo decidido. Y ahí salió la regresión de
+  contraste de más arriba. **`npm run dev` no arranca en este repositorio y es
   anterior a esta entrega** —Turbopack rechaza los selectores `.2xl\:max-w-*` de `globals.css`, que
   empiezan por dígito; el build de producción sí los tolera—, así que la verificación se hizo con
   `next start` sobre el build.

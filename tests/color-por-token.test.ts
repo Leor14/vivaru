@@ -133,3 +133,63 @@ describe("PRD-V-FEAT-007 · la deuda de hexadecimales en clase arbitraria", () =
     expect(cuenta).toBeGreaterThan(TECHO_HEX - 20);
   });
 });
+
+/**
+ * Las insignias de estado tienen que LEERSE.
+ *
+ * Al unificar la paleta (grupo B de la entrega 1), la pastilla de plazo paso de
+ * 4,52:1 a 4,33:1 y cruzo por DEBAJO de AA. Fue una regresion real, y no la vio
+ * ninguna prueba: la cazo calcular el contraste del par antes y despues.
+ *
+ * El sistema ya decia cual era el par bueno — `--warning-100` con
+ * `--warning-800`, no con el 700 — asi que el arreglo no fue inventar un color
+ * sino leer el alias que ya estaba escrito.
+ *
+ * Esta prueba lee los valores de `globals.css`, asi que mover un token la
+ * enrojece con el numero delante.
+ */
+const CSS_GLOBAL = readFileSync("src/app/globals.css", "utf8");
+
+function valor(token: string): string {
+  const m = CSS_GLOBAL.match(new RegExp(`--${token}:\\s*(#[0-9a-fA-F]{6})`));
+  expect(m, `falta el token --${token}`).not.toBeNull();
+  return m![1];
+}
+function luminancia(hex: string): number {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const l = c.map((x) => (x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2];
+}
+function contraste(a: string, b: string): number {
+  const [x, y] = [luminancia(a), luminancia(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+}
+
+/** Los pares que el producto pinta de verdad, texto sobre fondo. */
+const PARES: [string, string][] = [
+  ["amber-800", "amber-100"],
+  ["amber-700", "amber-50"],
+  ["danger-700", "danger-100"],
+  ["danger-700", "danger-50"],
+  ["success-700", "success-100"],
+  ["success-700", "success-50"],
+  ["info-700", "info-100"],
+  ["info-700", "info-50"],
+  ["slate-700", "slate-100"],
+];
+
+describe("PRD-V-FEAT-007 · las insignias de estado cumplen AA", () => {
+  it.each(PARES)("%s sobre %s llega a 4,5:1", (fg, bg) => {
+    const r = contraste(valor(fg), valor(bg));
+    expect(r, `--${fg} sobre --${bg} da ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("y nadie vuelve a poner amber-700 sobre amber-100, que da 4,33:1", () => {
+    const culpables = TODOS.filter((f) =>
+      readFileSync(f, "utf8")
+        .split("\n")
+        .some((l) => l.includes("bg-[var(--amber-100)]") && l.includes("text-[var(--amber-700)]")),
+    );
+    expect(culpables, `Usa --amber-800 sobre el 100:\n${culpables.join("\n")}`).toEqual([]);
+  });
+});

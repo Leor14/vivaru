@@ -111,7 +111,7 @@ export default function ResidentPackagesPage() {
                 <p className="text-xs text-[var(--slate-500)]">Código</p>
                 <p className="text-base font-semibold text-[var(--slate-900)]">{item.reference || `PK-${item.id.slice(0, 6).toUpperCase()}`}</p>
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "pending" ? "bg-[var(--amber-100)] text-[var(--amber-700)]" : "bg-[var(--success-100)] text-[var(--success-700)]"}`}>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "pending" ? "bg-[var(--amber-100)] text-[var(--amber-800)]" : "bg-[var(--success-100)] text-[var(--success-700)]"}`}>
                 {getStatusLabel(item.status)}
               </span>
             </div>
