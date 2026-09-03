@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.52 |
+| **Versión** | 0.9.53 |
 | **Fecha** | 3 de septiembre de 2026 |
 | **Estado** | **`PRD-V-PLAT-006` COMPLETA, DESPLEGADA Y CON LOS DATOS DE PRODUCCIÓN PUESTOS.** La puerta de buzones cierra por salida, por entrada y con el motivo legible; el código está en los dos ambientes y **`master` desplegado** (`build-2026-09-02-002`). Y hoy se hizo lo que **no era código**: **siete conjuntos marcados** `sinClienteDetras` —los dos de trial fuera—, **diez direcciones saneadas** al dominio inerte, y `config/correosDelEquipo` con seis dominios y siete direcciones del equipo. **La bandera sigue APAGADA**, y encenderla ya no está bloqueado por ingeniería: **queda UNA dirección por identificar** —`dann…@outlook.com`, un guardia de Privada Las Playas con cuenta de Auth y acceso el 1 de julio—, y es la única que quedaría sin admitir. **Lo anterior, vigente:** la IA encendida con 0 tráfico y **el tope de gasto sin mirarse, dieciocho días**; `PLAT-005` pendiente de un Android y 0 `pushTokens`; `UX-005` espera decisión de prioridad; Albert espera el contrato de `vivaruWonSignals`. Los remotos se leen con `git ls-remote`, no de aquí. **Y una pasada de higiene (3 sep) corrigió lo que este documento afirmaba de sí mismo:** `UX-004` llevaba **cuatro días en producción** mientras la vista ejecutiva mandaba «🟠 Ejecutar `UX-004`», y **siete fichas de PRD** decían «Lista para desarrollo» con el código desplegado y la bandera encendida |
 | **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
@@ -141,7 +141,7 @@ de entrega.**
 | Frente | AHORA | SIGUIENTE | DESPUÉS | EXPLORACIÓN |
 |---|---|---|---|---|
 | **Propiedad horizontal** | ✅ **BLOQUE CERRADO** — `PH-001` · `PLAT-002` · `FIX-002` · `FEAT-004` · `FLOW-003` · `FLOW-001` · **`PH-003` en producción, `CA3`+`CA10` verificados con ojos** (1 sep) | 🟡 **`CA4` de `PH-003`** — la carrera entre dos residentes: **la fixture ya existe** (Carolina Prueba en la 201); pide dos personas y dos dispositivos, no código | 🔵 `PH-002` (espera al primer pago real) | — |
-| **Experiencia y diseño** | 🟢 **`UX-001`, `UX-003` y `UX-004` en producción** — `UX-004` construida el 30 ago (`src/lib/dashboard/indicadores.ts` + `umbrales.ts`), cableada en el panel **y** en cartera, con guardián `tests/panel-ventanas.test.ts` dentro de la suite que corre | 🟡 **Repasar los criterios de `UX-004` contra producción** — desplegar prueba que funciona, no que se construyó todo lo prometido | ⏸ `UX-002` (filtros en la URL, espera clientes) | ◇ **`UX-005`** (tableros configurables, prioridad baja) |
+| **Experiencia y diseño** | 🟢 **`UX-001`, `UX-003` y `UX-004` en producción** — `UX-004` construida el 30 ago (`src/lib/dashboard/indicadores.ts` + `umbrales.ts`), cableada en el panel **y** en cartera, con guardián `tests/panel-ventanas.test.ts` dentro de la suite que corre | 🟡 **Repasar los criterios de `UX-004` contra producción** — desplegar prueba que funciona, no que se construyó todo lo prometido | ⏸ `UX-002` (filtros en la URL, espera clientes) | 🔵 **`UX-006` — MODO OSCURO: a explorar y definir para construir** (instrucción de David, 3 sep 2026: **es el PASO 1 de la siguiente sesión**) · ◇ `UX-005` (tableros configurables, prioridad baja) |
 | Fundaciones | 🔴 `CORE-001` | 🟠 Hardening y cobertura | — | — |
 | **Vivaru Finance** | ✅ **BLOQUE CERRADO** — `FIN-000` · `FIN-001` · `FIN-002`, las tres en producción (`FIN-002` el 29 ago, bandera solo en Santa María) | — | ⏸ `FIN-AI-001` (F2, espera un corpus real de comprobantes: hoy 0 ficheros que leer) | ◇ `FIN-CH-001` |
 | IA y agentes | 🔴 `AI-GOV-001` · ⏸ `AI-DATA-001` · 🟠 **encender: `docs/encender-la-ia.md`** (3 de 7 banderas YA encendidas en producción desde el 17 ago, **`ia-proveedor-real` incluida**; 0 tráfico) | 🟠 `AI-PQRS-001` · `AI-COMM-001` | — | ◇ `AI-ONB-001` (**explorada el 1 sep: la ficha no es «elegir columnas»**; espera corpus) |
@@ -1237,6 +1237,29 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.53 — 3 de septiembre de 2026 — `UX-006` modo oscuro, a explorar
+
+- **`UX-006` — Modo oscuro seleccionable por el usuario.** Instrucción de David al cerrar el 3 de
+  septiembre: **es el PASO 1 de la siguiente sesión**, por delante de `B5` y de cualquier otro
+  frente. Estado: **a explorar y definir para construir**. Necesita PRD (`crear-prd-vivaru`, sin IA).
+- **Medido antes de escribir una línea de ficha**, que es la regla que ya ahorró media jornada en
+  `PLAT-006`: hay **174 tokens CSS** en `globals.css`, pero **cero infraestructura de tema** —ni
+  `prefers-color-scheme`, ni `next-themes`, ni interruptor— y sobre todo **625 usos de color
+  literal** (`bg-white`, `text-gray-*`, `border-slate-*`) repartidos en **169 ficheros**. Las
+  únicas cuatro apariciones de `dark:` están en `globals.css` y en **tres componentes de
+  marketing**, no del producto.
+- **El hallazgo que reencuadra la ficha:** esto **no es «añadir un interruptor»**. Mientras 625
+  usos se salten los tokens, el tema no los alcanza. La PRD tiene que decidir si se migra entero,
+  por superficie, o si el MVP se acota a un portal.
+- **Cuatro decisiones que no se deducen del código:** ¿por usuario o por conjunto —la misma que
+  tiene abierta `UX-005`, y conviene resolverla una vez para las dos—; ¿qué portales de los cuatro,
+  más el landing; ¿sigue al sistema, es explícito, o los tres estados (claro/oscuro/sistema); y
+  **qué pasa con lo que se EXPORTA** —un paz y salvo o el informe mensual **no deben heredar el
+  tema**, y si no se dice, alguien lo hereda sin querer.
+- **Aviso de terreno:** tocar el tema es tocar `globals.css`, donde vive la regla global que da
+  Playfair a `h1,h2,h3` y donde ya hubo dos reglas de `.admin-shell` que la apagaban. Y Tailwind 4
+  **escanea todo fichero de texto**, el propio CSS y los `.md` incluidos.
 
 ### 0.9.52 — 3 de septiembre de 2026 — higiene: lo que los documentos decían de sí mismos
 

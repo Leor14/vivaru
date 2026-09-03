@@ -4,159 +4,154 @@
 **Esta cabecera se reescribe entera en cada pasada** — lo que deja de ser actual baja o se borra.
 Apilar épocas con «lo de abajo sigue vigente» es un defecto que este documento ya tuvo dos veces.
 
-## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026 (PLAT-006 entera, y los datos de producción PUESTOS)
+## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de documentación)
 
-> ### `PLAT-006` está COMPLETA y desplegada, los SIETE conjuntos MARCADOS y las DIEZ direcciones SANEADAS en producción. **La bandera sigue APAGADA**, y para encenderla queda UNA decisión tuya y UNA dirección sin identificar.
+> # PASO 1, ANTES DE CUALQUIER OTRA COSA: **MODO OSCURO**
 >
-> **`master` en `c2e2483`; `develop`, un commit de documentos por delante** — el de la pasada de
-> higiene, que no empaqueta nada. **El push a `master` lo pide David.** Léelos con `git ls-remote`:
-> esta línea la deja atrás el propio commit que la escribe, y así fue como envejeció la anterior.
-> **Producción sirve
-> `build-2026-09-02-006`, `READY`, rama `master`**, cuyo mensaje de commit es el de `c2e2483` —
-> medido por `traffic.current`, no por el «Deploy complete». **Bancos: `npm test` 1579 ·
-> functions 782 · reglas 293**, typechecks en 0. **Las tres credenciales VIVAS**, ejercitadas
-> (ADC y `gcloud` con `HTTP 200`; el token mirado por contenido `ya29.`, no por longitud).
+> **Instrucción de David al cerrar el 3 de septiembre.** Antes de retomar `B5` o cualquier otro
+> frente, la primera tarea es **explorar y definir para construir** una funcionalidad nueva:
+> **que el usuario pueda elegir modo oscuro en Vivaru.**
 >
-> > **Esta línea dijo `abdde99` durante tres commits.** `abdde99` es solo el marcado de los siete
-> > conjuntos; después entraron `57e2738`, `10cf030`, `1c63c92` y `c2e2483`, y con ellos dos builds
-> > más. Una cabecera que se reescribe entera **también hay que reescribirla al final**, no al
-> > empezar a cerrar.
+> Está en fase **«a explorar y definir»**, no en construcción. Lo que toca es una **PRD** con
+> `crear-prd-vivaru` (no lleva IA), y **medir antes de escribirla** — que es la lección que ya
+> ahorró media jornada en `PLAT-006`.
 >
-> ### LO QUE SE ESCRIBIÓ EN PRODUCCIÓN HOY
+> **LA MEDICIÓN YA ESTÁ HECHA (3 sep), y cambia la forma de la ficha:**
 >
-> | Qué | Resultado, verificado leyendo |
+> | Qué | Medido |
 > |---|---|
-> | **7 conjuntos marcados** `sinClienteDetras` | 7 · **0 de trial** (los dos con `trialEndsAt` quedaron fuera) |
-> | **10 personas saneadas** al dominio inerte | 10 documentos de `people`, **0 cuentas de Auth** — las diez eran solo contacto |
-> | `config/correosDelEquipo` | `qintilab.com` + **7 direcciones exactas** del equipo |
-> | Barrido | de **30** direcciones no inertes a **20** |
-> | Bandera | **APAGADA** (sin documento → default del catálogo), 0 overrides |
+> | Tokens CSS en `globals.css` | **174** propiedades — hay sistema de tokens |
+> | `@theme` / `@theme inline` / `:root` | líneas 860, 153 y 23 de `globals.css` |
+> | `prefers-color-scheme` | **0 ficheros** |
+> | `next-themes` u otra librería | **NO está en dependencias** |
+> | Interruptor de tema en la interfaz | **0 ficheros** |
+> | Clases `dark:` | **4 ficheros, y 3 son de MARKETING** (`tabs`, `input`, `button`), no del producto |
+> | **Colores LITERALES** (`bg-white`, `text-gray-*`, `border-slate-*`…) | **625 usos en 169 ficheros** |
+> | Colores en hexadecimal dentro de componentes | **0** |
 >
-> **Vuelta atrás real:** cada documento saneado guarda `emailPrevio` (18 en total, 10 de hoy y 8
-> de `DATO-001`). Se deshace con `sanear-correos-de-prueba.mjs hogaru-1 --revertir --escribir`.
+> **Lo que esto significa, y es el hallazgo:** el trabajo **no es «añadir un interruptor»**. Los 174
+> tokens existen y **625 usos de color se los saltan**. Mientras un componente diga `bg-white`, el
+> modo oscuro no lo alcanza — cambie lo que cambie el token. La ficha tiene que decidir si eso se
+> migra entero, por superficie, o si el alcance del MVP es un portal.
 >
-> ### LO QUE FALTA PARA ENCENDER: **UNA SOLA COSA**
+> **Cuatro preguntas que la PRD tiene que cerrar y NO se pueden deducir del código:**
 >
-> **Los cinco dominios de semilla YA ESTÁN en `config/correosDelEquipo`** (decisión de David,
-> 3 sep). La medición DNS la respalda: `bromelias.co`, `elnogal.co` y `privadapalmas.mx` **no
-> resuelven**; `lasplayas.com` declara **null MX** (`0 .` — no acepta correo). **El único con
-> matiz es `santamaria.co`:** tiene registro `A` y **no tiene `MX`**, así que un envío no llegaría
-> a una persona pero **puede rebotar**, y los rebotes duros gastan la reputación del remitente.
-> **`outlook.com` NO se añadió**: es un proveedor público y habría abierto la puerta entera.
+> 1. **¿Por usuario o por conjunto?** Es la misma decisión abierta que tiene `UX-005`, y conviene
+>    resolverla una sola vez para las dos.
+> 2. **¿Qué portales?** Son cuatro —`/admin`, `/resident`, `/guard`, `/superadmin`— más el landing.
+>    El residente es móvil y es donde más se pide; el landing tiene marca propia.
+> 3. **¿Sigue al sistema operativo, o es elección explícita, o las dos** (claro / oscuro / sistema)?
+> 4. **¿Qué pasa con lo que se EXPORTA?** Los PDF de estado de cuenta, paz y salvo y el informe
+>    mensual **no deben heredar el tema**: un paz y salvo en oscuro es un documento roto. Hay que
+>    decirlo explícitamente o alguien lo hereda sin querer.
 >
-> **La lista quedó en 6 dominios + 7 direcciones exactas, y pasó su control:** rechaza
-> `gmail`/`hotmail`/`outlook`/`yahoo`/`icloud` y un dominio real cualquiera, y admite los seis
-> previstos. Sin ese control, una lista demasiado abierta habría dejado la puerta inútil sin que
-> nada fallara.
->
-> **Lo ÚNICO que queda: una dirección sin identificar, y mi inventario anterior no la vio.**
-> `dann…@outlook.com` — **«César Montufar», `security_guard` de Privada Las Playas, con cuenta de
-> Auth y último acceso el 1 de julio de 2026**. La metí en la lista del equipo dando por hecho que
-> todas eran tuyas, y **no lo es**; ya está retirada. **No se ha saneado ni se saneará hasta que
-> digas de quién es.**
->
-> > **POR QUÉ SE ESCAPÓ, que es lo que hay que llevarse:** el inventario de «las once» barrió
-> > **solo `people`**. Esta vive únicamente en `users` y `tenantUsers`. **Hay tres direcciones así**
-> > —las otras dos son tus `+alias` de Las Playas—, y ninguna aparecía en aquel conteo. El barrido
-> > oficial (`informe-correos-en-conjuntos-de-ejemplo.mjs`) sí mira las tres colecciones; el mío
-> > ad-hoc, no. **Un inventario vale lo que valen las colecciones que recorre.**
->
-> ### LA TRAMPA DEL SANEADOR, que costó descubrir y vale para la próxima
->
-> **`sanear-correos-de-prueba.mjs` no cazaba ni una de las diez.** Su `esDeRiesgo` exige una parte
-> local de 3 a 10 letras seguidas —`^[a-z]{3,10}$`—, que es **exactamente el patrón que dejó once
-> fuera en `DATO-001`**. Correrlo tal cual sobre producción respondía **«No hay nada que hacer»**:
-> un no-op que se lee como éxito. Y ampliar la expresión habría barrido también las direcciones del
-> equipo, que son del mismo dominio. Por eso ahora acepta **`--lista <ruta.json>`**: la propiedad
-> de un buzón la decide una persona, y la lista es el artefacto de esa decisión.
->
-> **La lista de las diez NO está versionada**: lleva direcciones completas de terceros. Se
-> regenera con el barrido de contexto cuando haga falta.
->
-> ### LO SIGUIENTE
->
-> 1. **Decir de quién es `dann…@outlook.com`** (César Montufar). Es lo único que bloquea encender:
->    con eso, o entra en la lista del equipo, o se sanea como las diez.
-> 2. **Encender por conjunto** —`mover-bandera-de-conjunto.mjs`— antes que en global. Empezar por
->    uno, mirar, y seguir. **Si se enciende hoy, solo esa persona quedaría sin admitir** (2
->    documentos), y no perdería el acceso: el login no pasa por la puerta.
-> 3. **Medir `CA9`** después de encender: el barrido debe dar 0 no admisibles en los marcados.
-> 4. **Ver el mensaje en pantalla**: crear una persona con un correo cualquiera desde Residentes.
-> 5. **Los cuatro repositorios de Notion** — el conector estuvo caído; el contenido está entregado
->    como archivo.
->
-> ### LA PASADA DE HIGIENE DEL 3 DE SEPTIEMBRE (hecha, no pendiente)
->
-> Los documentos afirmaban cosas falsas **sobre el propio trabajo ya hecho**, y eso dirige mal la
-> elección de frente. Corregido en `roadmap-producto.md` (0.9.52), en las siete fichas y en el
-> índice:
->
-> | Qué decía | Qué es, medido el 3 sep |
-> |---|---|
-> | Roadmap: `AHORA 🔴 UX-004 lista para desarrollo` · `SIGUIENTE 🟠 Ejecutar UX-004` | **En producción desde el 30 ago.** El aviso estaba escrito aquí el 1 sep y nadie bajó a corregirlo |
-> | Siete fichas: `Estado: Lista para desarrollo` | `FIX-003` `FEAT-005` `FLOW-005` `FIX-001` `FLOW-003` `FEAT-003` `PLAT-001` — **todas desplegadas y con bandera encendida** |
-> | `PLAT-001`: «0 de 9 conjuntos con coeficiente» | **18 de 93 unidades**, las 18 de Santa María, **sumando 100,0000 exacto** |
-> | `FEAT-005`: «11 duplicados de 68» en la prosa | **13** ya decía su propia tabla; y hoy **6 personas con `fusionadaEn`** y **1 `personMergeDecisions`**: usada, no solo desplegada |
-> | `FEAT-003`: encendida | **Cierto, y sobre tabla vacía**: `vendors` no está entre las 52 colecciones raíz |
->
-> **`docs/prd/README.md` estaba bien todo el tiempo.** El índice ya decía «EN PRODUCCIÓN» para las
-> siete. **La divergencia era entre el índice, que se mantiene, y la cabecera de cada ficha, que no**
-> — dos versiones de la misma verdad y una envejeciendo sin que nadie lo note.
->
-> **La trampa: mi primer conteo de coeficientes dio `0` en los nueve, y era un no-op.** Leía
-> `tenants/<id>/units`, y **`units` es colección RAÍZ** (`tenants` no tiene ni una subcolección);
-> encima buscaba `ownershipCoefficient` y el campo se llama `coefficient`. Dos errores sumados
-> devuelven un cero creíble. **Lo destapó desconfiar del cero**, no una prueba en rojo — el mismo
-> patrón que «No hay nada que hacer» del saneador.
->
-> ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
->
-> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **dieciocho días**.
-> 2. Los puntos 1 y 2 de arriba.
-> 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
-> 4. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
->
-> ### CÓMO SE LEE STAGING, que hoy costó cuatro intentos
->
-> **El proyecto de staging es `vivaru-staging-02` y su backend se llama `vivaru-staging-web`.**
-> Ninguno de los dos es lo que uno teclea por inercia:
->
-> | Lo que apunté | Lo que contestó | Lo que parece |
-> |---|---|---|
-> | proyecto `vivaru-staging` | **`HTTP 403` «App Hosting API has not been used in project…»** | Que falta habilitar una API, o que la credencial no llega |
-> | backend `vivaru` en `vivaru-staging-02` | **`404 NOT_FOUND`** | Que staging no tiene backend |
->
-> **`vivaru-staging` existe de verdad como proyecto** (`670093878770`), y por eso el 403 es
-> convincente: no es un id inventado, es el proyecto equivocado. El bueno está en `.firebaserc`.
-> **Dos credenciales distintas dieron el mismo 403**, lo que reforzaba la lectura falsa de que era
-> un problema de permisos. La orden correcta:
-> `node scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web 3` desde `functions/`.
->
-> Medido así: staging sirve **`build-2026-09-02-017` ← `c2e2483`**, y **se despliega solo al
-> empujar a `develop`** (confirmado en `traffic.rolloutPolicy`, no en `codebase`).
->
-> ### LAS TRAMPAS DE MÉTODO DE LA JORNADA
->
-> 1. **Un script que no encuentra nada responde «No hay nada que hacer», y eso NO es «ya está
->    limpio».** El saneador dio ese mensaje sobre diez direcciones que sí había que sanear.
-> 2. **Un inventario vale lo que valen las colecciones que recorre** — el de «las once» miró solo
->    `people` y dejó fuera tres identidades.
-> 3. **Un chequeo de credencial que mide la LONGITUD del token la da por viva**:
->    `print-access-token` devuelve un ERROR de 273 caracteres cuando está muerta. Mirar el
->    contenido (`ya29.`) y ejercitarlo. Y `HTTP 000` no es una respuesta.
-> 4. **DOS falsaciones pasaron en verde por malas y UNA por destapar un hueco real.** Si no
->    enrojece: primero se duda de la falsación; si la falsación es buena, falta cobertura.
-> 5. **Una prueba de CONTROL destapó que `config/correosDelEquipo` no la podía leer NADIE**,
->    superadmin incluido: `CA8` habría pasado en verde por la razón equivocada.
-> 6. **`updateDoc` fusiona y la regla ve el documento RESULTANTE**: por eso `create` mira el correo
->    siempre y `update` solo si CAMBIA.
-> 7. **Un guardián anclado a NÚMERO DE LÍNEA enrojece con cualquier inserción de arriba** — el de
->    `clave-de-unidad`, al desplazarse su excepción de la 640 a la 715.
->
-> **Sigue en pie: una sola sesión que escriba a la vez.**
+> **Y el aviso que vale doble aquí:** `globals.css` tiene una regla GLOBAL que pone Playfair a
+> `h1,h2,h3`, y hasta el 27 de agosto dos reglas dentro de `.admin-shell` la apagaban. **Tocar el
+> tema es tocar ese fichero.** Ver la trampa de Tailwind 4 en `CLAUDE.md`: escanea **todo fichero
+> de texto**, `.md` y el propio CSS incluidos.
 
 ---
 
+> ### PASO 2 — REVISAR LA DOCUMENTACIÓN. Hay tres documentos nuevos del 3 de septiembre y hay que leerlos antes de tocar producto.
+>
+> | Documento | Qué contiene | Por qué importa |
+> |---|---|---|
+> | [`sesion-administradora-habitanto.md`](sesion-administradora-habitanto.md) | **Diez huecos** que el inventario de Habitanto no vio | La fuente de los 108 candidatos fue **navegar la app**, no la sesión con la administradora |
+> | [`investigacion-legal-ecuador-mora.md`](investigacion-legal-ecuador-mora.md) | **Decreto 462**, tasa del BCE, anatocismo, orden de imputación | `B5` no se puede construir sin esto, y **toca `aplicarPago`, que está en producción** |
+> | `roadmap-producto.md` **0.9.52** | Pasada de higiene: siete fichas reetiquetadas | El roadmap mandaba ejecutar `UX-004`, que llevaba cuatro días en producción |
+
+---
+
+> ### ESTADO DEL REPOSITORIO AL CERRAR
+>
+> **`master` en `c2e2483`; `develop` por delante con los commits de documentación de hoy.** Léelos
+> con `git ls-remote`: esta línea la deja atrás el propio commit que la escribe. **El push a
+> `master` lo pide David** — hoy no se pidió, y como todo lo del día es documentación, `master` no
+> empaqueta nada distinto.
+>
+> **Producción sirve `build-2026-09-02-006`, `READY`, desde `master`** (medido por
+> `traffic.current`). **Staging sirve `build-2026-09-02-017`**, y se lee así —el proyecto y el
+> backend **no** son los obvios—:
+>
+> ```
+> node functions/scripts/estado-de-apphosting.mjs vivaru-staging-02 vivaru-staging-web 3
+> ```
+>
+> **Bancos: `npm test` 1579 · functions 782 · reglas 293.** Un rojo ahora es tuyo.
+> **Las tres credenciales VIVAS**, ejercitadas hoy con `HTTP 200`.
+
+---
+
+> ### LO QUE SE HIZO EL 3 DE SEPTIEMBRE (todo documentación, cero código de producto)
+>
+> 1. **Higiene de los repositorios de información.** El roadmap tenía como única acción «SIGUIENTE»
+>    de su frente de diseño **«Ejecutar `UX-004`» sobre algo con cuatro días en producción**, y
+>    **siete fichas de PRD** decían «Lista para desarrollo» con el código desplegado y la bandera
+>    encendida. Reetiquetadas con la evidencia. **`docs/prd/README.md § Funcionales` estaba bien
+>    todo el tiempo.**
+> 2. **El lote de Habitanto, medido: van DIEZ DE ONCE.** El único sin construir es **`FIX-001`
+>    entrega 2** (política de reserva **por área**): `blockOnDebt` es un solo ajuste del conjunto
+>    entero, sin política por amenity.
+> 3. **Analizado el transcript del 19 de agosto** con la administradora → diez huecos.
+> 4. **Investigación legal de Ecuador** para `B5`.
+> 5. **Instalado el plugin `agent-skills@addy-agent-skills`** (25 skills, 9 comandos, 4 subagentes
+>    y **un hook `SessionStart`** que inyecta ~2.500 tokens en toda sesión, en todos los proyectos).
+>    Revisado antes de instalar: el hook solo hace `cat` de un fichero local. Se apaga con
+>    `claude plugin disable agent-skills@addy-agent-skills`.
+
+---
+
+> ### LOS CANDIDATOS, DESPUÉS DEL MODO OSCURO
+>
+> | Frente | Qué cuesta | Qué desbloquea | Freno |
+> |---|---|---|---|
+> | **`B5` + convenio de pago** | 1–2 sesiones **y una PRD antes** | Interés de mora legal en Ecuador. **La ley los encadena: van en UNA ficha** | 🔴 Toca `aplicarPago` en producción. Y 5 puntos piden abogado |
+> | **Encender `PLAT-006`** | ½ sesión | Cierra el frente entero | **Tuyo**: de quién es `dann…@outlook.com` |
+> | **Puerta pública de alta intención** | ~1 sesión | Hoy un prospecto **no tiene por dónde decir «quiero contratar»**: `requestAdvisorContact` exige `tenantId` + auth, y el landing solo manda correo | Ninguno |
+> | **`REVOPS-001B`** | ~1 sesión | Distinguir trial registrado / activo / bloqueado | Ninguno |
+> | **`FIX-001` entrega 2** | ~1 sesión | Cierra el lote de Habitanto entero | Ninguno |
+> | **`PLAT-002` Fases 2 y 3** | ~1 sesión | Consolidado entre conjuntos. **Su bloqueo CADUCÓ**: esperaba el plan de cuentas, y hay 189 | Ninguno |
+> | **`PRD-V-PLAT-004`** | 1 sesión de PRD | El consejo sigue llegando **solo a `/admin/documents`**; ocho PRD le asignan lo que no puede | Ninguno |
+
+---
+
+> ### LO QUE ES TUYO Y NO LO PUEDE HACER UNA SESIÓN
+>
+> 1. **EL TOPE DE GASTO DE LA IA, en la consola.** `ia-proveedor-real` lleva **diecinueve días**.
+> 2. **De quién es `dann…@outlook.com`** — «César Montufar», `security_guard` de Privada Las
+>    Playas, con cuenta de Auth. **La pregunta no es cómo se llama: es si esa cuenta es del equipo o
+>    de una persona real de fuera.** Es lo único que bloquea encender `PLAT-006`.
+> 3. **Entregar `DECISIONES-A-006` a Albert** por el canal.
+> 4. **Un abogado ecuatoriano** para los cinco puntos 🔴 de la investigación legal.
+> 5. Corpus real de padrones (15–25 archivos) · `CA4` de `PH-003` (dos personas, dos dispositivos).
+> 6. **El push a `master`**, si quieres los documentos de hoy en producción.
+
+---
+
+> ### LAS TRAMPAS DE MÉTODO DEL 3 DE SEPTIEMBRE
+>
+> 1. **Un conteo dio `0` en los nueve conjuntos y era un no-op.** Leía `tenants/<id>/units` y
+>    **`units` es colección RAÍZ**; encima buscaba `ownershipCoefficient` y el campo es
+>    `coefficient`. **Dos errores sumados devuelven un cero creíble.** Lo destapó desconfiar del
+>    cero, no un rojo.
+> 2. **Un nombre AUSENTE tiene dos causas.** `emitirPazYSalvo` no aparece entre las 90 functions de
+>    producción, y eso parecía decir que `FEAT-004` no estaba desplegada. Es una función **interna**;
+>    la callable exportada se llama `emitClearanceCertificate` y sí está `ACTIVE`.
+> 3. **Un buscador afirmó que el 6,79% del Banco Central era MENSUAL.** Es anual. Aplicarlo mal
+>    cobra **doce veces de más**. Se resolvió abriendo la tabla del BCE, no aceptando el resumen.
+> 4. **Perdí cuatro intentos leyendo staging, y `CLAUDE.md` ya traía el comando exacto.** El
+>    proyecto es `vivaru-staging-02` y el backend `vivaru-staging-web`; apuntar a `vivaru-staging`
+>    da un **403 muy convincente** —porque ese proyecto EXISTE— y al backend `vivaru`, un 404. Los
+>    dos se leen como avería del sistema. **No lo eran: el error fue no leer el apartado de
+>    despliegue de `CLAUDE.md`, que lista las dos órdenes con sus argumentos buenos.** Antes de
+>    diagnosticar infraestructura, mirar si ya está escrito.
+> 5. **La divergencia de documentos va siempre en la misma dirección: el índice se mantiene, la
+>    cabecera de la ficha no.** Pasó dos veces hoy. Ante duda: **el índice manda sobre la ficha, y
+>    la medición manda sobre los dos.**
+> 6. **`npm test` es `vitest run --dir tests`.** Correr `vitest run --config vitest.config.ts` sin
+>    `--dir` arrastra las de `functions` y da **248 rojas** que no son tuyas.
+>
+> **Sigue en pie: una sola sesión que escriba a la vez.**
 ## LA JORNADA DE LOS CABOS — 2 DE SEPTIEMBRE — histórico
 
 **Bajado de la cabecera al cerrar la jornada de la puerta de buzones.** Lo operativo lo supera la
