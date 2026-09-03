@@ -22,12 +22,25 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > cierra la causa de `R12` y `R16` está desplegada donde corre el archivo del día 1. Se verificó
 > **midiendo, no leyendo «Deploy complete»** — que en este repositorio ya mintió una vez.
 >
-> ### LO QUE FALTA, Y ES LO PRIMERO AL ABRIR
+> ### LA ENTREGA 1 ESTÁ OBSERVADA. LOS CUATRO CRITERIOS, VISTOS
 >
-> **Mirar `/admin/finanzas` de `Conjunto Residencial Santa Maria` con una sesión de
-> administrador.** Es el único criterio de la entrega que **ninguna suite prueba**: el conjunto
-> tiene **5.000.000** de saldo inicial registrado y hasta hoy recibía «Fondo insuficiente… evita
-> registrar nuevos egresos» en cuanto el mes cerraba en negativo.
+> **`/admin/finanzas` de `Conjunto Residencial Santa Maria`, en PRODUCCIÓN, con la sesión de
+> Carlos Ramirez (3 sep 2026).** Era lo único que **ninguna suite prueba**, y cuadra al peso:
+>
+> | | |
+> |---|---|
+> | saldo de apertura registrado | **5.000.000** |
+> | + cuotas (Cartera) | 2.200.000 |
+> | + otros ingresos (libro) | 290.000 |
+> | − egresos (libro) | 6.765.000 |
+> | **= saldo de fondos en pantalla** | **725.000** |
+>
+> **Y con el `0` que pasaban los tres consumidores: −4.275.000.** Negativo, disparando «Fondo
+> insuficiente… evita registrar nuevos egresos» a un conjunto con cinco millones en el banco. El
+> defecto era exactamente ese y ya no ocurre.
+>
+> **La aritmética se contrastó contra los DATOS, no contra la pantalla**: apertura, otros ingresos,
+> egresos y los 13 asientos se leyeron de Firestore y coinciden uno a uno con lo pintado.
 >
 > **Intentado el 3 de septiembre, y NO se pudo cerrar. Los dos ambientes fallan por motivos
 > DISTINTOS, y conviene no confundirlos:**
@@ -50,8 +63,8 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 >
 > | # | Qué | Estado |
 > |---|---|---|
-> | 1 | Que **no** aparece el aviso rojo en Santa María, con 5.000.000 registrados | ❌ **pide sesión de administrador en PRODUCCIÓN** |
-> | 2 | Que el saldo de fondos incluye esos cinco millones | ❌ ídem |
+> | 1 | Que **no** aparece el aviso rojo en Santa María, con 5.000.000 registrados | ✅ **VISTO EN PRODUCCIÓN el 3 sep**, sesión de Carlos Ramirez |
+> | 2 | Que el saldo de fondos incluye esos cinco millones | ✅ ídem — **$725.000**, y el rótulo dice «Saldo de fondos», no «Movimientos acumulados» |
 > | 3 | Que un conjunto **sin** saldo no dice «Saldo de fondos $0» | ✅ **VISTO en staging el 3 sep**, ya desplegado: la tarjeta dice «MOVIMIENTOS ACUMULADOS $0» y debajo «Sin saldo bancario de apertura. Regístralo en la cuenta del conjunto para ver el saldo real.» |
 > | 4 | Que el Excel del estado trae las cuatro filas nuevas | ✅ **VISTO en staging el 3 sep**, descargando el fichero: `Saldo inicial registrado` → **«Sin saldo bancario de apertura»** (`CA4`: no dice «$0»), y `Saldo final del fondo`, `Cuentas pendientes de cobro` y `Deuda a proveedores` **presentes valiendo cero** (`CA8`) |
 >
