@@ -29,9 +29,22 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > tiene **5.000.000** de saldo inicial registrado y hasta hoy recibía «Fondo insuficiente… evita
 > registrar nuevos egresos» en cuanto el mes cerraba en negativo.
 >
-> **No se pudo hacer en esta sesión:** la sesión abierta en Chrome entra con un rol **sin acceso a
-> `/admin`** —responde «No tienes permisos para abrir esta sección»—, y validar por el navegador
-> solo alcanza al rol que tenga la sesión. **David la cambia si se le pide.**
+> **Intentado el 3 de septiembre, y NO se pudo cerrar. Los dos ambientes fallan por motivos
+> DISTINTOS, y conviene no confundirlos:**
+>
+> | Ambiente | Qué pasó |
+> |---|---|
+> | **producción** | La sesión entra como **David Carmona, RESIDENTE** de Santa María. `/admin` responde «No tienes permisos». **Falta una sesión de administrador ahí** |
+> | **staging** | La sesión SÍ es administradora (**Carlos Ramirez**) y la pantalla abre — pero **Santa María en staging tiene 0 cuentas bancarias, 0 saldos y 0 movimientos**. No hay nada que observar |
+>
+> **Los datos están en producción y el acceso en staging.** Mirarlo de verdad pide una sesión de
+> administrador **en producción**, que es donde Santa María tiene los 5.000.000 y 104 cargos.
+>
+> > **Pero mirar no fue en balde: destapó un defecto MÍO, a medias dentro del propio arreglo.**
+> > El Excel de `/admin/finanzas` ya decía «Sin saldo bancario de apertura» mientras **la tarjeta
+> > de encima decía «Saldo de fondos $0»** — gateé el aviso y la exportación y dejé el rótulo
+> > afirmando. Corregido en `6038e67`: sin saldo de apertura la tarjeta pasa a «Movimientos
+> > acumulados», lo explica, y **no se pinta en rojo**. Ninguna suite lo veía; lo vio la pantalla.
 >
 > Lo que hay que ver, en orden: (1) que **no** aparece el aviso rojo; (2) que el saldo de fondos
 > incluye los cinco millones; (3) en un conjunto **sin** saldo registrado —Bromelias, El Nogal,
