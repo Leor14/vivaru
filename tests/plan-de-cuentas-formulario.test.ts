@@ -52,6 +52,25 @@ describe("el espejo del código de cuenta no puede divergir", () => {
     ).toBe(patronDeFunctions());
   });
 
+  /**
+   * **La tercera copia del patrón, que apareció con `PRD-V-FLOW-007`.** El
+   * núcleo del estado financiero decide con él si una clave de agrupación es un
+   * código de cuenta —y por tanto si la línea se ordena por el plan o por
+   * monto—, y tiene que ser autocontenido para poder espejarse byte a byte en
+   * `functions/`. Sin esta comprobación habría tres literales con dos guardianes
+   * que no se tocan entre sí: el núcleo podría aceptar un código que el
+   * formulario rechaza y las dos parejas seguirían en verde.
+   */
+  it("y el núcleo del estado financiero usa esa MISMA expresión", () => {
+    const texto = fs.readFileSync(
+      path.resolve("src/lib/finanzas/nucleo-estado-financiero.ts"),
+      "utf8",
+    );
+    const m = texto.match(/const CODIGO_PATTERN = (\/.+\/);/);
+    expect(m, "No encuentro CODIGO_PATTERN en el núcleo del estado financiero").not.toBeNull();
+    expect(m?.[1]).toBe(patronDeFunctions());
+  });
+
   it("el id derivado se construye igual en los dos lados", () => {
     const texto = fs.readFileSync(FUENTE, "utf8");
     // La regla de Firestore exige `docId == tenantId + '_' + code`. Si un lado

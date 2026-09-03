@@ -80,6 +80,7 @@ export type FeatureFlagKey =
   | "producto-visita-no-anunciada"
   | "producto-puerta-de-buzones"
   | "producto-modo-oscuro"
+  | "producto-informe-mensual"
   | "operacion-app-check-monitor";
 
 export interface FeatureFlagDefinition {
@@ -407,6 +408,21 @@ export const FEATURE_FLAG_CATALOG: Record<FeatureFlagKey, FeatureFlagDefinition>
     origen: "PRD-V-PLAT-003 §5.2",
     alApagar:
       "Todo asiento NUEVO vuelve a escribirse como «alicuota» y el recaudo se vuelve a ver junto. Los ya escritos con su cuenta correcta se quedan — y no se quieren revertir: son los correctos.",
+  },
+  "producto-informe-mensual": {
+    key: "producto-informe-mensual",
+    area: "producto",
+    label: "El informe económico mensual, anclado al banco",
+    description:
+      "El estado financiero parte del saldo real de las cuentas del conjunto y añade cuentas pendientes de cobro y deuda a proveedores. Además, el archivo mensual automático pasa a calcular con el MISMO código que la pantalla.",
+    // Nace apagada porque cambia cifras que el consejo ya recibe cada día 1: el
+    // «saldo de fondos» deja de ser el acumulado de movimientos y pasa a incluir
+    // el dinero con el que abrió el conjunto. No es un error nuevo, es el viejo
+    // dejando de ocurrir, pero hay que poder encenderlo mirando y por conjunto.
+    defaultEnabled: false,
+    origen: "PRD-V-FLOW-007 entrega 1",
+    alApagar:
+      "El archivo mensual vuelve a las tres cifras de siempre —sin saldo inicial, sin cartera viva y sin deuda a proveedores— y la pantalla de Finanzas conserva el saldo inicial leído, que no es reversible por bandera: es la corrección del aviso falso de «Fondo insuficiente».",
   },
   "producto-anticipos": {
     key: "producto-anticipos",

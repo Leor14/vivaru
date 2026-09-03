@@ -119,13 +119,11 @@ export function docIdDeCuenta(tenantId: string, code: string): string {
 }
 
 /**
- * Orden de lectura del plan: por código y **numéricamente**, no como texto.
+ * Orden de lectura del plan: por código y numéricamente.
  *
- * Ordenar `["1.10", "1.2"]` como cadenas pone la 1.10 antes que la 1.2, que es
- * exactamente el desorden que un contador nota al primer vistazo.
+ * **Vive en el núcleo del estado financiero y se reexporta aquí**, no se copia:
+ * el informe ordena sus líneas con esta misma función y el núcleo tiene que ser
+ * autocontenido para poder espejarse byte a byte en `functions/`
+ * (`PRD-V-FLOW-007` entrega 1). Reexportar deja una sola definición en `src/`.
  */
-export function compararCodigos(a: string, b: string): number {
-  const pa = a.split(".").map(Number);
-  const pb = b.split(".").map(Number);
-  return (pa[0] - pb[0]) || ((pa[1] ?? 0) - (pb[1] ?? 0));
-}
+export { compararCodigos } from "./nucleo-estado-financiero";

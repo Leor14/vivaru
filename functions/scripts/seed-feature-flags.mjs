@@ -129,6 +129,15 @@ const CATALOGO = [
     enabled: false,
   },
   {
+    key: "producto-informe-mensual",
+    area: "producto",
+    label: "El informe económico mensual, anclado al banco",
+    origen: "PRD-V-FLOW-007 entrega 1",
+    // Nace apagada y se enciende por conjunto: cambia el «saldo de fondos» que
+    // el consejo recibe cada día 1, porque pasa a incluir el saldo del banco.
+    enabled: false,
+  },
+  {
     key: "producto-calendario-de-cobranza",
     area: "producto",
     label: "Calendario de cobranza del conjunto",

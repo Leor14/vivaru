@@ -13,6 +13,12 @@ import { useChartOfAccounts } from "@/features/finanzas/use-chart-of-accounts";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { categoriaDeConcepto, type RecaudoDeCartera } from "@/lib/finanzas/conceptos-de-cargo";
 import { computeFundPosition } from "@/features/finanzas/use-ledger";
+import { sumarSaldoInicial } from "@/features/finanzas/use-bank-accounts";
+import {
+  sumarCuentasPorCobrar,
+  sumarDeudaAProveedores,
+  type OrigenDelSaldoInicial,
+} from "@/lib/finanzas/nucleo-estado-financiero";
 import type { CommitteeAgreement, CommitteeAgreementSignature } from "@/features/committee-agreements/types";
 import type { BillingStatement, LedgerEntry, PackageItem, Ticket, VisitorPass, Reservation } from "@/types/domain";
 
@@ -132,6 +138,18 @@ export type CommitteeReport = {
     totalExpenses: number;               // egresos del período
     netResult: number;                   // ingresos - egresos
     fundBalance: number;                 // saldo de fondos actual (acumulado)
+    /**
+     * `PRD-V-FLOW-007` entrega 1. **`openingBalance` es opcional a propósito:**
+     * `undefined` con `openingBalanceSource: "ausente"` significa que ningún
+     * documento de saldo existe, y la pantalla debe decirlo con palabras en vez
+     * de pintar «$0» — que afirma algo que nadie registró (`CA4`).
+     */
+    openingBalance?: number;
+    openingBalanceSource: OrigenDelSaldoInicial;
+    /** Lo facturado y no cobrado. Se enseña también en cero, calculado (`CA8`). */
+    pendingReceivables: number;
+    /** Lo causado a proveedores y no pagado. También en cero (`CA8`). */
+    supplierDebt: number;
     /**
      * Los ingresos por cuenta. **Faltaban, y no por descuido de diseño:** el
      * estado financiero los calculaba desde siempre y este hook los tiraba al
@@ -262,7 +280,20 @@ const EMPTY: CommitteeReport = {
   tickets: { total: 0, open: 0, inProgress: 0, resolved: 0, byCategory: { pqrs: 0, maintenance: 0, billing: 0 } },
   visitors: { total: 0, byWeek: [], insideNow: 0 },
   reservations: { total: 0, approved: 0, pending: 0, cancelled: 0, byAmenity: [] },
-  financial: { totalIncome: 0, totalExpenses: 0, netResult: 0, fundBalance: 0, incomeByCategory: [], expenseByCategory: [] },
+  financial: {
+    totalIncome: 0,
+    totalExpenses: 0,
+    netResult: 0,
+    fundBalance: 0,
+    // El informe vacío nace declarando que NO hay saldo registrado, que es lo
+    // cierto mientras no se haya leído nada. Nacer en `"registrado"` con un cero
+    // haría que la pantalla afirmara un saldo durante la carga.
+    openingBalanceSource: "ausente",
+    pendingReceivables: 0,
+    supplierDebt: 0,
+    incomeByCategory: [],
+    expenseByCategory: [],
+  },
   agreements: { total: 0, forSignature: 0, informative: 0, expectedSignatures: 0, signed: 0, pending: 0, signatureRate: 0, items: [] },
   sectionLoading: { billing: true, financial: true, packages: true, tickets: true, visitors: true, reservations: true, agreements: true },
 };
@@ -289,6 +320,11 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
   const [agreements, setAgreements] = useState<CommitteeAgreement[]>([]);
   const [agreementSignatures, setAgreementSignatures] = useState<CommitteeAgreementSignature[]>([]);
   const [units, setUnits] = useState<Array<{ id: string; status?: string }>>([]);
+  // `PRD-V-FLOW-007` entrega 1. El saldo inicial y los egresos no dependen del
+  // período: el primero es el punto de partida del conjunto y el segundo trae la
+  // deuda viva a proveedores, que es un saldo y no un flujo del mes.
+  const [saldosIniciales, setSaldosIniciales] = useState<Array<{ id: string; openingBalance?: number }>>([]);
+  const [expenses, setExpenses] = useState<Array<{ id: string; amount?: number; status?: string }>>([]);
 
   const [loadingBilling, setLoadingBilling] = useState(true);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -363,6 +399,11 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     load<VisitorPass>("visitorPasses", { equals: [{ field: "status", value: "inside" }] }, setVisitorsInside, setLoadingVisitorsInside);
     load<CommitteeAgreementSignature>("committee_agreement_signatures", undefined, setAgreementSignatures, setLoadingAgreementSignatures);
     load<{ id: string; status?: string }>("units", undefined, setUnits, setLoadingUnits);
+    // Las dos comparten el `setLoadingLedger` a propósito: alimentan el mismo
+    // bloque financiero del informe, y darles un indicador propio haría que la
+    // sección se pintara con una de las tres cifras a medias.
+    load<{ id: string; openingBalance?: number }>("bankAccountBalances", undefined, setSaldosIniciales, () => {});
+    load<{ id: string; amount?: number; status?: string }>("expenses", undefined, setExpenses, () => {});
     return () => {
       cancelled = true;
     };
@@ -550,7 +591,11 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     const cuotaIncomeAllTime = billing
       .filter((b) => b.status === "paid")
       .reduce((sum, b) => sum + (b.paymentAmount ?? b.amount ?? 0), 0);
-    const fundPosition = computeFundPosition(ledger, cuotaIncomeAllTime);
+    // **El saldo inicial, leído.** Hasta esta entrega el informe del consejo
+    // pasaba `0` igual que `/admin/finanzas`, así que su «saldo de fondos» era
+    // el acumulado de movimientos y no el dinero del conjunto. `CA9`.
+    const saldoInicial = sumarSaldoInicial(saldosIniciales);
+    const fundPosition = computeFundPosition(ledger, cuotaIncomeAllTime, saldoInicial);
     const periodLedger = ledger.filter((e) => inRange(toDateStr(e.date), start, end));
     // El reparto se construye AQUÍ y no con `repartirRecaudo` a propósito: este
     // informe define «recaudado» de otra forma que la pantalla de Finanzas
@@ -573,8 +618,16 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
     const statement = buildFinancialStatement(
       periodLedger,
       conceptoAlLibro ? recaudo : totalCollected,
-      0,
+      saldoInicial,
       planInformes,
+      {
+        // `CA8`. Los dos son SALDOS y no flujos, así que se calculan sobre todo
+        // lo vivo y no sobre lo que cae dentro del período: lo que el consejo
+        // pregunta es «cuánto nos deben» y «cuánto debemos» hoy, no cuánto se
+        // facturó en marzo.
+        pendingReceivables: sumarCuentasPorCobrar(billing),
+        supplierDebt: sumarDeudaAProveedores(expenses),
+      },
     );
     const financialMetrics = {
       totalIncome: statement.totalIncome,
@@ -583,6 +636,10 @@ export function useCommitteeReport(tenantId: string | undefined, range: DateRang
       fundBalance: fundPosition.balance,
       incomeByCategory: statement.incomeByCategory,
       expenseByCategory: statement.expenseByCategory,
+      openingBalance: statement.openingBalance,
+      openingBalanceSource: statement.openingBalanceSource,
+      pendingReceivables: statement.pendingReceivables,
+      supplierDebt: statement.supplierDebt,
     };
 
     // ── Acuerdos de comité ─────────────────────────────────────────────────────

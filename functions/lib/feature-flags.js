@@ -72,6 +72,10 @@ exports.FEATURE_FLAG_DEFAULTS = {
     // Apagada = `aplicarPago` sigue escribiendo "alicuota" fijo, como hasta hoy.
     // Encenderla cambia lo que muestra el estado financiero; ver el catálogo en `src/`.
     "producto-concepto-al-libro": false,
+    // Apagada = `monthlyFinancialArchive` sigue archivando las tres cifras de
+    // siempre y no lee saldo inicial, cartera viva ni deuda a proveedores. Ver el
+    // catálogo en `src/`.
+    "producto-informe-mensual": false,
     // Apagada = el sobrepago se sigue contabilizando entero contra la cuota, como
     // hasta hoy, y no nace ningún anticipo. Ver el catálogo en `src/`.
     "producto-anticipos": false,

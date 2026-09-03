@@ -1,0 +1,206 @@
+{
+  "porQueExiste": [
+    "PRD-V-FLOW-007 CA1. El estado financiero está escrito en DOS sitios que no se pueden",
+    "importar entre sí: src/lib/finanzas/nucleo-estado-financiero.ts y su copia byte a byte",
+    "en functions/src/. Este fichero es el banco de casos que corren LAS DOS, con los mismos",
+    "números escritos a mano. Si una de las dos se desvía, enrojece su lado con la cifra que",
+    "cambió — que es lo que no existía cuando R12/R13 y R16 se desviaron en verde.",
+    "",
+    "LOS NÚMEROS DE `esperado` SE CALCULARON A MANO, no se grabaron de una corrida. Grabar la",
+    "salida actual haría un guardián que consagra el defecto que tenga hoy: pasaría siempre y",
+    "no probaría nada."
+  ],
+  "casos": [
+    {
+      "nombre": "CA2 · saldo inicial 5.000 y un mes de −200 dan un cierre de 4.800",
+      "entrada": {
+        "asientos": [{ "type": "egreso", "category": "mantenimiento", "amount": 200 }],
+        "cuota": 0,
+        "openingBalance": 5000
+      },
+      "esperado": {
+        "totalIncome": 0,
+        "totalExpenses": 200,
+        "netResult": -200,
+        "openingBalance": 5000,
+        "openingBalanceSource": "registrado",
+        "fundBalance": 4800,
+        "pendingReceivables": 0,
+        "supplierDebt": 0
+      }
+    },
+    {
+      "nombre": "CA4 · sin saldo registrado, el origen es `ausente` y `openingBalance` no existe",
+      "entrada": {
+        "asientos": [{ "type": "egreso", "category": "nomina", "amount": 200 }],
+        "cuota": 1000
+      },
+      "esperado": {
+        "totalIncome": 1000,
+        "totalExpenses": 200,
+        "netResult": 800,
+        "openingBalance": null,
+        "openingBalanceSource": "ausente",
+        "fundBalance": 800,
+        "pendingReceivables": 0,
+        "supplierDebt": 0
+      }
+    },
+    {
+      "nombre": "CA4bis · un CERO registrado no es lo mismo: el origen sí es `registrado`",
+      "entrada": {
+        "asientos": [{ "type": "egreso", "category": "nomina", "amount": 200 }],
+        "cuota": 1000,
+        "openingBalance": 0
+      },
+      "esperado": {
+        "totalIncome": 1000,
+        "totalExpenses": 200,
+        "netResult": 800,
+        "openingBalance": 0,
+        "openingBalanceSource": "registrado",
+        "fundBalance": 800,
+        "pendingReceivables": 0,
+        "supplierDebt": 0
+      }
+    },
+    {
+      "nombre": "CA3 · COP en enteros — 5.000.000 de apertura, el saldo real de Santa María",
+      "entrada": {
+        "asientos": [
+          { "type": "ingreso", "category": "arriendo", "sourceType": "manual", "amount": 350000 },
+          { "type": "egreso", "category": "vigilancia", "amount": 1200000 }
+        ],
+        "cuota": 800000,
+        "openingBalance": 5000000
+      },
+      "esperado": {
+        "totalIncome": 1150000,
+        "totalExpenses": 1200000,
+        "netResult": -50000,
+        "openingBalance": 5000000,
+        "openingBalanceSource": "registrado",
+        "fundBalance": 4950000,
+        "pendingReceivables": 0,
+        "supplierDebt": 0
+      }
+    },
+    {
+      "nombre": "CA3bis · MXN con centavos: la identidad se cumple al céntimo",
+      "entrada": {
+        "asientos": [{ "type": "egreso", "category": "seguros", "amount": 1234.56 }],
+        "cuota": 2000.44,
+        "openingBalance": 100.1
+      },
+      "esperado": {
+        "totalIncome": 2000.44,
+        "totalExpenses": 1234.56,
+        "netResult": 765.88,
+        "openingBalance": 100.1,
+        "openingBalanceSource": "registrado",
+        "fundBalance": 865.98,
+        "pendingReceivables": 0,
+        "supplierDebt": 0
+      }
+    },
+    {
+      "nombre": "R12/R13 · el recaudo de Cartera NO se cuenta dos veces, ni por origen ni por su reverso",
+      "entrada": {
+        "asientos": [
+          { "type": "ingreso", "category": "multa", "sourceType": "billingStatement", "amount": 90000 },
+          { "type": "ingreso", "category": "multa", "sourceType": "reversal", "reversedSourceType": "billingStatement", "amount": -90000 },
+          { "type": "ingreso", "category": "alicuota", "sourceType": "manual", "amount": 70000 },
+          { "type": "ingreso", "category": "anticipo", "sourceType": "advance", "amount": 40000 }
+        ],
+        "cuota": 500000,
+        "openingBalance": 0
+      },
+      "esperado": {
+        "totalIncome": 540000,
+        "totalExpenses": 0,
+        "netResult": 540000,
+        "openingBalance": 0,
+        "openingBalanceSource": "registrado",
+        "fundBalance": 540000,
+        "pendingReceivables": 0,
+        "supplierDebt": 0
+      }
+    },
+    {
+      "nombre": "CA7 · con plan, los egresos salen en el orden del plan y no por monto",
+      "entrada": {
+        "asientos": [
+          { "type": "egreso", "accountCode": "2.10", "category": "otros", "amount": 10 },
+          { "type": "egreso", "accountCode": "2.2", "category": "nomina", "amount": 999 },
+          { "type": "egreso", "accountCode": "2.1", "category": "seguros", "amount": 500 }
+        ],
+        "cuota": 0,
+        "openingBalance": 0,
+        "plan": {
+          "codigoPorSystemKey": [],
+          "nombrePorCodigo": [["2.1", "Seguros"], ["2.2", "Nómina"], ["2.10", "Otros"]]
+        }
+      },
+      "esperado": {
+        "totalIncome": 0,
+        "totalExpenses": 1509,
+        "netResult": -1509,
+        "openingBalance": 0,
+        "openingBalanceSource": "registrado",
+        "fundBalance": -1509,
+        "pendingReceivables": 0,
+        "supplierDebt": 0,
+        "expenseByCategory": [
+          { "category": "2.1", "label": "Seguros", "amount": 500 },
+          { "category": "2.2", "label": "Nómina", "amount": 999 },
+          { "category": "2.10", "label": "Otros", "amount": 10 }
+        ]
+      }
+    },
+    {
+      "nombre": "CA8 · las dos partidas viajan aunque valgan cero, y cuando no, también",
+      "entrada": {
+        "asientos": [],
+        "cuota": 0,
+        "openingBalance": 85000,
+        "pendingReceivables": 18000,
+        "supplierDebt": 33150
+      },
+      "esperado": {
+        "totalIncome": 0,
+        "totalExpenses": 0,
+        "netResult": 0,
+        "openingBalance": 85000,
+        "openingBalanceSource": "registrado",
+        "fundBalance": 85000,
+        "pendingReceivables": 18000,
+        "supplierDebt": 33150
+      }
+    }
+  ],
+  "cuentasPorCobrar": [
+    {
+      "nombre": "se suma el saldo vivo, se topa en cero por cargo, y `paid`/`cancelled` quedan fuera",
+      "cargos": [
+        { "status": "overdue", "balance": 120000 },
+        { "status": "pending", "balance": 30000 },
+        { "status": "pending", "balance": -5000 },
+        { "status": "paid", "balance": 0 },
+        { "status": "cancelled", "balance": 999999 }
+      ],
+      "esperado": 150000
+    }
+  ],
+  "deudaAProveedores": [
+    {
+      "nombre": "solo `registrado` — el catálogo es castellano y filtrar en inglés no excluye nada",
+      "egresos": [
+        { "status": "registrado", "amount": 1600 },
+        { "status": "registrado", "amount": 31550 },
+        { "status": "pagado", "amount": 500000 },
+        { "status": "anulado", "amount": 700000 }
+      ],
+      "esperado": 33150
+    }
+  ]
+}

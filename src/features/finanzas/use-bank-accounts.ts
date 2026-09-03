@@ -123,3 +123,54 @@ export async function deleteBankAccount(id: string) {
   // nadie y reaparecería si alguien reutilizara el id.
   await deleteDoc(doc(db, SALDOS, id));
 }
+
+/**
+ * El saldo inicial del CONJUNTO: la suma de lo registrado en sus cuentas.
+ *
+ * **`undefined` cuando ninguna cuenta tiene documento de saldo**, y esa
+ * distinción es el punto entero (`PRD-V-FLOW-007` `CA4`). Medido en producción
+ * el 3 de septiembre de 2026: cuatro conjuntos tienen documento —dos de ellos
+ * con el valor **cero**, escrito a propósito— y cinco no tienen ninguno.
+ * Devolver `0` en los dos casos afirma que el conjunto abrió sin un peso, que
+ * es una afirmación que nadie hizo, y es lo que hacía que `/admin/finanzas`
+ * avisara «Fondo insuficiente» a un conjunto con dinero en el banco.
+ *
+ * **Se suman TODAS las cuentas, activas o no.** Una cuenta desactivada sigue
+ * teniendo el dinero con el que abrió el período mientras no se cierre; filtrar
+ * por `active` haría desaparecer del fondo un saldo que está en el banco.
+ */
+export function sumarSaldoInicial(
+  saldos: ReadonlyArray<{ openingBalance?: number }>,
+): number | undefined {
+  let total = 0;
+  let alguno = false;
+  for (const saldo of saldos) {
+    const valor = saldo.openingBalance;
+    if (typeof valor !== "number" || !Number.isFinite(valor)) continue;
+    total += valor;
+    alguno = true;
+  }
+  return alguno ? total : undefined;
+}
+
+/**
+ * Suscripción a los saldos iniciales del conjunto.
+ *
+ * La colección es **solo-administración** por regla, así que esto no se puede
+ * colgar de ninguna pantalla del residente ni de la portería: la consulta se
+ * rechazaría entera y la pantalla diría «sin datos» en vez de «sin permiso».
+ */
+export function watchBankAccountBalances(
+  tenantId: string,
+  onData: (items: Array<{ id: string; openingBalance?: number }>) => void,
+  onError: (message: string) => void,
+) {
+  return (
+    subscribeTenantCollection<{ id: string; openingBalance?: number }>(
+      SALDOS,
+      tenantId,
+      onData,
+      onError,
+    ) ?? (() => {})
+  );
+}

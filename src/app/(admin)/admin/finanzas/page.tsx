@@ -28,6 +28,9 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { IconBadge } from "@/components/ui/icon-badge";
 import { Input } from "@/components/ui/input";
 import { useBillingStatements } from "@/features/billing/use-billing-statements";
+import { sumarSaldoInicial, watchBankAccountBalances } from "@/features/finanzas/use-bank-accounts";
+import { useExpenses } from "@/features/finanzas/use-expenses";
+import { sumarCuentasPorCobrar, sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
 import { useFeatureFlag } from "@/lib/feature-flags/provider";
 import { repartirRecaudo } from "@/lib/finanzas/conceptos-de-cargo";
 import {
@@ -150,10 +153,40 @@ function AdminFinanzasLibroPageContent() {
   const cuotaIncome = recaudo.total;
   const cuotaParaEstado = conceptoAlLibro ? recaudo : recaudo.total;
 
+  /**
+   * **El saldo inicial del conjunto, leído de verdad.**
+   *
+   * Hasta `PRD-V-FLOW-007` esta pantalla pasaba `0` a `computeFundPosition` y a
+   * `buildFinancialStatement` —uno omitiendo el argumento y el otro con un cero
+   * literal—, así que el «saldo de fondos» era el resultado del período y no el
+   * dinero del conjunto. Con eso, un conjunto con cinco millones en el banco y
+   * un mes en negativo recibía **«Fondo insuficiente… evita registrar nuevos
+   * egresos»**. `CA9`.
+   *
+   * `undefined` significa que **nadie lo registró**, y no se sustituye por cero
+   * — ver `sumarSaldoInicial`.
+   */
+  const [saldosIniciales, setSaldosIniciales] = useState<Array<{ id: string; openingBalance?: number }>>([]);
+  useEffect(() => {
+    if (!user?.tenantId) return;
+    // El error se traga a propósito: el saldo inicial es un dato de apoyo y su
+    // colección es solo-administración. Si no se puede leer, la pantalla sigue
+    // funcionando SIN afirmar un saldo — que es justo lo contrario de caer a 0.
+    const unsub = watchBankAccountBalances(user.tenantId, setSaldosIniciales, () => setSaldosIniciales([]));
+    return () => unsub();
+  }, [user?.tenantId]);
+  const saldoInicial = useMemo(() => sumarSaldoInicial(saldosIniciales), [saldosIniciales]);
+
+  const { expenses } = useExpenses(user?.tenantId);
+  const pendingReceivables = useMemo(() => sumarCuentasPorCobrar(statements), [statements]);
+  const supplierDebt = useMemo(() => sumarDeudaAProveedores(expenses), [expenses]);
+
   const fundPosition = useMemo(
-    () => computeFundPosition(entries, cuotaIncome),
-    [entries, cuotaIncome],
+    () => computeFundPosition(entries, cuotaIncome, saldoInicial),
+    [entries, cuotaIncome, saldoInicial],
   );
+  /** Si el fondo se puede afirmar. Sin saldo registrado, no se puede. */
+  const haySaldoInicial = saldoInicial !== undefined;
 
   function openCreate() {
     form.reset({ type: "ingreso", date: today(), concept: "", category: "", bankAccountId: "" });
@@ -161,7 +194,10 @@ function AdminFinanzasLibroPageContent() {
   }
 
   function handleExportStatement() {
-    const statement = buildFinancialStatement(entries, cuotaParaEstado, 0, planInformes);
+    const statement = buildFinancialStatement(entries, cuotaParaEstado, saldoInicial, planInformes, {
+      pendingReceivables,
+      supplierDebt,
+    });
     const rows: (string | number)[][] = [
       ["Estado de ingresos y egresos"],
       [],
@@ -174,6 +210,14 @@ function AdminFinanzasLibroPageContent() {
       ["Total egresos", statement.totalExpenses],
       [],
       ["Resultado del período", statement.netResult],
+      [],
+      // `CA8`: las dos partidas van SIEMPRE, también en cero. Esconder la
+      // sección cuando vale cero hace indistinguible «no se debe nada» de «esto
+      // no se calcula», y son dos lecturas muy distintas para un consejo.
+      ["Saldo inicial registrado", statement.openingBalanceSource === "registrado" ? (statement.openingBalance ?? 0) : "Sin saldo bancario de apertura"],
+      ["Saldo final del fondo", statement.fundBalance],
+      ["Cuentas pendientes de cobro", statement.pendingReceivables],
+      ["Deuda a proveedores", statement.supplierDebt],
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "Estado financiero");
@@ -383,11 +427,28 @@ function AdminFinanzasLibroPageContent() {
         </div>
       </div>
 
-      {fundPosition.balance < 0 ? (
+      {/*
+        **El aviso solo se da cuando el saldo se puede afirmar.** Sin saldo
+        inicial registrado no se sabe si el fondo está en negativo: lo único que
+        se sabe es que el período cerró en negativo, que es otra frase. Decir
+        «Fondo insuficiente… evita registrar nuevos egresos» sobre un dato que
+        nadie registró es pedirle al administrador que deje de operar por una
+        cifra que el producto se inventó. `CA9` y `CA4`.
+      */}
+      {haySaldoInicial && fundPosition.balance < 0 ? (
         <div className="mt-4 flex items-start gap-2 rounded-xl border border-[var(--tinte-rojo-borde-2)] bg-[var(--tinte-neutro-fondo-2)] px-4 py-3 text-sm text-[var(--tinte-rojo-texto-2)]">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
           <span>
             <strong>Fondo insuficiente.</strong> El saldo de fondos es negativo ({formatAmount(fundPosition.balance)}). Revisa los ingresos pendientes y evita registrar nuevos egresos hasta regularizarlo.
+          </span>
+        </div>
+      ) : null}
+
+      {!haySaldoInicial && fundPosition.totalIncome - fundPosition.expenses < 0 ? (
+        <div className="mt-4 flex items-start gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--slate-600)]">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden />
+          <span>
+            <strong>Sin saldo bancario de apertura.</strong> El período cerró en negativo ({formatAmount(fundPosition.totalIncome - fundPosition.expenses)}), pero no se puede decir si el fondo alcanza: ninguna cuenta del conjunto tiene registrado su saldo inicial. Regístralo en la cuenta bancaria para que esta cifra signifique algo.
           </span>
         </div>
       ) : null}

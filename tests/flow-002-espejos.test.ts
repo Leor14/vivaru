@@ -149,7 +149,13 @@ describe("§11.3 · `calcularSaldo` y `computeBalanceStatus` no se pueden separa
 describe("CA17 · el anticipo NO se excluye del libro, y nadie puede añadirlo «por simetría»", () => {
   const fuenteServidor = fs.readFileSync(PAGOS, "utf8");
   const cuerpoServidor = esqueleto(cuerpoDeFuncion(fuenteServidor, "export function esRecaudoDeCartera", PAGOS));
-  const RUTA_SRC = path.resolve("src/features/finanzas/financial-statement.ts");
+  // `PRD-V-FLOW-007` entrega 1 movió la definición de `esRecaudoDeCartera` al
+  // núcleo del estado financiero —`financial-statement.ts` la reexporta—, así
+  // que el guardián la sigue hasta allí. Sin esto, `cuerpoDeFuncion` no
+  // encontraría la firma y la prueba moriría con un error de «no encuentro»,
+  // que se lee como un fallo del parser y no como lo que sería: el espejo sin
+  // vigilar.
+  const RUTA_SRC = path.resolve("src/lib/finanzas/nucleo-estado-financiero.ts");
   const cuerpoCliente = esqueleto(
     cuerpoDeFuncion(fs.readFileSync(RUTA_SRC, "utf8"), "export function esRecaudoDeCartera", RUTA_SRC),
   );

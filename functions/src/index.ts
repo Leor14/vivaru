@@ -88,6 +88,11 @@ import {
 import { esMiembroDelConjunto } from "./tenant-membership";
 import { assertTenantContratado, assertTenantOperable } from "./tenant-status";
 import { assertFeatureEnabled, isFeatureEnabled } from "./feature-flags";
+import {
+  construirEstadoFinanciero,
+  sumarCuentasPorCobrar,
+  sumarDeudaAProveedores,
+} from "./nucleo-estado-financiero";
 import { frasesDelRecibo } from "./aviso-recibo";
 import { terminoCuotaMensual } from "./vocabulario-pais";
 import { cuentaParaConcepto } from "./plan-de-cuentas";
@@ -3870,9 +3875,57 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
     // de 2026 esto preguntaba `category !== "alicuota"` y **contaba dos veces**
     // todo cargo que no fuera la cuota: `recaudado` ya lo trae de Cartera. Ver
     // `esRecaudoDeCartera` en `payments.ts`, que es su espejo de `src/`.
-    const ingresosOtros = monthLed.filter((e) => e.type === "ingreso" && !esRecaudoDeCartera(e)).reduce((a, e) => a + (e.amount ?? 0), 0);
-    const egresos = monthLed.filter((e) => e.type === "egreso").reduce((a, e) => a + (e.amount ?? 0), 0);
-    const ingresos = recaudado + ingresosOtros;
+    // **`PRD-V-FLOW-007` entrega 1 — el resumen ya NO se calcula aquí.** Lo
+    // calcula `construirEstadoFinanciero`, el mismo núcleo que usa la pantalla,
+    // espejado byte a byte desde `src/lib/finanzas/`. Las dos líneas que había
+    // aquí eran la reimplementación que se desvió DOS veces —R12/R13 y R16—
+    // porque nada comparaba las dos versiones.
+    //
+    // **Con la bandera apagada esto produce exactamente lo de siempre** (`R1`):
+    // el núcleo, alimentado con `recaudado` como cuota y los asientos del mes,
+    // devuelve `totalIncome = recaudado + ingresosOtros` y
+    // `totalExpenses = Σ egresos`, que es lo que decían las dos líneas viejas.
+    // Lo que cambia con la bandera encendida son las CUATRO filas nuevas de
+    // abajo, no estas tres cifras.
+    // Las cuatro partidas nuevas se leen SOLO con la bandera encendida: son tres
+    // consultas más por conjunto y nueve conjuntos, y con la bandera apagada no
+    // se pintan, así que pedirlas sería gastar lecturas para tirarlas.
+    const informeAnclado = await isFeatureEnabled("producto-informe-mensual", tenantId);
+    let saldoInicial: number | undefined;
+    let porCobrar = 0;
+    let deudaProveedores = 0;
+    if (informeAnclado) {
+      const [saldosSnap, egresosSnap] = await Promise.all([
+        db.collection("bankAccountBalances").where("tenantId", "==", tenantId).get(),
+        db.collection("expenses").where("tenantId", "==", tenantId).get(),
+      ]);
+      // **`undefined` cuando no hay NINGÚN documento de saldo**, no cero: es la
+      // distinción de `CA4`, y sumar sobre una lista vacía daría 0 y afirmaría
+      // que el conjunto abrió sin un peso.
+      let acumulado = 0;
+      let alguno = false;
+      for (const d of saldosSnap.docs) {
+        const v = (d.data() as { openingBalance?: number }).openingBalance;
+        if (typeof v !== "number" || !Number.isFinite(v)) continue;
+        acumulado += v;
+        alguno = true;
+      }
+      saldoInicial = alguno ? acumulado : undefined;
+      porCobrar = sumarCuentasPorCobrar(stmts);
+      deudaProveedores = sumarDeudaAProveedores(
+        egresosSnap.docs.map((d) => d.data() as { amount?: number; status?: string }),
+      );
+    }
+
+    const estado = construirEstadoFinanciero({
+      asientos: monthLed,
+      cuota: recaudado,
+      openingBalance: saldoInicial,
+      pendingReceivables: porCobrar,
+      supplierDebt: deudaProveedores,
+    });
+    const ingresos = estado.totalIncome;
+    const egresos = estado.totalExpenses;
     await archiveXlsx({
       tenantId, systemKey: "committee_reports", fileName: `Reporte-Comite-${prevMonth}.xlsx`,
       sheets: [{ name: "Resumen", rows: [
@@ -3886,6 +3939,18 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
         ["Ingresos del mes", ingresos],
         ["Egresos del mes", egresos],
         ["Resultado neto del mes", ingresos - egresos],
+        // `CA8`: van SIEMPRE que la bandera esté encendida, también en cero. Un
+        // cero calculado dice «no se debe nada»; esconder la fila dice «esto no
+        // se mide», y para un consejo son dos cosas distintas.
+        ...(informeAnclado
+          ? [
+              [] as (string | number)[],
+              ["Saldo inicial del banco", estado.openingBalanceSource === "registrado" ? (estado.openingBalance ?? 0) : "Sin saldo bancario de apertura"],
+              ["Saldo final del fondo", estado.fundBalance],
+              ["Cuentas pendientes de cobro", estado.pendingReceivables],
+              ["Deuda a proveedores", estado.supplierDebt],
+            ]
+          : []),
       ] }],
       description: `Reporte de comité ${prevMonth} (automático, resumen financiero)`, source: "committee_report", sourceId: prevMonth, category: "reporte",
     });
@@ -3903,6 +3968,14 @@ export const monthlyFinancialArchive = onSchedule({ schedule: "0 6 1 * *", timeo
         ["Ingresos del mes", formatMoney(ingresos)],
         ["Egresos del mes", formatMoney(egresos)],
         ["Resultado neto del mes", formatMoney(ingresos - egresos)],
+        ...(informeAnclado
+          ? [
+              ["Saldo inicial del banco", estado.openingBalanceSource === "registrado" ? formatMoney(estado.openingBalance ?? 0) : "Sin saldo bancario de apertura"] as [string, string],
+              ["Saldo final del fondo", formatMoney(estado.fundBalance)] as [string, string],
+              ["Cuentas pendientes de cobro", formatMoney(estado.pendingReceivables)] as [string, string],
+              ["Deuda a proveedores", formatMoney(estado.supplierDebt)] as [string, string],
+            ]
+          : []),
       ]),
       description: `Reporte de comité ${prevMonth} (automático, resumen financiero)`, source: "committee_report", sourceId: prevMonth, category: "reporte",
     });

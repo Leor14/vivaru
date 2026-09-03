@@ -117,11 +117,25 @@ no ve el informe. `K1` y `K2` pertenecen a **`PRD-V-PLAT-004`, que nunca se escr
 Igual que en `FEAT-006`, `FEAT-007` y `FLOW-006`. La métrica que sí se mide desde el primer día es de
 **corrección**: `CA8`–`CA12`.
 
-> **`TBD-M1` — medición pendiente, no bloqueante.** No se pudo contar cuántos de los nueve conjuntos
-> tienen `openingBalance` registrado ni cuántos tienen proveedores: **la credencial ADC está caducada**
-> (`invalid_rapt`, verificado el 3 sep). **Hay que contarlo antes de construir la entrega 1**: si el
-> saldo inicial está en cero en todos, anclar al banco **no cambia ninguna cifra** y la entrega
-> parecería un no-op. Ver `docs/pendientes.md`.
+> **`TBD-M1` — MEDIDO el 3 de septiembre de 2026 contra producción. La entrega 1 NO es un no-op.**
+> `scripts/medir-saldo-inicial-flow-007.mjs` y `scripts/medir-partidas-flow-007.mjs`, los dos de solo
+> lectura.
+>
+> | Qué se contó | Resultado |
+> |---|---|
+> | Conjuntos con **documento** de saldo inicial | **4 de 9** |
+> | Conjuntos con saldo inicial **distinto de cero** | **2 de 9** — Las Playas 85.000 y Santa María **5.000.000** |
+> | Conjuntos con **cuentas pendientes de cobro** | **5 de 9** (Santa María, 80.220.000) |
+> | Conjuntos con **deuda a proveedores** | **4 de 9** (Queretarock y Qintilab, 4.890.000 cada uno) |
+> | `vendors` | **0 filas**, y **ningún egreso lleva `vendorId`** |
+>
+> **Santa María es el conjunto del defecto vivo**: tiene cinco millones en el banco y recibe
+> «Fondo insuficiente… evita registrar nuevos egresos» en cuanto un mes cierra en negativo.
+>
+> **Y la ADC NO estaba muerta.** `gcloud auth application-default print-access-token` acuñó un token
+> y las lecturas de Firestore funcionaron a la primera. `invalid_rapt` es un desafío de reautenticación
+> de operaciones sensibles, **no la caducidad de la credencial**: darlo por muerto sin ejercitarlo
+> habría costado una sesión entera pidiendo un login que no hacía falta.
 
 ---
 
@@ -311,6 +325,34 @@ persona. Y **no se notifica la creación del borrador** — es un evento de máq
 | `CA17` | La función programada **procesa los nueve conjuntos** y un error en uno **no aborta los demás** — el `try/catch` por conjunto que ya tiene | `npm test` |
 | `CA18` | **Falsación obligatoria.** Se rompe a propósito el cable del saldo inicial (volver a pasar `0`) y **enrojecen exactamente `CA2`, `CA3` y `CA9`**, y ninguna otra | Antes de dar la entrega por buena |
 
+### Estado tras la entrega 1 — 3 de septiembre de 2026
+
+| Criterio | Estado | Dónde vive |
+|---|---|---|
+| `CA1` | ✅ **Cumplido, y comparando NÚMEROS** | `tests/fixtures/estado-financiero-golden.json`, ocho casos escritos a mano, corridos por **los dos bancos** contra las dos copias. Más la identidad **byte a byte** del fichero |
+| `CA2` `CA3` `CA4` `CA7` `CA8` | ✅ Cumplidos | El banco compartido |
+| `CA9` | ✅ **El defecto vivo, cerrado** | `tests/flow-007-estado-financiero.test.ts`. Los tres consumidores leen el saldo real, y el aviso exige que el saldo **esté registrado** |
+| `CA17` | ✅ Cumplido | El `try/catch` por conjunto, con las lecturas nuevas **dentro** — comprobado sobre el código |
+| `CA18` | ✅ **Falsado, y el resultado NO fue el previsto** | Ver abajo |
+| `CA5` `CA6` `CA10`–`CA16` | ⏳ Entregas 2 y 3 | Cuatro de ellos son **banco de reglas: no se pueden correr en este equipo, no hay Java** |
+
+> **`CA18` decía que enrojecerían «exactamente `CA2`, `CA3` y `CA9`», y no fue así — la predicción
+> estaba mal, no la construcción.** Se rompieron **tres** cables, uno cada vez:
+>
+> | Falsación | Qué enrojeció |
+> |---|---|
+> | **F1** · el núcleo ignora el saldo inicial | `CA2`, `CA3`, `CA3bis` y **`CA8`**, en **los dos bancos** |
+> | **F2** · los tres consumidores vuelven a pasar `0` | **solo** los dos guardianes de `CA9` |
+> | **F3** · el espejo de `functions/` diverge una línea | **solo** la identidad byte a byte |
+>
+> **`CA8` entra en F1 porque su caso lleva 85.000 de apertura** —el saldo real de Las Playas—, así
+> que depende legítimamente de ese cable. Y `CA9` **no** entra en F1 porque el aviso lo calcula
+> `computeFundPosition`, que es otra función: son dos cables distintos y la ficha los había contado
+> como uno. Que F2 y F3 enrojezcan **solo** lo suyo es lo que prueba que no hay guardián de más.
+>
+> **Y una falsación mintió antes de acertar:** F1 pareció dejar el banco de `src/` en verde. No era
+> el banco, era el `grep` con el que se leyó la salida. **El instrumento también necesita control.**
+
 > **`CA1` es el guardián que `R12` y `R16` no tuvieron.** Las dos derivas pasaron porque nada
 > comparaba las dos implementaciones. **No se satisface grepeando un nombre**: un import o un
 > comentario que mencione la función lo pondría en verde sin probar nada.
@@ -364,7 +406,7 @@ mecánica de `R12` y `R16`.
 | `R2` | **Abrir al residente más de lo que se quiere** al tocar categorías | `CA10`, `CA11`, `CA12` | **Categoría nueva**, no reutilizar `financiero` ni `reporte` |
 | `R3` | **Exponer al moroso** publicando por unidad | `CA12` | El detalle por unidad **no se publica** en el MVP. `RN-11` |
 | `R4` | **Anclar al banco no cambia nada** porque nadie registró saldo inicial | `TBD-M1` | **Contarlo antes de construir.** Si es cero en los nueve, la entrega 1 incluye pedir el dato |
-| `R5` | **Deuda a proveedores en cero** porque no hay proveedores registrados | La última medición decía **0 proveedores** | Se enseña como **cero calculado**, no se oculta la sección. Es captura de datos, no ingeniería |
+| `R5` | ~~**Deuda a proveedores en cero** porque no hay proveedores registrados~~ **FALSIFICADO al medir (3 sep)** | `vendors` = **0** filas, pero **13 egresos en `registrado`** en 4 conjuntos | **La fuente no es `vendors`: son los EGRESOS no pagados.** El riesgo estaba escrito sobre la colección equivocada — quien cobra no está en `vendors`, está en la factura que nadie ha pagado. La cifra sale distinta de cero desde el primer día |
 | `R6` | Un informe emitido con cifras mal, firmado y publicado | — | **La anulación con motivo es el único corrector**, y deja rastro |
 | `R7` | La deriva vuelve dentro de seis meses | `CA1` en cada `npm test` | Es exactamente para eso |
 
@@ -380,7 +422,7 @@ una colección), así que el orden normal aplica. *(Si en alguna entrega una reg
 
 | # | Qué | Reversible |
 |---|---|---|
-| **1** | **Un solo informe, anclado al banco.** Cálculo compartido, saldo inicial real, cuentas pendientes de cobro y deuda a proveedores, y el aviso de fondo insuficiente corregido. **Sin cambiar el modelo de datos** | Sí, bandera |
+| **1** | ✅ **CONSTRUIDA (3 sep 2026).** Cálculo compartido, saldo inicial real, cuentas pendientes de cobro y deuda a proveedores, y el aviso de fondo insuficiente corregido. **Sin cambiar el modelo de datos ni tocar reglas** | Sí, bandera `producto-informe-mensual` |
 | **2** | **Emisión firmable.** `monthlyReports`, estados, callable de emitir/firmar/anular, PDF con logo y firmas, archivado | Sí, bandera |
 | **3** | **Publicación.** Categoría nueva, regla del residente, `K2` por conjunto, y la ruta del consejo | Sí, **y además el interruptor `K2`** |
 

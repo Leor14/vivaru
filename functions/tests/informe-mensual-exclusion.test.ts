@@ -59,7 +59,11 @@ describe("esRecaudoDeCartera — el descuento del informe mensual", () => {
    */
   it("mantiene las mismas tres ramas que su espejo de src/", () => {
     const espejo = fs.readFileSync(
-      path.resolve(__dirname, "../../src/features/finanzas/financial-statement.ts"),
+      // `PRD-V-FLOW-007` entrega 1 movió la definición al núcleo del estado
+      // financiero; `financial-statement.ts` solo la reexporta. El guardián la
+      // sigue hasta allí — y que enrojeciera al moverla es la prueba de que
+      // estaba vigilando de verdad y no la mención de un nombre.
+      path.resolve(__dirname, "../../src/lib/finanzas/nucleo-estado-financiero.ts"),
       "utf8",
     );
     const cuerpo = espejo.slice(espejo.indexOf("export function esRecaudoDeCartera"));

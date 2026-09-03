@@ -1,6 +1,6 @@
 import type { Expense } from "@/types/domain";
 
-import { categoryLabel } from "./financial-statement";
+import { categoryLabel, sumarDeudaAProveedores } from "@/lib/finanzas/nucleo-estado-financiero";
 
 /**
  * Resumen de cuentas por pagar a partir de los egresos. Selector puro (asOf
@@ -32,14 +32,18 @@ export function summarizePayables(
 ): PayableSummary {
   const horizonDays = opts.horizonDays ?? 30;
   const cutoff = addDaysIso(opts.asOf, horizonDays);
-  let totalPayable = 0;
+  // **El total lo calcula el núcleo del estado financiero, no este bucle.** Es
+  // la MISMA cifra que el informe mensual llama «deuda a proveedores»
+  // (`PRD-V-FLOW-007` entrega 1), y tenerla escrita dos veces es exactamente
+  // cómo nacieron R12 y R16. Lo que sigue en el bucle —el vencimiento y el
+  // reparto por categoría— sí es propio de esta tarjeta.
+  const totalPayable = sumarDeudaAProveedores(expenses);
   let dueSoon = 0;
   let overdue = 0;
   const byCat = new Map<string, number>();
 
   for (const e of expenses) {
     if (e.status !== "registrado") continue;
-    totalPayable += e.amount;
     byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amount);
     if (e.dueDate) {
       if (e.dueDate < opts.asOf) overdue += e.amount;
