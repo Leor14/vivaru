@@ -36,7 +36,9 @@ export function SelectorDeTema({ className }: { className?: string }) {
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <p className="text-sm font-medium text-[var(--slate-900)]">Apariencia</p>
+      {/* Sin encabezado propio: las dos pantallas lo montan dentro de una tarjeta
+          que YA se titula «Apariencia», y ponerlo aqui lo duplicaba. Visto en
+          staging, no deducido. */}
       <p className="max-w-[var(--medida-lectura)] text-xs text-[var(--slate-500)]">
         Solo cambia cómo lo ves tú. Nadie más lo nota, y los documentos que
         descargues o imprimas salen siempre en claro.
