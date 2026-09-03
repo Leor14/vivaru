@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # ENTREGAS 1 Y 2 DEL MODO OSCURO, EN STAGING. LO SIGUIENTE ES LA 3 — EL INTERRUPTOR.
+> # EL MODO OSCURO ESTÁ CONSTRUIDO ENTERO Y ENCENDIDO EN STAGING. EN PRODUCCIÓN, APAGADO Y SIN TOCAR.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,27 +20,35 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **ENTREGAS 1 Y 2 HECHAS** (`109a8c9`, en `develop` y **sirviéndose en staging**; `master` sigue en
-> `8d3ba81` y **el push a producción lo pides tú**). El producto **se ve en oscuro**: poniendo
-> `localStorage['vivaru.tema']='oscuro'` y recargando, staging entero cambia de tema.
+> **LAS TRES ENTREGAS HECHAS** (`2441a08`, en `develop` y sirviéndose en staging con la bandera
+> **encendida**; `master` sigue en `8d3ba81`, **el push a producción lo pides tú**, y allí la bandera
+> está **apagada y sin tocar**). Entra en `/admin/settings` → «Mi cuenta» y elige.
 >
-> **Entrega 1** — 832 literales de paleta → 0 en 150 ficheros, 48 tokens.
-> **Entrega 2** — variante por **atributo** (`data-tema`), **119 tokens** de paleta oscura generados
-> por regla, guion anti-destello, y `RN-07` cumplida con una línea: el bloque oscuro va dentro de
-> `@media screen`, así que **al imprimir no aplica** y el informe del consejo sale en claro sin
-> duplicar un token. `prefers-color-scheme` en el CSS servido: **21 → 0**.
-> Más los **138 tintes a medida**, que en oscuro no quedaban sin tematizar sino **rotos**.
+> **1 · Terreno** — 832 literales → 0 en 150 ficheros, más los 138 tintes a medida.
+> **2 · Mecanismo** — variante por atributo, 119 tokens de paleta oscura generados por regla, guion
+> anti-destello, y `RN-07` con una línea: el bloque va en `@media screen`, así que **al imprimir no
+> aplica** y el informe del consejo sale en claro sin duplicar un token.
+> **3 · Interruptor** — campo `tema` en `users/{uid}`, regla con enum **desplegada a staging y
+> verificada leyendo el ruleset VIVO**, bandera en los **cinco** sitios, y las dos pantallas.
 >
-> **Bancos: `npm test` 1664.** Guardianes: `color-por-token` (15 casos) y `tema-oscuro` (68),
-> falsados diez veces entre los dos.
+> **Bancos: `npm test` 1689.** Tres guardianes nuevos, **falsados catorce veces** entre todos.
 >
-> **Medido al cerrar:** el panel pasó de **19 elementos ilegibles a 7**, y esos 7 salen **idénticos
-> en tema claro** — son deuda de la barra lateral, anterior y ajena. **El tema oscuro no añade ni un
-> fallo de contraste.**
+> **Verificado en staging con sesión real:** clic → cambia sin recargar; **borré el espejo y recargué
+> → volvió oscuro** (o sea, el dato vive en Firestore y el espejo es caché); y **apagando la bandera
+> con `oscuro` guardado desaparece el interruptor y se ve claro**, que es `CA2` y lo que separa una
+> bandera de un botón.
 >
-> **LO SIGUIENTE ES LA ENTREGA 3 — EL INTERRUPTOR:** campo `tema` en `users/{uid}`, la regla, las dos
-> pantallas (`/admin/settings` y `/resident/profile`), la bandera `producto-modo-oscuro` en los
-> **cinco** sitios del catálogo, y el borrado del espejo al cerrar sesión.
+> **LO QUE FALTA PARA MARCARLA PRODUCTIVA — y una parte no la puede hacer esta máquina:**
+>
+> 1. **Correr el banco de reglas donde HAYA JAVA.** Aquí no lo hay, y por eso el emulador no arranca:
+>    las 7 pruebas nuevas están **escritas y sin ejecutar**. Es también la explicación del «293 vs
+>    347» de esta mañana — el banco no estaba apagado, **no se puede correr aquí**. Declara **354**.
+> 2. `CA5` y `CA6` — el destello de la primera carga frente a las siguientes, grabando el primer
+>    segundo.
+> 3. `CA11`, `CA15`, `CA19` — impresión y PDF **con ojos**. `RN-07` está verificada en el CSSOM, pero
+>    el diálogo de impresión no se ha abierto.
+> 4. `CA7` — contar en producción que **ningún** documento ganó `tema` sin que su dueño lo eligiera.
+> 5. **`CA16` en producción**, con su valor de partida ya medido.
 >
 > **TRES COSAS TUYAS, TODAS DE CONTRASTE Y TODAS ANTERIORES A ESTE FRENTE.** Están medidas, con
 > suelo en las pruebas, y **arreglarlas SE VE**, así que son decisión tuya como lo fue el grupo B:

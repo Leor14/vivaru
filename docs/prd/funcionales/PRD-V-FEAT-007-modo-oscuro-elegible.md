@@ -9,7 +9,7 @@
 | **Módulo** | Transversal a la interfaz. Sin módulo de negocio propio, sin entrada en la navegación |
 | **Usuario principal** | `resident` (móvil, uso nocturno) · **secundario** `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **En desarrollo — entregas 1 y 2 construidas** (3 sep 2026). Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
+| **Estado** | **EN STAGING — las tres entregas construidas** (3 sep 2026); en producción la bandera sigue apagada y sin tocar. Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
 | **Dependencias** | Ninguna bloqueante. **Resuelve la decisión abierta de `UX-005`** (preferencia por usuario), que queda desbloqueada por esta ficha |
 | **Riesgo** | **Medio.** Cero riesgo de dinero, de datos personales y de permisos. El riesgo es de **regresión visual en 145 ficheros** y de **contraste ilegible** |
 | **Reversibilidad** | **Total y en un solo interruptor.** La bandera `producto-modo-oscuro` apagada deja el producto exactamente como está hoy. La migración de color a tokens es inerte en claro por construcción — ver `RN-01` |
@@ -721,6 +721,62 @@ falsación: cambié la primera de las dos apariciones de `@media screen` del fic
 envuelve el bloque. La segunda, **hueco real: la prueba buscaba las palabras «@media screen» y las
 encontraba dentro del COMENTARIO que explica la regla**. El guardián se defendía con su propia
 documentación. Ahora mira sobre el CSS sin comentarios, y enrojece.
+
+---
+
+## Bitácora · Entrega 3 — el interruptor (3 de septiembre de 2026)
+
+**Construida y verificada en staging con sesión real.** La ficha queda **EN STAGING**, no productiva:
+en producción la bandera sigue apagada y sin tocar.
+
+| | |
+|---|---|
+| Campo | `users/{uid}.tema`, escritura **directa** por el camino que ya existía |
+| Regla | Enum validado en `firestore.rules`, **desplegada a staging y verificada leyendo el ruleset vivo** |
+| Bandera | `producto-modo-oscuro` en los **CINCO** sitios, apagada de nacimiento |
+| Pantallas | `/admin/settings` (pestaña «Mi cuenta») y `/resident/profile` |
+| Bancos | `npm test` **1689** · reglas declara **354** |
+| Guardián | `tests/interruptor-de-tema.test.ts`, **25 casos**, falsado cuatro veces |
+
+### Lo que la regla nueva consigue, dicho sin adornos
+
+**No cierra ningún agujero.** La regla de `users/{uid}` **no lista los campos permitidos**, así que
+el dueño ya podía escribir lo que quisiera en su propio documento, y eso es **anterior** a esta
+ficha. Lo que hace es que el dato no se ensucie. Y condiciona `tema` **solo si está presente**, para
+no romper la edición de perfil que ya funcionaba — por eso `CA17` tiene **dos mitades** y las dos se
+prueban.
+
+### Verificado con ojos y con números, en staging
+
+| Criterio | Cómo se comprobó |
+|---|---|
+| **`CA1`** | Clic en «Oscuro» → la interfaz cambia **sin recargar** |
+| **`CA3`** | **Se borró el espejo y se recargó**: volvió oscuro y el espejo se reescribió. Eso prueba que el dato canónico es Firestore y el espejo es caché |
+| **`CA2`** | **Se apagó la bandera en staging** con `tema: "oscuro"` ya guardado: desaparece el interruptor **y se ve claro**. Es el criterio que separa una bandera de un botón |
+
+### Dos defectos que solo aparecieron al mirar
+
+1. **El rótulo «Apariencia» salía duplicado** — la tarjeta ya se titulaba así y el componente lo
+   repetía.
+2. **Con la bandera apagada quedaba una tarjeta «Apariencia» VACÍA**, con título y sin control: la
+   condición estaba **partida en dos sitios** —la tarjeta la montaba cada pantalla, el `return null`
+   vivía dentro del selector—. Ahora son **una pieza**, `TarjetaDeApariencia`, detrás de una sola
+   condición. Lo destapó ejecutar `CA2`, que existe justo para eso.
+
+### Lo que NO se pudo ejecutar, y por qué importa
+
+**Las 7 pruebas de reglas están escritas y sin correr: no hay Java en esta máquina**, así que el
+emulador de Firestore no arranca. Eso explica además el «293 vs 347» de esta mañana — **el banco de
+reglas no estaba apagado: no se puede correr aquí**. Declara **354** casos.
+
+### Lo que falta para marcarla productiva
+
+- Correr el banco de reglas donde haya Java (`CA4`, `CA8`, `CA17`).
+- `CA5` y `CA6` — el destello en la primera carga frente a las siguientes, grabando el primer segundo.
+- `CA11`, `CA15` y `CA19` — impresión y PDF con ojos. `RN-07` está verificada en el CSSOM, pero el
+  diálogo de impresión no se ha abierto.
+- `CA7` — contar en producción que **ningún** documento ganó `tema` sin que su dueño lo eligiera.
+- **`CA16` en producción**, con su valor de partida ya medido.
 
 ---
 
