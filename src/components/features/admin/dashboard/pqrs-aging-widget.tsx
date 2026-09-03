@@ -53,7 +53,7 @@ export function PqrsAgingWidget({ tenantId }: Props) {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-lg border border-[var(--slate-300)] bg-white px-2.5 py-1 text-xs text-[var(--slate-700)]"
+          className="rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2.5 py-1 text-xs text-[var(--slate-700)]"
         >
           <option value="all">Todas las categorías</option>
           {fullSummary.categories.map((c) => (

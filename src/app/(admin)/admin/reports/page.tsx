@@ -86,17 +86,17 @@ function KpiCard({
 }) {
   const textColor =
     tone === "danger" ? "text-[var(--danger-700)]" :
-    tone === "success" ? "text-emerald-700" :
+    tone === "success" ? "text-[var(--success-700)]" :
     "text-[var(--slate-900)]";
   const showDelta = delta !== undefined && delta !== null && delta !== 0;
   const deltaGood = showDelta ? (delta! > 0) === deltaGoodWhenUp : false;
   return (
-    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4 print:border-[var(--slate-300)]">
+    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 print:border-[var(--slate-300)]">
       <p className="text-xs font-medium uppercase tracking-wide text-[var(--slate-500)]">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${textColor}`}>
         {value}
         {showDelta ? (
-          <span className={`ml-1.5 align-middle text-xs font-semibold ${deltaGood ? "text-emerald-600" : "text-[var(--danger-700)]"}`}>
+          <span className={`ml-1.5 align-middle text-xs font-semibold ${deltaGood ? "text-[var(--success-600)]" : "text-[var(--danger-700)]"}`}>
             {delta! > 0 ? "▲" : "▼"}{Math.abs(delta!)}{deltaSuffix}
           </span>
         ) : null}
@@ -132,7 +132,7 @@ function RecaudoTooltip({
   const { facturado, recaudado, liquidado, collectionRate } = payload[0].payload;
   const pendiente = Math.max(facturado - liquidado, 0);
   return (
-    <div className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2 text-xs shadow-sm">
+    <div className="rounded-lg border border-[#e2e8f0] bg-[var(--surface-strong)] px-3 py-2 text-xs shadow-sm">
       <p className="font-semibold text-[var(--slate-800)]">{label ? monthShort(String(label)) : ""}</p>
       <div className="mt-1 space-y-0.5 text-[var(--slate-700)]">
         <p className="flex justify-between gap-4"><span>Facturado</span><span className="font-semibold">{formatCurrency(facturado)}</span></p>
@@ -556,8 +556,8 @@ function AdminReportsPageContent() {
                 onClick={() => setPeriodKey(opt.key)}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   periodKey === opt.key
-                    ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
-                    : "border-[var(--slate-200)] bg-white text-[var(--slate-600)] hover:bg-[var(--slate-50)]"
+                    ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                    : "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-600)] hover:bg-[var(--slate-50)]"
                 }`}
               >
                 {opt.label}
@@ -653,7 +653,7 @@ function AdminReportsPageContent() {
               {/* ── Resumen ejecutivo ── */}
               <section>
                 <SectionTitle>📝 Resumen ejecutivo</SectionTitle>
-                <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                   <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--slate-700)] [&>li]:max-w-[var(--medida-lectura)]">
                     {execSummary.bullets.map((b, i) => (
                       <li key={i}>{b}</li>
@@ -662,13 +662,13 @@ function AdminReportsPageContent() {
                   <div className="mt-3 border-t border-[var(--slate-100)] pt-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Requiere atención del comité</p>
                     {execSummary.alerts.length === 0 ? (
-                      <p className="mt-1 text-sm text-emerald-700">✓ Sin alertas para el comité.</p>
+                      <p className="mt-1 text-sm text-[var(--success-700)]">✓ Sin alertas para el comité.</p>
                     ) : (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {execSummary.alerts.map((a, i) => (
                           <span
                             key={i}
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${a.tone === "danger" ? "bg-red-50 text-[var(--danger-700)]" : "bg-amber-50 text-amber-700"}`}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${a.tone === "danger" ? "bg-[var(--danger-50)] text-[var(--danger-700)]" : "bg-[var(--amber-50)] text-[var(--amber-700)]"}`}
                           >
                             <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
                             {a.text}
@@ -714,7 +714,7 @@ function AdminReportsPageContent() {
                 <WidgetErrorBoundary label="resumen-financiero-por-cuenta">
                 {report.financial.incomeByCategory.length > 0 ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                    <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)]">
                       <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Ingresos por cuenta</p>
                       </div>
@@ -727,7 +727,7 @@ function AdminReportsPageContent() {
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Composición de ingresos</p>
                       <div className="h-44">
                         <ResponsiveContainer width="100%" height="100%">
@@ -747,7 +747,7 @@ function AdminReportsPageContent() {
                 ) : null}
                 {report.financial.expenseByCategory.length > 0 ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                    <div className="overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)]">
                       <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Egresos por cuenta</p>
                       </div>
@@ -760,7 +760,7 @@ function AdminReportsPageContent() {
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Composición de egresos</p>
                       <div className="h-44">
                         <ResponsiveContainer width="100%" height="100%">
@@ -794,7 +794,7 @@ function AdminReportsPageContent() {
 
                 {carteraStateData.length > 0 ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Distribución por estado (período)</p>
                       <div className="h-44">
                         <ResponsiveContainer width="100%" height="100%">
@@ -820,7 +820,7 @@ function AdminReportsPageContent() {
                       {aging.map((bk) => {
                         const chronic = bk.key === "4+" && bk.units > 0;
                         return (
-                          <div key={bk.key} className={`rounded-xl border p-3 ${chronic ? "border-red-300 bg-red-50" : "border-[var(--slate-200)] bg-white"}`}>
+                          <div key={bk.key} className={`rounded-xl border p-3 ${chronic ? "border-[var(--danger-300)] bg-[var(--danger-50)]" : "border-[var(--slate-200)] bg-[var(--surface-strong)]"}`}>
                             <p className="text-xs text-[var(--slate-500)]">{bk.label}</p>
                             <p className={`mt-0.5 text-lg font-bold ${chronic ? "text-[var(--danger-700)]" : "text-[var(--slate-900)]"}`}>{formatCurrency(bk.amount)}</p>
                             <p className="text-xs text-[var(--slate-500)]">{bk.units} unidad(es)</p>
@@ -832,7 +832,7 @@ function AdminReportsPageContent() {
                 ) : null}
 
                 {report.billing.overdueUnits.length > 0 ? (
-                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)]">
                     <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Mayores deudores (por saldo)</p>
                     </div>
@@ -851,7 +851,7 @@ function AdminReportsPageContent() {
                             <td className="px-4 py-2 text-right font-medium text-[var(--danger-700)]">{formatCurrency(u.balance)}</td>
                             <td className={`px-4 py-2 text-right ${u.periods >= 4 ? "font-semibold text-[var(--danger-700)]" : "text-[var(--slate-500)]"}`}>
                               {u.periods}
-                              {u.periods >= 4 ? <span className="ml-1 rounded-sm bg-red-100 px-1 text-[10px] font-medium text-[var(--danger-700)]">crónico</span> : null}
+                              {u.periods >= 4 ? <span className="ml-1 rounded-sm bg-[var(--danger-100)] px-1 text-[10px] font-medium text-[var(--danger-700)]">crónico</span> : null}
                             </td>
                           </tr>
                         ))}
@@ -873,7 +873,7 @@ function AdminReportsPageContent() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="mt-3 text-sm text-emerald-700">✓ Sin unidades con saldo vencido en este período.</p>
+                  <p className="mt-3 text-sm text-[var(--success-700)]">✓ Sin unidades con saldo vencido en este período.</p>
                 )}
               </section>
 
@@ -882,7 +882,7 @@ function AdminReportsPageContent() {
                 <section>
                   <SectionTitle>📈 Tendencias (últimos 12 meses)</SectionTitle>
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Recaudo: facturado vs recaudado</p>
                       <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
@@ -906,7 +906,7 @@ function AdminReportsPageContent() {
                         </ResponsiveContainer>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Ingresos vs egresos por mes</p>
                       <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
@@ -943,7 +943,7 @@ function AdminReportsPageContent() {
                 </div>
 
                 {report.visitors.byWeek.length > 0 ? (
-                  <div className="mt-4 rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                  <div className="mt-4 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Ingresos por semana</p>
                     <div className="h-40">
                       <ResponsiveContainer width="100%" height="100%">
@@ -976,7 +976,7 @@ function AdminReportsPageContent() {
 
                 {ticketPieData.length > 0 ? (
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Por estado</p>
                       <div className="h-40">
                         <ResponsiveContainer width="100%" height="100%">
@@ -991,7 +991,7 @@ function AdminReportsPageContent() {
                         </ResponsiveContainer>
                       </div>
                     </div>
-                    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+                    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Por categoría</p>
                       <div className="space-y-2">
                         {[
@@ -1031,7 +1031,7 @@ function AdminReportsPageContent() {
                 </div>
 
                 {report.reservations.byAmenity.length > 0 ? (
-                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                  <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)]">
                     <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Por amenidad</p>
                     </div>
@@ -1070,7 +1070,7 @@ function AdminReportsPageContent() {
                   </div>
 
                   {report.agreements.items.filter((a) => a.forSignature).length > 0 ? (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white">
+                    <div className="mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)]">
                       <div className="border-b border-[var(--slate-100)] px-4 py-2.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">Estado de firma por acuerdo</p>
                       </div>
@@ -1088,7 +1088,7 @@ function AdminReportsPageContent() {
                             <tr key={a.id} className="border-b border-[var(--slate-50)] last:border-0">
                               <td className="px-4 py-2 text-[var(--slate-800)]">{a.title}</td>
                               <td className="px-4 py-2 text-right text-[var(--slate-600)]">{a.signed}/{a.expected}</td>
-                              <td className={`px-4 py-2 text-right font-medium ${a.pending > 0 ? "text-[var(--danger-700)]" : "text-emerald-700"}`}>
+                              <td className={`px-4 py-2 text-right font-medium ${a.pending > 0 ? "text-[var(--danger-700)]" : "text-[var(--success-700)]"}`}>
                                 {a.pending > 0 ? a.pending : "✓"}
                               </td>
                               <td className="px-4 py-2 text-right text-[var(--slate-500)]">{a.rate}%</td>

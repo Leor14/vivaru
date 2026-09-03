@@ -27,7 +27,7 @@ function EditabilityBadge({ editability }: { editability: Editability }) {
   }
   if (editability === "warn") {
     return (
-      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700">
+      <span className="rounded-full bg-[var(--amber-100)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--amber-700)]">
         cambio con aviso
       </span>
     );
@@ -56,7 +56,7 @@ export function VariantOptionPicker({
       <p className="text-xs text-[var(--slate-500)]">{meta.helpText}</p>
 
       {editability === "locked" && context === "create" ? (
-        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800">
+        <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-[var(--amber-50)] px-2.5 py-1.5 text-[11px] text-[var(--amber-800)]">
           <Lock className="mt-0.5 h-3 w-3 shrink-0" />
           Esta elección se fija al crear el conjunto y no se puede cambiar después.
         </p>
@@ -87,7 +87,7 @@ export function VariantOptionPicker({
               <div className="flex items-start justify-between gap-2">
                 <span className="text-sm font-semibold text-[var(--slate-900)]">{opt.label}</span>
                 {selected ? (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--brand-700)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--brand-700)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--on-fill)]">
                     <Check className="h-3 w-3" />
                     {context === "edit" ? "Activo" : "Elegido"}
                   </span>

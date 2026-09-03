@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import { PAGE_SIZE_OPTIONS } from "@/components/shared/use-pagination";
 
 const navClass =
-  "flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--slate-200)] bg-white text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] disabled:cursor-not-allowed disabled:opacity-40";
+  "flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] disabled:cursor-not-allowed disabled:opacity-40";
 
 /**
  * Controles de paginación para tablas/listas del admin. Muestra el rango visible,
@@ -48,7 +48,7 @@ export function TablePager({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-8 rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm"
+              className="h-8 rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>

@@ -198,7 +198,7 @@ export function VendorRegistryDialog({
                       <td className="px-3 py-2">{vendor.taxId || "—"}</td>
                       <td className="px-3 py-2">{vendor.type === "empleado" ? "Empleado" : "Proveedor"}</td>
                       <td className="px-3 py-2">
-                        <Badge className={vendor.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-[var(--slate-200)] text-[var(--slate-600)]"}>
+                        <Badge className={vendor.status === "active" ? "bg-[var(--success-100)] text-[var(--success-700)]" : "bg-[var(--slate-200)] text-[var(--slate-600)]"}>
                           {vendor.status === "active" ? "Activo" : "Inactivo"}
                         </Badge>
                       </td>
@@ -225,7 +225,7 @@ export function VendorRegistryDialog({
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Tipo
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("type")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("type")}>
                 <option value="proveedor">Proveedor (empresa o persona)</option>
                 <option value="empleado">Empleado del conjunto</option>
               </select>
@@ -286,7 +286,7 @@ export function VendorRegistryDialog({
                 {/* Las etiquetas cambian por país; los VALORES guardados no
                     —«corriente»/«ahorros»—, para que el dato siga significando
                     lo mismo si el conjunto cambia de país o se lee desde otro. */}
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("accountType")}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("accountType")}>
                   <option value="">—</option>
                   {vocab.tiposCuenta.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -298,7 +298,7 @@ export function VendorRegistryDialog({
 
           <label className="block text-sm text-[var(--slate-700)]">
             Categoría de gasto por defecto
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("defaultCategory")}>
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("defaultCategory")}>
               {CATEGORY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}

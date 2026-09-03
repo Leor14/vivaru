@@ -223,13 +223,13 @@ export function RepartirEgresoModal({
         ) : null}
 
         {previa?.avisoDobleCobro ? (
-          <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+          <div className="flex gap-2 rounded-xl border border-[var(--amber-200)] bg-[var(--amber-50)] p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--amber-700)]" />
             <div>
-              <p className="text-sm font-medium text-amber-800">Este gasto suele estar cubierto por la cuota</p>
+              <p className="text-sm font-medium text-[var(--amber-800)]">Este gasto suele estar cubierto por la cuota</p>
               {/* Avisa, no bloquea: hay conjuntos que cobran cuota base baja y
                   reparten lo demás, y eso lo decide su asamblea. */}
-              <p className="mt-0.5 text-xs text-amber-800">
+              <p className="mt-0.5 text-xs text-[var(--amber-800)]">
                 Es un gasto ordinario. Si la cuota de administración ya lo cubre, repartirlo aparte lo cobraría
                 dos veces. Puedes continuar.
               </p>
@@ -238,12 +238,12 @@ export function RepartirEgresoModal({
         ) : null}
 
         {previa && previa.yaRepartido.length > 0 ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-sm font-medium text-amber-800">
+          <div className="rounded-xl border border-[var(--amber-200)] bg-[var(--amber-50)] p-3">
+            <p className="text-sm font-medium text-[var(--amber-800)]">
               Este egreso ya se repartió ({previa.yaRepartido.length}{" "}
               {previa.yaRepartido.length === 1 ? "corrida" : "corridas"})
             </p>
-            <p className="mt-0.5 text-xs text-amber-800">
+            <p className="mt-0.5 text-xs text-[var(--amber-800)]">
               Puedes repartirlo otra vez —los cargos se suman a los que ya existen— o anular la corrida
               anterior. Anular exige un motivo y no toca ningún cargo que ya tenga pagos.
             </p>
@@ -275,7 +275,7 @@ export function RepartirEgresoModal({
               <label className="text-sm text-[var(--slate-700)]">
                 Concepto del cargo
                 <select
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={concept}
                   onChange={(event) => setConcept(event.target.value as BillingConcept)}
                 >
@@ -289,7 +289,7 @@ export function RepartirEgresoModal({
               <label className="text-sm text-[var(--slate-700)]">
                 Se le cobra a
                 <select
-                  className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={payerRelation}
                   onChange={(event) => setPayerRelation(event.target.value as typeof payerRelation)}
                 >

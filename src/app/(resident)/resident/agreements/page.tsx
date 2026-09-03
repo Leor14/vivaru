@@ -59,7 +59,7 @@ function SignCard({
           <CardTitle className="text-base">{agreement.title}</CardTitle>
           <CardDescription className="mt-0.5">Sesión del {formatDateSafe(agreement.sessionDate)}</CardDescription>
         </div>
-        <Badge className="bg-amber-100 text-amber-700">{MODE_LABEL[agreement.signatureMode]}</Badge>
+        <Badge className="bg-[var(--amber-100)] text-[var(--amber-700)]">{MODE_LABEL[agreement.signatureMode]}</Badge>
       </div>
 
       {agreement.fileUrl ? (
@@ -93,7 +93,7 @@ function HistoryCard({ agreement, signed }: { agreement: CommitteeAgreement; sig
           <CardDescription className="mt-0.5">Sesión del {formatDateSafe(agreement.sessionDate)}</CardDescription>
         </div>
         {signed ? (
-          <Badge className="bg-emerald-100 text-emerald-700">
+          <Badge className="bg-[var(--success-100)] text-[var(--success-700)]">
             <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
             Firmado
           </Badge>

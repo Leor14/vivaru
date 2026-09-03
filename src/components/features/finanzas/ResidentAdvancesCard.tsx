@@ -37,7 +37,7 @@ export function ResidentAdvancesCard({
   return (
     <Card>
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--success-50)] text-[var(--success-600)]">
           <PiggyBank className="h-5 w-5" />
         </span>
         <div className="min-w-0">
@@ -68,7 +68,7 @@ export function ResidentAdvancesCard({
                   </span>
                 ) : null}
               </span>
-              <span className="font-semibold text-emerald-700">{formatAmount(anticipo.remaining)}</span>
+              <span className="font-semibold text-[var(--success-700)]">{formatAmount(anticipo.remaining)}</span>
             </li>
           );
         })}

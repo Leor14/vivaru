@@ -31,11 +31,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={effectiveType}
             ref={ref}
             className={cn(
-              "h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none placeholder:text-[var(--slate-500)] focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]",
+              "h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none placeholder:text-[var(--slate-500)] focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]",
               isPassword && "pr-10",
               focusStyle === "premium" &&
                 "transition-all duration-200 focus-visible:ring-4 focus-visible:ring-[color:var(--brand-200)]/80 focus-visible:shadow-[0_0_0_1px_var(--brand-700)]",
-              error && "border-red-500",
+              error && "border-[var(--danger-500)]",
               className,
             )}
             aria-invalid={!!error}
@@ -57,7 +57,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ) : null}
         </div>
         {error ? (
-          <span id={`${inputId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-red-500">
+          <span id={`${inputId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-[var(--danger-500)]">
             {error}
           </span>
         ) : null}

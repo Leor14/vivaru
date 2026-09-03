@@ -74,7 +74,7 @@ export function DataTable<T>({
         {loading ? (
           <div className="space-y-px rounded-xl border border-[var(--slate-200)] overflow-hidden">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white px-3 py-3">
+              <div key={i} className="flex items-center gap-3 bg-[var(--surface-strong)] px-3 py-3">
                 <div className="flex-1 space-y-1.5">
                   <Skeleton className="h-3.5 w-32 rounded-sm" />
                   <Skeleton className="h-3 w-24 rounded-sm" />
@@ -94,7 +94,7 @@ export function DataTable<T>({
               <article
                 key={getRowKey(row)}
                 className={cn(
-                  "flex min-h-[56px] items-center gap-2 border-b border-[var(--slate-200)] bg-white px-3 py-2.5 last:border-b-0",
+                  "flex min-h-[56px] items-center gap-2 border-b border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2.5 last:border-b-0",
                   onRowClick
                     ? "cursor-pointer transition-colors duration-150 hover:bg-[var(--brand-50)]/40 active:bg-[var(--brand-50)] motion-reduce:transition-none"
                     : null,

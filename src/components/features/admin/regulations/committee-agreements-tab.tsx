@@ -42,8 +42,8 @@ const MODE_LABEL: Record<AgreementSignatureMode, string> = {
 // firma) → azul informativo; el amarillo queda reservado a advertencias.
 const STATUS_STYLE: Record<CommitteeAgreement["status"], { label: string; className: string }> = {
   borrador: { label: "Borrador", className: "bg-[var(--slate-100)] text-[var(--slate-600)]" },
-  enviado: { label: "Enviado", className: "bg-sky-100 text-sky-700" },
-  cerrado: { label: "Cerrado", className: "bg-emerald-100 text-emerald-700" },
+  enviado: { label: "Enviado", className: "bg-[var(--info-100)] text-[var(--info-700)]" },
+  cerrado: { label: "Cerrado", className: "bg-[var(--success-100)] text-[var(--success-700)]" },
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -363,7 +363,7 @@ export function CommitteeAgreementsTab({
                 <select
                   value={mode}
                   onChange={(e) => setMode(e.target.value as AgreementSignatureMode)}
-                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 >
                   <option value="obligatoria">Firma obligatoria</option>
                   <option value="parcial">Firma parcial</option>
@@ -379,7 +379,7 @@ export function CommitteeAgreementsTab({
               <select
                 value={scope}
                 onChange={(e) => setScope(e.target.value as AgreementSignerScope)}
-                className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               >
                 <option value="all">Todas las unidades</option>
                 <option value="selected">Seleccionar unidades</option>

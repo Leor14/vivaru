@@ -33,31 +33,31 @@ const STATUS_CONFIG = {
     label: "Al día",
     sublabel: "No tienes saldos pendientes",
     icon: CheckCircle2,
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    iconColor: "text-emerald-600",
-    pillBg: "bg-emerald-100",
-    pillText: "text-emerald-800",
+    bg: "bg-[var(--success-50)]",
+    border: "border-[var(--success-200)]",
+    iconColor: "text-[var(--success-600)]",
+    pillBg: "bg-[var(--success-100)]",
+    pillText: "text-[var(--success-800)]",
   },
   pending: {
     label: "Pago pendiente",
     sublabel: "Tienes cuotas por pagar",
     icon: Clock,
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    iconColor: "text-amber-600",
-    pillBg: "bg-amber-100",
-    pillText: "text-amber-800",
+    bg: "bg-[var(--amber-50)]",
+    border: "border-[var(--amber-200)]",
+    iconColor: "text-[var(--amber-600)]",
+    pillBg: "bg-[var(--amber-100)]",
+    pillText: "text-[var(--amber-800)]",
   },
   overdue: {
     label: "Saldo vencido",
     sublabel: "Tienes cuotas con fecha vencida",
     icon: AlertCircle,
-    bg: "bg-red-50",
-    border: "border-red-200",
-    iconColor: "text-red-600",
-    pillBg: "bg-red-100",
-    pillText: "text-red-800",
+    bg: "bg-[var(--danger-50)]",
+    border: "border-[var(--danger-200)]",
+    iconColor: "text-[var(--danger-600)]",
+    pillBg: "bg-[var(--danger-100)]",
+    pillText: "text-[var(--danger-800)]",
   },
 } as const;
 
@@ -117,7 +117,7 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
       {/* ── Header row ── */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-sm`}>
+          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-strong)] shadow-sm`}>
             <StatusIcon className={`h-5 w-5 ${config.iconColor}`} />
           </div>
           <div>
@@ -141,7 +141,7 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
       {/* ── Metrics row ── */}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {/* Saldo pendiente */}
-        <div className="rounded-lg bg-white/70 px-3 py-2.5 shadow-sm">
+        <div className="rounded-lg bg-[var(--surface-strong)]/70 px-3 py-2.5 shadow-sm">
           <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
             Saldo pendiente
             <HelpTip
@@ -149,13 +149,13 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
               side="right"
             />
           </p>
-          <p className={`mt-0.5 text-lg font-bold ${overallStatus === "paid" ? "text-emerald-600" : "text-[var(--slate-900)]"}`}>
+          <p className={`mt-0.5 text-lg font-bold ${overallStatus === "paid" ? "text-[var(--success-600)]" : "text-[var(--slate-900)]"}`}>
             {overallStatus === "paid" ? "—" : formatAmount(totalPendingBalance)}
           </p>
         </div>
 
         {/* Próximo vencimiento / Vencido desde */}
-        <div className="rounded-lg bg-white/70 px-3 py-2.5 shadow-sm">
+        <div className="rounded-lg bg-[var(--surface-strong)]/70 px-3 py-2.5 shadow-sm">
           <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
             {dueLabel}
             <HelpTip
@@ -173,7 +173,7 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
         </div>
 
         {/* Total pagado */}
-        <div className="col-span-2 rounded-lg bg-white/70 px-3 py-2.5 shadow-sm sm:col-span-1">
+        <div className="col-span-2 rounded-lg bg-[var(--surface-strong)]/70 px-3 py-2.5 shadow-sm sm:col-span-1">
           <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--slate-500)]">
             Total pagado
             <HelpTip
@@ -182,7 +182,7 @@ export function BillingHeroCard({ items, formatAmount }: BillingHeroCardProps) {
             />
           </p>
           <div className="mt-0.5 flex items-center gap-1.5">
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            <TrendingUp className="h-3.5 w-3.5 text-[var(--success-500)]" />
             <p className="text-sm font-semibold text-[var(--slate-900)]">
               {formatAmount(totalPaid)}
             </p>

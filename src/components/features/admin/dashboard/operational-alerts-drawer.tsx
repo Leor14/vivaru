@@ -22,11 +22,11 @@ export function OperationalAlertsDrawer({
     <div className="fixed inset-0 z-50">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-950/35"
+        className="absolute inset-0 bg-[var(--slate-950)]/35"
         onClick={onClose}
         aria-label="Cerrar panel de alertas"
       />
-      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-[var(--slate-200)] bg-white p-5 shadow-2xl md:max-w-2xl md:p-6">
+      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-[var(--slate-200)] bg-[var(--surface-strong)] p-5 shadow-2xl md:max-w-2xl md:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Alertas operativas</p>

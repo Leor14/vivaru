@@ -80,7 +80,7 @@ export function SectionIntro({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-white via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]",
+        "rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]",
         className,
       )}
     >
@@ -108,7 +108,7 @@ export function SectionIntro({
           onClick={toggle}
           aria-expanded={!collapsed}
           aria-controls={bodyId}
-          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out),transform_140ms_var(--ease-out)] hover:bg-white/80 active:scale-95"
+          className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out),transform_140ms_var(--ease-out)] hover:bg-[var(--surface-strong)]/80 active:scale-95"
         >
           {collapsed ? "Cómo funciona" : "Ocultar"}
           <ChevronDown

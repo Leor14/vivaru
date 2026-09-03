@@ -222,11 +222,11 @@ export function BillingEditDrawer({ open, record, saving, onClose, onDirtyChange
       <button
         type="button"
         aria-label="Cerrar panel"
-        className={`absolute inset-0 bg-black/25 transition-opacity duration-200 md:bg-black/10 ${isVisible ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 bg-[var(--overlay)]/25 transition-opacity duration-200 md:bg-[var(--overlay)]/10 ${isVisible ? "opacity-100" : "opacity-0"}`}
         onClick={requestClose}
       />
 
-      <aside className={`absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-white shadow-2xl transition-transform duration-200 ease-out sm:w-[92vw] md:w-[480px] ${isVisible ? "translate-x-0" : "translate-x-full"}`}>
+      <aside className={`absolute right-0 top-0 flex h-full w-full flex-col border-l border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-2xl transition-transform duration-200 ease-out sm:w-[92vw] md:w-[480px] ${isVisible ? "translate-x-0" : "translate-x-full"}`}>
         <header className="flex items-start justify-between gap-3 border-b border-[var(--slate-200)] px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-[var(--slate-900)]">Editar registro de cartera</h2>
@@ -298,7 +298,7 @@ export function BillingEditDrawer({ open, record, saving, onClose, onDirtyChange
             </label>
           </div>
 
-          <footer className="border-t border-[var(--slate-200)] bg-white px-5 py-4">
+          <footer className="border-t border-[var(--slate-200)] bg-[var(--surface-strong)] px-5 py-4">
             {showDiscardChanges ? (
               <div className="mb-3 rounded-xl border border-[var(--amber-300)] bg-[var(--amber-50)] p-3 text-sm text-[var(--amber-800)]">
                 <p className="font-medium">Tienes cambios sin guardar.</p>

@@ -16,7 +16,7 @@ export default async function SetupErrorPage({
   const reason = typeof resolvedParams?.reason === "string" ? resolvedParams.reason : null;
 
   return (
-    <Card className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--danger-600)]/25 bg-white p-6 md:p-8">
+    <Card className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--danger-600)]/25 bg-[var(--surface-strong)] p-6 md:p-8">
       <p className="text-xs font-semibold tracking-wide text-[var(--danger-700)] uppercase">Error de configuración</p>
       <CardTitle className="mt-2 text-2xl">Firebase no está configurado para este entorno</CardTitle>
       <CardDescription className="mt-3 text-sm text-[var(--slate-700)]">

@@ -191,7 +191,7 @@ export default function AdminPackagesPage() {
                   value={nameQuery}
                   onChange={(event) => setNameQuery(event.target.value)}
                   autoComplete="off"
-                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white pl-9 pr-9 text-sm focus:border-[var(--brand-700)] focus:outline-none"
+                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] pl-9 pr-9 text-sm focus:border-[var(--brand-700)] focus:outline-none"
                   aria-label="Buscar paquetes"
                 />
                 {nameQuery ? (
@@ -210,7 +210,7 @@ export default function AdminPackagesPage() {
               <label className="text-xs text-[var(--slate-600)]">
                 Torre
                 <select
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={torreFilter}
                   onChange={(event) => setTorreFilter(event.target.value)}
                 >
@@ -226,7 +226,7 @@ export default function AdminPackagesPage() {
                 Desde
                 <input
                   type="date"
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={dateFrom}
                   max={dateTo || undefined}
                   onChange={(event) => setDateFrom(event.target.value)}
@@ -236,7 +236,7 @@ export default function AdminPackagesPage() {
                 Hasta
                 <input
                   type="date"
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={dateTo}
                   min={dateFrom || undefined}
                   onChange={(event) => setDateTo(event.target.value)}

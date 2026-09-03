@@ -75,7 +75,7 @@ export default function ResidentForcedPasswordChangePage() {
 
   return (
     <section className="mx-auto w-full max-w-[36rem] py-3">
-      <Card className="border-[var(--slate-200)] bg-white p-5 md:p-6">
+      <Card className="border-[var(--slate-200)] bg-[var(--surface-strong)] p-5 md:p-6">
         <p className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-200)] bg-[var(--brand-50)] px-3 py-1 text-xs font-semibold text-[var(--brand-800)] uppercase tracking-wide">
           <ShieldCheck className="h-3.5 w-3.5" /> Primer ingreso seguro
         </p>

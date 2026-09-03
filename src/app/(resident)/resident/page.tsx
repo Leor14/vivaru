@@ -39,7 +39,7 @@ function CommunicationItem({ item }: { item: ResidentCommunication }) {
   const isLong = item.body.length > 180;
 
   return (
-    <li className="rounded-xl border border-[var(--slate-200)] bg-white p-3">
+    <li className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3">
       <p className="font-medium text-[var(--slate-900)]">{item.title}</p>
       {formatPublishedDate(item.publishedAt) ? (
         <p className="mt-0.5 text-xs text-[var(--slate-500)]">{formatPublishedDate(item.publishedAt)}</p>
@@ -214,9 +214,9 @@ export default function ResidentHomePage() {
 
       {/* ── Errores localizados ── */}
       {(billingError || reservationsError || visitorsError || packagesError) && (
-        <Card className="border-red-200 bg-red-50">
-          <CardTitle className="text-red-800">Algunos datos no se pudieron cargar</CardTitle>
-          <CardDescription className="mt-1 text-red-700">
+        <Card className="border-[var(--danger-200)] bg-[var(--danger-50)]">
+          <CardTitle className="text-[var(--danger-800)]">Algunos datos no se pudieron cargar</CardTitle>
+          <CardDescription className="mt-1 text-[var(--danger-700)]">
             {billingError && <div>Saldo: {billingError}</div>}
             {reservationsError && <div>Reservas: {reservationsError}</div>}
             {visitorsError && <div>Visitantes: {visitorsError}</div>}
@@ -264,7 +264,7 @@ export default function ResidentHomePage() {
         <CardTitle>Comunicados recientes</CardTitle>
         <CardDescription className="mt-1">Últimos anuncios del edificio para tu unidad.</CardDescription>
         {communicationsError && (
-          <p className="mt-2 text-sm text-red-700">No se pudieron cargar los comunicados. Intenta de nuevo más tarde.</p>
+          <p className="mt-2 text-sm text-[var(--danger-700)]">No se pudieron cargar los comunicados. Intenta de nuevo más tarde.</p>
         )}
         <ul className="mt-4 space-y-2 text-sm text-[var(--slate-700)]">
           {communicationsLoading ? (

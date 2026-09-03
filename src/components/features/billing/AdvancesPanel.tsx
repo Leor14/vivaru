@@ -168,7 +168,7 @@ export function AdvancesPanel({ tenantId, statements, formatAmount }: Props) {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[var(--slate-900)]">
                       {anticipo.unitLabel || anticipo.unitId}
-                      <span className="ml-2 rounded-full border border-[var(--slate-200)] bg-white px-2 py-0.5 text-[11px] font-normal text-[var(--slate-600)]">
+                      <span className="ml-2 rounded-full border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2 py-0.5 text-[11px] font-normal text-[var(--slate-600)]">
                         {ETIQUETA_ESTADO[anticipo.status]}
                       </span>
                     </p>
@@ -366,7 +366,7 @@ function CruzarAnticipoModal({
               <div>
                 <label className="mb-1 block text-sm text-[var(--slate-700)]">Cargo a cubrir</label>
                 <select
-                  className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+                  className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
                   value={statementId}
                   onChange={(event) => {
                     setStatementId(event.target.value);

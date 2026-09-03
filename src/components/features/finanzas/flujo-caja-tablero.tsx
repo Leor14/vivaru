@@ -72,7 +72,7 @@ export function FlujoCajaTablero({
         </span>
       </div>
 
-      <div className="mt-2 h-[220px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2">
+      <div className="mt-2 h-[220px] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2 py-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartRows} margin={chartMargin}>
             <CartesianGrid {...chartGrid} />

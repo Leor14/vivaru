@@ -363,7 +363,7 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
 
           {createdVoucher ? (
             <div className="space-y-3">
-              <div className="rounded-xl border border-[var(--slate-200)] bg-white p-3 text-sm">
+              <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 text-sm">
                 <p className="text-[var(--slate-700)]">
                   Recibo <strong>{createdVoucher.code}</strong> emitido por{" "}
                   {formatAmount(Number(amount) || 0)}.
@@ -409,7 +409,7 @@ export function RecordPaymentModal({ open, statement, statements = [], onClose }
                 <div>
                   <label className="mb-1 block text-sm text-[var(--slate-700)]">¿A qué cuenta entró?</label>
                   <select
-                    className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+                    className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
                     value={bankAccountId}
                     onChange={(event) => setBankAccountId(event.target.value)}
                   >

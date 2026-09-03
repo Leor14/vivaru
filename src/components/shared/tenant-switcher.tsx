@@ -86,19 +86,19 @@ export function TenantSwitcher({ className }: { className?: string }) {
         aria-expanded={abierto}
         aria-haspopup="listbox"
         aria-label={`Conjunto activo: ${nombreActivo}. Cambiar de conjunto`}
-        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--on-fill)]/10"
       >
-        <Building2 className="h-3.5 w-3.5 shrink-0 text-white/50" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-white/80" style={{ fontSize: 12 }}>
+        <Building2 className="h-3.5 w-3.5 shrink-0 text-[var(--on-fill)]/50" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-[var(--on-fill)]/80" style={{ fontSize: 12 }}>
           {nombreActivo}
         </span>
-        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/50" aria-hidden="true" />
+        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-[var(--on-fill)]/50" aria-hidden="true" />
       </button>
 
       {abierto ? (
         <div
           role="listbox"
-          className="absolute left-0 right-0 z-50 mt-1 max-h-80 overflow-y-auto rounded-xl border border-[var(--slate-200)] bg-white p-2 shadow-lg"
+          className="absolute left-0 right-0 z-50 mt-1 max-h-80 overflow-y-auto rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-2 shadow-lg"
         >
           <p className="px-2 pb-1 text-xs text-[var(--slate-500)]">
             {membresias.length} conjuntos

@@ -218,7 +218,7 @@ export default function ResidentSurveysPage() {
 
         {/* Success message */}
         {successMsg && (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="mt-4 rounded-xl border border-[var(--success-200)] bg-[var(--success-50)] px-4 py-3 text-sm text-[var(--success-800)]">
             {successMsg}
           </div>
         )}
@@ -291,8 +291,8 @@ export default function ResidentSurveysPage() {
                             className={[
                               "flex flex-1 items-center justify-center rounded-xl border py-2.5 text-sm font-semibold transition-colors",
                               selected
-                                ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
-                                : "border-[var(--slate-300)] bg-white text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]",
+                                ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                                : "border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]",
                             ].join(" ")}
                           >
                             {n}
@@ -363,7 +363,7 @@ export default function ResidentSurveysPage() {
         {isChecking && (
           <div className="space-y-4">
             {[1, 2].map((i) => (
-              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 sm:p-5">
+              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 sm:p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-center gap-2">
@@ -390,7 +390,7 @@ export default function ResidentSurveysPage() {
         )}
 
         {!isChecking && !error && surveys.length === 0 && (
-          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--slate-300)] bg-white px-6 py-10 text-center">
+          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-strong)] px-6 py-10 text-center">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--slate-100)] text-[var(--slate-500)]">
               <ClipboardList className="h-5 w-5" />
             </span>
@@ -409,7 +409,7 @@ export default function ResidentSurveysPage() {
             return (
               <article
                 key={survey.id}
-                className="group relative rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] premium-card-hover sm:p-5"
+                className="group relative rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] premium-card-hover sm:p-5"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
@@ -418,11 +418,11 @@ export default function ResidentSurveysPage() {
                         {survey.title}
                       </h3>
                       {responded ? (
-                        <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                        <span className="shrink-0 rounded-full border border-[var(--success-200)] bg-[var(--success-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--success-700)]">
                           Respondida
                         </span>
                       ) : (
-                        <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                        <span className="shrink-0 rounded-full border border-[var(--amber-200)] bg-[var(--amber-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--amber-700)]">
                           Pendiente
                         </span>
                       )}

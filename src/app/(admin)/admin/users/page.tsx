@@ -307,7 +307,7 @@ export default function AdminUsersPage() {
             <label className="block text-sm text-[var(--slate-700)]">
               Rol
               <select
-                className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={role}
                 onChange={(event) => setRole(event.target.value as "tenant_admin" | "security_guard")}
               >
@@ -441,7 +441,7 @@ export default function AdminUsersPage() {
             <select
               value={editRole}
               onChange={(e) => setEditRole(e.target.value as "tenant_admin" | "security_guard")}
-              className="mt-1 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-900)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)]"
+              className="mt-1 w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--slate-900)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)]"
             >
               <option value="security_guard">Guarda de seguridad</option>
               <option value="tenant_admin">Admin</option>

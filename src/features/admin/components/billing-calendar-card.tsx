@@ -36,7 +36,7 @@ const DIA_MAX = 28;
 const MIN_CICLO_DIAS = 7;
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)] disabled:bg-[var(--slate-50)] disabled:text-[var(--slate-400)]";
+  "w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)] disabled:bg-[var(--slate-50)] disabled:text-[var(--slate-400)]";
 
 /** `YYYY-MM-DD` → «12 de junio de 2026». Sin `new Date(iso)`, que desplaza por zona horaria. */
 function fechaLegible(iso: string | null | undefined): string | null {
@@ -75,7 +75,7 @@ function Toggle({
         style={{ backgroundColor: checked ? "var(--brand-700)" : "var(--slate-200)" }}
       >
         <span
-          className="absolute left-0.5 top-0.5 inline-block h-4 w-4 rounded-full bg-white transition-transform"
+          className="absolute left-0.5 top-0.5 inline-block h-4 w-4 rounded-full bg-[var(--surface-strong)] transition-transform"
           style={{ transform: checked ? "translateX(16px)" : "translateX(0px)" }}
         />
       </span>

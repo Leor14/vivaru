@@ -79,7 +79,7 @@ export function TopbarActions({
         </Button>
 
         {menuOpen ? (
-          <div className="absolute right-0 z-40 mt-2 w-52 rounded-xl border border-[var(--slate-200)] bg-white p-2 shadow-lg">
+          <div className="absolute right-0 z-40 mt-2 w-52 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-2 shadow-lg">
             <p className="mb-2 truncate px-2 text-xs text-[var(--slate-600)]">{userName}</p>
             <Link href={profilePath} onClick={() => setMenuOpen(false)}>
               <Button type="button" variant="ghost" className="w-full justify-start">

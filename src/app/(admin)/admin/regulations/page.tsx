@@ -129,7 +129,7 @@ function SignaturesTable({
                   {signedDate ? formatDate(signedDate) : "—"}
                 </td>
                 <td className="py-3">
-                  <Badge className="bg-emerald-100 text-emerald-700">Firmado</Badge>
+                  <Badge className="bg-[var(--success-100)] text-[var(--success-700)]">Firmado</Badge>
                 </td>
               </tr>
             );
@@ -208,7 +208,7 @@ function PendingUnitsTable({
                   {person?.email ?? "—"}
                 </td>
                 <td className="py-3">
-                  <Badge className="bg-amber-100 text-amber-700">Pendiente</Badge>
+                  <Badge className="bg-[var(--amber-100)] text-[var(--amber-700)]">Pendiente</Badge>
                 </td>
               </tr>
             );
@@ -443,19 +443,19 @@ function AdminRegulationsPageContent() {
       {/* ── Compliance KPIs ────────────────────────────────────────────────── */}
       {activeRegulation && !signaturesLoading && totalActive > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-xl border border-[var(--slate-200)] bg-white px-4 py-3">
+          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-4 py-3">
             <p className="text-xs text-[var(--slate-500)]">Unidades activas</p>
             <p className="mt-0.5 text-xl font-semibold text-[var(--slate-900)]">{totalActive}</p>
           </div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <p className="text-xs text-emerald-700">Firmadas</p>
-            <p className="mt-0.5 text-xl font-semibold text-emerald-700">{signedCount}</p>
+          <div className="rounded-xl border border-[var(--success-200)] bg-[var(--success-50)] px-4 py-3">
+            <p className="text-xs text-[var(--success-700)]">Firmadas</p>
+            <p className="mt-0.5 text-xl font-semibold text-[var(--success-700)]">{signedCount}</p>
           </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs text-amber-700">Pendientes</p>
-            <p className="mt-0.5 text-xl font-semibold text-amber-700">{pendingCount}</p>
+          <div className="rounded-xl border border-[var(--amber-200)] bg-[var(--amber-50)] px-4 py-3">
+            <p className="text-xs text-[var(--amber-700)]">Pendientes</p>
+            <p className="mt-0.5 text-xl font-semibold text-[var(--amber-700)]">{pendingCount}</p>
           </div>
-          <div className="rounded-xl border border-[var(--slate-200)] bg-white px-4 py-3">
+          <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-4 py-3">
             <p className="text-xs text-[var(--slate-500)]">Cumplimiento</p>
             <p className="mt-0.5 text-xl font-semibold text-[var(--slate-900)]">{complianceRate}%</p>
           </div>

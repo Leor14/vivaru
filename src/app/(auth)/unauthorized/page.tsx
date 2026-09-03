@@ -5,7 +5,7 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 
 export default function UnauthorizedPage() {
   return (
-    <Card className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--slate-200)] bg-white p-6 md:p-8">
+    <Card className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-6 md:p-8">
       <p className="text-xs font-semibold tracking-wide text-[var(--brand-700)] uppercase">Acceso restringido</p>
       <CardTitle className="mt-2 text-2xl">No tienes permisos para abrir esta sección</CardTitle>
       <CardDescription className="mt-3 text-sm text-[var(--slate-700)]">

@@ -141,7 +141,7 @@ export default function ResidentVisitorsQrPage() {
             <h2 className="mt-1 text-xl font-semibold text-[var(--slate-900)]">{invitation.visitorName}</h2>
             <p className="mt-1 text-sm text-[var(--slate-600)]">ID: {invitation.visitorIdentification}</p>
 
-            <div className="mx-auto mt-4 w-fit rounded-2xl border border-[var(--slate-200)] bg-white p-3">
+            <div className="mx-auto mt-4 w-fit rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3">
               <QRCodeCanvas ref={canvasRef} value={qrValue} size={220} level="H" includeMargin />
             </div>
 

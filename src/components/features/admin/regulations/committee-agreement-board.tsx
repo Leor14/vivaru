@@ -13,10 +13,10 @@ type SignedRow = { id: string; unitLabel: string; tower: string; resident: strin
 function Kpi({ label, value, tone }: { label: string; value: string | number; tone?: "green" | "amber" }) {
   const styles =
     tone === "green"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "border-[var(--success-200)] bg-[var(--success-50)] text-[var(--success-700)]"
       : tone === "amber"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-[var(--slate-200)] bg-white text-[var(--slate-900)]";
+        ? "border-[var(--amber-200)] bg-[var(--amber-50)] text-[var(--amber-700)]"
+        : "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-900)]";
   return (
     <div className={`rounded-xl border px-4 py-3 ${styles}`}>
       <p className="text-xs opacity-80">{label}</p>

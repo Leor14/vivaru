@@ -470,7 +470,7 @@ export default function AdminConciliacionPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Cuenta
             <select
-              className="mt-1 h-10 w-full min-w-[220px] rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full min-w-[220px] rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={selectedAccountId}
               onChange={(event) => setSelectedAccountId(event.target.value)}
             >
@@ -737,14 +737,14 @@ export default function AdminConciliacionPage() {
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Tipo
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...accountForm.register("accountType")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...accountForm.register("accountType")}>
                 <option value="corriente">Corriente</option>
                 <option value="ahorros">Ahorros</option>
               </select>
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Moneda
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...accountForm.register("currency")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...accountForm.register("currency")}>
                 <option value="COP">COP</option>
                 <option value="MXN">MXN</option>
                 <option value="USD">USD</option>

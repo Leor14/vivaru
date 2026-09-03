@@ -702,7 +702,7 @@ export default function AdminSurveysPage() {
             placeholder="Buscar encuesta…"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            className="h-9 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] sm:w-56"
+            className="h-9 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] sm:w-56"
           />
           <div className="flex flex-wrap gap-1.5">
             {([
@@ -717,8 +717,8 @@ export default function AdminSurveysPage() {
                 onClick={() => setFilterStatus(value)}
                 className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
                   filterStatus === value
-                    ? "bg-[var(--brand-700)] text-white"
-                    : "border border-[var(--slate-300)] bg-white text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]"
+                    ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
+                    : "border border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-700)] hover:border-[var(--brand-700)] hover:text-[var(--brand-700)]"
                 }`}
               >
                 {label}
@@ -845,7 +845,7 @@ export default function AdminSurveysPage() {
                 Dirigida a
               </label>
               <select
-                className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+                className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
                 value={audienceType}
                 onChange={(e) => setAudienceType(e.target.value as "all" | "tower")}
               >
@@ -878,7 +878,7 @@ export default function AdminSurveysPage() {
                 max={50}
                 value={minResponses}
                 onChange={(e) => setMinResponses(Math.max(1, Math.min(50, Number(e.target.value))))}
-                className="h-10 w-28 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+                className="h-10 w-28 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
               />
             </div>
 
@@ -891,7 +891,7 @@ export default function AdminSurveysPage() {
                 value={closingDate}
                 min={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setClosingDate(e.target.value)}
-                className="h-10 w-48 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+                className="h-10 w-48 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
               />
               <p className="mt-1 text-xs text-[var(--slate-500)]">
                 Si se define, los residentes verán hasta cuándo pueden responder.
@@ -940,7 +940,7 @@ export default function AdminSurveysPage() {
                 <div>
                   <label className="mb-1 block text-xs text-[var(--slate-600)]">Tipo</label>
                   <select
-                    className="h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)]"
+                    className="h-9 w-full rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)]"
                     value={q.type}
                     onChange={(e) =>
                       updateQuestion(q.localId, {
@@ -971,7 +971,7 @@ export default function AdminSurveysPage() {
                   </label>
                   <input
                     type="text"
-                    className="h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-1 focus:ring-[var(--brand-200)]"
+                    className="h-9 w-full rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-1 focus:ring-[var(--brand-200)]"
                     placeholder="Escribe la pregunta aquí"
                     value={q.text}
                     onChange={(e) => updateQuestion(q.localId, { text: e.target.value })}
@@ -991,7 +991,7 @@ export default function AdminSurveysPage() {
                       <div key={opt.id} className="flex items-center gap-2">
                         <input
                           type="text"
-                          className="h-8 flex-1 rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)]"
+                          className="h-8 flex-1 rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)]"
                           placeholder={`Opción ${optIdx + 1}`}
                           value={opt.text}
                           onChange={(e) => updateOption(q.localId, optIdx, e.target.value)}

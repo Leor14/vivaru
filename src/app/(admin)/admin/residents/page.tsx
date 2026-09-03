@@ -405,7 +405,7 @@ export default function AdminResidentsPage() {
           (p) => p.unitId === unit.id,
         ).length;
         return count === 0 ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--amber-50)] px-2 py-0.5 text-xs font-medium text-[var(--amber-700)]">
             Sin titular
           </span>
         ) : (
@@ -1063,8 +1063,8 @@ export default function AdminResidentsPage() {
           </p>
         )}
         {!sinUnidades && sinAcceso.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <p className="text-sm text-amber-900">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--amber-200)] bg-[var(--amber-50)] px-3 py-2">
+            <p className="text-sm text-[var(--amber-900)]">
               <strong>
                 {sinAcceso.length} persona{sinAcceso.length !== 1 ? "s" : ""} sin acceso
               </strong>{" "}
@@ -1103,7 +1103,7 @@ export default function AdminResidentsPage() {
               value={unitSearch}
               onChange={(e) => setUnitSearch(e.target.value)}
               autoComplete="off"
-              className="h-9 w-full rounded-xl border border-[var(--slate-300)] bg-white pl-9 pr-8 text-sm focus:border-[var(--brand-700)] focus:outline-none"
+              className="h-9 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] pl-9 pr-8 text-sm focus:border-[var(--brand-700)] focus:outline-none"
               aria-label="Buscar unidad"
             />
             {unitSearch ? (
@@ -1120,7 +1120,7 @@ export default function AdminResidentsPage() {
 
           {/* Agrupación */}
           <select
-            className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            className="h-9 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
             value={unitGroupFilter}
             onChange={(e) => setUnitGroupFilter(e.target.value)}
             aria-label="Filtrar por agrupación"
@@ -1133,7 +1133,7 @@ export default function AdminResidentsPage() {
 
           {/* Tipo */}
           <select
-            className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            className="h-9 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
             value={unitTypeTableFilter}
             onChange={(e) => setUnitTypeTableFilter(e.target.value as "all" | UnitItem["type"])}
             aria-label="Filtrar por tipo"
@@ -1146,7 +1146,7 @@ export default function AdminResidentsPage() {
 
           {/* Estado */}
           <select
-            className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            className="h-9 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
             value={unitStatusTableFilter}
             onChange={(e) => setUnitStatusTableFilter(e.target.value as "all" | UnitItem["status"])}
             aria-label="Filtrar por estado"
@@ -1157,7 +1157,7 @@ export default function AdminResidentsPage() {
           </select>
 
           {/* Sin titular toggle */}
-          <label className="flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-700)] hover:bg-[var(--slate-50)]">
+          <label className="flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-700)] hover:bg-[var(--slate-50)]">
             <input
               type="checkbox"
               className="h-4 w-4 rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)]"
@@ -1172,7 +1172,7 @@ export default function AdminResidentsPage() {
             <button
               type="button"
               onClick={clearUnitsFilters}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-600)] hover:bg-[var(--slate-50)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-600)] hover:bg-[var(--slate-50)]"
               aria-label="Limpiar filtros de unidades"
             >
               <FilterX className="h-4 w-4" />
@@ -1206,7 +1206,7 @@ export default function AdminResidentsPage() {
                     {rotuloDeTipo(unit.type)}
                     {" · "}
                     {count === 0 ? (
-                      <span className="text-amber-600">Sin titular</span>
+                      <span className="text-[var(--amber-600)]">Sin titular</span>
                     ) : (
                       `${count} persona${count !== 1 ? "s" : ""}`
                     )}
@@ -1299,7 +1299,7 @@ export default function AdminResidentsPage() {
                     value={peopleSearch}
                     onChange={(event) => setPeopleSearch(event.target.value)}
                     autoComplete="off"
-                    className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white pl-9 pr-9 text-sm focus:border-[var(--brand-700)] focus:outline-none"
+                    className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] pl-9 pr-9 text-sm focus:border-[var(--brand-700)] focus:outline-none"
                     aria-label="Buscar persona por nombre, email o documento"
                   />
                   {peopleSearch ? (
@@ -1318,7 +1318,7 @@ export default function AdminResidentsPage() {
               <label className="text-xs text-[var(--slate-600)]">
                 Ocupacion
                 <select
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={unitRoleFilter}
                   onChange={(event) => setUnitRoleFilter(event.target.value as "all" | PersonItem["occupancyType"])}
                 >
@@ -1332,7 +1332,7 @@ export default function AdminResidentsPage() {
               <label className="text-xs text-[var(--slate-600)]">
                 Estado de unidad
                 <select
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={unitStatusFilter}
                   onChange={(event) => setUnitStatusFilter(event.target.value as "all" | UnitItem["status"])}
                 >
@@ -1344,7 +1344,7 @@ export default function AdminResidentsPage() {
               <label className="text-xs text-[var(--slate-600)]">
                 Unidad
                 <select
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={unitIdFilter}
                   onChange={(event) => setUnitIdFilter(event.target.value)}
                 >
@@ -1359,7 +1359,7 @@ export default function AdminResidentsPage() {
           </MobileFiltersPanel>
         </div>
 
-        <div className="mt-3 rounded-xl border border-[var(--slate-200)] bg-white p-3 sm:p-4">
+        <div className="mt-3 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 sm:p-4">
           <DataTable
             columns={peopleColumns}
             rows={filteredPeople}
@@ -1435,7 +1435,7 @@ export default function AdminResidentsPage() {
                     T1/torre 1/torre1 fragmentaban filtros y KPIs. "+ Nueva…" permite
                     crear una agrupación nueva, que se suma a la lista del conjunto. */}
                 <select
-                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={customTower ? "__nueva__" : unitForm.watch("tower") || ""}
                   onChange={(event) => {
                     const value = event.target.value;
@@ -1470,7 +1470,7 @@ export default function AdminResidentsPage() {
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <label className="text-sm text-[var(--slate-700)]">
                 Tipo
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...unitForm.register("type")}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...unitForm.register("type")}>
                   {TIPOS_DE_UNIDAD.map((tipo) => (
                     <option key={tipo} value={tipo}>{ETIQUETA_DE_TIPO[tipo]}</option>
                   ))}
@@ -1478,7 +1478,7 @@ export default function AdminResidentsPage() {
               </label>
               <label className="text-sm text-[var(--slate-700)]">
                 Estado
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...unitForm.register("status")}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...unitForm.register("status")}>
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
                 </select>
@@ -1554,7 +1554,7 @@ export default function AdminResidentsPage() {
                   <label className="text-sm text-[var(--slate-700)]">
                     Tipo de ocupacion
                     <select
-                      className={`mt-1 h-10 w-full rounded-xl border bg-white px-3 text-sm ${
+                      className={`mt-1 h-10 w-full rounded-xl border bg-[var(--surface-strong)] px-3 text-sm ${
                         personForm.formState.errors.occupancyType
                           ? "border-[var(--danger-500)] focus:ring-2 focus:ring-[var(--danger-200)]"
                           : "border-[var(--slate-300)]"
@@ -1617,7 +1617,7 @@ export default function AdminResidentsPage() {
                         </div>
                         <div className="mt-3 grid gap-3 md:grid-cols-2">
                           <select
-                            className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                            className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                             value={member.occupancyType}
                             onChange={(event) => updateFamilyMember(member.id, "occupancyType", event.target.value)}
                           >
@@ -1627,7 +1627,7 @@ export default function AdminResidentsPage() {
                             <option value="other">Otro</option>
                           </select>
                           <select
-                            className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                            className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                             value={member.status}
                             onChange={(event) => updateFamilyMember(member.id, "status", event.target.value)}
                           >
@@ -1678,7 +1678,7 @@ export default function AdminResidentsPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Tipo de ocupacion
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...personForm.register("occupancyType")}
                 onChange={(event) => {
                   const value = event.target.value as PersonItem["occupancyType"];
@@ -1695,7 +1695,7 @@ export default function AdminResidentsPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Unidad
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...personForm.register("unitId")}
                 onChange={(event) => {
                   const selected = units.find((item) => item.id === event.target.value);
@@ -1733,7 +1733,7 @@ export default function AdminResidentsPage() {
           </div>
           <label className="text-sm text-[var(--slate-700)]">
             Estado
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...personForm.register("status")}>
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...personForm.register("status")}>
               <option value="active">Activo</option>
               <option value="inactive">Inactivo</option>
             </select>

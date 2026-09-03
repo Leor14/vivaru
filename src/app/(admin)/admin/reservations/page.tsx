@@ -603,7 +603,7 @@ export default function AdminReservationsPage() {
               const isActive = item.status === "active";
               const isToggling = togglingAmenityId === item.id;
               return (
-                <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-white p-2 text-sm">
+                <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-2 text-sm">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="truncate font-medium text-[var(--slate-900)]">{item.name}</span>
                     <StatusBadge status={item.status} context="amenity" />
@@ -623,7 +623,7 @@ export default function AdminReservationsPage() {
                     >
                       <span
                         className={cn(
-                          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+                          "inline-block h-4 w-4 transform rounded-full bg-[var(--surface-strong)] shadow transition-transform",
                           isActive ? "translate-x-4" : "translate-x-0.5",
                         )}
                       />
@@ -675,7 +675,7 @@ export default function AdminReservationsPage() {
         <div className="space-y-4">
           <div className="grid gap-2 sm:grid-cols-[1fr_180px]">
             <Input value={amenityName} onChange={(event) => setAmenityName(event.target.value)} placeholder="Nombre de amenidad" />
-            <select className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={amenityCategory} onChange={(event) => setAmenityCategory(event.target.value as AmenityItem["category"])}>
+            <select className="h-10 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={amenityCategory} onChange={(event) => setAmenityCategory(event.target.value as AmenityItem["category"])}>
               <option value="social">Social</option>
               <option value="sports">Deportes</option>
               <option value="wellness">Bienestar</option>
@@ -714,7 +714,7 @@ export default function AdminReservationsPage() {
             <label className="grid gap-1 text-sm text-[var(--slate-700)]">
               Duración de bloque
               <select
-                className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="h-10 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={amenitySlotDuration}
                 onChange={(e) => setAmenitySlotDuration(e.target.value)}
               >
@@ -749,7 +749,7 @@ export default function AdminReservationsPage() {
             <label className="grid gap-1 text-sm text-[var(--slate-700)]">
               Reglas
               <textarea
-                className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm"
+                className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 py-2 text-sm"
                 maxLength={1000}
                 placeholder="Ej: Uso obligatorio de ropa deportiva. Prohibido introducir alimentos..."
                 value={amenityUsageRules}
@@ -772,7 +772,7 @@ export default function AdminReservationsPage() {
                     <button
                       type="button"
                       onClick={() => setPendingPhotos((prev) => prev.filter((_, j) => j !== i))}
-                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs leading-none text-white"
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--danger-500)] text-xs leading-none text-[var(--on-fill)]"
                     >
                       ×
                     </button>
@@ -864,7 +864,7 @@ export default function AdminReservationsPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Estado
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as "all" | "pending" | "approved" | "cancelled")}
             >
@@ -877,7 +877,7 @@ export default function AdminReservationsPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Unidad
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={unitFilter}
               onChange={(event) => setUnitFilter(event.target.value)}
             >
@@ -892,7 +892,7 @@ export default function AdminReservationsPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Amenidad
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={amenityFilter}
               onChange={(event) => setAmenityFilter(event.target.value)}
             >
@@ -939,7 +939,7 @@ export default function AdminReservationsPage() {
         <form className="space-y-3" onSubmit={form.handleSubmit((values) => void handleSave(values))}>
           <div>
             <label className="mb-1 block text-sm text-[var(--slate-700)]">Amenidad</label>
-            <select className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("amenityName")}>
+            <select className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("amenityName")}>
               {activeAmenities.length === 0 ? <option value="">No hay amenidades activas</option> : null}
               {activeAmenities.map((item) => (
                 <option key={item.id} value={item.name}>{item.name}</option>
@@ -952,7 +952,7 @@ export default function AdminReservationsPage() {
               {/* Selección directa agrupada por torre — antes era un input de texto
                   que pedía al admin escribir el ID de la unidad (VIV-801). */}
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...form.register("unitId")}
               >
                 <option value="">Selecciona la unidad…</option>
@@ -988,7 +988,7 @@ export default function AdminReservationsPage() {
           </div>
           <label className="text-sm text-[var(--slate-700)]">
             Estado
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("status")}>
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("status")}>
               <option value="pending">Pendiente</option>
               <option value="approved">Aprobada</option>
               <option value="cancelled">Cancelada</option>
@@ -1050,7 +1050,7 @@ export default function AdminReservationsPage() {
           <label className="grid gap-1 text-sm">
             <span className="text-[var(--slate-700)]">Categoría</span>
             <select
-              className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="h-10 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={editAmenityCategory}
               onChange={(event) => setEditAmenityCategory(event.target.value as AmenityItem["category"])}
             >
@@ -1092,7 +1092,7 @@ export default function AdminReservationsPage() {
             <label className="grid gap-1 text-sm text-[var(--slate-700)]">
               Duración de bloque
               <select
-                className="h-10 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="h-10 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={editAmenitySlotDuration}
                 onChange={(e) => setEditAmenitySlotDuration(e.target.value)}
               >
@@ -1127,7 +1127,7 @@ export default function AdminReservationsPage() {
             <label className="grid gap-1 text-sm text-[var(--slate-700)]">
               Reglas
               <textarea
-                className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm"
+                className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 py-2 text-sm"
                 maxLength={1000}
                 placeholder="Ej: Uso obligatorio de ropa deportiva. Prohibido introducir alimentos..."
                 value={editAmenityUsageRules}

@@ -161,11 +161,11 @@ function StepIndicator({ step }: { step: WizardStep }) {
     <div className="flex items-center gap-1 border-b border-[var(--slate-200)] pb-4">
       {steps.map((s, i) => (
         <div key={s.key} className="flex items-center gap-1">
-          <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${i < current ? "bg-emerald-100 text-emerald-700" : i === current ? "bg-[var(--brand-700)] text-white" : "bg-[var(--slate-100)] text-[var(--slate-400)]"}`}>
+          <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${i < current ? "bg-[var(--success-100)] text-[var(--success-700)]" : i === current ? "bg-[var(--brand-700)] text-[var(--on-fill)]" : "bg-[var(--slate-100)] text-[var(--slate-400)]"}`}>
             {i < current ? "✓" : i + 1}
           </div>
           <span className={`text-xs ${i === current ? "font-medium text-[var(--slate-900)]" : "text-[var(--slate-400)]"}`}>{s.label}</span>
-          {i < steps.length - 1 && <div className={`mx-1 h-px w-6 ${i < current ? "bg-emerald-300" : "bg-[var(--slate-200)]"}`} />}
+          {i < steps.length - 1 && <div className={`mx-1 h-px w-6 ${i < current ? "bg-[var(--success-300)]" : "bg-[var(--slate-200)]"}`} />}
         </div>
       ))}
     </div>
@@ -173,9 +173,9 @@ function StepIndicator({ step }: { step: WizardStep }) {
 }
 
 function StatusBadge({ row }: { row: ParsedRow }) {
-  if (row.errors.length > 0) return <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700"><XCircle className="h-3 w-3" /> Inválida</span>;
-  if (row.isDuplicate) return <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"><AlertCircle className="h-3 w-3" /> Duplicada</span>;
-  return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"><CheckCircle2 className="h-3 w-3" /> OK</span>;
+  if (row.errors.length > 0) return <span className="inline-flex items-center gap-1 rounded-full bg-[var(--danger-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--danger-700)]"><XCircle className="h-3 w-3" /> Inválida</span>;
+  if (row.isDuplicate) return <span className="inline-flex items-center gap-1 rounded-full bg-[var(--amber-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--amber-700)]"><AlertCircle className="h-3 w-3" /> Duplicada</span>;
+  return <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--success-700)]"><CheckCircle2 className="h-3 w-3" /> OK</span>;
 }
 
 export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImport, onClose, track }: Props) {
@@ -412,8 +412,8 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
       */}
       {step === "upload" && existingUnits.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-            <AlertCircle className="h-7 w-7 text-amber-600" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--amber-50)]">
+            <AlertCircle className="h-7 w-7 text-[var(--amber-600)]" />
           </div>
           <p className="font-medium text-[var(--slate-900)]">Primero carga tus unidades</p>
           <p className="max-w-md text-sm text-[var(--slate-600)]">
@@ -438,7 +438,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
               Columnas: <code className="rounded-sm bg-[var(--slate-100)] px-1 py-0.5 text-xs">nombre, email, telefono, documento, unidad, rol</code>
             </p>
           </div>
-          {parseError && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{parseError}</p>}
+          {parseError && <p className="rounded-xl border border-[var(--danger-200)] bg-[var(--danger-50)] px-4 py-2 text-sm text-[var(--danger-700)]">{parseError}</p>}
           <div className="flex flex-wrap justify-center gap-2">
             <Button onClick={() => fileInputRef.current?.click()}><Upload className="mr-2 h-4 w-4" /> Seleccionar archivo</Button>
             <Button variant="outline" onClick={downloadTemplate}><Download className="mr-2 h-4 w-4" /> Descargar plantilla</Button>
@@ -446,29 +446,29 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
           <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={handleFileChange} />
           {/* Espeja la tarjeta del asistente de unidades: qué hace esto, qué NO
               hace, y por qué va en segundo lugar. */}
-          <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <p className="text-xs font-semibold text-blue-800">
+          <div className="w-full rounded-xl border border-[var(--categoria-blue-200)] bg-[var(--categoria-blue-50)] p-4">
+            <p className="text-xs font-semibold text-[var(--categoria-blue-800)]">
               ¿Qué importa este archivo y qué no?
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               <strong>Este es el paso 2.</strong> Crea a las personas del conjunto —propietarios,
               inquilinos— y <strong>engancha cada una a la unidad en la que vive</strong>. Por eso
               las unidades van antes: si no existen, no hay a qué engancharlas y ninguna fila entra.
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               <strong>No envía invitaciones ni crea accesos.</strong> Nadie recibe un correo por
               importar. Avisar a los residentes para que entren a Vivaru es un paso aparte, cuando
               tú lo decidas.
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               Con nombre, correo y unidad basta para arrancar; el teléfono y el documento se
               pueden completar después.
             </p>
           </div>
 
-          <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <p className="text-xs font-semibold text-blue-800">Rol (valores aceptados)</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+          <div className="w-full rounded-xl border border-[var(--categoria-blue-200)] bg-[var(--categoria-blue-50)] p-4">
+            <p className="text-xs font-semibold text-[var(--categoria-blue-800)]">Rol (valores aceptados)</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               <strong>propietario</strong> (residente) · <strong>inquilino</strong> · <strong>inversionista</strong> (propietario no residente) · <strong>otro</strong>.
               Define qué ve cada persona y qué puede hacer dentro de Vivaru.
             </p>
@@ -516,9 +516,9 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
       {step === "review" && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{validRows.length - duplicateCount} válidas</span>
-            {duplicateCount > 0 && <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">{duplicateCount} duplicadas</span>}
-            {invalidCount > 0 && <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">{invalidCount} con errores</span>}
+            <span className="rounded-full bg-[var(--success-50)] px-3 py-1 text-xs font-medium text-[var(--success-700)]">{validRows.length - duplicateCount} válidas</span>
+            {duplicateCount > 0 && <span className="rounded-full bg-[var(--amber-50)] px-3 py-1 text-xs font-medium text-[var(--amber-700)]">{duplicateCount} duplicadas</span>}
+            {invalidCount > 0 && <span className="rounded-full bg-[var(--danger-50)] px-3 py-1 text-xs font-medium text-[var(--danger-700)]">{invalidCount} con errores</span>}
             <span className="ml-auto text-xs text-[var(--slate-500)]">Archivo: <span className="font-medium">{fileName}</span></span>
           </div>
           <div className="responsive-table-wrap rounded-xl border border-[var(--slate-200)]">
@@ -541,15 +541,15 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
                     <tr key={row.rowIndex} className={`border-t border-[var(--slate-200)] ${!isSelectable ? "opacity-50" : ""}`}>
                       <td className="px-3 py-2"><input type="checkbox" checked={selected.has(row.rowIndex)} disabled={!isSelectable} onChange={() => isSelectable && toggleRow(row.rowIndex)} aria-label={`Fila ${row.rowIndex}`} className="h-4 w-4 cursor-pointer rounded-sm border-[var(--slate-300)] accent-[var(--brand-700)] disabled:cursor-not-allowed" /></td>
                       <td className="px-3 py-2 text-xs text-[var(--slate-500)]">{row.rowIndex}</td>
-                      <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{row.fullName || <span className="italic text-rose-400">vacío</span>}</td>
-                      <td className="px-3 py-2 text-[var(--slate-700)]">{row.email || <span className="italic text-rose-400">vacío</span>}</td>
-                      <td className="px-3 py-2 text-[var(--slate-700)]">{row.unitLabel || <span className="italic text-rose-400">vacío</span>}</td>
-                      <td className="px-3 py-2 text-[var(--slate-700)]">{row.role ? ROLE_LABELS[row.role] : <span className="italic text-rose-400">{getField(row.raw, "rol", "role") || "vacío"}</span>}</td>
+                      <td className="px-3 py-2 font-medium text-[var(--slate-900)]">{row.fullName || <span className="italic text-[var(--danger-400)]">vacío</span>}</td>
+                      <td className="px-3 py-2 text-[var(--slate-700)]">{row.email || <span className="italic text-[var(--danger-400)]">vacío</span>}</td>
+                      <td className="px-3 py-2 text-[var(--slate-700)]">{row.unitLabel || <span className="italic text-[var(--danger-400)]">vacío</span>}</td>
+                      <td className="px-3 py-2 text-[var(--slate-700)]">{row.role ? ROLE_LABELS[row.role] : <span className="italic text-[var(--danger-400)]">{getField(row.raw, "rol", "role") || "vacío"}</span>}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-col gap-0.5">
                           <StatusBadge row={row} />
-                          {row.errors.map((e, i) => <span key={i} className="text-[10px] text-rose-600">{e}</span>)}
-                          {row.isDuplicate && <span className="text-[10px] text-amber-600">Email/documento ya existe</span>}
+                          {row.errors.map((e, i) => <span key={i} className="text-[10px] text-[var(--danger-600)]">{e}</span>)}
+                          {row.isDuplicate && <span className="text-[10px] text-[var(--amber-600)]">Email/documento ya existe</span>}
                         </div>
                       </td>
                     </tr>
@@ -591,7 +591,7 @@ export function ResidentBulkImportWizard({ existingUnits, existingPeople, onImpo
 
       {step === "done" && (
         <div className="flex flex-col items-center gap-4 py-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100"><CheckCircle2 className="h-7 w-7 text-emerald-600" /></div>
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--success-100)]"><CheckCircle2 className="h-7 w-7 text-[var(--success-600)]" /></div>
           <div>
             <p className="text-lg font-semibold text-[var(--slate-900)]">{importedCount} residente{importedCount !== 1 ? "s" : ""} importado{importedCount !== 1 ? "s" : ""}</p>
             <p className="mt-1 text-sm text-[var(--slate-500)]">Ya aparecen en la tabla de personas, vinculados a su unidad.</p>

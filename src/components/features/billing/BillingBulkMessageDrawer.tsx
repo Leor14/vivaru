@@ -40,9 +40,9 @@ export function BillingBulkMessageDrawer({
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Enviar mensaje masivo">
-      <button className="absolute inset-0 bg-slate-950/40" onClick={onClose} aria-label="Cerrar drawer" />
+      <button className="absolute inset-0 bg-[var(--slate-950)]/40" onClick={onClose} aria-label="Cerrar drawer" />
 
-      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-[var(--slate-200)] bg-white p-5 shadow-2xl sm:max-w-2xl sm:p-6">
+      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-[var(--slate-200)] bg-[var(--surface-strong)] p-5 shadow-2xl sm:max-w-2xl sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">Comunicación operativa</p>
@@ -68,7 +68,7 @@ export function BillingBulkMessageDrawer({
             </div>
           </div>
 
-          <div className="mt-3 grid max-h-56 gap-2 overflow-y-auto rounded-xl border border-[var(--slate-200)] bg-white p-3 sm:grid-cols-2">
+          <div className="mt-3 grid max-h-56 gap-2 overflow-y-auto rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 sm:grid-cols-2">
             {units.length === 0 ? (
               <p className="text-sm text-[var(--slate-600)]">No hay unidades disponibles para seleccionar.</p>
             ) : (
@@ -81,7 +81,7 @@ export function BillingBulkMessageDrawer({
                       "flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-2 text-sm",
                       isChecked
                         ? "border-[var(--brand-400)] bg-[var(--brand-100)] text-[var(--brand-900)]"
-                        : "border-[var(--slate-200)] bg-white text-[var(--slate-700)]",
+                        : "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-700)]",
                     )}
                   >
                     <input

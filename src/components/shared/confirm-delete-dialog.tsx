@@ -48,12 +48,12 @@ export function ConfirmDeleteDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)]/40 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-delete-title"
     >
-      <div className="w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--slate-200)] bg-white shadow-xl sm:rounded-2xl">
+      <div className="w-full max-w-md overflow-hidden rounded-t-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-xl sm:rounded-2xl">
         <div className="flex items-start gap-3 p-5">
           <span
             aria-hidden="true"
@@ -85,7 +85,7 @@ export function ConfirmDeleteDialog({
             type="button"
             disabled={loading}
             onClick={onConfirm}
-            className="inline-flex h-10 w-full items-center justify-center rounded-xl px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-40 sm:w-auto"
+            className="inline-flex h-10 w-full items-center justify-center rounded-xl px-4 text-sm font-medium text-[var(--on-fill)] transition hover:opacity-90 disabled:pointer-events-none disabled:opacity-40 sm:w-auto"
             style={{ backgroundColor: DANGER_COLOR }}
           >
             {loading ? "Eliminando..." : confirmLabel}

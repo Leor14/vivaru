@@ -372,7 +372,7 @@ export default function AdminEgresosPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Estado
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as "all" | ExpenseStatus)}
             >
@@ -385,7 +385,7 @@ export default function AdminEgresosPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Categoría
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value as "all" | ExpenseCategory)}
             >
@@ -466,7 +466,7 @@ export default function AdminEgresosPage() {
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Categoría
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("category")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("category")}>
                 {(Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((key) => (
                   <option key={key} value={key}>
                     {CATEGORY_LABELS[key]}
@@ -486,7 +486,7 @@ export default function AdminEgresosPage() {
             <label className="block text-sm text-[var(--slate-700)]">
               Beneficiario del registro
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={form.watch("vendorId") ?? ""}
                 onChange={(e) => {
                   const vendorId = e.target.value;
@@ -540,7 +540,7 @@ export default function AdminEgresosPage() {
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Estado
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("status")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("status")}>
                 <option value="registrado">Registrado</option>
                 <option value="pagado">Pagado</option>
                 <option value="anulado">Anulado</option>
@@ -548,7 +548,7 @@ export default function AdminEgresosPage() {
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Método de pago
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("paymentMethod")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("paymentMethod")}>
                 <option value="">Sin definir</option>
                 {Object.entries(PAYMENT_METHOD_LABELS).map(([key, label]) => (
                   <option key={key} value={key}>

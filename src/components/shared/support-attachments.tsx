@@ -81,7 +81,7 @@ export function AttachmentPicker({
           {files.map((file, i) => (
             <li
               key={`${file.name}-${i}`}
-              className="flex items-center gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-2.5 py-1.5 text-xs"
+              className="flex items-center gap-2 rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs"
             >
               <Paperclip className="h-3.5 w-3.5 shrink-0 text-[var(--slate-500)]" aria-hidden />
               <span className="min-w-0 flex-1 truncate text-[var(--slate-800)]">{file.name}</span>
@@ -121,7 +121,7 @@ export function AttachmentList({ attachments }: { attachments?: SupportAttachmen
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-lg border border-[var(--slate-200)] bg-white px-2 py-1 text-xs text-[var(--slate-700)] [transition:border-color_150ms_var(--ease-out)] hover:border-[var(--brand-200)]"
+              className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2 py-1 text-xs text-[var(--slate-700)] [transition:border-color_150ms_var(--ease-out)] hover:border-[var(--brand-200)]"
             >
               <Icono className="h-3.5 w-3.5 shrink-0 text-[var(--slate-500)]" aria-hidden />
               <span className="truncate">{a.name}</span>

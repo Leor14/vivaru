@@ -153,7 +153,7 @@ export function AdvisorRequestDialog({
         sent ? undefined : (
           <div className="flex min-w-0 items-start gap-3">
             <span
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--brand-700)] text-white"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--brand-700)] text-[var(--on-fill)]"
               aria-hidden
             >
               <Sparkles className="h-5 w-5" />
@@ -174,7 +174,7 @@ export function AdvisorRequestDialog({
     >
       {sent ? (
         <div className="py-4 text-center">
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-3xl bg-emerald-50 text-emerald-600">
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-3xl bg-[var(--success-50)] text-[var(--success-600)]">
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <h2 className="text-xl font-semibold tracking-tight text-[var(--slate-900)]">
@@ -213,7 +213,7 @@ export function AdvisorRequestDialog({
                       "active:scale-[0.98] motion-reduce:transform-none",
                       selected
                         ? "border-[var(--brand-700)] bg-[var(--brand-50)] shadow-[0_0_0_1px_var(--brand-700)]"
-                        : "border-[var(--slate-200)] bg-white hover:border-[var(--brand-200)] hover:bg-[var(--surface-soft)]",
+                        : "border-[var(--slate-200)] bg-[var(--surface-strong)] hover:border-[var(--brand-200)] hover:bg-[var(--surface-soft)]",
                     )}
                   >
                     <OptionIcon
@@ -256,7 +256,7 @@ export function AdvisorRequestDialog({
               Tu rol en el conjunto
             </span>
             <select
-              className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={cargo}
               onChange={(e) => setCargo(e.target.value)}
             >
@@ -294,7 +294,7 @@ export function AdvisorRequestDialog({
                 ¿Cuándo te llamamos?
               </span>
               <select
-                className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={horario}
                 onChange={(e) => setHorario(e.target.value)}
               >

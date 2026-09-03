@@ -98,7 +98,7 @@ export function CountrySelect({
         className={cn(
           // h-11 para igualar a `Input`: este control casi siempre va al lado de
           // uno (el teléfono lo pone pegado) y 40 contra 44 se nota.
-          "flex h-11 w-full items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]",
+          "flex h-11 w-full items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]",
           "[transition:border-color_150ms_var(--ease-out)] hover:border-[var(--slate-400)]",
           variant === "dial" && "w-auto min-w-[104px] justify-between",
         )}
@@ -113,7 +113,7 @@ export function CountrySelect({
       </button>
 
       {open ? (
-        <div className="absolute z-30 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[var(--slate-200)] bg-white shadow-[0_12px_32px_rgba(12,33,53,0.14)]">
+        <div className="absolute z-30 mt-1 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_12px_32px_rgba(12,33,53,0.14)]">
           <div className="flex items-center gap-2 border-b border-[var(--slate-100)] px-3">
             <Search className="h-4 w-4 shrink-0 text-[var(--slate-500)]" aria-hidden />
             <input
@@ -149,7 +149,7 @@ export function CountrySelect({
                       onClick={() => choose(country)}
                       className={cn(
                         "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm",
-                        index === highlight ? "bg-[var(--brand-50)]" : "bg-white",
+                        index === highlight ? "bg-[var(--brand-50)]" : "bg-[var(--surface-strong)]",
                       )}
                     >
                       <span aria-hidden className="text-base leading-none">{flagFor(country.code)}</span>

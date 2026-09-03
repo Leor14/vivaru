@@ -78,7 +78,7 @@ export function MobileFiltersPanel({
 
       <div
         className={cn(
-          "rounded-xl border border-[var(--slate-200)] bg-white p-3",
+          "rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3",
           collapsibleOnDesktop ? (shouldShowPanel ? "block" : "hidden") : open ? "block" : "hidden md:block",
         )}
       >

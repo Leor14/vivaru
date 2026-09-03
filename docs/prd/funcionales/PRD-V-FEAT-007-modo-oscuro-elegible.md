@@ -9,7 +9,7 @@
 | **Módulo** | Transversal a la interfaz. Sin módulo de negocio propio, sin entrada en la navegación |
 | **Usuario principal** | `resident` (móvil, uso nocturno) · **secundario** `tenant_admin` |
 | **Responsable** | David |
-| **Estado** | **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
+| **Estado** | **En desarrollo — entrega 1 construida** (3 sep 2026). Ver §Bitácora. Antes: **Lista para PRD** (3 sep 2026) — escrita tras medir el terreno. **`G1` no se supera y David aceptó su ausencia explícitamente el mismo día**: se construye sin poder medir adopción, porque el valor es de accesibilidad y no de conversión. Ver §Puertas |
 | **Dependencias** | Ninguna bloqueante. **Resuelve la decisión abierta de `UX-005`** (preferencia por usuario), que queda desbloqueada por esta ficha |
 | **Riesgo** | **Medio.** Cero riesgo de dinero, de datos personales y de permisos. El riesgo es de **regresión visual en 145 ficheros** y de **contraste ilegible** |
 | **Reversibilidad** | **Total y en un solo interruptor.** La bandera `producto-modo-oscuro` apagada deja el producto exactamente como está hoy. La migración de color a tokens es inerte en claro por construcción — ver `RN-01` |
@@ -142,7 +142,14 @@ sobreviva al cierre de sesión y viaje a sus otros dispositivos, y que el produc
 3. Paleta oscura: inversión de los **~25 tokens semánticos** y re-mapeo de las escalas.
 4. **Migración de color literal a token** en las superficies del alcance:
    `src/app/(admin)` · `src/app/(resident)` · `src/app/(auth)` · `src/components/shared` ·
-   `src/components/features` · `src/components/ui`. Son **~111 de los 145 ficheros**.
+   `src/components/features` · `src/components/ui` · **`src/features`** (excepto sus carpetas
+   `security-guard/` y `superadmin/`, que son portales de fase 2).
+
+   > **Corrección del 3 sep, hecha construyendo:** esta lista decía solo
+   > `src/components/features` y **`src/features` es OTRO árbol**, con siete ficheros de admin,
+   > PQRS y comunicaciones. El hueco no lo vio ninguna lectura: lo destapó **verificar el bundle**
+   > —`text-indigo-700` seguía emitiéndose sin un solo consumidor en el alcance que yo creía
+   > completo—. Son **150 ficheros**, no 111.
 5. Las **35 reglas de color literal de `globals.css`** que aplican a esas superficies.
 6. `@custom-variant dark` declarada por **atributo**, y el mecanismo de pintado sin destello.
 7. El **informe del consejo se imprime siempre en claro** (`RN-07`).
@@ -274,7 +281,7 @@ La preferencia tiene **tres estados y ningún estado terminal**.
 
 | # | Regla | Verificable en |
 |---|---|---|
-| `RN-01` | **La migración de color literal a token no cambia un solo pixel en modo claro.** Cada sustitución usa un token cuyo valor en claro es el mismo color que reemplaza | `CA12`, y comparación visual |
+| `RN-01` | **ENMENDADA el 3 sep, midiendo.** La versión original —«no cambia un solo pixel»— **no era satisfacible**: de los 63 colores distintos del alcance, **solo `white` tenía un token con el mismo valor**. La regla queda partida en tres: **(a)** `white`/`black` y las familias sin token —emerald, rose, sky, blue, orange, indigo, violet, teal, cyan— se migran con **cero cambio de pixel**, porque los tokens nuevos se crearon con el valor exacto que Tailwind 4 pinta hoy (626 usos); **(b)** `slate-*`, `amber-*` y `red-*` **cambian de forma visible y a propósito** —189 usos— al unificarse en la paleta de Vivaru, que es la deliberada: `--danger-500` está a **ΔE 29** de `red-500` y `--amber-300` a **52**. Decisión de David. **(c)** El `text-destructive` del perfil del residente **pasa de no pintarse a pintarse** — era un defecto, no un color | `CA12`, y comparación visual |
 | `RN-02` | El tema se aplica por **un atributo en `<html>`**, nunca por una clase en un shell de portal. `.admin-shell` gobierna tipografía y **no** puede gobernar tema | `CA10` |
 | `RN-03` | Un valor de `tema` distinto de `claro` u `oscuro` **se pinta como claro** y **no se corrige desde el cliente**. La corrección silenciosa esconde el defecto que la causó | `CA9` |
 | `RN-04` | **Ninguna pantalla muestra el tema de otro usuario**, y ninguna operación lo escribe en nombre de otro. Ni la consola de superadmin ni la pantalla de usuarios del admin | `CA4` |
@@ -515,6 +522,73 @@ reglas.
 | **Componentes compartidos** | `AuthProvider`, `updateUserProfile`, `AppShell`, `.admin-shell`, `globals.css`. Los cinco se tocan y ninguno cambia de contrato |
 | **Coherencia con roles reales** | Los ocho de `src/lib/constants/roles.ts`. `committee` usa el shell del admin y por eso hereda el interruptor — y por eso `RN-07` existe |
 | **Supuestos afinados** | Dos. **(a)** El cuarto fichero con `dark:` es `globals.css` —el changelog `0.9.53` ya lo decía bien; la cabecera de `pendientes.md` lo comprimió a «tres son de marketing» y se leía como si el cuarto fuera del producto—. **No lo es, y además ahí `dark:` no es una clase**: aparece dentro de dos nombres de token (`--color-navy-dark`, `--color-brand-plum-dark`) y no emite nada. **(b)** Los PDF no «no deben» heredar el tema: **no pueden**, porque se dibujan desde datos con `jspdf` y `pdfkit`. La que sí hereda es la impresión del informe del consejo, que la medición no había separado del resto |
+
+---
+
+## Bitácora · Entrega 1 — el terreno (3 de septiembre de 2026)
+
+**Construida. 120 ficheros, `npm test` 1584 en verde, cero cambio funcional.**
+
+### Qué quedó hecho
+
+| | Resultado |
+|---|---|
+| Literales de paleta con nombre en el alcance | **832 → 0** |
+| Usos que ahora pasan por token en el alcance | **3.786** |
+| Reglas de `globals.css` con color literal | **12 → 0** (`.soft-panel`, dos tooltips del selector de fechas, el velo del visor, cuatro sombras) |
+| Tokens nuevos | **48**: `--success-*` (8) · `--info-*` (5) · `--categoria-*` (18) · `--on-fill` · `--overlay` · `--surface-tint` · cuatro sombras · dos del selector de rango · y los pasos que faltaban en las rampas propias (`--amber-200/400/500/600`, `--danger-400/800`, `--slate-950`) |
+| Guardián | `tests/color-por-token.test.ts`, **5 casos**, falsado cuatro veces |
+
+### Lo que construir corrigió de esta ficha
+
+1. **La medición del terreno contaba la cosa equivocada.** «174 tokens» era cierto e inútil: `@theme`
+   **no redefine la paleta de Tailwind**, así que convivían **dos paletas paralelas** —`text-slate-700`
+   pintaba el `#314158` de Tailwind y `var(--slate-700)` el `#33485f` de Vivaru— y el idioma de token
+   **ya era mayoría** con **3.474 usos en 161 ficheros**. El trabajo no era inventar una vía: era
+   terminar de aplicar la que ya existía.
+2. **`RN-01` no era satisfacible.** Ver la regla enmendada.
+3. **El alcance nombraba un árbol y había dos.** `src/features` ≠ `src/components/features`.
+4. **`text-white` y `bg-white` son papeles OPUESTOS.** Los 53 `text-white` del alcance van todos sobre
+   un relleno saturado; ni uno es superficie. Con un solo token, en oscuro el texto de cada botón
+   habría desaparecido. Por eso `--on-fill` existe y no es `--surface-strong`.
+5. **Un defecto vivo, medido en producción.** `text-destructive` en `/resident/profile` resolvía a
+   **nada** fuera de `.marketing-theme` —`--destructive` solo se declara ahí—, así que el mensaje
+   `Error:` se pintaba en el color de texto heredado. Comprobado en `grupovivaru.com`: dentro del
+   envoltorio da `rgb(220,38,38)`, fuera da `rgb(15,28,43)`, idéntico al del `body`. Arreglado.
+
+### Lo que NO se hizo, medido y con nombre
+
+> **Segunda forma de literal, que ninguna medición había contado: el hexadecimal dentro de una clase
+> arbitraria.** El 3 de septiembre se midió «0 hexadecimales dentro de componentes» y era cierto para
+> el hex suelto — pero no veía `bg-[#fff6f4]`, al que el tema **tampoco alcanza**.
+>
+> **140 usos · 81 colores distintos · 20 ficheros**, y el 70% en seis: las tarjetas del panel
+> (`executive-kpi-card`, 25), `/admin` (17), `RecordPaymentModal` (16), `AdvancesPanel` (14),
+> `/admin/finanzas` (14) y `status-pill` (12).
+>
+> **No se migran aquí, y la razón no es el tamaño:** son mapas de tono a medida —`tono → {degradado,
+> punto, texto}`, `estado → {fondo, texto, borde}`— **con casi-duplicados entre ficheros**.
+> Unificarlos es diseñar un sistema de tonos, **se ve**, y es la misma clase de decisión que el grupo
+> B. **Queda vigilado, no anotado:** el guardián fija el techo en 140 y enrojece si sube.
+
+### Cómo se verificó, y por qué no basta con el verde
+
+- **El bundle construido, no la suite.** Una utilidad de Tailwind desaparece del CSS cuando pierde su
+  último consumidor: los ocho colores sin uso fuera del alcance **ya no se emiten**, y los que siguen
+  usándose en portería o superadmin **sí**. Correlación 8 de 8. Eso prueba que la migración **surtió
+  efecto**; ninguna prueba en verde lo prueba.
+- **Comparación de color computado contra producción**, que sirve la versión anterior: en `/login`,
+  `body`, botón, formulario, input y **los ocho colores de texto** coinciden exactamente. La única
+  diferencia es el banner de «Ambiente de pruebas», que en producción no existe.
+- **Cuatro falsaciones**, y cada una enrojeció **su** caso: reponer un literal (nombra el fichero
+  culpable), vaciar el alcance (el control se cae **y el caso principal pasa en verde sobre un
+  conjunto vacío**, que es justo lo que ese control existe para cazar), reponer el literal en el árbol
+  `src/features` recién añadido, y añadir un hexadecimal nuevo.
+- **Pendiente de ojos:** las pantallas **autenticadas** de admin y residente, que es donde se ve el
+  cambio del grupo B. `/login` sí se miró. **`npm run dev` no arranca en este repositorio y es
+  anterior a esta entrega** —Turbopack rechaza los selectores `.2xl\:max-w-*` de `globals.css`, que
+  empiezan por dígito; el build de producción sí los tolera—, así que la verificación se hizo con
+  `next start` sobre el build.
 
 ---
 

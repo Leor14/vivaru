@@ -148,7 +148,7 @@ export function Drawer({
         type="button"
         data-state={dataState}
         aria-label="Cerrar panel"
-        className="drawer-overlay absolute inset-0 bg-black/40"
+        className="drawer-overlay absolute inset-0 bg-[var(--overlay)]/40"
         onClick={onClose}
       />
       <div
@@ -161,7 +161,7 @@ export function Drawer({
         onKeyDown={handlePanelKeyDown}
         className={cn(
           // Mobile: bottom sheet — slides up from bottom
-          "drawer-panel absolute bottom-0 left-0 right-0 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-[var(--slate-200)] bg-white shadow-2xl outline-none",
+          "drawer-panel absolute bottom-0 left-0 right-0 flex max-h-[90vh] flex-col rounded-t-2xl border-t border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-2xl outline-none",
           // Desktop (md+): right panel — slides in from right
           "md:bottom-auto md:left-auto md:right-0 md:top-0 md:h-full md:max-h-none md:rounded-none md:border-l md:border-t-0 md:w-auto",
           className,

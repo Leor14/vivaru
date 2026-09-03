@@ -157,7 +157,7 @@ export function RowActionsMenu({
           role="menu"
           aria-orientation="vertical"
           data-open={open ? "true" : "false"}
-          className="row-actions-dropdown absolute right-0 z-30 mt-1 min-w-[176px] overflow-hidden bg-white"
+          className="row-actions-dropdown absolute right-0 z-30 mt-1 min-w-[176px] overflow-hidden bg-[var(--surface-strong)]"
           style={{
             border: "0.5px solid var(--slate-300)",
             borderRadius: 8,

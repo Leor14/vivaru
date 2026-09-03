@@ -143,7 +143,7 @@ export function AmenityPhotoManager({
                 className="aspect-video w-full object-cover"
               />
               {index === 0 && (
-                <span className="absolute left-1.5 top-1.5 rounded-full bg-[var(--brand-700)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-[var(--brand-700)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--on-fill)]">
                   Portada
                 </span>
               )}
@@ -153,7 +153,7 @@ export function AmenityPhotoManager({
                   aria-label="Mover arriba"
                   disabled={index === 0}
                   onClick={() => void move(index, -1)}
-                  className="rounded-md bg-white/90 p-0.5 text-[var(--slate-700)] shadow hover:bg-white disabled:opacity-30"
+                  className="rounded-md bg-[var(--surface-strong)]/90 p-0.5 text-[var(--slate-700)] shadow hover:bg-[var(--surface-strong)] disabled:opacity-30"
                 >
                   <ChevronUp className="h-3.5 w-3.5" />
                 </button>
@@ -162,7 +162,7 @@ export function AmenityPhotoManager({
                   aria-label="Mover abajo"
                   disabled={index === sorted.length - 1}
                   onClick={() => void move(index, 1)}
-                  className="rounded-md bg-white/90 p-0.5 text-[var(--slate-700)] shadow hover:bg-white disabled:opacity-30"
+                  className="rounded-md bg-[var(--surface-strong)]/90 p-0.5 text-[var(--slate-700)] shadow hover:bg-[var(--surface-strong)] disabled:opacity-30"
                 >
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>
@@ -172,7 +172,7 @@ export function AmenityPhotoManager({
                 aria-label="Eliminar foto"
                 disabled={deletingId === photo.id}
                 onClick={() => void handleDelete(photo)}
-                className="absolute bottom-1 right-1 rounded-md bg-red-600 p-0.5 text-white shadow opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                className="absolute bottom-1 right-1 rounded-md bg-[var(--danger-600)] p-0.5 text-[var(--on-fill)] shadow opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
               >
                 {deletingId === photo.id ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

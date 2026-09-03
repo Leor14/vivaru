@@ -440,7 +440,7 @@ function AdminFinanzasLibroPageContent() {
             <label className="text-sm text-[var(--slate-700)]">
               Mes
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm disabled:opacity-60"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm disabled:opacity-60"
                 value={monthFilter}
                 disabled={Boolean(dateFrom || dateTo)}
                 onChange={(e) => setMonthFilter(e.target.value)}
@@ -534,7 +534,7 @@ function AdminFinanzasLibroPageContent() {
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Tipo
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("type")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("type")}>
                 <option value="ingreso">Ingreso</option>
                 <option value="egreso">Egreso</option>
               </select>
@@ -590,7 +590,7 @@ function AdminFinanzasLibroPageContent() {
           <label className="block text-sm text-[var(--slate-700)]">
             Motivo de la reversión
             <textarea
-              className="mt-1 min-h-20 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm"
+              className="mt-1 min-h-20 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 py-2 text-sm"
               value={reversalReason}
               onChange={(event) => setReversalReason(event.target.value)}
               placeholder="Por ejemplo: se registró en la unidad equivocada."

@@ -252,7 +252,7 @@ export function AppShell({
   if (status === "profile_error") {
     return (
       <main className="mx-auto max-w-xl p-4 pt-12 md:p-8">
-        <section className="rounded-2xl border border-[var(--danger-600)]/20 bg-white p-6">
+        <section className="rounded-2xl border border-[var(--danger-600)]/20 bg-[var(--surface-strong)] p-6">
           <p className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--danger-700)]">
             <AlertTriangle className="h-4 w-4" /> Perfil inconsistente
           </p>
@@ -300,8 +300,8 @@ export function AppShell({
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#ffffff_4%,#edf4fb_42%,#e4ecf6_100%)]">
       {!isAdminRole && (shellRole === "tenant_admin" || shellRole === "admin_tenant") ? (
-        <div className="border-b border-white/10" style={{ backgroundColor: brandingReady ? branding?.brandColor ?? DEFAULT_BRAND_COLOR : DEFAULT_BRAND_COLOR }}>
-          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-white md:px-8">
+        <div className="border-b border-[var(--on-fill)]/10" style={{ backgroundColor: brandingReady ? branding?.brandColor ?? DEFAULT_BRAND_COLOR : DEFAULT_BRAND_COLOR }}>
+          <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2 text-[var(--on-fill)] md:px-8">
             <div className="flex items-center gap-2 text-sm font-medium">
               {brandingReady && branding?.logoUrl ? <img src={branding.logoUrl} alt="" className="h-7 w-7 rounded-md object-cover" /> : null}
               <span>{branding?.tenantDisplayName ?? branding?.tenantName ?? user.tenantName ?? "Vivaru"}</span>
@@ -312,7 +312,7 @@ export function AppShell({
 
       {isAdminRole ? (
         <header
-          className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--slate-200)] bg-white/90 px-4 backdrop-blur md:hidden"
+          className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--slate-200)] bg-[var(--surface-strong)]/90 px-4 backdrop-blur md:hidden"
           style={{
             paddingTop: headerMinimized ? "4px" : "8px",
             paddingBottom: headerMinimized ? "4px" : "8px",
@@ -328,7 +328,7 @@ export function AppShell({
           <TopbarActions role={shellRole} userName={user.fullName} photoURL={user.photoURL} avatarId={user.avatarId} onLogout={() => void logout()} />
         </header>
       ) : (
-        <header className="fixed inset-x-0 top-0 z-30 border-b border-[var(--slate-200)] bg-white/90 backdrop-blur md:sticky md:inset-x-auto">
+        <header className="fixed inset-x-0 top-0 z-30 border-b border-[var(--slate-200)] bg-[var(--surface-strong)]/90 backdrop-blur md:sticky md:inset-x-auto">
           <div
             className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 md:px-8"
             style={{
@@ -362,7 +362,7 @@ export function AppShell({
         <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true" aria-label="Navegacion principal">
           <button
             type="button"
-            className="absolute inset-0 bg-black/45"
+            className="absolute inset-0 bg-[var(--overlay)]/45"
             onClick={() => setMobileNavOpen(false)}
             aria-label="Cerrar menu"
           />
@@ -377,7 +377,7 @@ export function AppShell({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10"
+                    className="text-[var(--on-fill)] hover:bg-[var(--on-fill)]/10"
                     onClick={() => setMobileNavOpen(false)}
                   >
                     <X className="h-4 w-4" />
@@ -401,7 +401,7 @@ export function AppShell({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-white hover:bg-white/10"
+                    className="text-[var(--on-fill)] hover:bg-[var(--on-fill)]/10"
                     onClick={() => setMobileNavOpen(false)}
                   >
                     <X className="h-4 w-4" />

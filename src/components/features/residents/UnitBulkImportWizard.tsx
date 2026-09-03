@@ -167,9 +167,9 @@ function StepIndicator({ step }: { step: WizardStep }) {
           <div
             className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
               i < current
-                ? "bg-emerald-100 text-emerald-700"
+                ? "bg-[var(--success-100)] text-[var(--success-700)]"
                 : i === current
-                  ? "bg-[var(--brand-700)] text-white"
+                  ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
                   : "bg-[var(--slate-100)] text-[var(--slate-400)]"
             }`}
           >
@@ -181,7 +181,7 @@ function StepIndicator({ step }: { step: WizardStep }) {
             {s.label}
           </span>
           {i < steps.length - 1 && (
-            <div className={`mx-1 h-px w-6 ${i < current ? "bg-emerald-300" : "bg-[var(--slate-200)]"}`} />
+            <div className={`mx-1 h-px w-6 ${i < current ? "bg-[var(--success-300)]" : "bg-[var(--slate-200)]"}`} />
           )}
         </div>
       ))}
@@ -192,20 +192,20 @@ function StepIndicator({ step }: { step: WizardStep }) {
 function StatusBadge({ row }: { row: ParsedRow }) {
   if (row.errors.length > 0) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--danger-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--danger-700)]">
         <XCircle className="h-3 w-3" /> Inválida
       </span>
     );
   }
   if (row.isDuplicate) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--amber-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--amber-700)]">
         <AlertCircle className="h-3 w-3" /> Duplicada
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--success-700)]">
       <CheckCircle2 className="h-3 w-3" /> OK
     </span>
   );
@@ -478,7 +478,7 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
           </div>
 
           {parseError && (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+            <p className="rounded-xl border border-[var(--danger-200)] bg-[var(--danger-50)] px-4 py-2 text-sm text-[var(--danger-700)]">
               {parseError}
             </p>
           )}
@@ -521,20 +521,20 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
           </div>
 
           {/* Regla de negocio: unidad vs. persona */}
-          <div className="w-full rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <p className="text-xs font-semibold text-blue-800">
+          <div className="w-full rounded-xl border border-[var(--categoria-blue-200)] bg-[var(--categoria-blue-50)] p-4">
+            <p className="text-xs font-semibold text-[var(--categoria-blue-800)]">
               ¿Qué importa este archivo y qué no?
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               <strong>Este wizard crea únicamente las unidades físicas</strong> del conjunto
               (el apartamento, la casa, el local). <strong>No crea residentes, propietarios ni accesos.</strong>
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               Cuando termines, el <strong>paso 2 es «Cargar residentes»</strong>: las personas
               se importan aparte y cada una se engancha a la unidad en la que vive. Si son
               pocas, también puedes darlas de alta a mano con «Crear persona».
             </p>
-            <p className="mt-1.5 text-xs leading-relaxed text-blue-700">
+            <p className="mt-1.5 text-xs leading-relaxed text-[var(--categoria-blue-700)]">
               La separación es intencional: una unidad puede existir sin nadie dentro —vacía,
               en remodelación, o de un propietario que no vive ahí— y por eso se cargan primero.
             </p>
@@ -586,16 +586,16 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
         <div className="flex flex-col gap-3">
           {/* Resumen */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+            <span className="rounded-full bg-[var(--success-50)] px-3 py-1 text-xs font-medium text-[var(--success-700)]">
               {validRows.length - duplicateCount} válidas
             </span>
             {duplicateCount > 0 && (
-              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+              <span className="rounded-full bg-[var(--amber-50)] px-3 py-1 text-xs font-medium text-[var(--amber-700)]">
                 {duplicateCount} duplicadas
               </span>
             )}
             {invalidCount > 0 && (
-              <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700">
+              <span className="rounded-full bg-[var(--danger-50)] px-3 py-1 text-xs font-medium text-[var(--danger-700)]">
                 {invalidCount} con errores
               </span>
             )}
@@ -649,25 +649,25 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
                       </td>
                       <td className="px-3 py-2 text-[var(--slate-500)] text-xs">{row.rowIndex}</td>
                       <td className="px-3 py-2 font-medium text-[var(--slate-900)]">
-                        {row.displayName || <span className="text-rose-400 italic">vacío</span>}
+                        {row.displayName || <span className="text-[var(--danger-400)] italic">vacío</span>}
                       </td>
                       <td className="px-3 py-2 text-[var(--slate-700)]">
-                        {row.tower || <span className="text-rose-400 italic">vacío</span>}
+                        {row.tower || <span className="text-[var(--danger-400)] italic">vacío</span>}
                       </td>
                       <td className="px-3 py-2 text-[var(--slate-700)]">
-                        {row.type ? TYPE_LABELS[row.type] : <span className="text-rose-400 italic">{getField(row.raw, "tipo", "type") || "vacío"}</span>}
+                        {row.type ? TYPE_LABELS[row.type] : <span className="text-[var(--danger-400)] italic">{getField(row.raw, "tipo", "type") || "vacío"}</span>}
                       </td>
                       <td className="px-3 py-2 text-[var(--slate-700)]">
-                        {row.status === "active" ? "Activo" : row.status === "inactive" ? "Inactivo" : <span className="text-rose-400 italic">{getField(row.raw, "estado", "status") || "vacío"}</span>}
+                        {row.status === "active" ? "Activo" : row.status === "inactive" ? "Inactivo" : <span className="text-[var(--danger-400)] italic">{getField(row.raw, "estado", "status") || "vacío"}</span>}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex flex-col gap-0.5">
                           <StatusBadge row={row} />
                           {row.errors.map((e, i) => (
-                            <span key={i} className="text-[10px] text-rose-600">{e}</span>
+                            <span key={i} className="text-[10px] text-[var(--danger-600)]">{e}</span>
                           ))}
                           {row.isDuplicate && (
-                            <span className="text-[10px] text-amber-600">Ya existe en el conjunto</span>
+                            <span className="text-[10px] text-[var(--amber-600)]">Ya existe en el conjunto</span>
                           )}
                         </div>
                       </td>
@@ -731,9 +731,9 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             </div>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-xs font-semibold text-amber-800">Recuerda: solo se crean las unidades físicas</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-700">
+          <div className="rounded-xl border border-[var(--amber-200)] bg-[var(--amber-50)] p-3">
+            <p className="text-xs font-semibold text-[var(--amber-800)]">Recuerda: solo se crean las unidades físicas</p>
+            <p className="mt-1 text-xs leading-relaxed text-[var(--amber-700)]">
               Esta importación <strong>no vincula residentes ni propietarios</strong>. Después de confirmar,
               ve a la tabla de residentes y usa <strong>“Crear persona”</strong> para agregar al titular
               de cada unidad, uno a uno. Las unidades recién creadas ya estarán disponibles
@@ -755,8 +755,8 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
       {/* ── PASO 4: DONE ───────────────────────────────────────────────────── */}
       {step === "done" && (
         <div className="flex flex-col items-center gap-4 py-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-            <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--success-100)]">
+            <CheckCircle2 className="h-7 w-7 text-[var(--success-600)]" />
           </div>
           <div>
             <p className="text-lg font-semibold text-[var(--slate-900)]">
@@ -774,15 +774,15 @@ export function UnitBulkImportWizard({ existingUnits, onImport, onClose, track }
             </p>
             <ol className="mt-2 space-y-2">
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">1</span>
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-[var(--on-fill)]">1</span>
                 <span>Cierra este panel. Las unidades ya están disponibles en la tabla.</span>
               </li>
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">2</span>
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-[var(--on-fill)]">2</span>
                 <span>En la sección <strong>Personas asociadas</strong>, usa <strong>“Crear persona”</strong> para agregar al propietario o inquilino de cada unidad.</span>
               </li>
               <li className="flex gap-2 text-xs text-[var(--slate-700)]">
-                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-white">3</span>
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[9px] font-bold text-[var(--on-fill)]">3</span>
                 <span>Selecciona la unidad correspondiente en el formulario. Repite por cada unidad que tenga residente activo.</span>
               </li>
             </ol>

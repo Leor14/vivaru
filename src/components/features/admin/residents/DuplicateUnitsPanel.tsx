@@ -73,9 +73,9 @@ export function DuplicateUnitsPanel({ tenantId, units, people }: Props) {
   }
 
   return (
-    <Card className="soft-panel border border-amber-200 bg-amber-50/40">
+    <Card className="soft-panel border border-[var(--amber-200)] bg-[var(--amber-50)]/40">
       <div className="flex items-center gap-2">
-        <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden />
+        <AlertTriangle className="h-5 w-5 text-[var(--amber-600)]" aria-hidden />
         <CardTitle>Unidades duplicadas</CardTitle>
       </div>
       <CardDescription className="mt-1">
@@ -89,7 +89,7 @@ export function DuplicateUnitsPanel({ tenantId, units, people }: Props) {
           const isConfirming = confirmKey === key;
           const isBusy = busyKey === key;
           return (
-            <div key={key} className="rounded-xl border border-[var(--slate-200)] bg-white p-3">
+            <div key={key} className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3">
               <p className="text-sm font-semibold text-[var(--slate-900)]">
                 {groupUnits[0].displayName} <span className="font-normal text-[var(--slate-500)]">· {groupUnits.length} duplicadas</span>
               </p>
@@ -110,7 +110,7 @@ export function DuplicateUnitsPanel({ tenantId, units, people }: Props) {
                           {unit.tower ? `${unit.tower} · ` : ""}
                           {countPeople(unit)} persona(s)
                         </span>
-                        <span className={isSurvivor ? "text-emerald-700" : "text-[var(--danger-700)]"}>
+                        <span className={isSurvivor ? "text-[var(--success-700)]" : "text-[var(--danger-700)]"}>
                           {isSurvivor ? "se conserva" : "se elimina"}
                         </span>
                       </label>
@@ -120,14 +120,14 @@ export function DuplicateUnitsPanel({ tenantId, units, people }: Props) {
               </ul>
 
               {isConfirming ? (
-                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-xs text-amber-800">
+                <div className="mt-3 rounded-lg border border-[var(--amber-200)] bg-[var(--amber-50)] p-3">
+                  <p className="text-xs text-[var(--amber-800)]">
                     Se reasignarán cobros, personas, reservas y visitantes a la unidad conservada y se eliminarán las otras. Esta acción no se puede deshacer.
                   </p>
                   <div className="mt-2 flex gap-2">
                     <Button
                       size="sm"
-                      className="bg-amber-600 text-white hover:bg-amber-700"
+                      className="bg-[var(--amber-600)] text-[var(--on-fill)] hover:bg-[var(--amber-700)]"
                       disabled={isBusy}
                       onClick={() => void handleMerge(key, groupUnits)}
                     >

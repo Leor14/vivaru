@@ -48,35 +48,35 @@ function getTicketStatusLabel(status: string): string {
 function getStatusBadgeClass(status: string) {
   switch (status) {
     case "open":
-      return "bg-amber-100 text-amber-700";
+      return "bg-[var(--amber-100)] text-[var(--amber-700)]";
     case "in_progress":
-      return "bg-sky-100 text-sky-700";
+      return "bg-[var(--info-100)] text-[var(--info-700)]";
     case "responded":
-      return "bg-indigo-100 text-indigo-700";
+      return "bg-[var(--categoria-indigo-100)] text-[var(--categoria-indigo-700)]";
     case "resolved":
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-[var(--success-100)] text-[var(--success-700)]";
     case "closed":
-      return "bg-slate-100 text-slate-700";
+      return "bg-[var(--slate-100)] text-[var(--slate-700)]";
     default:
-      return "bg-slate-100 text-slate-700";
+      return "bg-[var(--slate-100)] text-[var(--slate-700)]";
   }
 }
 
 function getDueBadge(params: { isClosed: boolean; businessDaysRemaining: number | null | undefined }) {
   if (params.isClosed) {
-    return { label: "Cerrado", className: "bg-slate-100 text-slate-700" };
+    return { label: "Cerrado", className: "bg-[var(--slate-100)] text-[var(--slate-700)]" };
   }
   const remaining = params.businessDaysRemaining;
   if (remaining == null) {
-    return { label: "Al día", className: "bg-emerald-100 text-emerald-700" };
+    return { label: "Al día", className: "bg-[var(--success-100)] text-[var(--success-700)]" };
   }
   if (remaining < 0) {
-    return { label: "Vencido", className: "bg-rose-100 text-rose-700" };
+    return { label: "Vencido", className: "bg-[var(--danger-100)] text-[var(--danger-700)]" };
   }
   if (remaining <= 5) {
-    return { label: `${remaining} días`, className: "bg-amber-100 text-amber-700" };
+    return { label: `${remaining} días`, className: "bg-[var(--amber-100)] text-[var(--amber-700)]" };
   }
-  return { label: "Al día", className: "bg-emerald-100 text-emerald-700" };
+  return { label: "Al día", className: "bg-[var(--success-100)] text-[var(--success-700)]" };
 }
 
 export default function AdminPqrsPage() {
@@ -360,7 +360,7 @@ export default function AdminPqrsPage() {
             <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
               <label className="text-xs text-[var(--slate-600)]">
                 Estado
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
                   <option value="all">Todos</option>
                   <option value="open">Abierto</option>
                   <option value="in_progress">En proceso</option>
@@ -373,7 +373,7 @@ export default function AdminPqrsPage() {
               {!isSimpleMode && (
                 <label className="text-xs text-[var(--slate-600)]">
                   Tipo
-                  <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+                  <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
                     <option value="all">Todos</option>
                     {types.map((type) => (
                       <option key={type} value={type}>{getTicketTypeLabel(type)}</option>
@@ -384,7 +384,7 @@ export default function AdminPqrsPage() {
 
               <label className="text-xs text-[var(--slate-600)]">
                 Unidad
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
                   <option value="all">Todas</option>
                   {units.map((unit) => (
                     <option key={unit} value={unit}>{unit}</option>
@@ -394,7 +394,7 @@ export default function AdminPqrsPage() {
 
               <label className="text-xs text-[var(--slate-600)]">
                 Residente
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={residentFilter} onChange={(event) => setResidentFilter(event.target.value)}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={residentFilter} onChange={(event) => setResidentFilter(event.target.value)}>
                   <option value="all">Todos</option>
                   {residents.map((resident) => (
                     <option key={resident} value={resident}>{resident}</option>
@@ -408,7 +408,7 @@ export default function AdminPqrsPage() {
               {!isSimpleMode && (
                 <label className="text-xs text-[var(--slate-600)]">
                   Prioridad de respuesta
-                  <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value as AlertFilter)}>
+                  <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={alertFilter} onChange={(event) => setAlertFilter(event.target.value as AlertFilter)}>
                     <option value="all">Todas</option>
                     <option value="green">En plazo</option>
                     <option value="yellow">Próximo a vencer</option>
@@ -419,7 +419,7 @@ export default function AdminPqrsPage() {
 
               <label className="text-xs text-[var(--slate-600)]">
                 Orden
-                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)}>
+                <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)}>
                   {!isSimpleMode && <option value="due">Próximos a vencer</option>}
                   <option value="oldest">Más antiguos primero</option>
                   <option value="newest">Más recientes</option>
@@ -577,7 +577,7 @@ export default function AdminPqrsPage() {
                 <label className="flex-1 text-xs text-[var(--slate-700)]">
                   Estado
                   <select
-                    className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                    className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-xs"
                     value={responseStatus}
                     onChange={(event) => setResponseStatus(event.target.value as Ticket["status"])}
                   >
@@ -665,7 +665,7 @@ export default function AdminPqrsPage() {
                   <label className="text-xs text-[var(--slate-700)]">
                     Categoría
                     <select
-                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-xs"
                       value={clasCategory}
                       onChange={(event) => setClasCategory(event.target.value as Ticket["category"])}
                     >
@@ -677,7 +677,7 @@ export default function AdminPqrsPage() {
                   <label className="text-xs text-[var(--slate-700)]">
                     Tipo
                     <select
-                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-xs"
                       value={clasType}
                       onChange={(event) => setClasType(event.target.value as NonNullable<Ticket["type"]>)}
                     >
@@ -691,7 +691,7 @@ export default function AdminPqrsPage() {
                   <label className="text-xs text-[var(--slate-700)]">
                     Prioridad
                     <select
-                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-white px-2 text-xs"
+                      className="mt-1 h-9 w-full rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-xs"
                       value={clasPriority}
                       onChange={(event) => setClasPriority(event.target.value as NonNullable<Ticket["priority"]> | "")}
                     >

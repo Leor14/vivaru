@@ -106,10 +106,10 @@ export function LoginForm() {
         }}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-white/58 backdrop-blur-[1.5px]" aria-hidden />
+      <div className="absolute inset-0 bg-[var(--surface-strong)]/58 backdrop-blur-[1.5px]" aria-hidden />
 
       <div className="relative z-10 flex min-h-full items-center justify-center p-4 sm:p-6">
-        <Card className="soft-panel w-full max-w-[460px] rounded-2xl border border-[var(--slate-200)] bg-white p-7 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-9 md:p-10">
+        <Card className="soft-panel w-full max-w-[460px] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-7 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-9 md:p-10">
         <div className="mb-6 flex flex-col items-center text-center">
           <img
             src="/images/vivaru.jpeg"
@@ -121,7 +121,7 @@ export function LoginForm() {
         </div>
 
         {status === "profile_error" ? (
-          <div className="mb-4 rounded-xl border border-[var(--danger-600)]/30 bg-red-50 p-3 text-sm text-[var(--danger-700)]">
+          <div className="mb-4 rounded-xl border border-[var(--danger-600)]/30 bg-[var(--danger-50)] p-3 text-sm text-[var(--danger-700)]">
             {error ?? "Tu perfil no se pudo resolver. Contacta soporte de Vivaru."}
           </div>
         ) : null}

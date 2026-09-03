@@ -115,7 +115,7 @@ export function ResidentModulesCard({ tenantId }: { tenantId?: string }) {
                 }}
               >
                 <span
-                  className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform"
+                  className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-[var(--surface-strong)] shadow-lg ring-0 transition-transform"
                   style={{ transform: enabled ? "translateX(20px)" : "translateX(0px)" }}
                 />
               </button>

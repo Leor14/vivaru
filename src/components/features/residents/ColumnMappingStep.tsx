@@ -97,7 +97,7 @@ function sampleOf(rows: readonly Record<string, string>[], asignacion: Asignacio
 }
 
 const SELECT =
-  "w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-800)]";
+  "w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--slate-800)]";
 const BOTON_PEQUENO =
   "rounded-md border border-[var(--slate-200)] px-2 py-1 text-xs text-[var(--slate-600)] hover:bg-[var(--slate-50)]";
 
@@ -221,7 +221,7 @@ export function ColumnMappingStep({
                 className="pt-2 text-sm text-[var(--slate-700)]"
               >
                 {field.label}
-                {field.required && <span className="ml-0.5 text-rose-500">*</span>}
+                {field.required && <span className="ml-0.5 text-[var(--danger-500)]">*</span>}
               </label>
 
               <div>
@@ -279,7 +279,7 @@ export function ColumnMappingStep({
                     value=""
                     aria-label={`Añadir otra columna a ${field.label}`}
                     onChange={(e) => anadirColumna(field.key, e.target.value)}
-                    className="mt-1 rounded-md border border-dashed border-[var(--slate-300)] bg-white px-2 py-1 text-xs text-[var(--slate-600)]"
+                    className="mt-1 rounded-md border border-dashed border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 py-1 text-xs text-[var(--slate-600)]"
                   >
                     <option value="">＋ añadir otra columna…</option>
                     {libres.map((x) => (
@@ -305,7 +305,7 @@ export function ColumnMappingStep({
                           cambiarSeparador(field.key, v);
                         }
                       }}
-                      className="rounded-md border border-[var(--slate-200)] bg-white px-2 py-1 text-xs text-[var(--slate-800)]"
+                      className="rounded-md border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2 py-1 text-xs text-[var(--slate-800)]"
                     >
                       {SEPARADORES.map((s) => (
                         <option key={s.rotulo} value={s.valor}>
@@ -321,7 +321,7 @@ export function ColumnMappingStep({
                         maxLength={MAX_LARGO_DE_SEPARADOR}
                         value={asignacion.separador}
                         onChange={(e) => cambiarSeparador(field.key, e.target.value)}
-                        className="w-20 rounded-md border border-[var(--slate-200)] bg-white px-2 py-1 text-xs text-[var(--slate-800)]"
+                        className="w-20 rounded-md border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2 py-1 text-xs text-[var(--slate-800)]"
                       />
                     )}
                   </div>
@@ -336,7 +336,7 @@ export function ColumnMappingStep({
                 {aviso && (
                   <div
                     className={`mt-1 text-xs ${
-                      aviso.nivel === "bloquea" ? "text-rose-600" : "text-amber-700"
+                      aviso.nivel === "bloquea" ? "text-[var(--danger-600)]" : "text-[var(--amber-700)]"
                     }`}
                   >
                     <p>{aviso.mensaje}</p>
@@ -358,7 +358,7 @@ export function ColumnMappingStep({
       </div>
 
       {missing.length > 0 && (
-        <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+        <p className="rounded-lg bg-[var(--amber-50)] px-3 py-2 text-sm text-[var(--amber-800)]">
           Falta asignar {missing.length === 1 ? "un dato obligatorio" : `${missing.length} datos obligatorios`}:{" "}
           {missing.map((f) => f.label).join(", ")}.
         </p>

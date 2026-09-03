@@ -201,7 +201,7 @@ function BillingTrendTooltip({
   const gap = Math.max(charged - settled, 0);
 
   return (
-    <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
+    <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
       <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Período"}</p>
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
@@ -1308,7 +1308,7 @@ function AdminBillingPageContent() {
             <label className="text-sm text-[var(--slate-700)]">
               Unidad
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={chartUnitFilter}
                 onChange={(event) => setChartUnitFilter(event.target.value)}
               >
@@ -1360,7 +1360,7 @@ function AdminBillingPageContent() {
             No hay datos suficientes para construir la tendencia de cartera con los filtros actuales.
           </div>
         ) : (
-          <div className="mt-4 h-[320px] rounded-2xl border border-[var(--slate-200)] bg-white px-2 py-2 sm:h-[400px]">
+          <div className="mt-4 h-[320px] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-2 py-2 sm:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={chartMargin}>
                 <CartesianGrid {...chartGrid} />
@@ -1456,12 +1456,12 @@ function AdminBillingPageContent() {
         <p className="mt-3 text-sm font-semibold text-[var(--slate-800)]">{billingFormTitle}</p>
 
         {createResult ? (
-          <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-            <p className="text-sm text-emerald-800">{createResult}</p>
+          <div className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-[var(--success-200)] bg-[var(--success-50)] px-3 py-2.5">
+            <p className="text-sm text-[var(--success-800)]">{createResult}</p>
             <button
               type="button"
               onClick={() => setCreateResult(null)}
-              className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+              className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium text-[var(--success-700)] hover:bg-[var(--success-100)]"
               aria-label="Cerrar aviso"
             >
               Entendido
@@ -1475,14 +1475,14 @@ function AdminBillingPageContent() {
               <button
                 type="button"
                 onClick={() => setChargeMode("individual")}
-                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "individual" ? "bg-[var(--slate-900)] text-white" : "text-[var(--slate-600)]"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "individual" ? "bg-[var(--slate-900)] text-[var(--on-fill)]" : "text-[var(--slate-600)]"}`}
               >
                 Una unidad
               </button>
               <button
                 type="button"
                 onClick={() => setChargeMode("batch")}
-                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "batch" ? "bg-[var(--slate-900)] text-white" : "text-[var(--slate-600)]"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm ${chargeMode === "batch" ? "bg-[var(--slate-900)] text-[var(--on-fill)]" : "text-[var(--slate-600)]"}`}
               >
                 Lote (varias)
               </button>
@@ -1499,7 +1499,7 @@ function AdminBillingPageContent() {
               type="date"
               value={scheduledFor}
               onChange={(event) => setScheduledFor(event.target.value)}
-              className="mt-1 block h-11 rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              className="mt-1 block h-11 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
             />
           </label>
           {scheduledFor ? (
@@ -1515,7 +1515,7 @@ function AdminBillingPageContent() {
           <label className="text-sm text-[var(--slate-700)]">
             Concepto
             <select
-              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
               value={concept}
               onChange={(event) => setConcept(event.target.value as BillingConcept)}
             >
@@ -1530,7 +1530,7 @@ function AdminBillingPageContent() {
           <label className="text-sm text-[var(--slate-700)]">
             Unidad
             <select
-              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
               value={selectedUnitId}
               disabled={catalogUnitsLoading || catalogUnits.length === 0}
               onChange={(event) => {
@@ -1583,7 +1583,7 @@ function AdminBillingPageContent() {
               </div>
             </div>
             {duplicateLabels.size > 0 ? (
-              <p className="mt-1 text-[11px] text-amber-700">
+              <p className="mt-1 text-[11px] text-[var(--amber-700)]">
                 Hay unidades con el mismo nombre; revisa antes de cobrar al lote para no duplicar el cobro a una misma unidad.
               </p>
             ) : null}
@@ -1604,7 +1604,7 @@ function AdminBillingPageContent() {
                   />
                   <span className="truncate">{u.label}</span>
                   {duplicateLabels.has(u.label) ? (
-                    <span className="shrink-0 rounded-sm bg-amber-100 px-1 text-[10px] font-medium text-amber-700">repetida</span>
+                    <span className="shrink-0 rounded-sm bg-[var(--amber-100)] px-1 text-[10px] font-medium text-[var(--amber-700)]">repetida</span>
                   ) : null}
                 </label>
               ))}
@@ -1700,7 +1700,7 @@ function AdminBillingPageContent() {
           </CardDescription>
           <ul className="mt-4 space-y-2">
             {scheduledCharges.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2">
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2">
                 <div className="text-sm text-[var(--slate-800)]">
                   <span className="font-medium">{billingConceptLabel(s.concept)}</span> · {formatAmount(s.amount)} · {s.period}
                   <span className="block text-xs text-[var(--slate-500)]">
@@ -1738,7 +1738,7 @@ function AdminBillingPageContent() {
           </p>
           <ol className="flex flex-col gap-3">
             <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-white">1</span>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-[var(--on-fill)]">1</span>
               <div>
                 <p className="text-sm font-medium text-[var(--slate-800)]">Descarga la plantilla y complétala</p>
                 <p className="text-xs text-[var(--slate-500)]">Una fila por cobro: unidad, período, valor y abono.</p>
@@ -1749,7 +1749,7 @@ function AdminBillingPageContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-white">2</span>
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--brand-700)] text-[10px] font-bold text-[var(--on-fill)]">2</span>
               <div>
                 <p className="text-sm font-medium text-[var(--slate-800)]">Sube el archivo completado</p>
                 <p className="text-xs text-[var(--slate-500)]">Aceptamos .xlsx y .csv.</p>
@@ -1888,7 +1888,7 @@ function AdminBillingPageContent() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm text-[var(--slate-700)]">
               Estado
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as BillingStatusFilter)}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as BillingStatusFilter)}>
                 <option value="all">Todos</option>
                 <option value="paid">Al día</option>
                 <option value="pending">Pendiente</option>
@@ -1897,7 +1897,7 @@ function AdminBillingPageContent() {
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Unidad
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
                 <option value="all">Todas</option>
                 {allUnitLabels.map((unit) => (
                   <option key={unit} value={unit}>{unit}</option>
@@ -1906,7 +1906,7 @@ function AdminBillingPageContent() {
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Concepto
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={conceptFilter} onChange={(event) => setConceptFilter(event.target.value as BillingConcept | "all")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={conceptFilter} onChange={(event) => setConceptFilter(event.target.value as BillingConcept | "all")}>
                 <option value="all">Todos</option>
                 {BILLING_CONCEPTS.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -1915,7 +1915,7 @@ function AdminBillingPageContent() {
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Período
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value)}>
                 <option value="all">Todos</option>
                 {periodOptions.map((p) => (
                   <option key={p} value={p}>{formatTableDate(p)}</option>
@@ -1938,7 +1938,7 @@ function AdminBillingPageContent() {
               <button
                 type="button"
                 onClick={() => setCampaignFilter(null)}
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--slate-300)] bg-white px-3 py-1 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 py-1 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
               >
                 Viendo una campaña · quitar filtro ✕
               </button>
@@ -1952,7 +1952,7 @@ function AdminBillingPageContent() {
 
         {listView === "overdue" ? (
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-[var(--amber-700)]">
               Todos los cobros con saldo, incluida la mora de meses ya cerrados. Recuérdales o registra su pago desde aquí.
             </p>
             <div className="flex flex-wrap items-center gap-2">
@@ -1990,17 +1990,17 @@ function AdminBillingPageContent() {
                 <span className="text-[var(--slate-400)]">→</span>
                 <span className="text-[var(--slate-600)]">Notificados <strong>{sel.unitCount}</strong></span>
                 <span className="text-[var(--slate-400)]">→</span>
-                <span className="text-emerald-700">Pagados <strong>{sel.paidCount}</strong></span>
-                <span className="rounded-full bg-white px-2 py-0.5 font-medium text-[var(--slate-700)]">{sel.pct}% recaudo</span>
+                <span className="text-[var(--success-700)]">Pagados <strong>{sel.paidCount}</strong></span>
+                <span className="rounded-full bg-[var(--surface-strong)] px-2 py-0.5 font-medium text-[var(--slate-700)]">{sel.pct}% recaudo</span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2 text-xs">
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2 text-xs">
                 <span className="text-[var(--slate-600)]">Notificación enviada: <strong>{formatSentAt(sel.c.sentAt)}</strong></span>
                 <span className="text-[var(--slate-400)]">·</span>
                 <span className="text-[var(--slate-600)]">Recordatorios enviados: <strong>{sel.reminders}</strong></span>
                 {scheduled > 0 ? (
                   <>
                     <span className="text-[var(--slate-400)]">·</span>
-                    <span className="text-amber-700">Programados:</span>
+                    <span className="text-[var(--amber-700)]">Programados:</span>
                     {reminderJobs
                       .filter((j) => j.campaignId === sel.c.id)
                       .map((j) => (
@@ -2009,7 +2009,7 @@ function AdminBillingPageContent() {
                           type="button"
                           onClick={() => void cancelReminderJob(j.id)}
                           title="Cancelar recordatorio programado"
-                          className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700 hover:bg-amber-100"
+                          className="rounded-full border border-[var(--amber-200)] bg-[var(--amber-50)] px-2 py-0.5 text-[var(--amber-700)] hover:bg-[var(--amber-100)]"
                         >
                           {j.scheduledFor} ✕
                         </button>
@@ -2082,21 +2082,21 @@ function AdminBillingPageContent() {
                 <td className="px-3 py-2">{formatTableDate(item.dueDate)}</td>
                 <td className="px-3 py-2">
                   {isPaid ? (
-                    <span className="inline-flex items-center gap-1 text-emerald-700">
+                    <span className="inline-flex items-center gap-1 text-[var(--success-700)]">
                       <IconBadge tone="mint">
                         <CheckCircle2 className="h-4 w-4" />
                       </IconBadge>
                       Al día
                     </span>
                   ) : status === "overdue" ? (
-                    <span className="inline-flex items-center gap-1 text-red-700">
+                    <span className="inline-flex items-center gap-1 text-[var(--danger-700)]">
                       <IconBadge tone="peach">
                         <AlertCircle className="h-4 w-4" />
                       </IconBadge>
                       En mora
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-amber-700">
+                    <span className="inline-flex items-center gap-1 text-[var(--amber-700)]">
                       <IconBadge tone="sand">
                         <Clock3 className="h-4 w-4" />
                       </IconBadge>
@@ -2113,7 +2113,7 @@ function AdminBillingPageContent() {
                         href={rcpt.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-300)] bg-white px-2.5 py-1.5 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                        className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2.5 py-1.5 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
                       >
                         <FileText className="h-3.5 w-3.5" aria-hidden />
                         Ver
@@ -2253,7 +2253,7 @@ function AdminBillingPageContent() {
                   {morosos.map((m) => (
                     <tr key={m.unitId} className="border-b border-[var(--slate-100)]">
                       <td className="px-3 py-2 font-medium text-[var(--slate-800)]">{m.unitLabel}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-red-700">{formatAmount(m.deuda)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-[var(--danger-700)]">{formatAmount(m.deuda)}</td>
                       <td className="px-3 py-2">{m.periodos.length}</td>
                       <td className="px-3 py-2">{formatTableDate(m.periodos[0])}</td>
                       <td className="px-3 py-2">{m.lastPaymentAt ? formatTableDate(m.lastPaymentAt) : "—"}</td>
@@ -2304,7 +2304,7 @@ function AdminBillingPageContent() {
                 {openPeriods.map((p) => {
                   const isCurrent = p.period >= currentPeriod;
                   return (
-                  <li key={p.period} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-3 py-1.5 text-xs">
+                  <li key={p.period} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-1.5 text-xs">
                     <span className="text-[var(--slate-700)]">{formatTableDate(p.period)} · saldo {formatAmount(p.pendiente)}</span>
                     <Button
                       size="sm"
@@ -2342,8 +2342,8 @@ function AdminBillingPageContent() {
       )}
 
       {reminderTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)]/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-[var(--surface-strong)] p-5 shadow-xl">
             <h3 className="text-base font-semibold text-[var(--slate-900)]">Recordar a pendientes</h3>
             <p className="mt-1 text-sm text-[var(--slate-600)]">
               {reminderTarget.label} · {reminderTarget.unitIds.length} unidad(es) pendiente(s).
@@ -2367,7 +2367,7 @@ function AdminBillingPageContent() {
                     type="date"
                     value={reminderDate}
                     onChange={(e) => setReminderDate(e.target.value)}
-                    className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+                    className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
                   />
                 </label>
                 <p className="mt-1 text-[11px] text-[var(--slate-500)]">Se enviará ese día a quienes sigan pendientes en ese momento.</p>

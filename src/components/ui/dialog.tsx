@@ -52,13 +52,13 @@ export function Dialog({ open, onClose, children, className }: DialogProps) {
   return createPortal(
     <div
       data-state={dataState}
-      className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)]/60 p-4"
       onClick={onClose}
     >
       <div
         data-state={dataState}
         className={cn(
-          "dialog-panel relative w-full max-h-[90vh] overflow-auto rounded-2xl bg-white shadow-2xl",
+          "dialog-panel relative w-full max-h-[90vh] overflow-auto rounded-2xl bg-[var(--surface-strong)] shadow-2xl",
           className,
         )}
         onClick={(e) => e.stopPropagation()}

@@ -44,10 +44,10 @@ import { cn } from "@/lib/utils/cn";
  */
 
 const STATUS_TONE: Record<SupportStatus, string> = {
-  abierto: "bg-sky-100 text-sky-800",
-  en_proceso: "bg-amber-100 text-amber-900",
+  abierto: "bg-[var(--info-100)] text-[var(--info-800)]",
+  en_proceso: "bg-[var(--amber-100)] text-[var(--amber-900)]",
   esperando_respuesta: "bg-[var(--brand-100)] text-[var(--brand-900)]",
-  resuelto: "bg-emerald-100 text-emerald-800",
+  resuelto: "bg-[var(--success-100)] text-[var(--success-800)]",
   cerrado: "bg-[var(--slate-200)] text-[var(--slate-700)]",
 };
 
@@ -175,8 +175,8 @@ export default function AdminSoportePage() {
       />
 
       {alLimite ? (
-        <Card className="border-amber-200 bg-amber-50">
-          <p className="text-sm text-amber-900">
+        <Card className="border-[var(--amber-200)] bg-[var(--amber-50)]">
+          <p className="text-sm text-[var(--amber-900)]">
             Tienes {SUPPORT_LIMITS.maxOpenPerTenant} solicitudes sin cerrar. Cierra alguna resuelta
             antes de abrir otra — así ninguna se pierde de vista.
           </p>
@@ -269,7 +269,7 @@ export default function AdminSoportePage() {
                       "rounded-xl border p-3",
                       m.role === "vivaru"
                         ? "border-[var(--brand-200)] bg-[var(--brand-50)]"
-                        : "border-[var(--slate-200)] bg-white",
+                        : "border-[var(--slate-200)] bg-[var(--surface-strong)]",
                     )}
                   >
                     <p className="text-xs font-semibold text-[var(--slate-600)]">
@@ -335,7 +335,7 @@ export default function AdminSoportePage() {
               ¿De qué se trata?
             </span>
             <select
-              className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1.5 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={category}
               onChange={(e) => setCategory(e.target.value as SupportCategory)}
             >

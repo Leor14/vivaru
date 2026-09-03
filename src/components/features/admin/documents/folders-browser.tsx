@@ -515,7 +515,7 @@ export function DocumentFoldersBrowser({
                       onKeyDown={(e) => {
                         if (e.key === "Enter") enterFolder(f.id);
                       }}
-                      className={`relative flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-3 hover:bg-[var(--slate-50)] ${
+                      className={`relative flex cursor-pointer items-start gap-3 rounded-xl border bg-[var(--surface-strong)] p-3 hover:bg-[var(--slate-50)] ${
                         isDropTarget
                           ? "border-[var(--brand-700)] ring-2 ring-[var(--brand-700)]"
                           : isSel
@@ -535,7 +535,7 @@ export function DocumentFoldersBrowser({
                         <p className="text-xs text-[var(--slate-500)]">{childCount(f.id)} elemento(s)</p>
                       </div>
                       {f.system ? (
-                        <span className="absolute right-2 top-2 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">
+                        <span className="absolute right-2 top-2 rounded-full bg-[var(--categoria-blue-100)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--categoria-blue-700)]">
                           Sistema
                         </span>
                       ) : (
@@ -554,7 +554,7 @@ export function DocumentFoldersBrowser({
                       {menuOpenId === f.id ? (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-2 top-9 z-10 w-36 overflow-hidden rounded-lg border border-[var(--slate-200)] bg-white py-1 shadow-lg"
+                          className="absolute right-2 top-9 z-10 w-36 overflow-hidden rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] py-1 shadow-lg"
                         >
                           <button
                             type="button"
@@ -686,7 +686,7 @@ export function DocumentFoldersBrowser({
                   Abrir carpeta
                 </Button>
                 {selectedFolder.system ? (
-                  <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+                  <p className="rounded-lg bg-[var(--categoria-blue-50)] px-3 py-2 text-xs text-[var(--categoria-blue-700)]">
                     Carpeta del sistema: no se puede renombrar, mover ni eliminar.
                   </p>
                 ) : (
@@ -821,7 +821,7 @@ export function DocumentFoldersBrowser({
                 onClick={() => void handleMove(f.id)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--slate-100)] disabled:opacity-40"
               >
-                <FolderOpen className="h-4 w-4 text-amber-500" />
+                <FolderOpen className="h-4 w-4 text-[var(--amber-500)]" />
                 {folderPathLabel(f)}
               </button>
             ))}
@@ -855,7 +855,7 @@ export function DocumentFoldersBrowser({
                     className="flex h-8 w-8 items-center justify-center rounded-full"
                     style={{ backgroundColor: c.ring, outline: active ? "2px solid var(--slate-900)" : "none", outlineOffset: "2px" }}
                   >
-                    {active ? <Check className="h-4 w-4 text-white" /> : null}
+                    {active ? <Check className="h-4 w-4 text-[var(--on-fill)]" /> : null}
                   </button>
                 );
               })}
@@ -895,7 +895,7 @@ export function DocumentFoldersBrowser({
                     onClick={() => void handleMoveFolder(f.id)}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--slate-100)] disabled:opacity-40"
                   >
-                    <FolderOpen className="h-4 w-4 text-amber-500" />
+                    <FolderOpen className="h-4 w-4 text-[var(--amber-500)]" />
                     {folderPathLabel(f)}
                   </button>
                 ))

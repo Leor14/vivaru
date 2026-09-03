@@ -137,9 +137,9 @@ export default function ResidentRegulationsPage() {
         {/* Sin cabecera propia: el nombre lo pone el shell. */}
         <Card>
           <div className="flex items-start gap-4">
-            <CheckCircle className="mt-0.5 h-8 w-8 flex-shrink-0 text-emerald-500" />
+            <CheckCircle className="mt-0.5 h-8 w-8 flex-shrink-0 text-[var(--success-500)]" />
             <div className="space-y-1">
-              <CardTitle className="text-emerald-700">Ya firmaste este reglamento</CardTitle>
+              <CardTitle className="text-[var(--success-700)]">Ya firmaste este reglamento</CardTitle>
               <CardDescription>{mySignature.regulationVersion}</CardDescription>
               {signedDate && (
                 <p className="text-sm text-[var(--slate-500)]">
@@ -175,7 +175,7 @@ export default function ResidentRegulationsPage() {
       </div>
 
       {/* Document card — reemplaza iframe (inoperante en iOS Safari) */}
-      <div className="rounded-xl border border-[var(--slate-200)] bg-white p-4">
+      <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-50)]">
             <ScrollText className="h-5 w-5 text-[var(--brand-700)]" />

@@ -16,47 +16,47 @@ const NOTIFICATION_TYPE_UI: Record<NotificationKind, { label: string; Icon: Luci
   package: {
     label: "Paquete",
     Icon: Package,
-    chipClassName: "bg-amber-100 text-amber-800",
+    chipClassName: "bg-[var(--amber-100)] text-[var(--amber-800)]",
   },
   reservation: {
     label: "Reserva",
     Icon: UserRoundCheck,
-    chipClassName: "bg-blue-100 text-blue-800",
+    chipClassName: "bg-[var(--categoria-blue-100)] text-[var(--categoria-blue-800)]",
   },
   communication: {
     label: "Comunicación",
     Icon: MessageSquare,
-    chipClassName: "bg-indigo-100 text-indigo-800",
+    chipClassName: "bg-[var(--categoria-indigo-100)] text-[var(--categoria-indigo-800)]",
   },
   visitor: {
     label: "Visitante",
     Icon: ShieldCheck,
-    chipClassName: "bg-emerald-100 text-emerald-800",
+    chipClassName: "bg-[var(--success-100)] text-[var(--success-800)]",
   },
   ticket: {
     label: "PQRS",
     Icon: Ticket,
-    chipClassName: "bg-rose-100 text-rose-800",
+    chipClassName: "bg-[var(--danger-100)] text-[var(--danger-800)]",
   },
   system: {
     label: "Sistema",
     Icon: Bell,
-    chipClassName: "bg-slate-100 text-slate-800",
+    chipClassName: "bg-[var(--slate-100)] text-[var(--slate-800)]",
   },
   billing: {
     label: "Cartera",
     Icon: Receipt,
-    chipClassName: "bg-teal-100 text-teal-800",
+    chipClassName: "bg-[var(--categoria-teal-100)] text-[var(--categoria-teal-800)]",
   },
   regulation: {
     label: "Reglamento",
     Icon: ScrollText,
-    chipClassName: "bg-violet-100 text-violet-800",
+    chipClassName: "bg-[var(--categoria-violet-100)] text-[var(--categoria-violet-800)]",
   },
   survey: {
     label: "Encuesta",
     Icon: ClipboardList,
-    chipClassName: "bg-cyan-100 text-cyan-800",
+    chipClassName: "bg-[var(--categoria-cyan-100)] text-[var(--categoria-cyan-800)]",
   },
 };
 
@@ -163,7 +163,7 @@ export function NotificationsBell() {
       >
           <Bell className="h-5 w-5 text-current" />
           {unreadLabel ? (
-            <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--danger-600)] px-1 text-[10px] font-semibold text-white">
+            <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--danger-600)] px-1 text-[10px] font-semibold text-[var(--on-fill)]">
               {unreadLabel}
             </span>
           ) : null}
@@ -171,7 +171,7 @@ export function NotificationsBell() {
 
       {open ? (
       <div
-        className="z-50 w-[min(92vw,360px)] rounded-2xl border border-[var(--slate-200)] bg-white p-3 shadow-xl"
+        className="z-50 w-[min(92vw,360px)] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 shadow-xl"
         style={{ position: "fixed", top: dropdownPos.top, right: dropdownPos.right }}
       >
         <div className="mb-2 flex items-center justify-between gap-2">

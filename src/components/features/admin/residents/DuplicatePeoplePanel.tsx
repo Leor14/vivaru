@@ -170,9 +170,9 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
   }
 
   return (
-    <Card className="soft-panel border border-amber-200 bg-amber-50/40">
+    <Card className="soft-panel border border-[var(--amber-200)] bg-[var(--amber-50)]/40">
       <div className="flex items-center gap-2">
-        <AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden />
+        <AlertTriangle className="h-5 w-5 text-[var(--amber-600)]" aria-hidden />
         <CardTitle>Personas que parecen duplicadas</CardTitle>
       </div>
       <CardDescription className="mt-1">
@@ -188,7 +188,7 @@ export function DuplicatePeoplePanel({ tenantId, people, units }: Props) {
           const estaAbierto = abierto === grupo.clave;
 
           return (
-            <div key={grupo.clave} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
+            <div key={grupo.clave} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-[var(--slate-900)]">

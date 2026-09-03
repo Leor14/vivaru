@@ -77,7 +77,7 @@ export function TableroCarousel({
           aria-label="Tablero anterior"
           onClick={() => go(index - 1)}
           disabled={index === 0}
-          className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border border-[var(--slate-200)] bg-white text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-40"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </button>
@@ -116,7 +116,7 @@ export function TableroCarousel({
           aria-label="Tablero siguiente"
           onClick={() => go(index + 1)}
           disabled={index === count - 1}
-          className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border border-[var(--slate-200)] bg-white text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center self-center rounded-full border border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-600)] transition-colors hover:bg-[var(--surface-soft)] disabled:opacity-40"
         >
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </button>

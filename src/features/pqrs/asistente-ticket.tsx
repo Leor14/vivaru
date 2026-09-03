@@ -243,14 +243,14 @@ export function AsistenteTicket({
           {error ? (
             <p
               role="alert"
-              className="rounded-xl border border-[var(--slate-200)] bg-white p-3 text-sm text-[var(--slate-900)]"
+              className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 text-sm text-[var(--slate-900)]"
             >
               {error}
             </p>
           ) : null}
 
           {asistencia ? (
-            <div className="space-y-3 rounded-xl border border-[var(--ia-borde)] border-l-4 border-l-[var(--ia-tinta)] bg-white p-3">
+            <div className="space-y-3 rounded-xl border border-[var(--ia-borde)] border-l-4 border-l-[var(--ia-tinta)] bg-[var(--surface-strong)] p-3">
               <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--ia-tinta)]">
                 <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                 Propuesta de la IA

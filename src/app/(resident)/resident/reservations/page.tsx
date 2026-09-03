@@ -99,9 +99,9 @@ function longDateLabel(dateKey: string) {
 }
 
 function getStatusBadgeClass(status: Reservation["status"]) {
-  if (status === "approved") return "bg-emerald-100 text-emerald-700";
-  if (status === "pending") return "bg-amber-100 text-amber-700";
-  if (status === "cancelled") return "bg-rose-100 text-rose-700";
+  if (status === "approved") return "bg-[var(--success-100)] text-[var(--success-700)]";
+  if (status === "pending") return "bg-[var(--amber-100)] text-[var(--amber-700)]";
+  if (status === "cancelled") return "bg-[var(--danger-100)] text-[var(--danger-700)]";
   return "bg-[var(--slate-200)] text-[var(--slate-700)]";
 }
 
@@ -799,9 +799,9 @@ export default function ResidentReservationsPage() {
         unitId={user?.unitId ?? ""}
         unitLabel={user?.unitLabel ?? "Unidad no definida"}
       />
-      <Card className="relative overflow-hidden border-[var(--slate-200)] bg-gradient-to-br from-white via-[#f8fbff] to-[#f2f8ff] p-0">
+      <Card className="relative overflow-hidden border-[var(--slate-200)] bg-gradient-to-br from-[var(--surface-strong)] via-[#f8fbff] to-[#f2f8ff] p-0">
         {eligibility !== null && !eligibility.eligible ? (
-          <div className="flex flex-wrap items-start gap-3 border-b border-[var(--danger-600)]/20 bg-red-50 px-5 py-3.5 sm:items-center">
+          <div className="flex flex-wrap items-start gap-3 border-b border-[var(--danger-600)]/20 bg-[var(--danger-50)] px-5 py-3.5 sm:items-center">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[var(--danger-700)]">
                 Tu unidad tiene un saldo vencido de{" "}
@@ -837,7 +837,7 @@ export default function ResidentReservationsPage() {
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-            <section className="order-2 rounded-2xl border border-[var(--slate-200)] bg-white/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-1 sm:p-5">
+            <section className="order-2 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-1 sm:p-5">
               <h4 className="text-sm font-semibold text-[var(--slate-900)]">Formulario de reserva</h4>
 
               <div className="mt-4 space-y-4">
@@ -967,9 +967,9 @@ export default function ResidentReservationsPage() {
                               }}
                               className={`rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
                                 isSelected
-                                  ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
+                                  ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
                                   : slot.available
-                                    ? "border-[var(--slate-200)] bg-white text-[var(--slate-800)] hover:border-[var(--brand-300)] hover:bg-[var(--brand-50)]"
+                                    ? "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-800)] hover:border-[var(--brand-300)] hover:bg-[var(--brand-50)]"
                                     : "cursor-not-allowed border-[var(--slate-100)] bg-[var(--slate-50)] text-[var(--slate-400)]"
                               }`}
                             >
@@ -995,7 +995,7 @@ export default function ResidentReservationsPage() {
                       </label>
                       <select
                         id="start-time-select"
-                        className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
+                        className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]"
                         value={selectedStartTime}
                         onChange={(event) => {
                           setSelectedStartTime(event.target.value);
@@ -1022,7 +1022,7 @@ export default function ResidentReservationsPage() {
                       </label>
                       <select
                         id="end-time-select"
-                        className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] disabled:bg-[var(--surface-soft)]"
+                        className="h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)] disabled:bg-[var(--surface-soft)]"
                         value={selectedEndTime}
                         onChange={(event) => setSelectedEndTime(event.target.value)}
                         disabled={endTimeOptions.length === 0 || !selectedStartTime}
@@ -1057,7 +1057,7 @@ export default function ResidentReservationsPage() {
                   </>
                 )}
 
-                <div className="rounded-xl border border-[var(--slate-200)] bg-white p-3">
+                <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3">
                   <label className="flex items-start gap-2">
                     <input
                       type="checkbox"
@@ -1085,7 +1085,7 @@ export default function ResidentReservationsPage() {
               </div>
             </section>
 
-            <section className="order-1 rounded-2xl border border-[var(--slate-200)] bg-white/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-2 sm:p-5">
+            <section className="order-1 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]/85 p-4 shadow-[0_10px_25px_rgba(8,36,58,0.07)] lg:order-2 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-sm font-semibold text-[var(--slate-900)]">Disponibilidad</h4>
                 <div className="flex items-center gap-1">
@@ -1109,8 +1109,8 @@ export default function ResidentReservationsPage() {
               <p className="mt-1 text-sm font-medium capitalize text-[var(--slate-800)]">{monthLabel(visibleMonth)}</p>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-100)] px-2.5 py-1 text-[var(--success-700)]">
+                  <span className="h-2 w-2 rounded-full bg-[var(--success-500)]" />
                   Disponible
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-[var(--slate-100)] px-2.5 py-1 text-[var(--slate-600)]">
@@ -1139,11 +1139,11 @@ export default function ResidentReservationsPage() {
                   const visualClass = !cell.inCurrentMonth
                     ? "border-transparent bg-transparent text-[var(--slate-300)]"
                     : isSelected
-                      ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
+                      ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
                       : isWeekdayBlocked
                         ? "border-transparent bg-transparent text-[var(--slate-400)] opacity-30 cursor-not-allowed pointer-events-none"
                         : availability.selectable
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          ? "border-[var(--success-200)] bg-[var(--success-50)] text-[var(--success-700)] hover:bg-[var(--success-100)]"
                           : "border-[var(--slate-200)] bg-[var(--slate-100)] text-[var(--slate-400)] cursor-not-allowed";
 
                   return (
@@ -1201,7 +1201,7 @@ export default function ResidentReservationsPage() {
           {loading ? (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
+                <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                   <div className="flex items-start justify-between gap-2">
                     <Skeleton className="h-5 w-40 rounded-sm" />
                     <Skeleton className="h-5 w-20 rounded-full" />
@@ -1231,7 +1231,7 @@ export default function ResidentReservationsPage() {
               return (
                 <article
                   key={reservation.id}
-                  className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_10px_20px_rgba(10,38,62,0.06)]"
+                  className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[0_10px_20px_rgba(10,38,62,0.06)]"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <p className="line-clamp-2 font-medium text-[var(--slate-900)]">{reservation.amenity}</p>
@@ -1398,7 +1398,7 @@ function AmenityDetailView({
             <dd>
               Cuota mensual:{" "}
               {monthlyUsageCount !== null ? (
-                <span className={monthlyUsageCount >= monthlyLimit ? "font-semibold text-[var(--danger-700)]" : "font-semibold text-emerald-700"}>
+                <span className={monthlyUsageCount >= monthlyLimit ? "font-semibold text-[var(--danger-700)]" : "font-semibold text-[var(--success-700)]"}>
                   {monthlyUsageCount} / {monthlyLimit} usados
                 </span>
               ) : (

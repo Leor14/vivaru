@@ -81,7 +81,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
         aria-label="Ayuda"
         aria-expanded={open}
         onClick={(e) => { e.stopPropagation(); setOpen((prev) => !prev); }}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--slate-300)] bg-white text-[var(--slate-500)] transition-colors hover:border-[var(--brand-400)] hover:text-[var(--brand-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)]"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-500)] transition-colors hover:border-[var(--brand-400)] hover:text-[var(--brand-600)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-500)]"
       >
         <HelpCircle className="h-3.5 w-3.5" />
       </button>
@@ -93,11 +93,11 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
               onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
             >
               {/* backdrop */}
-              <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />
+              <div className="absolute inset-0 bg-[var(--overlay)]/30" onClick={() => setOpen(false)} />
               {/* card */}
               <div
                 role="tooltip"
-                className="relative w-full max-w-sm rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-xl"
+                className="relative w-full max-w-sm rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-xl"
               >
                 {popoverContent}
                 <p className="text-sm leading-6 text-[var(--slate-600)]">{text}</p>
@@ -110,7 +110,7 @@ export function HelpTip({ text, side = "bottom", className = "" }: HelpTipProps)
       {open && !isMobile ? (
         <div
           role="tooltip"
-          className={`absolute z-50 w-64 rounded-xl border border-[var(--slate-200)] bg-white p-3 shadow-lg ${popoverPositionClass}`}
+          className={`absolute z-50 w-64 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 shadow-lg ${popoverPositionClass}`}
         >
           {popoverContent}
           <p className="text-xs leading-5 text-[var(--slate-600)]">{text}</p>

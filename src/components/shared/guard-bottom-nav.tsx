@@ -36,7 +36,7 @@ export function GuardBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 bg-white md:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 bg-[var(--surface-strong)] md:hidden"
       aria-label="Navegación principal"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >

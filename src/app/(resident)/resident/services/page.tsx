@@ -15,7 +15,7 @@ const CATEGORY_LABELS: Record<ServiceItem["category"], string> = {
 };
 
 const CATEGORY_STYLES: Record<ServiceItem["category"], string> = {
-  resident_offer: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  resident_offer: "border-[var(--success-200)] bg-[var(--success-50)] text-[var(--success-700)]",
   third_party: "border-[var(--brand-200)] bg-[var(--brand-50)] text-[var(--brand-700)]",
 };
 
@@ -93,8 +93,8 @@ export default function ResidentServicesPage() {
             onClick={() => setCategoryFilter(cat)}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               categoryFilter === cat
-                ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-white"
-                : "border-[var(--slate-200)] bg-white text-[var(--slate-600)] hover:bg-[var(--slate-100)]"
+                ? "border-[var(--brand-700)] bg-[var(--brand-700)] text-[var(--on-fill)]"
+                : "border-[var(--slate-200)] bg-[var(--surface-strong)] text-[var(--slate-600)] hover:bg-[var(--slate-100)]"
             }`}
           >
             {cat === "all" ? "Todos" : CATEGORY_LABELS[cat]}
@@ -107,7 +107,7 @@ export default function ResidentServicesPage() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white">
+              <div key={i} className="overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)]">
                 <Skeleton className="h-36 w-full rounded-none sm:h-44" />
                 <div className="space-y-2 p-4 sm:p-5">
                   <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function ResidentServicesPage() {
         ) : null}
 
         {!loading && filteredItems.length === 0 ? (
-          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--slate-300)] bg-white px-6 py-10 text-center">
+          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-strong)] px-6 py-10 text-center">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--slate-100)] text-[var(--slate-500)]">
               <Store className="h-5 w-5" />
             </span>
@@ -151,7 +151,7 @@ export default function ResidentServicesPage() {
           return (
             <article
               key={item.id}
-              className="service-card service-card-stagger group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+              className="service-card service-card-stagger group relative overflow-hidden rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
               style={{ animationDelay: `${Math.min(index * 50, 200)}ms` }}
             >
               {/* Image */}
@@ -241,10 +241,10 @@ export default function ResidentServicesPage() {
                           alt={item.attachmentName ?? "Información adicional"}
                           className="h-16 w-24 object-cover"
                         />
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 [transition:background-color_150ms_var(--ease-out,ease)] group-hover:bg-black/20">
-                          <Expand className="h-4 w-4 text-white opacity-0 drop-shadow-md transition-opacity group-hover:opacity-100" />
+                        <span className="absolute inset-0 flex items-center justify-center bg-[var(--overlay)]/0 [transition:background-color_150ms_var(--ease-out,ease)] group-hover:bg-[var(--overlay)]/20">
+                          <Expand className="h-4 w-4 text-[var(--on-fill)] opacity-0 drop-shadow-md transition-opacity group-hover:opacity-100" />
                         </span>
-                        <span className="absolute bottom-0 left-0 right-0 bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        <span className="absolute bottom-0 left-0 right-0 bg-[var(--overlay)]/40 px-1.5 py-0.5 text-[10px] font-medium text-[var(--on-fill)]">
                           Ver más
                         </span>
                       </button>
@@ -290,7 +290,7 @@ export default function ResidentServicesPage() {
             type="button"
             onClick={closeLightbox}
             aria-label="Cerrar"
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm [transition:background-color_150ms_ease-out] hover:bg-white/20"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--on-fill)]/10 text-[var(--on-fill)] backdrop-blur-sm [transition:background-color_150ms_ease-out] hover:bg-[var(--on-fill)]/20"
           >
             <X className="h-5 w-5" />
           </button>
@@ -301,7 +301,7 @@ export default function ResidentServicesPage() {
             data-open={lightboxOpen ? "true" : "false"}
             onClick={(e) => e.stopPropagation()}
           />
-          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs text-white/80 backdrop-blur-sm">
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[var(--overlay)]/50 px-3 py-1 text-xs text-[var(--on-fill)]/80 backdrop-blur-sm">
             {lightboxContent.name}
           </p>
         </div>

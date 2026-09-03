@@ -246,7 +246,7 @@ export function EstadoDeCuentaUnidadCard({
       <label className="mt-3 block text-sm text-[var(--slate-700)]">
         Unidad
         <select
-          className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 text-sm sm:max-w-xs"
+          className="mt-1 h-10 w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 text-sm sm:max-w-xs"
           value={claveElegida}
           onChange={(event) => setClaveElegida(event.target.value)}
         >

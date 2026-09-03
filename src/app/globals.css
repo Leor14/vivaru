@@ -113,6 +113,9 @@
      principal, aplanando la jerarquía que este token existe para crear. */
   --slate-800: #24374b;
   --slate-900: #152536;
+  /* El 950 entra con `PRD-V-FEAT-007` entrega 1 (lo usaba `bg-slate-950`): el
+     900 mezclado con negro al 45% en Lab. 17,9:1 sobre blanco. */
+  --slate-950: #101820;
   /* ── Escala de error ──────────────────────────────────────────────────────
      Solo existían el 600 y el 700, pero se usaban cinco pasos más. Los avisos
      de error se veían con borde oscuro y SIN relleno, y las insignias de
@@ -123,9 +126,17 @@
   --danger-100: #f6e5e3;
   --danger-200: #edcac8;
   --danger-300: #e1a7a3;
+  /* El 400 y el 800 entran con `PRD-V-FEAT-007` entrega 1: los usaban
+     `text-rose-400` y `text-red-800`, que pintaban la rampa de Tailwind. El 400
+     es el punto medio Lab entre el 300 y el 500; el 800 es el 700 mezclado con
+     negro al 22% —mezclar NO recorta canales, y escalar la L sí: probado, daba
+     #780000, un rojo que se salía de la rampa—. Contraste del 800 sobre blanco:
+     11,5:1. */
+  --danger-400: #d27469;
   --danger-500: #bd3d34;
   --danger-600: #b42318;
   --danger-700: #8e1c13;
+  --danger-800: #6e1b11;
 
   /* ── Escala de advertencia ────────────────────────────────────────────────
      Anclada en el ámbar de marca (#d97706). `--warning-*` es la MISMA rampa
@@ -134,12 +145,108 @@
      Contraste: amber-900 sobre amber-50 9.8:1; amber-800 sobre el 100 6.6:1. */
   --amber-50: #fcf5ee;
   --amber-100: #faecdc;
+  /* 200, 400, 500 y 600 entran con `PRD-V-FEAT-007` entrega 1, interpolados en
+     Lab DENTRO de esta rampa y no copiados de Tailwind: el 200 es el medio
+     100↔300, y el 400/500/600 son los tres pasos entre el 300 y el 700. Los
+     usaban `border-amber-200` (16 veces), `text-amber-600` (10) y compañía. */
+  --amber-200: #f6dbbe;
   --amber-300: #f1cba0;
+  --amber-400: #e5ad7b;
+  --amber-500: #d68f57;
+  --amber-600: #c67133;
   --amber-700: #b45309;
   --amber-800: #7e4503;
   --amber-900: #5f3403;
   --warning-100: var(--amber-100);
   --warning-800: var(--amber-800);
+
+  /* ── Escala de éxito ──────────────────────────────────────────────────────
+     Cierra la familia semántica que ya tenía peligro y advertencia y le faltaba
+     el lado bueno: `--danger-*` / `--amber-*` / `--success-*` / `--info-*`.
+     El código ya lo pedía a gritos — había ternarios con
+     `deltaGood ? "text-emerald-600" : "text-[var(--danger-700)]"`, o sea el lado
+     malo por token y el bueno por literal.
+     Los valores son EXACTAMENTE lo que `emerald-*` de Tailwind 4 pinta hoy
+     (medido convirtiendo su oklch a sRGB en el navegador, no copiado de la v3),
+     así que la migración de estos 134 usos no mueve un pixel. */
+  --success-50: #ecfdf5;
+  --success-100: #d0fae5;
+  --success-200: #a4f4cf;
+  --success-300: #5ee9b5;
+  --success-500: #00bc7d;
+  --success-600: #009966;
+  --success-700: #007a55;
+  --success-800: #006045;
+
+  /* ── Escala de información ────────────────────────────────────────────────
+     Lo que era `sky-*` de Tailwind: estados «Dentro», «En proceso». NO se puede
+     llamar `--sky-*` porque ese nombre YA está cogido aquí arriba con otro
+     valor (#ebf6ff), que es media razón por la que existían dos paletas.
+     Valores = lo que `sky-*` pinta hoy. Cero cambio de pixel. */
+  --info-50: #f0f9ff;
+  --info-100: #dff2fe;
+  --info-500: #00a6f4;
+  --info-700: #0069a8;
+  --info-800: #00598a;
+
+  /* ── Texto y brillo SOBRE un relleno saturado ─────────────────────────────
+     `text-white` y `bg-white` parecen el mismo color y son papeles OPUESTOS: los
+     53 `text-white` del alcance van todos sobre `bg-[var(--brand-700)]`,
+     `bg-red-500`, `bg-[var(--slate-900)]` o un velo — ni uno solo es superficie
+     de página. En oscuro, `--surface-strong` tiene que oscurecerse y esto NO,
+     o el texto del botón desaparece. Por eso son dos tokens y no uno.
+     También cubre los brillos translúcidos (`bg-white/10`, `ring-white/10`),
+     que son luz sobre oscuro; las superficies translúcidas (`bg-white/70` y
+     arriba) van a `--surface-strong`, que es lo que son. */
+  --on-fill: #ffffff;
+
+  /* ── Velo ─────────────────────────────────────────────────────────────────
+     Los `bg-black/40` de los modales NUNCA son negro: son un velo, y siempre
+     llevan opacidad. Nombrarlo por su papel es lo que permite que en oscuro
+     deje de ser negro sin tocar quince componentes. */
+  --overlay: #000000;
+
+  /* ── Sombras y superficies que estaban escritas a mano en las REGLAS ───────
+     `PRD-V-FEAT-007` entrega 1. Los componentes no tenían un solo hexadecimal,
+     pero ESTE fichero sí: doce reglas pintaban color literal, y ningún token las
+     alcanzaba. La sombra va entera en el token —no solo su color— porque en
+     oscuro no basta con teñirla: una sombra oscura sobre fondo oscuro no se ve,
+     y lo que cambia es el desenfoque y la opacidad tanto como el tinte. */
+  --sombra-panel: 0 12px 34px rgba(12, 38, 65, 0.08);
+  --sombra-panel-hover: 0 18px 34px rgba(7, 33, 57, 0.15);
+  --sombra-menu: 0 4px 16px rgba(15, 23, 42, 0.1), 0 1px 4px rgba(15, 23, 42, 0.06);
+  --sombra-tarjeta-hover: 0 10px 24px rgba(15, 23, 42, 0.08);
+  /* El degradado de `.soft-panel`: blanco a un azul casi imperceptible. El
+     segundo NO es `--slate-50` (#f8fafc) aunque se le parezca — es más frío. */
+  --surface-tint: #f8fbff;
+  /* Acentos del selector de rango de fechas. `--rdp-accent-background-color` ya
+     vivía aquí arriba como token; sus dos compañeros estaban sueltos en la regla. */
+  --rangepicker-rango-fg: #0c447c;
+  --rangepicker-extremo-bg: #185fa5;
+
+  /* ── Acentos de categoría ─────────────────────────────────────────────────
+     No son estado: son las insignias de tipo de archivo (DOC, PPT, IMG) y un
+     par de etiquetas. Viven en 7 ficheros. Valores = lo que Tailwind pinta hoy,
+     así que cero cambio de pixel; la rampa se re-mapea entera en la entrega 2.
+     El paso más oscuro de cada una es texto; el más claro, fondo. */
+  --categoria-blue-50: #eff6ff;
+  --categoria-blue-100: #dbeafe;
+  --categoria-blue-200: #bedbff;
+  --categoria-blue-600: #155dfc;
+  --categoria-blue-700: #1447e6;
+  --categoria-blue-800: #193cb8;
+  --categoria-orange-50: #fff7ed;
+  --categoria-orange-500: #ff6900;
+  --categoria-orange-700: #ca3500;
+  --categoria-indigo-100: #e0e7ff;
+  --categoria-indigo-700: #432dd7;
+  --categoria-indigo-800: #372aac;
+  --categoria-violet-100: #ede9fe;
+  --categoria-violet-800: #5d0ec0;
+  --categoria-teal-100: #cbfbf1;
+  --categoria-teal-800: #005f5a;
+  --categoria-cyan-100: #cefafe;
+  --categoria-cyan-800: #005f78;
 
   /* ── Custom easing curves ── */
   /* Strong ease-out: immediate movement, decelerates to stop. Use for entering elements. */
@@ -290,14 +397,14 @@ h3 {
   border-radius: 6px;
 }
 .vivaru-rangepicker .rdp-range_middle .rdp-day_button {
-  background-color: #E6F1FB;
-  color: #0C447C;
+  background-color: var(--rdp-accent-background-color);
+  color: var(--rangepicker-rango-fg);
   border-radius: 0;
 }
 .vivaru-rangepicker .rdp-range_start .rdp-day_button,
 .vivaru-rangepicker .rdp-range_end .rdp-day_button {
-  background-color: #185FA5;
-  color: #ffffff;
+  background-color: var(--rangepicker-extremo-bg);
+  color: var(--on-fill);
 }
 .vivaru-rangepicker .rdp-weekday {
   color: var(--slate-500);
@@ -385,8 +492,8 @@ svg tspan {
 
 .soft-panel {
   border: 1px solid var(--slate-200);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  box-shadow: 0 12px 34px rgba(12, 38, 65, 0.08);
+  background: linear-gradient(180deg, var(--surface-strong) 0%, var(--surface-tint) 100%);
+  box-shadow: var(--sombra-panel);
 }
 
 .premium-card-hover {
@@ -398,7 +505,7 @@ svg tspan {
   .premium-card-hover:hover {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--brand-700) 28%, white);
-    box-shadow: 0 18px 34px rgba(7, 33, 57, 0.15);
+    box-shadow: var(--sombra-panel-hover);
   }
 }
 
@@ -570,14 +677,14 @@ svg tspan {
  * Backdrop: opacity only (180ms). Image: scale + opacity (220ms, 40ms delay).
  * Exit: 150ms — user already decided to close, don't make them wait. */
 .lightbox-overlay {
-  background-color: rgba(0, 0, 0, 0);
+  background-color: color-mix(in srgb, var(--overlay) 0%, transparent);
   transition: background-color 180ms var(--ease-out);
 }
 .lightbox-overlay[data-open="true"] {
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: color-mix(in srgb, var(--overlay) 85%, transparent);
 }
 .lightbox-overlay[data-open="false"] {
-  background-color: rgba(0, 0, 0, 0);
+  background-color: color-mix(in srgb, var(--overlay) 0%, transparent);
   transition: background-color 150ms ease-in;
 }
 
@@ -636,7 +743,7 @@ svg tspan {
   opacity: 0;
   transform: scale(0.96);
   transition: opacity 130ms var(--ease-out), transform 130ms var(--ease-out);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10), 0 1px 4px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--sombra-menu);
 }
 
 .row-actions-dropdown[data-open="true"] {
@@ -723,7 +830,7 @@ svg tspan {
 @media (hover: hover) and (pointer: fine) {
   .service-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    box-shadow: var(--sombra-tarjeta-hover);
   }
 }
 

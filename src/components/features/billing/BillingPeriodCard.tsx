@@ -27,24 +27,24 @@ function formatDate(dateStr: string): string {
 const STATUS_CONFIG = {
   paid: {
     label: "Al día",
-    badgeCls: "bg-emerald-50 text-emerald-700",
-    dotCls: "bg-emerald-500",
+    badgeCls: "bg-[var(--success-50)] text-[var(--success-700)]",
+    dotCls: "bg-[var(--success-500)]",
     borderCls: "border-[var(--slate-200)]",
     headerBg: "",
   },
   pending: {
     label: "Pendiente",
-    badgeCls: "bg-amber-50 text-amber-700",
-    dotCls: "bg-amber-400",
+    badgeCls: "bg-[var(--amber-50)] text-[var(--amber-700)]",
+    dotCls: "bg-[var(--amber-400)]",
     borderCls: "border-[var(--slate-200)]",
     headerBg: "",
   },
   overdue: {
     label: "Vencido",
-    badgeCls: "bg-red-50 text-red-700",
-    dotCls: "bg-red-500",
-    borderCls: "border-red-200",
-    headerBg: "bg-red-50/40",
+    badgeCls: "bg-[var(--danger-50)] text-[var(--danger-700)]",
+    dotCls: "bg-[var(--danger-500)]",
+    borderCls: "border-[var(--danger-200)]",
+    headerBg: "bg-[var(--danger-50)]/40",
   },
   // `FLOW-001`: la corrida que lo generó se anuló. **No dice «Al día»** — eso
   // afirmaría que se pagó. Gris y sin acento: no hay nada que hacer con él, y
@@ -115,7 +115,7 @@ export function BillingPeriodCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border ${config.borderCls} bg-white transition-shadow hover:shadow-sm`}
+      className={`overflow-hidden rounded-xl border ${config.borderCls} bg-[var(--surface-strong)] transition-shadow hover:shadow-sm`}
     >
       {/* ── Header (always visible) ── */}
       <button
@@ -178,14 +178,14 @@ export function BillingPeriodCard({
               <DetailRow
                 label="Total pagado"
                 value={formatAmount(item.paymentAmount)}
-                valueClass="text-emerald-700"
+                valueClass="text-[var(--success-700)]"
                 helpText="Es el valor que ya quedó registrado como recibido por la administración en este período. Si acabas de pagar, puede tardar unos días en reflejarse."
               />
             )}
             <DetailRow
               label="Saldo pendiente"
               value={formatAmount(item.balance)}
-              valueClass={item.balance > 0 ? (item.status === "overdue" ? "text-red-600" : "text-amber-600") : "text-emerald-600"}
+              valueClass={item.balance > 0 ? (item.status === "overdue" ? "text-[var(--danger-600)]" : "text-[var(--amber-600)]") : "text-[var(--success-600)]"}
               helpText="Es la diferencia entre lo cobrado y lo pagado. Si es cero, estás al día en este período. Si es mayor a cero, aún hay un valor por cancelar."
             />
             {item.dueDate && (
@@ -209,21 +209,21 @@ export function BillingPeriodCard({
             <div className="mt-3 rounded-lg border border-dashed border-[var(--slate-200)] bg-[var(--slate-50)] px-3 py-2.5">
               {receiptStatus === "approved" && (
                 <div className="flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
-                  <span className="text-xs font-medium text-emerald-700">Comprobante aprobado</span>
+                  <FileText className="h-3.5 w-3.5 text-[var(--success-600)]" aria-hidden="true" />
+                  <span className="text-xs font-medium text-[var(--success-700)]">Comprobante aprobado</span>
                 </div>
               )}
               {receiptStatus === "pending" && (
                 <div className="flex items-center gap-2">
-                  <Clock className="h-3.5 w-3.5 text-amber-500" aria-hidden="true" />
-                  <span className="text-xs font-medium text-amber-700">Comprobante en revisión</span>
+                  <Clock className="h-3.5 w-3.5 text-[var(--amber-500)]" aria-hidden="true" />
+                  <span className="text-xs font-medium text-[var(--amber-700)]">Comprobante en revisión</span>
                 </div>
               )}
               {receiptStatus === "rejected" && (
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <FileText className="h-3.5 w-3.5 text-red-500" aria-hidden="true" />
-                    <span className="text-xs font-medium text-red-700">Comprobante rechazado — sube uno nuevo</span>
+                    <FileText className="h-3.5 w-3.5 text-[var(--danger-500)]" aria-hidden="true" />
+                    <span className="text-xs font-medium text-[var(--danger-700)]">Comprobante rechazado — sube uno nuevo</span>
                   </div>
                   {isUploading ? (
                     <span className="inline-flex items-center gap-1.5 text-xs text-[var(--slate-500)]">

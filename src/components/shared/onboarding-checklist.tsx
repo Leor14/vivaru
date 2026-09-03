@@ -103,7 +103,7 @@ export function OnboardingChecklist() {
   }
 
   return (
-    <Card className="mb-4 border-[var(--brand-200)]/70 bg-gradient-to-br from-white via-[var(--brand-50)]/60 to-[var(--sky-50)] p-5">
+    <Card className="mb-4 border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/60 to-[var(--sky-50)] p-5">
       <div className="flex items-start gap-4">
         <ProgressRing done={progress.activationDone} total={activationTotal} />
 
@@ -124,7 +124,7 @@ export function OnboardingChecklist() {
               type="button"
               onClick={toggle}
               aria-expanded={!collapsed}
-              className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out)] hover:bg-white/70"
+              className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out)] hover:bg-[var(--surface-strong)]/70"
             >
               {collapsed ? "Ver la guía" : "Ocultar"}
               <ChevronDown
@@ -162,7 +162,7 @@ export function OnboardingChecklist() {
                       type="button"
                       onClick={() => setShowDiscovery((prev) => !prev)}
                       aria-expanded={showDiscovery}
-                      className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out)] hover:bg-white/70"
+                      className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out)] hover:bg-[var(--surface-strong)]/70"
                     >
                       {showDiscovery
                         ? "Ocultar"
@@ -273,12 +273,12 @@ function ChecklistRow({
           navigate(href);
         }}
         className={cn(
-          "group flex items-center gap-3 rounded-2xl border bg-white/70 px-3 py-2.5",
+          "group flex items-center gap-3 rounded-2xl border bg-[var(--surface-strong)]/70 px-3 py-2.5",
           "[transition:background-color_180ms_var(--ease-out),border-color_180ms_var(--ease-out),box-shadow_180ms_var(--ease-out),transform_140ms_var(--ease-out)]",
           "active:scale-[0.99]",
           done
-            ? "border-transparent bg-white/40"
-            : "border-[var(--slate-200)]/70 hover:border-[var(--brand-200)] hover:bg-white hover:shadow-[0_4px_14px_rgba(12,33,53,0.06)]",
+            ? "border-transparent bg-[var(--surface-strong)]/40"
+            : "border-[var(--slate-200)]/70 hover:border-[var(--brand-200)] hover:bg-[var(--surface-strong)] hover:shadow-[0_4px_14px_rgba(12,33,53,0.06)]",
         )}
       >
         <span
@@ -323,8 +323,8 @@ function ChecklistRow({
 function CompletionIndicator({ done }: { done: boolean }) {
   if (done) {
     return (
-      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-emerald-700">
-        <span className="grid h-4 w-4 place-items-center rounded-full bg-emerald-600 text-white">
+      <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--success-50)] py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-[var(--success-700)]">
+        <span className="grid h-4 w-4 place-items-center rounded-full bg-[var(--success-600)] text-[var(--on-fill)]">
           <Check className="h-2.5 w-2.5" strokeWidth={3} aria-hidden />
         </span>
         Listo

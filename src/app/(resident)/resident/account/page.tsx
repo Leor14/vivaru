@@ -403,8 +403,8 @@ export default function ResidentAccountPage() {
     <ResidentVouchersCard />
 
     {pendingFile ? (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)]/40 p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-[var(--surface-strong)] p-5 shadow-xl">
           <h3 className="text-base font-semibold text-[var(--slate-900)]">Confirmar comprobante</h3>
           <p className="mt-1 text-sm text-[var(--slate-600)]">
             Indica el monto que pagaste. Así el administrador lo valida más rápido.
@@ -416,7 +416,7 @@ export default function ResidentAccountPage() {
               inputMode="decimal"
               value={declaredAmount}
               onChange={(e) => setDeclaredAmount(e.target.value)}
-              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+              className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
               placeholder="0"
               autoFocus
             />
@@ -427,7 +427,7 @@ export default function ResidentAccountPage() {
               <select
                 value={declaredBankAccountId}
                 onChange={(e) => setDeclaredBankAccountId(e.target.value)}
-                className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+                className="mt-1 h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
               >
                 <option value="">No estoy seguro</option>
                 {bankAccounts.map((cuenta) => (

@@ -190,7 +190,7 @@ function BillingTrendTooltip({
   const gap = Math.max(charged - settled, 0);
 
   return (
-    <div className="rounded-2xl border border-[var(--slate-200)] bg-white px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
+    <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-3 shadow-[0_14px_28px_rgba(13,38,59,0.16)]">
       <p className="text-xs font-semibold text-[var(--slate-800)]">{label ? formatPeriodLabel(label) : "Período"}</p>
       <div className="mt-2 space-y-1 text-xs text-[var(--slate-700)]">
         <p className="flex items-center justify-between gap-3">
@@ -745,7 +745,7 @@ export default function AdminDashboardPage() {
               <p className="mt-1 text-sm text-[var(--slate-600)]">{headerDate}</p>
               <button
                 type="button"
-                className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--slate-300)] bg-white/80 px-3 py-1 [transition:background-color_150ms_ease-out,border-color_150ms_ease-out,transform_120ms_ease-out] hover:border-[var(--slate-400)] hover:bg-white active:scale-[0.97] motion-reduce:[transform:none]"
+                className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--slate-300)] bg-[var(--surface-strong)]/80 px-3 py-1 [transition:background-color_150ms_ease-out,border-color_150ms_ease-out,transform_120ms_ease-out] hover:border-[var(--slate-400)] hover:bg-[var(--surface-strong)] active:scale-[0.97] motion-reduce:[transform:none]"
                 onClick={() => setDrawerSection("alerts")}
               >
                 <span
@@ -812,7 +812,7 @@ export default function AdminDashboardPage() {
                       onClick={() => setDashboardPeriod(key)}
                       className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                         dashboardPeriod === key
-                          ? "bg-white font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
+                          ? "bg-[var(--surface-strong)] font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
                           : "text-[var(--slate-600)] hover:text-[var(--slate-900)]"
                       }`}
                     >
@@ -864,7 +864,7 @@ export default function AdminDashboardPage() {
                   onChange={(event) => setFromPeriod(event.target.value)}
                   min={availablePeriods[0]}
                   max={toPeriod || availablePeriods[availablePeriods.length - 1]}
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 />
               </label>
               <label className="text-xs text-[var(--slate-700)]">
@@ -875,13 +875,13 @@ export default function AdminDashboardPage() {
                   onChange={(event) => setToPeriod(event.target.value)}
                   min={fromPeriod || availablePeriods[0]}
                   max={availablePeriods[availablePeriods.length - 1]}
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 />
               </label>
               <label className="text-xs text-[var(--slate-700)]">
                 Unidad
                 <select
-                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                  className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                   value={unitFilter}
                   onChange={(event) => setUnitFilter(event.target.value)}
                 >
@@ -896,7 +896,7 @@ export default function AdminDashboardPage() {
             </div>
           }
         >
-          <div className="rounded-2xl border border-[var(--slate-200)] bg-white p-3">
+          <div className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3">
             {chartData.length === 0 ? (
               <p className="rounded-xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-soft)] p-5 text-sm text-[var(--slate-600)]">
                 No hay datos suficientes para construir la gráfica con el filtro actual.
@@ -1068,7 +1068,7 @@ export default function AdminDashboardPage() {
         }
       >
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className="premium-card-hover border-[#d4e0ec] bg-white p-4">
+          <Card className="premium-card-hover border-[#d4e0ec] bg-[var(--surface-strong)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Operación</p>
@@ -1108,7 +1108,7 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="premium-card-hover border-[#e7dbb6] bg-white p-4">
+          <Card className="premium-card-hover border-[#e7dbb6] bg-[var(--surface-strong)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Logística</p>
@@ -1140,19 +1140,19 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className={`premium-card-hover p-4 transition-colors ${urgentTickets > 0 ? "border-red-200 bg-[#fff9f8]" : "border-[#edd2cb] bg-white"}`}>
+          <Card className={`premium-card-hover p-4 transition-colors ${urgentTickets > 0 ? "border-[var(--danger-200)] bg-[#fff9f8]" : "border-[#edd2cb] bg-[var(--surface-strong)]"}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className={`text-label ${urgentTickets > 0 ? "text-red-500" : "text-[var(--slate-500)]"}`}>Atención{urgentTickets > 0 ? ` · ${urgentTickets} urgente${urgentTickets > 1 ? "s" : ""}` : ""}</p>
+                <p className={`text-label ${urgentTickets > 0 ? "text-[var(--danger-500)]" : "text-[var(--slate-500)]"}`}>Atención{urgentTickets > 0 ? ` · ${urgentTickets} urgente${urgentTickets > 1 ? "s" : ""}` : ""}</p>
                 <CardTitle className="mt-1 flex items-center gap-2 text-lg" help="Casos abiertos ordenados por antiguedad. Los marcados como urgentes llevan mas de 15 dias sin respuesta.">
-                  <ClipboardList className={`h-4 w-4 ${urgentTickets > 0 ? "text-red-500" : "text-[#a34d3f]"}`} /> PQRS
+                  <ClipboardList className={`h-4 w-4 ${urgentTickets > 0 ? "text-[var(--danger-500)]" : "text-[#a34d3f]"}`} /> PQRS
                 </CardTitle>
               </div>
               <Button type="button" size="xs" variant="outline" onClick={() => setDrawerSection("pqrs")}>Ver todo</Button>
             </div>
             <ul className="mt-3 space-y-2 text-sm">
               {pqrsRows.map((item) => (
-                <li key={item.id} className={`rounded-xl border p-3 ${item.status === "urgente" ? "border-red-200 bg-red-50" : "border-[var(--slate-200)] bg-[var(--surface-soft)]"}`}>
+                <li key={item.id} className={`rounded-xl border p-3 ${item.status === "urgente" ? "border-[var(--danger-200)] bg-[var(--danger-50)]" : "border-[var(--slate-200)] bg-[var(--surface-soft)]"}`}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-[var(--slate-900)]">{item.primary}</p>
                     <StatusPill label={item.status} tone={item.status === "urgente" ? "alert" : "neutral"} />
@@ -1172,7 +1172,7 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="premium-card-hover border-[#d4deeb] bg-white p-4">
+          <Card className="premium-card-hover border-[#d4deeb] bg-[var(--surface-strong)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-label text-[var(--slate-500)]">Comunicación</p>

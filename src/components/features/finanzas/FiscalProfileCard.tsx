@@ -82,7 +82,7 @@ export function FiscalProfileCard() {
           <label className="text-sm text-[var(--slate-700)]">
             País
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               {...form.register("country")}
             >
               <option value="">Sin definir</option>

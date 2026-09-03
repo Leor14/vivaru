@@ -20,8 +20,8 @@ export function Textarea({ className, label, error, id, ...props }: TextareaProp
       <textarea
         id={textareaId}
         className={cn(
-          "min-h-24 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 py-2 text-sm text-[var(--slate-900)] outline-none placeholder:text-[var(--slate-500)] focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]",
-          error && 'border-red-500',
+          "min-h-24 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--slate-900)] outline-none placeholder:text-[var(--slate-500)] focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]",
+          error && 'border-[var(--danger-500)]',
           className,
         )}
         aria-invalid={!!error}
@@ -29,7 +29,7 @@ export function Textarea({ className, label, error, id, ...props }: TextareaProp
         {...props}
       />
       {error && (
-        <span id={`${textareaId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-red-500">
+        <span id={`${textareaId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-[var(--danger-500)]">
           {error}
         </span>
       )}

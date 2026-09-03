@@ -81,7 +81,7 @@ export default function ResidentPackagesPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4">
+              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1.5">
                     <Skeleton className="h-3.5 w-14 rounded-sm" />
@@ -105,13 +105,13 @@ export default function ResidentPackagesPage() {
           />
         ) : null}
         {items.map((item) => (
-          <article key={item.id} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_8px_20px_rgba(10,40,70,0.06)]">
+          <article key={item.id} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[0_8px_20px_rgba(10,40,70,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs text-[var(--slate-500)]">Código</p>
                 <p className="text-base font-semibold text-[var(--slate-900)]">{item.reference || `PK-${item.id.slice(0, 6).toUpperCase()}`}</p>
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "pending" ? "bg-[var(--amber-100)] text-[var(--amber-700)]" : "bg-[var(--success-100)] text-[var(--success-700)]"}`}>
                 {getStatusLabel(item.status)}
               </span>
             </div>

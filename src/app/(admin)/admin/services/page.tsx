@@ -374,7 +374,7 @@ export default function AdminServicesPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Categoria
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={categoryFilter}
               onChange={(event) => setCategoryFilter(event.target.value as "all" | ServiceItem["category"])}
             >
@@ -386,7 +386,7 @@ export default function AdminServicesPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Estado
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as "all" | "active" | "inactive")}
             >
@@ -422,7 +422,7 @@ export default function AdminServicesPage() {
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--slate-600)] transition-colors hover:bg-[var(--slate-100)] disabled:opacity-50"
               >
                 {item.status === "active" ? (
-                  <ToggleRight className="h-4 w-4 text-emerald-600" />
+                  <ToggleRight className="h-4 w-4 text-[var(--success-600)]" />
                 ) : (
                   <ToggleLeft className="h-4 w-4" />
                 )}
@@ -465,7 +465,7 @@ export default function AdminServicesPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Categoria
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...form.register("category")}
               >
                 <option value="resident_offer">Oferta residente</option>
@@ -479,7 +479,7 @@ export default function AdminServicesPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Estado
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...form.register("status")}
               >
                 <option value="active">Activo</option>
@@ -517,7 +517,7 @@ export default function AdminServicesPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Unidad (opcional)
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 {...form.register("unitId")}
               >
                 <option value="">Sin unidad específica</option>

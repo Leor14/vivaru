@@ -141,7 +141,7 @@ export function ReservationsCalendar({
   return (
     <div className="mb-4 mt-4 overflow-hidden rounded-xl border border-[var(--slate-200)]">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--slate-200)] bg-white px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-[var(--slate-200)] bg-[var(--surface-strong)] px-4 py-2.5">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-[var(--slate-500)]" aria-hidden="true" />
           <span className="text-sm font-medium text-[var(--slate-900)]">Disponibilidad semanal</span>
@@ -170,7 +170,7 @@ export function ReservationsCalendar({
       </div>
 
       {/* Week day columns */}
-      <div className="grid grid-cols-7 divide-x divide-[var(--slate-200)] border-b border-[var(--slate-200)] bg-white">
+      <div className="grid grid-cols-7 divide-x divide-[var(--slate-200)] border-b border-[var(--slate-200)] bg-[var(--surface-strong)]">
         {weekDays.map((day, i) => {
           const ds = toDateStr(day);
           const dayRes = reservationsByDate.get(ds) ?? [];
@@ -194,7 +194,7 @@ export function ReservationsCalendar({
               <span
                 className={cn(
                   "text-[11px] leading-none",
-                  isSelected ? "text-white/60" : "text-[var(--slate-500)]",
+                  isSelected ? "text-[var(--on-fill)]/60" : "text-[var(--slate-500)]",
                 )}
               >
                 {DAYS_SHORT[i]}
@@ -203,9 +203,9 @@ export function ReservationsCalendar({
                 className={cn(
                   "flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium leading-none",
                   isSelected
-                    ? "bg-white/20 text-white"
+                    ? "bg-[var(--on-fill)]/20 text-[var(--on-fill)]"
                     : isToday
-                      ? "bg-[var(--brand-700)] text-white"
+                      ? "bg-[var(--brand-700)] text-[var(--on-fill)]"
                       : "text-[var(--slate-900)]",
                 )}
               >
@@ -217,8 +217,8 @@ export function ReservationsCalendar({
                     className={cn(
                       "rounded-full px-1.5 py-px text-[10px] font-medium leading-none",
                       isSelected
-                        ? "bg-emerald-500/20 text-emerald-200"
-                        : "bg-emerald-50 text-emerald-700",
+                        ? "bg-[var(--success-500)]/20 text-[var(--success-200)]"
+                        : "bg-[var(--success-50)] text-[var(--success-700)]",
                     )}
                   >
                     {approved}✓
@@ -229,8 +229,8 @@ export function ReservationsCalendar({
                     className={cn(
                       "rounded-full px-1.5 py-px text-[10px] font-medium leading-none",
                       isSelected
-                        ? "bg-amber-400/20 text-amber-200"
-                        : "bg-amber-50 text-amber-700",
+                        ? "bg-[var(--amber-400)]/20 text-[var(--amber-200)]"
+                        : "bg-[var(--amber-50)] text-[var(--amber-700)]",
                     )}
                   >
                     {pending}·
@@ -240,7 +240,7 @@ export function ReservationsCalendar({
                   <span
                     className={cn(
                       "text-xs",
-                      isSelected ? "text-white/30" : "text-[var(--slate-300)]",
+                      isSelected ? "text-[var(--on-fill)]/30" : "text-[var(--slate-300)]",
                     )}
                   >
                     –
@@ -272,7 +272,7 @@ export function ReservationsCalendar({
             </div>
 
             {dayReservations.length === 0 ? (
-              <p className="rounded-xl bg-white py-4 text-center text-sm text-[var(--slate-500)]">
+              <p className="rounded-xl bg-[var(--surface-strong)] py-4 text-center text-sm text-[var(--slate-500)]">
                 No hay reservas programadas para este día
               </p>
             ) : (
@@ -320,7 +320,7 @@ export function ReservationsCalendar({
                         {amenityName}
                       </span>
                       {/* Timeline bar */}
-                      <div className="relative h-8 flex-1 overflow-hidden rounded-sm bg-white">
+                      <div className="relative h-8 flex-1 overflow-hidden rounded-sm bg-[var(--surface-strong)]">
                         {/* Vertical hour guides */}
                         {HOUR_LABELS.slice(1, -1).map((h) => {
                           const pct = ((h - MIN_HOUR) / (MAX_HOUR - MIN_HOUR)) * 100;
@@ -385,13 +385,13 @@ export function ReservationsCalendar({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--slate-200)] bg-white px-4 py-2">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--slate-200)] bg-[var(--surface-strong)] px-4 py-2">
         <span className="flex items-center gap-1.5 text-[11px] text-[var(--slate-500)]">
-          <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="inline-block h-2 w-2 rounded-full bg-[var(--success-500)]" />
           Aprobada
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-[var(--slate-500)]">
-          <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+          <span className="inline-block h-2 w-2 rounded-full bg-[var(--amber-500)]" />
           Pendiente
         </span>
         <span className="ml-auto text-[11px] text-[var(--slate-400)]">

@@ -102,7 +102,7 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
               onClick={() => setSortMode(opt)}
               className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
                 sortMode === opt
-                  ? "bg-white font-semibold text-[var(--slate-800)] shadow-sm"
+                  ? "bg-[var(--surface-strong)] font-semibold text-[var(--slate-800)] shadow-sm"
                   : "text-[var(--slate-600)] hover:text-[var(--slate-800)]"
               }`}
             >
@@ -113,7 +113,7 @@ export function OverdueUnitsWidget({ items, loading }: Props) {
         <select
           value={tower}
           onChange={(e) => setTower(e.target.value)}
-          className="rounded-lg border border-[var(--slate-300)] bg-white px-2.5 py-1 text-xs text-[var(--slate-700)]"
+          className="rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2.5 py-1 text-xs text-[var(--slate-700)]"
         >
           <option value="all">Todas las torres</option>
           {towerOptions.map((t) => (

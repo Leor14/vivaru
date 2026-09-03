@@ -168,8 +168,11 @@ describe("BLOQUE 2 — TimeSelect.tsx: verificación estática", () => {
     expect(src).toMatch(/label\?:\s*string/);
   });
 
-  it("error causa cambio de borde (border-red-500 o border-destructive)", () => {
-    expect(src).toMatch(/error.*border-red-500|border-destructive.*error/s);
+  it("error causa cambio de borde (token de peligro)", () => {
+    // El literal `border-red-500` desaparecio con `PRD-V-FEAT-007` entrega 1: el
+    // color del alcance se pide por token. La afirmacion sigue siendo la misma
+    // —hay error, hay borde de peligro—, escrita en el idioma nuevo.
+    expect(src).toMatch(/error.*border-\[var\(--danger-500\)\]/s);
   });
 
   it("NO usa componente <Input> (es <select> nativo)", () => {

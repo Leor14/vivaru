@@ -109,7 +109,7 @@ export function TowersCard() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-[var(--slate-500)]" aria-hidden />
+            <Building2 className="h-4 w-4 text-[var(--success-600)]" aria-hidden />
             Torres y agrupaciones
           </CardTitle>
           <CardDescription className="mt-1">
@@ -141,7 +141,7 @@ export function TowersCard() {
               return (
                 <li
                   key={item}
-                  className="flex items-center justify-between rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2"
+                  className="flex items-center justify-between rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2"
                 >
                   <span className="text-sm font-medium text-[var(--slate-900)]">
                     {item}

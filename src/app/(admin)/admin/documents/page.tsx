@@ -299,7 +299,7 @@ export default function AdminDocumentsPage() {
             Seleccionar archivo
             <HelpTip text="Sube documentos oficiales del conjunto (PDF, imágenes JPG/PNG u Office) de hasta 25 MB. El archivo se guarda aislado por conjunto y solo la administración puede verlo. Asígnale una categoría para mantener el repositorio ordenado y evitar un listado abultado." />
           </p>
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-white p-2">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] p-2">
             <Button type="button" variant="outline" onClick={() => document.getElementById("tenant-document-file")?.click()}>
               <IconBadge tone="sky" className="mr-2">
                 <FolderOpen className="h-4 w-4" />
@@ -319,7 +319,7 @@ export default function AdminDocumentsPage() {
         <label className="text-sm text-[var(--slate-700)]">
           Categoría
           <select
-            className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+            className="mt-1 block h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
             value={category}
             onChange={(event) => setCategory(event.target.value as DocumentCategory)}
           >

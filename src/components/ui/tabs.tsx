@@ -36,16 +36,16 @@ const ESTILO = {
     inactivo: "border-transparent text-[var(--slate-500)] hover:text-[var(--slate-700)]",
   },
   segmented: {
-    lista: "inline-flex flex-wrap rounded-xl border border-[var(--slate-300)] bg-white p-0.5",
+    lista: "inline-flex flex-wrap rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] p-0.5",
     base: "rounded-lg px-3 py-1.5 text-sm transition-colors",
-    activo: "bg-[var(--slate-900)] text-white",
+    activo: "bg-[var(--slate-900)] text-[var(--on-fill)]",
     inactivo: "text-[var(--slate-600)] hover:text-[var(--slate-900)]",
   },
   /** Ancho completo y repartido: el del portal del residente, que es móvil. */
   pill: {
-    lista: "flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-white p-1 shadow-sm",
+    lista: "flex w-full items-center gap-1 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-1 shadow-sm",
     base: "flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-    activo: "bg-[var(--brand-700)] text-white",
+    activo: "bg-[var(--brand-700)] text-[var(--on-fill)]",
     inactivo: "text-[var(--slate-700)] hover:bg-[var(--slate-100)]",
   },
 } as const;

@@ -28,8 +28,8 @@ export function Modal({
   const hasHeading = Boolean(header) || title.length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true">
-      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-[var(--slate-200)] bg-white p-4 shadow-xl sm:max-w-2xl sm:rounded-2xl md:p-6">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--overlay)]/40 p-0 sm:items-center sm:p-4" role="dialog" aria-modal="true">
+      <div className="max-h-[90vh] w-full overflow-y-auto rounded-t-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-xl sm:max-w-2xl sm:rounded-2xl md:p-6">
         <div className="flex items-start justify-between gap-3">
           {header ?? <h3 className="text-lg font-semibold text-[var(--slate-900)]">{title}</h3>}
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>

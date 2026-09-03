@@ -37,10 +37,10 @@ const TICKET_TYPES = [
 type TicketTypeValue = typeof TICKET_TYPES[number]["value"];
 
 const STATUS_CONFIG: Record<Ticket["status"], { label: string; badgeCls: string }> = {
-  open:        { label: "Abierto",     badgeCls: "bg-amber-100 text-amber-700" },
-  in_progress: { label: "En proceso",  badgeCls: "bg-sky-100 text-sky-700" },
-  responded:   { label: "Respondido",  badgeCls: "bg-indigo-100 text-indigo-700" },
-  resolved:    { label: "Resuelto",    badgeCls: "bg-emerald-100 text-emerald-700" },
+  open:        { label: "Abierto",     badgeCls: "bg-[var(--amber-100)] text-[var(--amber-700)]" },
+  in_progress: { label: "En proceso",  badgeCls: "bg-[var(--info-100)] text-[var(--info-700)]" },
+  responded:   { label: "Respondido",  badgeCls: "bg-[var(--categoria-indigo-100)] text-[var(--categoria-indigo-700)]" },
+  resolved:    { label: "Resuelto",    badgeCls: "bg-[var(--success-100)] text-[var(--success-700)]" },
   closed:      { label: "Cerrado",     badgeCls: "bg-[var(--slate-100)] text-[var(--slate-600)]" },
 };
 
@@ -61,7 +61,7 @@ function TicketRow({ ticket, simple = false }: { ticket: Ticket; simple?: boolea
   const date = formatDate(ticket.createdAt ?? ticket.updatedAt);
 
   return (
-    <div className="rounded-xl border border-[var(--slate-200)] bg-white p-3 space-y-2">
+    <div className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 space-y-2">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--slate-900)]">
@@ -222,7 +222,7 @@ export default function ResidentPqrsPage() {
           {/* Asunto */}
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--slate-600)]" htmlFor="pqrs-subject">
-              Asunto <span className="text-red-500">*</span>
+              Asunto <span className="text-[var(--danger-500)]">*</span>
             </label>
             <Input
               id="pqrs-subject"
@@ -258,7 +258,7 @@ export default function ResidentPqrsPage() {
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-xl border border-[var(--slate-200)] bg-white p-3 space-y-2">
+                <div key={i} className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <Skeleton className="h-5 w-48 rounded-sm" />
                     <Skeleton className="h-5 w-20 rounded-full" />

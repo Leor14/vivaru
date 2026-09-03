@@ -78,13 +78,13 @@ export default function RegistroPage() {
         style={{ backgroundImage: "url('/images/hogaru.png')" }}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-white/60 backdrop-blur-[1.5px]" aria-hidden />
+      <div className="absolute inset-0 bg-[var(--surface-strong)]/60 backdrop-blur-[1.5px]" aria-hidden />
 
       <div className="relative z-10 flex min-h-full items-center justify-center overflow-y-auto p-4 sm:p-6">
-        <Card className="soft-panel w-full max-w-[520px] rounded-2xl border border-[var(--slate-200)] bg-white p-7 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-9">
+        <Card className="soft-panel w-full max-w-[520px] rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-7 shadow-[0_10px_30px_rgba(0,0,0,0.08)] sm:p-9">
           {step === "listo" ? (
             <div className="text-center">
-              <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[var(--success-50)] text-[var(--success-600)]">
                 <Mail className="h-6 w-6" />
               </div>
               <h1 className="text-2xl font-bold text-[var(--slate-900)]">Revisa tu correo</h1>
@@ -119,7 +119,7 @@ export default function RegistroPage() {
 
               {/* Progreso: dos pasos, para que se vea corto. */}
               <div className="mb-5 flex items-center gap-2 text-xs font-medium">
-                <span className={step === "contacto" ? "text-[var(--brand-700,#0C447C)]" : "text-emerald-600"}>
+                <span className={step === "contacto" ? "text-[var(--brand-700,#0C447C)]" : "text-[var(--success-600)]"}>
                   {step === "conjunto" ? <CheckCircle2 className="mr-1 inline h-3.5 w-3.5" /> : null}
                   1. Tus datos
                 </span>

@@ -101,7 +101,7 @@ function GuidedStepBannerInner({ step, track }: { step: OnboardingStep; track: O
   return (
     <section
       aria-label={`Guía: ${step.title}`}
-      className="mb-4 rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-white via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]"
+      className="mb-4 rounded-2xl border border-[var(--brand-200)]/70 bg-gradient-to-br from-[var(--surface-strong)] via-[var(--brand-50)]/70 to-[var(--sky-50)] px-4 py-4 shadow-[0_4px_16px_rgba(12,33,53,0.05)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -117,7 +117,7 @@ function GuidedStepBannerInner({ step, track }: { step: OnboardingStep; track: O
           </span>
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-[var(--brand-700)]">
-              <span className="inline-flex items-center gap-1 rounded-lg bg-white/70 px-2 py-0.5">
+              <span className="inline-flex items-center gap-1 rounded-lg bg-[var(--surface-strong)]/70 px-2 py-0.5">
                 <ListChecks className="h-3.5 w-3.5" aria-hidden />
                 Guía de puesta en marcha
               </span>
@@ -135,7 +135,7 @@ function GuidedStepBannerInner({ step, track }: { step: OnboardingStep; track: O
           type="button"
           onClick={dismiss}
           aria-label="Cerrar la guía de este paso"
-          className="shrink-0 rounded-lg p-1 text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out),transform_140ms_var(--ease-out)] hover:bg-white/80 active:scale-95"
+          className="shrink-0 rounded-lg p-1 text-[var(--brand-700)] [transition:background-color_150ms_var(--ease-out),transform_140ms_var(--ease-out)] hover:bg-[var(--surface-strong)]/80 active:scale-95"
         >
           <X className="h-4 w-4" aria-hidden />
         </button>
@@ -177,7 +177,7 @@ function GuidedStepBannerInner({ step, track }: { step: OnboardingStep; track: O
           </dl>
 
           {step.tip ? (
-            <p className="flex items-start gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm text-[var(--slate-700)]">
+            <p className="flex items-start gap-2 rounded-xl bg-[var(--surface-strong)]/70 px-3 py-2 text-sm text-[var(--slate-700)]">
               <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-700)]" aria-hidden />
               <span>{step.tip}</span>
             </p>

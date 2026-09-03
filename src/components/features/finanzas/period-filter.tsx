@@ -20,7 +20,7 @@ const chipClass = (active: boolean) =>
   cn(
     "rounded-lg px-3 py-1.5 text-sm transition-colors",
     active
-      ? "bg-white font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
+      ? "bg-[var(--surface-strong)] font-medium text-[var(--brand-700)] shadow-[0_1px_2px_rgba(12,33,53,0.08)]"
       : "text-[var(--slate-600)] hover:text-[var(--slate-900)]",
   );
 
@@ -91,7 +91,7 @@ export function PeriodFilter({
       </div>
 
       {open ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-200)] bg-white px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2">
           <label className="flex items-center gap-2 text-sm text-[var(--slate-600)]">
             Meses
             <input
@@ -105,7 +105,7 @@ export function PeriodFilter({
                 if (e.key === "Enter") applyCustom();
               }}
               aria-invalid={!draftValid}
-              className="h-8 w-16 rounded-lg border border-[var(--slate-300)] bg-white px-2 text-sm"
+              className="h-8 w-16 rounded-lg border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm"
             />
           </label>
           <span className={cn("text-xs", draftValid ? "text-[var(--slate-400)]" : "text-[var(--danger-700)]")}>

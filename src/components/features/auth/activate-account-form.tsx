@@ -174,7 +174,7 @@ export function ActivateAccountForm() {
           Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo.
         </p>
         {formError && (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{formError}</p>
+          <p className="rounded-xl border border-[var(--danger-200)] bg-[var(--danger-50)] px-3 py-2 text-sm text-[var(--danger-700)]">{formError}</p>
         )}
         <Button type="submit" disabled={submitting}>
           {submitting ? "Activando…" : "Activar cuenta"}

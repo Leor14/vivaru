@@ -402,10 +402,10 @@ export default function AdminVisitorsPage() {
   }
 
   function resolvePassStatusClass(label: string): string {
-    if (label === "Dentro") return "bg-sky-100 text-sky-700";
-    if (label === "Finalizado") return "bg-slate-100 text-slate-700";
-    if (label === "Expirado") return "bg-rose-100 text-rose-700";
-    return "bg-amber-100 text-amber-700";
+    if (label === "Dentro") return "bg-[var(--info-100)] text-[var(--info-700)]";
+    if (label === "Finalizado") return "bg-[var(--slate-100)] text-[var(--slate-700)]";
+    if (label === "Expirado") return "bg-[var(--danger-100)] text-[var(--danger-700)]";
+    return "bg-[var(--amber-100)] text-[var(--amber-700)]";
   }
 
   return (
@@ -436,7 +436,7 @@ export default function AdminVisitorsPage() {
             onClick={() => setActiveTab("authorizations")}
             className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               activeTab === "authorizations"
-                ? "bg-white text-[var(--slate-900)] shadow-sm"
+                ? "bg-[var(--surface-strong)] text-[var(--slate-900)] shadow-sm"
                 : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
             }`}
           >
@@ -447,7 +447,7 @@ export default function AdminVisitorsPage() {
             onClick={() => setActiveTab("passes")}
             className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               activeTab === "passes"
-                ? "bg-white text-[var(--slate-900)] shadow-sm"
+                ? "bg-[var(--surface-strong)] text-[var(--slate-900)] shadow-sm"
                 : "text-[var(--slate-500)] hover:text-[var(--slate-700)]"
             }`}
           >
@@ -483,7 +483,7 @@ export default function AdminVisitorsPage() {
           <label className="text-xs text-[var(--slate-600)]">
             Estado
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as "all" | "active" | "expired" | "cancelled")}
             >
@@ -496,7 +496,7 @@ export default function AdminVisitorsPage() {
           <label className="text-xs text-[var(--slate-600)]">
             Unidad
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={unitFilter}
               onChange={(event) => setUnitFilter(event.target.value)}
             >
@@ -644,11 +644,11 @@ export default function AdminVisitorsPage() {
         <div className="fixed inset-0 z-50">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]"
+            className="absolute inset-0 bg-[var(--slate-950)]/35 backdrop-blur-[1px]"
             aria-label="Cerrar detalle"
             onClick={() => setSelectedPass(null)}
           />
-          <aside className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-[var(--slate-200)] bg-white p-5 shadow-2xl sm:p-6">
+          <aside className="absolute right-0 top-0 h-full w-full max-w-lg overflow-y-auto border-l border-[var(--slate-200)] bg-[var(--surface-strong)] p-5 shadow-2xl sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-[var(--slate-500)]">
@@ -726,12 +726,12 @@ export default function AdminVisitorsPage() {
                 {(selectedPass.guardNotes?.length ?? 0) > 0 ? (
                   <ul className="mt-3 space-y-2">
                     {selectedPass.guardNotes!.map((n, i) => (
-                      <li key={i} className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm">
+                      <li key={i} className="rounded-lg border border-[var(--amber-100)] bg-[var(--amber-50)] px-3 py-2 text-sm">
                         {n.text ? <p className="text-[var(--slate-800)]">{n.text}</p> : null}
                         {n.imageUrl ? (
                           <a href={n.imageUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={n.imageUrl} alt="Adjunto de la nota" className="max-h-48 rounded-lg border border-amber-200 object-cover" />
+                            <img src={n.imageUrl} alt="Adjunto de la nota" className="max-h-48 rounded-lg border border-[var(--amber-200)] object-cover" />
                           </a>
                         ) : null}
                         <p className="mt-1 text-xs text-[var(--slate-500)]">
@@ -785,14 +785,14 @@ export default function AdminVisitorsPage() {
           <div className="grid gap-3 md:grid-cols-3">
             <label className="text-sm text-[var(--slate-700)]">
               Tipo autorización
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("authorizationType")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("authorizationType")}>
                 <option value="puntual">Puntual</option>
                 <option value="larga_duracion">Larga duración</option>
               </select>
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Categoría
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("visitorCategory")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("visitorCategory")}>
                 <option value="familiar">Familiar</option>
                 <option value="servicio">Servicio</option>
                 <option value="otro">Otro</option>
@@ -800,7 +800,7 @@ export default function AdminVisitorsPage() {
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Unidad
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("unitId")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("unitId")}>
                 <option value="">Selecciona</option>
                 {units.map((unit) => (
                   <option key={unit.id} value={unit.id}>{unit.displayName}</option>
@@ -815,7 +815,7 @@ export default function AdminVisitorsPage() {
             </label>
             <label className="text-sm text-[var(--slate-700)]">
               Estado
-              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("status")}>
+              <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("status")}>
                 <option value="active">Activo</option>
                 <option value="expired">Expirado</option>
                 <option value="cancelled">Cancelado</option>

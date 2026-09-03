@@ -18,7 +18,7 @@ export function SidebarBrandHeader({ tenantName, className, rightSlot }: Sidebar
       />
       <div className="min-w-0 flex-1 leading-tight">
         <p
-          className="truncate text-white"
+          className="truncate text-[var(--on-fill)]"
           style={{ fontSize: 14, fontWeight: 500, letterSpacing: "0.04em" }}
         >
           VIVARU

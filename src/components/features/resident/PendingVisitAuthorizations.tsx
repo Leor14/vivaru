@@ -122,7 +122,7 @@ export function PendingVisitAuthorizations({ tenantId, unitId }: { tenantId?: st
   if (!tenantId || porDecidir.length === 0) return null;
 
   return (
-    <Card className="border-2 border-amber-300 bg-amber-50/60 p-5">
+    <Card className="border-2 border-[var(--amber-300)] bg-[var(--amber-50)]/60 p-5">
       <CardTitle>Alguien te visita ahora</CardTitle>
       <CardDescription className="mt-1">Está en portería esperando tu respuesta.</CardDescription>
 
@@ -133,7 +133,7 @@ export function PendingVisitAuthorizations({ tenantId, unitId }: { tenantId?: st
             ahoraMs,
           );
           return (
-            <div key={pase.id} className="rounded-2xl border border-amber-200 bg-white p-4">
+            <div key={pase.id} className="rounded-2xl border border-[var(--amber-200)] bg-[var(--surface-strong)] p-4">
               <p className="text-base font-semibold text-[var(--slate-900)]">{pase.visitorName}</p>
               <p className="text-xs text-[var(--slate-600)]">
                 Documento {pase.documentNumber || "—"} · quedan{" "}
@@ -143,7 +143,7 @@ export function PendingVisitAuthorizations({ tenantId, unitId }: { tenantId?: st
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button
-                  className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="w-full bg-[var(--success-600)] text-[var(--on-fill)] hover:bg-[var(--success-700)]"
                   disabled={resolviendo === pase.id}
                   onClick={() => void decidir(pase, "autorizar")}
                 >

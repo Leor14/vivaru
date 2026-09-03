@@ -258,14 +258,14 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
           </CardDescription>
         </div>
         {pendingReceipts.length > 0 ? (
-          <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+          <span className="inline-flex items-center rounded-full bg-[var(--amber-100)] px-2.5 py-0.5 text-xs font-semibold text-[var(--amber-800)]">
             {pendingReceipts.length} {pendingReceipts.length === 1 ? "pendiente" : "pendientes"}
           </span>
         ) : null}
       </div>
 
       {error ? (
-        <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--danger-600)]/30 bg-red-50 px-3 py-2.5 text-sm text-[var(--danger-700)]">
+        <div className="mt-3 flex items-start gap-2 rounded-xl border border-[var(--danger-600)]/30 bg-[var(--danger-50)] px-3 py-2.5 text-sm text-[var(--danger-700)]">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>No pudimos cargar los comprobantes: {error}</span>
         </div>
@@ -294,7 +294,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
               return (
                 <li
                   key={receipt.id}
-                  className="rounded-xl border border-[var(--slate-200)] bg-white px-4 py-3"
+                  className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] px-4 py-3"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -322,7 +322,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                           <span className="font-medium text-[var(--slate-800)]">{formatMoney(linkedStmt.balance ?? 0)}</span>
                         </p>
                       ) : (
-                        <p className="mt-0.5 text-xs text-amber-700">Sin cobro vinculado — apruébalo y registra el pago manualmente.</p>
+                        <p className="mt-0.5 text-xs text-[var(--amber-700)]">Sin cobro vinculado — apruébalo y registra el pago manualmente.</p>
                       )}
                     </div>
 
@@ -331,7 +331,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                         href={receipt.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-300)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
+                        className="inline-flex items-center gap-1 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 py-1.5 text-xs font-medium text-[var(--slate-700)] hover:bg-[var(--slate-100)]"
                       >
                         <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                         Abrir archivo
@@ -344,7 +344,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               inputMode="decimal"
                               value={amountValue(receipt)}
                               onChange={(e) => setAmounts((prev) => ({ ...prev, [receipt.id]: e.target.value }))}
-                              className="h-9 w-28 rounded-xl border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)]"
+                              className="h-9 w-28 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm text-[var(--slate-900)]"
                               placeholder="Monto"
                               aria-label="Monto pagado"
                             />
@@ -352,7 +352,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               <select
                                 value={cuentaElegida(receipt)}
                                 onChange={(e) => setCuentas((prev) => ({ ...prev, [receipt.id]: e.target.value }))}
-                                className="h-9 rounded-xl border border-[var(--slate-300)] bg-white px-2 text-sm text-[var(--slate-900)]"
+                                className="h-9 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-2 text-sm text-[var(--slate-900)]"
                                 aria-label="Cuenta bancaria a la que entró el pago"
                               >
                                 <option value="">Sin cuenta</option>
@@ -373,7 +373,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                               type="button"
                               onClick={() => handleApproveAndRegister(receipt)}
                               disabled={isBusy || isRejecting}
-                              className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                              className="inline-flex items-center gap-1 bg-[var(--success-600)] text-[var(--on-fill)] hover:bg-[var(--success-700)]"
                             >
                               <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                               Aprobar y registrar
@@ -404,7 +404,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                           type="button"
                           onClick={() => handleApprove(receipt)}
                           disabled={isBusy || isRejecting}
-                          className="inline-flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                          className="inline-flex items-center gap-1 bg-[var(--success-600)] text-[var(--on-fill)] hover:bg-[var(--success-700)]"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
                           Aprobar
@@ -418,7 +418,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                           setRejectionReason("");
                         }}
                         disabled={isBusy}
-                        className="inline-flex items-center gap-1 text-[var(--danger-700)] hover:bg-red-50"
+                        className="inline-flex items-center gap-1 text-[var(--danger-700)] hover:bg-[var(--danger-50)]"
                       >
                         <XCircle className="h-3.5 w-3.5" aria-hidden />
                         Rechazar
@@ -435,7 +435,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                           value={rejectionReason}
                           onChange={(e) => setRejectionReason(e.target.value)}
                           placeholder="Ej. El comprobante no corresponde al monto cobrado."
-                          className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)]"
+                          className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)]"
                           autoFocus
                         />
                       </label>
@@ -451,7 +451,7 @@ export function PaymentReceiptsReviewPanel({ tenantId, reviewerId, reviewerName,
                         type="button"
                         onClick={() => handleConfirmReject(receipt)}
                         disabled={isBusy || rejectionReason.trim().length === 0}
-                        className="bg-[var(--danger-600)] text-white hover:bg-[var(--danger-700)]"
+                        className="bg-[var(--danger-600)] text-[var(--on-fill)] hover:bg-[var(--danger-700)]"
                       >
                         Confirmar rechazo
                       </Button>

@@ -25,15 +25,15 @@ const TONE_BG: Record<Tone, string> = {
 };
 
 const SEMANTIC_BG: Record<Semantic, string> = {
-  overdue: "bg-[linear-gradient(180deg,#fff9f9_0%,#fef2f2_100%)] !border-red-200",
-  pending: "bg-[linear-gradient(180deg,#fffdf5_0%,#fffbeb_100%)] !border-amber-200",
-  clear:   "bg-[linear-gradient(180deg,#f6fffe_0%,#ecfdf5_100%)] !border-emerald-200",
+  overdue: "bg-[linear-gradient(180deg,#fff9f9_0%,#fef2f2_100%)] !border-[var(--danger-200)]",
+  pending: "bg-[linear-gradient(180deg,#fffdf5_0%,#fffbeb_100%)] !border-[var(--amber-200)]",
+  clear:   "bg-[linear-gradient(180deg,#f6fffe_0%,#ecfdf5_100%)] !border-[var(--success-200)]",
 };
 
 const SEMANTIC_VALUE_COLOR: Record<Semantic, string> = {
-  overdue: "text-red-700",
-  pending: "text-amber-700",
-  clear:   "text-emerald-700",
+  overdue: "text-[var(--danger-700)]",
+  pending: "text-[var(--amber-700)]",
+  clear:   "text-[var(--success-700)]",
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────

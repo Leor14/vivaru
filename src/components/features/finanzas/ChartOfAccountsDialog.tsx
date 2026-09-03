@@ -174,7 +174,7 @@ export function ChartOfAccountsDialog({
                           <Badge
                             className={
                               cuenta.status === "active"
-                                ? "bg-emerald-100 text-emerald-700"
+                                ? "bg-[var(--success-100)] text-[var(--success-700)]"
                                 : "bg-[var(--slate-200)] text-[var(--slate-600)]"
                             }
                           >

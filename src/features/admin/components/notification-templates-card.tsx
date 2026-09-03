@@ -19,7 +19,7 @@ import {
 import type { NotificationTemplateOverride, NotificationTemplates } from "@/types/domain";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-[var(--slate-200)] bg-white px-3 py-2 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)]";
+  "w-full rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-2 text-sm text-[var(--slate-900)] placeholder:text-[var(--slate-400)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-700)]";
 
 type FieldKey = "title" | "body" | "emailSubject" | "emailBody";
 
@@ -107,7 +107,7 @@ function NotificationEditorRow({
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-[var(--slate-900)]">{def.label}</span>
           {hasOverride ? (
-            <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-indigo-700">
+            <span className="rounded-full bg-[var(--categoria-indigo-100)] px-2 py-0.5 text-[10px] font-semibold uppercase text-[var(--categoria-indigo-700)]">
               Personalizado
             </span>
           ) : null}
@@ -126,7 +126,7 @@ function NotificationEditorRow({
             style={{ backgroundColor: emailEnabled ? "var(--brand-700)" : "var(--slate-200)" }}
           >
             <span
-              className="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+              className="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[var(--surface-strong)] shadow transition-transform"
               style={{ transform: emailEnabled ? "translateX(16px)" : "translateX(0px)" }}
             />
           </span>

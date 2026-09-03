@@ -251,7 +251,7 @@ export function AdminSidebar({
           tenantName={tenantName}
           rightSlot={
             showNotifications ? (
-              <span className="inline-flex items-center justify-center text-white/70 hover:text-white">
+              <span className="inline-flex items-center justify-center text-[var(--on-fill)]/70 hover:text-[var(--on-fill)]">
                 <NotificationsBell />
               </span>
             ) : null
@@ -317,8 +317,8 @@ export function AdminSidebar({
                           // fila cuesta una entrada visible en una ventana baja.
                           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-colors duration-150",
                           active
-                            ? "text-white"
-                            : "text-[rgba(255,255,255,0.75)] hover:text-white",
+                            ? "text-[var(--on-fill)]"
+                            : "text-[rgba(255,255,255,0.75)] hover:text-[var(--on-fill)]",
                         )}
                         style={{
                           backgroundColor: active
@@ -376,9 +376,9 @@ export function AdminSidebar({
           <Link
             href={profilePath}
             onClick={onItemClick}
-            className="flex items-center gap-3 text-white/90 hover:text-white"
+            className="flex items-center gap-3 text-[var(--on-fill)]/90 hover:text-[var(--on-fill)]"
           >
-            <span className="inline-flex shrink-0 rounded-full ring-1 ring-white/10">
+            <span className="inline-flex shrink-0 rounded-full ring-1 ring-[var(--on-fill)]/10">
               <UserAvatar
                 role={user.role}
                 photoURL={user.photoURL}
@@ -398,7 +398,7 @@ export function AdminSidebar({
             <button
               type="button"
               onClick={onLogout}
-              className="mt-4 inline-flex items-center gap-2 hover:text-white"
+              className="mt-4 inline-flex items-center gap-2 hover:text-[var(--on-fill)]"
               style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}
             >
               <LogOut className="h-3.5 w-3.5" strokeWidth={2} />

@@ -499,7 +499,7 @@ export default function AdminCommunicationsPage() {
           <label className="text-sm text-[var(--slate-700)]">
             Estado
             <select
-              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+              className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as "all" | "published" | "draft" | "archived" | "scheduled" | "expired")}
             >
@@ -588,7 +588,7 @@ export default function AdminCommunicationsPage() {
             <label className="text-sm text-[var(--slate-700)]">
               Audiencia
               <select
-                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+                className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
                 value={audienceType}
                 onChange={(event) => setAudienceType(event.target.value === "towers" ? "towers" : "all")}
               >
@@ -625,7 +625,7 @@ export default function AdminCommunicationsPage() {
           </div>
           <label className="text-sm text-[var(--slate-700)]">
             Estado
-            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm" {...form.register("status")}>
+            <select className="mt-1 h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm" {...form.register("status")}>
               <option value="published">Publicado</option>
               {!isSimpleMode && <option value="scheduled">Programado</option>}
               {!isSimpleMode && <option value="expired">Vencido</option>}

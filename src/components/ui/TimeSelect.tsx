@@ -39,8 +39,8 @@ export const TimeSelect = forwardRef<HTMLSelectElement, TimeSelectProps>(
           id={selectId}
           ref={ref}
           className={cn(
-            "h-11 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]",
-            error && "border-red-500",
+            "h-11 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm text-[var(--slate-900)] outline-none focus:border-[var(--brand-700)] focus:ring-2 focus:ring-[var(--brand-200)]",
+            error && "border-[var(--danger-500)]",
             className,
           )}
           aria-invalid={!!error}
@@ -55,7 +55,7 @@ export const TimeSelect = forwardRef<HTMLSelectElement, TimeSelectProps>(
           ))}
         </select>
         {error && (
-          <span id={`${selectId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-red-500">
+          <span id={`${selectId}-error`} className="mt-1 block max-w-[var(--medida-lectura)] text-xs text-[var(--danger-500)]">
             {error}
           </span>
         )}

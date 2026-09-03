@@ -291,7 +291,7 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
               <button
                 type="button"
                 onClick={() => quitarHecho(indice)}
-                className="h-10 w-10 shrink-0 rounded-xl border border-[var(--slate-300)] bg-white text-[var(--slate-500)] hover:bg-[var(--slate-100)]"
+                className="h-10 w-10 shrink-0 rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] text-[var(--slate-500)] hover:bg-[var(--slate-100)]"
                 aria-label={`Quitar hecho ${indice + 1}`}
               >
                 ✕
@@ -312,7 +312,7 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
         </label>
         <select
           id="ia-tono"
-          className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-white px-3 text-sm"
+          className="h-10 w-full rounded-xl border border-[var(--slate-300)] bg-[var(--surface-strong)] px-3 text-sm"
           value={tono}
           onChange={(event) => setTono(event.target.value as RedactarComunicacionInput["tono"])}
         >
@@ -351,7 +351,7 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
       <p className="text-xs text-[var(--slate-500)]">Lo que escribas aquí no se guarda con el comunicado.</p>
 
       {error ? (
-        <p role="alert" className="rounded-xl border border-[var(--slate-200)] bg-white p-3 text-sm text-[var(--slate-900)]">
+        <p role="alert" className="rounded-xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-3 text-sm text-[var(--slate-900)]">
           {error}
         </p>
       ) : null}
@@ -373,7 +373,7 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
             {faltantes.map((dato) => {
               const clave = claveDatoFaltante(dato);
               return (
-                <li key={clave} className="rounded-lg border border-[var(--amber-300)] bg-white p-2.5">
+                <li key={clave} className="rounded-lg border border-[var(--amber-300)] bg-[var(--surface-strong)] p-2.5">
                   <span className="block text-xs font-semibold uppercase tracking-wide text-[var(--slate-500)]">
                     {etiquetaDe(dato.categoria)}
                   </span>
@@ -441,7 +441,7 @@ export function AsistenteBorrador({ onAplicar, onDeshacer, feedback }: Asistente
       ) : null}
 
       {borrador ? (
-        <div className="rounded-xl border border-[var(--ia-borde)] border-l-4 border-l-[var(--ia-tinta)] bg-white p-3">
+        <div className="rounded-xl border border-[var(--ia-borde)] border-l-4 border-l-[var(--ia-tinta)] bg-[var(--surface-strong)] p-3">
           <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--ia-tinta)]">
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             Propuesta de la IA

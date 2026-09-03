@@ -185,14 +185,14 @@ export function RangePicker({
             <div className="fixed inset-0 z-50">
               <button
                 type="button"
-                className="absolute inset-0 bg-black/30"
+                className="absolute inset-0 bg-[var(--overlay)]/30"
                 aria-label="Cerrar selector"
                 onClick={() => setOpen(false)}
               />
               <div
                 role="dialog"
                 aria-label="Seleccionar rango de fechas"
-                className="vivaru-rangepicker absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--slate-200)] bg-white shadow-[0_-8px_32px_rgba(10,40,70,0.12)]"
+                className="vivaru-rangepicker absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_-8px_32px_rgba(10,40,70,0.12)]"
               >
                 <div className="px-3 pt-4">
                   <div className="mb-1 flex items-center justify-between">
@@ -254,7 +254,7 @@ export function RangePicker({
                   <button
                     type="button"
                     onClick={handleApply}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--on-fill)] transition hover:opacity-90 disabled:opacity-50"
                     style={{ backgroundColor: "#185FA5" }}
                     disabled={!draftRange?.from}
                   >
@@ -268,7 +268,7 @@ export function RangePicker({
             <div
               role="dialog"
               aria-label="Seleccionar rango de fechas"
-              className="vivaru-rangepicker absolute right-0 z-40 mt-2 rounded-2xl border border-[var(--slate-200)] bg-white shadow-[0_18px_40px_rgba(10,40,70,0.12)]"
+              className="vivaru-rangepicker absolute right-0 z-40 mt-2 rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] shadow-[0_18px_40px_rgba(10,40,70,0.12)]"
               style={{ minWidth: 620 }}
             >
               <div className="flex">
@@ -382,7 +382,7 @@ export function RangePicker({
                 <button
                   type="button"
                   onClick={handleApply}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--on-fill)] transition hover:opacity-90 disabled:opacity-50"
                   style={{ backgroundColor: "#185FA5" }}
                   disabled={!draftRange?.from}
                 >

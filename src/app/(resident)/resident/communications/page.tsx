@@ -14,21 +14,21 @@ const PREVIEW_LINES = 5;
 // ─── Attachment helpers ───────────────────────────────────────────────────────
 
 const EXT_CONFIG: Record<string, { colorCls: string; badge: string; badgeCls: string }> = {
-  pdf:  { colorCls: "text-red-500",      badge: "PDF",  badgeCls: "bg-red-50 text-red-600" },
-  doc:  { colorCls: "text-blue-600",     badge: "DOC",  badgeCls: "bg-blue-50 text-blue-700" },
-  docx: { colorCls: "text-blue-600",     badge: "DOCX", badgeCls: "bg-blue-50 text-blue-700" },
-  xls:  { colorCls: "text-emerald-600",  badge: "XLS",  badgeCls: "bg-emerald-50 text-emerald-700" },
-  xlsx: { colorCls: "text-emerald-600",  badge: "XLSX", badgeCls: "bg-emerald-50 text-emerald-700" },
-  csv:  { colorCls: "text-emerald-600",  badge: "CSV",  badgeCls: "bg-emerald-50 text-emerald-700" },
-  ppt:  { colorCls: "text-orange-500",   badge: "PPT",  badgeCls: "bg-orange-50 text-orange-700" },
-  pptx: { colorCls: "text-orange-500",   badge: "PPTX", badgeCls: "bg-orange-50 text-orange-700" },
-  jpg:  { colorCls: "text-sky-500",      badge: "IMG",  badgeCls: "bg-sky-50 text-sky-700" },
-  jpeg: { colorCls: "text-sky-500",      badge: "IMG",  badgeCls: "bg-sky-50 text-sky-700" },
-  png:  { colorCls: "text-sky-500",      badge: "PNG",  badgeCls: "bg-sky-50 text-sky-700" },
-  gif:  { colorCls: "text-sky-500",      badge: "GIF",  badgeCls: "bg-sky-50 text-sky-700" },
-  webp: { colorCls: "text-sky-500",      badge: "IMG",  badgeCls: "bg-sky-50 text-sky-700" },
-  zip:  { colorCls: "text-amber-600",    badge: "ZIP",  badgeCls: "bg-amber-50 text-amber-700" },
-  rar:  { colorCls: "text-amber-600",    badge: "RAR",  badgeCls: "bg-amber-50 text-amber-700" },
+  pdf:  { colorCls: "text-[var(--danger-500)]",      badge: "PDF",  badgeCls: "bg-[var(--danger-50)] text-[var(--danger-600)]" },
+  doc:  { colorCls: "text-[var(--categoria-blue-600)]",     badge: "DOC",  badgeCls: "bg-[var(--categoria-blue-50)] text-[var(--categoria-blue-700)]" },
+  docx: { colorCls: "text-[var(--categoria-blue-600)]",     badge: "DOCX", badgeCls: "bg-[var(--categoria-blue-50)] text-[var(--categoria-blue-700)]" },
+  xls:  { colorCls: "text-[var(--success-600)]",  badge: "XLS",  badgeCls: "bg-[var(--success-50)] text-[var(--success-700)]" },
+  xlsx: { colorCls: "text-[var(--success-600)]",  badge: "XLSX", badgeCls: "bg-[var(--success-50)] text-[var(--success-700)]" },
+  csv:  { colorCls: "text-[var(--success-600)]",  badge: "CSV",  badgeCls: "bg-[var(--success-50)] text-[var(--success-700)]" },
+  ppt:  { colorCls: "text-[var(--categoria-orange-500)]",   badge: "PPT",  badgeCls: "bg-[var(--categoria-orange-50)] text-[var(--categoria-orange-700)]" },
+  pptx: { colorCls: "text-[var(--categoria-orange-500)]",   badge: "PPTX", badgeCls: "bg-[var(--categoria-orange-50)] text-[var(--categoria-orange-700)]" },
+  jpg:  { colorCls: "text-[var(--info-500)]",      badge: "IMG",  badgeCls: "bg-[var(--info-50)] text-[var(--info-700)]" },
+  jpeg: { colorCls: "text-[var(--info-500)]",      badge: "IMG",  badgeCls: "bg-[var(--info-50)] text-[var(--info-700)]" },
+  png:  { colorCls: "text-[var(--info-500)]",      badge: "PNG",  badgeCls: "bg-[var(--info-50)] text-[var(--info-700)]" },
+  gif:  { colorCls: "text-[var(--info-500)]",      badge: "GIF",  badgeCls: "bg-[var(--info-50)] text-[var(--info-700)]" },
+  webp: { colorCls: "text-[var(--info-500)]",      badge: "IMG",  badgeCls: "bg-[var(--info-50)] text-[var(--info-700)]" },
+  zip:  { colorCls: "text-[var(--amber-600)]",    badge: "ZIP",  badgeCls: "bg-[var(--amber-50)] text-[var(--amber-700)]" },
+  rar:  { colorCls: "text-[var(--amber-600)]",    badge: "RAR",  badgeCls: "bg-[var(--amber-50)] text-[var(--amber-700)]" },
 };
 
 function getAttachmentMeta(name: string) {
@@ -112,7 +112,7 @@ export default function ResidentCommunicationsPage() {
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-white p-4 sm:p-5">
+              <div key={i} className="rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 space-y-1.5">
                     <Skeleton className="h-5 w-40 rounded-sm" />
@@ -137,7 +137,7 @@ export default function ResidentCommunicationsPage() {
         ) : null}
 
         {!loading && feedItems.length === 0 ? (
-          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--slate-300)] bg-white px-6 py-10 text-center">
+          <div className="flex min-h-[260px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--slate-300)] bg-[var(--surface-strong)] px-6 py-10 text-center">
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--slate-100)] text-[var(--slate-500)]">
               <BellOff className="h-5 w-5" />
             </span>
@@ -164,7 +164,7 @@ export default function ResidentCommunicationsPage() {
           return (
             <article
               key={item.id}
-              className="group relative rounded-2xl border border-[var(--slate-200)] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] premium-card-hover sm:p-5"
+              className="group relative rounded-2xl border border-[var(--slate-200)] bg-[var(--surface-strong)] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06)] premium-card-hover sm:p-5"
             >
               {index < feedItems.length - 1 ? (
                 <span className="pointer-events-none absolute -bottom-4 left-7 hidden h-4 w-px bg-[var(--slate-200)] sm:block" />
@@ -194,7 +194,7 @@ export default function ResidentCommunicationsPage() {
                 </div>
 
                 {isRecent ? (
-                  <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                  <span className="shrink-0 rounded-full border border-[var(--success-200)] bg-[var(--success-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--success-700)]">
                     Nuevo
                   </span>
                 ) : null}
@@ -238,7 +238,7 @@ export default function ResidentCommunicationsPage() {
                       return (
                         <a
                           key={`${item.id}-${attachment.url}`}
-                          className="inline-flex max-w-[200px] items-center gap-2 rounded-lg border border-[var(--slate-200)] bg-white px-3 py-1.5 text-sm font-medium text-[var(--slate-700)] [transition:background-color_150ms_ease-out] hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
+                          className="inline-flex max-w-[200px] items-center gap-2 rounded-lg border border-[var(--slate-200)] bg-[var(--surface-strong)] px-3 py-1.5 text-sm font-medium text-[var(--slate-700)] [transition:background-color_150ms_ease-out] hover:bg-[var(--slate-100)] hover:text-[var(--slate-900)]"
                           href={attachment.url}
                           target="_blank"
                           rel="noreferrer"

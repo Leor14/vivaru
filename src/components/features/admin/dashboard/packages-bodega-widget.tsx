@@ -51,7 +51,7 @@ export function PackagesBodegaWidget({ tenantId }: Props) {
             onClick={() => setTowerFilter("all")}
             className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
               towerFilter === "all"
-                ? "bg-white font-semibold text-[var(--slate-800)] shadow-sm"
+                ? "bg-[var(--surface-strong)] font-semibold text-[var(--slate-800)] shadow-sm"
                 : "text-[var(--slate-600)] hover:text-[var(--slate-800)]"
             }`}
           >
@@ -64,7 +64,7 @@ export function PackagesBodegaWidget({ tenantId }: Props) {
               onClick={() => setTowerFilter(t)}
               className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
                 towerFilter === t
-                  ? "bg-white font-semibold text-[var(--slate-800)] shadow-sm"
+                  ? "bg-[var(--surface-strong)] font-semibold text-[var(--slate-800)] shadow-sm"
                   : "text-[var(--slate-600)] hover:text-[var(--slate-800)]"
               }`}
             >
@@ -80,7 +80,7 @@ export function PackagesBodegaWidget({ tenantId }: Props) {
               onClick={() => setSortMode(opt)}
               className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
                 sortMode === opt
-                  ? "bg-white font-semibold text-[var(--slate-800)] shadow-sm"
+                  ? "bg-[var(--surface-strong)] font-semibold text-[var(--slate-800)] shadow-sm"
                   : "text-[var(--slate-600)] hover:text-[var(--slate-800)]"
               }`}
             >
