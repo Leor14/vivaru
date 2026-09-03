@@ -6,7 +6,7 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 
 ## LO PRIMERO AL ABRIR SESIÓN — 3 de septiembre de 2026, cierre (jornada de la ficha del modo oscuro)
 
-> # EL MODO OSCURO ESTÁ ENCENDIDO EN PRODUCCIÓN, EN UN SOLO CONJUNTO: SANTA MARÍA. CANARIO VIVO.
+> # EL MODO OSCURO ESTÁ ENTERO EN PRODUCCIÓN Y APAGADO EN LOS NUEVE CONJUNTOS. EL CANARIO SE PROBÓ Y SE CERRÓ.
 >
 > **`PRD-V-FEAT-007` — Modo oscuro elegible por el usuario**, en `docs/prd/funcionales/`. Épica
 > `UX-006`. Estado **Lista para PRD**, sin una línea de código. **Las cuatro decisiones abiertas las
@@ -20,26 +20,28 @@ Apilar épocas con «lo de abajo sigue vigente» es un defecto que este document
 > decidida, y aceptarla vacía **no la vuelve superada** — el día que haya un cliente, medir la
 > adopción es deuda de esta ficha.
 >
-> **CANARIO ENCENDIDO EL 3 DE SEPTIEMBRE.** `featureFlagOverrides/tenant-santa-maria` →
-> `flags['producto-modo-oscuro'] = true`. **La global sigue en `false`**, así que es **1 conjunto de
-> 9**: los otros ocho no la ven. Verificado en el portal del residente de producción con sesión
-> real — el interruptor está, «Oscuro» marcado, y **cero elementos ilegibles**.
+> **EL CANARIO SE ENCENDIÓ Y SE APAGÓ EL 3 DE SEPTIEMBRE, y salió bien.** Con
+> `flags['producto-modo-oscuro'] = true` solo en `tenant-santa-maria` —**1 de 9**, la global en
+> `false`— se verificó en el portal del residente de producción con sesión real: interruptor
+> presente, «Oscuro» marcado y **cero elementos ilegibles**. Después se apagó: **0 de 9 encendidos**,
+> las **otras cuatro overrides del conjunto intactas**, y el perfil **conserva su `tema: "oscuro"`**
+> — al reencenderla, cada quien recupera lo que había elegido, que es justo lo que promete el
+> `alApagar` del catálogo.
 >
-> **Para apagarlo**, la misma orden con `false`. El orden de los argumentos es
-> `<projectId> <tenantId> <clave> <valor>` — **`<tenantId>` va SEGUNDO**, y el conjunto es
-> `tenant-santa-maria`:
-> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-modo-oscuro false`
+> **Para volver a encenderlo.** El orden es `<projectId> <tenantId> <clave> <valor>`, con el conjunto
+> **SEGUNDO**:
+> `node functions/scripts/mover-bandera-de-conjunto.mjs hogaru-1 tenant-santa-maria producto-modo-oscuro true`
 >
-> **ANTES, la bandera GLOBAL estuvo encendida en producción por error de operación.** El documento de
-> `hogaru-1` estaba en `enabled: true`, escrito el **3 sep 05:10Z por un uid** — y era la ÚNICA
-> bandera de producción escrita así: **todas las demás llevan `mover-bandera:` o `seed-features:`**.
-> Esa firma es la de la **consola de superadmin**. La apagué al encontrarla, porque producción servía
-> entonces `70e4f97`, **anterior a la corrección del lienzo**: quien la encendiera vio el fondo claro
-> con las tarjetas oscuras. **La global sigue apagada, y así debe quedarse mientras dure el canario.**
+> **NO enciendas la GLOBAL** (`mover-bandera.mjs`): saltaría de un conjunto a los nueve de golpe. Y
+> ojo, **estuvo encendida por error de operación**: el documento de `hogaru-1` apareció en
+> `enabled: true` escrito el 3 sep 05:10Z por un **uid** — la ÚNICA bandera de producción con esa
+> firma, que es la de la **consola de superadmin**; todas las demás llevan `mover-bandera:` o
+> `seed-features:`. Se apagó, y entonces producción servía `70e4f97`, **anterior a la corrección del
+> lienzo**: quien la encendiera vio el fondo claro con las tarjetas oscuras.
 >
-> **Y una trampa al comprobarlo:** mi primer control dijo «ningún conjunto tiene la override» y era
-> **falso** — las overrides viven **anidadas bajo `flags`** y yo miraba el nivel superior. **El cero
-> era el no-op, no la escritura.** Segunda vez en el día.
+> **Y una trampa al comprobarlo, dos veces el mismo día:** mi control dijo «ningún conjunto tiene la
+> override» justo después de escribirla. **Las overrides viven ANIDADAS bajo el campo `flags`** y yo
+> miraba el nivel superior. **El cero era el no-op, no la escritura.**
 >
 > **LA CORRECCIÓN GENERAL (David la vio en una captura, y ninguna prueba la veía).** El lienzo de
 > `app-shell` —que comparten los TRES portales— se pintaba con un degradado de hexadecimales dentro
