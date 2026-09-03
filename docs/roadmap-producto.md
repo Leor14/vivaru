@@ -16,7 +16,7 @@ dependencias y criterio de salida.
 
 | Campo | Valor |
 |---|---|
-| **Versión** | 0.9.57 |
+| **Versión** | 0.9.58 |
 | **Fecha** | 3 de septiembre de 2026 |
 | **Estado** | **EL MODO OSCURO ESTÁ CERRADO Y ENCENDIDO EN LOS NUEVE CONJUNTOS** (`PRD-V-FEAT-007`, 3 sep 2026, `e0d8e99`): tres entregas en producción, bandera global encendida y **sin overrides**, canario probado de ida y de vuelta en Santa María. **Era el PASO PREVIO acordado antes de volver a los bloques de Habitanto, y ya está hecho** — el frente vivo vuelve a ser Habitanto, con fila propia en la tabla de abajo. **Lo primero ahí es ELEGIR BLOQUE, no construir**: el lote cerrado era solo el **P0**, y quedan **38 P1, 42 P2 y 12 P3** de los 108 candidatos, más los **diez huecos** de la sesión con la administradora —que salieron de escuchar, no de navegar la app— y **`FIX-001` entrega 2**, lo único que le falta al lote (van 10 de 11). **Lo anterior, vigente:** el tope de gasto de la IA sin mirarse; `PLAT-005` pendiente de un Android; Albert espera el contrato de `vivaruWonSignals`; y `PLAT-006` espera saber de quién es `dann…@outlook.com`. Los remotos se leen con `git ls-remote`, no de aquí |
 | **Verificado contra** | **Producción, midiendo y releyendo después de cada escritura.** 7 conjuntos marcados y **0 de trial entre ellos**; el barrido bajó de **30** direcciones no inertes a **20**; 18 documentos con `emailPrevio`, que es la vuelta atrás real del saneo; **0 rechazos** de la puerta, que es lo esperado con la bandera apagada. Los cinco dominios de semilla se admitieron **con medición DNS**: tres no resuelven, `lasplayas.com` declara null MX, y solo `santamaria.co` tiene `A` sin `MX`. La lista pasó su **control**: rechaza gmail/hotmail/outlook/yahoo/icloud y un dominio real cualquiera, y admite los seis previstos. Despliegue: ruleset **idéntico al repo** en los dos proyectos, **90 functions `ACTIVE`** en cada uno y cero con bundle viejo. Bancos: `npm test` **1579** · functions **782** · reglas **293** |
@@ -1238,6 +1238,46 @@ fecha de revisión.
 ---
 
 ## Changelog
+
+### 0.9.58 — 3 de septiembre de 2026 — el informe que la ley obliga a publicar: `PRD-V-FLOW-007`
+
+- **Segundo bloque de Habitanto convertido en ficha.** `PRD-V-FLOW-007` — informe económico mensual
+  **anclado al banco, emitible y publicado**. Estado **Discovery**. Sale de §3.7 de la sesión con la
+  administradora, **ascendido de prioridad por la investigación legal**: publicarlo es obligación del
+  Decreto 462 y **la sanción es la remoción del administrador del cargo**.
+- **Medir corrigió el tamaño de la ficha en las DOS direcciones**, y por eso no se parece a lo que
+  parecía:
+  1. **Es más pequeña de lo que decía el documento.** Cuatro de las seis partes de la columna
+     vertebral **ya se calculan**: `buildFinancialStatement` ordena ingresos y egresos **por el
+     código del plan**, `bankAccountBalances.openingBalance` existe desde `FLOW-002`, y el saldo
+     final ya se computa como `fundBalance` — **buscar `closingBalance` da cero porque el nombre es
+     otro**.
+  2. **Y es más grande por donde no se miraba.** `functions/` **no tiene módulo de estado
+     financiero**: `monthlyFinancialArchive` reimplementa el resumen en línea, y esa duplicación
+     **ya se desvió dos veces** — `R12` y `R13` el 23 de agosto y `R16` el 24, registradas en los
+     comentarios de `payments.ts:267` y `:324`. El documento que ahora tiene sanción legal detrás lo
+     genera el lado que se quedó con la fórmula vieja.
+- **Un defecto VIVO, con la bandera de esta ficha apagada.** Los **tres** consumidores pasan
+  `openingBalance = 0` —`finanzas/page.tsx:154` sin tercer argumento, `:164` y
+  `use-committee-report.ts:573` con un `0` literal— aunque el administrador haya registrado el saldo
+  en la pantalla de conciliación. Consecuencia: `/admin/finanzas` avisa **«Fondo insuficiente… evita
+  registrar nuevos egresos»** a un conjunto con dinero en el banco y un mes negativo. `CA9` lo
+  convierte en guardián de regresión.
+- **La publicación no estaba pendiente: estaba DENEGADA.** El archivo mensual se guarda con
+  `category: "financiero"` y `"reporte"`, las dos en `CATEGORIAS_SOLO_ADMINISTRACION`, y la consulta
+  del residente nombra las categorías visibles **porque la regla la rechazaría entera si no lo
+  hiciera**. Por eso la ficha crea una **categoría nueva**, `informe_mensual`: abrir `financiero`
+  publicaría también comprobantes y expedientes. **Publicar un documento no es abrir un cajón.**
+- **Y otro nombre que miente, el tercero en dos fichas:** `firma` (403) y `signature` (273) existen y
+  **ninguna es la firma de un informe** — `signedBy` es el uid del residente que **acepta** un
+  acuerdo del consejo o un reglamento. Buscar por nombre habría dado la ficha por construida.
+- **`G5` SÍ se supera, y es la diferencia con `FLOW-006`:** el dueño de la operación ya existe y es
+  el administrador, que hoy emite este informe a mano cada mes. **`G3` queda en amarillo**: las
+  entregas 1 y 2 no esperan a nadie, pero la 3 abre datos financieros a los residentes y su alcance
+  depende de la misma respuesta legal que ya espera `FLOW-006`.
+- **`TBD-M1`, antes de construir:** contar cuántos de los nueve conjuntos tienen saldo inicial
+  registrado. **La ADC está caducada** (`invalid_rapt`). Si es cero en todos, anclar al banco no
+  cambia una sola cifra y la entrega se leería como un no-op.
 
 ### 0.9.57 — 3 de septiembre de 2026 — `B5` aterrizado: `PRD-V-FLOW-006`
 
