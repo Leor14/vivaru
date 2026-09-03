@@ -25,12 +25,12 @@ export function TrialBanner({ trial }: { trial: TenantTrialState }) {
 
   // Semáforo: se vuelve urgente conforme se acaba la prueba.
   const tone = expired
-    ? { bg: "#FCEBEB", border: "#e2b6b6", text: "#791F1F" }
+    ? { bg: "var(--mapa-neutro-superficie-2)", border: "var(--mapa-rojo-borde-1)", text: "var(--mapa-rojo-texto-1)" }
     : days <= 3
-      ? { bg: "#FCEBEB", border: "#e2b6b6", text: "#791F1F" }
+      ? { bg: "var(--mapa-neutro-superficie-2)", border: "var(--mapa-rojo-borde-1)", text: "var(--mapa-rojo-texto-1)" }
       : days <= 7
-        ? { bg: "#FAEEDA", border: "#e8d3a8", text: "#633806" }
-        : { bg: "#E6F1FB", border: "#bcd9f2", text: "#0C447C" };
+        ? { bg: "var(--mapa-verde-superficie-2)", border: "var(--mapa-verde-borde-5)", text: "var(--mapa-ambar-texto-1)" }
+        : { bg: "var(--mapa-neutro-superficie-1)", border: "var(--mapa-azul-borde-5)", text: "var(--mapa-azul-texto-1)" };
 
   const message = expired
     ? "Tu período de prueba terminó. Tus datos siguen aquí: puedes consultarlos, y al contratar se reactiva todo tal como lo dejaste."

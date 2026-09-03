@@ -368,7 +368,7 @@ export function AppShell({
           />
           <aside
             className="relative h-full w-[84%] max-w-xs overflow-y-auto p-3 shadow-xl"
-            style={isAdminRole ? { backgroundColor: "#0f172a" } : undefined}
+            style={isAdminRole ? { backgroundColor: "var(--mapa-azul-superficie-2)" } : undefined}
           >
             {isAdminRole ? (
               <>

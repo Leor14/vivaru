@@ -419,6 +419,98 @@
   --sombra-invertida-alta-1: 0 -8px 32px rgba(10,40,70,0.12);
   --sombra-alta-3: 0 18px 40px rgba(10,40,70,0.12);
 
+
+  /* ── Mapas de color que vivian en objetos de JS ───────────────────────────
+     `PRD-V-FEAT-007`. `StatusBadge`, las fichas de cifra, el calendario de
+     reservas, los chips de tipo de carpeta… Son mapas `{bg, text, border}` en
+     TypeScript, no clases, asi que ningun barrido de clases los veia — y
+     rompian igual: en `/admin/billing` las fichas quedaban con superficie
+     CLARA y el texto ya aclarado encima, a 2,4:1.
+     Se tokenizan por el nombre de su CLAVE, que es lo que dice su papel. */
+  --mapa-ambar-acento-1: #ef9f27;
+  --mapa-ambar-borde-1: #ba7517;
+  --mapa-ambar-borde-2: #d97706;
+  --mapa-ambar-superficie-1: #dc2626;
+  --mapa-ambar-superficie-2: #f59e0b;
+  --mapa-ambar-texto-1: #633806;
+  --mapa-ambar-texto-2: #ef9f27;
+  --mapa-ambar-texto-3: #1f1300;
+  --mapa-ambar-texto-4: #78350f;
+  --mapa-ambar-texto-5: #92400e;
+  --mapa-ambar-texto-6: #936b24;
+  --mapa-ambar-texto-7: #9c4631;
+  --mapa-azul-acento-1: #378add;
+  --mapa-azul-acento-2: #94a3b8;
+  --mapa-azul-acento-3: #475569;
+  --mapa-azul-acento-4: #4b6075;
+  --mapa-azul-borde-1: #378add;
+  --mapa-azul-borde-2: #475569;
+  --mapa-azul-borde-3: #7dd3fc;
+  --mapa-azul-borde-4: #93c5fd;
+  --mapa-azul-borde-5: #bcd9f2;
+  --mapa-azul-borde-6: #d6e6f3;
+  --mapa-azul-superficie-1: #185fa5;
+  --mapa-azul-superficie-2: #0f172a;
+  --mapa-azul-superficie-3: #dbeafe;
+  --mapa-azul-superficie-4: #e0f2fe;
+  --mapa-azul-texto-1: #0c447c;
+  --mapa-azul-texto-2: #075985;
+  --mapa-azul-texto-3: #2c648d;
+  --mapa-azul-texto-4: #334155;
+  --mapa-azul-texto-5: #475569;
+  --mapa-cian-texto-1: #085041;
+  --mapa-morado-borde-1: #7f77dd;
+  --mapa-morado-borde-2: #c4b5fd;
+  --mapa-morado-borde-3: #f9a8d4;
+  --mapa-morado-superficie-1: #ede9fe;
+  --mapa-morado-superficie-2: #eeedfe;
+  --mapa-morado-superficie-3: #fce7f3;
+  --mapa-morado-texto-1: #1e40af;
+  --mapa-morado-texto-2: #3c3489;
+  --mapa-morado-texto-3: #5b21b6;
+  --mapa-neutro-acento-1: #888780;
+  --mapa-neutro-acento-2: #f1f5f9;
+  --mapa-neutro-borde-1: #888780;
+  --mapa-neutro-borde-2: #cbd5e1;
+  --mapa-neutro-superficie-1: #e6f1fb;
+  --mapa-neutro-superficie-2: #fcebeb;
+  --mapa-neutro-superficie-3: #f1efe8;
+  --mapa-neutro-superficie-4: #e1f5ee;
+  --mapa-neutro-superficie-5: #e2e8f0;
+  --mapa-neutro-superficie-6: #f1f5f9;
+  --mapa-neutro-superficie-7: #f1fbf7;
+  --mapa-neutro-superficie-8: #f5faff;
+  --mapa-neutro-superficie-9: #fff6f4;
+  --mapa-neutro-texto-1: #5f5e5a;
+  --mapa-neutro-texto-2: #444441;
+  --mapa-neutro-texto-3: #ffffff;
+  --mapa-rojo-acento-1: #a32d2d;
+  --mapa-rojo-borde-1: #e2b6b6;
+  --mapa-rojo-borde-2: #f0d6d2;
+  --mapa-rojo-borde-3: #fca5a5;
+  --mapa-rojo-superficie-1: #fee2e2;
+  --mapa-rojo-texto-1: #791f1f;
+  --mapa-rojo-texto-2: #991b1b;
+  --mapa-rojo-texto-3: #9d174d;
+  --mapa-verde-acento-1: #3b6d11;
+  --mapa-verde-borde-1: #1d9e75;
+  --mapa-verde-borde-2: #639922;
+  --mapa-verde-borde-3: #6ee7b7;
+  --mapa-verde-borde-4: #d6ede4;
+  --mapa-verde-borde-5: #e8d3a8;
+  --mapa-verde-borde-6: #eee0c1;
+  --mapa-verde-borde-7: #fde68a;
+  --mapa-verde-superficie-1: #eaf3de;
+  --mapa-verde-superficie-2: #faeeda;
+  --mapa-verde-superficie-3: #d1fae5;
+  --mapa-verde-superficie-4: #fef3c7;
+  --mapa-verde-superficie-5: #fef9c3;
+  --mapa-verde-superficie-6: #fff8e8;
+  --mapa-verde-texto-1: #3b6d11;
+  --mapa-verde-texto-2: #065f46;
+  --mapa-verde-texto-3: #27500a;
+  --mapa-verde-texto-4: #2f775f;
+
   /* ── Custom easing curves ── */
   /* Strong ease-out: immediate movement, decelerates to stop. Use for entering elements. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -711,6 +803,91 @@
     --sombra-alta-2: 0 12px 32px rgba(0, 0, 0, 0.73);
     --sombra-invertida-alta-1: 0 -8px 32px rgba(0, 0, 0, 0.66);
     --sombra-alta-3: 0 18px 40px rgba(0, 0, 0, 0.66);
+
+    /* mapas de color de los objetos de JS — mismo tono, papel conservado */
+    --mapa-ambar-acento-1: #c58322;
+    --mapa-ambar-borde-1: #593913;
+    --mapa-ambar-borde-2: #61350a;
+    --mapa-ambar-superficie-1: #501610;
+    --mapa-ambar-superficie-2: #402400;
+    --mapa-ambar-texto-1: #e7bf9e;
+    --mapa-ambar-texto-2: #f6bc77;
+    --mapa-ambar-texto-3: #cfc5bb;
+    --mapa-ambar-texto-4: #f3ba9e;
+    --mapa-ambar-texto-5: #fab895;
+    --mapa-ambar-texto-6: #e3c194;
+    --mapa-ambar-texto-7: #f8b7a5;
+    --mapa-azul-acento-1: #5b93da;
+    --mapa-azul-acento-2: #8592a3;
+    --mapa-azul-acento-3: #8691a4;
+    --mapa-azul-acento-4: #8193a6;
+    --mapa-azul-borde-1: #234165;
+    --mapa-azul-borde-2: #3a404a;
+    --mapa-azul-borde-3: #1f4455;
+    --mapa-azul-borde-4: #2c4259;
+    --mapa-azul-borde-5: #35414b;
+    --mapa-azul-borde-6: #3a4146;
+    --mapa-azul-superficie-1: #1b2a43;
+    --mapa-azul-superficie-2: #282a32;
+    --mapa-azul-superficie-3: #262a30;
+    --mapa-azul-superficie-4: #252b2e;
+    --mapa-azul-texto-1: #b6c6f0;
+    --mapa-azul-texto-2: #abcae9;
+    --mapa-azul-texto-3: #aec9e6;
+    --mapa-azul-texto-4: #bec7d6;
+    --mapa-azul-texto-5: #bec7d6;
+    --mapa-cian-texto-1: #a8cfc2;
+    --mapa-morado-borde-1: #3f3a67;
+    --mapa-morado-borde-2: #423c5a;
+    --mapa-morado-borde-3: #573648;
+    --mapa-morado-superficie-1: #2a292f;
+    --mapa-morado-superficie-2: #2a292e;
+    --mapa-morado-superficie-3: #2e282c;
+    --mapa-morado-texto-1: #c3beff;
+    --mapa-morado-texto-2: #cdbefc;
+    --mapa-morado-texto-3: #e1b2ff;
+    --mapa-neutro-acento-1: #92918b;
+    --mapa-neutro-acento-2: #8e9194;
+    --mapa-neutro-borde-1: #40403d;
+    --mapa-neutro-borde-2: #3c4045;
+    --mapa-neutro-superficie-1: #272a2d;
+    --mapa-neutro-superficie-2: #2e2929;
+    --mapa-neutro-superficie-3: #2a2a28;
+    --mapa-neutro-superficie-4: #252b29;
+    --mapa-neutro-superficie-5: #282a2c;
+    --mapa-neutro-superficie-6: #292a2b;
+    --mapa-neutro-superficie-7: #282b29;
+    --mapa-neutro-superficie-8: #292a2c;
+    --mapa-neutro-superficie-9: #2c2929;
+    --mapa-neutro-texto-1: #c7c6c4;
+    --mapa-neutro-texto-2: #c7c6c4;
+    --mapa-neutro-texto-3: #c6c6c6;
+    --mapa-rojo-acento-1: #dc7168;
+    --mapa-rojo-borde-1: #4d3b3b;
+    --mapa-rojo-borde-2: #483e3c;
+    --mapa-rojo-borde-3: #5a3636;
+    --mapa-rojo-superficie-1: #302828;
+    --mapa-rojo-texto-1: #fbb5ad;
+    --mapa-rojo-texto-2: #ffafa1;
+    --mapa-rojo-texto-3: #ffaec3;
+    --mapa-verde-acento-1: #739c4f;
+    --mapa-verde-borde-1: #164836;
+    --mapa-verde-borde-2: #304615;
+    --mapa-verde-borde-3: #144835;
+    --mapa-verde-borde-4: #39423e;
+    --mapa-verde-borde-5: #473f2e;
+    --mapa-verde-borde-6: #453f33;
+    --mapa-verde-borde-7: #48401a;
+    --mapa-verde-superficie-1: #282b25;
+    --mapa-verde-superficie-2: #2d2924;
+    --mapa-verde-superficie-3: #202d26;
+    --mapa-verde-superficie-4: #2d2a1d;
+    --mapa-verde-superficie-5: #2c2b1b;
+    --mapa-verde-superficie-6: #2c2a25;
+    --mapa-verde-texto-1: #b2d095;
+    --mapa-verde-texto-2: #a2d0bd;
+    --mapa-verde-texto-3: #b5ce9f;
+    --mapa-verde-texto-4: #a4d0be;
 
   }
 }

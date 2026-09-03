@@ -372,7 +372,7 @@ export default function AdminDocumentsPage() {
               checked={starredOnly}
               onChange={(event) => setStarredOnly(event.target.checked)}
             />
-            <Star className="h-4 w-4" style={{ fill: "#EF9F27", color: "#EF9F27" }} />
+            <Star className="h-4 w-4" style={{ fill: "var(--mapa-ambar-acento-1)", color: "var(--mapa-ambar-texto-2)" }} />
             Solo destacados
           </label>
         </MobileFiltersPanel>
@@ -394,7 +394,7 @@ export default function AdminDocumentsPage() {
                 onClick={() => void toggleStar(item)}
                 className="rounded-md p-1.5 text-[var(--slate-400)] hover:bg-[var(--slate-100)]"
               >
-                <Star className="h-4 w-4" style={item.starred ? { fill: "#EF9F27", color: "#EF9F27" } : undefined} />
+                <Star className="h-4 w-4" style={item.starred ? { fill: "var(--mapa-ambar-acento-1)", color: "var(--mapa-ambar-texto-2)" } : undefined} />
               </button>
               <Button size="sm" variant="outline" type="button" onClick={() => void openDocument(item)}>
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />

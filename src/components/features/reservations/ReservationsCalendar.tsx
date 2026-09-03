@@ -24,17 +24,17 @@ const LABEL_WIDTH_PX = 112;
 type ColorSwatch = { bg: string; border: string; text: string };
 
 const AMENITY_PALETTE: ColorSwatch[] = [
-  { bg: "#dbeafe", border: "#93c5fd", text: "#1e40af" },
-  { bg: "#ede9fe", border: "#c4b5fd", text: "#5b21b6" },
-  { bg: "#d1fae5", border: "#6ee7b7", text: "#065f46" },
-  { bg: "#fef9c3", border: "#fde68a", text: "#78350f" },
-  { bg: "#fee2e2", border: "#fca5a5", text: "#991b1b" },
-  { bg: "#fce7f3", border: "#f9a8d4", text: "#9d174d" },
-  { bg: "#e0f2fe", border: "#7dd3fc", text: "#075985" },
+  { bg: "var(--mapa-azul-superficie-3)", border: "var(--mapa-azul-borde-4)", text: "var(--mapa-morado-texto-1)" },
+  { bg: "var(--mapa-morado-superficie-1)", border: "var(--mapa-morado-borde-2)", text: "var(--mapa-morado-texto-3)" },
+  { bg: "var(--mapa-verde-superficie-3)", border: "var(--mapa-verde-borde-3)", text: "var(--mapa-verde-texto-2)" },
+  { bg: "var(--mapa-verde-superficie-5)", border: "var(--mapa-verde-borde-7)", text: "var(--mapa-ambar-texto-4)" },
+  { bg: "var(--mapa-rojo-superficie-1)", border: "var(--mapa-rojo-borde-3)", text: "var(--mapa-rojo-texto-2)" },
+  { bg: "var(--mapa-morado-superficie-3)", border: "var(--mapa-morado-borde-3)", text: "var(--mapa-rojo-texto-3)" },
+  { bg: "var(--mapa-azul-superficie-4)", border: "var(--mapa-azul-borde-3)", text: "var(--mapa-azul-texto-2)" },
 ];
 
-const PENDING_COLORS: ColorSwatch = { bg: "#fef3c7", border: "#d97706", text: "#92400e" };
-const FALLBACK_COLORS: ColorSwatch = { bg: "#f1f5f9", border: "#cbd5e1", text: "#475569" };
+const PENDING_COLORS: ColorSwatch = { bg: "var(--mapa-verde-superficie-4)", border: "var(--mapa-ambar-borde-2)", text: "var(--mapa-ambar-texto-5)" };
+const FALLBACK_COLORS: ColorSwatch = { bg: "var(--mapa-neutro-superficie-6)", border: "var(--mapa-neutro-borde-2)", text: "var(--mapa-azul-texto-5)" };
 
 function toMinutes(time: string): number {
   const parts = time.split(":");

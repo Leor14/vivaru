@@ -888,9 +888,9 @@ function AdminReportsPageContent() {
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart data={report.trends.byMonth}>
                             <CartesianGrid stroke="#f1f5f9" vertical={false} />
-                            <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                            <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={44} />
-                            <YAxis yAxisId="rate" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={36} />
+                            <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} />
+                            <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} width={44} />
+                            <YAxis yAxisId="rate" orientation="right" domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} width={36} />
                             {/* **El tooltip expone LO LIQUIDADO** (R16). Las barras
                                 pintan facturado y recaudado, pero la línea del
                                 porcentaje mide lo que dejó de deberse: un mes
@@ -912,8 +912,8 @@ function AdminReportsPageContent() {
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={report.trends.byMonth}>
                             <CartesianGrid stroke="#f1f5f9" vertical={false} />
-                            <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                            <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={44} />
+                            <XAxis dataKey="period" tickFormatter={monthShort} tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} />
+                            <YAxis tickFormatter={(v) => formatAmountCompact(Number(v))} tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} width={44} />
                             <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} formatter={(value, name) => [formatCurrency(Number(value)), name]} labelFormatter={(label) => monthShort(String(label))} />
                             <Bar dataKey="ingresos" name="Ingresos" fill="#10b981" radius={[3, 3, 0, 0]} />
                             <Bar dataKey="egresos" name="Egresos" fill="#f59e0b" radius={[3, 3, 0, 0]} />
@@ -948,11 +948,11 @@ function AdminReportsPageContent() {
                     <div className="h-40">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={report.visitors.byWeek} barSize={24}>
-                          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
-                          <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={28} />
+                          <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-2)" }} axisLine={false} tickLine={false} width={28} />
                           <Tooltip
                             contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
-                            cursor={{ fill: "#f1f5f9" }}
+                            cursor={{ fill: "var(--mapa-neutro-acento-2)" }}
                           />
                           <Bar dataKey="count" name="Visitantes" fill={BAR_COLOR} radius={[4, 4, 0, 0]} />
                         </BarChart>

@@ -13,10 +13,10 @@ import { cn } from "@/lib/utils/cn";
 export type StatTone = "blue" | "green" | "amber" | "red" | "slate";
 
 const TONES: Record<StatTone, { border: string; bg: string; text: string }> = {
-  blue: { border: "#d6e6f3", bg: "#f5faff", text: "#2c648d" },
-  green: { border: "#d6ede4", bg: "#f1fbf7", text: "#2f775f" },
-  amber: { border: "#eee0c1", bg: "#fff8e8", text: "#936b24" },
-  red: { border: "#f0d6d2", bg: "#fff6f4", text: "#9c4631" },
+  blue: { border: "var(--mapa-azul-borde-6)", bg: "var(--mapa-neutro-superficie-8)", text: "var(--mapa-azul-texto-3)" },
+  green: { border: "var(--mapa-verde-borde-4)", bg: "var(--mapa-neutro-superficie-7)", text: "var(--mapa-verde-texto-4)" },
+  amber: { border: "var(--mapa-verde-borde-6)", bg: "var(--mapa-verde-superficie-6)", text: "var(--mapa-ambar-texto-6)" },
+  red: { border: "var(--mapa-rojo-borde-2)", bg: "var(--mapa-neutro-superficie-9)", text: "var(--mapa-ambar-texto-7)" },
   slate: { border: "var(--slate-200)", bg: "var(--surface-soft)", text: "var(--slate-700)" },
 };
 

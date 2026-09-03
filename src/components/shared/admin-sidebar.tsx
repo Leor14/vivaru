@@ -158,8 +158,8 @@ const GROUP_LABEL_STYLE = {
 const GROUP_STORAGE_PREFIX = "vivaru:sidebar-group:";
 
 const BADGE_TONES: Record<AdminSidebarBadge["tone"], { bg: string; color: string }> = {
-  red: { bg: "#DC2626", color: "#ffffff" },
-  amber: { bg: "#F59E0B", color: "#1F1300" },
+  red: { bg: "var(--mapa-ambar-superficie-1)", color: "var(--mapa-neutro-texto-3)" },
+  amber: { bg: "var(--mapa-ambar-superficie-2)", color: "var(--mapa-ambar-texto-3)" },
 };
 
 function NavBadge({ badge }: { badge: AdminSidebarBadge }) {

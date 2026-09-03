@@ -97,7 +97,13 @@ describe("2 · el comportamiento no cambió", () => {
   it("un estado desconocido no revienta: capitaliza y usa el tono neutro", () => {
     const t = resolveStatusTone("algo_raro");
     expect(t.label).toBe("Algo raro");
-    expect(t.bg).toBe("#F1EFE8");
+    // El hexadecimal era un SUSTITUTO de «el tono neutro»: cuando el color se
+    // movio a tokens (`PRD-V-FEAT-007`), la prueba se cayo sin que el
+    // comportamiento cambiara. Se compara contra un estado conocido que usa ese
+    // mismo tono, que es lo que la prueba siempre quiso decir.
+    const neutroConocido = resolveStatusTone("inactivo");
+    expect(t.bg).toBe(neutroConocido.bg);
+    expect(t.text).toBe(neutroConocido.text);
   });
 
   it("sin estado tampoco revienta", () => {

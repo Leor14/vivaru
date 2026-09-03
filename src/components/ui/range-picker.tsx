@@ -255,7 +255,7 @@ export function RangePicker({
                     type="button"
                     onClick={handleApply}
                     className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--on-fill)] transition hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: "#185FA5" }}
+                    style={{ backgroundColor: "var(--mapa-azul-superficie-1)" }}
                     disabled={!draftRange?.from}
                   >
                     Aplicar
@@ -383,7 +383,7 @@ export function RangePicker({
                   type="button"
                   onClick={handleApply}
                   className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--on-fill)] transition hover:opacity-90 disabled:opacity-50"
-                  style={{ backgroundColor: "#185FA5" }}
+                  style={{ backgroundColor: "var(--mapa-azul-superficie-1)" }}
                   disabled={!draftRange?.from}
                 >
                   Aplicar

@@ -225,7 +225,10 @@ describe("PRD-V-FEAT-007 · rellenos claros por debajo de AA, deuda ANTERIOR", (
  * atributo JSX — `stroke="#335f88"`, `fill: "#94a3b8"`, `wrapperStyle={{color}}`.
  *
  * No es una clase de Tailwind, asi que ni la medicion del 3 de septiembre ni el
- * guardian de `color-por-token` la veian. Son **344 en 33 ficheros**, y NO todas
+ * guardian de `color-por-token` la veian. Eran 344; los 215 que vivian en mapas
+ * `{bg, text, border}` se tokenizaron por el nombre de su CLAVE cuando el barrido
+ * de `/admin/billing` demostro que NO sobrevivian —las fichas de cifra quedaban
+ * con superficie clara y el texto ya aclarado encima, a 2,4:1—. Quedan 116, y NO
  * deben tematizarse: la marca del conjunto la elige el cliente y el QR tiene que
  * seguir siendo negro sobre blanco para que se pueda escanear.
  *
@@ -237,7 +240,7 @@ describe("PRD-V-FEAT-007 · rellenos claros por debajo de AA, deuda ANTERIOR", (
  * Techo, no comentario: si aparecen mas, enrojece.
  */
 const HEX_SUELTO = /#[0-9a-fA-F]{6}\b/g;
-const TECHO_HEX_JS = 344;
+const TECHO_HEX_JS = 116;
 
 /** Colores que NO son del tema y no deben migrarse nunca. */
 const NO_SON_DEL_TEMA = [

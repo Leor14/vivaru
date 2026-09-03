@@ -42,14 +42,14 @@ const MAX_DEPTH = 4; // carpeta madre = depth 0; máximo depth 4 (madre + 4 nive
 
 // Paleta para diferenciar carpetas (clave → fondo/ícono/anillo). Default: gris.
 const FOLDER_COLORS: Record<string, { chipBg: string; chipFg: string; ring: string }> = {
-  gray: { chipBg: "#F1EFE8", chipFg: "#444441", ring: "#888780" },
-  blue: { chipBg: "#E6F1FB", chipFg: "#0C447C", ring: "#378ADD" },
-  green: { chipBg: "#EAF3DE", chipFg: "#27500A", ring: "#639922" },
-  amber: { chipBg: "#FAEEDA", chipFg: "#633806", ring: "#BA7517" },
-  purple: { chipBg: "#EEEDFE", chipFg: "#3C3489", ring: "#7F77DD" },
-  teal: { chipBg: "#E1F5EE", chipFg: "#085041", ring: "#1D9E75" },
+  gray: { chipBg: "var(--mapa-neutro-superficie-3)", chipFg: "var(--mapa-neutro-texto-2)", ring: "var(--mapa-neutro-borde-1)" },
+  blue: { chipBg: "var(--mapa-neutro-superficie-1)", chipFg: "var(--mapa-azul-texto-1)", ring: "var(--mapa-azul-borde-1)" },
+  green: { chipBg: "var(--mapa-verde-superficie-1)", chipFg: "var(--mapa-verde-texto-3)", ring: "var(--mapa-verde-borde-2)" },
+  amber: { chipBg: "var(--mapa-verde-superficie-2)", chipFg: "var(--mapa-ambar-texto-1)", ring: "var(--mapa-ambar-borde-1)" },
+  purple: { chipBg: "var(--mapa-morado-superficie-2)", chipFg: "var(--mapa-morado-texto-2)", ring: "var(--mapa-morado-borde-1)" },
+  teal: { chipBg: "var(--mapa-neutro-superficie-4)", chipFg: "var(--mapa-cian-texto-1)", ring: "var(--mapa-verde-borde-1)" },
   // Color reservado para carpetas del sistema (no seleccionable en el editor).
-  system: { chipBg: "#E2E8F0", chipFg: "#334155", ring: "#475569" },
+  system: { chipBg: "var(--mapa-neutro-superficie-5)", chipFg: "var(--mapa-azul-texto-4)", ring: "var(--mapa-azul-borde-2)" },
 };
 // Colores que el admin puede elegir (excluye el reservado "system").
 const COLOR_KEYS = ["gray", "blue", "green", "amber", "purple", "teal"] as const;
@@ -632,7 +632,7 @@ export function DocumentFoldersBrowser({
                       onClick={() => void toggleStar(d)}
                       className="rounded-md p-1.5 text-[var(--slate-400)] hover:bg-[var(--slate-100)]"
                     >
-                      <Star className="h-4 w-4" style={d.starred ? { fill: "#EF9F27", color: "#EF9F27" } : undefined} />
+                      <Star className="h-4 w-4" style={d.starred ? { fill: "var(--mapa-ambar-acento-1)", color: "var(--mapa-ambar-texto-2)" } : undefined} />
                     </button>
                     <Button size="sm" variant="ghost" type="button" onClick={() => void openDoc(d)}>
                       <ExternalLink className="mr-1 h-3.5 w-3.5" />
@@ -719,7 +719,7 @@ export function DocumentFoldersBrowser({
                     onClick={() => void toggleStar(selectedDoc)}
                     className="shrink-0 rounded-md p-1 text-[var(--slate-400)] hover:bg-[var(--slate-100)]"
                   >
-                    <Star className="h-4 w-4" style={selectedDoc.starred ? { fill: "#EF9F27", color: "#EF9F27" } : undefined} />
+                    <Star className="h-4 w-4" style={selectedDoc.starred ? { fill: "var(--mapa-ambar-acento-1)", color: "var(--mapa-ambar-texto-2)" } : undefined} />
                   </button>
                 </div>
                 {selectedDoc.contentType?.startsWith("image/") ? (

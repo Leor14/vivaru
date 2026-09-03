@@ -924,7 +924,7 @@ export default function AdminDashboardPage() {
                     <CartesianGrid strokeDasharray="4 4" stroke="rgba(71,85,105,0.16)" vertical={false} />
                     <XAxis
                       dataKey="period"
-                      tick={{ fontSize: 12, fill: "#475569" }}
+                      tick={{ fontSize: 12, fill: "var(--mapa-azul-acento-3)" }}
                       tickFormatter={formatPeriodLabel}
                       axisLine={{ stroke: "rgba(71,85,105,0.28)" }}
                       tickLine={false}
@@ -932,7 +932,7 @@ export default function AdminDashboardPage() {
                     />
                     <YAxis
                       yAxisId="money"
-                      tick={{ fontSize: 12, fill: "#475569" }}
+                      tick={{ fontSize: 12, fill: "var(--mapa-azul-acento-3)" }}
                       tickFormatter={formatAmountCompact}
                       axisLine={{ stroke: "rgba(71,85,105,0.28)" }}
                       tickLine={false}
@@ -943,7 +943,7 @@ export default function AdminDashboardPage() {
                       orientation="right"
                       domain={[0, 100]}
                       tickFormatter={(value) => `${value}%`}
-                      tick={{ fontSize: 11, fill: "#4b6075" }}
+                      tick={{ fontSize: 11, fill: "var(--mapa-azul-acento-4)" }}
                       axisLine={false}
                       tickLine={false}
                       width={48}
